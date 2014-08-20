@@ -452,8 +452,8 @@ load_update_points ()
   int count = 0;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "sensor", "UPDATE_POINTS",
-                                             &points_list))
+      GNUNET_CONFIGURATION_get_value_string (cfg, "sensor-update",
+                                             "UPDATE_POINTS", &points_list))
   {
     return 0;
   }

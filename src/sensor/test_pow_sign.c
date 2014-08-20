@@ -76,12 +76,12 @@ static char msg[MSG_SIZE];
 /**
  * Private key of sending peer
  */
-struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
+static struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
 
 /**
  * Public key of sending peer
  */
-struct GNUNET_CRYPTO_EddsaPublicKey *public_key;
+static struct GNUNET_CRYPTO_EddsaPublicKey *public_key;
 
 
 /**
@@ -117,17 +117,13 @@ pow_cb (void *cls, struct GNUNET_SENSOR_crypto_pow_block *block)
   /* Test that the block is valid */
   GNUNET_assert (MSG_SIZE ==
                  GNUNET_SENSOR_crypto_verify_pow_sign (block, MATCHING_BITS,
-                                                       public_key,
-                                                       GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT,
-                                                       &response));
+                                                       public_key, &response));
   GNUNET_assert (0 == memcmp (msg, response, MSG_SIZE));
   /* Modify the payload and test that verification returns invalid */
   block->pow++;
   GNUNET_assert (0 ==
                  GNUNET_SENSOR_crypto_verify_pow_sign (block, MATCHING_BITS,
-                                                       public_key,
-                                                       GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT,
-                                                       &response));
+                                                       public_key, &response));
   ok = 0;
   GNUNET_SCHEDULER_cancel (shutdown_task);
   GNUNET_SCHEDULER_add_now (do_shutdown, NULL);

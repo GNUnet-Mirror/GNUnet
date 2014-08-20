@@ -34,6 +34,35 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-reporting",__VA_ARGS__)
 
 
+/**
+ * When we are still generating a proof-of-work and we need to send an anomaly
+ * report, we queue them until the generation is complete
+ */
+struct AnomalyReportingQueueItem
+{
+
+  /**
+   * DLL
+   */
+  struct AnomalyReportingQueueItem *prev;
+
+  /**
+   * DLL
+   */
+  struct AnomalyReportingQueueItem *next;
+
+  /**
+   * Message queue belonging to the peer that is the destination of the report
+   */
+  struct GNUNET_MQ_Handle *dest_mq;
+
+  /**
+   * Report type
+   */
+  int type;
+
+};
+
 struct AnomalyInfo
 {
 
@@ -61,6 +90,26 @@ struct AnomalyInfo
    * List of peers that reported an anomaly for this sensor
    */
   struct GNUNET_CONTAINER_MultiPeerMap *anomalous_neighbors;
+
+  /**
+   * Report block with proof-of-work and signature
+   */
+  struct GNUNET_SENSOR_crypto_pow_block *report_block;
+
+  /**
+   * Context of an operation creating pow and signature
+   */
+  struct GNUNET_SENSOR_crypto_pow_context *report_creation_cx;
+
+  /**
+   * Head of the queue of pending report destinations
+   */
+  struct AnomalyReportingQueueItem *reporting_queue_head;
+
+  /**
+   * Head of the queue of pending report destinations
+   */
+  struct AnomalyReportingQueueItem *reporting_queue_tail;
 
 };
 
@@ -214,6 +263,11 @@ static struct GNUNET_CADET_Handle *cadet;
 static struct GNUNET_PeerIdentity mypeerid;
 
 /**
+ * My private key
+ */
+static struct GNUNET_CRYPTO_EddsaPrivateKey *private_key;
+
+/**
  * Head of DLL of anomaly info structs
  */
 static struct AnomalyInfo *ai_head;
@@ -263,6 +317,11 @@ static int module_running = GNUNET_NO;
  */
 static int neighborhood;
 
+/**
+ * Parameter that defines the complexity of the proof-of-work
+ */
+static long long unsigned int pow_matching_bits;
+
 
 
 /******************************************************************************/
@@ -277,8 +336,31 @@ static int neighborhood;
 static void
 destroy_anomaly_info (struct AnomalyInfo *ai)
 {
+  struct AnomalyReportingQueueItem *ar_item;
+
+  ar_item = ai->reporting_queue_head;
+  while (NULL != ar_item)
+  {
+    GNUNET_CONTAINER_DLL_remove (ai->reporting_queue_head,
+                                 ai->reporting_queue_tail, ar_item);
+    GNUNET_free (ar_item);
+    ar_item = ai->reporting_queue_head;
+  }
+  if (NULL != ai->report_creation_cx)
+  {
+    GNUNET_SENSOR_crypto_pow_sign_cancel (ai->report_creation_cx);
+    ai->report_creation_cx = NULL;
+  }
+  if (NULL != ai->report_block)
+  {
+    GNUNET_free (ai->report_block);
+    ai->report_block = NULL;
+  }
   if (NULL != ai->anomalous_neighbors)
+  {
     GNUNET_CONTAINER_multipeermap_destroy (ai->anomalous_neighbors);
+    ai->anomalous_neighbors = NULL;
+  }
   GNUNET_free (ai);
 }
 
@@ -488,20 +570,135 @@ get_cadet_peer (struct GNUNET_PeerIdentity pid)
 
 
 /**
- * Create an anomaly report message from a given anomaly info struct inside a
- * MQ envelope.
+ * This function is called only when we have a block ready and want to send it
+ * to the given peer (represented by its message queue)
  *
- * @param ai Anomaly info struct to use
+ * @param mq Message queue to put the message in
+ * @param ai Anomaly info to report
  * @param type Message type
- * @return Envelope with message
  */
-static struct GNUNET_MQ_Envelope *
-create_anomaly_report_message (struct AnomalyInfo *ai, int type)
+static void
+do_send_anomaly_report (struct GNUNET_MQ_Handle *mq, struct AnomalyInfo *ai,
+                        int type)
+{
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_MQ_Envelope *ev;
+  size_t block_size;
+
+  GNUNET_assert (NULL != ai->report_block);
+  block_size =
+      sizeof (struct GNUNET_SENSOR_crypto_pow_block) +
+      ai->report_block->msg_size;
+  ev = GNUNET_MQ_msg_header_extra (msg, block_size, type);
+  memcpy (&msg[1], ai->report_block, block_size);
+  GNUNET_MQ_send (mq, ev);
+}
+
+
+/**
+ * Check if we have signed and proof-of-work block ready.
+ * If yes, we send the report directly, if no, we enqueue the reporting until
+ * the block is ready.
+ *
+ * @param mq Message queue to put the message in
+ * @param ai Anomaly info to report
+ * @param p2p Is the report sent to a neighboring peer
+ */
+static void
+send_anomaly_report (struct GNUNET_MQ_Handle *mq, struct AnomalyInfo *ai,
+                     int p2p)
+{
+  struct AnomalyReportingQueueItem *ar_item;
+  int type;
+
+  type =
+      (GNUNET_YES ==
+       p2p) ? GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P :
+      GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT;
+  if (NULL == ai->report_block)
+  {
+    ar_item = GNUNET_new (struct AnomalyReportingQueueItem);
+
+    ar_item->dest_mq = mq;
+    ar_item->type = type;
+    GNUNET_CONTAINER_DLL_insert_tail (ai->reporting_queue_head,
+                                      ai->reporting_queue_tail, ar_item);
+  }
+  else
+  {
+    do_send_anomaly_report (mq, ai, type);
+  }
+}
+
+
+/**
+ * Callback when the crypto module finished created proof-of-work and signature
+ * for an anomaly report.
+ *
+ * @param cls Closure, a `struct AnomalyInfo *`
+ * @param block The resulting block, NULL on error
+ */
+static void
+report_creation_cb (void *cls, struct GNUNET_SENSOR_crypto_pow_block *block)
+{
+  struct AnomalyInfo *ai = cls;
+  struct AnomalyReportingQueueItem *ar_item;
+
+  ai->report_creation_cx = NULL;
+  if (NULL != ai->report_block)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Double creation of proof-of-work, this should not happen.\n"));
+    return;
+  }
+  if (NULL == block)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Failed to create pow and signature block.\n"));
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Anomaly report POW block ready.\n");
+  ai->report_block = block;
+  ar_item = ai->reporting_queue_head;
+  while (NULL != ar_item)
+  {
+    GNUNET_CONTAINER_DLL_remove (ai->reporting_queue_head,
+                                 ai->reporting_queue_tail, ar_item);
+    do_send_anomaly_report (ar_item->dest_mq, ai, ar_item->type);
+    GNUNET_free (ar_item);
+    ar_item = ai->reporting_queue_head;
+  }
+}
+
+
+/**
+ * When a change to the anomaly info of a sensor is done, this function should
+ * be called to create the message, its proof-of-work and signuature ready to
+ * be sent to other peers or collection point.
+ *
+ * @param ai Anomaly Info struct
+ */
+static void
+update_anomaly_report_pow_block (struct AnomalyInfo *ai)
 {
   struct GNUNET_SENSOR_AnomalyReportMessage *arm;
-  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_TIME_Absolute timestamp;
 
-  ev = GNUNET_MQ_msg (arm, type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating anomaly report POW block due to data change.\n");
+  if (NULL != ai->report_block)
+  {
+    GNUNET_free (ai->report_block);
+    ai->report_block = NULL;
+  }
+  if (NULL != ai->report_creation_cx)
+  {
+    /* If a creation is already running, cancel it because the data changed */
+    GNUNET_SENSOR_crypto_pow_sign_cancel (ai->report_creation_cx);
+    ai->report_creation_cx = NULL;
+  }
+  arm = GNUNET_new (struct GNUNET_SENSOR_AnomalyReportMessage);
+
   GNUNET_CRYPTO_hash (ai->sensor->name, strlen (ai->sensor->name) + 1,
                       &arm->sensorname_hash);
   arm->sensorversion_major = htons (ai->sensor->version_major);
@@ -512,7 +709,14 @@ create_anomaly_report_message (struct AnomalyInfo *ai, int type)
        neighborhood) ? 0 : ((float)
                             GNUNET_CONTAINER_multipeermap_size
                             (ai->anomalous_neighbors)) / neighborhood;
-  return ev;
+  timestamp = GNUNET_TIME_absolute_get ();
+  ai->report_creation_cx =
+      GNUNET_SENSOR_crypto_pow_sign (arm,
+                                     sizeof (struct
+                                             GNUNET_SENSOR_AnomalyReportMessage),
+                                     &timestamp, &mypeerid.public_key,
+                                     private_key, pow_matching_bits,
+                                     &report_creation_cb, ai);
 }
 
 
@@ -542,29 +746,6 @@ create_value_message (struct ValueInfo *vi)
 }
 
 
-/**
- * Send given anomaly info report by putting it in the given message queue.
- *
- * @param mq Message queue to put the message in
- * @param ai Anomaly info to report
- * @param p2p Is the report sent to a neighboring peer
- */
-static void
-send_anomaly_report (struct GNUNET_MQ_Handle *mq, struct AnomalyInfo *ai,
-                     int p2p)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  int type;
-
-  type =
-      (GNUNET_YES ==
-       p2p) ? GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P :
-      GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT;
-  ev = create_anomaly_report_message (ai, type);
-  GNUNET_MQ_send (mq, ev);
-}
-
-
 /******************************************************************************/
 /***************************      CORE Handlers     ***************************/
 /******************************************************************************/
@@ -583,6 +764,7 @@ static int
 handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
                        const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_SENSOR_crypto_pow_block *report_block;
   struct GNUNET_SENSOR_AnomalyReportMessage *arm;
   struct GNUNET_SENSOR_SensorInfo *sensor;
   struct AnomalyInfo *my_anomaly_info;
@@ -590,7 +772,21 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
   int peer_anomalous;
   int peer_in_anomalous_list;
 
-  arm = (struct GNUNET_SENSOR_AnomalyReportMessage *) message;
+  /* Verify proof-of-work, signature and extract report message */
+  report_block = (struct GNUNET_SENSOR_crypto_pow_block *) &message[1];
+  if (sizeof (struct GNUNET_SENSOR_AnomalyReportMessage) !=
+      GNUNET_SENSOR_crypto_verify_pow_sign (report_block, pow_matching_bits,
+                                            (struct GNUNET_CRYPTO_EddsaPublicKey
+                                             *) &other->public_key,
+                                            (void **) &arm))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Received invalid anomaly report from peer `%s'.\n",
+         GNUNET_i2s (other));
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  /* Now we parse the content of the message */
   sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &arm->sensorname_hash);
   if (NULL == sensor ||
       sensor->version_major != ntohs (arm->sensorversion_major) ||
@@ -627,6 +823,8 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
       GNUNET_CONTAINER_multipeermap_remove_all
           (my_anomaly_info->anomalous_neighbors, other);
   }
+  /* This is important to create an updated block since the data changed */
+  update_anomaly_report_pow_block (my_anomaly_info);
   /* Send anomaly update to collection point only if I have the same anomaly */
   if (GNUNET_YES == my_anomaly_info->anomalous &&
       NULL != sensor->collection_point &&
@@ -839,6 +1037,8 @@ SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
   ai = get_anomaly_info_by_sensor (sensor);
   GNUNET_assert (NULL != ai);
   ai->anomalous = anomalous;
+  /* This is important to create an updated block since the data changed */
+  update_anomaly_report_pow_block (ai);
   /* Report change to all neighbors */
   corep = corep_head;
   while (NULL != corep)
@@ -928,6 +1128,8 @@ init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
   ai->anomalous = GNUNET_NO;
   ai->anomalous_neighbors =
       GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+  ai->report_block = NULL;
+  ai->report_creation_cx = NULL;
   GNUNET_CONTAINER_DLL_insert (ai_head, ai_tail, ai);
   /* Create sensor value info context (if needed to be reported) */
   if (NULL == sensor->collection_point || GNUNET_NO == sensor->report_values)
@@ -966,6 +1168,8 @@ SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
 {
   static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&handle_anomaly_report, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P,
+     sizeof (struct GNUNET_MessageHeader) +
+     sizeof (struct GNUNET_SENSOR_crypto_pow_block) +
      sizeof (struct GNUNET_SENSOR_AnomalyReportMessage)},
     {NULL, 0, 0}
   };
@@ -977,6 +1181,23 @@ SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
   GNUNET_assert (NULL != s);
   sensors = s;
   cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "sensor-reporting",
+                                             "POW_MATCHING_BITS",
+                                             &pow_matching_bits))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "sensor-reporting",
+                               "POW_MATCHING_BITS");
+    SENSOR_reporting_stop ();
+    return GNUNET_SYSERR;
+  }
+  if (pow_matching_bits > sizeof (struct GNUNET_HashCode))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Matching bits value too large (%d > %d).\n",
+         pow_matching_bits, sizeof (struct GNUNET_HashCode));
+    SENSOR_reporting_stop ();
+    return GNUNET_SYSERR;
+  }
   /* Connect to PEERSTORE */
   peerstore = GNUNET_PEERSTORE_connect (cfg);
   if (NULL == peerstore)
@@ -1004,6 +1225,13 @@ SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
   if (NULL == cadet)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to connect to CADET service.\n"));
+    SENSOR_reporting_stop ();
+    return GNUNET_SYSERR;
+  }
+  private_key = GNUNET_CRYPTO_eddsa_key_create_from_configuration (cfg);
+  if (NULL == private_key)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to load my private key.\n"));
     SENSOR_reporting_stop ();
     return GNUNET_SYSERR;
   }

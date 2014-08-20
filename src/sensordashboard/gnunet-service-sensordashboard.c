@@ -175,6 +175,11 @@ static struct ClientPeerContext *cp_head;
  */
 static struct ClientPeerContext *cp_tail;
 
+/**
+ * Parameter that defines the complexity of the proof-of-work
+ */
+static long long unsigned int pow_matching_bits;
+
 
 /**
  * Trigger sending next pending message to the given client peer if any.
@@ -419,6 +424,7 @@ handle_anomaly_report (void *cls, struct GNUNET_CADET_Channel *channel,
                        const struct GNUNET_MessageHeader *message)
 {
   struct ClientPeerContext *cp = *channel_ctx;
+  struct GNUNET_SENSOR_crypto_pow_block *report_block;
   struct GNUNET_SENSOR_AnomalyReportMessage *anomaly_msg;
   struct GNUNET_SENSOR_SensorInfo *sensor;
   struct GNUNET_SENSOR_DashboardAnomalyEntry *anomaly_entry;
@@ -427,7 +433,18 @@ handle_anomaly_report (void *cls, struct GNUNET_CADET_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received an anomaly report message from peer `%s'.\n",
               GNUNET_i2s (&cp->peerid));
-  anomaly_msg = (struct GNUNET_SENSOR_AnomalyReportMessage *) message;
+  report_block = (struct GNUNET_SENSOR_crypto_pow_block *) &message[1];
+  if (sizeof (struct GNUNET_SENSOR_AnomalyReportMessage) !=
+      GNUNET_SENSOR_crypto_verify_pow_sign (report_block, pow_matching_bits,
+                                            &cp->peerid.public_key,
+                                            (void **) &anomaly_msg))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received invalid anomaly report from peer `%s'.\n",
+                GNUNET_i2s (&cp->peerid));
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   sensor =
       GNUNET_CONTAINER_multihashmap_get (sensors,
                                          &anomaly_msg->sensorname_hash);
@@ -790,6 +807,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      sizeof (struct GNUNET_MessageHeader)},
     {&handle_anomaly_report,
      GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT,
+     sizeof (struct GNUNET_MessageHeader) +
+     sizeof (struct GNUNET_SENSOR_crypto_pow_block) +
      sizeof (struct GNUNET_SENSOR_AnomalyReportMessage)},
     {NULL, 0, 0}
   };
@@ -805,6 +824,26 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
   sensors = GNUNET_SENSOR_load_all_sensors (sensor_dir);
   GNUNET_assert (NULL != sensors);
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "sensor-reporting",
+                                             "POW_MATCHING_BITS",
+                                             &pow_matching_bits))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "sensor-reporting",
+                               "POW_MATCHING_BITS");
+    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+    return;
+  }
+  if (pow_matching_bits > sizeof (struct GNUNET_HashCode))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Matching bits value too large (%d > %d).\n", pow_matching_bits,
+                sizeof (struct GNUNET_HashCode));
+    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+    return;
+  }
+
   cadet =
       GNUNET_CADET_connect (cfg, NULL, &cadet_channel_created,
                             &cadet_channel_destroyed, cadet_handlers,

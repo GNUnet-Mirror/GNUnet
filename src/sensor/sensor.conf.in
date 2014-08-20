@@ -15,9 +15,6 @@ START_UPDATE = YES
 # If not set, will load from default location.
 #SENSOR_DIR = 
 
-# Space separated list of trusted peers running update points
-UPDATE_POINTS = 
-
 [sensor-analysis]
 MODEL = gaussian
 # How many subsequent values required to flip anomaly label. (Default: 1)
@@ -27,3 +24,10 @@ CONFIRMATION_COUNT = 3
 [sensor-model-gaussian]
 TRAINING_WINDOW = 1000
 CONFIDENCE_INTERVAL = 3
+
+[sensor-reporting]
+POW_MATCHING_BITS = 15
+
+[sensor-update]
+# Space separated list of trusted peers running update points
+UPDATE_POINTS =

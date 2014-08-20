@@ -322,11 +322,6 @@ struct GNUNET_SENSOR_AnomalyReportMessage
 {
 
   /**
-   * Message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
    * Hash of sensor name
    */
   struct GNUNET_HashCode sensorname_hash;
@@ -495,7 +490,6 @@ GNUNET_SENSOR_crypto_pow_sign (void *msg, size_t msg_size,
  * @param block The block received and needs to be verified
  * @param matching_bits Number of leading zeros in the hash used to verify pow
  * @param public_key Public key of the peer that sent this block
- * @param purpose Expected signing purpose
  * @param payload Where to store the pointer to the payload
  * @return Size of the payload
  */
@@ -503,8 +497,7 @@ size_t
 GNUNET_SENSOR_crypto_verify_pow_sign (struct GNUNET_SENSOR_crypto_pow_block *
                                       block, int matching_bits,
                                       struct GNUNET_CRYPTO_EddsaPublicKey *
-                                      public_key, uint32_t purpose,
-                                      void **payload);
+                                      public_key, void **payload);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
