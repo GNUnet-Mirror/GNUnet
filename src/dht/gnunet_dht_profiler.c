@@ -638,12 +638,7 @@ put_cont (void *cls, int success)
     n_puts_fail++;
   GNUNET_assert (NULL != ctx);
   GNUNET_TESTBED_operation_done (ctx->op);
-  /* Start GETs if all PUTs have been made */
-  if (n_active == n_puts_ok + n_puts_fail)
-  {
-    mode = MODE_GET;
-    start_profiling ();
-  }
+  ctx->op = NULL;
 }
 
 
@@ -755,8 +750,16 @@ dht_disconnect (void *cls, void *op_result)
   GNUNET_assert (ac->dht == op_result);
   GNUNET_DHT_disconnect (ac->dht);
   n_dht--;
-  if (0 == n_dht)
-    GNUNET_SCHEDULER_shutdown ();
+  if (0 != n_dht)
+    return;
+  /* Start GETs if all PUTs have been made */
+  if (MODE_PUT == mode)
+  {
+    mode = MODE_GET;
+    start_profiling ();
+    return;
+  }
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
