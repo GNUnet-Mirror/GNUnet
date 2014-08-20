@@ -3644,34 +3644,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   
   memcpy (&key_value, &(get->key), sizeof (uint64_t));
   key_value = GNUNET_ntohll (key_value);
-
-  /* I am not the final destination. I am part of trail to reach final dest. */
-  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity)))
-  {
-    next_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
-                                         GDS_ROUTING_SRC_TO_DEST);
-    if (NULL == next_hop)
-    {
-      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&intermediate_trail_id), __LINE__);
-      GNUNET_STATISTICS_update (GDS_stats,
-                                gettext_noop ("# Next hop to forward the packet not found "
-                                "GET request, packet dropped."),
-                                1, GNUNET_NO);
-      GNUNET_break (0);
-      return GNUNET_OK;
-    }
-  }
-  else
-  {
-    struct Closest_Peer successor;
-
-    successor = find_successor (key_value, GDS_FINGER_TYPE_NON_PREDECESSOR);
-    next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
-    *next_hop = successor.next_hop;
-    best_known_dest = successor.best_known_destination;
-    intermediate_trail_id = successor.trail_id;
-  }
   
   /* Check if you are already a part of get path. */
   unsigned int i;
@@ -3693,6 +3665,38 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                            get->desired_replication_level, get->get_path_length,
                            gp, &get->key);
   
+  /* I am not the final destination. I am part of trail to reach final dest. */
+  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity)))
+  {
+    next_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
+                                         GDS_ROUTING_SRC_TO_DEST);
+    if (NULL == next_hop)
+    {
+      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
+            GNUNET_i2s(&my_identity), GNUNET_h2s(&intermediate_trail_id), __LINE__);
+      GNUNET_STATISTICS_update (GDS_stats,
+                                gettext_noop ("# Next hop to forward the packet not found "
+                                "GET request, packet dropped."),
+                                1, GNUNET_NO);
+      GNUNET_break (0);
+      /* We are not able to proceed further*/
+      GDS_DATACACHE_handle_get (&(get->key),(get->block_type), NULL, 0, NULL, 0,
+                                get_length, gp, &gp[get_length - 2], 
+                                &my_identity);
+      return GNUNET_OK;
+    }
+  }
+  else
+  {
+    struct Closest_Peer successor;
+
+    successor = find_successor (key_value, GDS_FINGER_TYPE_NON_PREDECESSOR);
+    next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
+    *next_hop = successor.next_hop;
+    best_known_dest = successor.best_known_destination;
+    intermediate_trail_id = successor.trail_id;
+  }
+   
   /* I am the final destination. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &best_known_dest))
   {
@@ -5095,14 +5099,14 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
   }
 
   trail_rejection = (const struct PeerTrailRejectionMessage *) message;
-  trail_length = (msize - sizeof (struct PeerTrailRejectionMessage))/
-                  sizeof (struct GNUNET_PeerIdentity);
   if ((msize - sizeof (struct PeerTrailRejectionMessage)) %
       sizeof (struct GNUNET_PeerIdentity) != 0)
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+  trail_length = (msize - sizeof (struct PeerTrailRejectionMessage))/
+                  sizeof (struct GNUNET_PeerIdentity);
   
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
@@ -5118,9 +5122,13 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
           GNUNET_ntohll (trail_rejection->ultimate_destination_finger_value);
 
   /* First set the congestion time of the friend that sent you this message. */
-  GNUNET_assert (NULL !=
-                 (target_friend =
-                  GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer)));
+  target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer);
+  if (NULL == target_friend)
+  {
+    DEBUG ("\nLINE = %d ,No friend found.",__LINE__);
+    GNUNET_break(0);
+    return GNUNET_OK;
+  }
   target_friend->congestion_timestamp =
           GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
                                     congestion_timeout);
@@ -5137,10 +5145,15 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
       next_peer = source;
     else
       next_peer = trail_peer_list[trail_length-1];
-   
-    GNUNET_assert (NULL !=
-                  (target_friend =
-                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_peer)));
+
+    target_friend =
+                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_peer);
+    if (NULL == target_friend)
+    {
+      DEBUG ("\nLINE = %d ,No friend found.",__LINE__);
+      GNUNET_break(0);
+      return GNUNET_OK;
+    }
     GDS_NEIGHBOURS_send_trail_rejection (source,
                                          ultimate_destination_finger_value,
                                          my_identity, is_predecessor,
@@ -5160,11 +5173,15 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
       next_peer = source;
     else
       next_peer = trail_peer_list[trail_length-1];
-
-    GNUNET_assert (NULL !=
-                  (target_friend =
-                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_peer)));
-
+    
+    target_friend =
+                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_peer);
+    if (NULL == target_friend)
+    {
+      DEBUG ("\nLINE = %d ,No friend found.",__LINE__);
+      GNUNET_break(0);
+      return GNUNET_OK;
+    }
     GDS_NEIGHBOURS_send_trail_setup_result (source,
                                             my_identity,
                                             target_friend, trail_length,
@@ -5180,10 +5197,15 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
     memcpy (peer_list, trail_peer_list, trail_length * sizeof (struct GNUNET_PeerIdentity));
     peer_list[trail_length] = my_identity;
 
-    GNUNET_assert (NULL !=
-                  (target_friend =
+    target_friend =
                    GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
-                                                      &successor.next_hop)));
+                                                      &successor.next_hop);
+    if (NULL == target_friend)
+    {
+      DEBUG ("\nLINE = %d ,No friend found.",__LINE__);
+      GNUNET_break(0);
+      return GNUNET_OK;
+    }
     GDS_NEIGHBOURS_send_trail_setup (source,
                                      ultimate_destination_finger_value,
                                      successor.best_known_destination,
