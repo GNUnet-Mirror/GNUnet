@@ -785,6 +785,17 @@ start_profiling()
   }
 }
 
+static int 
+hashmap_iterate_remove(void *cls, 
+                       const struct GNUNET_HashCode *key, 
+                       void *value)
+{
+  struct GNUNET_HashCode *remove_key = key; 
+  GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(successor_peer_hashmap, key, value));
+  return GNUNET_YES;
+}
+
+
 static unsigned int tries;
 
 /**
@@ -814,8 +825,7 @@ successor_stats_cont (void *cls,
   start_val =
           (struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
                                                 start_key);
-  val = GNUNET_new(struct GNUNET_HashCode);
-  key = GNUNET_new(struct GNUNET_HashCode);
+
   val = start_val;
   for (count = 0; count < num_peers; count++)
   {
@@ -835,11 +845,19 @@ successor_stats_cont (void *cls,
       break;
     }
     /* If a peer has its own identity as its successor. */
-    if (0 == memcmp(&key, &val, sizeof (struct GNUNET_HashCode)))
+    if (0 == memcmp(key, val, sizeof (struct GNUNET_HashCode)))
     {
       break;
     } 
   }
+  
+  GNUNET_assert(GNUNET_SYSERR != 
+          GNUNET_CONTAINER_multihashmap_iterate (successor_peer_hashmap,
+                                                 hashmap_iterate_remove,
+                                                 NULL));
+  
+  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
+                                                                    GNUNET_NO);
   
   if ((start_val == val) && (count == num_peers))
   {
@@ -849,6 +867,7 @@ successor_stats_cont (void *cls,
     //are fill atleast O(log N) and then start with the experiments.
     if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
       start_profiling();
+    
     return;
   }
   else
@@ -859,7 +878,6 @@ successor_stats_cont (void *cls,
                   "Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
                   " cirle formation.  Exiting\n",
                   max_searches,tries);
-      //FIXME: FREE HASHMAP
       if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
       {
         successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
@@ -952,6 +970,8 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
   GNUNET_assert(NULL != testbed_handles);
+  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
+                                                                    GNUNET_NO);
   successor_stats_op = 
           GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
                                          "dht", NULL,
@@ -1014,8 +1034,6 @@ service_started (void *cls,
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;
      collect_stat_cls->op = op;
-     successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
-                                                                    GNUNET_NO);
      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                           &collect_stats,
                                                           collect_stat_cls);

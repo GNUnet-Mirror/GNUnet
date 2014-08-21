@@ -3471,7 +3471,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  DEBUG("GET FOR DATA_SIZE = %lu\n",msize);
+  
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), (int64_t) msize,
