@@ -376,7 +376,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (cnt=0; cnt < num_peers; cnt++)
     {
       if (NULL != a_ctx[cnt].op)
-        GNUNET_TESTBED_operation_done (a_ctx[cnt].op);
+        GNUNET_TESTBED_operation_done (a_ctx[cnt].op); //FIXME: assertion fails.
 
       /* Cleanup active context if this peer is an active peer */
       ac = a_ctx[cnt].ac;
@@ -447,12 +447,8 @@ bandwidth_stats_iterator (void *cls,
      outgoing_bandwidth = outgoing_bandwidth + value;
    else if (0 == strncmp(s_recv, name, strlen (s_recv)))
      incoming_bandwidth = incoming_bandwidth + value;
-   else
-     return GNUNET_OK;
-   DEBUG ("Bandwith - Out: %lu; In: %lu\n",
-          (unsigned long) outgoing_bandwidth,
-          (unsigned long) incoming_bandwidth);
-   return GNUNET_OK;
+   
+    return GNUNET_OK;
 }
 
 
@@ -696,7 +692,7 @@ dht_connected (void *cls,
   struct ActiveContext *ac = cls;
   struct Context *ctx = ac->ctx;
 
-  GNUNET_assert (NULL != ctx);
+  GNUNET_assert (NULL != ctx); //FIXME: Fails
   GNUNET_assert (NULL != ctx->op);
   GNUNET_assert (ctx->op == op);
   ac->dht = (struct GNUNET_DHT_Handle *) ca_result;
@@ -823,6 +819,7 @@ successor_stats_cont (void *cls,
     key = val;
     val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
                                              key);
+    //FIXME: REMOVE ENTRY FROM HASHMAP
     GNUNET_assert(NULL != val);
     count++;
   }
@@ -849,7 +846,7 @@ successor_stats_cont (void *cls,
       if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
       {
         successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
-        //FIXME: free hashmap
+        //FIXME: FREE HASHMAP
       }
       
       if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
@@ -972,6 +969,9 @@ service_started (void *cls,
   DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
   if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
   {
+    //FIXME: Here we have started service on all the peers, now we should first
+    // call act malicious API on malicious peer context. it will just set,
+    // act_malicious to 1 in the selected peers. and then it exists
      DEBUG("successor_stats_task \n");
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;

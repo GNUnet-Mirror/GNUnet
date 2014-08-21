@@ -45,7 +45,7 @@
 /**
  * Maximum number of entries in routing table.
  */
-#define ROUTING_TABLE_THRESHOLD 1000
+#define ROUTING_TABLE_THRESHOLD 80000
 
 /**
  * FIXME: Store friend pointer instead of peer identifier. 
