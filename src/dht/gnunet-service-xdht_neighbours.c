@@ -2852,8 +2852,8 @@ send_trail_teardown (struct FingerInfo *finger,
                                        GDS_ROUTING_SRC_TO_DEST);
   if (NULL == next_hop)
   {
-    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line=%d,traillength = %d",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&trail->trail_id), __LINE__,trail->trail_length);
+//    DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line=%d,traillength = %d",
+//            GNUNET_i2s(&my_identity), GNUNET_h2s(&trail->trail_id), __LINE__,trail->trail_length);
     return;
   }
   GNUNET_assert (0 != GNUNET_CRYPTO_cmp_peer_identity (&finger->finger_identity,

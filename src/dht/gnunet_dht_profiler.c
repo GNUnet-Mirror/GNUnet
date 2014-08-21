@@ -182,6 +182,16 @@ static struct ActiveContext *a_ac;
 static struct GNUNET_TIME_Relative delay;
 
 /**
+ * The delay to start puts.
+ */
+static struct GNUNET_TIME_Relative delay_put;
+
+/**
+ * The delay to start puts.
+ */
+static struct GNUNET_TIME_Relative delay_get;
+
+/**
  * The timeout for GET and PUT
  */
 static struct GNUNET_TIME_Relative timeout;
@@ -790,7 +800,6 @@ hashmap_iterate_remove(void *cls,
                        const struct GNUNET_HashCode *key, 
                        void *value)
 {
-  struct GNUNET_HashCode *remove_key = key; 
   GNUNET_assert(GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove(successor_peer_hashmap, key, value));
   return GNUNET_YES;
 }
@@ -1193,6 +1202,8 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20); /* default delay */
+  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1); /* default delay */
+  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5); /* default delay */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default timeout */
   replication = 1;      /* default replication */
   rc = 0;
