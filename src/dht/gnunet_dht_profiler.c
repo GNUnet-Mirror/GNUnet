@@ -717,10 +717,10 @@ dht_connected (void *cls,
   switch (mode)
   {
   case MODE_PUT:
-    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_put, ac);
+    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay_put, &delayed_put, ac);
     break;
   case MODE_GET:
-    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_get, ac);
+    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay_get, &delayed_get, ac);
     break;
   }
 }

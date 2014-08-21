@@ -3328,8 +3328,8 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
                                               &successor->finger_identity))
     {
-      find_finger_trail_task_next_send_time = 
-              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
+//      find_finger_trail_task_next_send_time = 
+//              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
       current_search_finger_index = 0;
       GNUNET_STATISTICS_update (GDS_stats,
                                 gettext_noop
@@ -4980,8 +4980,8 @@ handle_dht_p2p_verify_successor_result(void *cls,
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
     /* As we completed one round of verify successor, we can do backoff. */
-    verify_successor_next_send_time =
-                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
+//    verify_successor_next_send_time =
+//                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
     return GNUNET_OK;
