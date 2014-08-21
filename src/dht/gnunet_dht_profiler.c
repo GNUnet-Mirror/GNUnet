@@ -802,37 +802,47 @@ successor_stats_cont (void *cls,
 {
   struct GNUNET_HashCode *val;
   struct GNUNET_HashCode *start_val;
-  int count = 0;
   struct GNUNET_HashCode *key;
-
+  int count;
+  
+  /* Don't schedule the task till we are looking for circle here. */
   successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTBED_operation_done (successor_stats_op);
   successor_stats_op = NULL;
-  start_val =(struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
+  
+  start_val =
+          (struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
                                                 start_key);
-
   val = GNUNET_new(struct GNUNET_HashCode);
+  key = GNUNET_new(struct GNUNET_HashCode);
   val = start_val;
-  while (count < num_peers)
+  for (count = 0; count < num_peers; count++)
   {
-    key = GNUNET_new(struct GNUNET_HashCode);
     key = val;
     val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
                                              key);
-    //FIXME: REMOVE ENTRY FROM HASHMAP
     GNUNET_assert(NULL != val);
-    count++;
+    /* Remove the entry from hashmap. This is done to take care of loop. */
+    if (GNUNET_NO == 
+            GNUNET_CONTAINER_multihashmap_remove (successor_peer_hashmap,
+                                                  key, val))
+    {
+      DEBUG ("Failed to remove entry from hashmap\n");
+      break;
+    }
+    /* If a peer has its own identity as its successor. */
+    if (0 == memcmp(&key, &val, sizeof (struct GNUNET_HashCode)))
+    {
+      break;
+    } 
   }
   
-  if (start_val == val)
+  if ((start_val == val) && (count == num_peers))
   {
     DEBUG("CIRCLE COMPLETED after %u tries", tries);
-    
+    //FIXME: FREE HASHMAP.
     if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
-    {
       start_profiling();
-    }
-    
     return;
   }
   else
@@ -843,12 +853,11 @@ successor_stats_cont (void *cls,
                   "Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
                   " cirle formation.  Exiting\n",
                   max_searches,tries);
+      //FIXME: FREE HASHMAP
       if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
       {
         successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
-        //FIXME: FREE HASHMAP
       }
-      
       if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
       {
         start_profiling();
@@ -857,7 +866,7 @@ successor_stats_cont (void *cls,
       return;
     }
     
-    //FIXME: change delay use exponential back off. 
+    flag = 0;
     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, &collect_stats, cls);
   }
 }
@@ -911,6 +920,8 @@ successor_stats_iterator (void *cls,
       start_key = my_id_key;
       flag = 1;
     }
+    /* FIXME: GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE do not free the value
+     which is replaced, need to free it. */
     GNUNET_CONTAINER_multihashmap_put (successor_peer_hashmap,
                                        my_id_key, (void *)succ_key,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
@@ -932,12 +943,7 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
-  DEBUG("num_peers = %d", num_peers);
   GNUNET_assert(NULL != testbed_handles);
-         
-  
- /* Check for successor pointer, don't start put till the virtual ring topology
-   is not created. */
   successor_stats_op = 
           GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
                                          "dht", NULL,
@@ -947,6 +953,30 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert(NULL != successor_stats_op);
 }
 
+
+#if ENABLE_MALICIOUS
+/**
+ * Set the malicious variable in peer malicious context.
+ */
+static void
+set_malicious()
+{
+  unsigned int i;
+  DEBUG ("Setting %u peers malicious");
+  for(i = 0; i < n_malicious; i++)
+  {
+    struct MaliciousContext *mc = &a_mc[i];
+    mc->ctx->op =
+        GNUNET_TESTBED_service_connect (ac->ctx,
+                                        ac->ctx->peer,
+                                        "dht",
+                                        &dht_set_malicious, mc,
+                                        &dht_connect,
+                                        &dht_finish,
+                                        mc);
+  }
+}
+#endif
 /**
  * Callback called when DHT service on the peer is started
  *
@@ -969,9 +999,9 @@ service_started (void *cls,
   DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
   if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
   {
-    //FIXME: Here we have started service on all the peers, now we should first
-    // call act malicious API on malicious peer context. it will just set,
-    // act_malicious to 1 in the selected peers. and then it exists
+#if ENABLE_MALICIOUS
+    set_malicious();
+#endif
      DEBUG("successor_stats_task \n");
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;
