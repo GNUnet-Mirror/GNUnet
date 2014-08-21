@@ -394,6 +394,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (a_ctx);
     a_ctx = NULL;
   }
+  //FIXME: Should we collect stats only for put/get not for other messages.
   if(NULL != bandwidth_stats_op)
     GNUNET_TESTBED_operation_done (bandwidth_stats_op);
   bandwidth_stats_op = NULL;
@@ -588,7 +589,7 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   get_ac->nrefs++;
   ac->get_ac = get_ac;
-  DEBUG ("PUT_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
+  DEBUG ("GET_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
                                       &get_ac->hash,
@@ -821,7 +822,10 @@ successor_stats_cont (void *cls,
     key = val;
     val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
                                              key);
-    GNUNET_assert(NULL != val);
+    if(NULL == val)
+    {
+      break;
+    }
     /* Remove the entry from hashmap. This is done to take care of loop. */
     if (GNUNET_NO == 
             GNUNET_CONTAINER_multihashmap_remove (successor_peer_hashmap,
@@ -841,6 +845,8 @@ successor_stats_cont (void *cls,
   {
     DEBUG("CIRCLE COMPLETED after %u tries", tries);
     //FIXME: FREE HASHMAP.
+    //FIXME: If circle is done, then check that finger table of all the peers
+    //are fill atleast O(log N) and then start with the experiments.
     if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
       start_profiling();
     return;
@@ -849,7 +855,7 @@ successor_stats_cont (void *cls,
   {
     if (max_searches == ++tries)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
                   " cirle formation.  Exiting\n",
                   max_searches,tries);
@@ -865,10 +871,12 @@ successor_stats_cont (void *cls,
       
       return;
     }
-    
-    flag = 0;
-    successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, &collect_stats, cls);
-  }
+    else
+    {
+      flag = 0;
+      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, &collect_stats, cls);
+    }
+  } 
 }
 
 

@@ -134,7 +134,6 @@ GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode trail_id,
   struct RoutingTrail *trail;
 
   trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
-
   if (NULL == trail)
   {
     /* If a friend got disconnected and we removed all the entry from the
@@ -166,7 +165,6 @@ GDS_ROUTING_remove_trail (const struct GNUNET_HashCode remove_trail_id)
   struct RoutingTrail *remove_entry;
 
   remove_entry = GNUNET_CONTAINER_multihashmap_get (routing_table, &remove_trail_id);
-
   if (NULL == remove_entry)
     return GNUNET_NO;
   
