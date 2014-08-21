@@ -1201,7 +1201,7 @@ main (int argc, char *const *argv)
   max_searches = 5;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20); /* default delay */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30); /* default delay */
   delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1); /* default delay */
   delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5); /* default delay */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default timeout */
