@@ -2155,10 +2155,10 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
   next_hop = successor.next_hop;
   intermediate_trail_id = successor.trail_id;
 
+  DEBUG("PUT_REQUEST_RECEVIED KEY = %s \n",GNUNET_h2s(key));
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity))
   {
     /* I am the destination. */
-    DEBUG("PUT destination is me = %s,key =%s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(key));
     GDS_DATACACHE_handle_put (expiration_time, key, 0, NULL,
                               block_type,data_size,data);
     GDS_CLIENTS_process_put (options, block_type, 0,
@@ -2297,12 +2297,12 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
   
   best_known_dest = successor.best_known_destination;
   intermediate_trail_id = successor.trail_id;
-
+  
+  DEBUG("GET_REQUEST_RECEVIED KEY = %s \n",GNUNET_h2s(key));
   /* I am the destination. I have the data. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity,
                                             &best_known_dest))
   {
-    DEBUG("GET destination is me = %s,KEY = %s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(key));
     GDS_DATACACHE_handle_get (key,block_type, NULL, 0,
                               NULL, 0, 1, &my_identity, NULL,&my_identity);
     return;
@@ -2312,8 +2312,8 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
    across all the fingers. but in current implementation we don't have this case.
    compare finger and current_successor returns, */
   GDS_NEIGHBOURS_send_get (key, block_type, options, desired_replication_level,
-                          best_known_dest,intermediate_trail_id, &successor.next_hop,
-                          0, 1, &my_identity);
+                           best_known_dest,intermediate_trail_id, &successor.next_hop,
+                           0, 1, &my_identity);
 }
 
 
@@ -2366,7 +2366,6 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
     GNUNET_break(0);
     return;
   }
-  DEBUG("GET RESULT  FOR DATA_SIZE = %lu\n",msize);
   current_path_index = 0;
   if(get_path_length > 0)
   {
@@ -2385,6 +2384,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
   }
   if (0 == current_path_index)
   {
+    DEBUG ("GET_RESULT TO CLIENT KEY = %s, Peer = %s",GNUNET_h2s(key),GNUNET_i2s(&my_identity));
     GDS_CLIENTS_handle_reply (expiration, key, get_path_length,
                               get_path, put_path_length,
                               put_path, type, data_size, data);
@@ -3417,6 +3417,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   void *payload;
   size_t msize;
   uint32_t putlen;
+  uint32_t hop_count;
   size_t payload_size;
   uint64_t key_value;
 
@@ -3457,9 +3458,10 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   payload = &put_path[putlen];
   options = ntohl (put->options);
   intermediate_trail_id = put->intermediate_trail_id;
+  hop_count = ntohl(put->hop_count);
   payload_size = msize - (sizeof (struct PeerPutMessage) +
                           putlen * sizeof (struct GNUNET_PeerIdentity));
-
+  hop_count++;
   switch (GNUNET_BLOCK_get_key (GDS_block_context, ntohl (put->block_type),
                                 payload, payload_size, &test_key))
   {
@@ -3570,10 +3572,10 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   
 
-
+  
   GDS_CLIENTS_process_put (options,
                            ntohl (put->block_type),
-                           ntohl (put->hop_count),
+                           hop_count,
                            ntohl (put->desired_replication_level),
                            putlen, pp,
                            GNUNET_TIME_absolute_ntoh (put->expiration_time),
@@ -3584,7 +3586,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* I am the final destination */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &best_known_dest))
   {
-    DEBUG("PUT destination is me = %s,KEY = %s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(&(put->key)));
     GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
                               &(put->key),putlen, pp, ntohl (put->block_type),
                               payload_size, payload);
@@ -3595,7 +3596,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                              ntohl (put->block_type),ntohl (put->options),
                              ntohl (put->desired_replication_level),
                              best_known_dest, intermediate_trail_id, next_hop,
-                             ntohl (put->hop_count), putlen, pp,
+                             hop_count, putlen, pp,
                              GNUNET_TIME_absolute_ntoh (put->expiration_time),
                              payload, payload_size);
    }
@@ -3625,6 +3626,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_PeerIdentity *next_hop;
   uint32_t get_length;
   uint64_t key_value;
+  uint32_t hop_count;
   size_t msize;
 
 #if ENABLE_MALICIOUS
@@ -3647,7 +3649,9 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   best_known_dest = get->best_known_destination;
   intermediate_trail_id = get->intermediate_trail_id;
   get_path = (const struct GNUNET_PeerIdentity *)&get[1];
-
+  hop_count = get->hop_count;
+  hop_count++;
+  
   if ((msize <
        sizeof (struct PeerGetMessage) +
        get_length * sizeof (struct GNUNET_PeerIdentity)) ||
@@ -3657,7 +3661,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
-  DEBUG("PUT FOR DATA_SIZE = %lu\n",msize);
+  
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), msize,
@@ -3682,7 +3686,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   memcpy (gp, get_path, get_length * sizeof (struct GNUNET_PeerIdentity));
   gp[get_length] = my_identity;
   get_length = get_length + 1;
-  GDS_CLIENTS_process_get (get->options, get->block_type,get->hop_count,
+  GDS_CLIENTS_process_get (get->options, get->block_type, hop_count,
                            get->desired_replication_level, get->get_path_length,
                            gp, &get->key);
   
@@ -3721,8 +3725,6 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* I am the final destination. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &best_known_dest))
   {
-    DEBUG("GET destination is me = %s,KEY = %s,get_length = %d\n",
-            GNUNET_i2s(&my_identity),GNUNET_h2s(&(get->key)),get_length);
     if (1 == get_length)
     {
       GDS_DATACACHE_handle_get (&(get->key),(get->block_type), NULL, 0,
@@ -3739,7 +3741,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
                              get->desired_replication_level, best_known_dest,
-                             intermediate_trail_id, next_hop, 0,
+                             intermediate_trail_id, next_hop, hop_count,
                              get_length, gp);
   }
   return GNUNET_YES;

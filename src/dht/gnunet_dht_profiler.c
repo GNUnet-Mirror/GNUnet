@@ -588,7 +588,7 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   get_ac->nrefs++;
   ac->get_ac = get_ac;
-  DEBUG ("Doing a DHT GET for data of size %u\n", get_ac->put_data_size);
+  DEBUG ("PUT_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
                                       &get_ac->hash,
@@ -660,7 +660,7 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
                               ac->put_data, ac->put_data_size);
   GNUNET_CRYPTO_hash (ac->put_data, ac->put_data_size, &ac->hash);
-  DEBUG ("Doing a DHT PUT with data of size %u\n", ac->put_data_size);
+  DEBUG ("PUT_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
   ac->dht_put = GNUNET_DHT_put (ac->dht, &ac->hash,
                                 replication,
                                 GNUNET_DHT_RO_NONE,

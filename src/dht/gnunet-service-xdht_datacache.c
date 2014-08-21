@@ -81,7 +81,9 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
-   DEBUG("PUT doing put key = %s\n",GNUNET_h2s((key)));
+  
+  struct GNUNET_PeerIdentity peer = GDS_NEIGHBOURS_get_my_id();
+  DEBUG("DATACACHE_PUT KEY = %s, peer = %s\n",GNUNET_h2s(key),GNUNET_i2s(&peer));
   r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
                             put_path_length, put_path);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -335,12 +337,10 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
       i++;
     }
   }
-
+  
   r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
                             &ctx);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "DATACACHE GET for key %s completed (%d). %u results found.\n",
-       GNUNET_h2s (key), ctx.eval, r);
+  DEBUG ("DATACACHE_GET for key %s completed (%d). %u results found.\n",GNUNET_h2s (key), ctx.eval, r);
   return ctx.eval;
 }
 
