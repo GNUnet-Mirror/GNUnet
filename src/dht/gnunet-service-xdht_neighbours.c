@@ -5126,7 +5126,8 @@ handle_dht_p2p_verify_successor_result(void *cls,
 //                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
     
     // Cancel Retry Task
-    GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
+    if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
+      GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
         
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
