@@ -88,6 +88,11 @@
 #define DHT_SEND_VERIFY_SUCCESSOR_RETRY_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 /**
+ * How long to wait before retrying notify successor.
+ */
+#define DHT_SEND_NOTIFY_SUCCESSOR_RETRY_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
+/**
  * How long at most to wait for transmission of a request to a friend ?
  */
 #define PENDING_MESSAGE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
@@ -865,6 +870,12 @@ static GNUNET_SCHEDULER_TaskIdentifier send_verify_successor_task;
 static GNUNET_SCHEDULER_TaskIdentifier send_verify_successor_retry_task;
 
 /**
+ * Task that sends verify successor message. This task is started when we get
+ * our successor for the first time.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier send_notify_new_successor_retry_task;
+
+/**
  * Identity of this peer.
  */
 static struct GNUNET_PeerIdentity my_identity;
@@ -913,10 +924,15 @@ static struct GNUNET_TIME_Relative verify_successor_next_send_time;
 static struct GNUNET_TIME_Relative verify_successor_retry_time;
 
 /**
+ * Time duration to retry send_notify_successor.
+ */
+static struct GNUNET_TIME_Relative notify_successor_retry_time;
+
+/**
  * Are we waiting for confirmation from our new successor that it got the
  * message
  */
-static unsigned int waiting_for_notify_confirmation;
+//static unsigned int waiting_for_notify_confirmation;
 
 /* Below variables are used only for testing, and statistics collection. */
 /**
@@ -3168,6 +3184,9 @@ send_verify_successor_message (void *cls,
   unsigned int i = 0;
   struct FingerInfo *successor;
 
+  /* This task will be scheduled when the result for Verify Successor is received. */
+  send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
+  
   /* After one round of verify successor, we do back off. */
   send_verify_successor_retry_task =
       GNUNET_SCHEDULER_add_delayed (verify_successor_retry_time,
@@ -3176,11 +3195,11 @@ send_verify_successor_message (void *cls,
   successor = &finger_table[0];
   /* We are waiting for a confirmation from the notify message and we have not
    * crossed the wait time, then return. */
-  if ((1 == waiting_for_notify_confirmation) 
-      && (0 != GNUNET_TIME_absolute_get_remaining(successor->wait_notify_confirmation).rel_value_us))
-  {
-    return;
-  }
+//  if ((1 == waiting_for_notify_confirmation) 
+//      && (0 != GNUNET_TIME_absolute_get_remaining(successor->wait_notify_confirmation).rel_value_us))
+//  {
+//    return;
+//  }
   /* Among all the trails to reach to successor, select first one which is present.*/
   for (i = 0; i < successor->trails_count; i++)
   {
@@ -3483,13 +3502,13 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
       remove_existing_finger (existing_finger, finger_table_index);
       add_new_finger (finger_identity, finger_trail, finger_trail_length,
                       finger_trail_id, finger_table_index);
-      if ((0 == finger_table_index) && (1 == waiting_for_notify_confirmation))
-      {
-        /* SUPUS: We have removed our successor, but we are still waiting for a 
-         * confirmation. As we have removed successor, then it does not make
-         sense to wait for the new successor. */
-        waiting_for_notify_confirmation = 0;
-      }
+//      if ((0 == finger_table_index) && (1 == waiting_for_notify_confirmation))
+//      {
+//        /* SUPUS: We have removed our successor, but we are still waiting for a 
+//         * confirmation. As we have removed successor, then it does not make
+//         sense to wait for the new successor. */
+//        waiting_for_notify_confirmation = 0;
+//      }
     }
     else
     {
@@ -4942,6 +4961,21 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
   return (struct GNUNET_PeerIdentity*)trail_me_to_probable_successor;
 }
 
+// TODO: Move up
+struct SendNotifyContext 
+{
+  struct GNUNET_PeerIdentity source_peer;
+  struct GNUNET_PeerIdentity successor;
+  struct GNUNET_PeerIdentity *successor_trail;
+  unsigned int successor_trail_length;
+  struct GNUNET_HashCode succesor_trail_id;
+  struct FriendInfo *target_friend;
+};
+
+void
+send_notify_new_successor (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext
+                           * tc);
 
 /**
  * Check if the peer which sent us verify successor result message is still ours
@@ -4979,8 +5013,28 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   /* If probable successor is same as current_successor, do nothing. */
   if(0 == GNUNET_CRYPTO_cmp_peer_identity (&probable_successor,
                                            &current_successor->finger_identity))
+  {
+    if ((NULL != GDS_stats))
+    {
+      char *my_id_str;
+      uint64_t succ;
+      char *key;
+    
+      my_id_str = GNUNET_strdup (GNUNET_i2s_full (&my_identity));
+      memcpy(&succ, &current_successor->finger_identity, sizeof(uint64_t));
+      GNUNET_asprintf (&key, "XDHT:%s:", my_id_str);
+      GNUNET_free (my_id_str);
+      GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
+      GNUNET_free (key);
+    }
+    // TODO: Schedule verify_successor
+    if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+      send_verify_successor_task = 
+              GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
+                                           &send_verify_successor_message,
+                                           NULL);
     return;
-  
+  }
   closest_peer = select_closest_peer (&probable_successor,
                                       &current_successor->finger_identity,
                                       successor_value, is_predecessor);
@@ -5003,6 +5057,12 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
+    // TODO: Schedule verify_successor
+    if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+      send_verify_successor_task = 
+              GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
+                                           &send_verify_successor_message,
+                                           NULL);
     return;
   }
   
@@ -5051,19 +5111,69 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
                   trail_me_to_probable_succ_len, trail_id, 0);
   /* SUPUS We are sending notify message, but before sending the next request
      we should wait for confirmation. */
-  waiting_for_notify_confirmation = 1;
-  current_successor = &finger_table[0];
-  current_successor->wait_notify_confirmation = 
-          GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
-                                    WAIT_NOTIFY_CONFIRMATION);
-  GDS_NEIGHBOURS_send_notify_new_successor (my_identity, probable_successor,
-                                            trail_me_to_probable_succ,
-                                            trail_me_to_probable_succ_len,
-                                            trail_id,
-                                            target_friend);
+  // TODO : remove the following commented part
+//  waiting_for_notify_confirmation = 1;
+//  current_successor = &finger_table[0];
+//  current_successor->wait_notify_confirmation = 
+//          GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+//                                    WAIT_NOTIFY_CONFIRMATION);
+  struct SendNotifyContext *notify_ctx;
+  
+  notify_ctx = GNUNET_new(struct SendNotifyContext);
+  
+  notify_ctx->source_peer = my_identity;
+  notify_ctx->successor = probable_successor;
+  notify_ctx->successor_trail = 
+          GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity) * trail_me_to_probable_succ_len);
+  memcpy(notify_ctx->successor_trail, trail_me_to_probable_succ, 
+         sizeof(struct GNUNET_PeerIdentity) * trail_me_to_probable_succ_len);
+  notify_ctx->successor_trail_length = trail_me_to_probable_succ_len;
+  notify_ctx->succesor_trail_id = trail_id;
+  notify_ctx->target_friend = target_friend;
+  
+//  GDS_NEIGHBOURS_send_notify_new_successor (my_identity, probable_successor,
+//                                            trail_me_to_probable_succ,
+//                                            trail_me_to_probable_succ_len,
+//                                            trail_id,
+//                                            target_friend);
+
+  GNUNET_SCHEDULER_add_now(&send_notify_new_successor, (void*)notify_ctx);
+  
   return;
 }
 
+
+
+void
+send_notify_new_successor (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext
+                           * tc)
+{
+  struct SendNotifyContext *ctx = (struct SendNotifyContext *) cls;
+  
+  GDS_NEIGHBOURS_send_notify_new_successor (ctx->source_peer,
+                                            ctx->successor,
+                                            ctx->successor_trail,
+                                            ctx->successor_trail_length,
+                                            ctx->succesor_trail_id,
+                                            ctx->target_friend);
+
+  if (send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    // Result from previous notify successos hasn't arrived, so the retry task
+    // hasn't been cancelled! Already a new notify successor must be called.
+    // We will cancel the retry request.
+    struct SendNotifyContext *old_notify_ctx;
+    old_notify_ctx = GNUNET_SCHEDULER_cancel(send_notify_new_successor_retry_task);
+    GNUNET_free (old_notify_ctx->successor_trail);
+    GNUNET_free (old_notify_ctx);
+    send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  
+  send_notify_new_successor_retry_task = GNUNET_SCHEDULER_add_delayed(notify_successor_retry_time,
+                                                                        &send_notify_new_successor,
+                                                                        cls);
+}
 
 /*
  * Core handle for p2p verify successor result messages.
@@ -5130,13 +5240,14 @@ handle_dht_p2p_verify_successor_result(void *cls,
     {
       GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
       send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
-    }   
+    }
+    
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
     
     // Schedule send_verify_successor_task in appropriate time.
-    send_verify_successor_task = GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time, 
-            send_verify_successor_message, NULL);
+//    send_verify_successor_task = GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time, 
+//            send_verify_successor_message, NULL);
     
     return GNUNET_OK;
   }
@@ -5290,7 +5401,7 @@ handle_dht_p2p_notify_succ_confirmation (void *cls,
   struct FriendInfo *target_friend;
   struct GNUNET_PeerIdentity *next_hop;
   size_t msize;
-
+  
   msize = ntohs (message->size);
 
   if (msize != sizeof (struct PeerNotifyConfirmationMessage))
@@ -5325,7 +5436,25 @@ handle_dht_p2p_notify_succ_confirmation (void *cls,
     * which may or may not be source of this message. This message is used
     * only to ensure that we have a path setup to reach to our successor.
     */
-    waiting_for_notify_confirmation = 0;
+    
+    // TODO: cancel schedule of notify_successor_retry_task
+    if (send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      struct SendNotifyContext *notify_ctx;
+      notify_ctx = GNUNET_SCHEDULER_cancel(send_notify_new_successor_retry_task);
+      GNUNET_free (notify_ctx->successor_trail);
+      GNUNET_free (notify_ctx);
+      send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    
+    // TODO: Schedule verify_successor task
+    if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+      send_verify_successor_task = 
+              GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
+                                           &send_verify_successor_message,
+                                           NULL);
+    
+//    waiting_for_notify_confirmation = 0;
     //FIXME: Should we reset the time out to 0?
   }
   else
@@ -5974,6 +6103,12 @@ GDS_NEIGHBOURS_init (void)
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 DHT_SEND_VERIFY_SUCCESSOR_RETRY_INTERVAL.rel_value_us);
   
+  notify_successor_retry_time.rel_value_us = 
+      DHT_SEND_NOTIFY_SUCCESSOR_RETRY_INTERVAL.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_SEND_NOTIFY_SUCCESSOR_RETRY_INTERVAL.rel_value_us);
+      
+  
   return GNUNET_OK;
 }
 
@@ -6017,7 +6152,6 @@ GDS_NEIGHBOURS_done (void)
 
   if (GNUNET_SCHEDULER_NO_TASK != find_finger_trail_task)
   {
-    GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (find_finger_trail_task);
     find_finger_trail_task = GNUNET_SCHEDULER_NO_TASK;
   }
@@ -6032,6 +6166,15 @@ GDS_NEIGHBOURS_done (void)
   {
     GNUNET_SCHEDULER_cancel (send_verify_successor_retry_task);
     send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  
+  if (send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    struct SendNotifyContext *notify_ctx;
+    notify_ctx = GNUNET_SCHEDULER_cancel(send_notify_new_successor_retry_task);
+    GNUNET_free (notify_ctx->successor_trail);
+    GNUNET_free (notify_ctx);
+    send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
   }
 }
 

@@ -1256,7 +1256,7 @@ main (int argc, char *const *argv)
   /* set default delays */
   delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
   delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
-  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
+  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
   replication = 1;      /* default replication */
   rc = 0;
