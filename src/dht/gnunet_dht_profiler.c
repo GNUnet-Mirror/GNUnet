@@ -564,7 +564,8 @@ get_iter (void *cls,
   get_ac->nrefs--;
   GNUNET_DHT_get_stop (ac->dht_get);
   ac->dht_get = NULL;
-  GNUNET_SCHEDULER_cancel (ac->delay_task);
+  if (ac->delay_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (ac->delay_task);
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != ctx->op);
   GNUNET_TESTBED_operation_done (ctx->op);

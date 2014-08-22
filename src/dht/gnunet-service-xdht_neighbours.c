@@ -5127,8 +5127,10 @@ handle_dht_p2p_verify_successor_result(void *cls,
     
     // Cancel Retry Task
     if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
+    {
       GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
-        
+      send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+    }   
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
     
@@ -6024,6 +6026,12 @@ GDS_NEIGHBOURS_done (void)
   {
     GNUNET_SCHEDULER_cancel (send_verify_successor_task);
     send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
+  {
+    GNUNET_SCHEDULER_cancel (send_verify_successor_retry_task);
+    send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
   }
 }
 
