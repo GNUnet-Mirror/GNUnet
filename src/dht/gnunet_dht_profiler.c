@@ -385,21 +385,23 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     for (cnt=0; cnt < num_peers; cnt++)
     {
-      if (NULL != a_ctx[cnt].op)
-        GNUNET_TESTBED_operation_done (a_ctx[cnt].op); //FIXME: assertion fails.
-
       /* Cleanup active context if this peer is an active peer */
       ac = a_ctx[cnt].ac;
-      if (NULL == ac)
-        continue;
-      if (GNUNET_SCHEDULER_NO_TASK != ac->delay_task)
-        GNUNET_SCHEDULER_cancel (ac->delay_task);
-      if (NULL != ac->put_data)
-        GNUNET_free (ac->put_data);
-      if (NULL != ac->dht_put)
-        GNUNET_DHT_put_cancel (ac->dht_put);
-      if (NULL != ac->dht_get)
-        GNUNET_DHT_get_stop (ac->dht_get);
+      if (NULL != ac)
+      {
+        if (GNUNET_SCHEDULER_NO_TASK != ac->delay_task)
+          GNUNET_SCHEDULER_cancel (ac->delay_task);
+        if (NULL != ac->put_data)
+          GNUNET_free (ac->put_data);
+        if (NULL != ac->dht_put)
+          GNUNET_DHT_put_cancel (ac->dht_put);
+        if (NULL != ac->dht_get)
+          GNUNET_DHT_get_stop (ac->dht_get);
+      }
+      /* Cleanup testbed operation handle at the last as this operation may
+         contain service connection to DHT */
+      if (NULL != a_ctx[cnt].op)
+        GNUNET_TESTBED_operation_done (a_ctx[cnt].op);
     }
     GNUNET_free (a_ctx);
     a_ctx = NULL;
