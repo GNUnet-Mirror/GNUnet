@@ -2600,10 +2600,15 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS 892
 #endif
 
+/**
+ * Send back peer that considers you are its successor, a confirmation
+ * that you got the notify successor message. 
+ */
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION 893
 /*******************************************************************************/
 
 /**
- * Next available: 902
+ * Next available: 903
  */
 
 /**

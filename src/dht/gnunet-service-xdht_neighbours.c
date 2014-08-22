@@ -95,6 +95,12 @@
 #define CONGESTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
 /**
+ * In case we don't hear back from the current successor, then we can start
+ * verify successor. 
+ */
+#define WAIT_NOTIFY_CONFIRMATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
+
+/**
  * Maximum number of trails allowed to go through a friend.
  */
 #define TRAILS_THROUGH_FRIEND_THRESHOLD 64
@@ -498,6 +504,27 @@ struct PeerNotifyNewSuccessorMessage
    */
 };
 
+/**
+ * P2P Notify Successor Confirmation message.
+ */
+struct PeerNotifyConfirmationMessage
+{
+   /**
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Unique identifier of the trail.
+   */
+  struct GNUNET_HashCode trail_id;
+
+  /**
+   * Direction of trail.
+   */
+  uint32_t trail_direction;
+};
+
 
 /**
  * P2P Trail Tear Down message.
@@ -742,6 +769,12 @@ struct FingerInfo
   struct GNUNET_PeerIdentity finger_identity;
 
   /**
+   * In case not 0, this amount is time to wait for notify successor message.
+   * Used ONLY for successor. NOT for any other finger.
+   */
+  struct GNUNET_TIME_Absolute wait_notify_confirmation;
+  
+  /**
    * Is any finger stored at this finger index.
    */
   unsigned int is_present;
@@ -862,6 +895,12 @@ static struct GNUNET_TIME_Relative find_finger_trail_task_next_send_time;
  * Time duration to schedule verify successor task.  
  */
 static struct GNUNET_TIME_Relative verify_successor_next_send_time;
+
+/**
+ * Are we waiting for confirmation from our new successor that it got the
+ * message
+ */
+static unsigned int waiting_for_notify_confirmation;
 
 /* Below variables are used only for testing, and statistics collection. */
 /**
@@ -1128,6 +1167,50 @@ GDS_NEIGHBOURS_send_trail_setup_result (struct GNUNET_PeerIdentity querying_peer
   peer_list = (struct GNUNET_PeerIdentity *) &tsrm[1];
   memcpy (peer_list, trail_peer_list, trail_length * sizeof (struct GNUNET_PeerIdentity));
   
+  /* Send the message to chosen friend. */
+  GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
+  target_friend->pending_count++;
+  process_friend_queue (target_friend);
+}
+
+/**
+ * Send notify successor confirmation message.
+ * @param trail_id Unique Identifier of the trail. 
+ * @param trail_direction Destination to Source.
+ * @param target_friend Friend to get this message next.
+ */
+void
+GDS_NEIGHBOURS_send_notify_succcessor_confirmation (struct GNUNET_HashCode trail_id,
+                                                    unsigned int trail_direction,
+                                                     struct FriendInfo *target_friend)
+{
+  struct PeerNotifyConfirmationMessage *ncm;
+  struct P2PPendingMessage *pending;
+  size_t msize;
+   
+  msize = sizeof (struct PeerNotifyConfirmationMessage);
+  if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  if (target_friend->pending_count >= MAXIMUM_PENDING_PER_FRIEND)
+  {
+    GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# P2P messages dropped due to full queue"),
+				1, GNUNET_NO);
+  }
+
+  pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize);
+  pending->importance = 0;    /* FIXME */
+  pending->timeout = GNUNET_TIME_relative_to_absolute (PENDING_MESSAGE_TIMEOUT);
+  ncm = (struct PeerNotifyConfirmationMessage *) &pending[1];
+  pending->msg = &ncm->header;
+  ncm->header.size = htons (msize);
+  ncm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION);
+  ncm->trail_id = trail_id;
+  ncm->trail_direction = htonl (trail_direction);
+
   /* Send the message to chosen friend. */
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
   target_friend->pending_count++;
@@ -2885,7 +2968,6 @@ send_trail_teardown (struct FingerInfo *finger,
            __LINE__,GNUNET_h2s(&trail->trail_id), GNUNET_i2s(&my_identity),trail->trail_length);
     return;
   }
-  FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail->trail_id));
   GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail->trail_id));
   friend->trails_count--;
   GDS_NEIGHBOURS_send_trail_teardown (trail->trail_id,
@@ -3077,6 +3159,13 @@ send_verify_successor_message (void *cls,
                                     &send_verify_successor_message,
                                     NULL);
   successor = &finger_table[0];
+  /* We are waiting for a confirmation from the notify message and we have not
+   * crossed the wait time, then return. */
+  if ((1 == waiting_for_notify_confirmation) 
+      && (0 != GNUNET_TIME_absolute_get_remaining(successor->wait_notify_confirmation).rel_value_us))
+  {
+    return;
+  }
   /* Among all the trails to reach to successor, select first one which is present.*/
   for (i = 0; i < successor->trails_count; i++)
   {
@@ -3379,6 +3468,13 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
       remove_existing_finger (existing_finger, finger_table_index);
       add_new_finger (finger_identity, finger_trail, finger_trail_length,
                       finger_trail_id, finger_table_index);
+      if ((0 == finger_table_index) && (1 == waiting_for_notify_confirmation))
+      {
+        /* SUPUS: We have removed our successor, but we are still waiting for a 
+         * confirmation. As we have removed successor, then it does not make
+         sense to wait for the new successor. */
+        waiting_for_notify_confirmation = 0;
+      }
     }
     else
     {
@@ -4689,7 +4785,6 @@ handle_dht_p2p_verify_successor(void *cls,
     {
       //SUPUs anyways you are passing the trail, just do the lookup
       // and pass the message forward.
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, Trail not found trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail_id));
 //      int my_index = search_my_index (trail, trail_length);
 //      if(-1 == my_index)
 //      {
@@ -4936,7 +5031,13 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
   add_new_finger (probable_successor, trail_me_to_probable_succ,
                   trail_me_to_probable_succ_len, trail_id, 0);
- 
+  /* SUPUS We are sending notify message, but before sending the next request
+     we should wait for confirmation. */
+  waiting_for_notify_confirmation = 1;
+  current_successor = &finger_table[0];
+  current_successor->wait_notify_confirmation = 
+          GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+                                    WAIT_NOTIFY_CONFIRMATION);
   GDS_NEIGHBOURS_send_notify_new_successor (my_identity, probable_successor,
                                             trail_me_to_probable_succ,
                                             trail_me_to_probable_succ_len,
@@ -5094,6 +5195,10 @@ handle_dht_p2p_notify_new_successor(void *cls,
       GNUNET_assert(0 == GNUNET_CRYPTO_cmp_peer_identity(&source, peer));
   
     compare_and_update_predecessor (source, trail, trail_length);
+    target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer);
+    GDS_NEIGHBOURS_send_notify_succcessor_confirmation (trail_id,
+                                                        GDS_ROUTING_DEST_TO_SRC,
+                                                        target_friend);
     return GNUNET_OK;
   }
 
@@ -5134,6 +5239,78 @@ handle_dht_p2p_notify_new_successor(void *cls,
                                             trail_id, target_friend);
   return GNUNET_OK;
 
+}
+
+
+/**
+ * Core handler for P2P notify successor message
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_notify_succ_confirmation (void *cls,
+                                         const struct GNUNET_PeerIdentity *peer,
+                                         const struct GNUNET_MessageHeader *message) 
+{
+  const struct PeerNotifyConfirmationMessage *notify_confirmation;
+  enum GDS_ROUTING_trail_direction trail_direction;
+  struct GNUNET_HashCode trail_id;
+  struct FriendInfo *target_friend;
+  struct GNUNET_PeerIdentity *next_hop;
+  size_t msize;
+
+  msize = ntohs (message->size);
+
+  if (msize != sizeof (struct PeerNotifyConfirmationMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop
+                            ("# Bytes received from other peers"), msize,
+                            GNUNET_NO);
+  
+  notify_confirmation = (const struct PeerNotifyConfirmationMessage *) message;
+  trail_direction = ntohl (notify_confirmation->trail_direction);
+  trail_id = notify_confirmation->trail_id;
+  
+  next_hop = GDS_ROUTING_get_next_hop (trail_id, trail_direction);
+  if (NULL == next_hop)
+  {
+    /* The source of notify new successor, might have found even a better 
+     successor. In that case it send a trail teardown message, and hence,
+     the next hop is NULL. */
+    //Fixme: Add some print to confirm the above theory.
+    return GNUNET_OK;
+  }
+  
+  /* I peer which sent the notify successor message to the successor. */
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (next_hop, &my_identity))
+  {
+   /*
+    * Schedule another round of verify sucessor with your current successor
+    * which may or may not be source of this message. This message is used
+    * only to ensure that we have a path setup to reach to our successor.
+    */
+    waiting_for_notify_confirmation = 0;
+    //FIXME: Should we reset the time out to 0?
+  }
+  else
+  {
+    target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
+    if (NULL == target_friend)
+    {
+      DEBUG ("\n friend not found, line number = %d",__LINE__);
+      return GNUNET_SYSERR;
+    }
+    GDS_NEIGHBOURS_send_notify_succcessor_confirmation  (trail_id,
+                                                        GDS_ROUTING_DEST_TO_SRC,
+                                                        target_friend);
+  }
+  return GNUNET_OK;
 }
 
 
@@ -5353,7 +5530,6 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
   /* I am the next hop, which means I am the final destination. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (next_hop, &my_identity))
   {
-    FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail_id));
     GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
     return GNUNET_OK;
   }
@@ -5361,7 +5537,6 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
   {
     /* If not final destination, then send a trail teardown message to next hop.*/
     GNUNET_assert (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop));
-    FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail_id));
     GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
     GDS_NEIGHBOURS_send_trail_teardown (trail_id, trail_direction, *next_hop);
   }
@@ -5512,7 +5687,6 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
       {
         GNUNET_assert (0 == (GNUNET_CRYPTO_cmp_peer_identity (disconnected_friend,
                                                               next_hop)));
-        FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&current_trail->trail_id));
         GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (current_trail->trail_id));
       }
       matching_trails_count++;
@@ -5607,7 +5781,6 @@ handle_core_disconnect (void *cls,
   }
   
   remove_matching_fingers (peer);
-  FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id of peer %s"),__FILE__, __func__,__LINE__,GNUNET_i2s(peer));
   GNUNET_assert (GNUNET_SYSERR != GDS_ROUTING_remove_trail_by_peer (peer));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (friend_peermap,
@@ -5735,6 +5908,8 @@ GDS_NEIGHBOURS_init (void)
     {&handle_dht_p2p_trail_teardown, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN,
                                      sizeof (struct PeerTrailTearDownMessage)},
     {&handle_dht_p2p_add_trail, GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL, 0},
+    {&handle_dht_p2p_notify_succ_confirmation, GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION, 
+                                      sizeof (struct PeerNotifyConfirmationMessage)},
     {NULL, 0, 0}
   };
   
