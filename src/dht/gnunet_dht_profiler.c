@@ -1155,7 +1155,6 @@ test_run (void *cls,
     ac_cnt++;
   }
   n_active = ac_cnt;
-  a_ac = GNUNET_realloc (a_ac, n_active * sizeof (struct ActiveContext));
   INFO ("Active peers: %u\n", n_active);
 
   /* start DHT service on all peers */
