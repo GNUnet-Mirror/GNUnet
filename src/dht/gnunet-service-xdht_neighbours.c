@@ -83,6 +83,11 @@
 #define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
+ * How long to wait before sending another verify successor message.
+ */
+#define DHT_SEND_VERIFY_SUCCESSOR_RETRY_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
+/**
  * How long at most to wait for transmission of a request to a friend ?
  */
 #define PENDING_MESSAGE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
@@ -854,6 +859,12 @@ static GNUNET_SCHEDULER_TaskIdentifier find_finger_trail_task;
 static GNUNET_SCHEDULER_TaskIdentifier send_verify_successor_task;
 
 /**
+ * Task that sends verify successor message. This task is started when we get
+ * our successor for the first time.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier send_verify_successor_retry_task;
+
+/**
  * Identity of this peer.
  */
 static struct GNUNET_PeerIdentity my_identity;
@@ -895,6 +906,11 @@ static struct GNUNET_TIME_Relative find_finger_trail_task_next_send_time;
  * Time duration to schedule verify successor task.  
  */
 static struct GNUNET_TIME_Relative verify_successor_next_send_time;
+
+/**
+ * Time duration to send verify successor again, if result was not received in time.
+ */
+static struct GNUNET_TIME_Relative verify_successor_retry_time;
 
 /**
  * Are we waiting for confirmation from our new successor that it got the
@@ -2701,7 +2717,6 @@ select_and_replace_trail (struct FingerInfo *finger,
   /* Send trail teardown message across the replaced trail. */
   struct Trail *replace_trail = &finger->trail_list[largest_trail_index];
   next_hop = GDS_ROUTING_get_next_hop (replace_trail->trail_id, GDS_ROUTING_SRC_TO_DEST);
-  FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&replace_trail->trail_id));
   GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (replace_trail->trail_id));
   GDS_NEIGHBOURS_send_trail_teardown (replace_trail->trail_id,
                                       GDS_ROUTING_SRC_TO_DEST,
@@ -3154,8 +3169,8 @@ send_verify_successor_message (void *cls,
   struct FingerInfo *successor;
 
   /* After one round of verify successor, we do back off. */
-  send_verify_successor_task =
-      GNUNET_SCHEDULER_add_delayed (verify_successor_next_send_time,
+  send_verify_successor_retry_task =
+      GNUNET_SCHEDULER_add_delayed (verify_successor_retry_time,
                                     &send_verify_successor_message,
                                     NULL);
   successor = &finger_table[0];
@@ -3645,7 +3660,8 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     
   /* Add yourself to the list. */
   struct GNUNET_PeerIdentity pp[putlen + 1];
-  if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
+  //if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
+  if (1)
   {
     memcpy (pp, put_path, putlen * sizeof (struct GNUNET_PeerIdentity));
     pp[putlen] = my_identity;
@@ -4806,6 +4822,8 @@ handle_dht_p2p_verify_successor(void *cls,
 //      }
 //      else
 //        *next_hop = trail[my_index + 1];
+      
+      return GNUNET_OK;
     }
  
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
@@ -5070,7 +5088,7 @@ handle_dht_p2p_verify_successor_result(void *cls,
   const struct GNUNET_PeerIdentity *trail;
   unsigned int trail_length;
   size_t msize;
-
+    
   msize = ntohs (message->size);
   if (msize < sizeof (struct PeerVerifySuccessorResultMessage))
   {
@@ -5106,8 +5124,17 @@ handle_dht_p2p_verify_successor_result(void *cls,
     /* As we completed one round of verify successor, we can do backoff. */
 //    verify_successor_next_send_time =
 //                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
+    
+    // Cancel Retry Task
+    GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
+        
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
+    
+    // Schedule send_verify_successor_task in appropriate time.
+    send_verify_successor_task = GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time, 
+            send_verify_successor_message, NULL);
+    
     return GNUNET_OK;
   }
   
@@ -5938,6 +5965,11 @@ GDS_NEIGHBOURS_init (void)
       DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us);
+  
+  verify_successor_retry_time.rel_value_us = 
+      DHT_SEND_VERIFY_SUCCESSOR_RETRY_INTERVAL.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_SEND_VERIFY_SUCCESSOR_RETRY_INTERVAL.rel_value_us);
   
   return GNUNET_OK;
 }
