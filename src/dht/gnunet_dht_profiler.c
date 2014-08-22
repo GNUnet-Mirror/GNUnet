@@ -349,7 +349,6 @@ struct Context **peer_contexts = NULL;
  */
 static int peers_started = 0;
 
-
 /**
  * Should we do a PUT (mode = 0) or GET (mode = 1);
  */
@@ -359,6 +358,12 @@ static enum
 
   MODE_GET = 1
 } mode;
+
+
+/**
+ * Are we shutting down
+ */
+static int in_shutdown = 0;
 
 /**
  * Task that collects successor statistics from all the peers. 
@@ -381,6 +386,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ActiveContext *ac;
   unsigned int cnt;
 
+  in_shutdown = GNUNET_YES;
   if (NULL != a_ctx)
   {
     for (cnt=0; cnt < num_peers; cnt++)
@@ -786,6 +792,8 @@ dht_disconnect (void *cls, void *op_result)
   n_dht--;
   if (0 != n_dht)
     return;
+  if (GNUNET_YES == in_shutdown)
+    return;
   switch (mode)
   {
   case MODE_PUT:
@@ -815,6 +823,7 @@ start_profiling()
   unsigned int i;
 
   DEBUG("GNUNET_TESTBED_service_connect \n");
+  GNUNET_break (GNUNET_YES != in_shutdown);
   for(i = 0; i < n_active; i++)
   {
     struct ActiveContext *ac = &a_ac[i];
