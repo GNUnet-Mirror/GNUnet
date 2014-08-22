@@ -2618,6 +2618,7 @@ select_and_replace_trail (struct FingerInfo *finger,
   /* Send trail teardown message across the replaced trail. */
   struct Trail *replace_trail = &finger->trail_list[largest_trail_index];
   next_hop = GDS_ROUTING_get_next_hop (replace_trail->trail_id, GDS_ROUTING_SRC_TO_DEST);
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&replace_trail->trail_id));
   GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (replace_trail->trail_id));
   GDS_NEIGHBOURS_send_trail_teardown (replace_trail->trail_id,
                                       GDS_ROUTING_SRC_TO_DEST,
@@ -2884,6 +2885,7 @@ send_trail_teardown (struct FingerInfo *finger,
            __LINE__,GNUNET_h2s(&trail->trail_id), GNUNET_i2s(&my_identity),trail->trail_length);
     return;
   }
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail->trail_id));
   GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail->trail_id));
   friend->trails_count--;
   GDS_NEIGHBOURS_send_trail_teardown (trail->trail_id,
@@ -3571,6 +3573,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                                 1, GNUNET_NO);
       
       GNUNET_break_op (0);
+      //Fixme: even after circle is compelte, it fails 
       //FIXME: Adding put here,only to ensure that process does not hang. but
       // should not be here. fix the logic. 
       GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
@@ -4686,27 +4689,28 @@ handle_dht_p2p_verify_successor(void *cls,
     {
       //SUPUs anyways you are passing the trail, just do the lookup
       // and pass the message forward.
-      int my_index = search_my_index (trail, trail_length);
-      if(-1 == my_index)
-      {
-        DEBUG(" Peer %s not present in trail id %s, line =%d",
-              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
-        GNUNET_break_op (0);
-        return GNUNET_OK;
-      }
-      if((my_index == trail_length + 1))
-      {
-        DEBUG(" Peer %s  present twice in trail id %s, line =%d",
-              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
-        GNUNET_break_op (0);
-        return GNUNET_OK;
-      }
-      if(my_index == (trail_length - 1))
-      {
-        *next_hop = successor;
-      }
-      else
-        *next_hop = trail[my_index + 1];
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, Trail not found trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail_id));
+//      int my_index = search_my_index (trail, trail_length);
+//      if(-1 == my_index)
+//      {
+//        DEBUG(" Peer %s not present in trail id %s, line =%d",
+//              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
+//        GNUNET_break_op (0);
+//        return GNUNET_OK;
+//      }
+//      if((my_index == trail_length + 1))
+//      {
+//        DEBUG(" Peer %s  present twice in trail id %s, line =%d",
+//              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
+//        GNUNET_break_op (0);
+//        return GNUNET_OK;
+//      }
+//      if(my_index == (trail_length - 1))
+//      {
+//        *next_hop = successor;
+//      }
+//      else
+//        *next_hop = trail[my_index + 1];
     }
  
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
@@ -5349,6 +5353,7 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
   /* I am the next hop, which means I am the final destination. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (next_hop, &my_identity))
   {
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail_id));
     GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
     return GNUNET_OK;
   }
@@ -5356,6 +5361,7 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
   {
     /* If not final destination, then send a trail teardown message to next hop.*/
     GNUNET_assert (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop));
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&trail_id));
     GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
     GDS_NEIGHBOURS_send_trail_teardown (trail_id, trail_direction, *next_hop);
   }
@@ -5506,6 +5512,7 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
       {
         GNUNET_assert (0 == (GNUNET_CRYPTO_cmp_peer_identity (disconnected_friend,
                                                               next_hop)));
+        FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id = %s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&current_trail->trail_id));
         GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (current_trail->trail_id));
       }
       matching_trails_count++;
@@ -5600,6 +5607,7 @@ handle_core_disconnect (void *cls,
   }
   
   remove_matching_fingers (peer);
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d, REMOVE trail id of peer %s"),__FILE__, __func__,__LINE__,GNUNET_i2s(peer));
   GNUNET_assert (GNUNET_SYSERR != GDS_ROUTING_remove_trail_by_peer (peer));
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (friend_peermap,
