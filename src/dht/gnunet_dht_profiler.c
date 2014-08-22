@@ -616,10 +616,28 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Connect to DHT services of active peers
+ * Task to teardown the dht connection.  We do it as a task because calling
+ * GNUNET_DHT_disconnect() from put_continutation_callback seems illegal (the
+ * put_continuation_callback() is getting called again synchronously).  Also,
+ * only free the operation when we are not shutting down; the shutdown task will
+ * clear the operation during shutdown.
+ *
+ * @param cls the context
+ * @return tc scheduler task context.
  */
 static void
-start_profiling();
+teardown_dht_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Context *ctx = cls;
+  struct GNUNET_TESTBED_Operation *op;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+  GNUNET_assert (NULL != ctx);
+  GNUNET_assert (NULL != (op = ctx->op));
+  ctx->op = NULL;
+  GNUNET_TESTBED_operation_done (op);
+}
 
 
 /**
@@ -637,7 +655,6 @@ put_cont (void *cls, int success)
 {
   struct ActiveContext *ac = cls;
   struct Context *ctx = ac->ctx;
-  struct GNUNET_TESTBED_Operation *op;
 
   ac->dht_put = NULL;
   if (success)
@@ -645,9 +662,7 @@ put_cont (void *cls, int success)
   else
     n_puts_fail++;
   GNUNET_assert (NULL != ctx);
-  op = ctx->op;
-  ctx->op = NULL;
-  GNUNET_TESTBED_operation_done (op);
+  (void) GNUNET_SCHEDULER_add_now (&teardown_dht_connection, ctx);
 }
 
 
@@ -744,6 +759,13 @@ dht_connect (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
+ * Connect to DHT services of active peers
+ */
+static void
+start_profiling();
+
+
+/**
  * Adapter function called to destroy a connection to
  * a service.
  *
@@ -762,12 +784,20 @@ dht_disconnect (void *cls, void *op_result)
   n_dht--;
   if (0 != n_dht)
     return;
-  /* Start GETs if all PUTs have been made */
-  if (MODE_PUT == mode)
+  switch (mode)
   {
+  case MODE_PUT:
+    if ((n_puts_ok + n_puts_fail) != n_active)
+      return;
+    /* Start GETs if all PUTs have been made */
     mode = MODE_GET;
+    //(void) GNUNET_SCHEDULER_add_now (&call_start_profiling, NULL);
     start_profiling ();
     return;
+  case MODE_GET:
+    if ((n_gets_ok + n_gets_fail) != n_active)
+      return;
+    break;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -779,14 +809,18 @@ dht_disconnect (void *cls, void *op_result)
 static void
 start_profiling()
 {
+  struct Context *ctx;
   unsigned int i;
+
   DEBUG("GNUNET_TESTBED_service_connect \n");
   for(i = 0; i < n_active; i++)
   {
     struct ActiveContext *ac = &a_ac[i];
-    ac->ctx->op =
-        GNUNET_TESTBED_service_connect (ac->ctx,
-                                        ac->ctx->peer,
+    GNUNET_assert (NULL != (ctx = ac->ctx));
+    GNUNET_assert (NULL == ctx->op);
+    ctx->op =
+        GNUNET_TESTBED_service_connect (ctx,
+                                        ctx->peer,
                                         "dht",
                                         &dht_connected, ac,
                                         &dht_connect,
@@ -1032,6 +1066,7 @@ service_started (void *cls,
   GNUNET_assert (NULL != ctx);
   GNUNET_assert (NULL != ctx->op);
   GNUNET_TESTBED_operation_done (ctx->op);
+  ctx->op = NULL;
   peers_started++;
   DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
   if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
