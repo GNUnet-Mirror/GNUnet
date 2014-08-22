@@ -177,9 +177,9 @@ static struct Context *a_ctx;
 static struct ActiveContext *a_ac;
 
 /**
- * The delay between starting to do PUTS and GETS
+ * The delay between rounds for collecting statistics
  */
-static struct GNUNET_TIME_Relative delay;
+static struct GNUNET_TIME_Relative delay_stats;
 
 /**
  * The delay to start puts.
@@ -935,7 +935,7 @@ successor_stats_cont (void *cls,
     else
     {
       flag = 0;
-      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, &collect_stats, cls);
+      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats, &collect_stats, cls);
     }
   } 
 }
@@ -1078,7 +1078,7 @@ service_started (void *cls,
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;
      collect_stat_cls->op = op;
-     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay,
+     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats,
                                                           &collect_stats,
                                                           collect_stat_cls);
   }
@@ -1220,14 +1220,20 @@ main (int argc, char *const *argv)
     {'H', "hosts", "FILENAME",
      gettext_noop ("name of the file with the login information for the testbed"),
      1, &GNUNET_GETOPT_set_string, &hosts_file},
-    {'d', "delay", "DELAY",
-     gettext_noop ("delay for starting DHT PUT and GET"),
-     1, &GNUNET_GETOPT_set_relative_time, &delay},
+    {'D', "delay", "DELAY",
+     gettext_noop ("delay between rounds for collecting statistics (default: 30 sec)"),
+     1, &GNUNET_GETOPT_set_relative_time, &delay_stats},
+    {'P', "PUT-delay", "DELAY",
+     gettext_noop ("delay to start doing PUTs (default: 1 sec)"),
+     1, &GNUNET_GETOPT_set_relative_time, &delay_put},
+    {'G', "GET-delay", "DELAY",
+     gettext_noop ("delay to start doing GETs (default: 5 min)"),
+     1, &GNUNET_GETOPT_set_relative_time, &delay_get},
     {'r', "replication", "DEGREE",
      gettext_noop ("replication degree for DHT PUTs"),
      1, &GNUNET_GETOPT_set_uint, &replication},
     {'t', "timeout", "TIMEOUT",
-     gettext_noop ("timeout for DHT PUT and GET requests"),
+     gettext_noop ("timeout for DHT PUT and GET requests (default: 1 min)"),
      1, &GNUNET_GETOPT_set_relative_time, &timeout},
     GNUNET_GETOPT_OPTION_END
   };
@@ -1235,10 +1241,11 @@ main (int argc, char *const *argv)
   max_searches = 5;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30); /* default delay */
-  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1); /* default delay */
-  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5); /* default delay */
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default timeout */
+  /* set default delays */
+  delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
+  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
+  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
