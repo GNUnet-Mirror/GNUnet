@@ -4684,10 +4684,29 @@ handle_dht_p2p_verify_successor(void *cls,
     next_hop = GDS_ROUTING_get_next_hop (trail_id, GDS_ROUTING_SRC_TO_DEST);    
     if (NULL == next_hop)
     {
-      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
-      GNUNET_break_op (0);
-      return GNUNET_OK;
+      //SUPUs anyways you are passing the trail, just do the lookup
+      // and pass the message forward.
+      int my_index = search_my_index (trail, trail_length);
+      if(-1 == my_index)
+      {
+        DEBUG(" Peer %s not present in trail id %s, line =%d",
+              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
+        GNUNET_break_op (0);
+        return GNUNET_OK;
+      }
+      if((my_index == trail_length + 1))
+      {
+        DEBUG(" Peer %s  present twice in trail id %s, line =%d",
+              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
+        GNUNET_break_op (0);
+        return GNUNET_OK;
+      }
+      if(my_index == (trail_length - 1))
+      {
+        *next_hop = successor;
+      }
+      else
+        *next_hop = trail[my_index + 1];
     }
  
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
