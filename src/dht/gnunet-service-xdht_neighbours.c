@@ -3565,9 +3565,12 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct PeerPutMessage *put;
   struct GNUNET_PeerIdentity *put_path;
+  struct GNUNET_PeerIdentity current_best_known_dest;
   struct GNUNET_PeerIdentity best_known_dest;
+  struct GNUNET_HashCode received_intermediate_trail_id;
   struct GNUNET_HashCode intermediate_trail_id;
   struct GNUNET_PeerIdentity *next_hop;
+  struct GNUNET_PeerIdentity *next_routing_hop;
   enum GNUNET_DHT_RouteOption options;
   struct GNUNET_HashCode test_key;
   void *payload;
@@ -3609,11 +3612,11 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                             ("# Bytes received from other peers"), (int64_t) msize,
                             GNUNET_NO);
   
-  best_known_dest = put->best_known_destination;
+  current_best_known_dest = put->best_known_destination;
   put_path = (struct GNUNET_PeerIdentity *) &put[1];
   payload = &put_path[putlen];
   options = ntohl (put->options);
-  intermediate_trail_id = put->intermediate_trail_id;
+  received_intermediate_trail_id = put->intermediate_trail_id;
   hop_count = ntohl(put->hop_count);
   payload_size = msize - (sizeof (struct PeerPutMessage) +
                           putlen * sizeof (struct GNUNET_PeerIdentity));
@@ -3690,47 +3693,26 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     putlen = 0;
   
   memcpy (&key_value, &(put->key), sizeof (uint64_t));
-  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity)))
-  {
-    next_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
-                                         GDS_ROUTING_SRC_TO_DEST);
-    if (NULL == next_hop)
-    {
-      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&intermediate_trail_id), __LINE__);
-      GNUNET_STATISTICS_update (GDS_stats,
-                                gettext_noop ("# Next hop to forward the packet not found "
-                                "trail setup request, packet dropped."),
-                                1, GNUNET_NO);
-      
-      GNUNET_break_op (0);
-      //Fixme: even after circle is compelte, it fails 
-      //FIXME: Adding put here,only to ensure that process does not hang. but
-      // should not be here. fix the logic. 
-      GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
-                                &(put->key),putlen, pp, ntohl (put->block_type),
-                                 payload_size, payload);
-      return GNUNET_OK;
-    }
-    else
-    {
-      GNUNET_assert (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
-                                                            next_hop));
-    }
-  }
-  else
-  {
-    struct Closest_Peer successor;
-    key_value = GNUNET_ntohll (key_value);
-    successor = find_local_best_known_next_hop (key_value, 
-                                                GDS_FINGER_TYPE_NON_PREDECESSOR);
-    next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
-    *next_hop = successor.next_hop;
-    intermediate_trail_id = successor.trail_id;
-    best_known_dest = successor.best_known_destination;
-  }
+  struct Closest_Peer successor;
+  key_value = GNUNET_ntohll (key_value);
+  successor = find_local_best_known_next_hop (key_value, 
+                                              GDS_FINGER_TYPE_NON_PREDECESSOR);
+  next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
+  *next_hop = successor.next_hop;
+  intermediate_trail_id = successor.trail_id;
+  best_known_dest = successor.best_known_destination;
   
-
+  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&current_best_known_dest, &my_identity)))
+  {
+    next_routing_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
+                                         GDS_ROUTING_SRC_TO_DEST);
+    if (NULL != next_routing_hop)
+    {
+       next_hop = next_routing_hop;
+      intermediate_trail_id = received_intermediate_trail_id;
+      best_known_dest = current_best_known_dest; 
+    }
+  }
   
   GDS_CLIENTS_process_put (options,
                            ntohl (put->block_type),
@@ -3781,8 +3763,12 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   const struct PeerGetMessage *get;
   const struct GNUNET_PeerIdentity *get_path;
   struct GNUNET_PeerIdentity best_known_dest;
+  struct GNUNET_PeerIdentity current_best_known_dest;
   struct GNUNET_HashCode intermediate_trail_id;
+  struct GNUNET_HashCode received_intermediate_trail_id;
+  struct Closest_Peer successor;
   struct GNUNET_PeerIdentity *next_hop;
+  struct GNUNET_PeerIdentity *next_routing_hop;
   uint32_t get_length;
   uint64_t key_value;
   uint32_t hop_count;
@@ -3805,8 +3791,8 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   get = (const struct PeerGetMessage *)message;
   get_length = ntohl (get->get_path_length);
-  best_known_dest = get->best_known_destination;
-  intermediate_trail_id = get->intermediate_trail_id;
+  current_best_known_dest = get->best_known_destination;
+  received_intermediate_trail_id = get->intermediate_trail_id;
   get_path = (const struct GNUNET_PeerIdentity *)&get[1];
   hop_count = get->hop_count;
   hop_count++;
@@ -3849,38 +3835,26 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                            get->desired_replication_level, get->get_path_length,
                            gp, &get->key);
   
+
+  successor = find_local_best_known_next_hop (key_value, 
+                                                GDS_FINGER_TYPE_NON_PREDECESSOR);
+  next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
+  *next_hop = successor.next_hop;
+  best_known_dest = successor.best_known_destination;
+  intermediate_trail_id = successor.trail_id;
   /* I am not the final destination. I am part of trail to reach final dest. */
-  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity)))
+  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&current_best_known_dest, &my_identity)))
   {
-    next_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
+    next_routing_hop = GDS_ROUTING_get_next_hop (received_intermediate_trail_id,
                                          GDS_ROUTING_SRC_TO_DEST);
-    if (NULL == next_hop)
+    if (NULL != next_routing_hop)
     {
-      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&intermediate_trail_id), __LINE__);
-      GNUNET_STATISTICS_update (GDS_stats,
-                                gettext_noop ("# Next hop to forward the packet not found "
-                                "GET request, packet dropped."),
-                                1, GNUNET_NO);
-      GNUNET_break (0);
-      /* We are not able to proceed further*/
-      GDS_DATACACHE_handle_get (&(get->key),(get->block_type), NULL, 0, NULL, 0,
-                                get_length, gp, &gp[get_length - 2], 
-                                &my_identity);
-      return GNUNET_OK;
+      next_hop = next_routing_hop;
+      best_known_dest = current_best_known_dest;
+      intermediate_trail_id = received_intermediate_trail_id;
     }
   }
-  else
-  {
-    struct Closest_Peer successor;
-
-    successor = find_local_best_known_next_hop (key_value, 
-                                                GDS_FINGER_TYPE_NON_PREDECESSOR);
-    next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
-    *next_hop = successor.next_hop;
-    best_known_dest = successor.best_known_destination;
-    intermediate_trail_id = successor.trail_id;
-  }
+ 
    
   /* I am the final destination. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &best_known_dest))
