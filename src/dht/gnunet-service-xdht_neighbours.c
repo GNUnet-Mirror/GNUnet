@@ -3187,11 +3187,13 @@ send_verify_successor_message (void *cls,
   /* This task will be scheduled when the result for Verify Successor is received. */
   send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
   
-  /* After one round of verify successor, we do back off. */
-  send_verify_successor_retry_task =
-      GNUNET_SCHEDULER_add_delayed (verify_successor_retry_time,
-                                    &send_verify_successor_message,
-                                    NULL);
+  if (send_verify_successor_retry_task == GNUNET_SCHEDULER_NO_TASK)
+  {
+    send_verify_successor_retry_task =
+        GNUNET_SCHEDULER_add_delayed (verify_successor_retry_time,
+                                      &send_verify_successor_message,
+                                      NULL);
+  }
   successor = &finger_table[0];
   /* We are waiting for a confirmation from the notify message and we have not
    * crossed the wait time, then return. */
@@ -5001,7 +5003,6 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
-    // TODO: Schedule verify_successor
     if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
       send_verify_successor_task = 
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
@@ -5031,7 +5032,6 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
-    // TODO: Schedule verify_successor
     if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
       send_verify_successor_task = 
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
@@ -5083,16 +5083,9 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
   add_new_finger (probable_successor, trail_me_to_probable_succ,
                   trail_me_to_probable_succ_len, trail_id, 0);
-  /* SUPUS We are sending notify message, but before sending the next request
-     we should wait for confirmation. */
-  // TODO : remove the following commented part
-//  waiting_for_notify_confirmation = 1;
-//  current_successor = &finger_table[0];
-//  current_successor->wait_notify_confirmation = 
-//          GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
-//                                    WAIT_NOTIFY_CONFIRMATION);
+ 
   struct SendNotifyContext *notify_ctx;
-  
+ 
   notify_ctx = GNUNET_new(struct SendNotifyContext);
   
   notify_ctx->source_peer = my_identity;
@@ -5105,12 +5098,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   notify_ctx->succesor_trail_id = trail_id;
   notify_ctx->target_friend = target_friend;
   
-//  GDS_NEIGHBOURS_send_notify_new_successor (my_identity, probable_successor,
-//                                            trail_me_to_probable_succ,
-//                                            trail_me_to_probable_succ_len,
-//                                            trail_id,
-//                                            target_friend);
-
+  // TODO: Check if we should verify before schedule if already scheduled.
   GNUNET_SCHEDULER_add_now(&send_notify_new_successor, (void*)notify_ctx);
   
   return;
@@ -5205,24 +5193,14 @@ handle_dht_p2p_verify_successor_result(void *cls,
   /* I am the querying_peer. */
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
-    /* As we completed one round of verify successor, we can do backoff. */
-//    verify_successor_next_send_time =
-//                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
-    
-    // Cancel Retry Task
+    /* Cancel Retry Task */
     if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
     {
       GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
       send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
-    
-    // Schedule send_verify_successor_task in appropriate time.
-//    send_verify_successor_task = GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time, 
-//            send_verify_successor_message, NULL);
-    
     return GNUNET_OK;
   }
   
@@ -5230,7 +5208,8 @@ handle_dht_p2p_verify_successor_result(void *cls,
   if(NULL == (next_hop =
               GDS_ROUTING_get_next_hop (trail_id, trail_direction)))
   {
-    //FIXME: Urgent in what case this is possible?
+    /* Here it may happen that source peer has found a new successor, and removed
+     the trail, Hence no entry found in the routing table. Fail silently.*/
     DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
             GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
     GNUNET_break_op(0);
@@ -5420,16 +5399,11 @@ handle_dht_p2p_notify_succ_confirmation (void *cls,
       GNUNET_free (notify_ctx);
       send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    
-    // TODO: Schedule verify_successor task
     if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
       send_verify_successor_task = 
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
                                            &send_verify_successor_message,
                                            NULL);
-    
-//    waiting_for_notify_confirmation = 0;
-    //FIXME: Should we reset the time out to 0?
   }
   else
   {
