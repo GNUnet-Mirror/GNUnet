@@ -1,6 +1,7 @@
 [peerstore]
 AUTOSTART = @AUTOSTART@
-@UNIXONLY@PORT = 2110
+@JAVAPORT@PORT = 2110
+HOSTNAME = localhost
 BINARY = gnunet-service-peerstore
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-peerstore.sock
 UNIX_MATCH_UID = NO

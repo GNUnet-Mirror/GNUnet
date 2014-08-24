@@ -44,7 +44,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
   /**
    * #GNUNET_YES if peer id value set, #GNUNET_NO otherwise
    */
-  uint16_t peer_set;
+  uint16_t peer_set GNUNET_PACKED;
 
   /**
    * Peer Identity
@@ -55,30 +55,30 @@ GNUNET_NETWORK_STRUCT_BEGIN
    * Size of the sub_system string
    * Allocated at position 0 after this struct
    */
-  size_t sub_system_size;
+  uint16_t sub_system_size GNUNET_PACKED;
 
   /**
    * Size of the key string
    * Allocated at position 1 after this struct
    */
-  size_t key_size;
+  uint16_t key_size GNUNET_PACKED;
 
   /**
    * Size of value blob
    * Allocated at position 2 after this struct
    */
-  size_t value_size;
+  uint16_t value_size GNUNET_PACKED;
 
   /**
    * Expiry time of entry
    */
-  struct GNUNET_TIME_Absolute expiry;
+  struct GNUNET_TIME_Absolute expiry GNUNET_PACKED;
 
   /**
    * Options, needed only in case of a
    * store operation
    */
-  enum GNUNET_PEERSTORE_StoreOption options;
+  enum GNUNET_PEERSTORE_StoreOption options GNUNET_PACKED;
 
 };
 
