@@ -3449,7 +3449,7 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     successor = &finger_table[0];
     if (GNUNET_NO == successor->is_present)
     {
-      GNUNET_break (0);
+      GNUNET_break (0); //ASSERTION FAILS HERE. FIXME
       return;
     }
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
@@ -3707,11 +3707,13 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&current_best_known_dest, &my_identity)))
   {
     next_routing_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
-                                         GDS_ROUTING_SRC_TO_DEST);
+                                                 GDS_ROUTING_SRC_TO_DEST);
     if (NULL != next_routing_hop)
     {
-       next_hop = next_routing_hop;
+      next_hop = next_routing_hop;
       intermediate_trail_id = received_intermediate_trail_id;
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d,intermediate_trail_id=%s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&intermediate_trail_id));
+
       best_known_dest = current_best_known_dest; 
     }
   }
@@ -4946,6 +4948,7 @@ struct SendNotifyContext
   unsigned int successor_trail_length;
   struct GNUNET_HashCode succesor_trail_id;
   struct FriendInfo *target_friend;
+  unsigned int num_retries_scheduled;
 };
 
 void
@@ -4995,11 +4998,21 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       char *my_id_str;
       uint64_t succ;
       char *key;
-    
+      uint64_t my_id;
+      memcpy (&my_id, &my_identity, sizeof(uint64_t));
       my_id_str = GNUNET_strdup (GNUNET_i2s_full (&my_identity));
       memcpy(&succ, &current_successor->finger_identity, sizeof(uint64_t));
       GNUNET_asprintf (&key, "XDHT:%s:", my_id_str);
       GNUNET_free (my_id_str);
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d,MY_ID = %llu and successor_id = %llu"),
+              __FILE__, __func__,__LINE__,(unsigned long long)my_id, (unsigned long long)succ);
+      struct GNUNET_PeerIdentity print_peer;
+      print_peer = my_identity;
+      FPRINTF (stderr,_("\nSUPU my_id = %s,my_id64 = %llu, %s, %s, %d"),
+       GNUNET_i2s(&print_peer),(unsigned long long)my_id,__FILE__, __func__,__LINE__);
+      print_peer = current_successor->finger_identity;
+      FPRINTF (stderr,_("\nSUPU current_successor->finger_identity = %s,my_id64 = %llu, %s, %s, %d"),
+       GNUNET_i2s(&print_peer),(unsigned long long)succ,__FILE__, __func__,__LINE__);
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
@@ -5097,6 +5110,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   notify_ctx->successor_trail_length = trail_me_to_probable_succ_len;
   notify_ctx->succesor_trail_id = trail_id;
   notify_ctx->target_friend = target_friend;
+  notify_ctx->num_retries_scheduled = 0;
   
   // TODO: Check if we should verify before schedule if already scheduled.
   GNUNET_SCHEDULER_add_now(&send_notify_new_successor, (void*)notify_ctx);
@@ -5120,7 +5134,8 @@ send_notify_new_successor (void *cls,
                                             ctx->succesor_trail_id,
                                             ctx->target_friend);
 
-  if (send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+  if (0 != ctx->num_retries_scheduled && 
+          send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
   {
     // Result from previous notify successos hasn't arrived, so the retry task
     // hasn't been cancelled! Already a new notify successor must be called.
@@ -5132,9 +5147,10 @@ send_notify_new_successor (void *cls,
     send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
   }
   
+  ctx->num_retries_scheduled++;
   send_notify_new_successor_retry_task = GNUNET_SCHEDULER_add_delayed(notify_successor_retry_time,
-                                                                        &send_notify_new_successor,
-                                                                        cls);
+                                                                      &send_notify_new_successor,
+                                                                      cls);
 }
 
 /*
