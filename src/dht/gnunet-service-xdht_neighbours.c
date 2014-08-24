@@ -5134,7 +5134,7 @@ send_notify_new_successor (void *cls,
                                             ctx->succesor_trail_id,
                                             ctx->target_friend);
 
-  if (0 != ctx->num_retries_scheduled && 
+  if (0 == ctx->num_retries_scheduled && 
           send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
   {
     // Result from previous notify successos hasn't arrived, so the retry task
