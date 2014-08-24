@@ -741,20 +741,22 @@ dht_connected (void *cls,
   {
   case MODE_PUT:
   {
-    delay_put.rel_value_us =
+    struct GNUNET_TIME_Relative peer_delay_put;
+    peer_delay_put.rel_value_us =
       delay_put.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 delay_put.rel_value_us);
-    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay_put, &delayed_put, ac);
+    ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_put, &delayed_put, ac);
     break;
   }
   case MODE_GET:
   {
-    delay_get.rel_value_us =
+    struct GNUNET_TIME_Relative peer_delay_get;
+    peer_delay_get.rel_value_us =
       delay_get.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 delay_get.rel_value_us);
-    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay_get, &delayed_get, ac);
+    ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_get, &delayed_get, ac);
     break;
   }
   }
@@ -1268,8 +1270,8 @@ main (int argc, char *const *argv)
     return 2;
   /* set default delays */
   delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
-  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
-  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
+  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
+  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
   replication = 1;      /* default replication */
   rc = 0;
