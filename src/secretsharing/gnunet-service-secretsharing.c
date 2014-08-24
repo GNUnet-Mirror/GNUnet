@@ -1001,7 +1001,19 @@ restore_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub,
     gcry_mpi_mulm (xres, xres, b_1, elgamal_q);
   }
 
-  // FIXME: cleanup!
+  gcry_mpi_release (a_1);
+  gcry_mpi_release (a_2);
+  gcry_mpi_release (b_1);
+  gcry_mpi_release (b_2);
+  gcry_mpi_release (big_a);
+  gcry_mpi_release (big_b);
+  gcry_mpi_release (big_t);
+  gcry_mpi_release (n);
+  gcry_mpi_release (t_1);
+  gcry_mpi_release (t_2);
+  gcry_mpi_release (t);
+  gcry_mpi_release (r);
+  gcry_mpi_release (v);
 }
 
 
@@ -1040,6 +1052,7 @@ verify_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, const struct GN
   gcry_mpi_t tmp2;
   gcry_mpi_t y;
   gcry_mpi_t big_y;
+  int res;
 
   GNUNET_assert (NULL != (n_sq = gcry_mpi_new (0)));
   GNUNET_assert (NULL != (tmp1 = gcry_mpi_new (0)));
@@ -1068,7 +1081,8 @@ verify_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, const struct GN
   if (0 == gcry_mpi_cmp (t1, tmp1))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "fair encryption invalid (t1)\n");
-    return GNUNET_NO;
+    res = GNUNET_NO;
+    goto cleanup;
   }
 
   gcry_mpi_powm (big_y, big_y, e, n_sq);
@@ -1086,10 +1100,26 @@ verify_fair (const struct GNUNET_CRYPTO_PaillierPublicKey *ppub, const struct GN
   if (0 == gcry_mpi_cmp (t2, tmp1))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "fair encryption invalid (t2)\n");
-    return GNUNET_NO;
+    res = GNUNET_NO;
+    goto cleanup;
   }
 
-  return GNUNET_YES;
+  res = GNUNET_YES;
+
+cleanup:
+
+  gcry_mpi_release (n);
+  gcry_mpi_release (n_sq);
+  gcry_mpi_release (z);
+  gcry_mpi_release (t1);
+  gcry_mpi_release (t2);
+  gcry_mpi_release (e);
+  gcry_mpi_release (w);
+  gcry_mpi_release (tmp1);
+  gcry_mpi_release (tmp2);
+  gcry_mpi_release (y);
+  gcry_mpi_release (big_y);
+  return res;
 }
 
 
