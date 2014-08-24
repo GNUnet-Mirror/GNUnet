@@ -126,11 +126,6 @@
 #define PREDECESSOR_FINGER_ID 64
 
 /**
- * Wrap around in peer identity circle.
- */
-#define PEER_IDENTITES_WRAP_AROUND pow(2, 64) - 1
-
-/**
  * FIXME: Its use only at 3 places check if you can remove it.
  * To check if a finger is predecessor or not.
  */
@@ -1705,7 +1700,6 @@ select_closest_finger (const struct GNUNET_PeerIdentity *peer1,
   peer1_value = GNUNET_ntohll (peer1_value);
   peer2_value = GNUNET_ntohll (peer2_value);
 
-  // TODO: Can use a simpler (to understand) idea here!
   if (peer1_value == value)
   {
     return *peer1;
@@ -1715,32 +1709,31 @@ select_closest_finger (const struct GNUNET_PeerIdentity *peer1,
   {
     return *peer2;
   }
-
-  if (peer2_value < peer1_value)
+  
+  if (value < peer1_value && peer1_value < peer2_value)
   {
-    if ((peer2_value < value) && (value < peer1_value))
-    {
-      return *peer1;
-    }
-    else if (((peer1_value < value) && (value < PEER_IDENTITES_WRAP_AROUND)) ||
-             ((0 < value) && (value < peer2_value)))
-    {
-      return *peer2;
-    }
+    return *peer1;
+  }  
+  else if (value < peer2_value && peer2_value < peer1_value)
+  {
+    return *peer2;
   }
-
-  //if (peer1_value < peer2_value)
-  //{
-    if ((peer1_value < value) && (value < peer2_value))
-    {
-      return *peer2;
-    }
-    //else if (((peer2_value < value) && (value < PEER_IDENTITES_WRAP_AROUND)) ||
-            // ((0 < value) && (value < peer1_value)))
-    //{
-      return *peer1;
-    //}
- // }
+  else if (peer1_value < value && value < peer2_value)
+  {
+    return *peer2;
+  }
+  else if (peer2_value < value && value < peer1_value)
+  {
+    return *peer1;
+  }
+  else if (peer1_value < peer2_value && peer2_value < value)
+  {
+    return *peer1;
+  }
+  else  // if (peer2_value < peer1_value && peer1_value < value)
+  {
+    return *peer2;
+  }
 }
 
 
@@ -1764,37 +1757,40 @@ select_closest_predecessor (const struct GNUNET_PeerIdentity *peer1,
   peer1_value = GNUNET_ntohll (peer1_value);
   peer2_value = GNUNET_ntohll (peer2_value);
 
-  if (peer1_value == value)
-    return *peer1;
-
-  if (peer2_value == value)
-    return *peer2;
-
-  if (peer1_value < peer2_value)
+   if (peer1_value == value)
   {
-    if ((peer1_value < value) && (value < peer2_value))
-    {
-      return *peer1;
-    }
-    else if (((peer2_value < value) && (value < PEER_IDENTITES_WRAP_AROUND)) ||
-             ((PEER_IDENTITES_WRAP_AROUND > value) && (value < peer1_value)))
-    {
-      return *peer2;
-    }
+    return *peer1;
   }
 
- // if (peer2_value < peer1_value)
-  //{
-    if ((peer2_value < value) && (value < peer1_value))
-    {
-      return *peer2;
-    }
-    //else if (((peer1_value < value) && (value < PEER_IDENTITES_WRAP_AROUND)) ||
-    //         ((PEER_IDENTITES_WRAP_AROUND > value) && (value < peer2_value)))
-    //{
-      return *peer1;
-    //}
- // }
+  if (peer2_value == value)
+  {
+    return *peer2;
+  }
+  
+  if (value < peer1_value && peer1_value < peer2_value)
+  {
+    return *peer2;
+  }  
+  else if (value < peer2_value && peer2_value < peer1_value)
+  {
+    return *peer1;
+  }
+  else if (peer1_value < value && value < peer2_value)
+  {
+    return *peer1;
+  }
+  else if (peer2_value < value && value < peer1_value)
+  {
+    return *peer2;
+  }
+  else if (peer1_value < peer2_value && peer2_value < value)
+  {
+    return *peer2;
+  }
+  else  // if (peer2_value < peer1_value && peer1_value < value)
+  {
+    return *peer1;
+  }
 }
 
 #if 0
@@ -2089,7 +2085,7 @@ compare_friend_and_current_closest_peer (void *cls,
  * @return Updated closest_peer
  */
 static struct Closest_Peer
-init_current_successor (struct GNUNET_PeerIdentity my_identity,
+init_closest_peer (struct GNUNET_PeerIdentity my_identity,
                         uint64_t destination_finger_value,
                         unsigned int is_predecessor)
 {
@@ -2123,9 +2119,9 @@ find_local_best_known_next_hop (uint64_t destination_finger_value,
   struct Closest_Peer current_closest_peer;
 
    /* Initialize current_successor to my_identity. */
-  current_closest_peer = init_current_successor (my_identity,
-                                                 destination_finger_value,
-                                                 is_predecessor);
+  current_closest_peer = init_closest_peer (my_identity,
+                                            destination_finger_value,
+                                            is_predecessor);
 
   /* Compare each friend entry with current_successor and update current_successor
    * with friend if its closest. */

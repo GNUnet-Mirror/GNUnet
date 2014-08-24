@@ -913,7 +913,7 @@ successor_stats_cont (void *cls,
   
   successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
                                                                     GNUNET_NO);
-  
+  //TODO:Check if comparison is correct. 
   if ((start_val == val) && (count == num_peers))
   {
     DEBUG("CIRCLE COMPLETED after %u tries", tries);
@@ -1257,7 +1257,7 @@ main (int argc, char *const *argv)
   delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
   delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
   delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3);
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
