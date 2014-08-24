@@ -3164,6 +3164,10 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
   return;
 }
 
+struct VerifySuccessorContext
+{
+  unsigned int num_retries_scheduled;
+};
 
 /**
  * Periodic task to verify current successor. There can be multiple trails to reach
@@ -3187,13 +3191,44 @@ send_verify_successor_message (void *cls,
   /* This task will be scheduled when the result for Verify Successor is received. */
   send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
   
-  if (send_verify_successor_retry_task == GNUNET_SCHEDULER_NO_TASK)
+  /* When verify successor is being called for first time *for current context*
+   * cls will be NULL. If send_verify_successor_retry_task is not NO_TASK, we
+   * must cancel the retry task scheduled for verify_successor of previous
+   * context.
+   */
+  if (NULL == cls)
   {
+    if (send_verify_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+    {
+      struct VerifySuccessorContext *old_ctx = 
+          GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
+      /* old_ctx must not be NULL, as the retry task had been scheduled */
+      GNUNET_assert(NULL != old_ctx);
+      GNUNET_free(old_ctx);
+    }
+    
+    struct VerifySuccessorContext *ctx;
+    ctx = GNUNET_new(struct VerifySuccessorContext);
+    
+    ctx->num_retries_scheduled++;
     send_verify_successor_retry_task =
         GNUNET_SCHEDULER_add_delayed (verify_successor_retry_time,
                                       &send_verify_successor_message,
-                                      NULL);
+                                      ctx);
+  }  
+  else
+  {
+    /* This is a retry attempt for verify_successor for a previous context */
+    struct VerifySuccessorContext *ctx;
+    
+    ctx = cls;
+    ctx->num_retries_scheduled++;
+    send_verify_successor_retry_task =
+        GNUNET_SCHEDULER_add_delayed (verify_successor_retry_time,
+                                      &send_verify_successor_message,
+                                      ctx);
   }
+  
   successor = &finger_table[0];
   /* We are waiting for a confirmation from the notify message and we have not
    * crossed the wait time, then return. */
@@ -5212,7 +5247,9 @@ handle_dht_p2p_verify_successor_result(void *cls,
     /* Cancel Retry Task */
     if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
     {
-      GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
+      struct VerifySuccessorContext *ctx;
+      ctx = GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
+      GNUNET_free(ctx);
       send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
     compare_and_update_successor (current_successor,
@@ -6138,7 +6175,9 @@ GDS_NEIGHBOURS_done (void)
 
   if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
   {
-    GNUNET_SCHEDULER_cancel (send_verify_successor_retry_task);
+    struct VerifySuccessorContext *ctx;
+    ctx = GNUNET_SCHEDULER_cancel (send_verify_successor_retry_task);
+    GNUNET_free(ctx);
     send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
   }
   
