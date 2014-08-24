@@ -409,13 +409,18 @@ handle_store (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a store request (size: %lu) for sub system `%s', peer `%s', key `%s'\n",
+              "Received a store request (size: %lu).\n"
+              " Sub system `%s'\n"
+              " Peer `%s'\n"
+              " Key `%s'\n"
+              " Value size %lu\n"
+              " Options: %d.\n",
               record->value_size, record->sub_system, GNUNET_i2s (record->peer),
-              record->key);
+              record->key, record->value_size, ntohl (srm->options));
   if (GNUNET_OK !=
       db->store_record (db->cls, record->sub_system, record->peer, record->key,
                         record->value, record->value_size, *record->expiry,
-                        srm->options))
+                        ntohl (srm->options)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to store requested value, sqlite database error."));
