@@ -5332,11 +5332,21 @@ handle_dht_p2p_notify_new_successor(void *cls,
   else
     next_hop = trail[my_index + 1];
   /* Add an entry in routing table for trail from source to its new successor. */
-  if (GNUNET_SYSERR == GDS_ROUTING_add (trail_id, *peer, next_hop))
-  {
-    GNUNET_break(0);
-    return GNUNET_OK;
-  }
+  /* TODO : Verify the logic below
+   * Removed th following error check because GNUNET_SYSERR is returned when 
+   * route with trail_id was already in the routing table. This can happen, when
+   * notify_successor was being retried. This should not be an error, and should
+   *  be ignored.
+   */
+  GDS_ROUTING_add(trail_id, *peer, next_hop);
+//  if (GNUNET_SYSERR == GDS_ROUTING_add (trail_id, *peer, next_hop))
+//  {
+//    
+//    GNUNET_break(0);
+//    return GNUNET_OK;
+//    
+//  }
+  
   target_friend =
                  GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_hop);
   if (NULL == target_friend)
