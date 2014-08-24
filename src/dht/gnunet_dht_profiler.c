@@ -373,7 +373,6 @@ static int in_shutdown = 0;
 static void
 collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
-
 /**
  * Shutdown task.  Cleanup all resources and operations.
  *
@@ -741,11 +740,23 @@ dht_connected (void *cls,
   switch (mode)
   {
   case MODE_PUT:
+  {
+    delay_put.rel_value_us =
+      delay_put.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                delay_put.rel_value_us);
     ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay_put, &delayed_put, ac);
     break;
+  }
   case MODE_GET:
+  {
+    delay_get.rel_value_us =
+      delay_get.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                delay_get.rel_value_us);
     ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay_get, &delayed_get, ac);
     break;
+  }
   }
 }
 
@@ -1060,6 +1071,8 @@ set_malicious()
   }
 }
 #endif
+
+
 /**
  * Callback called when DHT service on the peer is started
  *
@@ -1254,10 +1267,10 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   /* set default delays */
-  delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
+  delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
   delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
   delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=

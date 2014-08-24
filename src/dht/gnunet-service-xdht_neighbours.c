@@ -80,7 +80,7 @@
 /**
  * How long to wait before sending another verify successor message.
  */
-#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
 
 /**
  * How long to wait before sending another verify successor message.
@@ -4826,31 +4826,7 @@ handle_dht_p2p_verify_successor(void *cls,
   {
     next_hop = GDS_ROUTING_get_next_hop (trail_id, GDS_ROUTING_SRC_TO_DEST);    
     if (NULL == next_hop)
-    {
-      //SUPUs anyways you are passing the trail, just do the lookup
-      // and pass the message forward.
-//      int my_index = search_my_index (trail, trail_length);
-//      if(-1 == my_index)
-//      {
-//        DEBUG(" Peer %s not present in trail id %s, line =%d",
-//              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
-//        GNUNET_break_op (0);
-//        return GNUNET_OK;
-//      }
-//      if((my_index == trail_length + 1))
-//      {
-//        DEBUG(" Peer %s  present twice in trail id %s, line =%d",
-//              GNUNET_i2s(&my_identity), GNUNET_h2s(&trail_id), __LINE__);
-//        GNUNET_break_op (0);
-//        return GNUNET_OK;
-//      }
-//      if(my_index == (trail_length - 1))
-//      {
-//        *next_hop = successor;
-//      }
-//      else
-//        *next_hop = trail[my_index + 1];
-      
+    { 
       return GNUNET_OK;
     }
  
@@ -5033,17 +5009,10 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       memcpy (&my_id, &my_identity, sizeof(uint64_t));
       my_id_str = GNUNET_strdup (GNUNET_i2s_full (&my_identity));
       memcpy(&succ, &current_successor->finger_identity, sizeof(uint64_t));
+      succ = GNUNET_ntohll(succ);
       GNUNET_asprintf (&key, "XDHT:%s:", my_id_str);
       GNUNET_free (my_id_str);
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d,MY_ID = %llu and successor_id = %llu"),
-              __FILE__, __func__,__LINE__,(unsigned long long)my_id, (unsigned long long)succ);
-      struct GNUNET_PeerIdentity print_peer;
-      print_peer = my_identity;
-      FPRINTF (stderr,_("\nSUPU my_id = %s,my_id64 = %llu, %s, %s, %d"),
-       GNUNET_i2s(&print_peer),(unsigned long long)my_id,__FILE__, __func__,__LINE__);
-      print_peer = current_successor->finger_identity;
-      FPRINTF (stderr,_("\nSUPU current_successor->finger_identity = %s,my_id64 = %llu, %s, %s, %d"),
-       GNUNET_i2s(&print_peer),(unsigned long long)succ,__FILE__, __func__,__LINE__);
+     
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
