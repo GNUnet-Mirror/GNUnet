@@ -21,7 +21,7 @@
 /**
  * @file dht/gnunet_dht_profiler.c
  * @brief Profiler for GNUnet DHT
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -38,7 +38,7 @@
 /**
  * Number of peers which should perform a PUT out of 100 peers
  */
-#define PUT_PROBABILITY 50
+#define PUT_PROBABILITY 100
 
 /**
  * Configuration
@@ -114,7 +114,7 @@ struct ActiveContext
   struct GNUNET_DHT_GetHandle *dht_get;
 
   /**
-   * The hash of the @put_data
+   * The hash of the @e put_data
    */
   struct GNUNET_HashCode hash;
 
@@ -124,7 +124,7 @@ struct ActiveContext
   GNUNET_SCHEDULER_TaskIdentifier delay_task;
 
   /**
-   * The size of the put_data
+   * The size of the @e put_data
    */
   uint16_t put_data_size;
 
@@ -200,7 +200,44 @@ static unsigned int n_gets_ok;
  */
 static unsigned int n_gets_fail;
 
+/**
+ * Replication degree
+ */
+static unsigned int replication;
 
+/**
+ * Testbed Operation (to get stats).
+ */
+static struct GNUNET_TESTBED_Operation *stats_op;
+
+/**
+ * Testbed peer handles.
+ */
+static struct GNUNET_TESTBED_Peer **testbed_handles;
+
+/**
+ * Total number of messages sent by peer. 
+ */
+static uint64_t outgoing_bandwidth;
+
+/**
+ * Total number of messages received by peer.
+ */
+static uint64_t incoming_bandwidth;
+
+/**
+ * Average number of hops taken to do put.
+ */
+static unsigned int average_put_path_length;
+
+/**
+ * Average number of hops taken to do get. 
+ */
+static unsigned int average_get_path_length;
+
+static unsigned int total_put_path_length;
+
+static unsigned int total_get_path_length;
 /**
  * Shutdown task.  Cleanup all resources and operations.
  *
@@ -212,14 +249,14 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac;
   unsigned int cnt;
-  
+
   if (NULL != a_ctx)
   {
     for (cnt=0; cnt < num_peers; cnt++)
     {
       if (NULL != a_ctx[cnt].op)
         GNUNET_TESTBED_operation_done (a_ctx[cnt].op);
-      
+
       /* Cleanup active context if this peer is an active peer */
       ac = a_ctx[cnt].ac;
       if (NULL == ac)
@@ -236,7 +273,65 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (a_ctx);
     a_ctx = NULL;
   }
+  if(NULL != stats_op)
+    GNUNET_TESTBED_operation_done (stats_op);
+  stats_op = NULL;
   GNUNET_free_non_null (a_ac);
+}
+
+
+/**
+ * Stats callback. Finish the stats testbed operation and when all stats have
+ * been iterated, shutdown the test.
+ *
+ * @param cls closure
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+bandwidth_stats_cont (void *cls, 
+                      struct GNUNET_TESTBED_Operation *op, 
+                      const char *emsg)
+{
+  INFO ("# Outgoing bandwidth: %u\n", outgoing_bandwidth);
+  INFO ("# Incoming bandwidth: %u\n", incoming_bandwidth);
+  GNUNET_SCHEDULER_shutdown (); 
+}
+
+
+/**
+ * Process statistic values.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+bandwidth_stats_iterator (void *cls, 
+                          const struct GNUNET_TESTBED_Peer *peer,
+                          const char *subsystem, 
+                          const char *name,
+                          uint64_t value, 
+                          int is_persistent)
+{
+   static const char *s_sent = "# Bytes transmitted to other peers";
+   static const char *s_recv = "# Bytes received from other peers";
+
+   if (0 == strncmp (s_sent, name, strlen (s_sent)))
+     outgoing_bandwidth = outgoing_bandwidth + value;
+   else if (0 == strncmp(s_recv, name, strlen (s_recv)))
+     incoming_bandwidth = incoming_bandwidth + value;
+   else
+     return GNUNET_OK;
+   DEBUG ("Bandwith - Out: %lu; In: %lu\n",
+          (unsigned long) outgoing_bandwidth,
+          (unsigned long) incoming_bandwidth);
+   return GNUNET_OK;
 }
 
 
@@ -249,7 +344,19 @@ summarize ()
   INFO ("# GETS made: %u\n", n_gets);
   INFO ("# GETS succeeded: %u\n", n_gets_ok);
   INFO ("# GETS failed: %u\n", n_gets_fail);
-  GNUNET_SCHEDULER_shutdown ();
+  INFO ("# average_put_path_length: %u\n", average_put_path_length);
+  INFO ("# average_get_path_length: %u\n", average_get_path_length);
+  
+  if (NULL == testbed_handles)
+  {
+    INFO ("No peers found\n");
+    return;
+  }
+  /* Collect Stats*/
+  stats_op = GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
+                                            "dht", NULL,
+                                            bandwidth_stats_iterator, 
+                                            bandwidth_stats_cont, NULL);
 }
 
 
@@ -271,8 +378,9 @@ cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n_gets_fail++;
 
   /* If profiling is complete, summarize */
-  if (n_gets == n_gets_fail + n_gets_ok)
+  if (n_active == n_gets_fail + n_gets_ok)
     summarize ();
+
 }
 
 
@@ -293,7 +401,7 @@ cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param size number of bytes in @a data
  * @param data pointer to the result data
  */
-static void 
+static void
 get_iter (void *cls,
           struct GNUNET_TIME_Absolute exp,
           const struct GNUNET_HashCode *key,
@@ -306,18 +414,9 @@ get_iter (void *cls,
 {
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac = ac->get_ac;
-  
-  if (get_ac->put_data_size != size)
-  {
-    DEBUG ("Found a GET with incorrect data length (this may happen, but very unlikely)\n");
-    return;
-  }
-  if (0 != memcmp (data, get_ac->put_data, size))
-  {
-    DEBUG ("Found a GET with incorrect data (this may happen, but very unlikely)\n");
-    return;
-  }
 
+  /* Check the keys of put and get match or not. */
+  GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
   /* we found the data we are looking for */
   DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok));
   n_gets_ok++;
@@ -326,10 +425,17 @@ get_iter (void *cls,
   ac->dht_get = NULL;
   GNUNET_SCHEDULER_cancel (ac->delay_task);
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
-
+  
+  total_put_path_length = total_put_path_length + put_path_length;
+  total_get_path_length = total_get_path_length + get_path_length;
+  
   /* Summarize if profiling is complete */
-  if (n_gets == n_gets_fail + n_gets_ok)
+  if (n_active == n_gets_fail + n_gets_ok)
+  {
+    average_put_path_length = total_put_path_length/n_active;
+    average_get_path_length = total_get_path_length/n_active;
     summarize ();
+  }
 }
 
 
@@ -357,9 +463,10 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   get_ac->nrefs++;
   ac->get_ac = get_ac;
+  DEBUG ("Doing a DHT GET for data of size %u\n", get_ac->put_data_size);
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
-                                      &ac->hash,
+                                      &get_ac->hash,
                                       1, /* replication level */
                                       GNUNET_DHT_RO_NONE,
                                       NULL, 0, /* extended query and size */
@@ -413,12 +520,12 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ac->put_data_size += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                  (63*1024));
   ac->put_data = GNUNET_malloc (ac->put_data_size);
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, 
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
                               ac->put_data, ac->put_data_size);
   GNUNET_CRYPTO_hash (ac->put_data, ac->put_data_size, &ac->hash);
   DEBUG ("Doing a DHT PUT with data of size %u\n", ac->put_data_size);
   ac->dht_put = GNUNET_DHT_put (ac->dht, &ac->hash,
-                                1,            /* replication level */
+                                replication,
                                 GNUNET_DHT_RO_NONE,
                                 GNUNET_BLOCK_TYPE_TEST,
                                 ac->put_data_size,
@@ -487,7 +594,7 @@ dht_connect (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param cls the active context
  * @param op_result service handle returned from the connect adapter
  */
-static void 
+static void
 dht_disconnect (void *cls, void *op_result)
 {
   struct ActiveContext *ac = cls;
@@ -552,7 +659,8 @@ test_run (void *cls,
 {
   unsigned int cnt;
   unsigned int ac_cnt;
-
+  
+  testbed_handles = peers;  
   if (NULL == peers)
   {
     /* exit */
@@ -560,7 +668,7 @@ test_run (void *cls,
   }
   INFO ("%u peers started\n", num_peers);
   a_ctx = GNUNET_malloc (sizeof (struct Context) * num_peers);
-  
+
   /* select the peers which actively participate in profiling */
   n_active = num_peers * PUT_PROBABILITY / 100;
   if (0 == n_active)
@@ -611,7 +719,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   uint64_t event_mask;
-  
+
   if (0 == num_peers)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Exiting as the number of peers is %u\n"),
@@ -647,6 +755,9 @@ main (int argc, char *const *argv)
     {'d', "delay", "DELAY",
      gettext_noop ("delay for starting DHT PUT and GET"),
      1, &GNUNET_GETOPT_set_relative_time, &delay},
+    {'r', "replication", "DEGREE",
+     gettext_noop ("replication degree for DHT PUTs"),
+     1, &GNUNET_GETOPT_set_uint, &replication},
     {'t', "timeout", "TIMEOUT",
      gettext_noop ("timeout for DHT PUT and GET requests"),
      1, &GNUNET_GETOPT_set_relative_time, &timeout},
@@ -655,8 +766,9 @@ main (int argc, char *const *argv)
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3); /* default delay */
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3); /* default timeout */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30); /* default delay */
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1); /* default timeout */
+  replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv, "dht-profiler",

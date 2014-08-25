@@ -845,6 +845,16 @@ struct Closest_Peer
   unsigned int finger_table_index;
 };
 
+/**
+ * Context for send_verify_successor_task.
+ */
+struct VerifySuccessorContext
+{
+  /**
+   * Number of times this has been scheduled.
+   */
+  unsigned int num_retries_scheduled;
+};
 
 /**
  * Task that sends FIND FINGER TRAIL requests. This task is started when we have
@@ -3160,10 +3170,6 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
   return;
 }
 
-struct VerifySuccessorContext
-{
-  unsigned int num_retries_scheduled;
-};
 
 /**
  * Periodic task to verify current successor. There can be multiple trails to reach
@@ -3174,7 +3180,7 @@ struct VerifySuccessorContext
  */
 static void
 send_verify_successor_message (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc)
+                               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct FriendInfo *target_friend;
   struct GNUNET_HashCode trail_id;
@@ -3184,6 +3190,8 @@ send_verify_successor_message (void *cls,
   unsigned int i = 0;
   struct FingerInfo *successor;
 
+  successor = &finger_table[0];
+  
   /* This task will be scheduled when the result for Verify Successor is received. */
   send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
   
@@ -3194,13 +3202,29 @@ send_verify_successor_message (void *cls,
    */
   if (NULL == cls)
   {
+    /* FIXME: Here we are scheduling a new verify successor task, as we
+     got a new successor. But a send verify successor task may be in progress.
+     1. We need to be sure that this is indeed a new successor. As this function
+     is called even if we add a new trail to reach t old successor. 
+     2. Assuming the new successor is different, then verify successor message
+     * to old successor may be following stages.
+     * --> Waiting for verify successor result. Don't wait anymore. there is
+     *     no trail to reach from old successor to me, hence, routing
+     *     lookup will fail.
+     * --> Waiting for notify confirmation. again don't wait for it. notify 
+     *    confirmation will not succeded. 
+     */
     if (send_verify_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
     {
+      /* FIXME: Are we scheduling retry task as soon as we send verify message.
+       If yes then here before making this task, first check if the message
+       is for the same peer again. */
       struct VerifySuccessorContext *old_ctx = 
           GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
       /* old_ctx must not be NULL, as the retry task had been scheduled */
       GNUNET_assert(NULL != old_ctx);
       GNUNET_free(old_ctx);
+      /* FIXME: Why don't we reset the task to NO_TASK here? */
     }
     
     struct VerifySuccessorContext *ctx;
@@ -3225,14 +3249,6 @@ send_verify_successor_message (void *cls,
                                       ctx);
   }
   
-  successor = &finger_table[0];
-  /* We are waiting for a confirmation from the notify message and we have not
-   * crossed the wait time, then return. */
-//  if ((1 == waiting_for_notify_confirmation) 
-//      && (0 != GNUNET_TIME_absolute_get_remaining(successor->wait_notify_confirmation).rel_value_us))
-//  {
-//    return;
-//  }
   /* Among all the trails to reach to successor, select first one which is present.*/
   for (i = 0; i < successor->trails_count; i++)
   {
@@ -3737,14 +3753,12 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   
   if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&current_best_known_dest, &my_identity)))
   {
-    next_routing_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
+    next_routing_hop = GDS_ROUTING_get_next_hop (received_intermediate_trail_id,
                                                  GDS_ROUTING_SRC_TO_DEST);
     if (NULL != next_routing_hop)
     {
       next_hop = next_routing_hop;
       intermediate_trail_id = received_intermediate_trail_id;
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d,intermediate_trail_id=%s"),__FILE__, __func__,__LINE__,GNUNET_h2s(&intermediate_trail_id));
-
       best_known_dest = current_best_known_dest; 
     }
   }
@@ -3881,7 +3895,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&current_best_known_dest, &my_identity)))
   {
     next_routing_hop = GDS_ROUTING_get_next_hop (received_intermediate_trail_id,
-                                         GDS_ROUTING_SRC_TO_DEST);
+                                                  GDS_ROUTING_SRC_TO_DEST);
     if (NULL != next_routing_hop)
     {
       next_hop = next_routing_hop;
@@ -5333,22 +5347,8 @@ handle_dht_p2p_notify_new_successor(void *cls,
     next_hop = new_successor;
   else
     next_hop = trail[my_index + 1];
-  /* Add an entry in routing table for trail from source to its new successor. */
-  /* TODO : Verify the logic below
-   * Removed th following error check because GNUNET_SYSERR is returned when 
-   * route with trail_id was already in the routing table. This can happen, when
-   * notify_successor was being retried. This should not be an error, and should
-   *  be ignored.
-   */
-  GDS_ROUTING_add(trail_id, *peer, next_hop);
-//  if (GNUNET_SYSERR == GDS_ROUTING_add (trail_id, *peer, next_hop))
-//  {
-//    
-//    GNUNET_break(0);
-//    return GNUNET_OK;
-//    
-//  }
   
+  GDS_ROUTING_add(trail_id, *peer, next_hop);
   target_friend =
                  GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_hop);
   if (NULL == target_friend)
@@ -5731,10 +5731,6 @@ handle_dht_p2p_add_trail (void *cls, const struct GNUNET_PeerIdentity *peer,
   source_peer = add_trail->source_peer;
   trail_id = add_trail->trail_id;
 
-  //FIXME: add a check that sender peer is not malicious. Make it a generic
-  // function so that it can be used in all other functions where we need the
-  // same functionality.
-
   /* I am not the destination of the trail. */
   if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &destination_peer))
   {
@@ -5762,7 +5758,8 @@ handle_dht_p2p_add_trail (void *cls, const struct GNUNET_PeerIdentity *peer,
       next_hop = trail[my_index + 1];
     }
     /* Add in your routing table. */
-    GNUNET_assert (GNUNET_OK == GDS_ROUTING_add (trail_id, next_hop, *peer));
+    GNUNET_assert (GNUNET_OK == GDS_ROUTING_add (trail_id, *peer, next_hop));
+    //GNUNET_assert (GNUNET_OK == GDS_ROUTING_add (trail_id, next_hop, *peer));
     GNUNET_assert (NULL !=
                   (target_friend =
                    GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_hop)));
