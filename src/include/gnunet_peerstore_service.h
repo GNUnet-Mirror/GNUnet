@@ -46,13 +46,13 @@ enum GNUNET_PEERSTORE_StoreOption
   /**
    * Possibly store multiple values under given key.
    */
-  GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+  GNUNET_PEERSTORE_STOREOPTION_MULTIPLE = 0,
 
   /**
    * Delete any previous values for the given key before
    * storing the given value.
    */
-  GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+  GNUNET_PEERSTORE_STOREOPTION_REPLACE = 1,
 
 };
 
