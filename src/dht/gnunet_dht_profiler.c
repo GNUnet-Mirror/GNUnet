@@ -435,7 +435,7 @@ bandwidth_stats_cont (void *cls,
 {
   INFO ("# Outgoing bandwidth: %u\n", outgoing_bandwidth);
   INFO ("# Incoming bandwidth: %u\n", incoming_bandwidth);
-  GNUNET_SCHEDULER_shutdown (); 
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -823,7 +823,6 @@ dht_disconnect (void *cls, void *op_result)
       return;
     break;
   }
-  GNUNET_SCHEDULER_shutdown ();
 }
 
 
