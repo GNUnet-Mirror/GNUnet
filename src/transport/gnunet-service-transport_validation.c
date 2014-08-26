@@ -106,7 +106,7 @@ struct TransportPingMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PING
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_PING
    */
   struct GNUNET_MessageHeader header;
 
@@ -137,7 +137,7 @@ struct TransportPongMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PONG
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_PONG
    */
   struct GNUNET_MessageHeader header;
 
@@ -153,7 +153,7 @@ struct TransportPongMessage
   struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
-   * GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
+   * #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN to confirm that this is a
    * plausible address for the signing peer.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
