@@ -2194,7 +2194,6 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
     msize = data_size + sizeof (struct PeerPutMessage);
   }
 
-  /* Should it be GNUNET_SERVER_MAX_MESSAGE_SIZE? */
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     DEBUG("msize = %lu\n",msize);
@@ -3650,7 +3649,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
        sizeof (struct PeerPutMessage) +
        putlen * sizeof (struct GNUNET_PeerIdentity)) ||
       (putlen >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
+       GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -3850,7 +3849,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
        sizeof (struct PeerGetMessage) +
        get_length * sizeof (struct GNUNET_PeerIdentity)) ||
        (get_length >
-        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
+        GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return GNUNET_YES;
@@ -3969,9 +3968,9 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
        getlen * sizeof (struct GNUNET_PeerIdentity) +
        putlen * sizeof (struct GNUNET_PeerIdentity)) ||
       (getlen >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity) ||
+       GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity) ||
       (putlen >
-         GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity))))
+         GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity))))
   {
     GNUNET_break_op (0);
     return GNUNET_YES;
