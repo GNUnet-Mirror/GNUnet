@@ -461,6 +461,8 @@ bandwidth_stats_iterator (void *cls,
    static const char *s_sent = "# Bytes transmitted to other peers";
    static const char *s_recv = "# Bytes received from other peers";
 
+   DEBUG("inside bandwidth_stats_iterator()\n");
+   
    if (0 == strncmp (s_sent, name, strlen (s_sent)))
      outgoing_bandwidth = outgoing_bandwidth + value;
    else if (0 == strncmp(s_recv, name, strlen (s_recv)))
@@ -516,10 +518,15 @@ cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
 
+  DEBUG("inside cancel_get()");
+  
   /* If profiling is complete, summarize */
   if (n_active == n_gets_fail + n_gets_ok)
+  {
+    average_put_path_length = (double)total_put_path_length/(double)n_active;
+    average_get_path_length = (double)total_get_path_length/(double )n_gets_ok;
     summarize ();
-
+  }
 }
 
 
@@ -558,7 +565,7 @@ get_iter (void *cls,
   /* Check the keys of put and get match or not. */
   GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
   /* we found the data we are looking for */
-  DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok));
+  DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok)); //FIXME: It always prints 1.
   n_gets_ok++;
   get_ac->nrefs--;
   GNUNET_DHT_get_stop (ac->dht_get);
@@ -884,11 +891,16 @@ successor_stats_cont (void *cls,
   struct GNUNET_HashCode *key;
   int count;
   
+  
   /* Don't schedule the task till we are looking for circle here. */
   successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTBED_operation_done (successor_stats_op);
   successor_stats_op = NULL;
-  
+  if (0 == max_searches)
+  {
+    start_profiling();
+    return;
+  }
   start_val =
           (struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
                                                 start_key);
@@ -985,6 +997,9 @@ successor_stats_iterator (void *cls,
                           int is_persistent)
 {
   static const char *key_string = "XDHT";
+  if (0 == max_searches)
+    return GNUNET_OK;
+  
   if (0 == strncmp (key_string, name, strlen (key_string)))
   {
     char *my_id_str;
@@ -1037,6 +1052,8 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
   GNUNET_assert(NULL != testbed_handles);
+  
+  if (0 != max_searches)
   successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
                                                                     GNUNET_NO);
   successor_stats_op = 
@@ -1100,6 +1117,7 @@ service_started (void *cls,
 #if ENABLE_MALICIOUS
     set_malicious();
 #endif
+    
      DEBUG("successor_stats_task \n");
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;
@@ -1268,10 +1286,10 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   /* set default delays */
-  delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1);
-  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
-  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 10);
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5);
+  delay_stats = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+  delay_put = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+  delay_get = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
