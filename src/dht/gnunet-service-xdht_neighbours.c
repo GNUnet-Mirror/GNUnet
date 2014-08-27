@@ -5065,10 +5065,11 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
     
     if(0 == successor_times)
     {
+//      successor_times = 3;
       verify_successor_next_send_time = 
               GNUNET_TIME_STD_BACKOFF (verify_successor_next_send_time);
     }
-    if (0 != successor_times)
+    else
       successor_times--;
     
     
@@ -5441,10 +5442,16 @@ handle_dht_p2p_notify_succ_confirmation (void *cls,
       send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
     if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+    {
+      verify_successor_next_send_time.rel_value_us = 
+      DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us); 
       send_verify_successor_task = 
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
                                            &send_verify_successor_message,
                                            NULL);
+    }
   }
   else
   {
