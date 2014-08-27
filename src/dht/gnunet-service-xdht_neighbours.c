@@ -957,6 +957,10 @@ unsigned int act_malicious;
  */
 static unsigned int total_fingers_found;
 
+/**
+ * Number of times we found the same successor. 
+ */
+static unsigned int successor_times;
 
 /**
  * Called when core is ready to send a message we asked for
@@ -5058,6 +5062,16 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
+    
+    if(0 == successor_times)
+    {
+      verify_successor_next_send_time = 
+              GNUNET_TIME_STD_BACKOFF (verify_successor_next_send_time);
+    }
+    if (0 != successor_times)
+      successor_times--;
+    
+    
     if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
       send_verify_successor_task = 
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
@@ -6059,7 +6073,7 @@ GDS_NEIGHBOURS_init (void)
   //TODO: check size of this peer map? 
   friend_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
   finger_table_init ();
-  
+  successor_times = 10;
   find_finger_trail_task_next_send_time.rel_value_us =
       DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,

@@ -461,8 +461,6 @@ bandwidth_stats_iterator (void *cls,
    static const char *s_sent = "# Bytes transmitted to other peers";
    static const char *s_recv = "# Bytes received from other peers";
 
-   DEBUG("inside bandwidth_stats_iterator()\n");
-   
    if (0 == strncmp (s_sent, name, strlen (s_sent)))
      outgoing_bandwidth = outgoing_bandwidth + value;
    else if (0 == strncmp(s_recv, name, strlen (s_recv)))
@@ -518,8 +516,6 @@ cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
 
-  DEBUG("inside cancel_get()");
-  
   /* If profiling is complete, summarize */
   if (n_active == n_gets_fail + n_gets_ok)
   {
@@ -577,9 +573,9 @@ get_iter (void *cls,
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
   
-  total_put_path_length = total_put_path_length + put_path_length;
-  total_get_path_length = total_get_path_length + get_path_length;
-  
+  total_put_path_length = total_put_path_length + (double)put_path_length;
+  total_get_path_length = total_get_path_length + (double)get_path_length;
+  DEBUG ("total_put_path_length = %f,put_path \n",total_put_path_length);
   /* Summarize if profiling is complete */
   if (n_active == n_gets_fail + n_gets_ok)
   {
@@ -704,7 +700,7 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   DEBUG ("PUT_REQUEST_START key %s \n", GNUNET_h2s((struct GNUNET_HashCode *)ac->put_data));
   ac->dht_put = GNUNET_DHT_put (ac->dht, &ac->hash,
                                 replication,
-                                GNUNET_DHT_RO_NONE,
+                                GNUNET_DHT_RO_RECORD_ROUTE,
                                 GNUNET_BLOCK_TYPE_TEST,
                                 ac->put_data_size,
                                 ac->put_data,
@@ -750,7 +746,6 @@ dht_connected (void *cls,
   {
     struct GNUNET_TIME_Relative peer_delay_put;
     peer_delay_put.rel_value_us =
-      delay_put.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 delay_put.rel_value_us);
     ac->delay_task = GNUNET_SCHEDULER_add_delayed (peer_delay_put, &delayed_put, ac);
@@ -936,7 +931,7 @@ successor_stats_cont (void *cls,
                                                  NULL));
   
   successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
-                                                                    GNUNET_NO);
+                                                                 GNUNET_NO);
   //TODO:Check if comparison is correct. 
   if ((start_val == val) && (count == num_peers))
   {
