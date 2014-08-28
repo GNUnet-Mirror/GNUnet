@@ -118,7 +118,7 @@
 /**
  * Maximum number of trails stored per finger.
  */
-#define MAXIMUM_TRAILS_PER_FINGER 1
+#define MAXIMUM_TRAILS_PER_FINGER 2
 
 /**
  * Finger map index for predecessor entry in finger table.
@@ -628,6 +628,34 @@ struct PeerAddTrailMessage
   /* Trail from source peer to destination peer, NOT including them.
    * struct GNUNET_PeerIdentity trail[]
    */
+};
+
+/**
+ * P2P Trail Compression Message.
+ */
+struct PeerTrailCompressionMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Source peer of this trail.
+   */
+  struct GNUNET_PeerIdentity source_peer;
+
+  /**
+   * Trail from source_peer to destination_peer compressed such that
+   * new_first_friend is the first hop in the trail from source to
+   * destination.
+   */
+  struct GNUNET_PeerIdentity new_first_friend;
+
+  /**
+   * Unique identifier of trail.
+   */
+  struct GNUNET_HashCode trail_id;
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -1450,6 +1478,55 @@ GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
   target_friend->pending_count++;
   process_friend_queue (target_friend);
+}
+
+/**
+ * Construct a trail compression message and send it to target_friend.
+ * @param source_peer Source of the trail.
+ * @param trail_id Unique identifier of trail.
+ * @param first_friend First hop in compressed trail to reach from source to finger
+ * @param target_friend Next friend to get this message.
+ */
+void
+GDS_NEIGHBOURS_send_trail_compression (struct GNUNET_PeerIdentity source_peer,
+                                       struct GNUNET_HashCode trail_id,
+                                       struct GNUNET_PeerIdentity first_friend,
+                                       struct FriendInfo *target_friend)
+{
+  struct P2PPendingMessage *pending;
+  struct PeerTrailCompressionMessage *tcm;
+  size_t msize;
+
+  msize = sizeof (struct PeerTrailCompressionMessage);
+
+  if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  if (target_friend->pending_count >= MAXIMUM_PENDING_PER_FRIEND)
+  {
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop ("# P2P messages dropped due to full queue"),
+				                      1, GNUNET_NO);
+  }
+
+  pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize);
+  pending->importance = 0;    /* FIXME */
+  pending->timeout = GNUNET_TIME_relative_to_absolute (PENDING_MESSAGE_TIMEOUT);
+  tcm = (struct PeerTrailCompressionMessage *) &pending[1];
+  pending->msg = &tcm->header;
+  tcm->header.size = htons (msize);
+  tcm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION);
+  tcm->source_peer = source_peer;
+  tcm->new_first_friend = first_friend;
+  tcm->trail_id = trail_id;
+
+  GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
+  target_friend->pending_count++;
+  process_friend_queue (target_friend);
+
 }
 
 
@@ -3451,6 +3528,187 @@ remove_existing_finger (struct FingerInfo *existing_finger,
   return;
 }
 
+/*
+ * Core handle for p2p trail tear compression messages.
+ * @param cls closure
+ * @param message message
+ * @param peer peer identity this notification is about
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_trail_compression (void *cls, const struct GNUNET_PeerIdentity *peer,
+                                  const struct GNUNET_MessageHeader *message)
+{
+  const struct PeerTrailCompressionMessage *trail_compression;
+  struct GNUNET_PeerIdentity *next_hop;
+  struct FriendInfo *target_friend;
+  struct GNUNET_HashCode trail_id;
+  size_t msize;
+
+  msize = ntohs (message->size);
+
+  if (msize != sizeof (struct PeerTrailCompressionMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
+  GNUNET_STATISTICS_update (GDS_stats,
+                            gettext_noop
+                            ("# Bytes received from other peers"), msize,
+                            GNUNET_NO);
+  
+  trail_compression = (const struct PeerTrailCompressionMessage *) message;
+  trail_id = trail_compression->trail_id;
+
+  /* Am I the new first friend to reach to finger of this trail. */
+  if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&trail_compression->new_first_friend,
+                                             &my_identity)))
+  {
+    if (NULL ==
+         (GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+                                             &trail_compression->source_peer)))
+    {
+      GNUNET_break_op(0);
+      return GNUNET_OK;
+    }
+
+    /* Update your prev hop to source of this message. */
+    if(GNUNET_SYSERR ==
+                  (GDS_ROUTING_update_trail_prev_hop (trail_id,
+                                                      trail_compression->source_peer)))
+    {
+      GNUNET_break(0);
+      return GNUNET_OK;
+    }
+    return GNUNET_OK;
+  }
+
+  /* Pass the message to next hop to finally reach to new_first_friend. */
+  next_hop = GDS_ROUTING_get_next_hop (trail_id, GDS_ROUTING_SRC_TO_DEST);
+
+  if (NULL == next_hop)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+
+  if( NULL == (target_friend =
+                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)))
+  {
+    GNUNET_break_op(0);
+    return GNUNET_OK;
+  }
+
+  GDS_ROUTING_remove_trail (trail_id);
+
+  GDS_NEIGHBOURS_send_trail_compression (trail_compression->source_peer,
+                                         trail_id,
+                                         trail_compression->new_first_friend,
+                                         target_friend);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Scan the trail to check if there is any other friend in the trail other than
+ * first hop. If yes then shortcut the trail, send trail compression message to
+ * peers which are no longer part of trail and send back the updated trail
+ * and trail_length to calling function.
+ * @param finger_identity Finger whose trail we will scan.
+ * @param finger_trail [in, out] Trail to reach from source to finger,
+ * @param finger_trail_length  Total number of peers in original finger_trail.
+ * @param finger_trail_id Unique identifier of the finger trail.
+ * @return updated trail length in case we shortcut the trail, else original
+ *         trail length.
+ */
+static struct GNUNET_PeerIdentity *
+scan_and_compress_trail (struct GNUNET_PeerIdentity finger_identity,
+                         const struct GNUNET_PeerIdentity *trail,
+                         unsigned int trail_length,
+                         struct GNUNET_HashCode trail_id,
+                         int *new_trail_length)
+{
+  struct FriendInfo *target_friend;
+  struct GNUNET_PeerIdentity *new_trail;
+  unsigned int i;
+
+  /* I am my own finger. */
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &finger_identity))
+  {
+    *new_trail_length = 0;
+    return NULL;
+  }
+
+  if (0 == trail_length)
+  {
+    *new_trail_length = 0;
+    return NULL;
+  }
+
+  /* If finger identity is a friend. */
+  if (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, &finger_identity))
+  {
+    *new_trail_length = 0;
+
+    /* If there is trail to reach this finger/friend */
+    if (trail_length > 0)
+    {
+      /* Finger is your first friend. */
+      GDS_ROUTING_update_trail_next_hop (trail_id, finger_identity);
+      GNUNET_assert (NULL !=
+                    (target_friend =
+                     GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+                                                        &trail[0])));
+
+
+      GDS_NEIGHBOURS_send_trail_compression (my_identity,
+                                             trail_id, finger_identity,
+                                             target_friend);
+    }
+    return NULL;
+  }
+
+  /*  For other cases, when its neither a friend nor my own identity.*/
+  for (i = trail_length - 1; i > 0; i--)
+  {
+    /* If the element at this index in trail is a friend. */
+    if (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, &trail[i]))
+    {
+      struct FriendInfo *target_friend;
+      int j = 0;
+
+      GNUNET_assert (NULL !=
+                    (target_friend =
+                     GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+                                                        &trail[0])));
+      GDS_ROUTING_update_trail_next_hop (trail_id, trail[i]);
+      GDS_NEIGHBOURS_send_trail_compression (my_identity,
+                                             trail_id, trail[i],
+                                             target_friend);
+
+
+      /* Copy the trail from index i to index (trail_length -1) into a new trail
+       *  and update new trail length */
+      *new_trail_length = trail_length - i;
+      new_trail = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity) * (*new_trail_length));
+      while (i < trail_length)
+      {
+        memcpy (&new_trail[j], &trail[i], sizeof(struct GNUNET_PeerIdentity));
+        j++;
+        i++;
+      }
+      return new_trail;
+    }
+  }
+
+  /* If we did not compress the trail, return the original trail back.*/
+  *new_trail_length = trail_length;
+  new_trail = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity) * trail_length);  
+  memcpy (new_trail, trail, trail_length * sizeof (struct GNUNET_PeerIdentity));
+  return new_trail;
+}
+
 
 /**
  * Check if there is already an entry in finger_table at finger_table_index.
@@ -3485,6 +3743,8 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
   struct GNUNET_PeerIdentity closest_peer;
   struct FingerInfo *successor;
   unsigned int finger_table_index;
+  struct GNUNET_PeerIdentity *updated_trail;
+  int updated_finger_trail_length;
 
   /* Get the finger_table_index corresponding to finger_value we got from network.*/
   finger_table_index = get_finger_table_index (finger_value, is_predecessor);
@@ -3509,8 +3769,6 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
                                               &successor->finger_identity))
     {
-//      find_finger_trail_task_next_send_time = 
-//              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
       if (0 == fingers_round_count)
       {
          find_finger_trail_task_next_send_time = 
@@ -3543,8 +3801,14 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
   /* No entry present in finger_table for given finger map index. */
   if (GNUNET_NO == existing_finger->is_present)
   {
-    add_new_finger (finger_identity, finger_trail,
-                    finger_trail_length,
+     /* Shorten the trail if possible. */
+    updated_finger_trail_length = finger_trail_length;
+    updated_trail = scan_and_compress_trail (finger_identity, finger_trail,
+                                             finger_trail_length,
+                                             finger_trail_id,
+                                             &updated_finger_trail_length);
+    add_new_finger (finger_identity, updated_trail,
+                    updated_finger_trail_length,
                     finger_trail_id, finger_table_index);
     update_current_search_finger_index (finger_table_index);
     return;
@@ -3558,20 +3822,18 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
                                         &finger_identity,
                                         finger_value,
                                         is_predecessor);
-
+ 
     /* If the new finger is the closest peer. */
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity, &closest_peer))
     {
+      updated_finger_trail_length = finger_trail_length;
+      updated_trail = scan_and_compress_trail (finger_identity, finger_trail,
+                                             updated_finger_trail_length,
+                                             finger_trail_id,
+                                             &updated_finger_trail_length);
       remove_existing_finger (existing_finger, finger_table_index);
-      add_new_finger (finger_identity, finger_trail, finger_trail_length,
+      add_new_finger (finger_identity, updated_trail, updated_finger_trail_length,
                       finger_trail_id, finger_table_index);
-//      if ((0 == finger_table_index) && (1 == waiting_for_notify_confirmation))
-//      {
-//        /* SUPUS: We have removed our successor, but we are still waiting for a 
-//         * confirmation. As we have removed successor, then it does not make
-//         sense to wait for the new successor. */
-//        waiting_for_notify_confirmation = 0;
-//      }
     }
     else
     {
@@ -3598,14 +3860,18 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     {
       return;
     }
-    
+    updated_finger_trail_length = finger_trail_length;
+    updated_trail = scan_and_compress_trail (finger_identity, finger_trail,
+                                             finger_trail_length,
+                                             finger_trail_id,
+                                             &updated_finger_trail_length);
     /* If there is space to store more trails. */
     if (existing_finger->trails_count < MAXIMUM_TRAILS_PER_FINGER)
-        add_new_trail (existing_finger, finger_trail,
-                       finger_trail_length, finger_trail_id);
+        add_new_trail (existing_finger, updated_trail,
+                       updated_finger_trail_length, finger_trail_id);
     else
-        select_and_replace_trail (existing_finger, finger_trail,
-                                  finger_trail_length, finger_trail_id);
+        select_and_replace_trail (existing_finger, updated_trail,
+                                  updated_finger_trail_length, finger_trail_id);
   }
   update_current_search_finger_index (finger_table_index);
   return;
@@ -6070,6 +6336,8 @@ GDS_NEIGHBOURS_init (void)
     {&handle_dht_p2p_trail_setup_rejection, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION, 0},
     {&handle_dht_p2p_trail_teardown, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN,
                                      sizeof (struct PeerTrailTearDownMessage)},
+    {&handle_dht_p2p_trail_compression, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION,
+                                        sizeof (struct PeerTrailCompressionMessage)},
     {&handle_dht_p2p_add_trail, GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL, 0},
     {&handle_dht_p2p_notify_succ_confirmation, GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION, 
                                       sizeof (struct PeerNotifyConfirmationMessage)},

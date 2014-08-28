@@ -2605,10 +2605,15 @@ extern "C"
  * that you got the notify successor message. 
  */
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION 893
+
+/**
+ * Trail Compression
+ */
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION 894
 /*******************************************************************************/
 
 /**
- * Next available: 903
+ * Next available: 904
  */
 
 /**
