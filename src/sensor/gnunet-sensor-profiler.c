@@ -36,6 +36,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
+#include "gnunet_peerstore_service.h"
+#include "gnunet_sensor_service.h"
 
 /**
  * Information about a single peer
@@ -52,6 +54,11 @@ struct PeerInfo
    * Testbed peer handle
    */
   struct GNUNET_TESTBED_Peer *testbed_peer;
+
+  /**
+   * TESTBED operation connecting us to sensor service on this peer
+   */
+  struct GNUNET_TESTBED_Operation *sensor_op;
 
 };
 
@@ -96,6 +103,16 @@ static struct PeerInfo *all_peers_info;
  */
 static int peers_known = 0;
 
+/**
+ * TESTBED operation connecting us to peerstore service on collection point
+ */
+static struct GNUNET_TESTBED_Operation *peerstore_op;
+
+/**
+ * Handle to peerstore service on collection point
+ */
+static struct GNUNET_PEERSTORE_Handle *peerstore;
+
 
 /**
  * Copy directory recursively
@@ -114,7 +131,22 @@ copy_dir (const char *src, const char *dst);
 static void
 do_shutdown ()                  // TODO: schedule timeout shutdown
 {
+  int i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
+  for (i = 0; i < num_peers; i++)
+  {
+    if (NULL != all_peers_info[i].sensor_op)
+    {
+      GNUNET_TESTBED_operation_done (all_peers_info[i].sensor_op);
+      all_peers_info[i].sensor_op = NULL;
+    }
+  }
+  if (NULL != peerstore_op)
+  {
+    GNUNET_TESTBED_operation_done (peerstore_op);
+    peerstore_op = NULL;
+  }
   if (NULL != all_peers_info)
   {
     GNUNET_free (all_peers_info);
@@ -262,6 +294,124 @@ dashboard_started (void *cls, struct GNUNET_TESTBED_Operation *op,
 
 
 /**
+ * Callback to be called when peerstore service connect operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+peerstore_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                      void *ca_result, const char *emsg)
+{
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peerstore service.\n");
+  //TODO
+}
+
+
+/**
+ * Adapter function called to establish a connection to peerstore service.
+ *
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+peerstore_connect_adapter (void *cls,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  peerstore = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_assert (NULL != peerstore);
+  return peerstore;
+}
+
+
+/**
+ * Adapter function called to destroy a connection to peerstore service.
+ *
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+peerstore_disconnect_adapter (void *cls, void *op_result)
+{
+  GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_NO);
+  peerstore = NULL;
+  peerstore_op = NULL;
+}
+
+
+/**
+ * Callback to be called when sensor service connect operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+sensor_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                   void *ca_result, const char *emsg)
+{
+  struct PeerInfo *peer = cls;
+
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sensor service started on peer `%s'.\n",
+              GNUNET_i2s (&peer->peer_id));
+  //TODO:
+}
+
+
+/**
+ * Adapter function called to establish a connection to sensor service.
+ *
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+sensor_connect_adapter (void *cls,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct GNUNET_SENSOR_Handle *sensor;
+
+  sensor = GNUNET_SENSOR_connect (cfg);
+  return sensor;
+}
+
+
+/**
+ * Adapter function called to destroy a connection to sensor service.
+ *
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+sensor_disconnect_adapter (void *cls, void *op_result)
+{
+  struct GNUNET_SENSOR_Handle *sensor = op_result;
+
+  GNUNET_SENSOR_disconnect (sensor);
+}
+
+
+/**
  * Callback to be called when the requested peer information is available
  *
  * @param cb_cls the closure from GNUNET_TETSBED_peer_get_information()
@@ -278,9 +428,15 @@ peer_info_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   struct GNUNET_TESTBED_Peer *testbed_peer = cb_cls;
   struct PeerInfo *peer = &all_peers_info[peers_known];
 
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
   peer->testbed_peer = testbed_peer;
   GNUNET_CRYPTO_get_peer_identity (pinfo->result.cfg, &peer->peer_id);
-  if (0 == peers_known)         /* First peer is collection point */
+  peers_known++;
+  if (1 == peers_known)         /* First peer is collection point */
   {
     /* Rewrite sensors */
     rewrite_sensors ();
@@ -288,7 +444,21 @@ peer_info_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_TESTBED_peer_manage_service (NULL, testbed_peer, "sensordashboard",
                                         &dashboard_started, NULL, 1);
   }
-  peers_known++;
+  /* Start sensor service on every peer */
+  peer->sensor_op =
+      GNUNET_TESTBED_service_connect (NULL, testbed_peer, "sensor",
+                                      &sensor_connect_cb, peer,
+                                      &sensor_connect_adapter,
+                                      &sensor_disconnect_adapter, NULL);
+  if (num_peers == peers_known) /* Last peer */
+  {
+    /* Connect to peerstore on first peer (collection point) */
+    peerstore_op =
+        GNUNET_TESTBED_service_connect (NULL, all_peers_info[0].testbed_peer,
+                                        "peerstore", &peerstore_connect_cb,
+                                        NULL, &peerstore_connect_adapter,
+                                        &peerstore_disconnect_adapter, NULL);
+  }
   GNUNET_TESTBED_operation_done (op);
 }
 

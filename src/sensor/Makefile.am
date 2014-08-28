@@ -118,8 +118,10 @@ test_pow_sign_LDADD = \
 gnunet_sensor_profiler_SOURCES = \
   gnunet-sensor-profiler.c
 gnunet_sensor_profiler_LDADD = \
+  libgnunetsensor.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la
 
 pkgsensordir = sensors
 
