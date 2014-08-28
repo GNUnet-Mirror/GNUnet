@@ -55,15 +55,36 @@ struct PeerInfo
 
 };
 
+
 /**
- * Number of peers to run
+ * Name of the configuration file used
  */
-static unsigned int num_peers;
+static const char *cfg_filename = "gnunet-sensor-profiler.conf";
+
+/**
+ * Directory to read sensor definitions from
+ */
+static const char *sensor_src_dir = "sensors";
+
+/**
+ * Directory to write new sensor definitions to
+ */
+static const char *sensor_dst_dir = "/tmp/gnunet-sensor-profiler";
 
 /**
  * Return value of the program
  */
 static int ok = 1;
+
+/**
+ * Number of peers to run (Option -p)
+ */
+static unsigned int num_peers = 0;
+
+/**
+ * Set sensors running interval to this value (Option -i)
+ */
+static unsigned int sensors_interval = 0;
 
 /**
  * Array of peer info for all peers
@@ -75,10 +96,16 @@ static struct PeerInfo *all_peers_info;
  */
 static int peers_known = 0;
 
+
 /**
- * Name of the configuration file used
+ * Copy directory recursively
+ *
+ * @param src Path to source directory
+ * @param dst Destination directory, will be created if it does not exist
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
-static char *cfg_filename = "gnunet-sensor-profiler.conf";
+static int
+copy_dir (const char *src, const char *dst);
 
 
 /**
@@ -87,12 +114,150 @@ static char *cfg_filename = "gnunet-sensor-profiler.conf";
 static void
 do_shutdown ()                  // TODO: schedule timeout shutdown
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
   if (NULL != all_peers_info)
   {
     GNUNET_free (all_peers_info);
     all_peers_info = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Function called with each file/folder inside a directory that is being copied.
+ *
+ * @param cls closure, destination directory
+ * @param filename complete filename (absolute path)
+ * @return #GNUNET_OK to continue to iterate.
+ *         #GNUNET_SYSERR to abort iteration with error
+ */
+static int
+copy_dir_scanner (void *cls, const char *filename)
+{
+  char *dst_dir = cls;
+  char *dst;
+  int copy_result;
+
+  GNUNET_asprintf (&dst, "%s%s%s", dst_dir, DIR_SEPARATOR_STR,
+                   GNUNET_STRINGS_get_short_name (filename));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copying `%s' to `%s'.\n", filename,
+              dst);
+  if (GNUNET_YES == GNUNET_DISK_directory_test (filename, GNUNET_YES))
+    copy_result = copy_dir (filename, dst);
+  else
+  {
+    if (GNUNET_YES == GNUNET_DISK_file_test (dst))
+      GNUNET_DISK_directory_remove (dst);
+    copy_result = GNUNET_DISK_file_copy (filename, dst);
+  }
+  GNUNET_free (dst);
+  return copy_result;
+}
+
+
+/**
+ * Copy directory recursively
+ *
+ * @param src Path to source directory
+ * @param dst Destination directory, will be created if it does not exist
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+copy_dir (const char *src, const char *dst)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copying directory `%s' to `%s'.\n", src,
+              dst);
+  if (GNUNET_YES != GNUNET_DISK_directory_test (src, GNUNET_YES))
+    return GNUNET_SYSERR;
+  if (GNUNET_OK != GNUNET_DISK_directory_create (dst))
+    return GNUNET_SYSERR;
+  if (GNUNET_SYSERR ==
+      GNUNET_DISK_directory_scan (src, &copy_dir_scanner, (char *) dst))
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called with each file/folder inside source sensor directory.
+ *
+ * @param cls closure (unused)
+ * @param filename complete filename (absolute path)
+ * @return #GNUNET_OK to continue to iterate.
+ */
+static int
+sensor_dir_scanner (void *cls, const char *filename)
+{
+  const char *file_basename;
+  char *dst_path;
+  struct GNUNET_CONFIGURATION_Handle *sensor_cfg;
+
+  file_basename = GNUNET_STRINGS_get_short_name (filename);
+  GNUNET_asprintf (&dst_path, "%s%s%s", sensor_dst_dir, DIR_SEPARATOR_STR,
+                   file_basename);
+  if (GNUNET_YES == GNUNET_DISK_directory_test (filename, GNUNET_NO))
+  {
+    GNUNET_assert (GNUNET_OK == copy_dir (filename, dst_path));
+  }
+  else
+  {
+    sensor_cfg = GNUNET_CONFIGURATION_create ();
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
+    GNUNET_CONFIGURATION_set_value_string (sensor_cfg, file_basename,
+                                           "COLLECTION_POINT",
+                                           GNUNET_i2s_full (&all_peers_info[0].
+                                                            peer_id));
+    if (sensors_interval > 0)
+    {
+      GNUNET_CONFIGURATION_set_value_number (sensor_cfg, file_basename,
+                                             "INTERVAL",
+                                             (unsigned long long int)
+                                             sensors_interval);
+    }
+    GNUNET_CONFIGURATION_write (sensor_cfg, dst_path);
+    GNUNET_CONFIGURATION_destroy (sensor_cfg);
+  }
+  GNUNET_free (dst_path);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Load sensor definitions and rewrite them to tmp location.
+ * Add collection point peer id and change running interval if needed.
+ */
+static void
+rewrite_sensors ()
+{
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_DISK_directory_test (sensor_src_dir, GNUNET_YES));
+  GNUNET_assert (GNUNET_OK == GNUNET_DISK_directory_create (sensor_dst_dir));
+  GNUNET_DISK_directory_scan (sensor_src_dir, &sensor_dir_scanner, NULL);
+}
+
+
+/**
+ * Callback to be called when dashboard service is started
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+dashboard_started (void *cls, struct GNUNET_TESTBED_Operation *op,
+                   const char *emsg)
+{
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Dashboard service started.\n");
+  //TODO:
+  GNUNET_TESTBED_operation_done (op);
 }
 
 
@@ -115,11 +280,16 @@ peer_info_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
 
   peer->testbed_peer = testbed_peer;
   GNUNET_CRYPTO_get_peer_identity (pinfo->result.cfg, &peer->peer_id);
-  peers_known++;
-  if (peers_known == num_peers) //TODO: remove
+  if (0 == peers_known)         /* First peer is collection point */
   {
-    do_shutdown ();
+    /* Rewrite sensors */
+    rewrite_sensors ();
+    /* Start dashboard */
+    GNUNET_TESTBED_peer_manage_service (NULL, testbed_peer, "sensordashboard",
+                                        &dashboard_started, NULL, 1);
   }
+  peers_known++;
+  GNUNET_TESTBED_operation_done (op);
 }
 
 
@@ -201,12 +371,13 @@ run (void *cls, char *const *args, const char *cf,
     return;
   }
   cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_CONFIGURATION_load (cfg, cfg_filename);
+  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, cfg_filename));
   links = log (num_peers) * log (num_peers) * num_peers / 2;
   GNUNET_CONFIGURATION_set_value_number ((struct GNUNET_CONFIGURATION_Handle *)
                                          cfg, "TESTBED", "OVERLAY_RANDOM_LINKS",
                                          (unsigned long long int) links);
   GNUNET_TESTBED_run (NULL, cfg, num_peers, 0, NULL, NULL, &test_master, NULL);
+  GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 
@@ -221,6 +392,9 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'p', "peers", "COUNT", gettext_noop ("Number of peers to run"), GNUNET_YES,
      &GNUNET_GETOPT_set_uint, &num_peers},
+    {'i', "sensors-interval", "INTERVAL",
+     gettext_noop ("Change the interval or running sensors to given value"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &sensors_interval},
     GNUNET_GETOPT_OPTION_END
   };
 
