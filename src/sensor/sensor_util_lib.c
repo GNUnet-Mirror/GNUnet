@@ -32,11 +32,6 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-util",__VA_ARGS__)
 
 /**
- * Minimum sensor execution interval (in seconds)
- */
-#define MIN_INTERVAL 30
-
-/**
  * Supported sources of sensor information
  */
 static const char *sources[] = { "gnunet-statistics", "process", NULL };
@@ -167,14 +162,6 @@ load_sensor_from_cfg (struct GNUNET_CONFIGURATION_Handle *cfg,
                                              &time_sec))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor run interval\n"));
-    GNUNET_free (sensor);
-    return NULL;
-  }
-  if (time_sec < MIN_INTERVAL)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Sensor run interval too low (%" PRIu64 " < %d)\n"), time_sec,
-         MIN_INTERVAL);
     GNUNET_free (sensor);
     return NULL;
   }
