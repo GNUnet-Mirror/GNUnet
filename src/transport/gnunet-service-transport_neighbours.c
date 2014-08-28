@@ -1131,7 +1131,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     send_disconnect (n);
     set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT);
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
   case GNUNET_TRANSPORT_PS_CONNECTED:
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     /* we are currently connected, need to send disconnect and do
@@ -1325,7 +1325,7 @@ send_keepalive (struct NeighbourMapEntry *n)
   uint32_t nonce;
 
   GNUNET_assert ((GNUNET_TRANSPORT_PS_CONNECTED == n->state) ||
-                 (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT));
+                 (GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT));
   if (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time).rel_value_us > 0)
     return; /* no keepalive needed at this time */
 
@@ -1671,7 +1671,7 @@ send_session_connect_cont (void *cls,
 
   if ( (GNUNET_TRANSPORT_PS_SYN_SENT != n->state) &&
        (GNUNET_TRANSPORT_PS_RECONNECT_SENT != n->state) &&
-       (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT != n->state))
+       (GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT != n->state))
   {
     /* SYN continuation was called after neighbor changed state,
      * for example due to a time out for the state or the session
@@ -1706,7 +1706,7 @@ send_session_connect_cont (void *cls,
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     /* Remove address and request and go back to primary address */
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
         ("# Failed attempts to switch addresses (failed to send SYN CONT)"), 1, GNUNET_NO);
@@ -1795,7 +1795,7 @@ send_syn (struct NeighbourAddress *na)
         set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
         break;
-      case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+      case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
         GNUNET_STATISTICS_update (GST_stats, gettext_noop
             ("# Failed attempts to switch addresses (failed to send SYN)"), 1, GNUNET_NO);
         /* Remove address and request and additional one */
@@ -2255,7 +2255,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case GNUNET_TRANSPORT_PS_CONNECTED:
     case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
     case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-    case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+    case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Ignoring request to try to connect, already connected to `%s'!\n",
 		  GNUNET_i2s (target));
@@ -2385,7 +2385,7 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
     send_connect_ack_message (n->primary_address.address,
         n->primary_address.session, n->connect_ack_timestamp);
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     /* We are already connected and can thus send the ACK immediately;
        still, it can never hurt to have an alternative address, so also
        tell ATS  about it */
@@ -2612,7 +2612,7 @@ switch_address_bl_check_cont (void *cls,
        a SYN_ACK on it before we actually do this! */
     set_alternative_address (n, blc_ctx->address, blc_ctx->session,
         blc_ctx->bandwidth_in, blc_ctx->bandwidth_out);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT,
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT,
         GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
         ("# Attempts to switch addresses"), 1, GNUNET_NO);
@@ -2641,7 +2641,7 @@ switch_address_bl_check_cont (void *cls,
         GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     send_syn (&n->primary_address);
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     if ( (0 == GNUNET_HELLO_address_cmp(n->primary_address.address,
         blc_ctx->address) && n->primary_address.session == blc_ctx->session) )
     {
@@ -2653,7 +2653,7 @@ switch_address_bl_check_cont (void *cls,
     /* ATS asks us to switch a life connection, send */
     set_alternative_address (n, blc_ctx->address, blc_ctx->session,
         blc_ctx->bandwidth_in, blc_ctx->bandwidth_out);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT,
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT,
         GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_syn (&n->alternative_address);
     break;
@@ -3029,7 +3029,7 @@ master_task (void *cls,
       return;
     }
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     if (0 == delay.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -3060,7 +3060,7 @@ master_task (void *cls,
     GNUNET_break (0);
     break;
   }
-  if ( (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT == n->state) ||
+  if ( (GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT == n->state) ||
        (GNUNET_TRANSPORT_PS_CONNECTED == n->state) )
   {
     /* if we are *now* in one of the two states, we're sending
@@ -3209,7 +3209,7 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
         GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
     send_session_ack_message (n);
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     /* new address worked; adopt it and go back to connected! */
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
         GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
@@ -3288,7 +3288,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* Free alternative address */
     if (session == n->alternative_address.session)
     {
-      if ( (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT == n->state) )
+      if ( (GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT == n->state) )
         set_state (n, GNUNET_TRANSPORT_PS_CONNECTED);
       free_address (&n->alternative_address);
     }
@@ -3353,7 +3353,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     /* primary went down while we were waiting for SYN_ACK on secondary;
        secondary as primary */
 
@@ -3485,7 +3485,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                             GNUNET_NO);
   }
 
-  if (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT == n->state)
+  if (GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT == n->state)
   {
     /* We tried to switch addresses while being connect. We explicitly wait
      * for a SYN_ACK before going to GNUNET_TRANSPORT_PS_CONNECTED,
@@ -3764,7 +3764,7 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_CONNECTED:
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT:
+  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
     return n->latency;
