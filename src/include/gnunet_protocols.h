@@ -1269,20 +1269,20 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 374
 
 /**
- * Transport CONNECT message exchanged between transport services to
+ * Transport SYN message exchanged between transport services to
  * indicate that a session should be marked as 'connected'.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT 375
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN 375
 
 /**
- * Transport CONNECT_ACK message exchanged between transport services to
- * indicate that a CONNECT message was accepted
+ * Transport SYN_ACK message exchanged between transport services to
+ * indicate that a SYN message was accepted
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK 376
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN_ACK 376
 
 /**
- * Transport CONNECT_ACK message exchanged between transport services to
- * indicate that a CONNECT message was accepted
+ * Transport ACK message exchanged between transport services to
+ * indicate that a SYN_ACK message was accepted
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK 377
 

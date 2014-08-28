@@ -328,12 +328,12 @@ connect_bl_check_cont (void *cls,
 
   if (GNUNET_OK == result)
   {
-    /* Blacklist allows to speak to this peer, forward CONNECT to neighbours  */
+    /* Blacklist allows to speak to this peer, forward SYN to neighbours  */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Received CONNECT message from peer `%s' with `%s' %p\n",
+                "Received SYN message from peer `%s' with `%s' %p\n",
                 GNUNET_i2s (peer), GST_plugins_a2s (blctx->address), blctx->session);
 
-    if (GNUNET_OK != GST_neighbours_handle_connect (blctx->msg,
+    if (GNUNET_OK != GST_neighbours_handle_session_syn (blctx->msg,
         &blctx->address->peer))
     {
       cancel_pending_blacklist_checks (blctx->address, blctx->session);
@@ -345,7 +345,7 @@ connect_bl_check_cont (void *cls,
     /* Blacklist denies to speak to this peer */
 
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Discarding CONNECT message from `%s' due to denied blacklist check\n",
+        "Discarding SYN message from `%s' due to denied blacklist check\n",
         GNUNET_i2s (peer));
     cancel_pending_blacklist_checks (blctx->address, blctx->session);
     kill_session (blctx->address->transport_name, blctx->session);
@@ -457,7 +457,7 @@ GST_receive_callback (void *cls,
       kill_session (plugin_name, session);
     }
     break;
-  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN:
     /* Do blacklist check if communication with this peer is allowed */
     blctx = GNUNET_new (struct BlacklistCheckContext);
     blctx->address = GNUNET_HELLO_address_copy (address);
@@ -483,8 +483,8 @@ GST_receive_callback (void *cls,
       blctx->blc = blc;
     }
     break;
-  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
-    if (GNUNET_OK != GST_neighbours_handle_connect_ack (message,
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN_ACK:
+    if (GNUNET_OK != GST_neighbours_handle_session_syn_ack (message,
         &address->peer, address, session))
     {
       cancel_pending_blacklist_checks (address, session);

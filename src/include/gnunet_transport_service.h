@@ -493,37 +493,37 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStri
 /**
  * Possible state of a neighbour.  Initially, we are #GNUNET_TRANSPORT_PS_NOT_CONNECTED.
  *
- * Then, there are two main paths. If we receive a CONNECT message, we give
+ * Then, there are two main paths. If we receive a SYN message, we give
  * the inbound address to ATS. After the check we ask ATS for a suggestion
  * (#GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS). If ATS makes a suggestion, we
- * send our CONNECT_ACK and go to #GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK.
- * If we receive a SESSION_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
+ * send our SYN_ACK and go to #GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK.
+ * If we receive a ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
  * (and notify everyone about the new connection). If the operation times out,
  * we go to #GNUNET_TRANSPORT_PS_DISCONNECT.
  *
- * The other case is where we transmit a CONNECT message first.  We
+ * The other case is where we transmit a SYN message first.  We
  * start with #GNUNET_TRANSPORT_PS_INIT_ATS.  If we get an address, we send
- * the CONNECT message and go to state #GNUNET_TRANSPORT_PS_CONNECT_SENT.
- * Once we receive a CONNECT_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
+ * the SYN message and go to state #GNUNET_TRANSPORT_PS_CONNECT_SENT.
+ * Once we receive a SYN_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
  * (and notify everyone about the new connection and send
- * back a SESSION_ACK).  If the operation times out, we go to
+ * back a ACK).  If the operation times out, we go to
  * #GNUNET_TRANSPORT_PS_DISCONNECT.
  *
  * If the session is in trouble (i.e. transport-level disconnect or
  * timeout), we go to #GNUNET_TRANSPORT_PS_RECONNECT_ATS where we ask ATS for a new
  * address (we don't notify anyone about the disconnect yet).  Once we
  * have a new address, we enter #GNUNET_TRANSPORT_PS_RECONNECT_SENT and send a
- * CONNECT message.  If we receive a
- * CONNECT_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED and nobody noticed that we had
- * trouble; we also send a SESSION_ACK at this time just in case.  If
+ * SYN message.  If we receive a
+ * SYN_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED and nobody noticed that we had
+ * trouble; we also send a ACK at this time just in case.  If
  * the operation times out, we go to #GNUNET_TRANSPORT_PS_DISCONNECT (and notify everyone
  * about the lost connection).
  *
  * If ATS decides to switch addresses while we have a normal
- * connection, we go to #GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT
- * and send a SESSION_CONNECT.  If we get a SESSION_ACK back, we switch the
+ * connection, we go to #GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT
+ * and send a SESSION_CONNECT.  If we get a ACK back, we switch the
  * primary connection to the suggested alternative from ATS, go back
- * to #GNUNET_TRANSPORT_PS_CONNECTED and send a SESSION_ACK to the other peer just to be
+ * to #GNUNET_TRANSPORT_PS_CONNECTED and send a ACK to the other peer just to be
  * sure.  If the operation times out
  * we go to #GNUNET_TRANSPORT_PS_CONNECTED (and notify ATS that the given alternative
  * address is "invalid").
@@ -534,13 +534,13 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct GNUNET_TRANSPORT_AddressToStri
  * generating disconnect notifications.
  *
  * Note that it is quite possible that while we are in any of these
- * states, we could receive a 'CONNECT' request from the other peer.
+ * states, we could receive a 'SYN' request from the other peer.
  * We then enter a 'weird' state where we pursue our own primary state
  * machine (as described above), but with the 'send_connect_ack' flag
- * set to 1.  If our state machine allows us to send a 'CONNECT_ACK'
- * (because we have an acceptable address), we send the 'CONNECT_ACK'
+ * set to 1.  If our state machine allows us to send a 'SYN_ACK'
+ * (because we have an acceptable address), we send the 'SYN_ACK'
  * and set the 'send_connect_ack' to 2.  If we then receive a
- * 'SESSION_ACK', we go to #GNUNET_TRANSPORT_PS_CONNECTED (and reset 'send_connect_ack'
+ * 'ACK', we go to #GNUNET_TRANSPORT_PS_CONNECTED (and reset 'send_connect_ack'
  * to 0).
  *
  */
@@ -557,23 +557,22 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_INIT_ATS,
 
   /**
-   * Sent CONNECT message to other peer, waiting for CONNECT_ACK
+   * Sent SYN message to other peer, waiting for SYN_ACK
    */
-  GNUNET_TRANSPORT_PS_CONNECT_SENT,
+  GNUNET_TRANSPORT_PS_SYN_SENT,
 
   /**
-   * Received a CONNECT, asking ATS about address suggestions.
+   * Received a SYN, asking ATS about address suggestions.
    */
-  GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
+  GNUNET_TRANSPORT_PS_SYN_RECV_ATS,
 
   /**
-   * CONNECT request from other peer was CONNECT_ACK'ed, waiting for
-   * SESSION_ACK.
+   * SYN request from other peer was SYN_ACK'ed, waiting for ACK.
    */
-  GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK,
+  GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
 
   /**
-   * Got our CONNECT_ACK/SESSION_ACK, connection is up.
+   * Got our SYN_ACK/ACK, connection is up.
    */
   GNUNET_TRANSPORT_PS_CONNECTED,
 
@@ -584,7 +583,7 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_RECONNECT_ATS,
 
   /**
-   * Sent CONNECT over new address (either by ATS telling us to switch
+   * Sent SYN over new address (either by ATS telling us to switch
    * addresses or from RECONNECT_ATS); if this fails, we need to tell
    * the rest of the system about a disconnect.
    */
@@ -592,11 +591,11 @@ enum GNUNET_TRANSPORT_PeerState
 
   /**
    * We have some primary connection, but ATS suggested we switch
-   * to some alternative; we now sent a CONNECT message for the
+   * to some alternative; we now sent a SYN message for the
    * alternative session to the other peer and waiting for a
-   * CONNECT_ACK to make this our primary connection.
+   * SYN_ACK to make this our primary connection.
    */
-  GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT,
+  GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT,
 
   /**
    * Disconnect in progress (we're sending the DISCONNECT message to the

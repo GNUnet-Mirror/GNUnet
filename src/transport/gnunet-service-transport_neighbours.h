@@ -279,7 +279,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
+GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer);
 
 
@@ -295,7 +295,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
-GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
+GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *message,
                                    const struct GNUNET_PeerIdentity *peer,
                                    const struct GNUNET_HELLO_Address *address,
                                    struct Session *session);
