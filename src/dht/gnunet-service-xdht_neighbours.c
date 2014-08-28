@@ -963,6 +963,10 @@ static unsigned int total_fingers_found;
 static unsigned int successor_times;
 
 /**
+ * Number of rounds for which we should search for finger.
+ */
+static unsigned int fingers_round_count;
+/**
  * Called when core is ready to send a message we asked for
  * out to the destination.
  *
@@ -3507,6 +3511,13 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     {
 //      find_finger_trail_task_next_send_time = 
 //              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
+      if (0 == fingers_round_count)
+      {
+         find_finger_trail_task_next_send_time = 
+              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
+      }
+      else
+        fingers_round_count--;
       current_search_finger_index = 0;
       GNUNET_STATISTICS_update (GDS_stats,
                                 gettext_noop
@@ -6081,6 +6092,7 @@ GDS_NEIGHBOURS_init (void)
   friend_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
   finger_table_init ();
   successor_times = 10;
+  fingers_round_count = 5;
   find_finger_trail_task_next_send_time.rel_value_us =
       DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
