@@ -18,7 +18,8 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-sensor 
+ gnunet-sensor \
+ gnunet-sensor-profiler 
 
 libexec_PROGRAMS = \
  gnunet-service-sensor
@@ -113,6 +114,12 @@ test_pow_sign_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   libgnunetsensorutil.la
+
+gnunet_sensor_profiler_SOURCES = \
+  gnunet-sensor-profiler.c
+gnunet_sensor_profiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la
 
 pkgsensordir = sensors
 
