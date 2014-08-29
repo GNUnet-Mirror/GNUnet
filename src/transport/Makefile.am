@@ -111,6 +111,7 @@ endif
 endif
 
 noinst_PROGRAMS = \
+ gnunet-transport-profiler \
  $(WLAN_BIN_SENDER) \
  $(WLAN_BIN_RECEIVER)
 
@@ -194,6 +195,17 @@ if MINGW
 else
  gnunet_helper_transport_bluetooth_LDFLAGS = -lbluetooth
 endif
+
+gnunet_transport_profiler_SOURCES = \
+ gnunet-transport-profiler.c
+gnunet_transport_profiler_LDADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/nat/libgnunetnat.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_transport_profiler_DEPENDENCIES = \
+  libgnunettransport.la
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c

@@ -3569,6 +3569,11 @@ void delayed_disconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting by request from peer %s\n",
               GNUNET_i2s (&n->id));
+
+  if (NULL != n->primary_address.address)
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+        n->primary_address.session);
+
   free_neighbour (n, GNUNET_NO);
 }
 

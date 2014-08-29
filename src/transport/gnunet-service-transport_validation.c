@@ -990,8 +990,8 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   const char *addrend;
   char *plugin_name;
   char *pos;
-  size_t alen;
-  size_t slen;
+  size_t len_address;
+  size_t len_plugin;
   ssize_t ret;
   int buggy = GNUNET_NO;
   struct GNUNET_HELLO_Address address;
@@ -1016,27 +1016,27 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             gettext_noop ("# PING messages received"), 1,
                             GNUNET_NO);
   addr = (const char *) &ping[1];
-  alen = ntohs (hdr->size) - sizeof (struct TransportPingMessage);
+  len_address = ntohs (hdr->size) - sizeof (struct TransportPingMessage);
   /* peer wants to confirm that this is one of our addresses, this is what is
    * used for address validation */
 
   sig_cache = NULL;
   sig_cache_exp = NULL;
   papi = NULL;
-  if (alen > 0)
+  if (len_address > 0)
   {
-    addrend = memchr (addr, '\0', alen);
+    addrend = memchr (addr, '\0', len_address);
     if (NULL == addrend)
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
     addrend++;
-    slen = strlen (addr) + 1;
-    alen -= slen;
+    len_plugin = strlen (addr) + 1;
+    len_address -= len_plugin;
     address.local_info = GNUNET_HELLO_ADDRESS_INFO_NONE;
     address.address = addrend;
-    address.address_length = alen;
+    address.address_length = len_address;
     address.transport_name = addr;
     address.peer = GST_my_identity;
 
@@ -1065,7 +1065,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
       return GNUNET_SYSERR;
     }
     GNUNET_free (plugin_name);
-    if (GNUNET_OK != papi->check_address (papi->cls, addrend, alen))
+    if (GNUNET_OK != papi->check_address (papi->cls, addrend, len_address))
     {
       GNUNET_STATISTICS_update (GST_stats,
                                 gettext_noop
@@ -1108,7 +1108,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   else
   {
     addrend = NULL;             /* make gcc happy */
-    slen = 0;
+    len_plugin = 0;
     static struct GNUNET_CRYPTO_EddsaSignature no_address_signature;
     static struct GNUNET_TIME_Absolute no_address_signature_expiration;
 
@@ -1124,22 +1124,22 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   /* message with structure:
    * [TransportPongMessage][Transport name][Address] */
 
-  pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + alen + slen);
+  pong = GNUNET_malloc (sizeof (struct TransportPongMessage) + len_address + len_plugin);
   pong->header.size =
-      htons (sizeof (struct TransportPongMessage) + alen + slen);
+      htons (sizeof (struct TransportPongMessage) + len_address + len_plugin);
   pong->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_PONG);
   pong->purpose.size =
       htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
              sizeof (uint32_t) + sizeof (struct GNUNET_TIME_AbsoluteNBO) +
-             alen + slen);
+             len_address + len_plugin);
   pong->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN);
   memcpy (&pong->challenge, &ping->challenge, sizeof (ping->challenge));
-  pong->addrlen = htonl (alen + slen);
-  memcpy (&pong[1], addr, slen);   /* Copy transport plugin */
-  if (alen > 0)
+  pong->addrlen = htonl (len_address + len_plugin);
+  memcpy (&pong[1], addr, len_plugin);   /* Copy transport plugin */
+  if (len_address > 0)
   {
     GNUNET_assert (NULL != addrend);
-    memcpy (&((char *) &pong[1])[slen], addrend, alen);
+    memcpy (&((char *) &pong[1])[len_plugin], addrend, len_address);
   }
   if (GNUNET_TIME_absolute_get_remaining (*sig_cache_exp).rel_value_us <
       PONG_SIGNATURE_LIFETIME.rel_value_us / 4)
