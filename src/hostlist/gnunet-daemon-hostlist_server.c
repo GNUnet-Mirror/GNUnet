@@ -728,17 +728,26 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 
   if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV4"))
   {
-    GNUNET_break (GNUNET_OK ==
+    if (GNUNET_OK !=
                   GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
-                                                         "BINDTOIP", &ipv4));
+                                                         "BINDTOIP", &ipv4))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        _("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV4.\n"));
+    }
+
   }
   else
     ipv4 = NULL;
   if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV6"))
   {
-    GNUNET_break (GNUNET_OK ==
+    if (GNUNET_OK !=
                   GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
-                                                         "BINDTOIP", &ipv6));
+                                                         "BINDTOIP", &ipv6))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          _("BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV6.\n"));
+    }
   }
   else
     ipv6 = NULL;
