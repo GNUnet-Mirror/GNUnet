@@ -1320,4 +1320,7 @@ test_transport_blacklisting_cfg_blp_peer2_plugin.conf \
 test_transport_blacklisting_cfg_blp_peer1_multiple_plugins.conf \
 test_transport_blacklisting_cfg_blp_peer2_multiple_plugins.conf \
 test_transport_api_http_reverse_peer1.conf \
-test_transport_api_http_reverse_peer2.conf
+test_transport_api_http_reverse_peer2.conf \
+perf_tcp_peer1.conf \
+perf_tcp_peer2.conf
+
