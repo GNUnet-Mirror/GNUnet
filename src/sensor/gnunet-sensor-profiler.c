@@ -38,6 +38,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_peerstore_service.h"
 #include "gnunet_sensor_service.h"
+#include "gnunet_sensor_util_lib.h"
 
 /**
  * Information about a single peer
@@ -108,6 +109,26 @@ static struct GNUNET_TESTBED_Operation *peerstore_op;
  */
 static struct GNUNET_PEERSTORE_Handle *peerstore;
 
+/**
+ * Dashboard service on collection point started?
+ */
+static int dashboard_service_started = GNUNET_NO;
+
+/**
+ * Number of peers started the sensor service successfully
+ */
+static int sensor_services_started = 0;
+
+/**
+ * Array of sensor names to be used for watching peerstore records
+ */
+static char **sensor_names;
+
+/**
+ * Size of 'sensor_names' array
+ */
+static unsigned int sensor_names_size = 0;
+
 
 /**
  * Copy directory recursively
@@ -126,7 +147,15 @@ copy_dir (const char *src, const char *dst);
 static void
 do_shutdown ()                  // TODO: schedule timeout shutdown
 {
+  int i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
+  if (NULL != sensor_names)
+  {
+    for (i = 0; i < sensor_names_size; i++)
+      GNUNET_free (sensor_names[i]);
+    GNUNET_array_grow (sensor_names, sensor_names_size, 0);
+  }
   if (NULL != peerstore_op)
   {
     GNUNET_TESTBED_operation_done (peerstore_op);
@@ -209,6 +238,7 @@ sensor_dir_scanner (void *cls, const char *filename)
   const char *file_basename;
   char *dst_path;
   struct GNUNET_CONFIGURATION_Handle *sensor_cfg;
+  char *sensor_name;
 
   file_basename = GNUNET_STRINGS_get_short_name (filename);
   GNUNET_asprintf (&dst_path, "%s%s%s", sensor_dst_dir, DIR_SEPARATOR_STR,
@@ -219,6 +249,9 @@ sensor_dir_scanner (void *cls, const char *filename)
   }
   else
   {
+    sensor_name = GNUNET_strdup(file_basename);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Saving sensor name `%s'.\n", sensor_name);
+    GNUNET_array_append(sensor_names, sensor_names_size, sensor_name);
     sensor_cfg = GNUNET_CONFIGURATION_create ();
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
@@ -273,8 +306,46 @@ dashboard_started (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_assert (0);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Dashboard service started.\n");
-  //TODO:
   GNUNET_TESTBED_operation_done (op);
+  dashboard_service_started = GNUNET_YES;
+  //TODO:
+}
+
+
+/**
+ * Function called by PEERSTORE for each matching record.
+ *
+ * @param cls closure
+ * @param record peerstore record information
+ * @param emsg error message, or NULL if no errors
+ * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop
+ */
+static int
+peerstore_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record,
+                      char *emsg)
+{
+  struct PeerInfo *peer = cls;
+  struct GNUNET_SENSOR_DashboardAnomalyEntry *anomaly;
+
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
+  GNUNET_assert (record->value_size ==
+                 sizeof (struct GNUNET_SENSOR_DashboardAnomalyEntry));
+  anomaly = record->value;
+  GNUNET_assert (0 ==
+                 GNUNET_CRYPTO_cmp_peer_identity (&peer->peer_id,
+                                                record->peer));
+  printf ("Anomaly report:\n"
+           "  Peer: `%s'\n"
+           "  Sensor: `%s'\n"
+           "  Anomalous: `%d'\n"
+           "  Anomalous neighbors: %f.\n\n",
+           GNUNET_i2s (&peer->peer_id),
+           record->key, anomaly->anomalous, anomaly->anomalous_neighbors);
+  return GNUNET_YES;
 }
 
 
@@ -291,13 +362,26 @@ static void
 peerstore_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
                       void *ca_result, const char *emsg)
 {
+  int i;
+  int j;
+  struct PeerInfo *peer;
+
   if (NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
     GNUNET_assert (0);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peerstore service.\n");
-  //TODO
+  /* Watch for anomaly reports from other peers */
+  for (i = 0; i < num_peers; i++)
+  {
+    peer = &all_peers_info[i];
+    for (j = 0; j < sensor_names_size; j++)
+    {
+      GNUNET_PEERSTORE_watch (peerstore, "sensordashboard-anomalies", &peer->peer_id,
+          sensor_names[j], &peerstore_watch_cb, peer);
+    }
+  }
 }
 
 
@@ -356,8 +440,9 @@ sensor_service_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sensor service started on peer `%s'.\n",
               GNUNET_i2s (&peer->peer_id));
-  //TODO:
   GNUNET_TESTBED_operation_done (op);
+  sensor_services_started ++;
+  //TODO
 }
 
 
