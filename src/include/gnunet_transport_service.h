@@ -595,7 +595,7 @@ enum GNUNET_TRANSPORT_PeerState
    * alternative session to the other peer and waiting for a
    * SYN_ACK to make this our primary connection.
    */
-  GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_SYN_SENT,
+  GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT,
 
   /**
    * Disconnect in progress (we're sending the DISCONNECT message to the
