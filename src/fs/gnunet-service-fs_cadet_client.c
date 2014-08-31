@@ -223,11 +223,11 @@ reset_cadet (struct CadetHandle *mh)
   if (NULL != channel)
   {
     /* Avoid loop */
-    if ( NULL != mh->wh)
-	{
-        GNUNET_CADET_cancel_notify(mh->wh);
-		mh->wh = NULL;
-	}
+    if (NULL != mh->wh)
+    {
+      GNUNET_CADET_notify_transmit_ready_cancel (mh->wh);
+      mh->wh = NULL;
+    }
     GNUNET_CADET_channel_destroy (channel);
   }
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,

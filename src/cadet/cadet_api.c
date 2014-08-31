@@ -1758,13 +1758,6 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel, int co
 
 
 void
-GNUNET_CADET_cancel_notify (struct GNUNET_CADET_TransmitHandle *th)
-{
-	th->notify = NULL;
-}
-
-
-void
 GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *th)
 {
   struct GNUNET_CADET_Handle *cadet;

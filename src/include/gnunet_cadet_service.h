@@ -348,18 +348,6 @@ void
 GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle
                                           *th);
 
-										  
-/**
- * Cancel only the notify without cleaning the structs to a futher call to channel destroy
- *
- * @param th handle that was returned by "notify_transmit_ready".
- */
-void
-GNUNET_CADET_cancel_notify (struct GNUNET_CADET_TransmitHandle
-                                          *th);
-
-										  
-										  
 
 /**
  * Indicate readiness to receive the next message on a channel.
