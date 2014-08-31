@@ -261,7 +261,8 @@ cadet_timeout (void *cls,
   mh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tun = mh->channel;
   mh->channel = NULL;
-  GNUNET_CADET_channel_destroy (tun);
+  if(NULL != tun)
+	GNUNET_CADET_channel_destroy (tun);
 }
 
 
