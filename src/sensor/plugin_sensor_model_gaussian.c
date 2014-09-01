@@ -125,6 +125,7 @@ sensor_gaussian_model_feed (void *cls, double val)
   allowed_variance = (plugin->confidence_interval * stddev);
   if ((val < (mean - allowed_variance)) || (val > (mean + allowed_variance)))
     return GNUNET_YES;
+  update_sums (model, val);
   return GNUNET_NO;
 }
 
