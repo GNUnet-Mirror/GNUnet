@@ -90,6 +90,11 @@ static unsigned int num_peers = 0;
 static unsigned int sensors_interval = 0;
 
 /**
+ * Path to topology file (Option -t)
+ */
+static char *topology_file;
+
+/**
  * Array of peer info for all peers
  */
 static struct PeerInfo *all_peers_info;
@@ -187,8 +192,6 @@ copy_dir_scanner (void *cls, const char *filename)
 
   GNUNET_asprintf (&dst, "%s%s%s", dst_dir, DIR_SEPARATOR_STR,
                    GNUNET_STRINGS_get_short_name (filename));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copying `%s' to `%s'.\n", filename,
-              dst);
   if (GNUNET_YES == GNUNET_DISK_directory_test (filename, GNUNET_YES))
     copy_result = copy_dir (filename, dst);
   else
@@ -212,8 +215,6 @@ copy_dir_scanner (void *cls, const char *filename)
 static int
 copy_dir (const char *src, const char *dst)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Copying directory `%s' to `%s'.\n", src,
-              dst);
   if (GNUNET_YES != GNUNET_DISK_directory_test (src, GNUNET_YES))
     return GNUNET_SYSERR;
   if (GNUNET_OK != GNUNET_DISK_directory_create (dst))
@@ -249,9 +250,8 @@ sensor_dir_scanner (void *cls, const char *filename)
   }
   else
   {
-    sensor_name = GNUNET_strdup(file_basename);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Saving sensor name `%s'.\n", sensor_name);
-    GNUNET_array_append(sensor_names, sensor_names_size, sensor_name);
+    sensor_name = GNUNET_strdup (file_basename);
+    GNUNET_array_append (sensor_names, sensor_names_size, sensor_name);
     sensor_cfg = GNUNET_CONFIGURATION_create ();
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
@@ -322,7 +322,7 @@ dashboard_started (void *cls, struct GNUNET_TESTBED_Operation *op,
  */
 static int
 peerstore_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record,
-                      char *emsg)
+                    char *emsg)
 {
   struct PeerInfo *peer = cls;
   struct GNUNET_SENSOR_DashboardAnomalyEntry *anomaly;
@@ -337,14 +337,11 @@ peerstore_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record,
   anomaly = record->value;
   GNUNET_assert (0 ==
                  GNUNET_CRYPTO_cmp_peer_identity (&peer->peer_id,
-                                                record->peer));
-  printf ("Anomaly report:\n"
-           "  Peer: `%s'\n"
-           "  Sensor: `%s'\n"
-           "  Anomalous: `%d'\n"
-           "  Anomalous neighbors: %f.\n\n",
-           GNUNET_i2s (&peer->peer_id),
-           record->key, anomaly->anomalous, anomaly->anomalous_neighbors);
+                                                  record->peer));
+  printf ("Anomaly report:\n" "  Peer: `%s'\n" "  Sensor: `%s'\n"
+          "  Anomalous: `%d'\n" "  Anomalous neighbors: %f.\n\n",
+          GNUNET_i2s (&peer->peer_id), record->key, anomaly->anomalous,
+          anomaly->anomalous_neighbors);
   return GNUNET_YES;
 }
 
@@ -378,8 +375,9 @@ peerstore_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     peer = &all_peers_info[i];
     for (j = 0; j < sensor_names_size; j++)
     {
-      GNUNET_PEERSTORE_watch (peerstore, "sensordashboard-anomalies", &peer->peer_id,
-          sensor_names[j], &peerstore_watch_cb, peer);
+      GNUNET_PEERSTORE_watch (peerstore, "sensordashboard-anomalies",
+                              &peer->peer_id, sensor_names[j],
+                              &peerstore_watch_cb, peer);
     }
   }
 }
@@ -441,7 +439,9 @@ sensor_service_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sensor service started on peer `%s'.\n",
               GNUNET_i2s (&peer->peer_id));
   GNUNET_TESTBED_operation_done (op);
-  sensor_services_started ++;
+  sensor_services_started++;
+  if (sensor_services_started == num_peers)     //TODO: remove
+    do_shutdown ();
   //TODO
 }
 
@@ -548,6 +548,13 @@ verify_args ()
                 ("Invalid or missing number of peers. Set at least 3 peers.\n"));
     return GNUNET_SYSERR;
   }
+  if (NULL == topology_file ||
+      GNUNET_YES != GNUNET_DISK_file_test (topology_file))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Missing or invalid topology file.\n"));
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -565,7 +572,6 @@ run (void *cls, char *const *args, const char *cf,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg;
-  double links;
 
   if (GNUNET_OK != verify_args ())
   {
@@ -574,10 +580,10 @@ run (void *cls, char *const *args, const char *cf,
   }
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (cfg, cfg_filename));
-  links = log (num_peers) * log (num_peers) * num_peers / 2;
-  GNUNET_CONFIGURATION_set_value_number ((struct GNUNET_CONFIGURATION_Handle *)
-                                         cfg, "TESTBED", "OVERLAY_RANDOM_LINKS",
-                                         (unsigned long long int) links);
+  GNUNET_CONFIGURATION_set_value_string ((struct GNUNET_CONFIGURATION_Handle *)
+                                         cfg, "TESTBED",
+                                         "OVERLAY_TOPOLOGY_FILE",
+                                         topology_file);
   GNUNET_TESTBED_run (NULL, cfg, num_peers, 0, NULL, NULL, &test_master, NULL);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
@@ -594,6 +600,8 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'p', "peers", "COUNT", gettext_noop ("Number of peers to run"), GNUNET_YES,
      &GNUNET_GETOPT_set_uint, &num_peers},
+    {'t', "topology-file", "FILEPATH", gettext_noop ("Path to topology file"),
+     GNUNET_YES, &GNUNET_GETOPT_set_filename, &topology_file},
     {'i', "sensors-interval", "INTERVAL",
      gettext_noop ("Change the interval or running sensors to given value"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &sensors_interval},
