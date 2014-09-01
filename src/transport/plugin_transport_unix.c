@@ -243,13 +243,6 @@ struct UNIX_Sock_Info
    * The network handle
    */
   struct GNUNET_NETWORK_Handle *desc;
-
-  /**
-   * The port we bound to (not an actual PORT, as UNIX domain sockets
-   * don't have ports, but rather a number in the path name to make this
-   * one unique).
-   */
-  uint16_t port;
 };
 
 
@@ -300,7 +293,7 @@ struct Plugin
   struct UNIXMessageWrapper *msg_tail;
 
   /**
-   * Path of our unix domain socket (/tmp/unix-plugin-PORT)
+   * Path of our unix domain socket (/tmp/unix-plugin)
    */
   char *unix_socket_path;
 
@@ -1420,6 +1413,8 @@ unix_transport_server_start (void *cls)
                                   (const struct sockaddr *) un, un_len))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot bind to `%s'\n"),
+        un->sun_path);
     GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
     plugin->unix_sock.desc = NULL;
     GNUNET_free (un);
