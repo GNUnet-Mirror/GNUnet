@@ -70,6 +70,11 @@ static const char *sensor_src_dir = "sensors";
 static const char *sensor_dst_dir = "/tmp/gnunet-sensor-profiler";
 
 /**
+ * GNUnet configuration
+ */
+struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
  * Return value of the program
  */
 static int ok = 1;
@@ -150,6 +155,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
+  if (NULL != cfg)
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    cfg = NULL;
+  }
   if (NULL != sensor_names)
   {
     for (i = 0; i < sensor_names_size; i++)
@@ -252,8 +262,8 @@ sensor_dir_scanner (void *cls, const char *filename)
                    GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
     GNUNET_CONFIGURATION_set_value_string (sensor_cfg, file_basename,
                                            "COLLECTION_POINT",
-                                           GNUNET_i2s_full (&all_peers_info[0].
-                                                            peer_id));
+                                           GNUNET_i2s_full (&all_peers_info
+                                                            [0].peer_id));
     if (sensors_interval > 0)
     {
       GNUNET_CONFIGURATION_set_value_number (sensor_cfg, file_basename,
@@ -418,7 +428,25 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
 static void
 peers_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  unsigned long long int training_points;
+  struct GNUNET_TIME_Relative training_period;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers are ready.\n");
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                        "sensor-model-gaussian",
+                                                        "TRAINING_WINDOW",
+                                                        &training_points));
+  training_period =
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_multiply
+                                     (GNUNET_TIME_UNIT_SECONDS,
+                                      (sensors_interval ==
+                                       0) ? 60 : sensors_interval),
+                                     training_points);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sleeping for a training period of %s.\n",
+              GNUNET_STRINGS_relative_time_to_string (training_period,
+                                                      GNUNET_NO));
   //TODO
 }
 
@@ -580,8 +608,6 @@ static void
 run (void *cls, char *const *args, const char *cf,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg;
-
   if (GNUNET_OK != verify_args ())
   {
     do_shutdown (NULL, NULL);
@@ -596,7 +622,6 @@ run (void *cls, char *const *args, const char *cf,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
                                 NULL);
   GNUNET_TESTBED_run (NULL, cfg, num_peers, 0, NULL, NULL, &test_master, NULL);
-  GNUNET_CONFIGURATION_destroy (cfg);
 }
 
 

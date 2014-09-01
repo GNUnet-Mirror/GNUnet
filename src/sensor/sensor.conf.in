@@ -22,7 +22,7 @@ MODEL = gaussian
 CONFIRMATION_COUNT = 3
 
 [sensor-model-gaussian]
-TRAINING_WINDOW = 1000
+TRAINING_WINDOW = 10
 CONFIDENCE_INTERVAL = 3
 
 [sensor-reporting]
