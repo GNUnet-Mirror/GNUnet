@@ -19,16 +19,6 @@
 */
 
 /**
- * TODO:
- * - Run X peers
- * - Rewrite interval time (optional)
- * - Run 1 dashboard
- * - Monitor dashboard records
- * - Prompt for anomalies when ready:
- *  -- Cut Y peers (remove their connections to other X-Y peers but not the connections among themselves)
- */
-
-/**
  * @file sensor/gnunet-sensor-profiler.c
  * @brief Profiler for the sensor service
  * @author Omar Tarabai
@@ -39,6 +29,11 @@
 #include "gnunet_peerstore_service.h"
 #include "gnunet_sensor_service.h"
 #include "gnunet_sensor_util_lib.h"
+
+/**
+ * Time to wait for the peer to startup completely
+ */
+#define PEER_STARTUP_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
  * Information about a single peer
@@ -150,7 +145,7 @@ copy_dir (const char *src, const char *dst);
  * Do clean up and shutdown scheduler
  */
 static void
-do_shutdown ()                  // TODO: schedule timeout shutdown
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int i;
 
@@ -308,7 +303,6 @@ dashboard_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Dashboard service started.\n");
   GNUNET_TESTBED_operation_done (op);
   dashboard_service_started = GNUNET_YES;
-  //TODO:
 }
 
 
@@ -418,6 +412,18 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
 
 
 /**
+ * This function is called after a delay which ensures that all peers are
+ * properly initialized
+ */
+static void
+peers_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers are ready.\n");
+  //TODO
+}
+
+
+/**
  * Callback to be called when sensor service is started
  *
  * @param cls the callback closure from functions generating an operation
@@ -440,9 +446,12 @@ sensor_service_started (void *cls, struct GNUNET_TESTBED_Operation *op,
               GNUNET_i2s (&peer->peer_id));
   GNUNET_TESTBED_operation_done (op);
   sensor_services_started++;
-  if (sensor_services_started == num_peers)     //TODO: remove
-    do_shutdown ();
-  //TODO
+  if (sensor_services_started == num_peers)
+  {
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (PEER_STARTUP_TIME, num_peers), &peers_ready,
+                                  NULL);
+  }
 }
 
 
@@ -575,7 +584,7 @@ run (void *cls, char *const *args, const char *cf,
 
   if (GNUNET_OK != verify_args ())
   {
-    do_shutdown ();
+    do_shutdown (NULL, NULL);
     return;
   }
   cfg = GNUNET_CONFIGURATION_create ();
@@ -584,6 +593,8 @@ run (void *cls, char *const *args, const char *cf,
                                          cfg, "TESTBED",
                                          "OVERLAY_TOPOLOGY_FILE",
                                          topology_file);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
+                                NULL);
   GNUNET_TESTBED_run (NULL, cfg, num_peers, 0, NULL, NULL, &test_master, NULL);
   GNUNET_CONFIGURATION_destroy (cfg);
 }
