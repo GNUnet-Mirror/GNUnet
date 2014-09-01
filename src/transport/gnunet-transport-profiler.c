@@ -41,6 +41,9 @@ struct Iteration
 
   struct GNUNET_TIME_Relative dur;
 
+  /* Transmission rate for this iteration in KB/s */
+  float rate;
+
   unsigned int msgs_sent;
 };
 
@@ -160,6 +163,13 @@ shutdown_task (void *cls,
   struct Iteration *icur;
   struct Iteration *inext;
 
+  unsigned int iterations;
+
+  unsigned long long avg_duration;
+  float avg_rate;
+  float stddev_rate;
+  float stddev_duration;
+
   if (NULL != tc_handle)
   {
     GNUNET_TRANSPORT_try_connect_cancel (tc_handle);
@@ -183,27 +193,75 @@ shutdown_task (void *cls,
     handle = NULL;
   }
 
+  if (verbosity > 0)
+    FPRINTF (stdout, "\n");
+
+  /* Output format:
+   * All time values in ms
+   * Rate in KB/s
+   * #messages;#messagesize;#avg_dur;#avg_rate;#duration_i0;#duration_i0;... */
+
   if (benchmark_send)
   {
+    /* First iteration to calculcate avg and stddev */
+    iterations = 0;
+    avg_duration = 0;
+    avg_rate = 0.0;
+
     inext = ihead;
     while (NULL != (icur = inext))
     {
       inext = icur->next;
+      icur->rate = ((benchmark_count * benchmark_size) / 1024) /
+          ((float) icur->dur.rel_value_us / (1000 * 1000));
       if (verbosity > 0)
         FPRINTF (stdout, _("%llu B in %llu ms == %.2f KB/s!\n"),
             ((long long unsigned int) benchmark_count * benchmark_size),
-            ((long long unsigned int) itail->dur.rel_value_us / 1000),
-            (float) ((benchmark_count * benchmark_size) / 1024)/ ((float) itail->dur.rel_value_us / (1000 * 1000)));
+            ((long long unsigned int) icur->dur.rel_value_us / 1000),
+            (float) icur->rate);
+
+      avg_duration += icur->dur.rel_value_us / (1000);
+      avg_rate  += icur->rate;
+      iterations ++;
     }
-    FPRINTF (stdout, _("%u;%u"),benchmark_count, benchmark_size);
+
+    /* Calculate average rate */
+    avg_rate /= iterations;
+    /* Calculate average duration */
+    avg_duration /= iterations;
+
+    stddev_rate = 0;
+    stddev_duration = 0;
+    inext = ihead;
+    while (NULL != (icur = inext))
+    {
+      inext = icur->next;
+      stddev_rate += ((icur->rate-avg_rate) *
+          (icur->rate-avg_rate));
+      stddev_duration += (((icur->dur.rel_value_us / 1000) - avg_duration) *
+          ((icur->dur.rel_value_us / 1000) - avg_duration));
+
+    }
+    /* Calculate standard deviation rate */
+    stddev_rate = stddev_rate / iterations;
+    stddev_rate = sqrtf(stddev_rate);
+
+    /* Calculate standard deviation duration */
+    stddev_duration = stddev_duration / iterations;
+    stddev_duration = sqrtf(stddev_duration);
+
+    /* Output */
+    FPRINTF (stdout, _("%u;%u;%llu;%llu;%.2f;%.2f"),benchmark_count, benchmark_size,
+        avg_duration, (unsigned long long) stddev_duration, avg_rate, stddev_rate);
+
     inext = ihead;
     while (NULL != (icur = inext))
     {
       inext = icur->next;
       GNUNET_CONTAINER_DLL_remove (ihead, itail, icur);
 
-      FPRINTF (stdout, _(";%llu"),
-      (long long unsigned int) icur->dur.rel_value_us);
+      FPRINTF (stdout, _(";%llu;%.2f"),
+          (long long unsigned int) (icur->dur.rel_value_us / 1000), icur->rate);
 
       GNUNET_free (icur);
     }
