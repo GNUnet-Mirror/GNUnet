@@ -1696,8 +1696,8 @@ handle_helper_message (void *cls, void *client,
     {
       GNUNET_break (0);
       LOG (GNUNET_ERROR_TYPE_WARNING,
-	   "Size of packet is too small (%u bytes)\n",
-	   msize);
+	   "Size of packet is too small (%u bytes < %u)\n",
+	   msize,  sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage));
       break;
     }
     rxinfo = (const struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage *) hdr;
