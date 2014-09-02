@@ -118,6 +118,8 @@ sensor_gaussian_model_feed (void *cls, double val)
     update_sums (model, val);
     return GNUNET_NO;
   }
+  if (model->n == plugin->training_window)
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Gaussian model out of training period.\n");
   mean = model->sum / model->n;
   stddev =
       sqrt ((model->sumsq - 2 * mean * model->sum +

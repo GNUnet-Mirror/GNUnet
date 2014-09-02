@@ -134,6 +134,11 @@ static char **sensor_names;
  */
 static unsigned int sensor_names_size = 0;
 
+/**
+ * Task run after any waiting period
+ */
+static GNUNET_SCHEDULER_TaskIdentifier delayed_task = GNUNET_SCHEDULER_NO_TASK;
+
 
 /**
  * Copy directory recursively
@@ -155,6 +160,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
+  if (GNUNET_SCHEDULER_NO_TASK != delayed_task)
+  {
+    GNUNET_SCHEDULER_cancel (delayed_task);
+    delayed_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != cfg)
   {
     GNUNET_CONFIGURATION_destroy (cfg);
@@ -422,6 +432,18 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
 
 
 /**
+ * This function is called after the estimated training period is over.
+ */
+static void
+simulate_anomalies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Training period over, simulating anomalies now.\n");
+  //TODO
+}
+
+
+/**
  * This function is called after a delay which ensures that all peers are
  * properly initialized
  */
@@ -431,6 +453,7 @@ peers_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long long int training_points;
   struct GNUNET_TIME_Relative training_period;
 
+  delayed_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers are ready.\n");
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg,
@@ -447,7 +470,8 @@ peers_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               "Sleeping for a training period of %s.\n",
               GNUNET_STRINGS_relative_time_to_string (training_period,
                                                       GNUNET_NO));
-  //TODO
+  delayed_task =
+      GNUNET_SCHEDULER_add_delayed (training_period, &simulate_anomalies, NULL);
 }
 
 
@@ -476,9 +500,10 @@ sensor_service_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   sensor_services_started++;
   if (sensor_services_started == num_peers)
   {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (PEER_STARTUP_TIME, num_peers), &peers_ready,
-                                  NULL);
+    delayed_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (PEER_STARTUP_TIME, num_peers),
+                                      &peers_ready, NULL);
   }
 }
 

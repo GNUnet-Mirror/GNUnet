@@ -3,6 +3,9 @@ import math
 import networkx
 import random
 import tempfile
+import os
+import time
+from subprocess import Popen, PIPE, STDOUT
 
 def get_args():
   parser = argparse.ArgumentParser(description="Sensor profiler")
@@ -33,10 +36,30 @@ def create_topology_file(graph):
     if len(nodes[i]) == 0:
       continue
     f.write('%d:' % i)
-    f.write('|'.join(map(str,nodes[i])))
+    f.write('|'.join(map(str, nodes[i])))
     f.write('\n')
-  #f.close()
+  # f.close()
   return f.name
+
+def handle_profiler_line(line):
+  if not line:
+    return
+  print line
+
+def run_profiler(peers, topology_file):
+  cmd = "GNUNET_FORCE_LOG='gnunet-sensor-profiler;;;;DEBUG' gnunet-sensor-profiler -p %d -t %s > log 2>&1" % (peers, topology_file)
+  process = Popen([cmd], shell=True)
+  time.sleep(0.5)
+  line = ''
+  f = open('log')
+  while process.poll() is None:
+    for c in f.read():
+      if not c or c == '\n':
+        handle_profiler_line(line)
+        line = ''
+      else:
+        line += c
+  os.remove('log')
 
 def main():
   args = vars(get_args())
@@ -52,6 +75,7 @@ def main():
   top_file = create_topology_file(graph)
   print 'Created TESTBED topology file %s' % top_file
   # Run c profiler
+  run_profiler(num_peers, top_file)
   
 if __name__ == "__main__":
   main()
