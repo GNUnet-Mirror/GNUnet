@@ -353,7 +353,6 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_asprintf (&process_path, "%s%s-files%s%s", sensor_dir,
                        sensorinfo->name, DIR_SEPARATOR_STR,
                        sensorinfo->ext_process);
-      GNUNET_free (sensor_dir);
       check_result =
           GNUNET_OS_check_helper_binary (process_path, GNUNET_NO, NULL);
     }

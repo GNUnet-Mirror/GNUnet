@@ -29,6 +29,7 @@
 #include "gnunet_peerstore_service.h"
 #include "gnunet_sensor_service.h"
 #include "gnunet_sensor_util_lib.h"
+#include "gnunet_transport_service.h"
 
 /**
  * Time to wait for the peer to startup completely
@@ -53,6 +54,23 @@ struct PeerInfo
 
 };
 
+struct DisconnectionContext
+{
+
+  struct DisconnectionContext *prev;
+
+  struct DisconnectionContext *next;
+
+  struct PeerInfo *p1;
+
+  struct PeerInfo *p2;
+
+  struct GNUNET_TESTBED_Operation *p1_transport_op;
+
+  struct GNUNET_TRANSPORT_Blacklist *blacklist;
+
+};
+
 
 /**
  * Name of the configuration file used
@@ -72,7 +90,7 @@ static const char *sensor_dst_dir = "/tmp/gnunet-sensor-profiler";
 /**
  * GNUnet configuration
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Return value of the program
@@ -139,6 +157,16 @@ static unsigned int sensor_names_size = 0;
  */
 static GNUNET_SCHEDULER_TaskIdentifier delayed_task = GNUNET_SCHEDULER_NO_TASK;
 
+/**
+ * Head of list of disconnection contexts
+ */
+static struct DisconnectionContext *dc_head;
+
+/*
+ * Tail of list of disconnection contexts
+ */
+static struct DisconnectionContext *dc_tail;
+
 
 /**
  * Copy directory recursively
@@ -158,12 +186,40 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int i;
+  struct DisconnectionContext *dc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
   if (GNUNET_SCHEDULER_NO_TASK != delayed_task)
   {
     GNUNET_SCHEDULER_cancel (delayed_task);
     delayed_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  dc = dc_head;
+  while (NULL != dc)
+  {
+    GNUNET_CONTAINER_DLL_remove (dc_head, dc_tail, dc);
+    if (NULL != dc->blacklist)
+    {
+      GNUNET_TRANSPORT_blacklist_cancel (dc->blacklist);
+      dc->blacklist = NULL;
+    }
+    if (NULL != dc->p1_transport_op)
+    {
+      GNUNET_TESTBED_operation_done (dc->p1_transport_op);
+      dc->p1_transport_op = NULL;
+    }
+    GNUNET_free (dc);
+    dc = dc_head;
+  }
+  if (NULL != peerstore_op)
+  {
+    GNUNET_TESTBED_operation_done (peerstore_op);
+    peerstore_op = NULL;
+  }
+  if (NULL != all_peers_info)
+  {
+    GNUNET_free (all_peers_info);
+    all_peers_info = NULL;
   }
   if (NULL != cfg)
   {
@@ -176,18 +232,144 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free (sensor_names[i]);
     GNUNET_array_grow (sensor_names, sensor_names_size, 0);
   }
-  if (NULL != peerstore_op)
-  {
-    GNUNET_TESTBED_operation_done (peerstore_op);
-    peerstore_op = NULL;
-  }
-  if (NULL != all_peers_info)
-  {
-    GNUNET_free (all_peers_info);
-    all_peers_info = NULL;
-  }
   GNUNET_SCHEDULER_shutdown ();
 }
+
+
+/*****************************************************************************/
+/****************************** DISCONNECT PEERS *****************************/
+/*****************************************************************************/
+
+
+/**
+ * Function to call with result of the TRANSPORT try disconnect request.
+ *
+ * @param cls closure
+ * @param result #GNUNET_OK if message was transmitted to transport service
+ *               #GNUNET_SYSERR if message was not transmitted to transport service
+ */
+static void
+transport_disconnect_cb (void *cls, const int result)
+{
+  struct DisconnectionContext *dc = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnection request between `%s' and `%s' sent.\n",
+      GNUNET_i2s (&dc->p1->peer_id), GNUNET_i2s (&dc->p2->peer_id));
+}
+
+
+/**
+ * Callback to be called when transport service connect operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param ca_result the service handle returned from GNUNET_TESTBED_ConnectAdapter()
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+transport_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                      void *ca_result, const char *emsg)
+{
+  struct DisconnectionContext *dc = cls;
+  struct GNUNET_TRANSPORT_Handle *transport = ca_result;
+
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %d: %s\n", 0, GNUNET_i2s (&dc->p1->peer_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %d: %s\n", 1, GNUNET_i2s (&dc->p2->peer_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transport_connect_cb().\n");
+  GNUNET_TRANSPORT_try_disconnect (transport, &dc->p2->peer_id, &transport_disconnect_cb, dc);
+}
+
+
+/**
+ * Callback from TRANSPORT service to ask if the given peer ID is blacklisted.
+ *
+ * @param cls closure, DisconnectionContext
+ * @param pid peer to approve or disapproave
+ * @return #GNUNET_OK if the connection is allowed, #GNUNET_SYSERR if not
+ */
+static int
+blacklist_cb (void *cls, const struct GNUNET_PeerIdentity *pid)
+{
+  struct DisconnectionContext *dc = cls;
+
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&dc->p2->peer_id, pid))
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Adapter function called to establish a connection to transport service.
+ *
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+transport_connect_adapter (void *cls,
+                           const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct DisconnectionContext *dc = cls;
+  struct GNUNET_TRANSPORT_Handle *transport;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transport_connect_adapter().\n");
+  dc-> blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_cb, dc);
+  GNUNET_assert (NULL != dc->blacklist);
+  transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
+  GNUNET_assert (NULL != transport);
+  return transport;
+}
+
+
+/**
+ * Adapter function called to destroy a connection to transport service.
+ *
+ * @param cls closure
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+transport_disconnect_adapter (void *cls, void *op_result)
+{
+  struct GNUNET_TRANSPORT_Handle *transport = op_result;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transport_disconnect_adapter().\n");
+  GNUNET_TRANSPORT_disconnect(transport);
+}
+
+
+/**
+ * Kill any connection between two peers. Has no effect if the peers are not
+ * connected.
+ */
+static void
+disconnect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
+{
+  struct DisconnectionContext *dc;
+
+  GNUNET_assert (p1 != p2);
+  dc = GNUNET_new (struct DisconnectionContext);
+  dc->p1 = p1;
+  dc->p2 = p2;
+  GNUNET_CONTAINER_DLL_insert (dc_head, dc_tail, dc);
+  dc->p1_transport_op =
+          GNUNET_TESTBED_service_connect (NULL, p1->testbed_peer,
+                                          "transport", &transport_connect_cb,
+                                          dc, &transport_connect_adapter,
+                                          &transport_disconnect_adapter, dc);
+}
+
+
+/*****************************************************************************/
+/**************************** END DISCONNECT PEERS ***************************/
+/*****************************************************************************/
 
 
 /**
@@ -214,6 +396,8 @@ copy_dir_scanner (void *cls, const char *filename)
     if (GNUNET_YES == GNUNET_DISK_file_test (dst))
       GNUNET_DISK_directory_remove (dst);
     copy_result = GNUNET_DISK_file_copy (filename, dst);
+    if (GNUNET_OK == copy_result)
+      GNUNET_DISK_fix_permissions (dst, GNUNET_NO, GNUNET_NO);
   }
   GNUNET_free (dst);
   return copy_result;
@@ -437,6 +621,7 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
 static void
 simulate_anomalies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  delayed_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Training period over, simulating anomalies now.\n");
   //TODO
@@ -603,11 +788,11 @@ test_master (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num,
 static int
 verify_args ()
 {
-  if (num_peers < 3)
+  if (num_peers < 2)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _
-                ("Invalid or missing number of peers. Set at least 3 peers.\n"));
+                ("Invalid or missing number of peers. Set at least 2 peers.\n"));
     return GNUNET_SYSERR;
   }
   if (NULL == topology_file ||
