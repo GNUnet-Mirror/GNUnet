@@ -66,6 +66,9 @@ endif
 if LINUX
 install-exec-hook:
 	$(top_srcdir)/src/transport/install-wlan-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+if HAVE_LIBBLUETOOTH	
+	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+endif
 else
 install-exec-hook:
 endif
@@ -88,14 +91,7 @@ if MINGW
 endif
 endif
 
-if LINUX
-if HAVE_LIBBLUETOOTH
-install-exec-hook2:
-	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(libexecdir) $(SUDO_BINARY) || true
-endif
-else
-install-exec-hook2:
-endif
+
 
 if !MINGW
 UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
