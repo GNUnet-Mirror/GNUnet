@@ -2199,6 +2199,9 @@ try_connect_bl_check_cont (void *cls,
   }
 
   /* Setup a new neighbour */
+  if (NULL != (n = lookup_neighbour(peer)))
+    return; /* The neighbor was created in the meantime while waited for BL clients */
+
   n = setup_neighbour (peer);
 
   /* Request address suggestions for this peer */
