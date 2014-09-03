@@ -464,8 +464,8 @@ sensor_dir_scanner (void *cls, const char *filename)
                    GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
     GNUNET_CONFIGURATION_set_value_string (sensor_cfg, file_basename,
                                            "COLLECTION_POINT",
-                                           GNUNET_i2s_full (&all_peers_info[0].
-                                                            peer_id));
+                                           GNUNET_i2s_full (&all_peers_info
+                                                            [0].peer_id));
     if (sensors_interval > 0)
     {
       GNUNET_CONFIGURATION_set_value_number (sensor_cfg, file_basename,
@@ -544,10 +544,11 @@ peerstore_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record,
   GNUNET_assert (0 ==
                  GNUNET_CRYPTO_cmp_peer_identity (&peer->peer_id,
                                                   record->peer));
-  printf ("Anomaly report:\n" "  Peer: `%s'\n" "  Sensor: `%s'\n"
-          "  Anomalous: `%d'\n" "  Anomalous neighbors: %f.\n\n",
-          GNUNET_i2s (&peer->peer_id), record->key, anomaly->anomalous,
-          anomaly->anomalous_neighbors);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Anomaly report:\n" "  Peer: `%s'\n" "  Sensor: `%s'\n"
+              "  Anomalous: `%d'\n" "  Anomalous neighbors: %f.\n\n",
+              GNUNET_i2s (&peer->peer_id), record->key, anomaly->anomalous,
+              anomaly->anomalous_neighbors);
   return GNUNET_YES;
 }
 
@@ -633,16 +634,17 @@ prompt_peer_disconnection ()
   int p2;
   char line[10];
 
-  printf ("Disconnect peers (e.g. '0,2') or empty line to execute: ");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnect peers (e.g. '0,2') or empty line to execute:\n");
   if (NULL == fgets (line, sizeof (line), stdin) || 1 == strlen (line))
   {
-    printf ("Continuing.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Continuing.\n");
     return;
   }
   if (2 != sscanf (line, "%d,%d", &p1, &p2) || p1 >= num_peers ||
       p2 >= num_peers || p1 < 0 || p2 < 0 || p1 == p2)
   {
-    printf ("Invalid input.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid input.\n");
     prompt_peer_disconnection ();
     return;
   }
@@ -660,7 +662,7 @@ simulate_anomalies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   delayed_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Training period over, simulating anomalies now.\n");
-  prompt_peer_disconnection ();
+  //TODO:
 }
 
 
@@ -693,6 +695,7 @@ peers_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                       GNUNET_NO));
   delayed_task =
       GNUNET_SCHEDULER_add_delayed (training_period, &simulate_anomalies, NULL);
+  prompt_peer_disconnection (); //TODO: move to simulate_anomalies()
 }
 
 
