@@ -5,7 +5,12 @@ import random
 import tempfile
 import os
 import time
+import matplotlib.pyplot as plt
 from subprocess import Popen, PIPE, STDOUT
+
+node_colors = None
+graph = None
+pos = None
 
 def get_args():
   parser = argparse.ArgumentParser(description="Sensor profiler")
@@ -14,17 +19,22 @@ def get_args():
   return parser.parse_args()
 
 def generate_topology(peers, links):
-  G = networkx.empty_graph(peers)
+  global graph
+  global node_colors
+  global pos
+  graph = networkx.empty_graph(peers)
   for i in range(0, links):
     a = 0
     b = 0
     while a == b:
-      a = random.randint(0, peers)
-      b = random.randint(0, peers)
-    G.add_edge(a, b)
-  return G
+      a = random.randint(0, peers - 1)
+      b = random.randint(0, peers - 1)
+    graph.add_edge(a, b)
+  node_colors = [0] * peers
+  pos = networkx.layout.spring_layout(graph)
 
-def create_topology_file(graph):
+def create_topology_file():
+  global graph
   nodes = list()
   for i in range(len(graph.edge)):
     nodes.append(list())
@@ -41,10 +51,51 @@ def create_topology_file(graph):
   # f.close()
   return f.name
 
+def draw_graph():
+  global graph
+  global node_colors
+  global pos
+  t = int(time.time())
+  inc = 2
+  name = str(t) + '.png'
+  while os.path.exists(name):
+    name = '%d(%d).png' % (t, inc)
+    inc += 1
+  print 'Drawing graph to file: %s' % name
+  plt.clf()
+  networkx.draw(graph, pos=pos, node_color=node_colors, with_labels=range(len(graph.node)), cmap=plt.cm.Reds, vmin=0, vmax=2)
+  plt.savefig(name)
+
+def peers_disconnected(p1, p2):
+  global graph
+  print 'Disconnected peers %d and %d' % (p1, p2)
+  if p2 not in graph[p1]:
+    print 'Link does not exist'
+    return
+  graph.remove_edge(p1, p2)
+  draw_graph()
+
+def anomaly_report(report):
+  global node_colors
+  if 0 == report['anomalous']:
+    node_colors[report['peer']] = 0
+  else:
+    node_colors[report['peer']] = 1 + report['neighbors']
+  draw_graph()
+
 def handle_profiler_line(line):
   if not line:
     return
   print line
+  if 'Peer disconnection request sent' in line: # Peers disconnected
+    parts = line.split(':')
+    peers = parts[-1].split(',')
+    peers_disconnected(int(peers[0]), int(peers[1]))
+    return
+  if 'Anomaly report:' in line:
+    parts = line.split('Anomaly report:')
+    anomaly_report(eval(parts[1]))
+    return
 
 def run_profiler(peers, topology_file):
   cmd = "GNUNET_FORCE_LOG='gnunet-sensor-profiler;;;;DEBUG' gnunet-sensor-profiler -p %d -t %s > log 2>&1" % (peers, topology_file)
@@ -69,11 +120,12 @@ def main():
     return
   num_links = int(math.log(num_peers) * math.log(num_peers) * num_peers / 2)
   # Generate random topology
-  graph = generate_topology(num_peers, num_links)
+  generate_topology(num_peers, num_links)
   print 'Generated random topology with %d peers and %d links' % (num_peers, num_links)
   # Create TESTBED topology file
-  top_file = create_topology_file(graph)
+  top_file = create_topology_file()
   print 'Created TESTBED topology file %s' % top_file
+  draw_graph()
   # Run c profiler
   run_profiler(num_peers, top_file)
   
