@@ -88,14 +88,14 @@ static const char *sensor_src_dir = "sensors";
 static const char *sensor_dst_dir = "/tmp/gnunet-sensor-profiler";
 
 /**
+ * Scheduled task to shutdown
+ */
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+
+/**
  * GNUnet configuration
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
-
-/**
- * Return value of the program
- */
-static int ok = 1;
 
 /**
  * Number of peers to run (Option -p)
@@ -180,6 +180,13 @@ copy_dir (const char *src, const char *dst);
 
 
 /**
+ * Prompt the user to disconnect two peers
+ */
+static void
+prompt_peer_disconnection ();
+
+
+/**
  * Do clean up and shutdown scheduler
  */
 static void
@@ -253,8 +260,9 @@ transport_disconnect_cb (void *cls, const int result)
 {
   struct DisconnectionContext *dc = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnection request between `%s' and `%s' sent.\n",
-      GNUNET_i2s (&dc->p1->peer_id), GNUNET_i2s (&dc->p2->peer_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnection request between `%s' and `%s' sent.\n",
+              GNUNET_i2s (&dc->p1->peer_id), GNUNET_i2s (&dc->p2->peer_id));
 }
 
 
@@ -279,10 +287,9 @@ transport_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
     GNUNET_assert (0);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %d: %s\n", 0, GNUNET_i2s (&dc->p1->peer_id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %d: %s\n", 1, GNUNET_i2s (&dc->p2->peer_id));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transport_connect_cb().\n");
-  GNUNET_TRANSPORT_try_disconnect (transport, &dc->p2->peer_id, &transport_disconnect_cb, dc);
+  GNUNET_TRANSPORT_try_disconnect (transport, &dc->p2->peer_id,
+                                   &transport_disconnect_cb, dc);
 }
 
 
@@ -321,7 +328,7 @@ transport_connect_adapter (void *cls,
   struct GNUNET_TRANSPORT_Handle *transport;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transport_connect_adapter().\n");
-  dc-> blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_cb, dc);
+  dc->blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_cb, dc);
   GNUNET_assert (NULL != dc->blacklist);
   transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   GNUNET_assert (NULL != transport);
@@ -341,7 +348,7 @@ transport_disconnect_adapter (void *cls, void *op_result)
   struct GNUNET_TRANSPORT_Handle *transport = op_result;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transport_disconnect_adapter().\n");
-  GNUNET_TRANSPORT_disconnect(transport);
+  GNUNET_TRANSPORT_disconnect (transport);
 }
 
 
@@ -356,14 +363,15 @@ disconnect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
 
   GNUNET_assert (p1 != p2);
   dc = GNUNET_new (struct DisconnectionContext);
+
   dc->p1 = p1;
   dc->p2 = p2;
   GNUNET_CONTAINER_DLL_insert (dc_head, dc_tail, dc);
   dc->p1_transport_op =
-          GNUNET_TESTBED_service_connect (NULL, p1->testbed_peer,
-                                          "transport", &transport_connect_cb,
-                                          dc, &transport_connect_adapter,
-                                          &transport_disconnect_adapter, dc);
+      GNUNET_TESTBED_service_connect (NULL, p1->testbed_peer, "transport",
+                                      &transport_connect_cb, dc,
+                                      &transport_connect_adapter,
+                                      &transport_disconnect_adapter, dc);
 }
 
 
@@ -456,8 +464,8 @@ sensor_dir_scanner (void *cls, const char *filename)
                    GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
     GNUNET_CONFIGURATION_set_value_string (sensor_cfg, file_basename,
                                            "COLLECTION_POINT",
-                                           GNUNET_i2s_full (&all_peers_info
-                                                            [0].peer_id));
+                                           GNUNET_i2s_full (&all_peers_info[0].
+                                                            peer_id));
     if (sensors_interval > 0)
     {
       GNUNET_CONFIGURATION_set_value_number (sensor_cfg, file_basename,
@@ -616,6 +624,34 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
 
 
 /**
+ * Prompt the user to disconnect two peers
+ */
+static void
+prompt_peer_disconnection ()
+{
+  int p1;
+  int p2;
+  char line[10];
+
+  printf ("Disconnect peers (e.g. '0,2') or empty line to execute: ");
+  if (NULL == fgets (line, sizeof (line), stdin) || 1 == strlen (line))
+  {
+    printf ("Continuing.\n");
+    return;
+  }
+  if (2 != sscanf (line, "%d,%d", &p1, &p2) || p1 >= num_peers ||
+      p2 >= num_peers || p1 < 0 || p2 < 0 || p1 == p2)
+  {
+    printf ("Invalid input.\n");
+    prompt_peer_disconnection ();
+    return;
+  }
+  disconnect_peers (&all_peers_info[p1], &all_peers_info[p2]);
+  prompt_peer_disconnection ();
+}
+
+
+/**
  * This function is called after the estimated training period is over.
  */
 static void
@@ -624,7 +660,7 @@ simulate_anomalies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   delayed_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Training period over, simulating anomalies now.\n");
-  //TODO
+  prompt_peer_disconnection ();
 }
 
 
@@ -829,8 +865,9 @@ run (void *cls, char *const *args, const char *cf,
                                          cfg, "TESTBED",
                                          "OVERLAY_TOPOLOGY_FILE",
                                          topology_file);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
-                                NULL);
+  shutdown_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
+                                    NULL);
   GNUNET_TESTBED_run (NULL, cfg, num_peers, 0, NULL, NULL, &test_master, NULL);
 }
 
@@ -857,7 +894,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "gnunet-sensor-profiler",
                               gettext_noop ("Profiler for sensor service"),
-                              options, &run, NULL)) ? ok : 1;
+                              options, &run, NULL)) ? 0 : 1;
 }
 
 /* end of gnunet-sensor-profiler.c */
