@@ -316,7 +316,7 @@ uri_ksk_parse (const char *s,
     if ((s[i] == '%') && (&s[i] == strstr (&s[i], "%22")))
     {
       saw_quote = (saw_quote + 1) % 2;
-      i += 3;
+      //i += 3;
       continue;
     }
     if ((dup[i] == '+') && (saw_quote == 0))
