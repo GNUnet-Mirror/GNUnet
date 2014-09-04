@@ -55,6 +55,14 @@ if HAVE_MHD
 if HAVE_GNUTLS
 if HAVE_LIBGNURL
   DO_PROXY=gnunet-gns-proxy
+LIB_GNURL=@LIBGNURL@
+CPP_GNURL=@LIBGNURL_CPPFLAGS@
+else
+if HAVE_LIBCURL
+  DO_PROXY=gnunet-gns-proxy
+LIB_GNURL=@LIBCURL@
+CPP_GNURL=@LIBCURL_CPPFLAGS@
+endif
 endif
 endif
 endif
@@ -141,8 +149,8 @@ gnunet_dns2gns_DEPENDENCIES = \
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c
-gnunet_gns_proxy_CPPFLAGS = $(AM_CPPFLAGS) $(LIBGNURL_CPPFLAGS)
-gnunet_gns_proxy_LDADD = -lmicrohttpd $(LIBGNURL) -lgnutls \
+gnunet_gns_proxy_CPPFLAGS = $(AM_CPPFLAGS) $(CPP_GNURL)
+gnunet_gns_proxy_LDADD = -lmicrohttpd $(LIB_GNURL) -lgnutls \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \

@@ -34,7 +34,29 @@ gnunet_daemon_pt_LDADD = \
 
 if HAVE_TESTING
 if HAVE_MHD
+
 if HAVE_LIBGNURL
+LIB_GNURL=@LIBGNURL@
+CPP_GNURL=@LIBGNURL_CPPFLAGS@
+if LINUX
+ VPN_TEST = \
+ test_gnunet_vpn-4_to_6 \
+ test_gnunet_vpn-6_to_4 \
+ test_gnunet_vpn-6_over \
+ test_gnunet_vpn-4_over \
+ test_gns_vpn
+endif
+if MINGW
+ VPN_TEST = \
+ test_gnunet_vpn-4_to_6 \
+ test_gnunet_vpn-6_to_4 \
+ test_gnunet_vpn-6_over \
+ test_gnunet_vpn-4_over
+endif
+else
+if HAVE_LIBCURL
+LIB_GNURL=@LIBCURL@
+CPP_GNURL=@LIBCURL_CPPFLAGS@
 if LINUX
  VPN_TEST = \
  test_gnunet_vpn-4_to_6 \
@@ -51,6 +73,8 @@ if MINGW
  test_gnunet_vpn-4_over
 endif
 endif
+endif
+
 endif
 endif
 
@@ -69,48 +93,48 @@ EXTRA_DIST = \
 
 test_gns_vpn_SOURCES = \
  test_gns_vpn.c
-test_gns_vpn_LDADD = -lmicrohttpd @LIBGNURL@ \
+test_gns_vpn_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 test_gns_vpn_CPPFLAGS = \
- @LIBGNURL_CPPFLAGS@ $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CPPFLAGS)
 
 test_gnunet_vpn_4_over_SOURCES = \
  test_gnunet_vpn.c
-test_gnunet_vpn_4_over_LDADD = -lmicrohttpd @LIBGNURL@ \
+test_gnunet_vpn_4_over_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/vpn/libgnunetvpn.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 test_gnunet_vpn_4_over_CPPFLAGS = \
- @LIBGNURL_CPPFLAGS@ $(AM_CPPFLAGS)
+ $(LIB_GNURL) $(AM_CPPFLAGS)
 
 test_gnunet_vpn_6_over_SOURCES = \
  test_gnunet_vpn.c
-test_gnunet_vpn_6_over_LDADD = -lmicrohttpd @LIBGNURL@ \
+test_gnunet_vpn_6_over_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/vpn/libgnunetvpn.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 test_gnunet_vpn_6_over_CPPFLAGS = \
- @LIBGNURL_CPPFLAGS@ $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CPPFLAGS)
 
 test_gnunet_vpn_4_to_6_SOURCES = \
  test_gnunet_vpn.c
-test_gnunet_vpn_4_to_6_LDADD = -lmicrohttpd @LIBGNURL@ \
+test_gnunet_vpn_4_to_6_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/vpn/libgnunetvpn.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 test_gnunet_vpn_4_to_6_CPPFLAGS = \
- @LIBGNURL_CPPFLAGS@ $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CPPFLAGS)
 
 test_gnunet_vpn_6_to_4_SOURCES = \
  test_gnunet_vpn.c
-test_gnunet_vpn_6_to_4_LDADD = -lmicrohttpd @LIBGNURL@ \
+test_gnunet_vpn_6_to_4_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/vpn/libgnunetvpn.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 test_gnunet_vpn_6_to_4_CPPFLAGS = \
- @LIBGNURL_CPPFLAGS@ $(AM_CPPFLAGS)
+ $(CPP_GNURL) $(AM_CPPFLAGS)
 
 

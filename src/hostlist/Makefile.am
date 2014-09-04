@@ -20,6 +20,15 @@ endif
 if HAVE_LIBGNURL
 libexec_PROGRAMS = \
  gnunet-daemon-hostlist
+LIB_GNURL=@LIBGNURL@
+CPP_GNURL=@LIBGNURL_CPPFLAGS@
+else
+if HAVE_LIBCURL
+libexec_PROGRAMS = \
+ gnunet-daemon-hostlist
+LIB_GNURL=@LIBCURL@
+CPP_GNURL=@LIBCURL_CPPFLAGS@
+endif
 endif
 
 gnunet_daemon_hostlist_SOURCES = \
@@ -35,11 +44,12 @@ gnunet_daemon_hostlist_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBMHD) \
-  @LIBGNURL@  \
+  $(LIB_GNURL) \
   $(GN_LIBINTL)
 
 gnunet_daemon_hostlist_CPPFLAGS = \
- @LIBGNURL_CPPFLAGS@  $(AM_CPPFLAGS)
+ $(CPP_GNURL) \
+ $(AM_CPPFLAGS)
 
 if HAVE_LIBGNURL
 check_PROGRAMS = \
