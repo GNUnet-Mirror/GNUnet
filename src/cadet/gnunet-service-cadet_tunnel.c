@@ -2362,19 +2362,6 @@ GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c)
 
 
 /**
- * Mark a path as no longer valid for this tunnel: has been tried and failed.
- *
- * @param t Tunnel to update.
- * @param path Invalid path to remove. Is destroyed after removal.
- */
-void
-GCT_remove_path (struct CadetTunnel *t, struct CadetPeerPath *path)
-{
-  GCP_remove_path (t->peer, path);
-}
-
-
-/**
  * Remove a connection from a tunnel.
  *
  * @param t Tunnel.
