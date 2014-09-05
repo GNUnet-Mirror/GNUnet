@@ -871,12 +871,6 @@ process_incoming_data (struct GNUNET_CADET_Handle *h,
   size = ntohs (message->size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes\n", size);
 
-  if (NULL == ch)
-  {
-    /* Channel was ignored/destroyed, probably service didn't get it yet */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ignored!\n");
-    return;
-  }
   type = ntohs (payload->type);
   size = ntohs (payload->size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %s\n", GC_m2s (type));
