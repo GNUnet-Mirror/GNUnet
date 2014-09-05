@@ -1858,13 +1858,8 @@ GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
        path->length, GCP_2s (peer));
 
-  if ((NULL == peer) || (NULL == path))
-  {
-    GNUNET_break (0);
-    path_destroy (path);
-    return NULL;
-  }
-  if (path->peers[path->length - 1] != peer->id)
+  if (NULL == peer || NULL == path
+      || path->peers[path->length - 1] != peer->id)
   {
     GNUNET_break (0);
     path_destroy (path);
@@ -2010,7 +2005,8 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
   {
     next = iter->next;
     if (0 == memcmp (path->peers, iter->peers,
-                     sizeof (GNUNET_PEER_Id) * path->length))
+                     sizeof (GNUNET_PEER_Id) * path->length)
+        && iter->length == path->length)
     {
       GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
       if (iter != path)
