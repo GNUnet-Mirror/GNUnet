@@ -1660,6 +1660,7 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                      size, &own_pos);
     if (NULL == path)
       return GNUNET_OK;
+
     if (0 == own_pos)
     {
       GNUNET_break_op (0);
@@ -1675,6 +1676,7 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       {
         /* If we are destination, why did the creation fail? */
         GNUNET_break (0);
+        path_destroy (path);
         return GNUNET_OK;
       }
       send_broken_unknown (cid, &my_full_id,
