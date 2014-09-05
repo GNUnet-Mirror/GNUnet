@@ -345,9 +345,17 @@ handle_datastore_reply (void *cls,
        hard error as we might have had the answer in the
        past and the user might have unindexed it. Hence
        we log at level "INFO" for now. */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Have no answer for query `%s'\n",
-                GNUNET_h2s (key));
+    if(NULL == key)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Have no answer and the query was NULL\n");
+    }
+    else
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Have no answer for query `%s'\n",
+                    GNUNET_h2s (key));
+    }
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop ("# queries received via cadet not answered"), 1,
                               GNUNET_NO);
