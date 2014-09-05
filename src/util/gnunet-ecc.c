@@ -77,10 +77,7 @@ create_keys (const char *fn, const char *prefix)
 
   if (NULL == (f = fopen (fn, "w+")))
   {
-    fprintf (stderr,
-	     _("Failed to open `%s': %s\n"),
-	     fn,
-	     STRERROR (errno));
+    fprintf (stderr, _("Failed to open `%s': %s\n"), fn, STRERROR (errno));
     return;
   }
   if (NULL != prefix)
@@ -116,6 +113,8 @@ create_keys (const char *fn, const char *prefix)
   else
   {
     fprintf (stderr, _("Generating %u keys, please wait"), make_keys);
+    /* Just so old (debian) versions of GCC calm down with the warnings. */
+    n = rest = target_byte = mask = 0;
   }
 
   while (0 < make_keys--)
