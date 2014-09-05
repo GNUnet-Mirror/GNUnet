@@ -464,7 +464,6 @@ database_setup (struct Plugin *plugin)
   sql_exec (plugin->dbh, "PRAGMA legacy_file_format=OFF");
   sql_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL");
   sql_exec (plugin->dbh, "PRAGMA encoding=\"UTF-8\"");
-  sql_exec (plugin->dbh, "PRAGMA count_changes=OFF");
   sql_exec (plugin->dbh, "PRAGMA page_size=4096");
   sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS);
   /* Create tables */

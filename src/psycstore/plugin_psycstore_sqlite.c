@@ -343,7 +343,6 @@ database_setup (struct Plugin *plugin)
 #if ! DEBUG_PSYCSTORE
   sql_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE");
 #endif
-  sql_exec (plugin->dbh, "PRAGMA count_changes=OFF");
   sql_exec (plugin->dbh, "PRAGMA page_size=4096");
 
   sqlite3_busy_timeout (plugin->dbh, BUSY_TIMEOUT_MS);
