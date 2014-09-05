@@ -324,7 +324,8 @@ continue_writing (struct CadetClient *sc)
 static void
 handle_datastore_reply (void *cls,
 			const struct GNUNET_HashCode *key,
-			size_t size, const void *data,
+			size_t size, 
+			const void *data,
 			enum GNUNET_BLOCK_Type type,
 			uint32_t priority,
 			uint32_t anonymity,
@@ -345,19 +346,19 @@ handle_datastore_reply (void *cls,
        hard error as we might have had the answer in the
        past and the user might have unindexed it. Hence
        we log at level "INFO" for now. */
-    if(NULL == key)
+    if (NULL == key)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Have no answer and the query was NULL\n");
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    "Have no answer for query `%s'\n",
-                    GNUNET_h2s (key));
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		  "Have no answer for query `%s'\n",
+		  GNUNET_h2s (key));
     }
     GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# queries received via cadet not answered"), 1,
+                              gettext_noop ("# queries received via CADET not answered"), 1,
                               GNUNET_NO);
     continue_writing (sc);
     return;
@@ -414,9 +415,9 @@ handle_datastore_reply (void *cls,
  * Functions with this signature are called whenever a
  * complete query message is received.
  *
- * Do not call #GNUNET_SERVER_mst_destroy in callback
+ * Do not call #GNUNET_SERVER_mst_destroy() in callback
  *
- * @param cls closure with the 'struct CadetClient'
+ * @param cls closure with the `struct CadetClient`
  * @param channel channel handle
  * @param channel_ctx channel context
  * @param message the actual message
