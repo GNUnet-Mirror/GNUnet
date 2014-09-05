@@ -132,9 +132,11 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS_DIRECTORY:
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
+  	processed_files++;
 	if(processed_files == NUM_FILES)
 	{
-	  kuri = GNUNET_FS_uri_ksk_create ("+down_foo +down_bar", NULL);
+	  char *emsg = NULL;
+	  kuri = GNUNET_FS_uri_ksk_create ("+down_foo +down_bar", &emsg);
       GNUNET_assert (kuri != NULL);
 		
       start = GNUNET_TIME_absolute_get ();
@@ -170,7 +172,6 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     GNUNET_assert (FILESIZE == event->value.publish.size);
     GNUNET_assert (0 == event->value.publish.completed);
     GNUNET_assert (1 == event->value.publish.anonymity);
-	processed_files++;
     break;
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
     GNUNET_assert (publish == event->value.publish.pc);
