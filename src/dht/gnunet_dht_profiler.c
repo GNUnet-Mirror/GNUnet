@@ -63,6 +63,11 @@ static char *hosts_file;
 struct ActiveContext;
 
 /**
+ * Context for a peer which should act maliciously. 
+ */
+struct MaliciousContext;
+
+/**
  * Context to hold data of peer
  */
 struct Context
@@ -82,6 +87,13 @@ struct Context
    * Active context; NULL if this peer is not an active peer
    */
   struct ActiveContext *ac;
+  
+#if ENABLE_MALICIOUS
+  /**
+   * Malicious context; NULL if this peer is NOT malicious. 
+   */
+  struct MaliciousContext *mc;
+#endif
 };
 
 

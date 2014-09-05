@@ -56,8 +56,7 @@ noinst_PROGRAMS = \
  gnunet-dht-monitor \
  gnunet-dht-get \
  gnunet-dht-put \
- gnunet-dht-profiler\
- gnunet-dht-r5n-profiler
+ gnunet-dht-profiler
 
 gnunet_service_dht_SOURCES = \
  gnunet-service-dht.c gnunet-service-dht.h \
@@ -138,16 +137,6 @@ gnunet_dht_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 gnunet_dht_profiler_DEPENDENCIES = \
-  libgnunetdht.la
-
-gnunet_dht_r5n_profiler_SOURCES = \
-  gnunet_dht_r5n_profiler.c
-gnunet_dht_r5n_profiler_LDADD = \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la
-gnunet_dht_r5n_profiler_DEPENDENCIES = \
   libgnunetdht.la
 
 if HAVE_TESTING
