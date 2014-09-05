@@ -584,7 +584,7 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
                   (koff < sc->uri->data.ksk.keywordCount));
   sr->keyword_bitmap[koff / 8] |= (1 << (koff % 8));
   /* check if mandatory satisfied */
-  if (1 == GNUNET_CONTAINER_multihashmap_size (ent->results))
+  if (1 <= GNUNET_CONTAINER_multihashmap_size (ent->results))
   {
     if (ent->mandatory)
     {
