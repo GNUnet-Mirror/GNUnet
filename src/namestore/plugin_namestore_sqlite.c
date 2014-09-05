@@ -224,9 +224,6 @@ database_setup (struct Plugin *plugin)
          sqlite3_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA count_changes=OFF", NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh, "PRAGMA page_size=4092", NULL, NULL,
                        ENULL));
 

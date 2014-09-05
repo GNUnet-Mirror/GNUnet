@@ -272,9 +272,6 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
          sqlite3_exec (plugin->dbh, "PRAGMA locking_mode=EXCLUSIVE", NULL, NULL,
                        ENULL));
   CHECK (SQLITE_OK ==
-         sqlite3_exec (plugin->dbh, "PRAGMA count_changes=OFF", NULL, NULL,
-                       ENULL));
-  CHECK (SQLITE_OK ==
          sqlite3_exec (plugin->dbh, "PRAGMA page_size=4092", NULL, NULL,
                        ENULL));
 
