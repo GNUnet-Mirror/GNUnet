@@ -161,9 +161,9 @@ struct GNUNET_PEERSTORE_IterateContext
 
   /**
    * #GNUNET_YES / #GNUNET_NO
-   * if sent, cannot be canceled
+   * Iterate request has been sent and we are still expecting records
    */
-  int request_sent;
+  int iterating;
 
   /**
    * Task identifier for the function called
@@ -361,7 +361,7 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
   ic = h->iterate_head;
   while (NULL != ic)
   {
-    if (GNUNET_YES == ic->request_sent)
+    if (GNUNET_YES == ic->iterating)
     {
       icb = ic->callback;
       icb_cls = ic->callback_cls;
@@ -650,7 +650,7 @@ handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   msg_type = ntohs (msg->type);
   if (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
   {
-    ic->request_sent = GNUNET_NO;
+    ic->iterating = GNUNET_NO;
     GNUNET_PEERSTORE_iterate_cancel (ic);
     if (NULL != callback)
       callback (callback_cls, NULL, NULL);
@@ -685,7 +685,7 @@ iterate_request_sent (void *cls)
   struct GNUNET_PEERSTORE_IterateContext *ic = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Iterate request sent to service.\n");
-  ic->request_sent = GNUNET_YES;
+  ic->iterating = GNUNET_YES;
   ic->ev = NULL;
 }
 
@@ -720,7 +720,7 @@ GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
     GNUNET_SCHEDULER_cancel (ic->timeout_task);
     ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (GNUNET_NO == ic->request_sent)
+  if (GNUNET_NO == ic->iterating)
   {
     if (NULL != ic->ev)
     {
@@ -767,7 +767,7 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
   ic->callback_cls = callback_cls;
   ic->ev = ev;
   ic->h = h;
-  ic->request_sent = GNUNET_NO;
+  ic->iterating = GNUNET_NO;
   GNUNET_CONTAINER_DLL_insert_tail (h->iterate_head, h->iterate_tail, ic);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending an iterate request for sub system `%s'\n", sub_system);
