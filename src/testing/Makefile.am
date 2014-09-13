@@ -36,11 +36,9 @@ noinst_PROGRAMS = \
 gnunet_testing_SOURCES = \
  gnunet-testing.c         
 gnunet_testing_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
-gnunet_testing_DEPENDENCIES = \
- libgnunettesting.la
 
 list_keys_SOURCES = \
  list-keys.c
@@ -68,31 +66,31 @@ endif
 test_testing_portreservation_SOURCES = \
  test_testing_portreservation.c
 test_testing_portreservation_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_peerstartup_SOURCES = \
  test_testing_peerstartup.c
 test_testing_peerstartup_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_peerstartup2_SOURCES = \
  test_testing_peerstartup2.c
 test_testing_peerstartup2_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_servicestartup_SOURCES = \
  test_testing_servicestartup.c
 test_testing_servicestartup_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_testing_sharedservices_SOURCES = \
  test_testing_sharedservices.c
 test_testing_sharedservices_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
+ libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \

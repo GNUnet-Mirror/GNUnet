@@ -28,12 +28,10 @@ gnunet_scalarproduct_SOURCES = \
   gnunet-scalarproduct.c
 gnunet_scalarproduct_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
+  libgnunetscalarproduct.la \
   $(LIBGCRYPT_LIBS) \
   -lgcrypt \
   $(GN_LIBINTL)
-gnunet_scalarproduct_DEPENDENCIES = \
-  libgnunetscalarproduct.la
 
 gnunet_service_scalarproduct_SOURCES = \
   gnunet-service-scalarproduct.c

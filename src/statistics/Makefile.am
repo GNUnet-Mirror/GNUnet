@@ -36,20 +36,16 @@ bin_PROGRAMS = \
 gnunet_statistics_SOURCES = \
  gnunet-statistics.c         
 gnunet_statistics_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_statistics_DEPENDENCIES = \
-  libgnunetstatistics.la				 
 
 gnunet_service_statistics_SOURCES = \
  gnunet-service-statistics.c         
 gnunet_service_statistics_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_service_statistics_DEPENDENCIES = \
-  libgnunetstatistics.la				 
 
 check_PROGRAMS = \
  test_statistics_api \
@@ -65,25 +61,25 @@ endif
 test_statistics_api_SOURCES = \
  test_statistics_api.c
 test_statistics_api_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_statistics_api_loop_SOURCES = \
  test_statistics_api_loop.c
 test_statistics_api_loop_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_statistics_api_watch_SOURCES = \
  test_statistics_api_watch.c
 test_statistics_api_watch_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_statistics_api_watch_zero_value_SOURCES = \
  test_statistics_api_watch_zero_value.c
 test_statistics_api_watch_zero_value_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 if HAVE_PYTHON

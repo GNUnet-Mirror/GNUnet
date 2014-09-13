@@ -28,9 +28,6 @@ libgnunetpsycutil_la_LIBADD = \
 libgnunetpsycutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
-libgnunetpsycutil_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/env/libgnunetenv.la
 
 libgnunetpsyc_la_SOURCES = \
   psyc_api.c psyc.h
@@ -42,10 +39,6 @@ libgnunetpsyc_la_LIBADD = \
 libgnunetpsyc_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
-libgnunetpsyc_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/env/libgnunetenv.la \
-  libgnunetpsycutil.la
 
 bin_PROGRAMS =
 
@@ -61,12 +54,6 @@ gnunet_service_psyc_LDADD = \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
   libgnunetpsycutil.la \
   $(GN_LIBINTL)
-gnunet_service_psyc_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/multicast/libgnunetmulticast.la \
-  $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
-  libgnunetpsycutil.la
 gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)
 
 
@@ -83,13 +70,6 @@ endif
 test_psyc_SOURCES = \
  test_psyc.c
 test_psyc_LDADD = \
-  libgnunetpsyc.la \
-  libgnunetpsycutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-test_psyc_DEPENDENCIES = \
   libgnunetpsyc.la \
   libgnunetpsycutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \

@@ -28,11 +28,9 @@ gnunet_set_profiler_SOURCES = \
  gnunet-set-profiler.c
 gnunet_set_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/set/libgnunetset.la \
+  libgnunetset.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)
-gnunet_set_profiler_DEPENDENCIES = \
-  libgnunetset.la
 
 
 gnunet_set_ibf_profiler_SOURCES = \
@@ -79,8 +77,6 @@ test_set_api_SOURCES = \
 test_set_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/set/libgnunetset.la
-test_set_api_DEPENDENCIES = \
   libgnunetset.la
 
 test_set_union_result_full_SOURCES = \
@@ -88,8 +84,6 @@ test_set_union_result_full_SOURCES = \
 test_set_union_result_full_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/set/libgnunetset.la
-test_set_union_result_full_DEPENDENCIES = \
   libgnunetset.la
 
 test_set_intersection_result_full_SOURCES = \
@@ -97,8 +91,6 @@ test_set_intersection_result_full_SOURCES = \
 test_set_intersection_result_full_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/set/libgnunetset.la
-test_set_intersection_result_full_DEPENDENCIES = \
   libgnunetset.la
 
 EXTRA_DIST = \

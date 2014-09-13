@@ -34,11 +34,9 @@ gnunet_consensus_profiler_SOURCES = \
  gnunet-consensus-profiler.c
 gnunet_consensus_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/consensus/libgnunetconsensus.la \
+  libgnunetconsensus.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(GN_LIBINTL)
-gnunet_consensus_profiler_DEPENDENCIES = \
-  libgnunetconsensus.la
 
 gnunet_service_consensus_SOURCES = \
  gnunet-service-consensus.c
@@ -47,8 +45,6 @@ gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/set/libgnunetset.la \
   $(GN_LIBINTL)
-gnunet_service_consensus_DEPENDENCIES = \
-  $(top_builddir)/src/set/libgnunetset.la
 
 gnunet_service_evil_consensus_SOURCES = \
  gnunet-service-consensus.c \
@@ -58,8 +54,6 @@ gnunet_service_evil_consensus_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/set/libgnunetset.la \
   $(GN_LIBINTL)
-gnunet_service_evil_consensus_DEPENDENCIES = \
-  $(top_builddir)/src/set/libgnunetset.la
 gnunet_service_evil_consensus_CFLAGS = -DEVIL
 
 libgnunetconsensus_la_SOURCES = \
@@ -84,7 +78,7 @@ test_consensus_api_SOURCES = \
 test_consensus_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/consensus/libgnunetconsensus.la
+  libgnunetconsensus.la
 
 EXTRA_DIST = \
   test_consensus.conf

@@ -64,10 +64,6 @@ libgnunet_plugin_transport_dv_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunet_plugin_transport_dv_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_transport_dv_la_DEPENDENCIES = \
-  $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  libgnunetdv.la						
 
 if HAVE_TESTING
 check_PROGRAMS = \

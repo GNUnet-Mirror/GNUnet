@@ -42,10 +42,8 @@ libgnunetcadet_la_LDFLAGS = \
 gnunet_cadet_SOURCES = \
   gnunet-cadet.c
 gnunet_cadet_LDADD = \
-  $(top_builddir)/src/cadet/libgnunetcadet.la \
+  libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_cadet_DEPENDENCIES = \
-  libgnunetcadet.la
 
 gnunet_service_cadet_SOURCES = \
  gnunet-service-cadet_tunnel.c gnunet-service-cadet_tunnel.h \
@@ -60,15 +58,6 @@ gnunet_service_cadet_SOURCES = \
  gnunet-service-cadet.c
 gnunet_service_cadet_CFLAGS = $(AM_CFLAGS)
 gnunet_service_cadet_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la
-gnunet_service_cadet_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -92,9 +81,7 @@ libgnunetcadettest_a_SOURCES = \
 libgnunetcadettest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/cadet/libgnunetcadet.la
-libgnunetcadettest_a_DEPENDENCIES = \
-  libgnunetcadet.la
+ libgnunetcadet.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
@@ -121,8 +108,8 @@ endif
 ld_cadet_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/cadet/libgnunetcadettest.a \
-  $(top_builddir)/src/cadet/libgnunetcadet.la \
+  libgnunetcadettest.a \
+  libgnunetcadet.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
@@ -135,102 +122,81 @@ dep_cadet_test_lib = \
 gnunet_cadet_profiler_SOURCES = \
   gnunet-cadet-profiler.c
 gnunet_cadet_profiler_LDADD = $(ld_cadet_test_lib)
-gnunet_cadet_profiler_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
 test_cadet_single_SOURCES = \
   test_cadet_single.c
 test_cadet_single_LDADD = $(ld_cadet_test_lib)
-test_cadet_single_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_local_SOURCES = \
   test_cadet_local.c
 test_cadet_local_LDADD = $(ld_cadet_test_lib)
-test_cadet_local_DEPENDENCIES = $(dep_cadet_test_lib)
-
 
 
 test_cadet_2_forward_SOURCES = \
   test_cadet.c
 test_cadet_2_forward_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_forward_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_signal_SOURCES = \
   test_cadet.c
 test_cadet_2_signal_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_signal_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_keepalive_SOURCES = \
   test_cadet.c
 test_cadet_2_keepalive_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_speed_SOURCES = \
   test_cadet.c
 test_cadet_2_speed_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_speed_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_speed_ack_SOURCES = \
   test_cadet.c
 test_cadet_2_speed_ack_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_speed_backwards_SOURCES = \
   test_cadet.c
 test_cadet_2_speed_backwards_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_speed_reliable_SOURCES = \
   test_cadet.c
 test_cadet_2_speed_reliable_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_2_speed_reliable_backwards_SOURCES = \
   test_cadet.c
 test_cadet_2_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
-test_cadet_2_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
-
 
 
 test_cadet_5_forward_SOURCES = \
   test_cadet.c
 test_cadet_5_forward_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_forward_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_signal_SOURCES = \
   test_cadet.c
 test_cadet_5_signal_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_signal_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_keepalive_SOURCES = \
   test_cadet.c
 test_cadet_5_keepalive_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_speed_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_speed_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_speed_ack_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_ack_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_speed_backwards_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_backwards_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_speed_reliable_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_reliable_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
 
 test_cadet_5_speed_reliable_backwards_SOURCES = \
   test_cadet.c
 test_cadet_5_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
-test_cadet_5_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
 if ENABLE_TEST_RUN

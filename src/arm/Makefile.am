@@ -40,20 +40,15 @@ libexec_PROGRAMS = \
 gnunet_arm_SOURCES = \
  gnunet-arm.c         
 gnunet_arm_LDADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
+  libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_arm_DEPENDENCIES = \
-  libgnunetarm.la			  
 
 gnunet_service_arm_SOURCES = \
  gnunet-service-arm.c 
 gnunet_service_arm_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_service_arm_DEPENDENCIES = \
-  libgnunetarm.la			  
-
 
 mockup_service_SOURCES = \
   mockup-service.c
@@ -79,19 +74,19 @@ endif
 test_arm_api_SOURCES = \
  test_arm_api.c
 test_arm_api_LDADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
+  libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 test_exponential_backoff_SOURCES = \
  test_exponential_backoff.c
 test_exponential_backoff_LDADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
+  libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_gnunet_service_arm_SOURCES = \
  test_gnunet_service_arm.c
  test_gnunet_service_arm_LDADD = \
-  $(top_builddir)/src/arm/libgnunetarm.la \
+  libgnunetarm.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'

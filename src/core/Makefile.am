@@ -54,10 +54,8 @@ gnunet_service_core_LDADD = \
 gnunet_core_SOURCES = \
  gnunet-core.c         
 gnunet_core_LDADD = \
-  $(top_builddir)/src/core/libgnunetcore.la \
+  libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_core_DEPENDENCIES = \
-  libgnunetcore.la
 
 if HAVE_TESTING
   TESTING_TESTS = test_core_api_send_to_self test_core_api_mq
@@ -80,21 +78,21 @@ endif
 test_core_api_SOURCES = \
  test_core_api.c
 test_core_api_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 test_core_api_reliability_SOURCES = \
  test_core_api_reliability.c
 test_core_api_reliability_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_core_api_send_to_self_SOURCES = \
  test_core_api_send_to_self.c
 test_core_api_send_to_self_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
@@ -102,7 +100,7 @@ test_core_api_send_to_self_LDADD = \
 test_core_api_mq_SOURCES = \
  test_core_api_mq.c
 test_core_api_mq_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
@@ -111,13 +109,13 @@ test_core_api_start_only_SOURCES = \
  test_core_api_start_only.c
 test_core_api_start_only_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_core_quota_compliance_symmetric_SOURCES = \
  test_core_quota_compliance.c
 test_core_quota_compliance_symmetric_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la
@@ -125,7 +123,7 @@ test_core_quota_compliance_symmetric_LDADD = \
 test_core_quota_compliance_asymmetric_send_limited_SOURCES = \
  test_core_quota_compliance.c
 test_core_quota_compliance_asymmetric_send_limited_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la
@@ -133,7 +131,7 @@ test_core_quota_compliance_asymmetric_send_limited_LDADD = \
 test_core_quota_compliance_asymmetric_recv_limited_SOURCES = \
  test_core_quota_compliance.c
 test_core_quota_compliance_asymmetric_recv_limited_LDADD = \
- $(top_builddir)/src/core/libgnunetcore.la \
+ libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la

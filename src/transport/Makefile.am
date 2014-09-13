@@ -151,13 +151,11 @@ lib_LTLIBRARIES = \
 libgnunettransporttesting_la_SOURCES = \
   transport-testing.c transport-testing.h
 libgnunettransporttesting_la_LIBADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
+  libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)
-libgnunettransporttesting_la_DEPENDENCIES = \
-  libgnunettransport.la
 libgnunettransporttesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
 
@@ -224,24 +222,20 @@ endif
 gnunet_transport_profiler_SOURCES = \
  gnunet-transport-profiler.c
 gnunet_transport_profiler_LDADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
+  libgnunettransport.la \
   $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_transport_profiler_DEPENDENCIES = \
-  libgnunettransport.la
 
 gnunet_transport_SOURCES = \
  gnunet-transport.c
 gnunet_transport_LDADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
+  libgnunettransport.la \
   $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_transport_DEPENDENCIES = \
-  libgnunettransport.la
 
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c gnunet-service-transport.h \
@@ -258,7 +252,7 @@ gnunet_service_transport_SOURCES = \
 # a crash on unloading of a plugin unless the service links against
 # that library as well.
 gnunet_service_transport_LDADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
+  libgnunettransport.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
@@ -267,8 +261,6 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
   $(GN_LIBINTL)
-gnunet_service_transport_DEPENDENCIES = \
- libgnunettransport.la
 gnunet_service_transport_CFLAGS = \
   $(CFLAGS)
 # -DANALYZE
@@ -569,507 +561,507 @@ test_transport_testing_startstop_SOURCES = \
  test_transport_testing_startstop.c
 test_transport_testing_startstop_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_testing_restart_SOURCES = \
  test_transport_testing_restart.c
 test_transport_testing_restart_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_testing_SOURCES = \
  test_transport_testing.c
 test_transport_testing_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_blacklisting_SOURCES = \
  test_transport_api_blacklisting.c
 test_transport_api_blacklisting_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_blacklisting_no_bl_SOURCES = \
  test_transport_blacklisting.c
 test_transport_blacklisting_no_bl_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_blacklisting_outbound_bl_full_SOURCES = \
  test_transport_blacklisting.c
 test_transport_blacklisting_outbound_bl_full_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_blacklisting_outbound_bl_plugin_SOURCES = \
  test_transport_blacklisting.c
 test_transport_blacklisting_outbound_bl_plugin_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_blacklisting_inbound_bl_full_SOURCES = \
  test_transport_blacklisting.c
 test_transport_blacklisting_inbound_bl_full_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_blacklisting_inbound_bl_plugin_SOURCES = \
  test_transport_blacklisting.c
 test_transport_blacklisting_inbound_bl_plugin_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_blacklisting_multiple_plugins_SOURCES = \
  test_transport_blacklisting.c
 test_transport_blacklisting_multiple_plugins_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 
 test_transport_api_disconnect_tcp_SOURCES = \
  test_transport_api_disconnect.c
 test_transport_api_disconnect_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_startonly_SOURCES = \
  test_transport_startonly.c
 test_transport_startonly_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_tcp_SOURCES = \
  test_plugin_transport.c
 test_plugin_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_udp_SOURCES = \
  test_plugin_transport.c
 test_plugin_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_unix_SOURCES = \
  test_plugin_transport.c
 test_plugin_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_wlan_SOURCES = \
  test_plugin_transport.c
 test_plugin_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_bluetooth_SOURCES = \
  test_plugin_transport.c
 test_plugin_bluetooth_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_http_common_SOURCES = \
  test_http_common.c plugin_transport_http_common.c
 test_http_common_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_http_server_SOURCES = \
  test_plugin_transport.c
 test_plugin_http_server_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_https_server_SOURCES = \
  test_plugin_transport.c
 test_plugin_https_server_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_http_client_SOURCES = \
  test_plugin_transport.c
 test_plugin_http_client_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_plugin_https_client_SOURCES = \
  test_plugin_transport.c
 test_plugin_https_client_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_tcp_SOURCES = \
  test_transport_api.c
 test_transport_api_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_bidirectional_connect_SOURCES = \
  test_transport_api_bidirectional_connect.c
 test_transport_api_bidirectional_connect_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_restart_1peer_SOURCES = \
  test_transport_api_restart_1peer.c
 test_transport_api_restart_1peer_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_restart_2peers_SOURCES = \
  test_transport_api_restart_2peers.c
 test_transport_api_restart_2peers_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_limited_sockets_tcp_SOURCES = \
  test_transport_api_limited_sockets.c
 test_transport_api_limited_sockets_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_tcp_nat_SOURCES = \
  test_transport_api.c
 test_transport_api_tcp_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_manipulation_send_tcp_SOURCES = \
  test_transport_api_manipulation_send_tcp.c
 test_transport_api_manipulation_send_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_manipulation_recv_tcp_SOURCES = \
  test_transport_api_manipulation_recv_tcp.c
 test_transport_api_manipulation_recv_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_manipulation_cfg_SOURCES = \
  test_transport_api_manipulation_cfg.c
 test_transport_api_manipulation_cfg_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_tcp_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_tcp_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_unix_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_wlan_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_bluetooth_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_bluetooth_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_tcp_nat_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_bluetooth_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_bluetooth_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_wlan_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_udp_SOURCES = \
  test_transport_api.c
 test_transport_api_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_udp_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_udp_nat_SOURCES = \
  test_transport_api.c
 test_transport_api_udp_nat_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_unix_SOURCES = \
  test_transport_api.c
 test_transport_api_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_unix_abstract_SOURCES = \
  test_transport_api.c
 test_transport_api_unix_abstract_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 # HTTP tests
 test_transport_api_http_SOURCES = \
  test_transport_api.c
 test_transport_api_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_http_reverse_SOURCES = \
  test_transport_api.c
 test_transport_api_http_reverse_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_http_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_http_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_http_xhr_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_http_xhr_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_http_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_http_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_https_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_https_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_https_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 # HTTPS tests
 test_transport_api_https_SOURCES = \
  test_transport_api.c
 test_transport_api_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la  \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_timeout_https_SOURCES = \
  test_transport_api_timeout.c
 test_transport_api_timeout_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 
 test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_https_xhr_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_xhr_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_unix_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_reliability_udp_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 if LINUX
 test_transport_api_wlan_SOURCES = \
  test_transport_api.c
 test_transport_api_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 endif
 
 if LINUX
@@ -1077,146 +1069,146 @@ if HAVE_LIBBLUETOOTH
 test_transport_api_bluetooth_SOURCES = \
  test_transport_api.c
 test_transport_api_bluetooth_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 endif
 endif
 
 test_transport_address_switch_tcp_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
  test_transport_address_switch_udp_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 
  test_transport_address_switch_http_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_http_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
  test_transport_address_switch_https_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_https_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_tcp_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_udp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_unix_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_unix_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_unix_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_unix_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_wlan_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_wlan_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_wlan_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_bluetooth_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_bluetooth_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_quota_compliance_bluetooth_asymmetric_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_bluetooth_asymmetric_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_multi_SOURCES = \
  test_transport_api.c
 test_transport_api_multi_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_monitor_peers_SOURCES = \
  test_transport_api_monitor_peers.c
 test_transport_api_monitor_peers_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 test_transport_api_monitor_validation_SOURCES = \
  test_transport_api_monitor_validation.c
 test_transport_api_monitor_validation_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
+ libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
+ libgnunettransporttesting.la
 
 
 EXTRA_DIST = \

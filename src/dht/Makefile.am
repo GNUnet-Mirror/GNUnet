@@ -43,9 +43,6 @@ libgnunet_plugin_block_dht_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_block_dht_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_block_dht_la_DEPENDENCIES = \
-  $(top_builddir)/src/block/libgnunetblock.la
-
 
 
 libexec_PROGRAMS = \
@@ -105,39 +102,31 @@ gnunet_service_dht_xvine_LDADD = \
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c
 gnunet_dht_get_LDADD = \
-  $(top_builddir)/src/dht/libgnunetdht.la \
+  libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_dht_get_DEPENDENCIES = \
-  libgnunetdht.la
 
 gnunet_dht_put_SOURCES = \
  gnunet-dht-put.c
 gnunet_dht_put_LDADD = \
-  $(top_builddir)/src/dht/libgnunetdht.la \
+  libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_dht_put_DEPENDENCIES = \
-  libgnunetdht.la
 
 gnunet_dht_monitor_SOURCES = \
  gnunet-dht-monitor.c
 gnunet_dht_monitor_LDADD = \
-  $(top_builddir)/src/dht/libgnunetdht.la \
+  libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_dht_monitor_DEPENDENCIES = \
-  libgnunetdht.la
 
 gnunet_dht_profiler_SOURCES = \
   gnunet_dht_profiler.c
 gnunet_dht_profiler_LDADD = \
-  $(top_builddir)/src/dht/libgnunetdht.la \
+  libgnunetdht.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
-gnunet_dht_profiler_DEPENDENCIES = \
-  libgnunetdht.la
 
 if HAVE_TESTING
 noinst_LIBRARIES = libgnunetdhttest.a
@@ -148,9 +137,7 @@ libgnunetdhttest_a_SOURCES = \
 libgnunetdhttest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-libgnunetdhttest_a_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
@@ -183,61 +170,49 @@ test_dht_api_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-test_dht_api_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 test_dht_twopeer_SOURCES = \
  test_dht_topo.c
 test_dht_twopeer_LDADD = \
- $(top_builddir)/src/dht/libgnunetdhttest.a \
+ libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/dht/libgnunetdhttest.a \
+ libgnunetdhttest.a \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-test_dht_twopeer_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 test_dht_2dtorus_SOURCES = \
  test_dht_topo.c
 test_dht_2dtorus_LDADD = \
- $(top_builddir)/src/dht/libgnunetdhttest.a \
+ libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-test_dht_2dtorus_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 test_dht_line_SOURCES = \
  test_dht_topo.c
 test_dht_line_LDADD = \
- $(top_builddir)/src/dht/libgnunetdhttest.a \
+ libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-test_dht_line_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 test_dht_multipeer_SOURCES = \
  test_dht_topo.c
 test_dht_multipeer_LDADD = \
- $(top_builddir)/src/dht/libgnunetdhttest.a \
+ libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-test_dht_multipeer_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 test_dht_monitor_SOURCES = \
   test_dht_monitor.c
 test_dht_monitor_LDADD = \
- $(top_builddir)/src/dht/libgnunetdhttest.a \
+ libgnunetdhttest.a \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/dht/libgnunetdht.la
-test_dht_monitor_DEPENDENCIES = \
-  libgnunetdht.la
+ libgnunetdht.la
 
 EXTRA_DIST = \
   $(check_SCRIPTS) \

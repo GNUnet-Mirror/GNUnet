@@ -41,10 +41,8 @@ libexec_PROGRAMS = \
 gnunet_nat_server_SOURCES = \
  gnunet-nat-server.c nat.h
 gnunet_nat_server_LDADD = \
-  $(top_builddir)/src/nat/libgnunetnat.la \
+  libgnunetnat.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_nat_server_DEPENDENCIES = \
-  libgnunetnat.la
 
 gnunet_helper_nat_server_SOURCES = \
  $(NATSERVER)
@@ -87,20 +85,20 @@ endif
 test_nat_SOURCES = \
   test_nat.c
 test_nat_LDADD = \
- $(top_builddir)/src/nat/libgnunetnat.la \
+ libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 test_nat_mini_SOURCES = \
   test_nat_mini.c
 test_nat_mini_LDADD = \
- $(top_builddir)/src/nat/libgnunetnat.la \
+ libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 
 test_nat_test_SOURCES = \
   test_nat_test.c
 test_nat_test_LDADD = \
- $(top_builddir)/src/nat/libgnunetnat.la \
+ libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
 

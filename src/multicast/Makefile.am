@@ -39,8 +39,6 @@ gnunet_multicast_SOURCES = \
 gnunet_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_multicast_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_service_multicast_SOURCES = \
  gnunet-service-multicast.c
@@ -50,11 +48,6 @@ gnunet_service_multicast_LDADD = \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
-gnunet_service_multicast_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/cadet/libgnunetcadet.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 
 check_PROGRAMS = \
@@ -71,7 +64,4 @@ test_multicast_LDADD = \
   libgnunetmulticast.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
-test_multicast_DEPENDENCIES = \
-  libgnunetmulticast.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+

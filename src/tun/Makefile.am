@@ -35,11 +35,11 @@ test_tun_SOURCES = \
  test_tun.c
 test_tun_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/tun/libgnunettun.la
+ libgnunettun.la
 
 
 test_regex_SOURCES = \
  test_regex.c
 test_regex_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/tun/libgnunettun.la
+ libgnunettun.la

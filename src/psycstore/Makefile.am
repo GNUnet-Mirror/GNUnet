@@ -37,8 +37,6 @@ libgnunetpsycstore_la_LIBADD = \
 libgnunetpsycstore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
-libgnunetpsycstore_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 bin_PROGRAMS =
 
@@ -51,10 +49,6 @@ gnunet_service_psycstore_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_service_psycstore_DEPENDENCIES = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-
 
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN)
@@ -62,16 +56,12 @@ plugin_LTLIBRARIES = \
 libgnunet_plugin_psycstore_sqlite_la_SOURCES = \
   plugin_psycstore_sqlite.c
 libgnunet_plugin_psycstore_sqlite_la_LIBADD = \
-  $(top_builddir)/src/psycstore/libgnunetpsycstore.la  \
+  libgnunetpsycstore.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_psycstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_psycstore_sqlite_la_DEPENDENCIES = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetpsycstore.la
 
 
 if HAVE_TESTING
@@ -91,10 +81,6 @@ test_psycstore_LDADD = \
   libgnunetpsycstore.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
-test_psycstore_DEPENDENCIES = \
-  libgnunetpsycstore.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
   test_psycstore.conf
@@ -103,5 +89,5 @@ EXTRA_DIST = \
 test_plugin_psycstore_sqlite_SOURCES = \
  test_plugin_psycstore.c
 test_plugin_psycstore_sqlite_LDADD = \
- $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la  

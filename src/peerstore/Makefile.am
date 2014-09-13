@@ -51,18 +51,15 @@ libgnunetpeerstore_la_LDFLAGS = \
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_peerstore_sqlite.la
-  
+
 libgnunet_plugin_peerstore_sqlite_la_SOURCES = \
   plugin_peerstore_sqlite.c
 libgnunet_plugin_peerstore_sqlite_la_LIBADD = \
-  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  libgnunetpeerstore.la  \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
 libgnunet_plugin_peerstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_peerstore_sqlite_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetpeerstore.la
 
 check_PROGRAMS = \
  test_peerstore_api_store \
@@ -70,7 +67,7 @@ check_PROGRAMS = \
  test_peerstore_api_watch \
  test_peerstore_api_sync \
  perf_peerstore_store
- 
+
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
@@ -79,34 +76,34 @@ endif
 test_peerstore_api_store_SOURCES = \
  test_peerstore_api_store.c
 test_peerstore_api_store_LDADD = \
-  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_peerstore_api_iterate_SOURCES = \
  test_peerstore_api_iterate.c
 test_peerstore_api_iterate_LDADD = \
-  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_peerstore_api_watch_SOURCES = \
  test_peerstore_api_watch.c
 test_peerstore_api_watch_LDADD = \
-  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_peerstore_api_sync_SOURCES = \
  test_peerstore_api_sync.c
 test_peerstore_api_sync_LDADD = \
-  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 perf_peerstore_store_SOURCES = \
  perf_peerstore_store.c
 perf_peerstore_store_LDADD = \
-  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la

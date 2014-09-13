@@ -43,9 +43,7 @@ gnunet_helper_w32_console_SOURCES = \
   gnunet-helper-w32-console.c \
   gnunet-helper-w32-console.h
 gnunet_helper_w32_console_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
-gnunet_helper_w32_console_DEPENDENCIES = \
- libgnunetutil.la
+  libgnunetutil.la
 
 noinst_PROGRAMS = \
  gnunet-config-diff \
@@ -56,15 +54,11 @@ noinst_PROGRAMS = \
 gnunet_config_diff_SOURCES = \
  gnunet-config-diff.c
 gnunet_config_diff_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
-gnunet_config_diff_DEPENDENCIES = \
  libgnunetutil.la
 
 test_common_logging_dummy_SOURCES = \
  test_common_logging_dummy.c
 test_common_logging_dummy_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
-test_common_logging_dummy_DEPENDENCIES = \
  libgnunetutil.la
 
 lib_LTLIBRARIES = libgnunetutil.la
@@ -161,54 +155,42 @@ gnunet-qr: gnunet-qr.py.in Makefile
 gnunet_service_resolver_SOURCES = \
  gnunet-service-resolver.c
 gnunet_service_resolver_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_service_resolver_DEPENDENCIES = \
-  libgnunetutil.la
 
 
 gnunet_resolver_SOURCES = \
  gnunet-resolver.c
 gnunet_resolver_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_resolver_DEPENDENCIES = \
-  libgnunetutil.la
 
 
 gnunet_ecc_SOURCES = \
  gnunet-ecc.c
 gnunet_ecc_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetutil.la \
   $(GN_LIBINTL) -lgcrypt
-gnunet_ecc_DEPENDENCIES = \
-  libgnunetutil.la
 
 gnunet_scrypt_SOURCES = \
  gnunet-scrypt.c
 gnunet_scrypt_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetutil.la \
   $(GN_LIBINTL) -lgcrypt
-gnunet_scrypt_DEPENDENCIES = \
-  libgnunetutil.la
 
 
 gnunet_config_SOURCES = \
  gnunet-config.c
 gnunet_config_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_config_DEPENDENCIES = \
-  libgnunetutil.la
 
 
 gnunet_uri_SOURCES = \
  gnunet-uri.c
 gnunet_uri_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_uri_DEPENDENCIES = \
-  libgnunetutil.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_test.la
@@ -303,282 +285,283 @@ test_server_mst_interrupt.log: test_server_with_client.log
 test_bio_SOURCES = \
  test_bio.c
 test_bio_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 
 test_os_start_process_SOURCES = \
  test_os_start_process.c
 test_os_start_process_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la 
 test_os_start_process_DEPENDENCIES = \
+ libgnunetutil.la \
  $(WINCAT)
 
 test_client_nc_SOURCES = \
  test_client.c
 test_client_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_common_allocation_SOURCES = \
  test_common_allocation.c
 test_common_allocation_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_common_endian_SOURCES = \
  test_common_endian.c
 test_common_endian_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_common_logging_SOURCES = \
  test_common_logging.c
 test_common_logging_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_common_logging_runtime_loglevels_SOURCES = \
  test_common_logging_runtime_loglevels.c
 test_common_logging_runtime_loglevels_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_configuration_SOURCES = \
  test_configuration.c
 test_configuration_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_container_bloomfilter_SOURCES = \
  test_container_bloomfilter.c
 test_container_bloomfilter_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_container_meta_data_SOURCES = \
  test_container_meta_data.c
 test_container_meta_data_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la -lextractor
+ libgnunetutil.la -lextractor
 
 test_container_multihashmap_SOURCES = \
  test_container_multihashmap.c
 test_container_multihashmap_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_container_multihashmap32_SOURCES = \
  test_container_multihashmap32.c
 test_container_multihashmap32_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_container_multipeermap_SOURCES = \
  test_container_multipeermap.c
 test_container_multipeermap_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_container_heap_SOURCES = \
  test_container_heap.c
 test_container_heap_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_container_slist_SOURCES = \
  test_container_slist.c
 test_container_slist_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_crypto_symmetric_SOURCES = \
  test_crypto_symmetric.c
 test_crypto_symmetric_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_crypto_crc_SOURCES = \
  test_crypto_crc.c
 test_crypto_crc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_crypto_ecdsa_SOURCES = \
  test_crypto_ecdsa.c
 test_crypto_ecdsa_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
 
 test_crypto_eddsa_SOURCES = \
  test_crypto_eddsa.c
 test_crypto_eddsa_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
 
 test_crypto_ecdhe_SOURCES = \
  test_crypto_ecdhe.c
 test_crypto_ecdhe_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
 
 test_crypto_hash_SOURCES = \
  test_crypto_hash.c
 test_crypto_hash_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_crypto_hkdf_SOURCES = \
  test_crypto_hkdf.c
 test_crypto_hkdf_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_crypto_paillier_SOURCES = \
  test_crypto_paillier.c
 test_crypto_paillier_LDADD = \
  $(LIBGCRYPT_LIBS) \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_crypto_random_SOURCES = \
  test_crypto_random.c
 test_crypto_random_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_disk_SOURCES = \
  test_disk.c
 test_disk_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_getopt_SOURCES = \
  test_getopt.c
 test_getopt_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_connection_nc_SOURCES = \
  test_connection.c
 test_connection_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_connection_addressing_nc_SOURCES = \
  test_connection_addressing.c
 test_connection_addressing_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_connection_receive_cancel_nc_SOURCES = \
  test_connection_receive_cancel.c
 test_connection_receive_cancel_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_connection_timeout_nc_SOURCES = \
  test_connection_timeout.c
 test_connection_timeout_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_connection_timeout_no_connect_nc_SOURCES = \
  test_connection_timeout_no_connect.c
 test_connection_timeout_no_connect_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_connection_transmit_cancel_nc_SOURCES = \
  test_connection_transmit_cancel.c
 test_connection_transmit_cancel_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_mq_SOURCES = \
  test_mq.c
 test_mq_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_mq_client_nc_SOURCES = \
  test_mq_client.c
 test_mq_client_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_os_network_SOURCES = \
  test_os_network.c
 test_os_network_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_peer_SOURCES = \
  test_peer.c
 test_peer_LDADD = \
-$(top_builddir)/src/util/libgnunetutil.la -lgcrypt
+ libgnunetutil.la -lgcrypt
 
 test_plugin_SOURCES = \
  test_plugin.c
 test_plugin_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_program_SOURCES = \
  test_program.c
 test_program_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_resolver_api_nc_SOURCES = \
  test_resolver_api.c
 test_resolver_api_nc_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_scheduler_SOURCES = \
  test_scheduler.c
 test_scheduler_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_scheduler_delay_SOURCES = \
  test_scheduler_delay.c
 test_scheduler_delay_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_server_mst_interrupt_nc_SOURCES = \
  test_server_mst_interrupt.c
 test_server_mst_interrupt_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_server_nc_SOURCES = \
  test_server.c
 test_server_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_server_disconnect_nc_SOURCES = \
  test_server_disconnect.c
 test_server_disconnect_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_server_with_client_nc_SOURCES = \
  test_server_with_client.c
 test_server_with_client_nc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_server_with_client_unix_SOURCES = \
  test_server_with_client_unix.c
 test_server_with_client_unix_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 
 test_service_SOURCES = \
  test_service.c
 test_service_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_strings_SOURCES = \
  test_strings.c
 test_strings_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 
 test_strings_to_data_SOURCES = \
  test_strings_to_data.c
 test_strings_to_data_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 
 test_time_SOURCES = \
  test_time.c
 test_time_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 test_speedup_SOURCES = \
  test_speedup.c
 test_speedup_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 perf_crypto_hash_SOURCES = \
  perf_crypto_hash.c
 perf_crypto_hash_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 perf_crypto_symmetric_SOURCES = \
  perf_crypto_symmetric.c
 perf_crypto_symmetric_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 perf_malloc_SOURCES = \
  perf_malloc.c
 perf_malloc_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la
+ libgnunetutil.la
 
 
 EXTRA_DIST = \

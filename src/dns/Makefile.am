@@ -54,35 +54,27 @@ gnunet_helper_dns_SOURCES = \
 gnunet_dns_monitor_SOURCES = \
  gnunet-dns-monitor.c
 gnunet_dns_monitor_LDADD = \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
-  $(top_builddir)/src/dns/libgnunetdns.la \
+  libgnunetdnsparser.la \
+  libgnunetdns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_dns_monitor_DEPENDENCIES = \
-  libgnunetdnsparser.la \
-  libgnunetdns.la
 
 gnunet_dns_redirector_SOURCES = \
  gnunet-dns-redirector.c
 gnunet_dns_redirector_LDADD = \
-  $(top_builddir)/src/dns/libgnunetdnsparser.la \
-  $(top_builddir)/src/dns/libgnunetdns.la \
+  libgnunetdnsparser.la \
+  libgnunetdns.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_dns_redirector_DEPENDENCIES = \
-  libgnunetdnsparser.la \
-  libgnunetdns.la
 
 gnunet_service_dns_SOURCES = \
  gnunet-service-dns.c
 gnunet_service_dns_LDADD = \
-  $(top_builddir)/src/dns/libgnunetdnsstub.la \
+  libgnunetdnsstub.la \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_service_dns_DEPENDENCIES = \
-  libgnunetdnsstub.la
 
 libgnunetdnsparser_la_SOURCES = \
  dnsparser.c
@@ -129,9 +121,6 @@ EXTRA_DIST = \
 test_hexcoder_SOURCES = \
  test_hexcoder.c
 test_hexcoder_LDADD = \
- libgnunetdnsparser.la \
- $(top_builddir)/src/util/libgnunetutil.la
-test_hexcoder_DEPENDENCIES = \
  libgnunetdnsparser.la \
  $(top_builddir)/src/util/libgnunetutil.la
 

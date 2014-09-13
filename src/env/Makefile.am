@@ -23,8 +23,6 @@ libgnunetenv_la_LIBADD = \
 libgnunetenv_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
-libgnunetenv_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
@@ -39,10 +37,6 @@ endif
 test_env_SOURCES = \
  test_env.c
 test_env_LDADD = \
-  libgnunetenv.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-test_env_DEPENDENCIES = \
   libgnunetenv.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la

@@ -32,7 +32,7 @@ endif
 test_fragmentation_SOURCES = \
  test_fragmentation.c
 test_fragmentation_LDADD = \
- $(top_builddir)/src/fragmentation/libgnunetfragmentation.la \
+ libgnunetfragmentation.la \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = test_fragmentation_data.conf

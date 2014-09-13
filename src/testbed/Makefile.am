@@ -53,25 +53,18 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la \
+ libgnunettestbed.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
  $(LTLIBINTL) $(Z_LIBS)
-gnunet_service_testbed_DEPENDENCIES = \
- libgnunettestbed.la
 
 gnunet_service_testbed_logger_SOURCES = \
   gnunet-service-testbed-logger.c
 gnunet_service_testbed_logger_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
-gnunet_service_testbed_logger_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_testbed_profiler_SOURCES = \
   gnunet-testbed-profiler.c
 gnunet_testbed_profiler_LDADD = $(XLIB) \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la
-gnunet_testbed_profiler_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
@@ -82,36 +75,24 @@ gnunet_helper_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la \
  $(LTLIBINTL) $(Z_LIBS)
-gnunet_helper_testbed_DEPENDENCIES = \
-  gnunet-service-testbed.$(OBJEXT) \
-  libgnunettestbed.la
 
 gnunet_daemon_testbed_blacklist_SOURCES = gnunet-daemon-testbed-blacklist.c
 gnunet_daemon_testbed_blacklist_LDADD = $(XLIB) \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
-gnunet_daemon_testbed_blacklist_DEPENDENCIES = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_daemon_testbed_underlay_SOURCES = gnunet-daemon-testbed-underlay.c
 gnunet_daemon_testbed_underlay_LDADD = $(XLIB) \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL) -lsqlite3
-gnunet_daemon_testbed_underlay_DEPENDENCIES = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la
 
 gnunet_daemon_latency_logger_SOURCES = gnunet-daemon-latency-logger.c
 gnunet_daemon_latency_logger_LDADD = $(XLIB) \
  $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL) -lsqlite3
-gnunet_daemon_latency_logger_DEPENDENCIES = \
- $(top_builddir)/src/ats/libgnunetats.la \
- $(top_builddir)/src/util/libgnunetutil.la
 
 lib_LTLIBRARIES = \
   libgnunettestbed.la \
@@ -154,11 +135,8 @@ libgnunettestbedlogger_la_LDFLAGS = \
 generate_underlay_topology_SOURCES = generate-underlay-topology.c
 generate_underlay_topology_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/testbed/libgnunettestbed.la \
+ libgnunettestbed.la \
  $(LTLIBINTL) -lsqlite3
-generate_underlay_topology_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la \
- libgnunettestbed.la
 
 check_PROGRAMS = \
   test_testbed_api_hosts \
@@ -399,8 +377,6 @@ test_testbed_api_barriers_SOURCES = \
 test_testbed_api_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
-test_testbed_api_barriers_DEPENDENCIES = \
- gnunet-service-test-barriers$(EXEEXT)
 
 gnunet_service_test_barriers_SOURCES = \
   gnunet-service-test-barriers.c \

@@ -67,12 +67,10 @@ gnunet_service_vpn_CFLAGS = \
 gnunet_vpn_SOURCES = \
  gnunet-vpn.c
 gnunet_vpn_LDADD = \
-  $(top_builddir)/src/vpn/libgnunetvpn.la \
+  libgnunetvpn.la \
   $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
-gnunet_vpn_DEPENDENCIES = \
-  libgnunetvpn.la
 
 libgnunetvpn_la_SOURCES = \
  vpn_api.c vpn.h

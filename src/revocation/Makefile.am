@@ -47,21 +47,19 @@ libexec_PROGRAMS = \
 gnunet_service_revocation_SOURCES = \
  gnunet-service-revocation.c
 gnunet_service_revocation_LDADD = \
-  $(top_builddir)/src/revocation/libgnunetrevocation.la \
+  libgnunetrevocation.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/set/libgnunetset.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lm \
   $(GN_LIBINTL)
-gnunet_service_revocation_DEPENDENCIES = \
-  libgnunetrevocation.la
 
 test_revocation_SOURCES = \
  test_revocation.c
 test_revocation_LDADD = \
  $(top_builddir)/src/identity/libgnunetidentity.la \
- $(top_builddir)/src/revocation/libgnunetrevocation.la \
+ libgnunetrevocation.la \
  $(top_builddir)/src//core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
