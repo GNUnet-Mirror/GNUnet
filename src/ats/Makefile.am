@@ -45,12 +45,12 @@ gnunet_ats_solver_eval_SOURCES = \
  gnunet-service-ats_normalization.c
 gnunet_ats_solver_eval_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- libgnunetats.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(LTLIBINTL)
 gnunet_ats_solver_eval_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la \
- libgnunetats.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 libgnunetats_la_SOURCES = \
@@ -66,12 +66,12 @@ libgnunetats_la_LDFLAGS = \
 libgnunet_plugin_ats_proportional_la_SOURCES = \
   plugin_ats_proportional.c
 libgnunet_plugin_ats_proportional_la_LIBADD = \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_proportional_la_DEPENDENCIES = \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_proportional_la_LDFLAGS = \
@@ -82,13 +82,13 @@ if HAVE_LIBGLPK
 libgnunet_plugin_ats_mlp_la_SOURCES = \
   plugin_ats_mlp.c
 libgnunet_plugin_ats_mlp_la_LIBADD = \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS) $(GN_LIBGLPK)
 libgnunet_plugin_ats_mlp_la_DEPENDENCIES = \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 endif
@@ -96,14 +96,14 @@ endif
 libgnunet_plugin_ats_ril_la_SOURCES = \
   plugin_ats_ril.c
 libgnunet_plugin_ats_ril_la_LIBADD = \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_ril_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_ats_ril_la_DEPENDENCIES = \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
@@ -120,10 +120,12 @@ gnunet_service_ats_SOURCES = \
 gnunet_service_ats_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetats.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(GN_LIBINTL)
 gnunet_service_ats_DEPENDENCIES = \
-  libgnunetats.la
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats/libgnunetats.la 
 
 if HAVE_TESTING
 TESTING_TESTS = \

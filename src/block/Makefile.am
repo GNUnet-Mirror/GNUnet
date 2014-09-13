@@ -26,7 +26,8 @@ libgnunet_plugin_block_template_la_LIBADD = \
 libgnunet_plugin_block_template_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_template_la_DEPENDENCIES = \
-  libgnunetblock.la
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 libgnunet_plugin_block_test_la_SOURCES = \
   plugin_block_test.c
@@ -37,7 +38,8 @@ libgnunet_plugin_block_test_la_LIBADD = \
 libgnunet_plugin_block_test_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_test_la_DEPENDENCIES = \
-  libgnunetblock.la					      
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 
 libgnunetblock_la_SOURCES = \

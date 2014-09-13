@@ -460,7 +460,7 @@ process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret, struct GNUNET_SERVI
  * @param saddrs array to update
  * @param saddrlens where to store the address length
  * @param unixpath path to add
- * @param abstract GNUNET_YES to add an abstract UNIX domain socket.  This
+ * @param abstract #GNUNET_YES to add an abstract UNIX domain socket.  This
  *          parameter is ignore on systems other than LINUX
  */
 static void

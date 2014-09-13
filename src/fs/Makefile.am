@@ -94,7 +94,8 @@ gnunet_directory_LDADD = \
   -lextractor \
   $(GN_LIBINTL)
 gnunet_directory_DEPENDENCIES = \
-  libgnunetfs.la
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_fs_profiler_SOURCES = \
  gnunet-fs-profiler.c
@@ -102,6 +103,9 @@ gnunet_fs_profiler_LDADD = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+gnunet_fs_profiler_DEPENDENCIES = \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_fs_SOURCES = \
  gnunet-fs.c
@@ -120,7 +124,8 @@ gnunet_download_LDADD =  \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(GN_LIBINTL)
 gnunet_download_DEPENDENCIES = \
-  libgnunetfs.la
+ $(top_builddir)/src/fs/libgnunetfs.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_publish_SOURCES =  \
  gnunet-publish.c
@@ -131,7 +136,8 @@ gnunet_publish_LDADD =  \
  -lextractor \
  $(GN_LIBINTL)
 gnunet_publish_DEPENDENCIES = \
-  libgnunetfs.la
+ $(top_builddir)/src/fs/libgnunetfs.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_auto_share_SOURCES =  \
  gnunet-auto-share.c
@@ -140,7 +146,7 @@ gnunet_auto_share_LDADD =  \
  -lextractor \
  $(GN_LIBINTL)
 gnunet_auto_share_DEPENDENCIES = \
-  libgnunetfs.la
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_helper_fs_publish_SOURCES =  \
  gnunet-helper-fs-publish.c
@@ -149,7 +155,7 @@ gnunet_helper_fs_publish_LDADD =  \
  -lextractor \
  $(GN_LIBINTL)
 gnunet_helper_fs_publish_DEPENDENCIES = \
-  libgnunetfs.la
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_search_SOURCES = \
  gnunet-search.c
@@ -159,7 +165,9 @@ gnunet_search_LDADD = \
  -lextractor \
   $(GN_LIBINTL)
 gnunet_search_DEPENDENCIES = \
-  libgnunetfs.la
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
+
 
 gnunet_daemon_fsprofiler_SOURCES =  \
  gnunet-daemon-fsprofiler.c
@@ -169,7 +177,9 @@ gnunet_daemon_fsprofiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_daemon_fsprofiler_DEPENDENCIES = \
-  libgnunetfs.la
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_service_fs_SOURCES =  \
  gnunet-service-fs.c gnunet-service-fs.h \
@@ -195,7 +205,16 @@ gnunet_service_fs_LDADD =  \
  $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
  $(GN_LIBINTL) -lm
 gnunet_service_fs_DEPENDENCIES = \
-  libgnunetfs.la
+ $(top_builddir)/src/fs/libgnunetfs.la \
+ $(top_builddir)/src/dht/libgnunetdht.la \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/datastore/libgnunetdatastore.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/cadet/libgnunetcadet.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/peerstore/libgnunetpeerstore.la 
 
 gnunet_unindex_SOURCES = \
  gnunet-unindex.c
@@ -204,8 +223,8 @@ gnunet_unindex_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_unindex_DEPENDENCIES = \
-  libgnunetfs.la
-
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 libgnunet_plugin_block_fs_la_SOURCES = \
   plugin_block_fs.c
@@ -217,11 +236,9 @@ libgnunet_plugin_block_fs_la_LIBADD = \
 libgnunet_plugin_block_fs_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_fs_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/block/libgnunetblock.la \
-  libgnunetfs.la
-
-
+  $(top_builddir)/src/fs/libgnunetfs.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 if HAVE_BENCHMARKS
  FS_BENCHMARKS = \

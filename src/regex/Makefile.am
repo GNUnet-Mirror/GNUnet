@@ -83,7 +83,9 @@ libgnunet_plugin_block_regex_la_LIBADD = \
 libgnunet_plugin_block_regex_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_block_regex_la_DEPENDENCIES = \
- libgnunetregexblock.la
+ $(top_builddir)/src/regex/libgnunetregexblock.la \
+ $(top_builddir)/src/block/libgnunetblock.la \
+ $(top_builddir)/src/util/libgnunetutil.la
 
 if HAVE_MYSQL
 noinst_mysql_progs = \
@@ -95,9 +97,12 @@ gnunet_regex_simulation_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/regex/libgnunetregex_internal.a \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/mysql/libgnunetmysql.la
+  $(top_builddir)/src/mysql/libgnunetmysql.la 
 gnunet_regex_simulation_profiler_DEPENDENCIES = \
-  libgnunetregex_internal.a
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/regex/libgnunetregex_internal.a \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/mysql/libgnunetmysql.la 
 endif
 
 libgnunetregextest_a_SOURCES = \
@@ -108,6 +113,7 @@ libgnunetregextest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/regex/libgnunetregex_internal.a
 libgnunetregextest_a_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetregex_internal.a
 
 if HAVE_TESTING
@@ -125,8 +131,11 @@ perf_regex_LDADD = -lm \
   $(top_builddir)/src/regex/libgnunetregextest.a \
   $(top_builddir)/src/util/libgnunetutil.la 
 perf_regex_DEPENDENCIES = \
-  libgnunetregex_internal.a \
-  libgnunetregextest.a
+  $(top_builddir)/src/regex/libgnunetregex_internal.a \
+  $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/regex/libgnunetregexblock.la \
+  $(top_builddir)/src/regex/libgnunetregextest.a \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_regex_profiler_SOURCES = \
   gnunet-regex-profiler.c
@@ -141,10 +150,13 @@ gnunet_regex_profiler_LDADD = -lm \
   $(top_builddir)/src/util/libgnunetutil.la 
 gnunet_regex_profiler_DEPENDENCIES = \
   $(top_builddir)/src/arm/libgnunetarm.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/regex/libgnunetregex_internal.a \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  libgnunetregex_internal.a \
-  libgnunetregextest.a
-
+  $(top_builddir)/src/regex/libgnunetregexblock.la \
+  $(top_builddir)/src/regex/libgnunetregextest.a \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 gnunet_daemon_regexprofiler_SOURCES = \
   gnunet-daemon-regexprofiler.c
@@ -156,11 +168,12 @@ gnunet_daemon_regexprofiler_LDADD = -lm \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la 
 gnunet_daemon_regexprofiler_DEPENDENCIES = \
+  $(top_builddir)/src/regex/libgnunetregex_internal.a \
   $(top_builddir)/src/dht/libgnunetdht.la \
-  libgnunetregextest.a \
-  libgnunetregex_internal.a
-
-
+  $(top_builddir)/src/regex/libgnunetregexblock.la \
+  $(top_builddir)/src/regex/libgnunetregextest.a \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la 
 
 check_PROGRAMS = \
   test_regex_eval_api \

@@ -79,13 +79,12 @@ gnunet_namecache_SOURCES = \
 gnunet_namecache_LDADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetnamecache.la \
+  $(top_builddir)/src/namecache/libgnunetnamecache.la \
   $(GN_LIBINTL)
 gnunet_namecache_DEPENDENCIES = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetnamecache.la
-
+  $(top_builddir)/src/namecache/libgnunetnamecache.la 
 
 gnunet_service_namecache_SOURCES = \
  gnunet-service-namecache.c
@@ -94,12 +93,12 @@ gnunet_service_namecache_LDADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetnamecache.la \
+  $(top_builddir)/src/namecache/libgnunetnamecache.la \
   $(GN_LIBINTL)
 gnunet_service_namecache_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetnamecache.la
+  $(top_builddir)/src/namecache/libgnunetnamecache.la 
 
 
 plugin_LTLIBRARIES = \
@@ -118,7 +117,7 @@ libgnunet_plugin_namecache_sqlite_la_LDFLAGS = \
 libgnunet_plugin_namecache_sqlite_la_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetnamecache.la
+  $(top_builddir)/src/namecache/libgnunetnamecache.la 
 
 
 libgnunet_plugin_namecache_postgres_la_SOURCES = \
@@ -135,7 +134,7 @@ libgnunet_plugin_namecache_postgres_la_DEPENDENCIES = \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetnamecache.la
+  $(top_builddir)/src/namecache/libgnunetnamecache.la 
 
 test_namecache_api_cache_block_SOURCES = \
  test_namecache_api_cache_block.c
