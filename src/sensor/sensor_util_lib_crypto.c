@@ -177,6 +177,7 @@ calculate_pow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SENSOR_crypto_pow_sign_cancel (cx);
     if (NULL != callback)
       callback (callback_cls, (GNUNET_OK == sign_result) ? result_block : NULL);
+    GNUNET_free (result_block);
     return;
   }
   cx->pow++;
