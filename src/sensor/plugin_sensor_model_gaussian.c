@@ -18,7 +18,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-/*
+/**
  * @file sensor/plugin_sensor_model_gaussian.c
  * @brief Gaussian model for sensor analysis
  * @author Omar Tarabai
@@ -31,54 +31,59 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-model-gaussian", __VA_ARGS__)
 
-/*
+/**
  * Plugin state information
  */
 struct Plugin
 {
 
-  /*
+  /**
    * Configuration handle
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /*
+  /**
    * Number of initial readings to be used for training only
    */
   int training_window;
 
-  /*
+  /**
    * Number of standard deviations considered within "normal"
    */
   int confidence_interval;
 
+  /**
+   * Increase in weight with each reading
+   */
+  float weight_inc;
+
 };
 
-/*
+/**
  * State of single model instance
  */
 struct Model
 {
 
-  /*
+  /**
    * Pointer to the plugin state
    */
   struct Plugin *plugin;
 
-  /*
+  /**
+   * Gaussian sums
+   */
+  long double s[3];
+
+  /**
    * Number of readings so far
    */
   int n;
 
-  /*
-   * Sum of readings
+  /**
+   * Weight to be used for the next reading
    */
-  long double sum;
-
-  /*
-   * Sum square of readings
-   */
-  long double sumsq;
+  double w;
 
 };
 
@@ -91,8 +96,11 @@ struct Model
 static void
 update_sums (struct Model *model, double val)
 {
-  model->sum += val;
-  model->sumsq += val * val;
+  int i;
+
+  for (i = 0; i < 3; i++)
+    model->s[i] += model->w * pow (val, (double) i);
+  model->w += model->plugin->weight_inc;
   model->n++;
 }
 
@@ -120,10 +128,14 @@ sensor_gaussian_model_feed (void *cls, double val)
   }
   if (model->n == plugin->training_window)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Gaussian model out of training period.\n");
-  mean = model->sum / model->n;
+  mean = model->s[1] / model->s[0];
   stddev =
-      sqrt ((model->sumsq - 2 * mean * model->sum +
-             model->n * mean * mean) / (model->n - 1));
+      (model->s[0] * model->s[2] -
+       model->s[1] * model->s[1]) / (model->s[0] * (model->s[0] - 1));
+  if (stddev < 0)               /* Value can be slightly less than 0 due to rounding errors */
+    stddev = 0;
+  stddev = sqrt (stddev);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Mean: %Lf, Stddev: %Lf\n", mean, stddev);
   allowed_variance = (plugin->confidence_interval * stddev);
   if ((val < (mean - allowed_variance)) || (val > (mean + allowed_variance)))
     return GNUNET_YES;
@@ -161,6 +173,7 @@ sensor_gaussian_model_create_model (void *cls)
   model = GNUNET_new (struct Model);
 
   model->plugin = plugin;
+  model->w = 1;
   return model;
 }
 
@@ -191,13 +204,30 @@ libgnunet_plugin_sensor_model_gaussian_init (void *cls)
          _("Missing `TRAINING_WINDOW' value in configuration.\n"));
     return NULL;
   }
-  plugin.training_window = (int) num;
+  if (num < 1)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Minimum training window invalid (<1), setting to 1.\n");
+    plugin.training_window = 1;
+  }
+  else
+  {
+    plugin.training_window = (int) num;
+  }
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "sensor-model-gaussian",
                                              "CONFIDENCE_INTERVAL", &num))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Missing `CONFIDENCE_INTERVAL' value in configuration.\n"));
+    return NULL;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_float (cfg, "sensor-model-gaussian",
+                                            "WEIGHT_INC", &plugin.weight_inc))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Missing `WEIGHT_INC' value in configuration.\n"));
     return NULL;
   }
   plugin.confidence_interval = (int) num;

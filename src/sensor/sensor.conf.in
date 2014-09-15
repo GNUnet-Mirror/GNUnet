@@ -18,12 +18,12 @@ START_UPDATE = YES
 [sensor-analysis]
 MODEL = gaussian
 # How many subsequent values required to flip anomaly label. (Default: 1)
-# E.g. After 3 subsequent anomaly reports, status change to anomalous.
-CONFIRMATION_COUNT = 3
+CONFIRMATION_COUNT = 1
 
 [sensor-model-gaussian]
-TRAINING_WINDOW = 10
-CONFIDENCE_INTERVAL = 3
+TRAINING_WINDOW = 400
+CONFIDENCE_INTERVAL = 8
+WEIGHT_INC = 0
 
 [sensor-reporting]
 POW_MATCHING_BITS = 15

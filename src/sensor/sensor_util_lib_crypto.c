@@ -128,7 +128,6 @@ check_pow (void *msg, size_t msg_size, uint64_t pow, int matching_bits)
   char buf[msg_size + sizeof (pow)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Msg size: %" PRIu64 ".\n", msg_size);
   memcpy (buf, &pow, sizeof (pow));
   memcpy (&buf[sizeof (pow)], msg, msg_size);
   pow_hash (buf, sizeof (buf), &result);

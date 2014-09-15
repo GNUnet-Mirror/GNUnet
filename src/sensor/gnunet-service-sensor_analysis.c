@@ -89,7 +89,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Hashmap of loaded sensors
  */
-struct GNUNET_CONTAINER_MultiHashMap *sensors;
+static struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
 /*
  * Model library name
@@ -119,13 +119,13 @@ static struct SensorModel *models_tail;
 /**
  * My peer id
  */
-struct GNUNET_PeerIdentity peerid;
+static struct GNUNET_PeerIdentity peerid;
 
 /**
  * How many subsequent values required to flip anomaly label.
  * E.g. After 3 subsequent anomaly reports, status change to anomalous.
  */
-unsigned long long confirmation_count;
+static unsigned long long confirmation_count;
 
 /**
  * Destroy a created model
