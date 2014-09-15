@@ -41,7 +41,7 @@
 /**
  * Number of matching bits to use for generating proof-of-work
  */
-#define MATCHING_BITS 2
+#define MATCHING_BITS 5
 
 /**
  * Test timeout

@@ -257,7 +257,7 @@ GNUNET_SENSOR_crypto_pow_sign (void *msg, size_t msg_size,
  * @param matching_bits Number of leading zeros in the hash used to verify pow
  * @param public_key Public key of the peer that sent this block
  * @param payload Where to store the pointer to the payload
- * @return Size of the payload
+ * @return Size of the payload, 0 on error
  */
 size_t
 GNUNET_SENSOR_crypto_verify_pow_sign (struct GNUNET_SENSOR_crypto_pow_block *
