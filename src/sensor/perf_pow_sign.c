@@ -46,7 +46,7 @@
 /**
  * How many matching bits to end with
  */
-#define MATCHING_BITS_END 50
+#define MATCHING_BITS_END 20
 
 /**
  * How many readings per matching bits value
@@ -106,7 +106,7 @@ static struct GNUNET_TIME_Relative total_duration;
 /**
  * Task creating pow block
  */
-struct GNUNET_SENSOR_crypto_pow_context *pow_task;
+static struct GNUNET_SENSOR_crypto_pow_context *pow_task;
 
 
 /**

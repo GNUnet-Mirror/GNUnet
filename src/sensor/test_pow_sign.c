@@ -111,9 +111,15 @@ static void
 pow_cb (void *cls, struct GNUNET_SENSOR_crypto_pow_block *block)
 {
   void *response;
+  struct GNUNET_TIME_Absolute end_time;
+  struct GNUNET_TIME_Relative duration;
 
+  end_time = GNUNET_TIME_absolute_get();
+  duration = GNUNET_TIME_absolute_get_difference (block->timestamp, end_time);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received block:\n" "pow: %" PRIu64 ".\n", block->pow);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Block generation toke %s.\n",
+              GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_NO));
   /* Test that the block is valid */
   GNUNET_assert (MSG_SIZE ==
                  GNUNET_SENSOR_crypto_verify_pow_sign (block, MATCHING_BITS,

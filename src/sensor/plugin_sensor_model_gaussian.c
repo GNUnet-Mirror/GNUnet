@@ -135,7 +135,6 @@ sensor_gaussian_model_feed (void *cls, double val)
   if (stddev < 0)               /* Value can be slightly less than 0 due to rounding errors */
     stddev = 0;
   stddev = sqrt (stddev);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Mean: %Lf, Stddev: %Lf\n", mean, stddev);
   allowed_variance = (plugin->confidence_interval * stddev);
   if ((val < (mean - allowed_variance)) || (val > (mean + allowed_variance)))
     return GNUNET_YES;

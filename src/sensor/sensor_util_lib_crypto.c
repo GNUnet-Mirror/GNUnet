@@ -148,12 +148,15 @@ calculate_pow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   void *callback_cls;
   int sign_result;
 
+  if (0 == cx->pow % 1000)
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking pow %" PRIu64 ".\n", cx->pow);
   if (GNUNET_YES ==
       check_pow (&cx->timestamp,
                  sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
                  sizeof (struct GNUNET_TIME_Absolute) + cx->msg_size, cx->pow,
                  cx->matching_bits))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Found pow %" PRIu64 ".\n", cx->pow);
     cx->calculate_pow_task = GNUNET_SCHEDULER_NO_TASK;
     result_block =
         GNUNET_malloc (sizeof (struct GNUNET_SENSOR_crypto_pow_block) +

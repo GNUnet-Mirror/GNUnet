@@ -16,6 +16,9 @@ def get_args():
   parser = argparse.ArgumentParser(description="Sensor profiler")
   parser.add_argument('-p', '--peers', action='store', type=int, required=True,
                       help='Number of peers to run')
+  parser.add_argument('-i', '--sensors-interval', action='store', type=int,
+                      required=False,
+                      help='Change the interval of running sensors to given value')
   return parser.parse_args()
 
 def generate_topology(peers, links):
@@ -97,8 +100,13 @@ def handle_profiler_line(line):
     anomaly_report(eval(parts[1]))
     return
 
-def run_profiler(peers, topology_file):
-  cmd = "GNUNET_FORCE_LOG='gnunet-sensor-profiler;;;;DEBUG' gnunet-sensor-profiler -p %d -t %s > log 2>&1" % (peers, topology_file)
+def run_profiler(peers, topology_file, sensors_interval):
+  cmd1 = "GNUNET_FORCE_LOG='gnunet-sensor-profiler;;;;DEBUG' gnunet-sensor-profiler -p %d -t %s" % (peers, topology_file)
+  if sensors_interval:
+    cmd1 += " -i %d" % sensors_interval
+  cmd2 = "> log 2>&1"
+  cmd = "%s %s" % (cmd1, cmd2)
+  print cmd
   process = Popen([cmd], shell=True)
   time.sleep(0.5)
   line = ''
@@ -118,7 +126,11 @@ def main():
   if num_peers < 3:
     print 'Min number of peers is 3'
     return
-  num_links = int(math.log(num_peers) * math.log(num_peers) * num_peers / 2)
+  sensors_interval = None
+  if 'sensors_interval' in args:
+    sensors_interval = args['sensors_interval']
+  #num_links = int(math.log(num_peers) * math.log(num_peers) * num_peers / 2)
+  num_links = int(math.log(num_peers) * num_peers)
   # Generate random topology
   generate_topology(num_peers, num_links)
   print 'Generated random topology with %d peers and %d links' % (num_peers, num_links)
@@ -127,7 +139,7 @@ def main():
   print 'Created TESTBED topology file %s' % top_file
   draw_graph()
   # Run c profiler
-  run_profiler(num_peers, top_file)
+  run_profiler(num_peers, top_file, sensors_interval)
   
 if __name__ == "__main__":
   main()

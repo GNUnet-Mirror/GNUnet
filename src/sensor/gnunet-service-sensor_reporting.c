@@ -658,7 +658,10 @@ report_creation_cb (void *cls, struct GNUNET_SENSOR_crypto_pow_block *block)
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Anomaly report POW block ready.\n");
-  ai->report_block = block;
+  ai->report_block =
+      GNUNET_memdup (block,
+                     sizeof (struct GNUNET_SENSOR_crypto_pow_block) +
+                     block->msg_size);
   ar_item = ai->reporting_queue_head;
   while (NULL != ar_item)
   {
@@ -706,9 +709,9 @@ update_anomaly_report_pow_block (struct AnomalyInfo *ai)
   arm->anomalous = htons (ai->anomalous);
   arm->anomalous_neighbors =
       (0 ==
-       neighborhood) ? 0 : ((float)
-                            GNUNET_CONTAINER_multipeermap_size
-                            (ai->anomalous_neighbors)) / neighborhood;
+       neighborhood) ? 0 : ((float) GNUNET_CONTAINER_multipeermap_size (ai->
+                                                                        anomalous_neighbors))
+      / neighborhood;
   timestamp = GNUNET_TIME_absolute_get ();
   ai->report_creation_cx =
       GNUNET_SENSOR_crypto_pow_sign (arm,
@@ -717,6 +720,7 @@ update_anomaly_report_pow_block (struct AnomalyInfo *ai)
                                      &timestamp, &mypeerid.public_key,
                                      private_key, pow_matching_bits,
                                      &report_creation_cb, ai);
+  GNUNET_free (arm);
 }
 
 
@@ -800,8 +804,8 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
   my_anomaly_info = get_anomaly_info_by_sensor (sensor);
   GNUNET_assert (NULL != my_anomaly_info);
   peer_in_anomalous_list =
-      GNUNET_CONTAINER_multipeermap_contains
-      (my_anomaly_info->anomalous_neighbors, other);
+      GNUNET_CONTAINER_multipeermap_contains (my_anomaly_info->
+                                              anomalous_neighbors, other);
   peer_anomalous = ntohs (arm->anomalous);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received an anomaly update from neighbour `%s' (%d).\n",
@@ -820,8 +824,8 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
     if (GNUNET_NO == peer_in_anomalous_list)    /* repeated negative report */
       GNUNET_break_op (0);
     else
-      GNUNET_CONTAINER_multipeermap_remove_all
-          (my_anomaly_info->anomalous_neighbors, other);
+      GNUNET_CONTAINER_multipeermap_remove_all (my_anomaly_info->
+                                                anomalous_neighbors, other);
   }
   /* This is important to create an updated block since the data changed */
   update_anomaly_report_pow_block (my_anomaly_info);

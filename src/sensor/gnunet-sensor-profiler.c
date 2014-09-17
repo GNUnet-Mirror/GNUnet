@@ -894,7 +894,7 @@ main (int argc, char *const *argv)
     {'t', "topology-file", "FILEPATH", gettext_noop ("Path to topology file"),
      GNUNET_YES, &GNUNET_GETOPT_set_filename, &topology_file},
     {'i', "sensors-interval", "INTERVAL",
-     gettext_noop ("Change the interval or running sensors to given value"),
+     gettext_noop ("Change the interval of running sensors to given value"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &sensors_interval},
     GNUNET_GETOPT_OPTION_END
   };
