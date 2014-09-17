@@ -38,8 +38,15 @@
 /**
  * Number of peers which should perform a PUT out of 100 peers
  */
-#define PUT_PROBABILITY 100
+#define PUT_PROBABILITY 20
 
+#if ENABLE_MALICIOUS
+/**
+ * Number of peers which should act as malicious peers
+ */
+#define MALICIOUS_PROBABILITY 50
+
+#endif
 /**
  * Percentage of peers that should act maliciously.
  * These peers will never start PUT/GET request.
@@ -175,8 +182,27 @@ struct ActiveContext
    * The number of peers currently doing GET on our data
    */
   uint16_t nrefs;
+  
+  /**
+   * If set this peer will act maliciously.
+   */
+  unsigned int malicious;
 };
 
+#if ENABLE_MALICIOUS
+struct Malicious_Context
+{
+  /**
+   * The linked peer context
+   */
+  struct Context *ctx;
+
+  /**
+   * Handler to the DHT service
+   */
+  struct GNUNET_DHT_Handle *dht;
+};
+#endif
 
 /**
  * An array of contexts.  The size of this array should be equal to @a num_peers
@@ -187,6 +213,13 @@ static struct Context *a_ctx;
  * Array of active peers
  */
 static struct ActiveContext *a_ac;
+
+#if ENABLE_MALICIOUS
+/**
+ * Array of malicious peers.
+ */
+static struct MaliciousContext *a_mc;
+#endif
 
 /**
  * The delay between rounds for collecting statistics
@@ -1074,6 +1107,7 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 #if ENABLE_MALICIOUS
+#if 0
 /**
  * Set the malicious variable in peer malicious context.
  */
@@ -1095,6 +1129,7 @@ set_malicious()
                                         mc);
   }
 }
+#endif
 #endif
 
 
@@ -1122,7 +1157,7 @@ service_started (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
   {
 #if ENABLE_MALICIOUS
-    set_malicious();
+    //set_malicious();
 #endif
     
      DEBUG("successor_stats_task \n");
@@ -1156,7 +1191,7 @@ test_run (void *cls,
 {
   unsigned int cnt;
   unsigned int ac_cnt;
-  
+  unsigned int malicious_peers;
   testbed_handles = peers;  
   if (NULL == peers)
   {
@@ -1175,6 +1210,9 @@ test_run (void *cls,
     return;
   }
   
+  a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
+  ac_cnt = 0;
+  
 #if ENABLE_MALICIOUS
 
   if(PUT_PROBABILITY + MALICIOUS_PEERS > 100)
@@ -1191,6 +1229,19 @@ test_run (void *cls,
   /* Select n_malicious peers and ensure that those are not active peers. 
      keep all malicious peer at one place, and call act malicious for all
      those peers. */
+  a_mc = GNUNET_malloc (n_malicious * sizeof (struct MaliciousContext));
+  malicious_peers = 0;
+  
+  for (cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
+  {
+    if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
+        MALICIOUS_PROBABILITY)
+      continue;
+    a_ac[ac_cnt].malicious = 1;
+    a_mc[ac_cnt].ctx = &a_ctx[cnt];
+    malicious_peers++;
+  } 
+  INFO ("Malicious Peers: %u\n",malicious_peers);
   
 #endif
   
@@ -1198,9 +1249,10 @@ test_run (void *cls,
   ac_cnt = 0;
   for (cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
   {
-    if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
-        PUT_PROBABILITY)
+    if ((GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
+        PUT_PROBABILITY) || (a_ac[ac_cnt].malicious == 1))
       continue;
+    
     a_ctx[cnt].ac = &a_ac[ac_cnt];
     a_ac[ac_cnt].ctx = &a_ctx[cnt];
     ac_cnt++;
@@ -1266,7 +1318,7 @@ main (int argc, char *const *argv)
      gettext_noop ("number of peers to start"),
      1, &GNUNET_GETOPT_set_uint, &num_peers},
     {'s', "searches", "COUNT",
-     gettext_noop ("maximum number of times we try to search for successor circle formation (default is 1)"),
+     gettext_noop ("maximum number of times we try to search for successor circle formation (0 for R5N)"),
      1, &GNUNET_GETOPT_set_uint, &max_searches},
     {'H', "hosts", "FILENAME",
      gettext_noop ("name of the file with the login information for the testbed"),
