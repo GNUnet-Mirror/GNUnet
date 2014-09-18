@@ -76,6 +76,15 @@ struct DisconnectionContext
 
 };
 
+struct ConnectionContext
+{
+
+  struct PeerInfo *p1;
+
+  struct PeerInfo *p2;
+
+};
+
 
 /**
  * Name of the configuration file used
@@ -192,6 +201,26 @@ prompt_peer_disconnection ();
 
 
 /**
+ * Destroy a DisconnectionContext struct
+ */
+static void
+destroy_dc (struct DisconnectionContext *dc)
+{
+  if (NULL != dc->blacklist)
+  {
+    GNUNET_TRANSPORT_blacklist_cancel (dc->blacklist);
+    dc->blacklist = NULL;
+  }
+  if (NULL != dc->p1_transport_op)
+  {
+    GNUNET_TESTBED_operation_done (dc->p1_transport_op);
+    dc->p1_transport_op = NULL;
+  }
+  GNUNET_free (dc);
+}
+
+
+/**
  * Do clean up and shutdown scheduler
  */
 static void
@@ -210,17 +239,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   while (NULL != dc)
   {
     GNUNET_CONTAINER_DLL_remove (dc_head, dc_tail, dc);
-    if (NULL != dc->blacklist)
-    {
-      GNUNET_TRANSPORT_blacklist_cancel (dc->blacklist);
-      dc->blacklist = NULL;
-    }
-    if (NULL != dc->p1_transport_op)
-    {
-      GNUNET_TESTBED_operation_done (dc->p1_transport_op);
-      dc->p1_transport_op = NULL;
-    }
-    GNUNET_free (dc);
+    destroy_dc (dc);
     dc = dc_head;
   }
   if (NULL != peerstore_op)
@@ -384,6 +403,70 @@ disconnect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
 /**************************** END DISCONNECT PEERS ***************************/
 /*****************************************************************************/
 
+/*****************************************************************************/
+/******************************* CONNECT PEERS *******************************/
+/*****************************************************************************/
+
+/**
+ * Callback to be called when overlay connection operation is completed
+ *
+ * @param cls the callback closure from functions generating an operation
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+overlay_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+                      const char *emsg)
+{
+  struct ConnectionContext *cc = cls;
+
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer connection request sent: %d,%d\n",
+              cc->p1->index, cc->p2->index);
+  GNUNET_free (cc);
+  GNUNET_TESTBED_operation_done (op);
+}
+
+
+/**
+ * Connect two peers together
+ */
+static void
+connect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
+{
+  struct DisconnectionContext *dc;
+  struct ConnectionContext *cc;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "connect_peers()\n");
+  /* Check if we have a disconnection request before */
+  dc = dc_head;
+  while (NULL != dc)
+  {
+    if ((dc->p1 == p1 && dc->p2 == p2) || (dc->p1 == p2 && dc->p2 == p1))
+      break;
+    dc = dc_head->next;
+  }
+  if (NULL != dc)
+  {
+    GNUNET_CONTAINER_DLL_remove (dc_head, dc_tail, dc);
+    destroy_dc (dc);
+  }
+  /* Connect peers using testbed */
+  cc = GNUNET_new (struct ConnectionContext);
+  cc->p1 = p1;
+  cc->p2 = p2;
+  GNUNET_TESTBED_overlay_connect (cc, &overlay_connect_cb, cc,
+                                  p1->testbed_peer, p2->testbed_peer);
+}
+
+/*****************************************************************************/
+/****************************** END CONNECT PEERS ****************************/
+/*****************************************************************************/
 
 /**
  * Function called with each file/folder inside a directory that is being copied.
@@ -630,6 +713,35 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
 
 
 /**
+ * Prompty the user to reconnect two peers
+ */
+static void
+prompt_peer_reconnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int p1;
+  int p2;
+  char line[10];
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connect peers (e.g. '0,2') or empty line to execute:\n");
+  if (NULL == fgets (line, sizeof (line), stdin) || 1 == strlen (line))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Continuing.\n");
+    return;
+  }
+  if (2 != sscanf (line, "%d,%d", &p1, &p2) || p1 >= num_peers ||
+      p2 >= num_peers || p1 < 0 || p2 < 0 || p1 == p2)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid input.\n");
+    prompt_peer_reconnection (NULL, NULL);
+    return;
+  }
+  connect_peers (&all_peers_info[p1], &all_peers_info[p2]);
+  prompt_peer_reconnection (NULL, NULL);
+}
+
+
+/**
  * Prompt the user to disconnect two peers
  */
 static void
@@ -643,7 +755,8 @@ prompt_peer_disconnection ()
               "Disconnect peers (e.g. '0,2') or empty line to execute:\n");
   if (NULL == fgets (line, sizeof (line), stdin) || 1 == strlen (line))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Continuing.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will prompt for reconnection in 1 min.\n");
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1) ,&prompt_peer_reconnection, NULL);
     return;
   }
   if (2 != sscanf (line, "%d,%d", &p1, &p2) || p1 >= num_peers ||
