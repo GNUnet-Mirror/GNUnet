@@ -105,8 +105,8 @@ struct GNUNET_CLIENT_TransmitHandle;
 
 /**
  * Ask the client to call us once the specified number of bytes
- * are free in the transmission buffer.  May call the notify
- * method immediately if enough space is available.
+ * are free in the transmission buffer.  Will never call the @a notify
+ * callback in this task, but always first go into the scheduler.
  *
  * @param client connection to the service
  * @param size number of bytes to send
