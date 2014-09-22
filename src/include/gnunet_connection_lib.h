@@ -296,8 +296,8 @@ struct GNUNET_CONNECTION_TransmitHandle;
 
 /**
  * Ask the connection to call us once the specified number of bytes
- * are free in the transmission buffer.  May call the notify
- * method immediately if enough space is available.  Note that
+ * are free in the transmission buffer.  Will never call the @a notify
+ * callback in this task, but always first go into the scheduler.  Note that
  * this function will abort if "size" is greater than
  * #GNUNET_SERVER_MAX_MESSAGE_SIZE.
  *
