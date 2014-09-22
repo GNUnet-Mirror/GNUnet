@@ -2413,7 +2413,6 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
   struct Closest_Peer successor;
   struct GNUNET_PeerIdentity best_known_dest;
   struct GNUNET_HashCode intermediate_trail_id;
-  struct GNUNET_PeerIdentity next_hop;
   uint64_t key_value;
   
   memcpy (&key_value, key, sizeof (uint64_t));
@@ -2435,6 +2434,7 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
   }
     
 #if ENABLE_MALICIOUS
+  struct GNUNET_PeerIdentity next_hop;
   if (0 != GNUNET_CRYPTO_cmp_peer_identity (&successor.best_known_destination,
                                             &successor.next_hop))
   {

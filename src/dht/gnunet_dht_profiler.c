@@ -1351,9 +1351,14 @@ test_run (void *cls,
   for (cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
   {
     if ((GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
-        PUT_PROBABILITY) || (a_ctx[ac_cnt].mc != NULL))
+        PUT_PROBABILITY))
       continue;
     
+#if ENABLE_MALICIOUS
+    if(a_ctx[ac_cnt].mc != NULL)
+      continue;
+#endif
+     
     a_ctx[cnt].ac = &a_ac[ac_cnt];
     a_ac[ac_cnt].ctx = &a_ctx[cnt];
     ac_cnt++;
