@@ -1294,7 +1294,6 @@ test_run (void *cls,
 {
   unsigned int cnt;
   unsigned int ac_cnt;
-  unsigned int malicious_peers;
   testbed_handles = peers;  
   if (NULL == peers)
   {
@@ -1317,7 +1316,7 @@ test_run (void *cls,
   ac_cnt = 0;
   
 #if ENABLE_MALICIOUS
-
+  unsigned int malicious_peers;
   if(PUT_PROBABILITY + MALICIOUS_PROBABILITY > 100)
   {
     DEBUG ("Reduce either number of malicious peer or active peers. ");
