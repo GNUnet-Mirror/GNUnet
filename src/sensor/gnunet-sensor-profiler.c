@@ -85,6 +85,19 @@ struct ConnectionContext
 
 };
 
+struct Split
+{
+
+  struct Split *next;
+
+  struct Split *prev;
+
+  int p1;
+
+  int p2;
+
+};
+
 
 /**
  * Name of the configuration file used
@@ -125,6 +138,11 @@ static unsigned int sensors_interval = 0;
  * Path to topology file (Option -t)
  */
 static char *topology_file;
+
+/**
+ * Path to topology file (Option -s)
+ */
+static char *split_file;
 
 /**
  * Array of peer info for all peers
@@ -176,10 +194,20 @@ static GNUNET_SCHEDULER_TaskIdentifier delayed_task = GNUNET_SCHEDULER_NO_TASK;
  */
 static struct DisconnectionContext *dc_head;
 
-/*
+/**
  * Tail of list of disconnection contexts
  */
 static struct DisconnectionContext *dc_tail;
+
+/**
+ * Head of splits list
+ */
+static struct Split *split_head;
+
+/**
+ * Tail of splits list
+ */
+static struct Split *split_tail;
 
 
 /**
@@ -417,7 +445,7 @@ disconnect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
  */
 static void
 overlay_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
-                      const char *emsg)
+                    const char *emsg)
 {
   struct ConnectionContext *cc = cls;
 
@@ -449,7 +477,7 @@ connect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
   {
     if ((dc->p1 == p1 && dc->p2 == p2) || (dc->p1 == p2 && dc->p2 == p1))
       break;
-    dc = dc_head->next;
+    dc = dc->next;
   }
   if (NULL != dc)
   {
@@ -458,10 +486,11 @@ connect_peers (struct PeerInfo *p1, struct PeerInfo *p2)
   }
   /* Connect peers using testbed */
   cc = GNUNET_new (struct ConnectionContext);
+
   cc->p1 = p1;
   cc->p2 = p2;
-  GNUNET_TESTBED_overlay_connect (cc, &overlay_connect_cb, cc,
-                                  p1->testbed_peer, p2->testbed_peer);
+  GNUNET_TESTBED_overlay_connect (cc, &overlay_connect_cb, cc, p1->testbed_peer,
+                                  p2->testbed_peer);
 }
 
 /*****************************************************************************/
@@ -552,8 +581,8 @@ sensor_dir_scanner (void *cls, const char *filename)
                    GNUNET_CONFIGURATION_parse (sensor_cfg, filename));
     GNUNET_CONFIGURATION_set_value_string (sensor_cfg, file_basename,
                                            "COLLECTION_POINT",
-                                           GNUNET_i2s_full (&all_peers_info[0].
-                                                            peer_id));
+                                           GNUNET_i2s_full (&all_peers_info
+                                                            [0].peer_id));
     if (sensors_interval > 0)
     {
       GNUNET_CONFIGURATION_set_value_number (sensor_cfg, file_basename,
@@ -716,28 +745,18 @@ peerstore_disconnect_adapter (void *cls, void *op_result)
  * Prompty the user to reconnect two peers
  */
 static void
-prompt_peer_reconnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+prompt_peer_reconnection (void *cls,
+                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int p1;
-  int p2;
-  char line[10];
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connect peers (e.g. '0,2') or empty line to execute:\n");
-  if (NULL == fgets (line, sizeof (line), stdin) || 1 == strlen (line))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Continuing.\n");
-    return;
-  }
-  if (2 != sscanf (line, "%d,%d", &p1, &p2) || p1 >= num_peers ||
-      p2 >= num_peers || p1 < 0 || p2 < 0 || p1 == p2)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid input.\n");
-    prompt_peer_reconnection (NULL, NULL);
-    return;
-  }
-  connect_peers (&all_peers_info[p1], &all_peers_info[p2]);
-  prompt_peer_reconnection (NULL, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting one link.\n");
+  connect_peers (&all_peers_info[split_head->p1],
+                 &all_peers_info[split_head->p2]);
+  GNUNET_SCHEDULER_cancel (shutdown_task);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down in 5 mins.\n");
+  shutdown_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MINUTES, 5), do_shutdown,
+                                    NULL);
 }
 
 
@@ -747,27 +766,19 @@ prompt_peer_reconnection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
 static void
 prompt_peer_disconnection ()
 {
-  int p1;
-  int p2;
-  char line[10];
+  struct Split *s;
 
+  s = split_head;
+  while (NULL != s)
+  {
+    disconnect_peers (&all_peers_info[s->p1], &all_peers_info[s->p2]);
+    s = s->next;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Disconnect peers (e.g. '0,2') or empty line to execute:\n");
-  if (NULL == fgets (line, sizeof (line), stdin) || 1 == strlen (line))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Will prompt for reconnection in 1 min.\n");
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 1) ,&prompt_peer_reconnection, NULL);
-    return;
-  }
-  if (2 != sscanf (line, "%d,%d", &p1, &p2) || p1 >= num_peers ||
-      p2 >= num_peers || p1 < 0 || p2 < 0 || p1 == p2)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Invalid input.\n");
-    prompt_peer_disconnection ();
-    return;
-  }
-  disconnect_peers (&all_peers_info[p1], &all_peers_info[p2]);
-  prompt_peer_disconnection ();
+              "Will prompt for reconnection in 1 min.\n");
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_MINUTES, 5),
+                                &prompt_peer_reconnection, NULL);
 }
 
 
@@ -964,6 +975,44 @@ verify_args ()
 
 
 /**
+ * Parse split file (name passed as parameter).
+ * Split file contains sequence of peer pairs to disconenct.
+ */
+static void
+parse_split_file ()
+{
+  uint64_t f_size;
+  char *splits;
+  char *ptr;
+  int p1;
+  int p2;
+  struct Split *s;
+
+  GNUNET_assert (NULL != split_file);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_DISK_file_size (split_file, &f_size, GNUNET_NO,
+                                        GNUNET_YES));
+  splits = malloc (f_size);
+  GNUNET_assert (f_size == GNUNET_DISK_fn_read (split_file, splits, f_size));
+  ptr = splits;
+  while (ptr < (splits + f_size))
+  {
+    GNUNET_assert (2 == sscanf (ptr, "%d,%d", &p1, &p2));
+    s = GNUNET_new (struct Split);
+
+    s->p1 = p1;
+    s->p2 = p2;
+    GNUNET_CONTAINER_DLL_insert_tail (split_head, split_tail, s);
+    while (ptr < (splits + f_size) && *ptr != '\n')
+      ptr++;
+    if (*ptr == '\n')
+      ptr++;
+  }
+  GNUNET_free (splits);
+}
+
+
+/**
  * Actual main function.
  *
  * @param cls unused
@@ -986,6 +1035,7 @@ run (void *cls, char *const *args, const char *cf,
                                          cfg, "TESTBED",
                                          "OVERLAY_TOPOLOGY_FILE",
                                          topology_file);
+  parse_split_file ();
   shutdown_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown,
                                     NULL);
@@ -1009,6 +1059,8 @@ main (int argc, char *const *argv)
     {'i', "sensors-interval", "INTERVAL",
      gettext_noop ("Change the interval of running sensors to given value"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &sensors_interval},
+    {'s', "split-file", "FILEPATH", gettext_noop ("Path to split file"),
+     GNUNET_YES, &GNUNET_GETOPT_set_filename, &split_file},
     GNUNET_GETOPT_OPTION_END
   };
 

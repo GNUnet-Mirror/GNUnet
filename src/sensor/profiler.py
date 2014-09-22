@@ -16,6 +16,8 @@ def get_args():
   parser = argparse.ArgumentParser(description="Sensor profiler")
   parser.add_argument('-p', '--peers', action='store', type=int, required=True,
                       help='Number of peers to run')
+  parser.add_argument('-l', '--links', action='store', type=int, required=False,
+                      help='Number of links to create')
   parser.add_argument('-i', '--sensors-interval', action='store', type=int,
                       required=False,
                       help='Change the interval of running sensors to given value')
@@ -66,8 +68,21 @@ def draw_graph():
     inc += 1
   print 'Drawing graph to file: %s' % name
   plt.clf()
+  anomaly_lbls = {}
+  for i in range(len(graph.node)):
+    if node_colors[i] >= 1:
+      anomaly_lbls[i] = '\n\n\n' + str(node_colors[i] - 1)
   networkx.draw(graph, pos=pos, node_color=node_colors, with_labels=range(len(graph.node)), cmap=plt.cm.Reds, vmin=0, vmax=2)
+  networkx.draw_networkx_labels(graph, pos, anomaly_lbls)
   plt.savefig(name)
+
+def peers_reconnected(p1, p2):
+  global graph
+  if p2 in graph[p1]:
+    print 'Link already exists'
+    return
+  graph.add_edge(p1, p2)
+  draw_graph()
 
 def peers_disconnected(p1, p2):
   global graph
@@ -83,7 +98,10 @@ def anomaly_report(report):
   if 0 == report['anomalous']:
     node_colors[report['peer']] = 0
   else:
-    node_colors[report['peer']] = 1 + report['neighbors']
+    clr = 1 + report['neighbors']
+    if node_colors[report['peer']] >= clr:
+      return
+    node_colors[report['peer']] = clr
   draw_graph()
 
 def handle_profiler_line(line):
@@ -99,9 +117,13 @@ def handle_profiler_line(line):
     parts = line.split('Anomaly report:')
     anomaly_report(eval(parts[1]))
     return
+  if 'Peer connection request sent' in line: # Peers reconnected
+    parts = line.split(':')
+    peers = parts[-1].split(',')
+    peers_reconnected(int(peers[0]), int(peers[1]))
 
-def run_profiler(peers, topology_file, sensors_interval):
-  cmd1 = "GNUNET_FORCE_LOG='gnunet-sensor-profiler;;;;DEBUG' gnunet-sensor-profiler -p %d -t %s" % (peers, topology_file)
+def run_profiler(peers, topology_file, sensors_interval, split_file):
+  cmd1 = "./gnunet-sensor-profiler -p %d -t %s -s %s" % (peers, topology_file, split_file)
   if sensors_interval:
     cmd1 += " -i %d" % sensors_interval
   cmd2 = "> log 2>&1"
@@ -120,6 +142,22 @@ def run_profiler(peers, topology_file, sensors_interval):
         line += c
   os.remove('log')
 
+def create_split():
+  global graph
+  f = open('split', 'w+')
+  half_size = len(graph.node) / 2
+  half1 = []
+  half2 = []
+  for n in graph.node:
+    if n < half_size:
+      half1.append(n)
+    else:
+      half2.append(n)
+  for e in graph.edges():
+    if (e[0] in half1 and e[1] in half2) or (e[0] in half2 and e[1] in half1):
+      f.write('%d,%d\n' % (e[0], e[1]))
+  f.close()
+
 def main():
   args = vars(get_args())
   num_peers = args['peers']
@@ -129,17 +167,24 @@ def main():
   sensors_interval = None
   if 'sensors_interval' in args:
     sensors_interval = args['sensors_interval']
-  #num_links = int(math.log(num_peers) * math.log(num_peers) * num_peers / 2)
-  num_links = int(math.log(num_peers) * num_peers)
+  if 'links' in args:
+    num_links = args['links']
+  else:
+    #num_links = int(math.log(num_peers) * math.log(num_peers) * num_peers / 2)
+    num_links = int(math.log(num_peers) * num_peers)
   # Generate random topology
   generate_topology(num_peers, num_links)
   print 'Generated random topology with %d peers and %d links' % (num_peers, num_links)
+  # Create a file with links to cut to split the topology into two
+  create_split()
   # Create TESTBED topology file
   top_file = create_topology_file()
   print 'Created TESTBED topology file %s' % top_file
   draw_graph()
   # Run c profiler
-  run_profiler(num_peers, top_file, sensors_interval)
+  if os.path.isfile('log'):
+    os.remove('log')
+  run_profiler(num_peers, top_file, sensors_interval, 'split')
   
 if __name__ == "__main__":
   main()
