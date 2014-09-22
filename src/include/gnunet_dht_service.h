@@ -393,14 +393,31 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle);
 
 #if ENABLE_MALICIOUS
 /**
- * Turn the DHT service to act malicious depending on @a flag
+ * Type of a Malicious continuation.  You must not call
+ * #GNUNET_DHT_disconnect in this continuation.
+ *
+ * @param cls closure
+ * @param success #GNUNET_OK if the set malicious request was transmitted,
+ *                #GNUNET_NO on timeout,
+ *                #GNUNET_SYSERR on disconnect from service
+ *                after the PUT message was transmitted
+ *                (so we don't know if it was received or not)
+ */
+typedef void (*GNUNET_DHT_ActMaliciousContinuation)(void *cls,
+                                        	 int success);
+
+/**
+ * Turn the DHT service to act malicious
  *
  * @param handle the DHT handle
  * @param action 1 to make the service malicious; 0 to make it benign
           FIXME: perhaps make this an enum of known malicious behaviors?
  */
-void
-GNUNET_DHT_malicious (struct GNUNET_DHT_Handle *handle, unsigned int action);
+struct GNUNET_DHT_ActMaliciousHandle *
+GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle, 
+                      unsigned int action, 
+                      GNUNET_DHT_PutContinuation cont,
+                      void *cont_cls);
 #endif
 
 

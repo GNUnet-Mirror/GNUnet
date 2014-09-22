@@ -37,7 +37,7 @@
  * Set the ENABLE_MALICIOUS value to malicious.
  * @param malicious
  */
-void 
+int
 GDS_NEIGHBOURS_act_malicious (unsigned int malicious);
 #endif
 

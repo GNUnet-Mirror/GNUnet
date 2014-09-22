@@ -46,13 +46,6 @@
 #define DEBUG(...)                                           \
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
-#if ENABLE_MALICIOUS
-/**
- * Should this peer act malicious?
- */
-extern unsigned int malicious;
-#endif
-
 /**
  * Linked list of messages to send to clients.
  */
@@ -1298,7 +1291,7 @@ handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
 
 #if ENABLE_MALICIOUS
 /**
- * Handler for act malicous message.
+ * Handler for act malicious message.
  *
  * @param cls closure for the service
  * @param client the client we received this message from
@@ -1310,11 +1303,24 @@ handle_dht_act_malicious (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ActMaliciousMessage *msg;
-  unsigned int malicious;
-  
+  struct PendingMessage *pm;
+  struct GNUNET_DHT_ClientActMaliciousConfirmationMessage *conf;
+  unsigned int malicious_action;
+
   msg = (const struct GNUNET_DHT_ActMaliciousMessage *)message;
-  malicious = msg->action;
-  GDS_NEIGHBOURS_act_malicious(malicious);
+  malicious_action = msg->action;
+  
+  if(GNUNET_OK == GDS_NEIGHBOURS_act_malicious (malicious_action))
+  {
+    pm = GNUNET_malloc (sizeof (struct PendingMessage) +
+		      sizeof (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage));
+    conf = (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage *) &pm[1];
+    conf->header.size = htons (sizeof (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage));
+    conf->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK);
+    pm->msg = &conf->header;
+    add_pending_message (find_active_client (client), pm);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  }
 }
 #endif
 

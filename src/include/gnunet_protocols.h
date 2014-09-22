@@ -2593,22 +2593,28 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_GET 891
 
-#if ENABLE_MALICIOUS
-/**
- * Turn X-VINE DHT service malicious
- */
-#define GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS 892
-#endif
-
 /**
  * Send back peer that considers you are its successor, a confirmation
  * that you got the notify successor message. 
  */
-#define GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION 893
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION 892
+
+#if ENABLE_MALICIOUS
+/**
+ * Turn X-VINE DHT service malicious
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS 893
+
+/**
+ * Acknowledge receiving ACT MALICIOUS request
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK  894
+
+#endif
 /*******************************************************************************/
 
 /**
- * Next available: 903
+ * Next available: 904
  */
 
 /**

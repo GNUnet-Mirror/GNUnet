@@ -93,6 +93,28 @@ struct PendingMessage
 
 };
 
+#if ENABLE_MALICIOUS
+/**
+ * Handle to act malicious message
+ */
+struct GNUNET_DHT_ActMaliciousHandle
+{
+  /**
+   * Continuation to call when done.
+   */
+  GNUNET_DHT_ActMaliciousContinuation cont;
+
+  /**
+   * Main handle to this DHT api
+   */
+  struct GNUNET_DHT_Handle *dht_handle;
+
+  /**
+   * Closure for 'cont'.
+   */
+  void *cont_cls;
+};
+#endif
 
 /**
  * Handle to a PUT request.
@@ -141,8 +163,6 @@ struct GNUNET_DHT_PutHandle
   uint64_t unique_id;
 
 };
-
-
 
 /**
  * Handle to a GET request
@@ -342,6 +362,13 @@ struct GNUNET_DHT_Handle
    * Did we start our receive loop yet?
    */
   int in_receive;
+  
+#if ENABLE_MALICIOUS
+  /**
+   * Handle of act malicious request.
+   */
+  struct GNUNET_DHT_ActMaliciousHandle *mh;
+#endif
 };
 
 
@@ -857,6 +884,35 @@ process_monitor_put_message (struct GNUNET_DHT_Handle *handle,
 }
 
 
+#if ENABLE_MALICIOUS
+/**
+ * Process a act malicious confirmation from service.
+ * @param handle The DHT handle.
+ * @param msg confirmation message from the service.
+ * @return #GNUNET_OK if everything went fine,
+ *         #GNUNET_SYSERR if the message is malformed.
+ */
+static int
+process_act_malicious_confirmation_message (struct GNUNET_DHT_Handle *handle,
+           const struct GNUNET_DHT_ClientActMaliciousConfirmationMessage *msg)
+{
+   struct GNUNET_DHT_ActMaliciousHandle *mh;
+   GNUNET_DHT_PutContinuation cont;
+   void *cont_cls;
+   
+   mh = handle->mh;
+   if (NULL == mh)
+    return GNUNET_OK;
+  cont = mh->cont;
+  cont_cls = mh->cont_cls;
+  if (NULL != cont)
+    cont (cont_cls, GNUNET_OK);
+  
+  return GNUNET_OK;
+}
+#endif
+
+
 /**
  * Process a put confirmation message from the service.
  *
@@ -972,6 +1028,17 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     ret = process_put_confirmation_message (handle,
 					    (const struct GNUNET_DHT_ClientPutConfirmationMessage*) msg);
     break;
+#if ENABLE_MALICIOUS
+    case GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK:
+       if(msize != sizeof (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage))
+       {
+         GNUNET_break (0);
+         break;
+       }
+       ret = process_act_malicious_confirmation_message (handle,
+					    (const struct GNUNET_DHT_ClientActMaliciousConfirmationMessage*) msg);
+      break;
+#endif
   default:
     GNUNET_break(0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1150,7 +1217,6 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   size_t msize;
   struct PendingMessage *pending;
   struct GNUNET_DHT_PutHandle *ph;
-
 
   msize = sizeof (struct GNUNET_DHT_ClientPutMessage) + size;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
@@ -1499,16 +1565,21 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
 
 #if ENABLE_MALICIOUS
 /**
- * Turn the DHT service to act malicious depending on @a flag
+ * Turn the DHT service to act malicious.
  *
  * @param handle the DHT handle
  * @param action 1 to make the service malicious; 0 to make it benign
-          FIXME: perhaps make this an enum of known malicious behaviors?
+ * @param cont continuation to call when done (transmitting request to service)
+ * @param cont_cls closure for @a cont        
  */
-void
-GNUNET_DHT_malicious (struct GNUNET_DHT_Handle *handle, unsigned int action)
+struct GNUNET_DHT_ActMaliciousHandle *
+GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle, 
+                          unsigned int action,
+                          GNUNET_DHT_PutContinuation cont,
+                          void *cont_cls)
 {
   struct GNUNET_DHT_ActMaliciousMessage *amm;
+  struct GNUNET_DHT_ActMaliciousHandle *mh;
   struct PendingMessage *pending;
   size_t msize;
   
@@ -1516,9 +1587,12 @@ GNUNET_DHT_malicious (struct GNUNET_DHT_Handle *handle, unsigned int action)
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break(0);
-    return;
+    return NULL;
   }
-  
+  mh = GNUNET_new (struct GNUNET_DHT_ActMaliciousHandle);
+  mh->dht_handle = handle;
+  mh->cont = cont;
+  mh->cont_cls = cont_cls;
   pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
   amm = (struct GNUNET_DHT_ActMaliciousMessage *)&pending[1];
   pending->msg = &amm->header;
@@ -1527,11 +1601,12 @@ GNUNET_DHT_malicious (struct GNUNET_DHT_Handle *handle, unsigned int action)
   amm->header.size = htons (msize);
   amm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS);
   amm->action = action;
-  
+  handle->mh = mh;
   GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
                                pending);
   pending->in_pending_queue = GNUNET_YES;
   process_pending_messages (handle);
+  return mh;
 }
 #endif
 

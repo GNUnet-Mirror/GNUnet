@@ -442,6 +442,19 @@ struct GNUNET_DHT_MonitorGetRespMessage
 };
 
 #if ENABLE_MALICIOUS
+
+/**
+ * Message to confirming receipt of ACT MALICIOUS, sent from DHT service to clients.
+ */
+struct GNUNET_DHT_ClientActMaliciousConfirmationMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_CLIENT_PUT_OK
+   */
+  struct GNUNET_MessageHeader header;
+};
+
+
 /**
  * Message to turn the service malicious
  */
@@ -453,7 +466,7 @@ struct GNUNET_DHT_ActMaliciousMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Type of malicious behaviour expected; 0 turning peer benign
+   * If set to 1, act maliciously
    */
   uint32_t action;
 };
