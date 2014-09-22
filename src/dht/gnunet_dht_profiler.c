@@ -825,7 +825,6 @@ static void *
 dht_connect (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   n_dht++;
-  DEBUG("\n Inside dht_connect , n_dht = %u",n_dht);
   return GNUNET_DHT_connect (cfg, 10);
 }
 
@@ -995,7 +994,6 @@ set_malicious()
   
   for(i = 0; i < n_malicious; i++)
   {
-    DEBUG("\n Inside loop , i = %u",i);
     struct MaliciousContext *mc = &a_mc[i];
     mc->ctx->op =
         GNUNET_TESTBED_service_connect (mc->ctx,

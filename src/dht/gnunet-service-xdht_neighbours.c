@@ -2269,6 +2269,7 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity))
   {
+    DEBUG("\n PUT_REQUEST_SUCCESSFUL for key = %s",GNUNET_h2s(key));
     /* I am the destination. */
     GDS_DATACACHE_handle_put (expiration_time, key, 0, NULL,
                               block_type,data_size,data);
@@ -2278,7 +2279,6 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
                              key, data, data_size);
     return;
   }
-  DEBUG("\n PUT_REQUEST_RECEVIED for key = %s, act_malicious = %d",GNUNET_h2s(key),act_malicious);
   /* In case we are sending the request to  a finger, then send across all of its
    trail.*/
 #if ENABLE_MALICIOUS
@@ -2295,8 +2295,6 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
       {
         if(0 == next_hop_finger->trail_list[i].trail_length)
         {
-          DEBUG("\n PUT_REQUEST = %s TRAIL LENGTH = 0 NOT SENDING ACROSS MULTIPLE TRAILS,next_hop = %s", GNUNET_h2s(key),
-                  GNUNET_i2s(&next_hop));
            GDS_NEIGHBOURS_send_put (key, block_type, options, desired_replication_level,
                                     best_known_dest, intermediate_trail_id, &next_hop,
                                     0, 1, &my_identity, expiration_time,
@@ -2304,9 +2302,6 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
            return;
         } 
         next_hop = next_hop_finger->trail_list[i].trail_head->peer;
-        DEBUG("\n PUT_REQUEST = %s SENDING ACROSS TRAIL_ID = %s, next_hop = %s",
-               GNUNET_h2s(key),GNUNET_h2s(&next_hop_finger->trail_list[i].trail_id),
-               GNUNET_i2s(&next_hop));
         GDS_NEIGHBOURS_send_put (key, block_type, options, desired_replication_level,
                                  best_known_dest, 
                                  next_hop_finger->trail_list[i].trail_id, 
@@ -2318,8 +2313,6 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
     return;
   }
 #endif
- DEBUG("\n PUT_REQUEST = %s NOT SENDING ACROSS MULTIPLE TRAILS  next_hop = %s",
-          GNUNET_h2s(key), GNUNET_i2s(&next_hop));
  GDS_NEIGHBOURS_send_put (key, block_type, options, desired_replication_level,
                           best_known_dest, intermediate_trail_id, &next_hop,
                           0, 1, &my_identity, expiration_time,
@@ -3640,8 +3633,6 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
 
 
 /**
- * FIXME: Check for loop in the request. If you already are part of put path,
- * then you need to reset the put path length.
  * Core handler for P2P put messages.
  * @param cls closure
  * @param peer sender of the request
@@ -3688,11 +3679,10 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  DEBUG("\n PUT_REQUEST_RECEVIED for key = %s, my_id = %s",GNUNET_h2s(&put->key),GNUNET_i2s(&my_identity));
 #if ENABLE_MALICIOUS
   if(1 == act_malicious)
   {
-    DEBUG("\n I AM MALICIOUS PUT_REQUEST_RECEVIED for key = %s, my_id = %s",GNUNET_h2s(&put->key),GNUNET_i2s(&my_identity));
+    DEBUG("\n I AM MALICIOUS PUT_REQUEST_DROPPED for key = %ss",GNUNET_h2s(&put->key));
     return GNUNET_OK;
   }
 #endif
@@ -3816,6 +3806,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* I am the final destination */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &best_known_dest))
   {
+    DEBUG("\n PUT_REQUEST_SUCCESSFUL for key = %s",GNUNET_h2s(&put->key));
     GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
                               &(put->key),putlen, pp, ntohl (put->block_type),
                               payload_size, payload);
@@ -3836,7 +3827,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
       {
         if(0 == next_hop_finger->trail_list[i].trail_length)
         {
-          DEBUG("\n PUT_REQUEST_RECEVIED for key = %s, next_hop = %s,TRAIL LENGTH IS 0",GNUNET_h2s(&put->key),GNUNET_i2s(next_hop));
           GDS_NEIGHBOURS_send_put (&put->key,
                                   ntohl (put->block_type),ntohl (put->options),
                                   ntohl (put->desired_replication_level),
@@ -3847,9 +3837,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
           return GNUNET_OK;
         }
         next_hop = &next_hop_finger->trail_list[i].trail_head->peer;
-        DEBUG("\n PUT_REQUEST = %s SENDING ACROSS TRAIL_ID = %s, next_hop = %s",
-               GNUNET_h2s(&put->key),GNUNET_h2s(&next_hop_finger->trail_list[i].trail_id),
-               GNUNET_i2s(next_hop));
         GDS_NEIGHBOURS_send_put (&put->key,
                                  ntohl (put->block_type),ntohl (put->options),
                                  ntohl (put->desired_replication_level),
@@ -3863,8 +3850,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 #endif
-  DEBUG("\n PUT_REQUEST = %s NOT SENDING ACROSS MULTIPLE TRAILS  next_hop = %s",
-          GNUNET_h2s(&put->key), GNUNET_i2s(next_hop));
   GDS_NEIGHBOURS_send_put (&put->key,
                            ntohl (put->block_type),ntohl (put->options),
                            ntohl (put->desired_replication_level),
@@ -3928,7 +3913,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if ENABLE_MALICIOUS
   if(1 == act_malicious)
   {
-    DEBUG("I am malicious,dropping get request. \n");
+    DEBUG("I am malicious,GET_REQUEST_DROPPED for key = %s. \n",GNUNET_h2s(&get->key));
     return GNUNET_OK;
   }
 #endif
@@ -3992,6 +3977,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (1 == get_length)
     {
+      DEBUG("\n GET_REQUEST DONE for key = %s",GNUNET_h2s(&get->key));
       GDS_DATACACHE_handle_get (&(get->key),(get->block_type), NULL, 0,
                                 NULL, 0, 1, &my_identity, NULL,&my_identity);
     }
