@@ -429,6 +429,7 @@ do_blacklist_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No other blacklist clients active, will allow neighbour `%s'\n",
                 GNUNET_i2s (&bc->peer));
+
     bc->cont (bc->cont_cls, &bc->peer, GNUNET_OK);
     GNUNET_CONTAINER_DLL_remove(bc_head, bc_tail, bc);
     GNUNET_free (bc);
@@ -618,6 +619,8 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Blacklist check succeeded, continuing with checks\n");
+      GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
+      bl->call_receive_done = GNUNET_NO;
       bc->bl_pos = bc->bl_pos->next;
       bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
     }
