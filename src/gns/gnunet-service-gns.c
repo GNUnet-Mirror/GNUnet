@@ -416,8 +416,7 @@ convert_records_for_export (const struct GNUNET_GNSRECORD_Data *rd,
   rd_public_count = 0;
   now = GNUNET_TIME_absolute_get ();
   for (i=0;i<rd_count;i++)
-    if (0 == (rd[i].flags & (GNUNET_GNSRECORD_RF_PRIVATE |
-			     GNUNET_GNSRECORD_RF_PENDING)))
+    if (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE))
     {
       rd_public[rd_public_count] = rd[i];
       if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))

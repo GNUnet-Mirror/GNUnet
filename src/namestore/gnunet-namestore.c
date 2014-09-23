@@ -419,8 +419,7 @@ display_record (void *cls,
 	     s,
              ets,
              (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PRIVATE)) ? "PRIVATE" : "PUBLIC",
-             (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)) ? "SHADOW" : "",
-             (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PENDING)) ? "PENDING" : "");
+             (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)) ? "SHADOW" : "");
     GNUNET_free (s);
   }
   FPRINTF (stdout, "%s", "\n");
@@ -552,8 +551,6 @@ get_existing_record (void *cls,
     rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
   if (1 != is_public)
     rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-  if (1 == is_pending)
-    rde->flags |= GNUNET_GNSRECORD_RF_PENDING;
   if (GNUNET_YES == etime_is_rel)
   {
     rde->expiration_time = etime_rel.rel_value_us;

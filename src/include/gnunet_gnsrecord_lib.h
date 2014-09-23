@@ -104,10 +104,10 @@ enum GNUNET_GNSRECORD_Flags
   GNUNET_GNSRECORD_RF_PRIVATE = 2,
 
   /**
-   * This record was added automatically by the system
-   * and is pending user confimation.
+   * This flag is currently unused; former RF_PENDING flag
+   *
+   * GNUNET_GNSRECORD_RF_UNUSED = 4,
    */
-  GNUNET_GNSRECORD_RF_PENDING = 4,
 
   /**
    * This expiration time of the record is a relative

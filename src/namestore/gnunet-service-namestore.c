@@ -1310,8 +1310,7 @@ zone_iterate_proc (void *cls,
 			rd);
   do_refresh_block = GNUNET_NO;
   for (i=0;i<rd_count;i++)
-    if(  (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION)) &&
-         (0 == (rd[i].flags & GNUNET_GNSRECORD_RF_PENDING)) )
+    if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
     {
       do_refresh_block = GNUNET_YES;
       break;

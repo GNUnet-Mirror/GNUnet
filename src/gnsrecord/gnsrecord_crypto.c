@@ -243,8 +243,6 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
       j = 0;
       for (i=0;i<rd_count;i++)
       {
-        if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_PENDING))
-          continue; /* PENDING should never be used */
         if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
         {
           /* encrypted blocks must never have relative expiration times, skip! */
