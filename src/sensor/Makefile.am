@@ -119,7 +119,7 @@ gnunet_sensor_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 perf_pow_sign_SOURCES = \
   perf_pow_sign.c

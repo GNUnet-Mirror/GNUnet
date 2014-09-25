@@ -140,7 +140,6 @@ def run_profiler(peers, topology_file, sensors_interval, split_file):
         line = ''
       else:
         line += c
-  os.remove('log')
 
 def create_split():
   global graph

@@ -164,7 +164,7 @@ main (int argc, char *const *argv)
     {'g', "get-sensor", NULL,
      gettext_noop ("Retrieve information about a single sensor"),
      1, &GNUNET_GETOPT_set_string, &get_sensor},
-    {'f', "force anomaly", NULL,
+    {'f', "force-anomaly", NULL,
      gettext_noop ("Force an anomaly on a sensor, use only for testing"),
      1, &GNUNET_GETOPT_set_string, &force_anomaly},
     GNUNET_GETOPT_OPTION_END
