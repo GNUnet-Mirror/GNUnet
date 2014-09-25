@@ -21,6 +21,9 @@ def get_args():
   parser.add_argument('-i', '--sensors-interval', action='store', type=int,
                       required=False,
                       help='Change the interval of running sensors to given value')
+  parser.add_argument('-a', '--anomalous-peers', action='store', type=int,
+                      required=True,
+                      help='Number of peers to simulate anomalies on')
   return parser.parse_args()
 
 def generate_topology(peers, links):
@@ -122,8 +125,8 @@ def handle_profiler_line(line):
     peers = parts[-1].split(',')
     peers_reconnected(int(peers[0]), int(peers[1]))
 
-def run_profiler(peers, topology_file, sensors_interval, split_file):
-  cmd1 = "./gnunet-sensor-profiler -p %d -t %s -s %s" % (peers, topology_file, split_file)
+def run_profiler(peers, topology_file, sensors_interval, anomalous_peers):
+  cmd1 = "./gnunet-sensor-profiler -p %d -t %s -a %d" % (peers, topology_file, anomalous_peers)
   if sensors_interval:
     cmd1 += " -i %d" % sensors_interval
   cmd2 = "> log 2>&1"
@@ -140,22 +143,6 @@ def run_profiler(peers, topology_file, sensors_interval, split_file):
         line = ''
       else:
         line += c
-
-def create_split():
-  global graph
-  f = open('split', 'w+')
-  half_size = len(graph.node) / 2
-  half1 = []
-  half2 = []
-  for n in graph.node:
-    if n < half_size:
-      half1.append(n)
-    else:
-      half2.append(n)
-  for e in graph.edges():
-    if (e[0] in half1 and e[1] in half2) or (e[0] in half2 and e[1] in half1):
-      f.write('%d,%d\n' % (e[0], e[1]))
-  f.close()
 
 def main():
   args = vars(get_args())
@@ -175,7 +162,6 @@ def main():
   generate_topology(num_peers, num_links)
   print 'Generated random topology with %d peers and %d links' % (num_peers, num_links)
   # Create a file with links to cut to split the topology into two
-  create_split()
   # Create TESTBED topology file
   top_file = create_topology_file()
   print 'Created TESTBED topology file %s' % top_file
@@ -183,7 +169,7 @@ def main():
   # Run c profiler
   if os.path.isfile('log'):
     os.remove('log')
-  run_profiler(num_peers, top_file, sensors_interval, 'split')
+  run_profiler(num_peers, top_file, sensors_interval, args['anomalous_peers'])
   
 if __name__ == "__main__":
   main()
