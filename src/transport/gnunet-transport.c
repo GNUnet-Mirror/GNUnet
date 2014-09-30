@@ -1877,7 +1877,7 @@ main (int argc, char * const *argv)
       gettext_noop ("print information for all pending validations "),
       0, &GNUNET_GETOPT_set_one, &iterate_validation },
     { 'f', "monitorvalidation", NULL,
-      gettext_noop ("print information for all pending validations continously"),
+      gettext_noop ("print information for all pending validations continuously"),
       0, &GNUNET_GETOPT_set_one, &monitor_validation },
     { 'i', "information", NULL,
       gettext_noop ("provide information about all current connections (once)"),
