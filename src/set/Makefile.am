@@ -15,7 +15,7 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-bin_PROGRAMS = \
+noinst_PROGRAMS = \
  gnunet-set-profiler gnunet-set-ibf-profiler
 
 libexec_PROGRAMS = \
