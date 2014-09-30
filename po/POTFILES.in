@@ -98,7 +98,6 @@ src/dht/gnunet-service-xdht_neighbours.c
 src/dht/gnunet-service-xdht_nse.c
 src/dht/gnunet-service-xdht_routing.c
 src/dht/gnunet_dht_profiler.c
-src/dht/gnunet_dht_r5n_profiler.c
 src/dht/plugin_block_dht.c
 src/dns/dns_api.c
 src/dns/dnsparser.c
