@@ -118,7 +118,7 @@ GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
  * @param sum current sum, initially 0
  * @param buf buffer to calculate CRC over (must be 16-bit aligned)
  * @param len number of bytes in hdr, must be multiple of 2
- * @return updated crc sum (must be subjected to GNUNET_CRYPTO_crc16_finish to get actual crc16)
+ * @return updated crc sum (must be subjected to #GNUNET_CRYPTO_crc16_finish() to get actual crc16)
  */
 uint32_t
 GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len)
@@ -133,7 +133,7 @@ GNUNET_CRYPTO_crc16_step (uint32_t sum, const void *buf, size_t len)
 
 
 /**
- * Convert results from GNUNET_CRYPTO_crc16_step to final crc16.
+ * Convert results from #GNUNET_CRYPTO_crc16_step() to final crc16.
  *
  * @param sum cummulative sum
  * @return crc16 value

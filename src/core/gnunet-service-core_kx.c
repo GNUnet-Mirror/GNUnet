@@ -82,12 +82,12 @@ struct EphemeralKeyMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Status of the sender (should be in "enum PeerStateMachine"), nbo.
+   * Status of the sender (should be in `enum PeerStateMachine`), nbo.
    */
   int32_t sender_status GNUNET_PACKED;
 
   /**
-   * An ECC signature of the 'origin' asserting the validity of
+   * An ECC signature of the @e origin_identity asserting the validity of
    * the given ephemeral key.
    */
   struct GNUNET_CRYPTO_EddsaSignature signature;
@@ -230,7 +230,7 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /**
- * Number of bytes (at the beginning) of "struct EncryptedMessage"
+ * Number of bytes (at the beginning) of `struct EncryptedMessage`
  * that are NOT encrypted.
  */
 #define ENCRYPTED_HEADER_SIZE (offsetof(struct EncryptedMessage, sequence_number))
@@ -385,7 +385,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
  * Inform the given monitor about the KX state of
  * the given peer.
  *
- * @param mc monitor to inform
+ * @param client client to inform
  * @param kx key exchange state to inform about
  */
 static void
@@ -403,6 +403,22 @@ monitor_notify (struct GNUNET_SERVER_Client *client,
                                               client,
                                               &msg.header,
                                               GNUNET_NO);
+}
+
+
+/**
+ * Calculate seed value we should use for a message.
+ *
+ * @param kx key exchange context
+ */
+static uint32_t
+calculate_seed (struct GSC_KeyExchangeInfo *kx)
+{
+  /* Note: may want to make this non-random and instead
+     derive from key material to avoid having an undetectable
+     side-channel */
+  return htonl (GNUNET_CRYPTO_random_u32
+		(GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
 }
 
 
@@ -657,8 +673,7 @@ setup_fresh_ping (struct GSC_KeyExchangeInfo *kx)
   pm = &kx->ping;
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
-  pm->iv_seed =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  pm->iv_seed = calculate_seed (kx);
   derive_iv (&iv, &kx->encrypt_key, pm->iv_seed, &kx->peer);
   pp.challenge = kx->ping_challenge;
   pp.target = kx->peer;
@@ -1026,8 +1041,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   tx.target = t.target;
   tp.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
   tp.header.size = htons (sizeof (struct PongMessage));
-  tp.iv_seed =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  tp.iv_seed = calculate_seed (kx);
   derive_pong_iv (&iv, &kx->encrypt_key, tp.iv_seed, t.challenge, &kx->peer);
   do_encrypt (kx, &iv, &tx.challenge, &tp.challenge,
               sizeof (struct PongMessage) - ((void *) &tp.challenge -
@@ -1276,7 +1290,7 @@ send_key (struct GSC_KeyExchangeInfo *kx)
  *
  * @param kx key exchange context
  * @param payload payload of the message
- * @param payload_size number of bytes in 'payload'
+ * @param payload_size number of bytes in @a payload
  */
 void
 GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
@@ -1291,10 +1305,8 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_CRYPTO_AuthKey auth_key;
 
   ph = (struct EncryptedMessage *) pbuf;
-  ph->iv_seed =
-      htonl (GNUNET_CRYPTO_random_u32
-             (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
   ph->sequence_number = htonl (++kx->last_sequence_number_sent);
+  ph->iv_seed = calculate_seed (kx);
   ph->reserved = 0;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   memcpy (&ph[1], payload, payload_size);
