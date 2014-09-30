@@ -16,9 +16,9 @@ lib_LTLIBRARIES = \
  libgnunetspeaker.la \
  libgnunetconversation.la
 
-pkgcfgdir= $(prefix)/share/gnunet/config.d/
+pkgcfgdir= $(pkgdatadir)/config.d/
 
-libexecdir= $(prefix)/lib/gnunet/libexec/
+libexecdir= $(pkglibdir)/libexec/
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_gnsrecord_conversation.la
