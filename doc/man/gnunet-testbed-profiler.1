@@ -1,0 +1,44 @@
+.TH GNUNET\-TESTBED\-PROFILER 1 "Sep 13, 2014" "GNUnet"
+
+.SH NAME
+gnunet\-testbed\-profiler \- Profiling driver for the testbed.
+
+.SH SYNOPSIS
+.B gnunet\-testbed\-profiler
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-testbed\-profiler\fP is a command line profiling driver for the testbed.
+
+.SH OPTIONS
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-e COUNT,  \-\-num\-errors=COUNT"
+Tolerate COUNT number of continious timeout failures.
+.B
+.IP "\-H FILENAME,  \-\-hosts=FILENAME"
+Name of the file with the login information for the testbed.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-l LOGFILE, \-\-logfile=LOGFILE"
+Configure logging to write logs to LOGFILE.
+.B
+.IP "\-n, \-\-non\-interactive"
+Run profiler in non-interactive mode where upon testbed setup the profiler does not wait for a keystroke but continues to run until a termination signal is received.
+.B
+.IP "\-p COUNT, \-\-num\-peers=COUNT"
+Create COUNT number of peers.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>

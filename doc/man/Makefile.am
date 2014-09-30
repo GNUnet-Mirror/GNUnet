@@ -3,6 +3,7 @@ man_MANS = \
   gnunet-arm.1 \
   gnunet-ats.1 \
   gnunet-auto-share.1 \
+  gnunet-bcd.1 \
   gnunet-config.1 \
   gnunet-core.1 \
   gnunet-conversation.1 \
@@ -25,11 +26,14 @@ man_MANS = \
   gnunet-nat-server.1 \
   gnunet-peerinfo.1 \
   gnunet-publish.1 \
+  gnunet-qr.1 \
   gnunet-resolver.1 \
   gnunet-revocation.1 \
   gnunet-scalarproduct.1 \
+  gnunet-scrypt.1 \
   gnunet-search.1 \
   gnunet-statistics.1 \
+  gnunet-testbed-profiler.1 \
   gnunet-testing-run-service.1 \
   gnunet-transport.1 \
   gnunet-transport-certificate-creation.1 \
