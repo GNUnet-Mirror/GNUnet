@@ -110,11 +110,6 @@ static int is_public;
 static int is_shadow;
 
 /**
- * Is record pending approval (#GNUNET_GNSRECORD_RF_PENDING)
- */
-static int is_pending;
-
-/**
  * Queue entry for the 'del' operation.
  */
 static struct GNUNET_NAMESTORE_QueueEntry *del_qe;
@@ -1063,7 +1058,6 @@ int
 main (int argc, char *const *argv)
 {
   is_public = -1;
-  is_pending = -1;
   is_shadow = -1;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
@@ -1103,9 +1097,6 @@ main (int argc, char *const *argv)
     {'p', "public", NULL,
      gettext_noop ("create or list public record"), 0,
      &GNUNET_GETOPT_set_one, &is_public},
-    {'P', "pending", NULL,
-     gettext_noop ("create record that is pending approval (and thus for now inactive)"), 0,
-     &GNUNET_GETOPT_set_one, &is_pending},
     {'s', "shadow", NULL,
      gettext_noop ("create shadow record (only valid if all other records of the same type have expired"), 0,
      &GNUNET_GETOPT_set_one, &is_shadow},
