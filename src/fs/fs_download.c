@@ -2291,6 +2291,39 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc)
 	      dc->job_queue);
 }
 
+/**
+ * Suspend a download.
+ *
+ * @param dc handle for the download
+ */
+void
+GNUNET_FS_download_suspend (struct GNUNET_FS_DownloadContext *dc)
+{
+	deactivate_fs_download(dc);
+}
+
+/**
+ * Resume a suspended download.
+ *
+ * @param dc handle for the download
+ */
+void
+GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc)
+{
+    struct GNUNET_FS_ProgressInfo pi;
+
+    pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
+    GNUNET_FS_download_make_status_ (&pi, dc);
+  
+    dc->job_queue =
+      GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
+                        dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
+			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
+			? GNUNET_FS_QUEUE_PRIORITY_NORMAL
+			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
+			
+}
+
 
 /**
  * Stop a download (aborts if download is incomplete).

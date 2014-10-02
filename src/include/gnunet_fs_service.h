@@ -2451,6 +2451,24 @@ void
 GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete);
 
 
+/**
+ * Suspend a download.
+ *
+ * @param dc handle for the download
+ */
+void
+GNUNET_FS_download_suspend (struct GNUNET_FS_DownloadContext *dc);
+
+
+/**
+ * Resume a suspended download.
+ *
+ * @param dc handle for the download
+ */
+void
+GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc);
+
+
 
 /* ******************** Directory API *********************** */
 
