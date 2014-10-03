@@ -318,7 +318,7 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  *
  * @param cls closure
  * @param addr the address, NULL on errors
- * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void (*GNUNET_NAT_IPCallback) (void *cls,
                                        const struct in_addr *addr,
@@ -370,7 +370,7 @@ struct GNUNET_NAT_MiniHandle;
  *     the previous (now invalid) one, #GNUNET_SYSERR indicates an error
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of the @a addr
- * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void
 (*GNUNET_NAT_MiniAddressCallback) (void *cls,
@@ -424,7 +424,7 @@ struct GNUNET_NAT_AutoHandle;
  * @param cls closure
  * @param diff minimal suggested changes to the original configuration
  *             to make it work (as best as we can)
- * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void
 (*GNUNET_NAT_AutoResultCallback)(void *cls,
