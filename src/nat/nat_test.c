@@ -142,7 +142,7 @@ struct GNUNET_NAT_Test
    * Identity of task for the listen socket (if any)
    */
   GNUNET_SCHEDULER_TaskIdentifier ltask;
-  
+
   /**
    * Task identifier for the timeout (if any)
    */
@@ -372,31 +372,33 @@ addr_cb (void *cls,
 
 
 /**
- * Timeout task for a nat test. 
+ * Timeout task for a nat test.
  * Calls the report-callback with a timeout return value
- * 
+ *
  * Destroys the nat handle after the callback has been processed.
- * 
+ *
  * @param cls handle to the timed out NAT test
  * @param tc not used
  */
 static void
 do_timeout (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext * tc)
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_NAT_Test *nh = (struct GNUNET_NAT_Test *) cls;
-  
+  struct GNUNET_NAT_Test *nh = cls;
+
   nh->ttask = GNUNET_SCHEDULER_NO_TASK;
-  nh->report (nh->report_cls, (GNUNET_NAT_ERROR_SUCCESS == nh->status)? GNUNET_NAT_ERROR_TIMEOUT: nh->status );
-  
-  GNUNET_NAT_test_stop(nh);
+  nh->report (nh->report_cls,
+              (GNUNET_NAT_ERROR_SUCCESS == nh->status)
+              ? GNUNET_NAT_ERROR_TIMEOUT
+              : nh->status);
+  GNUNET_NAT_test_stop (nh);
 }
 
 
 /**
  * Start testing if NAT traversal works using the
  * given configuration (IPv4-only).
- * 
+ *
  * ALL failures are reported directly to the report callback
  *
  * @param cfg configuration for the NAT traversal
@@ -483,17 +485,20 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	 "NAT test listens on port %u (%s)\n",
 	 bnd_port,
 	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
-    nh->nat = GNUNET_NAT_register (cfg, is_tcp, adv_port, 1, addrs, addrlens,
-                             &addr_cb, NULL, nh);
+    nh->nat = GNUNET_NAT_register (cfg, is_tcp, adv_port, 1,
+                                   addrs, addrlens,
+                                   &addr_cb, NULL, nh);
     if (NULL == nh->nat)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
           _("NAT test failed to start NAT library\n"));
-      if (GNUNET_SCHEDULER_NO_TASK != nh->ltask){
+      if (GNUNET_SCHEDULER_NO_TASK != nh->ltask)
+      {
         GNUNET_SCHEDULER_cancel (nh->ltask);
         nh->ltask = GNUNET_SCHEDULER_NO_TASK;
       }
-      if (NULL != nh->lsock){
+      if (NULL != nh->lsock)
+      {
         GNUNET_NETWORK_socket_close (nh->lsock);
         nh->lsock = NULL;
       }
@@ -539,7 +544,8 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
     GNUNET_SCHEDULER_cancel (tst->ltask);
   if (NULL != tst->lsock)
     GNUNET_NETWORK_socket_close (tst->lsock);
-  GNUNET_NAT_unregister (tst->nat);
+  if (NULL != tst->nat)
+    GNUNET_NAT_unregister (tst->nat);
   GNUNET_free (tst);
 }
 
