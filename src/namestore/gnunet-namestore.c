@@ -409,7 +409,7 @@ display_record (void *cls,
       ets = GNUNET_STRINGS_absolute_time_to_string (at);
     }
     FPRINTF (stdout,
-	     "\t%s: %s (%s)\t%s\t%s\t%s\n",
+	     "\t%s: %s (%s)\t%s\t%s\n",
 	     typestring,
 	     s,
              ets,
