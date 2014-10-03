@@ -391,7 +391,6 @@ do_timeout (void *cls,
               (GNUNET_NAT_ERROR_SUCCESS == nh->status)
               ? GNUNET_NAT_ERROR_TIMEOUT
               : nh->status);
-  GNUNET_NAT_test_stop (nh);
 }
 
 
@@ -462,7 +461,10 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                   GNUNET_a2s ((const struct sockaddr *) &sa, sizeof (sa)),
                   STRERROR (errno));
       if (NULL != nh->lsock)
+      {
         GNUNET_NETWORK_socket_close (nh->lsock);
+        nh->lsock = NULL;
+      }
       nh->status = GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR;
       nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout, nh);
       return nh;

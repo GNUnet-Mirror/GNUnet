@@ -73,119 +73,119 @@ struct GNUNET_NAT_Handle;
 /**
  * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
  */
-enum GNUNET_NAT_StatusCode 
+enum GNUNET_NAT_StatusCode
 {
   /**
    * Just the default
    */
   GNUNET_NAT_ERROR_SUCCESS = GNUNET_OK,
-  
+
   /**
    * IPC Failure
    */
   GNUNET_NAT_ERROR_IPC_FAILURE,
-  
+
   /**
    * Failure in network subsystem, check permissions
    */
   GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR,
-  
+
   /**
    * test timed out
    */
   GNUNET_NAT_ERROR_TIMEOUT,
-  
+
   /**
    * detected that we are offline
    */
   GNUNET_NAT_ERROR_NOT_ONLINE,
-  
+
   /**
    * `upnpc` command not found
    */
   GNUNET_NAT_ERROR_UPNPC_NOT_FOUND,
-  
+
   /**
    * Failed to run `upnpc` command
    */
   GNUNET_NAT_ERROR_UPNPC_FAILED,
-  
+
   /**
    * `upnpc' command took too long, process killed
    */
   GNUNET_NAT_ERROR_UPNPC_TIMEOUT,
-  
+
   /**
    * `upnpc' command failed to establish port mapping
    */
   GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED,
-  
+
   /**
    * `external-ip' command not found
    */
   GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND,
-  
+
   /**
    * Failed to run `external-ip` command
    */
   GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED,
-  
+
   /**
    * `external-ip' command output invalid
    */
   GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID,
-  
+
   /**
    * "no valid address was returned by `external-ip'"
    */
   GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID,
-  
+
   /**
    * Could not determine interface with internal/local network address
    */
   GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO,
-          
+
   /**
    * No working gnunet-helper-nat-server found
    */
   GNUNET_NAT_ERROR_HELPER_NAT_SERVER_NOT_FOUND,
-  
+
   /**
    * NAT test could not be initialized
    */
   GNUNET_NAT_ERROR_NAT_TEST_START_FAILED,
-  
+
   /**
    * NAT test timeout
    */
   GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT,
-  
+
   /**
    * NAT test failed to initiate
    */
   GNUNET_NAT_ERROR_NAT_REGISTER_FAILED,
-  
+
   /**
-   * 
+   *
    */
   GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND,
-  
-  
+
   /**
-   * 
+   *
    */
   GNUNET_NAT_ERROR_
 };
 
 
 /**
- * Converts enum GNUNET_NAT_StatusCode to string
- * 
+ * Converts `enum GNUNET_NAT_StatusCode` to string
+ *
  * @param err error code to resolve to a string
  * @return point to a static string containing the error code
  */
 const char *
 GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err);
+
 
 /**
  * Attempt to enable port redirection and detect public IP address
@@ -289,7 +289,8 @@ typedef void (*GNUNET_NAT_TestCallback) (void *cls,
  * @param bnd_port port to bind to, 0 for connection reversal
  * @param adv_port externally advertised port to use
  * @param timeout delay after which the test should be aborted
- * @param report function to call with the result of the test
+ * @param report function to call with the result of the test;
+ *               you still must call #GNUNET_NAT_test_stop().
  * @param report_cls closure for @a report
  * @return handle to cancel NAT test
  */
