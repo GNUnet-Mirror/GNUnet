@@ -438,7 +438,6 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nh->adv_port = adv_port;
   nh->report = report;
   nh->report_cls = report_cls;
-  nh->ttask = GNUNET_SCHEDULER_NO_TASK;
   nh->status = GNUNET_NAT_ERROR_SUCCESS;
   if (0 == bnd_port)
   {
@@ -466,7 +465,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         GNUNET_NETWORK_socket_close (nh->lsock);
       nh->status = GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR;
       nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout, nh);
-      return NULL;
+      return nh;
     }
     if (GNUNET_YES == is_tcp)
     {
@@ -504,7 +503,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       nh->status = GNUNET_NAT_ERROR_NAT_REGISTER_FAILED;
       nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout, nh);
-      return NULL;
+      return nh;
     }
   }
   nh->ttask = GNUNET_SCHEDULER_add_delayed (timeout, &do_timeout, nh);
