@@ -3137,7 +3137,7 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
   struct FingerInfo *new_entry;
   struct FriendInfo *first_trail_hop;
   struct Trail *trail;
-  int i;
+  unsigned int i;
 
   new_entry = GNUNET_new (struct FingerInfo);
   new_entry->finger_identity = finger_identity;
@@ -3181,7 +3181,7 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
   new_entry->trails_count = 1;
   first_trail_hop->trails_count++;
   /* Copy the finger trail into trail. */
-  trail = GNUNET_new (struct Trail);
+  trail = &new_entry->trail_list[0];
   for(i = 0; i < finger_trail_length; i++)
   {
     struct Trail_Element *element = GNUNET_new (struct Trail_Element);
@@ -3195,14 +3195,11 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
   }
 
   /* Add trail to trail list. */
-  new_entry->trail_list[0].trail_head = trail->trail_head;
-  new_entry->trail_list[0].trail_tail = trail->trail_tail;
-  new_entry->trail_list[0].trail_length = finger_trail_length;
-  new_entry->trail_list[0].trail_id = trail_id;
-  new_entry->trail_list[0].is_present = GNUNET_YES;
+  trail->trail_length = finger_trail_length;
+  trail->trail_id = trail_id;
+  trail->is_present = GNUNET_YES;
   finger_table[finger_table_index] = *new_entry;
   GNUNET_free (new_entry);
-  return;
 }
 
 
