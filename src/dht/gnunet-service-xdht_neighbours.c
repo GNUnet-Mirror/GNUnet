@@ -4693,15 +4693,16 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
   struct FingerInfo *current_predecessor;
   int i;
   unsigned int j;
+  unsigned int len;
 
   current_predecessor = &finger_table[PREDECESSOR_FINGER_ID];
 
   /* Check if trail_src_to_me contains current_predecessor. */
   for (i = 0; i < trail_src_to_me_len; i++)
   {
-    if(0 != GNUNET_CRYPTO_cmp_peer_identity(&trail_src_to_me[i],
-                                            &current_predecessor->finger_identity))
-        continue;
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity(&trail_src_to_me[i],
+                                             &current_predecessor->finger_identity))
+      continue;
 
 
     *trail_src_to_curr_pred_length = i;
@@ -4711,7 +4712,7 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
 
      trail_src_to_curr_pred = GNUNET_malloc (*trail_src_to_curr_pred_length *
                                               sizeof(struct GNUNET_PeerIdentity));
-     for(j = 0; j < i;j++)
+     for (j = 0; j < i; j++)
        trail_src_to_curr_pred[j] = trail_src_to_me[j];
      return trail_src_to_curr_pred;
   }
@@ -4721,36 +4722,34 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
                                               &trail_me_to_curr_pred_length);
 
   /* Check if trail contains the source_peer. */
-  for(i = trail_me_to_curr_pred_length - 1; i >= 0; i--)
+  for (i = trail_me_to_curr_pred_length - 1; i >= 0; i--)
   {
-    if(0 != GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
-                                             &trail_me_to_curr_pred[i]))
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
+                                              &trail_me_to_curr_pred[i]))
       continue;
 
-     /* Source is NOT part of trail. */
-     i = i+1;
+    /* Source is NOT part of trail. */
+    i++;
 
-     /* Source is the last element in the trail to reach to my pred.
-         Source is direct friend of the pred. */
-     if (trail_me_to_curr_pred_length == i)
-     {
-        *trail_src_to_curr_pred_length = 0;
-        return NULL;
-     }
+    /* Source is the last element in the trail to reach to my pred.
+       Source is direct friend of the pred. */
+    if (trail_me_to_curr_pred_length == i)
+    {
+      *trail_src_to_curr_pred_length = 0;
+      GNUNET_free_non_null (trail_me_to_curr_pred);
+      return NULL;
+    }
 
-     *trail_src_to_curr_pred_length = trail_me_to_curr_pred_length - i;
-     trail_src_to_curr_pred = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
-                                              *trail_src_to_curr_pred_length);
+    *trail_src_to_curr_pred_length = trail_me_to_curr_pred_length - i;
+    trail_src_to_curr_pred = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
+                                            *trail_src_to_curr_pred_length);
 
-     for(j = 0; j < *trail_src_to_curr_pred_length; i++,j++)
-     {
-       trail_src_to_curr_pred[j] = trail_me_to_curr_pred[i];
-     }
-     GNUNET_free_non_null(trail_me_to_curr_pred);
-     return trail_src_to_curr_pred;
+    for (j = 0; j < *trail_src_to_curr_pred_length; i++,j++)
+      trail_src_to_curr_pred[j] = trail_me_to_curr_pred[i];
+    GNUNET_free_non_null (trail_me_to_curr_pred);
+    return trail_src_to_curr_pred;
   }
 
-  unsigned int len;
   trail_src_to_curr_pred = check_for_duplicate_entries (trail_src_to_me,
                                                         trail_src_to_me_len,
                                                         trail_me_to_curr_pred,
