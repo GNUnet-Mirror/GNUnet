@@ -1046,7 +1046,8 @@ handle_cadet_hangup_message (void *cls,
  * @param channel_ctx the channel context, can be NULL
  *                    or point to the `struct Channel`
  * @param message the incoming message
- * @return #GNUNET_OK
+ * @return #GNUNET_OK if message was OK,
+ *         #GNUNET_SYSERR if message violated the protocol
  */
 static int
 handle_cadet_pickup_message (void *cls,
@@ -1076,7 +1077,7 @@ handle_cadet_pickup_message (void *cls,
   case CS_CALLEE_SHUTDOWN:
     GNUNET_break_op (0);
     destroy_line_cadet_channels (ch);
-    break;
+    return GNUNET_SYSERR;
   case CS_CALLER_CALLING:
     ch->status = CS_CALLER_CONNECTED;
     break;
