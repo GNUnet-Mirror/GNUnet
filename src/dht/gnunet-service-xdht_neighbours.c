@@ -3059,11 +3059,13 @@ static void
 send_all_finger_trails_teardown (struct FingerInfo *finger)
 {
   unsigned int i;
+
   for (i = 0; i < finger->trails_count; i++)
   {
     struct Trail *trail;
+
     trail = &finger->trail_list[i];
-    if (GNUNET_YES == trail->is_present);
+    if (GNUNET_YES == trail->is_present)
     {
       send_trail_teardown (finger, trail);
       trail->is_present = GNUNET_NO;
@@ -3476,7 +3478,6 @@ remove_existing_finger (struct FingerInfo *existing_finger,
    finger, and free the finger. */
   send_all_finger_trails_teardown (existing_finger);
   free_finger (existing_finger, finger_table_index);
-  return;
 }
 
 
