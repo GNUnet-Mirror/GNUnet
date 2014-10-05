@@ -349,6 +349,7 @@ handle_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Sub system not supplied in client iterate request.\n"));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    PEERSTORE_destroy_record (record);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
