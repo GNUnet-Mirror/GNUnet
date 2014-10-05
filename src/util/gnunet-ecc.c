@@ -74,6 +74,7 @@ create_keys (const char *fn, const char *prefix)
   int rest;
   unsigned char mask;
   unsigned target_byte;
+  char *s;
 
   if (NULL == (f = fopen (fn, "w+")))
   {
@@ -87,7 +88,7 @@ create_keys (const char *fn, const char *prefix)
     n = len * 5 / 8;
     rest = len * 5 % 8;
 
-    memset (&vanity[len], '0', KEY_STR_LEN - len);
+    memset (&vanity[len], 0, KEY_STR_LEN - len);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CRYPTO_eddsa_public_key_from_string (vanity,
                                                                KEY_STR_LEN,
@@ -105,14 +106,27 @@ create_keys (const char *fn, const char *prefix)
       mask = ~ ((int)pow (2, 8 - rest) - 1);
       target_byte = ((unsigned char *) &target_pub)[n] & mask;
     }
+    else
+    {
+      mask = 0;
+    }
+    s = GNUNET_CRYPTO_eddsa_public_key_to_string (&target_pub);
     fprintf (stderr,
              _("Generating %u keys like %s, please wait"),
-             make_keys, GNUNET_CRYPTO_eddsa_public_key_to_string (&target_pub));
-    fprintf (stderr, "\nattempt %s [%d, %X]\n", vanity, n, mask);
+             make_keys,
+             s);
+    GNUNET_free (s);
+    fprintf (stderr,
+             "\nattempt %s [%d, %X]\n",
+             vanity,
+             n,
+             mask);
   }
   else
   {
-    fprintf (stderr, _("Generating %u keys, please wait"), make_keys);
+    fprintf (stderr,
+             _("Generating %u keys, please wait"),
+             make_keys);
     /* Just so old (debian) versions of GCC calm down with the warnings. */
     n = rest = target_byte = mask = 0;
   }
@@ -165,7 +179,8 @@ create_keys (const char *fn, const char *prefix)
 	     _("\nFinished!\n"));
   else
     fprintf (stderr,
-	     _("\nError, %u keys not generated\n"), make_keys);
+	     _("\nError, %u keys not generated\n"),
+             make_keys);
   fclose (f);
 }
 
