@@ -825,6 +825,7 @@ store_recv_fragment_replay_result (void *cls, int64_t result, const char *err_ms
   case GNUNET_PSYCSTORE_MEMBERSHIP_TEST_FAILED:
     GNUNET_MULTICAST_replay_response (rh, NULL,
                                       GNUNET_MULTICAST_REC_ACCESS_DENIED);
+    break;
 
   case GNUNET_SYSERR:
     GNUNET_MULTICAST_replay_response (rh, NULL,
