@@ -47,7 +47,7 @@
 #define MALICIOUS_PROBABILITY 20
 
 /**
- * Context for a peer which should act maliciously. 
+ * Context for a peer which should act maliciously.
  */
 struct MaliciousContext;
 #endif
@@ -87,10 +87,10 @@ struct Context
    * Active context; NULL if this peer is not an active peer
    */
   struct ActiveContext *ac;
-  
+
 #if ENABLE_MALICIOUS
   /**
-   * Malicious context; NULL if this peer is NOT malicious. 
+   * Malicious context; NULL if this peer is NOT malicious.
    */
   struct MaliciousContext *mc;
 #endif
@@ -112,7 +112,7 @@ struct MaliciousContext
    * Handler to the DHT service
    */
   struct GNUNET_DHT_Handle *dht;
-  
+
   /**
    * Handler to malicious api
    */
@@ -310,7 +310,7 @@ static struct GNUNET_TESTBED_Operation *successor_stats_op;
 static struct GNUNET_TESTBED_Peer **testbed_handles;
 
 /**
- * Total number of messages sent by peer. 
+ * Total number of messages sent by peer.
  */
 static uint64_t outgoing_bandwidth;
 
@@ -325,27 +325,27 @@ static uint64_t incoming_bandwidth;
 static double average_put_path_length;
 
 /**
- * Average number of hops taken to do get. 
+ * Average number of hops taken to do get.
  */
 static double average_get_path_length;
 
 /**
- * Total put path length across all peers. 
+ * Total put path length across all peers.
  */
 static unsigned int total_put_path_length;
 
 /**
- * Total get path length across all peers. 
+ * Total get path length across all peers.
  */
 static unsigned int total_get_path_length;
 
 /**
- * Hashmap to store pair of peer and its corresponding successor. 
+ * Hashmap to store pair of peer and its corresponding successor.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *successor_peer_hashmap;
 
 /**
- * Key to start the lookup on successor_peer_hashmap. 
+ * Key to start the lookup on successor_peer_hashmap.
  */
 static struct GNUNET_HashCode *start_key;
 
@@ -365,10 +365,10 @@ static GNUNET_SCHEDULER_TaskIdentifier successor_stats_task;
 struct Collect_Stat_Context
 {
   /**
-   * Current Peer Context. 
+   * Current Peer Context.
    */
   struct Context *service_connect_ctx;
-  
+
   /**
    * Testbed operation acting on this peer
    */
@@ -381,7 +381,7 @@ struct Collect_Stat_Context
 struct Context **peer_contexts = NULL;
 
 /**
- * Counter to keep track of peers added to peer_context lists. 
+ * Counter to keep track of peers added to peer_context lists.
  */
 static int peers_started = 0;
 
@@ -407,7 +407,7 @@ static int in_shutdown = 0;
 static unsigned int tries;
 
 /**
- * Task that collects successor statistics from all the peers. 
+ * Task that collects successor statistics from all the peers.
  * @param cls
  * @param tc
  */
@@ -476,8 +476,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *          operation has executed successfully.
  */
 static void
-bandwidth_stats_cont (void *cls, 
-                      struct GNUNET_TESTBED_Operation *op, 
+bandwidth_stats_cont (void *cls,
+                      struct GNUNET_TESTBED_Operation *op,
                       const char *emsg)
 {
   INFO ("# Outgoing bandwidth: %u\n", outgoing_bandwidth);
@@ -498,11 +498,11 @@ bandwidth_stats_cont (void *cls,
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-bandwidth_stats_iterator (void *cls, 
+bandwidth_stats_iterator (void *cls,
                           const struct GNUNET_TESTBED_Peer *peer,
-                          const char *subsystem, 
+                          const char *subsystem,
                           const char *name,
-                          uint64_t value, 
+                          uint64_t value,
                           int is_persistent)
 {
    static const char *s_sent = "# Bytes transmitted to other peers";
@@ -512,7 +512,7 @@ bandwidth_stats_iterator (void *cls,
      outgoing_bandwidth = outgoing_bandwidth + value;
    else if (0 == strncmp(s_recv, name, strlen (s_recv)))
      incoming_bandwidth = incoming_bandwidth + value;
-   
+
     return GNUNET_OK;
 }
 
@@ -528,7 +528,7 @@ summarize ()
   INFO ("# GETS failed: %u\n", n_gets_fail);
   INFO ("# average_put_path_length: %f\n", average_put_path_length);
   INFO ("# average_get_path_length: %f\n", average_get_path_length);
-  
+
   if (NULL == testbed_handles)
   {
     INFO ("No peers found\n");
@@ -537,7 +537,7 @@ summarize ()
   /* Collect Stats*/
   bandwidth_stats_op = GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
                                                       "dht", NULL,
-                                                       bandwidth_stats_iterator, 
+                                                       bandwidth_stats_iterator,
                                                        bandwidth_stats_cont, NULL);
 }
 
@@ -619,7 +619,7 @@ get_iter (void *cls,
   GNUNET_assert (NULL != ctx->op);
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
-  
+
   total_put_path_length = total_put_path_length + (double)put_path_length;
   total_get_path_length = total_get_path_length + (double)get_path_length;
   DEBUG ("total_put_path_length = %f,put_path \n",total_put_path_length);
@@ -875,7 +875,7 @@ start_profiling()
 {
   struct Context *ctx;
   unsigned int i;
-   
+
   DEBUG("GNUNET_TESTBED_service_connect \n");
   GNUNET_break (GNUNET_YES != in_shutdown);
   for(i = 0; i < n_active; i++)
@@ -914,7 +914,7 @@ act_malicious_cont (void *cls, int success)
 {
   struct MaliciousContext *mc = cls;
   struct Context *ctx = mc->ctx;
-  
+
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
   return;
@@ -929,7 +929,7 @@ act_malicious_cont (void *cls, int success)
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-void 
+void
 dht_set_malicious(void *cls,
                   struct GNUNET_TESTBED_Operation *op,
                   void *ca_result,
@@ -974,7 +974,7 @@ dht_disconnect_malicious (void *cls, void *op_result)
 
   if (0 != n_dht)
     return;
- 
+
   if(n_malicious == count_malicious)
   {
     DEBUG("\n Call start_profiling()");
@@ -991,7 +991,7 @@ set_malicious()
 {
   unsigned int i;
   DEBUG ("Setting %u peers malicious",n_malicious);
-  
+
   for(i = 0; i < n_malicious; i++)
   {
     struct MaliciousContext *mc = &a_mc[i];
@@ -1020,7 +1020,7 @@ start_func()
 #if ENABLE_MALICIOUS
   set_malicious();
   return;
-#endif   
+#endif
   start_profiling();
 }
 
@@ -1033,12 +1033,12 @@ start_func()
  * @return #GNUNET_YES if we should continue to iterate,
  *         #GNUNET_NO if not.
  */
-static int 
-hashmap_iterate_remove(void *cls, 
-                       const struct GNUNET_HashCode *key, 
+static int
+hashmap_iterate_remove(void *cls,
+                       const struct GNUNET_HashCode *key,
                        void *value)
 {
-  GNUNET_assert (GNUNET_YES == 
+  GNUNET_assert (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove(successor_peer_hashmap, key, value));
   return GNUNET_YES;
 }
@@ -1054,61 +1054,56 @@ hashmap_iterate_remove(void *cls,
  *          operation has executed successfully.
  */
 static void
-successor_stats_cont (void *cls, 
-                      struct GNUNET_TESTBED_Operation *op, 
+successor_stats_cont (void *cls,
+                      struct GNUNET_TESTBED_Operation *op,
                       const char *emsg)
 {
   struct GNUNET_HashCode *val;
   struct GNUNET_HashCode *start_val;
   struct GNUNET_HashCode *key;
   int count;
-  
+
   /* Don't schedule the task till we are looking for circle here. */
   successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_TESTBED_operation_done (successor_stats_op);
   successor_stats_op = NULL;
   if (0 == max_searches)
   {
-    start_func(); 
+    start_func();
     return;
   }
 
   GNUNET_assert (NULL != start_key);
-  start_val =
-          (struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
-                                                start_key);
-  
+  start_val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
+                                                 start_key);
+  GNUNET_assert (NULL != start_val);
   val = start_val;
   for (count = 0; count < num_peers; count++)
   {
     key = val;
     val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
                                              key);
-    if(NULL == val)
-    {
+    if (NULL == val)
       break;
-    }
     /* Remove the entry from hashmap. This is done to take care of loop. */
-    if (GNUNET_NO == 
-            GNUNET_CONTAINER_multihashmap_remove (successor_peer_hashmap,
-                                                  key, val))
+    if (GNUNET_NO ==
+        GNUNET_CONTAINER_multihashmap_remove (successor_peer_hashmap,
+                                              key, val))
     {
       DEBUG ("Failed to remove entry from hashmap\n");
       break;
     }
     /* If a peer has its own identity as its successor. */
     if (0 == memcmp(key, val, sizeof (struct GNUNET_HashCode)))
-    {
       break;
-    } 
   }
-  
-  GNUNET_assert(GNUNET_SYSERR != 
-          GNUNET_CONTAINER_multihashmap_iterate (successor_peer_hashmap,
-                                                 hashmap_iterate_remove,
-                                                 NULL));
-  
-  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
+
+  GNUNET_assert (GNUNET_SYSERR !=
+                 GNUNET_CONTAINER_multihashmap_iterate (successor_peer_hashmap,
+                                                        &hashmap_iterate_remove,
+                                                        NULL));
+
+  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers,
                                                                  GNUNET_NO);
   if ((start_val == val) && (count == num_peers))
   {
@@ -1135,15 +1130,16 @@ successor_stats_cont (void *cls,
       {
         start_func();
       }
-      
+
       return;
     }
     else
     {
       flag = 0;
-      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats, &collect_stats, cls);
+      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats,
+                                                           &collect_stats, cls);
     }
-  } 
+  }
 }
 
 
@@ -1159,11 +1155,11 @@ successor_stats_cont (void *cls,
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-successor_stats_iterator (void *cls, 
+successor_stats_iterator (void *cls,
                           const struct GNUNET_TESTBED_Peer *peer,
-                          const char *subsystem, 
+                          const char *subsystem,
                           const char *name,
-                          uint64_t value, 
+                          uint64_t value,
                           int is_persistent)
 {
   static const char *key_string = "XDHT";
@@ -1178,10 +1174,10 @@ successor_stats_iterator (void *cls,
     char truncated_successor_str[13];
     struct GNUNET_HashCode *my_id_key;
     struct GNUNET_HashCode *succ_key;
-    
+
     strtok((char *)name,":");
     my_id_str = strtok(NULL,":");
-    
+
     strncpy(truncated_my_id_str, my_id_str, 12);
     truncated_my_id_str[12] = '\0';
     my_id_key = GNUNET_new(struct GNUNET_HashCode);
@@ -1189,7 +1185,7 @@ successor_stats_iterator (void *cls,
     GNUNET_STRINGS_data_to_string(&value, sizeof(uint64_t), successor_str, 13);
     strncpy(truncated_successor_str, successor_str, 12);
     truncated_successor_str[12] ='\0';
-   
+
     succ_key = GNUNET_new(struct GNUNET_HashCode);
     GNUNET_CRYPTO_hash (truncated_successor_str, sizeof(truncated_successor_str),succ_key);
 
@@ -1209,9 +1205,9 @@ successor_stats_iterator (void *cls,
 }
 
 
-/* 
- * Task that collects peer and its corresponding successors. 
- * 
+/*
+ * Task that collects peer and its corresponding successors.
+ *
  * @param cls Closure (NULL).
  * @param tc Task Context.
  */
@@ -1223,16 +1219,16 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
   GNUNET_assert(NULL != testbed_handles);
-  
+
   if (0 != max_searches)
-  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
+  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers,
                                                                     GNUNET_NO);
-  successor_stats_op = 
+  successor_stats_op =
           GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
                                          "dht", NULL,
-                                          successor_stats_iterator, 
+                                          successor_stats_iterator,
                                           successor_stats_cont, cls);
-  
+
   GNUNET_assert(NULL != successor_stats_op);
 }
 
@@ -1264,7 +1260,7 @@ service_started (void *cls,
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;
      collect_stat_cls->op = op;
- 
+
      successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay_stats,
                                                           &collect_stats,
                                                           collect_stat_cls);
@@ -1292,7 +1288,7 @@ test_run (void *cls,
 {
   unsigned int cnt;
   unsigned int ac_cnt;
-  testbed_handles = peers;  
+  testbed_handles = peers;
   if (NULL == peers)
   {
     /* exit */
@@ -1309,10 +1305,10 @@ test_run (void *cls,
     GNUNET_free (a_ctx);
     return;
   }
-  
+
   a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
   ac_cnt = 0;
-  
+
 #if ENABLE_MALICIOUS
   unsigned int malicious_peers;
   if(PUT_PROBABILITY + MALICIOUS_PROBABILITY > 100)
@@ -1322,13 +1318,13 @@ test_run (void *cls,
     GNUNET_free (a_ctx);
     return;
   }
-  
+
   /* Select the peers which should act maliciously. */
   n_malicious = num_peers * MALICIOUS_PROBABILITY / 100;
-  
+
   a_mc = GNUNET_malloc (n_malicious * sizeof (struct MaliciousContext));
   malicious_peers = 0;
-  
+
   for (cnt = 0; cnt < num_peers && malicious_peers < n_malicious; cnt++)
   {
     if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
@@ -1337,12 +1333,12 @@ test_run (void *cls,
     a_ctx[cnt].mc = &a_mc[malicious_peers];
     a_mc[malicious_peers].ctx = &a_ctx[cnt];
     malicious_peers++;
-  } 
+  }
   n_malicious = malicious_peers;
   INFO ("Malicious Peers: %u\n",malicious_peers);
-  
+
 #endif
-  
+
   a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
   ac_cnt = 0;
   for (cnt = 0; cnt < num_peers && ac_cnt < n_active; cnt++)
@@ -1350,12 +1346,12 @@ test_run (void *cls,
     if ((GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100) >=
         PUT_PROBABILITY))
       continue;
-    
+
 #if ENABLE_MALICIOUS
     if(a_ctx[ac_cnt].mc != NULL)
       continue;
 #endif
-     
+
     a_ctx[cnt].ac = &a_ac[ac_cnt];
     a_ac[ac_cnt].ctx = &a_ctx[cnt];
     ac_cnt++;
