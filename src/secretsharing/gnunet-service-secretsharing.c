@@ -723,7 +723,7 @@ generate_presecret_polynomial (struct KeygenSession *ks)
     GNUNET_assert (NULL != v);
     // Randomize v such that 0 < v < elgamal_q.
     // The '- 1' is necessary as bitlength(q) = bitlength(p) - 1.
-    do 
+    do
     {
       gcry_mpi_randomize (v, GNUNET_SECRETSHARING_ELGAMAL_BITS - 1, GCRY_WEAK_RANDOM);
     } while ((gcry_mpi_cmp_ui (v, 0) == 0) || (gcry_mpi_cmp (v, elgamal_q) >= 0));
@@ -1326,7 +1326,10 @@ insert_round2_element (struct KeygenSession *ks)
 
   d->purpose.size = htonl (element_size - offsetof (struct GNUNET_SECRETSHARING_KeygenRevealData, purpose));
   d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2);
-  GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d->purpose, &d->signature);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_sign (my_peer_private_key,
+                                           &d->purpose,
+                                           &d->signature));
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
   GNUNET_free (element); /* FIXME: maybe stack-allocate instead? */
@@ -1477,7 +1480,7 @@ keygen_round2_new_element (void *cls,
     gcry_mpi_set_ui (ks->public_key, 1);
   }
   gcry_mpi_mulm (ks->public_key, ks->public_key, public_key_share, elgamal_p);
-  
+
   gcry_mpi_release (public_key_share);
   public_key_share = NULL;
 
@@ -1551,7 +1554,7 @@ keygen_round2_new_element (void *cls,
       // Using pow(double,double) is a bit sketchy.
       // We count players from 1, but shares from 0.
       gcry_mpi_t tmp;
-      gcry_mpi_set_ui (j_to_k, (unsigned int) pow(j+1, k)); 
+      gcry_mpi_set_ui (j_to_k, (unsigned int) pow(j+1, k));
       tmp = keygen_reveal_get_exp_coeff (ks, d, k);
       gcry_mpi_powm (tmp, tmp, j_to_k, elgamal_p);
       gcry_mpi_mulm (prod, prod, tmp, elgamal_p);
@@ -1583,7 +1586,7 @@ keygen_round2_new_element (void *cls,
     }
 
   }
-  
+
   info->round2_valid = GNUNET_YES;
 
   gcry_mpi_release (preshare);
@@ -1876,7 +1879,7 @@ decrypt_new_element (void *cls,
   d = element->data;
 
   info = get_decrypt_peer_info (session, &d->peer);
-  
+
   if (NULL == info)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "decrypt element from invalid peer (%s)\n",
@@ -1901,7 +1904,7 @@ decrypt_new_element (void *cls,
 
 
   GNUNET_CRYPTO_hash (offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext) + (char *) d,
-                      offsetof (struct GNUNET_SECRETSHARING_DecryptData, nizk_response) - 
+                      offsetof (struct GNUNET_SECRETSHARING_DecryptData, nizk_response) -
                           offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext),
                       &challenge_hash);
 
@@ -2044,7 +2047,7 @@ insert_decrypt_element (struct DecryptSession *ds)
 
   // create the zero knowledge proof
   // randomly choose beta such that 0 < beta < q
-  do 
+  do
   {
     gcry_mpi_randomize (beta, GNUNET_SECRETSHARING_ELGAMAL_BITS - 1, GCRY_WEAK_RANDOM);
   } while ((gcry_mpi_cmp_ui (beta, 0) == 0) || (gcry_mpi_cmp (beta, elgamal_q) >= 0));
@@ -2057,7 +2060,7 @@ insert_decrypt_element (struct DecryptSession *ds)
 
   // the challenge is the hash of everything up to the response
   GNUNET_CRYPTO_hash (offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext) + (char *) &d,
-                      offsetof (struct GNUNET_SECRETSHARING_DecryptData, nizk_response) - 
+                      offsetof (struct GNUNET_SECRETSHARING_DecryptData, nizk_response) -
                           offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext),
                       &challenge_hash);
 
@@ -2073,7 +2076,7 @@ insert_decrypt_element (struct DecryptSession *ds)
 
   d.purpose.size = htonl (element.size - offsetof (struct GNUNET_SECRETSHARING_DecryptData, purpose));
   d.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DECRYPTION);
-  
+
   GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d.purpose, &d.signature);
 
   GNUNET_CONSENSUS_insert (ds->consensus, &element, NULL, NULL);
