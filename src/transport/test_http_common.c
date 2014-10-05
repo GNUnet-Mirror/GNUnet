@@ -228,17 +228,18 @@ main (int argc, char *argv[])
   if (NULL != spa)
   {
     clean (spa);
+    spa = NULL;
     GNUNET_break (0);
   }
 
-  http_split_address ("http://");
+  spa = http_split_address ("http://");
   if (NULL != spa)
   {
     clean (spa);
     GNUNET_break (0);
   }
 
-  http_split_address ("://");
+  spa = http_split_address ("://");
   if (NULL != spa)
   {
     clean (spa);
