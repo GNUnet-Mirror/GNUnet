@@ -1779,7 +1779,8 @@ initiate_set_union (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the other peer violated the protocol
  */
 static int
-handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
+handle_dv_route_message (void *cls,
+                         const struct GNUNET_PeerIdentity *peer,
 			 const struct GNUNET_MessageHeader *message)
 {
   const struct RouteMessage *rm;
@@ -1848,7 +1849,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
       if (NULL == neighbor)
       {
         GNUNET_break (0);
-        return GNUNET_SYSERR;
+        return GNUNET_OK;
       }
       target = GNUNET_new (struct Target);
       target->peer = rm->sender;
@@ -1867,7 +1868,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
       {
         GNUNET_break_op (0);
         GNUNET_free (target);
-        return GNUNET_SYSERR;
+        return GNUNET_OK;
       }
       add_new_route (target, neighbor);
     }
@@ -1894,7 +1895,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (NULL == neighbor)
     {
       GNUNET_break (0);
-      return GNUNET_SYSERR;
+      return GNUNET_OK;
     }
     target = GNUNET_new (struct Target);
     target->peer = rm->sender;
@@ -1909,6 +1910,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       GNUNET_break_op (0);
       GNUNET_free (target);
+      return GNUNET_OK;
     }
     add_new_route (target, neighbor);
   }
