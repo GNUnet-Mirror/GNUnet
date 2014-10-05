@@ -1302,12 +1302,12 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
   msize =
       put_path_length * sizeof (struct GNUNET_PeerIdentity) + data_size +
       sizeof (struct PeerPutMessage);
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     put_path_length = 0;
     msize = data_size + sizeof (struct PeerPutMessage);
   }
-  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     GNUNET_free (targets);

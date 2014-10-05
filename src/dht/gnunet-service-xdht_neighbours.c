@@ -2469,6 +2469,7 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
 
 /**
  * Send the get result to requesting client.
+ *
  * @param key Key of the requested data.
  * @param type Block type
  * @param target_peer Next peer to forward the message to.
@@ -2507,8 +2508,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     put_path_length = 0;
-    msize = msize - put_path_length;
-    return;
+    msize = msize - put_path_length * sizeof (struct GNUNET_PeerIdentity);
   }
 
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
