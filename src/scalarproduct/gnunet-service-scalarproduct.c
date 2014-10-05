@@ -1036,7 +1036,7 @@ compute_service_response (struct ServiceSession *session)
   unsigned int * p;
   unsigned int * q;
   uint32_t count;
-  gcry_mpi_t * rand = NULL;
+  gcry_mpi_t *rand;
   gcry_mpi_t tmp;
   gcry_mpi_t * b;
   struct GNUNET_CRYPTO_PaillierCiphertext * a;
@@ -1050,7 +1050,7 @@ compute_service_response (struct ServiceSession *session)
   b = session->sorted_elements;
   q = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
   p = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
-
+  rand = GNUNET_malloc (sizeof (struct gcry_mpi_t) * count);
   for (i = 0; i < count; i++)
     GNUNET_assert (NULL != (rand[i] = gcry_mpi_new (0)));
   r = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * count);
@@ -1133,7 +1133,8 @@ compute_service_response (struct ServiceSession *session)
   session->s_prime = s_prime;
 
   // release rand, b and a
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     gcry_mpi_release (rand[i]);
     gcry_mpi_release (b[i]);
   }
