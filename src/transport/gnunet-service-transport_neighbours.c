@@ -2172,6 +2172,7 @@ struct BlacklistCheckSwitchContext
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 };
 
+
 /**
  * Black list check result for try_connect call
  * If connection to the peer is allowed request adddress and
@@ -2182,34 +2183,38 @@ struct BlacklistCheckSwitchContext
  */
 static void
 try_connect_bl_check_cont (void *cls,
-    const struct GNUNET_PeerIdentity *peer, int result)
+                           const struct GNUNET_PeerIdentity *peer,
+                           int result)
 {
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
   struct NeighbourMapEntry *n;
 
-  GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
+  GNUNET_CONTAINER_DLL_remove (pending_bc_head,
+                               pending_bc_tail,
+                               blc_ctx);
   GNUNET_free (blc_ctx);
-
   if (GNUNET_OK != result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        _("Blacklisting disapproved to connect to peer `%s'\n"),
-        GNUNET_i2s (peer));
+                _("Blacklisting disapproved to connect to peer `%s'\n"),
+                GNUNET_i2s (peer));
     return;
   }
 
   /* Setup a new neighbour */
-  if (NULL != (n = lookup_neighbour(peer)))
+  if (NULL != lookup_neighbour(peer))
     return; /* The neighbor was created in the meantime while waited for BL clients */
 
   n = setup_neighbour (peer);
 
   /* Request address suggestions for this peer */
-  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
-      GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+  set_state_and_timeout (n,
+                         GNUNET_TRANSPORT_PS_INIT_ATS,
+                         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
   GNUNET_ATS_reset_backoff (GST_ats, peer);
-  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer,
-      &address_suggest_cont, n);
+  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats,
+                                                  peer,
+                                                  &address_suggest_cont, n);
 }
 
 
