@@ -153,6 +153,7 @@ GNUNET_FRIENDS_write_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Directory for file `%s' does not seem to be writable.\n"),
                 fn);
+    GNUNET_free (fn);
     return NULL;
   }
   if (GNUNET_OK == GNUNET_DISK_file_test (fn))
