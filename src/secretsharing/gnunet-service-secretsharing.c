@@ -1381,18 +1381,14 @@ keygen_reveal_get_exp_preshare (struct KeygenSession *ks,
                                 const struct GNUNET_SECRETSHARING_KeygenRevealData *d,
                                 unsigned int idx)
 {
-  unsigned char *pos;
   gcry_mpi_t exp_preshare;
   struct GNUNET_SECRETSHARING_FairEncryption *fe;
 
   GNUNET_assert (idx < ks->num_peers);
-
   fe = keygen_reveal_get_enc_preshare (ks, d, idx);
-  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * idx;
   GNUNET_CRYPTO_mpi_scan_unsigned (&exp_preshare, fe->h, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   return exp_preshare;
 }
-
 
 
 static void
