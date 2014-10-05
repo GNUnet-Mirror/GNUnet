@@ -1486,24 +1486,17 @@ keygen_round2_new_element (void *cls,
 
   {
     struct GNUNET_SECRETSHARING_FairEncryption *fe = keygen_reveal_get_enc_preshare (ks, d, ks->local_peer_idx);
-    gcry_mpi_t resx;
     GNUNET_assert (NULL != (preshare = gcry_mpi_new (0)));
     GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key,
                                     &ks->info[ks->local_peer_idx].paillier_public_key,
                                     &fe->c,
                                     preshare);
 
-    GNUNET_assert (NULL != (resx = gcry_mpi_new (0)));
-
     // FIXME: not doing the restoration is less expensive
-
-    restore_fair (&ks->info[ks->local_peer_idx].paillier_public_key, fe, preshare, preshare);
-
-    //if (gcry_mpi_cmp (resx, preshare) != 0)
-    //{
-    //  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fair encryption restore failed\n");
-    //  return;
-    //}
+    restore_fair (&ks->info[ks->local_peer_idx].paillier_public_key,
+                  fe,
+                  preshare,
+                  preshare);
   }
 
   GNUNET_assert (NULL != (tmp = gcry_mpi_new (0)));
