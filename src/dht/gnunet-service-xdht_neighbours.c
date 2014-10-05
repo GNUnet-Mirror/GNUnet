@@ -1398,14 +1398,15 @@ GDS_NEIGHBOURS_send_verify_successor_message (struct GNUNET_PeerIdentity source_
  * the pointer to friend in routing table rather than gnunet_peeridentity.
  * if yes then we should keep friend info in.h  andmake lot of changes.
  * Construct a trail teardown message and forward it to target friend.
+ *
  * @param trail_id Unique identifier of the trail.
  * @param trail_direction Direction of trail.
  * @param target_friend Friend to get this message.
  */
 void
-GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
+GDS_NEIGHBOURS_send_trail_teardown (const struct GNUNET_HashCode *trail_id,
                                     unsigned int trail_direction,
-                                    struct GNUNET_PeerIdentity peer)
+                                    const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerTrailTearDownMessage *ttdm;
   struct P2PPendingMessage *pending;
@@ -1413,17 +1414,19 @@ GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
   size_t msize;
 
   msize = sizeof (struct PeerTrailTearDownMessage);
-
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     GNUNET_break (0);
     return;
   }
 
-  /*FIXME:In what case friend can be null. ?*/
   if (NULL == (target_friend =
-                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, &peer)));
-  return;
+               GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer)))
+  {
+    /* FIXME: In what case friend can be null. ?*/
+    GNUNET_break (0);
+    return;
+  }
 
   if (target_friend->pending_count >= MAXIMUM_PENDING_PER_FRIEND)
   {
@@ -1438,7 +1441,7 @@ GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
   pending->msg = &ttdm->header;
   ttdm->header.size = htons (msize);
   ttdm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN);
-  ttdm->trail_id = trail_id;
+  ttdm->trail_id = *trail_id;
   ttdm->trail_direction = htonl (trail_direction);
 
   /* Send the message to chosen friend. */
@@ -2765,9 +2768,9 @@ select_and_replace_trail (struct FingerInfo *finger,
   {
     next_hop = GDS_ROUTING_get_next_hop (new_trail_id, GDS_ROUTING_SRC_TO_DEST);
     GDS_ROUTING_remove_trail (new_trail_id);
-    GDS_NEIGHBOURS_send_trail_teardown (new_trail_id,
+    GDS_NEIGHBOURS_send_trail_teardown (&new_trail_id,
                                         GDS_ROUTING_SRC_TO_DEST,
-                                        *next_hop);
+                                        next_hop);
     return;
   }
 
@@ -2775,9 +2778,9 @@ select_and_replace_trail (struct FingerInfo *finger,
   struct Trail *replace_trail = &finger->trail_list[largest_trail_index];
   next_hop = GDS_ROUTING_get_next_hop (replace_trail->trail_id, GDS_ROUTING_SRC_TO_DEST);
   GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (replace_trail->trail_id));
-  GDS_NEIGHBOURS_send_trail_teardown (replace_trail->trail_id,
+  GDS_NEIGHBOURS_send_trail_teardown (&replace_trail->trail_id,
                                       GDS_ROUTING_SRC_TO_DEST,
-                                      *next_hop);
+                                      next_hop);
 
   /* Free the trail. */
   while (NULL != (trail_element = replace_trail->trail_head))
@@ -3042,9 +3045,9 @@ send_trail_teardown (struct FingerInfo *finger,
   }
   GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail->trail_id));
   friend->trails_count--;
-  GDS_NEIGHBOURS_send_trail_teardown (trail->trail_id,
+  GDS_NEIGHBOURS_send_trail_teardown (&trail->trail_id,
                                       GDS_ROUTING_SRC_TO_DEST,
-                                      friend->id);
+                                      &friend->id);
 }
 
 
@@ -3597,13 +3600,13 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&finger_identity, &my_identity))
       {
         if (finger_trail_length > 0)
-          GDS_NEIGHBOURS_send_trail_teardown (finger_trail_id,
+          GDS_NEIGHBOURS_send_trail_teardown (&finger_trail_id,
                                               GDS_ROUTING_SRC_TO_DEST,
-                                              finger_trail[0]);
+                                              &finger_trail[0]);
         else
-          GDS_NEIGHBOURS_send_trail_teardown (finger_trail_id,
+          GDS_NEIGHBOURS_send_trail_teardown (&finger_trail_id,
                                               GDS_ROUTING_SRC_TO_DEST,
-                                              finger_identity);
+                                              &finger_identity);
       }
     }
   }
@@ -5786,7 +5789,7 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
     /* If not final destination, then send a trail teardown message to next hop.*/
     GNUNET_assert (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop));
     GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
-    GDS_NEIGHBOURS_send_trail_teardown (trail_id, trail_direction, *next_hop);
+    GDS_NEIGHBOURS_send_trail_teardown (&trail_id, trail_direction, next_hop);
   }
 
   return GNUNET_OK;

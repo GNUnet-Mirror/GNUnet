@@ -42,7 +42,7 @@ GDS_NEIGHBOURS_act_malicious (unsigned int malicious);
 #endif
 
 /**
- * Handle the put request from the client. 
+ * Handle the put request from the client.
  * @param key Key for the content
  * @param block_type Type of the block
  * @param options Routing options
@@ -60,15 +60,15 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
                            const void *data, size_t data_size);
 
 /**
- * Handle the get request from the client file. If I am destination do 
+ * Handle the get request from the client file. If I am destination do
  * datacache put and return. Else find the target friend and forward message
- * to it. 
+ * to it.
  * @param key Key for the content
  * @param block_type Type of the block
  * @param options Routing options
  * @param desired_replication_level Desired replication count
  */
-void 
+void
 GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type block_type,
                           enum GNUNET_DHT_RouteOption options,
@@ -101,15 +101,15 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
                                 const void *data, size_t data_size);
 
 /**
- * Construct a trail teardown message and forward it to target friend. 
+ * Construct a trail teardown message and forward it to target friend.
  * @param trail_id Unique identifier of the trail.
  * @param trail_direction Direction of trail.
  * @param target_friend Friend to get this message.
  */
 void
-GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
+GDS_NEIGHBOURS_send_trail_teardown (const struct GNUNET_HashCode *trail_id,
                                     unsigned int trail_direction,
-                                    struct GNUNET_PeerIdentity peer);
+                                    const struct GNUNET_PeerIdentity *peer);
 
 /**
  * Return friend corresponding to peer.
@@ -121,7 +121,7 @@ GDS_NEIGHBOURS_get_friend (struct GNUNET_PeerIdentity peer);
 /**
  * Initialize neighbours subsystem.
  *
- * @return #GNUNET_OK on success, 
+ * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR on error
  */
 int
@@ -140,7 +140,7 @@ GDS_NEIGHBOURS_done (void);
  *
  * @return my identity
  */
-struct GNUNET_PeerIdentity 
+struct GNUNET_PeerIdentity
 GDS_NEIGHBOURS_get_my_id (void);
 
 #endif
