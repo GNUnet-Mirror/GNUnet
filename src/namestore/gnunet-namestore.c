@@ -487,6 +487,7 @@ get_existing_record (void *cls,
                rec_name);
       ret = 1;
       test_finished ();
+      return;
     case GNUNET_GNSRECORD_TYPE_GNS2DNS:
       fprintf (stderr,
                _("A %s record exists already under `%s', no other records can be added.\n"),
