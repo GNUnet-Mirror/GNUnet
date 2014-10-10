@@ -1048,6 +1048,7 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
   ic = ntohl (hdr.entries);
   dataSize = ntohl (hdr.size);
   if ( ((sizeof (struct MetaDataEntry) * ic) > dataSize) ||
+       (0 == ic) ||
        (dataSize / ic < sizeof (struct MetaDataEntry)) )
   {
     GNUNET_break_op (0);
