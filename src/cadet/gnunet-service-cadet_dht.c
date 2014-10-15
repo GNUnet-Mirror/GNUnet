@@ -178,6 +178,12 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
+  if (NULL == p)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
   s = path_2s (p);
   LOG (GNUNET_ERROR_TYPE_INFO, "Got path from DHT: %s\n", s);
   GNUNET_free_non_null (s);
@@ -188,7 +194,6 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   hello = (struct GNUNET_HELLO_Message *) data;
   GCP_set_hello (peer, hello);
   GCP_try_connect (peer);
-  return;
 }
 
 
