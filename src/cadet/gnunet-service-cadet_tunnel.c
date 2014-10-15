@@ -3267,7 +3267,8 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
   LOG2 (level, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
-  LOG2 (level, "TTT  kx_ctx %p, rekey_task %u\n", t->kx_ctx, t->rekey_task);
+  LOG2 (level, "TTT  kx_ctx %p, rekey_task %u, finish task %u\n",
+        t->kx_ctx, t->rekey_task, t->kx_ctx ? t->kx_ctx->finish_task : 0);
 #if DUMP_KEYS_TO_STDERR
   LOG2 (level, "TTT  my EPHM\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
