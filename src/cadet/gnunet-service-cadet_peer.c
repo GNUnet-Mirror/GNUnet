@@ -913,7 +913,7 @@ peer_get_first_message (const struct CadetPeer *peer)
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking %p towards %s\n", q, GCC_2s (q->c));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking q:%p on c:%s\n", q, GCC_2s (q->c));
     if (queue_is_sendable (q))
       return q;
   }
@@ -1417,7 +1417,7 @@ GCP_connection_pop (struct CadetPeer *peer,
   struct GNUNET_MessageHeader *msg;
   int dest;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on connection %p\n", c);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_pop on connection %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
   {
     GNUNET_break (NULL == destroyed || GNUNET_NO == *destroyed);
