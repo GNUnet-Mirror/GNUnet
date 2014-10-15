@@ -356,7 +356,7 @@ pop_direct_path (struct CadetPeer *peer)
 
   for (iter = peer->path_head; NULL != iter; iter = iter->next)
   {
-    if (2 <= iter->length)
+    if (2 >= iter->length)
     {
       GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
       return iter;
