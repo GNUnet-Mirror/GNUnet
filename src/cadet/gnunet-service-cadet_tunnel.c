@@ -2356,6 +2356,9 @@ GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c)
 
   GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, aux);
 
+  if (CADET_TUNNEL_SEARCHING == t->cstate)
+    GCT_change_estate (t, CADET_TUNNEL_WAITING);
+
   if (GNUNET_SCHEDULER_NO_TASK != t->trim_connections_task)
     t->trim_connections_task = GNUNET_SCHEDULER_add_now (&trim_connections, t);
 }
@@ -3056,7 +3059,7 @@ GCT_send_connection_acks (struct CadetTunnel *t)
                GCC_is_origin (iter->c, GNUNET_NO));
   }
 
-  GNUNET_break (to_allow == 0);
+  GNUNET_break (to_allow == 0); //FIXME tripped
 }
 
 
