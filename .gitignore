@@ -1,8 +1,10 @@
 !*~
+*~
 */*~
 # /
 *.trs
 *log
+*-profiler
 /ChangeLog
 /INSTALL
 /configure.lineno
@@ -31,6 +33,7 @@
 /.metadata
 /*kdev*
 /test-driver
+
 
 # /contrib/
 /contrib/gns-bcd.pdf
@@ -1021,6 +1024,12 @@
 /src/sensor/gnunet-service-sensor
 /src/sensor/sensor.conf
 
+# /src/sensordashboard
+/src/sensordashboard/.deps/
+/src/sensordashboard/Makefile
+/src/sensordashboard/Makefile.in
+/src/sensordashboard/sensordashboard.conf
+
 # /src/set/
 /src/set/test_set_union_result_full
 /src/set/test_set_api
@@ -1041,6 +1050,7 @@
 /src/social/gnunet-social
 /src/social/gnunet-service-social
 /src/social/social.conf
+/src/social/test_social
 
 # /src/statistics/
 /src/statistics/test_gnunet_statistics.py
