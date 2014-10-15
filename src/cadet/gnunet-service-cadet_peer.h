@@ -182,7 +182,9 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
  *
  * @param peer Neighboring peer.
  * @param c Connection.
- * @param destroyed[out] Was the connection destroyed as a result?.
+ * @param destroyed[in/out] Was the connection destroyed as a result?.
+ *                          Can NOT be NULL.
+ *
  *
  * @return First message for this connection.
  */

@@ -1404,6 +1404,7 @@ connection_get_first_message (struct CadetPeer *peer, struct CadetConnection *c)
  * @param peer Neighboring peer.
  * @param c Connection.
  * @param destroyed[in/out] Was the connection destroyed (prev/as a result)?.
+ *                          Can NOT be NULL.
  *
  * @return First message for this connection.
  */
@@ -1417,10 +1418,10 @@ GCP_connection_pop (struct CadetPeer *peer,
   struct GNUNET_MessageHeader *msg;
   int dest;
 
+  GNUNET_assert (NULL != destroyed);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_pop on connection %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
   {
-    GNUNET_break (NULL == destroyed || GNUNET_NO == *destroyed);
     next = q->next;
     if (q->c != c)
       continue;
@@ -1436,16 +1437,22 @@ GCP_connection_pop (struct CadetPeer *peer,
       case GNUNET_MESSAGE_TYPE_CADET_ACK:
       case GNUNET_MESSAGE_TYPE_CADET_POLL:
         dest = GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
-        if (NULL != destroyed && GNUNET_YES == dest)
+        if (GNUNET_YES == dest)
+        {
+          GNUNET_break (GNUNET_NO == *destroyed);
           *destroyed = GNUNET_YES;
+        }
         continue;
 
       case GNUNET_MESSAGE_TYPE_CADET_KX:
       case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
         msg = (struct GNUNET_MessageHeader *) q->cls;
         dest = GCP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
-        if (NULL != destroyed && GNUNET_YES == dest)
+        if (GNUNET_YES == dest)
+        {
+          GNUNET_break (GNUNET_NO == *destroyed);
           *destroyed = GNUNET_YES;
+        }
         return msg;
 
       default:
