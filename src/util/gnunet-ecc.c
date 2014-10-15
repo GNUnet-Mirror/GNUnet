@@ -108,7 +108,8 @@ create_keys (const char *fn, const char *prefix)
     }
     else
     {
-      mask = 0;
+      /* Just so old (debian) versions of GCC calm down with the warnings. */
+      mask = target_byte = 0;
     }
     s = GNUNET_CRYPTO_eddsa_public_key_to_string (&target_pub);
     fprintf (stderr,
