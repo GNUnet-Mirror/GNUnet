@@ -119,25 +119,26 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int put_path_length)
 {
-  size_t size = get_path_length + put_path_length;
+  size_t size = get_path_length + put_path_length + 1;
   struct GNUNET_PeerIdentity peers[size];
   const struct GNUNET_PeerIdentity *peer;
   struct CadetPeerPath *p;
   unsigned int own_pos;
   int i;
 
+  peers[0] = my_full_id;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", get_path_length);
   for (i = 0 ; i < get_path_length; i++)
   {
     peer = &get_path[get_path_length - i - 1];
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   From GET: %s\n", GNUNET_i2s (peer));
-    peers[i] = *peer;
+    peers[i + 1] = *peer;
   }
   for (i = 0 ; i < put_path_length; i++)
   {
     peer = &put_path[put_path_length - i - 1];
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   From PUT: %s\n", GNUNET_i2s (peer));
-    peers[i + get_path_length] = *peer;
+    peers[i + get_path_length + 1] = *peer;
   }
   p = path_build_from_peer_ids (peers, size, myid, &own_pos);
   return p;
