@@ -1812,7 +1812,7 @@ GCC_handle_broken (void* cls,
   struct GNUNET_CADET_ConnectionBroken *msg;
   struct CadetConnection *c;
   struct CadetTunnel *t;
-  int destroyed;
+  int pending;
   int fwd;
 
   msg = (struct GNUNET_CADET_ConnectionBroken *) message;
@@ -1848,24 +1848,37 @@ GCC_handle_broken (void* cls,
     endpoint = GCP_get_short (c->path->peers[c->path->length - 1]);
     path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
+
     c->state = CADET_CONNECTION_BROKEN;
     GCT_remove_connection (t, c);
     c->t = NULL;
-    destroyed = GNUNET_NO;
 
-    /* GCP_connection_pop could destroy the connection! */
-    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
+    pending = c->pending_messages;
+    if (0 < pending)
     {
-      GCT_resend_message (out_msg, t);
+      int destroyed;
+
+      destroyed = GNUNET_NO;
+
+      /* GCP_connection_pop could destroy the connection! */
+      while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
+      {
+        GCT_resend_message (out_msg, t);
+      }
+
+      /* All pending messages should have been popped,
+      * and the connection destroyed by the continuation,
+      * except if the queue was empty. */
+      if (GNUNET_YES != destroyed)
+      {
+        GNUNET_break (0);
+        GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
+        GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+        GCC_destroy (c);
+      }
     }
-    /* All pending messages should have been popped,
-     * and the connection destroyed by the continuation.
-     */
-    if (GNUNET_YES != destroyed)
+    else
     {
-      GNUNET_break (0);
-      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-      GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
       GCC_destroy (c);
     }
   }
