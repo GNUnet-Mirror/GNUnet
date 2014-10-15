@@ -159,6 +159,22 @@ int
 path_destroy (struct CadetPeerPath *p);
 
 /**
+ * Builds a path from a PeerIdentity array.
+ *
+ * @param peers PeerIdentity array.
+ * @param size Size of the @c peers array.
+ * @param myid ID of local peer, to find @c own_pos.
+ * @param own_pos Output parameter: own position in the path.
+ *
+ * @return Fixed and shortened path.
+ */
+struct CadetPeerPath *
+path_build_from_peer_ids (struct GNUNET_PeerIdentity *peers,
+                          unsigned int size,
+                          GNUNET_PEER_Id myid,
+                          unsigned int *own_pos);
+
+/**
  * Path -> allocated one line string. Caller must free.
  *
  * @param p Path.

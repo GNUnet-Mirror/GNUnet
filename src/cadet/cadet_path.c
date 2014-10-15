@@ -28,6 +28,9 @@
 #include "cadet_path.h"
 #include "gnunet-service-cadet_peer.h"
 
+#define LOG(level, ...) GNUNET_log_from (level,"cadet-pth",__VA_ARGS__)
+
+
 /**
  * @brief Destroy a path after some time has past.
  *
@@ -143,6 +146,69 @@ path_invalidate (struct CadetPeerPath *p)
 
   p->path_delete = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                  &path_destroy_delayed, p);
+}
+
+
+/**
+ * Builds a path from a PeerIdentity array.
+ *
+ * @param peers PeerIdentity array.
+ * @param size Size of the @c peers array.
+ * @param myid ID of local peer, to find @c own_pos.
+ * @param own_pos Output parameter: own position in the path.
+ *
+ * @return Fixed and shortened path.
+ */
+struct CadetPeerPath *
+path_build_from_peer_ids (struct GNUNET_PeerIdentity *peers,
+                          unsigned int size,
+                          GNUNET_PEER_Id myid,
+                          unsigned int *own_pos)
+{
+  struct CadetPeerPath *path;
+  GNUNET_PEER_Id shortid;
+  unsigned int i;
+  unsigned int j;
+  unsigned int offset;
+
+  /* Create path */
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
+  path = path_new (size);
+  *own_pos = 0;
+  offset = 0;
+  for (i = 0; i < size; i++)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %u: taking %s\n",
+         i, GNUNET_i2s (&peers[i]));
+    shortid = GNUNET_PEER_intern (&peers[i]);
+
+    /* Check for loops / duplicates */
+    for (j = 0; j < i - offset; j++)
+    {
+      if (path->peers[j] == shortid)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "    already exists at pos %u\n", j);
+        offset = i - j;
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "    offset now %u\n", offset);
+        GNUNET_PEER_change_rc (shortid, -1);
+      }
+    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "    storing at %u\n", i - offset);
+    path->peers[i - offset] = shortid;
+    if (path->peers[i - offset] == myid)
+      *own_pos = i - offset;
+  }
+  path->length -= offset;
+
+  if (path->peers[*own_pos] != myid)
+  {
+    /* create path: self not found in path through self */
+    GNUNET_break_op (0);
+    path_destroy (path);
+    return NULL;
+  }
+
+  return path;
 }
 
 

@@ -119,77 +119,27 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int put_path_length)
 {
+  size_t size = get_path_length + put_path_length;
+  struct GNUNET_PeerIdentity peers[size];
+  const struct GNUNET_PeerIdentity *peer;
   struct CadetPeerPath *p;
-  GNUNET_PEER_Id id;
+  unsigned int own_pos;
   int i;
 
-  p = path_new (1);
-  p->peers[0] = myid;
-  GNUNET_PEER_change_rc (myid, 1);
-  i = get_path_length;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", i);
-  for (i--; i >= 0; i--)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   GET has %d hops.\n", get_path_length);
+  for (i = 0 ; i < get_path_length; i++)
   {
-    id = GNUNET_PEER_intern (&get_path[i]);
-    if (p->length > 0 && id == p->peers[p->length - 1])
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
-      GNUNET_PEER_change_rc (id, -1);
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Adding from GET: %s.\n",
-                  GNUNET_i2s (&get_path[i]));
-      p->length++;
-      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
-      p->peers[p->length - 1] = id;
-    }
+    peer = &get_path[get_path_length - i - 1];
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   From GET: %s\n", GNUNET_i2s (peer));
+    peers[i] = *peer;
   }
-  i = put_path_length;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   PUT has %d hops.\n", i);
-  for (i--; i >= 0; i--)
+  for (i = 0 ; i < put_path_length; i++)
   {
-    id = GNUNET_PEER_intern (&put_path[i]);
-    if (id == myid)
-    {
-      /* PUT path went through us, so discard the path up until now and start
-       * from here to get a much shorter (and loop-free) path.
-       */
-      path_destroy (p);
-      p = path_new (0);
-    }
-    if (p->length > 0 && id == p->peers[p->length - 1])
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Optimizing 1 hop out.\n");
-      GNUNET_PEER_change_rc (id, -1);
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "   Adding from PUT: %s.\n",
-                  GNUNET_i2s (&put_path[i]));
-      p->length++;
-      p->peers = GNUNET_realloc (p->peers, sizeof (GNUNET_PEER_Id) * p->length);
-      p->peers[p->length - 1] = id;
-    }
+    peer = &put_path[put_path_length - i - 1];
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   From PUT: %s\n", GNUNET_i2s (peer));
+    peers[i + get_path_length] = *peer;
   }
-#if CADET_DEBUG
-  if (get_path_length > 0)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   (first of GET: %s)\n",
-                GNUNET_i2s (&get_path[0]));
-  if (put_path_length > 0)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   (first of PUT: %s)\n",
-                GNUNET_i2s (&put_path[0]));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   In total: %d hops\n",
-              p->length);
-  for (i = 0; i < p->length; i++)
-  {
-    struct GNUNET_PeerIdentity peer_id;
-
-    GNUNET_PEER_resolve (p->peers[i], &peer_id);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "       %u: %s\n", p->peers[i],
-                GNUNET_i2s (&peer_id));
-  }
-#endif
+  p = path_build_from_peer_ids (peers, size, myid, &own_pos);
   return p;
 }
 
