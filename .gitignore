@@ -1319,12 +1319,15 @@
 /src/util/*.log
 /src/util/*.trs
 /src/util/gnunet-qr
+/src/util/test*nc
 /src/util/test_crypto_eddsa
 /src/util/test_crypto_ecdsa
 /src/util/test_crypto_ecdhe
+/src/util/test_crypto_paillier
 /src/util/test_container_multipeermap
 /src/util/test_crypto_symmetric
 /src/util/perf_crypto_aes
+/src/util/perf_crypto_symmetric
 /src/util/test_mq_client
 /src/util/test_mq
 /src/util/test_container_multihashmap32
