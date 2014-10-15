@@ -1536,7 +1536,7 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
            GC_m2s (copy->type));
       continue;
     }
-    GNUNET_assert (copy->mid > ack);
+    GNUNET_assert (GC_is_pid_bigger(copy->mid, ack));
     delta = copy->mid - (ack + 1);
     if (63 < delta)
       break;
