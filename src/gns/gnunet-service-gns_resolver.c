@@ -767,15 +767,15 @@ handle_dns_result (void *cls,
   const struct sockaddr_in *sa4;
   const struct sockaddr_in6 *sa6;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received %u bytes of DNS IP data\n",
-	      addrlen);
   if (NULL == addr)
   {
     rh->std_resolve = NULL;
     transmit_lookup_dns_result (rh);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Received %u bytes of DNS IP data\n",
+	      addrlen);
   switch (addr->sa_family)
   {
   case AF_INET:
@@ -1839,6 +1839,7 @@ handle_gns_resolution_result (void *cls,
            resolver to use */
         g2dc = GNUNET_new (struct Gns2DnsContext);
         g2dc->ns = ns;
+
         g2dc->rh = GNUNET_new (struct GNS_ResolverHandle);
         g2dc->rh->authority_zone = rh->ac_tail->authority_info.gns_authority;
         ip = translate_dot_plus (rh, ip);
