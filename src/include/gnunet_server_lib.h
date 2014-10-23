@@ -709,6 +709,16 @@ GNUNET_SERVER_notification_context_broadcast (struct GNUNET_SERVER_NotificationC
 
 
 /**
+ * Return active number of subscribers in this context.
+ *
+ * @param nc context to query
+ * @return number of current subscribers
+ */
+unsigned int
+GNUNET_SERVER_notification_context_get_size (struct GNUNET_SERVER_NotificationContext *nc);
+
+
+/**
  * Handle to a message stream tokenizer.
  */
 struct GNUNET_SERVER_MessageStreamTokenizer;

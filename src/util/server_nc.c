@@ -435,4 +435,22 @@ GNUNET_SERVER_notification_context_broadcast (struct
 }
 
 
+/**
+ * Return active number of subscribers in this context.
+ *
+ * @param nc context to query
+ * @return number of current subscribers
+ */
+unsigned int
+GNUNET_SERVER_notification_context_get_size (struct GNUNET_SERVER_NotificationContext *nc)
+{
+  unsigned int num;
+  struct ClientList *pos;
+
+  num = 0;
+  for (pos = nc->clients_head; NULL != pos; pos = pos->next)
+    num++;
+  return num;
+}
+
 /* end of server_nc.c */
