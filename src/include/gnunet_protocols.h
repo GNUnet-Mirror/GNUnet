@@ -1336,6 +1336,18 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE 387
 
+/**
+ * Request to start monitoring the connection state of plugins.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START 388
+
+/**
+ * Monitoring event about the connection state of plugins,
+ * generated in response to a subscription initiated via
+ * #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT 389
+
 /*******************************************************************************
  * FS-PUBLISH-HELPER IPC Messages
  ******************************************************************************/

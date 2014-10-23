@@ -590,6 +590,65 @@ struct BlacklistMessage
   struct GNUNET_PeerIdentity peer;
 
 };
+
+
+/**
+ * Transport-level connection status update.
+ */
+struct TransportPluginMonitorMessage
+{
+
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_PLUGIN_MONITOR_EVENT.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * An `enum GNUNET_TRANSPORT_SessionState` in NBO.
+   */
+  int32_t session_state GNUNET_PACKED;
+
+  /**
+   * Number of messages waiting transmission.
+   */
+  uint32_t msgs_pending GNUNET_PACKED;
+
+  /**
+   * Number of bytes waiting for transmission.
+   */
+  uint32_t bytes_pending GNUNET_PACKED;
+
+  /**
+   * When will this transport plugin session time out?
+   */
+  struct GNUNET_TIME_AbsoluteNBO timeout;
+
+  /**
+   * What is the expected latency?
+   */
+  struct GNUNET_TIME_RelativeNBO delay;
+
+  /**
+   * Which peer is this connection for?
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Length of the plugin name in bytes, excluding 0-termination.
+   */
+  uint16_t plugin_name_len GNUNET_PACKED;
+
+  /**
+   * Length of the plugin address in bytes.
+   */
+  uint16_t plugin_address_len GNUNET_PACKED;
+
+  /* followed by 0-terminated plugin name and 
+     @e plugin_address_len bytes of plugin address */
+
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 /* end of transport.h */
