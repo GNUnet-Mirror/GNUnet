@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002--2013 Christian Grothoff (and other contributing authors)
+     (C) 2002--2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -25,7 +25,6 @@
  * @author Nathan Evans
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
@@ -38,7 +37,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-dv",__VA_ARGS__)
 
-#define PLUGIN_NAME "dv"
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -111,12 +109,27 @@ struct Session
    */
   struct PendingRequest *pr_tail;
 
+  /**
+   * Address we use for the other peer.
+   */
   struct GNUNET_HELLO_Address *address;
 
   /**
    * To whom are we talking to.
    */
   struct GNUNET_PeerIdentity sender;
+
+  /**
+   * Number of bytes waiting for transmission to this peer.
+   * FIXME: not set yet.
+   */
+  unsigned long long bytes_in_queue;
+
+  /**
+   * Number of messages waiting for transmission to this peer.
+   * FIXME: not set yet.
+   */
+  unsigned int msgs_in_queue;
 
   /**
    * Current distance to the given peer.
@@ -168,7 +181,48 @@ struct Plugin
    */
   struct GNUNET_SERVER_MessageStreamTokenizer *mst;
 
+  /**
+   * Function to call about session status changes.
+   */
+  GNUNET_TRANSPORT_SessionInfoCallback sic;
+
+  /**
+   * Closure for @e sic.
+   */
+  void *sic_cls;
 };
+
+
+/**
+ * If a session monitor is attached, notify it about the new
+ * session state.
+ *
+ * @param plugin our plugin
+ * @param session session that changed state
+ * @param state new state of the session
+ */
+static void
+notify_session_monitor (struct Plugin *plugin,
+                        struct Session *session,
+                        enum GNUNET_TRANSPORT_SessionState state)
+{
+  struct GNUNET_TRANSPORT_SessionInfo info;
+
+  if (NULL == plugin->sic)
+    return;
+  memset (&info, 0, sizeof (info));
+  info.state = state;
+  info.is_inbound = GNUNET_SYSERR; /* hard to say */
+  info.num_msg_pending = session->msgs_in_queue;
+  info.num_bytes_pending = session->bytes_in_queue;
+  /* info.receive_delay remains zero as this is not supported by DV
+     (cannot selectively not receive from 'core') */
+  info.session_timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
+  info.address = session->address;
+  plugin->sic (plugin->sic_cls,
+               session,
+               &info);
+}
 
 
 /**
@@ -320,7 +374,7 @@ handle_dv_connect (void *cls,
   }
 
   session = GNUNET_new (struct Session);
-  session->address = GNUNET_HELLO_address_allocate (peer, PLUGIN_NAME,
+  session->address = GNUNET_HELLO_address_allocate (peer, "dv",
       NULL, 0, GNUNET_HELLO_ADDRESS_INFO_NONE);
   session->sender = *peer;
   session->plugin = plugin;
@@ -345,6 +399,9 @@ handle_dv_connect (void *cls,
   session->active = GNUNET_YES;
   plugin->env->session_start (plugin->env->cls, session->address,
                               session, ats, 2);
+  notify_session_monitor (session->plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_UP);
 }
 
 
@@ -406,6 +463,9 @@ free_session (struct Session *session)
        GNUNET_i2s (&session->sender));
   if (GNUNET_YES == session->active)
   {
+    notify_session_monitor (session->plugin,
+			    session,
+			    GNUNET_TRANSPORT_SS_DOWN);
     plugin->env->session_end (plugin->env->cls,
 			      session->address,
 			      session);
@@ -802,7 +862,7 @@ dv_get_network (void *cls,
 
 /**
  * Function that is called to get the keepalive factor.
- * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * #GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
  * calculate the interval between keepalive packets.
  *
  * @param cls closure with the `struct Plugin`
@@ -812,6 +872,64 @@ static unsigned int
 dv_plugin_query_keepalive_factor (void *cls)
 {
   return 3;
+}
+
+
+/**
+ * Return information about the given session to the
+ * monitor callback.
+ *
+ * @param cls the `struct Plugin` with the monitor callback (`sic`)
+ * @param peer peer we send information about
+ * @param value our `struct Session` to send information about
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+send_session_info_iter (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
+                        void *value)
+{
+  struct Plugin *plugin = cls;
+  struct Session *session = value;
+
+  if (GNUNET_YES != session->active)
+    return GNUNET_OK;
+  notify_session_monitor (plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_UP);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Begin monitoring sessions of a plugin.  There can only
+ * be one active monitor per plugin (i.e. if there are
+ * multiple monitors, the transport service needs to
+ * multiplex the generated events over all of them).
+ *
+ * @param cls closure of the plugin
+ * @param sic callback to invoke, NULL to disable monitor;
+ *            plugin will being by iterating over all active
+ *            sessions immediately and then enter monitor mode
+ * @param sic_cls closure for @a sic
+ */
+static void
+dv_plugin_setup_monitor (void *cls,
+                          GNUNET_TRANSPORT_SessionInfoCallback sic,
+                          void *sic_cls)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->sic = sic;
+  plugin->sic_cls = sic_cls;
+  if (NULL != sic)
+  {
+    GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
+                                           &send_session_info_iter,
+                                           plugin);
+    /* signal end of first iteration */
+    sic (sic_cls, NULL, NULL);
+  }
 }
 
 
@@ -859,6 +977,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->get_session = &dv_get_session;
   api->get_network = &dv_get_network;
   api->update_session_timeout = &dv_plugin_update_session_timeout;
+  api->setup_monitor = &dv_plugin_setup_monitor;
   return api;
 }
 
