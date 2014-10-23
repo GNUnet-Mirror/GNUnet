@@ -100,5 +100,16 @@ const char *
 GST_plugins_a2s (const struct GNUNET_HELLO_Address *address);
 
 
+/**
+ * Register callback with all plugins to monitor their status.
+ *
+ * @param cb callback to register, NULL to unsubscribe
+ * @param cb_cls closure for @a cb
+ */
+void
+GST_plugins_monitor_subscribe (GNUNET_TRANSPORT_SessionInfoCallback cb,
+			       void *cb_cls);
+
+
 #endif
 /* end of file gnunet-service-transport_plugins.h */

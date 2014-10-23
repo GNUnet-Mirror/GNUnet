@@ -220,6 +220,12 @@ static struct GNUNET_SERVER_NotificationContext *peer_nc;
 static struct GNUNET_SERVER_NotificationContext *val_nc;
 
 /**
+ * Notification context, to send updates on changes to active plugin
+ * connections.
+ */
+static struct GNUNET_SERVER_NotificationContext *plugin_nc;
+
+/**
  * Find the internal handle associated with the given client handle
  *
  * @param client server's client handle to look up
@@ -1279,8 +1285,9 @@ clients_handle_monitor_peers (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the peer address information request
  */
 static void
-clients_handle_monitor_validation (void *cls, struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message)
+clients_handle_monitor_validation (void *cls,
+				   struct GNUNET_SERVER_Client *client,
+				   const struct GNUNET_MessageHeader *message)
 {
   static struct GNUNET_PeerIdentity all_zeros;
   struct GNUNET_SERVER_TransmitContext *tc;
@@ -1341,6 +1348,86 @@ clients_handle_monitor_validation (void *cls, struct GNUNET_SERVER_Client *clien
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
+
+/**
+ * Function called by the plugin with information about the
+ * current sessions managed by the plugin (for monitoring).
+ *
+ * @param cls closure
+ * @param session session handle this information is about,
+ *        NULL to indicate that we are "in sync" (initial
+ *        iteration complete)
+ * @param info information about the state of the session,
+ *        NULL if @a session is also NULL and we are
+ *        merely signalling that the initial iteration is over
+ */
+static void
+plugin_session_info_cb (void *cls,
+			struct Session *session,
+			const struct GNUNET_TRANSPORT_SessionInfo *info)
+{
+  struct TransportPluginMonitorMessage *msg;
+  size_t size;
+  size_t slen;
+  uint16_t alen;
+  char *name;
+  char *addr;
+
+  if (0 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
+  {
+    GST_plugins_monitor_subscribe (NULL, NULL);
+    return;
+  }
+  slen = strlen (info->address->transport_name) + 1;
+  alen = info->address->address_length;
+  size = sizeof (struct TransportPluginMonitorMessage) + slen + alen;
+  if (size > UINT16_MAX)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  msg = GNUNET_malloc (size);
+  msg->header.size = htons (size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT);
+  msg->session_state = htons ((uint16_t) info->state);
+  msg->is_inbound = htons ((int16_t) info->is_inbound);
+  msg->msgs_pending = htonl (info->num_msg_pending);
+  msg->bytes_pending = htonl (info->num_bytes_pending);
+  msg->timeout = GNUNET_TIME_absolute_hton (info->session_timeout);
+  msg->delay = GNUNET_TIME_absolute_hton (info->receive_delay);
+  msg->peer = info->address->peer;
+  msg->plugin_name_len = htons (slen);
+  msg->plugin_address_len = htons (alen);
+  name = (char *) &msg[1];
+  memcpy (name, info->address->transport_name, slen);
+  addr = &name[slen + 1];
+  memcpy (addr, info->address->address, alen);
+  GNUNET_SERVER_notification_context_broadcast (plugin_nc,
+						&msg->header,
+						GNUNET_NO);
+  GNUNET_free (msg);
+}
+
+
+/**
+ * Client asked to obtain information about all plugin connections.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param message the peer address information request
+ */
+static void
+clients_handle_monitor_plugins (void *cls,
+				struct GNUNET_SERVER_Client *client,
+				const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_SERVER_disable_receive_done_warning (client);
+  if (0 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
+    GST_plugins_monitor_subscribe (&plugin_session_info_cb, NULL);
+  GNUNET_SERVER_notification_context_add (plugin_nc, client);
+}
+
+
 /**
  * Start handling requests from clients.
  *
@@ -1375,10 +1462,14 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      sizeof (struct BlacklistMessage)},
     {&GST_manipulation_set_metric, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC, 0},
+    {&clients_handle_monitor_plugins, NULL,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT,
+     sizeof (struct GNUNET_MessageHeader) },
     {NULL, NULL, 0, 0}
   };
   peer_nc = GNUNET_SERVER_notification_context_create (server, 0);
   val_nc = GNUNET_SERVER_notification_context_create (server, 0);
+  plugin_nc = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect_notification,
                                    NULL);
@@ -1408,6 +1499,11 @@ GST_clients_stop ()
   {
     GNUNET_SERVER_notification_context_destroy (val_nc);
     val_nc = NULL;
+  }
+  if (NULL != plugin_nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (plugin_nc);
+    plugin_nc = NULL;
   }
 }
 

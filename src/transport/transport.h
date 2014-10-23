@@ -606,7 +606,17 @@ struct TransportPluginMonitorMessage
   /**
    * An `enum GNUNET_TRANSPORT_SessionState` in NBO.
    */
-  int32_t session_state GNUNET_PACKED;
+  uint16_t session_state GNUNET_PACKED;
+
+  /**
+   * #GNUNET_YES if this is an inbound connection,
+   * #GNUNET_NO if this is an outbound connection,
+   * #GNUNET_SYSERR if connections of this plugin
+   *             are so fundamentally bidirectional
+   *             that they have no 'initiator'
+   * Value given in NBO.
+   */
+  int16_t is_inbound GNUNET_PACKED;
 
   /**
    * Number of messages waiting transmission.
@@ -624,9 +634,9 @@ struct TransportPluginMonitorMessage
   struct GNUNET_TIME_AbsoluteNBO timeout;
 
   /**
-   * What is the expected latency?
+   * Until how long is this plugin currently blocked from reading?
    */
-  struct GNUNET_TIME_RelativeNBO delay;
+  struct GNUNET_TIME_AbsoluteNBO delay;
 
   /**
    * Which peer is this connection for?
@@ -634,7 +644,7 @@ struct TransportPluginMonitorMessage
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Length of the plugin name in bytes, excluding 0-termination.
+   * Length of the plugin name in bytes, including 0-termination.
    */
   uint16_t plugin_name_len GNUNET_PACKED;
 

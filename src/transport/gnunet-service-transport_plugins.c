@@ -1,21 +1,21 @@
 /*
-     This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+  This file is part of GNUnet.
+  (C) 2010-2014 Christian Grothoff (and other contributing authors)
+  
+  GNUnet is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 3, or (at your
+  option) any later version.
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+  GNUnet is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
+  You should have received a copy of the GNU General Public License
+  along with GNUnet; see the file COPYING.  If not, write to the
+  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  Boston, MA 02111-1307, USA.
 */
 
 /**
@@ -302,13 +302,14 @@ GST_plugins_unload ()
 struct GNUNET_TRANSPORT_PluginFunctions *
 GST_plugins_find (const char *name)
 {
-  struct TransportPlugin *head = plugins_head;
+  struct TransportPlugin *pos;
 
-  while ((head != NULL) && (0 != strcmp (name, head->short_name)))
-    head = head->next;
-  if (NULL == head)
+  for (pos = plugins_head; NULL != pos; pos = pos->next)
+    if (0 == strcmp (name, pos->short_name))
+      break;
+  if (NULL == pos)
     return NULL;
-  return head->api;
+  return pos->api;
 }
 
 
@@ -325,23 +326,19 @@ GST_plugins_find (const char *name)
 struct GNUNET_TRANSPORT_PluginFunctions *
 GST_plugins_printer_find (const char *name)
 {
-  struct TransportPlugin *head = plugins_head;
-
+  struct TransportPlugin *pos;
   char *stripped = GNUNET_strdup (name);
   char *sep = strchr (stripped, '_');
+
   if (NULL != sep)
     sep[0] = '\0';
-
-  while (head != NULL)
-  {
-    if (head->short_name == strstr (head->short_name, stripped))
+  for (pos = plugins_head; NULL != pos; pos = pos->next)
+    if (pos->short_name == strstr (pos->short_name, stripped))
         break;
-    head = head->next;
-  }
   GNUNET_free (stripped);
-  if (NULL == head)
+  if (NULL == pos)
     return NULL;
-  return head->api;
+  return pos->api;
 }
 
 
@@ -359,9 +356,9 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
   static char unable_to_show[1024];
   static const char *s;
 
-  if (address == NULL)
+  if (NULL == address)
   {
-  	GNUNET_break (0); /* a HELLO address cannot be NULL */
+    GNUNET_break (0); /* a HELLO address cannot be NULL */
     return "<invalid>";
   }
   if (0 == address->address_length)
@@ -379,6 +376,27 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
   }
   return (NULL != (s = api->address_to_string (NULL, address->address,
                                  address->address_length)) ? s : "<invalid>");
+}
+
+
+/**
+ * Register callback with all plugins to monitor their status.
+ *
+ * @param cb callback to register, NULL to unsubscribe
+ * @param cb_cls closure for @a cb
+ */
+void
+GST_plugins_monitor_subscribe (GNUNET_TRANSPORT_SessionInfoCallback cb,
+			       void *cb_cls)
+{
+  struct TransportPlugin *pos;
+
+  for (pos = plugins_head; NULL != pos; pos = pos->next)
+    if (NULL == pos->api->setup_monitor)
+      GNUNET_break (0);
+    else
+      pos->api->setup_monitor (pos->api->cls,
+			       cb, cb_cls);
 }
 
 
