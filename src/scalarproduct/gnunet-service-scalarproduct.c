@@ -1050,7 +1050,7 @@ compute_service_response (struct ServiceSession *session)
   b = session->sorted_elements;
   q = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
   p = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
-  rand = GNUNET_malloc (sizeof (struct gcry_mpi_t) * count);
+  rand = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
   for (i = 0; i < count; i++)
     GNUNET_assert (NULL != (rand[i] = gcry_mpi_new (0)));
   r = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * count);
