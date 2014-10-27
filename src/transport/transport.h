@@ -599,7 +599,7 @@ struct TransportPluginMonitorMessage
 {
 
   /**
-   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_PLUGIN_MONITOR_EVENT.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT.
    */
   struct GNUNET_MessageHeader header;
 
@@ -653,7 +653,7 @@ struct TransportPluginMonitorMessage
    */
   uint16_t plugin_address_len GNUNET_PACKED;
 
-  /* followed by 0-terminated plugin name and 
+  /* followed by 0-terminated plugin name and
      @e plugin_address_len bytes of plugin address */
 
 };

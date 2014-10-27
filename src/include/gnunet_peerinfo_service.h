@@ -158,7 +158,7 @@ struct GNUNET_PEERINFO_IteratorContext;
  * @param peer restrict iteration to this peer only (can be NULL)
  * @param timeout how long to wait until timing out
  * @param callback the method to call for each peer
- * @param callback_cls closure for callback
+ * @param callback_cls closure for @a callback
  * @return iterator context
  */
 struct GNUNET_PEERINFO_IteratorContext *
@@ -198,7 +198,7 @@ struct GNUNET_PEERINFO_NotifyContext;
  * @param cfg configuration to use
  * @param include_friend_only include HELLO messages for friends only
  * @param callback the method to call for each peer
- * @param callback_cls closure for callback
+ * @param callback_cls closure for @a callback
  * @return NULL on error
  */
 struct GNUNET_PEERINFO_NotifyContext *
