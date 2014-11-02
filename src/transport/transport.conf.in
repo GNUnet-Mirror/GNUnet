@@ -52,6 +52,9 @@ TIMEOUT = 5 s
 # BINDTO =
 MAX_CONNECTIONS = 128
 
+# Enable TCP stealth?
+TCP_STEALTH = NO
+
 [transport-udp]
 # Use PORT = 0 to autodetect a port available
 PORT = 2086
