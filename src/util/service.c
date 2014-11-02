@@ -142,7 +142,7 @@ struct GNUNET_SERVICE_Context
   GNUNET_SERVICE_Main task;
 
   /**
-   * Closure for task.
+   * Closure for @e task.
    */
   void *task_cls;
 
@@ -1624,6 +1624,20 @@ struct GNUNET_SERVER_Handle *
 GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx)
 {
   return ctx->server;
+}
+
+
+/**
+ * Get the NULL-terminated array of listen sockets for this service.
+ *
+ * @param ctx service context to query
+ * @return NULL if there are no listen sockets, otherwise NULL-terminated
+ *              array of listen sockets.
+ */
+struct GNUNET_NETWORK_Handle **
+GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx)
+{
+  return ctx->lsocks;
 }
 
 

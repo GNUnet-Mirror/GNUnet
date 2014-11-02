@@ -789,8 +789,8 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
  * @return the connection handle
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg, const char *hostname,
+GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                       const char *hostname,
                                        uint16_t port)
 {
   struct GNUNET_CONNECTION_Handle *connection;
@@ -883,31 +883,25 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
  * This function returns immediately, even if the connection has not
  * yet been established.  This function only creates TCP connections.
  *
- * @param af_family address family to use
+ * @param s socket to connect
  * @param serv_addr server address
  * @param addrlen length of server address
  * @return the connection handle
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_sockaddr (int af_family,
-                                        const struct sockaddr *serv_addr,
-                                        socklen_t addrlen)
+GNUNET_CONNECTION_connect_socket (struct GNUNET_NETWORK_Handle *s,
+                                  const struct sockaddr *serv_addr,
+                                  socklen_t addrlen)
 {
-  struct GNUNET_NETWORK_Handle *s;
   struct GNUNET_CONNECTION_Handle *connection;
 
-  s = GNUNET_NETWORK_socket_create (af_family, SOCK_STREAM, 0);
-  if (NULL == s)
-  {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK, "socket");
-    return NULL;
-  }
   if ((GNUNET_OK != GNUNET_NETWORK_socket_connect (s, serv_addr, addrlen)) &&
       (EINPROGRESS != errno))
   {
     /* maybe refused / unsupported address, try next */
     LOG_STRERROR (GNUNET_ERROR_TYPE_INFO, "connect");
-    LOG (GNUNET_ERROR_TYPE_INFO, _("Attempt to connect to `%s' failed\n"),
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Attempt to connect to `%s' failed\n"),
          GNUNET_a2s (serv_addr, addrlen));
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
     return NULL;
@@ -916,9 +910,38 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
   connection->addr = GNUNET_malloc (addrlen);
   memcpy (connection->addr, serv_addr, addrlen);
   connection->addrlen = addrlen;
-  LOG (GNUNET_ERROR_TYPE_INFO, _("Trying to connect to `%s' (%p)\n"),
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _("Trying to connect to `%s' (%p)\n"),
        GNUNET_a2s (serv_addr, addrlen), connection);
   return connection;
+}
+
+
+/**
+ * Create a connection handle by creating a socket and
+ * (asynchronously) connecting to a host.  This function returns
+ * immediately, even if the connection has not yet been established.
+ * This function only creates TCP connections.
+ *
+ * @param af_family address family to use
+ * @param serv_addr server address
+ * @param addrlen length of @a serv_addr
+ * @return the connection handle
+ */
+struct GNUNET_CONNECTION_Handle *
+GNUNET_CONNECTION_create_from_sockaddr (int af_family,
+                                        const struct sockaddr *serv_addr,
+                                        socklen_t addrlen)
+{
+  struct GNUNET_NETWORK_Handle *s;
+
+  s = GNUNET_NETWORK_socket_create (af_family, SOCK_STREAM, 0);
+  if (NULL == s)
+  {
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK, "socket");
+    return NULL;
+  }
+  return GNUNET_CONNECTION_connect_socket (s, serv_addr, addrlen);
 }
 
 
@@ -928,7 +951,7 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
  * valid.
  *
  * @param connection connection to check
- * @return GNUNET_YES if valid, GNUNET_NO otherwise
+ * @return #GNUNET_YES if valid, #GNUNET_NO otherwise
  */
 int
 GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *connection)

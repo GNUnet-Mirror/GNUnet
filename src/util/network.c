@@ -829,17 +829,23 @@ GNUNET_NETWORK_socket_sendto (const struct GNUNET_NETWORK_Handle * desc,
  * @param level protocol level of the option
  * @param option_name option identifier
  * @param option_value value to set
- * @param option_len size of option_value
+ * @param option_len size of @a option_value
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
-GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd, int level,
-                                  int option_name, const void *option_value,
+GNUNET_NETWORK_socket_setsockopt (struct GNUNET_NETWORK_Handle *fd,
+                                  int level,
+                                  int option_name,
+                                  const void *option_value,
                                   socklen_t option_len)
 {
   int ret;
 
-  ret = setsockopt (fd->fd, level, option_name, option_value, option_len);
+  ret = setsockopt (fd->fd,
+                    level,
+                    option_name,
+                    option_value,
+                    option_len);
 #ifdef MINGW
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());

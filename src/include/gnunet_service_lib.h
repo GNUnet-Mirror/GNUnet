@@ -159,6 +159,17 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx);
 
 
 /**
+ * Get the NULL-terminated array of listen sockets for this service.
+ *
+ * @param ctx service context to query
+ * @return NULL if there are no listen sockets, otherwise NULL-terminated
+ *              array of listen sockets.
+ */
+struct GNUNET_NETWORK_Handle **
+GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx);
+
+
+/**
  * Stop a service that was started with #GNUNET_SERVICE_start.
  *
  * @param sctx the service context returned from the start function

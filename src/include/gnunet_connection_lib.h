@@ -123,16 +123,32 @@ GNUNET_CONNECTION_persist_ (struct GNUNET_CONNECTION_Handle *connection);
  * reach the other side before the process is terminated.
  *
  * @param connection the connection to make flushing and blocking
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_CONNECTION_disable_corking (struct GNUNET_CONNECTION_Handle *connection);
 
 
 /**
+ * Create a connection handle by (asynchronously) connecting to a host.
+ * This function returns immediately, even if the connection has not
+ * yet been established.  This function only creates TCP connections.
+ *
+ * @param s socket to connect
+ * @param serv_addr server address
+ * @param addrlen length of server address
+ * @return the connection handle
+ */
+struct GNUNET_CONNECTION_Handle *
+GNUNET_CONNECTION_connect_socket (struct GNUNET_NETWORK_Handle *s,
+                                  const struct sockaddr *serv_addr,
+                                  socklen_t addrlen);
+
+
+/**
  * Create a connection handle by boxing an existing OS socket.  The OS
  * socket should henceforth be no longer used directly.
- * GNUNET_CONNECTION_destroy will close it.
+ * #GNUNET_CONNECTION_destroy() will close it.
  *
  * @param osSocket existing socket to box
  * @return the boxed socket handle

@@ -57,9 +57,21 @@
 #define HTTP_DEFAULT_PORT 80
 #define HTTPS_DEFAULT_PORT 443
 
-enum HTTP_ADDRESS_OPTIONS
+/**
+ * Bits in the `options` field of HTTP addresses.
+ */
+enum HttpAddressOptions
 {
+  /**
+   * No bits set.
+   */
   HTTP_OPTIONS_NONE = 0,
+
+  /**
+   * Verify X509 server certificate, it should be valid.
+   * (if this bit is not set, it is probably just self-
+   * signed and not expected to be verified).
+   */
   HTTP_OPTIONS_VERIFY_CERTIFICATE = 1
 };
 
@@ -73,6 +85,7 @@ struct HttpAddress
 {
   /**
    * Address options
+   * see `enum HttpAddressOptions`
    */
   uint32_t options;
 

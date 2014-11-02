@@ -121,6 +121,28 @@ struct TCPProbeContext
   struct Plugin *plugin;
 };
 
+/**
+ * Bits in the `options` field of TCP addresses.
+ */
+enum TcpAddressOptions
+{
+
+  /**
+   * No bits set.
+   */
+  TCP_OPTIONS_NONE = 0,
+
+  /**
+   * See #HTTP_OPTIONS_VERIFY_CERTIFICATE.
+   */
+  TCP_OPTIONS_RESERVED = 1,
+
+  /**
+   * Enable TCP Stealth-style port knocking.
+   */
+  TCP_OPTIONS_TCP_STEALTH = 2
+};
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -129,7 +151,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct IPv4TcpAddress
 {
   /**
-   * Optional options and flags for this address
+   * Optional options and flags for this address,
+   * see `enum TcpAddressOptions`
    */
   uint32_t options;
 
@@ -152,6 +175,7 @@ struct IPv6TcpAddress
 {
   /**
    * Optional flags for this address
+   * see `enum TcpAddressOptions`
    */
   uint32_t options;
 
@@ -1488,9 +1512,13 @@ tcp_plugin_get_session (void *cls,
   struct sockaddr_in6 a6;
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
+  unsigned int options;
   struct GNUNET_ATS_Information ats;
   unsigned int is_natd = GNUNET_NO;
   size_t addrlen;
+#ifdef SO_TCPSTEALTH
+  struct GNUNET_NETWORK_Handle *s;
+#endif
 
   addrlen = address->address_length;
   LOG(GNUNET_ERROR_TYPE_DEBUG,
@@ -1537,6 +1565,7 @@ tcp_plugin_get_session (void *cls,
   {
     GNUNET_assert(NULL != address->address); /* make static analysis happy */
     t6 = address->address;
+    options = t6->options;
     af = AF_INET6;
     memset (&a6, 0, sizeof(a6));
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -1554,6 +1583,7 @@ tcp_plugin_get_session (void *cls,
   {
     GNUNET_assert(NULL != address->address); /* make static analysis happy */
     t4 = address->address;
+    options = t4->options;
     af = AF_INET;
     memset (&a4, 0, sizeof(a4));
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -1571,7 +1601,7 @@ tcp_plugin_get_session (void *cls,
   {
     GNUNET_STATISTICS_update (plugin->env->stats, gettext_noop
     ("# requests to create session with invalid address"), 1, GNUNET_NO);
-    return NULL ;
+    return NULL;
   }
 
   ats = plugin->env->get_address_type (plugin->env->cls, sb, sbs);
@@ -1579,13 +1609,13 @@ tcp_plugin_get_session (void *cls,
   if ((is_natd == GNUNET_YES) && (addrlen == sizeof(struct IPv6TcpAddress)))
   {
     /* NAT client only works with IPv4 addresses */
-    return NULL ;
+    return NULL;
   }
 
   if (plugin->cur_connections >= plugin->max_connections)
   {
     /* saturated */
-    return NULL ;
+    return NULL;
   }
 
   if ((is_natd == GNUNET_YES)
@@ -1594,7 +1624,7 @@ tcp_plugin_get_session (void *cls,
               &address->peer)))
   {
     /* Only do one NAT punch attempt per peer identity */
-    return NULL ;
+    return NULL;
   }
 
   if ((is_natd == GNUNET_YES) && (NULL != plugin->nat) &&
@@ -1634,13 +1664,51 @@ tcp_plugin_get_session (void *cls,
 
   /* create new outbound session */
   GNUNET_assert(plugin->cur_connections <= plugin->max_connections);
-  sa = GNUNET_CONNECTION_create_from_sockaddr (af, sb, sbs);
+
+  if (0 != (options & TCP_OPTIONS_TCP_STEALTH))
+  {
+#ifdef SO_TCPSTEALTH
+    s = GNUNET_NETWORK_socket_create (af, SOCK_STREAM, 0);
+    if (NULL == s)
+    {
+      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                           "socket");
+      sa = NULL;
+    }
+    else
+    {
+      if (GNUNET_OK !=
+          GNUNET_NETWORK_socket_setsockopt (s,
+                                            IPPROTO_TCP,
+                                            SO_TCPSTEALTH,
+                                            &session->target,
+                                            sizeof (struct GNUNET_PeerIdentity)))
+      {
+        /* TCP STEALTH not supported by kernel */
+        GNUNET_break (GNUNET_OK ==
+                      GNUNET_NETWORK_socket_close (s));
+        sa = NULL;
+      }
+      else
+      {
+        sa = GNUNET_CONNECTION_connect_socket (s, sb, sbs);
+      }
+    }
+#else
+    sa = NULL;
+#endif
+  }
+  else
+  {
+    sa = GNUNET_CONNECTION_create_from_sockaddr (af, sb, sbs);
+  }
   if (NULL == sa)
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Failed to create connection to `%4s' at `%s'\n",
-        GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
-    return NULL ;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to create connection to `%4s' at `%s'\n",
+         GNUNET_i2s (&address->peer),
+         GNUNET_a2s (sb, sbs));
+    return NULL;
   }
   plugin->cur_connections++;
   if (plugin->cur_connections == plugin->max_connections)
@@ -1651,7 +1719,8 @@ tcp_plugin_get_session (void *cls,
       GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 
   session = create_session (plugin, address,
-      GNUNET_SERVER_connect_socket (plugin->server, sa), GNUNET_NO);
+                            GNUNET_SERVER_connect_socket (plugin->server, sa),
+                            GNUNET_NO);
   session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
       ats.value);
   GNUNET_break(session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
@@ -2100,7 +2169,7 @@ handle_tcp_nat_probe (void *cls,
   case AF_INET:
     s4 = vaddr;
     t4 = GNUNET_new (struct IPv4TcpAddress);
-    t4->options = htonl(0);
+    t4->options = htonl (TCP_OPTIONS_NONE);
     t4->t4_port = s4->sin_port;
     t4->ipv4_addr = s4->sin_addr.s_addr;
     session->address = GNUNET_HELLO_address_allocate (
@@ -2111,7 +2180,7 @@ handle_tcp_nat_probe (void *cls,
   case AF_INET6:
     s6 = vaddr;
     t6 = GNUNET_new (struct IPv6TcpAddress);
-    t6->options = htonl(0);
+    t6->options = htonl (TCP_OPTIONS_NONE);
     t6->t6_port = s6->sin6_port;
     memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
     session->address = GNUNET_HELLO_address_allocate (
@@ -2209,7 +2278,7 @@ handle_tcp_welcome (void *cls,
       {
         s4 = vaddr;
         memset (&t4, '\0', sizeof (t4));
-        t4.options = htonl (0);
+        t4.options = htonl (TCP_OPTIONS_NONE);
         t4.t4_port = s4->sin_port;
         t4.ipv4_addr = s4->sin_addr.s_addr;
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
@@ -2220,7 +2289,7 @@ handle_tcp_welcome (void *cls,
       {
         s6 = vaddr;
         memset (&t6, '\0', sizeof (t6));
-        t6.options = htonl (0);
+        t6.options = htonl (TCP_OPTIONS_NONE);
         t6.t6_port = s6->sin6_port;
         memcpy (&t6.ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
@@ -2609,6 +2678,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned long long max_connections;
   unsigned int i;
   struct GNUNET_TIME_Relative idle_timeout;
+#ifdef SO_TCPSTEALTH
+  struct GNUNET_NETWORK_Handle **lsocks;
+#endif
   int ret;
   int ret_s;
   struct sockaddr **addrs;
@@ -2635,28 +2707,30 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     max_connections = 128;
 
   aport = 0;
-  if ((GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
-          "PORT", &bport)) || (bport > 65535)
-      || ((GNUNET_OK
-          == GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
-              "ADVERTISED-PORT", &aport)) && (aport > 65535)))
+  if ((GNUNET_OK !=
+       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
+                                              "PORT", &bport)) ||
+      (bport > 65535) ||
+      ((GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-tcp",
+                                               "ADVERTISED-PORT", &aport)) &&
+       (aport > 65535) ))
   {
     LOG(GNUNET_ERROR_TYPE_ERROR,
         _("Require valid port number for service `%s' in configuration!\n"),
         "transport-tcp");
     return NULL ;
   }
-  if (aport == 0)
+  if (0 == aport)
     aport = bport;
-  if (bport == 0)
+  if (0 == bport)
     aport = 0;
-  if (bport != 0)
+  if (0 != bport)
   {
     service = GNUNET_SERVICE_start ("transport-tcp",
                                     env->cfg,
                                     GNUNET_SERVICE_OPTION_NONE);
-    if (service == NULL)
+    if (NULL == service)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
            _("Failed to start service.\n"));
@@ -2666,14 +2740,51 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   else
     service = NULL;
 
+  api = NULL;
   plugin = GNUNET_new (struct Plugin);
   plugin->sessionmap = GNUNET_CONTAINER_multipeermap_create (max_connections,
-      GNUNET_YES);
+                                                             GNUNET_YES);
   plugin->max_connections = max_connections;
   plugin->open_port = bport;
   plugin->adv_port = aport;
   plugin->env = env;
-  if ( (service != NULL) &&
+
+  if ( (NULL != service) &&
+       (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+                                              "transport-tcp",
+                                              "TCP_STEALTH")) )
+  {
+#ifdef SO_TCPSTEALTH
+    plugin->myoptions |= TCP_OPTIONS_TCP_STEALTH;
+    lsocks = GNUNET_SERVICE_get_listen_sockets (service);
+    if (NULL != lsocks)
+    {
+      for (i=0;NULL!=lsocks[i];i++)
+      {
+        if (GNUNET_OK !=
+            GNUNET_NETWORK_socket_setsockopt (lsocks[i],
+                                              IPPROTO_TCP,
+                                              SO_TCPSTEALTH,
+                                              env->my_identity,
+                                              sizeof (struct GNUNET_PeerIdentity)))
+        {
+          /* TCP STEALTH not supported by kernel */
+          GNUNET_assert (0 == i);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("TCP_STEALTH not supported on this platform.\n"));
+          goto die;
+        }
+      }
+    }
+#else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("TCP_STEALTH not supported on this platform.\n"));
+    goto die;
+#endif
+  }
+
+  if ( (NULL != service) &&
        (GNUNET_SYSERR !=
         (ret_s =
          GNUNET_SERVICE_get_server_addresses ("transport-tcp",
@@ -2736,11 +2847,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                  "transport-tcp",
                                  "TIMEOUT");
-      if (NULL != plugin->nat)
-        GNUNET_NAT_unregister (plugin->nat);
-      GNUNET_free(plugin);
-      GNUNET_free(api);
-      return NULL;
+      goto die;
     }
     plugin->server
       = GNUNET_SERVER_create_with_sockets (&plugin_tcp_access_check,
@@ -2775,6 +2882,16 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                          0,
                          GNUNET_NO);
   return api;
+
+ die:
+  if (NULL != plugin->nat)
+    GNUNET_NAT_unregister (plugin->nat);
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->sessionmap);
+  if (NULL != service)
+    GNUNET_SERVICE_stop (service);
+  GNUNET_free (plugin);
+  GNUNET_free_non_null (api);
+  return NULL;
 }
 
 
