@@ -1116,7 +1116,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     sm->query = sc->requests[sc->keyword_offset].uquery;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
-    GNUNET_assert (0 == mbc->put_cnt);
+    GNUNET_assert (0 == mbc.put_cnt);
     GNUNET_assert (total_seen_results >= sc->search_request_map_offset);
     if (total_seen_results != sc->search_request_map_offset)
     {
