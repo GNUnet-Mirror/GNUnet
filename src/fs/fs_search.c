@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001-2013 Christian Grothoff (and other contributing authors)
+     (C) 2001-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1006,7 +1006,9 @@ struct MessageBuilderContext
  * @return #GNUNET_OK to continue iterating
  */
 static int
-build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
+build_result_set (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  void *value)
 {
   struct MessageBuilderContext *mbc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1029,9 +1031,8 @@ build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * Iterating over the known results, count those
- * matching the given result range and increment
- * put count for each.
+ * Iterating over the known results, count those matching the given
+ * result range and increment put count for each.
  *
  * @param cls the `struct MessageBuilderContext`
  * @param key key for a result
@@ -1039,7 +1040,9 @@ build_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
  * @return #GNUNET_OK to continue iterating
  */
 static int
-find_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
+find_result_set (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
 {
   struct MessageBuilderContext *mbc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -1053,8 +1056,9 @@ find_result_set (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * We're ready to transmit the search request to the
- * file-sharing service.  Do it.
+ * We're ready to transmit the search request to the file-sharing
+ * service.  Do it.  If the request is too large to fit into a single
+ * message, transmit in increments.
  *
  * @param cls closure
  * @param size number of bytes available in @a buf
@@ -1069,7 +1073,8 @@ transmit_search_request (void *cls, size_t size, void *buf)
   size_t msize;
   struct SearchMessage *sm;
   struct GNUNET_CRYPTO_EcdsaPublicKey dpub;
-  unsigned int sqms;
+  unsigned int total_seen_results; /* total number of result hashes to send */
+  unsigned int message_size_limit;
   uint32_t options;
 
   if (NULL == buf)
@@ -1081,7 +1086,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
   mbc.skip_cnt = sc->search_request_map_offset;
   sm = buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_START_SEARCH);
-  mbc.xoff = (struct GNUNET_HashCode *) & sm[1];
+  mbc.xoff = (struct GNUNET_HashCode *) &sm[1];
   options = SEARCH_MESSAGE_OPTION_NONE;
   if (0 != (sc->options & GNUNET_FS_SEARCH_OPTION_LOOPBACK_ONLY))
     options |= SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY;
@@ -1090,15 +1095,16 @@ transmit_search_request (void *cls, size_t size, void *buf)
     msize = sizeof (struct SearchMessage);
     GNUNET_assert (size >= msize);
     mbc.keyword_offset = sc->keyword_offset;
-    /* calculate total number of known results (in put_cnt => sqms) */
+    /* calculate total number of known results (in put_cnt => total_seen_results) */
     mbc.put_cnt = 0;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &find_result_set, &mbc);
-    sqms = mbc.put_cnt;
+    total_seen_results = mbc.put_cnt;
     /* calculate how many results we can send in this message */
-    mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
-    mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
-    if (sc->search_request_map_offset < sqms)
+    message_size_limit = (size - msize) / sizeof (struct GNUNET_HashCode);
+    mbc.put_cnt = GNUNET_MIN (message_size_limit,
+                              total_seen_results - mbc.skip_cnt);
+    if (sc->search_request_map_offset < total_seen_results)
       GNUNET_assert (mbc.put_cnt > 0);
 
     /* now build message */
@@ -1110,8 +1116,9 @@ transmit_search_request (void *cls, size_t size, void *buf)
     sm->query = sc->requests[sc->keyword_offset].uquery;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
-    GNUNET_assert (sqms >= sc->search_request_map_offset);
-    if (sqms != sc->search_request_map_offset)
+    GNUNET_assert (0 == mbc->put_cnt);
+    GNUNET_assert (total_seen_results >= sc->search_request_map_offset);
+    if (total_seen_results != sc->search_request_map_offset)
     {
       /* more requesting to be done... */
       sm->options = htonl (options | SEARCH_MESSAGE_OPTION_CONTINUED);
@@ -1120,6 +1127,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     }
     sm->options = htonl (options);
     sc->keyword_offset++;
+    sc->search_request_map_offset = 0;
     if (sc->uri->data.ksk.keywordCount != sc->keyword_offset)
     {
       /* more requesting to be done... */
@@ -1142,18 +1150,19 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_CRYPTO_hash (&dpub,
 			sizeof (dpub),
 			&sm->query);
-    mbc.put_cnt = (size - msize) / sizeof (struct GNUNET_HashCode);
-    sqms = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
-    mbc.put_cnt = GNUNET_MIN (mbc.put_cnt, sqms - mbc.skip_cnt);
+    message_size_limit = (size - msize) / sizeof (struct GNUNET_HashCode);
+    total_seen_results = GNUNET_CONTAINER_multihashmap_size (sc->master_result_map);
+    mbc.put_cnt = GNUNET_MIN (message_size_limit,
+                              total_seen_results - mbc.skip_cnt);
     mbc.keyword_offset = 0;
-    if (sc->search_request_map_offset < sqms)
+    if (sc->search_request_map_offset < total_seen_results)
       GNUNET_assert (mbc.put_cnt > 0);
     msize += sizeof (struct GNUNET_HashCode) * mbc.put_cnt;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
     sm->header.size = htons (msize);
-    GNUNET_assert (sqms >= sc->search_request_map_offset);
-    if (sqms != sc->search_request_map_offset)
+    GNUNET_assert (total_seen_results >= sc->search_request_map_offset);
+    if (total_seen_results != sc->search_request_map_offset)
     {
       /* more requesting to be done... */
       sm->options = htonl (options | SEARCH_MESSAGE_OPTION_CONTINUED);
@@ -1162,7 +1171,8 @@ transmit_search_request (void *cls, size_t size, void *buf)
     }
     sm->options = htonl (options);
   }
-  GNUNET_CLIENT_receive (sc->client, &receive_results, sc,
+  GNUNET_CLIENT_receive (sc->client,
+                         &receive_results, sc,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   return msize;
 }
@@ -1178,20 +1188,21 @@ static void
 schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc)
 {
   size_t size;
-  unsigned int sqms;
+  unsigned int left;
   unsigned int fit;
+  unsigned int request;
 
   size = sizeof (struct SearchMessage);
-  sqms =
+  left =
       GNUNET_CONTAINER_multihashmap_size (sc->master_result_map) -
       sc->search_request_map_offset;
   fit = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - size) / sizeof (struct GNUNET_HashCode);
-  fit = GNUNET_MIN (fit, sqms);
-  size += sizeof (struct GNUNET_HashCode) * fit;
+  request = GNUNET_MIN (fit, left);
+  size += sizeof (struct GNUNET_HashCode) * request;
   GNUNET_CLIENT_notify_transmit_ready (sc->client, size,
                                        GNUNET_CONSTANTS_SERVICE_TIMEOUT,
-                                       GNUNET_NO, &transmit_search_request, sc);
-
+                                       GNUNET_NO,
+                                       &transmit_search_request, sc);
 }
 
 
@@ -1374,6 +1385,7 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
   sc->client = GNUNET_CLIENT_connect ("fs", sc->h->cfg);
   if (NULL == sc->client)
     return GNUNET_SYSERR;
+  sc->search_request_map_offset = 0;
   schedule_transmit_search_request (sc);
   return GNUNET_OK;
 }
