@@ -1634,7 +1634,7 @@ GNUNET_SERVICE_get_server (struct GNUNET_SERVICE_Context *ctx)
  * @return NULL if there are no listen sockets, otherwise NULL-terminated
  *              array of listen sockets.
  */
-struct GNUNET_NETWORK_Handle **
+struct GNUNET_NETWORK_Handle *const*
 GNUNET_SERVICE_get_listen_sockets (struct GNUNET_SERVICE_Context *ctx)
 {
   return ctx->lsocks;

@@ -2679,7 +2679,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned int i;
   struct GNUNET_TIME_Relative idle_timeout;
 #ifdef SO_TCPSTEALTH
-  struct GNUNET_NETWORK_Handle **lsocks;
+  struct GNUNET_NETWORK_Handle *const*lsocks;
 #endif
   int ret;
   int ret_s;
