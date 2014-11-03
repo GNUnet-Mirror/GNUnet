@@ -111,10 +111,30 @@ splines = true;
   tun [shape=diamond];
   dnsparser [shape=diamond];
   dnsstub [shape=diamond];
+
+  secushare [shape=house,style=dashed];
+  multicast [style=dashed];
+  psyc [style=dashed];
+  social -> psyc [style=dashed];
+  social -> gns [style=dashed];
+  psyc -> psycstore [style=dashed];
+  psycstore;
+  social [style=dashed];
+  secushare -> social [style=dashed];
+  secushare -> identity [style=dashed];
+  psyc -> multicast [style=dashed];
+  multicast -> cadet [style=dashed];
+
+  reuters [shape=house,style=dashed];
+  reuters -> scalarproduct [style=dashed];
+
+  rps [style=dashed];
+  topology -> rps [style=dashed];
+  rps -> core [style=dashed];
 }
 
 
-// this is what we have, excluding libs
+// this is what we have, excluding libs and stores
 digraph dependencies_no_libs {
 splines = true;
 
@@ -128,7 +148,6 @@ splines = true;
   fs [shape=house];
   fs -> dht;
   fs -> core;
-  fs -> datastore;
   fs -> cadet;
   fs -> ats;
   fs -> identity;
@@ -142,19 +161,15 @@ splines = true;
   pt -> dns;
   dv -> ats;
   gns [shape=house];
-  gns -> namestore;
   gns -> dns;
   gns -> dht;
   gns -> revocation;
   gns -> vpn;
   gns -> identity;
-  gns -> gnsrecord;
   revocation -> core;
   revocation -> set;
-  namestore -> identity;
   dht -> core;
   dht -> nse;
-  dht -> peerinfo;
   nse -> core;
   cadet -> core [weight=2];
   cadet -> dht;
@@ -165,14 +180,11 @@ splines = true;
   regex -> dht;
   core -> transport;
   topology [shape=box];
-  topology -> peerinfo;
   topology -> transport;
   topology -> core;
   hostlist [shape=box];
   hostlist -> core;
-  hostlist -> peerinfo;
   transport -> ats;
-  transport -> peerinfo;
   dv [shape=egg];
   dv -> transport [color=blue,style=dotted];
   dv -> core;
@@ -182,57 +194,81 @@ splines = true;
   scalarproduct -> set;
   scalarproduct -> cadet;
   set -> cadet;
-}
 
 
-// this is what might happen...
-digraph plan {
-splines = true;
-
-// // secushare roadmap:
   secushare [shape=house,style=dashed];
+  multicast [style=dashed];
   psyc [style=dashed];
   social -> psyc [style=dashed];
-  psyc -> psycstore [style=dashed];
-  psycstore;
+  social -> gns [style=dashed];
   social [style=dashed];
   secushare -> social [style=dashed];
-  secushare -> voting [style=dashed,color=red];
-  secushare -> gns [style=dashed];
-  secushare -> fs [style=dashed,color=red];
-  secushare -> reuters [style=dashed,color=red];
-  secushare -> identity [style=dashed,color=red];
-  secushare -> messaging [style=dashed,color=red];
-  secushare -> conversation [style=dashed,color=red];
+  secushare -> identity [style=dashed];
   psyc -> multicast [style=dashed];
-
-// // reuters roadmap:
-  reuters [shape=house,style=dashed];
-  scalarproduct [style=dashed];
-  reuters -> scalarproduct [style=dashed];
-  reuters -> identity [style=dashed];
-  scalarproduct -> set [style=dashed];
-  scalarproduct -> cadet [style=dashed];
-  messaging [style=dashed];
-  messaging -> regex [style=dashed];
-  messaging -> cadet [style=dashed];
-  messaging -> dht [style=dashed];
-  reuters -> messaging [style=dashed,color=red];
-  reuters -> multicast [style=dashed,color=red];
-  reuters -> cadet [style=dashed,color=red];
-  reuters -> core [style=dashed,color=red];
-
-
-// // core roadmap:
-  dht -> ats [style=dashed,color=red];
-  cadet -> ats [style=dashed,color=red];
-  vpn -> multicast [style=dashed,color=red];
-  exit -> multicast [style=dashed,color=red];
-  multicast [style=dashed];
   multicast -> cadet [style=dashed];
 
-  fs [shape=house];
-  gns [shape=house];
-  conversation [shape=house];
-  exit [shape=box];
+  reuters [shape=house,style=dashed];
+  reuters -> scalarproduct [style=dashed];
+
+  rps [style=dashed];
+  topology -> rps [style=dashed];
+  rps -> core [style=dashed];
 }
+
+
+// this is what we have, excluding and details
+digraph dependencies_no_details {
+splines = true;
+
+  voting [shape=house];
+  voting -> consensus;
+  voting -> cadet;
+  voting -> secretsharing;
+  secretsharing -> consensus;
+
+  fs [shape=house];
+  fs -> dht;
+  fs -> core;
+  fs -> cadet;
+  vpn -> cadet;
+  vpn -> dht;
+  pt [shape=house];
+  pt -> cadet;
+  pt -> vpn;
+  gns [shape=house];
+  gns -> dht;
+  gns -> revocation;
+  gns -> vpn;
+  revocation -> core;
+  revocation -> set;
+  dht -> core;
+  dht -> nse;
+  nse -> core;
+  cadet -> core [weight=2];
+  cadet -> dht;
+  conversation [shape=house];
+  conversation -> cadet;
+  conversation -> gns;
+  core -> transport;
+  consensus -> set;
+  consensus -> cadet;
+  scalarproduct -> set;
+  scalarproduct -> cadet;
+  set -> cadet;
+
+
+  secushare [shape=house,style=dashed];
+  multicast [style=dashed];
+  psyc [style=dashed];
+  social -> psyc [style=dashed];
+  social -> gns [style=dashed];
+  social [style=dashed];
+  secushare -> social [style=dashed];
+  psyc -> multicast [style=dashed];
+  multicast -> cadet [style=dashed];
+
+  reuters [shape=house,style=dashed];
+  reuters -> scalarproduct [style=dashed];
+}
+
+
