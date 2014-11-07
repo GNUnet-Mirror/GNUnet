@@ -598,11 +598,13 @@ server_delete_session (struct Session *s)
   }
   notify_session_monitor (plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_DOWN);
+                          GNUNET_TRANSPORT_SS_DONE);
   if (GNUNET_YES == s->known_to_service)
+  {
     plugin->env->session_end (plugin->env->cls,
                               s->address,
                               s);
+  }
   if (NULL != s->msg_tk)
   {
     GNUNET_SERVER_mst_destroy (s->msg_tk);
@@ -1461,6 +1463,9 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     notify_session_monitor (plugin,
                             s,
+                            GNUNET_TRANSPORT_SS_INIT);
+    notify_session_monitor (plugin,
+                            s,
                             GNUNET_TRANSPORT_SS_HANDSHAKE);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Creating new session %p for peer `%s' connecting from `%s'\n",
@@ -1512,7 +1517,13 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       (NULL != s->server_recv) )
   {
     s->known_to_service = GNUNET_YES;
-    plugin->env->session_start (NULL, s->address ,s, NULL, 0);
+    notify_session_monitor (plugin,
+                            s,
+                            GNUNET_TRANSPORT_SS_UP);
+    plugin->env->session_start (NULL,
+                                s->address,
+                                s,
+                                NULL, 0);
   }
 
   if ( (NULL == s->server_recv) ||
@@ -1592,7 +1603,7 @@ server_send_callback (void *cls,
       GNUNET_free (msg);
       notify_session_monitor (s->plugin,
                               s,
-                              GNUNET_TRANSPORT_SS_UP);
+                              GNUNET_TRANSPORT_SS_UPDATE);
     }
   }
   if (0 < bytes_read)
@@ -3298,7 +3309,7 @@ send_session_info_iter (void *cls,
 
   notify_session_monitor (plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_INIT);
   return GNUNET_OK;
 }
 

@@ -95,7 +95,7 @@ endif
 if LINUX
 install-exec-hook:
 	$(top_srcdir)/src/transport/install-wlan-helper.sh $(libexecdir) $(SUDO_BINARY) || true
-if HAVE_LIBBLUETOOTH	
+if HAVE_LIBBLUETOOTH
 	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(libexecdir) $(SUDO_BINARY) || true
 endif
 else
@@ -164,6 +164,7 @@ libgnunettransport_la_SOURCES = \
   transport_api_blacklist.c \
   transport_api_address_to_string.c \
   transport_api_monitor_peers.c \
+  transport_api_monitor_plugins.c \
   transport_api_monitor_validation.c
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \

@@ -885,6 +885,155 @@ void
 GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
 
 
+/**
+ * Handle for a plugin session state monitor.
+ */
+struct GNUNET_TRANSPORT_PluginMonitor;
+
+/**
+ * Abstract representation of a plugin's session.
+ * Corresponds to the `struct Session` within the TRANSPORT service.
+ */
+struct GNUNET_TRANSPORT_PluginSession;
+
+
+/**
+ * Possible states of a session in a plugin.
+ */
+enum GNUNET_TRANSPORT_SessionState
+{
+
+  /**
+   * The session was created (first call for each session object).
+   */
+  GNUNET_TRANSPORT_SS_INIT,
+
+  /**
+   * Initial session handshake is in progress.
+   */
+  GNUNET_TRANSPORT_SS_HANDSHAKE,
+
+  /**
+   * Session is fully UP.
+   */
+  GNUNET_TRANSPORT_SS_UP,
+
+  /**
+   * This is just an update about the session,
+   * the state did not change.
+   */
+  GNUNET_TRANSPORT_SS_UPDATE,
+
+  /**
+   * Session is being torn down and about to disappear.
+   * Last call for each session object.
+   */
+  GNUNET_TRANSPORT_SS_DONE
+
+};
+
+
+/**
+ * Information about a plugin's session.
+ */
+struct GNUNET_TRANSPORT_SessionInfo
+{
+
+  /**
+   * New state of the session.
+   */
+  enum GNUNET_TRANSPORT_SessionState state;
+
+  /**
+   * #GNUNET_YES if this is an inbound connection,
+   * #GNUNET_NO if this is an outbound connection,
+   * #GNUNET_SYSERR if connections of this plugin
+   *             are so fundamentally bidirectional
+   *             that they have no 'initiator'
+   */
+  int is_inbound;
+
+  /**
+   * Number of messages pending transmission for this session.
+   */
+  uint32_t num_msg_pending;
+
+  /**
+   * Number of bytes pending transmission for this session.
+   */
+  uint32_t num_bytes_pending;
+
+  /**
+   * Until when does this plugin refuse to receive to manage
+   * staying within the inbound quota?  ZERO if receive is
+   * active.
+   */
+  struct GNUNET_TIME_Absolute receive_delay;
+
+  /**
+   * At what time will this session timeout (unless activity
+   * happens)?
+   */
+  struct GNUNET_TIME_Absolute session_timeout;
+
+  /**
+   * Address used by the session.  Can be NULL if none is available.
+   */
+  const struct GNUNET_HELLO_Address *address;
+};
+
+
+/**
+ * Function called by the plugin with information about the
+ * current sessions managed by the plugin (for monitoring).
+ *
+ * @param cls closure
+ * @param session session handle this information is about,
+ *        NULL to indicate that we are "in sync" (initial
+ *        iteration complete)
+ * @param session_ctx storage location where the application
+ *        can store data; will point to NULL on #GNUNET_TRANSPORT_SS_INIT,
+ *        and must be reset to NULL on #GNUNET_TRANSPORT_SS_DONE
+ * @param info information about the state of the session,
+ *        NULL if @a session is also NULL and we are
+ *        merely signalling that the initial iteration is over;
+ *        NULL with @a session being non-NULL if the monitor
+ *        was being cancelled while sessions were active
+ */
+typedef void
+(*GNUNET_TRANSPORT_SessionMonitorCallback) (void *cls,
+                                            struct GNUNET_TRANSPORT_PluginSession *session,
+                                            void **session_ctx,
+                                            const struct GNUNET_TRANSPORT_SessionInfo *info);
+
+
+
+/**
+ * Install a plugin session state monitor callback.  The callback
+ * will be notified whenever the session changes.
+ *
+ * @param cfg configuration to use
+ * @param cb callback to invoke on events
+ * @param cb_cls closure for @a cb
+ * @return NULL on error, otherwise handle for cancellation
+ */
+struct GNUNET_TRANSPORT_PluginMonitor *
+GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  GNUNET_TRANSPORT_SessionMonitorCallback cb,
+                                  void *cb_cls);
+
+
+/**
+ * Cancel monitoring the plugin session state.  The callback will be
+ * called once for each session that is up with the "info" argument
+ * being NULL (this is just to enable client-side cleanup).
+ *
+ * @param pm handle of the request that is to be cancelled
+ */
+void
+GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *pm);
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -644,6 +644,11 @@ struct TransportPluginMonitorMessage
   struct GNUNET_PeerIdentity peer;
 
   /**
+   * Unique identifier for the session.
+   */
+  uint64_t session_id;
+
+  /**
    * Length of the plugin name in bytes, including 0-termination.
    */
   uint16_t plugin_name_len GNUNET_PACKED;

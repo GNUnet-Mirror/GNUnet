@@ -167,7 +167,7 @@ GNUNET_TRANSPORT_ps2s (enum GNUNET_TRANSPORT_PeerState state)
 /**
  * Function called with responses from the service.
  *
- * @param cls our `struct GNUNET_TRANSPORT_PeerAddressLookupContext *`
+ * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
@@ -203,7 +203,7 @@ send_peer_mon_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 /**
  * Task run to re-establish the connection.
  *
- * @param cls our `struct GNUNET_TRANSPORT_PeerAddressLookupContext *`
+ * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
  * @param tc scheduler context, unused
  */
 static void
@@ -423,7 +423,7 @@ GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_CLIENT_Connection *client;
 
   client = GNUNET_CLIENT_connect ("transport", cfg);
-  if (client == NULL)
+  if (NULL == client)
     return NULL;
   if (GNUNET_YES != one_shot)
     timeout = GNUNET_TIME_UNIT_FOREVER_REL;

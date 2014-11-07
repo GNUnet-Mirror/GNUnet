@@ -519,7 +519,7 @@ client_delete_session (struct Session *s)
   GNUNET_assert (0 == s->bytes_in_queue);
   notify_session_monitor (plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_DOWN);
+                          GNUNET_TRANSPORT_SS_DONE);
   if (NULL != s->msg_tk)
   {
     GNUNET_SERVER_mst_destroy (s->msg_tk);
@@ -778,7 +778,7 @@ http_client_plugin_send (void *cls,
   GNUNET_free (stat_txt);
   notify_session_monitor (plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   if (H_TMP_DISCONNECTING == s->put.state)
   {
     /* PUT request is currently getting disconnected */
@@ -1078,7 +1078,7 @@ client_send_cb (void *stream,
   }
   notify_session_monitor (plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   GNUNET_asprintf (&stat_txt,
                    "# bytes currently in %s_client buffers",
                    plugin->protocol);
@@ -1741,7 +1741,7 @@ client_session_timeout (void *cls,
        the monitor, it may think we're about to die ... */
     notify_session_monitor (s->plugin,
                             s,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     s->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
                                                     &client_session_timeout,
                                                     s);
@@ -1860,7 +1860,12 @@ http_client_plugin_get_session (void *cls,
     client_delete_session (s);
     return NULL;
   }
-  notify_session_monitor (plugin, s, GNUNET_TRANSPORT_SS_UP); /* or handshake? */
+  notify_session_monitor (plugin,
+                          s,
+                          GNUNET_TRANSPORT_SS_INIT);
+  notify_session_monitor (plugin,
+                          s,
+                          GNUNET_TRANSPORT_SS_UP); /* or handshake? */
   return s;
 }
 
@@ -2162,7 +2167,10 @@ send_session_info_iter (void *cls,
 
   notify_session_monitor (plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_INIT);
+  notify_session_monitor (plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_UP); /* FIXME: or handshake? */
   return GNUNET_OK;
 }
 

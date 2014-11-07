@@ -885,7 +885,7 @@ tcp_plugin_disconnect_session (void *cls,
   GNUNET_assert (0 == session->bytes_in_queue);
   notify_session_monitor (session->plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_DONE);
 
   if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -942,7 +942,7 @@ session_timeout (void *cls,
        the monitor, it may think we're about to die ... */
     notify_session_monitor (s->plugin,
                             s,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     s->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
                                                     &session_timeout,
                                                     s);
@@ -1030,6 +1030,9 @@ create_session (struct Plugin *plugin,
   session->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                         &session_timeout,
                                                         session);
+  notify_session_monitor (session->plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_INIT);
   if (GNUNET_YES != is_nat)
   {
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1144,7 +1147,7 @@ do_transmit (void *cls, size_t size, void *buf)
     if (0 < ret)
       notify_session_monitor (session->plugin,
                               session,
-                              GNUNET_TRANSPORT_SS_UP);
+                              GNUNET_TRANSPORT_SS_UPDATE);
     return 0;
   }
   /* copy all pending messages that would fit */
@@ -1177,7 +1180,7 @@ do_transmit (void *cls, size_t size, void *buf)
   }
   notify_session_monitor (session->plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   /* schedule 'continuation' before callbacks so that callbacks that
    * cancel everything don't cause us to use a session that no longer
    * exists... */
@@ -1310,7 +1313,7 @@ tcp_plugin_send (void *cls,
                                       pm);
     notify_session_monitor (session->plugin,
                             session,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     session->msgs_in_queue++;
     session->bytes_in_queue += pm->message_size;
     process_pending_messages (session);
@@ -1410,12 +1413,12 @@ nat_connect_timeout (void *cls,
   struct Session *session = cls;
 
   session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
-      GNUNET_i2s (&session->target),
-      tcp_plugin_address_to_string (NULL,
-                             session->address->address,
-                             session->address->address_length));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
+       GNUNET_i2s (&session->target),
+       tcp_plugin_address_to_string (NULL,
+                                     session->address->address,
+                                     session->address->address_length));
   tcp_plugin_disconnect_session (session->plugin,
                                  session);
 }
@@ -1632,24 +1635,30 @@ tcp_plugin_get_session (void *cls,
               &address->peer)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Found valid IPv4 NAT address (creating session)!\n");
-    session = create_session (plugin, address, NULL, GNUNET_YES);
-    session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
-        ats.value);
-    GNUNET_break(
-        session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
+         "Found valid IPv4 NAT address (creating session)!\n");
+    session = create_session (plugin,
+                              address,
+                              NULL,
+                              GNUNET_YES);
+    session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
+    GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
     session->nat_connection_timeout = GNUNET_SCHEDULER_add_delayed (NAT_TIMEOUT,
-        &nat_connect_timeout, session);
-    GNUNET_assert(session != NULL);
-    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (plugin->nat_wait_conns,
-        &session->target, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                                                                    &nat_connect_timeout,
+                                                                    session);
+    GNUNET_assert(GNUNET_OK ==
+                  GNUNET_CONTAINER_multipeermap_put (plugin->nat_wait_conns,
+                                                     &session->target,
+                                                     session,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Created NAT WAIT connection to `%4s' at `%s'\n",
-        GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
-
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Created NAT WAIT connection to `%4s' at `%s'\n",
+         GNUNET_i2s (&session->target),
+         GNUNET_a2s (sb, sbs));
     if (GNUNET_OK == GNUNET_NAT_run_client (plugin->nat, &a4))
+    {
       return session;
+    }
     else
     {
       LOG(GNUNET_ERROR_TYPE_DEBUG,
@@ -1714,24 +1723,28 @@ tcp_plugin_get_session (void *cls,
   if (plugin->cur_connections == plugin->max_connections)
     GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
-      GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
+       GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 
-  session = create_session (plugin, address,
+  session = create_session (plugin,
+                            address,
                             GNUNET_SERVER_connect_socket (plugin->server, sa),
                             GNUNET_NO);
-  session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
-      ats.value);
-  GNUNET_break(session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
+  session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
+  GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
   GNUNET_SERVER_client_set_user_context(session->client, session);
-  GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap, &session->target,
-      session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Creating new session for `%s' address `%s' session %p\n",
-      GNUNET_i2s (&address->peer),
-      tcp_plugin_address_to_string(NULL, address->address, address->address_length),
-      session);
+  GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
+                                     &session->target,
+                                     session,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Creating new session for `%s' address `%s' session %p\n",
+       GNUNET_i2s (&address->peer),
+       tcp_plugin_address_to_string (NULL,
+                                     address->address,
+                                     address->address_length),
+       session);
   /* Send TCP Welcome */
   process_pending_messages (session);
 
@@ -2259,8 +2272,9 @@ handle_tcp_welcome (void *cls,
   {
     if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Found existing session %p for peer `%s'\n",
-          session, GNUNET_a2s (vaddr, alen));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Found existing session %p for peer `%s'\n",
+           session, GNUNET_a2s (vaddr, alen));
       GNUNET_free(vaddr);
     }
   }
@@ -2305,21 +2319,27 @@ handle_tcp_welcome (void *cls,
       session = create_session (plugin, address, client, GNUNET_NO);
       GNUNET_HELLO_address_free (address);
       ats = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
-      session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
-          ats.value);
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Creating new%s session %p for peer `%s' client %p \n",
+      session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Creating new%s session %p for peer `%s' client %p \n",
           GNUNET_HELLO_address_check_option (session->address,
-              GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? " inbound" : "", session,
+                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND)
+          ? " inbound" : "",
+          session,
           tcp_plugin_address_to_string(NULL, (void *) session->address->address,
-              session->address->address_length),
+                                       session->address->address_length),
           client);
       GNUNET_free(vaddr);
       GNUNET_SERVER_client_set_user_context(session->client, session);
-      GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap, &session->target,
-          session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
+      GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
+                                         &session->target,
+                                         session,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       /* Notify transport and ATS about new session */
       plugin->env->session_start (NULL, session->address, session, &ats, 1);
+      notify_session_monitor (plugin,
+                              session,
+                              GNUNET_TRANSPORT_SS_INIT);
     }
     else
     {
@@ -2612,6 +2632,11 @@ send_session_info_iter (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session = value;
 
+  notify_session_monitor (plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_INIT);
+  /* FIXME: cannot tell if this is up or not from current
+     session state... */
   notify_session_monitor (plugin,
                           session,
                           GNUNET_TRANSPORT_SS_UP);

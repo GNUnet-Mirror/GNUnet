@@ -490,7 +490,7 @@ unix_plugin_session_disconnect (void *cls,
   }
   notify_session_monitor (plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_DOWN);
+                          GNUNET_TRANSPORT_SS_DONE);
   GNUNET_HELLO_address_free (session->address);
   GNUNET_break (0 == session->bytes_in_queue);
   GNUNET_break (0 == session->msgs_in_queue);
@@ -520,7 +520,7 @@ session_timeout (void *cls,
        the monitor, it may think we're about to die ... */
     notify_session_monitor (session->plugin,
                             session,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     session->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
                                                           &session_timeout,
                                                           session);
@@ -898,6 +898,9 @@ unix_plugin_get_session (void *cls,
 			 GNUNET_NO);
   notify_session_monitor (plugin,
                           session,
+                          GNUNET_TRANSPORT_SS_INIT);
+  notify_session_monitor (plugin,
+                          session,
                           GNUNET_TRANSPORT_SS_UP);
   return session;
 }
@@ -973,9 +976,6 @@ unix_demultiplexer (struct Plugin *plugin,
                                 session->address,
                                 session,
                                 &plugin->ats_network, 1);
-    notify_session_monitor (plugin,
-                            session,
-                            GNUNET_TRANSPORT_SS_UP);
   }
   else
   {
@@ -1141,7 +1141,7 @@ unix_plugin_do_write (struct Plugin *plugin)
     if (GNUNET_YES == did_delete)
       notify_session_monitor (plugin,
                               session,
-                              GNUNET_TRANSPORT_SS_UP);
+                              GNUNET_TRANSPORT_SS_UPDATE);
     return; /* Nothing to send at the moment */
   }
 
@@ -1163,7 +1163,7 @@ unix_plugin_do_write (struct Plugin *plugin)
 			      1, GNUNET_NO);
     notify_session_monitor (plugin,
                             session,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     return;
   }
   GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
@@ -1180,7 +1180,7 @@ unix_plugin_do_write (struct Plugin *plugin)
                          plugin->bytes_in_queue, GNUNET_NO);
   notify_session_monitor (plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   if (GNUNET_SYSERR == sent)
   {
     /* failed and no retry */
@@ -1358,7 +1358,7 @@ unix_plugin_send (void *cls,
 			 GNUNET_NO);
   notify_session_monitor (plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   if (GNUNET_SCHEDULER_NO_TASK == plugin->write_task)
     plugin->write_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1701,6 +1701,9 @@ send_session_info_iter (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session = value;
 
+  notify_session_monitor (plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_INIT);
   notify_session_monitor (plugin,
                           session,
                           GNUNET_TRANSPORT_SS_UP);

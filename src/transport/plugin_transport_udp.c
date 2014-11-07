@@ -1270,7 +1270,7 @@ fragmented_message_done (struct UDP_FragmentationContext *fc,
   }
   notify_session_monitor (s->plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   /* Destroy fragmentation context */
   GNUNET_FRAGMENT_context_destroy (fc->frag,
                                    &s->last_expected_msg_delay,
@@ -1385,7 +1385,7 @@ udp_disconnect_session (void *cls,
   }
   notify_session_monitor (s->plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_DOWN);
+                          GNUNET_TRANSPORT_SS_DONE);
   plugin->env->session_end (plugin->env->cls,
                             s->address,
                             s);
@@ -1508,7 +1508,7 @@ session_timeout (void *cls,
        the monitor, it may think we're about to die ... */
     notify_session_monitor (s->plugin,
                             s,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     s->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
                                                     &session_timeout,
                                                     s);
@@ -2154,7 +2154,7 @@ udp_plugin_send (void *cls,
   }
   notify_session_monitor (s->plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   schedule_select (plugin);
   return udpmlen;
 }
@@ -2335,8 +2335,14 @@ process_udp_message (struct Plugin *plugin,
   {
     s = udp_plugin_create_session (plugin, address);
     plugin->env->session_start (NULL, address, s, NULL, 0);
+    notify_session_monitor (s->plugin,
+                            s,
+                            GNUNET_TRANSPORT_SS_INIT);
+    notify_session_monitor (s->plugin,
+                            s,
+                            GNUNET_TRANSPORT_SS_UP);
   }
-  GNUNET_free(address);
+  GNUNET_free (address);
 
   /* iterate over all embedded messages */
   si.session = s;
@@ -2446,7 +2452,7 @@ ack_proc (void *cls,
   enqueue (rc->plugin, udpw);
   notify_session_monitor (s->plugin,
                           s,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   schedule_select (rc->plugin);
 }
 
@@ -2845,7 +2851,7 @@ remove_timeout_messages_and_select (struct UDP_MessageWrapper *head,
   if (GNUNET_YES == removed)
     notify_session_monitor (session->plugin,
                             session,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
   return udpw;
 }
 
@@ -2955,7 +2961,7 @@ udp_select_send (struct Plugin *plugin,
     dequeue (plugin, udpw);
     notify_session_monitor (plugin,
                             udpw->session,
-                            GNUNET_TRANSPORT_SS_UP);
+                            GNUNET_TRANSPORT_SS_UPDATE);
     GNUNET_free (udpw);
     return GNUNET_SYSERR;
   }
@@ -2994,7 +3000,7 @@ udp_select_send (struct Plugin *plugin,
   dequeue (plugin, udpw);
   notify_session_monitor (plugin,
                           udpw->session,
-                          GNUNET_TRANSPORT_SS_UP);
+                          GNUNET_TRANSPORT_SS_UPDATE);
   GNUNET_free(udpw);
   return sent;
 }
@@ -3309,6 +3315,9 @@ send_session_info_iter (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session = value;
 
+  notify_session_monitor (plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_INIT);
   notify_session_monitor (plugin,
                           session,
                           GNUNET_TRANSPORT_SS_UP);

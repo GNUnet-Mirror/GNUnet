@@ -773,7 +773,7 @@ wlan_plugin_disconnect_session (void *cls,
                             session);
   notify_session_monitor (plugin,
                           session,
-                          GNUNET_TRANSPORT_SS_DOWN);
+                          GNUNET_TRANSPORT_SS_DONE);
   GNUNET_CONTAINER_DLL_remove (endpoint->sessions_head,
 			       endpoint->sessions_tail,
                                session);
@@ -888,6 +888,9 @@ create_session (struct MacEndpoint *endpoint,
   session->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &session_timeout,
                                     session);
+  notify_session_monitor (endpoint->plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_INIT);
   notify_session_monitor (endpoint->plugin,
                           session,
                           GNUNET_TRANSPORT_SS_UP);
@@ -2046,9 +2049,14 @@ wlan_plugin_setup_monitor (void *cls,
   {
     for (mac = plugin->mac_head; NULL != mac; mac = mac->next)
       for (session = mac->sessions_head; NULL != session; session = session->next)
+      {
+        notify_session_monitor (plugin,
+                                session,
+                                GNUNET_TRANSPORT_SS_INIT);
         notify_session_monitor (plugin,
                                 session,
                                 GNUNET_TRANSPORT_SS_UP);
+      }
     sic (sic_cls, NULL, NULL);
   }
 }
