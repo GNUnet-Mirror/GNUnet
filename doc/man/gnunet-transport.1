@@ -1,4 +1,4 @@
-.TH gnunet\-transport "1" "26 Oct 2011" "GNUnet"
+.TH gnunet\-transport "1" "7 Nov 2014" "GNUnet"
 .SH NAME
 gnunet\-transport \- measure and control the transport subsystem
 
@@ -39,7 +39,10 @@ configure logging to write logs to LOGFILE
 print information about our current connections (continuously)
 .TP
 \fB\-p \fIPEER\fR, \fB\-\-peer=PEER\fR
-the peer identity
+the peer identity to connect to or monitor
+.TP
+\fB\-P, \fB\-\-plugins\fR
+monitor session state of transport plugins
 .TP
 \fB\-s\fR, \fB\-\-send\fR
 transmit (dummy) traffic as quickly as possible to the peer specified with the \-p option.  The rate will still be limited by the quota(s) determined by the peers (ATS subsystem).  Will run until CTRL\-C is pressed or until the connection to the other peer is disrupted.

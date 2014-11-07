@@ -336,6 +336,11 @@ static int monitor_connections;
 static int monitor_validation;
 
 /**
+ * Option -P.
+ */
+static int monitor_plugins;
+
+/**
  * Option -C.
  */
 static int try_connect;
@@ -386,14 +391,24 @@ static struct GNUNET_TRANSPORT_TransmitHandle *th;
 static struct GNUNET_CONTAINER_MultiPeerMap *monitored_peers;
 
 /**
- *
+ * Map storing information about monitored plugins's sessions.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *monitored_plugins;
+
+/**
+ * Handle if we are monitoring peers at the transport level.
  */
 static struct GNUNET_TRANSPORT_PeerMonitoringContext *pic;
 
 /**
- *
+ * Handle if we are monitoring transport validation activity.
  */
 static struct GNUNET_TRANSPORT_ValidationMonitoringContext *vic;
+
+/**
+ * Handle if we are monitoring plugin session activity.
+ */
+static struct GNUNET_TRANSPORT_PluginMonitor *pm;
 
 /**
  * Identity of the peer we transmit to / connect to.
@@ -462,6 +477,14 @@ static struct PeerResolutionContext *rc_head;
 static struct PeerResolutionContext *rc_tail;
 
 
+/**
+ * Function called to release data stored in the #monitored_peers map.
+ *
+ * @param cls unused
+ * @param key the peer identity
+ * @param value a `struct MonitoredPeer` to release
+ * @return #GNUNET_OK (continue to iterate)
+ */
 static int
 destroy_it (void *cls,
             const struct GNUNET_PeerIdentity *key,
@@ -515,6 +538,11 @@ shutdown_task (void *cls,
     GNUNET_TRANSPORT_monitor_validation_entries_cancel (vic);
     vic = NULL;
   }
+  if (NULL != pm)
+  {
+    GNUNET_TRANSPORT_monitor_plugins_cancel (pm);
+    pm = NULL;
+  }
 
   next = vc_head;
   for (cur = next; NULL != cur; cur = next)
@@ -562,6 +590,13 @@ shutdown_task (void *cls,
     GNUNET_CONTAINER_multipeermap_iterate (monitored_peers, &destroy_it, NULL);
     GNUNET_CONTAINER_multipeermap_destroy (monitored_peers);
     monitored_peers = NULL;
+  }
+  if (NULL != monitored_plugins)
+  {
+    GNUNET_break (0 ==
+                  GNUNET_CONTAINER_multipeermap_size (monitored_plugins));
+    GNUNET_CONTAINER_multipeermap_destroy (monitored_plugins);
+    monitored_plugins = NULL;
   }
 }
 
@@ -1487,6 +1522,147 @@ process_peer_iteration_cb (void *cls,
 
 
 /**
+ * Context for address resolution by #plugin_monitoring_cb().
+ */
+struct PluginMonitorAddress
+{
+
+  /**
+   * Ongoing resolution request.
+   */
+  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+
+  /**
+   * Resolved address as string.
+   */
+  char *str;
+};
+
+
+/**
+ * Function called with a textual representation of an address.  This
+ * function will be called several times with different possible
+ * textual representations, and a last time with @a address being NULL
+ * to signal the end of the iteration.  Note that @a address NULL
+ * always is the last call, regardless of the value in @a res.
+ *
+ * @param cls closure
+ * @param address NULL on end of iteration,
+ *        otherwise 0-terminated printable UTF-8 string,
+ *        in particular an empty string if @a res is #GNUNET_NO
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: conversion successful
+ *        if #GNUNET_NO: address was invalid (or not supported)
+ *        if #GNUNET_SYSERR: communication error (IPC error)
+ */
+static void
+address_cb (void *cls,
+            const char *address,
+            int res)
+{
+  struct PluginMonitorAddress *addr = cls;
+
+  if (NULL == address)
+  {
+    addr->asc = NULL;
+    return;
+  }
+  if (NULL != addr->str)
+    return;
+  addr->str = GNUNET_strdup (address);
+}
+
+
+/**
+ * Function called by the plugin with information about the
+ * current sessions managed by the plugin (for monitoring).
+ *
+ * @param cls closure (NULL)
+ * @param session session handle this information is about,
+ *        NULL to indicate that we are "in sync" (initial
+ *        iteration complete)
+ * @param session_ctx storage location where the application
+ *        can store data; will point to NULL on #GNUNET_TRANSPORT_SS_INIT,
+ *        and must be reset to NULL on #GNUNET_TRANSPORT_SS_DONE
+ * @param info information about the state of the session,
+ *        NULL if @a session is also NULL and we are
+ *        merely signalling that the initial iteration is over;
+ *        NULL with @a session being non-NULL if the monitor
+ *        was being cancelled while sessions were active
+ */
+static void
+plugin_monitoring_cb (void *cls,
+                      struct GNUNET_TRANSPORT_PluginSession *session,
+                      void **session_ctx,
+                      const struct GNUNET_TRANSPORT_SessionInfo *info)
+{
+  const char *state;
+  struct PluginMonitorAddress *addr;
+
+  if ( (NULL != cpid) &&
+       (0 != memcmp (&info->address->peer,
+                     cpid,
+                     sizeof (struct GNUNET_PeerIdentity))) )
+    return; /* filtered */
+  addr = *session_ctx;
+  if (NULL == addr)
+  {
+    addr = GNUNET_new (struct PluginMonitorAddress);
+    addr->asc = GNUNET_TRANSPORT_address_to_string (cfg,
+                                                    info->address,
+                                                    GNUNET_NO,
+                                                    GNUNET_TIME_UNIT_FOREVER_REL,
+                                                    &address_cb,
+                                                    addr);
+    *session_ctx = addr;
+  }
+  switch (info->state)
+  {
+  case GNUNET_TRANSPORT_SS_INIT:
+    state = "INIT";
+    break;
+  case GNUNET_TRANSPORT_SS_HANDSHAKE:
+    state = "HANDSHAKE";
+    break;
+  case GNUNET_TRANSPORT_SS_UP:
+    state = "UP";
+    break;
+  case GNUNET_TRANSPORT_SS_UPDATE:
+    state = "UPDATE";
+    break;
+  case GNUNET_TRANSPORT_SS_DONE:
+    state = "DONE";
+    break;
+  default:
+    state = "UNKNOWN";
+    break;
+  }
+  fprintf (stdout,
+           "%s: %s %s (# %u/%u b) blocked until %s timeout in %s [%s]\n",
+           GNUNET_i2s (&info->address->peer),
+           addr->str,
+           (info->is_inbound == GNUNET_YES) ? "<-" : ((info->is_inbound == GNUNET_NO) ? "->" : "<>"),
+           info->num_msg_pending,
+           info->num_bytes_pending,
+           GNUNET_STRINGS_absolute_time_to_string (info->receive_delay),
+           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (info->session_timeout),
+                                                GNUNET_YES),
+           state);
+  if (GNUNET_TRANSPORT_SS_DONE == info->state)
+  {
+    if (NULL != addr->asc)
+    {
+      GNUNET_TRANSPORT_address_to_string_cancel (addr->asc);
+      addr->asc = NULL;
+    }
+    GNUNET_free_non_null (addr->str);
+    GNUNET_free (addr);
+    *session_ctx = NULL;
+  }
+}
+
+
+/**
  * Function called with information about a peers
  *
  * @param cls closure
@@ -1650,22 +1826,22 @@ testservice_task (void *cls, int result)
 
   counter = benchmark_send + benchmark_receive + iterate_connections
       + monitor_connections + monitor_connects + try_connect + try_disconnect +
-      + iterate_validation + monitor_validation;
+      + iterate_validation + monitor_validation + monitor_plugins;
 
   if (1 < counter)
   {
     FPRINTF (stderr,
-        _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s\n"),
+        _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s %s\n"),
         "connect", "benchmark send", "benchmark receive", "information",
-        "monitor", "events");
+             "monitor", "events", "plugins");
     return;
   }
   if (0 == counter)
   {
     FPRINTF (stderr,
-        _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s\n"),
+        _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s, %s\n"),
         "connect", "benchmark send", "benchmark receive", "information",
-        "monitor", "events");
+             "monitor", "events", "plugins");
     return;
   }
 
@@ -1738,16 +1914,20 @@ testservice_task (void *cls, int result)
       ret = 1;
       return;
     }
-    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
-        &notify_connect, &notify_disconnect);
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
+                                       &notify_receive,
+                                       &notify_connect,
+                                       &notify_disconnect);
     if (NULL == handle)
     {
       FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
-    tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
-        NULL);
+    tc_handle = GNUNET_TRANSPORT_try_connect (handle,
+                                              &pid,
+                                              &try_connect_cb,
+                                              NULL);
     if (NULL == tc_handle)
     {
       FPRINTF (stderr, "%s",
@@ -1756,8 +1936,9 @@ testservice_task (void *cls, int result)
       return;
     }
     start_time = GNUNET_TIME_absolute_get ();
-    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-        NULL);
+    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                               &operation_timeout,
+                                               NULL);
   }
   else if (benchmark_receive) /* -b: Benchmark receiving */
   {
@@ -1789,6 +1970,13 @@ testservice_task (void *cls, int result)
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
                                           GNUNET_NO, TIMEOUT,
                                           &process_peer_monitoring_cb, (void *) cfg);
+  }
+  else if (monitor_plugins) /* -P: List information about plugins continuously */
+  {
+    monitored_plugins = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+    pm = GNUNET_TRANSPORT_monitor_plugins (cfg,
+                                           &plugin_monitoring_cb,
+                                           NULL);
   }
   else if (iterate_validation) /* -d: Print information about validations */
   {
@@ -1894,6 +2082,9 @@ main (int argc, char * const *argv)
     { 'p', "peer", "PEER",
       gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
       &cpid },
+    { 'P', "plugins", NULL,
+      gettext_noop ("monitor plugin sessions"), 1, &GNUNET_GETOPT_set_one,
+      &monitor_plugins },
     { 's', "send", NULL, gettext_noop
       ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
       &GNUNET_GETOPT_set_one, &benchmark_send },
