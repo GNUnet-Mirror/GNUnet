@@ -219,9 +219,9 @@ GNUNET_CONTAINER_multihashmap32_get (const struct
  *
  * @param map the map
  * @param it function to call on each entry
- * @param it_cls extra argument to it
+ * @param it_cls extra argument to @a it
  * @return the number of key value pairs processed,
- *         GNUNET_SYSERR if it aborted iteration
+ *         #GNUNET_SYSERR if it aborted iteration
  */
 int
 GNUNET_CONTAINER_multihashmap32_iterate (const struct
@@ -235,7 +235,7 @@ GNUNET_CONTAINER_multihashmap32_iterate (const struct
   struct MapEntry *n;
 
   count = 0;
-  GNUNET_assert (map != NULL);
+  GNUNET_assert (NULL != map);
   for (i = 0; i < map->map_length; i++)
   {
     n = map->map[i];

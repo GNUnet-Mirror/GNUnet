@@ -399,6 +399,7 @@ GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
   pm->cb_cls = cb_cls;
   pm->cfg = cfg;
   pm->client = client;
+  pm->sessions = GNUNET_CONTAINER_multihashmap32_create (128);
   send_plugin_mon_request (pm);
   return pm;
 }
