@@ -465,7 +465,7 @@ free_session (struct Session *session)
   {
     notify_session_monitor (session->plugin,
 			    session,
-			    GNUNET_TRANSPORT_SS_DOWN);
+			    GNUNET_TRANSPORT_SS_DONE);
     plugin->env->session_end (plugin->env->cls,
 			      session->address,
 			      session);
