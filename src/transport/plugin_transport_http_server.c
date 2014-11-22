@@ -2252,7 +2252,7 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
                              MHD_OPTION_EXTERNAL_LOGGER,
                              &server_log, NULL,
                              MHD_OPTION_END);
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
   if ( (NULL != server) &&
        (0 != (plugin->options & HTTP_OPTIONS_TCP_STEALTH)) )
   {
@@ -2263,7 +2263,7 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
                               NULL);
     if ( (0 != setsockopt ((int) di->listen_fd,
                            IPPROTO_TCP,
-                           SO_TCPSTEALTH,
+                           TCP_STEALTH,
                            plugin->env->my_identity,
                            sizeof (struct GNUNET_PeerIdentity))) )
     {
@@ -3429,7 +3429,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                             plugin->name,
                                             "TCP_STEALTH"))
   {
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
     plugin->options |= HTTP_OPTIONS_TCP_STEALTH;
 #else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

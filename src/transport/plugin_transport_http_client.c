@@ -1452,7 +1452,7 @@ client_run (void *cls,
 }
 
 
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
 /**
  * Open TCP socket with TCP STEALTH enabled.
  *
@@ -1483,7 +1483,7 @@ open_tcp_stealth_socket_cb (void *clientp,
       return (curl_socket_t) ret;
     if ( (0 != setsockopt (ret,
                            IPPROTO_TCP,
-                           SO_TCPSTEALTH,
+                           TCP_STEALTH,
                            &s->address->peer,
                            sizeof (struct GNUNET_PeerIdentity))) )
     {
@@ -1528,7 +1528,7 @@ client_connect_get (struct Session *s)
   s->get.s = s;
   if (0 != (options & HTTP_OPTIONS_TCP_STEALTH))
   {
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
     curl_easy_setopt (s->get.easyhandle,
                       CURLOPT_OPENSOCKETFUNCTION,
                       &open_tcp_stealth_socket_cb);
@@ -1722,7 +1722,7 @@ client_connect_put (struct Session *s)
 #endif
   if (0 != (options & HTTP_OPTIONS_TCP_STEALTH))
   {
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
     curl_easy_setopt (s->put.easyhandle,
                       CURLOPT_OPENSOCKETFUNCTION,
                       &open_tcp_stealth_socket_cb);

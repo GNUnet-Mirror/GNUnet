@@ -1522,7 +1522,7 @@ tcp_plugin_get_session (void *cls,
   struct GNUNET_ATS_Information ats;
   unsigned int is_natd = GNUNET_NO;
   size_t addrlen;
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
   struct GNUNET_NETWORK_Handle *s;
 #endif
 
@@ -1679,7 +1679,7 @@ tcp_plugin_get_session (void *cls,
 
   if (0 != (options & TCP_OPTIONS_TCP_STEALTH))
   {
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
     s = GNUNET_NETWORK_socket_create (af, SOCK_STREAM, 0);
     if (NULL == s)
     {
@@ -1692,13 +1692,13 @@ tcp_plugin_get_session (void *cls,
       if ( (GNUNET_OK !=
             GNUNET_NETWORK_socket_setsockopt (s,
                                               IPPROTO_TCP,
-                                              SO_TCPSTEALTH,
+                                              TCP_STEALTH,
                                               &session->target,
                                               sizeof (struct GNUNET_PeerIdentity))) ||
            (GNUNET_OK !=
             GNUNET_NETWORK_socket_setsockopt (s,
                                               IPPROTO_TCP,
-                                              SO_TCPSTEALTH_INTEGRITY,
+                                              TCP_STEALTH_INTEGRITY,
                                               &plugin->my_welcome,
                                               sizeof (struct WelcomeMessage))) )
       {
@@ -2712,7 +2712,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   unsigned long long max_connections;
   unsigned int i;
   struct GNUNET_TIME_Relative idle_timeout;
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
   struct GNUNET_NETWORK_Handle *const*lsocks;
 #endif
   int ret;
@@ -2792,7 +2792,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                               "transport-tcp",
                                               "TCP_STEALTH")) )
   {
-#ifdef SO_TCPSTEALTH
+#ifdef TCP_STEALTH
     plugin->myoptions |= TCP_OPTIONS_TCP_STEALTH;
     lsocks = GNUNET_SERVICE_get_listen_sockets (service);
     if (NULL != lsocks)
@@ -2804,13 +2804,13 @@ libgnunet_plugin_transport_tcp_init (void *cls)
         if ( (GNUNET_OK !=
               GNUNET_NETWORK_socket_setsockopt (lsocks[i],
                                                 IPPROTO_TCP,
-                                                SO_TCPSTEALTH,
+                                                TCP_STEALTH,
                                                 env->my_identity,
                                                 sizeof (struct GNUNET_PeerIdentity))) ||
              (GNUNET_OK !=
               GNUNET_NETWORK_socket_setsockopt (lsocks[i],
                                                 IPPROTO_TCP,
-                                                SO_TCPSTEALTH_INTEGRITY_LEN,
+                                                TCP_STEALTH_INTEGRITY_LEN,
                                                 &len,
                                                 sizeof (len))) )
         {
