@@ -1484,7 +1484,7 @@ open_tcp_stealth_socket_cb (void *clientp,
     if ( (0 != setsockopt (ret,
                            IPPROTO_TCP,
                            SO_TCPSTEALTH,
-                           &s->target,
+                           &s->address->peer,
                            sizeof (struct GNUNET_PeerIdentity))) )
     {
       (void) close (ret);
@@ -1496,6 +1496,9 @@ open_tcp_stealth_socket_cb (void *clientp,
     return CURL_SOCKET_BAD;
     break;
   case CURLSOCKTYPE_LAST:
+    GNUNET_break (0);
+    return CURL_SOCKET_BAD;
+  default:
     GNUNET_break (0);
     return CURL_SOCKET_BAD;
   }
