@@ -91,6 +91,9 @@ ADVERTISED_PORT = 1080
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
+# Enable TCP stealth?
+TCP_STEALTH = NO
+
 [transport-https_client]
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
@@ -128,6 +131,9 @@ KEY_FILE = $GNUNET_DATA_HOME/transport/https.key
 CERT_FILE = $GNUNET_DATA_HOME/transport/https.cert
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
+
+# Enable TCP stealth?
+TCP_STEALTH = NO
 
 [transport-wlan]
 # Name of the interface in monitor mode (typically monX)

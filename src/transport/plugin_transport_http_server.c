@@ -2141,8 +2141,10 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
                                  NULL, NULL, NULL,
                                  "gnunet-transport-certificate-creation",
                                  "gnunet-transport-certificate-creation",
-                                 key_file, cert_file, NULL);
-    if (cert_creation == NULL)
+                                 key_file,
+                                 cert_file,
+                                 NULL);
+    if (NULL == cert_creation)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Could not create a new TLS certificate, program `gnunet-transport-certificate-creation' could not be started!\n"));
@@ -2184,34 +2186,27 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
   }
   GNUNET_free (key_file);
   GNUNET_free (cert_file);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TLS certificate loaded\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "TLS certificate loaded\n");
   return res;
 }
 #endif
 
 
 /**
- * Start the HTTP server
+ * Invoke `MHD_start_daemon` with the various options we need to
+ * setup the HTTP server with the given listen address.
  *
- * @param plugin the plugin handle
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ * @param plugin our plugin
+ * @param addr listen address to use
+ * @return NULL on error
  */
-static int
-server_start (struct HTTP_Server_Plugin *plugin)
+static struct MHD_Daemon *
+run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
+                      const struct sockaddr_in *addr)
 {
+  struct MHD_Daemon *server;
   unsigned int timeout;
-  char *msg;
-  GNUNET_assert (NULL != plugin);
-
-#if BUILD_HTTPS
-  if (GNUNET_SYSERR == server_load_certificate (plugin))
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Could not load or create server certificate! Loading plugin failed!\n");
-    return GNUNET_SYSERR;
-  }
-#endif
-
 
 #if MHD_VERSION >= 0x00090E00
   timeout = HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL;
@@ -2224,49 +2219,99 @@ server_start (struct HTTP_Server_Plugin *plugin)
        "MHD cannot set timeout per connection! Default time out %u sec.\n",
        timeout);
 #endif
+  server = MHD_start_daemon (
+#if VERBOSE_SERVER
+                             MHD_USE_DEBUG |
+#endif
+#if BUILD_HTTPS
+                             MHD_USE_SSL |
+#endif
+                             MHD_USE_SUSPEND_RESUME,
+                             plugin->port,
+                             &server_accept_cb, plugin,
+                             &server_access_cb, plugin,
+                             MHD_OPTION_SOCK_ADDR,
+                             addr,
+                             MHD_OPTION_CONNECTION_LIMIT,
+                             (unsigned int) plugin->max_request,
+#if BUILD_HTTPS
+                             MHD_OPTION_HTTPS_PRIORITIES,
+                             plugin->crypto_init,
+                             MHD_OPTION_HTTPS_MEM_KEY,
+                             plugin->key,
+                             MHD_OPTION_HTTPS_MEM_CERT,
+                             plugin->cert,
+#endif
+                             MHD_OPTION_CONNECTION_TIMEOUT,
+                             timeout,
+                             MHD_OPTION_CONNECTION_MEMORY_LIMIT,
+                             (size_t) (2 *
+                                       GNUNET_SERVER_MAX_MESSAGE_SIZE),
+                             MHD_OPTION_NOTIFY_COMPLETED,
+                             &server_disconnect_cb, plugin,
+                             MHD_OPTION_EXTERNAL_LOGGER,
+                             &server_log, NULL,
+                             MHD_OPTION_END);
+#ifdef SO_TCPSTEALTH
+  if ( (NULL != server) &&
+       (0 != (plugin->options & HTTP_OPTIONS_TCP_STEALTH)) )
+  {
+    union MHD_DaemonInfo *di = MHD_get_daemon_info (server,
+                                                    MHD_DAEMON_INFO_LISTEN_FD,
+                                                    NULL);
+    if ( (0 != setsockopt ((int) di->listen_fd,
+                           IPPROTO_TCP,
+                           SO_TCPSTEALTH,
+                           plugin->env->my_identity,
+                           sizeof (struct GNUNET_PeerIdentity))) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("TCP_STEALTH not supported on this platform.\n"));
+      MHD_stop_daemon (server);
+      server = NULL;
+    }
+  }
+#endif
+  return server;
+}
+
+
+/**
+ * Start the HTTP server
+ *
+ * @param plugin the plugin handle
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ */
+static int
+server_start (struct HTTP_Server_Plugin *plugin)
+{
+  const char *msg;
+
+  GNUNET_assert (NULL != plugin);
+#if BUILD_HTTPS
+  if (GNUNET_SYSERR == server_load_certificate (plugin))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Could not load or create server certificate! Loading plugin failed!\n"));
+    return GNUNET_SYSERR;
+  }
+#endif
+
+
 
   plugin->server_v4 = NULL;
-  if (plugin->use_ipv4 == GNUNET_YES)
+  if (GNUNET_YES == plugin->use_ipv4)
   {
-    plugin->server_v4 = MHD_start_daemon (
-#if VERBOSE_SERVER
-                                           MHD_USE_DEBUG |
-#endif
-#if BUILD_HTTPS
-                                           MHD_USE_SSL |
-#endif
-                                           MHD_USE_SUSPEND_RESUME,
-                                           plugin->port,
-                                           &server_accept_cb, plugin,
-                                           &server_access_cb, plugin,
-                                           MHD_OPTION_SOCK_ADDR,
-                                           (struct sockaddr_in *)
-                                           plugin->server_addr_v4,
-                                           MHD_OPTION_CONNECTION_LIMIT,
-                                           (unsigned int)
-                                           plugin->max_request,
-#if BUILD_HTTPS
-                                           MHD_OPTION_HTTPS_PRIORITIES,
-                                           plugin->crypto_init,
-                                           MHD_OPTION_HTTPS_MEM_KEY,
-                                           plugin->key,
-                                           MHD_OPTION_HTTPS_MEM_CERT,
-                                           plugin->cert,
-#endif
-                                           MHD_OPTION_CONNECTION_TIMEOUT,
-                                           timeout,
-                                           MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                           (size_t) (2 *
-                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE),
-                                           MHD_OPTION_NOTIFY_COMPLETED,
-                                           &server_disconnect_cb, plugin,
-                                           MHD_OPTION_EXTERNAL_LOGGER,
-                                           &server_log, NULL, MHD_OPTION_END);
-    if (plugin->server_v4 == NULL)
+    plugin->server_v4
+      = run_mhd_start_daemon (plugin,
+                              (const struct sockaddr_in *) plugin->server_addr_v4);
+
+    if (NULL == plugin->server_v4)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Failed to start %s IPv4 server component on port %u\n",
-           plugin->name, plugin->port);
+           plugin->name,
+           plugin->port);
     }
     else
       server_reschedule (plugin,
@@ -2276,70 +2321,48 @@ server_start (struct HTTP_Server_Plugin *plugin)
 
 
   plugin->server_v6 = NULL;
-  if (plugin->use_ipv6 == GNUNET_YES)
+  if (GNUNET_YES == plugin->use_ipv6)
   {
-    plugin->server_v6 = MHD_start_daemon (
-#if VERBOSE_SERVER
-                                           MHD_USE_DEBUG |
-#endif
-#if BUILD_HTTPS
-                                           MHD_USE_SSL |
-#endif
-                                           MHD_USE_SUSPEND_RESUME | MHD_USE_IPv6,
-                                           plugin->port,
-                                           &server_accept_cb, plugin,
-                                           &server_access_cb, plugin,
-                                           MHD_OPTION_SOCK_ADDR,
-                                           (struct sockaddr_in6 *)
-                                           plugin->server_addr_v6,
-                                           MHD_OPTION_CONNECTION_LIMIT,
-                                           (unsigned int)
-                                           plugin->max_request,
-#if BUILD_HTTPS
-                                           MHD_OPTION_HTTPS_PRIORITIES,
-                                           plugin->crypto_init,
-                                           MHD_OPTION_HTTPS_MEM_KEY,
-                                           plugin->key,
-                                           MHD_OPTION_HTTPS_MEM_CERT,
-                                           plugin->cert,
-#endif
-                                           MHD_OPTION_CONNECTION_TIMEOUT,
-                                           timeout,
-                                           MHD_OPTION_CONNECTION_MEMORY_LIMIT,
-                                           (size_t) (2 *
-                                                     GNUNET_SERVER_MAX_MESSAGE_SIZE),
-                                           MHD_OPTION_NOTIFY_COMPLETED,
-                                           &server_disconnect_cb, plugin,
-                                           MHD_OPTION_EXTERNAL_LOGGER,
-                                           &server_log, NULL, MHD_OPTION_END);
-    if (plugin->server_v6 == NULL)
+    plugin->server_v6
+      = run_mhd_start_daemon (plugin,
+                              (const struct sockaddr_in *) plugin->server_addr_v6);
+    if (NULL == plugin->server_v6)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
            "Failed to start %s IPv6 server component on port %u\n",
-           plugin->name, plugin->port);
+           plugin->name,
+           plugin->port);
     }
     else
-    	server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
+    {
+      server_reschedule (plugin,
+                         plugin->server_v6,
+                         GNUNET_NO);
+    }
   }
-
-	msg = "No";
-  if ((plugin->server_v6 == NULL) && (plugin->server_v4 == NULL))
+  msg = "No";
+  if ( (NULL == plugin->server_v6) &&
+       (NULL == plugin->server_v4) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "%s %s server component started on port %u\n",
-         msg, plugin->name, plugin->port);
-    sleep (10);
+         msg,
+         plugin->name,
+         plugin->port);
     return GNUNET_SYSERR;
   }
-  else if ((plugin->server_v6 != NULL) && (plugin->server_v4 != NULL))
-  	msg = "IPv4 and IPv6";
-  else if (plugin->server_v6 != NULL)
-  	msg = "IPv6";
-  else if (plugin->server_v4 != NULL)
-  	msg = "IPv4";
+  if ((NULL != plugin->server_v6) &&
+      (NULL != plugin->server_v4))
+    msg = "IPv4 and IPv6";
+  else if (NULL != plugin->server_v6)
+    msg = "IPv6";
+  else if (NULL != plugin->server_v4)
+    msg = "IPv4";
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "%s %s server component started on port %u\n",
-       msg, plugin->name, plugin->port);
+       msg,
+       plugin->name,
+       plugin->port);
   return GNUNET_OK;
 }
 
@@ -2862,7 +2885,7 @@ server_notify_external_hostname (void *cls,
 
   urlen = strlen (url) + 1;
   ext_addr = GNUNET_malloc (sizeof (struct HttpAddress) + urlen);
-  ext_addr->options = htonl(plugin->options);
+  ext_addr->options = htonl (plugin->options);
   ext_addr->urlen = htonl (urlen);
   ext_addr_len = sizeof (struct HttpAddress) + urlen;
   memcpy (&ext_addr[1], url, urlen);
@@ -3374,6 +3397,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->env = env;
   plugin->sessions = GNUNET_CONTAINER_multipeermap_create (128,
                                                            GNUNET_YES);
+
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &http_server_plugin_send;
@@ -3397,6 +3421,21 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->name = "transport-http_server";
   plugin->protocol = "http";
 #endif
+
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+                                            plugin->name,
+                                            "TCP_STEALTH"))
+  {
+#ifdef SO_TCPSTEALTH
+    plugin->options |= HTTP_OPTIONS_TCP_STEALTH;
+#else
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("TCP_STEALTH not supported on this platform.\n"));
+    LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+    return NULL;
+#endif
+  }
 
   /* Compile URL regex */
   if (regcomp(&plugin->url_regex,

@@ -1487,6 +1487,8 @@ open_tcp_stealth_socket_cb (void *clientp,
                            &s->address->peer,
                            sizeof (struct GNUNET_PeerIdentity))) )
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("TCP_STEALTH not supported on this platform.\n"));
       (void) close (ret);
       return CURL_SOCKET_BAD;
     }
