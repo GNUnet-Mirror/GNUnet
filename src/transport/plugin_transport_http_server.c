@@ -2256,9 +2256,11 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
   if ( (NULL != server) &&
        (0 != (plugin->options & HTTP_OPTIONS_TCP_STEALTH)) )
   {
-    union MHD_DaemonInfo *di = MHD_get_daemon_info (server,
-                                                    MHD_DAEMON_INFO_LISTEN_FD,
-                                                    NULL);
+    const union MHD_DaemonInfo *di;
+
+    di = MHD_get_daemon_info (server,
+                              MHD_DAEMON_INFO_LISTEN_FD,
+                              NULL);
     if ( (0 != setsockopt ((int) di->listen_fd,
                            IPPROTO_TCP,
                            SO_TCPSTEALTH,
