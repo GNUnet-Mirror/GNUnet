@@ -1455,6 +1455,11 @@ client_run (void *cls,
 #ifdef SO_TCPSTEALTH
 /**
  * Open TCP socket with TCP STEALTH enabled.
+ *
+ * @param clientp our `struct Session *`
+ * @param purpose why does curl want to open a socket
+ * @param address what kind of socket does curl want to have opened?
+ * @return opened socket
  */
 static curl_socket_t
 open_tcp_stealth_socket_cb (void *clientp,
