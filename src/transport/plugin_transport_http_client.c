@@ -384,6 +384,7 @@ struct HTTP_Client_Plugin
   int emulate_xhr;
 };
 
+
 /**
  * Disconnect a session
  *
@@ -393,6 +394,7 @@ struct HTTP_Client_Plugin
  */
 static int
 http_client_plugin_session_disconnect (void *cls, struct Session *s);
+
 
 /**
  * If a session monitor is attached, notify it about the new
@@ -589,20 +591,23 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
   mret = curl_multi_fdset (plugin->curl_multi_handle, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_fdset", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("%s failed at %s:%d: `%s'\n"),
+         "curl_multi_fdset",
+         __FILE__,
+         __LINE__,
+         curl_multi_strerror (mret));
     return GNUNET_SYSERR;
   }
   mret = curl_multi_timeout (plugin->curl_multi_handle, &to);
-  if (to == -1)
+  if (-1 == to)
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
   else
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
   if (now == GNUNET_YES)
     timeout = GNUNET_TIME_UNIT_MILLISECONDS;
 
-  if (mret != CURLM_OK)
+  if (CURLM_OK != mret)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
                 _("%s failed at %s:%d: `%s'\n"),
@@ -626,6 +631,7 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
   return GNUNET_OK;
 }
 
+
 #if VERBOSE_CURL
 /**
  * Loggging function
@@ -648,7 +654,9 @@ client_log (CURL *curl,
   const char *ttype = "UNSPECIFIED";
   char text[size + 2];
 
-  if (! ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT)))
+  if (! ((CURLINFO_TEXT == type) ||
+         (CURLINFO_HEADER_IN == type) ||
+         (CURLINFO_HEADER_OUT == type)))
     return 0;
   switch (type)
   {
@@ -731,7 +739,7 @@ client_connect_put (struct Session *s);
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
@@ -752,18 +760,20 @@ http_client_plugin_send (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p/request %p: Sending message with %u to peer `%s' \n",
-       s, s->put.easyhandle,
-       msgbuf_size, GNUNET_i2s (&s->address->peer));
+       s,
+       s->put.easyhandle,
+       msgbuf_size,
+       GNUNET_i2s (&s->address->peer));
 
   /* create new message and schedule */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
-  msg->next = NULL;
   msg->size = msgbuf_size;
-  msg->pos = 0;
   msg->buf = (char *) &msg[1];
   msg->transmit_cont = cont;
   msg->transmit_cont_cls = cont_cls;
-  memcpy (msg->buf, msgbuf, msgbuf_size);
+  memcpy (msg->buf,
+          msgbuf,
+          msgbuf_size);
   GNUNET_CONTAINER_DLL_insert_tail (s->msg_head,
                                     s->msg_tail,
                                     msg);
@@ -833,8 +843,11 @@ http_client_plugin_session_disconnect (void *cls,
   struct HTTP_Client_Plugin *plugin = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p: notifying transport about ending session\n",s);
-  plugin->env->session_end (plugin->env->cls, s->address, s);
+       "Session %p: notifying transport about ending session\n",
+       s);
+  plugin->env->session_end (plugin->env->cls,
+                            s->address,
+                            s);
   client_delete_session (s);
 
   /* Re-schedule since handles have changed */
@@ -902,8 +915,10 @@ http_client_plugin_peer_disconnect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transport tells me to disconnect `%s'\n",
        GNUNET_i2s (target));
-  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions, target,
-      &destroy_session_cb, plugin);
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions,
+                                              target,
+                                              &destroy_session_cb,
+                                              plugin);
 }
 
 
@@ -992,7 +1007,8 @@ client_put_disconnect (void *cls,
        s, s->put.easyhandle);
   s->put.state = H_TMP_DISCONNECTING;
   if (NULL != s->put.easyhandle)
-    curl_easy_pause (s->put.easyhandle, CURLPAUSE_CONT);
+    curl_easy_pause (s->put.easyhandle,
+                     CURLPAUSE_CONT);
   client_schedule (s->plugin, GNUNET_YES);
 }
 
@@ -1033,7 +1049,8 @@ client_send_cb (void *stream,
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Session %p/request %p: PUT request finished\n",
-           s, s->put.easyhandle);
+           s,
+           s->put.easyhandle);
       s->put.state = H_TMP_DISCONNECTING;
       return 0;
     }
@@ -1041,7 +1058,8 @@ client_send_cb (void *stream,
     /* We have nothing to send, so pause PUT request */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Session %p/request %p: nothing to send, suspending\n",
-         s, s->put.easyhandle);
+         s,
+         s->put.easyhandle);
     s->put_disconnect_task = GNUNET_SCHEDULER_add_delayed (PUT_DISCONNECT_TIMEOUT,
         &client_put_disconnect, s);
     s->put.state = H_PAUSED;
@@ -1058,7 +1076,10 @@ client_send_cb (void *stream,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Session %p/request %p: sent message with %u bytes sent, removing message from queue\n",
-         s, s->put.easyhandle, msg->size, msg->pos);
+         s,
+         s->put.easyhandle,
+         msg->size,
+         msg->pos);
     /* Calling transmit continuation  */
     GNUNET_CONTAINER_DLL_remove (s->msg_head,
                                  s->msg_tail,
@@ -1161,7 +1182,8 @@ client_receive_mst_cb (void *cls,
                                    s,
                                    message);
   plugin->env->update_address_metrics (plugin->env->cls,
-				       s->address, s,
+				       s->address,
+                                       s,
 				       &atsi, 1);
 
   GNUNET_asprintf (&stat_txt,
@@ -1232,8 +1254,10 @@ client_receive (void *stream,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p / request %p: Received %u bytes from peer `%s'\n",
-       s, s->get.easyhandle,
-       len, GNUNET_i2s (&s->address->peer));
+       s,
+       s->get.easyhandle,
+       len,
+       GNUNET_i2s (&s->address->peer));
   now = GNUNET_TIME_absolute_get ();
   if (now.abs_value_us < s->next_receive.abs_value_us)
   {
@@ -1428,6 +1452,52 @@ client_run (void *cls,
 }
 
 
+#ifdef SO_TCPSTEALTH
+/**
+ * Open TCP socket with TCP STEALTH enabled.
+ */
+static curl_socket_t
+open_tcp_stealth_socket_cb (void *clientp,
+                            curlsocktype purpose,
+                            struct curl_sockaddr *address)
+{
+  struct Session *s = clientp;
+  int ret;
+
+  switch (purpose)
+  {
+  case CURLSOCKTYPE_IPCXN:
+    ret = socket (address->family,
+                  address->socktype,
+                  address->protocol);
+    if (-1 == ret)
+      return CURL_SOCKET_BAD;
+    if ( ( (SOCK_STREAM != address->socktype) ||
+           ( (0 != address->protocol) &&
+             (IPPROTO_TCP != address->protocol))) )
+      return (curl_socket_t) ret;
+    if ( (0 != setsockopt (ret,
+                           IPPROTO_TCP,
+                           SO_TCPSTEALTH,
+                           &s->target,
+                           sizeof (struct GNUNET_PeerIdentity))) )
+    {
+      (void) close (ret);
+      return CURL_SOCKET_BAD;
+    }
+    return (curl_socket_t) ret;
+  case CURLSOCKTYPE_ACCEPT:
+    GNUNET_break (0);
+    return CURL_SOCKET_BAD;
+    break;
+  case CURLSOCKTYPE_LAST:
+    GNUNET_break (0);
+    return CURL_SOCKET_BAD;
+  }
+}
+#endif
+
+
 /**
  * Connect GET request for a session
  *
@@ -1438,82 +1508,152 @@ static int
 client_connect_get (struct Session *s)
 {
   CURLMcode mret;
+  struct HttpAddress *ha;
+  uint32_t options;
 
+  ha = (struct HttpAddress *) s->address->address;
+  options = ntohl (ha->options);
   /* create get request */
   s->get.easyhandle = curl_easy_init ();
   s->get.s = s;
+  if (0 != (options & HTTP_OPTIONS_TCP_STEALTH))
+  {
+#ifdef SO_TCPSTEALTH
+    curl_easy_setopt (s->get.easyhandle,
+                      CURLOPT_OPENSOCKETFUNCTION,
+                      &open_tcp_stealth_socket_cb);
+    curl_easy_setopt (s->get.easyhandle,
+                      CURLOPT_OPENSOCKETDATA,
+                      s);
+#else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cannot connect, TCP STEALTH needed and not supported by kernel.\n");
+    curl_easy_cleanup (s->get.easyhandle);
+    s->get.easyhandle = NULL;
+    s->get.s = NULL;
+    return GNUNET_SYSERR;
+#endif
+  }
+
 #if VERBOSE_CURL
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_VERBOSE, 1L);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_DEBUGFUNCTION, &client_log);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_DEBUGDATA, &s->get);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_VERBOSE,
+                    1L);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_DEBUGFUNCTION,
+                    &client_log);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_DEBUGDATA,
+                    &s->get);
 #endif
 #if BUILD_HTTPS
   curl_easy_setopt (s->get.easyhandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
   {
-    struct HttpAddress *ha;
-
-    ha = (struct HttpAddress *) s->address->address;
-
     if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
-        (ntohl (ha->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
+        (options & HTTP_OPTIONS_VERIFY_CERTIFICATE))
     {
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_SSL_VERIFYPEER, 1L);
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_SSL_VERIFYHOST, 2L);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_SSL_VERIFYPEER, 1L);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_SSL_VERIFYHOST,
+                        2L);
     }
     else
     {
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_SSL_VERIFYPEER, 0);
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_SSL_VERIFYHOST, 0);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_SSL_VERIFYPEER,
+                        0L);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_SSL_VERIFYHOST,
+                        0L);
     }
   }
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_PROTOCOLS,
+                    CURLPROTO_HTTPS);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_REDIR_PROTOCOLS,
+                    CURLPROTO_HTTPS);
 #else
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_PROTOCOLS,
+                    CURLPROTO_HTTP);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_REDIR_PROTOCOLS,
+                    CURLPROTO_HTTP);
 #endif
 
   if (NULL != s->plugin->proxy_hostname)
   {
-    curl_easy_setopt (s->get.easyhandle, CURLOPT_PROXY, s->plugin->proxy_hostname);
-    curl_easy_setopt (s->get.easyhandle, CURLOPT_PROXYTYPE, s->plugin->proxytype);
+    curl_easy_setopt (s->get.easyhandle,
+                      CURLOPT_PROXY,
+                      s->plugin->proxy_hostname);
+    curl_easy_setopt (s->get.easyhandle,
+                      CURLOPT_PROXYTYPE,
+                      s->plugin->proxytype);
     if (NULL != s->plugin->proxy_username)
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_PROXYUSERNAME,
-          s->plugin->proxy_username);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_PROXYUSERNAME,
+                        s->plugin->proxy_username);
     if (NULL != s->plugin->proxy_password)
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_PROXYPASSWORD,
-          s->plugin->proxy_password);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_PROXYPASSWORD,
+                        s->plugin->proxy_password);
     if (GNUNET_YES == s->plugin->proxy_use_httpproxytunnel)
-      curl_easy_setopt (s->get.easyhandle, CURLOPT_HTTPPROXYTUNNEL,
-          s->plugin->proxy_use_httpproxytunnel);
+      curl_easy_setopt (s->get.easyhandle,
+                        CURLOPT_HTTPPROXYTUNNEL,
+                        s->plugin->proxy_use_httpproxytunnel);
   }
 
   if (GNUNET_YES == s->plugin->emulate_xhr)
   {
     char *url;
 
-    GNUNET_asprintf(&url, "%s,1", s->url);
-    curl_easy_setopt (s->get.easyhandle, CURLOPT_URL, url);
+    GNUNET_asprintf (&url,
+                     "%s,1",
+                     s->url);
+    curl_easy_setopt (s->get.easyhandle,
+                      CURLOPT_URL,
+                      url);
     GNUNET_free(url);
-  } else
-    curl_easy_setopt (s->get.easyhandle, CURLOPT_URL, s->url);
-  //curl_easy_setopt (s->get.easyhandle, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
-  //curl_easy_setopt (s->get.easyhandle, CURLOPT_WRITEHEADER, ps);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_READFUNCTION, client_send_cb);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_READDATA, s);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_WRITEFUNCTION, client_receive);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_WRITEDATA, s);
+  }
+  else
+  {
+    curl_easy_setopt (s->get.easyhandle,
+                      CURLOPT_URL,
+                      s->url);
+  }
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_READFUNCTION,
+                    &client_send_cb);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_READDATA,
+                    s);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_WRITEFUNCTION,
+                    &client_receive);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_WRITEDATA,
+                    s);
   /* No timeout by default, timeout done with session timeout */
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_TIMEOUT, 0);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_PRIVATE, s);
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_CONNECTTIMEOUT_MS,
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_TIMEOUT,
+                    0L);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_PRIVATE, s);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_CONNECTTIMEOUT_MS,
                     (long) (HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL));
   curl_easy_setopt (s->get.easyhandle, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
 #if CURL_TCP_NODELAY
-  curl_easy_setopt (ps->recv_endpoint, CURLOPT_TCP_NODELAY, 1);
+  curl_easy_setopt (ps->recv_endpoint,
+                    CURLOPT_TCP_NODELAY,
+                    1L);
 #endif
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_FOLLOWLOCATION, 0);
+  curl_easy_setopt (s->get.easyhandle,
+                    CURLOPT_FOLLOWLOCATION,
+                    0L);
 
   mret = curl_multi_add_handle (s->plugin->curl_multi_handle,
                                 s->get.easyhandle);
@@ -1526,14 +1666,14 @@ client_connect_get (struct Session *s)
     curl_easy_cleanup (s->get.easyhandle);
     s->get.easyhandle = NULL;
     s->get.s = NULL;
-    s->get.easyhandle = NULL;
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   s->plugin->cur_requests++;
-  LOG  (GNUNET_ERROR_TYPE_INFO,
-      "GET request `%s' established, number of requests increased to %u\n",
-      s->url, s->plugin->cur_requests);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "GET request `%s' established, number of requests increased to %u\n",
+       s->url,
+       s->plugin->cur_requests);
   return GNUNET_OK;
 }
 
@@ -1548,19 +1688,51 @@ static int
 client_connect_put (struct Session *s)
 {
   CURLMcode mret;
+  struct HttpAddress *ha;
+  uint32_t options;
 
+  ha = (struct HttpAddress *) s->address->address;
+  options = ntohl (ha->options);
   /* create put request */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p: Init PUT handle\n", s);
+       "Session %p: Init PUT handle\n",
+       s);
   s->put.easyhandle = curl_easy_init ();
   s->put.s = s;
 #if VERBOSE_CURL
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_VERBOSE, 1L);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_DEBUGFUNCTION, &client_log);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_DEBUGDATA, &s->put);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_VERBOSE,
+                    1L);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_DEBUGFUNCTION,
+                    &client_log);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_DEBUGDATA,
+                    &s->put);
 #endif
+  if (0 != (options & HTTP_OPTIONS_TCP_STEALTH))
+  {
+#ifdef SO_TCPSTEALTH
+    curl_easy_setopt (s->put.easyhandle,
+                      CURLOPT_OPENSOCKETFUNCTION,
+                      &open_tcp_stealth_socket_cb);
+    curl_easy_setopt (s->put.easyhandle,
+                      CURLOPT_OPENSOCKETDATA,
+                      s);
+#else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Cannot connect, TCP STEALTH needed and not supported by kernel.\n");
+    curl_easy_cleanup (s->put.easyhandle);
+    s->put.easyhandle = NULL;
+    s->put.s = NULL;
+    s->put.state = H_DISCONNECTED;
+    return GNUNET_SYSERR;
+#endif
+  }
 #if BUILD_HTTPS
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_SSLVERSION,
+                    CURL_SSLVERSION_TLSv1);
   {
     struct HttpAddress *ha;
     ha = (struct HttpAddress *) s->address->address;
@@ -1568,48 +1740,86 @@ client_connect_put (struct Session *s)
     if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
         (ntohl (ha->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
     {
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_SSL_VERIFYPEER, 1L);
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_SSL_VERIFYHOST, 2L);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_SSL_VERIFYPEER,
+                        1L);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_SSL_VERIFYHOST,
+                        2L);
     }
     else
     {
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_SSL_VERIFYPEER, 0);
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_SSL_VERIFYHOST, 0);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_SSL_VERIFYPEER,
+                        0L);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_SSL_VERIFYHOST,
+                        0L);
     }
   }
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_PROTOCOLS,
+                    CURLPROTO_HTTPS);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_REDIR_PROTOCOLS,
+                    CURLPROTO_HTTPS);
 #else
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_PROTOCOLS, CURLPROTO_HTTP);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_PROTOCOLS,
+                    CURLPROTO_HTTP);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_REDIR_PROTOCOLS,
+                    CURLPROTO_HTTP);
 #endif
-  if (s->plugin->proxy_hostname != NULL)
+  if (NULL != s->plugin->proxy_hostname)
   {
-    curl_easy_setopt (s->put.easyhandle, CURLOPT_PROXY, s->plugin->proxy_hostname);
-    curl_easy_setopt (s->put.easyhandle, CURLOPT_PROXYTYPE, s->plugin->proxytype);
+    curl_easy_setopt (s->put.easyhandle,
+                      CURLOPT_PROXY,
+                      s->plugin->proxy_hostname);
+    curl_easy_setopt (s->put.easyhandle,
+                      CURLOPT_PROXYTYPE,
+                      s->plugin->proxytype);
     if (NULL != s->plugin->proxy_username)
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_PROXYUSERNAME,
-          s->plugin->proxy_username);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_PROXYUSERNAME,
+                        s->plugin->proxy_username);
     if (NULL != s->plugin->proxy_password)
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_PROXYPASSWORD,
-          s->plugin->proxy_password);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_PROXYPASSWORD,
+                        s->plugin->proxy_password);
     if (GNUNET_YES == s->plugin->proxy_use_httpproxytunnel)
-      curl_easy_setopt (s->put.easyhandle, CURLOPT_HTTPPROXYTUNNEL,
-          s->plugin->proxy_use_httpproxytunnel);
+      curl_easy_setopt (s->put.easyhandle,
+                        CURLOPT_HTTPPROXYTUNNEL,
+                        s->plugin->proxy_use_httpproxytunnel);
   }
 
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_URL, s->url);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_UPLOAD, 1L);
-  //curl_easy_setopt (s->put.easyhandle, CURLOPT_HEADERFUNCTION, &client_curl_header);
-  //curl_easy_setopt (s->put.easyhandle, CURLOPT_WRITEHEADER, ps);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_READFUNCTION, client_send_cb);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_READDATA, s);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_WRITEFUNCTION, client_receive_put);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_WRITEDATA, s);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_URL,
+                    s->url);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_UPLOAD,
+                    1L);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_READFUNCTION,
+                    &client_send_cb);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_READDATA,
+                    s);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_WRITEFUNCTION,
+                    &client_receive_put);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_WRITEDATA,
+                    s);
   /* No timeout by default, timeout done with session timeout */
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_TIMEOUT, 0);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_PRIVATE, s);
-  curl_easy_setopt (s->put.easyhandle, CURLOPT_CONNECTTIMEOUT_MS,
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_TIMEOUT,
+                    0L);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_PRIVATE,
+                    s);
+  curl_easy_setopt (s->put.easyhandle,
+                    CURLOPT_CONNECTTIMEOUT_MS,
                     (long) (HTTP_CLIENT_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL));
   curl_easy_setopt (s->put.easyhandle, CURLOPT_BUFFERSIZE,
                     2 * GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -1624,7 +1834,6 @@ client_connect_put (struct Session *s)
          "Session %p : Failed to add PUT handle to multihandle: `%s'\n",
          s, curl_multi_strerror (mret));
     curl_easy_cleanup (s->put.easyhandle);
-    s->put.easyhandle = NULL;
     s->put.easyhandle = NULL;
     s->put.s = NULL;
     s->put.state = H_DISCONNECTED;
@@ -1654,18 +1863,24 @@ client_connect (struct Session *s)
   int res = GNUNET_OK;
 
   /* create url */
-  if (NULL == http_common_plugin_address_to_string(plugin->protocol,
-          s->address->address, s->address->address_length))
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Invalid address peer `%s'\n",
-          GNUNET_i2s(&s->address->peer));
-      return GNUNET_SYSERR;
-    }
+  if (NULL ==
+      http_common_plugin_address_to_string(plugin->protocol,
+                                           s->address->address,
+                                           s->address->address_length))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Invalid address peer `%s'\n",
+         GNUNET_i2s(&s->address->peer));
+    return GNUNET_SYSERR;
+  }
 
-  GNUNET_asprintf(&s->url, "%s/%s;%u",
-      http_common_plugin_address_to_url(NULL, s->address->address,
-          s->address->address_length),
-      GNUNET_i2s_full(plugin->env->my_identity), plugin->last_tag);
+  GNUNET_asprintf(&s->url,
+                  "%s/%s;%u",
+                  http_common_plugin_address_to_url(NULL,
+                                                    s->address->address,
+                                                    s->address->address_length),
+                  GNUNET_i2s_full (plugin->env->my_identity),
+                  plugin->last_tag);
 
   plugin->last_tag++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1798,7 +2013,9 @@ http_client_plugin_get_session (void *cls,
   /* Determine network location */
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
-  sa = http_common_socket_from_address (address->address, address->address_length, &res);
+  sa = http_common_socket_from_address (address->address,
+                                        address->address_length,
+                                        &res);
   if (GNUNET_SYSERR == res)
     return NULL;
   if (GNUNET_YES == res)
@@ -1975,7 +2192,6 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
   unsigned long long max_requests;
   char *proxy_type;
 
-
   /* Optional parameters */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
@@ -1990,8 +2206,11 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
        plugin->max_requests);
 
   /* Read proxy configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-      plugin->name, "PROXY", &plugin->proxy_hostname))
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+                                             plugin->name,
+                                             "PROXY",
+                                             &plugin->proxy_hostname))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found proxy host: `%s'\n",

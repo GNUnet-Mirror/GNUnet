@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002-2013 Christian Grothoff (and other contributing authors)
+     (C) 2002-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -21,6 +21,7 @@
  * @file transport/plugin_transport_http_common.c
  * @brief functionality shared by http client and server transport service plugin
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_common.h"
@@ -72,7 +73,12 @@ enum HttpAddressOptions
    * (if this bit is not set, it is probably just self-
    * signed and not expected to be verified).
    */
-  HTTP_OPTIONS_VERIFY_CERTIFICATE = 1
+  HTTP_OPTIONS_VERIFY_CERTIFICATE = 1,
+
+  /**
+   * Enable TCP Stealth-style port knocking.
+   */
+  HTTP_OPTIONS_TCP_STEALTH = 2
 };
 
 

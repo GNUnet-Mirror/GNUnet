@@ -69,21 +69,18 @@
 struct Plugin
 {
   /**
-   * General handles
-   * ---------------
-   */
-
-  /**
    * Our environment.
    */
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * Linked list of open sessions.
+   * Head of linked list of open sessions.
    */
-
   struct Session *head;
 
+  /**
+   * Tail of linked list of open sessions.
+   */
   struct Session *tail;
 
   /**
@@ -92,24 +89,14 @@ struct Plugin
   struct GNUNET_NAT_Handle *nat;
 
   /**
-   * List of own addresses
-   */
-
-  /**
-   * IPv4 addresses DLL head
+   * Our own IPv4 addresses DLL head
    */
   struct HttpAddressWrapper *addr_head;
 
   /**
-   * IPv4 addresses DLL tail
+   * Our own IPv4 addresses DLL tail
    */
   struct HttpAddressWrapper *addr_tail;
-
-
-  /**
-   * Plugin configuration
-   * --------------------
-   */
 
   /**
    * External hostname the plugin can be connected to, can be different to
@@ -133,9 +120,8 @@ struct Plugin
    */
   GNUNET_SCHEDULER_TaskIdentifier notify_ext_task;
 
-
   /**
-   * Plugin name
+   * Plugin name.
    * Equals configuration section: transport-http, transport-https
    */
   char *name;
@@ -147,21 +133,18 @@ struct Plugin
   char *protocol;
 
   /**
-   * Use IPv4?
-   * GNUNET_YES or GNUNET_NO
+   * Use IPv4? #GNUNET_YES or #GNUNET_NO
    */
   int ipv4;
 
   /**
-   * Use IPv6?
-   * GNUNET_YES or GNUNET_NO
+   * Use IPv6? #GNUNET_YES or #GNUNET_NO
    */
   int ipv6;
 
   /**
    * Does plugin just use outbound connections and not accept inbound?
    */
-
   int client_only;
 
   /**
@@ -186,18 +169,12 @@ struct Plugin
   unsigned int inbound_sessions;
 
   /**
-   * Plugin HTTPS SSL/TLS options
-   * ----------------------------
-   */
-
-  /**
    * libCurl TLS crypto init string, can be set to enhance performance
    *
    * Example:
    *
    * Use RC4-128 instead of AES:
    * NONE:+VERS-TLS1.0:+ARCFOUR-128:+SHA1:+RSA:+COMP-NULL
-   *
    */
   char *crypto_init;
 
@@ -212,11 +189,6 @@ struct Plugin
   char *cert;
 
   /**
-   * Plugin values
-   * -------------
-   */
-
-  /**
    * Current number of establishes connections
    */
   int cur_connections;
@@ -225,11 +197,6 @@ struct Plugin
    * Last used unique HTTP connection tag
    */
   uint32_t last_tag;
-
-  /**
-   * Server handles
-   * --------------
-   */
 
   /**
    * MHD IPv4 daemon
@@ -259,7 +226,6 @@ struct Plugin
   /**
    * The IPv6 server is scheduled to run asap
    */
-
   int server_v6_immediately;
 
   /**
@@ -273,17 +239,18 @@ struct Plugin
   struct sockaddr_in6 *server_addr_v6;
 
   /**
-   * Server semi connections
+   * Head of server semi connections
    * A full session consists of 2 semi-connections: send and receive
    * If not both directions are established the server keeps this sessions here
    */
   struct Session *server_semi_head;
 
-  struct Session *server_semi_tail;
-
-  /*
-   * Client handles
+  /**
+   * Tail of server semi connections
+   * A full session consists of 2 semi-connections: send and receive
+   * If not both directions are established the server keeps this sessions here
    */
+  struct Session *server_semi_tail;
 
   /**
    * cURL Multihandle
@@ -351,19 +318,26 @@ GNUNET_NETWORK_STRUCT_END
 
 struct ServerRequest
 {
-  /* _RECV or _SEND */
+  /**
+   * _RECV or _SEND
+   */
   int direction;
 
-  /* Should this connection get disconnected? GNUNET_YES/NO  */
+  /**
+   * Should this connection get disconnected? #GNUNET_YES / #GNUNET_NO
+   */
   int disconnect;
 
-  /* The session this server connection belongs to */
+  /**
+   * The session this server connection belongs to
+   */
   struct Session *session;
 
-  /* The MHD connection */
+  /**
+   * The MHD connection
+   */
   struct MHD_Connection *mhd_conn;
 };
-
 
 
 /**
@@ -416,7 +390,6 @@ struct Session
    */
   struct HTTP_Message *msg_tail;
 
-
   /**
    * Message stream tokenizer for incoming data
    */
@@ -430,8 +403,8 @@ struct Session
 
   /**
    * Inbound or outbound connection
-   * Outbound: GNUNET_NO (client is used to send and receive)
-   * Inbound : GNUNET_YES (server is used to send and receive)
+   * Outbound: #GNUNET_NO (client is used to send and receive)
+   * Inbound : #GNUNET_YES (server is used to send and receive)
    */
   int inbound;
 
@@ -439,10 +412,6 @@ struct Session
    * Unique HTTP/S connection tag for this connection
    */
   uint32_t tag;
-
-  /**
-   * Client handles
-   */
 
   /**
    * Client send handle
@@ -466,13 +435,9 @@ struct Session
 
   /**
    * Is client send handle paused since there are no data to send?
-   * GNUNET_YES/NO
+   * #GNUNET_YES or #GNUNET_NO
    */
   int client_put_paused;
-
-  /**
-   * Server handles
-   */
 
   /**
    * Client send handle
@@ -484,6 +449,7 @@ struct Session
    */
   struct ServerRequest *server_send;
 };
+
 
 /**
  *  Message to send using http
@@ -523,63 +489,89 @@ struct HTTP_Message
   GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
 
   /**
-   * Closure for transmit_cont.
+   * Closure for @e transmit_cont.
    */
   void *transmit_cont_cls;
 };
 
+
 struct Session *
-create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
-                const void *addr, size_t addrlen);
+create_session (struct Plugin *plugin,
+                const struct GNUNET_PeerIdentity *target,
+                const void *addr,
+                size_t addrlen);
+
 
 int
-exist_session (struct Plugin *plugin, struct Session *s);
+exist_session (struct Plugin *plugin,
+               struct Session *s);
+
 
 void
 delete_session (struct Session *s);
 
+
 int
-exist_session (struct Plugin *plugin, struct Session *s);
+exist_session (struct Plugin *plugin,
+               struct Session *s);
+
 
 struct GNUNET_TIME_Relative
-http_plugin_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+http_plugin_receive (void *cls,
+                     const struct GNUNET_PeerIdentity *peer,
                      const struct GNUNET_MessageHeader *message,
-                     struct Session *session, const char *sender_address,
+                     struct Session *session,
+                     const char *sender_address,
                      uint16_t sender_address_len);
 
+
 const char *
-http_plugin_address_to_string (void *cls, const void *addr, size_t addrlen);
+http_plugin_address_to_string (void *cls,
+                               const void *addr,
+                               size_t addrlen);
+
 
 int
 client_disconnect (struct Session *s);
 
+
 int
 client_connect (struct Session *s);
+
 
 int
 client_send (struct Session *s, struct HTTP_Message *msg);
 
+
 int
 client_start (struct Plugin *plugin);
+
 
 void
 client_stop (struct Plugin *plugin);
 
+
 int
 server_disconnect (struct Session *s);
+
 
 int
 server_send (struct Session *s, struct HTTP_Message *msg);
 
+
 int
 server_start (struct Plugin *plugin);
+
 
 void
 server_stop (struct Plugin *plugin);
 
+
 void
-notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
+notify_session_end (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
                     struct Session *s);
+
 
 /*#ifndef PLUGIN_TRANSPORT_HTTP_H*/
 #endif
