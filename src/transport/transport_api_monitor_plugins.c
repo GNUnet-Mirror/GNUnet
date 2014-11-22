@@ -391,7 +391,8 @@ GNUNET_TRANSPORT_monitor_plugins (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_TRANSPORT_PluginMonitor *pm;
   struct GNUNET_CLIENT_Connection *client;
 
-  client = GNUNET_CLIENT_connect ("transport", cfg);
+  client = GNUNET_CLIENT_connect ("transport",
+                                  cfg);
   if (NULL == client)
     return NULL;
   pm = GNUNET_new (struct GNUNET_TRANSPORT_PluginMonitor);

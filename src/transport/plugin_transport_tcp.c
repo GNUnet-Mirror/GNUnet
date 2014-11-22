@@ -418,6 +418,11 @@ struct Plugin
   void *sic_cls;
 
   /**
+   * Welcome message used by this peer.
+   */
+  struct WelcomeMessage my_welcome;
+
+  /**
    * How many more TCP sessions are we allowed to open right now?
    */
   unsigned long long max_connections;
@@ -990,7 +995,6 @@ create_session (struct Plugin *plugin,
 {
   struct Session *session;
   struct PendingMessage *pm;
-  struct WelcomeMessage welcome;
 
   if (GNUNET_YES != is_nat)
     GNUNET_assert (NULL != client);
@@ -1013,14 +1017,13 @@ create_session (struct Plugin *plugin,
       sizeof (struct WelcomeMessage));
   pm->msg = (const char *) &pm[1];
   pm->message_size = sizeof(struct WelcomeMessage);
-  welcome.header.size = htons (sizeof(struct WelcomeMessage));
-  welcome.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME);
-  welcome.clientIdentity = *plugin->env->my_identity;
-  memcpy (&pm[1], &welcome, sizeof(welcome));
+  memcpy (&pm[1],
+          &plugin->my_welcome,
+          sizeof(struct WelcomeMessage));
   pm->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;
   GNUNET_STATISTICS_update (plugin->env->stats,
-      gettext_noop ("# bytes currently in TCP buffers"), pm->message_size,
-      GNUNET_NO);
+                            gettext_noop ("# bytes currently in TCP buffers"), pm->message_size,
+                            GNUNET_NO);
   GNUNET_CONTAINER_DLL_insert (session->pending_messages_head,
                                session->pending_messages_tail,
                                pm);
@@ -2773,6 +2776,9 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   plugin->open_port = bport;
   plugin->adv_port = aport;
   plugin->env = env;
+  plugin->my_welcome.header.size = htons (sizeof(struct WelcomeMessage));
+  plugin->my_welcome.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME);
+  plugin->my_welcome.clientIdentity = *plugin->env->my_identity;
 
   if ( (NULL != service) &&
        (GNUNET_YES ==
