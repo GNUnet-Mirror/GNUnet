@@ -1689,12 +1689,18 @@ tcp_plugin_get_session (void *cls,
     }
     else
     {
-      if (GNUNET_OK !=
-          GNUNET_NETWORK_socket_setsockopt (s,
-                                            IPPROTO_TCP,
-                                            SO_TCPSTEALTH,
-                                            &session->target,
-                                            sizeof (struct GNUNET_PeerIdentity)))
+      if ( (GNUNET_OK !=
+            GNUNET_NETWORK_socket_setsockopt (s,
+                                              IPPROTO_TCP,
+                                              SO_TCPSTEALTH,
+                                              &session->target,
+                                              sizeof (struct GNUNET_PeerIdentity))) ||
+           (GNUNET_OK !=
+            GNUNET_NETWORK_socket_setsockopt (s,
+                                              IPPROTO_TCP,
+                                              SO_TCPSTEALTH_INTEGRITY,
+                                              &plugin->my_welcome,
+                                              sizeof (struct WelcomeMessage))) )
       {
         /* TCP STEALTH not supported by kernel */
         GNUNET_break (GNUNET_OK ==
@@ -2791,14 +2797,22 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     lsocks = GNUNET_SERVICE_get_listen_sockets (service);
     if (NULL != lsocks)
     {
+      uint32_t len = sizeof (struct WelcomeMessage);
+
       for (i=0;NULL!=lsocks[i];i++)
       {
-        if (GNUNET_OK !=
-            GNUNET_NETWORK_socket_setsockopt (lsocks[i],
-                                              IPPROTO_TCP,
-                                              SO_TCPSTEALTH,
-                                              env->my_identity,
-                                              sizeof (struct GNUNET_PeerIdentity)))
+        if ( (GNUNET_OK !=
+              GNUNET_NETWORK_socket_setsockopt (lsocks[i],
+                                                IPPROTO_TCP,
+                                                SO_TCPSTEALTH,
+                                                env->my_identity,
+                                                sizeof (struct GNUNET_PeerIdentity))) ||
+             (GNUNET_OK !=
+              GNUNET_NETWORK_socket_setsockopt (lsocks[i],
+                                                IPPROTO_TCP,
+                                                SO_TCPSTEALTH_INTEGRITY_LEN,
+                                                &len,
+                                                sizeof (len))) )
         {
           /* TCP STEALTH not supported by kernel */
           GNUNET_assert (0 == i);
