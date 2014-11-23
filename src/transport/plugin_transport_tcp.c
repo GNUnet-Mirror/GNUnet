@@ -2972,15 +2972,14 @@ libgnunet_plugin_transport_tcp_done (void *cls)
                                          &session_disconnect_it,
                                          plugin);
 
-  next = ppc_dll_head;
-  for (cur = next; NULL != cur; cur = next)
+  for (cur = ppc_dll_head; NULL != cur; cur = next)
   {
-    GNUNET_break (0);
     next = cur->next;
     GNUNET_CONTAINER_DLL_remove (ppc_dll_head,
                                  ppc_dll_tail,
                                  cur);
     GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+    cur->asc (cur->asc_cls, NULL, GNUNET_OK);
     GNUNET_free (cur);
   }
 

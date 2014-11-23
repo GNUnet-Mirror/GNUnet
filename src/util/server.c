@@ -627,7 +627,7 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 /**
  * Set the 'monitor' flag on this client.  Clients which have been
  * marked as 'monitors' won't prevent the server from shutting down
- * once 'GNUNET_SERVER_stop_listening' has been invoked.  The idea is
+ * once '#GNUNET_SERVER_stop_listening()' has been invoked.  The idea is
  * that for "normal" clients we likely want to allow them to process
  * their requests; however, monitor-clients are likely to 'never'
  * disconnect during shutdown and thus will not be considered when
@@ -746,7 +746,8 @@ GNUNET_SERVER_stop_listening (struct GNUNET_SERVER_Handle *server)
 {
   unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Server in soft shutdown\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Server in soft shutdown\n");
   if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
   {
     GNUNET_SCHEDULER_cancel (server->listen_task);
@@ -779,7 +780,8 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server)
   struct NotifyList *npos;
   unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Server shutting down.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Server shutting down.\n");
   if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
   {
     GNUNET_SCHEDULER_cancel (server->listen_task);
@@ -1006,12 +1008,16 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
  * @param buf buffer with data received from network
  * @param available number of bytes available in buf
  * @param addr address of the sender
- * @param addrlen length of addr
+ * @param addrlen length of @a addr
  * @param errCode code indicating errors receiving, 0 for success
  */
 static void
-process_incoming (void *cls, const void *buf, size_t available,
-                  const struct sockaddr *addr, socklen_t addrlen, int errCode);
+process_incoming (void *cls,
+                  const void *buf,
+                  size_t available,
+                  const struct sockaddr *addr,
+                  socklen_t addrlen,
+                  int errCode);
 
 
 /**

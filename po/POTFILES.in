@@ -361,6 +361,7 @@ src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
 src/transport/transport_api.c
 src/transport/transport_api_monitor_peers.c
+src/transport/transport_api_monitor_plugins.c
 src/transport/transport_api_monitor_validation.c
 src/transport/transport-testing.c
 src/tun/regex.c

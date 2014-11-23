@@ -1581,9 +1581,9 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
  */
 void
 GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout)
+                                         const struct GNUNET_HELLO_Address *address,
+                                         enum GNUNET_TRANSPORT_PeerState state,
+                                         struct GNUNET_TIME_Absolute state_timeout)
 {
   struct PeerIterateResponseMessage *msg;
   struct MonitoringClient *mc;
