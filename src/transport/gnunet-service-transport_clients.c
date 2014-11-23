@@ -227,6 +227,12 @@ static struct GNUNET_SERVER_NotificationContext *val_nc;
  */
 static struct GNUNET_SERVER_NotificationContext *plugin_nc;
 
+/**
+ * Plugin monitoring client we are currently syncing, NULL if all
+ * monitoring clients are in sync.
+ */
+static struct GNUNET_SERVER_Client *sync_client;
+
 
 /**
  * Find the internal handle associated with the given client handle
@@ -1406,11 +1412,16 @@ plugin_session_info_cb (void *cls,
        (NULL == session) )
   {
     /* end of initial iteration */
-    sync.size = htons (sizeof (struct GNUNET_MessageHeader));
-    sync.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC);
-    GNUNET_SERVER_notification_context_broadcast (plugin_nc,
+    if (NULL != sync_client)
+    {
+      sync.size = htons (sizeof (struct GNUNET_MessageHeader));
+      sync.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC);
+      GNUNET_SERVER_notification_context_unicast (plugin_nc,
+                                                  sync_client,
                                                   &sync,
                                                   GNUNET_NO);
+      sync_client = NULL;
+    }
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1442,9 +1453,15 @@ plugin_session_info_cb (void *cls,
   memcpy (name, info->address->transport_name, slen);
   addr = &name[slen + 1];
   memcpy (addr, info->address->address, alen);
-  GNUNET_SERVER_notification_context_broadcast (plugin_nc,
-						&msg->header,
-						GNUNET_NO);
+  if (NULL != sync_client)
+    GNUNET_SERVER_notification_context_unicast (plugin_nc,
+                                                sync_client,
+                                                &msg->header,
+                                                GNUNET_NO);
+  else
+    GNUNET_SERVER_notification_context_broadcast (plugin_nc,
+                                                  &msg->header,
+                                                  GNUNET_NO);
   GNUNET_free (msg);
 }
 
@@ -1464,8 +1481,8 @@ clients_handle_monitor_plugins (void *cls,
   GNUNET_SERVER_client_mark_monitor (client);
   GNUNET_SERVER_disable_receive_done_warning (client);
   GNUNET_SERVER_notification_context_add (plugin_nc, client);
-  if (1 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
-    GST_plugins_monitor_subscribe (&plugin_session_info_cb, NULL);
+  sync_client = client;
+  GST_plugins_monitor_subscribe (&plugin_session_info_cb, NULL);
 }
 
 

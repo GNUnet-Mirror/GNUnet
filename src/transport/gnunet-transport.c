@@ -1599,18 +1599,30 @@ plugin_monitoring_cb (void *cls,
   const char *state;
   struct PluginMonitorAddress *addr;
 
-  fprintf (stderr, "E!\n");
   if ( (NULL == info) &&
        (NULL == session) )
     return; /* in sync with transport service */
+  addr = *session_ctx;
   if (NULL == info)
+  {
+    if (NULL != addr)
+    {
+      if (NULL != addr->asc)
+      {
+        GNUNET_TRANSPORT_address_to_string_cancel (addr->asc);
+        addr->asc = NULL;
+      }
+      GNUNET_free_non_null (addr->str);
+      GNUNET_free (addr);
+      *session_ctx = NULL;
+    }
     return; /* shutdown */
+  }
   if ( (NULL != cpid) &&
        (0 != memcmp (&info->address->peer,
                      cpid,
                      sizeof (struct GNUNET_PeerIdentity))) )
     return; /* filtered */
-  addr = *session_ctx;
   if (NULL == addr)
   {
     addr = GNUNET_new (struct PluginMonitorAddress);
@@ -1747,8 +1759,8 @@ process_peer_monitoring_cb (void *cls,
 
 
 /**
- * Function called with our result of trying to connect to the
- * transport service. Will retry 10 times, and if we still
+ * Function called with our result of trying to connect to a peer
+ * using the transport service. Will retry 10 times, and if we still
  * fail to connect terminate with an error message.
  *
  * @param cls NULL
@@ -1787,6 +1799,14 @@ try_connect_cb (void *cls,
 }
 
 
+/**
+ * Function called with our result of trying to disconnect a peer
+ * using the transport service. Will retry 10 times, and if we still
+ * fail to disconnect, terminate with an error message.
+ *
+ * @param cls NULL
+ * @param result #GNUNET_OK if we connected to the service
+ */
 static void
 try_disconnect_cb (void *cls,
                    const int result)
@@ -1799,12 +1819,14 @@ try_disconnect_cb (void *cls,
   }
   retries++;
   if (retries < 10)
-    tc_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid, try_disconnect_cb,
-        NULL);
+    tc_handle = GNUNET_TRANSPORT_try_disconnect (handle,
+                                                 &pid,
+                                                 &try_disconnect_cb,
+                                                 NULL);
   else
   {
     FPRINTF (stderr, "%s",
-        _("Failed to send connect request to transport service\n"));
+             _("Failed to send disconnect request to transport service\n"));
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
     ret = 1;
@@ -1822,7 +1844,8 @@ try_disconnect_cb (void *cls,
  * @param result #GNUNET_YES if transport is running
  */
 static void
-testservice_task (void *cls, int result)
+testservice_task (void *cls,
+                  int result)
 {
   int counter = 0;
   ret = 1;
