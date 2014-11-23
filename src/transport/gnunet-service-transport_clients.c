@@ -1486,7 +1486,7 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
     {&GST_manipulation_set_metric, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC, 0},
     {&clients_handle_monitor_plugins, NULL,
-     GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT,
+     GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_START,
      sizeof (struct GNUNET_MessageHeader) },
     {NULL, NULL, 0, 0}
   };
@@ -1494,7 +1494,8 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
   val_nc = GNUNET_SERVER_notification_context_create (server, 0);
   plugin_nc = GNUNET_SERVER_notification_context_create (server, 0);
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_disconnect_notify (server, &client_disconnect_notification,
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &client_disconnect_notification,
                                    NULL);
 }
 
