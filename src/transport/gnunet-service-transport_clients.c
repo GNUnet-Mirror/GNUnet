@@ -1235,7 +1235,6 @@ send_peer_information (void *cls,
 }
 
 
-
 /**
  * Client asked to obtain information about a specific or all peers
  * Process the request.
@@ -1399,6 +1398,7 @@ plugin_session_info_cb (void *cls,
 
   if (0 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
   {
+    fprintf (stderr, "UNSUB!\n");
     GST_plugins_monitor_subscribe (NULL, NULL);
     return;
   }
@@ -1463,9 +1463,9 @@ clients_handle_monitor_plugins (void *cls,
 {
   GNUNET_SERVER_client_mark_monitor (client);
   GNUNET_SERVER_disable_receive_done_warning (client);
-  if (0 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
-    GST_plugins_monitor_subscribe (&plugin_session_info_cb, NULL);
   GNUNET_SERVER_notification_context_add (plugin_nc, client);
+  if (1 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
+    GST_plugins_monitor_subscribe (&plugin_session_info_cb, NULL);
 }
 
 
@@ -1557,7 +1557,8 @@ GST_clients_stop ()
  * @param may_drop #GNUNET_YES if the message can be dropped / is payload
  */
 void
-GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop)
+GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
+                       int may_drop)
 {
   struct TransportClient *tc;
 
@@ -1579,7 +1580,8 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop)
  */
 void
 GST_clients_unicast (struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *msg, int may_drop)
+                     const struct GNUNET_MessageHeader *msg,
+                     int may_drop)
 {
   struct TransportClient *tc;
 
@@ -1604,9 +1606,10 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
                                          enum GNUNET_TRANSPORT_PeerState state,
                                          struct GNUNET_TIME_Absolute state_timeout)
 {
+  static struct GNUNET_PeerIdentity all_zeros;
   struct PeerIterateResponseMessage *msg;
   struct MonitoringClient *mc;
-  static struct GNUNET_PeerIdentity all_zeros;
+
   msg = compose_address_iterate_response_message (peer, address);
   msg->state = htonl (state);
   msg->state_timeout = GNUNET_TIME_absolute_hton (state_timeout);

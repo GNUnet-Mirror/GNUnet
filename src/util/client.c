@@ -217,7 +217,7 @@ struct GNUNET_CLIENT_Connection
 
   /**
    * Are we currently busy doing receive-processing?
-   * GNUNET_YES if so, GNUNET_NO if not.
+   * #GNUNET_YES if so, #GNUNET_NO if not.
    */
   int in_receive;
 

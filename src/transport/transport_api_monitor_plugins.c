@@ -291,6 +291,7 @@ response_processor (void *cls,
   struct GNUNET_HELLO_Address addr;
   struct SearchContext rv;
 
+  fprintf (stderr, "R\n");
   if (NULL == msg)
   {
     reconnect_plugin_ctx (pm);
@@ -304,6 +305,10 @@ response_processor (void *cls,
             NULL,
             NULL,
             NULL);
+    GNUNET_CLIENT_receive (pm->client,
+                           &response_processor,
+                           pm,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
 
@@ -383,6 +388,10 @@ response_processor (void *cls,
                                                            ps));
     GNUNET_free (ps);
   }
+  GNUNET_CLIENT_receive (pm->client,
+                         &response_processor,
+                         pm,
+                         GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 

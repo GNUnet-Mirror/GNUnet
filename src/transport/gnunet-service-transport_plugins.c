@@ -1,7 +1,7 @@
 /*
   This file is part of GNUnet.
   (C) 2010-2014 Christian Grothoff (and other contributing authors)
-  
+
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
   by the Free Software Foundation; either version 3, or (at your
@@ -76,7 +76,6 @@ static struct TransportPlugin *plugins_head;
  * Head of DLL of all loaded plugins.
  */
 static struct TransportPlugin *plugins_tail;
-
 
 
 /**

@@ -475,7 +475,9 @@ notify_session_monitor (struct Plugin *plugin,
     return;
   memset (&info, 0, sizeof (info));
   info.state = state;
-  info.is_inbound = GNUNET_SYSERR; /* hard to say */
+  info.is_inbound = (0 != (GNUNET_HELLO_ADDRESS_INFO_INBOUND & session->address->local_info))
+    ? GNUNET_YES
+    : GNUNET_NO;
   info.num_msg_pending = session->msgs_in_queue;
   info.num_bytes_pending = session->bytes_in_queue;
   if (GNUNET_SCHEDULER_NO_TASK != session->receive_delay_task)
@@ -494,9 +496,9 @@ notify_session_monitor (struct Plugin *plugin,
  * address and that the next call to this function is allowed
  * to override the address again.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin *`)
  * @param addr binary address
- * @param addrlen length of the address
+ * @param addrlen length of @a addr
  * @return string representing the same address
  */
 static const char *
@@ -513,7 +515,7 @@ tcp_plugin_address_to_string (void *cls,
  * @param cls the `struct Plugin`
  * @param ucred credentials, if available, otherwise NULL
  * @param addr address
- * @param addrlen length of address
+ * @param addrlen length of @a addr
  * @return #GNUNET_YES to allow, #GNUNET_NO to deny, #GNUNET_SYSERR
  *   for unknown address family (will be denied).
  */
@@ -2194,10 +2196,11 @@ handle_tcp_nat_probe (void *cls,
     t4->options = htonl (TCP_OPTIONS_NONE);
     t4->t4_port = s4->sin_port;
     t4->ipv4_addr = s4->sin_addr.s_addr;
-    session->address = GNUNET_HELLO_address_allocate (
-        &tcp_nat_probe->clientIdentity, PLUGIN_NAME, &t4,
-        sizeof(struct IPv4TcpAddress),
-        GNUNET_HELLO_ADDRESS_INFO_NONE);
+    session->address = GNUNET_HELLO_address_allocate (&tcp_nat_probe->clientIdentity,
+                                                      PLUGIN_NAME,
+                                                      &t4,
+                                                      sizeof(struct IPv4TcpAddress),
+                                                      GNUNET_HELLO_ADDRESS_INFO_NONE);
     break;
   case AF_INET6:
     s6 = vaddr;
@@ -2205,10 +2208,11 @@ handle_tcp_nat_probe (void *cls,
     t6->options = htonl (TCP_OPTIONS_NONE);
     t6->t6_port = s6->sin6_port;
     memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
-    session->address = GNUNET_HELLO_address_allocate (
-        &tcp_nat_probe->clientIdentity,
-        PLUGIN_NAME, &t6, sizeof(struct IPv6TcpAddress),
-        GNUNET_HELLO_ADDRESS_INFO_NONE);
+    session->address = GNUNET_HELLO_address_allocate (&tcp_nat_probe->clientIdentity,
+                                                      PLUGIN_NAME,
+                                                      &t6,
+                                                      sizeof(struct IPv6TcpAddress),
+                                                      GNUNET_HELLO_ADDRESS_INFO_NONE);
     break;
   default:
     GNUNET_break_op(0);
@@ -2305,8 +2309,10 @@ handle_tcp_welcome (void *cls,
         t4.t4_port = s4->sin_port;
         t4.ipv4_addr = s4->sin_addr.s_addr;
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
-            PLUGIN_NAME, &t4, sizeof(t4),
-            GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+                                                 PLUGIN_NAME,
+                                                 &t4,
+                                                 sizeof(t4),
+                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
       else if (alen == sizeof(struct sockaddr_in6))
       {

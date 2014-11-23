@@ -1599,9 +1599,12 @@ plugin_monitoring_cb (void *cls,
   const char *state;
   struct PluginMonitorAddress *addr;
 
+  fprintf (stderr, "E!\n");
   if ( (NULL == info) &&
        (NULL == session) )
     return; /* in sync with transport service */
+  if (NULL == info)
+    return; /* shutdown */
   if ( (NULL != cpid) &&
        (0 != memcmp (&info->address->peer,
                      cpid,
