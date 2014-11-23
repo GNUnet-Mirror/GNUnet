@@ -1599,6 +1599,9 @@ plugin_monitoring_cb (void *cls,
   const char *state;
   struct PluginMonitorAddress *addr;
 
+  if ( (NULL == info) &&
+       (NULL == session) )
+    return; /* in sync with transport service */
   if ( (NULL != cpid) &&
        (0 != memcmp (&info->address->peer,
                      cpid,
@@ -1740,6 +1743,14 @@ process_peer_monitoring_cb (void *cls,
 }
 
 
+/**
+ * Function called with our result of trying to connect to the
+ * transport service. Will retry 10 times, and if we still
+ * fail to connect terminate with an error message.
+ *
+ * @param cls NULL
+ * @param result #GNUNET_OK if we connected to the service
+ */
 static void
 try_connect_cb (void *cls,
                 const int result)
@@ -1753,8 +1764,12 @@ try_connect_cb (void *cls,
   }
   retries++;
   if (retries < 10)
-    tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
-        NULL);
+  {
+    tc_handle = GNUNET_TRANSPORT_try_connect (handle,
+                                              &pid,
+                                              &try_connect_cb,
+                                              NULL);
+  }
   else
   {
     FPRINTF (stderr,

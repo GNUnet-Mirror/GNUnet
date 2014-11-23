@@ -1348,6 +1348,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT 389
 
+/**
+ * Monitoring event notifying client that the initial iteration
+ * is now completed and we are in sync with the state of the subsystem.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC 390
+
 /*******************************************************************************
  * FS-PUBLISH-HELPER IPC Messages
  ******************************************************************************/
@@ -2607,7 +2613,7 @@ extern "C"
 
 /**
  * Send back peer that considers you are its successor, a confirmation
- * that you got the notify successor message. 
+ * that you got the notify successor message.
  */
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_SUCCESSOR_CONFIRMATION 892
 

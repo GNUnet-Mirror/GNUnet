@@ -296,6 +296,17 @@ response_processor (void *cls,
     reconnect_plugin_ctx (pm);
     return;
   }
+  if ( (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC == ntohs (msg->type)) &&
+       (sizeof (struct GNUNET_MessageHeader) == ntohs (msg->size)) )
+  {
+    /* we are in sync */
+    pm->cb (pm->cb_cls,
+            NULL,
+            NULL,
+            NULL);
+    return;
+  }
+
   if ( (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_EVENT != ntohs (msg->type)) ||
        (sizeof (struct TransportPluginMonitorMessage) > ntohs (msg->size)) )
   {

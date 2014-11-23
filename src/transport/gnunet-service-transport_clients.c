@@ -299,26 +299,32 @@ lookup_monitoring_client (struct MonitoringClient *head,
  */
 static struct MonitoringClient *
 setup_peer_monitoring_client (struct GNUNET_SERVER_Client *client,
-                              struct GNUNET_PeerIdentity *peer)
+                              const struct GNUNET_PeerIdentity *peer)
 {
   struct MonitoringClient *mc;
   static struct GNUNET_PeerIdentity all_zeros;
 
-  GNUNET_assert (lookup_monitoring_client (peer_monitoring_clients_head, client) == NULL);
+  GNUNET_assert (NULL ==
+                 lookup_monitoring_client (peer_monitoring_clients_head,
+                                           client));
   mc = GNUNET_new (struct MonitoringClient);
   mc->client = client;
   mc->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert (peer_monitoring_clients_head, peer_monitoring_clients_tail, mc);
+  GNUNET_CONTAINER_DLL_insert (peer_monitoring_clients_head,
+                               peer_monitoring_clients_tail,
+                               mc);
   GNUNET_SERVER_client_mark_monitor (client);
   GNUNET_SERVER_notification_context_add (peer_nc, client);
 
   if (0 != memcmp (peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Client %p started monitoring of the peer `%s'\n",
-                mc, GNUNET_i2s (peer));
+                mc,
+                GNUNET_i2s (peer));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Client %p started monitoring all peers\n", mc);
+                "Client %p started monitoring all peers\n",
+                mc);
   return mc;
 }
 
@@ -339,14 +345,20 @@ setup_val_monitoring_client (struct GNUNET_SERVER_Client *client,
   struct MonitoringClient *mc;
   static struct GNUNET_PeerIdentity all_zeros;
 
-  GNUNET_assert (lookup_monitoring_client (val_monitoring_clients_head, client) == NULL);
+  GNUNET_assert (NULL ==
+                 lookup_monitoring_client (val_monitoring_clients_head,
+                                           client));
   mc = GNUNET_new (struct MonitoringClient);
   mc->client = client;
   mc->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert (val_monitoring_clients_head, val_monitoring_clients_tail, mc);
+  GNUNET_CONTAINER_DLL_insert (val_monitoring_clients_head,
+                               val_monitoring_clients_tail,
+                               mc);
   GNUNET_SERVER_notification_context_add (val_nc, client);
 
-  if (0 != memcmp (peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (peer,
+                   &all_zeros,
+                   sizeof (struct GNUNET_PeerIdentity)))
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Client %p started monitoring of the peer `%s'\n",
                 mc, GNUNET_i2s (peer));
@@ -487,7 +499,8 @@ client_disconnect_notification (void *cls,
 
   if (client == NULL)
     return;
-  mc = lookup_monitoring_client (peer_monitoring_clients_head, client);
+  mc = lookup_monitoring_client (peer_monitoring_clients_head,
+                                 client);
   if (mc != NULL)
   {
     GNUNET_CONTAINER_DLL_remove (peer_monitoring_clients_head,
@@ -495,7 +508,8 @@ client_disconnect_notification (void *cls,
                                  mc);
     GNUNET_free (mc);
   }
-  mc = lookup_monitoring_client (val_monitoring_clients_head, client);
+  mc = lookup_monitoring_client (val_monitoring_clients_head,
+                                 client);
   if (mc != NULL)
   {
     GNUNET_CONTAINER_DLL_remove (val_monitoring_clients_head,
@@ -607,8 +621,7 @@ clients_handle_start (void *cls,
   {
     /* client thinks this is a different peer, reject */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Rejecting control connection from peer `%s', which is not me!\n"),
+                _("Rejecting control connection from peer `%s', which is not me!\n"),
                 GNUNET_i2s (&start->self));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -1232,27 +1245,16 @@ send_peer_information (void *cls,
  * @param message the peer address information request
  */
 static void
-clients_handle_monitor_peers (void *cls, struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message)
+clients_handle_monitor_peers (void *cls,
+                              struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message)
 {
   static struct GNUNET_PeerIdentity all_zeros;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct PeerMonitorMessage *msg;
+  const struct PeerMonitorMessage *msg;
   struct IterationContext pc;
 
-  if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  if (ntohs (message->size) != sizeof (struct PeerMonitorMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (struct PeerMonitorMessage *) message;
+  msg = (const struct PeerMonitorMessage *) message;
   if ( (GNUNET_YES != ntohl (msg->one_shot)) &&
        (NULL != lookup_monitoring_client (peer_monitoring_clients_head, client)) )
   {
@@ -1388,6 +1390,7 @@ plugin_session_info_cb (void *cls,
 			const struct GNUNET_TRANSPORT_SessionInfo *info)
 {
   struct TransportPluginMonitorMessage *msg;
+  struct GNUNET_MessageHeader sync;
   size_t size;
   size_t slen;
   uint16_t alen;
@@ -1399,6 +1402,21 @@ plugin_session_info_cb (void *cls,
     GST_plugins_monitor_subscribe (NULL, NULL);
     return;
   }
+  if ( (NULL == info) &&
+       (NULL == session) )
+  {
+    /* end of initial iteration */
+    sync.size = htons (sizeof (struct GNUNET_MessageHeader));
+    sync.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC);
+    GNUNET_SERVER_notification_context_broadcast (plugin_nc,
+                                                  &sync,
+                                                  GNUNET_NO);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Plugin event for peer %s on transport %s\n",
+              GNUNET_i2s (&info->address->peer),
+              info->address->transport_name);
   slen = strlen (info->address->transport_name) + 1;
   alen = info->address->address_length;
   size = sizeof (struct TransportPluginMonitorMessage) + slen + alen;
