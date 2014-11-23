@@ -291,7 +291,6 @@ response_processor (void *cls,
   struct GNUNET_HELLO_Address addr;
   struct SearchContext rv;
 
-  fprintf (stderr, "R\n");
   if (NULL == msg)
   {
     reconnect_plugin_ctx (pm);
