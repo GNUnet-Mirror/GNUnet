@@ -2083,7 +2083,7 @@ main (int argc, char * const *argv)
       gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
       &cpid },
     { 'P', "plugins", NULL,
-      gettext_noop ("monitor plugin sessions"), 1, &GNUNET_GETOPT_set_one,
+      gettext_noop ("monitor plugin sessions"), 0, &GNUNET_GETOPT_set_one,
       &monitor_plugins },
     { 's', "send", NULL, gettext_noop
       ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
