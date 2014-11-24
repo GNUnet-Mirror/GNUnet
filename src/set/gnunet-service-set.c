@@ -569,10 +569,12 @@ incoming_suggest (struct Operation *incoming,
   GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
   incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
 
-  mqm = GNUNET_MQ_msg_nested_mh (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST,
+  mqm = GNUNET_MQ_msg_nested_mh (cmsg,
+                                 GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "suggesting request with accept id %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "suggesting request with accept id %u\n",
               incoming->state->suggest_id);
   cmsg->accept_id = htonl (incoming->state->suggest_id);
   cmsg->peer_id = incoming->spec->peer;
@@ -597,10 +599,11 @@ static int
 handle_incoming_msg (struct Operation *op,
                      const struct GNUNET_MessageHeader *mh)
 {
-  const struct OperationRequestMessage *msg = (const struct OperationRequestMessage *) mh;
+  const struct OperationRequestMessage *msg;
   struct Listener *listener;
   struct OperationSpecification *spec;
 
+  msg = (const struct OperationRequestMessage *) mh;
   GNUNET_assert (GNUNET_YES == op->is_incoming);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
