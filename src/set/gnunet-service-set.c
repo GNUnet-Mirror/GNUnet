@@ -537,26 +537,24 @@ listener_get_by_target (enum GNUNET_SET_OperationType op,
   struct Listener *l;
 
   for (l = listeners_head; NULL != l; l = l->next)
-  {
-    if (l->operation != op)
-      continue;
-    if (0 != GNUNET_CRYPTO_hash_cmp (app_id, &l->app_id))
-      continue;
-    return l;
-  }
+    if ( (l->operation == op) &&
+         (0 == GNUNET_CRYPTO_hash_cmp (app_id, &l->app_id)) )
+      return l;
   return NULL;
 }
 
 
+// ----------------------
 /**
- * Suggest the given request to the listener. The listening client can then
- * accept or reject the remote request.
+ * Suggest the given request to the listener. The listening client can
+ * then accept or reject the remote request.
  *
  * @param incoming the incoming peer with the request to suggest
  * @param listener the listener to suggest the request to
  */
 static void
-incoming_suggest (struct Operation *incoming, struct Listener *listener)
+incoming_suggest (struct Operation *incoming,
+                  struct Listener *listener)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_RequestMessage *cmsg;
@@ -605,7 +603,8 @@ handle_incoming_msg (struct Operation *op,
 
   GNUNET_assert (GNUNET_YES == op->is_incoming);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got op request\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "got op request\n");
 
   if (GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST != ntohs (mh->type))
   {
@@ -640,9 +639,12 @@ handle_incoming_msg (struct Operation *op,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "received P2P operation request (op %u, app %s)\n",
-              ntohl (msg->operation), GNUNET_h2s (&msg->app_id));
-  listener = listener_get_by_target (ntohl (msg->operation), &msg->app_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "received P2P operation request (op %u, app %s)\n",
+              ntohl (msg->operation),
+              GNUNET_h2s (&msg->app_id));
+  listener = listener_get_by_target (ntohl (msg->operation),
+                                     &msg->app_id);
   if (NULL == listener)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -670,7 +672,9 @@ send_client_element (struct Set *set)
   struct GNUNET_MQ_Envelope *ev;
 
   GNUNET_assert (NULL != set->iter);
-  ret = GNUNET_CONTAINER_multihashmap_iterator_next (set->iter, NULL, (const void **) &ee);
+  ret = GNUNET_CONTAINER_multihashmap_iterator_next (set->iter,
+                                                     NULL,
+                                                     (const void **) &ee);
   if (GNUNET_NO == ret)
   {
     ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
@@ -682,7 +686,9 @@ send_client_element (struct Set *set)
     struct GNUNET_SET_IterResponseMessage *msg;
 
     GNUNET_assert (NULL != ee);
-    ev = GNUNET_MQ_msg_extra (msg, ee->element.size, GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
+    ev = GNUNET_MQ_msg_extra (msg,
+                              ee->element.size,
+                              GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
     memcpy (&msg[1], ee->element.data, ee->element.size);
     msg->element_type = ee->element.type;
   }
@@ -812,7 +818,9 @@ handle_client_listen (void *cls,
   listener->client_mq = GNUNET_MQ_queue_for_server_client (client);
   listener->app_id = msg->app_id;
   listener->operation = ntohl (msg->operation);
-  GNUNET_CONTAINER_DLL_insert_tail (listeners_head, listeners_tail, listener);
+  GNUNET_CONTAINER_DLL_insert_tail (listeners_head,
+                                    listeners_tail,
+                                    listener);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "new listener created (op %u, app %s)\n",
               listener->operation,
@@ -1032,8 +1040,8 @@ handle_client_evaluate (void *cls,
  */
 static void
 handle_client_iter_ack (void *cls,
-                   struct GNUNET_SERVER_Client *client,
-                   const struct GNUNET_MessageHeader *m)
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *m)
 {
   struct Set *set;
 
@@ -1185,7 +1193,9 @@ handle_client_accept (void *cls,
   GNUNET_assert (NULL != op->spec->set);
   GNUNET_assert (NULL != op->spec->set->vt);
 
-  GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, op);
+  GNUNET_CONTAINER_DLL_insert (set->ops_head,
+                               set->ops_tail,
+                               op);
 
   op->spec->client_request_id = ntohl (msg->request_id);
   op->spec->result_mode = ntohs (msg->result_mode);
@@ -1321,8 +1331,11 @@ channel_new_cb (void *cls,
   incoming->vt = &incoming_vt;
   incoming->state->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                    &incoming_timeout_cb, incoming);
-  GNUNET_CONTAINER_DLL_insert_tail (incoming_head, incoming_tail, incoming);
+                                    &incoming_timeout_cb,
+                                    incoming);
+  GNUNET_CONTAINER_DLL_insert_tail (incoming_head,
+                                    incoming_tail,
+                                    incoming);
 
   return incoming;
 }
@@ -1347,7 +1360,8 @@ channel_new_cb (void *cls,
  */
 static void
 channel_end_cb (void *cls,
-                const struct GNUNET_CADET_Channel *channel, void *channel_ctx)
+                const struct GNUNET_CADET_Channel *channel,
+                void *channel_ctx)
 {
   struct Operation *op = channel_ctx;
 
