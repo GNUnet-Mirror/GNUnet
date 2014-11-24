@@ -22,8 +22,8 @@
  * @file set/gnunet-service-set.h
  * @brief common components for the implementation the different set operations
  * @author Florian Dold
+ * @author Christian Grothoff
  */
-
 #ifndef GNUNET_SERVICE_SET_H_PRIVATE
 #define GNUNET_SERVICE_SET_H_PRIVATE
 
@@ -38,24 +38,33 @@
 
 
 /**
- * Implementation-specific set state.
- * Used as opaque pointer, and specified further
- * in the respective implementation.
+ * Implementation-specific set state.  Used as opaque pointer, and
+ * specified further in the respective implementation.
  */
 struct SetState;
 
-
 /**
- * Implementation-specific set operation.
- * Used as opaque pointer, and specified further
- * in the respective implementation.
+ * Implementation-specific set operation.  Used as opaque pointer, and
+ * specified further in the respective implementation.
  */
 struct OperationState;
 
-
-/* forward declarations */
+/**
+ * A set that supports a specific operation with other peers.
+ */
 struct Set;
+
+/**
+ * Information about an element element in the set.  All elements are
+ * stored in a hash-table from their hash-code to their 'struct
+ * Element', so that the remove and add operations are reasonably
+ * fast.
+ */
 struct ElementEntry;
+
+/**
+ * Operation context used to execute a set operation.
+ */
 struct Operation;
 
 
@@ -64,13 +73,9 @@ struct Operation;
  */
 struct OperationSpecification
 {
-  /**
-   * The type of the operation.
-   */
-  enum GNUNET_SET_OperationType operation;
 
   /**
-   * The remove peer we evaluate the operation with
+   * The remove peer we evaluate the operation with.
    */
   struct GNUNET_PeerIdentity peer;
 
@@ -84,6 +89,12 @@ struct OperationSpecification
    * Context message, may be NULL.
    */
   struct GNUNET_MessageHeader *context_msg;
+
+  /**
+   * Set associated with the operation, NULL until the spec has been
+   * associated with a set.
+   */
+  struct Set *set;
 
   /**
    * Salt to use for the operation.
@@ -101,10 +112,9 @@ struct OperationSpecification
   uint32_t client_request_id;
 
   /**
-   * Set associated with the operation, NULL until the spec has been associated
-   * with a set.
+   * The type of the operation.
    */
-  struct Set *set;
+  enum GNUNET_SET_OperationType operation;
 
   /**
    * When are elements sent to the client, and which elements are sent?
@@ -113,15 +123,14 @@ struct OperationSpecification
 };
 
 
-
-
 /**
  * Signature of functions that create the implementation-specific
  * state for a set supporting a specific operation.
  *
  * @return a set state specific to the supported operation
  */
-typedef struct SetState *(*CreateImpl) (void);
+typedef struct SetState *
+(*CreateImpl) (void);
 
 
 /**
@@ -129,18 +138,21 @@ typedef struct SetState *(*CreateImpl) (void);
  * for a set supporting a specific operation.
  *
  * @param set implementation-specific set state
- * @param msg element message from the client
+ * @param ee element message from the client
  */
-typedef void (*AddRemoveImpl) (struct SetState *state, struct ElementEntry *ee);
+typedef void
+(*AddRemoveImpl) (struct SetState *state,
+                  struct ElementEntry *ee);
 
 
 /**
- * Signature of functions that handle disconnection
- * of the remote peer.
+ * Signature of functions that handle disconnection of the remote
+ * peer.
  *
  * @param op the set operation, contains implementation-specific data
  */
-typedef void (*PeerDisconnectImpl) (struct Operation *op);
+typedef void
+(*PeerDisconnectImpl) (struct Operation *op);
 
 
 /**
@@ -149,16 +161,18 @@ typedef void (*PeerDisconnectImpl) (struct Operation *op);
  *
  * @param state the set state, contains implementation-specific data
  */
-typedef void (*DestroySetImpl) (struct SetState *state);
+typedef void
+(*DestroySetImpl) (struct SetState *state);
 
 
 /**
  * Signature of functions that implement the creation of set operations
- * (currently evaluate and accept).
+ * (currently "evaluate" and "accept").
  *
  * @param op operation that is created, should be initialized by the implementation
  */
-typedef void (*OpCreateImpl) (struct Operation *op);
+typedef void
+(*OpCreateImpl) (struct Operation *op);
 
 
 /**
@@ -167,24 +181,26 @@ typedef void (*OpCreateImpl) (struct Operation *op);
  *
  * @param op operation state
  * @param msg received message
- * @return GNUNET_OK on success, GNUNET_SYSERR to
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to
  *         destroy the operation and the tunnel
  */
-typedef int (*MsgHandlerImpl) (struct Operation *op,
-                               const struct GNUNET_MessageHeader *msg);
+typedef int
+(*MsgHandlerImpl) (struct Operation *op,
+                   const struct GNUNET_MessageHeader *msg);
+
 
 /**
  * Signature of functions that implement operation cancellation
  *
  * @param op operation state
  */
-typedef void (*CancelImpl) (struct Operation *op);
+typedef void
+(*CancelImpl) (struct Operation *op);
 
 
 /**
- * Dispatch table for a specific set operation.
- * Every set operation has to implement the callback
- * in this struct.
+ * Dispatch table for a specific set operation.  Every set operation
+ * has to implement the callback in this struct.
  */
 struct SetVT
 {
@@ -224,24 +240,21 @@ struct SetVT
   MsgHandlerImpl msg_handler;
 
   /**
-   * Callback for handling the remote peer's
-   * disconnect.
+   * Callback for handling the remote peer's disconnect.
    */
   PeerDisconnectImpl peer_disconnect;
 
   /**
-   * Callback for canceling an operation by
-   * its ID.
+   * Callback for canceling an operation by its ID.
    */
   CancelImpl cancel;
 };
 
 
 /**
- * Information about an element element in the set.
- * All elements are stored in a hash-table
- * from their hash-code to their 'struct Element',
- * so that the remove and add operations are reasonably
+ * Information about an element element in the set.  All elements are
+ * stored in a hash-table from their hash-code to their `struct
+ * Element`, so that the remove and add operations are reasonably
  * fast.
  */
 struct ElementEntry
@@ -253,10 +266,8 @@ struct ElementEntry
   struct GNUNET_SET_Element element;
 
   /**
-   * Hash of the element.
-   * For set union:
-   * Will be used to derive the different IBF keys
-   * for different salts.
+   * Hash of the element.  For set union: Will be used to derive the
+   * different IBF keys for different salts.
    */
   struct GNUNET_HashCode element_hash;
 
@@ -267,32 +278,32 @@ struct ElementEntry
   unsigned int generation_added;
 
   /**
-   * GNUNET_YES if the element has been removed in some generation.
-   */
-  int removed;
-
-  /**
    * Generation the element was removed by the client.
    * Operations of later generations will not consider the element.
-   * Only valid if is_removed is GNUNET_YES.
+   * Only valid if @e removed is #GNUNET_YES.
    */
   unsigned int generation_removed;
 
   /**
-   * GNUNET_YES if the element is a remote element, and does not belong
+   * #GNUNET_YES if the element has been removed in some generation.
+   */
+  int removed;
+
+  /**
+   * #GNUNET_YES if the element is a remote element, and does not belong
    * to the operation's set.
-   *
-   * //TODO: Move to Union, unless additional set-operations are implemented ever
    */
   int remote;
 };
 
 
+/**
+ * Operation context used to execute a set operation.
+ */
 struct Operation
 {
   /**
-   * V-Table for the operation belonging
-   * to the tunnel contest.
+   * V-Table for the operation belonging to the tunnel contest.
    *
    * Used for all operation specific operations after receiving the ops request
    */
@@ -309,7 +320,29 @@ struct Operation
   struct GNUNET_MQ_Handle *mq;
 
   /**
-   * GNUNET_YES if this is not a "real" set operation yet, and we still
+   * Detail information about the set operation, including the set to
+   * use.  When 'spec' is NULL, the operation is not yet entirely
+   * initialized.
+   */
+  struct OperationSpecification *spec;
+
+  /**
+   * Operation-specific operation state.
+   */
+  struct OperationState *state;
+
+  /**
+   * Evaluate operations are held in a linked list.
+   */
+  struct Operation *next;
+
+  /**
+   * Evaluate operations are held in a linked list.
+   */
+  struct Operation *prev;
+
+  /**
+   * #GNUNET_YES if this is not a "real" set operation yet, and we still
    * need to wait for the other peer to give us more details.
    */
   int is_incoming;
@@ -321,71 +354,21 @@ struct Operation
   unsigned int generation_created;
 
   /**
-   * Detail information about the set operation,
-   * including the set to use.
-   * When 'spec' is NULL, the operation is not yet entirely
-   * initialized.
-   */
-  struct OperationSpecification *spec;
-
-  /**
-   * Operation-specific operation state.
-   */
-  struct OperationState *state;
-
-  /**
-   * Evaluate operations are held in
-   * a linked list.
-   */
-  struct Operation *next;
-
-   /**
-    * Evaluate operations are held in
-    * a linked list.
-    */
-  struct Operation *prev;
-
-  /**
-   * Set to GNUNET_YES if the set service should not free
-   * the operation, as it is still needed (e.g. in some scheduled task).
+   * Set to #GNUNET_YES if the set service should not free the
+   * operation, as it is still needed (e.g. in some scheduled task).
    */
   int keep;
 };
 
 
 /**
- * A set that supports a specific operation
- * with other peers.
+ * A set that supports a specific operation with other peers.
  */
 struct Set
 {
-  /**
-   * Client that owns the set.
-   * Only one client may own a set.
-   */
-  struct GNUNET_SERVER_Client *client;
 
   /**
-   * Message queue for the client
-   */
-  struct GNUNET_MQ_Handle *client_mq;
-
-  /**
-   * Type of operation supported for this set
-   */
-  enum GNUNET_SET_OperationType operation;
-
-  /**
-   * Virtual table for this set.
-   * Determined by the operation type of this set.
-   *
-   * Used only for Add/remove of elements and when receiving an incoming
-   * operation from a remote peer.
-   */
-  const struct SetVT *vt;
-
-  /**
-   * Sets are held in a doubly linked list.
+   * Sets are held in a doubly linked list (in `sets_head` and `sets_tail`).
    */
   struct Set *next;
 
@@ -393,6 +376,26 @@ struct Set
    * Sets are held in a doubly linked list.
    */
   struct Set *prev;
+
+  /**
+   * Client that owns the set.  Only one client may own a set,
+   * and there can only be one set per client.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Message queue for the client.
+   */
+  struct GNUNET_MQ_Handle *client_mq;
+
+  /**
+   * Virtual table for this set.  Determined by the operation type of
+   * this set.
+   *
+   * Used only for Add/remove of elements and when receiving an incoming
+   * operation from a remote peer.
+   */
+  const struct SetVT *vt;
 
   /**
    * Implementation-specific state.
@@ -406,34 +409,39 @@ struct Set
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
 
   /**
-   * Maps 'struct GNUNET_HashCode' to 'struct ElementEntry'.
+   * Maps `struct GNUNET_HashCode *` to `struct ElementEntry *`.
    */
   struct GNUNET_CONTAINER_MultiHashMap *elements;
 
   /**
-   * Current generation, that is, number of
-   * previously executed operations on this set
-   */
-  unsigned int current_generation;
-
-  /**
-   * Evaluate operations are held in
-   * a linked list.
+   * Evaluate operations are held in a linked list.
    */
   struct Operation *ops_head;
 
   /**
-   * Evaluate operations are held in
-   * a linked list.
+   * Evaluate operations are held in a linked list.
    */
   struct Operation *ops_tail;
+
+  /**
+   * Current generation, that is, number of previously executed
+   * operations on this set
+   */
+  unsigned int current_generation;
+
+  /**
+   * Type of operation supported for this set
+   */
+  enum GNUNET_SET_OperationType operation;
+
 };
 
 
 /**
- * Destroy the given operation.  Call the implementation-specific cancel function
- * of the operation.  Disconnects from the remote peer.
- * Does not disconnect the client, as there may be multiple operations per set.
+ * Destroy the given operation.  Call the implementation-specific
+ * cancel function of the operation.  Disconnects from the remote
+ * peer.  Does not disconnect the client, as there may be multiple
+ * operations per set.
  *
  * @param op operation to destroy
  */
@@ -442,8 +450,7 @@ _GSS_operation_destroy (struct Operation *op);
 
 
 /**
- * Get the table with implementing functions for
- * set union.
+ * Get the table with implementing functions for set union.
  *
  * @return the operation specific VTable
  */
@@ -452,8 +459,7 @@ _GSS_union_vt (void);
 
 
 /**
- * Get the table with implementing functions for
- * set intersection.
+ * Get the table with implementing functions for set intersection.
  *
  * @return the operation specific VTable
  */

@@ -17,7 +17,6 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file set/gnunet-service-set_intersection.c
  * @brief two-peer set intersection
@@ -86,12 +85,37 @@ struct OperationState
   struct GNUNET_CONTAINER_BloomFilter *local_bf;
 
   /**
-   * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
+   * Iterator for sending elements on the key to element mapping to the client.
    */
-  char * bf_data;
+  struct GNUNET_CONTAINER_MultiHashMapIterator *full_result_iter;
 
   /**
-   * size of the bloomfilter
+   * Evaluate operations are held in a linked list.
+   */
+  struct OperationState *next;
+
+  /**
+   * Evaluate operations are held in a linked list.
+   */
+  struct OperationState *prev;
+
+  /**
+   * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
+   */
+  char *bf_data;
+
+  /**
+   * Maps element-id-hashes to 'elements in our set'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *my_elements;
+
+  /**
+   * Current element count contained within @e my_elements
+   */
+  uint32_t my_element_count;
+
+  /**
+   * size of the bloomfilter in @e bf_data.
    */
   uint32_t bf_data_size;
 
@@ -110,33 +134,6 @@ struct OperationState
    * was created.
    */
   unsigned int generation_created;
-
-  /**
-   * Maps element-id-hashes to 'elements in our set'.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *my_elements;
-
-  /**
-   * Current element count contained within contained_elements
-   */
-  uint32_t my_element_count;
-
-  /**
-   * Iterator for sending elements on the key to element mapping to the client.
-   */
-  struct GNUNET_CONTAINER_MultiHashMapIterator *full_result_iter;
-
-  /**
-   * Evaluate operations are held in
-   * a linked list.
-   */
-  struct OperationState *next;
-
-   /**
-    * Evaluate operations are held in
-    * a linked list.
-    */
-  struct OperationState *prev;
 
   /**
    * Did we send the client that we are done?
@@ -236,6 +233,7 @@ iterator_initialization_by_alice (void *cls,
 
   return GNUNET_YES;
 }
+
 
 /**
  * fills the contained-elements hashmap with all relevant
@@ -1093,9 +1091,16 @@ intersection_op_cancel (struct Operation *op)
   }*/
   GNUNET_free (op->state);
   op->state = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op done\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "destroying intersection op done\n");
 }
 
+
+/**
+ * Get the table with implementing functions for set intersection.
+ *
+ * @return the operation specific VTable
+ */
 const struct SetVT *
 _GSS_intersection_vt ()
 {

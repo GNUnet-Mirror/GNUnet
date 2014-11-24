@@ -133,11 +133,13 @@ enum GNUNET_SET_ResultMode
    * Client gets every element in the resulting set.
    */
   GNUNET_SET_RESULT_FULL,
+
   /**
    * Client gets only elements that have been added to the set.
    * Only works with set union.
    */
   GNUNET_SET_RESULT_ADDED,
+
   /**
    * Client gets only elements that have been removed from the set.
    * Only works with set intersection.

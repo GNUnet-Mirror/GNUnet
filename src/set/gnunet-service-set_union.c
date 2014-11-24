@@ -478,7 +478,8 @@ op_has_element (struct Operation *op, const struct GNUNET_HashCode *element_hash
  * @param ee the element entry
  */
 static void
-op_register_element (struct Operation *op, struct ElementEntry *ee)
+op_register_element (struct Operation *op,
+                     struct ElementEntry *ee)
 {
   int ret;
   struct IBF_Key ibf_key;
@@ -1089,7 +1090,8 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
   struct ElementEntry *ee;
   uint16_t element_size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got element from peer\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "got element from peer\n");
 
   if ( (op->state->phase != PHASE_EXPECT_ELEMENTS) &&
        (op->state->phase != PHASE_EXPECT_ELEMENTS_AND_REQUESTS) )
@@ -1099,16 +1101,19 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
     return;
   }
   element_size = ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader);
-  ee = GNUNET_malloc (sizeof *ee + element_size);
+  ee = GNUNET_malloc (sizeof (struct ElementEntry) + element_size);
   memcpy (&ee[1], &mh[1], element_size);
   ee->element.size = element_size;
   ee->element.data = &ee[1];
   ee->remote = GNUNET_YES;
-  GNUNET_CRYPTO_hash (ee->element.data, ee->element.size, &ee->element_hash);
+  GNUNET_CRYPTO_hash (ee->element.data,
+                      ee->element.size,
+                      &ee->element_hash);
 
   if (GNUNET_YES == op_has_element (op, &ee->element_hash))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got existing element from peer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "got existing element from peer\n");
     GNUNET_free (ee);
     return;
   }
@@ -1127,7 +1132,8 @@ handle_p2p_elements (void *cls, const struct GNUNET_MessageHeader *mh)
  * @param mh the message
  */
 static void
-handle_p2p_element_requests (void *cls, const struct GNUNET_MessageHeader *mh)
+handle_p2p_element_requests (void *cls,
+                             const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   struct IBF_Key *ibf_key;

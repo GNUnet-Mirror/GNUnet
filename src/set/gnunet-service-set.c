@@ -42,25 +42,24 @@ struct OperationState
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Unique request id for the request from
-   * a remote peer, sent to the client, which will
-   * accept or reject the request.
-   * Set to '0' iff the request has not been
-   * suggested yet.
-   */
-  uint32_t suggest_id;
-
-  /**
    * Timeout task, if the incoming peer has not been accepted
    * after the timeout, it will be disconnected.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Unique request id for the request from a remote peer, sent to the
+   * client, which will accept or reject the request.  Set to '0' iff
+   * the request has not been suggested yet.
+   */
+  uint32_t suggest_id;
+
 };
 
 
 /**
- * A listener is inhabited by a client, and
- * waits for evaluation requests from remote peers.
+ * A listener is inhabited by a client, and waits for evaluation
+ * requests from remote peers.
  */
 struct Listener
 {
@@ -86,15 +85,15 @@ struct Listener
   struct GNUNET_MQ_Handle *client_mq;
 
   /**
-   * The type of the operation.
-   */
-  enum GNUNET_SET_OperationType operation;
-
-  /**
    * Application ID for the operation, used to distinguish
    * multiple operations of the same type with the same peer.
    */
   struct GNUNET_HashCode app_id;
+
+  /**
+   * The type of the operation.
+   */
+  enum GNUNET_SET_OperationType operation;
 };
 
 
@@ -104,8 +103,8 @@ struct Listener
 static const struct GNUNET_CONFIGURATION_Handle *configuration;
 
 /**
- * Handle to the cadet service, used
- * to listen for and connect to remote peers.
+ * Handle to the cadet service, used to listen for and connect to
+ * remote peers.
  */
 static struct GNUNET_CADET_Handle *cadet;
 
@@ -130,21 +129,21 @@ static struct Listener *listeners_head;
 static struct Listener *listeners_tail;
 
 /**
- * Incoming sockets from remote peers are
- * held in a doubly linked list.
+ * Incoming sockets from remote peers are held in a doubly linked
+ * list.
  */
 static struct Operation *incoming_head;
 
 /**
- * Incoming sockets from remote peers are
- * held in a doubly linked list.
+ * Incoming sockets from remote peers are held in a doubly linked
+ * list.
  */
 static struct Operation *incoming_tail;
 
 /**
- * Counter for allocating unique IDs for clients,
- * used to identify incoming operation requests from remote peers,
- * that the client can choose to accept or refuse.
+ * Counter for allocating unique IDs for clients, used to identify
+ * incoming operation requests from remote peers, that the client can
+ * choose to accept or refuse.
  */
 static uint32_t suggest_id = 1;
 
@@ -223,8 +222,10 @@ listener_destroy (struct Listener *listener)
   if (NULL != listener->client)
   {
     struct GNUNET_SERVER_Client *client = listener->client;
+
     listener->client = NULL;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting listener client\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "disconnecting listener client\n");
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
@@ -233,48 +234,95 @@ listener_destroy (struct Listener *listener)
     GNUNET_MQ_destroy (listener->client_mq);
     listener->client_mq = NULL;
   }
-  GNUNET_CONTAINER_DLL_remove (listeners_head, listeners_tail, listener);
+  GNUNET_CONTAINER_DLL_remove (listeners_head,
+                               listeners_tail,
+                               listener);
   GNUNET_free (listener);
 }
 
 
 /**
- * Collect and destroy elements that are not needed anymore, because
- * their lifetime (as determined by their generation) does not overlap with any active
- * set operation.
- *
- * We hereby replace the old element hashmap with a new one, instead of removing elements.
+ * Context for the #garbage_collect_cb().
  */
-void
+struct GarbageContext
+{
+
+  /**
+   * Map for which we are garbage collecting removed elements.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *map;
+
+  /**
+   * Lowest generation for which an operation is still pending.
+   */
+  unsigned int min_op_generation;
+
+  /**
+   * Largest generation for which an operation is still pending.
+   */
+  unsigned int max_op_generation;
+
+};
+
+
+/**
+ * Function invoked to check if an element can be removed from
+ * the set's history because it is no longer needed.
+ *
+ * @param cls the `struct GarbageContext *`
+ * @param key key of the element in the map
+ * @param value the `struct ElementEntry *`
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+garbage_collect_cb (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
+{
+  struct GarbageContext *gc = cls;
+  struct ElementEntry *ee = value;
+
+  if (GNUNET_YES != ee->removed)
+    return GNUNET_OK;
+  if ( (gc->max_op_generation < ee->generation_added) ||
+       (ee->generation_removed > gc->min_op_generation) )
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_remove (gc->map,
+                                                         key,
+                                                         ee));
+    GNUNET_free (ee);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Collect and destroy elements that are not needed anymore, because
+ * their lifetime (as determined by their generation) does not overlap
+ * with any active set operation.
+ *
+ * @param set set to garbage collect
+ */
+static void
 collect_generation_garbage (struct Set *set)
 {
-  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
-  struct ElementEntry *ee;
-  struct GNUNET_CONTAINER_MultiHashMap *new_elements;
-  int res;
   struct Operation *op;
+  struct GarbageContext gc;
 
-  new_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->elements);
-  while (GNUNET_OK ==
-         (res = GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ee)))
+  gc.min_op_generation = UINT_MAX;
+  gc.max_op_generation = 0;
+  for (op = set->ops_head; NULL != op; op = op->next)
   {
-    if (GNUNET_NO == ee->removed)
-      goto still_needed;
-    for (op = set->ops_head; NULL != op; op = op->next)
-      if ((op->generation_created >= ee->generation_added) &&
-          (op->generation_created < ee->generation_removed))
-        goto still_needed;
-    GNUNET_free (ee);
-    continue;
-still_needed:
-    // we don't expect collisions, thus the replace option
-    GNUNET_CONTAINER_multihashmap_put (new_elements, &ee->element_hash, ee,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+    gc.min_op_generation = GNUNET_MIN (gc.min_op_generation,
+                                       op->generation_created);
+    gc.max_op_generation = GNUNET_MAX (gc.max_op_generation,
+                                       op->generation_created);
   }
-  GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
-  GNUNET_CONTAINER_multihashmap_destroy (set->elements);
-  set->elements = new_elements;
+  gc.map = set->elements;
+  GNUNET_CONTAINER_multihashmap_iterate (set->elements,
+                                         &garbage_collect_cb,
+                                         &gc);
 }
 
 
