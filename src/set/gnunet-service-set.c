@@ -437,15 +437,17 @@ set_destroy (struct Set *set)
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
     set->iter = NULL;
   }
-  GNUNET_CONTAINER_DLL_remove (sets_head, sets_tail, set);
   if (NULL != set->elements)
   {
-    // free all elements in the hashtable, before destroying the table
     GNUNET_CONTAINER_multihashmap_iterate (set->elements,
-                                           destroy_elements_iterator, NULL);
+                                           &destroy_elements_iterator,
+                                           NULL);
     GNUNET_CONTAINER_multihashmap_destroy (set->elements);
     set->elements = NULL;
   }
+  GNUNET_CONTAINER_DLL_remove (sets_head,
+                               sets_tail,
+                               set);
   GNUNET_free (set);
 }
 
@@ -457,7 +459,8 @@ set_destroy (struct Set *set)
  * @param client the client to clean up after
  */
 static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+handle_client_disconnect (void *cls,
+                          struct GNUNET_SERVER_Client *client)
 {
   struct Set *set;
   struct Listener *listener;
@@ -470,7 +473,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     set->client = NULL;
     set_destroy (set);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "(client's set destroyed)\n");
+                "Client's set destroyed\n");
   }
   listener = listener_get (client);
   if (NULL != listener)
@@ -478,7 +481,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     listener->client = NULL;
     listener_destroy (listener);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "(client's listener destroyed)\n");
+                "Client's listener destroyed\n");
   }
 }
 
@@ -492,7 +495,9 @@ static void
 incoming_destroy (struct Operation *incoming)
 {
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
-  GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
+  GNUNET_CONTAINER_DLL_remove (incoming_head,
+                               incoming_tail,
+                               incoming);
   if (GNUNET_SCHEDULER_NO_TASK != incoming->state->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
@@ -500,8 +505,7 @@ incoming_destroy (struct Operation *incoming)
   }
   GNUNET_assert (NULL != incoming->state);
   GNUNET_free (incoming->state);
-  // make sure that the tunnel end handler will not
-  // destroy us again
+  /* make sure that the tunnel end handler will not destroy us again */
   incoming->vt = NULL;
   incoming->state = NULL;
   if (NULL != incoming->mq)
@@ -514,23 +518,6 @@ incoming_destroy (struct Operation *incoming)
     GNUNET_CADET_channel_destroy (incoming->channel);
     incoming->channel = NULL;
   }
-}
-
-
-/**
- * remove & free state of the operation from the incoming list
- *
- * @param incoming the element to remove
- */
-static void
-incoming_retire (struct Operation *incoming)
-{
-  GNUNET_assert (GNUNET_YES == incoming->is_incoming);
-  incoming->is_incoming = GNUNET_NO;
-  GNUNET_assert (NULL != incoming->state);
-  GNUNET_free (incoming->state);
-  incoming->state = NULL;
-  GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
 }
 
 
@@ -1186,7 +1173,14 @@ handle_client_accept (void *cls,
 
   op->spec->set = set;
 
-  incoming_retire (op);
+  GNUNET_assert (GNUNET_YES == op->is_incoming);
+  op->is_incoming = GNUNET_NO;
+  GNUNET_assert (NULL != op->state);
+  GNUNET_free (op->state);
+  op->state = NULL;
+  GNUNET_CONTAINER_DLL_remove (incoming_head,
+                               incoming_tail,
+                               op);
 
   GNUNET_assert (NULL != op->spec->set);
   GNUNET_assert (NULL != op->spec->set->vt);
