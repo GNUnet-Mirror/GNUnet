@@ -444,9 +444,11 @@ struct Set
  * operations per set.
  *
  * @param op operation to destroy
+ * @param gc #GNUNET_YES to perform garbage collection on the set
  */
 void
-_GSS_operation_destroy (struct Operation *op);
+_GSS_operation_destroy (struct Operation *op,
+                        int gc);
 
 
 /**

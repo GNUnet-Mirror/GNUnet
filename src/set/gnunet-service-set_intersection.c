@@ -359,7 +359,7 @@ fail_intersection_operation (struct Operation *op)
   msg->request_id = htonl (op->spec->client_request_id);
   msg->element_type = htons (0);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
-  _GSS_operation_destroy (op);
+  _GSS_operation_destroy (op, GNUNET_YES);
 }
 
 
@@ -525,12 +525,13 @@ send_client_done_and_destroy (void *cls)
   struct Operation *op = cls;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
+
   ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->result_status = htons (GNUNET_SET_STATUS_DONE);
   rm->element_type = htons (0);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
-  _GSS_operation_destroy (op);
+  _GSS_operation_destroy (op, GNUNET_YES);
 }
 
 
@@ -1050,7 +1051,7 @@ intersection_peer_disconnect (struct Operation *op)
     GNUNET_MQ_send (op->spec->set->client_mq, ev);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "other peer disconnected prematurely\n");
-    _GSS_operation_destroy (op);
+    _GSS_operation_destroy (op, GNUNET_YES);
     return;
   }
   // else: the session has already been concluded

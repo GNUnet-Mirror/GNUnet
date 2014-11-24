@@ -327,32 +327,34 @@ collect_generation_garbage (struct Set *set)
 
 
 /**
- * Destroy the given operation.  Call the implementation-specific cancel function
- * of the operation.  Disconnects from the remote peer.
- * Does not disconnect the client, as there may be multiple operations per set.
+ * Destroy the given operation.  Call the implementation-specific
+ * cancel function of the operation.  Disconnects from the remote
+ * peer.  Does not disconnect the client, as there may be multiple
+ * operations per set.
  *
  * @param op operation to destroy
+ * @param gc #GNUNET_YES to perform garbage collection on the set
  */
 void
-_GSS_operation_destroy (struct Operation *op)
+_GSS_operation_destroy (struct Operation *op,
+                        int gc)
 {
   struct Set *set;
   struct GNUNET_CADET_Channel *channel;
 
   if (NULL == op->vt)
+  {
+    /* already in #_GSS_operation_destroy() */
     return;
-
-  set = op->spec->set;
-
+  }
   GNUNET_assert (GNUNET_NO == op->is_incoming);
   GNUNET_assert (NULL != op->spec);
+  set = op->spec->set;
   GNUNET_CONTAINER_DLL_remove (op->spec->set->ops_head,
                                op->spec->set->ops_tail,
                                op);
-
   op->vt->cancel (op);
   op->vt = NULL;
-
   if (NULL != op->spec)
   {
     if (NULL != op->spec->context_msg)
@@ -363,40 +365,34 @@ _GSS_operation_destroy (struct Operation *op)
     GNUNET_free (op->spec);
     op->spec = NULL;
   }
-
   if (NULL != op->mq)
   {
     GNUNET_MQ_destroy (op->mq);
     op->mq = NULL;
   }
-
   if (NULL != (channel = op->channel))
   {
     op->channel = NULL;
     GNUNET_CADET_channel_destroy (channel);
   }
-
-  collect_generation_garbage (set);
-
+  if (GNUNET_YES == gc)
+    collect_generation_garbage (set);
   /* We rely on the channel end handler to free 'op'. When 'op->channel' was NULL,
    * there was a channel end handler that will free 'op' on the call stack. */
 }
 
 
 /**
- * Iterator over hash map entries to free
- * element entries.
+ * Iterator over hash map entries to free element entries.
  *
  * @param cls closure
  * @param key current key code
  * @param value a `struct ElementEntry *` to be free'd
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
 destroy_elements_iterator (void *cls,
-                           const struct GNUNET_HashCode * key,
+                           const struct GNUNET_HashCode *key,
                            void *value)
 {
   struct ElementEntry *ee = value;
@@ -407,27 +403,28 @@ destroy_elements_iterator (void *cls,
 
 
 /**
- * Destroy a set, and free all resources associated with it.
+ * Destroy a set, and free all resources and operations associated with it.
  *
  * @param set the set to destroy
  */
 static void
 set_destroy (struct Set *set)
 {
-  /* If the client is not dead yet, destroy it.
-   * The client's destroy callback will destroy the set again.
-   * We do this so that the channel end handler still has a valid set handle
-   * to destroy. */
   if (NULL != set->client)
   {
+    /* If the client is not dead yet, destroy it.  The client's destroy
+     * callback will call `set_destroy()` again in this case.  We do
+     * this so that the channel end handler still has a valid set handle
+     * to destroy. */
     struct GNUNET_SERVER_Client *client = set->client;
+
     set->client = NULL;
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
   GNUNET_assert (NULL != set->state);
   while (NULL != set->ops_head)
-    _GSS_operation_destroy (set->ops_head);
+    _GSS_operation_destroy (set->ops_head, GNUNET_NO);
   set->vt->destroy_set (set->state);
   set->state = NULL;
   if (NULL != set->client_mq)
@@ -1103,7 +1100,9 @@ handle_client_cancel (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client requested cancel for op %u\n", ntohl (msg->request_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "client requested cancel for op %u\n",
+              ntohl (msg->request_id));
 
   found = GNUNET_NO;
   for (op = set->ops_head; NULL != op; op = op->next)
@@ -1120,9 +1119,11 @@ handle_client_cancel (void *cls,
    * yet and try to cancel the (non non-existent) operation.
    */
   if (GNUNET_NO != found)
-    _GSS_operation_destroy (op);
+    _GSS_operation_destroy (op,
+                            GNUNET_YES);
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client canceled non-existent op\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "client canceled non-existent op\n");
 
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
