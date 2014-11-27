@@ -26,7 +26,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-set.h"
 #include "gnunet_block_lib.h"
-#include "set_protocol.h"
+#include "gnunet-service-set_protocol.h"
 #include <gcrypt.h>
 
 #define BLOOMFILTER_SIZE GNUNET_CRYPTO_HASH_LENGTH

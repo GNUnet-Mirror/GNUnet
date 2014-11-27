@@ -24,7 +24,7 @@
  * @author Christian Grothoff
  */
 #include "gnunet-service-set.h"
-#include "set_protocol.h"
+#include "gnunet-service-set_protocol.h"
 
 /**
  * How long do we hold on to an incoming channel if there is

@@ -27,7 +27,7 @@
 #include "gnunet-service-set.h"
 #include "ibf.h"
 #include "gnunet-service-set_union_strata_estimator.h"
-#include "set_protocol.h"
+#include "gnunet-service-set_protocol.h"
 #include <gcrypt.h>
 
 
