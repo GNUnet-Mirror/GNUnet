@@ -69,8 +69,7 @@ enum IntersectionOperationPhase
 
 
 /**
- * State of an evaluate operation
- * with another peer.
+ * State of an evaluate operation with another peer.
  */
 struct OperationState
 {

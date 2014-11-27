@@ -326,7 +326,9 @@ struct Operation
   struct OperationSpecification *spec;
 
   /**
-   * Operation-specific operation state.
+   * Operation-specific operation state.  Note that the exact
+   * type depends on this being a union or intersection operation
+   * (and thus on @e vt).
    */
   struct OperationState *state;
 
@@ -339,6 +341,25 @@ struct Operation
    * Evaluate operations are held in a linked list.
    */
   struct Operation *prev;
+
+  /**
+   * The identity of the requesting peer.  Needs to
+   * be stored here as the op spec might not have been created yet.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Timeout task, if the incoming peer has not been accepted
+   * after the timeout, it will be disconnected.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Unique request id for the request from a remote peer, sent to the
+   * client, which will accept or reject the request.  Set to '0' iff
+   * the request has not been suggested yet.
+   */
+  uint32_t suggest_id;
 
   /**
    * #GNUNET_YES if this is not a "real" set operation yet, and we still

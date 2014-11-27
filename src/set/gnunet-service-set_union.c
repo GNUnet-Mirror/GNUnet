@@ -73,6 +73,7 @@ enum UnionOperationPhase
    * We sent the request message, and expect a strata estimator
    */
   PHASE_EXPECT_SE,
+
   /**
    * We sent the strata estimator, and expect an IBF. This phase is entered once
    * upon initialization and later via PHASE_EXPECT_ELEMENTS_AND_REQUESTS.
@@ -80,10 +81,12 @@ enum UnionOperationPhase
    * After receiving the complete IBF, we enter PHASE_EXPECT_ELEMENTS
    */
   PHASE_EXPECT_IBF,
+
   /**
    * Continuation for multi part IBFs.
    */
   PHASE_EXPECT_IBF_CONT,
+
   /**
    * We are sending request and elements,
    * and thus only expect elements from the other peer.
@@ -93,6 +96,7 @@ enum UnionOperationPhase
    * The remote peer is in PHASE_EXPECT_ELEMENTS_AND_REQUESTS
    */
   PHASE_EXPECT_ELEMENTS,
+
   /**
    * We are expecting elements and requests, and send
    * requested elements back to the other peer.
@@ -105,6 +109,7 @@ enum UnionOperationPhase
    * PHASE_EXPECT_ELEMENTS
    */
   PHASE_EXPECT_ELEMENTS_AND_REQUESTS,
+
   /**
    * The protocol is over.
    * Results may still have to be sent to the client.
@@ -114,15 +119,10 @@ enum UnionOperationPhase
 
 
 /**
- * State of an evaluate operation
- * with another peer.
+ * State of an evaluate operation with another peer.
  */
 struct OperationState
 {
-  /**
-   * Number of ibf buckets received
-   */
-  unsigned int ibf_buckets_received;
 
   /**
    * Copy of the set's strata estimator at the time of
@@ -161,6 +161,12 @@ struct OperationState
    * Did we send the client that we are done?
    */
   int client_done_sent;
+
+  /**
+   * Number of ibf buckets received
+   */
+  unsigned int ibf_buckets_received;
+
 };
 
 

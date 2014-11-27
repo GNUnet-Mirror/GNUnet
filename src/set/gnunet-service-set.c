@@ -28,36 +28,6 @@
 
 
 /**
- * State of an operation where the peer has connected to us, but is not yet
- * evaluating a set operation.  Once the peer has sent a concrete request, and
- * the client has accepted or rejected it, this information will be deleted
- * and replaced by the real set operation state.
- */
-struct OperationState
-{
-  /**
-   * The identity of the requesting peer.  Needs to
-   * be stored here as the op spec might not have been created yet.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * Timeout task, if the incoming peer has not been accepted
-   * after the timeout, it will be disconnected.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
-
-  /**
-   * Unique request id for the request from a remote peer, sent to the
-   * client, which will accept or reject the request.  Set to '0' iff
-   * the request has not been suggested yet.
-   */
-  uint32_t suggest_id;
-
-};
-
-
-/**
  * A listener is inhabited by a client, and waits for evaluation
  * requests from remote peers.
  */
@@ -199,7 +169,7 @@ get_incoming (uint32_t id)
   struct Operation *op;
 
   for (op = incoming_head; NULL != op; op = op->next)
-    if (op->state->suggest_id == id)
+    if (op->suggest_id == id)
     {
       // FIXME: remove this assertion once the corresponding bug is gone!
       GNUNET_assert (GNUNET_YES == op->is_incoming);
@@ -498,16 +468,13 @@ incoming_destroy (struct Operation *incoming)
   GNUNET_CONTAINER_DLL_remove (incoming_head,
                                incoming_tail,
                                incoming);
-  if (GNUNET_SCHEDULER_NO_TASK != incoming->state->timeout_task)
+  if (GNUNET_SCHEDULER_NO_TASK != incoming->timeout_task)
   {
-    GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
-    incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (incoming->timeout_task);
+    incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_assert (NULL != incoming->state);
-  GNUNET_free (incoming->state);
   /* make sure that the tunnel end handler will not destroy us again */
   incoming->vt = NULL;
-  incoming->state = NULL;
   if (NULL != incoming->mq)
   {
     GNUNET_MQ_destroy (incoming->mq);
@@ -544,7 +511,6 @@ listener_get_by_target (enum GNUNET_SET_OperationType op,
 }
 
 
-// ----------------------
 /**
  * Suggest the given request to the listener. The listening client can
  * then accept or reject the remote request.
@@ -560,35 +526,34 @@ incoming_suggest (struct Operation *incoming,
   struct GNUNET_SET_RequestMessage *cmsg;
 
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
-  GNUNET_assert (NULL != incoming->state);
   GNUNET_assert (NULL != incoming->spec);
-  GNUNET_assert (0 == incoming->state->suggest_id);
-  incoming->state->suggest_id = suggest_id++;
-
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != incoming->state->timeout_task);
-  GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
-  incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-
+  GNUNET_assert (0 == incoming->suggest_id);
+  incoming->suggest_id = suggest_id++;
+  if (0 == suggest_id)
+    suggest_id++;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != incoming->timeout_task);
+  GNUNET_SCHEDULER_cancel (incoming->timeout_task);
+  incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   mqm = GNUNET_MQ_msg_nested_mh (cmsg,
                                  GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "suggesting request with accept id %u\n",
-              incoming->state->suggest_id);
-  cmsg->accept_id = htonl (incoming->state->suggest_id);
+              incoming->suggest_id);
+  cmsg->accept_id = htonl (incoming->suggest_id);
   cmsg->peer_id = incoming->spec->peer;
   GNUNET_MQ_send (listener->client_mq, mqm);
 }
 
 
 /**
- * Handle a request for a set operation from
- * another peer.
+ * Handle a request for a set operation from another peer.
  *
  * This msg is expected as the first and only msg handled through the
  * non-operation bound virtual table, acceptance of this operation replaces
- * our virtual table and subsequent msgs would be routed differently.
+ * our virtual table and subsequent msgs would be routed differently (as
+ * we then know what type of operation this is).
  *
  * @param op the operation state
  * @param mh the received message
@@ -605,23 +570,19 @@ handle_incoming_msg (struct Operation *op,
 
   msg = (const struct OperationRequestMessage *) mh;
   GNUNET_assert (GNUNET_YES == op->is_incoming);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "got op request\n");
-
   if (GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST != ntohs (mh->type))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-
   /* double operation request */
   if (NULL != op->spec)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got op request\n");
   spec = GNUNET_new (struct OperationSpecification);
   spec->context_msg = GNUNET_MQ_extract_nested_mh (msg);
   // for simplicity we just backup the context msg instead of rebuilding it later on
@@ -631,7 +592,7 @@ handle_incoming_msg (struct Operation *op,
   spec->app_id = msg->app_id;
   spec->salt = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                          UINT32_MAX);
-  spec->peer = op->state->peer;
+  spec->peer = op->peer;
   spec->remote_element_count = ntohl (msg->element_count);
 
   op->spec = spec;
@@ -844,10 +805,10 @@ handle_client_listen (void *cls,
                 "considering (op: %u, app: %s, suggest: %u)\n",
                 op->spec->operation,
                 GNUNET_h2s (&op->spec->app_id),
-                op->state->suggest_id);
+                op->suggest_id);
 
     /* don't consider the incoming request if it has been already suggested to a listener */
-    if (0 != op->state->suggest_id)
+    if (0 != op->suggest_id)
       continue;
     if (listener->operation != op->spec->operation)
       continue;
@@ -1188,9 +1149,6 @@ handle_client_accept (void *cls,
 
   GNUNET_assert (GNUNET_YES == op->is_incoming);
   op->is_incoming = GNUNET_NO;
-  GNUNET_assert (NULL != op->state);
-  GNUNET_free (op->state);
-  op->state = NULL;
   GNUNET_CONTAINER_DLL_remove (incoming_head,
                                incoming_tail,
                                op);
@@ -1259,7 +1217,7 @@ incoming_timeout_cb (void *cls,
 {
   struct Operation *incoming = cls;
 
-  incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -1288,10 +1246,10 @@ handle_incoming_disconnect (struct Operation *op)
 
 
 /**
- * Method called whenever another peer has added us to a channel
- * the other peer initiated.
- * Only called (once) upon reception of data with a message type which was
- * subscribed to in GNUNET_CADET_connect().
+ * Method called whenever another peer has added us to a channel the
+ * other peer initiated.  Only called (once) upon reception of data
+ * with a message type which was subscribed to in
+ * GNUNET_CADET_connect().
  *
  * The channel context represents the operation itself and gets added to a DLL,
  * from where it gets looked up when our local listener client responds
@@ -1307,18 +1265,16 @@ handle_incoming_disconnect (struct Operation *op)
  */
 static void *
 channel_new_cb (void *cls,
-               struct GNUNET_CADET_Channel *channel,
-               const struct GNUNET_PeerIdentity *initiator,
-               uint32_t port, enum GNUNET_CADET_ChannelOption options)
+                struct GNUNET_CADET_Channel *channel,
+                const struct GNUNET_PeerIdentity *initiator,
+                uint32_t port,
+                enum GNUNET_CADET_ChannelOption options)
 {
-  struct Operation *incoming;
   static const struct SetVT incoming_vt = {
-    .msg_handler = handle_incoming_msg,
-    .peer_disconnect = handle_incoming_disconnect
+    .msg_handler = &handle_incoming_msg,
+    .peer_disconnect = &handle_incoming_disconnect
   };
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "new incoming channel\n");
+  struct Operation *incoming;
 
   if (GNUNET_APPLICATION_TYPE_SET != port)
   {
@@ -1326,22 +1282,21 @@ channel_new_cb (void *cls,
     GNUNET_CADET_channel_destroy (channel);
     return NULL;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "new incoming channel\n");
   incoming = GNUNET_new (struct Operation);
   incoming->is_incoming = GNUNET_YES;
-  incoming->state = GNUNET_new (struct OperationState);
-  incoming->state->peer = *initiator;
+  incoming->peer = *initiator;
   incoming->channel = channel;
   incoming->mq = GNUNET_CADET_mq_create (incoming->channel);
   incoming->vt = &incoming_vt;
-  incoming->state->timeout_task =
+  incoming->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &incoming_timeout_cb,
                                     incoming);
   GNUNET_CONTAINER_DLL_insert_tail (incoming_head,
                                     incoming_tail,
                                     incoming);
-
   return incoming;
 }
 
