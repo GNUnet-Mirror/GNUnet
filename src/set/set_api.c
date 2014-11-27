@@ -402,18 +402,16 @@ set_destroy (struct GNUNET_SET_Handle *set)
 }
 
 
-
-
 /**
  * Cancel the given set operation.  We need to send an explicit cancel message,
  * as all operations one one set communicate using one handle.
  *
- * In contrast to GNUNET_SET_operation_cancel, this function indicates whether
+ * In contrast to #GNUNET_SET_operation_cancel(), this function indicates whether
  * the set of the operation has been destroyed because all operations are done and
  * the set's destruction was requested before.
  *
  * @param oh set operation to cancel
- * @return GNUNET_YES if the set of the operation was destroyed
+ * @return #GNUNET_YES if the set of the operation was destroyed
  */
 static int
 set_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
@@ -430,8 +428,11 @@ set_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
     struct GNUNET_SET_CancelMessage *m;
     struct GNUNET_MQ_Envelope *mqm;
 
-    GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
-    h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
+    GNUNET_CONTAINER_DLL_remove (oh->set->ops_head,
+                                 oh->set->ops_tail,
+                                 oh);
+    h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq,
+                                      oh->request_id);
     GNUNET_assert ((h_assoc == NULL) || (h_assoc == oh));
     mqm = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_SET_CANCEL);
     m->request_id = htonl (oh->request_id);
@@ -439,20 +440,20 @@ set_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
 
     if (GNUNET_YES == oh->set->destroy_requested)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying set after operation cancel\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Destroying set after operation cancel\n");
       ret = set_destroy (oh->set);
     }
   }
-
   GNUNET_free (oh);
-
   return ret;
 }
 
 
 /**
- * Cancel the given set operation.  We need to send an explicit cancel message,
- * as all operations one one set communicate using one handle.
+ * Cancel the given set operation.  We need to send an explicit cancel
+ * message, as all operations one one set communicate using one
+ * handle.
  *
  * @param oh set operation to cancel
  */
@@ -468,7 +469,8 @@ handle_client_set_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_Handle *set = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "handling client set error\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "handling client set error\n");
 
   while (NULL != set->ops_head)
   {
@@ -588,7 +590,9 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
     return GNUNET_SYSERR;
   }
 
-  mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_REMOVE);
+  mqm = GNUNET_MQ_msg_extra (msg,
+                             element->size,
+                             GNUNET_MESSAGE_TYPE_SET_REMOVE);
   msg->element_type = element->element_type;
   memcpy (&msg[1], element->data, element->size);
   GNUNET_MQ_notify_sent (mqm, cont, cont_cls);
@@ -842,13 +846,15 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
  *
  * @param set the set to iterate over
  * @param iter the iterator to call for each element
- * @param cls closure for @a iter
+ * @param iter_cls closure for @a iter
  * @return #GNUNET_YES if the iteration started successfuly,
  *         #GNUNET_NO if another iteration is active
  *         #GNUNET_SYSERR if the set is invalid (e.g. the server crashed, disconnected)
  */
 int
-GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator iter, void *cls)
+GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
+                    GNUNET_SET_ElementIterator iter,
+                    void *iter_cls)
 {
   struct GNUNET_MQ_Envelope *ev;
 
@@ -859,11 +865,10 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator it
     return GNUNET_SYSERR;
   if (NULL != set->iterator)
     return GNUNET_NO;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "iterating set\n");
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "iterating set\n");
   set->iterator = iter;
-  set->iterator_cls = cls;
+  set->iterator_cls = iter_cls;
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST);
   GNUNET_MQ_send (set->mq, ev);
   return GNUNET_YES;

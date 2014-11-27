@@ -150,7 +150,8 @@ struct GNUNET_SET_RequestMessage
    */
   struct GNUNET_PeerIdentity peer_id;
 
-  /* rest: nested context message */
+  /* rest: context message, that is, application-specific
+     message to convince listener to pick up */
 };
 
 

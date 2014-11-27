@@ -165,13 +165,27 @@ typedef void
 
 
 /**
- * Signature of functions that implement the creation of set operations
- * (currently "evaluate" and "accept").
+ * Signature of functions that implement accepting a set operation.
  *
- * @param op operation that is created, should be initialized by the implementation
+ * @param op operation that is created by accepting the operation,
+ *        should be initialized by the implementation
  */
 typedef void
-(*OpCreateImpl) (struct Operation *op);
+(*OpAcceptImpl) (struct Operation *op);
+
+
+/**
+ * Signature of functions that implement starting the evaluation of
+ * set operations.
+ *
+ * @param op operation that is created, should be initialized to
+ *        begin the evaluation
+ * @param opaque_context message to be transmitted to the listener
+ *        to convince him to accept, may be NULL
+ */
+typedef void
+(*OpEvaluateImpl) (struct Operation *op,
+                   const struct GNUNET_MessageHeader *opaque_context);
 
 
 /**
@@ -221,12 +235,12 @@ struct SetVT
   /**
    * Callback for accepting a set operation request
    */
-  OpCreateImpl accept;
+  OpAcceptImpl accept;
 
   /**
    * Callback for starting evaluation with a remote peer.
    */
-  OpCreateImpl evaluate;
+  OpEvaluateImpl evaluate;
 
   /**
    * Callback for destruction of the set state.

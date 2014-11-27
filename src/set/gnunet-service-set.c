@@ -549,7 +549,7 @@ incoming_suggest (struct Operation *incoming,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "suggesting request with accept id %u\n",
+              "Suggesting incoming request with accept id %u to listener\n",
               incoming->suggest_id);
   cmsg->accept_id = htonl (incoming->suggest_id);
   cmsg->peer_id = incoming->spec->peer;
@@ -581,6 +581,7 @@ handle_incoming_msg (struct Operation *op,
   const struct OperationRequestMessage *msg;
   struct Listener *listener;
   struct OperationSpecification *spec;
+  const struct GNUNET_MessageHeader *nested_context;
 
   msg = (const struct OperationRequestMessage *) mh;
   GNUNET_assert (GNUNET_YES == op->is_incoming);
@@ -596,17 +597,19 @@ handle_incoming_msg (struct Operation *op,
     return GNUNET_SYSERR;
   }
   spec = GNUNET_new (struct OperationSpecification);
-  spec->context_msg = GNUNET_MQ_extract_nested_mh (msg);
-  /* for simplicity we just backup the context msg instead of rebuilding it later on */
-  if ( (NULL != spec->context_msg) &&
-       (ntohs (spec->context_msg->size) > GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE) )
+  nested_context = GNUNET_MQ_extract_nested_mh (msg);
+  if ( (NULL != nested_context) &&
+       (ntohs (nested_context->size) > GNUNET_SET_CONTEXT_MESSAGE_MAX_SIZE) )
   {
     GNUNET_break_op (0);
     GNUNET_free (spec);
     return GNUNET_SYSERR;
   }
+  /* Make a copy of the nested_context (application-specific context
+     information that is opaque to set) so we can pass it to the
+     listener later on */
   if (NULL != spec->context_msg)
-    spec->context_msg = GNUNET_copy_message (spec->context_msg);
+    spec->context_msg = GNUNET_copy_message (nested_context);
   spec->operation = ntohl (msg->operation);
   spec->app_id = msg->app_id;
   spec->salt = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
@@ -994,7 +997,9 @@ handle_client_remove (void *cls,
 
 
 /**
- * Called when a client wants to evaluate a set operation with another peer.
+ * Called when a client wants to evaluate a set operation with another
+ * peer.  Initiates the CADET connection to the listener and sends the
+ * request.
  *
  * @param cls unused
  * @param client client that sent the message
@@ -1018,7 +1023,6 @@ handle_client_evaluate (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-
   msg = (const struct GNUNET_SET_EvaluateMessage *) m;
   spec = GNUNET_new (struct OperationSpecification);
   spec->operation = set->operation;
@@ -1030,13 +1034,6 @@ handle_client_evaluate (void *cls,
   spec->result_mode = ntohs (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
   context = GNUNET_MQ_extract_nested_mh (msg);
-  /* The evaluate message MAY contain a nested message to be passed to
-     the listner for additional authentication or application-specific
-     context.  We make a copy of this nested/context msg as we need
-     to transmit it later. */
-  if (NULL != context)
-    spec->context_msg = GNUNET_copy_message (context);
-
   op = GNUNET_new (struct Operation);
   op->spec = spec;
   op->generation_created = set->current_generation++;
@@ -1044,14 +1041,14 @@ handle_client_evaluate (void *cls,
   GNUNET_CONTAINER_DLL_insert (set->ops_head,
                                set->ops_tail,
                                op);
-
   op->channel = GNUNET_CADET_channel_create (cadet,
                                              op,
                                              &msg->target_peer,
                                              GNUNET_APPLICATION_TYPE_SET,
                                              GNUNET_CADET_OPTION_RELIABLE);
   op->mq = GNUNET_CADET_mq_create (op->channel);
-  set->vt->evaluate (op);
+  set->vt->evaluate (op,
+                     context);
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
 }
@@ -1226,7 +1223,6 @@ handle_client_accept (void *cls,
   op->spec->result_mode = ntohl (msg->result_mode);
   op->generation_created = set->current_generation++;
   op->vt = op->spec->set->vt;
-  GNUNET_assert (NULL != op->vt->accept);
   set->vt->accept (op);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

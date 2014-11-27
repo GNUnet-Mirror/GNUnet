@@ -345,47 +345,6 @@ get_ibf_key (const struct GNUNET_HashCode *src, uint16_t salt)
 
 
 /**
- * Send a request for the evaluate operation to a remote peer
- *
- * @param op operation with the other peer
- */
-static void
-send_operation_request (struct Operation *op)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  struct OperationRequestMessage *msg;
-
-  ev = GNUNET_MQ_msg_nested_mh (msg,
-                                GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
-                                op->spec->context_msg);
-
-  if (NULL == ev)
-  {
-    /* the context message is too large */
-    GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (op->spec->set->client);
-    return;
-  }
-  msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
-  msg->app_id = op->spec->app_id;
-  msg->salt = htonl (op->spec->salt);
-  GNUNET_MQ_send (op->mq, ev);
-
-  if (NULL != op->spec->context_msg)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sent op request with context message\n");
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sent op request without context message\n");
-  if (NULL != op->spec->context_msg)
-  {
-    GNUNET_free (op->spec->context_msg);
-    op->spec->context_msg = NULL;
-  }
-}
-
-
-/**
  * Iterator to create the mapping between ibf keys
  * and element entries.
  *
@@ -1209,21 +1168,47 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * Evaluate a union operation with
- * a remote peer.
+ * Initiate operation to evaluate a set union with a remote peer.
  *
- * @param op operation to evaluate
+ * @param op operation to perform (to be initialized)
+ * @param opaque_context message to be transmitted to the listener
+ *        to convince him to accept, may be NULL
  */
 static void
-union_evaluate (struct Operation *op)
+union_evaluate (struct Operation *op,
+                const struct GNUNET_MessageHeader *opaque_context)
 {
+  struct GNUNET_MQ_Envelope *ev;
+  struct OperationRequestMessage *msg;
+
   op->state = GNUNET_new (struct OperationState);
-  // copy the current generation's strata estimator for this operation
+  /* copy the current generation's strata estimator for this operation */
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   /* we started the operation, thus we have to send the operation request */
   op->state->phase = PHASE_EXPECT_SE;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "evaluating union operation\n");
-  send_operation_request (op);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Initiating union operation evaluation\n");
+  ev = GNUNET_MQ_msg_nested_mh (msg,
+                                GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
+                                opaque_context);
+  if (NULL == ev)
+  {
+    /* the context message is too large */
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (op->spec->set->client);
+    return;
+  }
+  msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
+  msg->app_id = op->spec->app_id;
+  msg->salt = htonl (op->spec->salt);
+  GNUNET_MQ_send (op->mq, ev);
+
+  if (NULL != opaque_context)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sent op request with context message\n");
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sent op request without context message\n");
 }
 
 
