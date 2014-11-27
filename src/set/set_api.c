@@ -21,6 +21,7 @@
  * @file set/set_api.c
  * @brief api for the set service
  * @author Florian Dold
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
