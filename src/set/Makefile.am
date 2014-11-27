@@ -45,7 +45,7 @@ gnunet_service_set_SOURCES = \
  gnunet-service-set_union.c \
  gnunet-service-set_intersection.c \
  ibf.c ibf.h \
- strata_estimator.c strata_estimator.h \
+ gnunet-service-set_union_strata_estimator.c gnunet-service-set_union_strata_estimator.h \
  set_protocol.h
 gnunet_service_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \

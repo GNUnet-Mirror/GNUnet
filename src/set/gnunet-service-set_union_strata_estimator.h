@@ -19,7 +19,7 @@
 */
 
 /**
- * @file set/strata_estimator.h
+ * @file set/gnunet-service-set_union_strata_estimator.h
  * @brief estimator of set difference
  * @author Florian Dold
  */

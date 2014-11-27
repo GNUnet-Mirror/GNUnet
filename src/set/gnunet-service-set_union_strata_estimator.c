@@ -17,9 +17,8 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
 */
-
 /**
- * @file set/ibf.h
+ * @file set/gnunet-service-set_union_strata_estimator.c
  * @brief invertible bloom filter
  * @author Florian Dold
  */
@@ -27,8 +26,15 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "ibf.h"
-#include "strata_estimator.h"
+#include "gnunet-service-set_union_strata_estimator.h"
 
+
+/**
+ * Write the given strata estimator to the buffer.
+ *
+ * @param se strata estimator to serialize
+ * @param buf buffer to write to, must be of appropriate size
+ */
 void
 strata_estimator_write (const struct StrataEstimator *se, void *buf)
 {
@@ -42,6 +48,14 @@ strata_estimator_write (const struct StrataEstimator *se, void *buf)
   }
 }
 
+
+/**
+ * Read strata from the buffer into the given strata
+ * estimator.  The strata estimator must already be allocated.
+ *
+ * @param buf buffer to read from
+ * @param se strata estimator to write to
+ */
 void
 strata_estimator_read (const void *buf, struct StrataEstimator *se)
 {
@@ -54,6 +68,12 @@ strata_estimator_read (const void *buf, struct StrataEstimator *se)
 }
 
 
+/**
+ * Add a key to the strata estimator.
+ *
+ * @param se strata estimator to add the key to
+ * @param key key to add
+ */
 void
 strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key)
 {
@@ -67,6 +87,12 @@ strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key)
 }
 
 
+/**
+ * Remove a key from the strata estimator.
+ *
+ * @param se strata estimator to remove the key from
+ * @param key key to remove
+ */
 void
 strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key)
 {
@@ -80,7 +106,14 @@ strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key)
 }
 
 
-
+/**
+ * Create a new strata estimator with the given parameters.
+ *
+ * @param strata_count number of stratas, that is, number of ibfs in the estimator
+ * @param ibf_size size of each ibf stratum
+ * @param ibf_hashnum hashnum parameter of each ibf
+ * @return a freshly allocated, empty strata estimator
+ */
 struct StrataEstimator *
 strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t ibf_hashnum)
 {
@@ -147,6 +180,7 @@ strata_estimator_difference (const struct StrataEstimator *se1,
   return count;
 }
 
+
 /**
  * Make a copy of a strata estimator.
  *
@@ -169,10 +203,16 @@ strata_estimator_dup (struct StrataEstimator *se)
 }
 
 
+/**
+ * Destroy a strata estimator, free all of its resources.
+ *
+ * @param se strata estimator to destroy.
+ */
 void
 strata_estimator_destroy (struct StrataEstimator *se)
 {
   int i;
+
   for (i = 0; i < se->strata_count; i++)
     ibf_destroy (se->strata[i]);
   GNUNET_free (se->strata);

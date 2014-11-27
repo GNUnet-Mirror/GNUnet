@@ -19,7 +19,7 @@
 */
 
 /**
- * @file set/gnunet-service-set.c
+ * @file set/gnunet-service-set_union.c
  * @brief two-peer set operations
  * @author Florian Dold
  */
@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-set.h"
 #include "ibf.h"
-#include "strata_estimator.h"
+#include "gnunet-service-set_union_strata_estimator.h"
 #include "set_protocol.h"
 #include <gcrypt.h>
 
