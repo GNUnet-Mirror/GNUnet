@@ -188,6 +188,12 @@ struct GNUNET_SET_EvaluateMessage
 };
 
 
+/**
+ * Message sent by the service to the client to indicate an
+ * element that is removed (set intersection) or added
+ * (set union) or part of the final result, depending on
+ * options specified for the operation.
+ */
 struct GNUNET_SET_ResultMessage
 {
   /**
@@ -207,8 +213,7 @@ struct GNUNET_SET_ResultMessage
   uint16_t result_status GNUNET_PACKED;
 
   /**
-   * Type of the element attachted to the message,
-   * if any.
+   * Type of the element attachted to the message, if any.
    */
   uint16_t element_type GNUNET_PACKED;
 

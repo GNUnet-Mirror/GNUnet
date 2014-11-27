@@ -31,12 +31,22 @@
 
 #define BLOOMFILTER_SIZE GNUNET_CRYPTO_HASH_LENGTH
 
+/**
+ * Calculate the size of the bloom filter.
+ *
+ * @param A
+ * @param B
+ * @param s
+ * @param k
+ * @return
+ */
 #define CALCULATE_BF_SIZE(A, B, s, k) \
                           do { \
                             k = ceil(1 + log2((double) (2*B / (double) A)));\
                             if (k<1) k=1; /* k can be calculated as 0 */\
                             s = ceil((double) (A * k / log(2))); \
                           } while (0)
+
 
 /**
  * Current phase we are in for a intersection operation.
@@ -48,11 +58,13 @@ enum IntersectionOperationPhase
    * and is waiting for a bf or session end.
    */
   PHASE_INITIAL,
+
   /**
    * Bob has accepted the operation, Bob and Alice are now exchanging bfs
    * until one notices the their element count is equal
    */
   PHASE_BF_EXCHANGE,
+
   /**
    * if both peers have an equal peercount, they enter this state for
    * one more turn, to see if they actually have agreed on a correct set.
@@ -60,6 +72,7 @@ enum IntersectionOperationPhase
    * it ends the the session
    */
   PHASE_MAYBE_FINISHED,
+
   /**
    * The protocol is over.
    * Results may still have to be sent to the client.
@@ -84,7 +97,13 @@ struct OperationState
   struct GNUNET_CONTAINER_BloomFilter *local_bf;
 
   /**
-   * Iterator for sending elements on the key to element mapping to the client.
+   * Remaining elements in the intersection operation.
+   * Maps element-id-hashes to 'elements in our set'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *my_elements;
+
+  /**
+   * Iterator for sending the final set of @e my_elements to the client.
    */
   struct GNUNET_CONTAINER_MultiHashMapIterator *full_result_iter;
 
@@ -102,11 +121,6 @@ struct OperationState
    * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
    */
   char *bf_data;
-
-  /**
-   * Maps element-id-hashes to 'elements in our set'.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *my_elements;
 
   /**
    * Current element count contained within @e my_elements
@@ -143,6 +157,7 @@ struct OperationState
 
 /**
  * Extra state required for efficient set intersection.
+ * Merely tracks the total number of elements.
  */
 struct SetState
 {
@@ -154,140 +169,113 @@ struct SetState
 
 
 /**
- * Send a result message to the client indicating
- * we removed an element
+ * If applicable in the current operation mode, send a result message
+ * to the client indicating we removed an element.
  *
- * @param op union operation
+ * @param op intersection operation
  * @param element element to send
  */
 static void
-send_client_element (struct Operation *op,
-                     struct GNUNET_SET_Element *element)
+send_client_removed_element (struct Operation *op,
+                             struct GNUNET_SET_Element *element)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
 
+  if (GNUNET_SET_RESULT_REMOVED != op->spec->result_mode)
+    return; /* Wrong mode for transmitting removed elements */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "sending removed element (size %u) to client\n",
+              "Sending removed element (size %u) to client\n",
               element->size);
   GNUNET_assert (0 != op->spec->client_request_id);
-  ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  ev = GNUNET_MQ_msg_extra (rm,
+                            element->size,
+                            GNUNET_MESSAGE_TYPE_SET_RESULT);
   if (NULL == ev)
   {
-    GNUNET_MQ_discard (ev);
     GNUNET_break (0);
     return;
   }
   rm->result_status = htons (GNUNET_SET_STATUS_OK);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
-  memcpy (&rm[1], element->data, element->size);
-  GNUNET_MQ_send (op->spec->set->client_mq, ev);
+  memcpy (&rm[1],
+          element->data,
+          element->size);
+  GNUNET_MQ_send (op->spec->set->client_mq,
+                  ev);
 }
 
 
 /**
- * Alice's version:
+ * Fills the "my_elements" hashmap with all relevant elements and
+ * adds their mutated hashes to our local bloomfilter with mutator+1.
  *
- * fills the contained-elements hashmap with all relevant
- * elements and adds their mutated hashes to our local bloomfilter with mutator+1
- *
- * @param cls closure
+ * @param cls the `struct Operation *` we are performing
  * @param key current key code
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
+ * @param value the `struct ElementEntry *` from the hash map
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-iterator_initialization_by_alice (void *cls,
-                                  const struct GNUNET_HashCode *key,
-                                  void *value)
+filtered_map_and_bf_initialization (void *cls,
+                                    const struct GNUNET_HashCode *key,
+                                    void *value)
 {
-  struct ElementEntry *ee = value;
   struct Operation *op = cls;
+  struct ElementEntry *ee = value;
   struct GNUNET_HashCode mutated_hash;
 
-  //only consider this element, if it is valid for us
-  if ((op->generation_created < ee->generation_removed)
-       && (op->generation_created >= ee->generation_added))
-    return GNUNET_YES;
+  if ( (op->generation_created < ee->generation_removed) &&
+       (op->generation_created >= ee->generation_added) )
+    return GNUNET_YES; /* element not valid in our operation's generation */
 
-  // not contained according to bob's bloomfilter
-  GNUNET_BLOCK_mingle_hash(&ee->element_hash,
-                           op->spec->salt,
-                           &mutated_hash);
-  if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf,
-                                                      &mutated_hash)){
-    if (GNUNET_SET_RESULT_REMOVED == op->spec->result_mode)
-      send_client_element (op, &ee->element);
+  /* Test if element is in Bob's bloomfilter */
+  // FIXME: where does this salt come from!?
+  GNUNET_BLOCK_mingle_hash (&ee->element_hash,
+                            op->spec->salt,
+                            &mutated_hash);
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf,
+                                         &mutated_hash))
+  {
+    /* remove this element */
+    send_client_removed_element (op,
+                                 &ee->element);
     return GNUNET_YES;
   }
-
   op->state->my_element_count++;
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
-                                                    &ee->element_hash, ee,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
+                                                   &ee->element_hash,
+                                                   ee,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   return GNUNET_YES;
 }
 
 
 /**
- * fills the contained-elements hashmap with all relevant
- * elements and adds their mutated hashes to our local bloomfilter
+ * Removes elements from our hashmap if they are not contained within the
+ * provided remote bloomfilter.
  *
- * @param cls closure
+ * @param cls closure with the `struct Operation *`
  * @param key current key code
  * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
- */
-static int
-iterator_initialization (void *cls,
-                         const struct GNUNET_HashCode *key,
-                         void *value)
-{
-  struct ElementEntry *ee = value;
-  struct Operation *op = cls;
-
-  //only consider this element, if it is valid for us
-  if ((op->generation_created < ee->generation_removed)
-       && (op->generation_created >= ee->generation_added))
-    return GNUNET_YES;
-
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
-                                                    &ee->element_hash, ee,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  return GNUNET_YES;
-}
-
-
-/**
- * removes element from a hashmap if it is not contained within the
- * provided remote bloomfilter. Then, fill our new bloomfilter.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 iterator_bf_reduce (void *cls,
                    const struct GNUNET_HashCode *key,
                    void *value)
 {
-  struct ElementEntry *ee = value;
   struct Operation *op = cls;
+  struct ElementEntry *ee = value;
   struct GNUNET_HashCode mutated_hash;
 
-  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
-
+  // FIXME: where does this salt come from!?
+  GNUNET_BLOCK_mingle_hash (&ee->element_hash,
+                            op->spec->salt,
+                            &mutated_hash);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf,
                                          &mutated_hash))
@@ -297,33 +285,31 @@ iterator_bf_reduce (void *cls,
                    GNUNET_CONTAINER_multihashmap_remove (op->state->my_elements,
                                                          &ee->element_hash,
                                                          ee));
-    if (GNUNET_SET_RESULT_REMOVED == op->spec->result_mode)
-      send_client_element (op, &ee->element);
+    send_client_removed_element (op,
+                                 &ee->element);
   }
-
   return GNUNET_YES;
 }
 
 
 /**
- * Create a bloomfilter based on the elements given
+ * Create initial bloomfilter based on all the elements given.
  *
- * @param cls closure
+ * @param cls the `struct Operation *`
  * @param key current key code
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
+ * @param value the `struct ElementEntry` to process
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 iterator_bf_create (void *cls,
                     const struct GNUNET_HashCode *key,
                     void *value)
 {
-  struct ElementEntry *ee = value;
   struct Operation *op = cls;
+  struct ElementEntry *ee = value;
   struct GNUNET_HashCode mutated_hash;
 
+  // FIXME: where does this salt come from!?
   GNUNET_BLOCK_mingle_hash (&ee->element_hash,
                             op->spec->salt,
                             &mutated_hash);
@@ -334,7 +320,7 @@ iterator_bf_create (void *cls,
 
 
 /**
- * Inform the client that the union operation has failed,
+ * Inform the client that the intersection operation has failed,
  * and proceed to destroy the evaluate operation.
  *
  * @param op the intersection operation to fail
@@ -345,23 +331,35 @@ fail_intersection_operation (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *msg;
 
-  if (op->state->my_elements)
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Intersection operation failed\n");
+  if (NULL != op->state->my_elements)
   {
-    GNUNET_CONTAINER_multihashmap_destroy(op->state->my_elements);
+    GNUNET_CONTAINER_multihashmap_destroy (op->state->my_elements);
     op->state->my_elements = NULL;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "intersection operation failed\n");
-
-  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  ev = GNUNET_MQ_msg (msg,
+                      GNUNET_MESSAGE_TYPE_SET_RESULT);
   msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
   msg->request_id = htonl (op->spec->client_request_id);
   msg->element_type = htons (0);
-  GNUNET_MQ_send (op->spec->set->client_mq, ev);
-  _GSS_operation_destroy (op, GNUNET_YES);
+  GNUNET_MQ_send (op->spec->set->client_mq,
+                  ev);
+  _GSS_operation_destroy (op,
+                          GNUNET_YES);
 }
 
 
+
+
+
+
+
+/**
+ *
+ * @param op
+ * @param offset
+ */
 static void
 send_bloomfilter_multipart (struct Operation *op,
                             uint32_t offset)
@@ -396,10 +394,8 @@ send_bloomfilter_multipart (struct Operation *op,
 
 
 /**
- * Send a bloomfilter to our peer.
- * that the operation is over.
- * After the result done message has been sent to the client,
- * destroy the evaluate operation.
+ * Send a bloomfilter to our peer.  After the result done message has
+ * been sent to the client, destroy the evaluate operation.
  *
  * @param op intersection operation
  */
@@ -411,7 +407,7 @@ send_bloomfilter (struct Operation *op)
   uint32_t bf_size;
   uint32_t bf_elementbits;
   uint32_t chunk_size;
-  struct GNUNET_CONTAINER_BloomFilter * local_bf;
+  struct GNUNET_CONTAINER_BloomFilter *local_bf;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "sending bf of size %u\n");
@@ -435,7 +431,9 @@ send_bloomfilter (struct Operation *op)
   {
     // singlepart
     chunk_size = bf_size;
-    ev = GNUNET_MQ_msg_extra (msg, chunk_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
+    ev = GNUNET_MQ_msg_extra (msg,
+                              chunk_size,
+                              GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
     GNUNET_assert (GNUNET_SYSERR !=
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (local_bf,
                                                               (char*)&msg[1],
@@ -445,7 +443,9 @@ send_bloomfilter (struct Operation *op)
   {
     //multipart
     chunk_size = GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct BFMessage);
-    ev = GNUNET_MQ_msg_extra (msg, chunk_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
+    ev = GNUNET_MQ_msg_extra (msg,
+                              chunk_size,
+                              GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
     op->state->bf_data = (char *) GNUNET_malloc (bf_size);
     GNUNET_assert (GNUNET_SYSERR !=
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (local_bf,
@@ -482,57 +482,65 @@ send_client_done_and_destroy (void *cls)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
 
-  ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  ev = GNUNET_MQ_msg (rm,
+                      GNUNET_MESSAGE_TYPE_SET_RESULT);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->result_status = htons (GNUNET_SET_STATUS_DONE);
   rm->element_type = htons (0);
-  GNUNET_MQ_send (op->spec->set->client_mq, ev);
-  _GSS_operation_destroy (op, GNUNET_YES);
+  GNUNET_MQ_send (op->spec->set->client_mq,
+                  ev);
+  _GSS_operation_destroy (op,
+                          GNUNET_YES);
 }
 
 
 /**
  * Send all elements in the full result iterator.
  *
- * @param cls operation
+ * @param cls the `struct Operation *`
  */
 static void
 send_remaining_elements (void *cls)
 {
   struct Operation *op = cls;
-  struct ElementEntry *remaining; //TODO rework this, key entry does not exist here
+  const void *nxt;
+  const struct ElementEntry *ee;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
-  struct GNUNET_SET_Element *element;
+  const struct GNUNET_SET_Element *element;
   int res;
 
   res = GNUNET_CONTAINER_multihashmap_iterator_next (op->state->full_result_iter,
                                                      NULL,
-                                                     (const void **) &remaining);
+                                                     &nxt);
   if (GNUNET_NO == res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sending done and destroy because iterator ran out\n");
+                "Sending done and destroy because iterator ran out\n");
     send_client_done_and_destroy (op);
     return;
   }
-
-  element = &remaining->element;
+  ee = nxt;
+  element = &ee->element;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "sending element (size %u) to client (full set)\n",
+              "Sending element (size %u) to client (full set)\n",
               element->size);
   GNUNET_assert (0 != op->spec->client_request_id);
-
-  ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  ev = GNUNET_MQ_msg_extra (rm,
+                            element->size,
+                            GNUNET_MESSAGE_TYPE_SET_RESULT);
   GNUNET_assert (NULL != ev);
-
   rm->result_status = htons (GNUNET_SET_STATUS_OK);
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
-  memcpy (&rm[1], element->data, element->size);
-
-  GNUNET_MQ_notify_sent (ev, send_remaining_elements, op);
-  GNUNET_MQ_send (op->spec->set->client_mq, ev);
+  memcpy (&rm[1],
+          element->data,
+          element->size);
+  GNUNET_MQ_notify_sent (ev,
+                         &send_remaining_elements,
+                         op);
+  GNUNET_MQ_send (op->spec->set->client_mq,
+                  ev);
 }
 
 
@@ -558,7 +566,7 @@ send_peer_done (struct Operation *op)
 
 
 /**
- * Process a Bloomfilter once we got all the chunks
+ * Process a Bloomfilter once we got all the chunks.
  *
  * @param op the intersection operation
  */
@@ -573,16 +581,18 @@ process_bf (struct Operation *op)
   switch (op->state->phase)
   {
   case PHASE_INITIAL:
-    // If we are ot our first msg
-    op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (op->state->my_element_count, GNUNET_YES);
-
+    /* This is the first BF being sent, build our
+       initial map with filtering in place */
+    op->state->my_elements
+      = GNUNET_CONTAINER_multihashmap_create (op->spec->remote_element_count,
+                                              GNUNET_YES);
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
-                                           &iterator_initialization_by_alice,
+                                           &filtered_map_and_bf_initialization,
                                            op);
     break;
   case PHASE_BF_EXCHANGE:
   case PHASE_MAYBE_FINISHED:
-    // if we are bob or alice and are continuing operation
+    /* Update our set by reduction */
     GNUNET_CONTAINER_multihashmap_iterate (op->state->my_elements,
                                            &iterator_bf_reduce,
                                            op);
@@ -626,7 +636,8 @@ process_bf (struct Operation *op)
  * @param mh the header of the message
  */
 static void
-handle_p2p_bf_part (void *cls, const struct GNUNET_MessageHeader *mh)
+handle_p2p_bf_part (void *cls,
+                    const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   const struct BFPart *msg = (const struct BFPart *) mh;
@@ -716,7 +727,37 @@ handle_p2p_bf (void *cls,
 
 
 /**
- * Handle an BF message from a remote peer.
+ * Fills the "my_elements" hashmap with the initial set of
+ * (non-deleted) elements from the set of the specification.
+ *
+ * @param cls closure with the `struct Operation *`
+ * @param key current key code for the element
+ * @param value value in the hash map with the `struct ElementEntry *`
+ * @return #GNUNET_YES (we should continue to iterate)
+ */
+static int
+initialize_map (void *cls,
+                const struct GNUNET_HashCode *key,
+                void *value)
+{
+  struct ElementEntry *ee = value;
+  struct Operation *op = cls;
+
+  if ( (op->generation_created < ee->generation_removed) &&
+       (op->generation_created >= ee->generation_added) )
+    return GNUNET_YES; /* element not live in operation's generation */
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
+                                                   &ee->element_hash,
+                                                   ee,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handle the initial `struct IntersectionElementInfoMessage` from a
+ * remote peer.
  *
  * @param cls the intersection operation
  * @param mh the header of the message
@@ -726,13 +767,20 @@ handle_p2p_element_info (void *cls,
                          const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
-  const struct BFMessage *msg = (const struct BFMessage *) mh;
+  const struct IntersectionElementInfoMessage *msg;
 
-  op->spec->remote_element_count = ntohl(msg->sender_element_count);
-  if ((op->state->phase != PHASE_INITIAL)
-      || (op->state->my_element_count > op->spec->remote_element_count)
-          || (0 == op->state->my_element_count)
-              || (0 == op->spec->remote_element_count))
+  if (ntohs (mh->size) != sizeof (struct IntersectionElementInfoMessage))
+  {
+    GNUNET_break_op (0);
+    fail_intersection_operation(op);
+    return;
+  }
+  msg = (const struct IntersectionElementInfoMessage *) mh;
+  op->spec->remote_element_count = ntohl (msg->sender_element_count);
+  if ( (PHASE_INITIAL != op->state->phase) ||
+       (op->state->my_element_count > op->spec->remote_element_count) ||
+       (0 == op->state->my_element_count) ||
+       (0 == op->spec->remote_element_count) )
   {
     GNUNET_break_op (0);
     fail_intersection_operation(op);
@@ -740,12 +788,12 @@ handle_p2p_element_info (void *cls,
   }
 
   op->state->phase = PHASE_BF_EXCHANGE;
-  op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-
+  // FIXME... -- why a new map here!?
+  op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1,
+                                                                 GNUNET_YES);
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
-                                         &iterator_initialization,
+                                         &initialize_map, // FIXME: filtering!?
                                          op);
-
   GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
   op->state->remote_bf = NULL;
 
@@ -765,26 +813,21 @@ static void
 send_element_count (struct Operation *op)
 {
   struct GNUNET_MQ_Envelope *ev;
-  struct BFMessage *msg;
+  struct IntersectionElementInfoMessage *msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "sending element count (bf_msg)\n");
-
-  // just send our element count, as the other peer must start
-  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO);
+              "Sending our element count (bf_msg)\n");
+  ev = GNUNET_MQ_msg (msg,
+                      GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO);
   msg->sender_element_count = htonl (op->state->my_element_count);
-  msg->bloomfilter_length = htonl (0);
-  msg->sender_mutator = htonl (0);
-
   GNUNET_MQ_send (op->mq, ev);
 }
 
 
 /**
- * Send a result message to the client indicating
- * that the operation is over.
- * After the result done message has been sent to the client,
- * destroy the evaluate operation.
+ * Send a result message to the client indicating that the operation
+ * is over.  After the result done message has been sent to the
+ * client, destroy the evaluate operation.
  *
  * @param op intersection operation
  */
@@ -796,9 +839,9 @@ finish_and_destroy (struct Operation *op)
   if (GNUNET_SET_RESULT_FULL == op->spec->result_mode)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sending full result set\n");
-    op->state->full_result_iter =
-        GNUNET_CONTAINER_multihashmap_iterator_create (op->state->my_elements);
+                "Sending full result set\n");
+    op->state->full_result_iter
+      = GNUNET_CONTAINER_multihashmap_iterator_create (op->state->my_elements);
     send_remaining_elements (op);
     return;
   }
@@ -809,7 +852,7 @@ finish_and_destroy (struct Operation *op)
 /**
  * Handle a done message from a remote peer
  *
- * @param cls the union operation
+ * @param cls the intersection operation
  * @param mh the message
  */
 static void
@@ -822,19 +865,17 @@ handle_p2p_done (void *cls,
        (op->state->phase = PHASE_MAYBE_FINISHED) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "got final DONE\n");
-
+                "Got final DONE\n");
     finish_and_destroy (op);
     return;
   }
-
   GNUNET_break_op (0);
   fail_intersection_operation (op);
 }
 
 
 /**
- * Initiate a set union operation with a remote peer.
+ * Initiate a set intersection operation with a remote peer.
  *
  * @param op operation that is created, should be initialized to
  *        begin the evaluation
@@ -861,60 +902,163 @@ intersection_evaluate (struct Operation *op,
                                 opaque_context);
   if (NULL == ev)
   {
-    /* the context message is too large */
+    /* the context message is too large!? */
     GNUNET_break (0);
     GNUNET_SERVER_client_disconnect (op->spec->set->client);
     return;
   }
   msg->operation = htonl (GNUNET_SET_OPERATION_INTERSECTION);
   msg->app_id = op->spec->app_id;
+  // FIXME: where does this 'salt' come from?
   msg->salt = htonl (op->spec->salt);
-  msg->element_count = htonl(op->state->my_element_count);
-  GNUNET_MQ_send (op->mq, ev);
+  msg->element_count = htonl (op->state->my_element_count);
+  GNUNET_MQ_send (op->mq,
+                  ev);
   if (NULL != opaque_context)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sent op request with context message\n");
+                "Sent op request with context message\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sent op request without context message\n");
+                "Sent op request without context message\n");
 }
 
 
 /**
- * Accept an union operation request from a remote peer.
- * Only initializes the private operation state.
+ * Accept an intersection operation request from a remote peer.  Only
+ * initializes the private operation state.
  *
- * @param op operation that will be accepted as a union operation
+ * @param op operation that will be accepted as an intersection operation
  */
 static void
 intersection_accept (struct Operation *op)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "accepting set union operation\n");
+              "Accepting set intersection operation\n");
   op->state = GNUNET_new (struct OperationState);
-  op->state->my_elements = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
-  op->state->my_element_count = op->spec->set->state->current_set_element_count;
-
-  // if Alice (the peer) has more elements than Bob (us), she should start
-  if (op->spec->remote_element_count < op->state->my_element_count){
+  op->state->my_element_count
+    = op->spec->set->state->current_set_element_count;
+  op->state->my_elements
+    = GNUNET_CONTAINER_multihashmap_create (GNUNET_MIN (op->state->my_element_count,
+                                                        op->spec->remote_element_count),
+                                            GNUNET_YES);
+  if (op->spec->remote_element_count < op->state->my_element_count)
+  {
+    /* If the other peer (Alice) has fewer elements than us (Bob),
+       we just send the count as Alice should send the first BF */
     op->state->phase = PHASE_INITIAL;
-    send_element_count(op);
+    send_element_count (op);
     return;
   }
-  // create a new bloomfilter in case we have fewer elements
+  /* We have fewer elements, so we start with the BF */
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
                                                            BLOOMFILTER_SIZE,
                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
-                                         &iterator_initialization,
+                                         &initialize_map,
                                          op);
   send_bloomfilter (op);
 }
 
 
 /**
- * Create a new set supporting the intersection operation
+ * Dispatch messages for a intersection operation.
+ *
+ * @param op the state of the intersection evaluate operation
+ * @param mh the received message
+ * @return #GNUNET_SYSERR if the tunnel should be disconnected,
+ *         #GNUNET_OK otherwise
+ */
+static int
+intersection_handle_p2p_message (struct Operation *op,
+                                 const struct GNUNET_MessageHeader *mh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received p2p message (t: %u, s: %u)\n",
+              ntohs (mh->type), ntohs (mh->size));
+  switch (ntohs (mh->type))
+  {
+    /* this message handler is not active until after we received an
+     * operation request message, thus the ops request is not handled here
+     */
+  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO:
+    handle_p2p_element_info (op, mh);
+    break;
+  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF:
+    handle_p2p_bf (op, mh);
+    break;
+  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART:
+    handle_p2p_bf_part (op, mh);
+    break;
+  case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
+    handle_p2p_done (op, mh);
+    break;
+  default:
+    /* something wrong with cadet's message handlers? */
+    GNUNET_assert (0);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler for peer-disconnects, notifies the client about the aborted
+ * operation.  If we did not expect anything from the other peer, we
+ * gracefully terminate the operation.
+ *
+ * @param op the destroyed operation
+ */
+static void
+intersection_peer_disconnect (struct Operation *op)
+{
+  if (PHASE_FINISHED != op->state->phase)
+  {
+    fail_intersection_operation (op);
+    return;
+  }
+  /* the session has already been concluded */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Other peer disconnected (finished)\n");
+  if (GNUNET_NO == op->state->client_done_sent)
+    finish_and_destroy (op);
+}
+
+
+/**
+ * Destroy the intersection operation.  Only things specific to the
+ * intersection operation are destroyed.
+ *
+ * @param op intersection operation to destroy
+ */
+static void
+intersection_op_cancel (struct Operation *op)
+{
+  /* check if the op was canceled twice */
+  GNUNET_assert (NULL != op->state);
+  if (NULL != op->state->remote_bf)
+  {
+    GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
+    op->state->remote_bf = NULL;
+  }
+  if (NULL != op->state->local_bf)
+  {
+    GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+    op->state->local_bf = NULL;
+  }
+  if (NULL != op->state->my_elements)
+  {
+    GNUNET_CONTAINER_multihashmap_destroy (op->state->my_elements);
+    op->state->my_elements = NULL;
+  }
+  GNUNET_free (op->state);
+  op->state = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Destroying intersection op state done\n");
+}
+
+
+/**
+ * Create a new set supporting the intersection operation.
  *
  * @return the newly created set
  */
@@ -924,7 +1068,7 @@ intersection_set_create ()
   struct SetState *set_state;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "intersection set created\n");
+              "Intersection set created\n");
   set_state = GNUNET_new (struct SetState);
   set_state->current_set_element_count = 0;
 
@@ -968,114 +1112,8 @@ static void
 intersection_remove (struct SetState *set_state,
                      struct ElementEntry *element)
 {
-  GNUNET_assert(0 < set_state->current_set_element_count);
+  GNUNET_assert (0 < set_state->current_set_element_count);
   set_state->current_set_element_count--;
-}
-
-
-/**
- * Dispatch messages for a intersection operation.
- *
- * @param op the state of the intersection evaluate operation
- * @param mh the received message
- * @return #GNUNET_SYSERR if the tunnel should be disconnected,
- *         #GNUNET_OK otherwise
- */
-static int
-intersection_handle_p2p_message (struct Operation *op,
-                                 const struct GNUNET_MessageHeader *mh)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "received p2p message (t: %u, s: %u)\n",
-              ntohs (mh->type), ntohs (mh->size));
-  switch (ntohs (mh->type))
-  {
-    /* this message handler is not active until after we received an
-     * operation request message, thus the ops request is not handled here
-     */
-  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO:
-    handle_p2p_element_info (op, mh);
-    break;
-  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF:
-    handle_p2p_bf (op, mh);
-    break;
-  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART:
-    handle_p2p_bf_part (op, mh);
-    break;
-  case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
-    handle_p2p_done (op, mh);
-    break;
-  default:
-    /* something wrong with cadet's message handlers? */
-    GNUNET_assert (0);
-  }
-  return GNUNET_OK;
-}
-
-
-/**
- * handler for peer-disconnects, notifies the client about the aborted operation
- *
- * @param op the destroyed operation
- */
-static void
-intersection_peer_disconnect (struct Operation *op)
-{
-  if (PHASE_FINISHED != op->state->phase)
-  {
-    struct GNUNET_MQ_Envelope *ev;
-    struct GNUNET_SET_ResultMessage *msg;
-
-    ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
-    msg->request_id = htonl (op->spec->client_request_id);
-    msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
-    msg->element_type = htons (0);
-    GNUNET_MQ_send (op->spec->set->client_mq, ev);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "other peer disconnected prematurely\n");
-    _GSS_operation_destroy (op, GNUNET_YES);
-    return;
-  }
-  // else: the session has already been concluded
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "other peer disconnected (finished)\n");
-  if (GNUNET_NO == op->state->client_done_sent)
-    finish_and_destroy (op);
-}
-
-
-/**
- * Destroy the union operation.  Only things specific to the union operation are destroyed.
- *
- * @param op union operation to destroy
- */
-static void
-intersection_op_cancel (struct Operation *op)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "destroying intersection op\n");
-  /* check if the op was canceled twice */
-  GNUNET_assert (NULL != op->state);
-  if (NULL != op->state->remote_bf)
-  {
-    GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
-    op->state->remote_bf = NULL;
-  }
-  if (NULL != op->state->local_bf)
-  {
-    GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
-    op->state->local_bf = NULL;
-  }
-/*  if (NULL != op->state->my_elements)
-  {
-    // no need to free the elements, they are still part of the set
-    GNUNET_CONTAINER_multihashmap_destroy (op->state->my_elements);
-    op->state->my_elements = NULL;
-  }*/
-  GNUNET_free (op->state);
-  op->state = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "destroying intersection op done\n");
 }
 
 

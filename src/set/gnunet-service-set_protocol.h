@@ -95,6 +95,29 @@ struct IBFMessage
 };
 
 
+/**
+ * During intersection, the first (and possibly second) message
+ * send it the number of elements in the set, to allow the peers
+ * to decide who should start with the Bloom filter.
+ */
+struct IntersectionElementInfoMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * mutator used with this bloomfilter.
+   */
+  uint32_t sender_element_count GNUNET_PACKED;
+
+};
+
+
+/**
+ * Bloom filter messages exchanged for set intersection calculation.
+ */
 struct BFMessage
 {
   /**
