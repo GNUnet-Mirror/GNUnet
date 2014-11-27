@@ -377,12 +377,12 @@ destroy_session (struct ConsensusSession *session)
 
 
 /**
- * Iterator for set elements.
+ * Iterator for set elements. [FIXME: bad comment]
  *
  * @param cls closure
  * @param element the current element, NULL if all elements have been
  *        iterated over
- * @return GNUNET_YES to continue iterating, GNUNET_NO to stop.
+ * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop.
  */
 static int
 send_to_client_iter (void *cls,
@@ -395,17 +395,20 @@ send_to_client_iter (void *cls,
   {
     struct GNUNET_CONSENSUS_ElementMessage *m;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: got element for client\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "P%d: got element for client\n",
                 session->local_peer_idx);
 
-    ev = GNUNET_MQ_msg_extra (m, element->size, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
-    m->element_type = htons (element->type);
+    ev = GNUNET_MQ_msg_extra (m, element->size,
+                              GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_RECEIVED_ELEMENT);
+    m->element_type = htons (element->element_type);
     memcpy (&m[1], element->data, element->size);
     GNUNET_MQ_send (session->client_mq, ev);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: finished iterating elements for client\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "P%d: finished iterating elements for client\n",
                 session->local_peer_idx);
     ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE_DONE);
     GNUNET_MQ_send (session->client_mq, ev);
@@ -1252,7 +1255,7 @@ client_insert (void *cls,
   }
 
   element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + element_size);
-  element->type = msg->element_type;
+  element->element_type = msg->element_type;
   element->size = element_size;
   memcpy (&element[1], &msg[1], element_size);
   element->data = &element[1];

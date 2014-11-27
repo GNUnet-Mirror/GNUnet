@@ -852,7 +852,7 @@ build_set (void *cls)
   target = &route->target;
   GNUNET_assert (ntohl (target->distance) < DEFAULT_FISHEYE_DEPTH);
   element.size = sizeof (struct Target);
-  element.type = htons (0); /* do we need this? */
+  element.element_type = htons (0);
   element.data = target;
 
   /* Find next non-NULL entry */

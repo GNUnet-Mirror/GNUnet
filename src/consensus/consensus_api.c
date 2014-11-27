@@ -116,9 +116,10 @@ handle_new_element (void *cls,
       = (const struct GNUNET_CONSENSUS_ElementMessage *) mh;
   struct GNUNET_SET_Element element;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "received new element\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "received new element\n");
 
-  element.type = msg->element_type;
+  element.element_type = msg->element_type;
   element.size = ntohs (msg->header.size) - sizeof (struct GNUNET_CONSENSUS_ElementMessage);
   element.data = &msg[1];
 

@@ -234,7 +234,7 @@ handle_iter_element (void *cls, const struct GNUNET_MessageHeader *mh)
     return;
 
   element.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_IterResponseMessage);
-  element.type = htons (msg->element_type);
+  element.element_type = htons (msg->element_type);
   element.data = &msg[1];
   set->iterator (set->iterator_cls, &element);
   ev = GNUNET_MQ_msg (ack_msg, GNUNET_MESSAGE_TYPE_SET_ITER_ACK);
@@ -306,7 +306,7 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
 
   e.data = &msg[1];
   e.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ResultMessage);
-  e.type = msg->element_type;
+  e.element_type = msg->element_type;
   if (NULL != oh->result_cb)
     oh->result_cb (oh->result_cls, &e, result_status);
 }
@@ -552,7 +552,7 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
   }
 
   mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_ADD);
-  msg->element_type = element->type;
+  msg->element_type = element->element_type;
   memcpy (&msg[1], element->data, element->size);
   GNUNET_MQ_notify_sent (mqm, cont, cont_cls);
   GNUNET_MQ_send (set->mq, mqm);
@@ -569,8 +569,8 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
  * @param set set to remove element from
  * @param element element to remove from the set
  * @param cont continuation called after the element has been removed
- * @param cont_cls closure for cont
- * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ * @param cont_cls closure for @a cont
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)
  */
 int
@@ -590,7 +590,7 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
   }
 
   mqm = GNUNET_MQ_msg_extra (msg, element->size, GNUNET_MESSAGE_TYPE_SET_REMOVE);
-  msg->element_type = element->type;
+  msg->element_type = element->element_type;
   memcpy (&msg[1], element->data, element->size);
   GNUNET_MQ_notify_sent (mqm, cont, cont_cls);
   GNUNET_MQ_send (set->mq, mqm);

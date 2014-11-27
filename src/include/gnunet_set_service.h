@@ -161,7 +161,7 @@ struct GNUNET_SET_Element
   /**
    * Application-specific element type.
    */
-  uint16_t type;
+  uint16_t element_type;
 
   /**
    * Actual data of the element

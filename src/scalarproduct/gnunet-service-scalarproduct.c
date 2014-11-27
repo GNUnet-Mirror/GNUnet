@@ -1699,7 +1699,7 @@ handle_client_message_multipart (void *cls,
     }
     set_elem.data = &elem->key;
     set_elem.size = sizeof (elem->key);
-    set_elem.type = 0; /* do we REALLY need this? */
+    set_elem.element_type = 0; /* do we REALLY need this? */
     GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
   }
@@ -1812,7 +1812,7 @@ handle_client_message (void *cls,
     }
     set_elem.data = &elem->key;
     set_elem.size = sizeof (elem->key);
-    set_elem.type = 0; /* do we REALLY need this? */
+    set_elem.element_type = 0;
     GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
   }

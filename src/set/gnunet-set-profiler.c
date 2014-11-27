@@ -143,16 +143,17 @@ set_listen_cb (void *cls,
 {
   if (NULL == request)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "listener failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "listener failed\n");
     return;
   }
   GNUNET_assert (NULL == info2.oh);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set listen cb called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "set listen cb called\n");
   info2.oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED,
                                set_result_cb, &info2);
   GNUNET_SET_commit (info2.oh, info2.set);
 }
-
 
 
 static int
@@ -163,8 +164,9 @@ set_insert_iterator (void *cls,
   struct GNUNET_SET_Handle *set = cls;
   struct GNUNET_SET_Element *el;
 
-  el = GNUNET_malloc (sizeof *el + sizeof *key);
-  el->type = 0;
+  el = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) +
+                      sizeof (struct GNUNET_HashCode));
+  el->element_type = 0;
   memcpy (&el[1], key, sizeof *key);
   el->data = &el[1];
   el->size = sizeof *key;
@@ -204,6 +206,7 @@ handle_shutdown (void *cls,
     info2.set = NULL;
   }
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,

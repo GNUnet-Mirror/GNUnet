@@ -2028,7 +2028,7 @@ insert_decrypt_element (struct DecryptSession *ds)
 
   element.data = (void *) &d;
   element.size = sizeof (struct GNUNET_SECRETSHARING_DecryptData);
-  element.type = 0;
+  element.element_type = 0;
 
   d.ciphertext = ds->ciphertext;
   d.peer = my_peer;

@@ -268,8 +268,8 @@ publicize_rm (const struct RevokeMessage *rm)
       GNUNET_CONTAINER_multihashmap_contains (revocation_map,
                                               &hc))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Duplicate revocation received from peer. Ignored.\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Duplicate revocation received from peer. Ignored.\n");
     return GNUNET_OK;
   }
   if (GNUNET_OK !=
@@ -304,7 +304,7 @@ publicize_rm (const struct RevokeMessage *rm)
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   /* add to set for future connections */
   e.size = htons (rm->header.size);
-  e.type = 0;
+  e.element_type = 0;
   e.data = rm;
   if (GNUNET_OK !=
       GNUNET_SET_add_element (revocation_set,
@@ -413,7 +413,7 @@ add_revocation (void *cls,
       GNUNET_break_op (0);
       return;
     }
-    if (0 != element->type)
+    if (0 != element->element_type)
     {
       GNUNET_STATISTICS_update (stats,
                                 "# unsupported revocations received via set union",

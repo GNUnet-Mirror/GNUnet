@@ -965,7 +965,7 @@ send_client_element (struct Operation *op,
   }
   rm->result_status = htons (GNUNET_SET_STATUS_OK);
   rm->request_id = htonl (op->spec->client_request_id);
-  rm->element_type = element->type;
+  rm->element_type = element->element_type;
   memcpy (&rm[1], element->data, element->size);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
 }
@@ -1036,7 +1036,7 @@ send_remaining_elements (void *cls)
     }
     rm->result_status = htons (GNUNET_SET_STATUS_OK);
     rm->request_id = htonl (op->spec->client_request_id);
-    rm->element_type = element->type;
+    rm->element_type = element->element_type;
     memcpy (&rm[1], element->data, element->size);
     if (ke->next_colliding == NULL)
     {

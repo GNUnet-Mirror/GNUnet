@@ -694,7 +694,7 @@ send_client_element (struct Set *set)
                               ee->element.size,
                               GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
     memcpy (&msg[1], ee->element.data, ee->element.size);
-    msg->element_type = ee->element.type;
+    msg->element_type = ee->element.element_type;
   }
   GNUNET_MQ_send (set->client_mq, ev);
 }
