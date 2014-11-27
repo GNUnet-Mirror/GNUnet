@@ -344,54 +344,6 @@ handle_result (void *cls,
 
 
 /**
- * Handle request message for a listen operation
- *
- * @param cls the listen handle
- * @param mh the message
- */
-static void
-handle_request (void *cls,
-                const struct GNUNET_MessageHeader *mh)
-{
-  const struct GNUNET_SET_RequestMessage *msg = (const struct GNUNET_SET_RequestMessage *) mh;
-  struct GNUNET_SET_ListenHandle *lh = cls;
-  struct GNUNET_SET_Request *req;
-  const struct GNUNET_MessageHeader *context_msg;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "processing operation request\n");
-  req = GNUNET_new (struct GNUNET_SET_Request);
-  req->accept_id = ntohl (msg->accept_id);
-  context_msg = GNUNET_MQ_extract_nested_mh (msg);
-  /* calling #GNUNET_SET_accept() in the listen cb will set req->accepted */
-  lh->listen_cb (lh->listen_cls, &msg->peer_id, context_msg, req);
-
-  /* we got another request => reset the backoff */
-  lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-
-  if (GNUNET_NO == req->accepted)
-  {
-    struct GNUNET_MQ_Envelope *mqm;
-    struct GNUNET_SET_RejectMessage *rmsg;
-
-    mqm = GNUNET_MQ_msg (rmsg,
-                         GNUNET_MESSAGE_TYPE_SET_REJECT);
-    rmsg->accept_reject_id = msg->accept_id;
-    GNUNET_MQ_send (lh->mq, mqm);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "rejecting request\n");
-  }
-  GNUNET_free (req);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "processed op request from service\n");
-
-  /* the accept-case is handled in GNUNET_SET_accept,
-   * as we have the accept message available there */
-}
-
-
-/**
  * Destroy the given set operation.
  *
  * @param oh set operation to destroy
@@ -499,8 +451,12 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op)
 {
   static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    { &handle_result, GNUNET_MESSAGE_TYPE_SET_RESULT, 0},
-    { &handle_iter_element, GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT, 0},
+    { &handle_result,
+      GNUNET_MESSAGE_TYPE_SET_RESULT,
+      0 },
+    { &handle_iter_element,
+      GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
+      0 },
     { &handle_iter_done,
       GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
       sizeof (struct GNUNET_MessageHeader) },
@@ -702,6 +658,61 @@ listen_connect (void *cls,
 
 
 /**
+ * Handle request message for a listen operation
+ *
+ * @param cls the listen handle
+ * @param mh the message
+ */
+static void
+handle_request (void *cls,
+                const struct GNUNET_MessageHeader *mh)
+{
+  struct GNUNET_SET_ListenHandle *lh = cls;
+  const struct GNUNET_SET_RequestMessage *msg;
+  struct GNUNET_SET_Request req;
+  const struct GNUNET_MessageHeader *context_msg;
+  uint16_t msize;
+  struct GNUNET_MQ_Envelope *mqm;
+  struct GNUNET_SET_RejectMessage *rmsg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Processing incoming operation request\n");
+  msize = ntohs (mh->size);
+  if (msize < sizeof (struct GNUNET_SET_RequestMessage))
+  {
+    GNUNET_break (0);
+    GNUNET_CLIENT_disconnect (lh->client);
+    lh->client = NULL;
+    GNUNET_MQ_destroy (lh->mq);
+    lh->mq = NULL;
+    lh->reconnect_task = GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff,
+                                                       &listen_connect, lh);
+    lh->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (lh->reconnect_backoff);
+    return;
+  }
+  /* we got another valid request => reset the backoff */
+  lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
+  msg = (const struct GNUNET_SET_RequestMessage *) mh;
+  req.accept_id = ntohl (msg->accept_id);
+  req.accepted = GNUNET_NO;
+  context_msg = GNUNET_MQ_extract_nested_mh (msg);
+  /* calling #GNUNET_SET_accept() in the listen cb will set req->accepted */
+  lh->listen_cb (lh->listen_cls,
+                 &msg->peer_id,
+                 context_msg,
+                 &req);
+  if (GNUNET_YES == req.accepted)
+    return; /* the accept-case is handled in #GNUNET_SET_accept() */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Rejecting request\n");
+  mqm = GNUNET_MQ_msg (rmsg,
+                       GNUNET_MESSAGE_TYPE_SET_REJECT);
+  rmsg->accept_reject_id = msg->accept_id;
+  GNUNET_MQ_send (lh->mq, mqm);
+}
+
+
+/**
  * Our connection with the set service encountered an error,
  * re-initialize with exponential back-off.
  *
@@ -753,13 +764,13 @@ listen_connect (void *cls,
     return;
   }
   lh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-
   GNUNET_assert (NULL == lh->client);
   lh->client = GNUNET_CLIENT_connect ("set", lh->cfg);
   if (NULL == lh->client)
     return;
   GNUNET_assert (NULL == lh->mq);
-  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client, mq_handlers,
+  lh->mq = GNUNET_MQ_queue_for_connection_client (lh->client,
+                                                  mq_handlers,
                                                   &handle_client_listener_error, lh);
   mqm = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_LISTEN);
   msg->operation = htonl (lh->operation);
