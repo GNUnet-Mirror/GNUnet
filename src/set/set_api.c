@@ -325,14 +325,14 @@ handle_request (void *cls,
   const struct GNUNET_SET_RequestMessage *msg = (const struct GNUNET_SET_RequestMessage *) mh;
   struct GNUNET_SET_ListenHandle *lh = cls;
   struct GNUNET_SET_Request *req;
-  struct GNUNET_MessageHeader *context_msg;
+  const struct GNUNET_MessageHeader *context_msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "processing operation request\n");
   req = GNUNET_new (struct GNUNET_SET_Request);
   req->accept_id = ntohl (msg->accept_id);
   context_msg = GNUNET_MQ_extract_nested_mh (msg);
-  /* calling GNUNET_SET_accept in the listen cb will set req->accepted */
+  /* calling #GNUNET_SET_accept() in the listen cb will set req->accepted */
   lh->listen_cb (lh->listen_cls, &msg->peer_id, context_msg, req);
 
   /* we got another request => reset the backoff */
@@ -345,8 +345,6 @@ handle_request (void *cls,
 
     mqm = GNUNET_MQ_msg (rmsg,
                          GNUNET_MESSAGE_TYPE_SET_REJECT);
-    /* no request id, as we refused */
-    rmsg->request_id = htonl (0);
     rmsg->accept_reject_id = msg->accept_id;
     GNUNET_MQ_send (lh->mq, mqm);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -363,7 +361,8 @@ handle_request (void *cls,
 
 
 static void
-handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
+handle_client_listener_error (void *cls,
+                              enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_ListenHandle *lh = cls;
 
@@ -639,7 +638,6 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
   oh = GNUNET_new (struct GNUNET_SET_OperationHandle);
   oh->result_cb = result_cb;
   oh->result_cls = result_cls;
-
   mqm = GNUNET_MQ_msg_nested_mh (msg,
                                  GNUNET_MESSAGE_TYPE_SET_EVALUATE,
                                  context_msg);
@@ -825,7 +823,9 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
     return GNUNET_SYSERR;
   GNUNET_assert (NULL != oh->conclude_mqm);
   oh->set = set;
-  GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, oh);
+  GNUNET_CONTAINER_DLL_insert (set->ops_head,
+                               set->ops_tail,
+                               oh);
   oh->request_id = GNUNET_MQ_assoc_add (set->mq, oh);
   *oh->request_id_addr = htonl (oh->request_id);
   GNUNET_MQ_send (set->mq, oh->conclude_mqm);

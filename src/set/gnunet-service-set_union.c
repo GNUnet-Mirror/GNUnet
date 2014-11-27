@@ -355,7 +355,8 @@ send_operation_request (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
   struct OperationRequestMessage *msg;
 
-  ev = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
+  ev = GNUNET_MQ_msg_nested_mh (msg,
+                                GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
                                 op->spec->context_msg);
 
   if (NULL == ev)
@@ -371,10 +372,11 @@ send_operation_request (struct Operation *op)
   GNUNET_MQ_send (op->mq, ev);
 
   if (NULL != op->spec->context_msg)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request with context message\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sent op request with context message\n");
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request without context message\n");
-
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "sent op request without context message\n");
   if (NULL != op->spec->context_msg)
   {
     GNUNET_free (op->spec->context_msg);

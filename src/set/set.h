@@ -37,6 +37,11 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/**
+ * Message sent by the client to the service to ask starting
+ * a new set to perform operations with.  Includes the desired
+ * set operation type.
+ */
 struct GNUNET_SET_CreateMessage
 {
   /**
@@ -51,6 +56,11 @@ struct GNUNET_SET_CreateMessage
 };
 
 
+/**
+ * Message sent by the client to the service to start listening for
+ * incoming requests to perform a certain type of set operation for a
+ * certain type of application.
+ */
 struct GNUNET_SET_ListenMessage
 {
   /**
@@ -71,6 +81,10 @@ struct GNUNET_SET_ListenMessage
 };
 
 
+/**
+ * Message sent by a listening client to the service to accept
+ * performing the operation with the other peer.
+ */
 struct GNUNET_SET_AcceptMessage
 {
   /**
@@ -79,13 +93,12 @@ struct GNUNET_SET_AcceptMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the incoming request we want to accept / reject.
+   * ID of the incoming request we want to accept.
    */
   uint32_t accept_reject_id GNUNET_PACKED;
 
   /**
-   * Request ID to identify responses,
-   * must be 0 if we don't accept the request.
+   * Request ID to identify responses.
    */
   uint32_t request_id GNUNET_PACKED;
 
@@ -97,6 +110,10 @@ struct GNUNET_SET_AcceptMessage
 };
 
 
+/**
+ * Message sent by a listening client to the service to reject
+ * performing the operation with the other peer.
+ */
 struct GNUNET_SET_RejectMessage
 {
   /**
@@ -105,15 +122,9 @@ struct GNUNET_SET_RejectMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the incoming request we want to accept / reject.
+   * ID of the incoming request we want to reject.
    */
   uint32_t accept_reject_id GNUNET_PACKED;
-
-  /**
-   * Request ID to identify responses,
-   * must be 0 if we don't accept the request.
-   */
-  uint32_t request_id GNUNET_PACKED;
 
 };
 
@@ -143,6 +154,11 @@ struct GNUNET_SET_RequestMessage
 };
 
 
+/**
+ * Message sent by client to service to initiate a set operation as a
+ * client (not as listener).  A set (which determines the operation
+ * type) must already exist in association with this client.
+ */
 struct GNUNET_SET_EvaluateMessage
 {
   /**
@@ -151,9 +167,10 @@ struct GNUNET_SET_EvaluateMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * id of our evaluate, chosen by the client
+   * How should results be sent to us?
+   * See `enum GNUNET_SET_ResultMode`.
    */
-  uint32_t request_id GNUNET_PACKED;
+  uint32_t result_mode GNUNET_PACKED;
 
   /**
    * Peer to evaluate the operation with
@@ -166,17 +183,13 @@ struct GNUNET_SET_EvaluateMessage
   struct GNUNET_HashCode app_id;
 
   /**
-   * Salt to use for the operation.
+   * Id of our set to evaluate, chosen implicitly by the client when it
+   * calls #GNUNE_SET_commit().
    */
-  uint32_t salt GNUNET_PACKED;
+  uint32_t request_id GNUNET_PACKED;
 
-  /**
-   * How should results be sent to us?
-   * See `enum GNUNET_SET_ResultMode`.
-   */
-  uint32_t result_mode GNUNET_PACKED;
-
-  /* rest: inner message */
+  /* rest: context message, that is, application-specific
+     message to convince listener to pick up */
 };
 
 
@@ -207,6 +220,10 @@ struct GNUNET_SET_ResultMessage
 };
 
 
+/**
+ * Message sent by client to the service to add or remove
+ * an element to/from the set.
+ */
 struct GNUNET_SET_ElementMessage
 {
   /**
@@ -215,8 +232,14 @@ struct GNUNET_SET_ElementMessage
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Type of the element to add or remove.
+   */
   uint16_t element_type GNUNET_PACKED;
 
+  /**
+   * For alignment, always zero.
+   */
   uint16_t reserved GNUNET_PACKED;
 
   /* rest: the actual element */
