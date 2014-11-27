@@ -45,8 +45,14 @@ extern "C"
  */
 struct StrataEstimator
 {
+
   struct InvertibleBloomFilter **strata;
+
+  /**
+   * Size of the IBF array in @e strata
+   */
   unsigned int strata_count;
+
   unsigned int ibf_size;
 };
 
@@ -58,7 +64,8 @@ struct StrataEstimator
  * @param buf buffer to write to, must be of appropriate size
  */
 void
-strata_estimator_write (const struct StrataEstimator *se, void *buf);
+strata_estimator_write (const struct StrataEstimator *se,
+                        void *buf);
 
 
 /**
@@ -69,7 +76,8 @@ strata_estimator_write (const struct StrataEstimator *se, void *buf);
  * @param se strata estimator to write to
  */
 void
-strata_estimator_read (const void *buf, struct StrataEstimator *se);
+strata_estimator_read (const void *buf,
+                       struct StrataEstimator *se);
 
 
 /**
@@ -81,7 +89,9 @@ strata_estimator_read (const void *buf, struct StrataEstimator *se);
  * @return a freshly allocated, empty strata estimator
  */
 struct StrataEstimator *
-strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t ibf_hashnum);
+strata_estimator_create (unsigned int strata_count,
+                         uint32_t ibf_size,
+                         uint8_t ibf_hashnum);
 
 
 /**
@@ -104,7 +114,8 @@ strata_estimator_difference (const struct StrataEstimator *se1,
  * @param key key to add
  */
 void
-strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key);
+strata_estimator_insert (struct StrataEstimator *se,
+                         struct IBF_Key key);
 
 
 /**
@@ -114,7 +125,8 @@ strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key);
  * @param key key to remove
  */
 void
-strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key);
+strata_estimator_remove (struct StrataEstimator *se,
+                         struct IBF_Key key);
 
 
 /**

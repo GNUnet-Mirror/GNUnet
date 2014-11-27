@@ -22,7 +22,6 @@
  * @brief invertible bloom filter
  * @author Florian Dold
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "ibf.h"
@@ -36,9 +35,10 @@
  * @param buf buffer to write to, must be of appropriate size
  */
 void
-strata_estimator_write (const struct StrataEstimator *se, void *buf)
+strata_estimator_write (const struct StrataEstimator *se,
+                        void *buf)
 {
-  int i;
+  unsigned int i;
 
   GNUNET_assert (NULL != se);
   for (i = 0; i < se->strata_count; i++)
@@ -57,9 +57,11 @@ strata_estimator_write (const struct StrataEstimator *se, void *buf)
  * @param se strata estimator to write to
  */
 void
-strata_estimator_read (const void *buf, struct StrataEstimator *se)
+strata_estimator_read (const void *buf,
+                       struct StrataEstimator *se)
 {
-  int i;
+  unsigned int i;
+
   for (i = 0; i < se->strata_count; i++)
   {
     ibf_read_slice (buf, 0, se->ibf_size, se->strata[i]);
@@ -75,10 +77,12 @@ strata_estimator_read (const void *buf, struct StrataEstimator *se)
  * @param key key to add
  */
 void
-strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key)
+strata_estimator_insert (struct StrataEstimator *se,
+                         struct IBF_Key key)
 {
   uint64_t v;
-  int i;
+  unsigned int i;
+
   v = key.key_val;
   /* count trailing '1'-bits of v */
   for (i = 0; v & 1; v>>=1, i++)
@@ -94,10 +98,12 @@ strata_estimator_insert (struct StrataEstimator *se, struct IBF_Key key)
  * @param key key to remove
  */
 void
-strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key)
+strata_estimator_remove (struct StrataEstimator *se,
+                         struct IBF_Key key)
 {
   uint64_t v;
-  int i;
+  unsigned int i;
+
   v = key.key_val;
   /* count trailing '1'-bits of v */
   for (i = 0; v & 1; v>>=1, i++)
@@ -115,13 +121,14 @@ strata_estimator_remove (struct StrataEstimator *se, struct IBF_Key key)
  * @return a freshly allocated, empty strata estimator
  */
 struct StrataEstimator *
-strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t ibf_hashnum)
+strata_estimator_create (unsigned int strata_count,
+                         uint32_t ibf_size,
+                         uint8_t ibf_hashnum)
 {
   struct StrataEstimator *se;
-  int i;
+  unsigned int i;
 
   /* fixme: allocate everything in one chunk */
-
   se = GNUNET_new (struct StrataEstimator);
   se->strata_count = strata_count;
   se->ibf_size = ibf_size;
@@ -146,7 +153,7 @@ strata_estimator_difference (const struct StrataEstimator *se1,
                              const struct StrataEstimator *se2)
 {
   int i;
-  int count;
+  unsigned int count;
 
   GNUNET_assert (se1->strata_count == se2->strata_count);
   count = 0;
@@ -155,6 +162,7 @@ strata_estimator_difference (const struct StrataEstimator *se1,
     struct InvertibleBloomFilter *diff;
     /* number of keys decoded from the ibf */
     int ibf_count;
+
     /* FIXME: implement this without always allocating new IBFs */
     diff = ibf_dup (se1->strata[i]);
     ibf_subtract (diff, se2->strata[i]);
@@ -191,7 +199,7 @@ struct StrataEstimator *
 strata_estimator_dup (struct StrataEstimator *se)
 {
   struct StrataEstimator *c;
-  int i;
+  unsigned int i;
 
   c = GNUNET_new (struct StrataEstimator);
   c->strata_count = se->strata_count;
@@ -211,7 +219,7 @@ strata_estimator_dup (struct StrataEstimator *se)
 void
 strata_estimator_destroy (struct StrataEstimator *se)
 {
-  int i;
+  unsigned int i;
 
   for (i = 0; i < se->strata_count; i++)
     ibf_destroy (se->strata[i]);
