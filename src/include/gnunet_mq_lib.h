@@ -105,8 +105,9 @@
  * @param base_size size of the message before the nested message's header appears
  * @return pointer to the nested message, does not copy the message
  */
-struct GNUNET_MessageHeader *
-GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh, uint16_t base_size);
+const struct GNUNET_MessageHeader *
+GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
+                              uint16_t base_size);
 
 
 /**

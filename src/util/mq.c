@@ -809,36 +809,30 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 }
 
 
-struct GNUNET_MessageHeader *
+const struct GNUNET_MessageHeader *
 GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
                               uint16_t base_size)
 {
   uint16_t whole_size;
   uint16_t nested_size;
-  struct GNUNET_MessageHeader *nested_msg;
+  const struct GNUNET_MessageHeader *nested_msg;
 
   whole_size = ntohs (mh->size);
   GNUNET_assert (whole_size >= base_size);
-
   nested_size = whole_size - base_size;
-
   if (0 == nested_size)
     return NULL;
-
   if (nested_size < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
     return NULL;
   }
-
-  nested_msg = (struct GNUNET_MessageHeader *) ((char *) mh + base_size);
-
+  nested_msg = (const struct GNUNET_MessageHeader *) ((char *) mh + base_size);
   if (ntohs (nested_msg->size) != nested_size)
   {
     GNUNET_break_op (0);
-    nested_msg->size = htons (nested_size);
+    return NULL;
   }
-
   return nested_msg;
 }
 
