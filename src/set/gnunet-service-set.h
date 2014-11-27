@@ -468,6 +468,12 @@ struct Set
    */
   enum GNUNET_SET_OperationType operation;
 
+  /**
+   * Each @e iter is assigned a unique number, so that the client
+   * can distinguish iterations.
+   */
+  uint16_t iteration_id;
+
 };
 
 

@@ -410,6 +410,7 @@ set_destroy (struct Set *set)
   {
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
     set->iter = NULL;
+    set->iteration_id++;
   }
   if (NULL != set->elements)
   {
@@ -667,6 +668,7 @@ send_client_element (struct Set *set)
     ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
     set->iter = NULL;
+    set->iteration_id++;
   }
   else
   {
@@ -678,6 +680,7 @@ send_client_element (struct Set *set)
             ee->element.data,
             ee->element.size);
     msg->element_type = ee->element.element_type;
+    msg->iteration_id = htons (set->iteration_id);
   }
   GNUNET_MQ_send (set->client_mq, ev);
 }
@@ -1097,6 +1100,7 @@ handle_client_iter_ack (void *cls,
   {
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
     set->iter = NULL;
+    set->iteration_id++;
   }
 }
 

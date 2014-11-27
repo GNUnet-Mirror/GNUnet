@@ -29,12 +29,6 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
-/**
- * FIXME
- */
-#define GNUNET_SET_ACK_WINDOW 10
-
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -266,12 +260,22 @@ struct GNUNET_SET_CancelMessage
 };
 
 
+/**
+ * Set element transmitted by service to client in response to a set
+ * iteration request.
+ */
 struct GNUNET_SET_IterResponseMessage
 {
   /**
    * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_RESPONSE
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * To which set iteration does this reponse belong to?  First
+   * iteration (per client) has counter zero. Wraps around.
+   */
+  uint16_t iteration_id GNUNET_PACKED;
 
   /**
    * Type of the element attachted to the message,
@@ -282,6 +286,10 @@ struct GNUNET_SET_IterResponseMessage
   /* rest: element */
 };
 
+
+/**
+ * Client acknowledges receiving element in iteration.
+ */
 struct GNUNET_SET_IterAckMessage
 {
   /**

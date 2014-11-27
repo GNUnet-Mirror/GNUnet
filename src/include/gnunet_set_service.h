@@ -283,6 +283,11 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
 
 /**
  * Destroy the set handle, and free all associated resources.
+ * Iterations must have completed (or be explicitly canceled)
+ * before destroying the corresponding set.  Operations may
+ * still be pending when a set is destroyed.
+ *
+ * @param set set to destroy
  */
 void
 GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
@@ -334,9 +339,8 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Cancel the given listen operation.
- * After calling cancel, the listen callback for this listen handle
- * will not be called again.
+ * Cancel the given listen operation.  After calling cancel, the
+ * listen callback for this listen handle will not be called again.
  *
  * @param lh handle for the listen operation
  */
@@ -404,12 +408,23 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
  * @param iter the iterator to call for each element
  * @param iter_cls closure for @a iter
  * @return #GNUNET_YES if the iteration started successfuly,
- *         #GNUNET_SYSERR if the set  is invalid (e.g. the server crashed, disconnected)
+ *         #GNUNET_NO if another iteration was still active,
+ *         #GNUNET_SYSERR if the set is invalid (e.g. the server crashed, disconnected)
  */
 int
 GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
                     GNUNET_SET_ElementIterator iter,
                     void *iter_cls);
+
+/**
+ * Stop iteration over all elements in the given set.  Can only
+ * be called before the iteration has "naturally" completed its
+ * turn.
+ *
+ * @param set the set to stop iterating over
+ */
+void
+GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

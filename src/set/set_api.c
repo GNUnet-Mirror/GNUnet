@@ -77,6 +77,12 @@ struct GNUNET_SET_Handle
    * Has the set become invalid (e.g. service died)?
    */
   int invalid;
+
+  /**
+   * Both client and service count the number of iterators
+   * created so far to match replies with iterators.
+   */
+  uint16_t iteration_id;
 };
 
 
@@ -210,7 +216,7 @@ struct GNUNET_SET_ListenHandle
  * Handle element for iteration over the set.  Notifies the
  * iterator and sends an acknowledgement to the service.
  *
- * @param cls the set
+ * @param cls the `struct GNUNET_SET_Handle *`
  * @param mh the message
  */
 static void
@@ -231,13 +237,19 @@ handle_iter_element (void *cls,
     /* message malformed */
     GNUNET_break (0);
     set->iterator = NULL;
+    set->iteration_id++;
     iter (set->iterator_cls,
           NULL);
     iter = NULL;
   }
+  msg = (const struct GNUNET_SET_IterResponseMessage *) mh;
+  if (set->iteration_id != ntohs (msg->iteration_id))
+  {
+    /* element from a previous iteration, skip! */
+    iter = NULL;
+  }
   if (NULL != iter)
   {
-    msg = (const struct GNUNET_SET_IterResponseMessage *) mh;
     element.size = msize - sizeof (struct GNUNET_SET_IterResponseMessage);
     element.element_type = htons (msg->element_type);
     element.data = &msg[1];
@@ -268,6 +280,7 @@ handle_iter_done (void *cls,
   if (NULL == iter)
     return;
   set->iterator = NULL;
+  set->iteration_id++;
   iter (set->iterator_cls,
         NULL);
 }
@@ -304,7 +317,7 @@ handle_result (void *cls,
   }
   if (GNUNET_SET_STATUS_OK != result_status)
   {
-    /* status is not STATUS_OK => there's no attached element,
+    /* status is not #GNUNET_SET_STATUS_OK => there's no attached element,
      * and this is the last result message we get */
     GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
     GNUNET_CONTAINER_DLL_remove (set->ops_head,
@@ -608,6 +621,10 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
 void
 GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
 {
+  /* destroying set while iterator is active is currently
+     not supported; we should expand the API to allow
+     clients to explicitly cancel the iteration! */
+  GNUNET_assert (NULL == set->iterator);
   if (NULL != set->ops_head)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -922,5 +939,22 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
   GNUNET_MQ_send (set->mq, ev);
   return GNUNET_YES;
 }
+
+
+/**
+ * Stop iteration over all elements in the given set.  Can only
+ * be called before the iteration has "naturally" completed its
+ * turn.
+ *
+ * @param set the set to stop iterating over
+ */
+void
+GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set)
+{
+  GNUNET_assert (NULL != set->iterator);
+  set->iterator = NULL;
+  set->iteration_id++;
+}
+
 
 /* end of set_api.c */
