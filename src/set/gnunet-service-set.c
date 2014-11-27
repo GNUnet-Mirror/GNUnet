@@ -176,7 +176,6 @@ get_incoming (uint32_t id)
   for (op = incoming_head; NULL != op; op = op->next)
     if (op->suggest_id == id)
     {
-      // FIXME: remove this assertion once the corresponding bug is gone!
       GNUNET_assert (GNUNET_YES == op->is_incoming);
       return op;
     }
@@ -325,8 +324,8 @@ _GSS_operation_destroy (struct Operation *op,
   GNUNET_assert (GNUNET_NO == op->is_incoming);
   GNUNET_assert (NULL != op->spec);
   set = op->spec->set;
-  GNUNET_CONTAINER_DLL_remove (op->spec->set->ops_head,
-                               op->spec->set->ops_tail,
+  GNUNET_CONTAINER_DLL_remove (set->ops_head,
+                               set->ops_tail,
                                op);
   op->vt->cancel (op);
   op->vt = NULL;
@@ -511,12 +510,12 @@ static struct Listener *
 listener_get_by_target (enum GNUNET_SET_OperationType op,
                         const struct GNUNET_HashCode *app_id)
 {
-  struct Listener *l;
+  struct Listener *listener;
 
-  for (l = listeners_head; NULL != l; l = l->next)
-    if ( (l->operation == op) &&
-         (0 == GNUNET_CRYPTO_hash_cmp (app_id, &l->app_id)) )
-      return l;
+  for (listener = listeners_head; NULL != listener; listener = listener->next)
+    if ( (listener->operation == op) &&
+         (0 == GNUNET_CRYPTO_hash_cmp (app_id, &listener->app_id)) )
+      return listener;
   return NULL;
 }
 
@@ -997,7 +996,7 @@ handle_client_remove (void *cls,
 
 
 /**
- * Called when a client wants to evaluate a set operation with another
+ * Called when a client wants to initiate a set operation with another
  * peer.  Initiates the CADET connection to the listener and sends the
  * request.
  *
@@ -1068,6 +1067,7 @@ handle_client_iter_ack (void *cls,
                         struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *m)
 {
+  const struct GNUNET_SET_IterAckMessage *ack;
   struct Set *set;
 
   set = set_get (client);
@@ -1086,9 +1086,18 @@ handle_client_iter_ack (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+  ack = (const struct GNUNET_SET_IterAckMessage *) m;
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
-  send_client_element (set);
+  if (ntohl (ack->send_more))
+  {
+    send_client_element (set);
+  }
+  else
+  {
+    GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
+    set->iter = NULL;
+  }
 }
 
 
@@ -1111,19 +1120,17 @@ handle_client_cancel (void *cls,
   struct Operation *op;
   int found;
 
-  // client without a set requested an operation
   set = set_get (client);
   if (NULL == set)
   {
+    /* client without a set requested an operation */
     GNUNET_break (0);
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "client requested cancel for op %u\n",
+              "Client requested cancel for op %u\n",
               ntohl (msg->request_id));
-
   found = GNUNET_NO;
   for (op = set->ops_head; NULL != op; op = op->next)
   {
@@ -1133,27 +1140,30 @@ handle_client_cancel (void *cls,
       break;
     }
   }
-
-  /* It may happen that the operation was destroyed due to
-   * the other peer disconnecting.  The client may not know about this
-   * yet and try to cancel the (non non-existent) operation.
-   */
-  if (GNUNET_NO != found)
+  if (GNUNET_NO == found)
+  {
+    /* It may happen that the operation was already destroyed due to
+     * the other peer disconnecting.  The client may not know about this
+     * yet and try to cancel the (just barely non-existent) operation.
+     * So this is not a hard error.
+     */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client canceled non-existent op\n");
+  }
+  else
+  {
     _GSS_operation_destroy (op,
                             GNUNET_YES);
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "client canceled non-existent op\n");
-
-
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  }
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
 /**
- * Handle a request from the client to accept
- * a set operation that came from a remote peer.
- * We forward the accept to the associated operation for handling
+ * Handle a request from the client to accept a set operation that
+ * came from a remote peer.  We forward the accept to the associated
+ * operation for handling
  *
  * @param cls unused
  * @param client the client
@@ -1167,28 +1177,27 @@ handle_client_accept (void *cls,
   struct Set *set;
   const struct GNUNET_SET_AcceptMessage *msg;
   struct Operation *op;
+  struct GNUNET_SET_ResultMessage *result_message;
+  struct GNUNET_MQ_Envelope *ev;
 
   msg = (const struct GNUNET_SET_AcceptMessage *) mh;
-
-  // client without a set requested an operation
   set = set_get (client);
-
   if (NULL == set)
   {
+    /* client without a set requested to accept */
     GNUNET_break (0);
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-
   op = get_incoming (ntohl (msg->accept_reject_id));
-
-  /* it is not an error if the set op does not exist -- it may
-   * have been destroyed when the partner peer disconnected. */
   if (NULL == op)
   {
-    struct GNUNET_SET_ResultMessage *result_message;
-    struct GNUNET_MQ_Envelope *ev;
-    ev = GNUNET_MQ_msg (result_message, GNUNET_MESSAGE_TYPE_SET_RESULT);
+    /* It is not an error if the set op does not exist -- it may
+     * have been destroyed when the partner peer disconnected. */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client accepted request that is no longer active\n");
+    ev = GNUNET_MQ_msg (result_message,
+                        GNUNET_MESSAGE_TYPE_SET_RESULT);
     result_message->request_id = msg->request_id;
     result_message->element_type = 0;
     result_message->result_status = htons (GNUNET_SET_STATUS_FAILURE);
@@ -1198,33 +1207,24 @@ handle_client_accept (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "client accepting %u\n",
+              "Client accepting request %u\n",
               ntohl (msg->accept_reject_id));
-
-  GNUNET_assert (GNUNET_YES == op->is_incoming);
-
-
-  op->spec->set = set;
-
   GNUNET_assert (GNUNET_YES == op->is_incoming);
   op->is_incoming = GNUNET_NO;
   GNUNET_CONTAINER_DLL_remove (incoming_head,
                                incoming_tail,
                                op);
-
-  GNUNET_assert (NULL != op->spec->set);
-  GNUNET_assert (NULL != op->spec->set->vt);
-
+  op->spec->set = set;
   GNUNET_CONTAINER_DLL_insert (set->ops_head,
                                set->ops_tail,
                                op);
-
   op->spec->client_request_id = ntohl (msg->request_id);
   op->spec->result_mode = ntohl (msg->result_mode);
   op->generation_created = set->current_generation++;
-  op->vt = op->spec->set->vt;
-  set->vt->accept (op);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  op->vt = set->vt;
+  op->vt->accept (op);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -1240,10 +1240,8 @@ shutdown_task (void *cls,
 {
   while (NULL != incoming_head)
     incoming_destroy (incoming_head);
-
   while (NULL != listeners_head)
     listener_destroy (listeners_head);
-
   while (NULL != sets_head)
     set_destroy (sets_head);
 
@@ -1280,7 +1278,7 @@ incoming_timeout_cb (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "remote peer timed out\n");
+              "Remote peer's incoming request timed out\n");
   incoming_destroy (incoming);
 }
 
@@ -1319,7 +1317,7 @@ handle_incoming_disconnect (struct Operation *op)
  * @param port Port this channel is for.
  * @param options Unused.
  * @return initial channel context for the channel
- *         (can be NULL -- that's not an error)
+ *         returns NULL on error
  */
 static void *
 channel_new_cb (void *cls,
@@ -1365,7 +1363,7 @@ channel_new_cb (void *cls,
  * GNUNET_CADET_channel_destroy() on the channel.
  *
  * The peer_disconnect function is part of a a virtual table set initially either
- * when a peer creates a new channel with us (channel_new_cb), or once we create
+ * when a peer creates a new channel with us (#channel_new_cb()), or once we create
  * a new channel ourselves (evaluate).
  *
  * Once we know the exact type of operation (union/intersection), the vt is
@@ -1384,7 +1382,7 @@ channel_end_cb (void *cls,
   struct Operation *op = channel_ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "channel end cb called\n");
+              "channel_end_cb called\n");
   op->channel = NULL;
   /* the vt can be null if a client already requested canceling op. */
   if (NULL != op->vt)
@@ -1393,14 +1391,13 @@ channel_end_cb (void *cls,
                 "calling peer disconnect due to channel end\n");
     op->vt->peer_disconnect (op);
   }
-
-  if (GNUNET_YES == op->keep)
-    return;
-
-  /* cadet will never call us with the context again! */
-  GNUNET_free (channel_ctx);
+  if (GNUNET_YES != op->keep)
+  {
+    /* cadet will never call us with the context again! */
+    GNUNET_free (op);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "channel end cb finished\n");
+              "channel_end_cb finished\n");
 }
 
 
@@ -1432,16 +1429,17 @@ dispatch_p2p_message (void *cls,
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "dispatching cadet message (type: %u)\n",
+              "Dispatching cadet message (type: %u)\n",
               ntohs (message->type));
   /* do this before the handler, as the handler might kill the channel */
   GNUNET_CADET_receive_done (channel);
   if (NULL != op->vt)
-    ret = op->vt->msg_handler (op, message);
+    ret = op->vt->msg_handler (op,
+                               message);
   else
     ret = GNUNET_SYSERR;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "handled cadet message (type: %u)\n",
+              "Handled cadet message (type: %u)\n",
               ntohs (message->type));
   return ret;
 }
@@ -1460,34 +1458,48 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
-    {handle_client_accept, NULL, GNUNET_MESSAGE_TYPE_SET_ACCEPT,
-        sizeof (struct GNUNET_SET_AcceptMessage)},
-    {handle_client_iter_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ITER_ACK, 0},
-    {handle_client_add, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
-    {handle_client_create_set, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE,
-        sizeof (struct GNUNET_SET_CreateMessage)},
-    {handle_client_iterate, NULL, GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST,
-        sizeof (struct GNUNET_MessageHeader)},
-    {handle_client_evaluate, NULL, GNUNET_MESSAGE_TYPE_SET_EVALUATE, 0},
-    {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN,
-        sizeof (struct GNUNET_SET_ListenMessage)},
-    {handle_client_reject, NULL, GNUNET_MESSAGE_TYPE_SET_REJECT,
-        sizeof (struct GNUNET_SET_RejectMessage)},
-    {handle_client_remove, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE, 0},
-    {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_CANCEL,
-        sizeof (struct GNUNET_SET_CancelMessage)},
-    {NULL, NULL, 0, 0}
+    { &handle_client_accept, NULL,
+      GNUNET_MESSAGE_TYPE_SET_ACCEPT,
+      sizeof (struct GNUNET_SET_AcceptMessage)},
+    { &handle_client_iter_ack, NULL,
+      GNUNET_MESSAGE_TYPE_SET_ITER_ACK,
+      sizeof (struct GNUNET_SET_IterAckMessage) },
+    { &handle_client_add, NULL,
+      GNUNET_MESSAGE_TYPE_SET_ADD,
+      0},
+    { &handle_client_create_set, NULL,
+      GNUNET_MESSAGE_TYPE_SET_CREATE,
+      sizeof (struct GNUNET_SET_CreateMessage)},
+    { &handle_client_iterate, NULL,
+      GNUNET_MESSAGE_TYPE_SET_ITER_REQUEST,
+      sizeof (struct GNUNET_MessageHeader)},
+    { &handle_client_evaluate, NULL,
+      GNUNET_MESSAGE_TYPE_SET_EVALUATE,
+      0},
+    { &handle_client_listen, NULL,
+      GNUNET_MESSAGE_TYPE_SET_LISTEN,
+      sizeof (struct GNUNET_SET_ListenMessage)},
+    { &handle_client_reject, NULL,
+      GNUNET_MESSAGE_TYPE_SET_REJECT,
+      sizeof (struct GNUNET_SET_RejectMessage)},
+    { &handle_client_remove, NULL,
+      GNUNET_MESSAGE_TYPE_SET_REMOVE,
+      0},
+    { &handle_client_cancel, NULL,
+      GNUNET_MESSAGE_TYPE_SET_CANCEL,
+      sizeof (struct GNUNET_SET_CancelMessage)},
+    { NULL, NULL, 0, 0}
   };
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF, 0},
-    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF, 0},
+    { &dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART, 0},
     {NULL, 0, 0}
   };
   static const uint32_t cadet_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};
@@ -1495,11 +1507,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   configuration = cfg;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task, NULL);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
-  GNUNET_SERVER_add_handlers (server, server_handlers);
-
-  cadet = GNUNET_CADET_connect (cfg, NULL, channel_new_cb, channel_end_cb,
-                              cadet_handlers, cadet_ports);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &handle_client_disconnect, NULL);
+  GNUNET_SERVER_add_handlers (server,
+                              server_handlers);
+  cadet = GNUNET_CADET_connect (cfg, NULL,
+                                &channel_new_cb,
+                                &channel_end_cb,
+                                cadet_handlers,
+                                cadet_ports);
   if (NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1517,14 +1533,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   int ret;
 
   ret = GNUNET_SERVICE_run (argc, argv, "set",
-                            GNUNET_SERVICE_OPTION_NONE, &run, NULL);
+                            GNUNET_SERVICE_OPTION_NONE,
+                            &run, NULL);
   return (GNUNET_OK == ret) ? 0 : 1;
 }
 
 /* end of gnunet-service-set.c */
-

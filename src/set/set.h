@@ -207,7 +207,8 @@ struct GNUNET_SET_ResultMessage
   uint32_t request_id GNUNET_PACKED;
 
   /**
-   * Was the evaluation successful?
+   * Was the evaluation successful? Contains
+   * an `enum GNUNET_SET_Status` in NBO.
    */
   uint16_t result_status GNUNET_PACKED;
 
