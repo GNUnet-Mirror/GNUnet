@@ -95,7 +95,9 @@ libexec_PROGRAMS += \
   $(AUDIO_HELPER_PLAY)
 
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+if ENABLE_TEST_RUN
 TESTS = $(AUDIO_TESTS)
+endif
 
 if BUILD_PULSE_HELPERS
 gnunet_helper_audio_record_SOURCES = \
