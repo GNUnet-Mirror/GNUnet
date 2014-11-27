@@ -35,24 +35,24 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct OperationRequestMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
+   * Type: #GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation to request, values from 'enum GNUNET_SET_OperationType'
+   * Operation to request, values from `enum GNUNET_SET_OperationType`
    */
   uint32_t operation GNUNET_PACKED;
 
   /**
    * Salt to use for this operation.
    */
-  uint32_t salt;
+  uint32_t salt GNUNET_PACKED;
 
   /**
    * For Intersection: my element count
    */
-  uint32_t element_count;
+  uint32_t element_count GNUNET_PACKED;
 
   /**
    * Application-specific identifier of the request.
@@ -62,10 +62,11 @@ struct OperationRequestMessage
   /* rest: optional message */
 };
 
+
 struct IBFMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_P2P_IBF
+   * Type: #GNUNET_MESSAGE_TYPE_SET_P2P_IBF
    */
   struct GNUNET_MessageHeader header;
 
@@ -88,15 +89,16 @@ struct IBFMessage
   /**
    * Salt used when hashing elements for this IBF.
    */
-  uint32_t salt;
+  uint32_t salt GNUNET_PACKED;
 
   /* rest: strata */
 };
 
+
 struct BFMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
+   * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
    */
   struct GNUNET_MessageHeader header;
 
@@ -130,10 +132,11 @@ struct BFMessage
    */
 };
 
+
 struct BFPart
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
+   * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
    */
   struct GNUNET_MessageHeader header;
 

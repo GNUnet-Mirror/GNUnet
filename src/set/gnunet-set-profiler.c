@@ -35,8 +35,6 @@ static unsigned int num_a = 5;
 static unsigned int num_b = 5;
 static unsigned int num_c = 20;
 
-static unsigned int salt = 42;
-
 static char *op_str = "union";
 
 const static struct GNUNET_CONFIGURATION_Handle *config;
@@ -51,13 +49,13 @@ struct SetInfo
   int done;
 } info1, info2;
 
-struct GNUNET_CONTAINER_MultiHashMap *common_sent;
+static struct GNUNET_CONTAINER_MultiHashMap *common_sent;
 
-struct GNUNET_HashCode app_id;
+static struct GNUNET_HashCode app_id;
 
-struct GNUNET_PeerIdentity local_peer;
+static struct GNUNET_PeerIdentity local_peer;
 
-struct GNUNET_SET_ListenHandle *set_listener;
+static struct GNUNET_SET_ListenHandle *set_listener;
 
 
 static int
@@ -76,6 +74,7 @@ map_remove_iterator (void *cls,
   return GNUNET_YES;
 
 }
+
 
 static void
 check_all_done (void)
@@ -270,8 +269,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   set_listener = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                     &app_id, set_listen_cb, NULL);
 
-  info1.oh = GNUNET_SET_prepare (&local_peer, &app_id, NULL, salt, GNUNET_SET_RESULT_ADDED,
-                       set_result_cb, &info1);
+  info1.oh = GNUNET_SET_prepare (&local_peer, &app_id, NULL,
+                                 GNUNET_SET_RESULT_ADDED,
+                                 set_result_cb, &info1);
   GNUNET_SET_commit (info1.oh, info1.set);
   GNUNET_SET_destroy (info1.set);
   info1.set = NULL;

@@ -463,18 +463,14 @@ transmit_task_cb (void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerEntry *peer_entry = cls;
-  uint16_t salt;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting set exchange with peer `%s'\n",
               GNUNET_i2s (&peer_entry->id));
-
-  salt = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                              UINT16_MAX);
   peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
   peer_entry->so = GNUNET_SET_prepare (&peer_entry->id,
                                        &revocation_set_union_app_id,
-                                       NULL, salt,
+                                       NULL,
                                        GNUNET_SET_RESULT_ADDED,
                                        &add_revocation,
                                        peer_entry);

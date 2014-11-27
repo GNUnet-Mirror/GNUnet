@@ -1744,7 +1744,6 @@ static void
 initiate_set_union (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  static uint16_t salt;
   struct DirectNeighbor *neighbor = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1756,7 +1755,6 @@ initiate_set_union (void *cls,
   neighbor->set_op = GNUNET_SET_prepare (&neighbor->peer,
                                          &neighbor->real_session_id,
                                          NULL,
-                                         salt++,
                                          GNUNET_SET_RESULT_ADDED,
                                          &handle_set_union_result,
                                          neighbor);

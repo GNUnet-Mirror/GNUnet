@@ -131,7 +131,7 @@ start (void *cls)
 
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
-  oh = GNUNET_SET_prepare (&local_id, &app_id, &context_msg, 42,
+  oh = GNUNET_SET_prepare (&local_id, &app_id, &context_msg,
                            GNUNET_SET_RESULT_FULL,
                            result_cb_set1, NULL);
   GNUNET_SET_commit (oh, set1);

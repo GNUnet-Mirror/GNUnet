@@ -812,7 +812,6 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SET_prepare (&session->partner_outgoing->peer_id,
                             &session->global_id,
                             (struct GNUNET_MessageHeader *) msg,
-                            0, /* FIXME: salt */
                             GNUNET_SET_RESULT_ADDED,
                             set_result_cb, session->partner_outgoing);
     GNUNET_free (msg);

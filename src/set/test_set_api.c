@@ -130,7 +130,7 @@ start (void *cls)
 
   listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
                                      &app_id, listen_cb, NULL);
-  oh = GNUNET_SET_prepare (&local_id, &app_id, &context_msg, 42,
+  oh = GNUNET_SET_prepare (&local_id, &app_id, &context_msg,
                            GNUNET_SET_RESULT_ADDED,
                            result_cb_set1, NULL);
   GNUNET_SET_commit (oh, set1);
@@ -275,7 +275,7 @@ run (void *cls,
 
 
   ///* test if canceling an uncommited request works! */
-  my_oh = GNUNET_SET_prepare (&local_id, &app_id, NULL, 0,
+  my_oh = GNUNET_SET_prepare (&local_id, &app_id, NULL,
                               GNUNET_SET_RESULT_ADDED, NULL, NULL);
 
   GNUNET_SET_operation_cancel (my_oh);

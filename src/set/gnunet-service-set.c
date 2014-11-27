@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2013 Christian Grothoff (and other contributing authors)
+      (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -17,11 +17,11 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file set/gnunet-service-set.c
  * @brief two-peer set operations
  * @author Florian Dold
+ * @author Christian Grothoff
  */
 #include "gnunet-service-set.h"
 #include "set_protocol.h"
@@ -629,7 +629,8 @@ handle_incoming_msg (struct Operation *op,
     spec->context_msg = GNUNET_copy_message (spec->context_msg);
   spec->operation = ntohl (msg->operation);
   spec->app_id = msg->app_id;
-  spec->salt = ntohl (msg->salt);
+  spec->salt = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                         UINT32_MAX);
   spec->peer = op->state->peer;
   spec->remote_element_count = ntohl (msg->element_count);
 
@@ -729,7 +730,8 @@ handle_client_iterate (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "iterating union set with %u elements\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "iterating union set with %u elements\n",
               GNUNET_CONTAINER_multihashmap_size (set->elements));
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->elements);
@@ -767,7 +769,7 @@ handle_client_create_set (void *cls,
 
   set = GNUNET_new (struct Set);
 
-  switch (ntohs (msg->operation))
+  switch (ntohl (msg->operation))
   {
   case GNUNET_SET_OPERATION_INTERSECTION:
     set->vt = _GSS_intersection_vt ();
@@ -875,9 +877,9 @@ handle_client_reject (void *cls,
                       const struct GNUNET_MessageHeader *m)
 {
   struct Operation *incoming;
-  const struct GNUNET_SET_AcceptRejectMessage *msg;
+  const struct GNUNET_SET_RejectMessage *msg;
 
-  msg = (const struct GNUNET_SET_AcceptRejectMessage *) m;
+  msg = (const struct GNUNET_SET_RejectMessage *) m;
   GNUNET_break (0 == ntohl (msg->request_id));
 
   // no matching incoming operation for this reject
@@ -1143,10 +1145,10 @@ handle_client_accept (void *cls,
                       const struct GNUNET_MessageHeader *mh)
 {
   struct Set *set;
-  const struct GNUNET_SET_AcceptRejectMessage *msg;
+  const struct GNUNET_SET_AcceptMessage *msg;
   struct Operation *op;
 
-  msg = (const struct GNUNET_SET_AcceptRejectMessage *) mh;
+  msg = (const struct GNUNET_SET_AcceptMessage *) mh;
 
   // client without a set requested an operation
   set = set_get (client);
@@ -1201,7 +1203,7 @@ handle_client_accept (void *cls,
                                op);
 
   op->spec->client_request_id = ntohl (msg->request_id);
-  op->spec->result_mode = ntohs (msg->result_mode);
+  op->spec->result_mode = ntohl (msg->result_mode);
   op->generation_created = set->current_generation++;
   op->vt = op->spec->set->vt;
   GNUNET_assert (NULL != op->vt->accept);
@@ -1446,7 +1448,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
     {handle_client_accept, NULL, GNUNET_MESSAGE_TYPE_SET_ACCEPT,
-        sizeof (struct GNUNET_SET_AcceptRejectMessage)},
+        sizeof (struct GNUNET_SET_AcceptMessage)},
     {handle_client_iter_ack, NULL, GNUNET_MESSAGE_TYPE_SET_ITER_ACK, 0},
     {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_ADD, 0},
     {handle_client_create_set, NULL, GNUNET_MESSAGE_TYPE_SET_CREATE,
@@ -1457,7 +1459,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {handle_client_listen, NULL, GNUNET_MESSAGE_TYPE_SET_LISTEN,
         sizeof (struct GNUNET_SET_ListenMessage)},
     {handle_client_reject, NULL, GNUNET_MESSAGE_TYPE_SET_REJECT,
-        sizeof (struct GNUNET_SET_AcceptRejectMessage)},
+        sizeof (struct GNUNET_SET_RejectMessage)},
     {handle_client_add_remove, NULL, GNUNET_MESSAGE_TYPE_SET_REMOVE, 0},
     {handle_client_cancel, NULL, GNUNET_MESSAGE_TYPE_SET_CANCEL,
         sizeof (struct GNUNET_SET_CancelMessage)},

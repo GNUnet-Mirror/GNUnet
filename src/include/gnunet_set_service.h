@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2013 Christian Grothoff (and other contributing authors)
+      (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -296,9 +296,6 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
  * @param context_msg additional information for the request
- * @param salt salt used for the set operation; sometimes set operations
- *        fail due to hash collisions, using a different salt for each operation
- *        makes it harder for an attacker to exploit this
  * @param result_mode specified how results will be returned,
  *        see `enum GNUNET_SET_ResultMode`.
  * @param result_cb called on error or success
@@ -309,7 +306,6 @@ struct GNUNET_SET_OperationHandle *
 GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
                     const struct GNUNET_HashCode *app_id,
                     const struct GNUNET_MessageHeader *context_msg,
-                    uint16_t salt,
                     enum GNUNET_SET_ResultMode result_mode,
                     GNUNET_SET_ResultIterator result_cb,
                     void *result_cls);
@@ -326,7 +322,7 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
  * @param app_id id of the application that handles set operation requests
  * @param listen_cb called for each incoming request matching the operation
  *                  and application id
- * @param listen_cls handle for listen_cb
+ * @param listen_cls handle for @a listen_cb
  * @return a handle that can be used to cancel the listen operation
  */
 struct GNUNET_SET_ListenHandle *
@@ -389,7 +385,7 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
 
 /**
  * Cancel the given set operation.
- * May not be called after the operation's GNUNET_SET_ResultIterator has been
+ * May not be called after the operation's `GNUNET_SET_ResultIterator` has been
  * called with a status that indicates error, timeout or done.
  *
  * @param oh set operation to cancel
@@ -406,12 +402,14 @@ GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh);
  *
  * @param set the set to iterate over
  * @param iter the iterator to call for each element
- * @param cls closure for 'iter'
- * @return GNUNET_YES if the iteration started successfuly,
- *         GNUNET_SYSERR if the set  is invalid (e.g. the server crashed, disconnected)
+ * @param iter_cls closure for @a iter
+ * @return #GNUNET_YES if the iteration started successfuly,
+ *         #GNUNET_SYSERR if the set  is invalid (e.g. the server crashed, disconnected)
  */
 int
-GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator iter, void *cls);
+GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
+                    GNUNET_SET_ElementIterator iter,
+                    void *iter_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

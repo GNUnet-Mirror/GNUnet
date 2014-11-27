@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2013 Christian Grothoff (and other contributing authors)
+      (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -17,7 +17,6 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file set/gnunet-service-set.h
  * @brief common components for the implementation the different set operations

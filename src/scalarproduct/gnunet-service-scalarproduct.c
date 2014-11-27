@@ -1590,7 +1590,6 @@ client_request_complete_bob (struct ServiceSession * client_session)
     s->intersection_op = GNUNET_SET_prepare (&s->peer,
                                                    &s->session_id,
                                                    NULL,
-                                                   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT16_MAX),
                                                    GNUNET_SET_RESULT_REMOVED,
                                                    cb_intersection_element_removed,
                                                    s);
@@ -2308,7 +2307,6 @@ handle_alices_computation_request (void *cls,
     s->intersection_op = GNUNET_SET_prepare (&s->peer,
                                                    &s->session_id,
                                                    NULL,
-                                                   GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT16_MAX),
                                                    GNUNET_SET_RESULT_REMOVED,
                                                    cb_intersection_element_removed,
                                                    s);

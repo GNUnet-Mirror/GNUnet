@@ -17,11 +17,11 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
- * @author Florian Dold
  * @file set/set.h
  * @brief messages used for the set api
+ * @author Florian Dold
+ * @author Christian Grothoff
  */
 #ifndef SET_H
 #define SET_H
@@ -29,6 +29,9 @@
 #include "platform.h"
 #include "gnunet_common.h"
 
+/**
+ * FIXME
+ */
 #define GNUNET_SET_ACK_WINDOW 10
 
 
@@ -37,27 +40,26 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_SET_CreateMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_CREATE
+   * Type: #GNUNET_MESSAGE_TYPE_SET_CREATE
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation type, values of enum GNUNET_SET_OperationType
+   * Operation type, values of `enum GNUNET_SET_OperationType`
    */
-  // FIXME: use 32_t for 'enum'.
-  uint16_t operation GNUNET_PACKED;
+  uint32_t operation GNUNET_PACKED;
 };
 
 
 struct GNUNET_SET_ListenMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_LISTEN
+   * Type: #GNUNET_MESSAGE_TYPE_SET_LISTEN
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation type, values of enum GNUNET_SET_OperationType
+   * Operation type, values of `enum GNUNET_SET_OperationType`
    */
   uint32_t operation GNUNET_PACKED;
 
@@ -69,11 +71,10 @@ struct GNUNET_SET_ListenMessage
 };
 
 
-struct GNUNET_SET_AcceptRejectMessage
+struct GNUNET_SET_AcceptMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_ACCEPT or
-   *       GNUNET_MESSAGE_TYPE_SET_REJECT
+   * Type: #GNUNET_MESSAGE_TYPE_SET_ACCEPT
    */
   struct GNUNET_MessageHeader header;
 
@@ -90,9 +91,30 @@ struct GNUNET_SET_AcceptRejectMessage
 
   /**
    * How should results be sent to us?
-   * See enum GNUNET_SET_ResultMode.
+   * See `enum GNUNET_SET_ResultMode`.
    */
-  uint16_t result_mode GNUNET_PACKED;
+  uint32_t result_mode GNUNET_PACKED;
+};
+
+
+struct GNUNET_SET_RejectMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_SET_REJECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the incoming request we want to accept / reject.
+   */
+  uint32_t accept_reject_id GNUNET_PACKED;
+
+  /**
+   * Request ID to identify responses,
+   * must be 0 if we don't accept the request.
+   */
+  uint32_t request_id GNUNET_PACKED;
+
 };
 
 
@@ -102,20 +124,20 @@ struct GNUNET_SET_AcceptRejectMessage
 struct GNUNET_SET_RequestMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_Request.
+   * Type: #GNUNET_MESSAGE_TYPE_SET_REQUEST.
    */
   struct GNUNET_MessageHeader header;
-
-  /**
-   * Identity of the requesting peer.
-   */
-  struct GNUNET_PeerIdentity peer_id;
 
   /**
    * ID of the to identify the request when accepting or
    * rejecting it.
    */
   uint32_t accept_id GNUNET_PACKED;
+
+  /**
+   * Identity of the requesting peer.
+   */
+  struct GNUNET_PeerIdentity peer_id;
 
   /* rest: nested context message */
 };
@@ -124,7 +146,7 @@ struct GNUNET_SET_RequestMessage
 struct GNUNET_SET_EvaluateMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_EVALUATE
+   * Type: #GNUNET_MESSAGE_TYPE_SET_EVALUATE
    */
   struct GNUNET_MessageHeader header;
 
@@ -144,15 +166,15 @@ struct GNUNET_SET_EvaluateMessage
   struct GNUNET_HashCode app_id;
 
   /**
-   * Salt to use for the operation
+   * Salt to use for the operation.
    */
-  uint16_t salt GNUNET_PACKED;
+  uint32_t salt GNUNET_PACKED;
 
   /**
    * How should results be sent to us?
-   * See enum GNUNET_SET_ResultMode.
+   * See `enum GNUNET_SET_ResultMode`.
    */
-  uint16_t result_mode GNUNET_PACKED;
+  uint32_t result_mode GNUNET_PACKED;
 
   /* rest: inner message */
 };
@@ -161,7 +183,7 @@ struct GNUNET_SET_EvaluateMessage
 struct GNUNET_SET_ResultMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_SET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -188,8 +210,8 @@ struct GNUNET_SET_ResultMessage
 struct GNUNET_SET_ElementMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_ADD or
-   *       GNUNET_MESSAGE_TYPE_SET_REMOVE
+   * Type: #GNUNET_MESSAGE_TYPE_SET_ADD or
+   *       #GNUNET_MESSAGE_TYPE_SET_REMOVE
    */
   struct GNUNET_MessageHeader header;
 
@@ -208,7 +230,7 @@ struct GNUNET_SET_ElementMessage
 struct GNUNET_SET_CancelMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_CANCEL
+   * Type: #GNUNET_MESSAGE_TYPE_SET_CANCEL
    */
   struct GNUNET_MessageHeader header;
 
@@ -218,10 +240,11 @@ struct GNUNET_SET_CancelMessage
   uint32_t request_id GNUNET_PACKED;
 };
 
+
 struct GNUNET_SET_IterResponseMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_ITER_RESPONSE
+   * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
@@ -237,7 +260,7 @@ struct GNUNET_SET_IterResponseMessage
 struct GNUNET_SET_IterAckMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SET_ITER_ACK
+   * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_ACK
    */
   struct GNUNET_MessageHeader header;
 
