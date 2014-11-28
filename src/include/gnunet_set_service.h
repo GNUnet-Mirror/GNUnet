@@ -74,8 +74,7 @@ struct GNUNET_SET_OperationHandle;
 enum GNUNET_SET_OperationType
 {
   /**
-   * A purely local set that does not support any
-   * operation.
+   * A purely local set that does not support any operation.
    */
   GNUNET_SET_OPERATION_NONE,
 
@@ -89,6 +88,7 @@ enum GNUNET_SET_OperationType
    */
   GNUNET_SET_OPERATION_UNION
 };
+
 
 /**
  * Status for the result callback

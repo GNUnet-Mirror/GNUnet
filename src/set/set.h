@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
+     (C) 2012-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -179,7 +179,7 @@ struct GNUNET_SET_EvaluateMessage
 
   /**
    * Id of our set to evaluate, chosen implicitly by the client when it
-   * calls #GNUNE_SET_commit().
+   * calls #GNUNET_SET_commit().
    */
   uint32_t request_id GNUNET_PACKED;
 
@@ -272,7 +272,7 @@ struct GNUNET_SET_CancelMessage
 struct GNUNET_SET_IterResponseMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_RESPONSE
+   * Type: #GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT
    */
   struct GNUNET_MessageHeader header;
 

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2013 Christian Grothoff (and other contributing authors)
+     (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,7 @@
 
 /**
  * @author Florian Dold
- * @file set/set_protocol.h
+ * @file set/gnunet-service-set_protocol.h
  * @brief Peer-to-Peer messages for gnunet set
  */
 #ifndef SET_PROTOCOL_H
@@ -66,7 +66,7 @@ struct OperationRequestMessage
 struct IBFMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_SET_P2P_IBF
+   * Type: #GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF
    */
   struct GNUNET_MessageHeader header;
 
