@@ -170,8 +170,7 @@ struct OperationState
 
 
 /**
- * The key entry is used to associate an ibf key with
- * an element.
+ * The key entry is used to associate an ibf key with an element.
  */
 struct KeyEntry
 {
@@ -316,8 +315,8 @@ fail_union_operation (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "union operation failed\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "union operation failed\n");
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
   msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
   msg->request_id = htonl (op->spec->client_request_id);
@@ -357,8 +356,7 @@ get_ibf_key (const struct GNUNET_HashCode *src,
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
+ * @return #GNUNET_YES if we should continue to iterate,
  *         #GNUNET_NO if not.
  */
 static int
@@ -390,9 +388,7 @@ op_register_element_iterator (void *cls,
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 op_has_element_iterator (void *cls,
@@ -405,7 +401,8 @@ op_has_element_iterator (void *cls,
   GNUNET_assert (NULL != k);
   while (NULL != k)
   {
-    if (0 == GNUNET_CRYPTO_hash_cmp (&k->element->element_hash, element_hash))
+    if (0 == GNUNET_CRYPTO_hash_cmp (&k->element->element_hash,
+                                     element_hash))
       return GNUNET_NO;
     k = k->next_colliding;
   }
@@ -506,12 +503,11 @@ prepare_ibf_iterator (void *cls,
  * Iterator for initializing the
  * key-to-element mapping of a union operation
  *
- * @param cls the union operation
- * @param key unised
- * @param value the element entry to insert
+ * @param cls the union operation `struct Operation *`
+ * @param key unused
+ * @param value the `struct ElementEntry *` to insert
  *        into the key-to-element mapping
- * @return GNUNET_YES to continue iterating,
- *         GNUNET_NO to stop
+ * @return #GNUNET_YES (to continue iterating)
  */
 static int
 init_key_to_element_iterator (void *cls,
@@ -543,7 +539,8 @@ init_key_to_element_iterator (void *cls,
  * @param size size of the ibf to create
  */
 static void
-prepare_ibf (struct Operation *op, uint16_t size)
+prepare_ibf (struct Operation *op,
+             uint16_t size)
 {
   if (NULL == op->state->key_to_element)
   {
@@ -557,7 +554,8 @@ prepare_ibf (struct Operation *op, uint16_t size)
     ibf_destroy (op->state->local_ibf);
   op->state->local_ibf = ibf_create (size, SE_IBF_HASH_NUM);
   GNUNET_CONTAINER_multihashmap32_iterate (op->state->key_to_element,
-                                           prepare_ibf_iterator, op->state->local_ibf);
+                                           &prepare_ibf_iterator,
+                                           op->state->local_ibf);
 }
 
 
@@ -568,7 +566,8 @@ prepare_ibf (struct Operation *op, uint16_t size)
  * @param ibf_order order of the ibf to send, size=2^order
  */
 static void
-send_ibf (struct Operation *op, uint16_t ibf_order)
+send_ibf (struct Operation *op,
+          uint16_t ibf_order)
 {
   unsigned int buckets_sent = 0;
   struct InvertibleBloomFilter *ibf;
@@ -647,7 +646,8 @@ get_order_from_difference (unsigned int diff)
   unsigned int ibf_order;
 
   ibf_order = 2;
-  while ((1<<ibf_order) < (IBF_ALPHA * diff) || (1<<ibf_order) < SE_IBF_HASH_NUM)
+  while ( (1<<ibf_order) < (IBF_ALPHA * diff) ||
+          ((1<<ibf_order) < SE_IBF_HASH_NUM) )
     ibf_order++;
   if (ibf_order > MAX_IBF_ORDER)
     ibf_order = MAX_IBF_ORDER;
@@ -662,7 +662,8 @@ get_order_from_difference (unsigned int diff)
  * @param mh the message
  */
 static void
-handle_p2p_strata_estimator (void *cls, const struct GNUNET_MessageHeader *mh)
+handle_p2p_strata_estimator (void *cls,
+                             const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   struct StrataEstimator *remote_se;
@@ -843,7 +844,7 @@ decode_and_send (struct Operation *op)
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "transmitted all values, sending DONE\n");
-      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DONE);
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE);
       GNUNET_MQ_send (op->mq, ev);
       break;
     }
@@ -1201,7 +1202,7 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "got DONE, sending final DONE after elements\n");
     op->state->phase = PHASE_FINISHED;
-    ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DONE);
+    ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE);
     GNUNET_MQ_send (op->mq, ev);
     return;
   }
@@ -1251,7 +1252,6 @@ union_evaluate (struct Operation *op,
   }
   msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
   msg->app_id = op->spec->app_id;
-  msg->salt = htonl (op->spec->salt);
   GNUNET_MQ_send (op->mq, ev);
 
   if (NULL != opaque_context)
@@ -1379,7 +1379,7 @@ union_handle_p2p_message (struct Operation *op,
     case GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS:
       handle_p2p_element_requests (op, mh);
       break;
-    case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
+    case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE:
       handle_p2p_done (op, mh);
       break;
     default:

@@ -375,8 +375,9 @@ GNUNET_CRYPTO_hash_sum (const struct GNUNET_HashCode * a,
  * @param result set to a ^ b
  */
 void
-GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode * a, const struct GNUNET_HashCode * b,
-                        struct GNUNET_HashCode * result)
+GNUNET_CRYPTO_hash_xor (const struct GNUNET_HashCode *a,
+                        const struct GNUNET_HashCode *b,
+                        struct GNUNET_HashCode *result)
 {
   int i;
 

@@ -17,9 +17,9 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @author Florian Dold
+ * @author Christian Grothoff
  * @file set/gnunet-service-set_protocol.h
  * @brief Peer-to-Peer messages for gnunet set
  */
@@ -43,11 +43,6 @@ struct OperationRequestMessage
    * Operation to request, values from `enum GNUNET_SET_OperationType`
    */
   uint32_t operation GNUNET_PACKED;
-
-  /**
-   * Salt to use for this operation.
-   */
-  uint32_t salt GNUNET_PACKED;
 
   /**
    * For Intersection: my element count
@@ -126,27 +121,28 @@ struct BFMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * mutator used with this bloomfilter.
+   * Number of elements the sender still has in the set.
    */
   uint32_t sender_element_count GNUNET_PACKED;
 
   /**
-   * mutator used with this bloomfilter.
+   * XOR of all hashes over all elements remaining in the set.
+   * Used to determine termination.
+   */
+  struct GNUNET_HashCode element_xor_hash;
+
+  /**
+   * Mutator used with this bloomfilter.
    */
   uint32_t sender_mutator GNUNET_PACKED;
 
   /**
-   * Length of the bloomfilter data
+   * Total length of the bloomfilter data.
    */
   uint32_t bloomfilter_total_length GNUNET_PACKED;
 
   /**
-   * Length of the appended bloomfilter data block
-   */
-  uint32_t bloomfilter_length GNUNET_PACKED;
-
-  /**
-   * Length of the bloomfilter data
+   * Number of bits (k-value) used in encoding the bloomfilter.
    */
   uint32_t bits_per_element GNUNET_PACKED;
 
@@ -156,26 +152,28 @@ struct BFMessage
 };
 
 
-struct BFPart
+/**
+ * Last message, send to confirm the final set.  Contains the element
+ * count as it is possible that the peer determined that we were done
+ * by getting the empty set, which in that case also needs to be
+ * communicated.
+ */
+struct IntersectionDoneMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
+   * Type: #GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Length of the appended bloomfilter data block
+   * Final number of elements in intersection.
    */
-  uint32_t chunk_length GNUNET_PACKED;
+  uint32_t final_element_count GNUNET_PACKED;
 
   /**
-   * offset in the bloolfilter data block, if multipart message
+   * XOR of all hashes over all elements remaining in the set.
    */
-  uint32_t chunk_offset GNUNET_PACKED;
-
-  /**
-   * rest: the sender's bloomfilter
-   */
+  struct GNUNET_HashCode element_xor_hash;
 };
 
 GNUNET_NETWORK_STRUCT_END

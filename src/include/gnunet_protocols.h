@@ -1867,9 +1867,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS 585
 
 /**
- * Operation is done.
+ * Union operation is done.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_DONE 586
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE 586
 
 /**
  * Start iteration over set elements.
@@ -1897,9 +1897,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF 592
 
 /**
- * Bloom filter message for intersection exchange started by Bob.
+ * Intersection operation is done.
  */
-#define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART 593
+#define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE 593
+
 
 /*******************************************************************************
  * TESTBED LOGGER message types
