@@ -903,7 +903,7 @@ handle_p2p_done (void *cls,
   {
     /* other peer determined empty set is the intersection,
        remove all elements */
-    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+    GNUNET_CONTAINER_multihashmap_iterate (op->state->my_elements,
                                            &filter_all,
                                            op);
   }
@@ -995,6 +995,7 @@ intersection_accept (struct Operation *op)
     /* If the other peer (Alice) has fewer elements than us (Bob),
        we just send the count as Alice should send the first BF */
     send_element_count (op);
+    op->state->phase = PHASE_BF_EXCHANGE;
     return;
   }
   /* We have fewer elements, so we start with the BF */
