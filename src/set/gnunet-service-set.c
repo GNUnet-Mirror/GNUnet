@@ -608,7 +608,7 @@ handle_incoming_msg (struct Operation *op,
   /* Make a copy of the nested_context (application-specific context
      information that is opaque to set) so we can pass it to the
      listener later on */
-  if (NULL != spec->context_msg)
+  if (NULL != nested_context)
     spec->context_msg = GNUNET_copy_message (nested_context);
   spec->operation = ntohl (msg->operation);
   spec->app_id = msg->app_id;
