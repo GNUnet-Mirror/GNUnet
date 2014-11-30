@@ -1077,11 +1077,10 @@ static void
 finish_and_destroy (struct Operation *op)
 {
   GNUNET_assert (GNUNET_NO == op->state->client_done_sent);
-
+  op->keep++;
   if (GNUNET_SET_RESULT_FULL == op->spec->result_mode)
   {
     /* prevent that the op is free'd by the tunnel end handler */
-    op->keep++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "sending full result set\n");
     GNUNET_assert (NULL == op->state->full_result_iter);
