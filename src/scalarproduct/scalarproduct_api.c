@@ -149,7 +149,7 @@ process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
                         const struct ClientResponseMessage *msg,
                         enum GNUNET_SCALARPRODUCT_ResponseStatus status)
 {
-  size_t product_len = ntohl (msg->product_length);
+  size_t product_len;
   gcry_mpi_t result = NULL;
   gcry_error_t rc;
   gcry_mpi_t num;
@@ -158,7 +158,7 @@ process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
   if ( (GNUNET_SCALARPRODUCT_Status_Success == status) &&
        ( (NULL == msg) ||
          ( (ntohs (msg->header.size) - sizeof (struct ClientResponseMessage)
-            != product_len) ) ) )
+            != (product_len = ntohl (msg->product_length))) ) ) )
   {
     GNUNET_break (0);
     status = GNUNET_SCALARPRODUCT_Status_InvalidResponse;
