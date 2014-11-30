@@ -96,14 +96,11 @@ enum GNUNET_SET_OperationType
 enum GNUNET_SET_Status
 {
   /**
-   * Everything went ok.
+   * Everything went ok, we are transmitting an element of the
+   * result (in set, or to be removed from set, depending on
+   * the `enum GNUNET_SET_ResultMode`).
    */
   GNUNET_SET_STATUS_OK,
-
-  /**
-   * There was a timeout.
-   */
-  GNUNET_SET_STATUS_TIMEOUT,
 
   /**
    * The other peer refused to to the operation with us,
@@ -112,8 +109,9 @@ enum GNUNET_SET_Status
   GNUNET_SET_STATUS_FAILURE,
 
   /**
-   * Success, all elements have been returned (but the other
-   * peer might still be receiving some from us, so we are not done).
+   * Success, all elements have been returned (but the other peer
+   * might still be receiving some from us, so we are not done).  Only
+   * used during UNION operation.
    */
   GNUNET_SET_STATUS_HALF_DONE,
 
