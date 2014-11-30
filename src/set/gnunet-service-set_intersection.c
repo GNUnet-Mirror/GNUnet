@@ -549,7 +549,7 @@ send_remaining_elements (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending done and destroy because iterator ran out\n");
-    op->keep = GNUNET_NO;
+    op->keep--;
     send_client_done_and_destroy (op);
     return;
   }
@@ -907,7 +907,7 @@ finish_and_destroy (struct Operation *op)
                 GNUNET_CONTAINER_multihashmap_size (op->state->my_elements));
     op->state->full_result_iter
       = GNUNET_CONTAINER_multihashmap_iterator_create (op->state->my_elements);
-    op->keep = GNUNET_YES;
+    op->keep++;
     send_remaining_elements (op);
     return;
   }

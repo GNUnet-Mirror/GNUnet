@@ -994,7 +994,6 @@ send_done_and_destroy (void *cls)
   struct Operation *op = cls;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *rm;
-  int keep = op->keep;
 
   ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
   rm->request_id = htonl (op->spec->client_request_id);
@@ -1002,7 +1001,8 @@ send_done_and_destroy (void *cls)
   rm->element_type = htons (0);
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
   _GSS_operation_destroy (op, GNUNET_YES);
-  if (GNUNET_YES == keep)
+  op->keep--;
+  if (0 == op->keep)
     GNUNET_free (op);
 }
 
@@ -1081,7 +1081,7 @@ finish_and_destroy (struct Operation *op)
   if (GNUNET_SET_RESULT_FULL == op->spec->result_mode)
   {
     /* prevent that the op is free'd by the tunnel end handler */
-    op->keep = GNUNET_YES;
+    op->keep++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "sending full result set\n");
     GNUNET_assert (NULL == op->state->full_result_iter);

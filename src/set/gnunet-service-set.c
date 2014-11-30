@@ -1388,6 +1388,7 @@ channel_end_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "channel_end_cb called\n");
   op->channel = NULL;
+  op->keep++;
   /* the vt can be null if a client already requested canceling op. */
   if (NULL != op->vt)
   {
@@ -1395,7 +1396,8 @@ channel_end_cb (void *cls,
                 "calling peer disconnect due to channel end\n");
     op->vt->peer_disconnect (op);
   }
-  if (GNUNET_YES != op->keep)
+  op->keep--;
+  if (0 == op->keep)
   {
     /* cadet will never call us with the context again! */
     GNUNET_free (op);

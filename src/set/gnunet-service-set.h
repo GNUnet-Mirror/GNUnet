@@ -388,10 +388,11 @@ struct Operation
   unsigned int generation_created;
 
   /**
-   * Set to #GNUNET_YES if the set service should not free the
-   * operation, as it is still needed (e.g. in some scheduled task).
+   * Incremented whenever (during shutdown) some component still
+   * needs to do something with this before the operation is freed.
+   * (Used as a reference counter, but only during termination.)
    */
-  int keep;
+  unsigned int keep;
 };
 
 
