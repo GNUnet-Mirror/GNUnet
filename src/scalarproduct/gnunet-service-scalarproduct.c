@@ -462,7 +462,7 @@ prepare_bobs_cryptodata_message_multipart (void *cls);
 
 
 /**
- * computes the square sum over a vector of a given length.
+ * Computes the square sum over a vector of a given length.
  *
  * @param vector the vector to encrypt
  * @param length the length of the vector
@@ -474,18 +474,16 @@ compute_square_sum (gcry_mpi_t *vector,
 {
   gcry_mpi_t elem;
   gcry_mpi_t sum;
-  int32_t i;
+  uint32_t i;
 
-  GNUNET_assert (sum = gcry_mpi_new (0));
-  GNUNET_assert (elem = gcry_mpi_new (0));
-
-  // calculare E(sum (ai ^ 2), publickey)
-  for (i = 0; i < length; i++) {
+  GNUNET_assert (NULL != (sum = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (elem = gcry_mpi_new (0)));
+  for (i = 0; i < length; i++)
+  {
     gcry_mpi_mul (elem, vector[i], vector[i]);
     gcry_mpi_add (sum, sum, elem);
   }
   gcry_mpi_release (elem);
-
   return sum;
 }
 
@@ -498,62 +496,63 @@ compute_square_sum (gcry_mpi_t *vector,
 static void
 free_session_variables (struct ServiceSession *s)
 {
-  while (NULL != s->a_head)
+  struct SortedValue *e;
+  while (NULL != (e = s->a_head))
   {
-    struct SortedValue * e = s->a_head;
-
     GNUNET_free (e->elem);
     gcry_mpi_release (e->val);
-    GNUNET_CONTAINER_DLL_remove (s->a_head, s->a_tail, e);
+    GNUNET_CONTAINER_DLL_remove (s->a_head,
+                                 s->a_tail,
+                                 e);
     GNUNET_free (e);
   }
-  if (s->e_a)
-  {
-    GNUNET_free (s->e_a);
-    s->e_a = NULL;
-  }
-  if (s->sorted_elements)
-  {
-    GNUNET_free (s->sorted_elements);
-    s->sorted_elements = NULL;
-  }
-  if (s->intersected_elements)
+  if (NULL != s->intersected_elements)
   {
     GNUNET_CONTAINER_multihashmap_destroy (s->intersected_elements);
-    //elements are freed independently in session->a_head/tail
+    /* elements are freed independently in above loop over a_head */
     s->intersected_elements = NULL;
   }
-  if (s->intersection_listen)
+  if (NULL != s->intersection_listen)
   {
     GNUNET_SET_listen_cancel (s->intersection_listen);
     s->intersection_listen = NULL;
   }
-  if (s->intersection_op)
+  if (NULL != s->intersection_op)
   {
     GNUNET_SET_operation_cancel (s->intersection_op);
     s->intersection_op = NULL;
   }
-  if (s->intersection_set)
+  if (NULL != s->intersection_set)
   {
     GNUNET_SET_destroy (s->intersection_set);
     s->intersection_set = NULL;
   }
-  if (s->msg)
+  if (NULL != s->e_a)
+  {
+    GNUNET_free (s->e_a);
+    s->e_a = NULL;
+  }
+  if (NULL != s->sorted_elements)
+  {
+    GNUNET_free (s->sorted_elements);
+    s->sorted_elements = NULL;
+  }
+  if (NULL != s->msg)
   {
     GNUNET_free (s->msg);
     s->msg = NULL;
   }
-  if (s->r)
+  if (NULL != s->r)
   {
     GNUNET_free (s->r);
     s->r = NULL;
   }
-  if (s->r_prime)
+  if (NULL != s->r_prime)
   {
     GNUNET_free (s->r_prime);
     s->r_prime = NULL;
   }
-  if (s->product)
+  if (NULL != s->product)
   {
     gcry_mpi_release (s->product);
     s->product = NULL;
@@ -562,12 +561,13 @@ free_session_variables (struct ServiceSession *s)
 
 
 /**
- * Primitive callback for copying over a message, as they
- * usually are too complex to be handled in the callback itself.
- * clears a session-callback, if a session was handed over and the transmit handle was stored
+ * Primitive callback for copying over a message, as they usually are
+ * too complex to be handled in the callback itself.  Clears a
+ * session-callback, if a session was handed over and the transmit
+ * handle was stored.
  *
  * @param cls the session containing the message object
- * @param size the size of the buffer we got
+ * @param size the size of the @a buf we got
  * @param buf the buffer to copy the message to
  * @return 0 if we couldn't copy, else the size copied over
  */
@@ -576,47 +576,44 @@ cb_transfer_message (void *cls,
                      size_t size,
                      void *buf)
 {
-  struct ServiceSession * s = cls;
+  struct ServiceSession *s = cls;
   uint16_t type;
 
+  s->client_transmit_handle = NULL;
   GNUNET_assert (buf);
-  if (ntohs (s->msg->size) != size)
+  if (ntohs (s->msg->size) > size)
   {
     GNUNET_break (0);
     return 0;
   }
-
+  size = ntohs (s->msg->size);
   type = ntohs (s->msg->type);
-  memcpy (buf, s->msg, size);
+  memcpy (buf,
+          s->msg,
+          size);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sent a message of type %hu.\n",
-              type);
+              "Sending a message of type %u.\n",
+              (unsigned int) type);
   GNUNET_free (s->msg);
   s->msg = NULL;
 
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT:
-    s->client_transmit_handle = NULL;
     free_session_variables (s);
+    // FIXME: that does not fully clean up 's'
     break;
-
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION:
-    s->service_transmit_handle = NULL;
     break;
-
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA:
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA_MULTIPART:
-    s->service_transmit_handle = NULL;
     if (s->used_element_count != s->transferred_element_count)
       prepare_alices_cyrptodata_message_multipart (s);
     else
       s->channel = NULL;
     break;
-
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA:
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA_MULTIPART:
-    s->service_transmit_handle = NULL;
     if (s->used_element_count != s->transferred_element_count)
       prepare_bobs_cryptodata_message_multipart (s);
     else
@@ -633,15 +630,17 @@ cb_transfer_message (void *cls,
  * Finds a not terminated client/service session in the
  * given DLL based on session key, element count and state.
  *
+ * FIXME: Use hashmap based on key instead of linear search.
+ *
  * @param tail - the tail of the DLL
  * @param key - the key we want to search for
  * @param peerid - a pointer to the peer ID of the associated peer, NULL to ignore
  * @return a pointer to a matching session, or NULL
  */
 static struct ServiceSession *
-find_matching_session (struct ServiceSession * tail,
-                       const struct GNUNET_HashCode * key,
-                       const struct GNUNET_PeerIdentity * peerid)
+find_matching_session (struct ServiceSession *tail,
+                       const struct GNUNET_HashCode *key,
+                       const struct GNUNET_PeerIdentity *peerid)
 {
   struct ServiceSession * s;
 
@@ -683,7 +682,8 @@ cb_client_disconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p disconnected from us.\n",
               client);
-  s = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
+  s = GNUNET_SERVER_client_get_user_context (client,
+                                             struct ServiceSession);
   if (NULL == s)
     return;
   GNUNET_CONTAINER_DLL_remove (from_client_head,
@@ -717,8 +717,8 @@ cb_client_disconnect (void *cls,
 /**
  * Notify the client that the session has succeeded or failed completely.
  * This message gets sent to
- * * alice's client if bob disconnected or to
- * * bob's client if the operation completed or alice disconnected
+ * - Alice's client if Bob disconnected or to
+ * - Bob's client if the operation completed or Alice disconnected
  *
  * @param cls the associated client session
  * @param tc the task context handed to us by the scheduler, unused
@@ -737,7 +737,7 @@ prepare_client_end_notification (void *cls,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT);
   // signal error if not signalized, positive result-range field but zero length.
   msg->product_length = htonl (0);
-  msg->status = htonl(session->active);
+  msg->status = htonl (session->active);
   session->msg = &msg->header;
 
   //transmit this message to our client
@@ -2674,6 +2674,8 @@ shutdown_task (void *cls,
   do_shutdown = GNUNET_YES;
 
   // terminate all owned open channels.
+  // FIXME: this should be unnecessary, as we should
+  // get client disconnect events that create the same effect.
   for (s = from_client_head; NULL != s; s = s->next)
   {
     if ((GNUNET_NO != s->active) && (NULL != s->channel))

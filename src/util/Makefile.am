@@ -291,7 +291,7 @@ test_bio_LDADD = \
 test_os_start_process_SOURCES = \
  test_os_start_process.c
 test_os_start_process_LDADD = \
- libgnunetutil.la 
+ libgnunetutil.la
 test_os_start_process_DEPENDENCIES = \
  libgnunetutil.la \
  $(WINCAT)

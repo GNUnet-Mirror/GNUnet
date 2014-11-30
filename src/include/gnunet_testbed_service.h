@@ -1347,10 +1347,12 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
 uint32_t
 GNUNET_TESTBED_get_index (const struct GNUNET_TESTBED_Peer *peer);
 
+
 /**
  * Handle for testbed run helper funtions
  */
 struct GNUNET_TESTBED_RunHandle;
+
 
 /**
  * Signature of a main function for a testcase.
@@ -1366,12 +1368,13 @@ struct GNUNET_TESTBED_RunHandle;
  *          failed
  * @see GNUNET_TESTBED_test_run()
  */
-typedef void (*GNUNET_TESTBED_TestMaster)(void *cls,
-                                          struct GNUNET_TESTBED_RunHandle *h,
-                                          unsigned int num_peers,
-                                          struct GNUNET_TESTBED_Peer **peers,
-                                          unsigned int links_succeeded,
-                                          unsigned int links_failed);
+typedef void
+(*GNUNET_TESTBED_TestMaster)(void *cls,
+                             struct GNUNET_TESTBED_RunHandle *h,
+                             unsigned int num_peers,
+                             struct GNUNET_TESTBED_Peer **peers,
+                             unsigned int links_succeeded,
+                             unsigned int links_failed);
 
 
 /**
@@ -1447,7 +1450,7 @@ GNUNET_TESTBED_run (const char *host_filename,
  *                   respective 'enum GNUNET_TESTBED_EventType'
  *                   (i.e.  "(1LL << GNUNET_TESTBED_ET_CONNECT) || ...")
  * @param cc controller callback to invoke on events; This callback is called
- *        for all peer start events even if GNUNET_TESTBED_ET_PEER_START isn't
+ *        for all peer start events even if #GNUNET_TESTBED_ET_PEER_START isn't
  *        set in the event_mask as this is the only way get access to the
  *        handle of each peer
  * @param cc_cls closure for @a cc

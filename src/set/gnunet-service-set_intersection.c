@@ -1041,6 +1041,7 @@ intersection_evaluate (struct Operation *op,
   msg->element_count = htonl (op->state->my_element_count);
   GNUNET_MQ_send (op->mq,
                   ev);
+  op->state->phase = PHASE_COUNT_SENT;
   if (NULL != opaque_context)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sent op request with context message\n");
