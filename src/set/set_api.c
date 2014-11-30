@@ -306,6 +306,10 @@ handle_result (void *cls,
   msg = (const struct GNUNET_SET_ResultMessage *) mh;
   GNUNET_assert (NULL != set->mq);
   result_status = ntohs (msg->result_status);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got result message with status %d\n",
+       result_status);
+
   oh = GNUNET_MQ_assoc_get (set->mq,
                             ntohl (msg->request_id));
   if (NULL == oh)
@@ -331,6 +335,19 @@ handle_result (void *cls,
       oh->result_cb (oh->result_cls,
                      NULL,
                      result_status);
+    switch (result_status)
+    {
+    case GNUNET_SET_STATUS_OK:
+      break;
+    case GNUNET_SET_STATUS_FAILURE:
+      oh->result_cb = NULL;
+      break;
+    case GNUNET_SET_STATUS_HALF_DONE:
+      break;
+    case GNUNET_SET_STATUS_DONE:
+      oh->result_cb = NULL;
+      break;
+    }
     GNUNET_free (oh);
     return;
   }
@@ -417,7 +434,8 @@ handle_client_set_error (void *cls,
   struct GNUNET_SET_Handle *set = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Handling client set error\n");
+       "Handling client set error %d\n",
+       error);
   while (NULL != set->ops_head)
   {
     if (NULL != set->ops_head->result_cb)
@@ -479,7 +497,8 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   set->mq = GNUNET_MQ_queue_for_connection_client (set->client,
                                                    mq_handlers,
-                                                   &handle_client_set_error, set);
+                                                   &handle_client_set_error,
+                                                   set);
   GNUNET_assert (NULL != set->mq);
   mqm = GNUNET_MQ_msg (msg,
                        GNUNET_MESSAGE_TYPE_SET_CREATE);

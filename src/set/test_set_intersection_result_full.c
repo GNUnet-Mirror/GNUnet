@@ -53,6 +53,7 @@ result_cb_set1 (void *cls,
                 enum GNUNET_SET_Status status)
 {
   static int count;
+
   switch (status)
   {
   case GNUNET_SET_STATUS_OK:

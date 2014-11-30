@@ -549,13 +549,15 @@ send_remaining_elements (void *cls)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending done and destroy because iterator ran out\n");
+    op->keep = GNUNET_NO;
     send_client_done_and_destroy (op);
     return;
   }
   ee = nxt;
   element = &ee->element;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending element (size %u) to client (full set)\n",
+              "Sending element %s:%u to client (full set)\n",
+              GNUNET_h2s (&ee->element_hash),
               element->size);
   GNUNET_assert (0 != op->spec->client_request_id);
   ev = GNUNET_MQ_msg_extra (rm,
@@ -901,9 +903,11 @@ finish_and_destroy (struct Operation *op)
   if (GNUNET_SET_RESULT_FULL == op->spec->result_mode)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending full result set\n");
+                "Sending full result set (%u elements)\n",
+                GNUNET_CONTAINER_multihashmap_size (op->state->my_elements));
     op->state->full_result_iter
       = GNUNET_CONTAINER_multihashmap_iterator_create (op->state->my_elements);
+    op->keep = GNUNET_YES;
     send_remaining_elements (op);
     return;
   }
@@ -993,7 +997,8 @@ handle_p2p_done (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got final DONE\n");
+              "Got IntersectionDoneMessage, have %u elements in intersection\n",
+              op->state->my_element_count);
   op->state->phase = PHASE_FINISHED;
   finish_and_destroy (op);
 }
