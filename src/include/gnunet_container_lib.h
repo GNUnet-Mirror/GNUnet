@@ -59,6 +59,7 @@ extern "C"
  */
 struct GNUNET_CONTAINER_BloomFilter;
 
+
 /**
  * @ingroup bloomfilter
  * Iterator over `struct GNUNET_HashCode`.
@@ -68,8 +69,9 @@ struct GNUNET_CONTAINER_BloomFilter;
  * @return #GNUNET_YES if next was updated
  *         #GNUNET_NO if there are no more entries
  */
-typedef int (*GNUNET_CONTAINER_HashCodeIterator) (void *cls,
-                                        struct GNUNET_HashCode *next);
+typedef int
+(*GNUNET_CONTAINER_HashCodeIterator) (void *cls,
+                                      struct GNUNET_HashCode *next);
 
 
 /**
@@ -121,7 +123,8 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data,
  */
 int
 GNUNET_CONTAINER_bloomfilter_get_raw_data (const struct GNUNET_CONTAINER_BloomFilter *bf,
-                                           char *data, size_t size);
+                                           char *data,
+                                           size_t size);
 
 
 /**
@@ -194,6 +197,7 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf);
 size_t
 GNUNET_CONTAINER_bloomfilter_get_element_addresses (const struct GNUNET_CONTAINER_BloomFilter *bf);
 
+
 /**
  * @ingroup bloomfilter
  * Get size of the bloom filter.
@@ -246,6 +250,7 @@ int
 GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
                                   const struct GNUNET_CONTAINER_BloomFilter *to_or);
 
+
 /**
  * @ingroup bloomfilter
  * Resize a bloom filter.  Note that this operation
@@ -261,7 +266,8 @@ GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
 void
 GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
                                      GNUNET_CONTAINER_HashCodeIterator iterator,
-                                     void *iterator_cls, size_t size,
+                                     void *iterator_cls,
+                                     size_t size,
                                      unsigned int k);
 
 
@@ -272,6 +278,7 @@ GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
  * Meta data to associate with a file, directory or namespace.
  */
 struct GNUNET_CONTAINER_MetaData;
+
 
 /**
  * @ingroup metadata
@@ -291,8 +298,8 @@ GNUNET_CONTAINER_meta_data_create (void);
  * @return duplicate meta-data container
  */
 struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_duplicate (const struct GNUNET_CONTAINER_MetaData
-                                      *md);
+GNUNET_CONTAINER_meta_data_duplicate (const struct GNUNET_CONTAINER_MetaData *md);
+
 
 /**
  * @ingroup metadata
@@ -343,7 +350,8 @@ GNUNET_CONTAINER_meta_data_insert (struct GNUNET_CONTAINER_MetaData *md,
                                    const char *plugin_name,
                                    enum EXTRACTOR_MetaType type,
                                    enum EXTRACTOR_MetaFormat format,
-                                   const char *data_mime_type, const char *data,
+                                   const char *data_mime_type,
+                                   const char *data,
                                    size_t data_size);
 
 
@@ -374,7 +382,8 @@ GNUNET_CONTAINER_meta_data_merge (struct GNUNET_CONTAINER_MetaData *md,
 int
 GNUNET_CONTAINER_meta_data_delete (struct GNUNET_CONTAINER_MetaData *md,
                                    enum EXTRACTOR_MetaType type,
-                                   const char *data, size_t data_size);
+                                   const char *data,
+                                   size_t data_size);
 
 
 /**
@@ -395,8 +404,7 @@ GNUNET_CONTAINER_meta_data_clear (struct GNUNET_CONTAINER_MetaData *md);
  * @param md metadata to modify
  */
 void
-GNUNET_CONTAINER_meta_data_add_publication_date (struct
-                                                 GNUNET_CONTAINER_MetaData *md);
+GNUNET_CONTAINER_meta_data_add_publication_date (struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -427,8 +435,8 @@ GNUNET_CONTAINER_meta_data_iterate (const struct GNUNET_CONTAINER_MetaData *md,
  * @return NULL if no entry was found
  */
 char *
-GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData
-                                        *md, enum EXTRACTOR_MetaType type);
+GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData *md,
+                                        enum EXTRACTOR_MetaType type);
 
 
 /**
@@ -444,8 +452,7 @@ GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData
  *  otherwise client is responsible for freeing the value!
  */
 char *
-GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
-                                               GNUNET_CONTAINER_MetaData *md,
+GNUNET_CONTAINER_meta_data_get_first_by_types (const struct GNUNET_CONTAINER_MetaData *md,
                                                ...);
 
 /**
@@ -459,8 +466,8 @@ GNUNET_CONTAINER_meta_data_get_first_by_types (const struct
  * @return number of bytes in thumbnail, 0 if not available
  */
 size_t
-GNUNET_CONTAINER_meta_data_get_thumbnail (const struct GNUNET_CONTAINER_MetaData
-                                          *md, unsigned char **thumb);
+GNUNET_CONTAINER_meta_data_get_thumbnail (const struct GNUNET_CONTAINER_MetaData *md,
+                                          unsigned char **thumb);
 
 
 
@@ -507,11 +514,10 @@ enum GNUNET_CONTAINER_MetaDataSerializationOptions
  *         space)
  */
 ssize_t
-GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
-                                      *md, char **target, size_t max,
-                                      enum
-                                      GNUNET_CONTAINER_MetaDataSerializationOptions
-                                      opt);
+GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData *md,
+                                      char **target,
+                                      size_t max,
+                                      enum GNUNET_CONTAINER_MetaDataSerializationOptions opt);
 
 
 /**
@@ -522,8 +528,7 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
  * @return number of bytes needed for serialization, -1 on error
  */
 ssize_t
-GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
-                                                GNUNET_CONTAINER_MetaData *md);
+GNUNET_CONTAINER_meta_data_get_serialized_size (const struct GNUNET_CONTAINER_MetaData *md);
 
 
 /**
@@ -536,7 +541,8 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
  *         bad format)
  */
 struct GNUNET_CONTAINER_MetaData *
-GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size);
+GNUNET_CONTAINER_meta_data_deserialize (const char *input,
+                                        size_t size);
 
 
 /* ******************************* HashMap **************************** */

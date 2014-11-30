@@ -187,13 +187,16 @@ create_keys (const char *fn, const char *prefix)
 
 
 static void
-print_hex (char *msg, void *buf, size_t size)
+print_hex (const char *msg,
+           const void *buf,
+           size_t size)
 {
   size_t i;
+
   printf ("%s: ", msg);
   for (i = 0; i < size; i++)
   {
-    printf ("%02hhx", ((char *)buf)[i]);
+    printf ("%02hhx", ((const char *)buf)[i]);
   }
   printf ("\n");
 }
