@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  (C) 2013 Christian Grothoff (and other contributing authors)
+  (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public Licerevocation as published
@@ -428,20 +428,21 @@ add_revocation (void *cls,
                               "# revocation messages received via set union",
                               1, GNUNET_NO);
     break;
-  case GNUNET_SET_STATUS_TIMEOUT:
   case GNUNET_SET_STATUS_FAILURE:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Error computing revocation set union with %s\n"),
                 GNUNET_i2s (&peer_entry->id));
     peer_entry->so = NULL;
-    GNUNET_STATISTICS_update (stats, "# revocation set unions failed",
+    GNUNET_STATISTICS_update (stats,
+                              "# revocation set unions failed",
                               1, GNUNET_NO);
     break;
   case GNUNET_SET_STATUS_HALF_DONE:
     break;
   case GNUNET_SET_STATUS_DONE:
     peer_entry->so = NULL;
-    GNUNET_STATISTICS_update (stats, "# revocation set unions completed",
+    GNUNET_STATISTICS_update (stats,
+                              "# revocation set unions completed",
                               1, GNUNET_NO);
     break;
   default:
@@ -801,11 +802,12 @@ run (void *cls,
   }
   revocation_set = GNUNET_SET_create (cfg,
 				      GNUNET_SET_OPERATION_UNION);
-  revocation_union_listen_handle = GNUNET_SET_listen (cfg,
-                                                      GNUNET_SET_OPERATION_UNION,
-                                                      &revocation_set_union_app_id,
-                                                      &handle_revocation_union_request,
-                                                      NULL);
+  revocation_union_listen_handle
+    = GNUNET_SET_listen (cfg,
+                         GNUNET_SET_OPERATION_UNION,
+                         &revocation_set_union_app_id,
+                         &handle_revocation_union_request,
+                         NULL);
   revocation_db = GNUNET_DISK_file_open (fn,
                                          GNUNET_DISK_OPEN_READWRITE |
                                          GNUNET_DISK_OPEN_CREATE,
@@ -892,13 +894,17 @@ main (int argc,
                       strlen ("revocation-set-union-application-id"),
                       &revocation_set_union_app_id);
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "revocation", GNUNET_SERVICE_OPTION_NONE,
+          GNUNET_SERVICE_run (argc,
+                              argv,
+                              "revocation",
+                              GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }
 
 
 #ifdef LINUX
 #include <malloc.h>
+
 
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
@@ -911,7 +917,6 @@ GNUNET_ARM_memory_init ()
   malloc_trim (0);
 }
 #endif
-
 
 
 /* end of gnunet-service-revocation.c */
