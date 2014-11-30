@@ -467,6 +467,9 @@ GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_CreateMessage *msg;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating new set (operation %u)\n",
+              op);
   set = GNUNET_new (struct GNUNET_SET_Handle);
   set->client = GNUNET_CLIENT_connect ("set", cfg);
   if (NULL == set->client)

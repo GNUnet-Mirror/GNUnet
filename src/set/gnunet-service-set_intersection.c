@@ -37,14 +37,20 @@
 enum IntersectionOperationPhase
 {
   /**
-   * Alices has suggested an operation to bob,
-   * and is waiting for a bf or session end.
+   * We are just starting.
    */
   PHASE_INITIAL,
 
   /**
-   * Bob has accepted the operation, Bob and Alice are now exchanging bfs
-   * until one notices the their element hashes are equal.
+   * We have send the number of our elements to the other
+   * peer, but did not setup our element set yet.
+   */
+  PHASE_COUNT_SENT,
+
+  /**
+   * We have initialized our set and are now reducing it by exchanging
+   * Bloom filters until one party notices the their element hashes
+   * are equal.
    */
   PHASE_BF_EXCHANGE,
 
@@ -227,14 +233,30 @@ filtered_map_initialization (void *cls,
   struct ElementEntry *ee = value;
   struct GNUNET_HashCode mutated_hash;
 
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "FIMA called for %s:%u\n",
+              GNUNET_h2s (&ee->element_hash),
+              ee->element.size);
+
   if ( (op->generation_created < ee->generation_removed) &&
        (op->generation_created >= ee->generation_added) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Reduced initialization, not starting with %s:%u (wrong generation)\n",
+                GNUNET_h2s (&ee->element_hash),
+                ee->element.size);
     return GNUNET_YES; /* element not valid in our operation's generation */
+  }
 
-  /* Test if element is in Bob's bloomfilter */
+  /* Test if element is in other peer's bloomfilter */
   GNUNET_BLOCK_mingle_hash (&ee->element_hash,
                             op->state->salt,
                             &mutated_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Testing mingled hash %s with salt %u\n",
+              GNUNET_h2s (&mutated_hash),
+              op->state->salt);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf,
                                          &mutated_hash))
@@ -242,12 +264,20 @@ filtered_map_initialization (void *cls,
     /* remove this element */
     send_client_removed_element (op,
                                  &ee->element);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Reduced initialization, not starting with %s:%u\n",
+                GNUNET_h2s (&ee->element_hash),
+                ee->element.size);
     return GNUNET_YES;
   }
   op->state->my_element_count++;
   GNUNET_CRYPTO_hash_xor (&op->state->my_xor,
                           &ee->element_hash,
                           &op->state->my_xor);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Filtered initialization of my_elements, adding %s:%u\n",
+              GNUNET_h2s (&ee->element_hash),
+              ee->element.size);
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
                                                    &ee->element_hash,
@@ -279,6 +309,10 @@ iterator_bf_reduce (void *cls,
   GNUNET_BLOCK_mingle_hash (&ee->element_hash,
                             op->state->salt,
                             &mutated_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Testing mingled hash %s with salt %u\n",
+              GNUNET_h2s (&mutated_hash),
+              op->state->salt);
   if (GNUNET_NO ==
       GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf,
                                          &mutated_hash))
@@ -288,12 +322,23 @@ iterator_bf_reduce (void *cls,
     GNUNET_CRYPTO_hash_xor (&op->state->my_xor,
                             &ee->element_hash,
                             &op->state->my_xor);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Bloom filter reduction of my_elements, removing %s:%u\n",
+                GNUNET_h2s (&ee->element_hash),
+                ee->element.size);
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (op->state->my_elements,
                                                          &ee->element_hash,
                                                          ee));
     send_client_removed_element (op,
                                  &ee->element);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Bloom filter reduction of my_elements, keeping %s:%u\n",
+                GNUNET_h2s (&ee->element_hash),
+                ee->element.size);
   }
   return GNUNET_YES;
 }
@@ -319,6 +364,10 @@ iterator_bf_create (void *cls,
   GNUNET_BLOCK_mingle_hash (&ee->element_hash,
                             op->state->salt,
                             &mutated_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Initializing BF with hash %s with salt %u\n",
+              GNUNET_h2s (&mutated_hash),
+              op->state->salt);
   GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf,
                                     &mutated_hash);
   return GNUNET_YES;
@@ -370,7 +419,6 @@ send_bloomfilter (struct Operation *op)
   uint32_t bf_size;
   uint32_t bf_elementbits;
   uint32_t chunk_size;
-  struct GNUNET_CONTAINER_BloomFilter *local_bf;
   char *bf_data;
   uint32_t offset;
 
@@ -387,11 +435,12 @@ send_bloomfilter (struct Operation *op)
   bf_size = ceil ((double) (op->state->my_element_count
                             * bf_elementbits / log(2)));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending bf of size %u\n",
+              "Sending Bloom filter (%u) of size %u bytes\n",
+              (unsigned int) bf_elementbits,
               (unsigned int) bf_size);
-  local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
-                                                bf_size,
-                                                bf_elementbits);
+  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+                                                           bf_size,
+                                                           bf_elementbits);
   op->state->salt = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                               UINT32_MAX);
   GNUNET_CONTAINER_multihashmap_iterate (op->state->my_elements,
@@ -408,7 +457,7 @@ send_bloomfilter (struct Operation *op)
                               chunk_size,
                               GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
     GNUNET_assert (GNUNET_SYSERR !=
-                   GNUNET_CONTAINER_bloomfilter_get_raw_data (local_bf,
+                   GNUNET_CONTAINER_bloomfilter_get_raw_data (op->state->local_bf,
                                                               (char*) &msg[1],
                                                               bf_size));
     msg->sender_element_count = htonl (op->state->my_element_count);
@@ -423,7 +472,7 @@ send_bloomfilter (struct Operation *op)
     /* multipart */
     bf_data = GNUNET_malloc (bf_size);
     GNUNET_assert (GNUNET_SYSERR !=
-                   GNUNET_CONTAINER_bloomfilter_get_raw_data (local_bf,
+                   GNUNET_CONTAINER_bloomfilter_get_raw_data (op->state->local_bf,
                                                               bf_data,
                                                               bf_size));
     offset = 0;
@@ -447,7 +496,8 @@ send_bloomfilter (struct Operation *op)
     }
     GNUNET_free (bf_data);
   }
-  GNUNET_CONTAINER_bloomfilter_free (local_bf);
+  GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+  op->state->local_bf = NULL;
 }
 
 
@@ -560,15 +610,25 @@ send_peer_done (struct Operation *op)
 static void
 process_bf (struct Operation *op)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received BF in phase %u, foreign count is %u, my element count is %u/%u\n",
+              op->state->phase,
+              op->spec->remote_element_count,
+              op->state->my_element_count,
+              GNUNET_CONTAINER_multihashmap_size (op->spec->set->elements));
   switch (op->state->phase)
   {
   case PHASE_INITIAL:
+    GNUNET_break_op (0);
+    fail_intersection_operation(op);
+    return;
+  case PHASE_COUNT_SENT:
     /* This is the first BF being sent, build our initial map with
        filtering in place */
     op->state->my_elements
       = GNUNET_CONTAINER_multihashmap_create (op->spec->remote_element_count,
                                               GNUNET_YES);
-    GNUNET_break (0 == op->state->my_element_count);
+    op->state->my_element_count = 0;
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
                                            &filtered_map_initialization,
                                            op);
@@ -633,6 +693,7 @@ handle_p2p_bf (void *cls,
     GNUNET_break_op (0);
     fail_intersection_operation (op);
     break;
+  case PHASE_COUNT_SENT:
   case PHASE_BF_EXCHANGE:
     bf_size = ntohl (msg->bloomfilter_total_length);
     bf_bits_per_element = ntohl (msg->bits_per_element);
@@ -652,6 +713,7 @@ handle_p2p_bf (void *cls,
                                              bf_size,
                                              bf_bits_per_element);
       op->state->salt = ntohl (msg->sender_mutator);
+      op->spec->remote_element_count = ntohl (msg->sender_element_count);
       process_bf (op);
       return;
     }
@@ -728,6 +790,10 @@ initialize_map_unfiltered (void *cls,
   GNUNET_CRYPTO_hash_xor (&op->state->my_xor,
                           &ee->element_hash,
                           &op->state->my_xor);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Initial full initialization of my_elements, adding %s:%u\n",
+              GNUNET_h2s (&ee->element_hash),
+              ee->element.size);
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
                                                    &ee->element_hash,
@@ -750,7 +816,8 @@ send_element_count (struct Operation *op)
   struct IntersectionElementInfoMessage *msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending our element count (bf_msg)\n");
+              "Sending our element count (%u)\n",
+              op->state->my_element_count);
   ev = GNUNET_MQ_msg (msg,
                       GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO);
   msg->sender_element_count = htonl (op->state->my_element_count);
@@ -767,7 +834,6 @@ send_element_count (struct Operation *op)
 static void
 begin_bf_exchange (struct Operation *op)
 {
-  GNUNET_break (PHASE_INITIAL == op->state->phase);
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->my_elements
     = GNUNET_CONTAINER_multihashmap_create (op->state->my_element_count,
@@ -801,7 +867,12 @@ handle_p2p_element_info (void *cls,
   }
   msg = (const struct IntersectionElementInfoMessage *) mh;
   op->spec->remote_element_count = ntohl (msg->sender_element_count);
-  if ( (PHASE_INITIAL != op->state->phase) ||
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received remote element count (%u), I have %u\n",
+              op->spec->remote_element_count,
+              op->state->my_element_count);
+  if ( ( (PHASE_INITIAL != op->state->phase) &&
+         (PHASE_COUNT_SENT != op->state->phase) ) ||
        (op->state->my_element_count > op->spec->remote_element_count) ||
        (0 == op->state->my_element_count) ||
        (0 == op->spec->remote_element_count) )
@@ -861,6 +932,10 @@ filter_all (void *cls,
   GNUNET_CRYPTO_hash_xor (&op->state->my_xor,
                           &ee->element_hash,
                           &op->state->my_xor);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Final reduction of my_elements, removing %s:%u\n",
+              GNUNET_h2s (&ee->element_hash),
+              ee->element.size);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (op->state->my_elements,
                                                        &ee->element_hash,
@@ -945,7 +1020,7 @@ intersection_evaluate (struct Operation *op,
   op->state->my_element_count = op->spec->set->state->current_set_element_count;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Initiating intersection operation evaluation");
+              "Initiating intersection operation evaluation\n");
   ev = GNUNET_MQ_msg_nested_mh (msg,
                                 GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
                                 opaque_context);
@@ -995,7 +1070,7 @@ intersection_accept (struct Operation *op)
     /* If the other peer (Alice) has fewer elements than us (Bob),
        we just send the count as Alice should send the first BF */
     send_element_count (op);
-    op->state->phase = PHASE_BF_EXCHANGE;
+    op->state->phase = PHASE_COUNT_SENT;
     return;
   }
   /* We have fewer elements, so we start with the BF */

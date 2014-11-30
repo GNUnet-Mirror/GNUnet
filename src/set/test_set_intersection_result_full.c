@@ -234,7 +234,7 @@ run (void *cls,
 {
   config = cfg;
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
-  test_iter ();
+  if (0) test_iter ();
 
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_INTERSECTION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_INTERSECTION);

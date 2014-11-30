@@ -719,7 +719,7 @@ handle_client_iterate (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Iterating union set with %u elements\n",
+              "Iterating set with %u elements\n",
               GNUNET_CONTAINER_multihashmap_size (set->elements));
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
@@ -748,7 +748,7 @@ handle_client_create_set (void *cls,
   msg = (const struct GNUNET_SET_CreateMessage *) m;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client created new set (operation %u)\n",
-              ntohs (msg->operation));
+              ntohl (msg->operation));
   if (NULL != set_get (client))
   {
     /* There can only be one set per client */
