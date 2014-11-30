@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
  */
-
 /**
  * @file scalarproduct/scalarproduct_api.c
  * @brief API for the scalarproduct
@@ -156,8 +155,10 @@ process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
   gcry_mpi_t num;
   size_t rsize;
 
-  if (ntohs (msg->header.size) - sizeof (struct ClientResponseMessage)
-      != product_len)
+  if ( (GNUNET_SCALARPRODUCT_Status_Success == status) &&
+       ( (NULL == msg) ||
+         ( (ntohs (msg->header.size) - sizeof (struct ClientResponseMessage)
+            != product_len) ) ) )
   {
     GNUNET_break (0);
     status = GNUNET_SCALARPRODUCT_Status_InvalidResponse;
@@ -191,7 +192,9 @@ process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
       }
     }
   }
-  h->cont_datum (h->cont_cls, status, result);
+  h->cont_datum (h->cont_cls,
+                 status,
+                 result);
   if (NULL != result)
     gcry_mpi_release (result);
   GNUNET_SCALARPRODUCT_cancel (h);
