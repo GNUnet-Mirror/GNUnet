@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009, 2011, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,10 +17,7 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
- * Testcase for the NAT testing code.
- *
  * @file nat/test_nat_test.c
  * @brief Testcase for NAT testing functions
  * @author Christian Grothoff
@@ -39,6 +36,9 @@ static int ret = 1;
 
 static struct GNUNET_NAT_Test *tst;
 
+static GNUNET_SCHEDULER_TaskIdentifier tsk;
+
+
 static void
 report_result (void *cls,
                 enum GNUNET_NAT_StatusCode aret)
@@ -51,6 +51,23 @@ report_result (void *cls,
              "NAT test reported error %d\n", aret);
   else
     ret = 0;
+  GNUNET_NAT_test_stop (tst);
+  tst = NULL;
+  GNUNET_SCHEDULER_cancel (tsk);
+  tsk = GNUNET_SCHEDULER_NO_TASK;
+}
+
+
+static void
+failed_timeout (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  tsk = GNUNET_SCHEDULER_NO_TASK;
+  fprintf (stderr,
+	   "NAT test failed to terminate on timeout\n");
+  ret = 2;
+  GNUNET_NAT_test_stop (tst);
+  tst = NULL;
 }
 
 
@@ -65,6 +82,11 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285, TIMEOUT,
                              &report_result,
                              NULL);
+  tsk = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (TIMEOUT,
+								     2),
+				      &failed_timeout,
+				      NULL);
+  
 }
 
 
@@ -104,7 +126,9 @@ main (int argc, char *const argv[])
                                  "-c", "test_nat_test_data.conf",
                                  "12345", NULL);
   GNUNET_assert (NULL != gns);
-  GNUNET_PROGRAM_run (3, argv_prog, "test-nat-test", "nohelp", options, &run,
+  GNUNET_PROGRAM_run (3, argv_prog,
+		      "test-nat-test", "nohelp", 
+		      options, &run,
                       NULL);
   GNUNET_break (0 == GNUNET_OS_process_kill (gns, GNUNET_TERM_SIG));
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (gns));

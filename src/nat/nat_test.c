@@ -440,8 +440,10 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nh->status = GNUNET_NAT_ERROR_SUCCESS;
   if (0 == bnd_port)
   {
-    nh->nat =
-        GNUNET_NAT_register (cfg, is_tcp, 0, 0, NULL, NULL, &addr_cb,
+    nh->nat 
+      = GNUNET_NAT_register (cfg, is_tcp, 0, 0, 
+			     NULL, NULL,
+			     &addr_cb,
                              &reversal_cb, nh);
   }
   else
