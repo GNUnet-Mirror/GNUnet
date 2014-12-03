@@ -1560,9 +1560,6 @@ handle_set_union_result (void *cls,
   case GNUNET_SET_STATUS_OK:
     status_str = "GNUNET_SET_STATUS_OK";
     break;
-  case GNUNET_SET_STATUS_TIMEOUT:
-    status_str = "GNUNET_SET_STATUS_TIMEOUT";
-    break;
   case GNUNET_SET_STATUS_FAILURE:
     status_str = "GNUNET_SET_STATUS_FAILURE";
     break;
@@ -1614,7 +1611,6 @@ handle_set_union_result (void *cls,
       GNUNET_free (target);
     }
     break;
-  case GNUNET_SET_STATUS_TIMEOUT:
   case GNUNET_SET_STATUS_FAILURE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Failed to establish DV union, will try again later\n");
