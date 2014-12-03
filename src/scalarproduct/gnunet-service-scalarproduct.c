@@ -352,7 +352,8 @@ struct ServiceSession
   uint32_t total;
 
   /**
-   * how many elements actually are used for the scalar product
+   * how many elements actually are used for the scalar product.
+   * Size of the arrays in @e r and @e r_prime.
    */
   uint32_t used_element_count;
 
@@ -497,6 +498,7 @@ static void
 free_session_variables (struct ServiceSession *s)
 {
   struct SortedValue *e;
+
   while (NULL != (e = s->a_head))
   {
     GNUNET_free (e->elem);
@@ -949,8 +951,8 @@ prepare_bobs_cryptodata_message (void *cls,
   struct ServiceSession * s = cls;
   struct ServiceResponseMessage *msg;
   uint32_t msg_length = 0;
-  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
-  int i;
+  struct GNUNET_CRYPTO_PaillierCiphertext *payload;
+  unsigned int i;
 
   msg_length = sizeof (struct ServiceResponseMessage)
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext); // s, stick
@@ -1019,7 +1021,7 @@ prepare_bobs_cryptodata_message (void *cls,
     s->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       s->response);
-    free_session_variables(s);
+    free_session_variables (s);
     GNUNET_free(s);
     return;
   }
@@ -1082,12 +1084,11 @@ compute_service_response (struct ServiceSession *session)
 
     svalue = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                  UINT32_MAX);
-
     // long to gcry_mpi_t
     if (svalue < 0)
       gcry_mpi_sub_ui (rand[i],
                        rand[i],
-                       -svalue);
+                       - svalue);
     else
       rand[i] = gcry_mpi_set_ui (rand[i], svalue);
   }
@@ -1116,7 +1117,8 @@ compute_service_response (struct ServiceSession *session)
   }
 
   // Calculate Kq = E(S + a_qi) (+) E(S - r_qi)
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     // E(S - r_qi)
     gcry_mpi_sub (tmp, my_offset, rand[q[i]]);
     GNUNET_assert (2 == GNUNET_CRYPTO_paillier_encrypt (&session->remote_pubkey,
@@ -2026,12 +2028,14 @@ compute_scalar_product (struct ServiceSession *session)
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
   for (i = 0; i < count; i++)
   {
+    r[i] = gcry_mpi_new (0);
     GNUNET_CRYPTO_paillier_decrypt (&my_privkey,
                                     &my_pubkey,
                                     &session->r[i],
                                     r[i]);
     gcry_mpi_sub (r[i], r[i], my_offset);
     gcry_mpi_sub (r[i], r[i], my_offset);
+    r_prime[i] = gcry_mpi_new (0);
     GNUNET_CRYPTO_paillier_decrypt (&my_privkey,
                                     &my_pubkey,
                                     &session->r_prime[i],
