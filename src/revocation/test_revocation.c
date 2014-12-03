@@ -383,7 +383,8 @@ test_connection (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  if (0 == links_failed)
+   /* We are generating a CLIQUE */
+  if (NUM_TEST_PEERS * (NUM_TEST_PEERS -1) == links_succeeded)
   {
     fprintf (stderr,
              "Testbed connected peers, initializing test\n");
