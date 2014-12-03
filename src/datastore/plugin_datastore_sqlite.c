@@ -496,8 +496,9 @@ sqlite_plugin_put (void *cls,
     return GNUNET_SYSERR;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Storing in database block with type %u/key `%s'/priority %u/expiration in %s (%s).\n",
-                   type, GNUNET_h2s (key), priority,
-                   (unsigned long long)
+                   type,
+                   GNUNET_h2s (key),
+                   priority,
                    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (expiration),
 							   GNUNET_YES),
                    GNUNET_STRINGS_absolute_time_to_string (expiration));

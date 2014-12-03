@@ -799,10 +799,10 @@ process_validation_string (void *cls,
     if (GNUNET_SYSERR == res)
     {
       FPRINTF (stderr,
-               "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+               "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
                GNUNET_i2s (&vc->id),
                vc->addrcp->transport_name,
-               vc->addrcp->address_length);
+               (unsigned int) vc->addrcp->address_length);
     }
     if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->valid_until.abs_value_us)
       s_valid = GNUNET_strdup ("never");
@@ -1368,10 +1368,10 @@ process_peer_string (void *cls,
     if (GNUNET_SYSERR == res)
     {
       FPRINTF (stderr,
-               "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+               "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
                GNUNET_i2s (&rc->id),
                rc->addrcp->transport_name,
-               rc->addrcp->address_length);
+               (unsigned int) rc->addrcp->address_length);
       print_info (&rc->id,
                   rc->transport,
                   NULL,

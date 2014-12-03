@@ -818,9 +818,9 @@ GNUNET_ATS_solver_generate_property_stop_all ()
 /**
  * Preference Generators
  */
-
 static struct PreferenceGenerator *pref_gen_head;
 static struct PreferenceGenerator *pref_gen_tail;
+
 
 static double
 get_preference (struct PreferenceGenerator *pg)
@@ -902,7 +902,8 @@ set_feedback_task (void *cls,
     return;
   }
 
-  switch (pg->kind) {
+  switch (pg->kind)
+  {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
       dur = GNUNET_TIME_absolute_get_duration(pg->feedback_last_bw_update);
       bw_acc_in = dur.rel_value_us *pg->last_assigned_bw_in +  pg->feedback_bw_in_acc;
@@ -925,6 +926,8 @@ set_feedback_task (void *cls,
 
       break;
     default:
+      GNUNET_break (0);
+      feedback = 0.0;
       break;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -950,9 +953,10 @@ set_feedback_task (void *cls,
       &set_feedback_task, pg);
 }
 
+
 static void
 set_pref_task (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PreferenceGenerator *pg = cls;
   struct TestPeer *p;

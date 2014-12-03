@@ -355,17 +355,17 @@ transport_addr_to_str_cb (void *cls,
   {
   case GNUNET_SYSERR:
     FPRINTF (stderr,
-             "Failed to convert address for peer `%s' plugin `%s' length %lu to string (communication error)\n",
+             "Failed to convert address for peer `%s' plugin `%s' length %u to string (communication error)\n",
              GNUNET_i2s (&pr->address->peer),
              pr->address->transport_name,
-             pr->address->address_length);
+             (unsigned int) pr->address->address_length);
     return;
   case GNUNET_NO:
     FPRINTF (stderr,
-             "Failed to convert address for peer `%s' plugin `%s' length %lu to string (address invalid or not supported)\n",
+             "Failed to convert address for peer `%s' plugin `%s' length %u to string (address invalid or not supported)\n",
              GNUNET_i2s (&pr->address->peer),
              pr->address->transport_name,
-             pr->address->address_length);
+             (unsigned int) pr->address->address_length);
     return;
   case GNUNET_OK:
     /* continues below */

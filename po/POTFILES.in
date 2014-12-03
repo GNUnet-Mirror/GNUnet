@@ -282,11 +282,11 @@ src/sensor/sensor_util_lib_crypto.c
 src/set/gnunet-service-set.c
 src/set/gnunet-service-set_intersection.c
 src/set/gnunet-service-set_union.c
+src/set/gnunet-service-set_union_strata_estimator.c
 src/set/gnunet-set-ibf-profiler.c
 src/set/gnunet-set-profiler.c
 src/set/ibf.c
 src/set/set_api.c
-src/set/strata_estimator.c
 src/social/gnunet-service-social.c
 src/social/social_api.c
 src/statistics/gnunet-service-statistics.c
