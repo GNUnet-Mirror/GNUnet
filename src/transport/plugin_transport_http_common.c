@@ -41,6 +41,7 @@ http_clean_splitted (struct SplittedHTTPAddress *spa)
   }
 }
 
+
 struct SplittedHTTPAddress *
 http_split_address (const char * addr)
 {
@@ -362,35 +363,41 @@ http_common_dns_ip_lookup_cb (void *cls,
   }
 }
 
+
 static int
-http_common_dns_ip_lookup (const char *name, const char *type,
-    struct SplittedHTTPAddress *saddr,
-    uint32_t options,
-    struct GNUNET_TIME_Relative timeout,
-    GNUNET_TRANSPORT_AddressStringCallback asc, void *asc_cls)
+http_common_dns_ip_lookup (const char *name,
+                           const char *type,
+                           struct SplittedHTTPAddress *saddr,
+                           uint32_t options,
+                           struct GNUNET_TIME_Relative timeout,
+                           GNUNET_TRANSPORT_AddressStringCallback asc, void *asc_cls)
 {
   struct PrettyPrinterContext *ppc;
-  ppc = GNUNET_new (struct PrettyPrinterContext);
 
+  ppc = GNUNET_new (struct PrettyPrinterContext);
   ppc->sucess = GNUNET_NO;
   ppc->saddr = saddr;
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->plugin = GNUNET_strdup (type);
   ppc->options = options;
-
-  ppc->resolver_handle = GNUNET_RESOLVER_ip_get (name, AF_UNSPEC, timeout,
-      &http_common_dns_ip_lookup_cb, ppc);
+  ppc->resolver_handle = GNUNET_RESOLVER_ip_get (name,
+                                                 AF_UNSPEC,
+                                                 timeout,
+                                                 &http_common_dns_ip_lookup_cb,
+                                                 ppc);
   if (NULL == ppc->resolver_handle)
   {
     GNUNET_free(ppc->plugin);
     GNUNET_free(ppc);
     return GNUNET_SYSERR;
   }
-
-  GNUNET_CONTAINER_DLL_insert(dll_ppc_head, dll_ppc_tail, ppc);
+  GNUNET_CONTAINER_DLL_insert (dll_ppc_head,
+                               dll_ppc_tail,
+                               ppc);
   return GNUNET_OK;
 }
+
 
 /**
  * Convert the transports address to a nice, human-readable
@@ -470,7 +477,8 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
     goto handle_error;
   }
 
-  if ((GNUNET_YES == numeric) && (GNUNET_YES == have_ip))
+  if ( (GNUNET_YES == numeric) &&
+       (GNUNET_YES == have_ip) )
   {
     /* No lookup required */
     ret = http_common_plugin_address_to_string (type, address, addrlen);
@@ -480,7 +488,8 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
     GNUNET_free_non_null (sock_addr);
     return;
   }
-  else if ((GNUNET_YES == numeric) && (GNUNET_NO == have_ip))
+  if ( (GNUNET_YES == numeric) &&
+       (GNUNET_NO == have_ip) )
   {
     /* Forward lookup */
     if (GNUNET_SYSERR ==
@@ -495,7 +504,8 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
     GNUNET_free_non_null (sock_addr);
     return;
   }
-  else if ((GNUNET_NO == numeric) && (GNUNET_YES == have_ip))
+  if ( (GNUNET_NO == numeric) &&
+       (GNUNET_YES == have_ip) )
   {
     /* Reverse lookup */
     if (GNUNET_SYSERR ==
@@ -515,7 +525,8 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
     GNUNET_free_non_null (sock_addr);
     return;
   }
-  else if ((GNUNET_NO == numeric) && (GNUNET_NO == have_ip))
+  if ( (GNUNET_NO == numeric) &&
+       (GNUNET_NO == have_ip) )
   {
     /* No lookup required */
     ret = http_common_plugin_address_to_string (type, address, addrlen);
@@ -525,30 +536,27 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
     http_clean_splitted (saddr);
     return;
   }
-  else
-  {
-    /* Error */
-    goto handle_error;
-  }
-  GNUNET_free_non_null (sock_addr);
-  return;
+  /* Error (argument supplied not GNUNET_YES or GNUNET_NO) */
+  GNUNET_break (0);
+  goto handle_error;
 
  handle_error:
-  /* Error */
+  /* Report error */
   asc (asc_cls, NULL, GNUNET_SYSERR);
   asc (asc_cls, NULL, GNUNET_OK);
   GNUNET_free_non_null (sock_addr);
   if (NULL != saddr)
     http_clean_splitted (saddr);
-  return;
-
 }
+
 
 /**
  * FIXME.
  */
 const char *
-http_common_plugin_address_to_url (void *cls, const void *addr, size_t addrlen)
+http_common_plugin_address_to_url (void *cls,
+                                   const void *addr,
+                                   size_t addrlen)
 {
   static char rbuf[1024];
   const struct HttpAddress *address = addr;
@@ -557,26 +565,28 @@ http_common_plugin_address_to_url (void *cls, const void *addr, size_t addrlen)
   if (NULL == addr)
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
   if (0 >= addrlen)
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
   if (addrlen != http_common_address_get_size (address))
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
   addr_str = (char *) &address[1];
-
   if (addr_str[ntohl (address->urlen) - 1] != '\0')
-    return NULL ;
+    return NULL;
 
-  memcpy (rbuf, &address[1], ntohl (address->urlen));
+  memcpy (rbuf,
+          &address[1],
+          ntohl (address->urlen));
   return rbuf;
 }
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -590,8 +600,9 @@ http_common_plugin_address_to_url (void *cls, const void *addr, size_t addrlen)
  * @return string representing the same address
  */
 const char *
-http_common_plugin_address_to_string (const char *plugin, const void *addr,
-    size_t addrlen)
+http_common_plugin_address_to_string (const char *plugin,
+                                      const void *addr,
+                                      size_t addrlen)
 {
   static char rbuf[1024];
   const struct HttpAddress *address = addr;
@@ -634,8 +645,11 @@ http_common_plugin_address_to_string (const char *plugin, const void *addr,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-http_common_plugin_string_to_address (void *cls, const char *addr,
-    uint16_t addrlen, void **buf, size_t *added)
+http_common_plugin_string_to_address (void *cls,
+                                      const char *addr,
+                                      uint16_t addrlen,
+                                      void **buf,
+                                      size_t *added)
 {
   struct HttpAddress *a;
   char *address;
@@ -696,6 +710,7 @@ http_common_plugin_string_to_address (void *cls, const char *addr,
   return GNUNET_OK;
 }
 
+
 /**
  * Create a HTTP address from a socketaddr
  *
@@ -706,13 +721,18 @@ http_common_plugin_string_to_address (void *cls, const char *addr,
  */
 struct HttpAddress *
 http_common_address_from_socket (const char *protocol,
-    const struct sockaddr *addr, socklen_t addrlen)
+                                 const struct sockaddr *addr,
+                                 socklen_t addrlen)
 {
   struct HttpAddress *address = NULL;
   char *res;
   size_t len;
 
-  GNUNET_asprintf (&res, "%s://%s", protocol, GNUNET_a2s (addr, addrlen));
+  GNUNET_asprintf (&res,
+                   "%s://%s",
+                   protocol,
+                   GNUNET_a2s (addr,
+                               addrlen));
   len = strlen (res) + 1;
   address = GNUNET_malloc (sizeof (struct HttpAddress) + len);
   address->options = htonl (HTTP_OPTIONS_NONE);
@@ -721,6 +741,7 @@ http_common_address_from_socket (const char *protocol,
   GNUNET_free(res);
   return address;
 }
+
 
 /**
  * Create a socketaddr from a HTTP address
@@ -809,6 +830,7 @@ http_common_socket_from_address (const void *addr,
   return (struct sockaddr *) s;
 }
 
+
 /**
  * Get the length of an address
  *
@@ -820,6 +842,7 @@ http_common_address_get_size (const struct HttpAddress * addr)
 {
   return sizeof(struct HttpAddress) + ntohl (addr->urlen);
 }
+
 
 /**
  * Compare addr1 to addr2
