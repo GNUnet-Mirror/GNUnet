@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2013 Christian Grothoff (and other contributing authors)
+     (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,23 +34,17 @@
 #include "scalarproduct.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "gnunet-scalarproduct",__VA_ARGS__)
-#define INPUTSTRINGLENGTH       1024
+
 
 /**
- * A primitive closure structure holding information about our session
+ * the session key identifying this computation
  */
-struct ScalarProductCallbackClosure
-{
-  /**
-   * the session key identifying this computation
-   */
-  struct GNUNET_HashCode session_key;
+static struct GNUNET_HashCode session_key;
 
-  /**
-   * PeerID we want to compute a scalar product with
-   */
-  struct GNUNET_PeerIdentity peer_id;
-};
+/**
+ * PeerID we want to compute a scalar product with
+ */
+static struct GNUNET_PeerIdentity peer_id;
 
 /**
  * Option -p: destination peer identity for checking message-ids with
@@ -75,7 +69,8 @@ static int ret = -1;
 /**
  * our Scalarproduct Computation handle
  */
-struct GNUNET_SCALARPRODUCT_ComputationHandle * computation;
+static struct GNUNET_SCALARPRODUCT_ComputationHandle *computation;
+
 
 /**
  * Callback called if we are initiating a new computation session
@@ -87,39 +82,37 @@ static void
 responder_callback (void *cls,
                     enum GNUNET_SCALARPRODUCT_ResponseStatus status)
 {
-  struct ScalarProductCallbackClosure * closure = cls;
-
   switch (status)
   {
   case GNUNET_SCALARPRODUCT_Status_Success:
     ret = 0;
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Session %s concluded.\n",
-         GNUNET_h2s (&closure->session_key));
+         GNUNET_h2s (&session_key));
     break;
   case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: invalid response\n",
-         GNUNET_h2s (&closure->session_key));
+         GNUNET_h2s (&session_key));
     break;
   case GNUNET_SCALARPRODUCT_Status_Failure:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: service failure\n",
-         GNUNET_h2s (&closure->session_key));
+         GNUNET_h2s (&session_key));
     break;
   case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: service disconnect!\n",
-         GNUNET_h2s (&closure->session_key));
+         GNUNET_h2s (&session_key));
     break;
   default:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: return code %d\n",
-         GNUNET_h2s (&closure->session_key),
+         GNUNET_h2s (&session_key),
          status);
   }
   computation = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -135,8 +128,7 @@ requester_callback (void *cls,
                     enum GNUNET_SCALARPRODUCT_ResponseStatus status,
                     gcry_mpi_t result)
 {
-  struct ScalarProductCallbackClosure * closure = cls;
-  unsigned char * buf;
+  unsigned char *buf;
   gcry_error_t rc;
 
   switch (status)
@@ -155,30 +147,30 @@ requester_callback (void *cls,
   case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s failed: invalid response received\n",
-         GNUNET_h2s (&closure->session_key),
-         GNUNET_i2s (&closure->peer_id));
+         GNUNET_h2s (&session_key),
+         GNUNET_i2s (&peer_id));
     break;
   case GNUNET_SCALARPRODUCT_Status_Failure:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s failed: API failure\n",
-         GNUNET_h2s (&closure->session_key),
-         GNUNET_i2s (&closure->peer_id));
+         GNUNET_h2s (&session_key),
+         GNUNET_i2s (&peer_id));
     break;
   case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s was disconnected from service.\n",
-         GNUNET_h2s (&closure->session_key),
-         GNUNET_i2s (&closure->peer_id));
+         GNUNET_h2s (&session_key),
+         GNUNET_i2s (&peer_id));
     break;
   default:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s failed: return code %d\n",
-         GNUNET_h2s (&closure->session_key),
-         GNUNET_i2s (&closure->peer_id),
+         GNUNET_h2s (&session_key),
+         GNUNET_i2s (&peer_id),
          status);
   }
   computation = NULL;
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -193,7 +185,10 @@ shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (NULL != computation)
-    GNUNET_SCALARPRODUCT_cancel(computation);
+  {
+    GNUNET_SCALARPRODUCT_cancel (computation);
+    ret = 1; /* aborted */
+  }
 }
 
 
@@ -213,42 +208,35 @@ run (void *cls,
 {
   char *begin = input_elements;
   char *end;
-  int i;
-  struct GNUNET_SCALARPRODUCT_Element * elements;
+  unsigned int i;
+  struct GNUNET_SCALARPRODUCT_Element *elements;
   uint32_t element_count = 0;
-  struct ScalarProductCallbackClosure * closure;
 
   if (NULL == input_elements)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _ ("You must specify at least one message ID to check!\n"));
+         _("You must specify at least one message ID to check!\n"));
     return;
   }
-
-  if (NULL == input_session_key)
+  if ( (NULL == input_session_key) ||
+       (0 == strlen (input_session_key)) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _ ("This program needs a session identifier for comparing vectors.\n"));
+         _("This program needs a session identifier for comparing vectors.\n"));
     return;
   }
-
-  if (1 > strnlen (input_session_key, sizeof (struct GNUNET_HashCode)))
+  GNUNET_CRYPTO_hash (input_session_key,
+                      strlen (input_session_key),
+                      &session_key);
+  if ( (NULL != input_peer_id) &&
+       (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_public_key_from_string (input_peer_id,
+                                                    strlen (input_peer_id),
+                                                    &peer_id.public_key)) )
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _ ("Please give a session key for --input_key!\n"));
-    return;
-  }
-  closure = GNUNET_new (struct ScalarProductCallbackClosure);
-  GNUNET_CRYPTO_hash (input_session_key, strlen (input_session_key), &closure->session_key);
-
-  if (input_peer_id &&
-      (GNUNET_OK !=
-       GNUNET_CRYPTO_eddsa_public_key_from_string (input_peer_id,
-                                                   strlen (input_peer_id),
-                                                   (struct GNUNET_CRYPTO_EddsaPublicKey *) &closure->peer_id))) {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _ ("Tried to set initiator mode, as peer ID was given. "
-            "However, `%s' is not a valid peer identifier.\n"),
+         _("Tried to set initiator mode, as peer ID was given. "
+           "However, `%s' is not a valid peer identifier.\n"),
          input_peer_id);
     return;
   }
@@ -258,74 +246,80 @@ run (void *cls,
       element_count++;
   if (0 == element_count) {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _ ("Need elements to compute the vectorproduct, got none.\n"));
+         _("Need elements to compute the vectorproduct, got none.\n"));
     return;
   }
 
-  elements = (struct GNUNET_SCALARPRODUCT_Element *)
-          GNUNET_malloc(sizeof(struct GNUNET_SCALARPRODUCT_Element)*element_count);
+  elements = GNUNET_malloc (sizeof(struct GNUNET_SCALARPRODUCT_Element) * element_count);
 
   for (i = 0; i < element_count;i++)
   {
     struct GNUNET_SCALARPRODUCT_Element element;
-    char* separator=NULL;
+    char* separator = NULL;
 
-    // get the length of the current key,value; tupel
+    /* get the length of the current key,value; tupel */
     for (end = begin; *end != ';'; end++)
       if (*end == ',')
         separator = end;
 
-    // final element
-    if ((NULL == separator)
-         || (begin == separator)
-             || (separator == end - 1 )) {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           _ ("Malformed input, could not parse `%s'\n"), begin);
-      GNUNET_free(elements);
-      return;
-    }
-
-    // read the element's key
-    *separator = 0;
-    GNUNET_CRYPTO_hash (begin, strlen (begin), &element.key);
-
-    // read the element's value
-    if (1 != sscanf (separator+1, "%" SCNd64 ";", &element.value))
+    /* final element */
+    if ( (NULL == separator) ||
+         (begin == separator) ||
+         (separator == end - 1) )
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _ ("Could not convert `%s' to int64_t.\n"), begin);
-      GNUNET_free(elements);
+           _("Malformed input, could not parse `%s'\n"),
+           begin);
+      GNUNET_free (elements);
       return;
     }
 
-    elements[i]=element;
-    begin = end+1;
+    /* read the element's key */
+    *separator = 0;
+    GNUNET_CRYPTO_hash (begin,
+                        strlen (begin),
+                        &element.key);
+
+    /* read the element's value */
+    if (1 !=
+        sscanf (separator + 1,
+                "%" SCNd64 ";",
+                &element.value) )
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Could not convert `%s' to int64_t.\n"),
+           begin);
+      GNUNET_free(elements);
+      return;
+    }
+    elements[i] = element;
+    begin = end + 1;
   }
 
-  if (((NULL != input_peer_id) &&
-     (NULL == (computation = GNUNET_SCALARPRODUCT_start_computation (cfg,
-                                             &closure->session_key,
-                                             &closure->peer_id,
-                                             elements, element_count,
-                                             &requester_callback,
-                                             (void *) &closure))))
-      ||
-      ((NULL == input_peer_id) &&
-      (NULL == (computation = GNUNET_SCALARPRODUCT_accept_computation (cfg,
-                                              &closure->session_key,
-                                              elements, element_count,
-                                              &responder_callback,
-                                              (void *) &closure)))))
+  if ( ( (NULL != input_peer_id) &&
+         (NULL == (computation
+                   = GNUNET_SCALARPRODUCT_start_computation (cfg,
+                                                             &session_key,
+                                                             &peer_id,
+                                                             elements, element_count,
+                                                             &requester_callback,
+                                                             NULL))) ) ||
+       ( (NULL == input_peer_id) &&
+         (NULL == (computation
+                   = GNUNET_SCALARPRODUCT_accept_computation (cfg,
+                                                              &session_key,
+                                                              elements, element_count,
+                                                              &responder_callback,
+                                                              NULL))) ) )
   {
+    GNUNET_break (0);
     GNUNET_free (elements);
     return;
   }
-
   GNUNET_free (elements);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
-
   ret = 0;
 }
 
@@ -361,3 +355,4 @@ main (int argc, char *const *argv)
                               options, &run, NULL)) ? ret : 1;
 }
 
+/* end of gnunet-scalarproduct.c */

@@ -63,24 +63,9 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * The shared session key identifying this computation
-   */
-  struct GNUNET_HashCode key;
-
-  /**
    * Current transmit handle.
    */
   struct GNUNET_CLIENT_TransmitHandle *th;
-
-  /**
-   * count of all @e elements we offer for computation
-   */
-  uint32_t element_count_total;
-
-  /**
-   * count of the transfered @e elements we offer for computation
-   */
-  uint32_t element_count_transfered;
 
   /**
    * the client's elements which
@@ -113,15 +98,31 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
    */
   GNUNET_SCALARPRODUCT_ResponseMessageHandler response_proc;
 
+  /**
+   * The shared session key identifying this computation
+   */
+  struct GNUNET_HashCode key;
+
+  /**
+   * count of all @e elements we offer for computation
+   */
+  uint32_t element_count_total;
+
+  /**
+   * count of the transfered @e elements we offer for computation
+   */
+  uint32_t element_count_transfered;
+
 };
 
 
 /**
  * Handles the STATUS received from the service for a response, does
- * not contain a payload.
+ * not contain a payload.  Called when we participate as "Bob" via
+ * #GNUNET_SCALARPRODUCT_accept_computation().
  *
  * @param h our Handle
- * @param msg Pointer to the response received
+ * @param msg the response received
  * @param status the condition the request was terminated with (eg: disconnect)
  */
 static void
@@ -138,7 +139,8 @@ process_status_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
 
 /**
  * Handles the RESULT received from the service for a request, should
- * contain a result MPI value
+ * contain a result MPI value.  Called when we participate as "Alice" via
+ * #GNUNET_SCALARPRODUCT_start_computation().
  *
  * @param h our Handle
  * @param msg Pointer to the response received
