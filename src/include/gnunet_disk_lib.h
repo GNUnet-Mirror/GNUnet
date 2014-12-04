@@ -506,11 +506,12 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  */
 struct GNUNET_DISK_FileHandle *
 GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh);
-#else
+#endif
 
 /**
  * Update POSIX permissions mask of a file on disk.  If both argumets
  * are #GNUNET_NO, the file is made world-read-write-executable (777).
+ * Does nothing on W32.
  *
  * @param fn name of the file to update
  * @param require_uid_match #GNUNET_YES means 700
@@ -521,7 +522,6 @@ GNUNET_DISK_fix_permissions (const char *fn,
                              int require_uid_match,
                              int require_gid_match);
 
-#endif
 
 
 /**

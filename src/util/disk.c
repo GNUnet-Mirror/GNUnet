@@ -464,6 +464,24 @@ mkdtemp (char *fn)
   strcpy (fn, tfn);
   return fn;
 }
+
+/**
+ * Update POSIX permissions mask of a file on disk.  If both argumets
+ * are #GNUNET_NO, the file is made world-read-write-executable (777).
+ * Does nothing on W32.
+ *
+ * @param fn name of the file to update
+ * @param require_uid_match #GNUNET_YES means 700
+ * @param require_gid_match #GNUNET_YES means 770 unless @a require_uid_match is set
+ */
+void
+GNUNET_DISK_fix_permissions (const char *fn,
+                             int require_uid_match,
+                             int require_gid_match)
+{
+  /* nothing on W32 */
+}
+
 #else
 
 /**
