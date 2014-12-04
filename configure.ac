@@ -471,7 +471,7 @@ then
  # need libcurl-gnutls.so, everything else is not acceptable
  AC_CHECK_LIB([curl-gnutls],[curl_easy_getinfo],,[curl=false])
  # cURL must support CURLINFO_TLS_SESSION, version >= 7.34
- 
+
 fi
 if test x$curl = xfalse
 then
@@ -824,7 +824,7 @@ AC_ARG_WITH(microhttpd,
       yes)
         AC_CHECK_HEADERS([microhttpd.h],
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-            AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
+            AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
               [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
               AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
@@ -832,7 +832,7 @@ AC_ARG_WITH(microhttpd,
                 int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
-               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
+               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=0)]),
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
@@ -842,7 +842,7 @@ AC_ARG_WITH(microhttpd,
         CPPFLAGS="-I$with_microhttpd/include $CPPFLAGS"
         AC_CHECK_HEADERS(microhttpd.h,
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-            AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
+            AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
               EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
               [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
                AC_RUN_IFELSE([AC_LANG_SOURCE([
@@ -851,7 +851,7 @@ AC_ARG_WITH(microhttpd,
                 int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
-               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
+               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=0)]),
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
@@ -861,7 +861,7 @@ AC_ARG_WITH(microhttpd,
    [AC_MSG_RESULT([--with-microhttpd not specified])
     AC_CHECK_HEADERS([microhttpd.h],
       AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-        AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
+        AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
           [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
               AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
@@ -869,7 +869,7 @@ AC_ARG_WITH(microhttpd,
                 int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
-               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
+               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=0)]),
 	[],[#include "$native_srcdir/src/include/platform.h"
             #include <microhttpd.h>]),,
        [#include "$native_srcdir/src/include/platform.h"])])
