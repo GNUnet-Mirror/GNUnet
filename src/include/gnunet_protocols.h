@@ -2630,10 +2630,47 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK  894
 
 #endif
+
+/*******************************************************************************
+ * RPS messages
+ ******************************************************************************/
+
+/* P2P Messages */
+
+/**
+ * RPS PUSH message to push own ID to another peer
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_PP_PUSH         950
+
+/**
+ * RPS PULL REQUEST message to request the local view of another peer
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST 951
+
+/**
+ * RPS PULL REPLY message which contains the view of the other peer
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY   952
+
+
+
+/* Client-Service Messages */
+
+/**
+ * RPS CS REQUEST Message for the Client to request (a) random peer(s)
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST      953
+
+/**
+ * RPS CS REPLY Message for the Server to send (a) random peer(s)
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY        954
+
+
 /*******************************************************************************/
 
 /**
- * Next available: 904
+ * Next available: 960
  */
 
 /**

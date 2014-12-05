@@ -132,6 +132,7 @@
 /pkgconfig/gnunetats.pc
 /pkgconfig/gnunetregex.pc
 /pkgconfig/gnunetnse.pc
+/pkgconfig/gnunetrps.pc
 /pkgconfig/gnunetnat.pc
 /pkgconfig/Makefile.in
 /pkgconfig/Makefile
@@ -999,6 +1000,17 @@
 /src/revocation/Makefile.in
 /src/revocation/Makefile
 /src/revocation/.deps
+
+# /src/rps/
+/src/rps/rps.conf
+/src/rps/test_rps_multipeer
+/src/rps/Makefile.in
+/src/rps/Makefile
+/src/rps/.deps
+/src/rps/gnunet-service-rps
+/src/rps/gnunet-rps
+/src/rps/*log
+/src/rps/*.trs
 
 # /src/scalarproduct/
 /src/scalarproduct/gnunet-service-scalarproduct

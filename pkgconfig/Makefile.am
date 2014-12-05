@@ -31,6 +31,7 @@ pcfiles = \
        gnunetpsycstore.pc \
        gnunetregex.pc \
        gnunetrevocation.pc \
+       gnunetrps.pc \
        gnunetscalarproduct.pc \
        gnunetset.pc \
        gnunetspeaker.pc \
@@ -87,6 +88,7 @@ EXTRA_DIST = \
        gnunetpsycstore.pc.in \
        gnunetregex.pc.in \
        gnunetrevocation.pc.in \
+       gnunetrps.pc.in \
        gnunetscalarproduct.pc.in \
        gnunetset.pc.in \
        gnunetspeaker.pc.in \

@@ -1483,6 +1483,8 @@ src/regex/Makefile
 src/regex/regex.conf
 src/revocation/Makefile
 src/revocation/revocation.conf
+src/rps/Makefile
+src/rps/rps.conf
 src/secretsharing/Makefile
 src/secretsharing/secretsharing.conf
 src/sensor/Makefile
@@ -1542,6 +1544,7 @@ pkgconfig/gnunetpsyc.pc
 pkgconfig/gnunetpsycstore.pc
 pkgconfig/gnunetregex.pc
 pkgconfig/gnunetrevocation.pc
+pkgconfig/gnunetrps.pc
 pkgconfig/gnunetscalarproduct.pc
 pkgconfig/gnunetset.pc
 pkgconfig/gnunetsocial.pc
