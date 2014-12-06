@@ -20,6 +20,7 @@
 /**
  * @file namestore/test_namestore_api_zone_iteration_specific_zone.c
  * @brief testcase for zone iteration functionality: iterate over a specific zone
+ * @author Matthias Wachs
  */
 #include "platform.h"
 #include "gnunet_namestore_service.h"
@@ -180,66 +181,68 @@ zone_proc (void *cls,
     GNUNET_SCHEDULER_add_now (&end, NULL);
     return;
   }
-  else
+  GNUNET_assert (NULL != zone);
+  if (0 == memcmp (zone,
+                   privkey,
+                   sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
-  	if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-  	{
-      if (0 == strcmp (label, s_name_1))
+    if (0 == strcmp (label, s_name_1))
+    {
+      if (rd_count == 1)
       {
-        if (rd_count == 1)
+        if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp (rd, s_rd_1))
         {
-          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_1))
-          {
-            failed = GNUNET_YES;
-            GNUNET_break (0);
-          }
-        }
-        else
-        {
-          failed = GNUNET_YES;
-          GNUNET_break (0);
-        }
-      }
-      else if (0 == strcmp (label, s_name_2))
-      {
-        if (rd_count == 1)
-        {
-          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
-          {
-            failed = GNUNET_YES;
-            GNUNET_break (0);
-          }
-        }
-        else
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          		"Received invalid record count\n");
           failed = GNUNET_YES;
           GNUNET_break (0);
         }
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        		"Comparing result failed: got name `%s' for first zone\n", label);
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-  	}
-  	else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-  	{
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received data for not requested zone\n");
+    }
+    else if (0 == strcmp (label, s_name_2))
+    {
+      if (rd_count == 1)
+      {
+        if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
+        {
+          failed = GNUNET_YES;
+          GNUNET_break (0);
+        }
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Received invalid record count\n");
+        failed = GNUNET_YES;
+        GNUNET_break (0);
+      }
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Comparing result failed: got name `%s' for first zone\n",
+                  label);
       failed = GNUNET_YES;
       GNUNET_break (0);
-  	}
-  	else
-  	{
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received invalid zone\n");
-      failed = GNUNET_YES;
-      GNUNET_break (0);
-  	}
+    }
   }
-
+  else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received data for not requested zone\n");
+    failed = GNUNET_YES;
+    GNUNET_break (0);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received invalid zone\n");
+    failed = GNUNET_YES;
+    GNUNET_break (0);
+  }
   if (failed == GNUNET_NO)
   {
     returned_records ++;
@@ -263,11 +266,13 @@ put_cont (void *cls, int32_t success, const char *emsg)
   if (success == GNUNET_OK)
   {
     c++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record %u \n", c);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Created record %u \n", c);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to created records: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to created records: `%s'\n",
     		emsg);
     GNUNET_break (0);
     if (GNUNET_SCHEDULER_NO_TASK != endbadly_task)
@@ -280,14 +285,16 @@ put_cont (void *cls, int32_t success, const char *emsg)
   {
     res = 1;
     returned_records = 0;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All records created, starting iteration over all zones \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "All records created, starting iteration over all zones \n");
     zi = GNUNET_NAMESTORE_zone_iteration_start(nsh,
 					       privkey,
 					       &zone_proc,
 					       NULL);
     if (zi == NULL)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to create zone iterator\n");
       GNUNET_break (0);
       if (GNUNET_SCHEDULER_NO_TASK != endbadly_task)
       	GNUNET_SCHEDULER_cancel (endbadly_task);
@@ -370,20 +377,23 @@ empty_zone_proc (void *cls,
   GNUNET_free (hostkey_file);
   GNUNET_assert (privkey2 != NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 1\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created record 1\n");
 
   GNUNET_asprintf(&s_name_1, "dummy1");
   s_rd_1 = create_record(1);
   GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_1,
   		1, s_rd_1, &put_cont, NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 2 \n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created record 2 \n");
   GNUNET_asprintf(&s_name_2, "dummy2");
   s_rd_2 = create_record(1);
   GNUNET_NAMESTORE_records_store(nsh, privkey, s_name_2,
   		1, s_rd_2, &put_cont, NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created record 3\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created record 3\n");
 
   /* name in different zone */
   GNUNET_asprintf(&s_name_3, "dummy3");
@@ -399,10 +409,16 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   directory = NULL;
-  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                        "PATHS",
+                                                        "GNUNET_TEST_HOME",
+                                                        &directory));
   GNUNET_DISK_directory_remove (directory);
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                                &endbadly,
+                                                NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* first, iterate over empty namestore */
@@ -411,7 +427,8 @@ run (void *cls,
                                               &empty_zone_proc, nsh);
   if (NULL == zi)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create zone iterator\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
