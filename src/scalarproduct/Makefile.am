@@ -19,7 +19,8 @@ bin_PROGRAMS = \
  gnunet-scalarproduct
 
 libexec_PROGRAMS = \
- gnunet-service-scalarproduct
+ gnunet-service-scalarproduct-alice \
+ gnunet-service-scalarproduct-bob
 
 lib_LTLIBRARIES = \
   libgnunetscalarproduct.la
@@ -33,9 +34,21 @@ gnunet_scalarproduct_LDADD = \
   -lgcrypt \
   $(GN_LIBINTL)
 
-gnunet_service_scalarproduct_SOURCES = \
-  gnunet-service-scalarproduct.c
-gnunet_service_scalarproduct_LDADD = \
+gnunet_service_scalarproduct_alice_SOURCES = \
+  gnunet-service-scalarproduct.h \
+  gnunet-service-scalarproduct_alice.c
+gnunet_service_scalarproduct_alice_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
+  $(top_builddir)/src/set/libgnunetset.la \
+  $(LIBGCRYPT_LIBS) \
+  -lgcrypt \
+  $(GN_LIBINTL)
+
+gnunet_service_scalarproduct_bob_SOURCES = \
+  gnunet-service-scalarproduct.h \
+  gnunet-service-scalarproduct_bob.c gnunet-service-scalarproduct_bob.h
+gnunet_service_scalarproduct_bob_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/set/libgnunetset.la \

@@ -231,7 +231,8 @@ typedef void
  * @param error error code
  */
 typedef void
-(*GNUNET_MQ_ErrorHandler) (void *cls, enum GNUNET_MQ_Error error);
+(*GNUNET_MQ_ErrorHandler) (void *cls,
+                           enum GNUNET_MQ_Error error);
 
 
 /**
@@ -270,7 +271,9 @@ struct GNUNET_MQ_MessageHandler
  * @return the allocated MQ message
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type);
+GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
+                uint16_t size,
+                uint16_t type);
 
 
 /**
@@ -386,7 +389,6 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
                                const struct GNUNET_MQ_MessageHandler *handlers,
                                GNUNET_MQ_ErrorHandler error_handler,
                                void *cls);
-
 
 
 /**

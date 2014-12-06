@@ -17,22 +17,13 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file   scalarproduct.h
  * @brief  Scalar Product Message Types
  * @author Christian M. Fuchs
- *
- * Created on September 2, 2013, 3:43 PM
  */
-
 #ifndef SCALARPRODUCT_H
 #define	SCALARPRODUCT_H
-
-#ifdef	__cplusplus
-extern "C"
-{
-#endif
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -48,10 +39,11 @@ GNUNET_NETWORK_STRUCT_BEGIN
  * Message type passed from client to service
  * to initiate a request or responder role
  */
-struct ComputationMessage
+struct AliceComputationMessage
 {
   /**
-   * GNUNET message header
+   * GNUNET message header with type
+   * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE
    */
   struct GNUNET_MessageHeader header;
 
@@ -79,6 +71,44 @@ struct ComputationMessage
    * the identity of a remote peer we want to communicate with
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * followed by struct GNUNET_SCALARPRODUCT_Element[]
+   */
+};
+
+
+/**
+ * Message type passed from client to service
+ * to initiate a request or responder role
+ */
+struct BobComputationMessage
+{
+  /**
+   * GNUNET message header with type
+   * #GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * how many elements the vector in payload contains
+   */
+  uint32_t element_count_total GNUNET_PACKED;
+
+  /**
+   * contained elements the vector in payload contains
+   */
+  uint32_t element_count_contained GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * the transaction/session key used to identify a session
+   */
+  struct GNUNET_HashCode session_key;
 
   /**
    * followed by struct GNUNET_SCALARPRODUCT_Element[]
@@ -139,10 +169,6 @@ struct ClientResponseMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
-
-#ifdef	__cplusplus
-}
-#endif
 
 #endif	/* SCALARPRODUCT_H */
 

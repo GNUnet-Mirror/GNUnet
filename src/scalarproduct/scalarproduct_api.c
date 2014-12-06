@@ -23,6 +23,8 @@
  * @author Christian Fuchs
  * @author Gaurav Kukreja
  * @author Christian Grothoff
+ *
+ * TODO: use MQ
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -112,6 +114,11 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
    * count of the transfered @e elements we offer for computation
    */
   uint32_t element_count_transfered;
+
+  /**
+   * Type to use for the multipart messages.
+   */
+  uint16_t mp_type;
 
 };
 
@@ -307,7 +314,7 @@ do_send_message (void *cls,
   msg = GNUNET_malloc (nsize);
   h->msg = &msg->header;
   msg->header.size = htons (nsize);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART);
+  msg->header.type = htons (h->mp_type);
   msg->element_count_contained = htonl (todo);
   memcpy (&msg[1],
           &h->elements[h->element_count_transfered],
@@ -342,7 +349,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
                                          void *cont_cls)
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h;
-  struct ComputationMessage *msg;
+  struct BobComputationMessage *msg;
   uint32_t size;
   uint16_t possible;
 
@@ -352,8 +359,9 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
   h->response_proc = &process_status_message;
   h->cfg = cfg;
   h->key = *session_key;
-  h->client = GNUNET_CLIENT_connect ("scalarproduct", cfg);
+  h->client = GNUNET_CLIENT_connect ("scalarproduct-bob", cfg);
   h->element_count_total = element_count;
+  h->mp_type = GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART_BOB;
   if (NULL == h->client)
   {
     /* scalarproduct configuration error */
@@ -361,7 +369,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
     GNUNET_free (h);
     return NULL;
   }
-  size = sizeof (struct ComputationMessage)
+  size = sizeof (struct BobComputationMessage)
     + element_count * sizeof (struct GNUNET_SCALARPRODUCT_Element);
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE > size)
   {
@@ -371,10 +379,10 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
   else
   {
     /* create a multipart msg, first we calculate a new msg size for the head msg */
-    possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ComputationMessage))
+    possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct BobComputationMessage))
       / sizeof (struct GNUNET_SCALARPRODUCT_Element);
     h->element_count_transfered = possible;
-    size = sizeof (struct ComputationMessage)
+    size = sizeof (struct BobComputationMessage)
       + possible * sizeof (struct GNUNET_SCALARPRODUCT_Element);
     h->elements = GNUNET_malloc (sizeof(struct GNUNET_SCALARPRODUCT_Element) * element_count);
     memcpy (h->elements,
@@ -423,12 +431,12 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
                                         void *cont_cls)
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h;
-  struct ComputationMessage *msg;
+  struct AliceComputationMessage *msg;
   uint32_t size;
   uint32_t possible;
 
   h = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
-  h->client = GNUNET_CLIENT_connect ("scalarproduct", cfg);
+  h->client = GNUNET_CLIENT_connect ("scalarproduct-alice", cfg);
   if (NULL == h->client)
   {
     /* missconfigured scalarproduct service */
@@ -442,7 +450,8 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
   h->response_proc = &process_result_message;
   h->cfg = cfg;
   h->key = *session_key;
-  size = sizeof (struct ComputationMessage)
+  h->mp_type = GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART_ALICE;
+  size = sizeof (struct AliceComputationMessage)
     + element_count * sizeof (struct GNUNET_SCALARPRODUCT_Element);
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE > size)
   {
@@ -452,10 +461,10 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
   else
   {
     /* create a multipart msg, first we calculate a new msg size for the head msg */
-    possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ComputationMessage))
+    possible = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct AliceComputationMessage))
       / sizeof (struct GNUNET_SCALARPRODUCT_Element);
     h->element_count_transfered = possible;
-    size = sizeof (struct ComputationMessage)
+    size = sizeof (struct AliceComputationMessage)
       + possible * sizeof (struct GNUNET_SCALARPRODUCT_Element);
     h->elements = GNUNET_malloc (sizeof(struct GNUNET_SCALARPRODUCT_Element) * element_count);
     memcpy (h->elements,
