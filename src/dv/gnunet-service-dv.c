@@ -633,7 +633,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 	      off,
 	      GNUNET_i2s (&dn->peer));
   GNUNET_assert (NULL != core_api);
-  if (NULL != dn->pm_head)
+  if (NULL != pending)
     dn->cth =
       GNUNET_CORE_notify_transmit_ready (core_api,
 					 GNUNET_YES /* cork */,
