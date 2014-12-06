@@ -625,6 +625,7 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
  * @param vector the vector to compute over
  * @param length the length of the vector
  * @return an MPI value containing the calculated sum, never NULL
+ * TODO: code duplication with Alice!
  */
 static gcry_mpi_t
 compute_square_sum (const gcry_mpi_t *vector,
@@ -770,16 +771,14 @@ compute_service_response (struct BobServiceSession *session)
 }
 
 
-
-
-
 /**
  * Iterator to copy over messages from the hash map
  * into an array for sorting.
  *
- * @param cls the `struct AliceServiceSession *`
+ * @param cls the `struct BobServiceSession *`
  * @param key the key (unused)
  * @param value the `struct GNUNET_SCALARPRODUCT_Element *`
+ * TODO: code duplication with Alice!
  */
 static int
 copy_element_cb (void *cls,
@@ -810,6 +809,7 @@ copy_element_cb (void *cls,
  * @param a pointer to first `struct MpiValue *`
  * @param b pointer to first `struct MpiValue *`
  * @return -1 for a < b, 0 for a=b, 1 for a > b.
+ * TODO: code duplication with Alice!
  */
 static int
 element_cmp (const void *a,
@@ -833,6 +833,7 @@ element_cmp (const void *a,
 static void
 transmit_cryptographic_reply (struct BobServiceSession *s)
 {
+  /* TODO: code duplication with Alice! */
   s->sorted_elements
     = GNUNET_malloc (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements) *
                      sizeof (struct MpiElement));
