@@ -26,11 +26,6 @@
 #ifndef GNUNET_SERVICE_SCALARPRODUCT_H
 #define GNUNET_SERVICE_SCALARPRODUCT_H
 
-/**
- * Maximum count of elements we can put into a multipart message
- */
-#define MULTIPART_ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct MultipartMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
-
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
