@@ -381,6 +381,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           {
             fprintf (stderr, "Cannot open `%s' to write log data!\n", filename);
             GNUNET_free (filename);
+            GNUNET_free (cur);
             goto cleanup;
           }
           GNUNET_free (filename);
@@ -633,15 +634,19 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL == (p = find_peer_by_id (pg->peer)))
   {
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Setting property generation for unknown peer %u\n",
         pg->peer);
+    return;
   }
   if (NULL == (a = find_address_by_id (p, pg->address_id)))
   {
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Setting property generation for unknown peer %u\n",
         pg->peer);
+    return;
   }
 
   prop_value = get_property (pg);
@@ -2268,10 +2273,14 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_ATS_solver_generate_property_stop (pg);
   }
 
-  GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, a->ats_addr);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Removing address %u for peer %u\n",
-      op->address_id, op->peer_id);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (sh->addresses,
+                                                       &p->peer_id,
+                                                       a->ats_addr));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Removing address %u for peer %u\n",
+              op->address_id,
+              op->peer_id);
 
   sh->env.sf.s_del (sh->solver, a->ats_addr, GNUNET_NO);
 
@@ -2961,7 +2970,7 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
                 GNUNET_i2s (&address->peer));
   }
   p = find_peer_by_pid(&address->peer);
-  if(NULL == p)
+  if (NULL == p)
     return;
   p->assigned_bw_out = address->assigned_bw_out;
   p->assigned_bw_in = address->assigned_bw_in;
@@ -3020,12 +3029,14 @@ get_property_cb (void *cls, const struct ATS_Address *address)
   if (GNUNET_YES == opt_disable_normalization)
   {
     p = find_peer_by_pid (&address->peer);
+    if (NULL == p)
+      return NULL;
     a = find_address_by_ats_address (p, address);
     return a->prop_abs;
   }
-  else
-    return GAS_normalization_get_properties ((struct ATS_Address *) address);
+  return GAS_normalization_get_properties ((struct ATS_Address *) address);
 }
+
 
 static void
 set_updated_property ( struct ATS_Address *address, uint32_t type, double prop_rel)

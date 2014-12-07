@@ -786,7 +786,7 @@ evaluate (int iteration)
 
   for (cp = ph.N_peers_start; cp <= ph.N_peers_end; cp ++)
   {
-    cur  = ph.iterations_results[ph.current_iteration-1].results_array[cp];
+    cur = ph.iterations_results[ph.current_iteration-1].results_array[cp];
     if (0 == cp)
       continue;
     if (NULL == cur)
@@ -794,6 +794,7 @@ evaluate (int iteration)
       GNUNET_break (0);
       fprintf (stderr,
                "Missing result for %u peers\n", cp);
+      continue;
     }
 
 
@@ -845,8 +846,8 @@ evaluate (int iteration)
           (unsigned long long )cur->d_mlp_full.rel_value_us);
     }
   }
-
 }
+
 
 /**
  * Evaluate average results for all iterations
