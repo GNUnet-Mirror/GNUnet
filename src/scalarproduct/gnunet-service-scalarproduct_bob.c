@@ -513,7 +513,7 @@ bob_cadet_done_cb (void *cls)
 /**
  * Maximum count of elements we can put into a multipart message
  */
-#define ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct MultipartMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+#define ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct BobCryptodataMultipartMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
 
 
 /**
@@ -526,7 +526,7 @@ static void
 transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
 {
   struct GNUNET_CRYPTO_PaillierCiphertext *payload;
-  struct MultipartMessage *msg;
+  struct BobCryptodataMultipartMessage *msg;
   struct GNUNET_MQ_Envelope *e;
   unsigned int i;
   unsigned int j;
@@ -581,12 +581,12 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
 static void
 transmit_bobs_cryptodata_message (struct BobServiceSession *s)
 {
-  struct ServiceResponseMessage *msg;
+  struct BobCryptodataMessage *msg;
   struct GNUNET_MQ_Envelope *e;
   struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   unsigned int i;
 
-  s->cadet_transmitted_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ServiceResponseMessage)) /
+  s->cadet_transmitted_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct BobCryptodataMessage)) /
     (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * 2) - 2;
   if (s->cadet_transmitted_element_count > s->used_element_count)
     s->cadet_transmitted_element_count = s->used_element_count;
@@ -598,7 +598,6 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
   msg->reserved = htonl (0);
   msg->intersection_element_count = htonl (s->used_element_count);
   msg->contained_element_count = htonl (s->cadet_transmitted_element_count);
-  msg->key = s->session_id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending %u/%u crypto values to Alice\n",
@@ -1148,7 +1147,7 @@ GSS_handle_bob_client_message_multipart (void *cls,
                                          struct GNUNET_SERVER_Client *client,
                                          const struct GNUNET_MessageHeader *message)
 {
-  const struct ComputationMultipartMessage * msg;
+  const struct ComputationBobCryptodataMultipartMessage * msg;
   struct BobServiceSession *s;
   uint32_t contained_count;
   const struct GNUNET_SCALARPRODUCT_Element *elements;
@@ -1168,17 +1167,17 @@ GSS_handle_bob_client_message_multipart (void *cls,
     return;
   }
   msize = ntohs (message->size);
-  if (msize < sizeof (struct ComputationMultipartMessage))
+  if (msize < sizeof (struct ComputationBobCryptodataMultipartMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_SYSERR);
     return;
   }
-  msg = (const struct ComputationMultipartMessage *) message;
+  msg = (const struct ComputationBobCryptodataMultipartMessage *) message;
   contained_count = ntohl (msg->element_count_contained);
 
-  if ( (msize != (sizeof (struct ComputationMultipartMessage) +
+  if ( (msize != (sizeof (struct ComputationBobCryptodataMultipartMessage) +
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
        (0 == contained_count) ||
        (UINT16_MAX < contained_count) ||

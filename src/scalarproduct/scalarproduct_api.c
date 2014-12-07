@@ -270,7 +270,7 @@ do_send_message (void *cls,
                  void *buf)
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h = cls;
-  struct ComputationMultipartMessage *msg;
+  struct ComputationBobCryptodataMultipartMessage *msg;
   size_t ret;
   uint32_t nsize;
   uint32_t todo;
@@ -300,14 +300,14 @@ do_send_message (void *cls,
   }
 
   todo = h->element_count_total - h->element_count_transfered;
-  nsize = sizeof (struct ComputationMultipartMessage)
+  nsize = sizeof (struct ComputationBobCryptodataMultipartMessage)
     + todo * sizeof (struct GNUNET_SCALARPRODUCT_Element);
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE <= size)
   {
     /* cannot do all of them, limit to what is possible in one message */
-    todo = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ComputationMultipartMessage))
+    todo = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ComputationBobCryptodataMultipartMessage))
       / sizeof (struct GNUNET_SCALARPRODUCT_Element);
-    nsize = sizeof (struct ComputationMultipartMessage)
+    nsize = sizeof (struct ComputationBobCryptodataMultipartMessage)
       + todo * sizeof (struct GNUNET_SCALARPRODUCT_Element);
   }
 

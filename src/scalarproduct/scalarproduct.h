@@ -119,7 +119,7 @@ struct BobComputationMessage
 /**
  * multipart messages following `struct ComputationMessage`
  */
-struct ComputationMultipartMessage
+struct ComputationBobCryptodataMultipartMessage
 {
   /**
    * GNUNET message header

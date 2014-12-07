@@ -89,10 +89,10 @@ struct AliceCryptodataMessage
  * Message type passed from responding service Bob to responding
  * service Alice to complete a request and allow Alice to compute the
  * result.  If Bob's reply does not fit into this one message, the
- * conversation may be continued with `struct MultipartMessage`
+ * conversation may be continued with `struct BobCryptodataMultipartMessage`
  * messages afterwards.
  */
-struct ServiceResponseMessage
+struct BobCryptodataMessage
 {
   /**
    * GNUNET message header with type
@@ -116,12 +116,6 @@ struct ServiceResponseMessage
   uint32_t contained_element_count GNUNET_PACKED;
 
   /**
-   * The transaction/session key used to identify a session.
-   * FIXME: needed? CADET should already identify sessions!
-   */
-  struct GNUNET_HashCode key;
-
-  /**
    * followed by s | s' | k[i][perm]
    */
 };
@@ -130,11 +124,11 @@ struct ServiceResponseMessage
 /**
  * Multipart Message type passed between to supply additional elements
  * for the peer.  Send from Bob to Alice with additional elements
- * of k[i][perm] after his `struct ServiceResponseMessage *`.
+ * of k[i][perm] after his `struct BobCryptodataMessage *`.
  * Once all k-values have been transmitted, Bob is finished and
  * Alice can transmit the final result to the client.
  */
-struct MultipartMessage
+struct BobCryptodataMultipartMessage
 {
   /**
    * GNUNET message header

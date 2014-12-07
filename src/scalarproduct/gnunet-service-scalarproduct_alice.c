@@ -640,7 +640,7 @@ handle_bobs_cryptodata_multipart (void *cls,
                                   const struct GNUNET_MessageHeader *message)
 {
   struct AliceServiceSession *s = *channel_ctx;
-  const struct MultipartMessage *msg;
+  const struct BobCryptodataMultipartMessage *msg;
   const struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   size_t i;
   uint32_t contained;
@@ -653,14 +653,14 @@ handle_bobs_cryptodata_multipart (void *cls,
     return GNUNET_SYSERR;
   }
   msg_size = ntohs (message->size);
-  if (sizeof (struct MultipartMessage) > msg_size)
+  if (sizeof (struct BobCryptodataMultipartMessage) > msg_size)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  msg = (const struct MultipartMessage *) message;
+  msg = (const struct BobCryptodataMultipartMessage *) message;
   contained = ntohl (msg->contained_element_count);
-  required_size = sizeof (struct MultipartMessage)
+  required_size = sizeof (struct BobCryptodataMultipartMessage)
     + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   if ( (required_size != msg_size) ||
        (s->transferred_element_count + contained > s->used_element_count) )
@@ -712,7 +712,7 @@ handle_bobs_cryptodata_message (void *cls,
                                 const struct GNUNET_MessageHeader *message)
 {
   struct AliceServiceSession *s = *channel_ctx;
-  const struct ServiceResponseMessage *msg;
+  const struct BobCryptodataMessage *msg;
   const struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   uint32_t i;
   uint32_t contained;
@@ -725,12 +725,12 @@ handle_bobs_cryptodata_message (void *cls,
     return GNUNET_SYSERR;
   }
   msg_size = ntohs (message->size);
-  if (sizeof (struct ServiceResponseMessage) > msg_size)
+  if (sizeof (struct BobCryptodataMessage) > msg_size)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  msg = (const struct ServiceResponseMessage *) message;
+  msg = (const struct BobCryptodataMessage *) message;
   GNUNET_break_op (0 == ntohl (msg->reserved));
   if (s->used_element_count != ntohl (msg->intersection_element_count))
   {
@@ -739,7 +739,7 @@ handle_bobs_cryptodata_message (void *cls,
     return GNUNET_SYSERR;
   }
   contained = ntohl (msg->contained_element_count);
-  required_size = sizeof (struct ServiceResponseMessage)
+  required_size = sizeof (struct BobCryptodataMessage)
     + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)
     + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   if ( (msg_size != required_size) ||
@@ -1099,7 +1099,7 @@ GSS_handle_alice_client_message_multipart (void *cls,
                                            struct GNUNET_SERVER_Client *client,
                                            const struct GNUNET_MessageHeader *message)
 {
-  const struct ComputationMultipartMessage * msg;
+  const struct ComputationBobCryptodataMultipartMessage * msg;
   struct AliceServiceSession *s;
   uint32_t contained_count;
   const struct GNUNET_SCALARPRODUCT_Element *elements;
@@ -1119,17 +1119,17 @@ GSS_handle_alice_client_message_multipart (void *cls,
     return;
   }
   msize = ntohs (message->size);
-  if (msize < sizeof (struct ComputationMultipartMessage))
+  if (msize < sizeof (struct ComputationBobCryptodataMultipartMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_SYSERR);
     return;
   }
-  msg = (const struct ComputationMultipartMessage *) message;
+  msg = (const struct ComputationBobCryptodataMultipartMessage *) message;
   contained_count = ntohl (msg->element_count_contained);
 
-  if ( (msize != (sizeof (struct ComputationMultipartMessage) +
+  if ( (msize != (sizeof (struct ComputationBobCryptodataMultipartMessage) +
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
        (0 == contained_count) ||
        (s->total == s->transferred_element_count) ||
