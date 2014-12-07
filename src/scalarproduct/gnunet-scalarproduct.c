@@ -289,9 +289,10 @@ run (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR,
            _("Could not convert `%s' to int64_t.\n"),
            begin);
-      GNUNET_free(elements);
+      GNUNET_free (elements);
       return;
     }
+    element.value = GNUNET_htonll (element.value);
     elements[i] = element;
     begin = end + 1;
   }

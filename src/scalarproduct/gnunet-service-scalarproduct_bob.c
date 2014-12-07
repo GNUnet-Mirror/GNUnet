@@ -156,7 +156,10 @@ struct BobServiceSession
   uint32_t used_element_count;
 
   /**
-   * already transferred elements (sent/received) for multipart messages, less or equal than @e used_element_count for
+   * Already transferred elements (sent/received) for multipart
+   * messages.  First used to count values received from client (less
+   * than @e total), then used to count values transmitted from Alice
+   * (less than @e used_element_count)!  FIXME: maybe separate this.
    */
   uint32_t transferred_element_count;
 
@@ -530,6 +533,9 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
     if (todo_count > ELEMENT_CAPACITY / 2)
       todo_count = ELEMENT_CAPACITY / 2;
 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending %u additional crypto values to Alice\n",
+                (unsigned int) todo_count);
     e = GNUNET_MQ_msg_extra (msg,
                              todo_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * 2,
                              GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA_MULTIPART);
@@ -584,10 +590,16 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
                            (2 + s->transferred_element_count * 2)
                            * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext),
                            GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA);
-  msg->total_element_count = htonl (s->total);
-  msg->used_element_count = htonl (s->used_element_count);
+  // FIXME: 'total' maybe confusing here, and should already be known to Alice
+  msg->total_element_count = htonl (s->used_element_count);
+  // FIXME: redundant!
+  msg->used_element_count = htonl (s->transferred_element_count);
   msg->contained_element_count = htonl (s->transferred_element_count);
   msg->key = s->session_id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending %u crypto values to Alice\n",
+              (unsigned int) s->transferred_element_count);
 
   payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   memcpy (&payload[0],
@@ -834,6 +846,8 @@ static void
 transmit_cryptographic_reply (struct BobServiceSession *s)
 {
   /* TODO: code duplication with Alice! */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received everything, building reply for Alice\n");
   s->sorted_elements
     = GNUNET_malloc (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements) *
                      sizeof (struct MpiElement));
@@ -841,9 +855,6 @@ transmit_cryptographic_reply (struct BobServiceSession *s)
   GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
                                          &copy_element_cb,
                                          s);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Finished intersection, %d items remain\n",
-       s->used_element_count);
   qsort (s->sorted_elements,
          s->used_element_count,
          sizeof (struct MpiElement),
@@ -911,6 +922,9 @@ handle_alices_cryptodata_message (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u crypto values from Alice\n",
+              (unsigned int) contained_elements);
 
   payload = (const struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   if (NULL == s->e_a)
@@ -969,6 +983,9 @@ cb_intersection_element_removed (void *cls,
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
     s->intersection_set = NULL;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Finished intersection, %d items remain\n",
+         GNUNET_CONTAINER_multihashmap_size (s->intersected_elements));
     if (s->transferred_element_count ==
         GNUNET_CONTAINER_multihashmap_size (s->intersected_elements))
     {
@@ -1007,8 +1024,9 @@ static void
 start_intersection (struct BobServiceSession *s)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got session with key %s and a matching element set, processing.\n",
-              GNUNET_h2s (&s->session_id));
+              "Got session with key %s and %u elements, starting intersection.\n",
+              GNUNET_h2s (&s->session_id),
+              (unsigned int) s->transferred_element_count);
 
   s->intersection_op
     = GNUNET_SET_prepare (&s->cadet->peer,

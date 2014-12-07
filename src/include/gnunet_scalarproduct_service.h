@@ -87,7 +87,7 @@ struct GNUNET_SCALARPRODUCT_Element
   struct GNUNET_HashCode key;
 
   /**
-   * Value to multiply in scalar product.
+   * Value to multiply in scalar product, in NBO.
    */
   int64_t value GNUNET_PACKED;
 };

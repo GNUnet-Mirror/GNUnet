@@ -148,18 +148,21 @@ struct AliceServiceSession
   gcry_mpi_t product;
 
   /**
-   * how many elements we were supplied with from the client
+   * How many elements we were supplied with from the client (total
+   * count before intersection).
    */
   uint32_t total;
 
   /**
-   * how many elements actually are used for the scalar product.
-   * Size of the arrays in @e r and @e r_prime.
+   * How many elements actually are used for the scalar product.
+   * Size of the arrays in @e r and @e r_prime.  Sometimes also
+   * reset to 0 and used as a counter!
    */
   uint32_t used_element_count;
 
   /**
-   * already transferred elements (sent/received) for multipart messages, less or equal than @e used_element_count for
+   * Already transferred elements from client to us.
+   * Less or equal than @e total.
    */
   uint32_t transferred_element_count;
 
@@ -665,6 +668,11 @@ handle_bobs_cryptodata_multipart (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u additional crypto values from Bob\n",
+              (unsigned int) contained);
+
   payload = (const struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   /* Convert each k[][perm] to its MPI_value */
   for (i = 0; i < contained; i++)
@@ -741,6 +749,11 @@ handle_bobs_cryptodata_message (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u crypto values from Bob\n",
+              (unsigned int) contained);
+
   payload = (const struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   memcpy (&s->s,
           &payload[0],
@@ -847,6 +860,7 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
   unsigned int i;
   uint32_t todo_count;
   gcry_mpi_t a;
+  uint32_t off;
 
   s->sorted_elements
     = GNUNET_malloc (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements) *
@@ -862,12 +876,15 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
          s->used_element_count,
          sizeof (struct MpiElement),
          &element_cmp);
-
-  while (s->transferred_element_count < s->used_element_count)
+  off = 0;
+  while (off < s->used_element_count)
   {
-    todo_count = s->used_element_count - s->transferred_element_count;
+    todo_count = s->used_element_count - off;
     if (todo_count > ELEMENT_CAPACITY)
       todo_count = ELEMENT_CAPACITY;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending %u crypto values to Bob\n",
+                (unsigned int) todo_count);
 
     e = GNUNET_MQ_msg_extra (msg,
                              todo_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext),
@@ -875,7 +892,7 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
     msg->contained_element_count = htonl (todo_count);
     payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
     a = gcry_mpi_new (0);
-    for (i = s->transferred_element_count; i < todo_count; i++)
+    for (i = off; i < todo_count; i++)
     {
       gcry_mpi_add (a,
                     s->sorted_elements[i].value,
@@ -883,10 +900,10 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
       GNUNET_CRYPTO_paillier_encrypt (&my_pubkey,
                                       a,
                                       3,
-                                      &payload[i - s->transferred_element_count]);
+                                      &payload[i - off]);
     }
     gcry_mpi_release (a);
-    s->transferred_element_count += todo_count;
+    off += todo_count;
     GNUNET_MQ_send (s->cadet_mq,
                     e);
   }
