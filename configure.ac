@@ -1224,7 +1224,7 @@ AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
 
 # should services be started by default when a peer starts?  Some services may
 # choose to never start by default and it is upto the service/module developer to
-# decide it by having "AUTOSTART = NO" instead of "AUTOSTART = @AUTOSTART" in
+# decide it by having "AUTOSTART = NO" instead of "AUTOSTART = @AUTOSTART@" in
 # the service/module's conf.in file.
 AUTOSTART="YES"
 AC_MSG_CHECKING(whether to auto-start peer's services by default)

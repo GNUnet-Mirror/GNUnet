@@ -84,11 +84,12 @@ create_keys (const char *fn, const char *prefix)
   if (NULL != prefix)
   {
     strncpy (vanity, prefix, KEY_STR_LEN);
-    len = strlen (vanity);
+    len = GNUNET_MIN (strlen (prefix), KEY_STR_LEN);
     n = len * 5 / 8;
     rest = len * 5 % 8;
 
     memset (&vanity[len], '0', KEY_STR_LEN - len);
+    vanity[KEY_STR_LEN] = '\0';
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CRYPTO_eddsa_public_key_from_string (vanity,
                                                                KEY_STR_LEN,
