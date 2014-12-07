@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 - 2013 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,13 +17,12 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file include/gnunet_cadet_service.h
  * @brief cadet service; establish channels to distant peers
  * @author Christian Grothoff
+ * @author Bart Polot
  */
-
 #ifndef GNUNET_CADET_SERVICE_H
 #define GNUNET_CADET_SERVICE_H
 
@@ -56,17 +55,17 @@ struct GNUNET_CADET_Channel;
 
 /**
  * Hash to be used in Cadet communication. Only 256 bits needed,
- * instead of the 512 from @c GNUNET_HashCode.
- *
+ * instead of the 512 from `struct GNUNET_HashCode`.
  */
 struct GNUNET_CADET_Hash
 {
   unsigned char bits[256 / 8];
 };
 
+
 /**
- * Channel options.
- * Second line indicates filed in the CadetChannelInfo union carrying the answer.
+ * Channel options.  Second line indicates filed in the
+ * CadetChannelInfo union carrying the answer.
  */
 enum GNUNET_CADET_ChannelOption
 {
@@ -118,10 +117,11 @@ enum GNUNET_CADET_ChannelOption
  * @return #GNUNET_OK to keep the channel open,
  *         #GNUNET_SYSERR to close it (signal serious error).
  */
-typedef int (*GNUNET_CADET_MessageCallback) (void *cls,
-                                            struct GNUNET_CADET_Channel *channel,
-                                            void **channel_ctx,
-                                            const struct GNUNET_MessageHeader *message);
+typedef int
+(*GNUNET_CADET_MessageCallback) (void *cls,
+                                 struct GNUNET_CADET_Channel *channel,
+                                 void **channel_ctx,
+                                 const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -131,7 +131,7 @@ typedef int (*GNUNET_CADET_MessageCallback) (void *cls,
 struct GNUNET_CADET_MessageHandler
 {
   /**
-   * Function to call for messages of "type".
+   * Function to call for messages of type @e type.
    */
   GNUNET_CADET_MessageCallback callback;
 
@@ -167,16 +167,12 @@ struct GNUNET_CADET_MessageHandler
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
-typedef void *(GNUNET_CADET_InboundChannelNotificationHandler) (void *cls,
-                                                               struct
-                                                               GNUNET_CADET_Channel
-                                                               * channel,
-                                                               const struct
-                                                               GNUNET_PeerIdentity
-                                                               * initiator,
-                                                               uint32_t port,
-                                                               enum GNUNET_CADET_ChannelOption
-                                                               options);
+typedef void *
+(GNUNET_CADET_InboundChannelNotificationHandler) (void *cls,
+                                                  struct GNUNET_CADET_Channel *channel,
+                                                  const struct GNUNET_PeerIdentity *initiator,
+                                                  uint32_t port,
+                                                  enum GNUNET_CADET_ChannelOption options);
 
 
 /**
@@ -190,10 +186,10 @@ typedef void *(GNUNET_CADET_InboundChannelNotificationHandler) (void *cls,
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
-typedef void (GNUNET_CADET_ChannelEndHandler) (void *cls,
-                                              const struct GNUNET_CADET_Channel *
-                                              channel,
-                                              void *channel_ctx);
+typedef void
+(GNUNET_CADET_ChannelEndHandler) (void *cls,
+                                  const struct GNUNET_CADET_Channel *channel,
+                                  void *channel_ctx);
 
 
 /**
@@ -219,11 +215,12 @@ typedef void (GNUNET_CADET_ChannelEndHandler) (void *cls,
  *         (in this case, init is never called)
  */
 struct GNUNET_CADET_Handle *
-GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
-                     GNUNET_CADET_InboundChannelNotificationHandler new_channel,
-                     GNUNET_CADET_ChannelEndHandler cleaner,
-                     const struct GNUNET_CADET_MessageHandler *handlers,
-                     const uint32_t *ports);
+GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                      void *cls,
+                      GNUNET_CADET_InboundChannelNotificationHandler new_channel,
+                      GNUNET_CADET_ChannelEndHandler cleaner,
+                      const struct GNUNET_CADET_MessageHandler *handlers,
+                      const uint32_t *ports);
 
 
 /**
@@ -255,10 +252,10 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle);
  */
 struct GNUNET_CADET_Channel *
 GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
-                            void *channel_ctx,
-                            const struct GNUNET_PeerIdentity *peer,
-                            uint32_t port,
-                            enum GNUNET_CADET_ChannelOption options);
+                             void *channel_ctx,
+                             const struct GNUNET_PeerIdentity *peer,
+                             uint32_t port,
+                             enum GNUNET_CADET_ChannelOption options);
 
 
 /**
@@ -345,8 +342,7 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel,
  * @param th handle that was returned by "notify_transmit_ready".
  */
 void
-GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle
-                                          *th);
+GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *th);
 
 
 /**
@@ -384,13 +380,14 @@ GNUNET_CADET_receive_done (struct GNUNET_CADET_Channel *channel);
  * @param dest_channel_number Local number for dest, if known.
  * @param public_channel_numbe Number for P2P, always known.
  */
-typedef void (*GNUNET_CADET_ChannelCB) (void *cls,
-                                       const struct GNUNET_PeerIdentity *root,
-                                       const struct GNUNET_PeerIdentity *dest,
-                                       uint32_t port,
-                                       uint32_t root_channel_number,
-                                       uint32_t dest_channel_number,
-                                       uint32_t public_channel_number);
+typedef void
+(*GNUNET_CADET_ChannelCB) (void *cls,
+                           const struct GNUNET_PeerIdentity *root,
+                           const struct GNUNET_PeerIdentity *dest,
+                           uint32_t port,
+                           uint32_t root_channel_number,
+                           uint32_t dest_channel_number,
+                           uint32_t public_channel_number);
 
 /**
  * Method called to retrieve information about all peers in CADET, called
@@ -405,10 +402,12 @@ typedef void (*GNUNET_CADET_ChannelCB) (void *cls,
  * @param best_path How long is the best path?
  *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
  */
-typedef void (*GNUNET_CADET_PeersCB) (void *cls,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     int tunnel, unsigned int n_paths,
-                                     unsigned int best_path);
+typedef void
+(*GNUNET_CADET_PeersCB) (void *cls,
+                         const struct GNUNET_PeerIdentity *peer,
+                         int tunnel,
+                         unsigned int n_paths,
+                         unsigned int best_path);
 
 /**
  * Method called to retrieve information about a specific peer
@@ -423,12 +422,13 @@ typedef void (*GNUNET_CADET_PeersCB) (void *cls,
  *              Each path starts with the local peer.
  *              Each path ends with the destination peer (given in @c peer).
  */
-typedef void (*GNUNET_CADET_PeerCB) (void *cls,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    int tunnel,
-                                    int neighbor,
-                                    unsigned int n_paths,
-                                    struct GNUNET_PeerIdentity *paths);
+typedef void
+(*GNUNET_CADET_PeerCB) (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
+                        int tunnel,
+                        int neighbor,
+                        unsigned int n_paths,
+                        struct GNUNET_PeerIdentity *paths);
 
 
 /**
@@ -444,13 +444,13 @@ typedef void (*GNUNET_CADET_PeerCB) (void *cls,
  * @param estate Encryption state.
  * @param cstate Connectivity state.
  */
-typedef void (*GNUNET_CADET_TunnelsCB) (void *cls,
-                                       const struct GNUNET_PeerIdentity *peer,
-                                       unsigned int channels,
-                                       unsigned int connections,
-                                       uint16_t estate,
-                                       uint16_t cstate);
-
+typedef void
+(*GNUNET_CADET_TunnelsCB) (void *cls,
+                           const struct GNUNET_PeerIdentity *peer,
+                           unsigned int channels,
+                           unsigned int connections,
+                           uint16_t estate,
+                           uint16_t cstate);
 
 
 /**
@@ -466,14 +466,16 @@ typedef void (*GNUNET_CADET_TunnelsCB) (void *cls,
  * @param estate Encryption state.
  * @param cstate Connectivity state.
  */
-typedef void (*GNUNET_CADET_TunnelCB) (void *cls,
-                                      const struct GNUNET_PeerIdentity *peer,
-                                      unsigned int n_channels,
-                                      unsigned int n_connections,
-                                      uint32_t *channels,
-                                      struct GNUNET_CADET_Hash *connections,
-                                      unsigned int estate,
-                                      unsigned int cstate);
+typedef void
+(*GNUNET_CADET_TunnelCB) (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          unsigned int n_channels,
+                          unsigned int n_connections,
+                          uint32_t *channels,
+                          struct GNUNET_CADET_Hash *connections,
+                          unsigned int estate,
+                          unsigned int cstate);
+
 
 /**
  * Request information about a specific channel of the running cadet peer.
@@ -488,10 +490,11 @@ typedef void (*GNUNET_CADET_TunnelCB) (void *cls,
  */
 void
 GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
-                         struct GNUNET_PeerIdentity *peer,
-                         uint32_t channel_number,
-                         GNUNET_CADET_ChannelCB callback,
-                         void *callback_cls);
+                          struct GNUNET_PeerIdentity *peer,
+                          uint32_t channel_number,
+                          GNUNET_CADET_ChannelCB callback,
+                          void *callback_cls);
+
 
 /**
  * Request a debug dump on the service's STDERR.
@@ -502,6 +505,7 @@ GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
  */
 void
 GNUNET_CADET_request_dump (struct GNUNET_CADET_Handle *h);
+
 
 /**
  * Request information about peers known to the running cadet service.
@@ -519,8 +523,9 @@ GNUNET_CADET_request_dump (struct GNUNET_CADET_Handle *h);
  */
 int
 GNUNET_CADET_get_peers (struct GNUNET_CADET_Handle *h,
-                       GNUNET_CADET_PeersCB callback,
-                       void *callback_cls);
+                        GNUNET_CADET_PeersCB callback,
+                        void *callback_cls);
+
 
 /**
  * Cancel a peer info request. The callback will not be called (anymore).
@@ -529,7 +534,7 @@ GNUNET_CADET_get_peers (struct GNUNET_CADET_Handle *h,
  *
  * @param h Cadet handle.
  *
- * @return Closure given to GNUNET_CADET_get_peers.
+ * @return Closure that was given to #GNUNET_CADET_get_peers().
  */
 void *
 GNUNET_CADET_get_peers_cancel (struct GNUNET_CADET_Handle *h);
@@ -555,6 +560,7 @@ GNUNET_CADET_get_peer (struct GNUNET_CADET_Handle *h,
                       GNUNET_CADET_PeerCB callback,
                       void *callback_cls);
 
+
 /**
  * Request information about tunnels of the running cadet peer.
  * The callback will be called for every tunnel of the service.
@@ -570,15 +576,16 @@ GNUNET_CADET_get_peer (struct GNUNET_CADET_Handle *h,
  */
 int
 GNUNET_CADET_get_tunnels (struct GNUNET_CADET_Handle *h,
-                         GNUNET_CADET_TunnelsCB callback,
-                         void *callback_cls);
+                          GNUNET_CADET_TunnelsCB callback,
+                          void *callback_cls);
+
 
 /**
  * Cancel a monitor request. The monitor callback will not be called.
  *
  * @param h Cadet handle.
  *
- * @return Closure given to GNUNET_CADET_monitor, if any.
+ * @return Closure given to #GNUNET_CADET_get_tunnels(), if any.
  */
 void *
 GNUNET_CADET_get_tunnels_cancel (struct GNUNET_CADET_Handle *h);
@@ -600,9 +607,10 @@ GNUNET_CADET_get_tunnels_cancel (struct GNUNET_CADET_Handle *h);
  */
 int
 GNUNET_CADET_get_tunnel (struct GNUNET_CADET_Handle *h,
-                        const struct GNUNET_PeerIdentity *id,
-                        GNUNET_CADET_TunnelCB callback,
-                        void *callback_cls);
+                         const struct GNUNET_PeerIdentity *id,
+                         GNUNET_CADET_TunnelCB callback,
+                         void *callback_cls);
+
 
 /**
  * Create a message queue for a cadet channel.
