@@ -1,10 +1,23 @@
 [scalarproduct-alice]
+AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-scalarproduct-alice
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-scalarproduct-alice.sock
 @UNIXONLY@ PORT = 2117
+#ACCEPT_FROM = 127.0.0.1;
+#ACCEPT_FROM6 = ::1;
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
+#OPTIONS = -L DEBUG
 
 [scalarproduct-bob]
+AUTOSTART = @AUTOSTART@
+HOSTNAME = localhost
 BINARY = gnunet-service-scalarproduct-bob
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-scalarproduct-bob.sock
 @UNIXONLY@ PORT = 2118
 
+#ACCEPT_FROM = 127.0.0.1;
+#ACCEPT_FROM6 = ::1;
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
+#OPTIONS = -L DEBUG

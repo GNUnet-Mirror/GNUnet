@@ -815,8 +815,8 @@ static int
 element_cmp (const void *a,
              const void *b)
 {
-  const struct MpiElement *ma = *(const struct MpiElement **) a;
-  const struct MpiElement *mb = *(const struct MpiElement **) b;
+  const struct MpiElement *ma = a;
+  const struct MpiElement *mb = b;
 
   return GNUNET_CRYPTO_hash_cmp (ma->key,
                                  mb->key);
@@ -844,7 +844,7 @@ transmit_cryptographic_reply (struct BobServiceSession *s)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Finished intersection, %d items remain\n",
        s->used_element_count);
-  qsort (s->intersected_elements,
+  qsort (s->sorted_elements,
          s->used_element_count,
          sizeof (struct MpiElement),
          &element_cmp);
