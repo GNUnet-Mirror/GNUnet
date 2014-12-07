@@ -221,7 +221,7 @@ client_request_destroy (void *cls,
  * @param last_transmission when was the last time we've tried to download this block? (FOREVER if unknown)
  * @param type type of the block
  * @param data response data, NULL on request expiration
- * @param data_len number of bytes in data
+ * @param data_len number of bytes in @e data
  */
 static void
 client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
@@ -240,8 +240,10 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
 
   if (NULL == data)
   {
-    /* ugh, request 'timed out' -- how can this be? */
-    GNUNET_break (0);
+    /* local-only request, with no result, clean up. */
+    if (GNUNET_SCHEDULER_NO_TASK == cr->kill_task)
+      cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy,
+                                                cr);
     return;
   }
   prd = GSF_pending_request_get_data_ (pr);

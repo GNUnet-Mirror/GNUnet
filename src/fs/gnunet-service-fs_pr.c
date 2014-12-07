@@ -128,7 +128,7 @@ struct GSF_PendingRequest
   GSF_LocalLookupContinuation llc_cont;
 
   /**
-   * Closure for llc_cont.
+   * Closure for @e llc_cont.
    */
   void *llc_cont_cls;
 
@@ -1514,6 +1514,28 @@ check_error_and_continue:
   if (NULL == (cont = pr->llc_cont))
     return;                     /* no continuation */
   pr->llc_cont = NULL;
+  if (0 != (GSF_PRO_LOCAL_ONLY & pr->public_data.options))
+  {
+    if (GNUNET_BLOCK_EVALUATION_OK_LAST != pr->local_result)
+    {
+      /* Signal that we are done and that there won't be any
+         additional results to allow client to clean up state. */
+      pr->rh (pr->rh_cls,
+               GNUNET_BLOCK_EVALUATION_OK_LAST,
+               pr,
+               UINT32_MAX,
+               GNUNET_TIME_UNIT_ZERO_ABS,
+               GNUNET_TIME_UNIT_FOREVER_ABS,
+               GNUNET_BLOCK_TYPE_ANY,
+               NULL, 0);
+    }
+    /* Finally, call our continuation to signal that we are
+       done with local processing of this request; i.e. to
+       start reading again from the client. */
+    cont (pr->llc_cont_cls, NULL, GNUNET_BLOCK_EVALUATION_OK_LAST);
+    return;
+  }
+
   cont (pr->llc_cont_cls, pr, pr->local_result);
 }
 
