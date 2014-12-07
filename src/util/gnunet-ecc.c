@@ -88,7 +88,7 @@ create_keys (const char *fn, const char *prefix)
     n = len * 5 / 8;
     rest = len * 5 % 8;
 
-    memset (&vanity[len], 0, KEY_STR_LEN - len);
+    memset (&vanity[len], '0', KEY_STR_LEN - len);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CRYPTO_eddsa_public_key_from_string (vanity,
                                                                KEY_STR_LEN,
