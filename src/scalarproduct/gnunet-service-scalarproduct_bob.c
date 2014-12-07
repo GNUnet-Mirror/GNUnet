@@ -955,6 +955,7 @@ cb_intersection_element_removed (void *cls,
     /* this element has been removed from the set */
     se = GNUNET_CONTAINER_multihashmap_get (s->intersected_elements,
                                             element->data);
+    GNUNET_assert (NULL != se);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Removed element with key %s and value %lld\n",
          GNUNET_h2s (&se->key),
