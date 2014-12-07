@@ -124,96 +124,9 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle
 
 
 /**
- * Handles the STATUS received from the service for a response, does
- * not contain a payload.  Called when we participate as "Bob" via
- * #GNUNET_SCALARPRODUCT_accept_computation().
- *
- * @param h our Handle
- * @param msg the response received
- * @param status the condition the request was terminated with (eg: disconnect)
- */
-static void
-process_status_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
-                        const struct ClientResponseMessage *msg,
-                        enum GNUNET_SCALARPRODUCT_ResponseStatus status)
-{
-  if (NULL != h->cont_status)
-    h->cont_status (h->cont_cls,
-                    status);
-  GNUNET_SCALARPRODUCT_cancel (h);
-}
-
-
-/**
- * Handles the RESULT received from the service for a request, should
- * contain a result MPI value.  Called when we participate as "Alice" via
- * #GNUNET_SCALARPRODUCT_start_computation().
- *
- * @param h our Handle
- * @param msg Pointer to the response received
- * @param status the condition the request was terminated with (eg: disconnect)
- */
-static void
-process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
-                        const struct ClientResponseMessage *msg,
-                        enum GNUNET_SCALARPRODUCT_ResponseStatus status)
-{
-  size_t product_len;
-  gcry_mpi_t result = NULL;
-  gcry_error_t rc;
-  gcry_mpi_t num;
-  size_t rsize;
-
-  if ( (GNUNET_SCALARPRODUCT_Status_Success == status) &&
-       ( (NULL == msg) ||
-         ( (ntohs (msg->header.size) - sizeof (struct ClientResponseMessage)
-            != (product_len = ntohl (msg->product_length))) ) ) )
-  {
-    GNUNET_break (0);
-    status = GNUNET_SCALARPRODUCT_Status_InvalidResponse;
-  }
-  if (GNUNET_SCALARPRODUCT_Status_Success == status)
-  {
-    result = gcry_mpi_new (0);
-
-    if (0 < product_len)
-    {
-      rsize = 0;
-      if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_STD,
-                                    &msg[1],
-                                    product_len,
-                                    &rsize)))
-      {
-        LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
-                  "gcry_mpi_scan",
-                  rc);
-        gcry_mpi_release (result);
-        result = NULL;
-        status = GNUNET_SCALARPRODUCT_Status_InvalidResponse;
-      }
-      else
-      {
-        if (0 < ntohl (msg->range))
-          gcry_mpi_add (result, result, num);
-        else if (0 > ntohl (msg->range))
-          gcry_mpi_sub (result, result, num);
-        gcry_mpi_release (num);
-      }
-    }
-  }
-  h->cont_datum (h->cont_cls,
-                 status,
-                 result);
-  if (NULL != result)
-    gcry_mpi_release (result);
-  GNUNET_SCALARPRODUCT_cancel (h);
-}
-
-
-/**
- * Called when a response is received from the service. After basic check, the
- * handler in qe->response_proc is called. This functions handles the response
- * to the client which used the API.
+ * Called when a response is received from the service. After basic
+ * check, the handler in `h->response_proc` is called. This functions
+ * handles the response to the client which used the API.
  *
  * @param cls Pointer to the Master Context
  * @param msg Pointer to the data received in response
@@ -224,6 +137,7 @@ receive_cb (void *cls,
 {
   struct GNUNET_SCALARPRODUCT_ComputationHandle *h = cls;
   const struct ClientResponseMessage *message;
+  enum GNUNET_SCALARPRODUCT_ResponseStatus status;
 
   if (NULL == msg)
   {
@@ -231,28 +145,31 @@ receive_cb (void *cls,
          "Disconnected from SCALARPRODUCT service.\n");
     h->response_proc (h,
                       NULL,
-                      GNUNET_SCALARPRODUCT_Status_ServiceDisconnected);
+                      GNUNET_SCALARPRODUCT_STATUS_DISCONNECTED);
     return;
   }
-  if (ntohs (msg->size) != sizeof (struct ClientResponseMessage))
+  if (ntohs (msg->size) < sizeof (struct ClientResponseMessage))
   {
     GNUNET_break (0);
     h->response_proc (h,
                       NULL,
-                      GNUNET_SCALARPRODUCT_Status_InvalidResponse);
+                      GNUNET_SCALARPRODUCT_STATUS_INVALID_RESPONSE);
     return;
   }
   message = (const struct ClientResponseMessage *) msg;
-  if (GNUNET_SYSERR == ntohl (message->status))
+  if (ntohs (msg->size) !=
+      ntohl (message->product_length) + sizeof (struct ClientResponseMessage))
   {
+    GNUNET_break (0);
     h->response_proc (h,
                       NULL,
-                      GNUNET_SCALARPRODUCT_Status_Failure);
+                      GNUNET_SCALARPRODUCT_STATUS_INVALID_RESPONSE);
     return;
   }
+  status = (enum GNUNET_SCALARPRODUCT_ResponseStatus) ntohl (message->status);
   h->response_proc (h,
                     message,
-                    GNUNET_SCALARPRODUCT_Status_Success);
+                    status);
 }
 
 
@@ -282,7 +199,7 @@ do_send_message (void *cls,
          "Failed to transmit request to SCALARPRODUCT.\n");
     /* notify caller about the error, done here */
     h->response_proc (h, NULL,
-                      GNUNET_SCALARPRODUCT_Status_Failure);
+                      GNUNET_SCALARPRODUCT_STATUS_FAILURE);
     return 0;
   }
   ret = ntohs (h->msg->size);
@@ -326,6 +243,27 @@ do_send_message (void *cls,
                                                &do_send_message, h);
   GNUNET_assert (NULL != h->th);
   return ret;
+}
+
+
+/**
+ * Handles the STATUS received from the service for a response, does
+ * not contain a payload.  Called when we participate as "Bob" via
+ * #GNUNET_SCALARPRODUCT_accept_computation().
+ *
+ * @param h our Handle
+ * @param msg the response received
+ * @param status the condition the request was terminated with (eg: disconnect)
+ */
+static void
+process_status_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
+                        const struct ClientResponseMessage *msg,
+                        enum GNUNET_SCALARPRODUCT_ResponseStatus status)
+{
+  if (NULL != h->cont_status)
+    h->cont_status (h->cont_cls,
+                    status);
+  GNUNET_SCALARPRODUCT_cancel (h);
 }
 
 
@@ -406,6 +344,66 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
                                                &do_send_message, h);
   GNUNET_assert (NULL != h->th);
   return h;
+}
+
+
+/**
+ * Handles the RESULT received from the service for a request, should
+ * contain a result MPI value.  Called when we participate as "Alice" via
+ * #GNUNET_SCALARPRODUCT_start_computation().
+ *
+ * @param h our Handle
+ * @param msg Pointer to the response received
+ * @param status the condition the request was terminated with (eg: disconnect)
+ */
+static void
+process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
+                        const struct ClientResponseMessage *msg,
+                        enum GNUNET_SCALARPRODUCT_ResponseStatus status)
+{
+  uint32_t product_len;
+  gcry_mpi_t result = NULL;
+  gcry_error_t rc;
+  gcry_mpi_t num;
+  size_t rsize;
+
+  if (GNUNET_SCALARPRODUCT_STATUS_SUCCESS == status)
+  {
+    result = gcry_mpi_new (0);
+
+    product_len = ntohl (msg->product_length);
+    if (0 < product_len)
+    {
+      rsize = 0;
+      if (0 != (rc = gcry_mpi_scan (&num, GCRYMPI_FMT_STD,
+                                    &msg[1],
+                                    product_len,
+                                    &rsize)))
+      {
+        LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+                  "gcry_mpi_scan",
+                  rc);
+        gcry_mpi_release (result);
+        result = NULL;
+        status = GNUNET_SCALARPRODUCT_STATUS_INVALID_RESPONSE;
+      }
+      else
+      {
+        if (0 < ntohl (msg->range))
+          gcry_mpi_add (result, result, num);
+        else if (0 > ntohl (msg->range))
+          gcry_mpi_sub (result, result, num);
+        gcry_mpi_release (num);
+      }
+    }
+  }
+  if (NULL != h->cont_datum)
+    h->cont_datum (h->cont_cls,
+                   status,
+                   result);
+  if (NULL != result)
+    gcry_mpi_release (result);
+  GNUNET_SCALARPRODUCT_cancel (h);
 }
 
 

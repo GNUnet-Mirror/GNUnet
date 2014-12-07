@@ -154,9 +154,10 @@ struct ClientResponseMessage
   uint32_t product_length GNUNET_PACKED;
 
   /**
-   * status information about the outcome of this session
+   * Status information about the outcome of this session,
+   * An `enum GNUNET_SCALARPRODUCT_ResponseStatus` (in NBO).
    */
-  int32_t status GNUNET_PACKED;
+  uint32_t status GNUNET_PACKED;
 
   /**
    * Workaround for libgcrypt: -1 if negative, 0 if zero, else 1

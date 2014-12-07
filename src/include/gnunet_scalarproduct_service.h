@@ -46,25 +46,31 @@ extern "C" {
  */
 enum GNUNET_SCALARPRODUCT_ResponseStatus
 {
+
+  /**
+   * Operation is still active (never returned, used internally).
+   */
+  GNUNET_SCALARPRODUCT_STATUS_ACTIVE = 0,
+
   /**
    * The computation was successful.
    */
-  GNUNET_SCALARPRODUCT_Status_Success = 0,
+  GNUNET_SCALARPRODUCT_STATUS_SUCCESS,
 
   /**
    * We encountered some error.
    */
-  GNUNET_SCALARPRODUCT_Status_Failure,
+  GNUNET_SCALARPRODUCT_STATUS_FAILURE,
 
   /**
    * We got an invalid response.
    */
-  GNUNET_SCALARPRODUCT_Status_InvalidResponse,
+  GNUNET_SCALARPRODUCT_STATUS_INVALID_RESPONSE,
 
   /**
    * We got disconnected from the SCALARPRODUCT service.
    */
-  GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
+  GNUNET_SCALARPRODUCT_STATUS_DISCONNECTED
 };
 
 

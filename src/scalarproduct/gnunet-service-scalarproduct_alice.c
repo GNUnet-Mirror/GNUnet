@@ -167,11 +167,12 @@ struct AliceServiceSession
   uint32_t transferred_element_count;
 
   /**
-   * Is this session active (#GNUNET_YES), Concluded (#GNUNET_NO), or
-   * had an error (#GNUNET_SYSERR).
-   * FIXME: replace with proper enum for status codes!
+   * State of this session.   In
+   * #GNUNET_SCALARPRODUCT_STATUS_ACTIVE while operation is
+   * ongoing, afterwards in #GNUNET_SCALARPRODUCT_STATUS_SUCCESS or
+   * #GNUNET_SCALARPRODUCT_STATUS_FAILURE.
    */
-  int32_t active;
+  enum GNUNET_SCALARPRODUCT_ResponseStatus status;
 
   /**
    * Flag to prevent recursive calls to #destroy_service_session() from
@@ -326,12 +327,12 @@ prepare_client_end_notification (struct AliceServiceSession *session)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending session-end notification with status %d to client for session %s\n",
-              session->active,
+              session->status,
               GNUNET_h2s (&session->session_id));
   e = GNUNET_MQ_msg (msg,
                      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT);
   msg->product_length = htonl (0);
-  msg->status = htonl (session->active);
+  msg->status = htonl (session->status);
   GNUNET_MQ_send (session->client_mq,
                   e);
 }
@@ -439,11 +440,16 @@ cb_channel_destruction (void *cls,
               "Peer disconnected, terminating session %s with peer %s\n",
               GNUNET_h2s (&s->session_id),
               GNUNET_i2s (&s->peer));
+  if (NULL != s->cadet_mq)
+  {
+    GNUNET_MQ_destroy (s->cadet_mq);
+    s->cadet_mq = NULL;
+  }
   s->channel = NULL;
-  if (GNUNET_YES == s->active)
+  if (GNUNET_SCALARPRODUCT_STATUS_ACTIVE == s->status)
   {
     /* We didn't get an answer yet, fail with error */
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
   }
 }
@@ -685,6 +691,7 @@ handle_bobs_cryptodata_multipart (void *cls,
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
   s->transferred_element_count += contained;
+  GNUNET_CADET_receive_done (s->channel);
   if (s->transferred_element_count != s->used_element_count)
     return GNUNET_OK;
 
@@ -775,6 +782,7 @@ handle_bobs_cryptodata_message (void *cls,
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
   s->transferred_element_count = contained;
+  GNUNET_CADET_receive_done (s->channel);
 
   if (s->transferred_element_count != s->used_element_count)
   {
@@ -964,7 +972,7 @@ cb_intersection_element_removed (void *cls,
     }
     s->intersection_op = NULL;
     s->intersection_set = NULL;
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
   default:
@@ -1012,7 +1020,7 @@ cb_intersection_request_alice (void *cls,
   if (NULL == s->intersection_op)
   {
     GNUNET_break (0);
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
   }
@@ -1020,7 +1028,7 @@ cb_intersection_request_alice (void *cls,
       GNUNET_SET_commit (s->intersection_op,
                          s->intersection_set))
   {
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
   }
@@ -1051,7 +1059,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
                                    GNUNET_CADET_OPTION_RELIABLE);
   if (NULL == s->channel)
   {
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
   }
@@ -1064,7 +1072,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
                          s);
   if (NULL == s->intersection_listen)
   {
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     GNUNET_CADET_channel_destroy (s->channel);
     s->channel = NULL;
     prepare_client_end_notification (s);
@@ -1227,7 +1235,7 @@ GSS_handle_alice_client_message (void *cls,
 
   s = GNUNET_new (struct AliceServiceSession);
   s->peer = msg->peer;
-  s->active = GNUNET_YES;
+  s->status = GNUNET_SCALARPRODUCT_STATUS_ACTIVE;
   s->client = client;
   s->client_mq = GNUNET_MQ_queue_for_server_client (client);
   s->total = total_count;

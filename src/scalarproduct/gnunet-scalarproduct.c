@@ -84,23 +84,23 @@ responder_callback (void *cls,
 {
   switch (status)
   {
-  case GNUNET_SCALARPRODUCT_Status_Success:
+  case GNUNET_SCALARPRODUCT_STATUS_SUCCESS:
     ret = 0;
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Session %s concluded.\n",
          GNUNET_h2s (&session_key));
     break;
-  case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
+  case GNUNET_SCALARPRODUCT_STATUS_INVALID_RESPONSE:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: invalid response\n",
          GNUNET_h2s (&session_key));
     break;
-  case GNUNET_SCALARPRODUCT_Status_Failure:
+  case GNUNET_SCALARPRODUCT_STATUS_FAILURE:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: service failure\n",
          GNUNET_h2s (&session_key));
     break;
-  case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
+  case GNUNET_SCALARPRODUCT_STATUS_DISCONNECTED:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: service disconnect!\n",
          GNUNET_h2s (&session_key));
@@ -133,7 +133,7 @@ requester_callback (void *cls,
 
   switch (status)
   {
-  case GNUNET_SCALARPRODUCT_Status_Success:
+  case GNUNET_SCALARPRODUCT_STATUS_SUCCESS:
     if (0 == (rc = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, result)))
     {
       ret = 0;
@@ -144,19 +144,19 @@ requester_callback (void *cls,
                 "gcry_mpi_aprint",
                 rc);
     break;
-  case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
+  case GNUNET_SCALARPRODUCT_STATUS_INVALID_RESPONSE:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s failed: invalid response received\n",
          GNUNET_h2s (&session_key),
          GNUNET_i2s (&peer_id));
     break;
-  case GNUNET_SCALARPRODUCT_Status_Failure:
+  case GNUNET_SCALARPRODUCT_STATUS_FAILURE:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s failed: API failure\n",
          GNUNET_h2s (&session_key),
          GNUNET_i2s (&peer_id));
     break;
-  case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
+  case GNUNET_SCALARPRODUCT_STATUS_DISCONNECTED:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s was disconnected from service.\n",
          GNUNET_h2s (&session_key),

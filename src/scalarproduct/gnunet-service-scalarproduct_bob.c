@@ -175,9 +175,12 @@ struct BobServiceSession
   uint32_t cadet_transmitted_element_count;
 
   /**
-   * Is this session active (#GNUNET_YES), Concluded (#GNUNET_NO), or had an error (#GNUNET_SYSERR)
+   * State of this session.   In
+   * #GNUNET_SCALARPRODUCT_STATUS_ACTIVE while operation is
+   * ongoing, afterwards in #GNUNET_SCALARPRODUCT_STATUS_SUCCESS or
+   * #GNUNET_SCALARPRODUCT_STATUS_FAILURE.
    */
-  int32_t active;
+  enum GNUNET_SCALARPRODUCT_ResponseStatus status;
 
   /**
    * Are we already in #destroy_service_session()?
@@ -448,13 +451,13 @@ prepare_client_end_notification (struct BobServiceSession *session)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending session-end notification with status %d to client for session %s\n",
-              session->active,
+              session->status,
               GNUNET_h2s (&session->session_id));
   e = GNUNET_MQ_msg (msg,
                      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT);
   msg->range = 0;
   msg->product_length = htonl (0);
-  msg->status = htonl (session->active);
+  msg->status = htonl (session->status);
   GNUNET_MQ_send (session->client_mq,
                   e);
 }
@@ -483,12 +486,17 @@ cb_channel_destruction (void *cls,
               "Peer disconnected, terminating session %s with peer %s\n",
               GNUNET_h2s (&in->session_id),
               GNUNET_i2s (&in->peer));
+  if (NULL != in->cadet_mq)
+  {
+    GNUNET_MQ_destroy (in->cadet_mq);
+    in->cadet_mq = NULL;
+  }
   in->channel = NULL;
   if (NULL != (s = in->s))
   {
-    if (GNUNET_YES == s->active)
+    if (GNUNET_SCALARPRODUCT_STATUS_ACTIVE == s->status)
     {
-      s->active = GNUNET_SYSERR;
+      s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
       prepare_client_end_notification (s);
     }
   }
@@ -505,7 +513,7 @@ bob_cadet_done_cb (void *cls)
 {
   struct BobServiceSession *session = cls;
 
-  session->active = GNUNET_NO; /* that means, done */
+  session->status = GNUNET_SCALARPRODUCT_STATUS_SUCCESS;
   prepare_client_end_notification (session);
 }
 
@@ -944,6 +952,7 @@ handle_alices_cryptodata_message (void *cls,
        CADET response(s) */
     transmit_cryptographic_reply (s);
   }
+  GNUNET_CADET_receive_done (s->cadet->channel);
   return GNUNET_OK;
 }
 
@@ -984,6 +993,7 @@ cb_intersection_element_removed (void *cls,
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
     s->intersection_set = NULL;
+    GNUNET_CADET_receive_done (s->cadet->channel);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Finished intersection, %d items remain\n",
          GNUNET_CONTAINER_multihashmap_size (s->intersected_elements));
@@ -1005,7 +1015,7 @@ cb_intersection_element_removed (void *cls,
          "Set intersection failed!\n");
     s->intersection_op = NULL;
     s->intersection_set = NULL;
-    s->active = GNUNET_SYSERR;
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
   default:
@@ -1297,7 +1307,7 @@ GSS_handle_bob_client_message (void *cls,
   }
 
   s = GNUNET_new (struct BobServiceSession);
-  s->active = GNUNET_YES;
+  s->status = GNUNET_SCALARPRODUCT_STATUS_ACTIVE;
   s->client = client;
   s->client_mq = GNUNET_MQ_queue_for_server_client (client);
   s->total = total_count;
