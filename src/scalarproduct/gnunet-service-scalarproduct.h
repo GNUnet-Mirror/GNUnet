@@ -131,7 +131,8 @@ struct BobCryptodataMultipartMessage
   uint32_t contained_element_count GNUNET_PACKED;
 
   /**
-   * struct GNUNET_CRYPTO_PaillierCiphertext[multipart_element_count]
+   * Followed by `struct
+   * GNUNET_CRYPTO_PaillierCiphertext[contained_element_count]`
    */
 };
 

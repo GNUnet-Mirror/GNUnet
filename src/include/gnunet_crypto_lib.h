@@ -371,7 +371,8 @@ struct GNUNET_CRYPTO_PaillierPrivateKey
 struct GNUNET_CRYPTO_PaillierCiphertext
 {
   /**
-   * guaranteed minimum number of homomorphic operations with this ciphertext
+   * Guaranteed minimum number of homomorphic operations with this ciphertext,
+   * in network byte order (NBO).
    */
   int32_t remaining_ops GNUNET_PACKED;
 
