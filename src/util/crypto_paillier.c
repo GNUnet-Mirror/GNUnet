@@ -60,13 +60,15 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
       gcry_mpi_release (q);
     // generate rsa modulus
     GNUNET_assert (0 == gcry_prime_generate (&p, GNUNET_CRYPTO_PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
-                                             GCRY_WEAK_RANDOM, 0));
+                                             GCRY_STRONG_RANDOM, 0));
     GNUNET_assert (0 == gcry_prime_generate (&q, GNUNET_CRYPTO_PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
-                                             GCRY_WEAK_RANDOM, 0));
+                                             GCRY_STRONG_RANDOM, 0));
   }
   while (0 == gcry_mpi_cmp (p, q));
   gcry_mpi_mul (n, p, q);
-  GNUNET_CRYPTO_mpi_print_unsigned (public_key, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey), n);
+  GNUNET_CRYPTO_mpi_print_unsigned (public_key,
+                                    sizeof (struct GNUNET_CRYPTO_PaillierPublicKey),
+                                    n);
 
   // compute phi(n) = (p-1)(q-1)
   gcry_mpi_sub_ui (p, p, 1);
@@ -94,7 +96,7 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * @param m Plaintext to encrypt.
  * @param desired_ops How many homomorphic ops the caller intends to use
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
- * @return guaranteed number of supported homomorphic operations >= 1, 
+ * @return guaranteed number of supported homomorphic operations >= 1,
  *         or desired_ops, in case that is lower,
  *         or -1 if less than one homomorphic operation is possible
  */
@@ -111,41 +113,52 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_t n;
   gcry_mpi_t tmp1;
   gcry_mpi_t tmp2;
+  unsigned int highbit;
 
   // determine how many operations we could allow, if the other number
-  // has the same length. 
+  // has the same length.
   GNUNET_assert (NULL != (tmp1 = gcry_mpi_set_ui (NULL, 1)));
   GNUNET_assert (NULL != (tmp2 = gcry_mpi_set_ui (NULL, 2)));
   gcry_mpi_mul_2exp (tmp1, tmp1, GNUNET_CRYPTO_PAILLIER_BITS);
-  
+
   // count number of possible operations
-  // this would be nicer with gcry_mpi_get_nbits, however it does not return 
+  // this would be nicer with gcry_mpi_get_nbits, however it does not return
   // the BITLENGTH of the given MPI's value, but the bits required
   // to represent the number as MPI.
-  for (possible_opts = -2; gcry_mpi_cmp (tmp1, m) > 0; possible_opts++) {
+  for (possible_opts = -2; gcry_mpi_cmp (tmp1, m) > 0; possible_opts++)
     gcry_mpi_div (tmp1, NULL, tmp1, tmp2, 0);
-  }
   gcry_mpi_release (tmp1);
   gcry_mpi_release (tmp2);
-  
+
   if (possible_opts < 1)
     possible_opts = 0;
   //soft-cap by caller
   possible_opts = (desired_ops < possible_opts)? desired_ops : possible_opts;
-  
+
   ciphertext->remaining_ops = htonl (possible_opts);
 
+  GNUNET_CRYPTO_mpi_scan_unsigned (&n,
+                                   public_key,
+                                   sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
+  highbit = GNUNET_CRYPTO_PAILLIER_BITS - 1;
+  while ( (! gcry_mpi_test_bit (n, highbit)) &&
+          (0 != highbit) )
+    highbit--;
+  if (0 == highbit)
+  {
+    /* invalid public key */
+    GNUNET_break_op (0);
+    gcry_mpi_release (n);
+    return GNUNET_SYSERR;
+  }
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
   GNUNET_assert (0 != (c = gcry_mpi_new (0)));
-
-  GNUNET_CRYPTO_mpi_scan_unsigned (&n, public_key, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
-
   gcry_mpi_mul (n_square, n, n);
 
-  // generate r < n
+  // generate r < n (without bias)
   do {
-    gcry_mpi_randomize (r, GNUNET_CRYPTO_PAILLIER_BITS, GCRY_WEAK_RANDOM);
+    gcry_mpi_randomize (r, highbit + 1, GCRY_STRONG_RANDOM);
   }
   while (gcry_mpi_cmp (r, n) >= 0);
 
@@ -266,7 +279,7 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
 
 
 /**
- * Get the number of remaining supported homomorphic operations. 
+ * Get the number of remaining supported homomorphic operations.
  *
  * @param c Paillier cipher text.
  * @return the number of remaining homomorphic operations
