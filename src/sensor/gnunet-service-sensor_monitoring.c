@@ -200,7 +200,8 @@ end_sensor_run_stat (void *cls, int success)
  * @return size of new parsed value, 0 for error
  */
 static size_t
-parse_sensor_value (const char *value, struct GNUNET_SENSOR_SensorInfo *sensor,
+parse_sensor_value (const char *value,
+                    struct GNUNET_SENSOR_SensorInfo *sensor,
                     void **ret)
 {
   double *dval;
@@ -215,7 +216,11 @@ parse_sensor_value (const char *value, struct GNUNET_SENSOR_SensorInfo *sensor,
 
     *dval = strtod (value, &endptr);
     if (value == endptr)
+    {
+      GNUNET_free (dval);
+      *ret = NULL;
       return 0;
+    }
     *ret = dval;
     return sizeof (double);
   }
