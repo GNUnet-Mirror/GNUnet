@@ -731,13 +731,6 @@ handle_bobs_cryptodata_message (void *cls,
     return GNUNET_SYSERR;
   }
   msg = (const struct BobCryptodataMessage *) message;
-  GNUNET_break_op (0 == ntohl (msg->reserved));
-  if (s->used_element_count != ntohl (msg->intersection_element_count))
-  {
-    /* Alice and Bob disagree on intersection set size, bad news! */
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
   contained = ntohl (msg->contained_element_count);
   required_size = sizeof (struct BobCryptodataMessage)
     + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)

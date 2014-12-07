@@ -101,16 +101,6 @@ struct BobCryptodataMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * For alignment, always zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * How many elements the Bob has in the intersection (in NBO).
-   */
-  uint32_t intersection_element_count GNUNET_PACKED;
-
-  /**
    * How many elements this individual message delivers (in NBO).
    */
   uint32_t contained_element_count GNUNET_PACKED;

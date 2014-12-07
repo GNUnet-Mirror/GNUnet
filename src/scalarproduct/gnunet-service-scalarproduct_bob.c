@@ -595,8 +595,6 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
                            (2 + s->cadet_transmitted_element_count * 2)
                            * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext),
                            GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA);
-  msg->reserved = htonl (0);
-  msg->intersection_element_count = htonl (s->used_element_count);
   msg->contained_element_count = htonl (s->cadet_transmitted_element_count);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
