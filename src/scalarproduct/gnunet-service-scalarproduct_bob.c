@@ -1138,6 +1138,7 @@ cb_channel_incoming (void *cls,
   in = GNUNET_new (struct CadetIncomingSession);
   in->peer = *initiator;
   in->channel = channel;
+  // in->cadet_mq = GNUNET_CADET_mq_create (in->channel);
   return in;
 }
 

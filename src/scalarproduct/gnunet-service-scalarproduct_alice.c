@@ -1082,6 +1082,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
   e = GNUNET_MQ_msg (msg,
                      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION);
   msg->session_id = s->session_id;
+  msg->public_key = my_pubkey;
   GNUNET_MQ_send (s->cadet_mq,
                   e);
 }
