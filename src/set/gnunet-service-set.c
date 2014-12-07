@@ -1033,7 +1033,7 @@ handle_client_evaluate (void *cls,
                                          UINT32_MAX);
   spec->peer = msg->target_peer;
   spec->set = set;
-  spec->result_mode = ntohs (msg->result_mode);
+  spec->result_mode = ntohl (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
   context = GNUNET_MQ_extract_nested_mh (msg);
   op = GNUNET_new (struct Operation);
