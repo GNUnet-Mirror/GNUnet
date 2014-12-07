@@ -101,15 +101,14 @@ struct ServiceResponseMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * How many elements the session input had (in NBO).
+   * For alignment, always zero.
    */
-  uint32_t total_element_count GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
-   * How many elements were included after the mask was applied
-   * including all multipart msgs (in NBO).
+   * How many elements the Bob has in the intersection (in NBO).
    */
-  uint32_t used_element_count GNUNET_PACKED;
+  uint32_t intersection_element_count GNUNET_PACKED;
 
   /**
    * How many elements this individual message delivers (in NBO).

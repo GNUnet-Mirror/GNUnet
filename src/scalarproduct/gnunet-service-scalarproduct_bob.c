@@ -145,23 +145,34 @@ struct BobServiceSession
   gcry_mpi_t product;
 
   /**
-   * How many elements we were supplied with from the client
+   * How many elements will be supplied in total from the client.
    */
   uint32_t total;
 
   /**
-   * how many elements actually are used for the scalar product.
-   * Size of the arrays in @e r and @e r_prime.
+   * Already transferred elements (received) for multipart
+   * messages from client. Always less than @e total.
+   */
+  uint32_t client_received_element_count;
+
+  /**
+   * How many elements actually are used for the scalar product.
+   * Size of the arrays in @e r and @e r_prime.  Also sometimes
+   * used as an index into the arrays during construction.
    */
   uint32_t used_element_count;
 
   /**
-   * Already transferred elements (sent/received) for multipart
-   * messages.  First used to count values received from client (less
-   * than @e total), then used to count values transmitted from Alice
-   * (less than @e used_element_count)!  FIXME: maybe separate this.
+   * Counts the number of values received from Alice by us.
+   * Always less than @e used_element_count.
    */
-  uint32_t transferred_element_count;
+  uint32_t cadet_received_element_count;
+
+  /**
+   * Counts the number of values transmitted from us to Alice.
+   * Always less than @e used_element_count.
+   */
+  uint32_t cadet_transmitted_element_count;
 
   /**
    * Is this session active (#GNUNET_YES), Concluded (#GNUNET_NO), or had an error (#GNUNET_SYSERR)
@@ -261,12 +272,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *cadet_sessions;
  * Handle to the CADET service.
  */
 static struct GNUNET_CADET_Handle *my_cadet;
-
-/**
- * Certain events (callbacks for server & cadet operations) must not
- * be queued after shutdown.
- */
-static int do_shutdown;
 
 
 
@@ -527,9 +532,9 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
   unsigned int j;
   uint32_t todo_count;
 
-  while (s->transferred_element_count != s->used_element_count)
+  while (s->cadet_transmitted_element_count != s->used_element_count)
   {
-    todo_count = s->used_element_count - s->transferred_element_count;
+    todo_count = s->used_element_count - s->cadet_transmitted_element_count;
     if (todo_count > ELEMENT_CAPACITY / 2)
       todo_count = ELEMENT_CAPACITY / 2;
 
@@ -541,7 +546,7 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
                              GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA_MULTIPART);
     msg->contained_element_count = htonl (todo_count);
     payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-    for (i = s->transferred_element_count, j = 0; i < s->transferred_element_count + todo_count; i++)
+    for (i = s->cadet_transmitted_element_count, j = 0; i < s->cadet_transmitted_element_count + todo_count; i++)
     {
       //r[i][p] and r[i][q]
       memcpy (&payload[j++],
@@ -551,8 +556,8 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
               &s->r_prime[i],
               sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
     }
-    s->transferred_element_count += todo_count;
-    if (s->transferred_element_count == s->used_element_count)
+    s->cadet_transmitted_element_count += todo_count;
+    if (s->cadet_transmitted_element_count == s->used_element_count)
       GNUNET_MQ_notify_sent (e,
                              &bob_cadet_done_cb,
                              s);
@@ -581,25 +586,24 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
   struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   unsigned int i;
 
-  s->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ServiceResponseMessage)) /
+  s->cadet_transmitted_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct ServiceResponseMessage)) /
     (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * 2) - 2;
-  if (s->transferred_element_count > s->used_element_count)
-    s->transferred_element_count = s->used_element_count;
+  if (s->cadet_transmitted_element_count > s->used_element_count)
+    s->cadet_transmitted_element_count = s->used_element_count;
 
   e = GNUNET_MQ_msg_extra (msg,
-                           (2 + s->transferred_element_count * 2)
+                           (2 + s->cadet_transmitted_element_count * 2)
                            * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext),
                            GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA);
-  // FIXME: 'total' maybe confusing here, and should already be known to Alice
-  msg->total_element_count = htonl (s->used_element_count);
-  // FIXME: redundant!
-  msg->used_element_count = htonl (s->transferred_element_count);
-  msg->contained_element_count = htonl (s->transferred_element_count);
+  msg->reserved = htonl (0);
+  msg->intersection_element_count = htonl (s->used_element_count);
+  msg->contained_element_count = htonl (s->cadet_transmitted_element_count);
   msg->key = s->session_id;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u crypto values to Alice\n",
-              (unsigned int) s->transferred_element_count);
+              "Sending %u/%u crypto values to Alice\n",
+              (unsigned int) s->cadet_transmitted_element_count,
+              (unsigned int) s->used_element_count);
 
   payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   memcpy (&payload[0],
@@ -611,7 +615,7 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
 
   payload = &payload[2];
   // convert k[][]
-  for (i = 0; i < s->transferred_element_count; i++)
+  for (i = 0; i < s->cadet_transmitted_element_count; i++)
   {
     //k[i][p] and k[i][q]
     memcpy (&payload[i * 2],
@@ -621,7 +625,7 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
             &s->r_prime[i],
             sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
-  if (s->transferred_element_count == s->used_element_count)
+  if (s->cadet_transmitted_element_count == s->used_element_count)
     GNUNET_MQ_notify_sent (e,
                            &bob_cadet_done_cb,
                            s);
@@ -917,7 +921,7 @@ handle_alices_cryptodata_message (void *cls,
   if ( (msize != msg_length) ||
        (0 == contained_elements) ||
        (contained_elements > UINT16_MAX) ||
-       (max < contained_elements + s->transferred_element_count) )
+       (max < contained_elements + s->cadet_received_element_count) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -930,12 +934,12 @@ handle_alices_cryptodata_message (void *cls,
   if (NULL == s->e_a)
     s->e_a = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) *
                             max);
-  memcpy (&s->e_a[s->transferred_element_count],
+  memcpy (&s->e_a[s->cadet_received_element_count],
           payload,
           sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * contained_elements);
-  s->transferred_element_count += contained_elements;
+  s->cadet_received_element_count += contained_elements;
 
-  if ( (s->transferred_element_count == max) &&
+  if ( (s->cadet_received_element_count == max) &&
        (NULL == s->intersection_op) )
   {
     /* intersection has finished also on our side, and
@@ -986,7 +990,7 @@ cb_intersection_element_removed (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Finished intersection, %d items remain\n",
          GNUNET_CONTAINER_multihashmap_size (s->intersected_elements));
-    if (s->transferred_element_count ==
+    if (s->client_received_element_count ==
         GNUNET_CONTAINER_multihashmap_size (s->intersected_elements))
     {
       /* CADET transmission from Alice is also already done,
@@ -1026,7 +1030,7 @@ start_intersection (struct BobServiceSession *s)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got session with key %s and %u elements, starting intersection.\n",
               GNUNET_h2s (&s->session_id),
-              (unsigned int) s->transferred_element_count);
+              (unsigned int) s->total);
 
   s->intersection_op
     = GNUNET_SET_prepare (&s->cadet->peer,
@@ -1094,7 +1098,7 @@ handle_alices_computation_request (void *cls,
   /* pair them up */
   in->s = s;
   s->cadet = in;
-  if (s->transferred_element_count == s->total)
+  if (s->client_received_element_count == s->total)
     start_intersection (s);
   return GNUNET_OK;
 }
@@ -1178,8 +1182,8 @@ GSS_handle_bob_client_message_multipart (void *cls,
                   contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element))) ||
        (0 == contained_count) ||
        (UINT16_MAX < contained_count) ||
-       (s->total == s->transferred_element_count) ||
-       (s->total < s->transferred_element_count + contained_count) )
+       (s->total == s->client_received_element_count) ||
+       (s->total < s->client_received_element_count + contained_count) )
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
@@ -1212,10 +1216,10 @@ GSS_handle_bob_client_message_multipart (void *cls,
                             &set_elem,
                             NULL, NULL);
   }
-  s->transferred_element_count += contained_count;
+  s->client_received_element_count += contained_count;
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
-  if (s->total != s->transferred_element_count)
+  if (s->total != s->client_received_element_count)
   {
     /* more to come */
     return;
@@ -1300,7 +1304,7 @@ GSS_handle_bob_client_message (void *cls,
   s->client = client;
   s->client_mq = GNUNET_MQ_queue_for_server_client (client);
   s->total = total_count;
-  s->transferred_element_count = contained_count;
+  s->client_received_element_count = contained_count;
   s->session_id = msg->session_key;
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_put (client_sessions,
@@ -1342,7 +1346,7 @@ GSS_handle_bob_client_message (void *cls,
                                          s);
   GNUNET_SERVER_receive_done (client,
                               GNUNET_YES);
-  if (s->total != s->transferred_element_count)
+  if (s->total != s->client_received_element_count)
   {
     /* multipart msg */
     return;
@@ -1373,8 +1377,7 @@ shutdown_task (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down, initiating cleanup.\n");
-  do_shutdown = GNUNET_YES;
-  // FIXME: is there a need to shutdown active sessions?
+  // FIXME: do we have to cut our connections to CADET first?
   if (NULL != my_cadet)
   {
     GNUNET_CADET_disconnect (my_cadet);
