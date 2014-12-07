@@ -1645,7 +1645,10 @@ insert_round1_element (struct KeygenSession *ks)
 
   d->purpose.size = htonl ((sizeof *d) - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose));
   d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1);
-  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d->purpose, &d->signature));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_sign (my_peer_private_key,
+                                           &d->purpose,
+                                           &d->signature));
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
 
@@ -2066,10 +2069,14 @@ insert_decrypt_element (struct DecryptSession *ds)
   d.purpose.size = htonl (element.size - offsetof (struct GNUNET_SECRETSHARING_DecryptData, purpose));
   d.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DECRYPTION);
 
-  GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d.purpose, &d.signature);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_sign (my_peer_private_key,
+                                           &d.purpose,
+                                           &d.signature));
 
   GNUNET_CONSENSUS_insert (ds->consensus, &element, NULL, NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Inserting decrypt element done!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "P%u: Inserting decrypt element done!\n",
               ds->share->my_peer);
 
   gcry_mpi_release (s);
