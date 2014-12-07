@@ -2096,7 +2096,8 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
  * @param impl_state state of the implementation
  */
 static void
-cadet_mq_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+cadet_mq_destroy_impl (struct GNUNET_MQ_Handle *mq,
+                       void *impl_state)
 {
   struct CadetMQState *state = impl_state;
 
@@ -2124,8 +2125,8 @@ GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel)
   state = GNUNET_new (struct CadetMQState);
   state->channel = channel;
 
-  mq = GNUNET_MQ_queue_for_callbacks (cadet_mq_send_impl,
-                                      cadet_mq_destroy_impl,
+  mq = GNUNET_MQ_queue_for_callbacks (&cadet_mq_send_impl,
+                                      &cadet_mq_destroy_impl,
                                       NULL, /* FIXME: cancel impl. */
                                       state,
                                       NULL, /* no msg handlers */
