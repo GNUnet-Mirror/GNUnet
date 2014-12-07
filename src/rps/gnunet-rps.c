@@ -23,8 +23,8 @@
  * @brief rps tool
  * @author Julius Bünger
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_rps_service.h"
 
 static int ret;
