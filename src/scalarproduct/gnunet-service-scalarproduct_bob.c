@@ -992,7 +992,7 @@ cb_intersection_element_removed (void *cls,
     return;
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
-    s->intersection_set = NULL;
+    GNUNET_break (NULL == s->intersection_set);
     GNUNET_CADET_receive_done (s->cadet->channel);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Finished intersection, %d items remain\n",
@@ -1014,7 +1014,11 @@ cb_intersection_element_removed (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Set intersection failed!\n");
     s->intersection_op = NULL;
-    s->intersection_set = NULL;
+    if (NULL != s->intersection_set)
+    {
+      GNUNET_SET_destroy (s->intersection_set);
+      s->intersection_set = NULL;
+    }
     s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
     prepare_client_end_notification (s);
     return;
@@ -1046,8 +1050,17 @@ start_intersection (struct BobServiceSession *s)
                           GNUNET_SET_RESULT_REMOVED,
                           &cb_intersection_element_removed,
                           s);
-  GNUNET_SET_commit (s->intersection_op,
-                     s->intersection_set);
+  if (GNUNET_OK !=
+      GNUNET_SET_commit (s->intersection_op,
+                         s->intersection_set))
+  {
+    GNUNET_break (0);
+    s->status = GNUNET_SCALARPRODUCT_STATUS_FAILURE;
+    prepare_client_end_notification (s);
+    return;
+  }
+  GNUNET_SET_destroy (s->intersection_set);
+  s->intersection_set = NULL;
 }
 
 
@@ -1138,7 +1151,7 @@ cb_channel_incoming (void *cls,
   in = GNUNET_new (struct CadetIncomingSession);
   in->peer = *initiator;
   in->channel = channel;
-  // in->cadet_mq = GNUNET_CADET_mq_create (in->channel);
+  in->cadet_mq = GNUNET_CADET_mq_create (in->channel);
   return in;
 }
 

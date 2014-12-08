@@ -137,7 +137,11 @@ requester_callback (void *cls,
     if (0 == (rc = gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, result)))
     {
       ret = 0;
-      printf ("%s", buf);
+      fprintf (stdout,
+               "%s%s\n",
+               (0 > gcry_mpi_cmp_ui (result, 0)) ? "-" : "",
+               buf);
+      fflush (stdout);
     }
     else
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
