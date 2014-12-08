@@ -1,7 +1,13 @@
 [rps]
+AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-rps
-UNIXPATH = /tmp/gnunet-service-rps.sock
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-rps.sock
 HOME = $SERVICEHOME
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
+HOSTNAME = localhost
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
 # PORT = 2106
-@UNIXONLY@ PORT = 2087
+@UNIXONLY@ PORT = 2119
 
