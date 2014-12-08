@@ -91,19 +91,19 @@ print_entry (void *cls, const char *filename, const struct GNUNET_FS_Uri *uri,
                                               EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
   if (uri == NULL)
   {
-    printf (_("Directory `%s' meta data:\n"), name);
+    printf (_("Directory `%s' meta data:\n"), name ? name : "");
     GNUNET_CONTAINER_meta_data_iterate (meta, &item_printer, NULL);
     printf ("\n");
-    printf (_("Directory `%s' contents:\n"), name);
-    GNUNET_free (name);
+    printf (_("Directory `%s' contents:\n"), name ? name : "");
+    GNUNET_free_non_null (name);
     return;
   }
   string = GNUNET_FS_uri_to_string (uri);
-  printf ("%s (%s):\n", name, string);
+  printf ("%s (%s):\n", name ? name : "", string);
   GNUNET_free (string);
   GNUNET_CONTAINER_meta_data_iterate (meta, &item_printer, NULL);
   printf ("\n");
-  GNUNET_free (name);
+  GNUNET_free_non_null (name);
 }
 
 
