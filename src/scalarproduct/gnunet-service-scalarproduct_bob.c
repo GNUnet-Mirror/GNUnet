@@ -308,6 +308,25 @@ find_matching_cadet_session (const struct GNUNET_HashCode *key)
 
 
 /**
+ * Callback used to free the elements in the map.
+ *
+ * @param cls NULL
+ * @param key key of the element
+ * @param value the value to free
+ */
+static int
+free_element_cb (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
+{
+  struct GNUNET_SCALARPRODUCT_Element *element = value;
+
+  GNUNET_free (element);
+  return GNUNET_OK;
+}
+
+
+/**
  * Destroy session state, we are done with it.
  *
  * @param session the session to free elements from
@@ -351,7 +370,9 @@ destroy_service_session (struct BobServiceSession *s)
                                                        s));
   if (NULL != s->intersected_elements)
   {
-    /* FIXME: free elements */
+    GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
+                                           &free_element_cb,
+                                           NULL);
     GNUNET_CONTAINER_multihashmap_destroy (s->intersected_elements);
     s->intersected_elements = NULL;
   }
@@ -758,6 +779,7 @@ compute_service_response (struct BobServiceSession *session)
                                                         &a[q[i]],
                                                         &r_prime[i]));
   }
+  gcry_mpi_release (tmp);
 
   // Calculate S' =  E(SUM( r_i^2 ))
   tmp = compute_square_sum (rand, count);
@@ -765,6 +787,7 @@ compute_service_response (struct BobServiceSession *session)
                                   tmp,
                                   1,
                                   &session->s_prime);
+  gcry_mpi_release (tmp);
 
   // Calculate S = E(SUM( (r_i + b_i)^2 ))
   for (i = 0; i < count; i++)
@@ -774,6 +797,7 @@ compute_service_response (struct BobServiceSession *session)
                                   tmp,
                                   1,
                                   &session->s);
+  gcry_mpi_release (tmp);
 
   session->r = r;
   session->r_prime = r_prime;
@@ -781,7 +805,6 @@ compute_service_response (struct BobServiceSession *session)
   // release rand, b and a
   for (i = 0; i < count; i++)
     gcry_mpi_release (rand[i]);
-  gcry_mpi_release (tmp);
   GNUNET_free (session->e_a);
   session->e_a = NULL;
   GNUNET_free (p);

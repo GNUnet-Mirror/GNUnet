@@ -224,9 +224,9 @@ static struct GNUNET_CADET_Handle *my_cadet;
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-free_element (void *cls,
-              const struct GNUNET_HashCode *key,
-              void *value)
+free_element_cb (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
 {
   struct GNUNET_SCALARPRODUCT_Element *e = value;
 
@@ -273,7 +273,7 @@ destroy_service_session (struct AliceServiceSession *s)
   if (NULL != s->intersected_elements)
   {
     GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
-                                           &free_element,
+                                           &free_element_cb,
                                            s);
     GNUNET_CONTAINER_multihashmap_destroy (s->intersected_elements);
     s->intersected_elements = NULL;
