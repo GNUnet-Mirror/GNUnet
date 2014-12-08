@@ -386,9 +386,9 @@ GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
 
 
 /**
- * Cancel the given set operation.
- * May not be called after the operation's `GNUNET_SET_ResultIterator` has been
- * called with a status that indicates error, timeout or done.
+ * Cancel the given set operation.  May not be called after the
+ * operation's `GNUNET_SET_ResultIterator` has been called with a
+ * status that indicates error, timeout or done.
  *
  * @param oh set operation to cancel
  */
