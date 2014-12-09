@@ -39,6 +39,6 @@ then
     	echo "OK"
         exit 0
 else
-    	echo "Result $RESULT NOTOK"
+    	echo "Result $RESULT, expected $EXPECTED NOTOK"
         exit 1
 fi

@@ -138,8 +138,7 @@ requester_callback (void *cls,
     {
       ret = 0;
       fprintf (stdout,
-               "%s%s\n",
-               (0 > gcry_mpi_cmp_ui (result, 0)) ? "-" : "",
+               "%s\n",
                buf);
       fflush (stdout);
     }

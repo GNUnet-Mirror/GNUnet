@@ -389,9 +389,9 @@ process_result_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
       }
       else
       {
-        if (0 < ntohl (msg->range))
+        if (0 < (int32_t) ntohl (msg->range))
           gcry_mpi_add (result, result, num);
-        else if (0 > ntohl (msg->range))
+        else
           gcry_mpi_sub (result, result, num);
         gcry_mpi_release (num);
       }
