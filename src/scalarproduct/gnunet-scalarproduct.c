@@ -243,13 +243,20 @@ run (void *cls,
          input_peer_id);
     return;
   }
-
+  if ( ('\'' == *begin) &&
+       ('\'' == begin[strlen(begin)-1]) )
+  {
+    begin[strlen(begin)-1] = '\0';
+    if (strlen (begin) > 0)
+      begin++;
+  }
   for (end = begin; 0 != *end; end++)
     if (*end == ';')
       element_count++;
-  if (0 == element_count) {
+  if (0 == element_count)
+  {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Need elements to compute the vectorproduct, got none.\n"));
+         _("Need elements to compute the scalarproduct, got none.\n"));
     return;
   }
 
@@ -276,9 +283,8 @@ run (void *cls,
       GNUNET_free (elements);
       return;
     }
-
-    /* read the element's key */
     *separator = 0;
+    /* read the element's key */
     GNUNET_CRYPTO_hash (begin,
                         strlen (begin),
                         &element.key);
@@ -316,7 +322,8 @@ run (void *cls,
                                                               &responder_callback,
                                                               NULL))) ) )
   {
-    GNUNET_break (0);
+    fprintf (stderr,
+             _("Failed to initiate computation, were all keys unique?\n"));
     GNUNET_free (elements);
     return;
   }

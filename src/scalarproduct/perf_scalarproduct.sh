@@ -1,9 +1,16 @@
 #!/bin/bash
 # compute a simple scalar product
 # payload for this test:
-INPUTALICE="-k CCC -e 'AB,10;RO,3;FL,3;LOL,-1;'"
-INPUTBOB="-k CCC -e 'BC,-20000;RO,1000;FL,100;LOL,24;'"
-EXPECTED="0CCC"
+SIZE=1000
+INPUTALICE="-k CCC -e '"
+INPUTBOB="-k CCC -e '"
+for X in `seq 1 $SIZE`
+do
+  INPUTALICE="${INPUTALICE}A${X},$X;"
+  INPUTBOB="${INPUTBOB}A${X},$X;"
+done
+INPUTALICE="${INPUTALICE}BC,-20000;RO,1000;FL,100;LOL,24;'"
+INPUTBOB="${INPUTBOB}AB,10;RO,3;FL,3;LOL,-1;'"
 
 # necessary to make the testing prefix deterministic, so we can access the config files
 PREFIX=/tmp/test-scalarproduct`date +%H%M%S`
@@ -17,31 +24,20 @@ CFGBOB="-c $PREFIX/1/config"
 # interactive mode would terminate the test immediately
 # because the rest of the script is already in stdin,
 # thus redirecting stdin does not suffice)
-# GNUNET_FORCE_LOG='scalarproduct*;;;;DEBUG'
+GNUNET_FORCE_LOG=';;;;ERROR'
 GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 &
 PID=$!
 # sleep 1 is too short on most systems, 2 works on most, 5 seems to be safe
 echo "Waiting for peers to start..."
 sleep 5
-echo "Running test..."
-
-# get bob's peer ID, necessary for alice
+# get Bob's peer ID, necessary for Alice
 PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
 
-#GNUNET_LOG=';;;;DEBUG'
+echo "Running problem of size $SIZE"
 gnunet-scalarproduct $CFGBOB $INPUTBOB &
-#GNUNET_LOG=';;;;DEBUG'
-RESULT=`gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
+time RESULT=`gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
 
+echo "Terminating testbed..."
 # terminate the testbed
 kill $PID
-
-if [ "$RESULT" == "$EXPECTED" ]
-then
-	echo "OK"
-	exit 0
-else
-	echo "Result $RESULT, expected $EXPECTED - NOTOK"
-	exit 1
-fi
 

@@ -268,6 +268,40 @@ process_status_message (struct GNUNET_SCALARPRODUCT_ComputationHandle *h,
 
 
 /**
+ * Check if the keys for all given elements are unique.
+ *
+ * @param elements elements to check
+ * @param element_count size of the @a elements array
+ * @return #GNUNET_OK if all keys are unique
+ */
+static int
+check_unique (const struct GNUNET_SCALARPRODUCT_Element *elements,
+              uint32_t element_count)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *map;
+  uint32_t i;
+  int ok;
+
+  ok = GNUNET_OK;
+  map = GNUNET_CONTAINER_multihashmap_create (2 * element_count,
+                                              GNUNET_YES);
+  for (i=0;i<element_count;i++)
+    if (GNUNET_OK !=
+        GNUNET_CONTAINER_multihashmap_put (map,
+                                           &elements[i].key,
+                                           map,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Keys given to SCALARPRODUCT not unique!\n"));
+      ok = GNUNET_SYSERR;
+    }
+  GNUNET_CONTAINER_multihashmap_destroy (map);
+  return ok;
+}
+
+
+/**
  * Used by Bob's client to cooperate with Alice,
  *
  * @param cfg the gnunet configuration handle
@@ -291,6 +325,8 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
   uint32_t size;
   uint16_t possible;
 
+  if (GNUNET_SYSERR == check_unique (elements, element_count))
+    return NULL;
   h = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
   h->cont_status = cont;
   h->cont_cls = cont_cls;
@@ -433,6 +469,8 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
   uint32_t size;
   uint32_t possible;
 
+  if (GNUNET_SYSERR == check_unique (elements, element_count))
+    return NULL;
   h = GNUNET_new (struct GNUNET_SCALARPRODUCT_ComputationHandle);
   h->client = GNUNET_CLIENT_connect ("scalarproduct-alice", cfg);
   if (NULL == h->client)
