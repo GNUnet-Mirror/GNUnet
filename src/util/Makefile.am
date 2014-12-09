@@ -203,6 +203,7 @@ libgnunet_plugin_test_la_LDFLAGS = \
 if HAVE_BENCHMARKS
  BENCHMARKS = \
   perf_crypto_hash \
+  perf_crypto_paillier \
   perf_crypto_symmetric \
   perf_malloc
 endif
@@ -557,6 +558,12 @@ perf_crypto_symmetric_SOURCES = \
  perf_crypto_symmetric.c
 perf_crypto_symmetric_LDADD = \
  libgnunetutil.la
+
+perf_crypto_paillier_SOURCES = \
+ perf_crypto_paillier.c
+perf_crypto_paillier_LDADD = \
+ libgnunetutil.la \
+ -lgcrypt
 
 perf_malloc_SOURCES = \
  perf_malloc.c
