@@ -1,7 +1,16 @@
 #!/bin/bash
-# compute a simple scalar product
-# payload for this test:
+# Computes a simple scalar product, with configurable vector size.
+#
+# Some results:
+# SIZE   TIME(s)
+#  25     10
+#  50     17
+# 100     32
+#
+# Configure benchmark size:
 SIZE=1000
+#
+# Construct input vectors:
 INPUTALICE="-k CCC -e '"
 INPUTBOB="-k CCC -e '"
 for X in `seq 1 $SIZE`
