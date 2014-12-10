@@ -24,8 +24,10 @@ The following options are generic and shared by all services:
     The hostname specifies the machine on which the service is running.  This is usually "localhost".
 .IP BINARY
     The filename that implements the service. For example "gnunet-service-ats".
+.IP FORCESTART
+    Start the service always when the peer starts.  Set to YES for services that should always be launched, even if no other service explicitly needs them.
 .IP AUTOSTART
-    This defines the section it is defined in, which should be a service, will be started by the ARM service if the value is set to YES.
+    Set to YES to automatically start the service when it is requested by another service. YES for most GNUnet services.
 .IP ACCEPT_FROM
     A semi-column separated list of IPv4 addresses that are allowed to use the service; usually 127.0.0.1.
 .IP ACCEPT_FROM6
@@ -41,12 +43,6 @@ The following options are generic and shared by all services:
 
 
 
-.SH ARM Options
-
-This section is configuration for the automatic restart manager which is responsible for launching services.
-
-.IP DEFAULTSERVICES
-    list of services that ARM should always start by default.  AUTOSTART services are only started when the service is needed by some other service.  The services listed here will always be started, not just on-demand.  "topology" and "hostlist" should virtually always be listed here, and most users will want to specify high-level applications like "fs", "gns" or "pt" here as well.
 .B
 .SH ATS Options
 

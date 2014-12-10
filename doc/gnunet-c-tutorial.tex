@@ -402,7 +402,7 @@ by you.
 If you want to use the \texttt{peerinfo} tool to connect your peers, you should:
 \begin{itemize}
 \itemsep0em
- \item{Remove {\tt hostlist} from {\tt DEFAULTSERVICES} (to not connect to the global GNUnet)}
+ \item{Set {\tt FORCESTART = NO} in section {\tt hostlist} (to not connect to the global GNUnet)}
  \item{Start both peers running {\tt gnunet-arm -c peer1.conf -s} and {\tt gnunet-arm -c peer2.conf -s}}
  \item{Get \texttt{HELLO} message of the first peer running {\tt gnunet-peerinfo -c peer1.conf -g}}
  \item{Give the output to the second peer by running {\tt gnunet-peerinfo -c peer2.conf -p '<output>'}}
@@ -1120,7 +1120,7 @@ Each data record stored with PEERSTORE contains the following fields:
 
 \begin{itemize}
 \itemsep0em
-  \item subsystem: Name of the subsystem responsible for the record. 
+  \item subsystem: Name of the subsystem responsible for the record.
   \item peerid: Identity of the peer this record is related to.
   \item key: a key string identifying the record.
   \item value: binary record value.

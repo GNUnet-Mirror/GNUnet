@@ -69,12 +69,9 @@ Share a directory "$HOME/gnunet\-share/":
 
 Share a directory "$HOME/gnunet\-share/":
 
- [ARM]
- DEFAULTSERVICES = gnunet-auto-share # other default services here
-
  [gnunet-auto-share]
  OPTIONS = $HOME/gnunet\-share
-
+ FORCESTART = YES # start this service when the peer starts
 
 .SH FILES
 .TP

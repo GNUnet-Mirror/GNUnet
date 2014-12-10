@@ -4,8 +4,6 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
-dist_pkgcfg_DATA = \
-  hostlist.conf
 
 if USE_COVERAGE
   AM_CFLAGS = --coverage -O0
@@ -22,12 +20,16 @@ libexec_PROGRAMS = \
  gnunet-daemon-hostlist
 LIB_GNURL=@LIBGNURL@
 CPP_GNURL=@LIBGNURL_CPPFLAGS@
+dist_pkgcfg_DATA = \
+  hostlist.conf
 else
 if HAVE_LIBCURL
 libexec_PROGRAMS = \
  gnunet-daemon-hostlist
 LIB_GNURL=@LIBCURL@
 CPP_GNURL=@LIBCURL_CPPFLAGS@
+dist_pkgcfg_DATA = \
+  hostlist.conf
 endif
 endif
 

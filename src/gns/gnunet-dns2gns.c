@@ -200,10 +200,16 @@ do_shutdown (void *cls,
     GNUNET_IDENTITY_disconnect (identity);
     identity = NULL;
   }
-  GNUNET_GNS_disconnect (gns);
-  gns = NULL;
-  GNUNET_DNSSTUB_stop (dns_stub);
-  dns_stub = NULL;
+  if (NULL != gns)
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+  }
+  if (NULL != dns_stub)
+  {
+    GNUNET_DNSSTUB_stop (dns_stub);
+    dns_stub = NULL;
+  }
 }
 
 
@@ -448,9 +454,10 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
     strcpy (&name[name_len - strlen (fcfs_suffix)],
 	    ".gnu");
     use_gns = GNUNET_YES;
-  } else if ( (name_len > strlen (dns_suffix)) &&
-       (0 == strcasecmp (dns_suffix,
-			 &name[name_len - strlen (dns_suffix)])) )
+  }
+  else if ( (name_len > strlen (dns_suffix)) &&
+            (0 == strcasecmp (dns_suffix,
+                              &name[name_len - strlen (dns_suffix)])) )
   {
     /* replace ".zkey.eu" with ".zkey" */
     strcpy (&name[name_len - strlen (dns_suffix)],

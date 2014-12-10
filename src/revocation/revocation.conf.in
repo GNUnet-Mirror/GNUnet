@@ -1,5 +1,6 @@
 [revocation]
 AUTOSTART = @AUTOSTART@
+FORCESTART = YES
 @JAVAPORT@PORT = 2112
 HOSTNAME = localhost
 BINARY = gnunet-service-revocation

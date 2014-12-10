@@ -409,7 +409,9 @@ time_between (struct GNUNET_TIME_Absolute start,
 static int
 peer_id_cmp (const void *p1, const void *p2)
 {
-  return memcmp (p1, p2, sizeof (struct GNUNET_PeerIdentity));
+  return memcmp (p1,
+                 p2,
+                 sizeof (struct GNUNET_PeerIdentity));
 }
 
 
@@ -427,8 +429,11 @@ peer_find (const struct GNUNET_PeerIdentity *haystack, unsigned int n,
            const struct GNUNET_PeerIdentity *needle)
 {
   unsigned int i;
+
   for (i = 0; i < n; i++)
-    if (0 == memcmp (&haystack[i], needle, sizeof (struct GNUNET_PeerIdentity)))
+    if (0 == memcmp (&haystack[i],
+                     needle,
+                     sizeof (struct GNUNET_PeerIdentity)))
       return i;
   return -1;
 }
@@ -468,8 +473,13 @@ normalize_peers (struct GNUNET_PeerIdentity *listed,
   if (GNUNET_NO == local_peer_in_list)
     normalized[n - 1] = my_peer;
 
-  memcpy (normalized, listed, num_listed * sizeof (struct GNUNET_PeerIdentity));
-  qsort (normalized, n, sizeof (struct GNUNET_PeerIdentity), &peer_id_cmp);
+  memcpy (normalized,
+          listed,
+          num_listed * sizeof (struct GNUNET_PeerIdentity));
+  qsort (normalized,
+         n,
+         sizeof (struct GNUNET_PeerIdentity),
+         &peer_id_cmp);
 
   if (NULL != my_peer_idx)
     *my_peer_idx = peer_find (normalized, n, &my_peer);

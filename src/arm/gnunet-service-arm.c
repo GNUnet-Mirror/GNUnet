@@ -163,7 +163,7 @@ struct ServiceList
    * to start it)?  #GNUNET_NO if the service is started only upon 'accept' on a
    * listen socket or possibly explicitly by a client changing the value.
    */
-  int is_default;
+  int force_start;
 
   /**
    * Should we use pipes to signal this process? (YES for Java binaries and if we
@@ -669,7 +669,7 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
 #ifdef LINUX
       /* Permission settings are not required when abstract sockets are used */
       && ('\0' != ((const struct sockaddr_un *)sa)->sun_path[0])
-#endif      
+#endif
       )
   {
     match_uid =
@@ -735,7 +735,8 @@ free_service (struct ServiceList *sl)
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
-handle_start (void *cls, struct GNUNET_SERVER_Client *client,
+handle_start (void *cls,
+              struct GNUNET_SERVER_Client *client,
 	      const struct GNUNET_MessageHeader *message)
 {
   const char *servicename;
@@ -770,7 +771,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  sl->is_default = GNUNET_YES;
+  sl->force_start = GNUNET_YES;
   if (NULL != sl->proc)
   {
     signal_result (client, servicename, request_id,
@@ -790,9 +791,11 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
  * @param tc task context
  */
 static void
-trigger_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+trigger_shutdown (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Triggering shutdown\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Triggering shutdown\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -807,7 +810,8 @@ trigger_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
-handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
+handle_stop (void *cls,
+             struct GNUNET_SERVER_Client *client,
 	     const struct GNUNET_MessageHeader *message)
 {
   struct ServiceList *sl;
@@ -846,7 +850,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-  sl->is_default = GNUNET_NO;
+  sl->force_start = GNUNET_NO;
   if (GNUNET_YES == in_shutdown)
     {
       /* shutdown in progress */
@@ -1002,7 +1006,8 @@ list_count (struct ServiceList *running_head)
  * @param tc context
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
   struct ServiceList *nxt;
@@ -1093,11 +1098,12 @@ delayed_restart_task (void *cls,
     if (0 == GNUNET_TIME_absolute_get_remaining (sl->restart_at).rel_value_us)
     {
       /* restart is now allowed */
-      if (sl->is_default)
+      if (sl->force_start)
       {
 	/* process should run by default, start immediately */
 	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		    _("Restarting service `%s'.\n"), sl->name);
+		    _("Restarting service `%s'.\n"),
+                    sl->name);
 	start_process (sl, NULL, 0);
       }
       else
@@ -1377,9 +1383,18 @@ setup_service (void *cls, const char *section)
 #endif
   GNUNET_CONTAINER_DLL_insert (running_head, running_tail, sl);
 
-  if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "AUTOSTART"))
+  if (GNUNET_YES ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "FORCESTART"))
+  {
+    sl->force_start = GNUNET_YES;
     return;
+  }
+  else
+  {
+    if (GNUNET_YES !=
+        GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "AUTOSTART"))
+      return;
+  }
   if (0 >= (ret = GNUNET_SERVICE_get_server_addresses (section, cfg,
 						       &addrs, &addr_lens)))
     return;
@@ -1451,8 +1466,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
      sizeof (struct GNUNET_ARM_Message)},
     {NULL, NULL, 0, 0}
   };
-  char *defaultservices;
-  const char *pos;
   struct ServiceList *sl;
 
   cfg = c;
@@ -1490,45 +1503,17 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   GNUNET_CONFIGURATION_iterate_sections (cfg, &setup_service, NULL);
 
   /* start default services... */
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg,
-                                             "ARM",
-                                             "DEFAULTSERVICES",
-					     &defaultservices))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Starting default services `%s'\n"),
-                defaultservices);
-    if (0 < strlen (defaultservices))
-    {
-      for (pos = strtok (defaultservices, " "); NULL != pos;
-           pos = strtok (NULL, " "))
-      {
-        sl = find_service (pos);
-        if (NULL == sl)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      _("Default service `%s' not configured correctly!\n"),
-                      pos);
-          continue;
-        }
-        sl->is_default = GNUNET_YES;
-        start_process (sl, NULL, 0);
-      }
-    }
-    GNUNET_free (defaultservices);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("No default services configured, GNUnet will not really start right now.\n"));
-  }
-
-  notifier =
-      GNUNET_SERVER_notification_context_create (server, MAX_NOTIFY_QUEUE);
-  GNUNET_SERVER_connect_notify (server, handle_client_connecting, NULL);
+  for (sl = running_head; NULL != sl; sl = sl->next)
+    if (GNUNET_YES == sl->force_start)
+      start_process (sl, NULL, 0);
+  notifier
+    = GNUNET_SERVER_notification_context_create (server,
+                                                 MAX_NOTIFY_QUEUE);
+  GNUNET_SERVER_connect_notify (server,
+                                &handle_client_connecting, NULL);
   /* process client requests */
-  GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_add_handlers (server,
+                              handlers);
 }
 
 

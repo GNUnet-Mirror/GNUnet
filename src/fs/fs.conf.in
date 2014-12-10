@@ -1,5 +1,6 @@
 [fs]
 AUTOSTART = @AUTOSTART@
+FORCESTART = YES
 INDEXDB = $GNUNET_DATA_HOME/fs/idxinfo.lst
 RESPECT = $GNUNET_DATA_HOME/fs/credit/
 STATE_DIR = $GNUNET_DATA_HOME/fs/persistence/
@@ -60,6 +61,7 @@ MAX_CADET_CLIENTS = 128
 
 [gnunet-auto-share]
 BINARY = gnunet-auto-share
+FORCESTART = NO
 
 # Note: MUST specify path to auto-share directory and CAN specify other options
 # to gnunet-auto-share here!
