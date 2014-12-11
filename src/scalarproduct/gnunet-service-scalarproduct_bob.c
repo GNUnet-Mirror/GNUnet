@@ -593,6 +593,8 @@ transmit_bobs_cryptodata_message_multipart (struct BobServiceSession *s)
     GNUNET_MQ_send (s->cadet->cadet_mq,
                     e);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "All values queued for Alice, Bob is done\n");
 }
 
 

@@ -35,7 +35,8 @@ CFGBOB="-c $PREFIX/1/config"
 # interactive mode would terminate the test immediately
 # because the rest of the script is already in stdin,
 # thus redirecting stdin does not suffice)
-GNUNET_FORCE_LOG=';;;;ERROR'
+#GNUNET_FORCE_LOG=';;;;ERROR'
+GNUNET_FORCE_LOG='scalarproduct*;;;;DEBUG/cadet-api*;;;;DEBUG'
 GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 &
 PID=$!
 # sleep 1 is too short on most systems, 2 works on most, 5 seems to be safe

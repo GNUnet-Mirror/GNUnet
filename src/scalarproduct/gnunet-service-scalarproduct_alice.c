@@ -902,8 +902,9 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
     if (todo_count > ELEMENT_CAPACITY)
       todo_count = ELEMENT_CAPACITY;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending %u crypto values to Bob\n",
-                (unsigned int) todo_count);
+                "Sending %u/%u crypto values to Bob\n",
+                (unsigned int) todo_count,
+                (unsigned int) s->used_element_count);
 
     e = GNUNET_MQ_msg_extra (msg,
                              todo_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext),
