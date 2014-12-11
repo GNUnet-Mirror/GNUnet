@@ -307,7 +307,7 @@ impl_send_continue (void *cls,
   struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MQ_Envelope *current_envelope;
 
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   mq->continue_task = GNUNET_SCHEDULER_NO_TASK;

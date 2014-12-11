@@ -345,8 +345,8 @@ send_callback (void *cls, size_t size, void *buf);
  *
  * @param th Transmission handle.
  *
- * @return GNUNET_YES if it is a payload packet,
- *         GNUNET_NO if it is a cadet management packet.
+ * @return #GNUNET_YES if it is a payload packet,
+ *         #GNUNET_NO if it is a cadet management packet.
  */
 static int
 th_is_payload (struct GNUNET_CADET_TransmitHandle *th)
@@ -1627,7 +1627,7 @@ GNUNET_CADET_channel_create (struct GNUNET_CADET_Handle *h,
   msg.port = htonl (port);
   msg.peer = *peer;
   msg.opt = htonl (options);
-  ch->allow_send = 0;
+  ch->allow_send = GNUNET_NO;
   send_packet (h, &msg.header, ch);
   return ch;
 }
@@ -2074,7 +2074,8 @@ cadet_mq_ntr (void *cls, size_t size,
  */
 static void
 cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
-                   const struct GNUNET_MessageHeader *msg, void *impl_state)
+                    const struct GNUNET_MessageHeader *msg,
+                    void *impl_state)
 {
   struct CadetMQState *state = impl_state;
 
@@ -2085,7 +2086,7 @@ cadet_mq_send_impl (struct GNUNET_MQ_Handle *mq,
                                          GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          ntohs (msg->size),
-                                         cadet_mq_ntr, mq);
+                                         &cadet_mq_ntr, mq);
 
 }
 
