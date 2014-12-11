@@ -404,10 +404,13 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   int32_t o1;
   int32_t o2;
 
-  o1 = ntohl (c1->remaining_ops);
-  o2 = ntohl (c2->remaining_ops);
+  o1 = (int32_t) ntohl (c1->remaining_ops);
+  o2 = (int32_t) ntohl (c2->remaining_ops);
   if ( (0 >= o1) || (0 >= o2) )
+  {
+    GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&a,
                                    c1->bits,
