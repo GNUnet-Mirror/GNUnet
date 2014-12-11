@@ -542,7 +542,7 @@ bob_cadet_done_cb (void *cls)
 /**
  * Maximum count of elements we can put into a multipart message
  */
-#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - sizeof (struct BobCryptodataMultipartMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - sizeof (struct BobCryptodataMultipartMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
 
 
 /**
@@ -615,8 +615,9 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
   struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   unsigned int i;
 
-  s->cadet_transmitted_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct BobCryptodataMessage)) /
-    (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * 2) - 2;
+  s->cadet_transmitted_element_count
+    = ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - sizeof (struct BobCryptodataMessage))
+       / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) / 2) - 1;
   if (s->cadet_transmitted_element_count > s->used_element_count)
     s->cadet_transmitted_element_count = s->used_element_count;
 
@@ -659,6 +660,7 @@ transmit_bobs_cryptodata_message (struct BobServiceSession *s)
                   e);
   transmit_bobs_cryptodata_message_multipart (s);
 }
+#undef ELEMENT_CAPACITY
 
 
 /**
@@ -697,8 +699,9 @@ compute_square_sum (const gcry_mpi_t *vector,
  *     S': $S' := E_A(sum r_i^2)$
  *
  * @param request the requesting session + bob's requesting peer
+ * @return #GNUNET_OK on success
  */
-static void
+static int
 compute_service_response (struct BobServiceSession *session)
 {
   uint32_t i;
@@ -751,16 +754,22 @@ compute_service_response (struct BobServiceSession *session)
     // E(S - r_pi - b_pi)
     gcry_mpi_sub (tmp, my_offset, rand[p[i]]);
     gcry_mpi_sub (tmp, tmp, b[p[i]].value);
-    GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
-                                    tmp,
-                                    2,
-                                    &r[i]);
+    GNUNET_assert (2 ==
+                   GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
+                                                   tmp,
+                                                   2,
+                                                   &r[i]));
 
     // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
-    GNUNET_CRYPTO_paillier_hom_add (&session->cadet->remote_pubkey,
-                                    &r[i],
-                                    &a[p[i]],
-                                    &r[i]);
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_paillier_hom_add (&session->cadet->remote_pubkey,
+                                        &r[i],
+                                        &a[p[i]],
+                                        &r[i]))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
   }
 
   // Calculate Kq = E(S + a_qi) (+) E(S - r_qi)
@@ -768,35 +777,43 @@ compute_service_response (struct BobServiceSession *session)
   {
     // E(S - r_qi)
     gcry_mpi_sub (tmp, my_offset, rand[q[i]]);
-    GNUNET_assert (2 == GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
-                                                        tmp,
-                                                        2,
-                                                        &r_prime[i]));
+    GNUNET_assert (2 ==
+                   GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
+                                                   tmp,
+                                                   2,
+                                                   &r_prime[i]));
 
     // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
-    GNUNET_assert (1 == GNUNET_CRYPTO_paillier_hom_add (&session->cadet->remote_pubkey,
-                                                        &r_prime[i],
-                                                        &a[q[i]],
-                                                        &r_prime[i]));
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_paillier_hom_add (&session->cadet->remote_pubkey,
+                                        &r_prime[i],
+                                        &a[q[i]],
+                                        &r_prime[i]))
+    {
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
   }
   gcry_mpi_release (tmp);
 
   // Calculate S' =  E(SUM( r_i^2 ))
   tmp = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
-                                  tmp,
-                                  1,
-                                  &session->s_prime);
+  GNUNET_assert (1 ==
+                 GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
+                                                 tmp,
+                                                 1,
+                                                 &session->s_prime));
   gcry_mpi_release (tmp);
 
   // Calculate S = E(SUM( (r_i + b_i)^2 ))
   for (i = 0; i < count; i++)
     gcry_mpi_add (rand[i], rand[i], b[i].value);
   tmp = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
-                                  tmp,
-                                  1,
-                                  &session->s);
+  GNUNET_assert (1 ==
+                 GNUNET_CRYPTO_paillier_encrypt (&session->cadet->remote_pubkey,
+                                                 tmp,
+                                                 1,
+                                                 &session->s));
   gcry_mpi_release (tmp);
 
   session->r = r;
@@ -810,8 +827,7 @@ compute_service_response (struct BobServiceSession *session)
   GNUNET_free (p);
   GNUNET_free (q);
   GNUNET_free (rand);
-
-  // copy the r[], r_prime[], S and Stick into a new message, prepare_service_response frees these
+  return GNUNET_OK;
 }
 
 
@@ -877,6 +893,8 @@ element_cmp (const void *a,
 static void
 transmit_cryptographic_reply (struct BobServiceSession *s)
 {
+  struct GNUNET_CADET_Channel *channel;
+
   /* TODO: code duplication with Alice! */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received everything, building reply for Alice\n");
@@ -891,7 +909,14 @@ transmit_cryptographic_reply (struct BobServiceSession *s)
          s->used_element_count,
          sizeof (struct MpiElement),
          &element_cmp);
-  compute_service_response (s);
+  if (GNUNET_OK !=
+      compute_service_response (s))
+  {
+    channel = s->cadet->channel;
+    s->cadet->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+    return;
+  }
   transmit_bobs_cryptodata_message (s);
 }
 
@@ -1421,7 +1446,7 @@ shutdown_task (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down, initiating cleanup.\n");
-  // FIXME: do we have to cut our connections to CADET first?
+  // FIXME: we have to cut our connections to CADET first!
   if (NULL != my_cadet)
   {
     GNUNET_CADET_disconnect (my_cadet);

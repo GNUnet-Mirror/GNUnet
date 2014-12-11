@@ -2,13 +2,15 @@
 # Computes a simple scalar product, with configurable vector size.
 #
 # Some results:
-# SIZE   TIME(s)
+# SIZE   TIME-H(s)  TIME-O(s)
 #  25     10
 #  50     17
-# 100     32
+# 100     32          39
+# 200                 77
+#
 #
 # Configure benchmark size:
-SIZE=1000
+SIZE=400
 #
 # Construct input vectors:
 INPUTALICE="-k CCC -e '"
@@ -45,6 +47,8 @@ PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
 echo "Running problem of size $SIZE"
 gnunet-scalarproduct $CFGBOB $INPUTBOB &
 time RESULT=`gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
+gnunet-statistics $CFGALICE -s core | grep "bytes encrypted"
+gnunet-statistics $CFGBOB -s core | grep "bytes encrypted"
 
 echo "Terminating testbed..."
 # terminate the testbed

@@ -861,7 +861,7 @@ element_cmp (const void *a,
  * Maximum number of elements we can put into a single cryptodata
  * message
  */
-#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - sizeof (struct AliceCryptodataMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - sizeof (struct AliceCryptodataMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
 
 
 /**
@@ -911,15 +911,16 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
     msg->contained_element_count = htonl (todo_count);
     payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
     a = gcry_mpi_new (0);
-    for (i = off; i < todo_count; i++)
+    for (i = off; i < off + todo_count; i++)
     {
       gcry_mpi_add (a,
                     s->sorted_elements[i].value,
                     my_offset);
-      GNUNET_CRYPTO_paillier_encrypt (&my_pubkey,
-                                      a,
-                                      3,
-                                      &payload[i - off]);
+      GNUNET_assert (3 ==
+                     GNUNET_CRYPTO_paillier_encrypt (&my_pubkey,
+                                                     a,
+                                                     3,
+                                                     &payload[i - off]));
     }
     gcry_mpi_release (a);
     off += todo_count;
@@ -1321,6 +1322,7 @@ shutdown_task (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Shutting down, initiating cleanup.\n");
+  // FIXME: we have to cut our connections to CADET first!
   if (NULL != my_cadet)
   {
     GNUNET_CADET_disconnect (my_cadet);
