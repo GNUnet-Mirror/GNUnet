@@ -1352,6 +1352,7 @@ send_callback (void *cls, size_t size, void *buf)
       psize = th->notify (th->notify_cls,
                           size - sizeof (struct GNUNET_CADET_LocalData),
                           mh);
+
       if (psize > 0)
       {
         psize += sizeof (struct GNUNET_CADET_LocalData);
@@ -1379,6 +1380,8 @@ send_callback (void *cls, size_t size, void *buf)
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
+    GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= psize);
+
     if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
@@ -1709,14 +1712,15 @@ GNUNET_CADET_channel_get_info (struct GNUNET_CADET_Channel *channel,
 
 struct GNUNET_CADET_TransmitHandle *
 GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel, int cork,
-                                   struct GNUNET_TIME_Relative maxdelay,
-                                   size_t notify_size,
-                                   GNUNET_CONNECTION_TransmitReadyNotify notify,
-                                   void *notify_cls)
+                                    struct GNUNET_TIME_Relative maxdelay,
+                                    size_t notify_size,
+                                    GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                    void *notify_cls)
 {
   struct GNUNET_CADET_TransmitHandle *th;
 
   GNUNET_assert (NULL != channel);
+  GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= notify_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CADET NOTIFY TRANSMIT READY\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    on channel %X\n", channel->chid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    allow_send %d\n", channel->allow_send);
