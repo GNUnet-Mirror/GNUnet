@@ -137,7 +137,10 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
-check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
+check_success (void *cls,
+               int success,
+               struct GNUNET_TIME_Absolute min_expiration,
+               const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -156,12 +159,16 @@ check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiratio
 
 
 static void
-get_reserved (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
+get_reserved (void *cls,
+              int success,
+              struct GNUNET_TIME_Absolute min_expiration,
+              const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
   if (0 >= success)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error obtaining reservation: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error obtaining reservation: `%s'\n",
                 msg);
   GNUNET_assert (0 < success);
   crc->rid = success;
@@ -171,9 +178,14 @@ get_reserved (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration
 
 
 static void
-check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
-             const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-             uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_value (void *cls,
+             const struct GNUNET_HashCode *key,
+             size_t size,
+             const void *data,
+             enum GNUNET_BLOCK_Type type,
+             uint32_t priority,
+             uint32_t anonymity,
+             struct GNUNET_TIME_Absolute expiration,
              uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -183,7 +195,8 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
   if (NULL == key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Value check failed (got NULL key) in %d/%d\n", crc->phase,
+                "Value check failed (got NULL key) in %d/%d\n",
+                crc->phase,
                 crc->i);
     crc->phase = RP_ERROR;
     GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
@@ -218,14 +231,19 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-delete_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
-              const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-              uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+delete_value (void *cls,
+              const struct GNUNET_HashCode *key,
+              size_t size,
+              const void *data,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t priority,
+              uint32_t anonymity,
+              struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
-  GNUNET_assert (crc->data == NULL);
+  GNUNET_assert (NULL == crc->data);
   GNUNET_assert (NULL != key);
   crc->size = size;
   crc->key = *key;
@@ -254,10 +272,15 @@ check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_multiple (void *cls, const struct GNUNET_HashCode * key, size_t size,
-                const void *data, enum GNUNET_BLOCK_Type type,
-                uint32_t priority, uint32_t anonymity,
-                struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+check_multiple (void *cls,
+                const struct GNUNET_HashCode *key,
+                size_t size,
+                const void *data,
+                enum GNUNET_BLOCK_Type type,
+                uint32_t priority,
+                uint32_t anonymity,
+                struct GNUNET_TIME_Absolute expiration,
+                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
 
@@ -286,9 +309,14 @@ check_multiple (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-check_update (void *cls, const struct GNUNET_HashCode * key, size_t size,
-              const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-              uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_update (void *cls,
+              const struct GNUNET_HashCode *key,
+              size_t size,
+              const void *data,
+              enum GNUNET_BLOCK_Type type,
+              uint32_t priority,
+              uint32_t anonymity,
+              struct GNUNET_TIME_Absolute expiration,
               uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -308,16 +336,21 @@ check_update (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_continuation (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
 
   ok = (int) crc->phase;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test in phase %u\n", crc->phase);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test in phase %u\n",
+              crc->phase);
   switch (crc->phase)
   {
   case RP_PUT:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "PUT",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n",
+                "PUT",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_put (datastore, 0, &crc->key, get_size (crc->i),
@@ -331,7 +364,9 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     break;
   case RP_GET:
     crc->i--;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "GET",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n",
+                "GET",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,
@@ -340,7 +375,9 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     break;
   case RP_DEL:
     crc->i--;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "DEL",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n",
+                "DEL",
                 crc->i);
     crc->data = NULL;
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
@@ -350,7 +387,9 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                              &delete_value, crc));
     break;
   case RP_DO_DEL:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n", "DO_DEL",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n",
+                "DO_DEL",
                 crc->i);
     if (crc->i == 0)
     {
@@ -368,7 +407,8 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     break;
   case RP_DELVALIDATE:
     crc->i--;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing `%s' number %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Executing `%s' number %u\n",
                 "DEL-VALIDATE", crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_assert (NULL !=
@@ -435,7 +475,10 @@ run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiration, const char *msg)
+run_tests (void *cls,
+           int32_t success,
+           struct GNUNET_TIME_Absolute min_expiration,
+           const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -446,7 +489,8 @@ run_tests (void *cls, int32_t success, struct GNUNET_TIME_Absolute min_expiratio
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     return;
   case GNUNET_NO:
-    FPRINTF (stderr, "%s", "Test 'put' operation failed, key already exists (!?)\n");
+    FPRINTF (stderr,
+             "%s", "Test 'put' operation failed, key already exists (!?)\n");
     GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
     GNUNET_free (crc);
     return;

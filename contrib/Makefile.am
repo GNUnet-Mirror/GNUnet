@@ -44,6 +44,7 @@ tap64_DATA = \
 endif
 
 EXTRA_DIST = \
+ no_forcestart.conf \
  coverage.sh \
  report.sh \
  terminate.py.in \
