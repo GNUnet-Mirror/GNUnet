@@ -408,7 +408,7 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   o2 = (int32_t) ntohl (c2->remaining_ops);
   if ( (0 >= o1) || (0 >= o2) )
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
 
