@@ -168,14 +168,18 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 int
 main (int argc, char *const *argv)
 {
-  int ret;
   int r;
 
   shutting_down = GNUNET_NO;
   r = GNUNET_SERVICE_run (argc, argv, "cadet", GNUNET_SERVICE_OPTION_NONE, &run,
                           NULL);
   GNUNET_free (my_private_key);
-  ret = (GNUNET_OK == r) ? 0 : 1;
 
-  return ret;
+  if (GNUNET_OK != r)
+  {
+    FPRINTF (stderr, "GNUNET_SERVICE_run for CADET has failed!\n");
+    return 1;
+  }
+
+  return 0;
 }

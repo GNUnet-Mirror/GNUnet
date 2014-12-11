@@ -2143,7 +2143,14 @@ void
 GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_CRYPTO_EddsaPrivateKey *key)
 {
+  int expected_overhead;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
+
+  expected_overhead =
+    sizeof (struct GNUNET_CADET_Encrypted) + sizeof (struct GNUNET_CADET_Data);
+  GNUNET_assert (GNUNET_CONSTANTS_CADET_P2P_OVERHEAD == expected_overhead);
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DEFAULT_TTL",
                                              &default_ttl))

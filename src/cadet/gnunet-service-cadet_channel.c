@@ -737,7 +737,7 @@ channel_retransmit_message (void *cls,
   copy = rel->head_sent;
   if (NULL == copy)
   {
-    GNUNET_break (0);
+    GNUNET_break (0); // FIXME tripped in rps testcase
     return;
   }
 
@@ -1777,6 +1777,8 @@ GCCH_handle_local_data (struct CadetChannel *ch,
 
 /**
  * Handle a channel destroy requested by a client.
+ *
+ * TODO: add "reason" field
  *
  * Destroy the channel and the tunnel in case this was the last channel.
  *

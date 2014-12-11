@@ -121,18 +121,16 @@ extern "C"
 #define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
 
 /**
- * Size of the CADET message overhead
- * - sizeof(GNUNET_CADET_Encrypted) // FIXME use GNUNET_CADET_EncryptedAck when available
- * - sizeof(GNUNET_CADET_Data)
-
+ * Size of the CADET message overhead.
+ * See gnunet-service-cadet_tunnel.c: GCT_init for more info.
  */
-#define GNUNET_CONSTANTS_CADET_P2P_OVERHEAD (sizeof (struct GNUNET_CADET_Encrypted) + sizeof (struct GNUNET_CADET_Data))
+#define GNUNET_CONSTANTS_CADET_P2P_OVERHEAD 92
 
 /**
- * Same as core, the conservative value would be:
- * GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE - GNUNET_CONSTANTS_CADET_P2P_OVERHEAD
+ * Maximum message size that can be sent on CADET.
  */
-#define GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE (62 * 1024)
+#define GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE \
+(GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE - GNUNET_CONSTANTS_CADET_P2P_OVERHEAD)
 
 /**
  * Largest block that can be stored in the DHT.
