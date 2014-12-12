@@ -4550,8 +4550,6 @@ get_shortest_trail (struct FingerInfo *finger,
   struct GNUNET_PeerIdentity *trail_list;
   unsigned int i;
 
-  trail = GNUNET_new (struct Trail);
-
   /* Get the shortest trail to reach to current successor. */
   for (i = 0; i < finger->trails_count; i++)
   {
