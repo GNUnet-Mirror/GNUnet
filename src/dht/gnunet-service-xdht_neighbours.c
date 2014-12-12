@@ -5233,11 +5233,10 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   notify_ctx->succesor_trail_id = trail_id;
   notify_ctx->target_friend = target_friend;
   notify_ctx->num_retries_scheduled = 0;
+  GNUNET_free_non_null (trail_me_to_probable_succ);
 
   // TODO: Check if we should verify before schedule if already scheduled.
   GNUNET_SCHEDULER_add_now(&send_notify_new_successor, (void*)notify_ctx);
-
-  return;
 }
 
 
