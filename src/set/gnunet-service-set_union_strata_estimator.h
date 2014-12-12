@@ -45,7 +45,9 @@ extern "C"
  */
 struct StrataEstimator
 {
-
+  /**
+   * The IBFs of this strata estimator.
+   */
   struct InvertibleBloomFilter **strata;
 
   /**
@@ -53,6 +55,9 @@ struct StrataEstimator
    */
   unsigned int strata_count;
 
+  /**
+   * Size of each IBF stratum (in bytes)
+   */
   unsigned int ibf_size;
 };
 

@@ -248,6 +248,7 @@ destroy_key_to_element_iter (void *cls,
   while (NULL != k)
   {
     struct KeyEntry *k_tmp = k;
+
     k = k->next_colliding;
     if (GNUNET_YES == k_tmp->element->remote)
     {
@@ -660,8 +661,10 @@ get_order_from_difference (unsigned int diff)
  *
  * @param cls the union operation
  * @param mh the message
+ * @return #GNUNET_SYSERR if the tunnel should be disconnected,
+ *         #GNUNET_OK otherwise
  */
-static void
+static int
 handle_p2p_strata_estimator (void *cls,
                              const struct GNUNET_MessageHeader *mh)
 {
@@ -673,13 +676,23 @@ handle_p2p_strata_estimator (void *cls,
   {
     fail_union_operation (op);
     GNUNET_break (0);
-    return;
+    return GNUNET_SYSERR;
   }
-  remote_se = strata_estimator_create (SE_STRATA_COUNT, SE_IBF_SIZE,
+  if (ntohs (mh->size) !=
+      SE_STRATA_COUNT * SE_IBF_SIZE * IBF_BUCKET_SIZE +
+      sizeof (struct GNUNET_MessageHeader))
+  {
+    fail_union_operation (op);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  remote_se = strata_estimator_create (SE_STRATA_COUNT,
+                                       SE_IBF_SIZE,
                                        SE_IBF_HASH_NUM);
   strata_estimator_read (&mh[1], remote_se);
   GNUNET_assert (NULL != op->state->se);
-  diff = strata_estimator_difference (remote_se, op->state->se);
+  diff = strata_estimator_difference (remote_se,
+                                      op->state->se);
   strata_estimator_destroy (remote_se);
   strata_estimator_destroy (op->state->se);
   op->state->se = NULL;
@@ -689,8 +702,8 @@ handle_p2p_strata_estimator (void *cls,
               1<<get_order_from_difference (diff));
   send_ibf (op,
             get_order_from_difference (diff));
+  return GNUNET_OK;
 }
-
 
 
 /**
@@ -749,7 +762,8 @@ send_element_iterator (void *cls,
  * @param ibf_key IBF key of interest
  */
 static void
-send_elements_for_key (struct Operation *op, struct IBF_Key ibf_key)
+send_elements_for_key (struct Operation *op,
+                       struct IBF_Key ibf_key)
 {
   struct SendElementClosure send_cls;
 
@@ -757,7 +771,8 @@ send_elements_for_key (struct Operation *op, struct IBF_Key ibf_key)
   send_cls.op = op;
   (void) GNUNET_CONTAINER_multihashmap32_get_multiple (op->state->key_to_element,
                                                        (uint32_t) ibf_key.key_val,
-                                                       &send_element_iterator, &send_cls);
+                                                       &send_element_iterator,
+                                                       &send_cls);
 }
 
 
@@ -881,29 +896,39 @@ decode_and_send (struct Operation *op)
  *
  * @param cls the union operation
  * @param mh the header of the message
+ * @return #GNUNET_SYSERR if the tunnel should be disconnected,
+ *         #GNUNET_OK otherwise
  */
-static void
-handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
+static int
+handle_p2p_ibf (void *cls,
+                const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
-  struct IBFMessage *msg = (struct IBFMessage *) mh;
+  const struct IBFMessage *msg;
   unsigned int buckets_in_message;
 
+  if (ntohs (mh->size) < sizeof (struct IBFMessage))
+  {
+    GNUNET_break_op (0);
+    fail_union_operation (op);
+    return GNUNET_SYSERR;
+  }
+  msg = (const struct IBFMessage *) mh;
   if ( (op->state->phase == PHASE_EXPECT_ELEMENTS_AND_REQUESTS) ||
        (op->state->phase == PHASE_EXPECT_IBF) )
   {
     op->state->phase = PHASE_EXPECT_IBF_CONT;
     GNUNET_assert (NULL == op->state->remote_ibf);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "creating new ibf of size %u\n",
-                1<<msg->order);
+                "Creating new ibf of size %u\n",
+                1 << msg->order);
     op->state->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
     op->state->ibf_buckets_received = 0;
     if (0 != ntohs (msg->offset))
     {
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       fail_union_operation (op);
-      return;
+      return GNUNET_SYSERR;
     }
   }
   else if (op->state->phase == PHASE_EXPECT_IBF_CONT)
@@ -911,9 +936,9 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     if ( (ntohs (msg->offset) != op->state->ibf_buckets_received) ||
          (1<<msg->order != op->state->remote_ibf->size) )
     {
-      GNUNET_break (0);
+      GNUNET_break_op (0);
       fail_union_operation (op);
-      return;
+      return GNUNET_SYSERR;
     }
   }
 
@@ -923,14 +948,14 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
   {
     GNUNET_break_op (0);
     fail_union_operation (op);
-    return;
+    return GNUNET_SYSERR;
   }
 
   if ((ntohs (msg->header.size) - sizeof *msg) != buckets_in_message * IBF_BUCKET_SIZE)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     fail_union_operation (op);
-    return;
+    return GNUNET_SYSERR;
   }
 
   ibf_read_slice (&msg[1],
@@ -946,6 +971,7 @@ handle_p2p_ibf (void *cls, const struct GNUNET_MessageHeader *mh)
     op->state->phase = PHASE_EXPECT_ELEMENTS;
     decode_and_send (op);
   }
+  return GNUNET_OK;
 }
 
 
@@ -1108,13 +1134,12 @@ handle_p2p_elements (void *cls,
   uint16_t element_size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "got element from peer\n");
-
+              "Got element from peer\n");
   if ( (op->state->phase != PHASE_EXPECT_ELEMENTS) &&
        (op->state->phase != PHASE_EXPECT_ELEMENTS_AND_REQUESTS) )
   {
     fail_union_operation (op);
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return;
   }
   element_size = ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader);
@@ -1153,27 +1178,27 @@ handle_p2p_element_requests (void *cls,
                              const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
-  struct IBF_Key *ibf_key;
+  const struct IBF_Key *ibf_key;
   unsigned int num_keys;
 
   /* look up elements and send them */
   if (op->state->phase != PHASE_EXPECT_ELEMENTS_AND_REQUESTS)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     fail_union_operation (op);
     return;
   }
-
-  num_keys = (ntohs (mh->size) - sizeof *mh) / sizeof (struct IBF_Key);
-
-  if ((ntohs (mh->size) - sizeof *mh) != num_keys * sizeof (struct IBF_Key))
+  num_keys = (ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader))
+    / sizeof (struct IBF_Key);
+  if ((ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader))
+      != num_keys * sizeof (struct IBF_Key))
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     fail_union_operation (op);
     return;
   }
 
-  ibf_key = (struct IBF_Key *) &mh[1];
+  ibf_key = (const struct IBF_Key *) &mh[1];
   while (0 != num_keys--)
   {
     send_elements_for_key (op, *ibf_key);
@@ -1189,7 +1214,8 @@ handle_p2p_element_requests (void *cls,
  * @param mh the message
  */
 static void
-handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
+handle_p2p_done (void *cls,
+                 const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   struct GNUNET_MQ_Envelope *ev;
@@ -1213,7 +1239,7 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
     finish_and_destroy (op);
     return;
   }
-  GNUNET_break (0);
+  GNUNET_break_op (0);
   fail_union_operation (op);
 }
 
@@ -1353,8 +1379,8 @@ union_set_destroy (struct SetState *set_state)
  *
  * @param op the state of the union evaluate operation
  * @param mh the received message
- * @return GNUNET_SYSERR if the tunnel should be disconnected,
- *         GNUNET_OK otherwise
+ * @return #GNUNET_SYSERR if the tunnel should be disconnected,
+ *         #GNUNET_OK otherwise
  */
 int
 union_handle_p2p_message (struct Operation *op,
@@ -1367,11 +1393,9 @@ union_handle_p2p_message (struct Operation *op,
   switch (ntohs (mh->type))
   {
     case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF:
-      handle_p2p_ibf (op, mh);
-      break;
+      return handle_p2p_ibf (op, mh);
     case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE:
-      handle_p2p_strata_estimator (op, mh);
-      break;
+      return handle_p2p_strata_estimator (op, mh);
     case GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS:
       handle_p2p_elements (op, mh);
       break;
