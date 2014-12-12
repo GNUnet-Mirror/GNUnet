@@ -3651,7 +3651,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_PeerIdentity best_known_dest;
   struct GNUNET_HashCode received_intermediate_trail_id;
   struct GNUNET_HashCode intermediate_trail_id;
-  struct GNUNET_PeerIdentity *next_hop;
+  struct GNUNET_PeerIdentity next_hop;
   struct GNUNET_PeerIdentity *next_routing_hop;
   enum GNUNET_DHT_RouteOption options;
   struct GNUNET_HashCode test_key;
@@ -3777,8 +3777,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   key_value = GNUNET_ntohll (key_value);
   successor = find_local_best_known_next_hop (key_value,
                                               GDS_FINGER_TYPE_NON_PREDECESSOR);
-  next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
-  *next_hop = successor.next_hop;
+  next_hop = successor.next_hop;
   intermediate_trail_id = successor.trail_id;
   best_known_dest = successor.best_known_destination;
 
@@ -3788,7 +3787,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                  GDS_ROUTING_SRC_TO_DEST);
     if (NULL != next_routing_hop)
     {
-      next_hop = next_routing_hop;
+      next_hop = *next_routing_hop;
       intermediate_trail_id = received_intermediate_trail_id;
       best_known_dest = current_best_known_dest;
     }
@@ -3831,19 +3830,19 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
           GDS_NEIGHBOURS_send_put (&put->key,
                                   ntohl (put->block_type),ntohl (put->options),
                                   ntohl (put->desired_replication_level),
-                                  best_known_dest, intermediate_trail_id, next_hop,
+                                  best_known_dest, intermediate_trail_id, &next_hop,
                                   hop_count, putlen, pp,
                                   GNUNET_TIME_absolute_ntoh (put->expiration_time),
                                   payload, payload_size);
           return GNUNET_OK;
         }
-        next_hop = &next_hop_finger->trail_list[i].trail_head->peer;
+        next_hop = next_hop_finger->trail_list[i].trail_head->peer;
         GDS_NEIGHBOURS_send_put (&put->key,
                                  ntohl (put->block_type),ntohl (put->options),
                                  ntohl (put->desired_replication_level),
                                  best_known_dest,
                                  next_hop_finger->trail_list[i].trail_id,
-                                 next_hop, hop_count, putlen, pp,
+                                 &next_hop, hop_count, putlen, pp,
                                  GNUNET_TIME_absolute_ntoh (put->expiration_time),
                                  payload, payload_size);
        }
@@ -3854,7 +3853,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   GDS_NEIGHBOURS_send_put (&put->key,
                            ntohl (put->block_type),ntohl (put->options),
                            ntohl (put->desired_replication_level),
-                           best_known_dest, intermediate_trail_id, next_hop,
+                           best_known_dest, intermediate_trail_id, &next_hop,
                            hop_count, putlen, pp,
                            GNUNET_TIME_absolute_ntoh (put->expiration_time),
                            payload, payload_size);
@@ -3885,7 +3884,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_HashCode intermediate_trail_id;
   struct GNUNET_HashCode received_intermediate_trail_id;
   struct Closest_Peer successor;
-  struct GNUNET_PeerIdentity *next_hop;
+  struct GNUNET_PeerIdentity next_hop;
   struct GNUNET_PeerIdentity *next_routing_hop;
   uint32_t get_length;
   uint64_t key_value;
@@ -3956,8 +3955,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   successor = find_local_best_known_next_hop (key_value,
                                                 GDS_FINGER_TYPE_NON_PREDECESSOR);
-  next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
-  *next_hop = successor.next_hop;
+  next_hop = successor.next_hop;
   best_known_dest = successor.best_known_destination;
   intermediate_trail_id = successor.trail_id;
   /* I am not the final destination. I am part of trail to reach final dest. */
@@ -3967,7 +3965,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                                                   GDS_ROUTING_SRC_TO_DEST);
     if (NULL != next_routing_hop)
     {
-      next_hop = next_routing_hop;
+      next_hop = *next_routing_hop;
       best_known_dest = current_best_known_dest;
       intermediate_trail_id = received_intermediate_trail_id;
     }
@@ -4006,17 +4004,17 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
       {
         GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
                                 get->desired_replication_level, best_known_dest,
-                                intermediate_trail_id, next_hop, hop_count,
+                                intermediate_trail_id, &next_hop, hop_count,
                                 get_length, gp);
         return GNUNET_OK;
       }
       if (GNUNET_YES == next_hop_finger->trail_list[i].is_present)
       {
-        next_hop = &next_hop_finger->trail_list[i].trail_head->peer;
+        next_hop = next_hop_finger->trail_list[i].trail_head->peer;
         GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
                                  get->desired_replication_level, best_known_dest,
                                  next_hop_finger->trail_list[i].trail_id,
-                                 next_hop, hop_count,
+                                 &next_hop, hop_count,
                                  get_length, gp);
        }
     }
@@ -4025,7 +4023,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
 #endif
     GDS_NEIGHBOURS_send_get (&(get->key), get->block_type, get->options,
                              get->desired_replication_level, best_known_dest,
-                             intermediate_trail_id, next_hop, hop_count,
+                             intermediate_trail_id, &next_hop, hop_count,
                              get_length, gp);
   }
   return GNUNET_YES;
