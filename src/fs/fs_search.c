@@ -171,7 +171,9 @@ struct GetResultContext
  * @return #GNUNET_OK
  */
 static int
-get_result_present (void *cls, const struct GNUNET_HashCode * key, void *value)
+get_result_present (void *cls,
+                    const struct GNUNET_HashCode *key,
+                    void *value)
 {
   struct GetResultContext *grc = cls;
   struct GNUNET_FS_SearchResult *sr = value;
@@ -216,7 +218,8 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
  * @param tc scheduler context
  */
 static void
-probe_failure_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+probe_failure_handler (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
@@ -224,11 +227,7 @@ probe_failure_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sr->availability_trials++;
   GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   sr->probe_ctx = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  GNUNET_FS_stop_probe_ping_task_ (sr);
   GNUNET_FS_search_result_sync_ (sr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Probe #%u for search result %p failed\n",
@@ -245,7 +244,8 @@ probe_failure_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc scheduler context
  */
 static void
-probe_success_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+probe_success_handler (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
@@ -254,11 +254,7 @@ probe_success_handler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   sr->availability_success++;
   GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   sr->probe_ctx = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  GNUNET_FS_stop_probe_ping_task_ (sr);
   GNUNET_FS_search_result_sync_ (sr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Probe #%u for search result %p succeeded\n",
@@ -367,20 +363,64 @@ GNUNET_FS_search_probe_progress_ (void *cls,
 /**
  * Task run periodically to remind clients that a probe is active.
  *
- * @param cls the 'struct GNUNET_FS_SearchResult' that we are probing for
+ * @param cls the `struct GNUNET_FS_SearchResult` that we are probing for
  * @param tc scheduler context
  */
 static void
-probe_ping_task (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+probe_ping_task_cb (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_FS_SearchResult *sr = cls;
+  struct GNUNET_FS_Handle *h = cls;
+  struct GNUNET_FS_SearchResult *sr;
 
-  signal_probe_result (sr);
-  sr->probe_ping_task
+  for (sr = h->probes_head; NULL != sr; sr = sr->next)
+    if (NULL != sr->probe_ctx->client)
+      signal_probe_result (sr);
+  h->probe_ping_task
     = GNUNET_SCHEDULER_add_delayed (GNUNET_FS_PROBE_UPDATE_FREQUENCY,
-				    &probe_ping_task,
-				    sr);
+				    &probe_ping_task_cb,
+				    h);
+}
+
+
+/**
+ * Start the ping task for this search result.
+ *
+ * @param sr result to start pinging for.
+ */
+static void
+start_probe_ping_task (struct GNUNET_FS_SearchResult *sr)
+{
+  struct GNUNET_FS_Handle *h = sr->h;
+
+  GNUNET_CONTAINER_DLL_insert (h->probes_head,
+                               h->probes_tail,
+                               sr);
+  if (GNUNET_SCHEDULER_NO_TASK == h->probe_ping_task)
+    h->probe_ping_task
+      = GNUNET_SCHEDULER_add_now (&probe_ping_task_cb,
+                                  h);
+}
+
+
+/**
+ * Stop the ping task for this search result.
+ *
+ * @param sr result to start pinging for.
+ */
+void
+GNUNET_FS_stop_probe_ping_task_ (struct GNUNET_FS_SearchResult *sr)
+{
+  struct GNUNET_FS_Handle *h = sr->h;
+
+  GNUNET_CONTAINER_DLL_remove (h->probes_head,
+                               h->probes_tail,
+                               sr);
+  if (NULL == h->probes_head)
+  {
+    GNUNET_SCHEDULER_cancel (h->probe_ping_task);
+    h->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 }
 
 
@@ -431,9 +471,7 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr)
                                 len, sr->anonymity,
                                 GNUNET_FS_DOWNLOAD_NO_TEMPORARIES |
                                 GNUNET_FS_DOWNLOAD_IS_PROBE, sr, NULL);
-  sr->probe_ping_task
-    = GNUNET_SCHEDULER_add_now (&probe_ping_task,
-				sr);
+  start_probe_ping_task (sr);
 }
 
 
@@ -480,11 +518,7 @@ GNUNET_FS_search_stop_probe_ (struct GNUNET_FS_SearchResult *sr)
   {
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
     sr->probe_ctx = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_FS_stop_probe_ping_task_ (sr);
   }
   if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
   {
@@ -1410,11 +1444,7 @@ search_result_freeze_probes (void *cls,
   {
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
     sr->probe_ctx = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_FS_stop_probe_ping_task_ (sr);
   }
   if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
   {
@@ -1692,7 +1722,6 @@ search_result_free (void *cls,
   }
   GNUNET_break (NULL == sr->probe_ctx);
   GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sr->probe_cancel_task);
-  GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sr->probe_ping_task);
   GNUNET_break (NULL == sr->client_info);
   GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);

@@ -88,8 +88,10 @@ struct GNUNET_FS_Uri;
  * @param is_mandatory is the keyword mandatory (in a search)
  * @return #GNUNET_OK to continue to iterate, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_FS_KeywordIterator) (void *cls, const char *keyword,
-                                          int is_mandatory);
+typedef int
+(*GNUNET_FS_KeywordIterator) (void *cls,
+                              const char *keyword,
+                              int is_mandatory);
 
 
 

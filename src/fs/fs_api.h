@@ -531,6 +531,16 @@ struct GNUNET_FS_SearchResult
   struct GNUNET_FS_Handle *h;
 
   /**
+   * Kept in a DLL while probing.
+   */
+  struct GNUNET_FS_SearchResult *next;
+
+  /**
+   * Kept in a DLL while probing.
+   */
+  struct GNUNET_FS_SearchResult *prev;
+
+  /**
    * Search context this result belongs to; can be NULL
    * for probes that come from a directory result.
    */
@@ -592,12 +602,6 @@ struct GNUNET_FS_SearchResult
   GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
 
   /**
-   * Task we use to report periodically to the application that the
-   * probe is still running.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier probe_ping_task;
-
-  /**
    * When did the current probe become active?
    */
   struct GNUNET_TIME_Absolute probe_active_time;
@@ -651,8 +655,11 @@ struct GNUNET_FS_SearchResult
  * @return queue handle
  */
 struct GNUNET_FS_QueueEntry *
-GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
-                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks,
+GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
+                  GNUNET_FS_QueueStart start,
+                  GNUNET_FS_QueueStop stop,
+                  void *cls,
+                  unsigned int blocks,
 		  enum GNUNET_FS_QueuePriority priority);
 
 
@@ -903,7 +910,8 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
  * @param uni unique name of parent
  */
 void
-GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
+GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h,
+                            const char *ext,
                             const char *uni);
 
 
@@ -1003,7 +1011,7 @@ GNUNET_FS_search_signal_suspend_ (void *cls);
  * Create SUSPEND event for the given download operation
  * and then clean up our state (without stop signal).
  *
- * @param cls the 'struct GNUNET_FS_DownloadContext' to signal for
+ * @param cls the `struct GNUNET_FS_DownloadContext` to signal for
  */
 void
 GNUNET_FS_download_signal_suspend_ (void *cls);
@@ -1138,10 +1146,26 @@ struct GNUNET_FS_Handle
   struct GNUNET_FS_QueueEntry *pending_tail;
 
   /**
+   * Head of active probes.
+   */
+  struct GNUNET_FS_SearchResult *probes_head;
+
+  /**
+   * Tail of active probes.
+   */
+  struct GNUNET_FS_SearchResult *probes_tail;
+
+  /**
    * Task that processes the jobs in the running and pending queues
    * (and moves jobs around as needed).
    */
   GNUNET_SCHEDULER_TaskIdentifier queue_job;
+
+  /**
+   * Task we use to report periodically to the application that
+   * certain search probes (from @e probes_head) are still running.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier probe_ping_task;
 
   /**
    * Average time we take for a single request to be satisfied.
@@ -1563,7 +1587,7 @@ struct GNUNET_FS_SearchContext
   char *emsg;
 
   /**
-   * Map that contains a "struct GNUNET_FS_SearchResult" for each result that
+   * Map that contains a `struct GNUNET_FS_SearchResult` for each result that
    * was found in the search.  The key for each entry is the XOR of
    * the key and query in the CHK URI (as a unique identifier for the
    * search result).
@@ -1769,6 +1793,15 @@ GNUNET_FS_free_download_request_ (struct DownloadRequest *dr);
 
 
 /**
+ * Stop the ping task for this search result.
+ *
+ * @param sr result to start pinging for.
+ */
+void
+GNUNET_FS_stop_probe_ping_task_ (struct GNUNET_FS_SearchResult *sr);
+
+
+/**
  * Context for controlling a download.
  */
 struct GNUNET_FS_DownloadContext
@@ -1912,7 +1945,7 @@ struct GNUNET_FS_DownloadContext
   /**
    * ID of a task that is using this struct and that must be cancelled
    * when the download is being stopped (if not
-   * GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
+   * #GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service or
    * the task processing incrementally the data on disk, or the
    * task requesting blocks, etc.

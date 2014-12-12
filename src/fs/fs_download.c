@@ -2257,11 +2257,7 @@ GNUNET_FS_download_start_from_search (struct GNUNET_FS_Handle *h,
   {
     GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
     sr->probe_ctx = NULL;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_ping_task)
-  {
-    GNUNET_SCHEDULER_cancel (sr->probe_ping_task);
-    sr->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_FS_stop_probe_ping_task_ (sr);
   }
   return dc;
 }
@@ -2314,14 +2310,14 @@ GNUNET_FS_download_resume (struct GNUNET_FS_DownloadContext *dc)
 
     pi.status = GNUNET_FS_STATUS_DOWNLOAD_ACTIVE;
     GNUNET_FS_download_make_status_ (&pi, dc);
-  
+
     dc->job_queue =
       GNUNET_FS_queue_ (dc->h, &activate_fs_download, &deactivate_fs_download,
                         dc, (dc->length + DBLOCK_SIZE - 1) / DBLOCK_SIZE,
 			(0 == (dc->options & GNUNET_FS_DOWNLOAD_IS_PROBE))
 			? GNUNET_FS_QUEUE_PRIORITY_NORMAL
 			: GNUNET_FS_QUEUE_PRIORITY_PROBE);
-			
+
 }
 
 

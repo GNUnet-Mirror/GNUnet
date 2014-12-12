@@ -65,9 +65,13 @@ start_job (struct GNUNET_FS_QueueEntry *qe)
 	      "Starting job %p (%u active)\n",
 	      qe,
 	      qe->h->active_downloads);
-  GNUNET_CONTAINER_DLL_remove (qe->h->pending_head, qe->h->pending_tail, qe);
-  GNUNET_CONTAINER_DLL_insert_after (qe->h->running_head, qe->h->running_tail,
-                                     qe->h->running_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (qe->h->pending_head,
+                               qe->h->pending_tail,
+                               qe);
+  GNUNET_CONTAINER_DLL_insert_after (qe->h->running_head,
+                                     qe->h->running_tail,
+                                     qe->h->running_tail,
+                                     qe);
 }
 
 
@@ -207,19 +211,25 @@ process_job_queue (void *cls,
 	      num_downloads_expired,
 	      num_downloads_waiting);
   /* calculate start/stop decisions */
-  if (h->active_downloads + num_downloads_waiting > h->max_parallel_requests)
+  if (h->active_downloads + num_downloads_waiting > h->max_parallel_downloads)
   {
-    /* stop probes if possible */
-    num_probes_change = - num_probes_active;
-    num_downloads_change = h->max_parallel_requests - h->active_downloads;
+    /* stop as many probes as there are downloads and probes */
+    num_probes_change = - GNUNET_MIN (num_probes_active,
+                                      num_downloads_waiting);
+    /* start as many downloads as there are free slots, including those
+       we just opened up */
+    num_downloads_change = h->max_parallel_downloads - h->active_downloads - num_probes_change;
   }
   else
   {
-    /* start all downloads */
+    /* start all downloads (we can) */
     num_downloads_change = num_downloads_waiting;
-    /* start as many probes as we can */
-    num_probes_change = GNUNET_MIN (num_probes_waiting,
-				    h->max_parallel_requests - (h->active_downloads + num_downloads_waiting));
+    /* also start probes if there is room, but use a lower cap of (mpd/4) + 1 */
+    if (h->max_parallel_downloads / 2 >= (h->active_downloads + num_downloads_change))
+      num_probes_change = GNUNET_MIN (num_probes_waiting,
+                                      (1 + h->max_parallel_downloads / 4) - (h->active_downloads + num_downloads_change));
+    else
+      num_probes_change = 0;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
