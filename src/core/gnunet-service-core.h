@@ -57,14 +57,14 @@ struct GSC_ClientActiveRequest
   struct GSC_ClientActiveRequest *prev;
 
   /**
-   * Which peer is the message going to be for?
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
    * Handle to the client.
    */
   struct GSC_Client *client_handle;
+
+  /**
+   * Which peer is the message going to be for?
+   */
+  struct GNUNET_PeerIdentity target;
 
   /**
    * By what time would the client want to see this message out?

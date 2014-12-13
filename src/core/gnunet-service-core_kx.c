@@ -773,7 +773,8 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
 static void
 send_ping (struct GSC_KeyExchangeInfo *kx)
 {
-  GSC_NEIGHBOURS_transmit (&kx->peer, &kx->ping.header,
+  GSC_NEIGHBOURS_transmit (&kx->peer,
+                           &kx->ping.header,
                            MIN_PING_FREQUENCY);
 }
 
@@ -1048,7 +1049,8 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
                                              (void *) &tp));
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# PONG messages created"),
                             1, GNUNET_NO);
-  GSC_NEIGHBOURS_transmit (&kx->peer, &tp.header,
+  GSC_NEIGHBOURS_transmit (&kx->peer,
+                           &tp.header,
                            GNUNET_TIME_UNIT_FOREVER_REL /* FIXME: timeout */ );
 }
 
@@ -1086,7 +1088,8 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             gettext_noop ("# keepalive messages sent"), 1,
                             GNUNET_NO);
   setup_fresh_ping (kx);
-  GSC_NEIGHBOURS_transmit (&kx->peer, &kx->ping.header,
+  GSC_NEIGHBOURS_transmit (&kx->peer,
+                           &kx->ping.header,
                            kx->set_key_retry_frequency);
   retry =
       GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
@@ -1277,7 +1280,8 @@ send_key (struct GSC_KeyExchangeInfo *kx)
               GNUNET_i2s (&kx->peer),
 	      kx->status);
   current_ekm.sender_status = htonl ((int32_t) (kx->status));
-  GSC_NEIGHBOURS_transmit (&kx->peer, &current_ekm.header,
+  GSC_NEIGHBOURS_transmit (&kx->peer,
+                           &current_ekm.header,
                            kx->set_key_retry_frequency);
   kx->retry_set_key_task =
       GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
@@ -1294,7 +1298,8 @@ send_key (struct GSC_KeyExchangeInfo *kx)
  */
 void
 GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
-                             const void *payload, size_t payload_size)
+                             const void *payload,
+                             size_t payload_size)
 {
   size_t used = payload_size + sizeof (struct EncryptedMessage);
   char pbuf[used];              /* plaintext */
@@ -1327,7 +1332,8 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
 		   ph->iv_seed);
   GNUNET_CRYPTO_hmac (&auth_key, &em->sequence_number,
                       used - ENCRYPTED_HEADER_SIZE, &em->hmac);
-  GSC_NEIGHBOURS_transmit (&kx->peer, &em->header,
+  GSC_NEIGHBOURS_transmit (&kx->peer,
+                           &em->header,
                            GNUNET_TIME_UNIT_FOREVER_REL);
 }
 

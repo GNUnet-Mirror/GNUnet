@@ -266,10 +266,10 @@ process_queue (struct Neighbour *n)
 {
   struct NeighbourMessageEntry *m;
 
-  if (n->th != NULL)
+  if (NULL != n->th)
     return;                     /* request already pending */
   m = n->message_head;
-  if (m == NULL)
+  if (NULL == m)
   {
     /* notify sessions that the queue is empty and more messages
      * could thus be queued now */
@@ -278,23 +278,28 @@ process_queue (struct Neighbour *n)
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport for transmission of %u bytes to `%4s' in next %s\n",
-              (unsigned int) m->size, GNUNET_i2s (&n->peer),
-              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (m->deadline), GNUNET_NO));
-  n->th =
-      GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
-                                              GNUNET_TIME_absolute_get_remaining
-                                              (m->deadline), &transmit_ready,
+              (unsigned int) m->size,
+              GNUNET_i2s (&n->peer),
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (m->deadline),
+                                                      GNUNET_NO));
+  n->th
+    = GNUNET_TRANSPORT_notify_transmit_ready (transport,
+                                              &n->peer,
+                                              m->size,
+                                              GNUNET_TIME_absolute_get_remaining (m->deadline),
+                                              &transmit_ready,
                                               n);
-  if (n->th != NULL)
+  if (NULL != n->th)
     return;
   /* message request too large or duplicate request */
   GNUNET_break (0);
   /* discard encrypted message */
-  GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
+  GNUNET_CONTAINER_DLL_remove (n->message_head,
+                               n->message_tail,
+                               m);
   GNUNET_free (m);
   process_queue (n);
 }
-
 
 
 /**
@@ -310,7 +315,9 @@ handle_transport_notify_connect (void *cls,
 {
   struct Neighbour *n;
 
-  if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer,
+                   &GSC_my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     return;
@@ -356,7 +363,7 @@ handle_transport_notify_disconnect (void *cls,
               "Peer `%4s' disconnected from us; received notification from transport.\n",
               GNUNET_i2s (peer));
   n = find_neighbour (peer);
-  if (n == NULL)
+  if (NULL == n)
   {
     GNUNET_break (0);
     return;
@@ -373,7 +380,8 @@ handle_transport_notify_disconnect (void *cls,
  * @param message the message
  */
 static void
-handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+handle_transport_receive (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_MessageHeader *message)
 {
   struct Neighbour *n;
@@ -414,9 +422,9 @@ handle_transport_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Unsupported message of type %u (%u bytes) received from peer `%s'\n"),
-                (unsigned int) type, (unsigned int) ntohs (message->size),
+                _("Unsupported message of type %u (%u bytes) received from peer `%s'\n"),
+                (unsigned int) type,
+                (unsigned int) ntohs (message->size),
                 GNUNET_i2s (peer));
     return;
   }
@@ -561,7 +569,8 @@ GSC_NEIGHBOURS_done ()
   }
   if (NULL != neighbours)
   {
-    GNUNET_CONTAINER_multipeermap_iterate (neighbours, &free_neighbour_helper,
+    GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+                                           &free_neighbour_helper,
 					   NULL);
     GNUNET_CONTAINER_multipeermap_destroy (neighbours);
     neighbours = NULL;

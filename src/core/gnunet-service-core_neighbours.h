@@ -31,10 +31,10 @@
 /**
  * Transmit the given message to the given target.  Note that a
  * non-control messages should only be transmitted after a
- * 'GSC_SESSION_solicit' call was made (that call is always invoked
+ * #GSC_SESSION_solicit() call was made (that call is always invoked
  * when the message queue is empty).  Outbound quotas and memory
- * bounds will then be enfoced (as GSC_SESSION_solicit is only called
- * if sufficient banwdith is available).
+ * bounds will then be enfoced (as #GSC_SESSION_solicit() is only called
+ * if sufficient bandwidth is available).
  *
  * @param target peer that should receive the message (must be connected)
  * @param msg message to transmit

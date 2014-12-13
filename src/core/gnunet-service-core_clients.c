@@ -255,10 +255,10 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
 
 
 /**
- * Handle CORE_INIT request.
+ * Handle #GNUNET_MESSAGE_TYPE_CORE_INIT request.
  *
  * @param cls unused
- * @param client new client that sent INIT
+ * @param client new client that sent #GNUNET_MESSAGE_TYPE_CORE_INIT
  * @param message the `struct InitMessage` (presumably)
  */
 static void
@@ -325,10 +325,10 @@ handle_client_init (void *cls,
 
 
 /**
- * Handle CORE_SEND_REQUEST message.
+ * Handle #GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST message.
  *
  * @param cls unused
- * @param client new client that sent CORE_SEND_REQUEST
+ * @param client new client that sent a #GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST
  * @param message the `struct SendMessageRequest` (presumably)
  */
 static void
@@ -343,23 +343,26 @@ handle_client_send_request (void *cls,
 
   req = (const struct SendMessageRequest *) message;
   c = find_client (client);
-  if (c == NULL)
+  if (NULL == c)
   {
     /* client did not send INIT first! */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
-  if (c->requests == NULL)
-    c->requests = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_NO);
+  if (NULL == c->requests)
+    c->requests = GNUNET_CONTAINER_multipeermap_create (16,
+                                                        GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client asked for transmission to `%s'\n",
               GNUNET_i2s (&req->peer));
   is_loopback =
       (0 ==
-       memcmp (&req->peer, &GSC_my_identity,
+       memcmp (&req->peer,
+               &GSC_my_identity,
                sizeof (struct GNUNET_PeerIdentity)));
-  if ((!is_loopback) &&
+  if ((! is_loopback) &&
       (GNUNET_YES !=
        GNUNET_CONTAINER_multipeermap_contains (c->connectmap,
                                                &req->peer)))
@@ -371,11 +374,13 @@ handle_client_send_request (void *cls,
                               gettext_noop
                               ("# send requests dropped (disconnected)"), 1,
                               GNUNET_NO);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
 
-  car = GNUNET_CONTAINER_multipeermap_get (c->requests, &req->peer);
+  car = GNUNET_CONTAINER_multipeermap_get (c->requests,
+                                           &req->peer);
   if (NULL == car)
   {
     /* create new entry */
@@ -389,6 +394,8 @@ handle_client_send_request (void *cls,
   }
   else
   {
+    /* dequeue and recycle memory from pending request, there can only
+       be at most one per client and peer */
     GSC_SESSIONS_dequeue_request (car);
   }
   car->target = req->peer;
@@ -817,7 +824,8 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
     return; /* no client cares about this message notification */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Core service passes message from `%4s' of type %u to client.\n",
-              GNUNET_i2s (sender), (unsigned int) ntohs (msg->type));
+              GNUNET_i2s (sender),
+              (unsigned int) ntohs (msg->type));
   GSC_SESSIONS_add_to_typemap (sender, ntohs (msg->type));
   ntm = (struct NotifyTrafficMessage *) buf;
   ntm->header.size = htons (size);
@@ -826,8 +834,13 @@ GSC_CLIENTS_deliver_message (const struct GNUNET_PeerIdentity *sender,
   else
     ntm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND);
   ntm->peer = *sender;
-  memcpy (&ntm[1], msg, msize);
-  send_to_all_clients (sender, &ntm->header, GNUNET_YES, options,
+  memcpy (&ntm[1],
+          msg,
+          msize);
+  send_to_all_clients (sender,
+                       &ntm->header,
+                       GNUNET_YES,
+                       options,
                        ntohs (msg->type));
 }
 

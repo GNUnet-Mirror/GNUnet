@@ -57,8 +57,7 @@ GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
  */
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
-                                           const struct GNUNET_PeerIdentity
-                                           *neighbour,
+                                           const struct GNUNET_PeerIdentity *neighbour,
                                            const struct GSC_TypeMap *tmap_old,
                                            const struct GSC_TypeMap *tmap_new);
 
@@ -73,8 +72,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
-GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
-                                            *neighbour,
+GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
                                             const struct GSC_TypeMap *tmap_old,
                                             const struct GSC_TypeMap *tmap_new);
 

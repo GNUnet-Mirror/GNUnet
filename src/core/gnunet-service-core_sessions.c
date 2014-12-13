@@ -59,9 +59,9 @@ struct SessionMessageEntry
   struct GNUNET_TIME_Absolute deadline;
 
   /**
-   * How long is the message? (number of bytes following the "struct
-   * MessageEntry", but not including the size of "struct
-   * MessageEntry" itself!)
+   * How long is the message? (number of bytes following the `struct
+   * MessageEntry`, but not including the size of `struct
+   * MessageEntry` itself!)
    */
   size_t size;
 
@@ -535,15 +535,16 @@ discard_expired_requests (struct Session *session)
   {
     pos = nxt;
     nxt = pos->next;
-    if ((pos->deadline.abs_value_us < now.abs_value_us) &&
-        (GNUNET_YES != pos->was_solicited))
+    if ( (pos->deadline.abs_value_us < now.abs_value_us) &&
+         (GNUNET_YES != pos->was_solicited) )
     {
       GNUNET_STATISTICS_update (GSC_stats,
                                 gettext_noop
                                 ("# messages discarded (expired prior to transmission)"),
                                 1, GNUNET_NO);
       GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
-                                   session->active_client_request_tail, pos);
+                                   session->active_client_request_tail,
+                                   pos);
       GSC_CLIENTS_reject_request (pos);
     }
   }
@@ -648,7 +649,8 @@ try_transmission (struct Session *session)
     GNUNET_assert (pos->size < GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
     msize += pos->size;
     maxp = GNUNET_MAX (maxp, pos->priority);
-    min_deadline = GNUNET_TIME_absolute_min (min_deadline, pos->deadline);
+    min_deadline = GNUNET_TIME_absolute_min (min_deadline,
+                                             pos->deadline);
     pos = pos->next;
   }
   if (maxp < GNUNET_CORE_PRIO_CRITICAL_CONTROL)
