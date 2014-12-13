@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
@@ -789,6 +788,11 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   while ((NULL != (pending = peer->head)) &&
          (0 == GNUNET_TIME_absolute_get_remaining (pending->timeout).rel_value_us))
   {
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop
+                              ("# Messages dropped (CORE timeout)"),
+                              1,
+                              GNUNET_NO);
     peer->pending_count--;
     GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, pending);
     GNUNET_free (pending);

@@ -26,7 +26,6 @@
  * @defgroup core encrypted direct communication between peers
  * @{
  */
-
 #ifndef GNUNET_CORE_SERVICE_H
 #define GNUNET_CORE_SERVICE_H
 
@@ -245,7 +244,7 @@ struct GNUNET_CORE_TransmitHandle;
  * established (and the client has been informed about this).  You may
  * have one request of this type pending for each connected peer at
  * any time.  If a peer disconnects, the application MUST call
- * #GNUNET_CORE_notify_transmit_ready_cancel on the respective
+ * #GNUNET_CORE_notify_transmit_ready_cancel() on the respective
  * transmission request, if one such request is pending.
  *
  * @param handle connection to core service
@@ -253,7 +252,7 @@ struct GNUNET_CORE_TransmitHandle;
  * @param priority how important is the message?
  * @param maxdelay how long can the message wait? Only effective if @a cork is #GNUNET_YES
  * @param target who should receive the message, never NULL (can be this peer's identity for loopback)
- * @param notify_size how many bytes of buffer space does notify want?
+ * @param notify_size how many bytes of buffer space does @a notify want?
  * @param notify function to call when buffer space is available;
  *        will be called with NULL on timeout; clients MUST cancel
  *        all pending transmission requests DURING the disconnect
@@ -261,7 +260,7 @@ struct GNUNET_CORE_TransmitHandle;
  * @param notify_cls closure for @a notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we can not even queue the request (request already pending);
- *         if NULL is returned, "notify" will NOT be called.
+ *         if NULL is returned, @a notify will NOT be called.
  */
 struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,

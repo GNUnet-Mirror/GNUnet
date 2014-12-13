@@ -510,6 +510,8 @@ disconnect_handler (void *cls,
                     const struct GNUNET_PeerIdentity *peer)
 {
   /* nothing to do */
+  /* FIXME: this is wrong, need to CANCEL active
+     NTR! */
 }
 
 

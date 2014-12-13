@@ -58,6 +58,7 @@ src/conversation/plugin_gnsrecord_conversation.c
 src/conversation/speaker.c
 src/core/core_api.c
 src/core/core_api_monitor_peers.c
+src/core/core_api_mq.c
 src/core/gnunet-core.c
 src/core/gnunet-service-core.c
 src/core/gnunet-service-core_clients.c
@@ -259,8 +260,12 @@ src/regex/regex_test_random.c
 src/revocation/gnunet-revocation.c
 src/revocation/gnunet-service-revocation.c
 src/revocation/revocation_api.c
+src/rps/gnunet-rps.c
+src/rps/gnunet-service-rps.c
+src/rps/rps_api.c
 src/scalarproduct/gnunet-scalarproduct.c
-src/scalarproduct/gnunet-service-scalarproduct.c
+src/scalarproduct/gnunet-service-scalarproduct_alice.c
+src/scalarproduct/gnunet-service-scalarproduct_bob.c
 src/scalarproduct/scalarproduct_api.c
 src/secretsharing/gnunet-secretsharing-profiler.c
 src/secretsharing/gnunet-service-secretsharing.c

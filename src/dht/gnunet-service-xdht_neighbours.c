@@ -979,11 +979,18 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   size_t msize;
 
   peer->th = NULL;
-  while ((NULL != (pending = peer->head)) &&
-         (0 == GNUNET_TIME_absolute_get_remaining (pending->timeout).rel_value_us))
+  while ( (NULL != (pending = peer->head)) &&
+          (0 == GNUNET_TIME_absolute_get_remaining (pending->timeout).rel_value_us) )
   {
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop
+                              ("# Messages dropped (CORE timeout)"),
+                              1,
+                              GNUNET_NO);
     peer->pending_count--;
-    GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, pending);
+    GNUNET_CONTAINER_DLL_remove (peer->head,
+                                 peer->tail,
+                                 pending);
     GNUNET_free (pending);
   }
   if (NULL == pending)
@@ -1009,7 +1016,8 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   {
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop
-                              ("# Bytes transmitted to other peers"), msize,
+                              ("# Bytes transmitted to other peers"),
+                              msize,
                               GNUNET_NO);
     memcpy (&cbuf[off], pending->msg, msize);
     off += msize;
