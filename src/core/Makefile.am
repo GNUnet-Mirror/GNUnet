@@ -22,6 +22,7 @@ lib_LTLIBRARIES = \
 
 libgnunetcore_la_SOURCES = \
   core_api.c core.h \
+  core_api_mq.c \
   core_api_monitor_peers.c
 libgnunetcore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -32,7 +33,7 @@ libgnunetcore_la_LDFLAGS = \
 
 
 libexec_PROGRAMS = \
- gnunet-service-core 
+ gnunet-service-core
 
 bin_PROGRAMS = \
  gnunet-core
@@ -52,7 +53,7 @@ gnunet_service_core_LDADD = \
 
 
 gnunet_core_SOURCES = \
- gnunet-core.c         
+ gnunet-core.c
 gnunet_core_LDADD = \
   libgnunetcore.la \
   $(top_builddir)/src/util/libgnunetutil.la
@@ -80,7 +81,7 @@ test_core_api_SOURCES = \
 test_core_api_LDADD = \
  libgnunetcore.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_core_api_reliability_SOURCES = \
  test_core_api_reliability.c
