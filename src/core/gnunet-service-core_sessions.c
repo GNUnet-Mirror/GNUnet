@@ -653,6 +653,13 @@ try_transmission (struct Session *session)
                                              pos->deadline);
     pos = pos->next;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Calculating transmission set with %u priority (%s) and %s earliest deadline\n",
+              maxp,
+              (GNUNET_YES == excess) ? "excess bandwidth" : "limited bandwidth",
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (min_deadline),
+                                                      GNUNET_YES));
+
   if (maxp < GNUNET_CORE_PRIO_CRITICAL_CONTROL)
   {
     /* if highest already solicited priority from clients is not critical,
@@ -672,6 +679,10 @@ try_transmission (struct Session *session)
       /* we have messages waiting for solicitation that have a higher
          priority than those that we already accepted; solicit the
          high-priority messages first */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Soliciting messages based on priority (%u > %u)\n",
+                  maxpc,
+                  maxp);
       solicit_messages (session, 0);
       return;
     }
@@ -692,21 +703,34 @@ try_transmission (struct Session *session)
     /* not enough ready yet (tiny message & cork possible), or no messages at all,
        and either excess bandwidth or best-effort or higher message waiting at
        client; in this case, we try to solicit more */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Soliciting messages (excess %d, maxpc %d, message size %u, deadline %s)\n",
+                excess,
+                maxpc,
+                msize,
+                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (min_deadline),
+                                                        GNUNET_YES));
     solicit_messages (session,
                       msize);
     if (msize > 0)
     {
       /* if there is data to send, just not yet, make sure we do transmit
        * it once the deadline is reached */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Corking until %s\n",
+                  GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (min_deadline),
+                                                          GNUNET_YES));
       if (GNUNET_SCHEDULER_NO_TASK != session->cork_task)
         GNUNET_SCHEDULER_cancel (session->cork_task);
       session->cork_task =
-          GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
-                                        (min_deadline), &pop_cork_task,
+          GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (min_deadline),
+                                        &pop_cork_task,
                                         session);
     }
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Building combined plaintext buffer to transmit message!\n");
   /* create plaintext buffer of all messages (that fit), encrypt and
      transmit */
   {
