@@ -178,6 +178,16 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static GNUNET_SCHEDULER_TaskIdentifier tt;
 
 /**
+ * Pending #GNUNET_TRANSPORT_get_hello() operation.
+ */
+static struct GNUNET_TRANSPORT_GetHelloHandle *gh;
+
+/**
+ * Connection to transport service.
+ */
+static struct GNUNET_TRANSPORT_Handle *transport;
+
+/**
  * Current iterator context (if active, otherwise NULL).
  */
 static struct GNUNET_PEERINFO_IteratorContext *pic;
@@ -201,6 +211,11 @@ static struct PrintContext *pc_tail;
  * Handle to current #GNUNET_PEERINFO_add_peer() operation.
  */
 static struct GNUNET_PEERINFO_AddContext *ac;
+
+/**
+ * Hello of this peer (if initialized).
+ */
+static struct GNUNET_HELLO_Message *my_hello;
 
 
 /**
@@ -436,44 +451,23 @@ count_addr (void *cls,
  * @param err_msg error message
  */
 static void
-dump_my_hello (void *cls,
-               const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_HELLO_Message *hello,
-               const char *err_msg)
+dump_my_hello ()
 {
   unsigned int size;
   unsigned int c_addr;
 
-  if (NULL == peer)
-  {
-    pic = NULL;
-    if (NULL != err_msg)
-      FPRINTF (stderr,
-	       _("Error in communication with PEERINFO service: %s\n"),
-	       err_msg);
-    tt = GNUNET_SCHEDULER_add_now (&state_machine,
-                                   NULL);
-    return;
-  }
-
-  if (NULL == hello)
-  {
-    FPRINTF (stderr,
-             _("Failure: Did not receive %s\n"),
-             "HELLO");
-    return;
-  }
-
-  size = GNUNET_HELLO_size (hello);
+  size = GNUNET_HELLO_size (my_hello);
   if (0 == size)
   {
     FPRINTF (stderr,
              _("Failure: Received invalid %s\n"),
              "HELLO");
-      return;
+    return;
   }
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_fn_write (dump_hello, hello, size,
+      GNUNET_DISK_fn_write (dump_hello,
+                            my_hello,
+                            size,
                             GNUNET_DISK_PERM_USER_READ |
                             GNUNET_DISK_PERM_USER_WRITE |
                             GNUNET_DISK_PERM_GROUP_READ |
@@ -491,7 +485,7 @@ dump_my_hello (void *cls,
 
   }
   c_addr = 0;
-  GNUNET_HELLO_iterate_addresses (hello,
+  GNUNET_HELLO_iterate_addresses (my_hello,
                                   GNUNET_NO,
                                   count_addr,
                                   &c_addr);
@@ -500,7 +494,7 @@ dump_my_hello (void *cls,
   {
     FPRINTF (stderr,
              _("Wrote %s HELLO containing %u addresses with %u bytes to file `%s'\n"),
-             (GNUNET_YES == GNUNET_HELLO_is_friend_only(hello)) ? "friend-only": "public",
+             (GNUNET_YES == GNUNET_HELLO_is_friend_only (my_hello)) ? "friend-only": "public",
              c_addr,
              size,
              dump_hello);
@@ -527,6 +521,8 @@ print_my_uri (void *cls,
               const struct GNUNET_HELLO_Message *hello,
 	      const char *err_msg)
 {
+  char *uri;
+
   if (NULL == peer)
   {
     pic = NULL;
@@ -540,8 +536,8 @@ print_my_uri (void *cls,
 
   if (NULL == hello)
     return;
-  char *uri = GNUNET_HELLO_compose_uri (hello,
-                                        &GPI_plugins_find);
+  uri = GNUNET_HELLO_compose_uri (hello,
+                                  &GPI_plugins_find);
   if (NULL != uri)
   {
     printf ("%s\n",
@@ -640,6 +636,16 @@ shutdown_task (void *cls,
     GNUNET_PEERINFO_iterate_cancel (pic);
     pic = NULL;
   }
+  if (NULL != gh)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (gh);
+    gh = NULL;
+  }
+  if (NULL != transport)
+  {
+    GNUNET_TRANSPORT_disconnect (transport);
+    transport = NULL;
+  }
   while (NULL != (pc = pc_head))
   {
     GNUNET_CONTAINER_DLL_remove (pc_head,
@@ -664,6 +670,43 @@ shutdown_task (void *cls,
     GNUNET_PEERINFO_disconnect (peerinfo);
     peerinfo = NULL;
   }
+  if (NULL != my_hello)
+  {
+    GNUNET_free (my_hello);
+    my_hello = NULL;
+  }
+}
+
+
+/**
+ * Function called with our peer's HELLO message.
+ * Used to obtain our peer's public key.
+ *
+ * @param cls NULL
+ * @param hello the HELLO message
+ */
+static void
+hello_callback (void *cls,
+                const struct GNUNET_MessageHeader *hello)
+{
+  if (NULL == hello)
+  {
+    fprintf (stderr,
+             _("Failed to get my own HELLO from this peer!\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  my_hello = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (hello);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_HELLO_get_id (hello,
+                                      &my_peer_identity));
+  GNUNET_TRANSPORT_get_hello_cancel (gh);
+  gh = NULL;
+  GNUNET_TRANSPORT_disconnect (transport);
+  transport = NULL;
+  if (NULL != dump_hello)
+    dump_my_hello ();
+  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
 }
 
 
@@ -700,33 +743,18 @@ testservice_task (void *cls,
        (GNUNET_YES == get_uri) ||
        (NULL != dump_hello) )
   {
-    /* load private key */
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                 "PEER",
-                                                 "PRIVATE_KEY",
-                                                 &fn))
-    {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                                 "PEER",
-                                 "PRIVATE_KEY");
-      return;
-    }
-    if (NULL == (priv = GNUNET_CRYPTO_eddsa_key_create_from_file (fn)))
-    {
-      FPRINTF (stderr,
-               _("Loading hostkey from `%s' failed.\n"),
-               fn);
-      GNUNET_free (fn);
-      return;
-    }
-    GNUNET_free (fn);
-    GNUNET_CRYPTO_eddsa_key_get_public (priv,
-                                        &my_peer_identity.public_key);
-    GNUNET_free (priv);
+    transport = GNUNET_TRANSPORT_connect (cfg,
+                                          NULL,
+                                          NULL,
+                                          NULL, NULL, NULL);
+    gh = GNUNET_TRANSPORT_get_hello (transport,
+                                     &hello_callback,
+                                     NULL);
   }
-
-  tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  else
+  {
+    tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
+  }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
@@ -827,14 +855,6 @@ state_machine (void *cls,
                                    &print_my_uri, NULL);
     get_uri = GNUNET_NO;
   }
-  else if (NULL != dump_hello)
-  {
-    pic = GNUNET_PEERINFO_iterate (peerinfo,
-                                   include_friend_only,
-                                   &my_peer_identity,
-				   TIMEOUT,
-                                   &dump_my_hello, NULL);
-  }
   else if (GNUNET_YES == default_operation)
   {
     /* default operation list all */
@@ -843,8 +863,8 @@ state_machine (void *cls,
     tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
   }
   else
-    {
-      GNUNET_SCHEDULER_shutdown ();
+  {
+    GNUNET_SCHEDULER_shutdown ();
   }
   default_operation = GNUNET_NO;
 }

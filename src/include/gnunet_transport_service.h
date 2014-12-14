@@ -176,7 +176,7 @@ struct GNUNET_TRANSPORT_TryConnectHandle;
  */
 typedef void
 (*GNUNET_TRANSPORT_TryConnectCallback) (void *cls,
-                                        const int result);
+                                        int result);
 
 
 /**
@@ -296,7 +296,6 @@ void
 GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct GNUNET_TRANSPORT_TransmitHandle *th);
 
 
-
 /**
  * Checks if a given peer is connected to us
  *
@@ -396,6 +395,7 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
  * Handle for a #GNUNET_TRANSPORT_offer_hello operation
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle;
+
 
 /**
  * Offer the transport service the HELLO of another peer.  Note that
@@ -648,7 +648,7 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext;
  * a final call with NULL for peer and address will follow when done.
  * In this case state and timeout do not contain valid values.
  *
- * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called from
+ * The #GNUNET_TRANSPORT_monitor_peers_cancel() call MUST not be called from
  * within this function!
  *
  *
@@ -678,8 +678,8 @@ typedef void
  * to communicate with this peer, the state this peer is currently in and the
  * the current timeout for this state.
  *
- * Upon completion, the 'GNUNET_TRANSPORT_PeerIterateCallback' is called one
- * more time with 'NULL'. After this, the operation must no longer be
+ * Upon completion, the #GNUNET_TRANSPORT_PeerIterateCallback is called one
+ * more time with `NULL`. After this, the operation must no longer be
  * explicitly canceled.
  *
  * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called in the
@@ -771,8 +771,8 @@ enum GNUNET_TRANSPORT_ValidationState
  * indicate a change to a validation entry. The information included represent
  * the current state of the validation entry,
  *
- * If the monitoring was called with one_shot=GNUNET_YES, a final callback
- * with peer==NULL and address==NULL is executed.
+ * If the monitoring was called with `one_shot==GNUNET_YES`, a final callback
+ * with `peer==NULL` and `address==NULL` is executed.
  *
  * @param cls closure
  * @param peer peer this update is about,
@@ -1005,7 +1005,6 @@ typedef void
                                             struct GNUNET_TRANSPORT_PluginSession *session,
                                             void **session_ctx,
                                             const struct GNUNET_TRANSPORT_SessionInfo *info);
-
 
 
 /**

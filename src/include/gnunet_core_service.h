@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file include/gnunet_core_service.h
  * @brief core service; this is the main API for encrypted P2P

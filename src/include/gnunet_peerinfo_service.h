@@ -62,7 +62,7 @@ GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * Disconnect from the peerinfo service.  Note that all iterators must
  * have completed or have been cancelled by the time this function is
  * called (otherwise, calling this function is a serious error).
- * Furthermore, if 'GNUNET_PEERINFO_add_peer' operations are still
+ * Furthermore, if #GNUNET_PEERINFO_add_peer() operations are still
  * pending, they will be cancelled silently on disconnect.
  *
  * @param h handle to disconnect

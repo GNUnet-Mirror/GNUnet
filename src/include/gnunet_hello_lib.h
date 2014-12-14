@@ -411,6 +411,11 @@ struct GNUNET_MessageHeader *
 GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
 
 
+/**
+ * FIXME.
+ *
+ * @param name
+ */
 typedef struct GNUNET_TRANSPORT_PluginFunctions *
 (*GNUNET_HELLO_TransportPluginsFind) (const char *name);
 
