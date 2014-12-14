@@ -721,9 +721,6 @@ static void
 testservice_task (void *cls,
                   int result)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
-  char *fn;
-
   if (GNUNET_YES != result)
   {
     FPRINTF (stderr,
