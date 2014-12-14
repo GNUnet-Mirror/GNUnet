@@ -59,9 +59,23 @@ struct GNUNET_NETWORK_FDSet
 
 #ifdef WINDOWS
   /**
-   * Linked list of handles
+   * Array of file handles (from pipes) that are also in
+   * the FDSet.  Needed as those cannot go into @e sds
+   * on W32.
    */
-  struct GNUNET_CONTAINER_SList *handles;
+  const struct GNUNET_DISK_FileHandle **handles;
+
+  /**
+   * Size of the @e handles array
+   */
+  unsigned int handles_size;
+
+  /**
+   * Number of @e handles slots in use. Always
+   * smaller than @e handles_size.
+   */
+  unsigned int handles_pos;
+
 #endif
 
 };
