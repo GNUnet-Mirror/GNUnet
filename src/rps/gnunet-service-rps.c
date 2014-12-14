@@ -44,10 +44,6 @@
 
 // TODO multipeerlist indep of gossiped list
 
-// TODO maybe wait during initialisation some time to get some peers
-//      - initialise peers before proceeding
-//      - Use the magic 0000 peer GNUNET_CADET_get_peers() returns
-
 // (TODO api -- possibility of getting weak random peer immideately)
 
 // TODO malicious peer
@@ -84,8 +80,7 @@ peer_id_cmp (const void *p1, const void *p2)
  * functions providing (pseudo)randomness!
 ***********************************************************************/
 
-// TODO init list
-// TODO grow/shrink list
+// TODO care about invalid input of the caller (size 0 or less...)
 
 /**
  * A sampler sampling PeerIDs.
@@ -109,18 +104,59 @@ struct Sampler
    */
   struct GNUNET_HashCode peer_id_hash;
 
+  /**
+   * Samplers are kept in a linked list.
+   */
+  struct Sampler *next;
+
+  /**
+   * Samplers are kept in a linked list.
+   */
+  struct Sampler *prev;
+
 };
 
-typedef void (* SAMPLER_deleteCB) (void *cls, struct GNUNET_PeerIdentity *id, struct GNUNET_HashCode hash);
+/**
+ * A n-tuple of samplers.
+ */
+struct Samplers
+{
+  /**
+   * Number of samplers we hold.
+   */
+  size_t size;
+  
+  /**
+   * All PeerIDs in one array.
+   */
+  struct GNUNET_PeerIdentity peer_ids[];
+
+  /**
+   * The head of the DLL.
+   */
+  struct Sampler *head;
+
+  /**
+   * The tail of the DLL.
+   */
+  struct Sampler *tail;
+
+};
+
+
+typedef void (* SAMPLER_deleteCB) (void *cls, const struct GNUNET_PeerIdentity *id, struct GNUNET_HashCode hash);
 
 /**
  * (Re)Initialise given Sampler with random min-wise independent function.
  *
  * In this implementation this means choosing an auth_key for later use in
  * a hmac at random.
+ *
+ * @param id pointer to the place where this sampler will store the PeerID.
+ *           This will be overwritten.
  */
   struct Sampler *
-SAMPLER_init()
+SAMPLER_init(struct GNUNET_PeerIdentity *id)
 {
   struct Sampler *s;
   
@@ -131,13 +167,21 @@ SAMPLER_init()
                              &(s->auth_key.key),
                              GNUNET_CRYPTO_HASH_LENGTH);
 
-  s->peer_id = own_identity; // Maybe set to own PeerID. So we always have
+  //s->peer_id = GNUNET_new( struct GNUNET_PeerIdentity );
+  GNUENT_assert(NULL != id);
+  s->peer_id = id;
+  memcpy(s->peer_id, own_identity, sizeof(struct GNUNET_PeerIdentity));
+  //s->peer_id = own_identity; // Maybe set to own PeerID. So we always have
                      // a valid PeerID in the sampler.
                      // Maybe take a PeerID as second argument.
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: initialised with PeerID %s (at %p) \n", GNUNET_i2s(s->peer_id), s->peer_id);
 
   GNUNET_CRYPTO_hmac(&s->auth_key, s->peer_id,
                      sizeof(struct GNUNET_PeerIdentity),
                      &s->peer_id_hash);
+
+  s->prev = NULL;
+  s->next = NULL;
 
   return s;
 }
@@ -151,7 +195,7 @@ SAMPLER_init()
   int
 hash_cmp(struct GNUNET_HashCode hash1, struct GNUNET_HashCode hash2)
 {
-  return memcmp( (const void *) &hash1, (const void *) & hash2, sizeof(struct GNUNET_HashCode)) < 0;
+  return memcmp( (const void *) &hash1, (const void *) & hash2, sizeof(struct GNUNET_HashCode));
 }
 
 /**
@@ -159,61 +203,106 @@ hash_cmp(struct GNUNET_HashCode hash1, struct GNUNET_HashCode hash2)
  */
   static void
 SAMPLER_next(struct Sampler *s, const struct GNUNET_PeerIdentity *id, SAMPLER_deleteCB del_cb, void *cb_cls)
+  // TODO set id in peer_ids
 {
   struct GNUNET_HashCode other_hash;
 
-  GNUNET_CRYPTO_hmac(&s->auth_key,
-                     id,
-                     sizeof(struct GNUNET_PeerIdentity),
-                     &other_hash);
+  if ( id == s->peer_id )
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:          Got PeerID %s\n",
+        GNUNET_i2s(id));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Have already PeerID %s\n",
+        GNUNET_i2s(s->peer_id));
+  }
+  else
+  {
+    GNUNET_CRYPTO_hmac(&s->auth_key,
+        id,
+        sizeof(struct GNUNET_PeerIdentity),
+        &other_hash);
 
-  if ( NULL == s->peer_id ) { // Or whatever is a valid way to say
-                              // "we have no PeerID at the moment"
-    *s->peer_id = *id;
-    s->peer_id_hash = other_hash;
+    if ( NULL == s->peer_id )
+    { // Or whatever is a valid way to say
+      // "we have no PeerID at the moment"
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Got PeerID %s; Simply accepting (got NULL previously).\n",
+          GNUNET_i2s(id));
+      memcpy(s->peer_id, id, sizeof(struct GNUNET_PeerIdentity));
+      //s->peer_id = id;
+      s->peer_id_hash = other_hash;
+    }
+    else if ( 0 > hash_cmp(other_hash, s->peer_id_hash) )
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:            Got PeerID %s\n",
+          GNUNET_i2s(id));
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Discarding old PeerID %s\n",
+          GNUNET_i2s(s->peer_id));
 
-  } else {
-
-    if ( hash_cmp(other_hash, s->peer_id_hash) ) {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Got PeerID %s; Discarding old PeerID %s\n",
-          GNUNET_i2s(id), GNUNET_i2s(s->peer_id));
-
-      if ( NULL != del_cb ) {
+      if ( NULL != del_cb )
+      {
+        LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing old PeerID %s with the delete callback.\n",
+            GNUNET_i2s(s->peer_id));
         del_cb(cb_cls, s->peer_id, s->peer_id_hash);
       }
-      *s->peer_id = *id;
+
+      memcpy(s->peer_id, id, sizeof(struct GNUNET_PeerIdentity));
+      //s->peer_id = id;
       s->peer_id_hash = other_hash;
-
-    } else {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Got PeerID %s; Keeping old PeerID %s\n",
-          GNUNET_i2s(id), GNUNET_i2s(s->peer_id));
     }
-
+    else
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:         Got PeerID %s\n",
+          GNUNET_i2s(id), id);
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Keeping old PeerID %s\n",
+          GNUNET_i2s(s->peer_id), s->peer_id);
+    }
   }
 }
 
+
+/**
+ * Initialise a tuple of samplers.
+ */
+struct Samplers *
+SAMPLER_samplers_init(size_t init_size)
+{
+  struct Samplers *samplers;
+  struct Sampler *s;
+  uint64_t i;
+
+  samplers = GNUNET_new(struct Samplers);
+  samplers->size = init_size;
+  samplers->head = samplers->tail = NULL;
+  samplers->peer_ids = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
+
+  for ( i = 0 ; i < init_size ; i++ )
+  {
+    GNUNET_array_append(samplers->peer_ids,
+        sizeof(struct GNUNET_PeerIdentity),
+        own_identity);
+    s = SAMPLER_init(&samplers->peer_ids[i]);
+    GNUNET_CONTAINER_DLL_insert_tail(samplers->head,
+        samplers->tail,
+        );
+  }
+  return sammplers;
+}
 
 
 /**
  * A fuction to update every sampler in the given list
  */
   static void
-SAMPLER_update_list(struct GNUNET_CONTAINER_SList *lst, const struct GNUNET_PeerIdentity *id,
+SAMPLER_update_list(struct Samplers *samplers, const struct GNUNET_PeerIdentity *id,
                     SAMPLER_deleteCB del_cb, void *cb_cls)
 {
-  struct GNUNET_CONTAINER_SList_Iterator *iter;
   struct Sampler *sampler;
-  size_t s;
 
-  iter = GNUNET_malloc(sizeof(struct GNUNET_CONTAINER_SList_Iterator));
-  *iter = GNUNET_CONTAINER_slist_begin(lst);
-  s = sizeof(struct Sampler);
-  do {
-    sampler = (struct Sampler *) GNUNET_CONTAINER_slist_get(iter, &s);
+  sampler = samplers->head;
+  while ( NULL != sampler->next )
+  {
     SAMPLER_next(sampler, id, del_cb, cb_cls);
-  } while ( GNUNET_NO != GNUNET_CONTAINER_slist_next(iter) );
+  }
   
-  GNUNET_CONTAINER_slist_iter_destroy(iter);
 }
 
 /**
@@ -222,24 +311,23 @@ SAMPLER_update_list(struct GNUNET_CONTAINER_SList *lst, const struct GNUNET_Peer
  * We might want to reinitialise this sampler after giving the
  * corrsponding peer to the client.
  */
-  struct GNUNET_PeerIdentity* 
-SAMPLER_get_rand_peer (struct GNUNET_CONTAINER_SList *lst)
+  const struct GNUNET_PeerIdentity* 
+SAMPLER_get_rand_peer (struct Samplers *samplers)
 {
-  uint64_t list_size;
-
   LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER_get_rand_peer:\n");
 
-  list_size = (uint64_t) GNUNET_CONTAINER_slist_count(lst);
-
-  if ( 0 == list_size ) {
+  if ( 0 == samplers->size )
+  {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Sgrp: List empty - Returning own PeerID %s\n", GNUNET_i2s(own_identity));
     return own_identity;
-  } else {
+  }
+  else
+  {
     uint64_t index;
-    struct GNUNET_CONTAINER_SList_Iterator *iter;
+    struct Sampler *iter;
     uint64_t i;
     size_t s;
-    struct GNUNET_PeerIdentity *peer;
+    const struct GNUNET_PeerIdentity *peer;
 
     /**
      * Choose the index of the peer we want to give back
@@ -251,20 +339,20 @@ SAMPLER_get_rand_peer (struct GNUNET_CONTAINER_SList *lst)
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Sgrp: Length of Slist: %" PRIu64 ", index: %" PRIu64 "\n", list_size, index);
 
     s = sizeof( struct Sampler );
-    iter = GNUNET_malloc(sizeof(struct GNUNET_CONTAINER_SList_Iterator));
-    *iter = GNUNET_CONTAINER_slist_begin(lst);
-    for ( i = 0 ; i < index ; i++ ) {
-      if (GNUNET_NO == GNUNET_CONTAINER_slist_next(iter) ) { // Maybe unneeded
-        *iter = GNUNET_CONTAINER_slist_begin(lst);
+    iter = samplers->head;
+    for ( i = 0 ; i < index ; i++ )
+    {
+      if ( NULL == iter->next )
+      { // Maybe unneeded
+        iter = samplers->head;
       }
     }
     
     // TODO something missing?
 
-    // FIXME this looks wrong:
-    peer = ((struct Sampler *) GNUNET_CONTAINER_slist_get(iter, &s))->peer_id;
-    GNUNET_CONTAINER_slist_iter_destroy(iter);
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Sgrp: Returning PeerID %s (own ID: %s)\n", GNUNET_i2s(peer), GNUNET_i2s(own_identity));
+    peer = iter->peer_id;
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Sgrp: Returning PeerID %s\n", GNUNET_i2s(peer));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Sgrp: (own ID: %s)\n", GNUNET_i2s(own_identity));
 
     return peer;
   }
@@ -277,18 +365,18 @@ SAMPLER_get_rand_peer (struct GNUNET_CONTAINER_SList *lst)
  * corrsponding peer to the client.
  * Random with or without consumption?
  */
-  struct GNUNET_PeerIdentity**  // TODO give back simple array
-SAMPLER_get_n_rand_peers (struct GNUNET_CONTAINER_SList *lst, uint64_t n)
+  const struct GNUNET_PeerIdentity*  // TODO give back simple array
+SAMPLER_get_n_rand_peers (struct Samplers *samplers, uint64_t n)
 {
   // TODO check if we have too much (distinct) sampled peers
   // If we are not ready yet maybe schedule for later
-  struct GNUNET_PeerIdentity **peers;
+  const struct GNUNET_PeerIdentity *peers;
   uint64_t i;
   
-  peers = GNUNET_malloc(n * sizeof(struct GNUNET_PeerIdentity *));
+  peers = GNUNET_malloc(n * sizeof(struct GNUNET_PeerIdentity));
 
   for ( i = 0 ; i < n ; i++ ) {
-    peers[i] = SAMPLER_get_rand_peer(lst);
+    peers[i] = SAMPLER_get_rand_peer(samplers);
   }
 
   // TODO something else missing?
@@ -299,24 +387,52 @@ SAMPLER_get_n_rand_peers (struct GNUNET_CONTAINER_SList *lst, uint64_t n)
  * Counts how many Samplers currently hold a given PeerID.
  */
   uint64_t
-SAMPLER_count_id ( struct GNUNET_CONTAINER_SList *lst, struct GNUNET_PeerIdentity *id ) {
-  size_t s;
-  struct GNUNET_CONTAINER_SList_Iterator *iter;
+SAMPLER_count_id ( struct Samplers *samplers, struct GNUNET_PeerIdentity *id )
+{
+  struct Sampler *iter;
   uint64_t count;
 
-  s = sizeof( struct Sampler );
-  iter = GNUNET_new(struct GNUNET_CONTAINER_SList_Iterator);
-  *iter = GNUNET_CONTAINER_slist_begin(lst);
+  iter = samplers->head;
   count = 0;
-  while ( GNUNET_YES == GNUNET_CONTAINER_slist_next(iter) ) {
-    if ( peer_id_cmp( ((struct Sampler *) GNUNET_CONTAINER_slist_get(iter, &s))->peer_id, id) ) {
+  while ( NULL != iter )
+  {
+    if ( peer_id_cmp( iter->peer_id, id) )
       count++;
-    }
+    iter = iter->next;
   }
-  GNUNET_CONTAINER_slist_iter_destroy(iter);
   return count;
 }
 
+/**
+ * Gow the size of the tuple of samplers.
+ */
+  void
+SAMPLER_samplers_grow (struct Samplers * samplers, size_t new_size)
+{
+  uint64_t i;
+  struct Sampler;
+
+  if ( new_size > samplers->size )
+  {
+    GNUNET_array_grow(samplers->peer_ids, samplers->size, new_size);
+    for ( i = 0 ; i < new_size - samplers-size ; i++ )
+    {
+      sampler = SAMPLER_init(&samplers->peer_ids[samplers->size + i]);
+      GNUNET_CONTAINER_DLL_insert_tail(samplers->head, samplers->tail, sampler);
+    }
+  }
+  else if ( new_size < samplers->size )
+  {
+    for ( i = 0 ; i < samplers->size - new_size ; i++)
+    {
+      // TODO call delCB on elem?
+      GNUNET_CONTAINER_DLL_remove(samplers->head, samplers->tail, samplers->tail);
+    }
+    GNUNET_array_grow(samplers->peer_ids, samplers->size, new_size);
+  }
+
+  samplers->size = new_size;
+}
 
 /***********************************************************************
  * /Sampler
@@ -325,8 +441,69 @@ SAMPLER_count_id ( struct GNUNET_CONTAINER_SList *lst, struct GNUNET_PeerIdentit
 
 
 /***********************************************************************
- * Gossip list
+ * Peer list
 ***********************************************************************/
+
+/**
+ * A struct that just holds the PeerID.
+ */
+struct PeerEntry
+{
+  /**
+   * The PeerID.
+   */
+  struct GNUNET_PeerIdentity *id;
+};
+
+/**
+ * A DLL holding PeerIDs.
+ */
+struct PeerList
+{
+  /**
+   * The size of the list.
+   */
+  size_t size;
+
+  /**
+   * Array of PeerIDs.
+   */
+  struct GNUNET_PeerIdentity *peer_ids;
+
+  /**
+   * Head of the DLL.
+   */
+  struct PeerEntry *head;
+
+  /**
+   * Tail of the DLL.
+   */
+  struct PeerEntry *tail;
+};
+
+/**
+ * Give back an empty PeerList.
+ */
+  struct PeerList*
+PeerList_init()
+{
+  struct PeerList *peer_list;
+
+  peer_list = GNUNET_new(struct PeerList);
+  peer_list->size = 0;
+  peer_list->peer_ids = NULL;
+  peer_list->head = peer_list->tail = NULL;
+
+  return peer_list;
+}
+
+/**
+ * Put one PeerID into the given PeerList.
+ */
+  void
+PeerList_put(struct PeerList *peer_list, struct GNUNET_PeerIdentity *id)
+{
+}
 
 ///**
 // * Get one random peer out of the gossiped peer list.
@@ -357,7 +534,7 @@ SAMPLER_count_id ( struct GNUNET_CONTAINER_SList *lst, struct GNUNET_PeerIdentit
 
 
 /***********************************************************************
- * /Gossip list
+ * /Peer list
 ***********************************************************************/
 
 
@@ -439,12 +616,17 @@ static struct GNUNET_CONTAINER_MultiPeerMap *peer_map;
 // TODO other events to grow/shrink size?
 
 /**
- * List of samplers
+ * List of samplers // TODO get rid of that
  */
 struct GNUNET_CONTAINER_SList *sampler_list;
 
 /**
- * Sampler list size
+ * List of samplers.
+ */
+struct Samplers *samplers; // TODO rename to sampler_list
+
+/**
+ * Sampler list size // TODO get rid of that
  *
  * Adapts to the nse. Size should be in BigTheta(network_size)^(1/3).
  */
@@ -838,6 +1020,7 @@ delete_cb (void *cls, struct GNUNET_PeerIdentity *id, struct GNUNET_HashCode has
 {
   size_t s;
 
+  //s = SAMPLER_count_id(samplers, id); // TODO
   s = SAMPLER_count_id(sampler_list, id);
   if ( 1 >= s ) {
     // TODO cleanup peer
@@ -874,27 +1057,28 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* If the NSE has changed adapt the lists accordingly */
   // TODO check nse == 0!
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Checking size estimate.\n");
-  if ( sampler_list_size < est_size ) {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Growing size.\n");
-    /* Grow the lists. */
-    for ( i = 0 ; i < est_size - sampler_list_size ; i++ ) {
-      s = SAMPLER_init();
-      GNUNET_CONTAINER_slist_add_end(sampler_list,
-                                     GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, // DEPRECATED
-                                     s,
-                                     sizeof(struct Sampler));
+  SAMPLER_samplers_grow(samplers, est_size);
+  //if ( sampler_list_size < est_size ) {
+  //  LOG(GNUNET_ERROR_TYPE_DEBUG, "Growing size.\n");
+  //  /* Grow the lists. */
+  //  for ( i = 0 ; i < est_size - sampler_list_size ; i++ ) {
+  //    s = SAMPLER_init();
+  //    GNUNET_CONTAINER_slist_add_end(sampler_list,
+  //                                   GNUNET_CONTAINER_SLIST_DISPOSITION_TRANSIENT, // DEPRECATED
+  //                                   s,
+  //                                   sizeof(struct Sampler));
 
-      // TODO add peers to gossiped ones?
-    }
-  } else if ( sampler_list_size > est_size ) {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Shrinking size.\n");
-    /* Shrink the lists. */
-    for ( i = 0 ; i < sampler_list_size - est_size ; i++ ) {
-      *iter = GNUNET_CONTAINER_slist_begin(sampler_list);
-      GNUNET_CONTAINER_slist_erase(iter);
-      GNUNET_CONTAINER_slist_iter_destroy(iter); // Maybe unneeded but I don't know whether _erase() also deletes the iter
-    }
-  }
+  //    // TODO add peers to gossiped ones?
+  //  }
+  //} else if ( sampler_list_size > est_size ) {
+  //  LOG(GNUNET_ERROR_TYPE_DEBUG, "Shrinking size.\n");
+  //  /* Shrink the lists. */
+  //  for ( i = 0 ; i < sampler_list_size - est_size ; i++ ) {
+  //    *iter = GNUNET_CONTAINER_slist_begin(sampler_list);
+  //    GNUNET_CONTAINER_slist_erase(iter);
+  //    GNUNET_CONTAINER_slist_iter_destroy(iter); // Maybe unneeded but I don't know whether _erase() also deletes the iter
+  //  }
+  //}
 
   GNUNET_array_grow(gossip_list, gossip_list_size, est_size); // FIXME Do conversion correct or change type
 
@@ -1061,7 +1245,7 @@ init_peer_cb (void *cls,
 {
   // FIXME use the magic 0000 PeerID
   if ( NULL != peer ) {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Got peer %s from CADET\n", GNUNET_i2s(peer));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Got peer %s (at %p) from CADET\n", GNUNET_i2s(peer), peer);
     SAMPLER_update_list(sampler_list, peer, NULL, NULL);
     if ( GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains( peer_map, peer ) ) {
     } else {
@@ -1099,8 +1283,23 @@ shutdown_task (void *cls,
 {
   LOG(GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
+  if ( GNUNET_SCHEDULER_NO_TASK != do_round_task )
+  {
+    GNUNET_SCHEDULER_cancel (do_round_task);
+    do_round_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   GNUNET_NSE_disconnect(nse);
   GNUNET_CADET_disconnect(cadet_handle);
+  GNUNET_free(own_identity);
+  //GNUNET_free(round_interval);
+  //GNUNET_free(est_size);
+  //GNUNET_free(gossip_list_size);
+  //GNUNET_free(sampler_list_size);
+  GNUNET_free(gossip_list);
+  // TODO for i in sampler_list free sampler
+  // TODO destroy sampler_list
+  // TODO destroy push/pull_list
   // TODO delete global data
 }
 
@@ -1225,7 +1424,9 @@ run (void *cls,
 
   own_identity = GNUNET_new(struct GNUNET_PeerIdentity);
 
-  GNUNET_CRYPTO_get_peer_identity(cfg, own_identity);
+  GNUNET_CRYPTO_get_peer_identity(cfg, own_identity); // TODO check return value
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Own identity is %s (at %p).\n", GNUNET_i2s(own_identity), own_identity);
 
 
 
@@ -1242,7 +1443,7 @@ run (void *cls,
   /* Get initial size of sampler/gossip list from the configuration */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "RPS",
                                                          "INITSIZE",
-                                                         (long long unsigned int *) &est_size)) // FIXME convert
+                                                         (long long unsigned int *) &est_size))
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Failed to read INITSIZE from config\n");
     GNUNET_SCHEDULER_shutdown();
@@ -1299,20 +1500,21 @@ run (void *cls,
   /* Initialise sampler and gossip list */
   struct Sampler *s;
 
-  sampler_list = GNUNET_CONTAINER_slist_create();
+  //sampler_list = GNUNET_CONTAINER_slist_create();
+  samplers = SAMPLER_samplers_init(est_size);
 
   //if ( gossip_list_size == sampler_list_size ) {
-    for ( i = 0 ; i < sampler_list_size ; i++ ) {
-      /* Init sampler list */
-      s = SAMPLER_init();
-      GNUNET_CONTAINER_slist_add(sampler_list,
-                                 GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC, // TODO DEPRECATED
-                                 s,
-                                 sizeof(struct Sampler));
-      /* Init gossip list */
-        // TODO init gossip list
-        // What do we need to do here?
-    }
+  //  for ( i = 0 ; i < sampler_list_size ; i++ ) {
+  //    /* Init sampler list */
+  //    s = SAMPLER_init();
+  //    GNUNET_CONTAINER_slist_add(sampler_list,
+  //                               GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC, // TODO DEPRECATED
+  //                               s,
+  //                               sizeof(struct Sampler));
+  //    /* Init gossip list */
+  //      // TODO init gossip list
+  //      // What do we need to do here?
+  //  }
   //} else {
   //  for ( i = 0 ; i < gossip_list_size ; i++ ) {
   //    // TODO init gossip list
@@ -1323,8 +1525,8 @@ run (void *cls,
   //    // TODO init Sampled list
   //  }
   //}
-  uint64_t tmp_s = (uint64_t) GNUNET_CONTAINER_slist_count(sampler_list);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Initialised sampler list %" PRIu64 "\n", tmp_s);
+  //uint64_t tmp_s = (uint64_t) GNUNET_CONTAINER_slist_count(sampler_list);
+  //LOG(GNUNET_ERROR_TYPE_DEBUG, "Initialised sampler list %" PRIu64 "\n", tmp_s);
 
 
 

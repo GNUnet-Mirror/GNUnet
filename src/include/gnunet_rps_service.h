@@ -41,6 +41,12 @@ extern "C"
 
 typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls, uint64_t num_peers, struct GNUNET_PeerIdentity *peers);
 
+/**
+ * Request n random peers.
+ *
+ * This is a wrapper function that makes it useless to have to
+ * (dis)connect from/to the service.
+ */
   struct GNUNET_RPS_Request_Handle *
 GNUNET_RPS_request_peers_single_call (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           uint64_t n,
@@ -55,6 +61,11 @@ GNUNET_RPS_connect( const struct GNUNET_CONFIGURATION_Handle *cfg );
 
 /**
  * Request n random peers.
+ *
+ * This does exacly the same as GNUNET_RPS_request_peers_single_call
+ * but needs a GNUNET_RPS_Handle.
+ * This exists only for other parts of GNUnet that expect having to
+ * (dis)connect from/to a service.
  */
   struct GNUNET_RPS_Request_Handle *
 GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
