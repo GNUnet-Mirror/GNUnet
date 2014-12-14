@@ -273,14 +273,15 @@ SAMPLER_samplers_init(size_t init_size)
   samplers = GNUNET_new(struct Samplers);
   samplers->size = 0;
   samplers->head = samplers->tail = NULL;
-  samplers->peer_ids = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
+  samplers->peer_ids = NULL;
+  //samplers->peer_ids = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
 
   for ( i = 0 ; i < init_size ; i++ )
   {
     GNUNET_array_append(samplers->peer_ids,
         samplers->size,
         *own_identity);
-    samplers->size++;
+    //samplers->size++;
     s = SAMPLER_init(&samplers->peer_ids[i]);
     GNUNET_CONTAINER_DLL_insert_tail(samplers->head,
         samplers->tail,
@@ -828,7 +829,7 @@ handle_peer_push (void *cls,
   
   /* Add the sending peer to the push_list */
   GNUNET_array_append(push_list, push_list_size, *peer);
-  push_list_size ++;
+  //push_list_size ++;
 
   return GNUNET_OK;
 }
@@ -913,7 +914,7 @@ handle_peer_pull_reply (void *cls,
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   for ( i = 0 ; i < GNUNET_ntohll(in_msg->num_peers) ; i++ ) {
     GNUNET_array_append(pull_list, pull_list_size, peers[i]);
-    pull_list_size++;
+    //pull_list_size++;
   }
 
   // TODO maybe a disconnect happens here
