@@ -79,7 +79,6 @@ libgnunetutil_la_SOURCES = \
   container_multihashmap.c \
   container_multipeermap.c \
   container_multihashmap32.c \
-  container_slist.c \
   crypto_symmetric.c \
   crypto_crc.c \
   crypto_ecc.c \
@@ -221,7 +220,6 @@ check_PROGRAMS = \
  test_container_multihashmap32 \
  test_container_multipeermap \
  test_container_heap \
- test_container_slist \
  test_crypto_symmetric \
  test_crypto_crc \
  test_crypto_ecdsa \
