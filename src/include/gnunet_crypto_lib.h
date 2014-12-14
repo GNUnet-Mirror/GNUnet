@@ -1159,6 +1159,7 @@ int
 GNUNET_CRYPTO_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  struct GNUNET_PeerIdentity *dst);
 
+
 /**
  * Compare two Peer Identities.
  *

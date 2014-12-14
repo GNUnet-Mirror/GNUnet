@@ -1,5 +1,6 @@
 [gns]
 AUTOSTART = @AUTOSTART@
+FORCESTART = YES
 HOSTNAME = localhost
 BINARY = gnunet-service-gns
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-gns.sock

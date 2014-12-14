@@ -858,14 +858,16 @@ GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
   if (baseUri->type != GNUNET_FS_URI_CHK)
     return NULL;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "PEER", "PRIVATE_KEY",
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Lacking key configuration settings.\n"));
     return NULL;
   }
-  if (NULL == (my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile)))
+  if (NULL ==
+      (my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not access hostkey file `%s'.\n"), keyfile);
