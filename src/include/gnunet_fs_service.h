@@ -162,7 +162,8 @@ GNUNET_FS_uri_ksk_remove_keyword (struct GNUNET_FS_Uri *uri,
  * @return NULL on error
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_parse (const char *uri, char **emsg);
+GNUNET_FS_uri_parse (const char *uri,
+                     char **emsg);
 
 
 /**
@@ -233,15 +234,19 @@ GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri);
 
 /**
  * Construct a location URI (this peer will be used for the location).
+ * This function should only be called from within gnunet-service-fs,
+ * as it requires the peer's private key which is generally unavailable
+ * to processes directly under the user's control.  However, for
+ * testing and as it logically fits under URIs, it is in this API.
  *
- * @param baseUri content offered by the sender
- * @param cfg configuration information (used to find our hostkey)
+ * @param base_uri content offered by the sender
+ * @param sign_key private key of the peer
  * @param expiration_time how long will the content be offered?
  * @return the location URI, NULL on error
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
-                          const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *base_uri,
+                          const struct GNUNET_CRYPTO_EddsaPrivateKey *sign_key,
                           struct GNUNET_TIME_Absolute expiration_time);
 
 
@@ -285,7 +290,8 @@ GNUNET_FS_uri_dup (const struct GNUNET_FS_Uri *uri);
  *  if keywords is not legal (i.e. empty).
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_ksk_create (const char *keywords, char **emsg);
+GNUNET_FS_uri_ksk_create (const char *keywords,
+                          char **emsg);
 
 
 /**
@@ -436,8 +442,9 @@ GNUNET_FS_uri_ksk_create_from_meta_data (const struct GNUNET_CONTAINER_MetaData
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
-                               *ctx, void *scls, const char *option,
+GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                               void *scls,
+                               const char *option,
                                const char *value);
 
 
@@ -454,8 +461,9 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @return #GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
-                               *ctx, void *scls, const char *option,
+GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                               void *scls,
+                               const char *option,
                                const char *value);
 
 

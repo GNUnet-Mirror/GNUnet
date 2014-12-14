@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001-2013 Christian Grothoff (and other contributing authors)
+     (C) 2001-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -457,6 +457,16 @@ extern "C"
 /*******************************************************************************
  * FS message types
  ******************************************************************************/
+
+/**
+ * Message sent by fs client to request LOC signature.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN 126
+
+/**
+ * Reply sent by fs service with LOC signature.
+ */
+#define GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE 127
 
 /**
  * Message sent by fs client to start indexing.

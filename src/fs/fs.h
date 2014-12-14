@@ -66,6 +66,77 @@ struct ContentHashKey
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+
+/**
+ * Message sent from a GNUnet (fs) publishing activity to sign
+ * a LOC URI.
+ */
+struct RequestLocSignatureMessage
+{
+
+  /**
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Requested signature purpose.  For now, always
+   * #GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT.
+   */
+  uint32_t purpose GNUNET_PACKED;
+
+  /**
+   * Requested expiration time.
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
+  /**
+   * Information about the shared file (to be signed).
+   */
+  struct ContentHashKey chk;
+
+  /**
+   * Size of the shared file (to be signed).
+   */
+  uint64_t file_length;
+};
+
+
+/**
+ * Message sent from the service with the signed LOC URI.
+ */
+struct ResponseLocSignatureMessage
+{
+
+  /**
+   * Message type will be
+   * #GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Purpose of the generated signature.  For now, always
+   * #GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT.
+   */
+  uint32_t purpose GNUNET_PACKED;
+
+  /**
+   * Expiration time that was actually used (rounded!).
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
+  /**
+   * The requested signature.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Identity of the peer sharing the file.
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
+
 /**
  * Message sent from a GNUnet (fs) publishing activity to the
  * gnunet-fs-service to initiate indexing of a file.  The service is

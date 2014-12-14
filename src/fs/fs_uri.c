@@ -837,61 +837,46 @@ GNUNET_FS_uri_loc_get_uri (const struct GNUNET_FS_Uri *uri)
 
 /**
  * Construct a location URI (this peer will be used for the location).
+ * This function should only be called from within gnunet-service-fs,
+ * as it requires the peer's private key which is generally unavailable
+ * to processes directly under the user's control.  However, for
+ * testing and as it logically fits under URIs, it is in this API.
  *
- * @param baseUri content offered by the sender
- * @param cfg configuration information (used to find our hostkey)
+ * @param base_uri content offered by the sender
+ * @param sign_key private key of the peer
  * @param expiration_time how long will the content be offered?
  * @return the location URI, NULL on error
  */
 struct GNUNET_FS_Uri *
-GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *baseUri,
-                          const struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_FS_uri_loc_create (const struct GNUNET_FS_Uri *base_uri,
+                          const struct GNUNET_CRYPTO_EddsaPrivateKey *sign_key,
                           struct GNUNET_TIME_Absolute expiration_time)
 {
   struct GNUNET_FS_Uri *uri;
-  struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
   struct GNUNET_CRYPTO_EddsaPublicKey my_public_key;
-  char *keyfile;
   struct LocUriAssembly ass;
   struct GNUNET_TIME_Absolute et;
 
-  if (baseUri->type != GNUNET_FS_URI_CHK)
+  if (GNUNET_FS_URI_CHK != base_uri->type)
     return NULL;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "PEER", "PRIVATE_KEY",
-                                               &keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Lacking key configuration settings.\n"));
-    return NULL;
-  }
-  if (NULL ==
-      (my_private_key = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not access hostkey file `%s'.\n"), keyfile);
-    GNUNET_free (keyfile);
-    return NULL;
-  }
-  GNUNET_free (keyfile);
   /* we round expiration time to full seconds for SKS URIs */
   et.abs_value_us = (expiration_time.abs_value_us / 1000000LL) * 1000000LL;
-  GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_public_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (sign_key,
+                                      &my_public_key);
   ass.purpose.size = htonl (sizeof (struct LocUriAssembly));
   ass.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
   ass.exptime = GNUNET_TIME_absolute_hton (et);
-  ass.fi = baseUri->data.chk;
+  ass.fi = base_uri->data.chk;
   ass.peer.public_key = my_public_key;
   uri = GNUNET_new (struct GNUNET_FS_Uri);
   uri->type = GNUNET_FS_URI_LOC;
-  uri->data.loc.fi = baseUri->data.chk;
+  uri->data.loc.fi = base_uri->data.chk;
   uri->data.loc.expirationTime = et;
   uri->data.loc.peer.public_key = my_public_key;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_private_key, &ass.purpose,
+                 GNUNET_CRYPTO_eddsa_sign (sign_key,
+                                           &ass.purpose,
                                            &uri->data.loc.contentSignature));
-  GNUNET_free (my_private_key);
   return uri;
 }
 

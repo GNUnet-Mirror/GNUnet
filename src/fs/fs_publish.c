@@ -823,6 +823,116 @@ hash_for_index_cb (void *cls,
 
 
 /**
+ * We've computed the CHK/LOC URI, now publish the KSKs (if applicable).
+ *
+ * @param pc publishing context to do this for
+ */
+static void
+publish_kblocks (struct GNUNET_FS_PublishContext *pc)
+{
+  struct GNUNET_FS_FileInformation *p;
+
+  p = pc->fi_pos;
+  /* upload of "p" complete, publish KBlocks! */
+  if (NULL != p->keywords)
+  {
+    pc->ksk_pc = GNUNET_FS_publish_ksk (pc->h,
+                                        p->keywords,
+                                        p->meta,
+                                        p->chk_uri,
+                                        &p->bo,
+                                        pc->options,
+                                        &publish_kblocks_cont, pc);
+  }
+  else
+  {
+    publish_kblocks_cont (pc, p->chk_uri, NULL);
+  }
+}
+
+
+/**
+ * Process the response (or lack thereof) from
+ * the "fs" service to our LOC sign request.
+ *
+ * @param cls closure (of type `struct GNUNET_FS_PublishContext *`)
+ * @param msg the response we got
+ */
+static void
+process_signature_response (void *cls,
+                            const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_FS_PublishContext *pc = cls;
+  const struct ResponseLocSignatureMessage *sig;
+  struct GNUNET_FS_FileInformation *p;
+
+  p = pc->fi_pos;
+  if (NULL == msg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Can not create LOC URI. Will continue with CHK instead.\n"));
+    publish_kblocks (pc);
+    return;
+  }
+  if (sizeof (struct ResponseLocSignatureMessage) !=
+      ntohs (msg->size))
+  {
+    GNUNET_break (0);
+    publish_kblocks (pc);
+    return;
+  }
+  sig = (const struct ResponseLocSignatureMessage *) msg;
+  p->chk_uri->type = GNUNET_FS_URI_LOC;
+  /* p->data.loc.fi kept from CHK before */
+  p->chk_uri->data.loc.peer = sig->peer;
+  p->chk_uri->data.loc.expirationTime = GNUNET_TIME_absolute_ntoh (sig->expiration_time);
+  p->chk_uri->data.loc.contentSignature = sig->signature;
+  GNUNET_FS_file_information_sync_ (p);
+  GNUNET_FS_publish_sync_ (pc);
+  publish_kblocks (pc);
+}
+
+
+/**
+ * We're publishing without anonymity. Contact the FS service
+ * to create a signed LOC URI for further processing, then
+ * continue with KSKs.
+ *
+ * @param pc the publishing context do to this for
+ */
+static void
+create_loc_uri (struct GNUNET_FS_PublishContext *pc)
+{
+  struct RequestLocSignatureMessage req;
+  struct GNUNET_FS_FileInformation *p;
+
+  if (NULL == pc->client)
+    pc->client = GNUNET_CLIENT_connect ("fs", pc->h->cfg);
+  if (NULL == pc->client)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Can not create LOC URI. Will continue with CHK instead.\n"));
+    publish_kblocks (pc);
+    return;
+  }
+  p = pc->fi_pos;
+  req.header.size = htons (sizeof (struct RequestLocSignatureMessage));
+  req.header.type = htons (GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN);
+  req.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
+  req.expiration_time = GNUNET_TIME_absolute_hton (p->bo.expiration_time);
+  req.chk = p->chk_uri->data.chk.chk;
+  req.file_length = GNUNET_htonll (p->chk_uri->data.chk.file_length);
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CLIENT_transmit_and_get_response (pc->client,
+                                                         &req.header,
+                                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                                         GNUNET_YES,
+                                                         &process_signature_response,
+                                                         pc));
+}
+
+
+/**
  * Main function that performs the upload.
  *
  * @param cls `struct GNUNET_FS_PublishContext *` identifies the upload
@@ -835,7 +945,6 @@ GNUNET_FS_publish_main_ (void *cls,
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;
   struct GNUNET_FS_FileInformation *p;
-  struct GNUNET_FS_Uri *loc;
   char *fn;
 
   pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
@@ -875,13 +984,17 @@ GNUNET_FS_publish_main_ (void *cls,
       p = p->dir;
       if (fn != NULL)
       {
-        GNUNET_asprintf (&p->emsg, _("Recursive upload failed at `%s': %s"), fn,
+        GNUNET_asprintf (&p->emsg,
+                         _("Recursive upload failed at `%s': %s"),
+                         fn,
                          p->emsg);
         GNUNET_free (fn);
       }
       else
       {
-        GNUNET_asprintf (&p->emsg, _("Recursive upload failed: %s"), p->emsg);
+        GNUNET_asprintf (&p->emsg,
+                         _("Recursive upload failed: %s"),
+                         p->emsg);
       }
       pi.status = GNUNET_FS_STATUS_PUBLISH_ERROR;
       pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -897,31 +1010,18 @@ GNUNET_FS_publish_main_ (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "File upload complete, now publishing KSK blocks.\n");
-    if (0 == p->bo.anonymity_level)
+    GNUNET_FS_publish_sync_ (pc);
+
+    if ( (0 == p->bo.anonymity_level) &&
+         (GNUNET_YES !=
+          GNUNET_FS_uri_test_loc (p->chk_uri)) )
     {
       /* zero anonymity, box CHK URI in LOC URI */
-      loc = GNUNET_FS_uri_loc_create (p->chk_uri,
-                                      pc->h->cfg,
-                                      p->bo.expiration_time);
-      GNUNET_FS_uri_destroy (p->chk_uri);
-      p->chk_uri = loc;
-      GNUNET_FS_file_information_sync_ (p);
-    }
-    GNUNET_FS_publish_sync_ (pc);
-    /* upload of "p" complete, publish KBlocks! */
-    if (NULL != p->keywords)
-    {
-      pc->ksk_pc = GNUNET_FS_publish_ksk (pc->h,
-                                          p->keywords,
-                                          p->meta,
-                                          p->chk_uri,
-                                          &p->bo,
-					  pc->options,
-                                          &publish_kblocks_cont, pc);
+      create_loc_uri (pc);
     }
     else
     {
-      publish_kblocks_cont (pc, p->chk_uri, NULL);
+      publish_kblocks (pc);
     }
     return;
   }
@@ -1320,7 +1420,7 @@ fip_signal_stop (void *cls,
     pc->skip_next_fi_callback = GNUNET_YES;
     GNUNET_FS_file_information_inspect (fi, &fip_signal_stop, pc);
   }
-  if (fi->serialization != NULL)
+  if (NULL != fi->serialization)
   {
     GNUNET_FS_remove_sync_file_ (pc->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
                                  fi->serialization);

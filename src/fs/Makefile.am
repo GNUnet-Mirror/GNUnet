@@ -380,7 +380,7 @@ test_fs_search_with_and_SOURCES = \
 test_fs_search_with_and_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetfs.la	\
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_fs_search_probes_SOURCES = \
  test_fs_search_probes.c
@@ -525,7 +525,6 @@ EXTRA_DIST = \
   test_fs_publish_data.conf \
   test_fs_search_data.conf \
   test_fs_unindex_data.conf \
-  test_fs_uri_data.conf \
   test_gnunet_service_fs_migration_data.conf \
   test_gnunet_service_fs_p2p_cadet.conf \
   test_gnunet_fs_idx_data.conf \

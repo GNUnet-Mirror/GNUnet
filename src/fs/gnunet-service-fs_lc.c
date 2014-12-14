@@ -17,13 +17,11 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file fs/gnunet-service-fs_lc.c
  * @brief API to handle 'local clients'
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_lc.h"
@@ -150,7 +148,6 @@ struct GSF_LocalClient
  */
 static struct GSF_LocalClient *client_head;
 
-
 /**
  * Head of linked list of our local clients.
  */
@@ -176,7 +173,9 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
     return pos;
   pos = GNUNET_new (struct GSF_LocalClient);
   pos->client = client;
-  GNUNET_CONTAINER_DLL_insert (client_head, client_tail, pos);
+  GNUNET_CONTAINER_DLL_insert (client_head,
+                               client_tail,
+                               pos);
   return pos;
 }
 
@@ -209,7 +208,7 @@ client_request_destroy (void *cls,
  * Handle a reply to a pending request.  Also called if a request
  * expires (then with data == NULL).  The handler may be called
  * many times (depending on the request type), but will not be
- * called during or after a call to GSF_pending_request_cancel
+ * called during or after a call to #GSF_pending_request_cancel()
  * and will also not be called anymore after a call signalling
  * expiration.
  *
@@ -217,19 +216,21 @@ client_request_destroy (void *cls,
  * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
- * @param expiration when does 'data' expire?
+ * @param expiration when does @a data expire?
  * @param last_transmission when was the last time we've tried to download this block? (FOREVER if unknown)
  * @param type type of the block
  * @param data response data, NULL on request expiration
- * @param data_len number of bytes in @e data
+ * @param data_len number of bytes in @a data
  */
 static void
-client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
+client_response_handler (void *cls,
+                         enum GNUNET_BLOCK_EvaluationResult eval,
                          struct GSF_PendingRequest *pr,
                          uint32_t reply_anonymity_level,
                          struct GNUNET_TIME_Absolute expiration,
                          struct GNUNET_TIME_Absolute last_transmission,
-                         enum GNUNET_BLOCK_Type type, const void *data,
+                         enum GNUNET_BLOCK_Type type,
+                         const void *data,
                          size_t data_len)
 {
   struct ClientRequest *cr = cls;
@@ -405,13 +406,15 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
  * If we were able to transmit messages and there are still more
  * pending, ask core again for further calls to this function.
  *
- * @param cls closure, pointer to the 'struct GSF_LocalClient'
- * @param size number of bytes available in buf
+ * @param cls closure, pointer to the `struct GSF_LocalClient`
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
-transmit_to_client (void *cls, size_t size, void *buf)
+transmit_to_client (void *cls,
+                    size_t size,
+                    void *buf)
 {
   struct GSF_LocalClient *lc = cls;
   char *cbuf = buf;
@@ -458,8 +461,12 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
   res = GNUNET_malloc (sizeof (struct ClientResponse) + msize);
   res->lc = lc;
   res->msize = msize;
-  memcpy (&res[1], msg, msize);
-  GNUNET_CONTAINER_DLL_insert_tail (lc->res_head, lc->res_tail, res);
+  memcpy (&res[1],
+          msg,
+          msize);
+  GNUNET_CONTAINER_DLL_insert_tail (lc->res_head,
+                                    lc->res_tail,
+                                    res);
   if (NULL == lc->th)
     lc->th =
         GNUNET_SERVER_notify_transmit_ready (lc->client, msize,
@@ -476,7 +483,8 @@ GSF_local_client_transmit_ (struct GSF_LocalClient *lc,
  * @param client handle of the client
  */
 void
-GSF_client_disconnect_handler_ (void *cls, struct GNUNET_SERVER_Client *client)
+GSF_client_disconnect_handler_ (void *cls,
+                                struct GNUNET_SERVER_Client *client)
 {
   struct GSF_LocalClient *pos;
   struct ClientRequest *cr;

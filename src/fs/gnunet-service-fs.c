@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -45,6 +45,7 @@
 #include "gnunet-service-fs_put.h"
 #include "gnunet-service-fs_cadet.h"
 #include "fs.h"
+#include "fs_api.h"
 
 /**
  * Size for the hash map for DHT requests from the FS
@@ -159,6 +160,11 @@ int GSF_enable_randomized_delays;
 static struct GNUNET_CONFIGURATION_Handle *block_cfg;
 
 /**
+ * Private key of this peer.  Used to sign LOC URI requests.
+ */
+static struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+
+/**
  * ID of our task that we use to age the cover counters.
  */
 static GNUNET_SCHEDULER_TaskIdentifier cover_age_task;
@@ -173,6 +179,7 @@ static struct GNUNET_LOAD_Value *datastore_get_load;
  */
 static struct GNUNET_PeerIdentity my_id;
 
+
 /**
  * Task that periodically ages our cover traffic statistics.
  *
@@ -180,7 +187,8 @@ static struct GNUNET_PeerIdentity my_id;
  * @param tc task context
  */
 static void
-age_cover_counters (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+age_cover_counters (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GSF_cover_content_count = (GSF_cover_content_count * 15) / 16;
   GSF_cover_query_count = (GSF_cover_query_count * 15) / 16;
@@ -288,11 +296,12 @@ update_latencies (void *cls,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_p2p_put (void *cls, const struct GNUNET_PeerIdentity *other,
+handle_p2p_put (void *cls,
+                const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message)
 {
   struct GSF_ConnectedPeer *cp;
@@ -349,7 +358,8 @@ consider_request_for_forwarding (void *cls,
  * @param result final datastore lookup result
  */
 static void
-consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
+consider_forwarding (void *cls,
+                     struct GSF_PendingRequest *pr,
                      enum GNUNET_BLOCK_EvaluationResult result)
 {
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
@@ -365,11 +375,12 @@ consider_forwarding (void *cls, struct GSF_PendingRequest *pr,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
+handle_p2p_get (void *cls,
+                const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message)
 {
   struct GSF_PendingRequest *pr;
@@ -378,7 +389,8 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
   if (NULL == pr)
     return GNUNET_SYSERR;
   GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
-  GSF_local_lookup_ (pr, &consider_forwarding, NULL);
+  GSF_local_lookup_ (pr,
+                     &consider_forwarding, NULL);
   return GNUNET_OK;
 }
 
@@ -389,18 +401,20 @@ handle_p2p_get (void *cls, const struct GNUNET_PeerIdentity *other,
  * result status).  Also signal that we can now
  * receive more request information from the client.
  *
- * @param cls the client doing the request ('struct GNUNET_SERVER_Client')
+ * @param cls the client doing the request (`struct GNUNET_SERVER_Client`)
  * @param pr the pending request we were processing
  * @param result final datastore lookup result
  */
 static void
-start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
+start_p2p_processing (void *cls,
+                      struct GSF_PendingRequest *pr,
                       enum GNUNET_BLOCK_EvaluationResult result)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GSF_PendingRequestData *prd;
 
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
     return;                     /* we're done, 'pr' was already destroyed... */
   prd = GSF_pending_request_get_data_ (pr);
@@ -441,29 +455,78 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
  * @param message the actual message
  */
 static void
-handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
+handle_start_search (void *cls,
+                     struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GSF_PendingRequest *pr;
   int ret;
 
   pr = NULL;
-  ret = GSF_local_client_start_search_handler_ (client, message, &pr);
+  ret = GSF_local_client_start_search_handler_ (client,
+                                                message,
+                                                &pr);
   switch (ret)
   {
   case GNUNET_SYSERR:
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     break;
   case GNUNET_NO:
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     break;
   case GNUNET_YES:
     GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
-    GSF_local_lookup_ (pr, &start_p2p_processing, client);
+    GSF_local_lookup_ (pr,
+                       &start_p2p_processing,
+                       client);
     break;
   default:
     GNUNET_assert (0);
   }
+}
+
+
+/**
+ * Handle request to sign a LOC URI (from client).
+ *
+ * @param cls closure (NULL)
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_loc_sign (void *cls,
+                 struct GNUNET_SERVER_Client *client,
+                 const struct GNUNET_MessageHeader *message)
+{
+  const struct RequestLocSignatureMessage *msg;
+  struct GNUNET_FS_Uri base;
+  struct GNUNET_FS_Uri *loc;
+  struct ResponseLocSignatureMessage resp;
+  struct GSF_LocalClient *lc;
+
+  msg = (const struct RequestLocSignatureMessage *) message;
+  GNUNET_break (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT ==
+                ntohl (msg->purpose));
+  base.type = GNUNET_FS_URI_CHK;
+  base.data.chk.chk = msg->chk;
+  base.data.chk.file_length = GNUNET_ntohll (msg->file_length);
+  loc = GNUNET_FS_uri_loc_create (&base,
+                                  pk,
+                                  GNUNET_TIME_absolute_ntoh (msg->expiration_time));
+  resp.header.size = htons (sizeof (struct ResponseLocSignatureMessage));
+  resp.header.type = htons (GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGNATURE);
+  resp.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_PEER_PLACEMENT);
+  resp.expiration_time = GNUNET_TIME_absolute_hton (loc->data.loc.expirationTime);
+  resp.signature = loc->data.loc.contentSignature;
+  resp.peer = loc->data.loc.peer;
+  GNUNET_FS_uri_destroy (loc);
+  lc = GSF_local_client_lookup_ (client);
+  GSF_local_client_transmit_ (lc,
+                              &resp.header);
+  GNUNET_free (loc);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -474,7 +537,8 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
  * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GSF_cadet_stop_client ();
   GSF_cadet_stop_server ();
@@ -524,10 +588,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls the 'struct GSF_ConnectedPeer' of the new peer
  * @param key query for the request
  * @param pr handle to the pending request
- * @return GNUNET_YES to continue to iterate
+ * @return #GNUNET_YES to continue to iterate
  */
 static int
-consider_peer_for_forwarding (void *cls, const struct GNUNET_HashCode * key,
+consider_peer_for_forwarding (void *cls,
+                              const struct GNUNET_HashCode *key,
                               struct GSF_PendingRequest *pr)
 {
   struct GSF_ConnectedPeer *cp = cls;
@@ -568,11 +633,15 @@ connected_peer_cb (void *cls, struct GSF_ConnectedPeer *cp)
  * @param peer peer identity this notification is about
  */
 static void
-peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
+peer_connect_handler (void *cls,
+                      const struct GNUNET_PeerIdentity *peer)
 {
-  if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_id,
+                                            peer))
     return;
-  GSF_peer_connect_handler_ (peer, &connected_peer_cb, NULL);
+  GSF_peer_connect_handler_ (peer,
+                             &connected_peer_cb,
+                             NULL);
 }
 
 
@@ -590,7 +659,13 @@ static void
 peer_init_handler (void *cls,
                    const struct GNUNET_PeerIdentity *my_identity)
 {
-  my_id = *my_identity;
+  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_id,
+                                            my_identity))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer identity missmatch, refusing to start!\n");
+    GNUNET_SCHEDULER_shutdown ();
+  }
 }
 
 
@@ -605,31 +680,36 @@ main_init (struct GNUNET_SERVER_Handle *server,
            const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_CORE_MessageHandler no_p2p_handlers[] = {
-    {NULL, 0, 0}
+    { NULL, 0, 0 }
   };
   static const struct GNUNET_CORE_MessageHandler p2p_handlers[] = {
-    {&handle_p2p_get,
-     GNUNET_MESSAGE_TYPE_FS_GET, 0},
-    {&handle_p2p_put,
-     GNUNET_MESSAGE_TYPE_FS_PUT, 0},
-    {&GSF_handle_p2p_migration_stop_,
-     GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP,
-     sizeof (struct MigrationStopMessage)},
-    {NULL, 0, 0}
+    { &handle_p2p_get,
+      GNUNET_MESSAGE_TYPE_FS_GET, 0 },
+    { &handle_p2p_put,
+      GNUNET_MESSAGE_TYPE_FS_PUT, 0 },
+    { &GSF_handle_p2p_migration_stop_,
+      GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP,
+      sizeof (struct MigrationStopMessage) },
+    { NULL, 0, 0 }
   };
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&GNUNET_FS_handle_index_start, NULL,
-     GNUNET_MESSAGE_TYPE_FS_INDEX_START, 0},
-    {&GNUNET_FS_handle_index_list_get, NULL,
-     GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET,
-     sizeof (struct GNUNET_MessageHeader)},
-    {&GNUNET_FS_handle_unindex, NULL, GNUNET_MESSAGE_TYPE_FS_UNINDEX,
-     sizeof (struct UnindexMessage)},
-    {&handle_start_search, NULL, GNUNET_MESSAGE_TYPE_FS_START_SEARCH,
-     0},
+    { &GNUNET_FS_handle_index_start, NULL,
+      GNUNET_MESSAGE_TYPE_FS_INDEX_START, 0 },
+    { &GNUNET_FS_handle_index_list_get, NULL,
+      GNUNET_MESSAGE_TYPE_FS_INDEX_LIST_GET,
+      sizeof (struct GNUNET_MessageHeader) },
+    { &GNUNET_FS_handle_unindex, NULL,
+      GNUNET_MESSAGE_TYPE_FS_UNINDEX,
+      sizeof (struct UnindexMessage) },
+    { &handle_start_search, NULL,
+      GNUNET_MESSAGE_TYPE_FS_START_SEARCH, 0 },
+    { &handle_loc_sign, NULL,
+      GNUNET_MESSAGE_TYPE_FS_REQUEST_LOC_SIGN,
+      sizeof (struct RequestLocSignatureMessage) },
     {NULL, NULL, 0, 0}
   };
   int anon_p2p_off;
+  char *keyfile;
 
   /* this option is really only for testcases that need to disable
      _anonymous_ file-sharing for some reason */
@@ -637,10 +717,31 @@ main_init (struct GNUNET_SERVER_Handle *server,
 		  GNUNET_CONFIGURATION_get_value_yesno (GSF_cfg,
 							"fs",
 							"DISABLE_ANON_TRANSFER"));
-  GSF_core =
-      GNUNET_CORE_connect (GSF_cfg, NULL, &peer_init_handler,
-                           &peer_connect_handler, &GSF_peer_disconnect_handler_,
-                           NULL, GNUNET_NO, NULL, GNUNET_NO,
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (GSF_cfg,
+                                               "PEER",
+                                               "PRIVATE_KEY",
+                                               &keyfile))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("FS service is lacking HOSTKEY configuration setting.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return GNUNET_SYSERR;
+  }
+  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
+  GNUNET_free (keyfile);
+  GNUNET_assert (NULL != pk);
+  GNUNET_CRYPTO_eddsa_key_get_public (pk,
+                                      &my_id.public_key);
+
+  GSF_core
+    = GNUNET_CORE_connect (GSF_cfg, NULL,
+                           &peer_init_handler,
+                           &peer_connect_handler,
+                           &GSF_peer_disconnect_handler_,
+                           NULL, GNUNET_NO,
+                           NULL, GNUNET_NO,
 			   (GNUNET_YES == anon_p2p_off)
 			   ? no_p2p_handlers
 			   : p2p_handlers);

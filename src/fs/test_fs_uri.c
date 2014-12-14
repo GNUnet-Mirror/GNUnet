@@ -42,12 +42,12 @@ testKeyword ()
   }
   GNUNET_free (emsg);
   ret = GNUNET_FS_uri_parse ("gnunet://fs/ksk/foo+bar", &emsg);
-  if (ret == NULL)
+  if (NULL == ret)
   {
     GNUNET_free (emsg);
     GNUNET_assert (0);
   }
-  if (!GNUNET_FS_uri_test_ksk (ret))
+  if (! GNUNET_FS_uri_test_ksk (ret))
   {
     GNUNET_FS_uri_destroy (ret);
     GNUNET_assert (0);
@@ -81,7 +81,7 @@ testLocation ()
   struct GNUNET_FS_Uri *uri2;
   struct GNUNET_FS_Uri *baseURI;
   char *emsg;
-  struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 
   baseURI =
       GNUNET_FS_uri_parse
@@ -89,38 +89,31 @@ testLocation ()
        &emsg);
   GNUNET_assert (baseURI != NULL);
   GNUNET_assert (emsg == NULL);
-  cfg = GNUNET_CONFIGURATION_create ();
-  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, "test_fs_uri_data.conf"))
-  {
-    FPRINTF (stderr, "%s",  "Failed to parse configuration file\n");
-    GNUNET_FS_uri_destroy (baseURI);
-    GNUNET_CONFIGURATION_destroy (cfg);
-    return 1;
-  }
-  uri = GNUNET_FS_uri_loc_create (baseURI, cfg, GNUNET_TIME_absolute_get ());
-  if (uri == NULL)
+  pk = GNUNET_CRYPTO_eddsa_key_create ();
+  uri = GNUNET_FS_uri_loc_create (baseURI,
+                                  pk,
+                                  GNUNET_TIME_absolute_get ());
+  GNUNET_free (pk);
+  if (NULL == uri)
   {
     GNUNET_break (0);
     GNUNET_FS_uri_destroy (baseURI);
-    GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
   }
-  if (!GNUNET_FS_uri_test_loc (uri))
+  if (! GNUNET_FS_uri_test_loc (uri))
   {
     GNUNET_break (0);
     GNUNET_FS_uri_destroy (uri);
     GNUNET_FS_uri_destroy (baseURI);
-    GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
   }
   uri2 = GNUNET_FS_uri_loc_get_uri (uri);
-  if (!GNUNET_FS_uri_test_equal (baseURI, uri2))
+  if (! GNUNET_FS_uri_test_equal (baseURI, uri2))
   {
     GNUNET_break (0);
     GNUNET_FS_uri_destroy (uri);
     GNUNET_FS_uri_destroy (uri2);
     GNUNET_FS_uri_destroy (baseURI);
-    GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
   }
   GNUNET_FS_uri_destroy (uri2);
@@ -137,7 +130,6 @@ testLocation ()
     fprintf (stderr, "URI parsing failed: %s\n", emsg);
     GNUNET_break (0);
     GNUNET_FS_uri_destroy (uri);
-    GNUNET_CONFIGURATION_destroy (cfg);
     GNUNET_free (emsg);
     return 1;
   }
@@ -147,12 +139,10 @@ testLocation ()
     GNUNET_break (0);
     GNUNET_FS_uri_destroy (uri);
     GNUNET_FS_uri_destroy (uri2);
-    GNUNET_CONFIGURATION_destroy (cfg);
     return 1;
   }
   GNUNET_FS_uri_destroy (uri2);
   GNUNET_FS_uri_destroy (uri);
-  GNUNET_CONFIGURATION_destroy (cfg);
   return 0;
 }
 

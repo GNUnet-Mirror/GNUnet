@@ -416,15 +416,17 @@ struct GNUNET_FS_FileInformation
  * @param cls closure
  * @param client handle to use for FS communication
  */
-typedef void (*GNUNET_FS_QueueStart) (void *cls,
-                                      struct GNUNET_CLIENT_Connection * client);
+typedef void
+(*GNUNET_FS_QueueStart) (void *cls,
+                         struct GNUNET_CLIENT_Connection *client);
 
 
 /**
  * The job must now stop to run and should destry the client handle as
  * soon as possible (ideally prior to returning).
  */
-typedef void (*GNUNET_FS_QueueStop) (void *cls);
+typedef void
+(*GNUNET_FS_QueueStop) (void *cls);
 
 
 
@@ -680,7 +682,7 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe);
  *            that the caller might need to go backwards
  *            a bit at times
  * @param max maximum number of bytes that should be
- *            copied to buf; readers are not allowed
+ *            copied to @a buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
  *            the reader to clean up its internal state
@@ -689,12 +691,15 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe);
  * @return number of bytes written, usually "max", 0 on error
  */
 size_t
-GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
+GNUNET_FS_data_reader_file_ (void *cls,
+                             uint64_t offset,
+                             size_t max,
+                             void *buf,
                              char **emsg);
 
 
 /**
- * Create the closure for the 'GNUNET_FS_data_reader_file_' callback.
+ * Create the closure for the #GNUNET_FS_data_reader_file_() callback.
  *
  * @param filename file to read
  * @return closure to use
@@ -712,23 +717,26 @@ GNUNET_FS_make_file_reader_context_ (const char *filename);
  *            that the caller might need to go backwards
  *            a bit at times
  * @param max maximum number of bytes that should be
- *            copied to buf; readers are not allowed
+ *            copied to @a buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
  *            the reader to clean up its internal state
  * @param buf where the reader should write the data
  * @param emsg location for the reader to store an error message
- * @return number of bytes written, usually "max", 0 on error
+ * @return number of bytes written, usually @a max, 0 on error
  */
 size_t
-GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
+GNUNET_FS_data_reader_copy_ (void *cls,
+                             uint64_t offset,
+                             size_t max,
+                             void *buf,
                              char **emsg);
 
 
 /**
  * Notification of FS that a search probe has made progress.
  * This function is used INSTEAD of the client's event handler
- * for downloads where the GNUNET_FS_DOWNLOAD_IS_PROBE flag is set.
+ * for downloads where the #GNUNET_FS_DOWNLOAD_IS_PROBE flag is set.
  *
  * @param cls closure, always NULL (!), actual closure
  *        is in the client-context of the info struct
@@ -738,7 +746,7 @@ GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
  *         for this operation; should be set to NULL for
  *         SUSPEND and STOPPED events).  The value returned
  *         will be passed to future callbacks in the respective
- *         field in the GNUNET_FS_ProgressInfo struct.
+ *         field in the `struct GNUNET_FS_ProgressInfo`.
  */
 void *
 GNUNET_FS_search_probe_progress_ (void *cls,
@@ -764,7 +772,8 @@ GNUNET_FS_publish_main_ (void *cls,
  * @param file_id computed hash, NULL on error
  */
 void
-GNUNET_FS_unindex_process_hash_ (void *cls, const struct GNUNET_HashCode * file_id);
+GNUNET_FS_unindex_process_hash_ (void *cls,
+                                 const struct GNUNET_HashCode *file_id);
 
 
 /**
@@ -890,6 +899,7 @@ GNUNET_FS_download_start_downloading_ (struct GNUNET_FS_DownloadContext *dc);
 void
 GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
 
+
 /**
  * Remove serialization/deserialization file from disk.
  *
@@ -898,7 +908,8 @@ GNUNET_FS_search_start_probe_ (struct GNUNET_FS_SearchResult *sr);
  * @param ent entity identifier
  */
 void
-GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
+GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
+                             const char *ext,
                              const char *ent);
 
 
@@ -991,7 +1002,7 @@ GNUNET_FS_download_sync_ (struct GNUNET_FS_DownloadContext *dc);
  * Create SUSPEND event for the given publish operation
  * and then clean up our state (without stop signal).
  *
- * @param cls the 'struct GNUNET_FS_PublishContext' to signal for
+ * @param cls the `struct GNUNET_FS_PublishContext` to signal for
  */
 void
 GNUNET_FS_publish_signal_suspend_ (void *cls);
@@ -1021,7 +1032,7 @@ GNUNET_FS_download_signal_suspend_ (void *cls);
  * Create SUSPEND event for the given unindex operation
  * and then clean up our state (without stop signal).
  *
- * @param cls the 'struct GNUNET_FS_UnindexContext' to signal for
+ * @param cls the `struct GNUNET_FS_UnindexContext` to signal for
  */
 void
 GNUNET_FS_unindex_signal_suspend_ (void *cls);
@@ -1210,6 +1221,11 @@ struct GNUNET_FS_PublishContext
    * Handle to the global fs context.
    */
   struct GNUNET_FS_Handle *h;
+
+  /**
+   * Connection to FS service (only used for LOC URI signing).
+   */
+  struct GNUNET_CLIENT_Handle *fs_client;
 
   /**
    * Our top-level activity entry (if we are top-level, otherwise NULL).
