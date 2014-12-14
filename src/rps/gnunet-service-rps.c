@@ -284,7 +284,7 @@ SAMPLER_samplers_init(size_t init_size)
         samplers->tail,
         );
   }
-  return sammplers;
+  return samplers;
 }
 
 
@@ -517,14 +517,9 @@ static struct GNUNET_CONTAINER_MultiPeerMap *peer_map;
 // TODO other events to grow/shrink size?
 
 /**
- * List of samplers // TODO get rid of that
- */
-struct GNUNET_CONTAINER_SList *sampler_list;
-
-/**
  * List of samplers.
  */
-struct Samplers *samplers; // TODO rename to sampler_list
+struct Samplers *sampler_list; // TODO rename to sampler_list
 
 /**
  * Sampler list size // TODO get rid of that
@@ -928,7 +923,6 @@ delete_cb (void *cls, struct GNUNET_PeerIdentity *id, struct GNUNET_HashCode has
 {
   size_t s;
 
-  //s = SAMPLER_count_id(samplers, id); // TODO
   s = SAMPLER_count_id(sampler_list, id);
   if ( 1 >= s ) {
     // TODO cleanup peer
@@ -949,7 +943,6 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   uint64_t i;
   struct Sampler *s;
-  struct GNUNET_CONTAINER_SList_Iterator *iter;
   //unsigned int *n_arr;
   struct GNUNET_RPS_P2P_PushMessage        *push_msg;
   struct GNUNET_RPS_P2P_PullRequestMessage *pull_msg; // FIXME Send empty message
@@ -959,13 +952,11 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   // TODO print lists, ...
   // TODO cleanup peer_map
 
-  iter = GNUNET_new(struct GNUNET_CONTAINER_SList_Iterator);
-
 
   /* If the NSE has changed adapt the lists accordingly */
   // TODO check nse == 0!
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Checking size estimate.\n");
-  SAMPLER_samplers_grow(samplers, est_size);
+  SAMPLER_samplers_grow(sampler_list, est_size);
 
   GNUNET_array_grow(gossip_list, gossip_list_size, est_size); // FIXME Do conversion correct or change type
 
@@ -1048,8 +1039,8 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* Update gossip list with peers from history */
       tmp_index = i + round((alpha + beta) * gossip_list_size);
       index = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
-                                       samplers->size);
-      gossip_list[tmp_index] = samplers->peer_ids[index];
+                                       sampler_list->size);
+      gossip_list[tmp_index] = sampler_list->peer_ids[index];
       // TODO change the in_flags accordingly
     }
 
@@ -1066,13 +1057,13 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for ( i = 0 ; i < push_list_size ; i++ )
   {
-    SAMPLER_update_list(samplers, push_list[i]);
+    SAMPLER_update_list(sampler_list, push_list[i]);
     // TODO set in_flag?
   }
 
   for ( i = 0 ; i < pull_list_size ; i++ )
   {
-    SAMPLER_update_list(samplers, pull_list[i]);
+    SAMPLER_update_list(sampler_list, pull_list[i]);
     // TODO set in_flag?
   }
 
@@ -1368,7 +1359,7 @@ run (void *cls,
   /* Initialise sampler and gossip list */
   struct Sampler *s;
 
-  samplers = SAMPLER_samplers_init(est_size);
+  sampler_list = SAMPLER_samplers_init(est_size);
 
   push_list = NULL;
   push_list_size = 0;
