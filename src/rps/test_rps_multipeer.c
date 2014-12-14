@@ -33,7 +33,7 @@
 /**
  * How many peers do we start?
  */
-#define NUM_PEERS 10
+#define NUM_PEERS 3
 
 /**
  * How long do we run the test?

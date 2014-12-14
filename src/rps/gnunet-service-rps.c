@@ -300,12 +300,13 @@ SAMPLER_samplers_init(size_t init_size)
 SAMPLER_update_list(struct Samplers *samplers, const struct GNUNET_PeerIdentity *id,
                     SAMPLER_deleteCB del_cb, void *cb_cls)
 {
-  struct Sampler *sampler;
+  struct Sampler *iter;
 
-  sampler = samplers->head;
-  while ( NULL != sampler->next )
+  iter = samplers->head;
+  while ( NULL != iter->next )
   {
-    SAMPLER_next(sampler, id, del_cb, cb_cls);
+    SAMPLER_next(iter, id, del_cb, cb_cls);
+    iter = iter->next;
   }
   
 }
@@ -430,7 +431,8 @@ SAMPLER_samplers_grow (struct Samplers * samplers, size_t new_size)
     for ( i = 0 ; i < samplers->size - new_size ; i++)
     {
       // TODO call delCB on elem?
-      GNUNET_CONTAINER_DLL_remove(samplers->head, samplers->tail, samplers->tail);
+      sampler = samplers->tail;
+      GNUNET_CONTAINER_DLL_remove(samplers->head, samplers->tail, sampler);
     }
     GNUNET_array_grow(samplers->peer_ids, samplers->size, new_size);
   }
@@ -829,7 +831,7 @@ handle_peer_push (void *cls,
   
   /* Add the sending peer to the push_list */
   GNUNET_array_append(push_list, push_list_size, *peer);
-  //push_list_size ++;
+  push_list_size ++;
 
   return GNUNET_OK;
 }
@@ -914,7 +916,7 @@ handle_peer_pull_reply (void *cls,
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   for ( i = 0 ; i < GNUNET_ntohll(in_msg->num_peers) ; i++ ) {
     GNUNET_array_append(pull_list, pull_list_size, peers[i]);
-    //pull_list_size++;
+    pull_list_size++;
   }
 
   // TODO maybe a disconnect happens here
