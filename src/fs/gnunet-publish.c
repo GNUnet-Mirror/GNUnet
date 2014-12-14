@@ -517,6 +517,8 @@ get_file_information (struct GNUNET_FS_ShareTreeItem *item)
 
   if (GNUNET_YES == item->is_directory)
   {
+    if (NULL == item->meta)
+      item->meta = GNUNET_CONTAINER_meta_data_create ();
     GNUNET_CONTAINER_meta_data_delete (item->meta,
 				       EXTRACTOR_METATYPE_MIMETYPE,
 				       NULL, 0);
