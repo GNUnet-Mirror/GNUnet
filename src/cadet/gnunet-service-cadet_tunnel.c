@@ -3153,7 +3153,7 @@ GCT_is_path_used (const struct CadetTunnel *t, const struct CadetPeerPath *p)
   struct CadetTConnection *iter;
 
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
-    if (GCC_get_path (iter->c) == p)
+    if (path_equivalent (GCC_get_path (iter->c), p))
       return GNUNET_YES;
 
   return GNUNET_NO;
