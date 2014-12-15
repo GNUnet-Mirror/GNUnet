@@ -223,6 +223,40 @@ path_build_from_peer_ids (struct GNUNET_PeerIdentity *peers,
 
 
 /**
+ * Test if two paths are equivalent (equal or revese of each other).
+ *
+ * @param p1 First path
+ * @param p2 Second path
+ *
+ * @return GNUNET_YES if both paths are equivalent
+ *         GNUNET_NO otherwise
+ */
+int
+path_equivalent (const struct CadetPeerPath *p1,
+                 const struct CadetPeerPath *p2)
+{
+  unsigned int i;
+  unsigned int l;
+  unsigned int half;
+
+  if (p1->length != p2->length)
+    return GNUNET_NO;
+
+  l = p1->length;
+  if (0 == memcmp (p1->peers, p2->peers, sizeof (p1->peers[0]) * l))
+    return GNUNET_YES;
+
+  half = l / 2;
+  l = l - 1;
+  for (i = 0; i <= half; i++)
+    if (p1->peers[i] != p2->peers[l - i])
+      return GNUNET_NO;
+
+  return GNUNET_YES;
+}
+
+
+/**
  * Test if a path is valid (or at least not known to be invalid).
  *
  * @param path Path to test.

@@ -1536,16 +1536,14 @@ check_path (void *cls, struct CadetConnection *c)
   struct CadetConnection *new_conn = cls;
   struct CadetPeerPath *path = new_conn->path;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  checking %s, length %u\n",
-       GCC_2s (c), c->path->length);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  checking %s (%p), length %u\n",
+       GCC_2s (c), c, c->path->length);
 
   if (c != new_conn
       && c->destroy == GNUNET_NO
       && c->state != CADET_CONNECTION_BROKEN
       && c->state != CADET_CONNECTION_DESTROYED
-      && c->path->length == path->length
-      && 0 == memcmp (c->path->peers, path->peers,
-                      sizeof (path->peers[0]) * path->length))
+      && path_equivalent (path, c->path))
   {
     new_conn->destroy = GNUNET_YES;
     new_conn->path->c = c;

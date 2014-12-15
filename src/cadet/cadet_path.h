@@ -138,6 +138,19 @@ void
 path_invalidate (struct CadetPeerPath *p);
 
 /**
+ * Test if two paths are equivalent (equal or revese of each other).
+ *
+ * @param p1 First path
+ * @param p2 Second path
+ *
+ * @return GNUNET_YES if both paths are equivalent
+ *         GNUNET_NO otherwise
+ */
+int
+path_equivalent (const struct CadetPeerPath *p1,
+                 const struct CadetPeerPath *p2);
+
+/**
  * Test if a path is valid (or at least not known to be invalid).
  *
  * @param path Path to test.
