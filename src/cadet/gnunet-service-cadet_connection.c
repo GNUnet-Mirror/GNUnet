@@ -1607,7 +1607,7 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
-    c = GCC_new (cid, NULL, path_duplicate (path), own_pos);
+    c = GCC_new (cid, NULL, path, own_pos);
     if (NULL == c)
     {
       if (path->length - 1 == own_pos)
@@ -2470,14 +2470,26 @@ GCC_shutdown (void)
 }
 
 
+/**
+ * Create a connection.
+ *
+ * @param cid Connection ID (either created locally or imposed remotely).
+ * @param t Tunnel this connection belongs to (or NULL);
+ * @param path Path this connection has to use (copy is made).
+ * @param own_pos Own position in the @c path path.
+ *
+ * @return Newly created connection, NULL in case of error (own id not in path).
+ */
 struct CadetConnection *
 GCC_new (const struct GNUNET_CADET_Hash *cid,
          struct CadetTunnel *t,
-         struct CadetPeerPath *p,
+         struct CadetPeerPath *path,
          unsigned int own_pos)
 {
   struct CadetConnection *c;
+  struct CadetPeerPath *p;
 
+  p = path_duplicate (path);
   c = GNUNET_new (struct CadetConnection);
   c->id = *cid;
   GNUNET_assert (GNUNET_OK ==

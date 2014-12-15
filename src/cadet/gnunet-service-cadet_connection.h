@@ -265,15 +265,15 @@ GCC_shutdown (void);
  *
  * @param cid Connection ID (either created locally or imposed remotely).
  * @param t Tunnel this connection belongs to (or NULL);
- * @param p Path this connection has to use.
- * @param own_pos Own position in the @c p path.
+ * @param path Path this connection has to use (copy is made).
+ * @param own_pos Own position in the @c path path.
  *
  * @return Newly created connection, NULL in case of error (own id not in path).
  */
 struct CadetConnection *
 GCC_new (const struct GNUNET_CADET_Hash *cid,
          struct CadetTunnel *t,
-         struct CadetPeerPath *p,
+         struct CadetPeerPath *path,
          unsigned int own_pos);
 
 /**
