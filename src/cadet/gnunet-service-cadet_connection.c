@@ -1294,6 +1294,7 @@ connection_fwd_timeout (void *cls,
 
     t = c->t;
     c->destroy = GNUNET_YES;
+    c->state = CADET_CONNECTION_DESTROYED;
     destroyed = GNUNET_NO;
     neighbor = get_hop (c, GNUNET_NO);
 
