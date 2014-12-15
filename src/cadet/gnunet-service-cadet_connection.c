@@ -1520,6 +1520,95 @@ add_to_peer (struct CadetConnection *c, struct CadetPeer *peer)
 }
 
 
+
+/**
+ * Iterator to compare each connection's path with the path of a new connection.
+ *
+ * If the connection conincides, the c member of path is set to the connection
+ * and the destroy flag of the connection is set.
+ *
+ * @param cls Closure (new path).
+ * @param c Connection in the tunnel to check.
+ */
+static void
+check_path (void *cls, struct CadetConnection *c)
+{
+  struct CadetConnection *new_conn = cls;
+  struct CadetPeerPath *path = new_conn->path;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  checking %s, length %u\n",
+       GCC_2s (c), c->path->length);
+
+  if (c != new_conn
+      && c->destroy == GNUNET_NO
+      && c->state != CADET_CONNECTION_BROKEN
+      && c->state != CADET_CONNECTION_DESTROYED
+      && c->path->length == path->length
+      && 0 == memcmp (c->path->peers, path->peers,
+                      sizeof (path->peers[0]) * path->length))
+  {
+    new_conn->destroy = GNUNET_YES;
+    new_conn->path->c = c;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MATCH!\n");
+  }
+}
+
+/**
+ * Finds out if this path is already being used by and existing connection.
+ *
+ * Checks the tunnel towards the first peer in the path to see if it contains
+ * any connection with the same path.
+ *
+ * If the existing connection is ready, it is kept.
+ * Otherwise if the sender has a smaller ID that ours, we accept it (and
+ * the peer will eventually reject our attempt).
+ *
+ * @param path Path to check.
+ *
+ * @return GNUNET_YES if the tunnel has a connection with the same path,
+ *         GNUNET_NO otherwise.
+ */
+static int
+does_connection_exist (struct CadetConnection *conn)
+{
+  struct CadetPeer *p;
+  struct CadetTunnel *t;
+  struct CadetConnection *c;
+
+  p = GCP_get_short (conn->path->peers[0]);
+  t = GCP_get_tunnel (p);
+  if (NULL == t)
+    return GNUNET_NO;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking for duplicates\n");
+
+  GCT_iterate_connections (t, &check_path, conn);
+
+  if (GNUNET_YES == conn->destroy)
+  {
+    c = conn->path->c;
+    conn->destroy = GNUNET_NO;
+    conn->path->c = conn;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " found one\n");
+    GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
+    if (CADET_CONNECTION_READY == c->state)
+    {
+      /* The other peer confirmed this connection,
+       * they should not try to duplicate it. */
+      GNUNET_break_op (0);
+      return GNUNET_YES;
+    }
+
+    if (GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GCP_get_id (p)) > 0)
+      return GNUNET_NO;
+    else
+      return GNUNET_YES;
+  }
+  else
+    return GNUNET_NO;
+}
+
+
 /**
  * Log receipt of message on stderr (INFO level).
  *
@@ -1612,6 +1701,7 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       path_destroy (path);
       return GNUNET_OK;
     }
+
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = GCC_new (cid, NULL, path, own_pos);
@@ -1651,6 +1741,16 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GCP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_YES);
 
     add_to_peer (c, orig_peer);
+    if (GNUNET_YES == does_connection_exist (c))
+    {
+      path_destroy (path);
+      GCC_destroy (c);
+      // FIXME use explicit duplicate
+      send_broken_unknown (cid, &my_full_id, NULL, peer);
+
+      return GNUNET_OK;
+    }
+
     if (CADET_TUNNEL_NEW == GCT_get_cstate (c->t))
       GCT_change_cstate (c->t,  CADET_TUNNEL_WAITING);
 
