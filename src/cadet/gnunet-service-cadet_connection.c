@@ -1320,7 +1320,7 @@ connection_fwd_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s FWD timed out. Destroying.\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Connection %s FWD timed out. Destroying.\n",
        GCC_2s (c));
   GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
 
@@ -1360,7 +1360,7 @@ connection_bck_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s BCK timed out. Destroying.\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Connection %s BCK timed out. Destroying.\n",
        GCC_2s (c));
 
   if (GCC_is_origin (c, GNUNET_NO)) /* If local, leave. */
