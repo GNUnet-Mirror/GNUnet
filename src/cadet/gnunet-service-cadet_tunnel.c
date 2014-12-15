@@ -2623,13 +2623,13 @@ GCT_destroy_empty (struct CadetTunnel *t)
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: destroying scheduled\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: scheduling destruction\n",
        GCT_2s (t));
 
   // FIXME make delay a config option
   t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                   &delayed_destroy, t);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled destroy of %p as %llX\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled destroy of %p as %llu\n",
        t, t->destroy_task);
 }
 
@@ -2643,7 +2643,7 @@ void
 GCT_destroy_if_empty (struct CadetTunnel *t)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s destroy if empty\n", GCT_2s (t));
-  if (1 < GCT_count_channels (t))
+  if (0 < GCT_count_channels (t))
     return;
 
   GCT_destroy_empty (t);
