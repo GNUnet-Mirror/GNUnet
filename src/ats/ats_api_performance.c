@@ -481,9 +481,9 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             _("Received %s message\n"),
-             "ATS_ADDRESSLIST_RESPONSE");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Received %s message\n"),
+              "ATS_ADDRESSLIST_RESPONSE");
 
   pi = (const struct PeerInformationMessage *) msg;
   id = ntohl (pi->id);
@@ -520,20 +520,27 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   }
 
   memset (&allzeros, '\0', sizeof(allzeros));
-  if ((0 == memcmp (&allzeros, &pi->peer, sizeof(allzeros)))
-      && (0 == plugin_name_length) && (0 == plugin_address_length)
-      && (0 == ats_count))
+  if ( (0 == memcmp (&allzeros, &pi->peer, sizeof(allzeros))) &&
+       (0 == plugin_name_length) &&
+       (0 == plugin_address_length) &&
+       (0 == ats_count) )
   {
     /* Done */
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, _("Received last message for %s \n"),
-        "ATS_ADDRESSLIST_RESPONSE");
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               _("Received last message for %s \n"),
+               "ATS_ADDRESSLIST_RESPONSE");
     bandwidth_zero.value__ = htonl (0);
+    GNUNET_CONTAINER_DLL_remove (ph->addresslist_head,
+                                 ph->addresslist_tail,
+                                 alh);
     if (NULL != alh->cb)
-      alh->cb (ph->addr_info_cb_cls, NULL, GNUNET_NO, bandwidth_zero,
-          bandwidth_zero, NULL, 0);
-    GNUNET_CONTAINER_DLL_remove(ph->addresslist_head, ph->addresslist_tail,
-        alh);
-    GNUNET_free(alh);
+      alh->cb (ph->addr_info_cb_cls,
+               NULL,
+               GNUNET_NO,
+               bandwidth_zero,
+               bandwidth_zero,
+               NULL, 0);
+    GNUNET_free (alh);
     return GNUNET_OK;
   }
 
@@ -797,10 +804,8 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   struct PendingMessage *p;
   struct AddressListRequestMessage *m;
 
-  GNUNET_assert(NULL != handle);
   if (NULL == infocb)
-    return NULL ;
-
+    return NULL;
   alh = GNUNET_new (struct GNUNET_ATS_AddressListHandle);
   alh->id = handle->id;
   handle->id++;
@@ -809,19 +814,21 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   alh->ph = handle;
   alh->all_addresses = all;
   if (NULL == peer)
+  {
     alh->all_peers = GNUNET_YES;
+  }
   else
   {
     alh->all_peers = GNUNET_NO;
     alh->peer = (*peer);
   }
-
-  GNUNET_CONTAINER_DLL_insert(handle->addresslist_head,
-      handle->addresslist_tail, alh);
+  GNUNET_CONTAINER_DLL_insert (handle->addresslist_head,
+                               handle->addresslist_tail,
+                               alh);
 
   p = GNUNET_malloc (sizeof (struct PendingMessage) +
-      sizeof (struct AddressListRequestMessage));
-  p->size = sizeof(struct AddressListRequestMessage);
+                     sizeof (struct AddressListRequestMessage));
+  p->size = sizeof (struct AddressListRequestMessage);
   m = (struct AddressListRequestMessage *) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST);
   m->header.size = htons (sizeof(struct AddressListRequestMessage));
@@ -829,14 +836,9 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   m->id = htonl (alh->id);
   if (NULL != peer)
     m->peer = *peer;
-  else
-  {
-    memset (&m->peer, '\0', sizeof(struct GNUNET_PeerIdentity));
-  }
   GNUNET_CONTAINER_DLL_insert_tail(handle->pending_head,
                                    handle->pending_tail,
                                    p);
-
   do_transmit (handle);
 
   return alh;
@@ -846,7 +848,7 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
 /**
  * Cancel a pending address listing operation
  *
- * @param handle the GNUNET_ATS_AddressListHandle handle to cancel
+ * @param handle the handle of the request to cancel
  */
 void
 GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle)
@@ -860,7 +862,7 @@ GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandl
 
 
 /**
- * Convert a GNUNET_ATS_PreferenceType to a string
+ * Convert a `enum GNUNET_ATS_PreferenceType` to a string
  *
  * @param type the preference type
  * @return a string or NULL if invalid
@@ -871,7 +873,7 @@ GNUNET_ATS_print_preference_type (uint32_t type)
   char *prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceTypeString;
   if (type < GNUNET_ATS_PreferenceCount)
     return prefs[type];
-  return NULL ;
+  return NULL;
 }
 
 
@@ -988,12 +990,10 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
       count++;
       (void) va_arg (ap, double);
-
       break;
     case GNUNET_ATS_PREFERENCE_LATENCY:
       count++;
       (void) va_arg (ap, double);
-
       break;
     default:
       GNUNET_assert(0);
@@ -1035,7 +1035,9 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
     }
   }
   va_end(ap);
-  GNUNET_CONTAINER_DLL_insert_tail(ph->pending_head, ph->pending_tail, p);
+  GNUNET_CONTAINER_DLL_insert_tail (ph->pending_head,
+                                    ph->pending_tail,
+                                    p);
   do_transmit (ph);
 }
 

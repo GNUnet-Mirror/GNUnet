@@ -105,9 +105,10 @@ ats_perf_cb (void *cls,
             uint32_t ats_count)
 {
   static int counter = 0;
+
   if (NULL == address)
   {
-    phal = 0;
+    phal = NULL;
     if (2 == counter)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -117,6 +118,9 @@ ats_perf_cb (void *cls,
     }
     else
     {
+      fprintf (stderr,
+               "Expected 2 addresses, got %d\n",
+               counter);
       GNUNET_break (0);
       GNUNET_SCHEDULER_shutdown ();
     }
@@ -136,9 +140,9 @@ ats_perf_cb (void *cls,
 
 
 static int
-stat_cb(void *cls, const char *subsystem,
-        const char *name, uint64_t value,
-        int is_persistent)
+stat_cb (void *cls, const char *subsystem,
+         const char *name, uint64_t value,
+         int is_persistent)
 {
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -153,7 +157,7 @@ stat_cb(void *cls, const char *subsystem,
     if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Failed to connect to performance API\n");
+                  "Failed to connect to performance API\n");
       GNUNET_SCHEDULER_shutdown ();
       return GNUNET_SYSERR;
     }
@@ -190,7 +194,7 @@ end (void *cls,
     phal = NULL;
   }
 
-  if (perf_ats != NULL)
+  if (NULL != perf_ats)
   {
     GNUNET_ATS_performance_done (perf_ats);
     perf_ats = NULL;

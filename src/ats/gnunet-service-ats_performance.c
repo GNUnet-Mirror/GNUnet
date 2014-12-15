@@ -360,13 +360,26 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * FIXME.
+ * Send a #GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE with the
+ * given address details to the client identified in @a ai.
+ *
+ * @param ai our address information context (identifies the client)
+ * @param id the peer id this address is for
+ * @param plugin_name name of the plugin that supports this address
+ * @param plugin_addr address
+ * @param plugin_addr_len length of @a plugin_addr
+ * @param active #GNUNET_YES if this address is actively used
+ * @param atsi ats performance information
+ * @param atsi_count number of ats performance elements in @a atsi
+ * @param bandwidth_out current outbound bandwidth assigned to address
+ * @param bandwidth_in current inbound bandwidth assigned to address
  */
 static void
 transmit_req_addr (struct AddressIteration *ai,
                    const struct GNUNET_PeerIdentity *id,
                    const char *plugin_name,
-                   const void *plugin_addr, size_t plugin_addr_len,
+                   const void *plugin_addr,
+                   size_t plugin_addr_len,
                    int active,
                    const struct GNUNET_ATS_Information *atsi,
                    uint32_t atsi_count,
@@ -468,14 +481,14 @@ req_addr_peerinfo_it (void *cls,
   /* Transmit result */
   if ((GNUNET_YES == ai->all) || (GNUNET_YES == active))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending result for  %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
-                  (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
-                  GNUNET_i2s (id),
-                  plugin_name,
-                  (unsigned int) ntohl (bandwidth_out.value__),
-                  (unsigned int) ntohl (bandwidth_in.value__));
-    transmit_req_addr (cls,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending result for  %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
+                (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
+                GNUNET_i2s (id),
+                plugin_name,
+                (unsigned int) ntohl (bandwidth_out.value__),
+                (unsigned int) ntohl (bandwidth_in.value__));
+    transmit_req_addr (ai,
                        id,
                        plugin_name,
                        plugin_addr, plugin_addr_len,
