@@ -525,7 +525,6 @@ handle_loc_sign (void *cls,
   lc = GSF_local_client_lookup_ (client);
   GSF_local_client_transmit_ (lc,
                               &resp.header);
-  GNUNET_free (loc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
