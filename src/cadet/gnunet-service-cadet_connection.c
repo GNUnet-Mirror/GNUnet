@@ -855,7 +855,7 @@ send_broken (struct CadetConnection *c,
 
 /**
  * Send a notification that a connection is broken, when a connection
- * isn't even known to the local peer.
+ * isn't even known to the local peer or soon to be destroyed.
  *
  * @param connection_id Connection ID.
  * @param id1 Peer that has disconnected, probably local peer.
@@ -1333,6 +1333,8 @@ connection_fwd_timeout (void *cls,
   /* If dest, salvage queued traffic. */
   if (GCC_is_origin (c, GNUNET_NO) && 0 < c->bck_fc.queue_n)
   {
+    send_broken_unknown (&c->id, &my_full_id, NULL,
+                         GCP_get_id( get_prev_hop (c)));
     resend_messages_and_destroy (c, GNUNET_NO);
     return;
   }
@@ -1372,6 +1374,8 @@ connection_bck_timeout (void *cls,
   /* If dest, salvage queued traffic. */
   if (GCC_is_origin (c, GNUNET_YES) && 0 < c->fwd_fc.queue_n)
   {
+    send_broken_unknown (&c->id, &my_full_id, NULL,
+                         GCP_get_id( get_next_hop (c)));
     resend_messages_and_destroy (c, GNUNET_YES);
     return;
   }
@@ -1485,8 +1489,6 @@ unregister_neighbors (struct CadetConnection *c)
   peer = get_next_hop (c);
   if (GNUNET_OK != GCP_remove_connection (peer, c))
   {
-    GNUNET_assert (CADET_CONNECTION_NEW == c->state
-                   || CADET_CONNECTION_DESTROYED <= c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
   }
@@ -1494,8 +1496,6 @@ unregister_neighbors (struct CadetConnection *c)
   peer = get_prev_hop (c);
   if (GNUNET_OK != GCP_remove_connection (peer, c))
   {
-    GNUNET_assert (CADET_CONNECTION_NEW == c->state
-                   || CADET_CONNECTION_DESTROYED <= c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
   }
@@ -1589,7 +1589,8 @@ does_connection_exist (struct CadetConnection *conn)
     c = conn->path->c;
     conn->destroy = GNUNET_NO;
     conn->path->c = conn;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " found one\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " found duplicate of %s\n", GCC_2s (conn));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate: %s\n", GCC_2s (c));
     GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
     if (CADET_CONNECTION_READY == c->state)
     {
@@ -1605,7 +1606,10 @@ does_connection_exist (struct CadetConnection *conn)
       return GNUNET_YES;
   }
   else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " %s has no duplicates\n", GCC_2s (conn));
     return GNUNET_NO;
+  }
 }
 
 
