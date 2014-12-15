@@ -861,6 +861,33 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
 
 
 /**
+ * Derive the tunnel's keys using our own and the peer's ephemeral keys.
+ *
+ * @param t Tunnel for which to create the keys.
+ */
+static void
+create_keys (struct CadetTunnel *t)
+{
+  struct GNUNET_HashCode km;
+
+  derive_key_material (&km, &t->peers_ephemeral_key);
+  derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
+  derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
+  #if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
+  LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+  LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
+  LOG (GNUNET_ERROR_TYPE_INFO, "EK: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
+  LOG (GNUNET_ERROR_TYPE_INFO, "DK: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+  #endif
+}
+
+
+/**
  * Create a new Key eXchange context for the tunnel.
  *
  * If the old keys were verified, keep them for old traffic. Create a new KX
@@ -891,10 +918,12 @@ create_kx_ctx (struct CadetTunnel *t)
 
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
+    LOG (GNUNET_ERROR_TYPE_INFO, "  backing up keys\n");
     t->kx_ctx->d_key_old = t->d_key;
     t->kx_ctx->e_key_old = t->e_key;
   }
   t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
+  create_keys (t);
 }
 
 
@@ -949,32 +978,6 @@ destroy_kx_ctx (struct CadetTunnel *t)
   t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay, finish_kx, t);
 }
 
-
-/**
- * Derive the tunnel's keys using our own and the peer's ephemeral keys.
- *
- * @param t Tunnel for which to create the keys.
- */
-static void
-create_keys (struct CadetTunnel *t)
-{
-  struct GNUNET_HashCode km;
-
-  derive_key_material (&km, &t->peers_ephemeral_key);
-  derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
-  derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
-#if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
-  LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
-  LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
-  LOG (GNUNET_ERROR_TYPE_INFO, "EK: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
-  LOG (GNUNET_ERROR_TYPE_INFO, "DK: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
-#endif
-}
 
 
 /**
@@ -1420,27 +1423,19 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
-  create_kx_ctx (t);
+  GNUNET_assert (NULL != t->kx_ctx);
+  struct GNUNET_TIME_Relative duration;
 
-  if (NULL == t->kx_ctx)
+  duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " kx started %s ago\n",
+        GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+
+  // FIXME make duration of old keys configurable
+  if (duration.rel_value_us >= GNUNET_TIME_UNIT_MINUTES.rel_value_us)
   {
-    create_keys (t);
-  }
-  else
-  {
-    struct GNUNET_TIME_Relative duration;
-
-    duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " kx started %s ago\n",
-         GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
-
-    // FIXME make duration of old keys configurable
-    if (duration.rel_value_us >= GNUNET_TIME_UNIT_MINUTES.rel_value_us)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " deleting old keys\n");
-      memset (&t->kx_ctx->d_key_old, 0, sizeof (t->kx_ctx->d_key_old));
-      memset (&t->kx_ctx->e_key_old, 0, sizeof (t->kx_ctx->e_key_old));
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " deleting old keys\n");
+    memset (&t->kx_ctx->d_key_old, 0, sizeof (t->kx_ctx->d_key_old));
+    memset (&t->kx_ctx->e_key_old, 0, sizeof (t->kx_ctx->e_key_old));
   }
 
   send_ephemeral (t);
@@ -1509,9 +1504,7 @@ rekey_iterator (void *cls,
   r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
-  if (NULL != t->kx_ctx)
-    t->kx_ctx->challenge =
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, INT32_MAX);
+  create_kx_ctx (t);
 
   return GNUNET_YES;
 }
@@ -1872,8 +1865,9 @@ handle_ephemeral (struct CadetTunnel *t,
          GNUNET_h2s ((struct GNUNET_HashCode *) &msg->ephemeral_key));
     #endif
     t->peers_ephemeral_key = msg->ephemeral_key;
+
     create_kx_ctx (t);
-    create_keys (t);
+
     if (CADET_TUNNEL_KEY_OK == t->estate)
     {
       GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
@@ -2214,6 +2208,7 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered rekey\n");
       if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
         GNUNET_SCHEDULER_cancel (t->rekey_task);
+      create_kx_ctx (t);
       rekey_tunnel (t, NULL);
     }
   }
