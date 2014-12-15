@@ -53,22 +53,6 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
 
 
 /**
- * FIXME.
- */
-void
-GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
-                               const char *plugin_name,
-                               const void *plugin_addr,
-                               size_t plugin_addr_len,
-                               int active,
-                               struct GNUNET_ATS_Information *ats,
-                               uint32_t ats_count,
-                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
-
-
-
-/**
  * Transmit the given performance information to all performance
  * clients.
  *

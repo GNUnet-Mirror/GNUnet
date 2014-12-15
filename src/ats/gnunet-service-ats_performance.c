@@ -60,23 +60,6 @@ struct PerformanceClient
 
 
 /**
- * We keep clients that are interested in performance in a linked list.
- */
-struct AddressIteration
-{
-  /**
-   * Actual handle to the client.
-   */
-  struct PerformanceClient *pc;
-
-  int all;
-
-  uint32_t id;
-
-  unsigned int msg_type;
-};
-
-/**
  * Address handle
  */
 static struct GAS_Addresses_Handle *GSA_addresses;
@@ -294,37 +277,15 @@ peerinfo_it (void *cls,
               plugin_name,
               (unsigned int) ntohl (bandwidth_out.value__),
               (unsigned int) ntohl (bandwidth_in.value__));
-  GAS_performance_notify_client(pc,
-                                id,
-                                plugin_name,
-                                plugin_addr,
-                                plugin_addr_len,
-                                active,
-                                atsi, atsi_count,
-                                bandwidth_out, bandwidth_in);
-}
-
-
-/**
- * Iterator for #GAS_performance_add_client()
- *
- * @param cls the client requesting information
- * @param id result
- */
-static void
-peer_it (void *cls,
-         const struct GNUNET_PeerIdentity *id)
-{
-  struct PerformanceClient *pc = cls;
-
-  if (NULL != id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Callback for peer `%s'\n",
-                GNUNET_i2s (id));
-    GAS_addresses_get_peer_info (GSA_addresses, id,
-                                 &peerinfo_it, pc);
-  }
+  GAS_performance_notify_client (pc,
+                                 id,
+                                 plugin_name,
+                                 plugin_addr,
+                                 plugin_addr_len,
+                                 active,
+                                 atsi, atsi_count,
+                                 bandwidth_out,
+                                 bandwidth_in);
 }
 
 
@@ -339,8 +300,8 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
                             enum StartFlag flag)
 {
   struct PerformanceClient *pc;
-  GNUNET_break (NULL == find_client (client));
 
+  GNUNET_break (NULL == find_client (client));
   pc = GNUNET_new (struct PerformanceClient);
   pc->client = client;
   pc->flag = flag;
@@ -349,14 +310,40 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
               "Adding performance client %s PIC\n",
               (flag == START_FLAG_PERFORMANCE_WITH_PIC) ? "with" : "without");
 
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, pc);
-
-  /* Send information about clients */
-  GAS_addresses_iterate_peers (GSA_addresses,
-                               &peer_it,
+  GNUNET_SERVER_notification_context_add (nc,
+                                          client);
+  GNUNET_CONTAINER_DLL_insert (pc_head,
+                               pc_tail,
+                               pc);
+  GAS_addresses_get_peer_info (GSA_addresses,
+                               NULL,
+                               &peerinfo_it,
                                pc);
 }
+
+
+/**
+ * Information we need for the callbacks to return a list of addresses
+ * back to the client.
+ */
+struct AddressIteration
+{
+  /**
+   * Actual handle to the client.
+   */
+  struct PerformanceClient *pc;
+
+  /**
+   * Are we sending all addresses, or only those that are active?
+   */
+  int all;
+
+  /**
+   * Which ID should be included in the response?
+   */
+  uint32_t id;
+
+};
 
 
 /**
@@ -427,13 +414,16 @@ transmit_req_addr (struct AddressIteration *ai,
     memcpy (addrp, plugin_addr, plugin_addr_len);
   if (NULL != plugin_name)
     strcpy (&addrp[plugin_addr_len], plugin_name);
-  GNUNET_SERVER_notification_context_unicast (nc, ai->pc->client, &msg->header,
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              ai->pc->client,
+                                              &msg->header,
                                               GNUNET_NO);
 }
 
 
 /**
- * Iterator for #GAS_addresses_get_peer_info()
+ * Iterator for #GAS_addresses_get_peer_info(), called with peer-specific
+ * information to be passed back to the client.
  *
  * @param cls closure with our `struct AddressIteration *`
  * @param id the peer id
@@ -450,7 +440,8 @@ static void
 req_addr_peerinfo_it (void *cls,
                       const struct GNUNET_PeerIdentity *id,
                       const char *plugin_name,
-                      const void *plugin_addr, size_t plugin_addr_len,
+                      const void *plugin_addr,
+                      size_t plugin_addr_len,
                       int active,
                       const struct GNUNET_ATS_Information *atsi,
                       uint32_t atsi_count,
@@ -459,30 +450,29 @@ req_addr_peerinfo_it (void *cls,
 {
   struct AddressIteration *ai = cls;
 
-  GNUNET_assert (NULL != ai);
-  GNUNET_assert (NULL != ai->pc);
-  if (NULL == find_client (ai->pc->client))
-    return; /* Client disconnected */
-
-  if ((NULL == id) && (NULL == plugin_name) && (NULL == plugin_addr))
+  if ( (NULL == id) &&
+       (NULL == plugin_name) &&
+       (NULL == plugin_addr) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Address iteration done\n");
+                "Address iteration done for one peer\n");
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Callback for  %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
+              "Callback for %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
               (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
               GNUNET_i2s (id),
               plugin_name,
               (unsigned int) ntohl (bandwidth_out.value__),
               (unsigned int) ntohl (bandwidth_in.value__));
 
-  /* Transmit result */
-  if ((GNUNET_YES == ai->all) || (GNUNET_YES == active))
+  /* Transmit result (either if address is active, or if
+     client wanted all addresses) */
+  if ( (GNUNET_YES == ai->all) ||
+       (GNUNET_YES == active))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending result for  %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
+                "Sending result for %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
                 (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
                 GNUNET_i2s (id),
                 plugin_name,
@@ -495,34 +485,9 @@ req_addr_peerinfo_it (void *cls,
                        active,
                        atsi,
                        atsi_count,
-                       bandwidth_out, bandwidth_in);
+                       bandwidth_out,
+                       bandwidth_in);
   }
-}
-
-
-/**
- * Iterator for GAS_handle_request_address_list
- *
- * @param cls the client requesting information, a `struct AddressIteration *`
- * @param id result
- */
-static void
-req_addr_peer_it (void *cls,
-                  const struct GNUNET_PeerIdentity *id)
-{
-  struct AddressIteration *ai = cls;
-
-  if (NULL == id)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer iteration done\n");
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Callback for peer `%s'\n",
-              GNUNET_i2s (id));
-  GAS_addresses_get_peer_info (GSA_addresses, id,
-                               &req_addr_peerinfo_it, ai);
 }
 
 
@@ -540,7 +505,7 @@ GAS_handle_request_address_list (void *cls,
 {
   struct PerformanceClient *pc;
   struct AddressIteration ai;
-  struct AddressListRequestMessage * alrm = (struct AddressListRequestMessage *) message;
+  const struct AddressListRequestMessage *alrm;
   struct GNUNET_PeerIdentity allzeros;
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_zero;
 
@@ -552,7 +517,7 @@ GAS_handle_request_address_list (void *cls,
     GNUNET_break (0);
     return;
   }
-
+  alrm = (const struct AddressListRequestMessage *) message;
   ai.all = ntohl (alrm->all);
   ai.id = ntohl (alrm->id);
   ai.pc = pc;
@@ -564,74 +529,27 @@ GAS_handle_request_address_list (void *cls,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
     /* Return addresses for all peers */
-    GAS_addresses_iterate_peers (GSA_addresses, &req_addr_peer_it, &ai);
-    transmit_req_addr (&ai, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0,
-                       bandwidth_zero, bandwidth_zero);
+    GAS_addresses_get_peer_info (GSA_addresses,
+                                 NULL,
+                                 &req_addr_peerinfo_it,
+                                 &ai);
   }
   else
   {
     /* Return addresses for a specific peer */
     GAS_addresses_get_peer_info (GSA_addresses,
                                  &alrm->peer,
-                                 &req_addr_peerinfo_it, &ai);
-    transmit_req_addr (&ai, NULL, NULL, NULL, 0, GNUNET_NO, NULL, 0,
-                       bandwidth_zero, bandwidth_zero);
+                                 &req_addr_peerinfo_it,
+                                 &ai);
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * FIXME.
- */
-void
-GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
-                               const char *plugin_name,
-                               const void *plugin_addr, size_t plugin_addr_len,
-                               int active,
-                               struct GNUNET_ATS_Information *ats,
-                               uint32_t ats_count,
-                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
-{
-  /* Notify here */
-  GAS_performance_notify_all_clients (peer,
-                                      plugin_name,
-                                      plugin_addr,
-                                      plugin_addr_len,
-                                      active,
-                                      ats, ats_count,
-                                      bandwidth_out,
-                                      bandwidth_in);
-
-#if 0
-  struct PerformanceClient *cur;
-  struct PerformanceMonitorClient *curm;
-  struct MonitorResponseMessage *mrm;
-  size_t msglen;
-
-  msglen = sizeof (struct MonitorResponseMessage) +
-  ats_count * sizeof (struct GNUNET_ATS_Information);
-  mrm = GNUNET_malloc (msglen);
-
-  mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
-  mrm->header.size = htons (msglen);
-  mrm->ats_count = htonl (ats_count);
-  mrm->peer = *peer;
-  memcpy (&mrm[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
-
-  for (cur = pc_head; NULL != cur; cur = cur->next)
-  for (curm = cur->pm_head; NULL != curm; curm = curm->next)
-  {
-    /* Notify client about update */
-    mrm->id = htonl (curm->id);
-    GNUNET_SERVER_notification_context_unicast (nc,
-        cur->client,
-        (struct GNUNET_MessageHeader *) mrm,
-        GNUNET_YES);
-  }
-  GNUNET_free (mrm);
-#endif
+  transmit_req_addr (&ai,
+                     NULL, NULL, NULL,
+                     0, GNUNET_NO,
+                     NULL, 0,
+                     bandwidth_zero,
+                     bandwidth_zero);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 

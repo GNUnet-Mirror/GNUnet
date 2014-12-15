@@ -642,30 +642,6 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
 
 
 /**
- * Iterator for #GAS_addresses_iterate_peers()
- *
- * @param p_it_cls closure
- * @param id the peer id
- */
-typedef void
-(*GNUNET_ATS_Peer_Iterator) (void *p_it_cls,
-                             const struct GNUNET_PeerIdentity *id);
-
-
-/**
- * Return all peers currently known to ATS
- *
- * @param handle the address handle to use
- * @param p_it the iterator to call for every peer
- * @param p_it_cls the closure for @a p_it
- */
-void
-GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
-                             GNUNET_ATS_Peer_Iterator p_it,
-                             void *p_it_cls);
-
-
-/**
  * Iterator for #GAS_addresses_get_peer_info()
  *
  * @param p_it_cls closure closure

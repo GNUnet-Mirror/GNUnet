@@ -202,15 +202,32 @@ struct PeerInformationMessage
 };
 
 
+/**
+ * Client to service: please give us an overview of the addresses.
+ */
 struct AddressListRequestMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_REQUEST
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * ID used to match replies to this request.
+   */
   uint32_t id GNUNET_PACKED;
 
+  /**
+   * Which peer do we care about? All zeros for all.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * #GNUNET_YES to get information about all addresses,
+   * #GNUNET_NO to only return addresses that are in use.
+   */
   int32_t all GNUNET_PACKED;
 
-  struct GNUNET_PeerIdentity peer;
 };
 
 

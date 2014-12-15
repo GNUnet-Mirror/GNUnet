@@ -1616,16 +1616,16 @@ find_preference_client (struct GAS_Addresses_Handle *handle, void *client)
   return NULL;
 }
 
+
 /**
  * A performance client disconnected
  *
  * @param handle address handle
  * @param client the client
  */
-
 void
 GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
-    void *client)
+                                            void *client)
 {
   struct GAS_Addresses_Preference_Clients * pc;
   if (NULL != (pc = find_preference_client (handle, client)))
@@ -1639,6 +1639,7 @@ GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
   }
   GAS_normalization_preference_client_disconnect (client);
 }
+
 
 /**
  * Change the preference for a peer
@@ -1679,7 +1680,10 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
     GNUNET_CONTAINER_DLL_insert (handle->preference_clients_head,
         handle->preference_clients_tail, pc);
     handle->pref_clients ++;
-    GNUNET_STATISTICS_set (handle->stat, "# active performance clients", handle->pref_clients, GNUNET_NO);
+    GNUNET_STATISTICS_set (handle->stat,
+                           "# active performance clients",
+                           handle->pref_clients,
+                           GNUNET_NO);
   }
 
   handle->env.sf.s_bulk_start (handle->solver);
@@ -1687,6 +1691,7 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
   GAS_normalization_normalize_preference (client, peer, kind, score_abs);
   handle->env.sf.s_bulk_stop (handle->solver);
 }
+
 
 /**
  * Change the preference for a peer
@@ -1700,9 +1705,11 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
-    void *application, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope,
-    enum GNUNET_ATS_PreferenceKind kind, float score_abs)
+                                   void *application,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   const struct GNUNET_TIME_Relative scope,
+                                   enum GNUNET_ATS_PreferenceKind kind,
+                                   float score_abs)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Received `%s' for peer `%s' for client %p\n", "PREFERENCE FEEDBACK",
@@ -1724,6 +1731,7 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
   handle->env.sf.s_feedback (handle->solver, application, peer, scope, kind,
       score_abs);
 }
+
 
 /**
  * Load quotas for networks from configuration
@@ -1850,6 +1858,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return GNUNET_ATS_NetworkTypeCount;
 }
 
+
 /**
  * Callback for solver to notify about assignment changes
  *
@@ -1945,7 +1954,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
  */
 struct GAS_Addresses_Handle *
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats)
+                    const struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GAS_Addresses_Handle *ah;
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
@@ -1964,11 +1973,11 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert(NULL != ah->addresses);
 
   /* Figure out configured solution method */
-  if (GNUNET_SYSERR
-      == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
+  if (GNUNET_SYSERR ==
+      GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-        "No resource assignment method configured, using proportional approach\n");
+               "No resource assignment method configured, using proportional approach\n");
     ah->ats_mode = MODE_PROPORTIONAL;
   }
   else
@@ -1982,8 +1991,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       ah->ats_mode = MODE_MLP;
 #if !HAVE_LIBGLPK
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-          "Assignment method `%s' configured, but GLPK is not available, please install \n",
-          mode_str);
+                 "Assignment method `%s' configured, but GLPK is not available, please install \n",
+                 mode_str);
       ah->ats_mode = MODE_PROPORTIONAL;
 #endif
     }
@@ -1992,8 +2001,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     else
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-          "Invalid resource assignment method `%s' configured, using proportional approach\n",
-          mode_str);
+                 "Invalid resource assignment method `%s' configured, using proportional approach\n",
+                 mode_str);
       ah->ats_mode = MODE_PROPORTIONAL;
     }
     GNUNET_free(mode_str);
@@ -2035,11 +2044,18 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
       plugin_short = NULL;
       break;
   }
-  GNUNET_asprintf (&ah->plugin, "libgnunet_plugin_ats_%s", plugin_short);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s '`%s'\n"), plugin_short, ah->plugin);
-  if  (NULL == (ah->solver = GNUNET_PLUGIN_load (ah->plugin, &ah->env)))
+  GNUNET_asprintf (&ah->plugin,
+                   "libgnunet_plugin_ats_%s",
+                   plugin_short);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             _("Initializing solver `%s '`%s'\n"),
+             plugin_short,
+             ah->plugin);
+  if (NULL == (ah->solver = GNUNET_PLUGIN_load (ah->plugin, &ah->env)))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver `%s'!\n"), ah->plugin);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to initialize solver `%s'!\n"),
+                ah->plugin);
     return NULL;
   }
 
@@ -2058,11 +2074,12 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
   GAS_normalization_start (&normalized_preference_changed_cb, ah,
-      &normalized_property_changed_cb, ah);
+                           &normalized_property_changed_cb, ah);
 
   if (NULL == ah->solver)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to initialize solver!\n"));
     GNUNET_free(ah);
     return NULL ;
   }
@@ -2074,6 +2091,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   return ah;
 }
+
 
 /**
  * Destroy all addresses iterator
@@ -2151,21 +2169,27 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   handle->addresses = NULL;
   while (NULL != (cur = handle->pending_requests_head))
   {
-    GNUNET_CONTAINER_DLL_remove(handle->pending_requests_head, handle->pending_requests_tail, cur);
+    GNUNET_CONTAINER_DLL_remove (handle->pending_requests_head,
+                                 handle->pending_requests_tail,
+                                 cur);
     GNUNET_free(cur);
   }
 
   while (NULL != (pcur = handle->preference_clients_head))
   {
     GNUNET_CONTAINER_DLL_remove (handle->preference_clients_head,
-        handle->preference_clients_tail, pcur);
+                                 handle->preference_clients_tail,
+                                 pcur);
     GNUNET_assert (handle->pref_clients > 0);
     handle->pref_clients --;
-    GNUNET_STATISTICS_set (handle->stat, "# active performance clients", handle->pref_clients, GNUNET_NO);
+    GNUNET_STATISTICS_set (handle->stat,
+                           "# active performance clients",
+                           handle->pref_clients,
+                           GNUNET_NO);
     GNUNET_free (pcur);
   }
-
-  GNUNET_PLUGIN_unload (handle->plugin, handle->solver);
+  GNUNET_PLUGIN_unload (handle->plugin,
+                        handle->solver);
   GNUNET_free (handle->plugin);
   GNUNET_free(handle);
   /* Stop configured solution method */
@@ -2173,76 +2197,19 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 }
 
 
-struct PeerIteratorContext
-{
-  GNUNET_ATS_Peer_Iterator it;
-  void *it_cls;
-  struct GNUNET_CONTAINER_MultiPeerMap *peers_returned;
-};
-
-
 /**
- * Iterator to iterate over all peers
- *
- * @param cls a PeerIteratorContext
- * @param key the peer id
- * @param value the ATS_address
- * @return #GNUNET_OK to continue
+ * Closure for #peerinfo_it().
  */
-static int
-peer_it (void *cls,
-	 const struct GNUNET_PeerIdentity *key,
-	 void *value)
-{
-  struct PeerIteratorContext *ip_ctx = cls;
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multipeermap_contains (ip_ctx->peers_returned, key))
-  {
-    GNUNET_CONTAINER_multipeermap_put (ip_ctx->peers_returned, key, NULL,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-    ip_ctx->it (ip_ctx->it_cls, key);
-  }
-
-  return GNUNET_OK;
-}
-
-/**
- * Return information all peers currently known to ATS
- *
- * @param handle the address handle to use
- * @param p_it the iterator to call for every peer
- * @param p_it_cls the closure for the iterator
- */
-void
-GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
-    GNUNET_ATS_Peer_Iterator p_it, void *p_it_cls)
-{
-  struct PeerIteratorContext ip_ctx;
-  unsigned int size;
-
-  if (NULL == p_it)
-    return;
-  GNUNET_assert(NULL != handle->addresses);
-
-  size = GNUNET_CONTAINER_multipeermap_size (handle->addresses);
-  if (0 != size)
-  {
-    ip_ctx.it = p_it;
-    ip_ctx.it_cls = p_it_cls;
-    ip_ctx.peers_returned = GNUNET_CONTAINER_multipeermap_create (size,
-								  GNUNET_NO);
-    GNUNET_CONTAINER_multipeermap_iterate (handle->addresses,
-					   &peer_it,
-					   &ip_ctx);
-    GNUNET_CONTAINER_multipeermap_destroy (ip_ctx.peers_returned);
-  }
-  p_it (p_it_cls, NULL );
-}
-
 struct PeerInfoIteratorContext
 {
+  /**
+   * Function to call for each address.
+   */
   GNUNET_ATS_PeerInfo_Iterator it;
+
+  /**
+   * Closure for @e it.
+   */
   void *it_cls;
 };
 
@@ -2263,13 +2230,15 @@ peerinfo_it (void *cls,
   struct PeerInfoIteratorContext *pi_ctx = cls;
   struct ATS_Address *addr = value;
 
-  if (NULL != pi_ctx->it)
-  {
-    pi_ctx->it (pi_ctx->it_cls, &addr->peer, addr->plugin, addr->addr,
-        addr->addr_len, addr->active, addr->atsi, addr->atsi_count,
-        GNUNET_BANDWIDTH_value_init (addr->assigned_bw_out),
-        GNUNET_BANDWIDTH_value_init (addr->assigned_bw_in));
-  }
+  pi_ctx->it (pi_ctx->it_cls,
+              &addr->peer,
+              addr->plugin,
+              addr->addr,
+              addr->addr_len,
+              addr->active,
+              addr->atsi, addr->atsi_count,
+              GNUNET_BANDWIDTH_value_init (addr->assigned_bw_out),
+              GNUNET_BANDWIDTH_value_init (addr->assigned_bw_in));
   return GNUNET_YES;
 }
 
@@ -2278,36 +2247,40 @@ peerinfo_it (void *cls,
  * Return information all peers currently known to ATS
  *
  * @param handle the address handle to use
- * @param peer the respective peer
+ * @param peer the respective peer, NULL for 'all' peers
  * @param pi_it the iterator to call for every peer
- * @param pi_it_cls the closure for the iterator
+ * @param pi_it_cls the closure for @a pi_it
  */
 void
 GAS_addresses_get_peer_info (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it,
-    void *pi_it_cls)
+                             const struct GNUNET_PeerIdentity *peer,
+                             GNUNET_ATS_PeerInfo_Iterator pi_it,
+                             void *pi_it_cls)
 {
   struct PeerInfoIteratorContext pi_ctx;
 
-  GNUNET_assert(NULL != peer);
-  GNUNET_assert(NULL != handle->addresses);
   if (NULL == pi_it)
-    return; /* does not make sense without callback */
-
+  {
+    /* does not make sense without callback */
+    GNUNET_break (0);
+    return;
+  }
   pi_ctx.it = pi_it;
   pi_ctx.it_cls = pi_it_cls;
-  GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
-					      peer,
-					      &peerinfo_it, &pi_ctx);
-
-  if (NULL != pi_it)
-    pi_it (pi_it_cls,
-           NULL, NULL, NULL, 0,
-           GNUNET_NO,
-           NULL, 0,
-           zero_bw,
-           zero_bw);
-
+  if (NULL == peer)
+    GNUNET_CONTAINER_multipeermap_iterate (handle->addresses,
+                                           &peerinfo_it,
+                                           &pi_ctx);
+  else
+    GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
+                                                peer,
+                                                &peerinfo_it, &pi_ctx);
+  pi_it (pi_it_cls,
+         NULL, NULL, NULL, 0,
+         GNUNET_NO,
+         NULL, 0,
+         zero_bw,
+         zero_bw);
 }
 
 /* end of gnunet-service-ats_addresses.c */
