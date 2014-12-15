@@ -1505,6 +1505,7 @@ rekey_iterator (void *cls,
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
   create_kx_ctx (t);
+  GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
 
   return GNUNET_YES;
 }
