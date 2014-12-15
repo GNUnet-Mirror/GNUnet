@@ -3084,6 +3084,7 @@ GCT_send_connection_acks (struct CadetTunnel *t)
   if (0 != to_allow)
   {
     GNUNET_break (0);
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     LOG (GNUNET_ERROR_TYPE_WARNING, "  reminding to_allow: %u\n", to_allow);
   }
 }

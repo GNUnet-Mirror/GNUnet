@@ -1414,6 +1414,8 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
     if (GNUNET_SCHEDULER_NO_TASK != *ti)
       GNUNET_SCHEDULER_cancel (*ti);
     delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  timing out in %s\n",
+         GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_NO));
     f = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
     *ti = GNUNET_SCHEDULER_add_delayed (delay, f, c);
   }
@@ -2524,7 +2526,7 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
     GCC_destroy (c);
     return NULL;
   }
-
+  LOG (GNUNET_ERROR_TYPE_INFO, "New connection %s\n", GCC_2s (c));
   return c;
 }
 
