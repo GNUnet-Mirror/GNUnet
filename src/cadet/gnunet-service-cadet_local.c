@@ -1375,6 +1375,6 @@ GML_2s (const struct CadetClient *c)
 {
   static char buf[32];
 
-  sprintf (buf, "%u", c->id);
+  SPRINTF (buf, "%u", c->id);
   return buf;
 }

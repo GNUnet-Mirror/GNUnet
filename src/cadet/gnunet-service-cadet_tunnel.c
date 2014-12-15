@@ -354,7 +354,7 @@ cstate2s (enum CadetTunnelCState cs)
     case CADET_TUNNEL_SHUTDOWN:
       return "CADET_TUNNEL_SHUTDOWN";
     default:
-      sprintf (buf, "%u (UNKNOWN STATE)", cs);
+      SPRINTF (buf, "%u (UNKNOWN STATE)", cs);
       return buf;
   }
   return "";
@@ -386,7 +386,7 @@ estate2s (enum CadetTunnelEState es)
     case CADET_TUNNEL_KEY_REKEY:
       return "CADET_TUNNEL_KEY_REKEY";
     default:
-      sprintf (buf, "%u (UNKNOWN STATE)", es);
+      SPRINTF (buf, "%u (UNKNOWN STATE)", es);
       return buf;
   }
   return "";

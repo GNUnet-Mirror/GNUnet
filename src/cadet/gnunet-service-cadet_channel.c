@@ -2439,7 +2439,7 @@ GCCH_2s (const struct CadetChannel *ch)
   if (NULL == ch)
     return "(NULL Channel)";
 
-  sprintf (buf, "%s:%u gid:%X (%X / %X)",
+  SPRINTF (buf, "%s:%u gid:%X (%X / %X)",
            GCT_2s (ch->t), ch->port, ch->gid, ch->lid_root, ch->lid_dest);
 
   return buf;

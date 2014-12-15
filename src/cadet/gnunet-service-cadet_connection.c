@@ -3212,7 +3212,7 @@ GCC_2s (const struct CadetConnection *c)
   {
     static char buf[128];
 
-    sprintf (buf, "%s (->%s)",
+    SPRINTF (buf, "%s (->%s)",
              GNUNET_h2s (GC_h2hc (GCC_get_id (c))), GCT_2s (c->t));
     return buf;
   }
