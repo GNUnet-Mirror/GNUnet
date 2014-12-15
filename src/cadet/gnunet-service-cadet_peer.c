@@ -966,23 +966,23 @@ search_handler (void *cls, const struct CadetPeerPath *path)
  * @param queue Queue element for the message.
  * @param buf Core buffer to fill.
  * @param size Size remaining in @c buf.
+ * @param[out] pid In case its an encrypted payload, set payload.
  *
  * @return Bytes written to @c buf.
  */
 static size_t
-fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size)
+fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
 {
   struct CadetConnection *c = queue->c;
-  uint32_t pid;
   size_t msg_size;
 
   switch (queue->type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      pid = GCC_get_pid (queue->c, queue->fwd);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", pid);
+      *pid = GCC_get_pid (queue->c, queue->fwd);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", *pid);
       msg_size = send_core_data_raw (queue->cls, size, buf);
-      ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (pid);
+      ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (*pid);
       break;
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
@@ -1095,7 +1095,7 @@ queue_send (void *cls, size_t size, void *buf)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  size %u ok (%u/%u)\n",
          queue->size, total_size, size);
 
-    msg_size = fill_buf (queue, (void *) dst, size);
+    msg_size = fill_buf (queue, (void *) dst, size, &pid);
 
     if (0 < drop_percent &&
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)

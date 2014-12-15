@@ -582,8 +582,8 @@ conn_message_sent (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s\n",
-       sent ? "" : "not ", GC_f2s (fwd), GC_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s pid %u\n",
+       sent ? "" : "not ", GC_f2s (fwd), GC_m2s (type), pid);
   if (NULL != q)
   {
     forced = q->forced;
@@ -2018,7 +2018,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == GC_is_pid_bigger (pid, fc->last_pid_recv))
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
                 " PID %u not expected (%u+), dropping!\n",
                 pid, fc->last_pid_recv + 1);
     return GNUNET_OK;
