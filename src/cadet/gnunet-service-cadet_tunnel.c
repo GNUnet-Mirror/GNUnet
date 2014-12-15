@@ -1869,8 +1869,6 @@ handle_ephemeral (struct CadetTunnel *t,
     return;
   }
 
-  create_kx_ctx (t);
-
   /**
    * If the key is different from what we know, derive the new E/D keys.
    * Else destroy the rekey ctx (duplicate EPHM after successful KX).
@@ -1879,24 +1877,21 @@ handle_ephemeral (struct CadetTunnel *t,
                    sizeof (msg->ephemeral_key)))
   {
     t->peers_ephemeral_key = msg->ephemeral_key;
+    create_kx_ctx (t);
     create_keys (t);
     if (CADET_TUNNEL_KEY_OK == t->estate)
     {
-      t->estate = CADET_TUNNEL_KEY_REKEY;
+      GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
     }
     if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
       GNUNET_SCHEDULER_cancel (t->rekey_task);
     t->rekey_task = GNUNET_SCHEDULER_add_now (rekey_tunnel, t);
   }
-  else if (CADET_TUNNEL_KEY_OK == t->estate)
-  {
-    destroy_kx_ctx (t);
-  }
   if (CADET_TUNNEL_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending ping\n");
     send_ping (t);
-    t->estate = CADET_TUNNEL_KEY_PING;
+    GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
   }
 }
 
