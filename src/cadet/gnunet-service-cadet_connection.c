@@ -1258,6 +1258,43 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Resend all queued messages for a connection on other connections of the
+ * same tunnel, if possible. The connection WILL BE DESTROYED by this function.
+ *
+ * @param c Connection whose messages to resend.
+ * @param fwd Resend fwd messages?
+ */
+static void
+resend_messages_and_destroy (struct CadetConnection *c, int fwd)
+{
+  struct GNUNET_MessageHeader *out_msg;
+  struct CadetTunnel *t = c->t;
+  struct CadetPeer *neighbor;
+  int destroyed;
+
+  c->state = CADET_CONNECTION_DESTROYED;
+  c->destroy = GNUNET_YES;
+
+  destroyed = GNUNET_NO;
+  neighbor = get_hop (c, fwd);
+
+  while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
+    GCT_resend_message (out_msg, t);
+
+  /* All pending messages should have been popped,
+   * and the connection destroyed by the continuation.
+   */
+  if (GNUNET_YES != destroyed)
+  {
+    GNUNET_break (0);
+    GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
+    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    GCC_destroy (c);
+  }
+}
+
+
+/**
  * Timeout function due to lack of keepalive/traffic from the owner.
  * Destroys connection if called.
  *
@@ -1287,31 +1324,7 @@ connection_fwd_timeout (void *cls,
   /* If dest, salvage queued traffic. */
   if (GCC_is_origin (c, GNUNET_NO) && 0 < c->bck_fc.queue_n)
   {
-    struct GNUNET_MessageHeader *out_msg;
-    struct CadetPeer *neighbor;
-    struct CadetTunnel *t;
-    int destroyed;
-
-    t = c->t;
-    c->destroy = GNUNET_YES;
-    c->state = CADET_CONNECTION_DESTROYED;
-    destroyed = GNUNET_NO;
-    neighbor = get_hop (c, GNUNET_NO);
-
-    /* GCP_connection_pop could destroy the connection! */
-    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
-    {
-      GCT_resend_message (out_msg, t);
-    }
-    /* All pending messages should have been popped,
-     * and the connection destroyed by the continuation.
-     */
-    if (GNUNET_YES != destroyed)
-    {
-      GNUNET_break (0);
-      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-      GCC_destroy (c);
-    }
+    resend_messages_and_destroy (c, GNUNET_NO);
     return;
   }
 
@@ -1350,30 +1363,7 @@ connection_bck_timeout (void *cls,
   /* If dest, salvage queued traffic. */
   if (GCC_is_origin (c, GNUNET_YES) && 0 < c->fwd_fc.queue_n)
   {
-    struct GNUNET_MessageHeader *out_msg;
-    struct CadetPeer *neighbor;
-    struct CadetTunnel *t;
-    int destroyed;
-
-    t = c->t;
-    c->destroy = GNUNET_YES;
-    destroyed = GNUNET_NO;
-    neighbor = get_hop (c, GNUNET_YES);
-
-    /* GCP_connection_pop could destroy the connection! */
-    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
-    {
-      GCT_resend_message (out_msg, t);
-    }
-    /* All pending messages should have been popped,
-     * and the connection destroyed by the continuation.
-     */
-    if (GNUNET_YES != destroyed)
-    {
-      GNUNET_break (0);
-      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-      GCC_destroy (c);
-    }
+    resend_messages_and_destroy (c, GNUNET_YES);
     return;
   }
 
@@ -1838,8 +1828,6 @@ GCC_handle_broken (void* cls,
   c->destroy = GNUNET_YES;
   if (GCC_is_terminal (c, fwd))
   {
-    struct GNUNET_MessageHeader *out_msg;
-    struct CadetPeer *neighbor;
     struct CadetPeer *endpoint;
 
     if (NULL == t)
@@ -1849,7 +1837,6 @@ GCC_handle_broken (void* cls,
       GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
       return GNUNET_OK;
     }
-    neighbor = get_hop (c, !fwd);
     endpoint = GCP_get_short (c->path->peers[c->path->length - 1]);
     path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
@@ -1860,32 +1847,9 @@ GCC_handle_broken (void* cls,
 
     pending = c->pending_messages;
     if (0 < pending)
-    {
-      int destroyed;
-
-      destroyed = GNUNET_NO;
-
-      /* GCP_connection_pop could destroy the connection! */
-      while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
-      {
-        GCT_resend_message (out_msg, t);
-      }
-
-      /* All pending messages should have been popped,
-      * and the connection destroyed by the continuation,
-      * except if the queue was empty. */
-      if (GNUNET_YES != destroyed)
-      {
-        GNUNET_break (0);
-        GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-        GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
-        GCC_destroy (c);
-      }
-    }
+      resend_messages_and_destroy (c, !fwd);
     else
-    {
       GCC_destroy (c);
-    }
   }
   else
   {
