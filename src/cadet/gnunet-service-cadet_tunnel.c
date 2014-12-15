@@ -866,23 +866,26 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
  * Create a new Key eXchange context for the tunnel.
  *
  * Initializes the key copies, KX start timestamp and creates a new nonce.
+ * If context exists, just cancels the finish_task.
  *
  * @param t Tunnel for which to create the KX ctx.
  */
 static void
 create_kx_ctx (struct CadetTunnel *t)
 {
+  LOG (GNUNET_ERROR_TYPE_INFO, "  new kx ctx for %s\n", GCT_2s (t));
+
   if (NULL != t->kx_ctx)
   {
     if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
     {
+      LOG (GNUNET_ERROR_TYPE_INFO, "  resetting exisiting finish task\n");
       GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
       t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
     }
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "  new kx ctx for %s\n", GCT_2s (t));
   t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
   t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                    UINT32_MAX);
@@ -1437,20 +1440,15 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
+  create_kx_ctx (t);
+
   if (NULL == t->kx_ctx)
   {
-    create_kx_ctx (t);
     create_keys (t);
   }
   else
   {
     struct GNUNET_TIME_Relative duration;
-
-    if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
-    {
-      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
-      t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
-    }
 
     duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " kx started %s ago\n",
