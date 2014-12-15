@@ -922,6 +922,8 @@ create_kx_ctx (struct CadetTunnel *t)
     t->kx_ctx->d_key_old = t->d_key;
     t->kx_ctx->e_key_old = t->e_key;
   }
+  else
+    LOG (GNUNET_ERROR_TYPE_INFO, "  old keys not valid, not saving\n");
   t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
   create_keys (t);
 }
@@ -1450,6 +1452,11 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       break;
 
     case CADET_TUNNEL_KEY_OK:
+      /* Inconsistent!
+       * - state should have changed during rekey_iterator
+       * - task should have been canceled at pong_handle
+       */
+      GNUNET_break (0);
       GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
       break;
 
