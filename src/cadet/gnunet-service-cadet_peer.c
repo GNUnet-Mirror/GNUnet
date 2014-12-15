@@ -961,6 +961,20 @@ search_handler (void *cls, const struct CadetPeerPath *path)
 
 
 /**
+ * Adjust core requested size to accomodate an ACK.
+ *
+ * @param message_size Requested size.
+ *
+ * @return Size enough to fit @c message_size and an ACK.
+ */
+static size_t
+get_core_size (size_t message_size)
+{
+  return message_size + sizeof (struct GNUNET_CADET_ACK);
+}
+
+
+/**
  * Fill a core buffer with the appropriate data for the queued message.
  *
  * @param queue Queue element for the message.
@@ -1136,7 +1150,7 @@ queue_send (void *cls, size_t size, void *buf)
                                              GNUNET_NO, get_priority (queue),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              dst_id,
-                                             queue->size,
+                                             get_core_size (queue->size),
                                              &queue_send,
                                              peer);
       peer->tmt_time = GNUNET_TIME_absolute_get ();
@@ -1342,7 +1356,8 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                                            GNUNET_NO, get_priority (q),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_PEER_resolve2 (peer->id),
-                                           size, &queue_send, peer);
+                                           get_core_size (size),
+                                           &queue_send, peer);
     peer->tmt_time = GNUNET_TIME_absolute_get ();
   }
   else if (GNUNET_NO == call_core)
@@ -1553,7 +1568,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
                                          GNUNET_NO, get_priority (q),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_PEER_resolve2 (peer->id),
-                                         size,
+                                         get_core_size (size),
                                          &queue_send,
                                          peer);
   peer->tmt_time = GNUNET_TIME_absolute_get ();
