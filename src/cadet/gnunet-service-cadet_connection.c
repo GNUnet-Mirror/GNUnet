@@ -1276,6 +1276,8 @@ connection_fwd_timeout (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s FWD timed out. Destroying.\n",
        GCC_2s (c));
+  GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
+
   if (GCC_is_origin (c, GNUNET_YES)) /* If local, leave. */
   {
     GNUNET_break (0);
@@ -1528,6 +1530,8 @@ log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_CADET_Hash *hash)
 {
+  LOG (GNUNET_ERROR_TYPE_INFO, "\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "\n");
   LOG (GNUNET_ERROR_TYPE_INFO, "<-- %s on connection %s from %s\n",
        GC_m2s (ntohs (message->type)), GNUNET_h2s (GC_h2hc (hash)),
        GNUNET_i2s (peer));
