@@ -1063,6 +1063,7 @@ queue_send (void *cls, size_t size, void *buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Buffer size 0.\n");
     peer->tmt_time.abs_value_us = 0;
+    peer->core_transmit = NULL;
     return 0;
   }
 
@@ -1083,7 +1084,6 @@ queue_send (void *cls, size_t size, void *buf)
   LOG (GNUNET_ERROR_TYPE_DEBUG, " core wait time %s\n",
        GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
   peer->tmt_time.abs_value_us = 0;
-
 
   /* Copy all possible messages to the core buffer */
   while (NULL != queue && rest >= queue->size)
