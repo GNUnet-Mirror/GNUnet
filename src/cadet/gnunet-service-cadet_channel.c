@@ -1424,13 +1424,17 @@ GCCH_get_buffer (struct CadetChannel *ch, int fwd)
   struct CadetChannelReliability *rel;
 
   rel = fwd ? ch->dest_rel : ch->root_rel;
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   get buffer, channel %s\n", GCCH_2s (ch));
+  GCCH_debug (ch);
   /* If rel is NULL it means that the end is not yet created,
    * most probably is a loopback channel at the point of sending
    * the ChannelCreate to itself.
    */
   if (NULL == rel)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  rel is NULL: max\n");
     return 64;
+  }
 
   return (64 - rel->n_recv);
 }

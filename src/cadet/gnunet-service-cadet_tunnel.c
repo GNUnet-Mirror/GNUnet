@@ -476,8 +476,8 @@ get_channel_buffer (const struct CadetTChannel *tch)
 {
   int fwd;
 
-  /* If channel is outgoing, is origin in the FWD direction and fwd is YES */
-  fwd = GCCH_is_origin (tch->ch, GNUNET_YES);
+  /* If channel is incoming, is terminal in the FWD direction and fwd is YES */
+  fwd = GCCH_is_terminal (tch->ch, GNUNET_YES);
 
   return GCCH_get_buffer (tch->ch, fwd);
 }
@@ -2823,6 +2823,7 @@ GCT_get_channels_buffer (struct CadetTunnel *t)
   if (NULL == t->channel_head)
   {
     /* Probably getting buffer for a channel create/handshake. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no channels, allow max\n");
     return 64;
   }
 
