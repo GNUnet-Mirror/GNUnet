@@ -865,8 +865,8 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
 /**
  * Create a new Key eXchange context for the tunnel.
  *
- * If context exists, just cancels the finish_task, does not create new nonce.
- * Otherwise copies the keys, timestamps the KX and creates a new nonce.
+ * If the old keys were verified, keep them for old traffic. Create a new KX
+ * timestamp and a new nonce.
  *
  * @param t Tunnel for which to create the KX ctx.
  */
@@ -883,14 +883,19 @@ create_kx_ctx (struct CadetTunnel *t)
       GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
       t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    return;
+  }
+  else
+  {
+    t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
   }
 
-  t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
   t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                    UINT32_MAX);
-  t->kx_ctx->d_key_old = t->d_key;
-  t->kx_ctx->e_key_old = t->e_key;
+  if (CADET_TUNNEL_KEY_OK == t->estate)
+  {
+    t->kx_ctx->d_key_old = t->d_key;
+    t->kx_ctx->e_key_old = t->e_key;
+  }
   t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
 }
 
