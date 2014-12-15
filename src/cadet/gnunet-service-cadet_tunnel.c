@@ -1878,6 +1878,12 @@ handle_ephemeral (struct CadetTunnel *t,
   if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
                    sizeof (msg->ephemeral_key)))
   {
+    #if DUMP_KEYS_TO_STDERR
+    LOG (GNUNET_ERROR_TYPE_INFO, "OLD: %s\n",
+         GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+    LOG (GNUNET_ERROR_TYPE_INFO, "NEW: %s\n",
+         GNUNET_h2s ((struct GNUNET_HashCode *) &msg->ephemeral_key));
+    #endif
     t->peers_ephemeral_key = msg->ephemeral_key;
     create_kx_ctx (t);
     create_keys (t);
