@@ -159,6 +159,11 @@ struct CadetPeer
   struct GNUNET_CORE_TransmitHandle *core_transmit;
 
   /**
+   * Timestamp
+   */
+  struct GNUNET_TIME_Absolute tmt_time;
+
+  /**
    * Transmission queue to core DLL head
    */
   struct CadetPeerQueue *queue_head;
@@ -448,6 +453,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     {
       GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
       p->core_transmit = NULL;
+      p->tmt_time.abs_value_us = 0;
     }
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
 
@@ -971,15 +977,24 @@ queue_send (void *cls, size_t size, void *buf)
   struct CadetConnection *c;
   struct CadetPeerQueue *queue;
   const struct GNUNET_PeerIdentity *dst_id;
-  size_t data_size;
+  size_t msg_size;
+  size_t total_size;
+  size_t rest;
+  char *dst;
   uint32_t pid;
 
+  rest = size;
+  total_size = 0;
+  dst = (char *) buf;
   pid = 0;
   peer->core_transmit = NULL;
+  peer->tmt_time.abs_value_us = 0;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue send towards %s (max %u)\n",
        GCP_2s (peer), size);
 
-  if (NULL == buf || 0 == size)
+  if (NULL == dst || 0 == size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Buffer size 0.\n");
     return 0;
@@ -989,102 +1004,99 @@ queue_send (void *cls, size_t size, void *buf)
   queue = peer_get_first_message (peer);
   if (NULL == queue)
   {
-    GNUNET_assert (0); /* Core tmt_rdy should've been canceled */
+    GNUNET_break (0); /* Core tmt_rdy should've been canceled */
     return 0;
   }
-  c = queue->c;
 
-  dst_id = GNUNET_PEER_resolve2 (peer->id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s %s\n",
-       GCC_2s (c), GC_f2s(queue->fwd));
-  /* Check if buffer size is enough for the message */
-  if (queue->size > size)
+  while (NULL != queue && rest >= queue->size)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "not enough room (%u vs %u), reissue\n",
-         queue->size, size);
-    peer->core_transmit =
-      GNUNET_CORE_notify_transmit_ready (core_handle,
-                                         GNUNET_NO, get_priority (queue),
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         dst_id,
-                                         queue->size,
-                                         &queue_send,
-                                         peer);
-    return 0;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  size %u ok\n", queue->size);
+    c = queue->c;
 
-  /* Fill buf */
-  switch (queue->type)
-  {
-    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      pid = GCC_get_pid (queue->c, queue->fwd);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", pid);
-      data_size = send_core_data_raw (queue->cls, size, buf);
-      ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (pid);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-    case GNUNET_MESSAGE_TYPE_CADET_KX:
-    case GNUNET_MESSAGE_TYPE_CADET_ACK:
-    case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GC_m2s (queue->type));
-      data_size = send_core_data_raw (queue->cls, size, buf);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
-      if (GCC_is_origin (c, GNUNET_YES))
-        data_size = send_core_connection_create (c, size, buf);
-      else
-        data_size = send_core_data_raw (queue->cls, size, buf);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
-      if (GCC_is_origin (c, GNUNET_NO) ||
-          GCC_is_origin (c, GNUNET_YES))
-        data_size = send_core_connection_ack (c, size, buf);
-      else
-        data_size = send_core_data_raw (queue->cls, size, buf);
-      break;
-    case GNUNET_MESSAGE_TYPE_CADET_DATA:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      /* This should be encapsulted */
-      GNUNET_break (0);
-      data_size = 0;
-      break;
-    default:
-      GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "  type unknown: %u\n", queue->type);
-      data_size = 0;
-  }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s %s\n",
+         GCC_2s (c), GC_f2s(queue->fwd));
 
-  if (0 < drop_percent &&
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on connection %s %s\n",
-         GC_m2s (queue->type), GC_m2s (queue->payload_type), queue->payload_id,
-         GCC_2s (c), GC_f2s (queue->fwd));
-    data_size = 0;
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "snd %s (%s %u) on connection %s (%p) %s (size %u)\n",
-         GC_m2s (queue->type), GC_m2s (queue->payload_type),
-         queue->payload_id, GCC_2s (c), c, GC_f2s (queue->fwd), data_size);
-  }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  size %u ok (%u/%u)\n",
+         queue->size, total_size, size);
 
-  /* Free queue, but cls was freed by send_core_*. */
-  (void) GCP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
+    /* Fill buf */
+    switch (queue->type)
+    {
+      case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+        pid = GCC_get_pid (queue->c, queue->fwd);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", pid);
+            msg_size = send_core_data_raw (queue->cls, size, dst);
+        ((struct GNUNET_CADET_Encrypted *) dst)->pid = htonl (pid);
+        break;
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      case GNUNET_MESSAGE_TYPE_CADET_KX:
+      case GNUNET_MESSAGE_TYPE_CADET_ACK:
+      case GNUNET_MESSAGE_TYPE_CADET_POLL:
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GC_m2s (queue->type));
+            msg_size = send_core_data_raw (queue->cls, size, dst);
+        break;
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
+        if (GCC_is_origin (c, GNUNET_YES))
+                msg_size = send_core_connection_create (c, size, dst);
+        else
+                msg_size = send_core_data_raw (queue->cls, size, dst);
+        break;
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
+        if (GCC_is_origin (c, GNUNET_NO) ||
+            GCC_is_origin (c, GNUNET_YES))
+                msg_size = send_core_connection_ack (c, size, dst);
+        else
+                msg_size = send_core_data_raw (queue->cls, size, dst);
+        break;
+      case GNUNET_MESSAGE_TYPE_CADET_DATA:
+      case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+      case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
+        /* This should be encapsulted */
+        GNUNET_break (0);
+            msg_size = 0;
+        break;
+      default:
+        GNUNET_break (0);
+        LOG (GNUNET_ERROR_TYPE_WARNING, "  type unknown: %u\n", queue->type);
+            msg_size = 0;
+    }
+
+    if (0 < drop_percent &&
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on connection %s %s\n",
+          GC_m2s (queue->type), GC_m2s (queue->payload_type), queue->payload_id,
+          GCC_2s (c), GC_f2s (queue->fwd));
+            msg_size = 0;
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+          "snd %s (%s %u) on connection %s (%p) %s (size %u)\n",
+          GC_m2s (queue->type), GC_m2s (queue->payload_type),
+          queue->payload_id, GCC_2s (c), c, GC_f2s (queue->fwd), msg_size);
+    }
+    total_size += msg_size;
+    rest -= msg_size;
+    dst = &dst[msg_size];
+        msg_size = 0;
+
+    /* Free queue, but cls was freed by send_core_*. */
+    (void) GCP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
+
+    /* Next! */
+    queue = peer_get_first_message (peer);
+  }
 
   /* If more data in queue, send next */
-  queue = peer_get_first_message (peer);
   if (NULL != queue)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  more data!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  more data! (%u)\n", queue->size);
     if (NULL == peer->core_transmit)
     {
+      dst_id = GNUNET_PEER_resolve2 (peer->id);
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
                                              GNUNET_NO, get_priority (queue),
@@ -1093,12 +1105,12 @@ queue_send (void *cls, size_t size, void *buf)
                                              queue->size,
                                              &queue_send,
                                              peer);
+      peer->tmt_time = GNUNET_TIME_absolute_get ();
       queue->start_waiting = GNUNET_TIME_absolute_get ();
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "*   tmt rdy called somewhere else\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   tmt rdy called somewhere else\n");
     }
 //     GCC_start_poll (); FIXME needed?
   }
@@ -1107,9 +1119,10 @@ queue_send (void *cls, size_t size, void *buf)
 //     GCC_stop_poll(); FIXME needed?
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", data_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", total_size);
   queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
-  return data_size;
+
+  return total_size;
 }
 
 
@@ -1178,8 +1191,9 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
   {
     struct GNUNET_TIME_Relative core_wait_time;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback\n");
-    core_wait_time = GNUNET_TIME_absolute_get_duration (queue->start_waiting);
+    core_wait_time = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback, time elapsed %s\n",
+         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
     connection_destroyed = queue->callback (queue->callback_cls,
                                             queue->c, sent, queue->type, pid,
                                             queue->fwd, queue->size,
@@ -1194,6 +1208,7 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
   {
     GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
     peer->core_transmit = NULL;
+    peer->tmt_time.abs_value_us = 0;
   }
 
   GNUNET_free (queue);
@@ -1282,6 +1297,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
     call_core = GNUNET_YES;
   }
 
+  q->start_waiting = GNUNET_TIME_absolute_get ();
   if (NULL == peer->core_transmit && GNUNET_YES == call_core)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1293,7 +1309,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_PEER_resolve2 (peer->id),
                                            size, &queue_send, peer);
-    q->start_waiting = GNUNET_TIME_absolute_get ();
+    peer->tmt_time = GNUNET_TIME_absolute_get ();
   }
   else if (GNUNET_NO == call_core)
   {
@@ -1303,8 +1319,11 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s already called\n",
-         GCP_2s (peer));
+    struct GNUNET_TIME_Relative elapsed;
+    elapsed = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s already called %s\n",
+         GCP_2s (peer),
+         GNUNET_STRINGS_relative_time_to_string (elapsed, GNUNET_NO));
 
   }
   queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
@@ -1362,6 +1381,7 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
     peer->core_transmit = NULL;
+    peer->tmt_time.abs_value_us = 0;
   }
 }
 
@@ -1502,6 +1522,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
                                          size,
                                          &queue_send,
                                          peer);
+  peer->tmt_time = GNUNET_TIME_absolute_get ();
 }
 
 
