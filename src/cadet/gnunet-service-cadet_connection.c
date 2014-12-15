@@ -1292,7 +1292,7 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
   {
     GNUNET_break (0);
     GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    if (NULL != t) GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
     GCC_destroy (c);
   }
 }
