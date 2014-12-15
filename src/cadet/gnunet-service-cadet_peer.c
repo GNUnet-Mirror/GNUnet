@@ -1189,15 +1189,15 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
 
   if (NULL != queue->callback)
   {
-    struct GNUNET_TIME_Relative core_wait_time;
+    struct GNUNET_TIME_Relative wait_time;
 
-    core_wait_time = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
+    wait_time = GNUNET_TIME_absolute_get_duration (queue->start_waiting);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback, time elapsed %s\n",
-         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
+         GNUNET_STRINGS_relative_time_to_string (wait_time, GNUNET_NO));
     connection_destroyed = queue->callback (queue->callback_cls,
                                             queue->c, sent, queue->type, pid,
                                             queue->fwd, queue->size,
-                                            core_wait_time);
+                                            wait_time);
   }
   else
   {
