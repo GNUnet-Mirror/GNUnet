@@ -3008,12 +3008,10 @@ GCT_send_connection_acks (struct CadetTunnel *t)
 
   /* Make sure there is no overflow */
   if (allowed > buffer)
-  {
     return;
-  }
 
   /* Authorize connections to send more data */
-  to_allow = buffer; /* FIXME (- allowed;) */
+  to_allow = buffer - allowed;
 
   for (iter = t->connection_head;
        NULL != iter && to_allow > 0;
