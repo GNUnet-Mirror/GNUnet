@@ -121,10 +121,14 @@ extern "C"
 #define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
 
 /**
- * Size of the CADET message overhead.
- * See gnunet-service-cadet_tunnel.c: GCT_init for more info.
+ * Size of the CADET message overhead:
+ * + sizeof (struct GNUNET_CADET_Encrypted)
+ * + sizeof (struct GNUNET_CADET_Data)
+ * + sizeof (struct GNUNET_CADET_ACK))
+ *
+ * Checked for correcteness in gnunet-service-cadet_tunnel.c: GCT_init().
  */
-#define GNUNET_CONSTANTS_CADET_P2P_OVERHEAD 92
+#define GNUNET_CONSTANTS_CADET_P2P_OVERHEAD 132
 
 /**
  * Maximum message size that can be sent on CADET.

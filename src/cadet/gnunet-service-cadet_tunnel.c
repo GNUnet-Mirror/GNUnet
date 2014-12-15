@@ -2184,8 +2184,10 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
 
-  expected_overhead =
-    sizeof (struct GNUNET_CADET_Encrypted) + sizeof (struct GNUNET_CADET_Data);
+  expected_overhead = 0;
+  expected_overhead += sizeof (struct GNUNET_CADET_Encrypted);
+  expected_overhead += sizeof (struct GNUNET_CADET_Data);
+  expected_overhead += sizeof (struct GNUNET_CADET_ACK);
   GNUNET_assert (GNUNET_CONSTANTS_CADET_P2P_OVERHEAD == expected_overhead);
 
   if (GNUNET_OK !=
