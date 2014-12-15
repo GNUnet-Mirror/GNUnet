@@ -1556,6 +1556,8 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   time = GNUNET_TIME_absolute_add (time, GNUNET_TIME_UNIT_MINUTES);
   kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
   GNUNET_CRYPTO_ecdhe_key_get_public (my_ephemeral_key, &kx_msg.ephemeral_key);
+  LOG (GNUNET_ERROR_TYPE_INFO, "GLOBAL RE-KEY, NEW EPHM: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
 
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_eddsa_sign (my_private_key,
