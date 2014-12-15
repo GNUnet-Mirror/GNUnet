@@ -612,7 +612,7 @@ select_key (const struct CadetTunnel *t)
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using new key\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using new key (old key too old)\n");
       key = &t->e_key;
     }
   }
@@ -903,10 +903,13 @@ finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetTunnel *t = cls;
 
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
   LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, "  shutdown\n");
+    return;
+  }
 
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
