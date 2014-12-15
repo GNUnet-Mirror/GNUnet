@@ -1599,7 +1599,19 @@ does_connection_exist (struct CadetConnection *conn)
     }
 
     if (GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GCP_get_id (p)) > 0)
+    {
+      struct CadetPeer *neighbor;
+
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate allowed (killing old)\n");
+      if (GCC_is_origin (c, GNUNET_YES))
+        neighbor = get_next_hop (c);
+      else
+        neighbor = get_prev_hop (c);
+      send_broken_unknown (&c->id, &my_full_id, NULL,
+                           GCP_get_id (neighbor));
+      GCC_destroy (c);
       return GNUNET_NO;
+    }
     else
       return GNUNET_YES;
   }
