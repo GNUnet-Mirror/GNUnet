@@ -2282,14 +2282,14 @@ GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s estate is now %s\n",
        GCP_2s (t->peer), estate2s (state));
 
-  t->estate = state;
-
   /* Send queued data if enc state changes to OK */
   if (myid != GCP_get_short_id (t->peer) &&
       CADET_TUNNEL_KEY_OK != t->estate && CADET_TUNNEL_KEY_OK == state)
   {
     send_queued_data (t);
   }
+
+  t->estate = state;
 }
 
 
