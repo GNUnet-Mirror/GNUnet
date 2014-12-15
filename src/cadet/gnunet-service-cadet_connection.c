@@ -2534,9 +2534,6 @@ GCC_destroy (struct CadetConnection *c)
     unregister_neighbors (c);
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " fc tasks f: %u, b: %u\n",
-       c->fwd_fc.poll_task, c->bck_fc.poll_task);
-
   /* Cancel maintainance task (keepalive/timeout) */
   if (NULL != c->fwd_fc.poll_msg)
   {
