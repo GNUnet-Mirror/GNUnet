@@ -1014,6 +1014,8 @@
 
 # /src/scalarproduct/
 /src/scalarproduct/gnunet-service-scalarproduct
+/src/scalarproduct/gnunet-service-scalarproduct-alice
+/src/scalarproduct/gnunet-service-scalarproduct-bob
 /src/scalarproduct/scalarproduct.conf
 /src/scalarproduct/Makefile.in
 /src/scalarproduct/Makefile
@@ -1034,12 +1036,16 @@
 /src/sensor/Makefile.in
 /src/sensor/gnunet-sensor
 /src/sensor/gnunet-service-sensor
+/src/sensor/perf-pow-sign
 /src/sensor/sensor.conf
 
 # /src/sensordashboard
 /src/sensordashboard/.deps/
 /src/sensordashboard/Makefile
 /src/sensordashboard/Makefile.in
+/src/sensordashboard/sensordashboard.conf
+/src/sensordashboard/gnunet-sensordashboard
+/src/sensordashboard/gnunet-service-sensordashboard
 /src/sensordashboard/sensordashboard.conf
 
 # /src/set/
