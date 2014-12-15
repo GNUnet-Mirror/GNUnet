@@ -941,8 +941,8 @@ search_handler (void *cls, const struct CadetPeerPath *path)
   /* Count connections */
   connection_count = GCT_count_connections (peer->tunnel);
 
-  /* If we already have 3 (or more (?!)) connections, it's enough */
-  if (3 <= connection_count)
+  /* If we already have our minimum (or more) connections, it's enough */
+  if (CONNECTIONS_PER_TUNNEL <= connection_count)
     return;
 
   if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (peer->tunnel))
@@ -1914,11 +1914,7 @@ GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  added\n");
       GNUNET_CONTAINER_DLL_insert_before (peer->path_head,
                                           peer->path_tail, aux, path);
-      if (NULL != peer->tunnel && 3 < GCT_count_connections (peer->tunnel))
-      {
-        GCP_connect (peer);
-      }
-      return path;
+      goto finish;
     }
     else
     {
@@ -1933,7 +1929,10 @@ GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
   GNUNET_CONTAINER_DLL_insert_tail (peer->path_head, peer->path_tail,
                                     path);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  added last\n");
-  if (NULL != peer->tunnel && 3 < GCT_count_connections (peer->tunnel))
+
+finish:
+  if (NULL != peer->tunnel
+      && CONNECTIONS_PER_TUNNEL < GCT_count_connections (peer->tunnel))
   {
     GCP_connect (peer);
   }

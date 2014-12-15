@@ -1833,6 +1833,7 @@ GCC_handle_broken (void* cls,
   }
 
   t = c->t;
+
   fwd = is_fwd (c, id);
   c->destroy = GNUNET_YES;
   if (GCC_is_terminal (c, fwd))
@@ -2699,7 +2700,8 @@ GCC_get_allowed (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (GC_is_pid_bigger (fc->last_pid_recv, fc->last_ack_sent))
+  if (CADET_CONNECTION_READY != c->state
+      || GC_is_pid_bigger (fc->last_pid_recv, fc->last_ack_sent))
   {
     return 0;
   }

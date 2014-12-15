@@ -40,6 +40,8 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#define CONNECTIONS_PER_TUNNEL 3
+
 /**
  * All the connectivity states a tunnel can be in.
  */

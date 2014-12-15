@@ -37,8 +37,6 @@
 
 #define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
-#define CONNECTIONS_PER_TUNNEL 3
-
 #if !defined(GNUNET_CULL_LOGGING)
 #define DUMP_KEYS_TO_STDERR GNUNET_YES
 #else
@@ -2332,7 +2330,7 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     for (c = iter = t->connection_head; NULL != iter; iter = iter->next)
     {
-      if ((NULL == c || iter->created.abs_value_us > c->created.abs_value_us)
+      if ((iter->created.abs_value_us > c->created.abs_value_us)
           && GNUNET_NO == GCC_is_direct (iter->c))
       {
         c = iter;
@@ -2788,7 +2786,7 @@ GCT_count_connections (struct CadetTunnel *t)
     return 0;
 
   for (count = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
-    if (CADET_CONNECTION_DESTROYED != GCC_get_state (iter->c))
+    if (CADET_CONNECTION_READY == GCC_get_state (iter->c))
       count++;
 
   return count;
@@ -3065,24 +3063,29 @@ GCT_send_connection_acks (struct CadetTunnel *t)
   }
 
   /* Authorize connections to send more data */
-  to_allow = buffer; /* - allowed; */
+  to_allow = buffer; /* FIXME (- allowed;) */
 
   for (iter = t->connection_head;
        NULL != iter && to_allow > 0;
        iter = iter->next)
   {
-    allow_per_connection = to_allow/cs;
-    to_allow -= allow_per_connection;
-    cs--;
-    if (get_connection_allowed (iter) > 64 / 3)
+    if (CADET_CONNECTION_READY != GCC_get_state (iter->c)
+        || get_connection_allowed (iter) > 64 / 3)
     {
       continue;
     }
+    allow_per_connection = to_allow/cs;
+    to_allow -= allow_per_connection;
+    cs--;
     GCC_allow (iter->c, allow_per_connection,
                GCC_is_origin (iter->c, GNUNET_NO));
   }
 
-  GNUNET_break (to_allow == 0); //FIXME tripped
+  if (0 != to_allow)
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  reminding to_allow: %u\n", to_allow);
+  }
 }
 
 
