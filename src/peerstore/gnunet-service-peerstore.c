@@ -136,6 +136,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/* Forward declaration */
+static void expire_records_continuation (void *cls, int success);
+
+
 /**
  * Deletes any expired records from storage
  */
@@ -143,14 +147,34 @@ static void
 cleanup_expired_records (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int deleted;
+  int ret;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != db);
-  deleted = db->expire_records (db->cls, GNUNET_TIME_absolute_get ());
-  if (deleted > 0)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", deleted);
+  ret = db->expire_records (db->cls, GNUNET_TIME_absolute_get (),
+                            expire_records_continuation, NULL);
+  if (GNUNET_OK != ret)
+  {
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                  (GNUNET_TIME_UNIT_SECONDS,
+                                   EXPIRED_RECORDS_CLEANUP_INTERVAL),
+                                  &cleanup_expired_records, NULL);
+  }
+}
+
+
+/**
+ * Continuation to expire_records called by the peerstore plugin
+ *
+ * @param cls unused
+ * @param success count of records deleted or #GNUNET_SYSERR
+ */
+static void
+expire_records_continuation(void *cls, int success)
+{
+  if (success > 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", success);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                 (GNUNET_TIME_UNIT_SECONDS,
                                  EXPIRED_RECORDS_CLEANUP_INTERVAL),
@@ -217,15 +241,32 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 static int
 record_iterator (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
-  struct GNUNET_SERVER_Client *client = cls;
+  struct GNUNET_PEERSTORE_Record *cls_record = cls;
   struct StoreRecordMessage *srm;
+
+  if (NULL == record)
+  {
+    /* No more records */
+    struct GNUNET_MessageHeader *endmsg;
+
+    endmsg = GNUNET_new (struct GNUNET_MessageHeader);
+    endmsg->size = htons (sizeof (struct GNUNET_MessageHeader));
+    endmsg->type = htons (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
+    GNUNET_SERVER_notification_context_unicast (nc, cls_record->client, endmsg,
+                                                GNUNET_NO);
+    GNUNET_free (endmsg);
+    GNUNET_SERVER_receive_done (cls_record->client,
+                                NULL == emsg ? GNUNET_OK : GNUNET_SYSERR);
+    PEERSTORE_destroy_record (cls_record);
+    return GNUNET_NO;
+  }
 
   srm =
       PEERSTORE_create_record_message (record->sub_system, record->peer,
                                        record->key, record->value,
                                        record->value_size, record->expiry,
                                        GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
-  GNUNET_SERVER_notification_context_unicast (nc, client,
+  GNUNET_SERVER_notification_context_unicast (nc, cls_record->client,
                                               (struct GNUNET_MessageHeader *)
                                               srm, GNUNET_NO);
   GNUNET_free (srm);
@@ -334,7 +375,6 @@ handle_iterate (void *cls, struct GNUNET_SERVER_Client *client,
                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_PEERSTORE_Record *record;
-  struct GNUNET_MessageHeader *endmsg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received an iterate request.\n");
   record = PEERSTORE_parse_record_message (message);
@@ -358,21 +398,32 @@ handle_iterate (void *cls, struct GNUNET_SERVER_Client *client,
               (NULL == record->peer) ? "NULL" : GNUNET_i2s (record->peer),
               (NULL == record->key) ? "NULL" : record->key);
   GNUNET_SERVER_notification_context_add (nc, client);
-  if (GNUNET_OK ==
+  record->client = client;
+  if (GNUNET_OK !=
       db->iterate_records (db->cls, record->sub_system, record->peer,
-                           record->key, &record_iterator, client))
-  {
-    endmsg = GNUNET_new (struct GNUNET_MessageHeader);
-
-    endmsg->size = htons (sizeof (struct GNUNET_MessageHeader));
-    endmsg->type = htons (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
-    GNUNET_SERVER_notification_context_unicast (nc, client, endmsg, GNUNET_NO);
-    GNUNET_free (endmsg);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  }
-  else
+                           record->key, &record_iterator, record))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    PEERSTORE_destroy_record (record);
+  }
+}
+
+
+/**
+ * Continuation of store_record called by the peerstore plugin 
+ *
+ * @param cls closure
+ * @param success result
+ */
+static void
+store_record_continuation (void *cls, int success)
+{
+  struct GNUNET_PEERSTORE_Record *record = cls;
+
+  GNUNET_SERVER_receive_done (record->client, success);
+  if (GNUNET_OK == success)
+  {
+    watch_notifier (record);
   }
   PEERSTORE_destroy_record (record);
 }
@@ -418,20 +469,19 @@ handle_store (void *cls, struct GNUNET_SERVER_Client *client,
               " Options: %d.\n",
               record->value_size, record->sub_system, GNUNET_i2s (record->peer),
               record->key, record->value_size, ntohl (srm->options));
+  record->client = client;
   if (GNUNET_OK !=
       db->store_record (db->cls, record->sub_system, record->peer, record->key,
                         record->value, record->value_size, *record->expiry,
-                        ntohl (srm->options)))
+                        ntohl (srm->options), store_record_continuation,
+			record))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to store requested value, sqlite database error."));
+                _("Failed to store requested value, database error."));
     PEERSTORE_destroy_record (record);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  watch_notifier (record);
-  PEERSTORE_destroy_record (record);
 }
 
 

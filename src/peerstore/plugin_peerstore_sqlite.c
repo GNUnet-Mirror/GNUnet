@@ -160,10 +160,15 @@ peerstore_sqlite_delete_records (void *cls, const char *sub_system,
  *
  * @param cls closure (internal context for the plugin)
  * @param now time to use as reference
- * @return number of records deleted
+ * @param cont continuation called with the number of records expired
+ * @param cont_cls continuation closure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and cont is not
+ * called
  */
 static int
-peerstore_sqlite_expire_records (void *cls, struct GNUNET_TIME_Absolute now)
+peerstore_sqlite_expire_records (void *cls, struct GNUNET_TIME_Absolute now,
+                                 GNUNET_PEERSTORE_Continuation cont,
+                                 void *cont_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->expire_peerstoredata;
@@ -183,9 +188,13 @@ peerstore_sqlite_expire_records (void *cls, struct GNUNET_TIME_Absolute now)
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
-    return 0;
+    return GNUNET_SYSERR;
   }
-  return sqlite3_changes (plugin->dbh);
+  if (NULL != cont)
+  {
+    cont (cont_cls, sqlite3_changes (plugin->dbh));
+  }
+  return GNUNET_OK;
 }
 
 
@@ -197,9 +206,11 @@ peerstore_sqlite_expire_records (void *cls, struct GNUNET_TIME_Absolute now)
  * @param sub_system name of sub system
  * @param peer Peer identity (can be NULL)
  * @param key entry key string (can be NULL)
- * @param iter function to call with the result
+ * @param iter function to call asynchronously with the results, terminated
+ * by a NULL result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and iter is not
+ * called
  */
 static int
 peerstore_sqlite_iterate_records (void *cls, const char *sub_system,
@@ -296,8 +307,10 @@ peerstore_sqlite_iterate_records (void *cls, const char *sub_system,
                 "sqlite3_reset");
     err = 1;
   }
-  if (err)
-    return GNUNET_SYSERR;
+  if (NULL != iter)
+  {
+    iter (iter_cls, NULL, err ? "sqlite error" : NULL);
+  }
   return GNUNET_OK;
 }
 
@@ -315,14 +328,18 @@ peerstore_sqlite_iterate_records (void *cls, const char *sub_system,
  * @param size size of value to be stored
  * @param expiry absolute time after which the record is (possibly) deleted
  * @param options options related to the store operation
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ * @param cont continuation called when record is stored
+ * @param cont_cls continuation closure
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR and cont is not called
  */
 static int
 peerstore_sqlite_store_record (void *cls, const char *sub_system,
                                const struct GNUNET_PeerIdentity *peer,
                                const char *key, const void *value, size_t size,
                                struct GNUNET_TIME_Absolute expiry,
-                               enum GNUNET_PEERSTORE_StoreOption options)
+                               enum GNUNET_PEERSTORE_StoreOption options,
+                               GNUNET_PEERSTORE_Continuation cont,
+                               void *cont_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->insert_peerstoredata;
@@ -354,6 +371,10 @@ peerstore_sqlite_store_record (void *cls, const char *sub_system,
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
     return GNUNET_SYSERR;
+  }
+  if (NULL != cont)
+  {
+    cont (cont_cls, GNUNET_OK);
   }
   return GNUNET_OK;
 }

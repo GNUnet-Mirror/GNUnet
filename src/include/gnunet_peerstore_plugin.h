@@ -59,7 +59,11 @@ struct GNUNET_PEERSTORE_PluginFunctions
    * @param peer peer identity
    * @param value value to be stored
    * @param size size of value to be stored
-   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   * @param expiry absolute time after which the record is (possibly) deleted
+   * @param options options related to the store operation
+   * @param cont continuation called when record is stored
+   * @param cont_cls continuation closure
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR and cont is not called
    */
   int
   (*store_record) (void *cls,
@@ -69,7 +73,9 @@ struct GNUNET_PEERSTORE_PluginFunctions
       const void *value,
       size_t size,
       struct GNUNET_TIME_Absolute expiry,
-      enum GNUNET_PEERSTORE_StoreOption options);
+      enum GNUNET_PEERSTORE_StoreOption options,
+      GNUNET_PEERSTORE_Continuation cont,
+      void *cont_cls);
 
   /**
    * Iterate over the records given an optional peer id
@@ -79,9 +85,11 @@ struct GNUNET_PEERSTORE_PluginFunctions
    * @param sub_system name of sub system
    * @param peer Peer identity (can be NULL)
    * @param key entry key string (can be NULL)
-   * @param iter function to call with the result
+   * @param iter function to call asynchronously with the results, terminated
+   * by a NULL result
    * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and iter is not
+   * called
    */
   int
   (*iterate_records) (void *cls,
@@ -95,11 +103,16 @@ struct GNUNET_PEERSTORE_PluginFunctions
    *
    * @param cls closure (internal context for the plugin)
    * @param now time to use as reference
-   * @return number of records deleted
+   * @param cont continuation called with the number of records expired
+   * @param cont_cls continuation closure
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on error and cont is not
+   * called
    */
   int
   (*expire_records) (void *cls,
-      struct GNUNET_TIME_Absolute now);
+      struct GNUNET_TIME_Absolute now,
+      GNUNET_PEERSTORE_Continuation cont,
+      void *cont_cls);
 
 };
 
