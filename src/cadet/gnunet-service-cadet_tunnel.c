@@ -2995,6 +2995,9 @@ GCT_send_connection_acks (struct CadetTunnel *t)
     return;
   }
 
+  if (CADET_TUNNEL_READY != t->cstate)
+    return;
+
   buffer = GCT_get_channels_buffer (t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer %u\n", buffer);
 
