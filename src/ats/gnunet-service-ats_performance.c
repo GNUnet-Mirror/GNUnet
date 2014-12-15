@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -145,8 +145,7 @@ GAS_performance_notify_client (struct PerformanceClient *pc,
                                int active,
                                const struct GNUNET_ATS_Information *atsi,
                                uint32_t atsi_count,
-                               struct GNUNET_BANDWIDTH_Value32NBO
-                               bandwidth_out,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
 
