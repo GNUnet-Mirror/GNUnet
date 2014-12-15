@@ -1921,8 +1921,13 @@ handle_pong (struct CadetTunnel *t,
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
     return;
   }
-  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
+  if (NULL == t->kx_ctx)
+  {
+    GNUNET_STATISTICS_update (stats, "# stray PONG messages", 1, GNUNET_NO);
+    return;
+  }
 
+  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
   if (challenge != t->kx_ctx->challenge)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge on %s\n", GCT_2s (t));
