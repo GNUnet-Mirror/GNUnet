@@ -212,7 +212,7 @@ struct CadetConnection
   /**
    * Pending message count.
    */
-  int pending_messages;
+  unsigned int pending_messages;
 
   /**
    * Destroy flag: if true, destroy on last message.
@@ -1270,6 +1270,7 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
   struct GNUNET_MessageHeader *out_msg;
   struct CadetTunnel *t = c->t;
   struct CadetPeer *neighbor;
+  unsigned int pending;
   int destroyed;
 
   c->state = CADET_CONNECTION_DESTROYED;
@@ -1277,6 +1278,7 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
 
   destroyed = GNUNET_NO;
   neighbor = get_hop (c, fwd);
+  pending = c->pending_messages;
 
   while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
   {
@@ -1290,9 +1292,12 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
    */
   if (GNUNET_YES != destroyed)
   {
-    GNUNET_break (0);
-    GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
-    if (NULL != t) GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    if (0 != pending)
+    {
+      GNUNET_break (0);
+      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
+      if (NULL != t) GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    }
     GCC_destroy (c);
   }
 }
