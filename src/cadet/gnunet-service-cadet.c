@@ -144,7 +144,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "STARTING SERVICE (CADET) for peer [%s]\n",
+              "STARTING SERVICE (cadet) for peer [%s]\n",
               GNUNET_i2s (&my_full_id));
 
   GML_init (server);    /* Local clients */
