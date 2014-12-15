@@ -101,7 +101,7 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_OK,
 
   /**
-   * New ephemeral key and ping sent, waiting for pong. Opposite to KEY_PING,
+   * New ephemeral key and ping sent, waiting for pong. Unlike KEY_PING,
    * we still have a valid session key and therefore we *can* still send
    * traffic on the tunnel.
    */

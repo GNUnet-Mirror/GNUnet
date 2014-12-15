@@ -1870,6 +1870,11 @@ handle_ephemeral (struct CadetTunnel *t,
   }
 
   create_kx_ctx (t);
+
+  /**
+   * If the key is different from what we know, derive the new E/D keys.
+   * Else destroy the rekey ctx (duplicate EPHM after successful KX).
+   */
   if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
                    sizeof (msg->ephemeral_key)))
   {
