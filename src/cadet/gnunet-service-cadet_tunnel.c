@@ -203,6 +203,16 @@ struct CadetTunnel
    * Task to trim connections if too many are present.
    */
   GNUNET_SCHEDULER_TaskIdentifier trim_connections_task;
+
+  /**
+   * Ephemeral message in the queue (to avoid queueing more than one).
+   */
+  struct CadetConnectionQueue *ephm_h;
+
+  /**
+   * Pong message in the queue.
+   */
+  struct CadetConnectionQueue *pong_h;
 };
 
 
@@ -1279,13 +1289,56 @@ send_queued_data (struct CadetTunnel *t)
 
 
 /**
+ * Callback called when a queued message is sent.
+ *
+ * @param cls Closure.
+ * @param c Connection this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
+ */
+static void
+ephm_sent (void *cls,
+         struct CadetConnection *c,
+         struct CadetConnectionQueue *q,
+         uint16_t type, int fwd, size_t size)
+{
+  struct CadetTunnel *t = cls;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ephm_sent %s\n", GC_m2s (type));
+  t->ephm_h = NULL;
+}
+
+/**
+ * Callback called when a queued message is sent.
+ *
+ * @param cls Closure.
+ * @param c Connection this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
+ */
+static void
+pong_sent (void *cls,
+           struct CadetConnection *c,
+           struct CadetConnectionQueue *q,
+           uint16_t type, int fwd, size_t size)
+{
+  struct CadetTunnel *t = cls;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "pong_sent %s\n", GC_m2s (type));
+
+  t->pong_h = NULL;
+}
+
+/**
  * Sends key exchange message on a tunnel, choosing the best connection.
  * Should not be called on loopback tunnels.
  *
  * @param t Tunnel on which this message is transmitted.
  * @param message Message to send. Function modifies it.
+ *
+ * @return Handle to the message in the connection queue.
  */
-static void
+static struct CadetConnectionQueue *
 send_kx (struct CadetTunnel *t,
          const struct GNUNET_MessageHeader *message)
 {
@@ -1295,6 +1348,7 @@ send_kx (struct CadetTunnel *t,
   char cbuf[sizeof (struct GNUNET_CADET_KX) + size];
   uint16_t type;
   int fwd;
+  GCC_sent cont;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GCT_2s (t));
 
@@ -1303,7 +1357,7 @@ send_kx (struct CadetTunnel *t,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     GNUNET_break (0);
-    return;
+    return NULL;
   }
   type = ntohs (message->type);
 
@@ -1324,7 +1378,7 @@ send_kx (struct CadetTunnel *t,
       GCP_debug (t->peer, GNUNET_ERROR_TYPE_ERROR);
       LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
     }
-    return;
+    return NULL;
   }
 
   msg = (struct GNUNET_CADET_KX *) cbuf;
@@ -1339,26 +1393,31 @@ send_kx (struct CadetTunnel *t,
       GNUNET_break (0);
       GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
     }
-    return;
+    return NULL;
   }
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
+      GNUNET_assert (NULL == t->ephm_h);
+      cont = &ephm_sent;
+      memcpy (&msg[1], message, size);
+      break;
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
+      GNUNET_assert (NULL == t->pong_h);
+      cont = &pong_sent;
       memcpy (&msg[1], message, size);
       break;
 
     default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
-           GC_m2s (type));
-      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GC_m2s (type));
+      GNUNET_assert (0);
   }
 
   fwd = GCC_is_origin (t->connection_head->c, GNUNET_YES);
-  /* TODO save handle and cancel in case of a unneeded retransmission */
-  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, type, 0, c,
-                                                    fwd, GNUNET_YES,
-                                                    NULL, NULL));
+
+  return GCC_send_prebuilt_message (&msg->header, type, 0, c,
+                                    fwd, GNUNET_YES,
+                                    cont, t);
 }
 
 
@@ -1371,6 +1430,11 @@ static void
 send_ephemeral (struct CadetTunnel *t)
 {
   LOG (GNUNET_ERROR_TYPE_INFO, "===> EPHM for %s\n", GCT_2s (t));
+  if (NULL != t->ephm_h)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
+    return;
+  }
 
   kx_msg.sender_status = htonl (t->estate);
   kx_msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1379,7 +1443,7 @@ send_ephemeral (struct CadetTunnel *t)
   t_encrypt (t, &kx_msg.nonce, &kx_msg.nonce,
              ping_encryption_size(), kx_msg.iv, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce e %u\n", kx_msg.nonce);
-  send_kx (t, &kx_msg.header);
+  t->ephm_h = send_kx (t, &kx_msg.header);
 }
 
 
@@ -1395,6 +1459,11 @@ send_pong (struct CadetTunnel *t, uint32_t challenge)
   struct GNUNET_CADET_KX_Pong msg;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "===> PONG for %s\n", GCT_2s (t));
+  if (NULL != t->pong_h)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
+    return;
+  }
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1404,7 +1473,7 @@ send_pong (struct CadetTunnel *t, uint32_t challenge)
              sizeof (msg.nonce), msg.iv, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
 
-  send_kx (t, &msg.header);
+  t->pong_h = send_kx (t, &msg.header);
 }
 
 
