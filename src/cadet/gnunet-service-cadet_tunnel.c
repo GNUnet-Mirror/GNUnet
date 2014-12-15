@@ -745,7 +745,7 @@ t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt with %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
 #endif
-  if (t->estate == CADET_TUNNEL_KEY_UNINITIALIZED)
+  if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
   {
     GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1467,12 +1467,12 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   switch (t->estate)
   {
     case CADET_TUNNEL_KEY_UNINITIALIZED:
-      t->estate = CADET_TUNNEL_KEY_SENT;
+      GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
       break;
     case CADET_TUNNEL_KEY_SENT:
       break;
     case CADET_TUNNEL_KEY_OK:
-      t->estate = CADET_TUNNEL_KEY_REKEY;
+      GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
       /* fall-thru */
     case CADET_TUNNEL_KEY_PING:
     case CADET_TUNNEL_KEY_REKEY:
@@ -2833,7 +2833,7 @@ GCT_get_estate (struct CadetTunnel *t)
 {
   if (NULL == t)
   {
-    GNUNET_assert (0);
+    GNUNET_break (0);
     return (enum CadetTunnelEState) -1;
   }
   return t->estate;
