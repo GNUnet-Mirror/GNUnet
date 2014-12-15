@@ -841,11 +841,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL           263
 
 /**
- * Challenge to test peer's session key.
- */
-#define GNUNET_MESSAGE_TYPE_CADET_KX_PING                264
-
-/**
  * Answer to session key challenge.
  */
 #define GNUNET_MESSAGE_TYPE_CADET_KX_PONG                265

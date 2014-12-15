@@ -173,13 +173,6 @@ GC_m2s (uint16_t m)
       break;
 
       /**
-       * Challenge to test peer's session key.
-       */
-    case GNUNET_MESSAGE_TYPE_CADET_KX_PING:
-      t = "KX_PING";
-      break;
-
-      /**
        * Answer to session key challenge.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:

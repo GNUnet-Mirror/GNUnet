@@ -460,7 +460,7 @@ ephemeral_purpose_size (void)
 size_t
 ping_encryption_size (void)
 {
-  return sizeof (struct GNUNET_PeerIdentity) + sizeof (uint32_t);
+  return sizeof (uint32_t);
 }
 
 
@@ -885,10 +885,10 @@ create_kx_ctx (struct CadetTunnel *t)
   else
   {
     t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
+    t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                     UINT32_MAX);
   }
 
-  t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                                   UINT32_MAX);
   if (CADET_TUNNEL_KEY_OK == t->estate)
   {
     t->kx_ctx->d_key_old = t->d_key;
@@ -1341,10 +1341,10 @@ send_kx (struct CadetTunnel *t,
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
-    case GNUNET_MESSAGE_TYPE_CADET_KX_PING:
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
       memcpy (&msg[1], message, size);
       break;
+
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
            GC_m2s (type));
@@ -1370,34 +1370,13 @@ send_ephemeral (struct CadetTunnel *t)
   LOG (GNUNET_ERROR_TYPE_INFO, "===> EPHM for %s\n", GCT_2s (t));
 
   kx_msg.sender_status = htonl (t->estate);
+  kx_msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  kx_msg.nonce = t->kx_ctx->challenge;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce c %u\n", kx_msg.nonce);
+  t_encrypt (t, &kx_msg.nonce, &kx_msg.nonce,
+             ping_encryption_size(), kx_msg.iv, GNUNET_YES);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce e %u\n", kx_msg.nonce);
   send_kx (t, &kx_msg.header);
-}
-
-/**
- * Send a ping message on a tunnel.
- *
- * @param t Tunnel on which to send the ping.
- */
-static void
-send_ping (struct CadetTunnel *t)
-{
-  struct GNUNET_CADET_KX_Ping msg;
-
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> PING for %s\n", GCT_2s (t));
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PING);
-  msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  msg.target = *GCP_get_id (t->peer);
-  msg.nonce = t->kx_ctx->challenge;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&msg.target));
-  t_encrypt (t, &msg.target, &msg.target,
-             ping_encryption_size(), msg.iv, GNUNET_YES);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg.target));
-
-  send_kx (t, &msg.header);
 }
 
 
@@ -1473,15 +1452,18 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     case CADET_TUNNEL_KEY_UNINITIALIZED:
       GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
       break;
+
     case CADET_TUNNEL_KEY_SENT:
       break;
+
     case CADET_TUNNEL_KEY_OK:
       GCT_change_estate (t, CADET_TUNNEL_KEY_REKEY);
-      /* fall-thru */
+      break;
+
     case CADET_TUNNEL_KEY_PING:
     case CADET_TUNNEL_KEY_REKEY:
-      send_ping (t);
       break;
+
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->estate);
   }
@@ -1529,6 +1511,9 @@ rekey_iterator (void *cls,
   r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
+  if (NULL != t->kx_ctx)
+    t->kx_ctx->challenge =
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, INT32_MAX);
 
   return GNUNET_YES;
 }
@@ -1901,50 +1886,20 @@ handle_ephemeral (struct CadetTunnel *t,
   }
   if (CADET_TUNNEL_KEY_SENT == t->estate)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending ping\n");
-    send_ping (t);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending challenge\n");
+    send_ephemeral (t);
     GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
   }
-}
 
-
-/**
- * Peer wants to check our symmetrical keys by sending an encrypted challenge.
- * Answer with by retransmitting the challenge with the "opposite" key.
- *
- * @param t Tunnel this message came on.
- * @param msg Key eXchange Ping message.
- */
-static void
-handle_ping (struct CadetTunnel *t,
-             const struct GNUNET_CADET_KX_Ping *msg)
-{
-  struct GNUNET_CADET_KX_Ping res;
-
-  if (ntohs (msg->header.size) != sizeof (res))
+  if (CADET_TUNNEL_KEY_UNINITIALIZED != ntohl(msg->sender_status))
   {
-    GNUNET_break_op (0);
-    return;
-  }
+    uint32_t nonce;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PING for %s\n", GCT_2s (t));
-  t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
-  if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
-  {
-    /* probably peer hasn't got our new EPHM yet and derived the wrong keys */
-    GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_INFO, "  malformed PING on %s\n", GCT_2s (t));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
-    create_kx_ctx (t);
-    send_ephemeral (t);
-    send_ping (t);
-    return;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv nonce e %u\n", msg->nonce);
+    t_decrypt (t, &nonce, &msg->nonce, ping_encryption_size (), msg->iv);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv nonce c %u\n", nonce);
+    send_pong (t, nonce);
   }
-
-  send_pong (t, res.nonce);
 }
 
 
@@ -1976,7 +1931,6 @@ handle_pong (struct CadetTunnel *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG: %u (e: %u). Expected: %u.\n",
          challenge, msg->nonce, t->kx_ctx->challenge);
     send_ephemeral (t);
-    send_ping (t);
     return;
   }
   GNUNET_SCHEDULER_cancel (t->rekey_task);
@@ -2129,10 +2083,6 @@ GCT_handle_kx (struct CadetTunnel *t,
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
       handle_ephemeral (t, (struct GNUNET_CADET_KX_Ephemeral *) message);
-      break;
-
-    case GNUNET_MESSAGE_TYPE_CADET_KX_PING:
-      handle_ping (t, (struct GNUNET_CADET_KX_Ping *) message);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:

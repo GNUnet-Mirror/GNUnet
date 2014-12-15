@@ -150,43 +150,24 @@ struct GNUNET_CADET_KX_Ephemeral
   struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**
-   * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
-   * for network transmission as created using 'gcry_sexp_sprint'.
+   * Ephemeral public ECC key (always for NIST P-521) encoded in a format
+   * suitable for network transmission as created using 'gcry_sexp_sprint'.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
   /**
-   * Public key of the signing peer (persistent version, not the ephemeral public key).
+   * Public key of the signing peer
+   * (persistent version, not the ephemeral public key).
    */
   struct GNUNET_PeerIdentity origin_identity;
-};
-
-
-/**
- * We're sending an (encrypted) PING to the other peer to check if he
- * can decrypt.  The other peer should respond with a PONG with the
- * same content, except this time encrypted with the receiver's key.
- */
-struct GNUNET_CADET_KX_Ping
-{
-  /**
-   * Message type is GNUNET_MESSAGE_TYPE_CADET_KX_PING.
-   */
-  struct GNUNET_MessageHeader header;
 
   /**
-   * Seed for the IV
+   * Seed for the IV of nonce.
    */
   uint32_t iv GNUNET_PACKED;
 
   /**
-   * Intended target of the PING, used primarily to check
-   * that decryption actually worked.
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * Random number chosen to make reply harder.
+   * Nonce to check liveness of peer.
    */
   uint32_t nonce GNUNET_PACKED;
 };
