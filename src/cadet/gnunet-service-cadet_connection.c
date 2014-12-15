@@ -2926,7 +2926,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "--> %s (%s %u) on connection %s (%u bytes)\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "--> %s (%s %9u) on connection %s (%u bytes)\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), size);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
