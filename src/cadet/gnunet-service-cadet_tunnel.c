@@ -1462,6 +1462,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     // FIXME make duration of old keys configurable
     if (duration.rel_value_us >= GNUNET_TIME_UNIT_MINUTES.rel_value_us)
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " deleting old keys\n");
       memset (&t->kx_ctx->d_key_old, 0, sizeof (t->kx_ctx->d_key_old));
       memset (&t->kx_ctx->e_key_old, 0, sizeof (t->kx_ctx->e_key_old));
     }
