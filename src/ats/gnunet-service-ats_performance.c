@@ -541,6 +541,9 @@ GAS_handle_request_address_list (void *cls,
                                  &req_addr_peerinfo_it,
                                  &ai);
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Finished handling `%s' message\n",
+              "ADDRESSLIST_REQUEST");
   transmit_req_addr (&ai,
                      NULL, NULL, NULL,
                      0, GNUNET_NO,

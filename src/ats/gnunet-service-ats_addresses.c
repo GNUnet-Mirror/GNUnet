@@ -2239,7 +2239,7 @@ peerinfo_it (void *cls,
               addr->atsi, addr->atsi_count,
               GNUNET_BANDWIDTH_value_init (addr->assigned_bw_out),
               GNUNET_BANDWIDTH_value_init (addr->assigned_bw_in));
-  return GNUNET_YES;
+  return GNUNET_OK;
 }
 
 
@@ -2265,6 +2265,12 @@ GAS_addresses_get_peer_info (struct GAS_Addresses_Handle *handle,
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Returning information for %s from a total of %u known addresses\n",
+              (NULL == peer)
+              ? "all peers"
+              : GNUNET_i2s (peer),
+              (unsigned int) GNUNET_CONTAINER_multipeermap_size (handle->addresses));
   pi_ctx.it = pi_it;
   pi_ctx.it_cls = pi_it_cls;
   if (NULL == peer)

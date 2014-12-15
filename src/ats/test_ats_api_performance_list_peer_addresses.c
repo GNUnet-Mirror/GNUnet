@@ -181,19 +181,16 @@ end (void *cls,
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
   if (NULL != sched_ats)
   {
     GNUNET_ATS_scheduling_done (sched_ats);
     sched_ats = NULL;
   }
-
   if (NULL != phal)
   {
     GNUNET_ATS_performance_list_addresses_cancel (phal);
     phal = NULL;
   }
-
   if (NULL != perf_ats)
   {
     GNUNET_ATS_performance_done (perf_ats);
@@ -242,8 +239,9 @@ address_suggest_cb (void *cls,
 
 
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   ret = 1;
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
@@ -274,8 +272,9 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   p0_ha[1].peer = p[0].id;
   p0_ha[1].transport_name = p0_addresses[1].plugin;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Created peer 0: `%s'\n",
-      GNUNET_i2s (&p[0].id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Created peer 0: `%s'\n",
+             GNUNET_i2s (&p[0].id));
 
   memset (&p[1].id, '2', sizeof (p[1].id));
   p1_addresses[0].plugin = "test";
@@ -298,11 +297,13 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   p1_ha[1].peer = p[1].id;
   p1_ha[1].transport_name = p1_addresses[1].plugin;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Created peer 1: `%s'\n",
-      GNUNET_i2s (&p[1].id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Created peer 1: `%s'\n",
+             GNUNET_i2s (&p[1].id));
 
   /* Add addresses */
-  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL );
+  sched_ats = GNUNET_ATS_scheduling_init (cfg,
+                                          &address_suggest_cb, NULL);
   if (NULL == sched_ats)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
