@@ -976,6 +976,7 @@ queue_send (void *cls, size_t size, void *buf)
   struct CadetPeer *peer = cls;
   struct CadetConnection *c;
   struct CadetPeerQueue *queue;
+  struct GNUNET_TIME_Relative core_wait_time;
   const struct GNUNET_PeerIdentity *dst_id;
   size_t msg_size;
   size_t total_size;
@@ -997,6 +998,7 @@ queue_send (void *cls, size_t size, void *buf)
   if (NULL == dst || 0 == size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Buffer size 0.\n");
+    peer->tmt_time.abs_value_us = 0;
     return 0;
   }
 
@@ -1005,8 +1007,13 @@ queue_send (void *cls, size_t size, void *buf)
   if (NULL == queue)
   {
     GNUNET_break (0); /* Core tmt_rdy should've been canceled */
+    peer->tmt_time.abs_value_us = 0;
     return 0;
   }
+  core_wait_time = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " core wait time %s\n",
+       GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
+  peer->tmt_time.abs_value_us = 0;
 
   while (NULL != queue && rest >= queue->size)
   {
