@@ -1279,7 +1279,11 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
   neighbor = get_hop (c, fwd);
 
   while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
-    GCT_resend_message (out_msg, t);
+  {
+    if (NULL != t)
+      GCT_resend_message (out_msg, t);
+    GNUNET_free (out_msg);
+  }
 
   /* All pending messages should have been popped,
    * and the connection destroyed by the continuation.
