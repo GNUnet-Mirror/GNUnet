@@ -1239,9 +1239,7 @@ send_queued_data (struct CadetTunnel *t)
   struct CadetTunnelDelayed *next;
   unsigned int room;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "GCT_send_queued_data on tunnel %s\n",
-       GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "Send queued data, tunnel %s\n", GCT_2s (t));
 
   if (GCT_is_loopback (t))
   {

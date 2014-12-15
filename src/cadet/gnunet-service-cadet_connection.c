@@ -813,7 +813,7 @@ send_connection_ack (struct CadetConnection *connection, int fwd)
   struct CadetTunnel *t;
 
   t = connection->t;
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> {%14s ACK} on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "---> {%14s ACK} on connection %s\n",
        GC_f2s (!fwd), GCC_2s (connection));
   GCP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, 0, 0,
@@ -871,7 +871,7 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
   struct GNUNET_CADET_ConnectionBroken *msg;
   struct CadetPeer *neighbor;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> BROKEN on unknown connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "---> BROKEN on unknown connection %s\n",
        GNUNET_h2s (GC_h2hc (connection_id)));
 
   msg = GNUNET_new (struct GNUNET_CADET_ConnectionBroken);
@@ -3079,7 +3079,7 @@ GCC_send_create (struct CadetConnection *connection)
   size = sizeof (struct GNUNET_CADET_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> %s on connection %s  (%u bytes)\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "---> %s on connection %s  (%u bytes)\n",
        GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE),
        GCC_2s (connection), size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
