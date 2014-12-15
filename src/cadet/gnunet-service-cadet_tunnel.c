@@ -865,8 +865,8 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
 /**
  * Create a new Key eXchange context for the tunnel.
  *
- * Initializes the key copies, KX start timestamp and creates a new nonce.
- * If context exists, just cancels the finish_task.
+ * If context exists, just cancels the finish_task, does not create new nonce.
+ * Otherwise copies the keys, timestamps the KX and creates a new nonce.
  *
  * @param t Tunnel for which to create the KX ctx.
  */
