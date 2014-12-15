@@ -341,10 +341,10 @@ GC_m2s (uint16_t m)
       break;
 
     default:
-      sprintf(buf[idx], "%u (UNKNOWN TYPE)", m);
+      SPRINTF(buf[idx], "%u (UNKNOWN TYPE)", m);
       return buf[idx];
   }
-  sprintf(buf[idx], "{%18s}", t);
+  SPRINTF(buf[idx], "{%18s}", t);
   return buf[idx];
 }
 #else
