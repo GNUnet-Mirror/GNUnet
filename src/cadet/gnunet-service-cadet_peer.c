@@ -2008,8 +2008,8 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
   GNUNET_assert (myid == path->peers[0]);
   GNUNET_assert (peer->id == path->peers[path->length - 1]);
 
-  LOG(GNUNET_ERROR_TYPE_INFO, "*** Removing path l(%u) from %s\n",
-      path->length, GCP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_INFO, "Removing path %p (%u) from %s\n",
+       path, path->length, GCP_2s (peer));
 
   for (iter = peer->path_head; NULL != iter; iter = next)
   {

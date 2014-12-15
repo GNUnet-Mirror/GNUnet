@@ -36,6 +36,8 @@
  *
  * If the path is returned from DHT again after a while, try again.
  *
+ * Removes the path from the peer (except for direct paths).
+ *
  * @param cls Closure (path to destroy).
  * @param tc Task context.
  */
@@ -45,9 +47,13 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetPeerPath *path = cls;
   struct CadetPeer *peer;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "Destroy delayed %p (%u)\n", path, path->length);
   path->path_delete = GNUNET_SCHEDULER_NO_TASK;
   peer = GCP_get_short (path->peers[path->length - 1]);
-  GCP_remove_path (peer, path);
+  if (2 < path->length)
+    GCP_remove_path (peer, path);
+  else
+    path_destroy (path);
 }
 
 
@@ -133,8 +139,11 @@ path_get_length (struct CadetPeerPath *path)
 /**
  * Mark path as invalid: keep it aroud for a while to avoid trying it in a loop.
  *
- * DHT_get sometimes returns bad cached results, for instance, on a locally
- * cached result where the PUT followed a path that is no longer current.
+ * Never invalidates a two-hop (direct) path, only a core handler can do that.
+ *
+ * Rationale: DHT_get sometimes returns bad cached results, for instance,
+ * on a locally cached result where the PUT followed a path that is no longer
+ * current. The path must remain "known and marked as invalid" for a while.
  *
  * @param p Path to invalidate.
  */
@@ -144,6 +153,7 @@ path_invalidate (struct CadetPeerPath *p)
   if (GNUNET_SCHEDULER_NO_TASK != p->path_delete)
     return;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "Invalidating path %p (%u)\n", p, p->length);
   p->path_delete = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                  &path_destroy_delayed, p);
 }
@@ -240,6 +250,7 @@ path_destroy (struct CadetPeerPath *p)
   if (NULL == p)
     return GNUNET_OK;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "destroying path %p (%u)\n", p, p->length);
   GNUNET_PEER_decrement_rcs (p->peers, p->length);
   GNUNET_free_non_null (p->peers);
   if (GNUNET_SCHEDULER_NO_TASK != p->path_delete)
