@@ -1144,10 +1144,10 @@ unix_plugin_do_write (struct Plugin *plugin)
                               GNUNET_TRANSPORT_SS_UPDATE);
     return; /* Nothing to send at the moment */
   }
-
+  session = msgw->session;
   sent = unix_real_send (plugin,
                          plugin->unix_sock.desc,
-                         &msgw->session->target,
+                         &session->target,
                          (const char *) msgw->msg,
                          msgw->msgsize,
                          msgw->priority,
@@ -1169,7 +1169,6 @@ unix_plugin_do_write (struct Plugin *plugin)
   GNUNET_CONTAINER_DLL_remove (plugin->msg_head,
                                plugin->msg_tail,
                                msgw);
-  session = msgw->session;
   session->msgs_in_queue--;
   GNUNET_assert (session->bytes_in_queue >= msgw->msgsize);
   session->bytes_in_queue -= msgw->msgsize;
