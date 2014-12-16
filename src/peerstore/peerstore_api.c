@@ -786,7 +786,7 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
 /**
  * When a watch record is received
  *
- * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
+ * @param cls a `struct GNUNET_PEERSTORE_Handle *`
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
@@ -800,12 +800,12 @@ handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   if (NULL == msg)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _
-         ("Problem receiving a watch response, no way to determine which request.\n"));
+         _("Problem receiving a watch response, no way to determine which request.\n"));
     reconnect (h);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a watch record from service.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received a watch record from service.\n");
   record = PEERSTORE_parse_record_message (msg);
   PEERSTORE_hash_key (record->sub_system, record->peer, record->key, &keyhash);
   wc = GNUNET_CONTAINER_multihashmap_get (h->watches, &keyhash);
@@ -813,6 +813,7 @@ handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Received a watch result for a non existing watch.\n"));
+    PEERSTORE_destroy_record (record);
     reconnect (h);
     return;
   }
@@ -825,7 +826,7 @@ handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
 /**
  * Callback after MQ envelope is sent
  *
- * @param cls a 'struct GNUNET_PEERSTORE_WatchContext *'
+ * @param cls a `struct GNUNET_PEERSTORE_WatchContext *`
  */
 static void
 watch_request_sent (void *cls)
