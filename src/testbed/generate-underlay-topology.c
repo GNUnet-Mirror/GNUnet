@@ -21,7 +21,7 @@
 /**
  * @file testbed/generate-underlay-topology.c
  * @brief Program to generate a database file containing given underlay topology
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -165,10 +165,10 @@ setup_db (const char *dbfile)
       " ?1,"
       " ?2,"
       " ?3,"
-      " ?4," 
+      " ?4,"
       " ?5);";
   int ret;
-  
+
   ret = GNUNET_SYSERR;
   if (SQLITE_OK != sqlite3_open (dbfile, &db))
   {
@@ -338,7 +338,7 @@ main (int argc, char *const argv[])
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
-  
+
   exit_result = GNUNET_SYSERR;
   ret =
       GNUNET_PROGRAM_run (argc, argv, "gnunet-underlay-topology",
@@ -364,7 +364,7 @@ main (int argc, char *const argv[])
   if (NULL != stmt_insert)
     sqlite3_finalize (stmt_insert);
   if (NULL != db)
-    sqlite3_close (db);
+    GNUNET_break (SQLITE_OK == sqlite3_close (db));
   if ((GNUNET_OK != ret) || (GNUNET_OK != exit_result))
     return 1;
   return 0;
