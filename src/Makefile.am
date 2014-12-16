@@ -8,7 +8,6 @@ if HAVE_TESTING
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
  EXPERIMENTATION = experimentation
- SCALARPRODUCT = scalarproduct
  SENSOR = sensor
  SENSORDASHBOARD = sensordashboard
 endif
@@ -24,7 +23,6 @@ if HAVE_EXPERIMENTAL
   social \
   $(CONSENSUS) \
   $(SECRETSHARING) \
-  $(SCALARPRODUCT) \
   $(EXPERIMENTATION) \
   $(SENSOR) \
   $(SENSORDASHBOARD)
@@ -80,6 +78,7 @@ SUBDIRS = \
   dns \
   identity \
   set \
+  scalarproduct \
   revocation \
   gnsrecord \
   namecache \
