@@ -673,9 +673,14 @@ create_full_sensor_msg (char *sensorname)
   sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
   if (NULL == sensor)
     return NULL;
-  GNUNET_asprintf (&sensor_path, "%s%s", sensor_dir, sensorname);
+  GNUNET_asprintf (&sensor_path,
+                   "%s%s",
+                   sensor_dir,
+                   sensorname);
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size (sensor_path, &sensorfile_size, GNUNET_NO,
+      GNUNET_DISK_file_size (sensor_path,
+                             &sensorfile_size,
+                             GNUNET_NO,
                              GNUNET_YES))
   {
     GNUNET_free (sensor_dir);
@@ -683,19 +688,24 @@ create_full_sensor_msg (char *sensorname)
     return NULL;
   }
   sensorname_size = strlen (sensorname) + 1;
+  sensorscript_path = NULL;
   sensorscript_size = 0;
   sensorscriptname_size = 0;
   /* Test if there is an associated script */
   if (NULL != sensor->ext_process)
   {
-    GNUNET_asprintf (&sensorscript_path, "%s%s-files%s%s", sensor_dir,
-                     sensor->name, DIR_SEPARATOR_STR, sensor->ext_process);
+    GNUNET_asprintf (&sensorscript_path,
+                     "%s%s-files%s%s",
+                     sensor_dir,
+                     sensor->name,
+                     DIR_SEPARATOR_STR,
+                     sensor->ext_process);
     if (GNUNET_OK ==
-        GNUNET_DISK_file_size (sensorscript_path, &sensorscript_size, GNUNET_NO,
+        GNUNET_DISK_file_size (sensorscript_path,
+                               &sensorscript_size,
+                               GNUNET_NO,
                                GNUNET_YES))
-    {
       sensorscriptname_size = strlen (sensor->ext_process) + 1;
-    }
   }
   /* Construct the msg */
   total_size =
@@ -718,8 +728,8 @@ create_full_sensor_msg (char *sensorname)
     memcpy (dummy, sensor->ext_process, sensorscriptname_size);
     dummy += sensorscriptname_size;
     GNUNET_DISK_fn_read (sensorscript_path, dummy, sensorscript_size);
-    GNUNET_free (sensorscript_path);
   }
+  GNUNET_free_non_null (sensorscript_path);
   GNUNET_free (sensor_path);
   return msg;
 }
