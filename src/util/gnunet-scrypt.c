@@ -17,11 +17,9 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file util/gnunet-scrypt.c
  * @brief tool to manipulate SCRYPT proofs of work.
- *        largely stolen from gnunet-peerinfo.c and gnunet-service-nse.c
  * @author Bart Polot
  */
 #include "platform.h"
@@ -39,12 +37,17 @@ static unsigned long long nse_work_required;
 static struct GNUNET_TIME_Relative proof_find_delay;
 
 static struct GNUNET_CRYPTO_EddsaPublicKey pub;
-uint64_t proof;
-GNUNET_SCHEDULER_TaskIdentifier proof_task;
-const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-char *pkfn;
-char *pwfn;
+static uint64_t proof;
+
+static GNUNET_SCHEDULER_TaskIdentifier proof_task;
+
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+static char *pkfn;
+
+static char *pwfn;
+
 
 /**
  * Write our current proof to disk.
@@ -80,7 +83,6 @@ pow_hash (const void *buf,
                    2 /* iterations; keep cost of individual op small */,
                    sizeof (struct GNUNET_HashCode), result));
 }
-
 
 
 /**
@@ -181,19 +183,23 @@ find_proof (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *config)
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  char *pids;
 
   cfg = config;
 
   /* load proof of work */
   if (NULL == pwfn)
   {
-    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE",
-                                                              "PROOFFILE",
-                                                              &pwfn))
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE",
+                                                 "PROOFFILE",
+                                                 &pwfn))
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
                                  "NSE", "PROOFFILE");
@@ -201,9 +207,12 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Proof of Work file: %s\n", pwfn);
-  if (GNUNET_YES != GNUNET_DISK_file_test (pwfn) ||
-      sizeof (proof) != GNUNET_DISK_fn_read (pwfn, &proof, sizeof (proof)))
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Proof of Work file: %s\n",
+              pwfn);
+  if ( (GNUNET_YES != GNUNET_DISK_file_test (pwfn)) ||
+       (sizeof (proof) !=
+        GNUNET_DISK_fn_read (pwfn, &proof, sizeof (proof))))
     proof = 0;
 
   /* load private key */
@@ -228,8 +237,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free (pkfn);
   GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
   GNUNET_free (pk);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer ID: %s\n",
-              GNUNET_CRYPTO_eddsa_public_key_to_string (&pub));
+  pids = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer ID: %s\n",
+              pids);
+  GNUNET_free (pids);
 
   /* get target bit amount */
   if (0 == nse_work_required)
@@ -255,9 +267,12 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,  "Bits: %llu\n", nse_work_required);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Bits: %llu\n",
+              nse_work_required);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Delay between tries: %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delay between tries: %s\n",
               GNUNET_STRINGS_relative_time_to_string (proof_find_delay, 1));
   GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                       &find_proof, NULL);
@@ -295,7 +310,8 @@ main (int argc, char *const *argv)
     return 2;
 
   ret = (GNUNET_OK ==
-         GNUNET_PROGRAM_run (argc, argv, "gnunet-scrypt [OPTIONS] prooffile",
+         GNUNET_PROGRAM_run (argc, argv,
+                             "gnunet-scrypt [OPTIONS] prooffile",
                              gettext_noop ("Manipulate GNUnet proof of work files"),
                              options, &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
@@ -303,4 +319,4 @@ main (int argc, char *const *argv)
   return ret;
 }
 
-/* end of gnunet-ecc.c */
+/* end of gnunet-scrypt.c */
