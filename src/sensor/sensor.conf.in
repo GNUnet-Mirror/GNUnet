@@ -2,6 +2,7 @@
 AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-sensor
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-sensor.sock
+@UNIXONLY@ PORT = 2120
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 
@@ -13,7 +14,7 @@ START_UPDATE = YES
 
 # Path to directory containing sensor definitions.
 # If not set, will load from default location.
-#SENSOR_DIR = 
+#SENSOR_DIR =
 
 [sensor-analysis]
 MODEL = gaussian
