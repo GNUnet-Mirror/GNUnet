@@ -134,7 +134,7 @@ struct NSEPeerEntry
 
   /**
    * Did we receive or send a message about the previous round
-   * to this peer yet?   GNUNET_YES if the previous round has
+   * to this peer yet?   #GNUNET_YES if the previous round has
    * been taken care of.
    */
   int previous_round;
@@ -171,7 +171,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_NSE_FloodMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD
+   * Type: #GNUNET_MESSAGE_TYPE_NSE_P2P_FLOOD
    */
   struct GNUNET_MessageHeader header;
 
@@ -399,11 +399,18 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->reserved = htonl (0);
   em->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   double se = mean - 0.332747;
-  nsize = log2 (GNUNET_CONTAINER_multipeermap_size (peers) + 1);
-  em->size_estimate = GNUNET_hton_double (GNUNET_MAX (se, nsize));
+  j = GNUNET_CONTAINER_multipeermap_size (peers);
+  if (0 == j)
+    j = 1; /* Avoid log2(0); can only happen if CORE didn't report
+              connection to self yet */
+  nsize = log2 (j);
+  em->size_estimate = GNUNET_hton_double (GNUNET_MAX (se,
+                                                      nsize));
   em->std_deviation = GNUNET_hton_double (std_dev);
-  GNUNET_STATISTICS_set (stats, "# nodes in the network (estimate)",
-                         (uint64_t) pow (2, mean - 1.0 / 3.0), GNUNET_NO);
+  GNUNET_STATISTICS_set (stats,
+                         "# nodes in the network (estimate)",
+                         (uint64_t) pow (2, em->size_estimate),
+                         GNUNET_NO);
 }
 
 
@@ -519,10 +526,14 @@ get_matching_bits (struct GNUNET_TIME_Absolute timestamp,
   struct GNUNET_HashCode timestamp_hash;
   struct GNUNET_HashCode pid_hash;
 
-  GNUNET_CRYPTO_hash (&timestamp.abs_value_us, sizeof (timestamp.abs_value_us),
+  GNUNET_CRYPTO_hash (&timestamp.abs_value_us,
+                      sizeof (timestamp.abs_value_us),
                       &timestamp_hash);
-  GNUNET_CRYPTO_hash (id, sizeof (struct GNUNET_PeerIdentity), &pid_hash);
-  return GNUNET_CRYPTO_hash_matching_bits (&timestamp_hash, &pid_hash);
+  GNUNET_CRYPTO_hash (id,
+                      sizeof (struct GNUNET_PeerIdentity),
+                      &pid_hash);
+  return GNUNET_CRYPTO_hash_matching_bits (&timestamp_hash,
+                                           &pid_hash);
 }
 
 
@@ -618,8 +629,9 @@ transmit_ready (void *cls,
     idx = (idx + HISTORY_SIZE - 1) % HISTORY_SIZE;
     peer_entry->previous_round = GNUNET_YES;
     peer_entry->transmit_task =
-        GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0), &transmit_task_cb,
-                                      peer_entry);
+      GNUNET_SCHEDULER_add_delayed (get_transmit_delay (0),
+                                    &transmit_task_cb,
+                                    peer_entry);
   }
   if ((0 == ntohl (size_estimate_messages[idx].hop_count)) &&
       (GNUNET_SCHEDULER_NO_TASK != proof_task))
@@ -827,7 +839,9 @@ update_flood_message (void *cls,
   for (i = 0; i < HISTORY_SIZE; i++)
     hop_count_max =
         GNUNET_MAX (ntohl (size_estimate_messages[i].hop_count), hop_count_max);
-  GNUNET_CONTAINER_multipeermap_iterate (peers, &schedule_current_round, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
+                                         &schedule_current_round,
+                                         NULL);
   flood_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (next_timestamp), &update_flood_message,
@@ -1229,7 +1243,6 @@ handle_p2p_size_estimate (void *cls,
 }
 
 
-
 /**
  * Method called whenever a peer connects. Sets up the PeerEntry and
  * schedules the initial size info transmission to this peer.
@@ -1243,18 +1256,24 @@ handle_core_connect (void *cls,
 {
   struct NSEPeerEntry *peer_entry;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected to us\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
   peer_entry = GNUNET_new (struct NSEPeerEntry);
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (peers, peer,
+                 GNUNET_CONTAINER_multipeermap_put (peers,
+                                                    peer,
                                                     peer_entry,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,
+      GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1),
+                                    &transmit_task_cb,
                                     peer_entry);
-  GNUNET_STATISTICS_update (stats, "# peers connected", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+                            "# peers connected",
+                            1,
+                            GNUNET_NO);
 }
 
 
@@ -1540,7 +1559,7 @@ run (void *cls,
         GNUNET_CLIENT_service_test ("testbed-logger", cfg,
                                     GNUNET_TIME_UNIT_SECONDS,
                                     &status_cb, NULL);
-    
+
   }
 #endif
 
