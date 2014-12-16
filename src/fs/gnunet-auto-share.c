@@ -219,10 +219,11 @@ load_state ()
     GNUNET_CRYPTO_hash (wi->filename,
 			strlen (wi->filename),
 			&id);
-    GNUNET_CONTAINER_multihashmap_put (work_finished,
-				       &id,
-				       wi,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (work_finished,
+                                                     &id,
+                                                     wi,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   if (GNUNET_OK ==
       GNUNET_BIO_read_close (rh, &emsg))
@@ -403,10 +404,11 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CRYPTO_hash (wi->filename,
 			strlen (wi->filename),
 			&key);
-    GNUNET_CONTAINER_multihashmap_put (work_finished,
-				       &key,
-				       wi,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (work_finished,
+                                                     &key,
+                                                     wi,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   else
   {
