@@ -698,7 +698,7 @@ hello_callback (void *cls,
   }
   my_hello = (struct GNUNET_HELLO_Message *) GNUNET_copy_message (hello);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_HELLO_get_id (hello,
+                 GNUNET_HELLO_get_id (my_hello,
                                       &my_peer_identity));
   GNUNET_TRANSPORT_get_hello_cancel (gh);
   gh = NULL;
