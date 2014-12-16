@@ -221,7 +221,6 @@ check ()
 int
 main (int argc, char *argv[])
 {
-
   int ret;
 
   GNUNET_DISK_directory_remove ("/tmp/test-gnunet-hostlist-peer-1");
