@@ -134,7 +134,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       continue;
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONTAINER_multihashmap_put (set_a, &id, NULL,
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     register_hashcode (&id);
     i++;
   }
