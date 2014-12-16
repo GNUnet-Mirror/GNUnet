@@ -355,11 +355,6 @@ test_container_heap_SOURCES = \
 test_container_heap_LDADD = \
  libgnunetutil.la
 
-test_container_slist_SOURCES = \
- test_container_slist.c
-test_container_slist_LDADD = \
- libgnunetutil.la
-
 test_crypto_symmetric_SOURCES = \
  test_crypto_symmetric.c
 test_crypto_symmetric_LDADD = \
