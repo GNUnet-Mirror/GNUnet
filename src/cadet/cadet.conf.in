@@ -1,5 +1,5 @@
 [cadet]
-PREFIX = valgrind
+# PREFIX = valgrind
 FORCESTART = YES
 AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2096
