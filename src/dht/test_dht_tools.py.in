@@ -98,10 +98,6 @@ def print_only_failer (command, rc, stdo, stde, normal):
 
 shutil.copyfile ('test_dht_api_peer1.conf', tempcfg)
 
-print ("TEST: Generating hostkey...", end='')
-r_pif ([], failer = print_only_failer)
-print ("PASS")
-
 print ("TEST: Starting ARM...", end='')
 r_arm (['-s'], failer = end_arm_failer, want_stdo = False, want_stde = False)
 print ("PASS")
