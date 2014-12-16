@@ -770,7 +770,7 @@ compute_service_response (struct BobServiceSession *session)
                                         &r[i]))
     {
       GNUNET_break_op (0);
-      return GNUNET_SYSERR;
+      goto error_cleanup;
     }
   }
 
@@ -793,7 +793,7 @@ compute_service_response (struct BobServiceSession *session)
                                         &r_prime[i]))
     {
       GNUNET_break_op (0);
-      return GNUNET_SYSERR;
+      goto error_cleanup;
     }
   }
   gcry_mpi_release (tmp);
@@ -821,7 +821,6 @@ compute_service_response (struct BobServiceSession *session)
   session->r = r;
   session->r_prime = r_prime;
 
-  // release rand, b and a
   for (i = 0; i < count; i++)
     gcry_mpi_release (rand[i]);
   GNUNET_free (session->e_a);
@@ -830,6 +829,17 @@ compute_service_response (struct BobServiceSession *session)
   GNUNET_free (q);
   GNUNET_free (rand);
   return GNUNET_OK;
+
+ error_cleanup:
+  GNUNET_free (r);
+  GNUNET_free (r_prime);
+  gcry_mpi_release (tmp);
+  GNUNET_free (p);
+  GNUNET_free (q);
+  for (i = 0; i < count; i++)
+    gcry_mpi_release (rand[i]);
+  GNUNET_free (rand);
+  return GNUNET_SYSERR;
 }
 
 
