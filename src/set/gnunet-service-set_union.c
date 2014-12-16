@@ -874,10 +874,13 @@ decode_and_send (struct Operation *op)
 
       /* It may be nice to merge multiple requests, but with cadet's corking it is not worth
        * the effort additional complexity. */
-      ev = GNUNET_MQ_msg_header_extra (msg, sizeof (struct IBF_Key),
-                                        GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
+      ev = GNUNET_MQ_msg_header_extra (msg,
+                                       sizeof (struct IBF_Key),
+                                       GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
 
-      *(struct IBF_Key *) &msg[1] = key;
+      memcpy (&msg[1],
+              &key,
+              sizeof (struct IBF_Key));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "sending element request\n");
       GNUNET_MQ_send (op->mq, ev);

@@ -31,65 +31,79 @@
 static struct GNUNET_PeerIdentity local_id;
 
 static struct GNUNET_HashCode app_id;
-static struct GNUNET_SET_Handle *set1;
-static struct GNUNET_SET_Handle *set2;
-static struct GNUNET_SET_ListenHandle *listen_handle;
-const static struct GNUNET_CONFIGURATION_Handle *config;
 
-static int iter_count;
+static struct GNUNET_SET_Handle *set1;
+
+static struct GNUNET_SET_Handle *set2;
+
+static struct GNUNET_SET_ListenHandle *listen_handle;
+
+static const struct GNUNET_CONFIGURATION_Handle *config;
+
+static unsigned int iter_count;
 
 static int ret;
 
 
 static void
-result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
+result_cb_set1 (void *cls,
+                const struct GNUNET_SET_Element *element,
                 enum GNUNET_SET_Status status)
 {
   switch (status)
   {
-    case GNUNET_SET_STATUS_OK:
-      printf ("set 1: got element\n");
-      break;
-    case GNUNET_SET_STATUS_FAILURE:
-      printf ("set 1: failure\n");
-      ret = 1;
+  case GNUNET_SET_STATUS_OK:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "set 1: got element\n");
+    break;
+  case GNUNET_SET_STATUS_FAILURE:
+    GNUNET_break (0);
+    fprintf (stderr,
+             "set 1: received failure status!\n");
+    ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    break;
+  case GNUNET_SET_STATUS_DONE:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "set 1: done\n");
+    GNUNET_SET_destroy (set1);
+    set1 = NULL;
+    if (NULL == set2)
       GNUNET_SCHEDULER_shutdown ();
-      break;
-    case GNUNET_SET_STATUS_DONE:
-      printf ("set 1: done\n");
-      GNUNET_SET_destroy (set1);
-      set1 = NULL;
-      if (NULL == set2)
-        GNUNET_SCHEDULER_shutdown ();
-      break;
-    default:
-      GNUNET_assert (0);
+    break;
+  default:
+    GNUNET_assert (0);
   }
 }
 
 
 static void
-result_cb_set2 (void *cls, const struct GNUNET_SET_Element *element,
-           enum GNUNET_SET_Status status)
+result_cb_set2 (void *cls,
+                const struct GNUNET_SET_Element *element,
+                enum GNUNET_SET_Status status)
 {
   switch (status)
   {
-    case GNUNET_SET_STATUS_OK:
-      printf ("set 2: got element\n");
-      break;
-    case GNUNET_SET_STATUS_FAILURE:
-      printf ("set 2: failure\n");
-      ret = 1;
-      break;
-    case GNUNET_SET_STATUS_DONE:
-      printf ("set 2: done\n");
-      GNUNET_SET_destroy (set2);
-      set2 = NULL;
-      if (NULL == set1)
-        GNUNET_SCHEDULER_shutdown ();
-      break;
-    default:
-      GNUNET_assert (0);
+  case GNUNET_SET_STATUS_OK:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "set 2: got element\n");
+    break;
+  case GNUNET_SET_STATUS_FAILURE:
+    GNUNET_break (0);
+    fprintf (stderr,
+             "set 2: received failure status\n");
+    ret = 1;
+    break;
+  case GNUNET_SET_STATUS_DONE:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "set 2: done\n");
+    GNUNET_SET_destroy (set2);
+    set2 = NULL;
+    if (NULL == set1)
+      GNUNET_SCHEDULER_shutdown ();
+    break;
+  default:
+    GNUNET_assert (0);
   }
 }
 
@@ -106,10 +120,12 @@ listen_cb (void *cls,
 
   GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_TEST);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
-
-  oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED, result_cb_set2, NULL);
+  oh = GNUNET_SET_accept (request,
+                          GNUNET_SET_RESULT_ADDED,
+                          &result_cb_set2, NULL);
   GNUNET_SET_commit (oh, set2);
 }
 
@@ -190,12 +206,14 @@ iter_cb (void *cls,
 {
   if (NULL == element)
   {
-    GNUNET_assert (iter_count == 3);
+    GNUNET_assert (3 == iter_count);
     GNUNET_SET_destroy (cls);
     return GNUNET_YES;
   }
-  printf ("iter: got element\n");
   iter_count++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "iter: got element %u\n",
+              iter_count);
   return GNUNET_YES;
 }
 
@@ -262,17 +280,19 @@ run (void *cls,
 
   config = cfg;
   GNUNET_CRYPTO_get_peer_identity (cfg, &local_id);
-  printf ("my id (from CRYPTO): %s\n", GNUNET_i2s (&local_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "my id (from CRYPTO): %s\n",
+              GNUNET_i2s (&local_id));
   GNUNET_TESTING_peer_get_identity (peer, &local_id);
-  printf ("my id (from TESTING): %s\n", GNUNET_i2s (&local_id));
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "my id (from TESTING): %s\n",
+              GNUNET_i2s (&local_id));
   test_iter ();
 
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   set2 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &app_id);
-
-
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    &app_id);
 
   ///* test if canceling an uncommited request works! */
   my_oh = GNUNET_SET_prepare (&local_id, &app_id, NULL,
@@ -283,6 +303,7 @@ run (void *cls,
   /* test the real set reconciliation */
   init_set1 ();
 }
+
 
 int
 main (int argc, char **argv)
