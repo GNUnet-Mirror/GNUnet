@@ -836,7 +836,7 @@ main_notify_handler (void *cls,
                                                       &h->me, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     if (NULL != h->connects)
-      h->connects (h->cls, &h->me);
+      h->connects (h->cls, &pr->peer);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT:
     if (msize < sizeof (struct ConnectNotifyMessage))
@@ -879,7 +879,7 @@ main_notify_handler (void *cls,
                                                       &cnm->peer, pr,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     if (NULL != h->connects)
-      h->connects (h->cls, &cnm->peer);
+      h->connects (h->cls, &pr->peer);
     break;
   case GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT:
     if (msize != sizeof (struct DisconnectNotifyMessage))
