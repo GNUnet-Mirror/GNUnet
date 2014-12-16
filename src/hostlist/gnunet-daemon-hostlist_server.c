@@ -430,7 +430,8 @@ access_handler_callback (void *cls,
 /**
  * Handler called by CORE when CORE is ready to transmit message
  *
- * @param cls closure
+ * @param cls closure with the `const struct GNUNET_PeerIdentity *` of
+ *            the peer we are sending to
  * @param size size of buffer to copy message to
  * @param buf buffer to copy message to
  * @return number of bytes copied to @a buf
@@ -440,12 +441,21 @@ adv_transmit_ready (void *cls,
                     size_t size,
                     void *buf)
 {
+  const struct GNUNET_PeerIdentity *peer = cls;
   static uint64_t hostlist_adv_count;
   size_t transmission_size;
   size_t uri_size;              /* Including \0 termination! */
   struct GNUNET_MessageHeader header;
   char *cbuf;
+  struct GNUNET_CORE_TransmitHandle *th;
 
+  th = GNUNET_CONTAINER_multipeermap_get (advertisements,
+                                          peer);
+  GNUNET_assert (NULL != th);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (advertisements,
+                                                       peer,
+                                                       th));
   if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -518,7 +528,8 @@ connect_handler (void *cls,
                                                GNUNET_ADV_TIMEOUT,
                                                peer,
                                                size,
-                                               &adv_transmit_ready, NULL)) )
+                                               &adv_transmit_ready,
+                                               (void *) peer)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Advertisement message could not be queued by core\n"));
