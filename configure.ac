@@ -1443,8 +1443,6 @@ src/dv/Makefile
 src/dv/dv.conf
 src/env/Makefile
 src/exit/Makefile
-src/experimentation/Makefile
-src/experimentation/experimentation.conf
 src/fragmentation/Makefile
 src/fs/Makefile
 src/fs/fs.conf

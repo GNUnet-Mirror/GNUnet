@@ -7,7 +7,6 @@ if HAVE_TESTING
  TESTBED = testbed
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
- EXPERIMENTATION = experimentation
  SENSOR = sensor
  SENSORDASHBOARD = sensordashboard
 endif
@@ -23,7 +22,6 @@ if HAVE_EXPERIMENTAL
   social \
   $(CONSENSUS) \
   $(SECRETSHARING) \
-  $(EXPERIMENTATION) \
   $(SENSOR) \
   $(SENSORDASHBOARD)
 endif
