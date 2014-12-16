@@ -638,8 +638,9 @@ static void
 peer_connect_handler (void *cls,
                       const struct GNUNET_PeerIdentity *peer)
 {
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_id,
-                                            peer))
+  if (0 ==
+      GNUNET_CRYPTO_cmp_peer_identity (&my_id,
+                                       peer))
     return;
   GSF_peer_connect_handler_ (peer,
                              &connected_peer_cb,
@@ -737,6 +738,9 @@ main_init (struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_eddsa_key_get_public (pk,
                                       &my_id.public_key);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "I am peer %s\n",
+              GNUNET_i2s (&my_id));
   GSF_core
     = GNUNET_CORE_connect (GSF_cfg, NULL,
                            &peer_init_handler,

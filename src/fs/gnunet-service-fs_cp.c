@@ -608,7 +608,8 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
 {
   struct GSF_ConnectedPeer *cp;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Connected to peer %s\n",
               GNUNET_i2s (peer));
   cp = GNUNET_new (struct GSF_ConnectedPeer);
   cp->ppd.pid = GNUNET_PEER_intern (peer);
