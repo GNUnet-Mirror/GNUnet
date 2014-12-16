@@ -158,23 +158,25 @@ struct GSF_PeerPerformanceData
  * @param cp handle to the connected peer record
  * @param perf peer performance data
  */
-typedef void (*GSF_ConnectedPeerIterator) (void *cls,
-                                           const struct GNUNET_PeerIdentity *
-                                           peer, struct GSF_ConnectedPeer * cp,
-                                           const struct GSF_PeerPerformanceData
-                                           * ppd);
+typedef void
+(*GSF_ConnectedPeerIterator) (void *cls,
+                              const struct GNUNET_PeerIdentity *peer,
+                              struct GSF_ConnectedPeer *cp,
+                              const struct GSF_PeerPerformanceData *ppd);
 
 
 /**
  * Function called to get a message for transmission.
  *
  * @param cls closure
- * @param buf_size number of bytes available in buf
+ * @param buf_size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error (peer disconnect)
- * @return number of bytes copied to 'buf', can be 0 (without indicating an error)
+ * @return number of bytes copied to @a buf, can be 0 (without indicating an error)
  */
-typedef size_t (*GSF_GetMessageCallback) (void *cls, size_t buf_size,
-                                          void *buf);
+typedef size_t
+(*GSF_GetMessageCallback) (void *cls,
+                           size_t buf_size,
+                           void *buf);
 
 
 /**
@@ -182,11 +184,12 @@ typedef size_t (*GSF_GetMessageCallback) (void *cls, size_t buf_size,
  *
  * @param cls closure
  * @param cp handle to the connected peer record
- * @param success GNUNET_YES on success, GNUNET_NO on failure
+ * @param success #GNUNET_YES on success, #GNUNET_NO on failure
  */
-typedef void (*GSF_PeerReserveCallback) (void *cls,
-                                         struct GSF_ConnectedPeer * cp,
-                                         int success);
+typedef void
+(*GSF_PeerReserveCallback) (void *cls,
+                            struct GSF_ConnectedPeer *cp,
+                            int success);
 
 
 /**
@@ -195,8 +198,9 @@ typedef void (*GSF_PeerReserveCallback) (void *cls,
  * @param cls closure
  * @param cp handle to the newly created connected peer record
  */
-typedef void (*GSF_ConnectedPeerCreationCallback) (void *cls,
-                                                   struct GSF_ConnectedPeer *cp);
+typedef void
+(*GSF_ConnectedPeerCreationCallback) (void *cls,
+                                      struct GSF_ConnectedPeer *cp);
 
 
 /**
@@ -255,9 +259,12 @@ GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
  * @return handle to cancel request
  */
 struct GSF_PeerTransmitHandle *
-GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp, int is_query,
-                    uint32_t priority, struct GNUNET_TIME_Relative timeout,
-                    size_t size, GSF_GetMessageCallback gmc, void *gmc_cls);
+GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
+                    int is_query,
+                    uint32_t priority,
+                    struct GNUNET_TIME_Relative timeout,
+                    size_t size, GSF_GetMessageCallback gmc,
+                    void *gmc_cls);
 
 
 /**
@@ -314,8 +321,8 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
 GSF_handle_p2p_migration_stop_ (void *cls,

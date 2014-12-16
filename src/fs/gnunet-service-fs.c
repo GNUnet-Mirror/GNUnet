@@ -220,9 +220,9 @@ GSF_update_datastore_delay_ (struct GNUNET_TIME_Absolute start)
  * all.
  *
  * @param priority priority of the request (used as a reference point to compare with the load)
- * @return GNUNET_YES if the load is too high to do anything (load high)
- *         GNUNET_NO to process normally (load normal)
- *         GNUNET_SYSERR to process for free (load low)
+ * @return #GNUNET_YES if the load is too high to do anything (load high)
+ *         #GNUNET_NO to process normally (load normal)
+ *         #GNUNET_SYSERR to process for free (load low)
  */
 int
 GSF_test_get_load_too_high_ (uint32_t priority)
@@ -248,7 +248,7 @@ GSF_test_get_load_too_high_ (uint32_t priority)
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
+ * @param ats_count number of performance records in @a ats
  */
 static void
 update_latencies (void *cls,
@@ -306,6 +306,9 @@ handle_p2p_put (void *cls,
 {
   struct GSF_ConnectedPeer *cp;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received P2P PUT from %s\n",
+              GNUNET_i2s (other));
   cp = GSF_peer_get_ (other);
   if (NULL == cp)
   {
@@ -321,7 +324,7 @@ handle_p2p_put (void *cls,
  * We have a new request, consider forwarding it to the given
  * peer.
  *
- * @param cls the 'struct GSF_PendingRequest'
+ * @param cls the `struct GSF_PendingRequest`
  * @param peer identity of the peer
  * @param cp handle to the connected peer record
  * @param ppd peer performance data

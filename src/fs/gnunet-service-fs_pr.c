@@ -918,8 +918,8 @@ struct PutMigrationContext
   struct GNUNET_PeerIdentity origin;
 
   /**
-   * GNUNET_YES if we had a matching request for this block,
-   * GNUNET_NO if not.
+   * #GNUNET_YES if we had a matching request for this block,
+   * #GNUNET_NO if not.
    */
   int requested;
 };
@@ -992,8 +992,10 @@ put_migration_continuation (void *cls, int success,
       ppd->migration_delay = GNUNET_TIME_relative_multiply (ppd->migration_delay, 2);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Replicated content already exists locally, asking to stop migration for %s\n",
-		  GNUNET_STRINGS_relative_time_to_string (mig_pause, GNUNET_YES));
-      GSF_block_peer_migration_ (cp, GNUNET_TIME_relative_to_absolute (mig_pause));
+		  GNUNET_STRINGS_relative_time_to_string (mig_pause,
+                                                          GNUNET_YES));
+      GSF_block_peer_migration_ (cp,
+                                 GNUNET_TIME_relative_to_absolute (mig_pause));
     }
   }
   GNUNET_free (pmc);
@@ -1048,13 +1050,16 @@ test_put_load_too_high (uint32_t priority)
  * @param data pointer to the result data
  */
 static void
-handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
-                  const struct GNUNET_HashCode * key,
+handle_dht_reply (void *cls,
+                  struct GNUNET_TIME_Absolute exp,
+                  const struct GNUNET_HashCode *key,
                   const struct GNUNET_PeerIdentity *get_path,
                   unsigned int get_path_length,
                   const struct GNUNET_PeerIdentity *put_path,
-                  unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
-                  size_t size, const void *data)
+                  unsigned int put_path_length,
+                  enum GNUNET_BLOCK_Type type,
+                  size_t size,
+                  const void *data)
 {
   struct GSF_PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
@@ -1089,7 +1094,10 @@ handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
                               GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
-      put_migration_continuation (pmc, GNUNET_SYSERR, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
+      put_migration_continuation (pmc,
+                                  GNUNET_SYSERR,
+                                  GNUNET_TIME_UNIT_ZERO_ABS,
+                                  NULL);
     }
   }
 }
@@ -1629,8 +1637,8 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
  * @param cp the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return GNUNET_OK if the message was well-formed,
- *         GNUNET_SYSERR if the message was malformed (close connection,
+ * @return #GNUNET_OK if the message was well-formed,
+ *         #GNUNET_SYSERR if the message was malformed (close connection,
  *         do not cache under any circumstances)
  */
 int
@@ -1661,10 +1669,14 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   /* do not allow migrated content to live longer than 1 year */
   expiration = GNUNET_TIME_absolute_min (GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_YEARS),
 					 expiration);
-  if (type == GNUNET_BLOCK_TYPE_FS_ONDEMAND)
+  if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
     return GNUNET_SYSERR;
   if (GNUNET_OK !=
-      GNUNET_BLOCK_get_key (GSF_block_ctx, type, &put[1], dsize, &query))
+      GNUNET_BLOCK_get_key (GSF_block_ctx,
+                            type,
+                            &put[1],
+                            dsize,
+                            &query))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1681,7 +1693,9 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   prq.priority = 0;
   prq.anonymity_level = UINT32_MAX;
   prq.request_found = GNUNET_NO;
-  GNUNET_CONTAINER_multihashmap_get_multiple (pr_map, &query, &process_reply,
+  GNUNET_CONTAINER_multihashmap_get_multiple (pr_map,
+                                              &query,
+                                              &process_reply,
                                               &prq);
   if (NULL != cp)
   {
@@ -1696,7 +1710,8 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Replicating result for query `%s' with priority %u\n",
-                GNUNET_h2s (&query), prq.priority);
+                GNUNET_h2s (&query),
+                prq.priority);
     pmc = GNUNET_new (struct PutMigrationContext);
     pmc->start = GNUNET_TIME_absolute_get ();
     pmc->requested = prq.request_found;
@@ -1711,7 +1726,10 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
                               GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &put_migration_continuation, pmc))
     {
-      put_migration_continuation (pmc, GNUNET_SYSERR, GNUNET_TIME_UNIT_ZERO_ABS, NULL);
+      put_migration_continuation (pmc,
+                                  GNUNET_SYSERR,
+                                  GNUNET_TIME_UNIT_ZERO_ABS,
+                                  NULL);
     }
   }
   else if (NULL != cp)

@@ -368,13 +368,15 @@ GSF_get_peer_performance_data_ (struct GSF_ConnectedPeer *cp)
 /**
  * Core is ready to transmit to a peer, get the message.
  *
- * @param cls the 'struct GSF_PeerTransmitHandle' of the message
+ * @param cls the `struct GSF_PeerTransmitHandle` of the message
  * @param size number of bytes core is willing to take
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
-peer_transmit_ready_cb (void *cls, size_t size, void *buf);
+peer_transmit_ready_cb (void *cls,
+                        size_t size,
+                        void *buf);
 
 
 /**
@@ -388,8 +390,10 @@ peer_transmit_ready_cb (void *cls, size_t size, void *buf);
  *        long should the client wait until re-trying?
  */
 static void
-ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      int32_t amount, struct GNUNET_TIME_Relative res_delay);
+ats_reserve_callback (void *cls,
+                      const struct GNUNET_PeerIdentity *peer,
+                      int32_t amount,
+                      struct GNUNET_TIME_Relative res_delay);
 
 
 /**
@@ -447,10 +451,10 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
 /**
  * Core is ready to transmit to a peer, get the message.
  *
- * @param cls the 'struct GSF_PeerTransmitHandle' of the message
+ * @param cls the `struct GSF_PeerTransmitHandle` of the message
  * @param size number of bytes core is willing to take
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 peer_transmit_ready_cb (void *cls, size_t size, void *buf)
@@ -502,7 +506,7 @@ peer_transmit_ready_cb (void *cls, size_t size, void *buf)
 /**
  * (re)try to reserve bandwidth from the given peer.
  *
- * @param cls the 'struct GSF_ConnectedPeer' to reserve from
+ * @param cls the `struct GSF_ConnectedPeer` to reserve from
  * @param tc scheduler context
  */
 static void
@@ -564,6 +568,7 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
+
 /**
  * Function called by PEERSTORE with peer respect record
  *
@@ -573,7 +578,9 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @return #GNUNET_NO to stop iterating since we only expect 0 or 1 records
  */
 static int
-peer_respect_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+peer_respect_cb (void *cls,
+                 struct GNUNET_PEERSTORE_Record *record,
+                 char *emsg)
 {
   struct GSF_ConnectedPeer *cp = cls;
 
@@ -631,11 +638,12 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
  * It may be time to re-start migrating content to this
  * peer.  Check, and if so, restart migration.
  *
- * @param cls the 'struct GSF_ConnectedPeer'
+ * @param cls the `struct GSF_ConnectedPeer`
  * @param tc scheduler context
  */
 static void
-revive_migration (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+revive_migration (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct GNUNET_TIME_Relative bt;
@@ -675,8 +683,8 @@ GSF_peer_get_ (const struct GNUNET_PeerIdentity *peer)
  * @param other the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
 GSF_handle_p2p_migration_stop_ (void *cls,
@@ -707,7 +715,8 @@ GSF_handle_p2p_migration_stop_ (void *cls,
   {
     GSF_push_stop_ (cp);
     cp->mig_revive_task =
-        GNUNET_SCHEDULER_add_delayed (bt, &revive_migration, cp);
+        GNUNET_SCHEDULER_add_delayed (bt,
+                                      &revive_migration, cp);
   }
   return GNUNET_OK;
 }
@@ -716,8 +725,8 @@ GSF_handle_p2p_migration_stop_ (void *cls,
 /**
  * Copy reply and free put message.
  *
- * @param cls the 'struct PutMessage'
- * @param buf_size number of bytes available in buf
+ * @param cls the `struct PutMessage`
+ * @param buf_size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error (peer disconnect)
  * @return number of bytes copied to 'buf', can be 0 (without indicating an error)
  */
@@ -779,11 +788,13 @@ free_pending_request (struct PeerRequest *peerreq,
  *
  * @param cls unused
  * @param query hash code of the request
- * @param value the 'struct GSF_PendingRequest'
- * @return GNUNET_YES (continue to iterate)
+ * @param value the `struct GSF_PendingRequest`
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
-cancel_pending_request (void *cls, const struct GNUNET_HashCode * query, void *value)
+cancel_pending_request (void *cls,
+                        const struct GNUNET_HashCode *query,
+                        void *value)
 {
   struct PeerRequest *peerreq = value;
   struct GSF_PendingRequest *pr = peerreq->pr;
@@ -803,7 +814,8 @@ cancel_pending_request (void *cls, const struct GNUNET_HashCode * query, void *v
  * @param tc task context
  */
 static void
-peer_request_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+peer_request_destroy (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerRequest *peerreq = cls;
   struct GSF_PendingRequest *pr = peerreq->pr;
@@ -822,7 +834,8 @@ peer_request_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc scheduler context
  */
 static void
-transmit_delayed_now (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_delayed_now (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_DelayedHandle *dh = cls;
   struct GSF_ConnectedPeer *cp = dh->cp;
@@ -873,22 +886,25 @@ get_randomized_delay ()
  * and will also not be called anymore after a call signalling
  * expiration.
  *
- * @param cls 'struct PeerRequest' this is an answer for
+ * @param cls `struct PeerRequest` this is an answer for
  * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
- * @param expiration when does 'data' expire?
+ * @param expiration when does @a data expire?
  * @param last_transmission when did we last transmit a request for this block
  * @param type type of the block
  * @param data response data, NULL on request expiration
- * @param data_len number of bytes in data
+ * @param data_len number of bytes in @a data
  */
 static void
-handle_p2p_reply (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
-                  struct GSF_PendingRequest *pr, uint32_t reply_anonymity_level,
+handle_p2p_reply (void *cls,
+                  enum GNUNET_BLOCK_EvaluationResult eval,
+                  struct GSF_PendingRequest *pr,
+                  uint32_t reply_anonymity_level,
                   struct GNUNET_TIME_Absolute expiration,
                   struct GNUNET_TIME_Absolute last_transmission,
-                  enum GNUNET_BLOCK_Type type, const void *data,
+                  enum GNUNET_BLOCK_Type type,
+                  const void *data,
                   size_t data_len)
 {
   struct PeerRequest *peerreq = cls;
@@ -1328,7 +1344,8 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
  * @param tc scheduler context
  */
 static void
-peer_transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+peer_transmit_timeout (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_PeerTransmitHandle *pth = cls;
   struct GSF_ConnectedPeer *cp;
@@ -1369,9 +1386,12 @@ peer_transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return handle to cancel request
  */
 struct GSF_PeerTransmitHandle *
-GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp, int is_query,
-                    uint32_t priority, struct GNUNET_TIME_Relative timeout,
-                    size_t size, GSF_GetMessageCallback gmc, void *gmc_cls)
+GSF_peer_transmit_ (struct GSF_ConnectedPeer *cp,
+                    int is_query,
+                    uint32_t priority,
+                    struct GNUNET_TIME_Relative timeout,
+                    size_t size,
+                    GSF_GetMessageCallback gmc, void *gmc_cls)
 {
   struct GSF_PeerTransmitHandle *pth;
   struct GSF_PeerTransmitHandle *pos;
@@ -1500,7 +1520,8 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
  * @param peer identity of peer that connected
  */
 void
-GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
+GSF_peer_disconnect_handler_ (void *cls,
+                              const struct GNUNET_PeerIdentity *peer)
 {
   struct GSF_ConnectedPeer *cp;
   struct GSF_PeerTransmitHandle *pth;
@@ -1581,7 +1602,7 @@ GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * Closure for 'call_iterator'.
+ * Closure for #call_iterator().
  */
 struct IterationContext
 {
@@ -1591,7 +1612,7 @@ struct IterationContext
   GSF_ConnectedPeerIterator it;
 
   /**
-   * Closure for 'it'.
+   * Closure for @e it.
    */
   void *it_cls;
 };
@@ -1606,12 +1627,16 @@ struct IterationContext
  * @return #GNUNET_YES to continue iteration
  */
 static int
-call_iterator (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
+call_iterator (void *cls,
+               const struct GNUNET_PeerIdentity *key,
+               void *value)
 {
   struct IterationContext *ic = cls;
   struct GSF_ConnectedPeer *cp = value;
 
-  ic->it (ic->it_cls, (const struct GNUNET_PeerIdentity *) key, cp, &cp->ppd);
+  ic->it (ic->it_cls,
+          key, cp,
+          &cp->ppd);
   return GNUNET_YES;
 }
 
@@ -1623,13 +1648,16 @@ call_iterator (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
  * @param it_cls closure for @a it
  */
 void
-GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it, void *it_cls)
+GSF_iterate_connected_peers_ (GSF_ConnectedPeerIterator it,
+                              void *it_cls)
 {
   struct IterationContext ic;
 
   ic.it = it;
   ic.it_cls = it_cls;
-  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &call_iterator, &ic);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map,
+                                         &call_iterator,
+                                         &ic);
 }
 
 
@@ -1665,13 +1693,15 @@ GSF_connected_peer_get_identity2_ (const struct GSF_ConnectedPeer *cp)
 /**
  * Assemble a migration stop message for transmission.
  *
- * @param cls the 'struct GSF_ConnectedPeer' to use
- * @param size number of bytes we're allowed to write to buf
+ * @param cls the `struct GSF_ConnectedPeer` to use
+ * @param size number of bytes we're allowed to write to @a buf
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
-create_migration_stop_message (void *cls, size_t size, void *buf)
+create_migration_stop_message (void *cls,
+                               size_t size,
+                               void *buf)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct MigrationStopMessage msm;
