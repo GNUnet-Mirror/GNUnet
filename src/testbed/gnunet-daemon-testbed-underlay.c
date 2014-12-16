@@ -192,12 +192,12 @@ struct WhiteListRow
    * Next ptr
    */
   struct WhiteListRow *next;
-  
+
   /**
    * The offset where to find the hostkey for the peer
    */
   unsigned int id;
-  
+
   /**
    * Latency to be assigned to the link
    */
@@ -319,7 +319,7 @@ db_read_whitelist (struct sqlite3 *db, int pid, struct WhiteListRow **wl_rows)
   struct WhiteListRow *lr;
   int nrows;
   int ret;
-  
+
   if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_wl, -1, &stmt_wl, NULL)))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
@@ -388,7 +388,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (NULL != db)
     {
       LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
-      sqlite3_close (db);
+      GNUNET_break (SQLITE_OK == sqlite3_close (db));
     }
     else
       LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
@@ -401,7 +401,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   wl_head = NULL;
   if (GNUNET_OK != load_keys (c))
       goto close_db;
-  
+
   transport = GNUNET_TRANSPORT_connect (c, NULL, NULL, NULL, NULL, NULL);
   if (NULL == transport)
   {
