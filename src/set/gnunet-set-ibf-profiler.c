@@ -56,16 +56,24 @@ register_hashcode (struct GNUNET_HashCode *hash)
   struct IBF_Key key;
   key = ibf_key_from_hashcode (hash);
   ibf_hashcode_from_key (key, &replicated);
-  GNUNET_CONTAINER_multihashmap_put (key_to_hashcode, &replicated, GNUNET_memdup (hash, sizeof *hash),
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  (void) GNUNET_CONTAINER_multihashmap_put (key_to_hashcode,
+                                            &replicated,
+                                            GNUNET_memdup (hash, sizeof *hash),
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 }
 
+
 static void
-iter_hashcodes (struct IBF_Key key, GNUNET_CONTAINER_HashMapIterator iter, void *cls)
+iter_hashcodes (struct IBF_Key key,
+                GNUNET_CONTAINER_HashMapIterator iter,
+                void *cls)
 {
   struct GNUNET_HashCode replicated;
+
   ibf_hashcode_from_key (key, &replicated);
-  GNUNET_CONTAINER_multihashmap_get_multiple (key_to_hashcode, &replicated, iter, cls);
+  GNUNET_CONTAINER_multihashmap_get_multiple (key_to_hashcode,
+                                              &replicated,
+                                              iter, cls);
 }
 
 
@@ -74,7 +82,8 @@ insert_iterator (void *cls,
                  const struct GNUNET_HashCode *key,
                  void *value)
 {
-  struct InvertibleBloomFilter *ibf = (struct InvertibleBloomFilter *) cls;
+  struct InvertibleBloomFilter *ibf = cls;
+
   ibf_insert (ibf, ibf_key_from_hashcode (key));
   return GNUNET_YES;
 }
@@ -123,8 +132,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_CRYPTO_hash_create_random (random_quality, &id);
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_a, &id))
       continue;
-    GNUNET_CONTAINER_multihashmap_put (
-        set_a, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (set_a, &id, NULL,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
     register_hashcode (&id);
     i++;
   }
@@ -136,8 +146,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       continue;
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_b, &id))
       continue;
-    GNUNET_CONTAINER_multihashmap_put (
-        set_b, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (set_b, &id, NULL,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     register_hashcode (&id);
     i++;
   }
@@ -151,8 +162,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       continue;
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (set_c, &id))
       continue;
-    GNUNET_CONTAINER_multihashmap_put (
-        set_c, &id, NULL, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multihashmap_put (set_c, &id, NULL,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     register_hashcode (&id);
     i++;
   }
@@ -171,7 +183,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   delta_time = GNUNET_TIME_absolute_get_duration (start_time);
 
-  printf ("encoded in: %s\n", GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
+  printf ("encoded in: %s\n",
+          GNUNET_STRINGS_relative_time_to_string (delta_time,
+                                                  GNUNET_NO));
 
   ibf_subtract (ibf_a, ibf_b);
 
@@ -194,7 +208,9 @@ run (void *cls, char *const *args, const char *cfgfile,
           (0 == GNUNET_CONTAINER_multihashmap_size (set_a)))
       {
         delta_time = GNUNET_TIME_absolute_get_duration (start_time);
-        printf ("decoded successfully in: %s\n", GNUNET_STRINGS_relative_time_to_string (delta_time, GNUNET_NO));
+        printf ("decoded successfully in: %s\n",
+                GNUNET_STRINGS_relative_time_to_string (delta_time,
+                                                        GNUNET_NO));
       }
       else
       {
