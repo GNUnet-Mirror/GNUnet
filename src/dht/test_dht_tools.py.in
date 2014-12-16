@@ -14,12 +14,10 @@ else:
   tmp = "/tmp"
 
 if os.name == 'nt':
-  pif = 'gnunet-peerinfo.exe'
   get = './gnunet-dht-get.exe'
   put = './gnunet-dht-put.exe'
   arm = 'gnunet-arm.exe'
 else:
-  pif = 'gnunet-peerinfo'
   get = './gnunet-dht-get'
   put = './gnunet-dht-put'
   arm = 'gnunet-arm'
@@ -27,7 +25,6 @@ else:
 tf, tempcfg = tempfile.mkstemp (prefix='test_dht_api_peer1.')
 os.close (tf)
 
-run_pif = [pif, '-c', tempcfg, '-sq']
 run_get = [get, '-c', tempcfg]
 run_put = [put, '-c', tempcfg]
 run_arm = [arm, '-c', tempcfg]
@@ -68,9 +65,6 @@ def r_something (to_run, extra_args, failer = None, normal = True, **kw):
 
 def r_arm (extra_args, **kw):
   return r_something (run_arm, extra_args, **kw)
-
-def r_pif (extra_args, **kw):
-  return r_something (run_pif, extra_args, **kw)
 
 def r_get (extra_args, **kw):
   return r_something (run_get, extra_args, **kw)
