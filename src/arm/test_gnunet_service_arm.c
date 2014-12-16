@@ -86,7 +86,7 @@ service_list (void *cls,
   for (i=0;i<count;i++)
   {
     if (0 == strcasecmp (list[i],
-                         "resolver (gnunet-service-resolver)"));
+                         "resolver (gnunet-service-resolver)"))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Got service list, now stopping arm\n");
