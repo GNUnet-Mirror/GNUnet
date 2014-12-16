@@ -218,9 +218,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned int argc;
 
   argc = 0;
+  arg_uint1 = 0; /* make compilers happy */
+  arg_uint2 = 0; /* make compilers happy */
   if (NULL == args)
   {
-    LOG_ERROR (_("Need atleast 2 arguments\n"));
+    LOG_ERROR (_("Need at least 2 arguments\n"));
     return;
   }
   if (NULL == (dbfile = args[argc++]))
