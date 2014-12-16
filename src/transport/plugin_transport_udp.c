@@ -2635,7 +2635,7 @@ udp_select_read (struct Plugin *plugin,
   fromlen = sizeof(addr);
   memset (&addr, 0, sizeof(addr));
   size = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof(buf),
-      (struct sockaddr *) &addr, &fromlen);
+                                         (struct sockaddr *) &addr, &fromlen);
 #if MINGW
   /* On SOCK_DGRAM UDP sockets recvfrom might fail with a
    * WSAECONNRESET error to indicate that previous sendto() (yes, sendto!)
@@ -2652,16 +2652,18 @@ udp_select_read (struct Plugin *plugin,
 #endif
   if (-1 == size)
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "UDP failed to receive data: %s\n",
-        STRERROR (errno));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "UDP failed to receive data: %s\n",
+         STRERROR (errno));
     /* Connection failure or something. Not a protocol violation. */
     return;
   }
   if (size < sizeof(struct GNUNET_MessageHeader))
   {
-    LOG(GNUNET_ERROR_TYPE_WARNING,
-        "UDP got %u bytes, which is not enough for a GNUnet message header\n",
-        (unsigned int ) size);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "UDP got %u bytes from %s, which is not enough for a GNUnet message header\n",
+         (unsigned int ) size,
+         GNUNET_a2s ((const struct sockaddr *) &addr, fromlen));
     /* _MAY_ be a connection failure (got partial message) */
     /* But it _MAY_ also be that the other side uses non-GNUnet protocol. */
     GNUNET_break_op(0);
@@ -2669,13 +2671,18 @@ udp_select_read (struct Plugin *plugin,
   }
   msg = (const struct GNUNET_MessageHeader *) buf;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "UDP received %u-byte message from `%s' type %u\n", (unsigned int ) size,
-      GNUNET_a2s ((const struct sockaddr * ) &addr, fromlen),
-      ntohs (msg->type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "UDP received %u-byte message from `%s' type %u\n",
+       (unsigned int) size,
+       GNUNET_a2s ((const struct sockaddr *) &addr, fromlen),
+       ntohs (msg->type));
 
   if (size != ntohs (msg->size))
   {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "UDP malformed message header from %s\n",
+         (unsigned int ) size,
+         GNUNET_a2s ((const struct sockaddr *) &addr, fromlen));
     GNUNET_break_op(0);
     return;
   }
