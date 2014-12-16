@@ -45,6 +45,7 @@ endif
 
 EXTRA_DIST = \
  no_forcestart.conf \
+ no_autostart_above_core.conf \
  coverage.sh \
  report.sh \
  terminate.py.in \
