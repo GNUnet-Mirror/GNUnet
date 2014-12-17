@@ -116,12 +116,6 @@ src/env/env.c
 src/exit/gnunet-daemon-exit.c
 src/exit/gnunet-helper-exit.c
 src/exit/gnunet-helper-exit-windows.c
-src/experimentation/gnunet-daemon-experimentation.c
-src/experimentation/gnunet-daemon-experimentation_capabilities.c
-src/experimentation/gnunet-daemon-experimentation_experiments.c
-src/experimentation/gnunet-daemon-experimentation_nodes.c
-src/experimentation/gnunet-daemon-experimentation_scheduler.c
-src/experimentation/gnunet-daemon-experimentation_storage.c
 src/fragmentation/defragmentation.c
 src/fragmentation/fragmentation.c
 src/fs/fs_api.c
@@ -386,7 +380,6 @@ src/util/container_meta_data.c
 src/util/container_multihashmap32.c
 src/util/container_multihashmap.c
 src/util/container_multipeermap.c
-src/util/container_slist.c
 src/util/crypto_crc.c
 src/util/crypto_ecc.c
 src/util/crypto_hash.c
@@ -436,6 +429,7 @@ src/vpn/gnunet-helper-vpn-windows.c
 src/vpn/gnunet-service-vpn.c
 src/vpn/gnunet-vpn.c
 src/vpn/vpn_api.c
+src/fs/fs_api.h
 src/include/gnunet_common.h
 src/include/gnunet_mq_lib.h
 src/include/gnunet_postgres_lib.h

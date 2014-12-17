@@ -215,7 +215,7 @@ zone_proc (void *cls,
     GNUNET_SCHEDULER_add_now (&end, NULL);
     return;
   }
-
+  GNUNET_assert (NULL != zone);
   if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
     failed = check_zone_1 (label, rd_count, rd);

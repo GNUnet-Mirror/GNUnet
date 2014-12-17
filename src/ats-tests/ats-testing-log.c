@@ -483,6 +483,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename_slaves[c_s]);
         GNUNET_free (filename_slaves[c_s]);
+        GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close(f_m));
         return;
       }
 
@@ -601,8 +602,10 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
 
     if (GNUNET_SYSERR == GNUNET_DISK_file_close(f_m))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Cannot close log file `%s'\n", filename_master);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                "close",
+                                filename_master);
+      GNUNET_free (filename_master);
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
