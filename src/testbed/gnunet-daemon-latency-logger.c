@@ -294,7 +294,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (NULL != db)
     {
       LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
-      sqlite3_close (db);
+      GNUNET_break (SQLITE_OK == sqlite3_close (db));
     }
     else
       LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
