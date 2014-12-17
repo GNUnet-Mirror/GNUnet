@@ -593,6 +593,7 @@ peer_respect_cb (void *cls,
   return GNUNET_NO;
 }
 
+
 /**
  * A peer connected to us.  Setup the connected peer
  * records.

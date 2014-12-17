@@ -174,7 +174,7 @@ struct GNUNET_ENV_Modifier *
 GNUNET_ENV_environment_tail (const struct GNUNET_ENV_Environment *env);
 
 
-/** 
+/**
  * Remove a modifier from the environment.
  */
 void
@@ -283,19 +283,6 @@ GNUNET_ENV_value_to_number (size_t size, const void *value, int64_t *number);
 
 
 /**
- * Get the variable's value as a list.
- *
- * @param size Size of value.
- * @param value Raw value of variable.
- * @param[out] list A newly created list holding the elements.
- *
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
- */
-int
-GNUNET_ENV_value_to_list (size_t size, const void *value, struct GNUNET_CONTAINER_SList **list);
-
-
-/**
  * Get the variable's value as a dictionary.
  *
  * @param size Size of value.
@@ -318,18 +305,6 @@ GNUNET_ENV_value_to_dict (size_t size, const void *value, struct GNUNET_CONTAINE
  */
 void *
 GNUNET_ENV_value_from_number (int64_t number, size_t *value_size);
-
-
-/**
- * Create a PSYC variable value from a list.
- *
- * @param list The list to convert.
- * @param[out] value_size Size of returned value.
- *
- * @return A newly allocated value or NULL on error.
- */
-void *
-GNUNET_ENV_value_from_list (struct GNUNET_CONTAINER_SList *list, size_t *value_size);
 
 
 /**

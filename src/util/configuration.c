@@ -324,7 +324,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Config file name expanded to `%s'\n",
        fn);
-  if (fn == NULL)
+  if (NULL == fn)
     return GNUNET_SYSERR;
   dirty = cfg->dirty;           /* back up value! */
   if (GNUNET_SYSERR ==
@@ -351,7 +351,9 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (mem);
     return GNUNET_SYSERR;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Deserializing contents of file `%s'\n", fn);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Deserializing contents of file `%s'\n",
+       fn);
   GNUNET_free (fn);
   ret = GNUNET_CONFIGURATION_deserialize (cfg, mem, fs, GNUNET_YES);
   GNUNET_free (mem);
