@@ -1274,8 +1274,6 @@ GSS_handle_bob_client_message_multipart (void *cls,
   elements = (const struct GNUNET_SCALARPRODUCT_Element *) &msg[1];
   for (i = 0; i < contained_count; i++)
   {
-    if (0 == GNUNET_ntohll (elements[i].value))
-      continue;
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
     memcpy (elem,
             &elements[i],

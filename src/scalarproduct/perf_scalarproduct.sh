@@ -1,16 +1,16 @@
 #!/bin/bash
 # Computes a simple scalar product, with configurable vector size.
 #
-# Some results:
-# SIZE   TIME-H(s)  TIME-O(s)
-#  25     10
-#  50     17
-# 100     32          39
-# 200                 77
-#
-#
+# Some results (wall-clock for Alice+Bob, single-core, i7):
+# SIZE   2048-H(s)  2048-O(s)    1024-O(s)
+#  25     10          14            3
+#  50     17          21            5
+# 100     32          39            7
+# 200                 77           13
+# 400                149           23
+# 800                304           32
 # Configure benchmark size:
-SIZE=400
+SIZE=25
 #
 # Construct input vectors:
 INPUTALICE="-k CCC -e '"
@@ -36,7 +36,7 @@ CFGBOB="-c $PREFIX/1/config"
 # because the rest of the script is already in stdin,
 # thus redirecting stdin does not suffice)
 #GNUNET_FORCE_LOG=';;;;ERROR'
-GNUNET_FORCE_LOG='scalarproduct*;;;;DEBUG/cadet-api*;;;;DEBUG'
+#GNUNET_FORCE_LOG='scalarproduct*;;;;DEBUG/cadet-api*;;;;DEBUG'
 GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 &
 PID=$!
 # sleep 1 is too short on most systems, 2 works on most, 5 seems to be safe
