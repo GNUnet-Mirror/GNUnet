@@ -157,6 +157,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   nsh = NULL;
 }
 
+
 static int
 check_zone_1 (const char *label, unsigned int rd_count,
     const struct GNUNET_GNSRECORD_Data *rd)
@@ -314,6 +315,7 @@ create_record (unsigned int count)
   return rd;
 }
 
+
 static void
 nick_2_cont (void *cls, int32_t success, const char *emsg)
 {
@@ -361,11 +363,7 @@ nick_1_cont (void *cls, int32_t success, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _("Namestore cannot store no block\n"));
   }
-
-
-
 }
-
 
 
 /**
@@ -434,7 +432,11 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   directory = NULL;
-  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                        "PATHS",
+                                                        "GNUNET_TEST_HOME",
+                                                        &directory));
   GNUNET_DISK_directory_remove (directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
@@ -446,7 +448,8 @@ run (void *cls,
 					     NULL, &empty_zone_proc, nsh);
   if (NULL == zi)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create zone iterator\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
