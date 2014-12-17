@@ -7,6 +7,7 @@ OPERATION_TIMEOUT = 5 s
 [testbed-underlay]
 AUTOSTART = NO
 DBFILE = /will/be/overwritten/by/testcase
+FORCESTART = YES
 
 [dv]
 AUTOSTART = NO

@@ -7,13 +7,13 @@ TOPOLOGY = RANDOM
 #PREFIX = xterm -geometry 100x85 -T peer1 -e libtool --mode=execute gdb --args
 
 [arm]
-DEFAULTSERVICES = core transport test-barriers
 PORT = 12366
 
 [test-barriers]
 AUTOSTART = NO
 PORT = 12114
 BINARY = /will/be/overwriten/in/test_testbed_api_barriers/
+FORCESTART = YES
 
 [fs]
 AUTOSTART = NO
@@ -38,6 +38,7 @@ ACCEPT_FROM6 = ::1;
 ACCEPT_FROM = 127.0.0.1;
 NEIGHBOUR_LIMIT = 50
 PORT = 12365
+FORCESTART = YES
 
 [ats]
 WAN_QUOTA_OUT = 3932160
@@ -46,6 +47,7 @@ WAN_QUOTA_IN = 3932160
 [core]
 PORT = 12092
 AUTOSTART = YES
+FORCESTART = YES
 USE_EPHEMERAL_KEYS = NO
 
 [transport-udp]
