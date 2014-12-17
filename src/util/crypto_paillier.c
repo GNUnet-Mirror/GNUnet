@@ -127,16 +127,16 @@ GNUNET_CRYPTO_paillier_encrypt1 (const struct GNUNET_CRYPTO_PaillierPublicKey *p
   gcry_mpi_t tmp2;
   unsigned int highbit;
 
-  // determine how many operations we could allow, if the other number
-  // has the same length.
+  /* determine how many operations we could allow, if the other number
+     has the same length. */
   GNUNET_assert (NULL != (tmp1 = gcry_mpi_set_ui (NULL, 1)));
   GNUNET_assert (NULL != (tmp2 = gcry_mpi_set_ui (NULL, 2)));
   gcry_mpi_mul_2exp (tmp1, tmp1, GNUNET_CRYPTO_PAILLIER_BITS);
 
-  // count number of possible operations
-  // this would be nicer with gcry_mpi_get_nbits, however it does not return
-  // the BITLENGTH of the given MPI's value, but the bits required
-  // to represent the number as MPI.
+  /* count number of possible operations
+     this would be nicer with gcry_mpi_get_nbits, however it does not return
+     the BITLENGTH of the given MPI's value, but the bits required
+     to represent the number as MPI. */
   for (possible_opts = -2; gcry_mpi_cmp (tmp1, m) > 0; possible_opts++)
     gcry_mpi_div (tmp1, NULL, tmp1, tmp2, 0);
   gcry_mpi_release (tmp1);
@@ -144,7 +144,7 @@ GNUNET_CRYPTO_paillier_encrypt1 (const struct GNUNET_CRYPTO_PaillierPublicKey *p
 
   if (possible_opts < 1)
     possible_opts = 0;
-  //soft-cap by caller
+  /* soft-cap by caller */
   possible_opts = (desired_ops < possible_opts)? desired_ops : possible_opts;
 
   ciphertext->remaining_ops = htonl (possible_opts);
@@ -168,19 +168,21 @@ GNUNET_CRYPTO_paillier_encrypt1 (const struct GNUNET_CRYPTO_PaillierPublicKey *p
   GNUNET_assert (0 != (c = gcry_mpi_new (0)));
   gcry_mpi_mul (n_square, n, n);
 
-  // generate r < n (without bias)
+  /* generate r < n (without bias) */
   do {
     gcry_mpi_randomize (r, highbit + 1, GCRY_STRONG_RANDOM);
   }
   while (gcry_mpi_cmp (r, n) >= 0);
 
-  // c = (n+1)^m mod n^2
-  gcry_mpi_add_ui (c, n, 1); // c = n + 1
-  gcry_mpi_powm (c, c, m, n_square); // c = (n+1)^m mod n^2
-  // r <- r^n mod n^2
-  gcry_mpi_powm (r, r, n, n_square); // r = r^n mod n^2
-  // c <- r*c mod n^2
-  gcry_mpi_mulm (c, r, c, n_square); // c = r*c mod n^2
+  /* c = (n+1)^m mod n^2 */
+  /* c = n + 1 */
+  gcry_mpi_add_ui (c, n, 1);
+  /* c = (n+1)^m mod n^2 */
+  gcry_mpi_powm (c, c, m, n_square);
+  /* r <- r^n mod n^2 */
+  gcry_mpi_powm (r, r, n, n_square);
+  /* c <- r*c mod n^2 */
+  gcry_mpi_mulm (c, r, c, n_square);
 
   GNUNET_CRYPTO_mpi_print_unsigned (ciphertext->bits,
                                     sizeof ciphertext->bits,
