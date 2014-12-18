@@ -1032,10 +1032,12 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
  * @param cls Closure, ValueInfo struct related to the sensor we are watching
  * @param record PEERSTORE new record, NULL if error
  * @param emsg Error message, NULL if no error
- * @return GNUNET_YES to continue watching
+ * @return #GNUNET_YES to continue watching
  */
 static int
-value_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+value_watch_cb (void *cls,
+                const struct GNUNET_PEERSTORE_Record *record,
+                const char *emsg)
 {
   struct ValueInfo *vi = cls;
 

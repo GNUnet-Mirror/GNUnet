@@ -39,8 +39,11 @@ static char *k3 = "test_peerstore_api_iterate_key3";
 static char *val = "test_peerstore_api_iterate_val";
 static int count = 0;
 
+
 static int
-iter3_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+iter3_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   if (NULL != emsg)
     return GNUNET_NO;
@@ -58,7 +61,9 @@ iter3_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 
 
 static int
-iter2_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+iter2_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   if (NULL != emsg)
     return GNUNET_NO;
@@ -76,7 +81,9 @@ iter2_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 
 
 static int
-iter1_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+iter1_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   if (NULL != emsg)
     return GNUNET_NO;

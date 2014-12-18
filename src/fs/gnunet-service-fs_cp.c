@@ -579,8 +579,8 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 peer_respect_cb (void *cls,
-                 struct GNUNET_PEERSTORE_Record *record,
-                 char *emsg)
+                 const struct GNUNET_PEERSTORE_Record *record,
+                 const char *emsg)
 {
   struct GSF_ConnectedPeer *cp = cls;
 

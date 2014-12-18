@@ -37,10 +37,12 @@ static char *val1 = "test_peerstore_api_store_val1";
 static char *val2 = "test_peerstore_api_store_val2-";
 static char *val3 = "test_peerstore_api_store_val3--";
 
-int count = 0;
+static int count = 0;
 
-int
-test3_cont2 (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+static int
+test3_cont2 (void *cls,
+             const struct GNUNET_PEERSTORE_Record *record,
+             const char *emsg)
 {
   if (NULL != emsg)
     return GNUNET_NO;
@@ -83,8 +85,10 @@ test3 ()
 }
 
 
-int
-test2_cont2 (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+static int
+test2_cont2 (void *cls,
+             const struct GNUNET_PEERSTORE_Record *record,
+             const char *emsg)
 {
   if (NULL != emsg)
     return GNUNET_NO;
@@ -128,8 +132,10 @@ test2 ()
 }
 
 
-int
-test1_cont2 (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+static int
+test1_cont2 (void *cls,
+             const struct GNUNET_PEERSTORE_Record *record,
+             const char *emsg)
 {
   if (NULL != emsg)
     return GNUNET_NO;
@@ -172,7 +178,8 @@ test1 ()
 
 
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
   h = GNUNET_PEERSTORE_connect (cfg);

@@ -239,7 +239,9 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @return #GNUNET_YES to continue iteration
  */
 static int
-record_iterator (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+record_iterator (void *cls,
+                 const struct GNUNET_PEERSTORE_Record *record,
+                 const char *emsg)
 {
   struct GNUNET_PEERSTORE_Record *cls_record = cls;
   struct StoreRecordMessage *srm;
@@ -410,7 +412,7 @@ handle_iterate (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Continuation of store_record called by the peerstore plugin 
+ * Continuation of store_record called by the peerstore plugin
  *
  * @param cls closure
  * @param success result

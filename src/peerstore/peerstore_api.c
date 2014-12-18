@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C)
+     (C) 2013-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,11 +17,11 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file peerstore/peerstore_api.c
  * @brief API for peerstore
  * @author Omar Tarabai
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -292,15 +292,30 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h);
  * @param cls a 'struct GNUNET_PEERSTORE_WatchContext *'
  */
 static void
-watch_request_sent (void *cls);
+watch_request_sent (void *cls)
+{
+  struct GNUNET_PEERSTORE_WatchContext *wc = cls;
+
+  wc->request_sent = GNUNET_YES;
+  wc->ev = NULL;
+}
+
 
 /**
  * Callback after MQ envelope is sent
  *
- * @param cls a 'struct GNUNET_PEERSTORE_IterateContext *'
+ * @param cls a `struct GNUNET_PEERSTORE_IterateContext *`
  */
 static void
-iterate_request_sent (void *cls);
+iterate_request_sent (void *cls)
+{
+  struct GNUNET_PEERSTORE_IterateContext *ic = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Iterate request sent to service.\n");
+  ic->iterating = GNUNET_YES;
+  ic->ev = NULL;
+}
 
 
 /**
@@ -724,7 +739,6 @@ handle_iterate_result (void *cls,
   callback_cls = ic->callback_cls;
   if (NULL == msg)              /* Connection error */
   {
-
     if (NULL != callback)
       callback (callback_cls, NULL,
                 _("Error communicating with `PEERSTORE' service."));
@@ -755,23 +769,6 @@ handle_iterate_result (void *cls,
     if (GNUNET_NO == continue_iter)
       ic->callback = NULL;
   }
-}
-
-
-/**
- * Callback after MQ envelope is sent
- *
- * @param cls a `struct GNUNET_PEERSTORE_IterateContext *`
- */
-static void
-iterate_request_sent (void *cls)
-{
-  struct GNUNET_PEERSTORE_IterateContext *ic = cls;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Iterate request sent to service.\n");
-  ic->iterating = GNUNET_YES;
-  ic->ev = NULL;
 }
 
 
@@ -919,21 +916,6 @@ handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   if (NULL != wc->callback)
     wc->callback (wc->callback_cls, record, NULL);
   PEERSTORE_destroy_record (record);
-}
-
-
-/**
- * Callback after MQ envelope is sent
- *
- * @param cls a `struct GNUNET_PEERSTORE_WatchContext *`
- */
-static void
-watch_request_sent (void *cls)
-{
-  struct GNUNET_PEERSTORE_WatchContext *wc = cls;
-
-  wc->request_sent = GNUNET_YES;
-  wc->ev = NULL;
 }
 
 

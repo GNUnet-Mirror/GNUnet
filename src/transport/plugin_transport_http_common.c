@@ -432,8 +432,8 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
 
   saddr = NULL;
   sock_addr = NULL;
-  if ((addrlen < sizeof(struct HttpAddress))
-      || (addrlen != http_common_address_get_size (address)))
+  if ( (addrlen < sizeof(struct HttpAddress)) ||
+       (addrlen != http_common_address_get_size (address)) )
   {
     GNUNET_break(0);
     goto handle_error;

@@ -37,9 +37,9 @@ static struct GNUNET_PeerIdentity p;
 static char *k = "test_peerstore_stress_key";
 static char *v = "test_peerstore_stress_val";
 
-int count = 0;
+static int count = 0;
 
-void
+static void
 disconnect ()
 {
   if (NULL != h)
@@ -48,7 +48,7 @@ disconnect ()
 }
 
 
-void
+static void
 store ()
 {
   GNUNET_PEERSTORE_store (h, ss, &p, k, v, strlen (v) + 1,
@@ -61,7 +61,9 @@ store ()
 
 
 static int
-watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+watch_cb (void *cls,
+          const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   if (STORES == count)

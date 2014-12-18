@@ -189,7 +189,9 @@ SENSOR_analysis_stop ()
  * @return #GNUNET_YES
  */
 static int
-sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+sensor_watcher (void *cls,
+                const struct GNUNET_PEERSTORE_Record *record,
+                const char *emsg)
 {
   struct SensorModel *model = cls;
   double *val;

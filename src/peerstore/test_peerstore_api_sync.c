@@ -26,9 +26,9 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_peerstore_service.h"
 
-int ok = 1;
+static int ok = 1;
 
-const struct GNUNET_CONFIGURATION_Handle *cfg;
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_PEERSTORE_Handle *h;
 
@@ -37,8 +37,10 @@ static struct GNUNET_PeerIdentity pid;
 static char *key = "test_peerstore_api_store_key";
 static char *val = "test_peerstore_api_store_val";
 
-int
-iterate_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+static int
+iterate_cb (void *cls,
+            const struct GNUNET_PEERSTORE_Record *record,
+            const char *emsg)
 {
   const char *rec_val;
 

@@ -30,10 +30,11 @@
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * Message carrying a PEERSTORE record message
  */
-    struct StoreRecordMessage
+struct StoreRecordMessage
 {
 
   /**
@@ -47,15 +48,20 @@ GNUNET_NETWORK_STRUCT_BEGIN
   uint16_t peer_set GNUNET_PACKED;
 
   /**
+   * Size of the sub_system string
+   * Allocated at position 0 after this struct
+   */
+  uint16_t sub_system_size GNUNET_PACKED;
+
+  /**
    * Peer Identity
    */
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Size of the sub_system string
-   * Allocated at position 0 after this struct
+   * Expiry time of entry
    */
-  uint16_t sub_system_size GNUNET_PACKED;
+  struct GNUNET_TIME_Absolute expiry GNUNET_PACKED;
 
   /**
    * Size of the key string
@@ -70,17 +76,13 @@ GNUNET_NETWORK_STRUCT_BEGIN
   uint16_t value_size GNUNET_PACKED;
 
   /**
-   * Expiry time of entry
-   */
-  struct GNUNET_TIME_Absolute expiry GNUNET_PACKED;
-
-  /**
    * Options, needed only in case of a
    * store operation
    */
-  enum GNUNET_PEERSTORE_StoreOption options GNUNET_PACKED;
+  uint32_t /* enum GNUNET_PEERSTORE_StoreOption */ options GNUNET_PACKED;
 
 };
+
 
 /**
  * Message carrying record key hash
@@ -92,6 +94,11 @@ struct StoreKeyHashMessage
    * GNUnet message header
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Always 0, for alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Hash of a record key

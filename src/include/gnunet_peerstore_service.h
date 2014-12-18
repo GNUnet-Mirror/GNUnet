@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 
+      (C)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -52,7 +52,7 @@ enum GNUNET_PEERSTORE_StoreOption
    * Delete any previous values for the given key before
    * storing the given value.
    */
-  GNUNET_PEERSTORE_STOREOPTION_REPLACE = 1,
+  GNUNET_PEERSTORE_STOREOPTION_REPLACE = 1
 
 };
 
@@ -93,7 +93,7 @@ struct GNUNET_PEERSTORE_Record
   void *value;
 
   /**
-   * Size of 'value' BLOB
+   * Size of @e value BLOB
    */
   size_t value_size;
 
@@ -108,13 +108,15 @@ struct GNUNET_PEERSTORE_Record
   struct GNUNET_SERVER_Client *client;
 };
 
+
 /**
  * Continuation called with a status result.
  *
  * @param cls closure
  * @param success #GNUNET_OK or #GNUNET_SYSERR
  */
-typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
+typedef void
+(*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
 
 /**
  * Function called by PEERSTORE for each matching record.
@@ -124,9 +126,10 @@ typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
  * @param emsg error message, or NULL if no errors
  * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop
  */
-typedef int (*GNUNET_PEERSTORE_Processor) (void *cls,
-    struct GNUNET_PEERSTORE_Record *record,
-    char *emsg);
+typedef int
+(*GNUNET_PEERSTORE_Processor) (void *cls,
+                               const struct GNUNET_PEERSTORE_Record *record,
+                               const char *emsg);
 
 /**
  * Connect to the PEERSTORE service.
@@ -135,6 +138,7 @@ typedef int (*GNUNET_PEERSTORE_Processor) (void *cls,
  */
 struct GNUNET_PEERSTORE_Handle *
 GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
 
 /**
  * Disconnect from the PEERSTORE service. Any pending ITERATE and WATCH requests
@@ -145,7 +149,9 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @param sync_first send any pending STORE requests before disconnecting
  */
 void
-GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
+GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h,
+                             int sync_first);
+
 
 /**
  * Store a new entry in the PEERSTORE.
@@ -161,7 +167,7 @@ GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
  * @param expiry absolute time after which the entry is (possibly) deleted
  * @param options options specific to the storage operation
  * @param cont Continuation function after the store request is sent
- * @param cont_cls Closure for 'cont'
+ * @param cont_cls Closure for @a cont
  */
 struct GNUNET_PEERSTORE_StoreContext *
 GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
@@ -175,6 +181,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
                         GNUNET_PEERSTORE_Continuation cont,
                         void *cont_cls);
 
+
 /**
  * Cancel a store request
  *
@@ -182,6 +189,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
  */
 void
 GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
+
 
 /**
  * Iterate over records matching supplied key information
@@ -196,11 +204,13 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
  */
 struct GNUNET_PEERSTORE_IterateContext *
 GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    struct GNUNET_TIME_Relative timeout,
-    GNUNET_PEERSTORE_Processor callback, void *callback_cls);
+                          const char *sub_system,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const char *key,
+                          struct GNUNET_TIME_Relative timeout,
+                          GNUNET_PEERSTORE_Processor callback,
+                          void *callback_cls);
+
 
 /**
  * Cancel an iterate request
@@ -211,9 +221,10 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
 void
 GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic);
 
+
 /**
  * Request watching a given key
- * User will be notified with any new values added to key
+ * User will be notified with any new values added to key.
  *
  * @param h handle to the PEERSTORE service
  * @param sub_system name of sub system
@@ -225,10 +236,12 @@ GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic);
  */
 struct GNUNET_PEERSTORE_WatchContext *
 GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    GNUNET_PEERSTORE_Processor callback, void *callback_cls);
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const char *key,
+                        GNUNET_PEERSTORE_Processor callback,
+                        void *callback_cls);
+
 
 /**
  * Cancel a watch request
@@ -236,7 +249,7 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
  * @param wc handle to the watch request
  */
 void
-GNUNET_PEERSTORE_watch_cancel(struct GNUNET_PEERSTORE_WatchContext *wc);
+GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
