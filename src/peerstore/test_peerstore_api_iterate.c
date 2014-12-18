@@ -41,8 +41,7 @@ static int count = 0;
 
 
 static int
-iter3_cb (void *cls,
-          const struct GNUNET_PEERSTORE_Record *record,
+iter3_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
@@ -61,8 +60,7 @@ iter3_cb (void *cls,
 
 
 static int
-iter2_cb (void *cls,
-          const struct GNUNET_PEERSTORE_Record *record,
+iter2_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)
@@ -81,8 +79,7 @@ iter2_cb (void *cls,
 
 
 static int
-iter1_cb (void *cls,
-          const struct GNUNET_PEERSTORE_Record *record,
+iter1_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   if (NULL != emsg)

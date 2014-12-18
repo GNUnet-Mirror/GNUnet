@@ -40,8 +40,7 @@ static char *val3 = "test_peerstore_api_store_val3--";
 static int count = 0;
 
 static int
-test3_cont2 (void *cls,
-             const struct GNUNET_PEERSTORE_Record *record,
+test3_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
              const char *emsg)
 {
   if (NULL != emsg)
@@ -86,8 +85,7 @@ test3 ()
 
 
 static int
-test2_cont2 (void *cls,
-             const struct GNUNET_PEERSTORE_Record *record,
+test2_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
              const char *emsg)
 {
   if (NULL != emsg)
@@ -133,8 +131,7 @@ test2 ()
 
 
 static int
-test1_cont2 (void *cls,
-             const struct GNUNET_PEERSTORE_Record *record,
+test1_cont2 (void *cls, const struct GNUNET_PEERSTORE_Record *record,
              const char *emsg)
 {
   if (NULL != emsg)
@@ -178,8 +175,7 @@ test1 ()
 
 
 static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
+run (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
   h = GNUNET_PEERSTORE_connect (cfg);

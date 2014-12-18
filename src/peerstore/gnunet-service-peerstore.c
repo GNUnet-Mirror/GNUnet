@@ -137,7 +137,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /* Forward declaration */
-static void expire_records_continuation (void *cls, int success);
+static void
+expire_records_continuation (void *cls, int success);
 
 
 /**
@@ -152,8 +153,9 @@ cleanup_expired_records (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != db);
-  ret = db->expire_records (db->cls, GNUNET_TIME_absolute_get (),
-                            expire_records_continuation, NULL);
+  ret =
+      db->expire_records (db->cls, GNUNET_TIME_absolute_get (),
+                          expire_records_continuation, NULL);
   if (GNUNET_OK != ret)
   {
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
@@ -171,7 +173,7 @@ cleanup_expired_records (void *cls,
  * @param success count of records deleted or #GNUNET_SYSERR
  */
 static void
-expire_records_continuation(void *cls, int success)
+expire_records_continuation (void *cls, int success)
 {
   if (success > 0)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", success);
@@ -239,8 +241,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @return #GNUNET_YES to continue iteration
  */
 static int
-record_iterator (void *cls,
-                 const struct GNUNET_PEERSTORE_Record *record,
+record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
                  const char *emsg)
 {
   struct GNUNET_PEERSTORE_Record *cls_record = cls;
@@ -252,6 +253,7 @@ record_iterator (void *cls,
     struct GNUNET_MessageHeader *endmsg;
 
     endmsg = GNUNET_new (struct GNUNET_MessageHeader);
+
     endmsg->size = htons (sizeof (struct GNUNET_MessageHeader));
     endmsg->type = htons (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
     GNUNET_SERVER_notification_context_unicast (nc, cls_record->client, endmsg,
@@ -463,20 +465,17 @@ handle_store (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a store request (size: %lu).\n"
-              " Sub system `%s'\n"
-              " Peer `%s'\n"
-              " Key `%s'\n"
-              " Value size %lu\n"
-              " Options: %d.\n",
-              record->value_size, record->sub_system, GNUNET_i2s (record->peer),
-              record->key, record->value_size, ntohl (srm->options));
+              "Received a store request (size: %lu).\n" " Sub system `%s'\n"
+              " Peer `%s'\n" " Key `%s'\n" " Value size %lu\n"
+              " Options: %d.\n", record->value_size, record->sub_system,
+              GNUNET_i2s (record->peer), record->key, record->value_size,
+              ntohl (srm->options));
   record->client = client;
   if (GNUNET_OK !=
       db->store_record (db->cls, record->sub_system, record->peer, record->key,
                         record->value, record->value_size, *record->expiry,
                         ntohl (srm->options), store_record_continuation,
-			record))
+                        record))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to store requested value, database error."));

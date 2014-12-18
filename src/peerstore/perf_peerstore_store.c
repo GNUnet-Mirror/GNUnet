@@ -61,8 +61,7 @@ store ()
 
 
 static int
-watch_cb (void *cls,
-          const struct GNUNET_PEERSTORE_Record *record,
+watch_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
           const char *emsg)
 {
   GNUNET_assert (NULL == emsg);

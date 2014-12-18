@@ -38,8 +38,7 @@ static char *key = "test_peerstore_api_store_key";
 static char *val = "test_peerstore_api_store_val";
 
 static int
-iterate_cb (void *cls,
-            const struct GNUNET_PEERSTORE_Record *record,
+iterate_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
             const char *emsg)
 {
   const char *rec_val;

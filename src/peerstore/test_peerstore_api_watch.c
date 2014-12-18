@@ -36,7 +36,8 @@ static char *k = "test_peerstore_api_watch_key";
 static char *val = "test_peerstore_api_watch_val";
 
 static int
-watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+watch_cb (void *cls, const struct GNUNET_PEERSTORE_Record *record,
+          const char *emsg)
 {
   GNUNET_assert (NULL == emsg);
   GNUNET_assert (0 == strcmp (val, (char *) record->value));
