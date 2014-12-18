@@ -261,7 +261,7 @@ destroy_service_session (struct AliceServiceSession *s)
   if (NULL != s->client)
   {
     GNUNET_SERVER_client_set_user_context (s->client,
-                                           NULL);
+                                           (void *)NULL);
     GNUNET_SERVER_client_disconnect (s->client);
     s->client = NULL;
   }
@@ -1356,7 +1356,7 @@ handle_client_disconnect (void *cls,
     return;
   s->client = NULL;
   GNUNET_SERVER_client_set_user_context (client,
-                                         NULL);
+                                         (void *)NULL);
   destroy_service_session (s);
 }
 
