@@ -1686,6 +1686,7 @@ GCCH_handle_local_ack (struct CadetChannel *ch, int fwd)
   {
     send_destroy (ch, GNUNET_YES);
     GCCH_destroy (ch);
+    return;
   }
   /* if loopback is marked for destruction, no need to ACK to the other peer,
    * it requested the destruction and is already gone, therefore, else if.
