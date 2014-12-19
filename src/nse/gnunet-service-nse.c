@@ -409,7 +409,8 @@ setup_estimate_message (struct GNUNET_NSE_ClientMessage *em)
   em->std_deviation = GNUNET_hton_double (std_dev);
   GNUNET_STATISTICS_set (stats,
                          "# nodes in the network (estimate)",
-                         (uint64_t) pow (2, em->size_estimate),
+                         (uint64_t) pow (2, GNUNET_MAX (se,
+                                                        nsize)),
                          GNUNET_NO);
 }
 
