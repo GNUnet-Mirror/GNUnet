@@ -469,6 +469,8 @@ handle_client_disconnect (void *cls,
 static void
 incoming_destroy (struct Operation *incoming)
 {
+  struct GNUNET_CADET_Channel *channel;
+
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
   GNUNET_CONTAINER_DLL_remove (incoming_head,
                                incoming_tail,
@@ -490,10 +492,10 @@ incoming_destroy (struct Operation *incoming)
     GNUNET_MQ_destroy (incoming->mq);
     incoming->mq = NULL;
   }
-  if (NULL != incoming->channel)
+  if (NULL != (channel = incoming->channel))
   {
-    GNUNET_CADET_channel_destroy (incoming->channel);
     incoming->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
   }
 }
 
