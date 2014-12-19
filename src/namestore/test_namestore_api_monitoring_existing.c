@@ -282,7 +282,8 @@ run (void *cls,
   char *hostkey_file;
 
   directory = NULL;
-  GNUNET_CONFIGURATION_get_value_string(mycfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string(mycfg, "PATHS", "GNUNET_TEST_HOME", &directory));
   GNUNET_DISK_directory_remove (directory);
 
   res = 1;
