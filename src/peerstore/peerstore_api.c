@@ -437,6 +437,7 @@ static void
 reconnect (struct GNUNET_PEERSTORE_Handle *h)
 {
   struct GNUNET_PEERSTORE_IterateContext *ic;
+  struct GNUNET_PEERSTORE_IterateContext *ic_tmp;
   GNUNET_PEERSTORE_Processor icb;
   void *icb_cls;
   struct GNUNET_PEERSTORE_StoreContext *sc;
@@ -448,6 +449,35 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     {
       GNUNET_MQ_send_cancel (sc->ev);
       sc->ev = NULL;
+    }
+  }
+  ic = h->iterate_head;
+  while (NULL != ic)
+  {
+    if (GNUNET_YES == ic->iterating)
+    {
+      icb = ic->callback;
+      icb_cls = ic->callback_cls;
+      ic->iterating = GNUNET_NO;
+      ic_tmp = ic;
+      ic = ic->next;
+      GNUNET_PEERSTORE_iterate_cancel (ic_tmp);
+      if (NULL != icb)
+        icb (icb_cls, NULL, _("Iteration canceled due to reconnection."));
+    }
+    else
+    {
+      if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
+      {
+        GNUNET_SCHEDULER_cancel (ic->timeout_task);
+        ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+      if (NULL != ic->ev)
+      {
+        GNUNET_MQ_send_cancel (ic->ev);
+        ic->ev = NULL;
+      }
+      ic = ic->next;
     }
   }
   if (NULL != h->mq)
@@ -471,35 +501,14 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_CONTAINER_multihashmap_iterate (h->watches, &rewatch_it, h);
   for (ic = h->iterate_head; NULL != ic; ic = ic->next)
   {
-    if (GNUNET_YES == ic->iterating)
-    {
-      icb = ic->callback;
-      icb_cls = ic->callback_cls;
-      GNUNET_PEERSTORE_iterate_cancel (ic);
-      if (NULL != icb)
-        icb (icb_cls, NULL, _("Iteration canceled due to reconnection."));
-    }
-    else
-    {
-      if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
-      {
-        GNUNET_SCHEDULER_cancel (ic->timeout_task);
-        ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-      }
-      if (NULL != ic->ev)
-      {
-        GNUNET_MQ_send_cancel (ic->ev);
-        ic->ev = NULL;
-      }
-      ic->ev =
-          PEERSTORE_create_record_mq_envelope (ic->sub_system, &ic->peer,
-                                               ic->key, NULL, 0, NULL, 0,
-                                               GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
-      GNUNET_MQ_notify_sent (ic->ev, &iterate_request_sent, ic);
-      GNUNET_MQ_send (h->mq, ic->ev);
-      ic->timeout_task =
-          GNUNET_SCHEDULER_add_delayed (ic->timeout, &iterate_timeout, ic);
-    }
+    ic->ev =
+        PEERSTORE_create_record_mq_envelope (ic->sub_system, &ic->peer, ic->key,
+                                             NULL, 0, NULL, 0,
+                                             GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
+    GNUNET_MQ_notify_sent (ic->ev, &iterate_request_sent, ic);
+    GNUNET_MQ_send (h->mq, ic->ev);
+    ic->timeout_task =
+        GNUNET_SCHEDULER_add_delayed (ic->timeout, &iterate_timeout, ic);
   }
   for (sc = h->store_head; NULL != sc; sc = sc->next)
   {
