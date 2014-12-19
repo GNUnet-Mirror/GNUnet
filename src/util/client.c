@@ -1070,13 +1070,9 @@ client_delayed_retry (void *cls,
   if (NULL == th->client->connection)
   {
     /* could happen if we're out of sockets */
-    delay =
-        GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining
-                                  (th->timeout), th->client->back_off);
-    th->client->back_off =
-        GNUNET_TIME_relative_min (GNUNET_TIME_relative_multiply
-                                  (th->client->back_off, 2),
-                                  GNUNET_TIME_UNIT_SECONDS);
+    delay = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (th->timeout),
+                                      th->client->back_off);
+    th->client->back_off = GNUNET_TIME_STD_BACKOFF (th->client->back_off);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmission failed %u times, trying again in %s.\n",
          MAX_ATTEMPTS - th->attempts_left,
