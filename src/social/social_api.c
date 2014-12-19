@@ -661,10 +661,11 @@ host_recv_enter_request (void *cls,
   struct GNUNET_ENV_Environment *env = NULL;
   const void *data = NULL;
   uint16_t data_size = 0;
-
+  char *str;
   const struct GNUNET_PSYC_JoinRequestMessage *
     req = (const struct GNUNET_PSYC_JoinRequestMessage *) msg;
   const struct GNUNET_PSYC_Message *entry_msg = NULL;
+
   if (sizeof (*req) + sizeof (*entry_msg) <= ntohs (req->header.size))
   {
     entry_msg = (struct GNUNET_PSYC_Message *) &req[1];
@@ -676,10 +677,12 @@ host_recv_enter_request (void *cls,
     if (GNUNET_OK != GNUNET_PSYC_message_parse (entry_msg, &method_name, env,
                                                 &data, &data_size))
     {
+      GNUNET_break_op (0);
+      str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->slave_key);
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Ignoring invalid entry request from nym %s.\n",
-           GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->slave_key));
-      GNUNET_break_op (0);
+           str);
+      GNUNET_free (str);
       GNUNET_ENV_environment_destroy (env);
       return;
     }

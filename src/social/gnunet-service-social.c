@@ -690,6 +690,7 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
                   sizeof (*req), relay_size, join_msg_size, req_size);
       GNUNET_break (0);
       GNUNET_SERVER_client_disconnect (client);
+      GNUNET_free (gst);
       return;
     }
     if (0 < gst->relay_count)
@@ -707,12 +708,12 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
     if (NULL == plc_gst)
     {
       plc_gst = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-      GNUNET_CONTAINER_multihashmap_put (place_guests, &plc->pub_key_hash, plc_gst,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+      (void) GNUNET_CONTAINER_multihashmap_put (place_guests, &plc->pub_key_hash, plc_gst,
+                                                GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
-    GNUNET_CONTAINER_multihashmap_put (plc_gst, &gst->pub_key_hash, plc,
+    (void) GNUNET_CONTAINER_multihashmap_put (plc_gst, &gst->pub_key_hash, gst,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-    GNUNET_CONTAINER_multihashmap_put (guests, &plc->pub_key_hash, plc,
+    (void) GNUNET_CONTAINER_multihashmap_put (guests, &plc->pub_key_hash, gst,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     gst->slave
       = GNUNET_PSYC_slave_join (cfg, &plc->pub_key, &gst->priv_key,

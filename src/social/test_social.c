@@ -293,12 +293,14 @@ host_farewell (void *cls,
                struct GNUNET_ENV_Modifier *variables)
 {
   // FIXME: this function is not called yet
+  struct GNUNET_CRYPTO_EcdsaPublicKey *nym_key = GNUNET_SOCIAL_nym_get_key (nym);
+  char *str;
 
-  struct GNUNET_CRYPTO_EcdsaPublicKey *
-    nym_key = GNUNET_SOCIAL_nym_get_key (nym);
+  str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Nym %s has left the place.\n",
-              GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key));
+              str);
+  GNUNET_free (str);
   GNUNET_assert (0 == memcmp (&guest_pub_key, nym_key, sizeof (*nym_key)));
 
   GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
