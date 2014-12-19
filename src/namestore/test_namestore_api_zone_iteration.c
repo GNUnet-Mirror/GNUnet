@@ -181,6 +181,7 @@ zone_proc (void *cls,
     GNUNET_SCHEDULER_add_now (&end, NULL);
     return;
   }
+  GNUNET_assert (NULL != zone);
   if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
     if (0 == strcmp (label, s_name_1))
@@ -424,7 +425,10 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   directory = NULL;
-  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS",
+                                                       "GNUNET_TEST_HOME",
+                                                       &directory));
   GNUNET_DISK_directory_remove (directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
