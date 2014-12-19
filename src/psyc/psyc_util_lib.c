@@ -624,7 +624,7 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 
     *data_size = value_size;
     memcpy (data, value, value_size);
-    return (tmit->mod_value = NULL) ? GNUNET_YES : GNUNET_NO;
+    return (NULL == tmit->mod_value) ? GNUNET_YES : GNUNET_NO;
   }
 }
 
