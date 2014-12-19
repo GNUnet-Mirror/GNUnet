@@ -838,14 +838,14 @@ getValue__ (unsigned char a)
 
 /**
  * Convert binary data to ASCII encoding using Crockford Base32 encoding.
- * Does not append 0-terminator, but returns a pointer to the place where
- * it should be placed, if needed.
+ * Returns a pointer to the byte after the last byte in the string, that
+ * is where the 0-terminator was placed if there was room.
  *
  * @param data data to encode
  * @param size size of data (in bytes)
  * @param out buffer to fill
  * @param out_size size of the buffer. Must be large enough to hold
- * ((size*8) + (((size*8) % 5) > 0 ? 5 - ((size*8) % 5) : 0)) / 5 bytes
+ * (size * 8 + 4) / 5 bytes
  * @return pointer to the next byte in 'out' or NULL on error.
  */
 char *
@@ -864,7 +864,7 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
   GNUNET_assert (data != NULL);
   GNUNET_assert (out != NULL);
   udata = data;
-  if (out_size < (((size*8) + ((size*8) % 5)) % 5))
+  if (out_size < (size * 8 + 4) / 5)
   {
     GNUNET_break (0);
     return NULL;
