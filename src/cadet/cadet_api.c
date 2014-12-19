@@ -526,13 +526,13 @@ static void
 timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CADET_TransmitHandle *th = cls;
-  struct GNUNET_CADET_Handle *cadet;
+  struct GNUNET_CADET_Handle *cadet = th->channel->cadet;
 
-  cadet = th->channel->cadet;
-  GNUNET_CONTAINER_DLL_remove (cadet->th_head, cadet->th_tail, th);
+  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   th->channel->packet_size = 0;
+  GNUNET_CONTAINER_DLL_remove (cadet->th_head, cadet->th_tail, th);
   if (GNUNET_YES == th_is_payload (th))
-    th->notify (th->notify_cls, 0, NULL);
+    GNUNET_break (0 == th->notify (th->notify_cls, 0, NULL));
   GNUNET_free (th);
   if ((0 == message_ready_size (cadet)) && (NULL != cadet->th))
   {
@@ -1373,15 +1373,15 @@ send_callback (void *cls, size_t size, void *buf)
     }
     else
     {
-      struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
+      const struct GNUNET_MessageHeader *mh;
 
+      mh = (const struct GNUNET_MessageHeader *) &th[1];
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  cadet internal traffic, type %s\n",
            GC_m2s (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
     GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= psize);
-
     if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
@@ -1448,9 +1448,6 @@ send_packet (struct GNUNET_CADET_Handle *h,
   th->channel = channel;
   memcpy (&th[1], msg, msize);
   add_to_queue (h, th);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  queued\n");
-  if (NULL != h->th)
-    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  calling ntfy tmt rdy for %u bytes\n", msize);
   h->th =
       GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
@@ -1656,9 +1653,14 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
     if (th->channel == channel)
     {
       aux = th->next;
-      /* FIXME call the handler? */
       if (GNUNET_YES == th_is_payload (th))
+      {
+        /* applications should cancel before destroying channel */
+        GNUNET_break (0);
         th->notify (th->notify_cls, 0, NULL);
+      }
+      GNUNET_CADET_notify_transmit_ready_cancel (th);
+
       GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
       GNUNET_free (th);
       th = aux;

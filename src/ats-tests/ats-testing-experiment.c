@@ -86,9 +86,11 @@ free_experiment (struct Experiment *e)
   GNUNET_free (e);
 }
 
+
 static int
-load_episode (struct Experiment *e, struct Episode *cur,
-    struct GNUNET_CONFIGURATION_Handle *cfg)
+load_episode (struct Experiment *e,
+              struct Episode *cur,
+              struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_ATS_TEST_Operation *o;
   char *sec_name;
@@ -99,12 +101,12 @@ load_episode (struct Experiment *e, struct Episode *cur,
   int op_counter = 0;
 
   fprintf (stderr, "Parsing episode %u\n",cur->id);
-  GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
+  GNUNET_asprintf (&sec_name, "episode-%u", cur->id);
 
   while (1)
   {
     /* Load operation */
-    GNUNET_asprintf(&op_name, "op-%u-operation", op_counter);
+    GNUNET_asprintf (&op_name, "op-%u-operation", op_counter);
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
         sec_name, op_name, &op))
     {
@@ -136,6 +138,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op);
       GNUNET_free (op_name);
       GNUNET_free (o);
+      GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
     GNUNET_free (op_name);
@@ -150,6 +153,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op);
       GNUNET_free (op_name);
       GNUNET_free (o);
+      GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
     if (o->src_id > (e->num_masters - 1))
@@ -159,6 +163,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op);
       GNUNET_free (op_name);
       GNUNET_free (o);
+      GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
     GNUNET_free (op_name);
@@ -173,6 +178,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op);
       GNUNET_free (op_name);
       GNUNET_free (o);
+      GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
     if (o->dest_id > (e->num_slaves - 1))
@@ -182,6 +188,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op);
       GNUNET_free (op_name);
       GNUNET_free (o);
+      GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
     GNUNET_free (op_name);
@@ -252,6 +259,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
           GNUNET_free (op_name);
           GNUNET_free (op);
           GNUNET_free (o);
+          GNUNET_free (sec_name);
           return GNUNET_SYSERR;
         }
       }
@@ -279,6 +287,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
               GNUNET_free (op_name);
               GNUNET_free (op);
               GNUNET_free (o);
+              GNUNET_free (sec_name);
               return GNUNET_SYSERR;
           }
           GNUNET_free (op_name);
@@ -295,6 +304,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
               GNUNET_free (op);
               GNUNET_free_non_null (pref);
               GNUNET_free (o);
+              GNUNET_free (sec_name);
               return GNUNET_SYSERR;
           }
 
@@ -312,6 +322,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
               GNUNET_free (pref);
               GNUNET_free_non_null (pref);
               GNUNET_free (o);
+              GNUNET_free (sec_name);
               return GNUNET_SYSERR;
           }
           GNUNET_free (pref);
@@ -351,6 +362,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
 
   return GNUNET_OK;
 }
+
 
 static int
 load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
