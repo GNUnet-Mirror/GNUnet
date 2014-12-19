@@ -2917,7 +2917,7 @@ add_new_trail (struct FingerInfo *existing_finger,
     friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap,
                                                 &new_trail[0]);
   }
-
+  GNUNET_assert (NULL != friend);
   friend->trails_count++;
   for (i = 0; i < new_trail_length; i++)
   {
