@@ -223,23 +223,30 @@ group_recv_join_request (void *cls,
                           struct GNUNET_CLIENT_MANAGER_Connection *client,
                           const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_MULTICAST_Group *
-    grp = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*grp));
+  struct GNUNET_MULTICAST_Group *grp;
+  const struct MulticastJoinRequestMessage *jreq;
+  struct GNUNET_MULTICAST_JoinHandle *jh;
+  const struct GNUNET_MessageHeader *jmsg;
 
-  const struct MulticastJoinRequestMessage *
-    jreq = (const struct MulticastJoinRequestMessage *) msg;
-
-  struct GNUNET_MULTICAST_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
+  grp = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*grp));
+  if (NULL == grp)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (NULL == grp->join_req_cb)
+    return;
+  /* FIXME: this fails to check that 'msg' is well-formed! */
+  jreq = (const struct MulticastJoinRequestMessage *) msg;
+  if (sizeof (*jreq) + sizeof (*jmsg) <= ntohs (jreq->header.size))
+    jmsg = (const struct GNUNET_MessageHeader *) &jreq[1];
+  else
+    jmsg = NULL;
+  jh = GNUNET_malloc (sizeof (*jh));
   jh->group = grp;
   jh->member_key = jreq->member_key;
   jh->peer = jreq->peer;
-
-  const struct GNUNET_MessageHeader *jmsg = NULL;
-  if (sizeof (*jreq) + sizeof (*jmsg) <= ntohs (jreq->header.size))
-    jmsg = (const struct GNUNET_MessageHeader *) &jreq[1];
-
-  if (NULL != grp->join_req_cb)
-    grp->join_req_cb (grp->cb_cls, &jreq->member_key, jmsg, jh);
+  grp->join_req_cb (grp->cb_cls, &jreq->member_key, jmsg, jh);
 }
 
 
