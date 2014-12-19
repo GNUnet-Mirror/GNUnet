@@ -1185,7 +1185,7 @@ cadet_recv_join_decision (void *cls,
 
   struct Member *mem = (struct Member *) chn->grp;
   client_send_join_decision (mem, hdcsn);
-
+  GNUNET_free (hdcsn);
   if (GNUNET_YES == ntohs (dcsn->is_admitted))
   {
     chn->join_status = JOIN_ADMITTED;

@@ -1642,6 +1642,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
                   sizeof (*req), relay_size, join_msg_size, req_size);
       GNUNET_break (0);
       GNUNET_SERVER_client_disconnect (client);
+      GNUNET_free (slv);
       return;
     }
     if (0 < slv->relay_count)
@@ -1753,14 +1754,21 @@ static void
 client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *msg)
 {
-  struct Channel *
-    chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
-  GNUNET_assert (GNUNET_YES == chn->is_master);
-  struct Master *mst = (struct Master *) chn;
-
-  struct GNUNET_PSYC_JoinDecisionMessage *
-    dcsn = (struct GNUNET_PSYC_JoinDecisionMessage *) msg;
+  const struct GNUNET_PSYC_JoinDecisionMessage *dcsn
+    = (const struct GNUNET_PSYC_JoinDecisionMessage *) msg;
+  struct Channel *chn;
+  struct Master *mst;
   struct JoinDecisionClosure jcls;
+
+  chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  if (NULL == chn)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_assert (GNUNET_YES == chn->is_master);
+  mst = (struct Master *) chn;
   jcls.is_admitted = ntohl (dcsn->is_admitted);
   jcls.msg
     = (sizeof (*dcsn) + sizeof (*jcls.msg) <= ntohs (msg->size))
@@ -2266,6 +2274,7 @@ store_recv_state_var (void *cls, const char *name,
   GNUNET_SERVER_notification_context_add (nc, opcls->client);
   GNUNET_SERVER_notification_context_unicast (nc, opcls->client, &op->header,
                                               GNUNET_NO);
+  GNUNET_free (op);
   return GNUNET_YES;
 }
 

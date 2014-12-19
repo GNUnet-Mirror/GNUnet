@@ -201,7 +201,7 @@ void
 state_get_var (void *cls, const char *name, const void *value, size_t value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got state var: %s\n%.*s\n", name, value_size, value);  
+              "Got state var: %s\n%.*s\n", name, value_size, value);
 }
 
 
@@ -694,7 +694,7 @@ slave_add_cb (void *cls, int64_t result, const char *err_msg)
 }
 
 
-void
+static void
 join_decision_cb (void *cls,
                   const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
                   int is_admitted,
@@ -715,7 +715,7 @@ join_decision_cb (void *cls,
 }
 
 
-void
+static void
 join_request_cb (void *cls,
                  const struct GNUNET_PSYC_JoinRequestMessage *req,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
@@ -734,7 +734,7 @@ join_request_cb (void *cls,
 }
 
 
-void
+static void
 slave_connect_cb (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -745,7 +745,7 @@ slave_connect_cb (void *cls, int result, uint64_t max_message_id)
 }
 
 
-void
+static void
 slave_join ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
@@ -764,6 +764,7 @@ slave_join ()
                                 &slave_message_cb, &slave_message_part_cb,
                                 &slave_connect_cb, &join_decision_cb, NULL,
                                 join_msg);
+  GNUNET_free (join_msg);
   slv_chn = GNUNET_PSYC_slave_get_channel (slv);
   GNUNET_ENV_environment_destroy (env);
 }
