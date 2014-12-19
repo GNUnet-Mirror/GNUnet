@@ -943,10 +943,18 @@ client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct Group *
     grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
+  const struct GNUNET_MULTICAST_MessageHeader *
+    msg = (const struct GNUNET_MULTICAST_MessageHeader *) m;
+  struct Origin *orig;
+
+  if (NULL == grp)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   GNUNET_assert (GNUNET_YES == grp->is_origin);
-  struct Origin *orig = (struct Origin *) grp;
-  struct GNUNET_MULTICAST_MessageHeader *
-    msg = (struct GNUNET_MULTICAST_MessageHeader *) m;
+  orig = (struct Origin *) grp;
 
   msg->fragment_id = GNUNET_htonll (++orig->max_fragment_id);
   msg->purpose.size = htonl (ntohs (msg->header.size)
@@ -975,13 +983,19 @@ static void
 client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
                                const struct GNUNET_MessageHeader *m)
 {
-  struct Group *
-    grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  GNUNET_assert (GNUNET_NO == grp->is_origin);
-  struct Member *mem = (struct Member *) grp;
+  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
+  struct Member *mem;
+  const struct GNUNET_MULTICAST_RequestHeader *
+    req = (const struct GNUNET_MULTICAST_RequestHeader *) m;
 
-  struct GNUNET_MULTICAST_RequestHeader *
-    req = (struct GNUNET_MULTICAST_RequestHeader *) m;
+  if (NULL == grp)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  GNUNET_assert (GNUNET_NO == grp->is_origin);
+  mem = (struct Member *) grp;
 
   req->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
   req->purpose.size = htonl (ntohs (req->header.size)

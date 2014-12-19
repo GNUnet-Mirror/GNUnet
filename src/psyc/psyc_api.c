@@ -854,11 +854,15 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_PSYC_Slave *slv = GNUNET_malloc (sizeof (*slv));
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
-
   uint16_t relay_size = relay_count * sizeof (*relays);
-  uint16_t join_msg_size = ntohs (join_msg->header.size);
-  struct SlaveJoinRequest *req
-    = GNUNET_malloc (sizeof (*req) + relay_size + join_msg_size);
+  uint16_t join_msg_size;
+  struct SlaveJoinRequest *req;
+
+  if (NULL == join_msg)
+    join_msg_size = 0;
+  else
+    join_msg_size = ntohs (join_msg->header.size);
+  req = GNUNET_malloc (sizeof (*req) + relay_size + join_msg_size);
   req->header.size = htons (sizeof (*req)
                             + relay_count * sizeof (*relays));
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN);
@@ -870,8 +874,10 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (0 < relay_size)
     memcpy (&req[1], relays, relay_size);
 
-  if (0 < join_msg_size)
-    memcpy ((char *) &req[1] + relay_size, join_msg, join_msg_size);
+  if (NULL != join_msg)
+    memcpy ((char *) &req[1] + relay_size,
+            join_msg,
+            join_msg_size);
 
   chn->connect_msg = (struct GNUNET_MessageHeader *) req;
   chn->cfg = cfg;
