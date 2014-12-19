@@ -484,6 +484,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename_slaves[c_s]);
         GNUNET_free (filename_slaves[c_s]);
         GNUNET_break (GNUNET_OK == GNUNET_DISK_file_close(f_m));
+        GNUNET_free (filename_master);
         return;
       }
 
