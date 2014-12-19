@@ -5435,6 +5435,7 @@ handle_dht_p2p_notify_new_successor(void *cls,
 
     compare_and_update_predecessor (source, trail, trail_length);
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer);
+    GNUNET_assert (NULL != target_friend);
     GDS_NEIGHBOURS_send_notify_succcessor_confirmation (trail_id,
                                                         GDS_ROUTING_DEST_TO_SRC,
                                                         target_friend);
