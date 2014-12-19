@@ -898,6 +898,12 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   const struct MulticastJoinDecisionMessageHeader *
     hdcsn = (const struct MulticastJoinDecisionMessageHeader *) m;
 
+  if (NULL == grp)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Got join decision from client for group %s..\n",
               grp, GNUNET_h2s (&grp->pub_key_hash));
