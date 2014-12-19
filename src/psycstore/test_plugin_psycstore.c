@@ -224,7 +224,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                              - sizeof (msg->hop_counter)
                              - sizeof (msg->signature));
   msg->purpose.purpose = htonl (234);
-  GNUNET_CRYPTO_eddsa_sign (channel_key, &msg->purpose, &msg->signature);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_sign (channel_key, &msg->purpose, &msg->signature));
 
   struct FragmentClosure fcls = { 0 };
   fcls.n = 0;
