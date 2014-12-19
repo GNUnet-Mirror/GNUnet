@@ -114,22 +114,22 @@ enum
 } test;
 
 
-void
+static void
 guest_enter ();
 
 
-void
+static void
 guest_talk ();
 
 
-void
+static void
 host_announce2 ();
 
 
 /**
  * Clean up all resources used.
  */
-void
+static void
 cleanup ()
 {
   if (NULL != core)
@@ -164,7 +164,7 @@ cleanup ()
  * @param cls NULL
  * @param tc scheduler context
  */
-void
+static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   res = 1;
@@ -179,7 +179,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls NULL
  * @param tc scheduler context
  */
-void
+static void
 end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   res = 0;
@@ -191,7 +191,7 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Finish the test case (successfully).
  */
-void
+static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending tests.\n");
@@ -218,7 +218,7 @@ transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-int
+static int
 notify_data (void *cls, uint16_t *data_size, void *data)
 {
   struct TransmitClosure *tmit = cls;
@@ -265,7 +265,8 @@ notify_data (void *cls, uint16_t *data_size, void *data)
 }
 
 
-void host_left ()
+static void
+host_left ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "The host has left the place.\n");
@@ -277,7 +278,7 @@ void host_left ()
 }
 
 
-void
+static void
 schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   test = TEST_HOST_LEAVE;
@@ -285,7 +286,7 @@ schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-void
+static void
 host_farewell (void *cls,
                struct GNUNET_SOCIAL_Nym *nym,
                struct GNUNET_ENV_Environment *env,
@@ -307,7 +308,7 @@ host_farewell (void *cls,
 }
 
 
-void
+static void
 guest_left (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -320,7 +321,7 @@ guest_left (void *cls)
 }
 
 
-void
+static void
 guest_leave()
 {
   test = TEST_GUEST_LEAVE;
@@ -329,8 +330,7 @@ guest_leave()
 }
 
 
-
-void
+static void
 guest_recv_method (void *cls,
                   const struct GNUNET_PSYC_MessageMethod *meth,
                   uint64_t message_id,
@@ -346,7 +346,7 @@ guest_recv_method (void *cls,
 }
 
 
-void
+static void
 guest_recv_modifier (void *cls,
                     const struct GNUNET_PSYC_MessageModifier *mod,
                     uint64_t message_id,
@@ -362,7 +362,7 @@ guest_recv_modifier (void *cls,
 }
 
 
-void
+static void
 guest_recv_data (void *cls,
                 const struct GNUNET_MessageHeader *msg,
                 uint64_t message_id,
@@ -377,7 +377,7 @@ guest_recv_data (void *cls,
 }
 
 
-void
+static void
 guest_recv_eom (void *cls,
                const struct GNUNET_MessageHeader *msg,
                uint64_t message_id,
@@ -404,7 +404,7 @@ guest_recv_eom (void *cls,
 }
 
 
-void
+static void
 host_recv_method (void *cls,
                   const struct GNUNET_PSYC_MessageMethod *meth,
                   uint64_t message_id,
@@ -420,7 +420,7 @@ host_recv_method (void *cls,
 }
 
 
-void
+static void
 host_recv_modifier (void *cls,
                     const struct GNUNET_PSYC_MessageModifier *mod,
                     uint64_t message_id,
@@ -436,7 +436,7 @@ host_recv_modifier (void *cls,
 }
 
 
-void
+static void
 host_recv_data (void *cls,
                 const struct GNUNET_MessageHeader *msg,
                 uint64_t message_id,
@@ -451,7 +451,7 @@ host_recv_data (void *cls,
 }
 
 
-void
+static void
 host_recv_eom (void *cls,
                const struct GNUNET_MessageHeader *msg,
                uint64_t message_id,
@@ -483,7 +483,7 @@ host_recv_eom (void *cls,
 }
 
 
-void
+static void
 guest_talk ()
 {
   test = TEST_GUEST_TALK;
@@ -505,7 +505,8 @@ guest_talk ()
                                 GNUNET_SOCIAL_TALK_NONE);
 }
 
-void
+
+static void
 host_announce ()
 {
   test = TEST_HOST_ANNOUNCE;
@@ -530,7 +531,8 @@ host_announce ()
                                    GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
 
-void
+
+static void
 host_announce2 ()
 {
   test = TEST_HOST_ANNOUNCE;
@@ -555,7 +557,7 @@ host_announce2 ()
 }
 
 
-void
+static void
 guest_recv_entry_decision (void *cls,
                            int is_admitted,
                            const struct GNUNET_PSYC_Message *entry_resp)
@@ -596,7 +598,7 @@ guest_recv_entry_decision (void *cls,
 }
 
 
-void
+static void
 host_answer_door (void *cls,
                   struct GNUNET_SOCIAL_Nym *nym,
                   const char *method_name,
@@ -635,7 +637,7 @@ host_answer_door (void *cls,
 }
 
 
-void
+static void
 guest_recv_local_enter (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Guest entered to local place.\n");
@@ -643,7 +645,7 @@ guest_recv_local_enter (void *cls, int result, uint64_t max_message_id)
 }
 
 
-void
+static void
 guest_enter ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Entering to place as guest.\n");
@@ -668,7 +670,8 @@ guest_enter ()
 }
 
 
-void id_guest_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+static void
+id_guest_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   GNUNET_assert (NULL != ego);
   guest_ego = ego;
@@ -683,7 +686,8 @@ void id_guest_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 }
 
 
-void id_guest_created (void *cls, const char *emsg)
+static void
+id_guest_created (void *cls, const char *emsg)
 {
   if (NULL != emsg)
   {
@@ -698,7 +702,8 @@ void id_guest_created (void *cls, const char *emsg)
 }
 
 
-void host_entered (void *cls, int result, uint64_t max_message_id)
+static void
+host_entered (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Host entered to place.\n");
 
@@ -706,7 +711,8 @@ void host_entered (void *cls, int result, uint64_t max_message_id)
 }
 
 
-void id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+static void
+id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   GNUNET_assert (NULL != ego);
   host_ego = ego;
@@ -724,7 +730,8 @@ void id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 }
 
 
-void id_host_created (void *cls, const char *emsg)
+static void
+id_host_created (void *cls, const char *emsg)
 {
   if (NULL != emsg)
   {
@@ -739,14 +746,15 @@ void id_host_created (void *cls, const char *emsg)
 }
 
 
-void identity_ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego,
-                      void **ctx, const char *name)
+static void
+identity_ego_cb (void *cls, struct GNUNET_IDENTITY_Ego *ego,
+                 void **ctx, const char *name)
 {
 
 }
 
 
-void
+static void
 core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
   this_peer = *my_identity;
@@ -763,7 +771,7 @@ core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  * @param cfg configuration we use (also to connect to Social service)
  * @param peer handle to access more of the peer (not used)
  */
-void
+static void
 #if DEBUG_TEST_SOCIAL
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
