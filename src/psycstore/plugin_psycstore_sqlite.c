@@ -1770,13 +1770,13 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
 {
   struct Plugin *plugin = cls;
   int ret = GNUNET_SYSERR;
-
   sqlite3_stmt *stmt = plugin->select_state_prefix;
   size_t name_len = strlen (name);
-  char *name_prefix = GNUNET_malloc (name_len + 2);
-  memcpy (name_prefix, name, name_len);
-  memcpy (name_prefix + name_len, "_%", 2);
+  char *name_prefix;
 
+  GNUNET_asprintf (&name_prefix,
+                   "%s_%%",
+                   name);
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
                                       sizeof (*channel_key), SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_text (stmt, 2, name, name_len, SQLITE_STATIC)
@@ -1812,13 +1812,12 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     }
     while (sql_ret == SQLITE_ROW);
   }
-
   if (SQLITE_OK != sqlite3_reset (stmt))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
   }
-
+  GNUNET_free (name_prefix);
   return ret;
 }
 
