@@ -1660,9 +1660,6 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
         th->notify (th->notify_cls, 0, NULL);
       }
       GNUNET_CADET_notify_transmit_ready_cancel (th);
-
-      GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
-      GNUNET_free (th);
       th = aux;
     }
     else
