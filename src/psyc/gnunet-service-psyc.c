@@ -1312,7 +1312,7 @@ message_queue_drop (struct Channel *chn)
 
     struct FragmentQueue *
       fragq = GNUNET_CONTAINER_multihashmap_get (chn->recv_frags, &msg_id_hash);
-
+    GNUNET_assert (NULL != fragq);
     fragment_queue_run (chn, msg_id, fragq, GNUNET_YES);
     GNUNET_CONTAINER_heap_remove_root (chn->recv_msgs);
     n++;
