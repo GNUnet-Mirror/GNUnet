@@ -20,7 +20,7 @@
 
 /**
  * @file transport/gnunet-service-transport_clients.c
- * @brief plugin management API
+ * @brief communication with clients (core service and monitors)
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -549,7 +549,9 @@ client_disconnect_notification (void *cls,
     tc->message_count--;
     GNUNET_free (mqe);
   }
-  GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, tc);
+  GNUNET_CONTAINER_DLL_remove (clients_head,
+                               clients_tail,
+                               tc);
   GNUNET_SERVER_client_set_user_context (client, NULL);
   if (NULL != tc->th)
   {
@@ -1078,7 +1080,10 @@ compose_address_iterate_response_message (const struct GNUNET_PeerIdentity *peer
     alen = address->address_length;
   }
   else
-    tlen = alen = 0;
+  {
+    tlen = 0;
+    alen = 0;
+  }
   size = (sizeof (struct PeerIterateResponseMessage) + alen + tlen);
   msg = GNUNET_malloc (size);
   msg->header.size = htons (size);

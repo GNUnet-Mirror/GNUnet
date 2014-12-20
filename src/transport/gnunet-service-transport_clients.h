@@ -32,7 +32,6 @@
 #include "gnunet_hello_lib.h"
 
 
-
 /**
  * Start handling requests from clients.
  *
@@ -56,7 +55,8 @@ GST_clients_stop (void);
  * @param may_drop #GNUNET_YES if the message can be dropped / is payload
  */
 void
-GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop);
+GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
+                       int may_drop);
 
 
 /**
@@ -68,7 +68,8 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop);
  */
 void
 GST_clients_unicast (struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *msg, int may_drop);
+                     const struct GNUNET_MessageHeader *msg,
+                     int may_drop);
 
 
 /**
@@ -81,9 +82,9 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
  */
 void
 GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout);
+                                         const struct GNUNET_HELLO_Address *address,
+                                         enum GNUNET_TRANSPORT_PeerState state,
+                                         struct GNUNET_TIME_Absolute state_timeout);
 
 
 /**
@@ -97,13 +98,12 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
  * @param state state of validation notification
  */
 void
-GST_clients_broadcast_validation_notification (
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state);
+GST_clients_broadcast_validation_notification (const struct GNUNET_PeerIdentity *peer,
+                                               const struct GNUNET_HELLO_Address *address,
+                                               struct GNUNET_TIME_Absolute last_validation,
+                                               struct GNUNET_TIME_Absolute valid_until,
+                                               struct GNUNET_TIME_Absolute next_validation,
+                                               enum GNUNET_TRANSPORT_ValidationState state);
 
 
 #endif

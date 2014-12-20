@@ -1282,7 +1282,7 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
     return NULL;
   tch = GNUNET_new (struct GNUNET_TRANSPORT_TryConnectHandle);
   tch->th = handle;
-  tch->pid = *(target);
+  tch->pid = *target;
   tch->cb = cb;
   tch->cb_cls = cb_cls;
   tch->tth = schedule_control_transmit (handle,
@@ -1387,7 +1387,7 @@ GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,
     return NULL;
   tdh = GNUNET_new (struct GNUNET_TRANSPORT_TryDisconnectHandle);
   tdh->th = handle;
-  tdh->pid = *(target);
+  tdh->pid = *target;
   tdh->cb = cb;
   tdh->cb_cls = cb_cls;
   tdh->tth = schedule_control_transmit (handle,

@@ -60,7 +60,7 @@ struct GNUNET_MQ_Envelope
   GNUNET_MQ_NotifyCallback sent_cb;
 
   /**
-   * Closure for send_cb
+   * Closure for @e send_cb
    */
   void *sent_cls;
 };
@@ -136,9 +136,9 @@ struct GNUNET_MQ_Handle
   GNUNET_SCHEDULER_TaskIdentifier continue_task;
 
   /**
-   * Next id that should be used for the assoc_map,
+   * Next id that should be used for the @e assoc_map,
    * initialized lazily to a random value together with
-   * assoc_map
+   * @e assoc_map
    */
   uint32_t assoc_id;
 };
