@@ -182,12 +182,12 @@ static struct TransportClient *clients_tail;
 /**
  * Head of linked list of all pending address iterations
  */
-struct AddressToStringContext *a2s_head;
+static struct AddressToStringContext *a2s_head;
 
 /**
  * Tail of linked list of all pending address iterations
  */
-struct AddressToStringContext *a2s_tail;
+static struct AddressToStringContext *a2s_tail;
 
 /**
  * Head of linked list of monitoring clients.
@@ -659,7 +659,8 @@ clients_handle_start (void *cls,
  * @param message the HELLO message
  */
 static void
-clients_handle_hello (void *cls, struct GNUNET_SERVER_Client *client,
+clients_handle_hello (void *cls,
+                      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   GST_validation_handle_hello (message);
