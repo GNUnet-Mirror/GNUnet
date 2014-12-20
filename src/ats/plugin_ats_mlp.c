@@ -1921,7 +1921,6 @@ GAS_mlp_address_add (void *solver,
                     uint32_t network)
 {
   struct GAS_MLP_Handle *mlp = solver;
-  struct ATS_Peer *p;
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != address);
@@ -1942,14 +1941,20 @@ GAS_mlp_address_add (void *solver,
 	   GNUNET_i2s(&address->peer));
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
-						      &address->peer)))
+  if (NULL ==
+      GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
+                                         &address->peer))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s' without address request \n", GNUNET_i2s(&address->peer));
+    /* FIXME: should this be an error? */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Adding address for peer `%s' without address request\n",
+         GNUNET_i2s(&address->peer));
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding address for peer `%s' with address request \n", GNUNET_i2s(&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding address for peer `%s' with address request \n",
+       GNUNET_i2s(&address->peer));
   /* Problem size changed: new address for peer with pending request */
   mlp->stat_mlp_prob_changed = GNUNET_YES;
   if (GNUNET_YES == mlp->opt_mlp_auto_solve)
@@ -1975,7 +1980,6 @@ GAS_mlp_address_property_changed (void *solver,
 {
   struct MLP_information *mlpi = address->solver_information;
   struct GAS_MLP_Handle *mlp = solver;
-  struct ATS_Peer *p;
   int c1;
   int type_index;
 
@@ -1993,8 +1997,9 @@ GAS_mlp_address_property_changed (void *solver,
       return;
   }
 
-  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
-						      &address->peer)))
+  if (NULL ==
+      GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
+                                         &address->peer))
   {
     /* Peer is not requested, so no need to update problem */
     return;
@@ -2094,7 +2099,6 @@ GAS_mlp_address_change_network (void *solver,
 {
   struct MLP_information *mlpi = address->solver_information;
   struct GAS_MLP_Handle *mlp = solver;
-  struct ATS_Peer *p;
   int nets_avail[] = GNUNET_ATS_NetworkType;
   int c1;
 
@@ -2116,8 +2120,9 @@ GAS_mlp_address_change_network (void *solver,
   if (mlpi->c_b == MLP_UNDEFINED)
     return; /* This address is not yet in the matrix*/
 
-  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
-						      &address->peer)))
+  if (NULL ==
+      GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
+                                         &address->peer))
   {
     /* Peer is not requested, so no need to update problem */
     GNUNET_break (0);
@@ -2275,8 +2280,9 @@ GAS_mlp_get_preferred_address (void *solver,
       GNUNET_i2s (peer));
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
-						      peer)))
+  if (NULL ==
+      GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
+                                         peer))
     {
       LOG (GNUNET_ERROR_TYPE_INFO, "Adding peer `%s' to list of requested_peers with requests\n",
           GNUNET_i2s (peer));
@@ -2322,7 +2328,6 @@ GAS_mlp_address_delete (void *solver,
 			struct ATS_Address *address,
 			int session_only)
 {
-  struct ATS_Peer *p;
   struct GAS_MLP_Handle *mlp = solver;
   struct MLP_information *mlpi;
   int was_active;
@@ -2343,12 +2348,14 @@ GAS_mlp_address_delete (void *solver,
   address->assigned_bw_out = 0;
 
   /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
-						      &address->peer)))
+  if (NULL ==
+      GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
+                                         &address->peer))
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "Deleting %s for peer `%s' without address request \n",
-        (session_only == GNUNET_YES) ? "session" : "address",
-        GNUNET_i2s(&address->peer));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Deleting %s for peer `%s' without address request \n",
+         (session_only == GNUNET_YES) ? "session" : "address",
+         GNUNET_i2s(&address->peer));
     return;
   }
   LOG (GNUNET_ERROR_TYPE_INFO, "Deleting %s for peer `%s' with address request \n",
@@ -2460,7 +2467,7 @@ GAS_mlp_address_change_preference (void *solver,
                    double pref_rel)
 {
   struct GAS_MLP_Handle *mlp = solver;
-  struct ATS_Peer *p = NULL;
+  struct ATS_Peer *p;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s' to %.2f\n",
       GNUNET_i2s(peer), pref_rel);
