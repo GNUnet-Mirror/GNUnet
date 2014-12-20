@@ -241,8 +241,9 @@ write_new_sensor_dir (struct TestPeer *cp_peer)
  * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop
  */
 static int
-peerstore_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record,
-                    char *emsg)
+peerstore_watch_cb (void *cls,
+                    const struct GNUNET_PEERSTORE_Record *record,
+                    const char *emsg)
 {
   struct TestPeer *peer = cls;
   struct GNUNET_SENSOR_DashboardAnomalyEntry *anomaly;
