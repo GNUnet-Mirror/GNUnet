@@ -13,7 +13,7 @@ options=''
 while getopts "c:" opt; do
   case $opt in
     c)
-      options+="-c $OPTARG"
+      options="$options -c $OPTARG"
       ;;
     \?)
       echo "Invalid option: -$OPTARG" >&2
