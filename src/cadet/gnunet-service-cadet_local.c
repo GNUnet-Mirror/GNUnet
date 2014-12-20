@@ -315,6 +315,13 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Initialize new client structure */
   c = GNUNET_SERVER_client_get_user_context (client, struct CadetClient);
+  if (NULL == c)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
   if (size > 0)
