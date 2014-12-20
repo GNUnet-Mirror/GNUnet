@@ -281,9 +281,14 @@ static struct GNUNET_TRANSPORT_Handle *handle;
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Try_connect handle
+ * Try connect handle
  */
 struct GNUNET_TRANSPORT_TryConnectHandle *tc_handle;
+
+/**
+ * Try disconnect handle
+ */
+struct GNUNET_TRANSPORT_TryDisconnectHandle *td_handle;
 
 /**
  * Option -s.
@@ -1772,11 +1777,9 @@ try_connect_cb (void *cls,
 {
   static int retries = 0;
 
+  tc_handle = NULL;
   if (GNUNET_OK == result)
-  {
-    tc_handle = NULL;
     return;
-  }
   retries++;
   if (retries < 10)
   {
@@ -1784,18 +1787,15 @@ try_connect_cb (void *cls,
                                               &pid,
                                               &try_connect_cb,
                                               NULL);
-  }
-  else
-  {
-    FPRINTF (stderr,
-             "%s",
-             _("Failed to send connect request to transport service\n"));
-    if (GNUNET_SCHEDULER_NO_TASK != end)
-      GNUNET_SCHEDULER_cancel (end);
-    ret = 1;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
+  FPRINTF (stderr,
+           "%s",
+           _("Failed to send connect request to transport service\n"));
+  if (GNUNET_SCHEDULER_NO_TASK != end)
+    GNUNET_SCHEDULER_cancel (end);
+  ret = 1;
+  end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -1812,27 +1812,25 @@ try_disconnect_cb (void *cls,
                    const int result)
 {
   static int retries = 0;
+
+  td_handle = NULL;
   if (GNUNET_OK == result)
-  {
-    tc_handle = NULL;
     return;
-  }
   retries++;
   if (retries < 10)
-    tc_handle = GNUNET_TRANSPORT_try_disconnect (handle,
+  {
+    td_handle = GNUNET_TRANSPORT_try_disconnect (handle,
                                                  &pid,
                                                  &try_disconnect_cb,
                                                  NULL);
-  else
-  {
-    FPRINTF (stderr, "%s",
-             _("Failed to send disconnect request to transport service\n"));
-    if (GNUNET_SCHEDULER_NO_TASK != end)
-      GNUNET_SCHEDULER_cancel (end);
-    ret = 1;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
+  FPRINTF (stderr, "%s",
+           _("Failed to send disconnect request to transport service\n"));
+  if (GNUNET_SCHEDULER_NO_TASK != end)
+    GNUNET_SCHEDULER_cancel (end);
+  ret = 1;
+  end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
 
@@ -1933,9 +1931,10 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    tc_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid, try_disconnect_cb,
-        NULL);
-    if (NULL == tc_handle)
+    td_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid,
+                                                 &try_disconnect_cb,
+                                                 NULL);
+    if (NULL == td_handle)
     {
       FPRINTF (stderr, "%s",
           _("Failed to send request to transport service\n"));

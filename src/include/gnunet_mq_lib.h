@@ -120,7 +120,9 @@ GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
  * @param nested_mh the message to append to the message after base_size
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, uint16_t type,
+GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
+                          uint16_t base_size,
+                          uint16_t type,
                           const struct GNUNET_MessageHeader *nested_mh);
 
 
@@ -199,7 +201,8 @@ typedef void
  * @param impl_state state of the implementation
  */
 typedef void
-(*GNUNET_MQ_DestroyImpl) (struct GNUNET_MQ_Handle *mq, void *impl_state);
+(*GNUNET_MQ_DestroyImpl) (struct GNUNET_MQ_Handle *mq,
+                          void *impl_state);
 
 
 /**
@@ -209,7 +212,8 @@ typedef void
  * @param impl_state state specific to the implementation
  */
 typedef void
-(*GNUNET_MQ_CancelImpl) (struct GNUNET_MQ_Handle *mq, void *impl_state);
+(*GNUNET_MQ_CancelImpl) (struct GNUNET_MQ_Handle *mq,
+                         void *impl_state);
 
 
 /**
@@ -328,7 +332,8 @@ GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq, void *assoc_data);
  * @return the associated data
  */
 void *
-GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
+GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
+                     uint32_t request_id);
 
 
 /**
@@ -339,7 +344,8 @@ GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
  * @return the associated data
  */
 void *
-GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id);
+GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
+                        uint32_t request_id);
 
 
 /**

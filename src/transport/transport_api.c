@@ -65,13 +65,13 @@ struct GNUNET_TRANSPORT_TransmitHandle
   struct Neighbour *neighbour;
 
   /**
-   * Function to call when notify_size bytes are available
+   * Function to call when @e notify_size bytes are available
    * for transmission.
    */
   GNUNET_TRANSPORT_TransmitReadyNotify notify;
 
   /**
-   * Closure for notify.
+   * Closure for @e notify.
    */
   void *notify_cls;
 
@@ -95,7 +95,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
 
 
 /**
- * Entry in hash table of all of our current neighbours.
+ * Entry in hash table of all of our current (connected) neighbours.
  */
 struct Neighbour
 {
@@ -120,11 +120,11 @@ struct Neighbour
   struct GNUNET_BANDWIDTH_Tracker out_tracker;
 
   /**
-   * Entry in our readyness heap (which is sorted by 'next_ready'
+   * Entry in our readyness heap (which is sorted by @e next_ready
    * value).  NULL if there is no pending transmission request for
-   * this neighbour or if we're waiting for 'is_ready' to become
-   * true AFTER the 'out_tracker' suggested that this peer's quota
-   * has been satisfied (so once 'is_ready' goes to GNUNET_YES,
+   * this neighbour or if we're waiting for @e is_ready to become
+   * true AFTER the @e out_tracker suggested that this peer's quota
+   * has been satisfied (so once @e is_ready goes to #GNUNET_YES,
    * we should immediately go back into the heap).
    */
   struct GNUNET_CONTAINER_HeapNode *hn;
@@ -180,8 +180,9 @@ struct GNUNET_TRANSPORT_GetHelloHandle
 
 };
 
+
 /**
- * Linked list for all try-connect requests
+ * Entry in linked list for a try-connect request.
  */
 struct GNUNET_TRANSPORT_TryConnectHandle
 {
@@ -196,22 +197,22 @@ struct GNUNET_TRANSPORT_TryConnectHandle
   struct GNUNET_TRANSPORT_TryConnectHandle *next;
 
   /**
-   *
+   * Peer we should try to connect to.
    */
   struct GNUNET_PeerIdentity pid;
 
   /**
-   *
+   * Transport service handle this request is part of.
    */
   struct GNUNET_TRANSPORT_Handle *th;
 
   /**
-   *
+   * Message transmission request to communicate to service.
    */
   struct GNUNET_TRANSPORT_TransmitHandle *tth;
 
   /**
-   *
+   * Function to call upon completion (of request transmission).
    */
   GNUNET_TRANSPORT_TryConnectCallback cb;
 
@@ -220,16 +221,54 @@ struct GNUNET_TRANSPORT_TryConnectHandle
    */
   void *cb_cls;
 
+};
+
+
+/**
+ * Entry in linked list for all try-disconnect requests
+ */
+struct GNUNET_TRANSPORT_TryDisconnectHandle
+{
   /**
-   *
+   * For the DLL.
    */
-  int connect;
+  struct GNUNET_TRANSPORT_TryDisconnectHandle *prev;
+
+  /**
+   * For the DLL.
+   */
+  struct GNUNET_TRANSPORT_TryDisconnectHandle *next;
+
+  /**
+   * Peer we should try to connect to.
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /**
+   * Transport service handle this request is part of.
+   */
+  struct GNUNET_TRANSPORT_Handle *th;
+
+  /**
+   * Message transmission request to communicate to service.
+   */
+  struct GNUNET_TRANSPORT_TransmitHandle *tth;
+
+  /**
+   * Function to call upon completion (of request transmission).
+   */
+  GNUNET_TRANSPORT_TryDisconnectCallback cb;
+
+  /**
+   * Closure for @e cb.
+   */
+  void *cb_cls;
 
 };
 
 
 /**
- * Linked list for all try-connect requests
+ * Entry in linked list for all offer-HELLO requests.
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle
 {
@@ -244,17 +283,17 @@ struct GNUNET_TRANSPORT_OfferHelloHandle
   struct GNUNET_TRANSPORT_OfferHelloHandle *next;
 
   /**
-   *
+   * Transport service handle we use for transmission.
    */
   struct GNUNET_TRANSPORT_Handle *th;
 
   /**
-   *
+   * Transmission handle for this request.
    */
   struct GNUNET_TRANSPORT_TransmitHandle *tth;
 
   /**
-   *
+   * Function to call once we are done.
    */
   GNUNET_SCHEDULER_Task cont;
 
@@ -264,7 +303,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle
   void *cls;
 
   /**
-   *
+   * The HELLO message to be transmitted.
    */
   struct GNUNET_MessageHeader *msg;
 };
@@ -347,6 +386,16 @@ struct GNUNET_TRANSPORT_Handle
    * Linked list of pending try connect requests tail
    */
   struct GNUNET_TRANSPORT_TryConnectHandle *tc_tail;
+
+  /**
+   * Linked list of pending try disconnect requests head
+   */
+  struct GNUNET_TRANSPORT_TryDisconnectHandle *td_head;
+
+  /**
+   * Linked list of pending try connect requests tail
+   */
+  struct GNUNET_TRANSPORT_TryDisconnectHandle *td_tail;
 
   /**
    * Linked list of pending offer HELLO requests head
@@ -1163,29 +1212,33 @@ cancel_control_transmit (struct GNUNET_TRANSPORT_Handle *th,
 
 
 /**
- * Send REQUEST_CONNECT message to the service.
+ * Send #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT message to the
+ * service.
  *
- * @param cls the `struct GNUNET_PeerIdentity`
+ * @param cls the `struct GNUNET_TRANSPORT_TryConnectHandle`
  * @param size number of bytes available in @a buf
  * @param buf where to copy the message
  * @return number of bytes copied to @a buf
  */
 static size_t
-send_try_connect (void *cls, size_t size, void *buf)
+send_try_connect (void *cls,
+                  size_t size,
+                  void *buf)
 {
   struct GNUNET_TRANSPORT_TryConnectHandle *tch = cls;
   struct TransportRequestConnectMessage msg;
 
+  tch->tth = NULL;
   if (NULL == buf)
   {
-    if (NULL != tch->cb)
-      tch->cb (tch->cb_cls, GNUNET_SYSERR);
-    GNUNET_CONTAINER_DLL_remove (tch->th->tc_head, tch->th->tc_tail, tch);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Discarding  `%s' request to `%4s' due to error in transport service connection.\n",
          "REQUEST_CONNECT",
          GNUNET_i2s (&tch->pid));
-    GNUNET_free (tch);
+    if (NULL != tch->cb)
+      tch->cb (tch->cb_cls,
+               GNUNET_SYSERR);
+    GNUNET_TRANSPORT_try_connect_cancel (tch);
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1195,13 +1248,12 @@ send_try_connect (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= sizeof (struct TransportRequestConnectMessage));
   msg.header.size = htons (sizeof (struct TransportRequestConnectMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT);
-  msg.connect = htonl (tch->connect);
+  msg.reserved = htonl (0);
   msg.peer = tch->pid;
   memcpy (buf, &msg, sizeof (msg));
   if (NULL != tch->cb)
     tch->cb (tch->cb_cls, GNUNET_OK);
-  GNUNET_CONTAINER_DLL_remove (tch->th->tc_head, tch->th->tc_tail, tch);
-  GNUNET_free (tch);
+  GNUNET_TRANSPORT_try_connect_cancel (tch);
   return sizeof (struct TransportRequestConnectMessage);
 }
 
@@ -1233,7 +1285,6 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
   tch->pid = *(target);
   tch->cb = cb;
   tch->cb_cls = cb_cls;
-  tch->connect = GNUNET_YES;
   tch->tth = schedule_control_transmit (handle,
                                         sizeof (struct TransportRequestConnectMessage),
                                         &send_try_connect, tch);
@@ -1254,12 +1305,61 @@ void
 GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch)
 {
   struct GNUNET_TRANSPORT_Handle *th;
-  GNUNET_assert (GNUNET_YES == tch->connect);
 
   th = tch->th;
-  cancel_control_transmit (th, tch->tth);
-  GNUNET_CONTAINER_DLL_remove (th->tc_head, th->tc_tail, tch);
+  if (NULL != tch->tth)
+    cancel_control_transmit (th, tch->tth);
+  GNUNET_CONTAINER_DLL_remove (th->tc_head,
+                               th->tc_tail,
+                               tch);
   GNUNET_free (tch);
+}
+
+
+/**
+ * Send #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_DISCONNECT message to the
+ * service.
+ *
+ * @param cls the `struct GNUNET_TRANSPORT_TryDisconnectHandle`
+ * @param size number of bytes available in @a buf
+ * @param buf where to copy the message
+ * @return number of bytes copied to @a buf
+ */
+static size_t
+send_try_disconnect (void *cls,
+                     size_t size,
+                     void *buf)
+{
+  struct GNUNET_TRANSPORT_TryDisconnectHandle *tdh = cls;
+  struct TransportRequestConnectMessage msg;
+
+  tdh->th = NULL;
+  if (NULL == buf)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Discarding  `%s' request to `%4s' due to error in transport service connection.\n",
+         "REQUEST_DISCONNECT",
+         GNUNET_i2s (&tdh->pid));
+    if (NULL != tdh->cb)
+      tdh->cb (tdh->cb_cls,
+               GNUNET_SYSERR);
+    GNUNET_TRANSPORT_try_disconnect_cancel (tdh);
+    return 0;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting `%s' request with respect to `%4s'.\n",
+       "REQUEST_DISCONNECT",
+       GNUNET_i2s (&tdh->pid));
+  GNUNET_assert (size >= sizeof (struct TransportRequestDisconnectMessage));
+  msg.header.size = htons (sizeof (struct TransportRequestDisconnectMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_DISCONNECT);
+  msg.reserved = htonl (0);
+  msg.peer = tdh->pid;
+  memcpy (buf, &msg, sizeof (msg));
+  if (NULL != tdh->cb)
+    tdh->cb (tdh->cb_cls, GNUNET_OK);
+  GNUNET_TRANSPORT_try_disconnect_cancel (tdh);
+  return sizeof (struct TransportRequestDisconnectMessage);
 }
 
 
@@ -1272,32 +1372,31 @@ GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *t
  * @param cb callback to be called when request was transmitted to transport
  *         service
  * @param cb_cls closure for the callback @a cb
- * @return a `struct GNUNET_TRANSPORT_TryConnectHandle` handle or
+ * @return a `struct GNUNET_TRANSPORT_TryDisconnectHandle` handle or
  *         NULL on failure (cb will not be called)
  */
-struct GNUNET_TRANSPORT_TryConnectHandle *
+struct GNUNET_TRANSPORT_TryDisconnectHandle *
 GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,
                                  const struct GNUNET_PeerIdentity *target,
-                                 GNUNET_TRANSPORT_TryConnectCallback cb,
+                                 GNUNET_TRANSPORT_TryDisconnectCallback cb,
                                  void *cb_cls)
 {
-  struct GNUNET_TRANSPORT_TryConnectHandle *tch;
+  struct GNUNET_TRANSPORT_TryDisconnectHandle *tdh;
 
   if (NULL == handle->client)
     return NULL;
-  tch = GNUNET_new (struct GNUNET_TRANSPORT_TryConnectHandle);
-  tch->th = handle;
-  tch->pid = *(target);
-  tch->cb = cb;
-  tch->cb_cls = cb_cls;
-  tch->connect = GNUNET_NO;
-  tch->tth = schedule_control_transmit (handle,
-                                        sizeof (struct TransportRequestConnectMessage),
-                                        &send_try_connect, tch);
-  GNUNET_CONTAINER_DLL_insert (handle->tc_head,
-                               handle->tc_tail,
-                               tch);
-  return tch;
+  tdh = GNUNET_new (struct GNUNET_TRANSPORT_TryDisconnectHandle);
+  tdh->th = handle;
+  tdh->pid = *(target);
+  tdh->cb = cb;
+  tdh->cb_cls = cb_cls;
+  tdh->tth = schedule_control_transmit (handle,
+                                        sizeof (struct TransportRequestDisconnectMessage),
+                                        &send_try_disconnect, tdh);
+  GNUNET_CONTAINER_DLL_insert (handle->td_head,
+                               handle->td_tail,
+                               tdh);
+  return tdh;
 }
 
 
@@ -1305,18 +1404,20 @@ GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,
  * Cancel the request to transport to try a disconnect
  * Callback will not be called
  *
- * @param tch the handle to cancel
+ * @param tdh the handle to cancel
  */
 void
-GNUNET_TRANSPORT_try_disconnect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch)
+GNUNET_TRANSPORT_try_disconnect_cancel (struct GNUNET_TRANSPORT_TryDisconnectHandle *tdh)
 {
   struct GNUNET_TRANSPORT_Handle *th;
 
-  GNUNET_assert (GNUNET_NO == tch->connect);
-  th = tch->th;
-  cancel_control_transmit (th, tch->tth);
-  GNUNET_CONTAINER_DLL_remove (th->tc_head, th->tc_tail, tch);
-  GNUNET_free (tch);
+  th = tdh->th;
+  if (NULL != tdh->tth)
+    cancel_control_transmit (th, tdh->tth);
+  GNUNET_CONTAINER_DLL_remove (th->td_head,
+                               th->td_tail,
+                               tdh);
+  GNUNET_free (tdh);
 }
 
 

@@ -163,6 +163,7 @@ struct DisconnectInfoMessage
 
 };
 
+
 /**
  * Message type for sending a request connect message
  * to the transport service.  Must be done before transport
@@ -172,20 +173,44 @@ struct DisconnectInfoMessage
 struct TransportRequestConnectMessage
 {
   /**
-   *  Message header
+   *  Message header with type #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Connect (#GNUNET_YES) or connect (#GNUNET_NO).
+   * Reserved (0).
    */
-  uint32_t connect;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Identity of the peer we would like to connect to.
    */
   struct GNUNET_PeerIdentity peer;
 };
+
+
+/**
+ * Message type for sending a request connection to
+ * a peer to be torn down.
+ */
+struct TransportRequestDisconnectMessage
+{
+  /**
+   *  Message header with type #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_DISCONNECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved (0).
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Identity of the peer we would like to connect to.
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
 
 /**
  * Message used to set a particular bandwidth quota.  Sent TO the
