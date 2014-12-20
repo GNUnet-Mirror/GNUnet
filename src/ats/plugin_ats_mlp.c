@@ -1075,6 +1075,7 @@ mlp_create_problem_add_address_information (void *cls,
 
   /* Get peer */
   peer = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers, key);
+  GNUNET_assert (NULL != peer);
   if (peer->processed == GNUNET_NO)
   {
       /* Add peer dependent constraints */
@@ -2440,7 +2441,8 @@ GAS_mlp_stop_get_preferred_address (void *solver,
   GNUNET_assert (NULL != peer);
   if (NULL != (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers, peer)))
   {
-    GNUNET_CONTAINER_multipeermap_remove (mlp->requested_peers, peer, p);
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (mlp->requested_peers, peer, p));
     GNUNET_free (p);
 
     mlp->stat_mlp_prob_changed = GNUNET_YES;
@@ -2530,7 +2532,8 @@ mlp_free_peers (void *cls,
   struct GNUNET_CONTAINER_MultiPeerMap *map = cls;
   struct ATS_Peer *p = value;
 
-  GNUNET_CONTAINER_multipeermap_remove (map, key, value);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (map, key, value));
   GNUNET_free (p);
 
   return GNUNET_OK;
