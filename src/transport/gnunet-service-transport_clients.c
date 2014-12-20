@@ -1424,6 +1424,7 @@ plugin_session_info_cb (void *cls,
     }
     return;
   }
+  GNUNET_assert (NULL != info);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Plugin event for peer %s on transport %s\n",
               GNUNET_i2s (&info->address->peer),

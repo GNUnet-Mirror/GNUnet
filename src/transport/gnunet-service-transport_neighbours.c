@@ -94,12 +94,16 @@ enum GST_ACK_State
    */
   ACK_UNDEFINED = 0,
 
-  /* The neighbour received a SYN message and has to send a SYN_ACK
-   * as reply */
+  /**
+   * The neighbour received a SYN message and has to send a SYN_ACK
+   * as reply
+   */
   ACK_SEND_SYN_ACK = 1,
 
-  /* The neighbour sent a SYN_ACK message and has to send a ACK
-   * as reply */
+  /**
+   * The neighbour sent a SYN_ACK message and has to send a ACK
+   * as reply
+   */
   ACK_SEND_ACK = 2
 };
 
