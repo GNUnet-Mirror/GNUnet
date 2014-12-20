@@ -643,7 +643,7 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 }
 
 
-void
+static void
 slave_join ();
 
 
