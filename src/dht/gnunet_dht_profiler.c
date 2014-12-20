@@ -929,7 +929,7 @@ act_malicious_cont (void *cls, int success)
  * @param emsg error message in case the operation has failed; will be NULL if
  *          operation has executed successfully.
  */
-void
+static void
 dht_set_malicious(void *cls,
                   struct GNUNET_TESTBED_Operation *op,
                   void *ca_result,
@@ -990,8 +990,9 @@ static void
 set_malicious()
 {
   unsigned int i;
-  DEBUG ("Setting %u peers malicious",n_malicious);
 
+  DEBUG ("Setting %u peers malicious",
+         n_malicious);
   for(i = 0; i < n_malicious; i++)
   {
     struct MaliciousContext *mc = &a_mc[i];
@@ -1019,9 +1020,9 @@ start_func()
 {
 #if ENABLE_MALICIOUS
   set_malicious();
-  return;
-#endif
+#else
   start_profiling();
+#endif
 }
 
 
