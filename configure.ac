@@ -476,7 +476,10 @@ fi
 if test x$curl = xfalse
 then
 	AM_CONDITIONAL(HAVE_LIBCURL, false)
+if test "$gnurl" = 0
+then
 	AC_MSG_WARN([GNUnet requires libcurl-gnutls  >= 7.34])
+fi
 else
 	AM_CONDITIONAL(HAVE_LIBCURL, true)
 	AC_DEFINE([HAVE_LIBCURL],[1],[Have CURL])
@@ -1084,7 +1087,6 @@ AC_ARG_WITH(gnutls,
    ])
 AM_CONDITIONAL(HAVE_GNUTLS, test x$gnutls = xtrue)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have GnuTLS])
-d
 AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = x1)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS_DANE], $gnutls_dane, [We have GnuTLS with DANE support])
 
