@@ -3,14 +3,14 @@ AUTOSTART = @AUTOSTART@
 HOSTNAME = localhost
 BINARY = gnunet-service-dns
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-dns.sock
-
+@UNIXONLY@ PORT = 2122
 # Access to this service can compromise all DNS queries in this
 # system.  Thus access should be restricted to the same UID.
 # (see https://gnunet.org/gnunet-access-control-model)
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 
-# As there is no sufficiently restrictive access control for TCP, 
+# As there is no sufficiently restrictive access control for TCP,
 # we never use it, even if @UNIXONLY@ is not set (just to be safe)
 @UNIXONLY@ PORT = 0
 
