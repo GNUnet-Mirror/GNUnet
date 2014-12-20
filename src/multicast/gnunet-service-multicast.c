@@ -943,8 +943,7 @@ client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct Group *
     grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  const struct GNUNET_MULTICAST_MessageHeader *
-    msg = (const struct GNUNET_MULTICAST_MessageHeader *) m;
+  struct GNUNET_MULTICAST_MessageHeader *out;
   struct Origin *orig;
 
   if (NULL == grp)
@@ -955,22 +954,25 @@ client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_assert (GNUNET_YES == grp->is_origin);
   orig = (struct Origin *) grp;
+  /* FIXME: yucky, should use separate message structs for P2P and CS! */
+  out = (struct GNUNET_MULTICAST_MessageHeader *) GNUNET_copy_message (m);
 
-  msg->fragment_id = GNUNET_htonll (++orig->max_fragment_id);
-  msg->purpose.size = htonl (ntohs (msg->header.size)
-                             - sizeof (msg->header)
-                             - sizeof (msg->hop_counter)
-                             - sizeof (msg->signature));
-  msg->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE);
+  out->fragment_id = GNUNET_htonll (++orig->max_fragment_id);
+  out->purpose.size = htonl (ntohs (out->header.size)
+                             - sizeof (out->header)
+                             - sizeof (out->hop_counter)
+                             - sizeof (out->signature));
+  out->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE);
 
-  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&orig->priv_key, &msg->purpose,
-                                             &msg->signature))
+  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&orig->priv_key, &out->purpose,
+                                             &out->signature))
   {
     GNUNET_assert (0);
   }
 
-  client_send_all (&grp->pub_key_hash, m);
-  cadet_send_members (&grp->pub_key_hash, m);
+  client_send_all (&grp->pub_key_hash, &out->header);
+  cadet_send_members (&grp->pub_key_hash, &out->header);
+  GNUNET_free (out);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -985,8 +987,7 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
   struct Member *mem;
-  const struct GNUNET_MULTICAST_RequestHeader *
-    req = (const struct GNUNET_MULTICAST_RequestHeader *) m;
+  struct GNUNET_MULTICAST_RequestHeader *out;
 
   if (NULL == grp)
   {
@@ -996,33 +997,37 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_assert (GNUNET_NO == grp->is_origin);
   mem = (struct Member *) grp;
+  /* FIXME: yucky, should use separate message structs for P2P and CS! */
+  out = (struct GNUNET_MULTICAST_RequestHeader *) GNUNET_copy_message (m);
 
-  req->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
-  req->purpose.size = htonl (ntohs (req->header.size)
-                             - sizeof (req->header)
-                             - sizeof (req->member_key)
-                             - sizeof (req->signature));
-  req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
+  out->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
+  out->purpose.size = htonl (ntohs (out->header.size)
+                             - sizeof (out->header)
+                             - sizeof (out->member_key)
+                             - sizeof (out->signature));
+  out->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
 
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (&mem->priv_key, &req->purpose,
-                                             &req->signature))
+  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (&mem->priv_key, &out->purpose,
+                                             &out->signature))
   {
     GNUNET_assert (0);
   }
 
-  if (0 == client_send_origin (&grp->pub_key_hash, m))
+  if (0 == client_send_origin (&grp->pub_key_hash, &out->header))
   { /* No local origins, send to remote origin */
     if (NULL != mem->origin_channel)
     {
-      cadet_send_msg (mem->origin_channel, m);
+      cadet_send_msg (mem->origin_channel, &out->header);
     }
     else
     {
       /* FIXME: not yet connected to origin */
       GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_free (out);
       return;
     }
   }
+  GNUNET_free (out);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
