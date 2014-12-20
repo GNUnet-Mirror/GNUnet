@@ -250,15 +250,12 @@ record_iterator (void *cls, const struct GNUNET_PEERSTORE_Record *record,
   if (NULL == record)
   {
     /* No more records */
-    struct GNUNET_MessageHeader *endmsg;
+    struct GNUNET_MessageHeader endmsg;
 
-    endmsg = GNUNET_new (struct GNUNET_MessageHeader);
-
-    endmsg->size = htons (sizeof (struct GNUNET_MessageHeader));
-    endmsg->type = htons (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
-    GNUNET_SERVER_notification_context_unicast (nc, cls_record->client, endmsg,
+    endmsg.size = htons (sizeof (struct GNUNET_MessageHeader));
+    endmsg.type = htons (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
+    GNUNET_SERVER_notification_context_unicast (nc, cls_record->client, &endmsg,
                                                 GNUNET_NO);
-    GNUNET_free (endmsg);
     GNUNET_SERVER_receive_done (cls_record->client,
                                 NULL == emsg ? GNUNET_OK : GNUNET_SYSERR);
     PEERSTORE_destroy_record (cls_record);
