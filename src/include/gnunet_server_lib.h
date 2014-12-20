@@ -78,10 +78,10 @@ struct GNUNET_SERVER_TransmitHandle;
  * @param client identification of the client
  * @param message the actual message
  */
-typedef void (*GNUNET_SERVER_MessageCallback) (void *cls,
-                                               struct GNUNET_SERVER_Client *client,
-                                               const struct GNUNET_MessageHeader
-                                               *message);
+typedef void
+(*GNUNET_SERVER_MessageCallback) (void *cls,
+                                  struct GNUNET_SERVER_Client *client,
+                                  const struct GNUNET_MessageHeader *message);
 
 
 /**

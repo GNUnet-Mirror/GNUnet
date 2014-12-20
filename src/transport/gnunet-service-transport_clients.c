@@ -233,9 +233,15 @@ static struct GNUNET_SERVER_NotificationContext *plugin_nc;
  */
 static struct GNUNET_SERVER_Client *sync_client;
 
+/**
+ * Peer identity that is all zeros, used as a way to indicate
+ * "all peers".  Used for comparissons.
+ */
+static struct GNUNET_PeerIdentity all_zeros;
+
 
 /**
- * Find the internal handle associated with the given client handle
+ * Find the internal handle associated with the given client handle.
  *
  * @param client server's client handle to look up
  * @return internal client handle
@@ -243,17 +249,13 @@ static struct GNUNET_SERVER_Client *sync_client;
 static struct TransportClient *
 lookup_client (struct GNUNET_SERVER_Client *client)
 {
-  struct TransportClient *tc;
-
-  for (tc = clients_head; NULL != tc; tc = tc->next)
-    if (tc->client == client)
-      return tc;
-  return NULL;
+  return GNUNET_SERVER_client_get_user_context (client,
+                                                struct TransportClient);
 }
 
 
 /**
- * Create the internal handle for the given server client handle
+ * Create the internal handle for the given server client handle.
  *
  * @param client server's client handle to create our internal handle for
  * @return fresh internal client handle
@@ -266,6 +268,10 @@ setup_client (struct GNUNET_SERVER_Client *client)
   GNUNET_assert (NULL == lookup_client (client));
   tc = GNUNET_new (struct TransportClient);
   tc->client = client;
+  GNUNET_SERVER_client_set_user_context (client, tc);
+  GNUNET_CONTAINER_DLL_insert (clients_head,
+                               clients_tail,
+                               tc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p connected\n",
               tc);
@@ -275,7 +281,7 @@ setup_client (struct GNUNET_SERVER_Client *client)
 
 /**
  * Find the handle to the monitoring client associated with the given
- * client handle
+ * client handle.
  *
  * @param head the head of the client queue to look in
  * @param client server's client handle to look up
@@ -308,7 +314,6 @@ setup_peer_monitoring_client (struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_PeerIdentity *peer)
 {
   struct MonitoringClient *mc;
-  static struct GNUNET_PeerIdentity all_zeros;
 
   GNUNET_assert (NULL ==
                  lookup_monitoring_client (peer_monitoring_clients_head,
@@ -320,15 +325,17 @@ setup_peer_monitoring_client (struct GNUNET_SERVER_Client *client,
                                peer_monitoring_clients_tail,
                                mc);
   GNUNET_SERVER_client_mark_monitor (client);
-  GNUNET_SERVER_notification_context_add (peer_nc, client);
-
-  if (0 != memcmp (peer, &all_zeros, sizeof (struct GNUNET_PeerIdentity)))
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_SERVER_notification_context_add (peer_nc,
+                                          client);
+  if (0 != memcmp (peer,
+                   &all_zeros,
+                   sizeof (struct GNUNET_PeerIdentity)))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Client %p started monitoring of the peer `%s'\n",
                 mc,
                 GNUNET_i2s (peer));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Client %p started monitoring all peers\n",
                 mc);
   return mc;
@@ -349,7 +356,6 @@ setup_val_monitoring_client (struct GNUNET_SERVER_Client *client,
                              struct GNUNET_PeerIdentity *peer)
 {
   struct MonitoringClient *mc;
-  static struct GNUNET_PeerIdentity all_zeros;
 
   GNUNET_assert (NULL ==
                  lookup_monitoring_client (val_monitoring_clients_head,
@@ -365,19 +371,19 @@ setup_val_monitoring_client (struct GNUNET_SERVER_Client *client,
   if (0 != memcmp (peer,
                    &all_zeros,
                    sizeof (struct GNUNET_PeerIdentity)))
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Client %p started monitoring of the peer `%s'\n",
                 mc, GNUNET_i2s (peer));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Client %p started monitoring all peers\n", mc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client %p started monitoring all peers\n", mc);
   return mc;
 }
 
 
 /**
  * Function called to notify a client about the socket being ready to
- * queue more data.  "buf" will be NULL and "size" zero if the socket
+ * queue more data.  @a buf will be NULL and @a size zero if the socket
  * was closed for writing in the meantime.
  *
  * @param cls closure
@@ -414,7 +420,8 @@ transmit_to_client_callback (void *cls,
       break;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmitting message of type %u to client %p.\n",
-                ntohs (msg->type), tc);
+                ntohs (msg->type),
+                tc);
     GNUNET_CONTAINER_DLL_remove (tc->message_queue_head,
                                  tc->message_queue_tail,
                                  q);
@@ -456,8 +463,8 @@ unicast (struct TransportClient *tc,
     GNUNET_break (0);
     return;
   }
-
-  if ((tc->message_count >= MAX_PENDING) && (GNUNET_YES == may_drop))
+  if ( (tc->message_count >= MAX_PENDING) &&
+       (GNUNET_YES == may_drop) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Dropping message of type %u and size %u, have %u/%u messages pending\n"),
@@ -476,7 +483,8 @@ unicast (struct TransportClient *tc,
   q = GNUNET_malloc (sizeof (struct ClientMessageQueueEntry) + msize);
   memcpy (&q[1], msg, msize);
   GNUNET_CONTAINER_DLL_insert_tail (tc->message_queue_head,
-                                    tc->message_queue_tail, q);
+                                    tc->message_queue_tail,
+                                    q);
   tc->message_count++;
   if (NULL != tc->th)
     return;
@@ -492,7 +500,7 @@ unicast (struct TransportClient *tc,
  * Called whenever a client is disconnected.  Frees our
  * resources associated with that client.
  *
- * @param cls closure
+ * @param cls closure, NULL
  * @param client identification of the client
  */
 static void
@@ -503,11 +511,11 @@ client_disconnect_notification (void *cls,
   struct MonitoringClient *mc;
   struct ClientMessageQueueEntry *mqe;
 
-  if (client == NULL)
+  if (NULL == client)
     return;
   mc = lookup_monitoring_client (peer_monitoring_clients_head,
                                  client);
-  if (mc != NULL)
+  if (NULL != mc)
   {
     GNUNET_CONTAINER_DLL_remove (peer_monitoring_clients_head,
                                  peer_monitoring_clients_tail,
@@ -516,7 +524,7 @@ client_disconnect_notification (void *cls,
   }
   mc = lookup_monitoring_client (val_monitoring_clients_head,
                                  client);
-  if (mc != NULL)
+  if (NULL != mc)
   {
     GNUNET_CONTAINER_DLL_remove (val_monitoring_clients_head,
                                  val_monitoring_clients_tail,
@@ -524,7 +532,7 @@ client_disconnect_notification (void *cls,
     GNUNET_free (mc);
   }
   tc = lookup_client (client);
-  if (tc == NULL)
+  if (NULL == tc)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
               "Client %p disconnected, cleaning up.\n", tc);
@@ -536,7 +544,8 @@ client_disconnect_notification (void *cls,
     GNUNET_free (mqe);
   }
   GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, tc);
-  if (tc->th != NULL)
+  GNUNET_SERVER_client_set_user_context (client, NULL);
+  if (NULL != tc->th)
   {
     GNUNET_SERVER_notify_transmit_ready_cancel (tc->th);
     tc->th = NULL;
@@ -634,9 +643,10 @@ clients_handle_start (void *cls,
   }
   tc = setup_client (client);
   tc->send_payload = (0 != (2 & options));
-  unicast (tc, GST_hello_get (), GNUNET_NO);
+  unicast (tc,
+           GST_hello_get (),
+           GNUNET_NO);
   GST_neighbours_iterate (&notify_client_about_neighbour, tc);
-  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, tc);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -684,7 +694,8 @@ struct SendTransmitContinuationContext
  * @param bytes_on_wire bytes sent on wire
  */
 static void
-handle_send_transmit_continuation (void *cls, int success,
+handle_send_transmit_continuation (void *cls,
+                                   int success,
                                    size_t bytes_payload,
                                    size_t bytes_on_wire)
 {
@@ -692,17 +703,17 @@ handle_send_transmit_continuation (void *cls, int success,
   struct SendOkMessage send_ok_msg;
 
   if (GNUNET_OK == success)
-    GST_neighbours_notify_payload_sent (&stcc->target, bytes_payload);
-
+    GST_neighbours_notify_payload_sent (&stcc->target,
+                                        bytes_payload);
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
   send_ok_msg.bytes_msg = htonl (bytes_payload);
   send_ok_msg.bytes_physical = htonl (bytes_on_wire);
   send_ok_msg.success = htonl (success);
-  send_ok_msg.latency =
-      GNUNET_TIME_relative_hton (GNUNET_TIME_UNIT_FOREVER_REL);
   send_ok_msg.peer = stcc->target;
-  GST_clients_unicast (stcc->client, &send_ok_msg.header, GNUNET_NO);
+  GST_clients_unicast (stcc->client,
+                       &send_ok_msg.header,
+                       GNUNET_NO);
   GNUNET_SERVER_client_drop (stcc->client);
   GNUNET_free (stcc);
 }
@@ -1254,14 +1265,14 @@ clients_handle_monitor_peers (void *cls,
                               struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_MessageHeader *message)
 {
-  static struct GNUNET_PeerIdentity all_zeros;
   struct GNUNET_SERVER_TransmitContext *tc;
   const struct PeerMonitorMessage *msg;
   struct IterationContext pc;
 
   msg = (const struct PeerMonitorMessage *) message;
   if ( (GNUNET_YES != ntohl (msg->one_shot)) &&
-       (NULL != lookup_monitoring_client (peer_monitoring_clients_head, client)) )
+       (NULL != lookup_monitoring_client (peer_monitoring_clients_head,
+                                          client)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
 		"ServerClient %p tried to start monitoring twice\n",
@@ -1316,7 +1327,6 @@ clients_handle_monitor_validation (void *cls,
 				   struct GNUNET_SERVER_Client *client,
 				   const struct GNUNET_MessageHeader *message)
 {
-  static struct GNUNET_PeerIdentity all_zeros;
   struct GNUNET_SERVER_TransmitContext *tc;
   struct PeerMonitorMessage *msg;
   struct IterationContext pc;
@@ -1582,8 +1592,9 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
 
   for (tc = clients_head; NULL != tc; tc = tc->next)
   {
-    if ((GNUNET_YES == may_drop) && (GNUNET_YES != tc->send_payload))
-      continue;                 /* skip, this client does not care about payload */
+    if ( (GNUNET_YES == may_drop) &&
+         (GNUNET_YES != tc->send_payload) )
+      continue; /* skip, this client does not care about payload */
     unicast (tc, msg, may_drop);
   }
 }
@@ -1624,7 +1635,6 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
                                          enum GNUNET_TRANSPORT_PeerState state,
                                          struct GNUNET_TIME_Absolute state_timeout)
 {
-  static struct GNUNET_PeerIdentity all_zeros;
   struct PeerIterateResponseMessage *msg;
   struct MonitoringClient *mc;
 
@@ -1668,7 +1678,6 @@ GST_clients_broadcast_validation_notification (const struct GNUNET_PeerIdentity 
 {
   struct ValidationIterateResponseMessage *msg;
   struct MonitoringClient *mc;
-  static struct GNUNET_PeerIdentity all_zeros;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending information about for validation entry for peer `%s' using address `%s'\n",

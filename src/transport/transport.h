@@ -265,11 +265,6 @@ struct SendOkMessage
   uint32_t bytes_physical GNUNET_PACKED;
 
   /**
-   * Latency estimate.
-   */
-  struct GNUNET_TIME_RelativeNBO latency;
-
-  /**
    * Which peer can send more now?
    */
   struct GNUNET_PeerIdentity peer;
