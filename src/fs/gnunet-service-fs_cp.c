@@ -1515,6 +1515,32 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
+ * Write peer-respect information to a file - flush the buffer entry!
+ *
+ * @param cls unused
+ * @param key peer identity
+ * @param value the 'struct GSF_ConnectedPeer' to flush
+ * @return GNUNET_OK to continue iteration
+ */
+static int
+flush_respect (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
+{
+  struct GSF_ConnectedPeer *cp = value;
+  struct GNUNET_PeerIdentity pid;
+
+  if (cp->ppd.respect == cp->disk_respect)
+    return GNUNET_OK;           /* unchanged */
+  GNUNET_assert (0 != cp->ppd.pid);
+  GNUNET_PEER_resolve (cp->ppd.pid, &pid);
+  GNUNET_PEERSTORE_store (peerstore, "fs", &pid, "respect", &cp->ppd.respect,
+                          sizeof (cp->ppd.respect),
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
+  return GNUNET_OK;
+}
+
+
+/**
  * A peer disconnected from us.  Tear down the connected peer
  * record.
  *
@@ -1533,6 +1559,7 @@ GSF_peer_disconnect_handler_ (void *cls,
   if (NULL == cp)
     return;                     /* must have been disconnect from core with
                                  * 'peer' == my_id, ignore */
+  flush_respect (NULL, peer, cp);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (cp_map,
                                                        peer,
@@ -1756,32 +1783,6 @@ GSF_block_peer_migration_ (struct GSF_ConnectedPeer *cp,
                           GNUNET_TIME_UNIT_FOREVER_REL,
                           sizeof (struct MigrationStopMessage),
                           &create_migration_stop_message, cp);
-}
-
-
-/**
- * Write peer-respect information to a file - flush the buffer entry!
- *
- * @param cls unused
- * @param key peer identity
- * @param value the 'struct GSF_ConnectedPeer' to flush
- * @return GNUNET_OK to continue iteration
- */
-static int
-flush_respect (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
-{
-  struct GSF_ConnectedPeer *cp = value;
-  struct GNUNET_PeerIdentity pid;
-
-  if (cp->ppd.respect == cp->disk_respect)
-    return GNUNET_OK;           /* unchanged */
-  GNUNET_assert (0 != cp->ppd.pid);
-  GNUNET_PEER_resolve (cp->ppd.pid, &pid);
-  GNUNET_PEERSTORE_store (peerstore, "fs", &pid, "respect", &cp->ppd.respect,
-                          sizeof (cp->ppd.respect),
-                          GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
-  return GNUNET_OK;
 }
 
 
