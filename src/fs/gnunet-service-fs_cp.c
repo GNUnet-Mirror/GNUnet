@@ -382,7 +382,7 @@ peer_transmit_ready_cb (void *cls,
 /**
  * Function called by core upon success or failure of our bandwidth reservation request.
  *
- * @param cls the 'struct GSF_ConnectedPeer' of the peer for which we made the request
+ * @param cls the `struct GSF_ConnectedPeer` of the peer for which we made the request
  * @param peer identifies the peer
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
@@ -526,7 +526,7 @@ retry_reservation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Function called by core upon success or failure of our bandwidth reservation request.
  *
- * @param cls the 'struct GSF_ConnectedPeer' of the peer for which we made the request
+ * @param cls the `struct GSF_ConnectedPeer` of the peer for which we made the request
  * @param peer identifies the peer
  * @param amount set to the amount that was actually reserved or unreserved;
  *               either the full requested amount or zero (no partial reservations)
@@ -534,8 +534,10 @@ retry_reservation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *        long should the client wait until re-trying?
  */
 static void
-ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      int32_t amount, struct GNUNET_TIME_Relative res_delay)
+ats_reserve_callback (void *cls,
+                      const struct GNUNET_PeerIdentity *peer,
+                      int32_t amount,
+                      struct GNUNET_TIME_Relative res_delay)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct GSF_PeerTransmitHandle *pth;
@@ -730,7 +732,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
  * @param cls the `struct PutMessage`
  * @param buf_size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error (peer disconnect)
- * @return number of bytes copied to 'buf', can be 0 (without indicating an error)
+ * @return number of bytes copied to @a buf, can be 0 (without indicating an error)
  */
 static size_t
 copy_reply (void *cls, size_t buf_size, void *buf)
@@ -832,7 +834,7 @@ peer_request_destroy (void *cls,
 /**
  * The artificial delay is over, transmit the message now.
  *
- * @param cls the 'struct GSF_DelayedHandle' with the message
+ * @param cls the `struct GSF_DelayedHandle` with the message
  * @param tc scheduler context
  */
 static void
@@ -1342,7 +1344,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
  * Function called if there has been a timeout trying to satisfy
  * a transmission request.
  *
- * @param cls the 'struct GSF_PeerTransmitHandle' of the request
+ * @param cls the `struct GSF_PeerTransmitHandle` of the request
  * @param tc scheduler context
  */
 static void
@@ -1519,11 +1521,13 @@ GSF_peer_update_responder_peer_ (struct GSF_ConnectedPeer *cp,
  *
  * @param cls unused
  * @param key peer identity
- * @param value the 'struct GSF_ConnectedPeer' to flush
- * @return GNUNET_OK to continue iteration
+ * @param value the `struct GSF_ConnectedPeer` to flush
+ * @return #GNUNET_OK to continue iteration
  */
 static int
-flush_respect (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
+flush_respect (void *cls,
+               const struct GNUNET_PeerIdentity *key,
+               void *value)
 {
   struct GSF_ConnectedPeer *cp = value;
   struct GNUNET_PeerIdentity pid;
@@ -1874,7 +1878,7 @@ GSF_connected_peer_done_ ()
 /**
  * Iterator to remove references to LC entry.
  *
- * @param cls the 'struct GSF_LocalClient*' to look for
+ * @param cls the `struct GSF_LocalClient *` to look for
  * @param key current key code
  * @param value value in the hash map (peer entry)
  * @return #GNUNET_YES (we should continue to iterate)
