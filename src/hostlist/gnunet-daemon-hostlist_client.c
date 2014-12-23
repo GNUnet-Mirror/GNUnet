@@ -1578,19 +1578,20 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
       else
       {
         if (0 != strcasecmp (proxytype_str, "NONE"))
+        {
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                       _("Invalid proxy type: `%s', disabling proxy! Check configuration!\n"),
                       proxytype_str);
-        GNUNET_free (proxytype_str);
+          GNUNET_free (proxytype_str);
+          GNUNET_free (proxy);
+          proxy = NULL;
+          GNUNET_free_non_null (proxy_username);
+          proxy_username = NULL;
+          GNUNET_free_non_null (proxy_password);
+          proxy_password = NULL;
 
-        GNUNET_free (proxy);
-        proxy = NULL;
-        GNUNET_free_non_null (proxy_username);
-        proxy_username = NULL;
-        GNUNET_free_non_null (proxy_password);
-        proxy_password = NULL;
-
-        return GNUNET_SYSERR;
+          return GNUNET_SYSERR;
+        }
       }
     }
     GNUNET_free_non_null (proxytype_str);
