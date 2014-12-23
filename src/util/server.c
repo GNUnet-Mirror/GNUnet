@@ -639,7 +639,7 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
 void
 GNUNET_SERVER_client_mark_monitor (struct GNUNET_SERVER_Client *client)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Marking client as monitor!\n");
   client->is_monitor = GNUNET_YES;
 }
