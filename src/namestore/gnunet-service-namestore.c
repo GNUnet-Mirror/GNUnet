@@ -304,7 +304,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free (no);
     }
     GNUNET_CONTAINER_DLL_remove (client_head, client_tail, nc);
-    GNUNET_SERVER_client_set_user_context (nc->client, (void *)NULL);
+    GNUNET_SERVER_client_set_user_context (nc->client, NULL);
     GNUNET_free (nc);
   }
   GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, GSN_database));

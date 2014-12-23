@@ -1447,7 +1447,7 @@ handle_client_disconnect (void *cls,
   line = GNUNET_SERVER_client_get_user_context (client, struct Line);
   if (NULL == line)
     return;
-  GNUNET_SERVER_client_set_user_context (client, (void *)NULL);
+  GNUNET_SERVER_client_set_user_context (client, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client disconnected, closing line\n");
   GNUNET_CONTAINER_DLL_remove (lines_head,
@@ -1479,7 +1479,7 @@ do_shutdown (void *cls,
     GNUNET_CONTAINER_DLL_remove (lines_head,
                                  lines_tail,
                                  line);
-    GNUNET_SERVER_client_set_user_context (line->client, (void *) NULL);
+    GNUNET_SERVER_client_set_user_context (line->client, NULL);
     GNUNET_free (line);
   }
   if (NULL != cadet)

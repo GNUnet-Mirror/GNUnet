@@ -259,7 +259,7 @@ shutdown_task (void *cls,
   GNUNET_SERVER_notification_context_destroy (nc);
   while (NULL != (clh = clh_head))
   {
-    GNUNET_SERVER_client_set_user_context (clh->client, (void *)NULL);
+    GNUNET_SERVER_client_set_user_context (clh->client, NULL);
     GNS_resolver_lookup_cancel (clh->lookup);
     GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
     GNUNET_free (clh);
@@ -706,7 +706,7 @@ send_lookup_response (void* cls,
 					      GNUNET_NO);
   GNUNET_free (rmsg);
   GNUNET_CONTAINER_DLL_remove (clh_head, clh_tail, clh);
-  GNUNET_SERVER_client_set_user_context (clh->client, (void *)NULL);
+  GNUNET_SERVER_client_set_user_context (clh->client, NULL);
   GNUNET_free (clh);
   GNUNET_STATISTICS_update (statistics,
                             "Completed lookups", 1,
