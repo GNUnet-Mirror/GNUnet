@@ -545,7 +545,6 @@ ats_perf_mon_cb (void *cls,
              GNUNET_i2s (&address->peer),
              actx.res->address->transport_name);
     GNUNET_HELLO_address_free (actx.res);
-    GNUNET_free (actx.res);
     return;
   }
 
