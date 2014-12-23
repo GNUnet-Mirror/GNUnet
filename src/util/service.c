@@ -389,7 +389,8 @@ get_pid_file_name (struct GNUNET_SERVICE_Context *sctx)
  *         no ACL configured)
  */
 static int
-process_acl4 (struct GNUNET_STRINGS_IPv4NetworkPolicy **ret, struct GNUNET_SERVICE_Context *sctx,
+process_acl4 (struct GNUNET_STRINGS_IPv4NetworkPolicy **ret,
+              struct GNUNET_SERVICE_Context *sctx,
               const char *option)
 {
   char *opt;
@@ -426,7 +427,8 @@ process_acl4 (struct GNUNET_STRINGS_IPv4NetworkPolicy **ret, struct GNUNET_SERVI
  *         no ACL configured)
  */
 static int
-process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret, struct GNUNET_SERVICE_Context *sctx,
+process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret,
+              struct GNUNET_SERVICE_Context *sctx,
               const char *option)
 {
   char *opt;
@@ -464,7 +466,8 @@ process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret, struct GNUNET_SERVI
  *          parameter is ignore on systems other than LINUX
  */
 static void
-add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
+add_unixpath (struct sockaddr **saddrs,
+              socklen_t *saddrlens,
               const char *unixpath,
               int abstract)
 {
@@ -1125,7 +1128,8 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
  * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVICE_Context *service = cls;
   struct GNUNET_SERVER_Handle *server = service->server;

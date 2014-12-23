@@ -175,7 +175,7 @@ struct GNUNET_SERVER_Handle
   /**
    * Set to #GNUNET_YES once we are in 'soft' shutdown where we wait for
    * all non-monitor clients to disconnect before we call
-   * #GNUNET_SERVER_destroy.  See 'test_monitor_clients'.  Set to
+   * #GNUNET_SERVER_destroy.  See test_monitor_clients().  Set to
    * #GNUNET_SYSERR once the final destroy task has been scheduled
    * (we cannot run it in the same task).
    */
@@ -632,20 +632,22 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
  * their requests; however, monitor-clients are likely to 'never'
  * disconnect during shutdown and thus will not be considered when
  * determining if the server should continue to exist after
- * 'GNUNET_SERVER_destroy' has been called.
+ * #GNUNET_SERVER_destroy() has been called.
  *
  * @param client the client to set the 'monitor' flag on
  */
 void
 GNUNET_SERVER_client_mark_monitor (struct GNUNET_SERVER_Client *client)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Marking client as monitor!\n");
   client->is_monitor = GNUNET_YES;
 }
 
 
 /**
- * Helper function for 'test_monitor_clients' to trigger
- * 'GNUNET_SERVER_destroy' after the stack has unwound.
+ * Helper function for #test_monitor_clients() to trigger
+ * #GNUNET_SERVER_destroy() after the stack has unwound.
  *
  * @param cls the 'struct GNUNET_SERVER_Handle' to destroy
  * @param tc unused
@@ -655,6 +657,7 @@ do_destroy (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Handle *server = cls;
+
   GNUNET_SERVER_destroy (server);
 }
 
@@ -676,8 +679,7 @@ test_monitor_clients (struct GNUNET_SERVER_Handle *server)
     if (GNUNET_NO == client->is_monitor)
       return; /* not done yet */
   server->in_soft_shutdown = GNUNET_SYSERR;
-  GNUNET_SCHEDULER_add_continuation (&do_destroy, server,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&do_destroy, server);
 }
 
 
@@ -925,9 +927,9 @@ GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client *client)
  * @param sender the "pretended" sender of the message
  *        can be NULL!
  * @param message message to transmit
- * @return GNUNET_OK if the message was OK and the
+ * @return #GNUNET_OK if the message was OK and the
  *                   connection can stay open
- *         GNUNET_SYSERR if the connection to the
+ *         #GNUNET_SYSERR if the connection to the
  *         client should be shut down
  */
 int
@@ -1318,8 +1320,8 @@ GNUNET_SERVER_client_drop (struct GNUNET_SERVER_Client *client)
  *
  * @param client the client to get the address for
  * @param addr where to store the address
- * @param addrlen where to store the length of the address
- * @return GNUNET_OK on success
+ * @param addrlen where to store the length of the @a addr
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
@@ -1553,7 +1555,7 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
  * instead of potentially buffering multiple messages.
  *
  * @param client handle to the client
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
@@ -1566,7 +1568,7 @@ GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
  * Wrapper for transmission notification that calls the original
  * callback and update the last activity time for our connection.
  *
- * @param cls the 'struct GNUNET_SERVER_Client'
+ * @param cls the `struct GNUNET_SERVER_Client`
  * @param size number of bytes we can transmit
  * @param buf where to copy the message
  * @return number of bytes actually transmitted
@@ -1597,7 +1599,7 @@ transmit_ready_callback_wrapper (void *cls, size_t size, void *buf)
  * @param callback_cls closure for @a callback
  * @return non-NULL if the notify callback was queued; can be used
  *         to cancel the request using
- *         #GNUNET_SERVER_notify_transmit_ready_cancel.
+ *         #GNUNET_SERVER_notify_transmit_ready_cancel().
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_SERVER_TransmitHandle *

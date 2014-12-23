@@ -47,7 +47,7 @@
  *
  * Unlike using "snprintf" with "%s", this function
  * will add 0-terminators after each string.  The
- * "GNUNET_string_buffer_tokenize" function can be
+ * #GNUNET_string_buffer_tokenize() function can be
  * used to parse the buffer back into individual
  * strings.
  *
