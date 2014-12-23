@@ -61,11 +61,12 @@ struct GNUNET_STATISTICS_Handle;
  * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
  * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
-typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
-                                           const char *subsystem,
-                                           const char *name,
-                                           uint64_t value,
-                                           int is_persistent);
+typedef int
+(*GNUNET_STATISTICS_Iterator) (void *cls,
+                               const char *subsystem,
+                               const char *name,
+                               uint64_t value,
+                               int is_persistent);
 
 
 /**
@@ -81,8 +82,7 @@ GNUNET_STATISTICS_create (const char *subsystem,
 
 
 /**
- * Destroy a handle (free all state associated with
- * it).
+ * Destroy a handle (free all state associated with it).
  *
  * @param h statistics handle to destroy
  * @param sync_first set to #GNUNET_YES if pending SET requests should

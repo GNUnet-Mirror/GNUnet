@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2001-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -47,7 +47,8 @@ struct GNUNET_STATISTICS_ReplyMessage
   /**
    * Unique numerical identifier for the value (will
    * not change during the same client-session).  Highest
-   * bit will be set for persistent values.
+   * bit will be set for persistent values (see
+   * #GNUNET_STATISTICS_PERSIST_BIT).
    */
   uint32_t uid GNUNET_PACKED;
 
@@ -58,13 +59,30 @@ struct GNUNET_STATISTICS_ReplyMessage
 
 };
 
+/**
+ * Flag for the `struct GNUNET_STATISTICS_ReplyMessage` UID only.
+ * Note that other messages use #GNUNET_STATISTICS_SETFLAG_PERSISTENT.
+ */
 #define GNUNET_STATISTICS_PERSIST_BIT (1<<31)
 
+/**
+ * The value being set is an absolute change.
+ */
 #define GNUNET_STATISTICS_SETFLAG_ABSOLUTE 0
 
+/**
+ * The value being set is a relative change.
+ */
 #define GNUNET_STATISTICS_SETFLAG_RELATIVE 1
 
+/**
+ * The value being set is to be persistent (note that
+ * this bit can be combined with #GNUNET_STATISTICS_SETFLAG_RELATIVE).
+ * This value must not be used for the `uid` member of
+ * `struct GNUNET_STATISTICS_ReplyMessage`!
+ */
 #define GNUNET_STATISTICS_SETFLAG_PERSISTENT 2
+
 
 /**
  * Message to set a statistic.  Followed
@@ -74,7 +92,7 @@ struct GNUNET_STATISTICS_ReplyMessage
 struct GNUNET_STATISTICS_SetMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_STATISTICS_SET
+   * Type: #GNUNET_MESSAGE_TYPE_STATISTICS_SET
    */
   struct GNUNET_MessageHeader header;
 
@@ -99,7 +117,7 @@ struct GNUNET_STATISTICS_SetMessage
 struct GNUNET_STATISTICS_WatchValueMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE
+   * Type: #GNUNET_MESSAGE_TYPE_STATISTICS_WATCH_VALUE
    */
   struct GNUNET_MessageHeader header;
 
