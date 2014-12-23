@@ -42,12 +42,12 @@
 #define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
 #define MLP_MAX_ITERATIONS      4096
 
-#define DEFAULT_D 1.0
-#define DEFAULT_R 1.0
-#define DEFAULT_U 1.0
-#define DEFAULT_QUALITY 1.0
-#define DEFAULT_MIN_CONNECTIONS 4
-#define DEFAULT_PEER_PREFERENCE 1.0
+#define MLP_DEFAULT_D 1.0
+#define MLP_DEFAULT_R 1.0
+#define MLP_DEFAULT_U 1.0
+#define MLP_DEFAULT_QUALITY 1.0
+#define MLP_DEFAULT_MIN_CONNECTIONS 4
+#define MLP_DEFAULT_PEER_PREFERENCE 1.0
 
 #define MLP_NaN -1
 #define MLP_UNDEFINED 0
@@ -2794,7 +2794,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   }
 
   /* Get diversity coefficient from configuration */
-  mlp->pv.co_D = DEFAULT_D;
+  mlp->pv.co_D = MLP_DEFAULT_D;
   if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
       "MLP_COEFFICIENT_D", &f_tmp))
   {
@@ -2812,7 +2812,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   }
 
   /* Get relativity coefficient from configuration */
-  mlp->pv.co_R = DEFAULT_R;
+  mlp->pv.co_R = MLP_DEFAULT_R;
   if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
       "MLP_COEFFICIENT_R", &f_tmp))
   {
@@ -2831,7 +2831,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
 
 
   /* Get utilization coefficient from configuration */
-  mlp->pv.co_U = DEFAULT_U;
+  mlp->pv.co_U = MLP_DEFAULT_U;
   if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
       "MLP_COEFFICIENT_U", &f_tmp))
   {
@@ -2855,7 +2855,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
   {
     /* initialize quality coefficients with default value 1.0 */
-      mlp->pv.co_Q[c] = DEFAULT_QUALITY;
+      mlp->pv.co_Q[c] = MLP_DEFAULT_QUALITY;
 
     mlp->pv.q[c] = q[c];
     if (q[c] == GNUNET_ATS_QUALITY_NET_DELAY)
@@ -2869,14 +2869,14 @@ libgnunet_plugin_ats_mlp_init (void *cls)
           "MLP_COEFFICIENT_QUALITY_DELAY", &tmp)) )
     mlp->pv.co_Q[i_delay] = (double) tmp / 100;
   else
-    mlp->pv.co_Q[i_delay] = DEFAULT_QUALITY;
+    mlp->pv.co_Q[i_delay] = MLP_DEFAULT_QUALITY;
 
   if ( (i_distance != MLP_NaN) &&
         (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
           "MLP_COEFFICIENT_QUALITY_DISTANCE", &tmp)) )
     mlp->pv.co_Q[i_distance] = (double) tmp / 100;
   else
-    mlp->pv.co_Q[i_distance] = DEFAULT_QUALITY;
+    mlp->pv.co_Q[i_distance] = MLP_DEFAULT_QUALITY;
 
   /* Get minimum bandwidth per used address from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
@@ -2894,7 +2894,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
                                                       &tmp))
     n_min = tmp;
   else
-    n_min = DEFAULT_MIN_CONNECTIONS;
+    n_min = MLP_DEFAULT_MIN_CONNECTIONS;
 
   /* Init network quotas */
   int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
