@@ -1464,7 +1464,7 @@ plugin_session_info_cb (void *cls,
   msg->plugin_address_len = htons (alen);
   name = (char *) &msg[1];
   memcpy (name, info->address->transport_name, slen);
-  addr = &name[slen + 1];
+  addr = &name[slen];
   memcpy (addr, info->address->address, alen);
   if (NULL != sync_client)
     GNUNET_SERVER_notification_context_unicast (plugin_nc,
