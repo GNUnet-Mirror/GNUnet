@@ -2199,11 +2199,13 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
  *
  * @param plugin our plugin
  * @param addr listen address to use
+ * @param v6 MHD_NO_FLAG or MHD_USE_IPv6, depending on context
  * @return NULL on error
  */
 static struct MHD_Daemon *
 run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
-                      const struct sockaddr_in *addr)
+                      const struct sockaddr_in *addr,
+                      int v6)
 {
   struct MHD_Daemon *server;
   unsigned int timeout;
@@ -2226,7 +2228,8 @@ run_mhd_start_daemon (struct HTTP_Server_Plugin *plugin,
 #if BUILD_HTTPS
                              MHD_USE_SSL |
 #endif
-                             MHD_USE_SUSPEND_RESUME,
+                             MHD_USE_SUSPEND_RESUME |
+                             v6,
                              plugin->port,
                              &server_accept_cb, plugin,
                              &server_access_cb, plugin,
@@ -2306,7 +2309,8 @@ server_start (struct HTTP_Server_Plugin *plugin)
   {
     plugin->server_v4
       = run_mhd_start_daemon (plugin,
-                              (const struct sockaddr_in *) plugin->server_addr_v4);
+                              (const struct sockaddr_in *) plugin->server_addr_v4,
+                              MHD_NO_FLAG);
 
     if (NULL == plugin->server_v4)
     {
@@ -2327,7 +2331,8 @@ server_start (struct HTTP_Server_Plugin *plugin)
   {
     plugin->server_v6
       = run_mhd_start_daemon (plugin,
-                              (const struct sockaddr_in *) plugin->server_addr_v6);
+                              (const struct sockaddr_in *) plugin->server_addr_v6,
+                              MHD_USE_IPv6);
     if (NULL == plugin->server_v6)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
