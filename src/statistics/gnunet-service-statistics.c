@@ -68,7 +68,7 @@ struct WatchEntry
 
   /**
    * Is last_value valid
-   * GNUNET_NO : last_value is n/a, GNUNET_YES: last_value is valid
+   * #GNUNET_NO : last_value is n/a, #GNUNET_YES: last_value is valid
    */
   int last_value_set;
 
@@ -80,16 +80,6 @@ struct WatchEntry
  */
 struct ClientEntry
 {
-  /**
-   * Clients are kept in a linked list.
-   */
-  struct ClientEntry *next;
-
-  /**
-   * Clients are kept in a linked list.
-   */
-  struct ClientEntry *prev;
-
   /**
    * Corresponding server handle.
    */
@@ -113,14 +103,12 @@ struct StatsEntry
   struct StatsEntry *next;
 
   /**
-   * Name of the service, points into the
-   * middle of msg.
+   * Name of the service, points into the middle of @e msg.
    */
   const char *service;
 
   /**
-   * Name for the value, points into
-   * the middle of msg.
+   * Name for the value, points into the middle of @e msg.
    */
   const char *name;
 
@@ -132,14 +120,12 @@ struct StatsEntry
   struct GNUNET_STATISTICS_SetMessage *msg;
 
   /**
-   * Watch context for changes to this
-   * value, or NULL for none.
+   * Watch context for changes to this value, or NULL for none.
    */
   struct WatchEntry *we_head;
 
   /**
-   * Watch context for changes to this
-   * value, or NULL for none.
+   * Watch context for changes to this value, or NULL for none.
    */
   struct WatchEntry *we_tail;
 
@@ -160,7 +146,7 @@ struct StatsEntry
 
   /**
    * Is this value set?
-   * GNUNET_NO : value is n/a, GNUNET_YES: value is valid
+   * #GNUNET_NO : value is n/a, #GNUNET_YES: value is valid
    */
   int set;
 
@@ -177,14 +163,9 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct StatsEntry *start;
 
 /**
- * Head of linked list of connected clients.
+ * Number of connected clients.
  */
-static struct ClientEntry *client_head;
-
-/**
- * Tail of linked list of connected clients.
- */
-static struct ClientEntry *client_tail;
+static unsigned int client_count;
 
 /**
  * Handle to our server.
@@ -202,7 +183,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static uint32_t uidgen;
 
 /**
- * Set to YES if we are shutting down as soon as possible.
+ * Set to #GNUNET_YES if we are shutting down as soon as possible.
  */
 static int in_shutdown;
 
@@ -210,12 +191,13 @@ static int in_shutdown;
 /**
  * Inject a message to our server with a client of 'NULL'.
  *
- * @param cls the 'struct GNUNET_SERVER_Handle'
+ * @param cls the `struct GNUNET_SERVER_Handle`
  * @param client unused
  * @param msg message to inject
  */
 static int
-inject_message (void *cls, void *client, const struct GNUNET_MessageHeader *msg)
+inject_message (void *cls, void *client,
+                const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_SERVER_Handle *server = cls;
 
@@ -225,9 +207,8 @@ inject_message (void *cls, void *client, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * Load persistent values from disk.  Disk format is
- * exactly the same format that we also use for
- * setting the values over the network.
+ * Load persistent values from disk.  Disk format is exactly the same
+ * format that we also use for setting the values over the network.
  *
  * @param server handle to the server context
  */
@@ -356,7 +337,8 @@ save ()
  * @param e value to transmit
  */
 static void
-transmit (struct GNUNET_SERVER_Client *client, const struct StatsEntry *e)
+transmit (struct GNUNET_SERVER_Client *client,
+          const struct StatsEntry *e)
 {
   struct GNUNET_STATISTICS_ReplyMessage *m;
   size_t size;
@@ -377,8 +359,11 @@ transmit (struct GNUNET_SERVER_Client *client, const struct StatsEntry *e)
                  GNUNET_STRINGS_buffer_fill ((char *) &m[1], size, 2,
                                              e->service, e->name));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting value for `%s:%s' (%d): %llu\n", e->service,
-              e->name, e->persistent, e->value);
+              "Transmitting value for `%s:%s' (%d): %llu\n",
+              e->service,
+              e->name,
+              e->persistent,
+              e->value);
   GNUNET_SERVER_notification_context_unicast (nc, client, &m->header,
                                               GNUNET_NO);
   GNUNET_free (m);
@@ -394,7 +379,9 @@ transmit (struct GNUNET_SERVER_Client *client, const struct StatsEntry *e)
  * @return 1 if they match, 0 if not
  */
 static int
-matches (const struct StatsEntry *e, const char *service, const char *name)
+matches (const struct StatsEntry *e,
+         const char *service,
+         const char *name)
 {
   return ((0 == strlen (service)) || (0 == strcmp (service, e->service))) &&
       ((0 == strlen (name)) || (0 == strcmp (name, e->name)));
@@ -412,14 +399,11 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
 {
   struct ClientEntry *ce;
 
-  GNUNET_assert (client != NULL);
-  ce = client_head;
-  while (ce != NULL)
-  {
-    if (ce->client == client)
-      return ce;
-    ce = ce->next;
-  }
+  GNUNET_assert (NULL != client);
+  ce = GNUNET_SERVER_client_get_user_context (client,
+                                              struct ClientEntry);
+  if (NULL != ce)
+    return ce;
   if (NULL == nc)
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -427,7 +411,8 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
   }
   ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
-  GNUNET_CONTAINER_DLL_insert (client_head, client_tail, ce);
+  GNUNET_SERVER_client_set_user_context (client, ce);
+  client_count++;
   GNUNET_SERVER_notification_context_add (nc, client);
   return ce;
 }
@@ -439,11 +424,12 @@ make_client_entry (struct GNUNET_SERVER_Client *client)
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static void
-handle_get (void *cls, struct GNUNET_SERVER_Client *client,
+handle_get (void *cls,
+            struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MessageHeader end;
@@ -466,7 +452,8 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request for statistics on `%s:%s'\n",
-              strlen (service) ? service : "*", strlen (name) ? name : "*");
+              strlen (service) ? service : "*",
+              strlen (name) ? name : "*");
   for (pos = start; NULL != pos; pos = pos->next)
     if (matches (pos, service, name))
       transmit (client, pos);
@@ -521,7 +508,8 @@ notify_change (struct StatsEntry *se)
  * @param message the actual message
  */
 static void
-handle_set (void *cls, struct GNUNET_SERVER_Client *client,
+handle_set (void *cls,
+            struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   char *service;
@@ -637,8 +625,10 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
 
   start = pos;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "New statistic on `%s:%s' with value %llu created.\n", service,
-              name, pos->value);
+              "New statistic on `%s:%s' with value %llu created.\n",
+              service,
+              name,
+              pos->value);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -651,7 +641,8 @@ handle_set (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 static void
-handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
+handle_watch (void *cls,
+              struct GNUNET_SERVER_Client *client,
               const struct GNUNET_MessageHeader *message)
 {
   char *service;
@@ -687,15 +678,12 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received request to watch statistic on `%s:%s'\n", service,
+              "Received request to watch statistic on `%s:%s'\n",
+              service,
               name);
-  pos = start;
-  while (pos != NULL)
-  {
+  for (pos = start; NULL != pos; pos = pos->next)
     if (matches (pos, service, name))
       break;
-    pos = pos->next;
-  }
   if (pos == NULL)
   {
     pos =
@@ -715,14 +703,18 @@ handle_watch (void *cls, struct GNUNET_SERVER_Client *client,
     memcpy ((void *) pos->name, name, strlen (name) + 1);
     start = pos;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "New statistic on `%s:%s' with value %llu created.\n", service,
-                name, pos->value);
+                "New statistic on `%s:%s' with value %llu created.\n",
+                service,
+                name,
+                pos->value);
   }
   we = GNUNET_new (struct WatchEntry);
   we->client = client;
   we->last_value_set = GNUNET_NO;
   we->wid = ce->max_wid++;
-  GNUNET_CONTAINER_DLL_insert (pos->we_head, pos->we_tail, we);
+  GNUNET_CONTAINER_DLL_insert (pos->we_head,
+                               pos->we_tail,
+                               we);
   if (pos->value != 0)
     notify_change (pos);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -743,13 +735,15 @@ do_shutdown ()
   save ();
   GNUNET_SERVER_notification_context_destroy (nc);
   nc = NULL;
-  GNUNET_assert (NULL == client_head);
+  GNUNET_assert (0 == client_count);
   while (NULL != (se = start))
   {
     start = se->next;
     while (NULL != (we = se->we_head))
     {
-      GNUNET_CONTAINER_DLL_remove (se->we_head, se->we_tail, we);
+      GNUNET_CONTAINER_DLL_remove (se->we_head,
+                                   se->we_tail,
+                                   we);
       GNUNET_free (we);
     }
     GNUNET_free (se);
@@ -764,10 +758,11 @@ do_shutdown ()
  * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   in_shutdown = GNUNET_YES;
-  if (NULL != client_head)
+  if (0 != client_count)
     return;
   do_shutdown ();
 }
@@ -780,24 +775,23 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param client identification of the client
  */
 static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+handle_client_disconnect (void *cls,
+                          struct GNUNET_SERVER_Client *client)
 {
   struct ClientEntry *ce;
   struct WatchEntry *we;
   struct WatchEntry *wen;
   struct StatsEntry *se;
 
-  ce = client_head;
-  while (NULL != ce)
-  {
-    if (ce->client == client)
-    {
-      GNUNET_CONTAINER_DLL_remove (client_head, client_tail, ce);
-      GNUNET_free (ce);
-      break;
-    }
-    ce = ce->next;
-  }
+  if (NULL == client)
+    return;
+  ce = GNUNET_SERVER_client_get_user_context (client,
+                                              struct ClientEntry);
+  if (NULL == ce)
+    return;
+  GNUNET_SERVER_client_set_user_context (client,
+                                         NULL);
+  client_count--;
   se = start;
   while (NULL != se)
   {
@@ -812,7 +806,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     se = se->next;
   }
-  if ( (NULL == client_head) &&
+  if ( (0 == client_count) &&
        (GNUNET_YES == in_shutdown) )
     do_shutdown ();
 }
@@ -826,7 +820,8 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
  * @param c configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -841,7 +836,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   nc = GNUNET_SERVER_notification_context_create (server, 16);
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   load (server);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
                                 NULL);
 }
 
@@ -867,7 +863,8 @@ main (int argc, char *const *argv)
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_STATISTICS_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);

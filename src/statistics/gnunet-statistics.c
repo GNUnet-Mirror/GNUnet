@@ -93,7 +93,10 @@ static int set_value;
  * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
-printer (void *cls, const char *subsystem, const char *name, uint64_t value,
+printer (void *cls,
+         const char *subsystem,
+         const char *name,
+         uint64_t value,
          int is_persistent)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
@@ -137,10 +140,14 @@ cleanup (void *cls, int success)
   if (success != GNUNET_OK)
   {
     if (NULL == remote_host)
-      FPRINTF (stderr, "%s", _("Failed to obtain statistics.\n"));
+      FPRINTF (stderr,
+               "%s",
+               _("Failed to obtain statistics.\n"));
     else
-      FPRINTF (stderr,  _("Failed to obtain statistics from host `%s:%llu'\n"),
-              remote_host, remote_port);
+      FPRINTF (stderr,
+               _("Failed to obtain statistics from host `%s:%llu'\n"),
+               remote_host,
+               remote_port);
     ret = 1;
   }
   GNUNET_SCHEDULER_shutdown ();
@@ -154,7 +161,8 @@ cleanup (void *cls, int success)
  * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
@@ -177,20 +185,21 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc schedueler context
  */
 static void
-main_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+main_task (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_STATISTICS_Handle *h;
 
   if (set_value)
   {
-    if (subsystem == NULL)
+    if (NULL == subsystem)
     {
       FPRINTF (stderr, "%s", _("Missing argument: subsystem \n"));
       ret = 1;
       return;
     }
-    if (name == NULL)
+    if (NULL == name)
     {
       FPRINTF (stderr, "%s", _("Missing argument: name\n"));
       ret = 1;
@@ -238,7 +247,6 @@ main_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task, h);
-
 }
 
 
@@ -258,22 +266,29 @@ resolver_test_task (void *cls,
   if (GNUNET_YES != result)
    {
      FPRINTF (stderr,
-	      _("Trying to connect to remote host, but service `%s' is not running\n"), "resolver");
+	      _("Trying to connect to remote host, but service `%s' is not running\n"),
+              "resolver");
      return;
    }
   /* connect to a remote host */
   if (0 == remote_port)
   {
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg, "statistics", "PORT", &remote_port))
+    if (GNUNET_SYSERR ==
+        GNUNET_CONFIGURATION_get_value_number (cfg, "statistics",
+                                               "PORT",
+                                               &remote_port))
     {
-      FPRINTF (stderr, _("A port is required to connect to host `%s'\n"), remote_host);
+      FPRINTF (stderr,
+               _("A port is required to connect to host `%s'\n"),
+               remote_host);
       return;
     }
   }
   else if (65535 <= remote_port)
   {
     FPRINTF (stderr,
-	     _("A port has to be between 1 and 65535 to connect to host `%s'\n"), remote_host);
+	     _("A port has to be between 1 and 65535 to connect to host `%s'\n"),
+             remote_host);
     return;
   }
 
