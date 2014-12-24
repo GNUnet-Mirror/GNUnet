@@ -899,7 +899,8 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
   void *ret;
 
   GNUNET_assert (NULL != active_task);
-  if (GNUNET_SCHEDULER_REASON_NONE == task->reason)
+  if ( (GNUNET_SCHEDULER_REASON_NONE == task->reason) ||
+       (GNUNET_SCHEDULER_REASON_SHUTDOWN == task->reason) )
   {
     if ( (-1 == task->read_fd) &&
          (-1 == task->write_fd) &&
