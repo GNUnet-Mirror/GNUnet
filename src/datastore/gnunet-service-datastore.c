@@ -285,6 +285,10 @@ static int cleaning_done;
  */
 static struct GNUNET_STATISTICS_GetHandle *stat_get;
 
+/**
+ * Handle to our server.
+ */
+static struct GNUNET_SERVER_Handle *server;
 
 /**
  * Task that is used to remove expired entries from
@@ -1361,6 +1365,28 @@ add_key_to_bloomfilter (void *cls,
 static void
 process_stat_done (void *cls, int success)
 {
+  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+    {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE,
+     sizeof (struct ReserveMessage)},
+    {&handle_release_reserve, NULL,
+     GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE,
+     sizeof (struct ReleaseReserveMessage)},
+    {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0},
+    {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE,
+     sizeof (struct UpdateMessage)},
+    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0},
+    {&handle_get_replication, NULL,
+     GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
+     sizeof (struct GNUNET_MessageHeader)},
+    {&handle_get_zero_anonymity, NULL,
+     GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY,
+     sizeof (struct GetZeroAnonymityMessage)},
+    {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0},
+    {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP,
+     sizeof (struct GNUNET_MessageHeader)},
+    {NULL, NULL, 0, 0}
+  };
+
   stat_get = NULL;
   plugin = load_plugin ();
   if (NULL == plugin)
@@ -1395,6 +1421,8 @@ process_stat_done (void *cls, int success)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Bloomfilter construction complete.\n"));
   }
+
+  GNUNET_SERVER_add_handlers (server, handlers);
   expired_kill_task
     = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                           &delete_expired,
@@ -1503,39 +1531,19 @@ cleanup_reservations (void *cls,
  * Process datastore requests.
  *
  * @param cls closure
- * @param server the initialized server
+ * @param serv the initialized server
  * @param c configuration to use
  */
 static void
 run (void *cls,
-     struct GNUNET_SERVER_Handle *server,
+     struct GNUNET_SERVER_Handle *serv,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE,
-     sizeof (struct ReserveMessage)},
-    {&handle_release_reserve, NULL,
-     GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE,
-     sizeof (struct ReleaseReserveMessage)},
-    {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0},
-    {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE,
-     sizeof (struct UpdateMessage)},
-    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0},
-    {&handle_get_replication, NULL,
-     GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
-     sizeof (struct GNUNET_MessageHeader)},
-    {&handle_get_zero_anonymity, NULL,
-     GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY,
-     sizeof (struct GetZeroAnonymityMessage)},
-    {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0},
-    {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP,
-     sizeof (struct GNUNET_MessageHeader)},
-    {NULL, NULL, 0, 0}
-  };
   char *fn;
   char *pfn;
   unsigned int bf_size;
 
+  server = serv;
   cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
@@ -1656,7 +1664,6 @@ run (void *cls,
   GNUNET_SERVER_disconnect_notify (server,
                                    &cleanup_reservations,
                                    NULL);
-  GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &cleaning_task,
                                 NULL);
