@@ -151,6 +151,11 @@ struct GNUNET_SCHEDULER_Task
    */
   int lifeness;
 
+  /**
+   * Is this task in the ready list?
+   */
+  int in_ready_list;
+
 #if EXECINFO
   /**
    * Array of strings which make up a backtrace from the point when this
@@ -416,6 +421,7 @@ queue_ready_task (struct GNUNET_SCHEDULER_Task *task)
   GNUNET_CONTAINER_DLL_insert (ready_head[p],
                                ready_tail[p],
                                task);
+  task->in_ready_list = GNUNET_YES;
   ready_count++;
 }
 
@@ -899,8 +905,7 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
   void *ret;
 
   GNUNET_assert (NULL != active_task);
-  if ( (GNUNET_SCHEDULER_REASON_NONE == task->reason) ||
-       (GNUNET_SCHEDULER_REASON_SHUTDOWN == task->reason) )
+  if (! task->in_ready_list)
   {
     if ( (-1 == task->read_fd) &&
          (-1 == task->write_fd) &&
