@@ -218,31 +218,6 @@ SAMPLER_init(struct GNUNET_PeerIdentity *id)
 }
 
 /**
- * Compare two hashes.
- *
- * Used by SAMPLER_next() to compare hashes.
- */
-  int
-hash_cmp(struct GNUNET_HashCode *hash1, struct GNUNET_HashCode *hash2)
-{
-  return memcmp( (const void *) hash1, (const void *) hash2, sizeof(struct GNUNET_HashCode));
-}
-
-/**
- * Compare two PeerIDs.
- *
- * Used by SAMPLER_next() to compare hashes.
- * @param p1 Some peer identity.
- * @param p2 Some peer identity.
- * @return 1 if p1 > p2, -1 if p1 < p2 and 0 if p1 == p2.
- */
-  int
-peer_cmp(const struct GNUNET_PeerIdentity *id1, const struct GNUNET_PeerIdentity *id2)
-{
-  return memcmp( (const void *) id1, (const void *) id2, sizeof(struct GNUNET_PeerIdentity));
-}
-
-/**
  * Input an PeerID into the given sampler.
  */
   static void
@@ -258,7 +233,7 @@ SAMPLER_next(struct Sampler *s, const struct GNUNET_PeerIdentity *other,
   LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Old PeerID %s at %p\n",
       GNUNET_i2s(s->peer_id), s->peer_id);
 
-  if ( 0 == peer_cmp(other, s->peer_id) )
+  if ( 0 == GNUNET_CRYPTO_cmp_peer_identity(other, s->peer_id) )
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:          Got PeerID %s\n",
         GNUNET_i2s(other));
@@ -285,7 +260,7 @@ SAMPLER_next(struct Sampler *s, const struct GNUNET_PeerIdentity *other,
         insertCB(insertCLS, s->peer_id, s->peer_id_hash);
       }
     }
-    else if ( 0 > hash_cmp(&other_hash, &s->peer_id_hash) )
+    else if ( 0 > GNUNET_CRYPTO_hash_cmp(&other_hash, &s->peer_id_hash) )
     {
       LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:            Got PeerID %s\n",
           GNUNET_i2s(other));
@@ -538,7 +513,7 @@ SAMPLER_count_id ( struct Samplers *samplers, const struct GNUNET_PeerIdentity *
   count = 0;
   while ( NULL != iter )
   {
-    if ( 0 == peer_cmp( iter->peer_id, id) )
+    if ( 0 == GNUNET_CRYPTO_cmp_peer_identity( iter->peer_id, id) )
       count++;
     iter = iter->next;
   }
@@ -894,7 +869,7 @@ nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimat
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a ns estimate - logest: %f, std_dev: %f\n", logestimate, std_dev);
   //scale = .01;
-  estimate = 1 << (uint64_t) round(logestimate);
+  estimate = GNUNET_NSE_log_estimate_to_n(logestimate);
   // GNUNET_NSE_log_estimate_to_n (logestimate);
   estimate = pow(estimate, 1./3);// * (std_dev * scale); // TODO add
   if ( 0 < estimate ) {
