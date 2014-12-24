@@ -417,7 +417,7 @@ queue_ready_task (struct GNUNET_SCHEDULER_Task *task)
   enum GNUNET_SCHEDULER_Priority p = check_priority (task->priority);
 
   if (0 != (task->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    p = GNUNET_SCHEDULER_PRIORITY_SHUTDOWN;
+    p = task->priority = GNUNET_SCHEDULER_PRIORITY_SHUTDOWN;
   GNUNET_CONTAINER_DLL_insert (ready_head[p],
                                ready_tail[p],
                                task);
