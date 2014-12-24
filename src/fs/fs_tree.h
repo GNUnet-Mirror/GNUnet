@@ -142,7 +142,7 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
                                void *cls, GNUNET_FS_DataReader reader,
                                GNUNET_FS_TreeBlockProcessor proc,
                                GNUNET_FS_TreeProgressCallback progress,
-                               GNUNET_SCHEDULER_Task cont);
+                               GNUNET_SCHEDULER_TaskCallback cont);
 
 
 /**

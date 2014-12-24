@@ -69,12 +69,12 @@ struct Pattern
   /**
    * Task to run the operation.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Secondary task to run the operation.
    */
-  GNUNET_SCHEDULER_TaskIdentifier stask;
+  struct GNUNET_SCHEDULER_Task * stask;
 
   /**
    * X-value.
@@ -276,7 +276,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   while (NULL != (p = publish_head))
   {
-    if (GNUNET_SCHEDULER_NO_TASK != p->task)
+    if (NULL != p->task)
       GNUNET_SCHEDULER_cancel (p->task);
     if (NULL != p->ctx)
       GNUNET_FS_publish_stop (p->ctx);
@@ -285,9 +285,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   while (NULL != (p = download_head))
   {
-    if (GNUNET_SCHEDULER_NO_TASK != p->task)
+    if (NULL != p->task)
       GNUNET_SCHEDULER_cancel (p->task);
-    if (GNUNET_SCHEDULER_NO_TASK != p->stask)
+    if (NULL != p->stask)
       GNUNET_SCHEDULER_cancel (p->stask);
     if (NULL != p->ctx)
       GNUNET_FS_download_stop (p->ctx, GNUNET_YES);
@@ -320,7 +320,7 @@ publish_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Pattern *p = cls;
 
-  p->task = GNUNET_SCHEDULER_NO_TASK;
+  p->task = NULL;
   GNUNET_FS_publish_stop (p->ctx);
 }
 
@@ -336,7 +336,7 @@ download_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Pattern *p = cls;
 
-  p->task = GNUNET_SCHEDULER_NO_TASK;
+  p->task = NULL;
   GNUNET_FS_download_stop (p->ctx, GNUNET_YES);
 }
 
@@ -352,7 +352,7 @@ search_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Pattern *p = cls;
 
-  p->stask = GNUNET_SCHEDULER_NO_TASK;
+  p->stask = NULL;
   GNUNET_FS_search_stop (p->sctx);
 }
 
@@ -507,7 +507,7 @@ start_publish (void *cls,
   struct Pattern *p = cls;
   struct GNUNET_FS_FileInformation *fi;
 
-  p->task = GNUNET_SCHEDULER_NO_TASK;
+  p->task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   fi = make_file (p->x, p->y, p);
@@ -532,7 +532,7 @@ start_download (void *cls,
   struct Pattern *p = cls;
   struct GNUNET_FS_Uri *keywords;
 
-  p->task = GNUNET_SCHEDULER_NO_TASK;
+  p->task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   keywords = make_keywords (p->x);

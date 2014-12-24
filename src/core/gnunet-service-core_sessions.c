@@ -118,12 +118,12 @@ struct Session
   /**
    * Task to transmit corked messages with a delay.
    */
-  GNUNET_SCHEDULER_TaskIdentifier cork_task;
+  struct GNUNET_SCHEDULER_Task * cork_task;
 
   /**
    * Task to transmit our type map.
    */
-  GNUNET_SCHEDULER_TaskIdentifier typemap_task;
+  struct GNUNET_SCHEDULER_Task * typemap_task;
 
   /**
    * Retransmission delay we currently use for the typemap
@@ -213,10 +213,10 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Destroying session for peer `%4s'\n",
               GNUNET_i2s (&session->peer));
-  if (GNUNET_SCHEDULER_NO_TASK != session->cork_task)
+  if (NULL != session->cork_task)
   {
     GNUNET_SCHEDULER_cancel (session->cork_task);
-    session->cork_task = GNUNET_SCHEDULER_NO_TASK;
+    session->cork_task = NULL;
   }
   while (NULL != (car = session->active_client_request_head))
   {
@@ -231,10 +231,10 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
                                  sme);
     GNUNET_free (sme);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != session->typemap_task)
+  if (NULL != session->typemap_task)
   {
     GNUNET_SCHEDULER_cancel (session->typemap_task);
-    session->typemap_task = GNUNET_SCHEDULER_NO_TASK;
+    session->typemap_task = NULL;
   }
   GSC_CLIENTS_notify_clients_about_neighbour (&session->peer,
                                               session->tmap, NULL);
@@ -291,7 +291,7 @@ transmit_typemap_task (void *cls,
 static void
 start_typemap_task (struct Session *session)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != session->typemap_task)
+  if (NULL != session->typemap_task)
     GNUNET_SCHEDULER_cancel (session->typemap_task);
   session->typemap_delay = GNUNET_TIME_UNIT_SECONDS;
   session->typemap_task =
@@ -395,10 +395,10 @@ GSC_SESSIONS_confirm_typemap (const struct GNUNET_PeerIdentity *peer,
                               1, GNUNET_NO);
     return;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != session->typemap_task)
+  if (NULL != session->typemap_task)
   {
     GNUNET_SCHEDULER_cancel (session->typemap_task);
-    session->typemap_task = GNUNET_SCHEDULER_NO_TASK;
+    session->typemap_task = NULL;
   }
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop
@@ -606,7 +606,7 @@ pop_cork_task (void *cls,
 {
   struct Session *session = cls;
 
-  session->cork_task = GNUNET_SCHEDULER_NO_TASK;
+  session->cork_task = NULL;
   try_transmission (session);
 }
 
@@ -720,7 +720,7 @@ try_transmission (struct Session *session)
                   "Corking until %s\n",
                   GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (min_deadline),
                                                           GNUNET_YES));
-      if (GNUNET_SCHEDULER_NO_TASK != session->cork_task)
+      if (NULL != session->cork_task)
         GNUNET_SCHEDULER_cancel (session->cork_task);
       session->cork_task =
           GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (min_deadline),

@@ -121,7 +121,7 @@ struct GNUNET_SENSOR_IterateContext
   /**
    * Task responsible for timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
 };
 
@@ -365,7 +365,7 @@ signal_sensor_iteration_timeout (void *cls,
   GNUNET_SENSOR_SensorIterateCB cb;
   void *cb_cls;
 
-  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ic->timeout_task = NULL;
   cb = ic->callback;
   cb_cls = ic->callback_cls;
   GNUNET_SENSOR_iterate_cancel (ic);
@@ -417,10 +417,10 @@ GNUNET_SENSOR_iterate_cancel (struct GNUNET_SENSOR_IterateContext *ic)
     ic->callback_cls = NULL;
     return;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
+  if (NULL != ic->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (ic->timeout_task);
-    ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    ic->timeout_task = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (h->ic_head, h->ic_tail, ic);
   GNUNET_free (ic);

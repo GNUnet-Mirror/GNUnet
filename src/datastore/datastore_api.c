@@ -142,7 +142,7 @@ struct GNUNET_DATASTORE_QueueEntry
   /**
    * Task for timeout signalling.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Timeout for the current operation.
@@ -216,7 +216,7 @@ struct GNUNET_DATASTORE_Handle
   /**
    * Task for trying to reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * How quickly should we retry?  Used for exponential back-off on
@@ -345,10 +345,10 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-  if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (h->reconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    h->reconnect_task = NULL;
   }
   while (NULL != (qe = h->queue_head))
   {
@@ -393,7 +393,7 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# queue entry timeouts"), 1,
                             GNUNET_NO);
-  qe->task = GNUNET_SCHEDULER_NO_TASK;
+  qe->task = NULL;
   GNUNET_assert (GNUNET_NO == qe->was_transmitted);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Timeout of request in datastore queue\n");
@@ -521,7 +521,7 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_DATASTORE_Handle *h = cls;
 
   h->retry_time = GNUNET_TIME_STD_BACKOFF (h->retry_time);
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   h->client = GNUNET_CLIENT_connect ("datastore", h->cfg);
   if (h->client == NULL)
   {
@@ -628,7 +628,7 @@ transmit_request (void *cls, size_t size, void *buf)
   memcpy (buf, &qe[1], msize);
   qe->was_transmitted = GNUNET_YES;
   GNUNET_SCHEDULER_cancel (qe->task);
-  qe->task = GNUNET_SCHEDULER_NO_TASK;
+  qe->task = NULL;
   GNUNET_assert (GNUNET_NO == h->in_receive);
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client, &receive_cb, h,
@@ -720,10 +720,10 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
   struct GNUNET_DATASTORE_Handle *h = qe->h;
 
   GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, qe);
-  if (qe->task != GNUNET_SCHEDULER_NO_TASK)
+  if (qe->task != NULL)
   {
     GNUNET_SCHEDULER_cancel (qe->task);
-    qe->task = GNUNET_SCHEDULER_NO_TASK;
+    qe->task = NULL;
   }
   h->queue_size--;
   qe->was_transmitted = GNUNET_SYSERR;  /* use-after-free warning */

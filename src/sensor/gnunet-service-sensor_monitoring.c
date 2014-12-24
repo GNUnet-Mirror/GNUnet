@@ -410,7 +410,7 @@ schedule_sensor (void *cls, const struct GNUNET_HashCode *key, void *value)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling sensor `%s' to run after %" PRIu64 " microseconds\n",
        sensorinfo->name, sensorinfo->interval.rel_value_us);
-  if (GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
+  if (NULL != sensorinfo->execution_task)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Sensor `%s' execution task already set, this should not happen\n"),

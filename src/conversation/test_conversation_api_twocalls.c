@@ -73,7 +73,7 @@ static GNUNET_MICROPHONE_RecordedDataCallback phone_rdc;
 
 static void *phone_rdc_cls;
 
-static GNUNET_SCHEDULER_TaskIdentifier phone_task;
+static struct GNUNET_SCHEDULER_Task * phone_task;
 
 /**
  * Variable for recognizing caller1
@@ -114,7 +114,7 @@ struct MicContext
 
   void *rdc_cls;
 
-  GNUNET_SCHEDULER_TaskIdentifier call_task;
+  struct GNUNET_SCHEDULER_Task * call_task;
 
 };
 
@@ -268,14 +268,14 @@ enable_mic (void *cls,
   {
     phone_rdc = rdc;
     phone_rdc_cls = rdc_cls;
-    GNUNET_break (GNUNET_SCHEDULER_NO_TASK == phone_task);
+    GNUNET_break (NULL == phone_task);
     phone_task = GNUNET_SCHEDULER_add_now (&phone_send, NULL);
     return GNUNET_OK;
   }
   mc = (CALLER1 == cls) ? &call1_mic_ctx : &call2_mic_ctx;
   mc->rdc = rdc;
   mc->rdc_cls = rdc_cls;
-  GNUNET_break (GNUNET_SCHEDULER_NO_TASK == mc->call_task);
+  GNUNET_break (NULL == mc->call_task);
   mc->call_task = GNUNET_SCHEDULER_add_now (&call_send, mc);
   return GNUNET_OK;
 }
@@ -294,14 +294,14 @@ disable_mic (void *cls)
     phone_rdc = NULL;
     phone_rdc_cls = NULL;
     GNUNET_SCHEDULER_cancel (phone_task);
-    phone_task = GNUNET_SCHEDULER_NO_TASK;
+    phone_task = NULL;
     return;
   }
   mc = (CALLER1 == cls) ? &call1_mic_ctx : &call2_mic_ctx;
   mc->rdc = NULL;
   mc->rdc_cls = NULL;
   GNUNET_SCHEDULER_cancel (mc->call_task);
-  mc->call_task = GNUNET_SCHEDULER_NO_TASK;
+  mc->call_task = NULL;
 }
 
 

@@ -11,7 +11,7 @@ static struct GNUNET_TESTBED_Operation *dht_op;
 
 static struct GNUNET_DHT_Handle *dht_handle;
 
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_tid;
+static struct GNUNET_SCHEDULER_Task * shutdown_tid;
 
 
 /**
@@ -39,7 +39,7 @@ static int result;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_tid = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_tid = NULL;
   if (NULL != dht_op)
   {
     GNUNET_TESTBED_operation_done (dht_op); /* indirectly calls the dht_da() for closing

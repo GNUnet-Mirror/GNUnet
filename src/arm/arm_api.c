@@ -91,7 +91,7 @@ struct GNUNET_ARM_Handle
   /**
    * ID of the reconnect task (if any).
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Current delay we use for re-trying to connect to core.
@@ -166,7 +166,7 @@ struct ARMControlMessage
   /**
    * Task to run when request times out.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task_id;
+  struct GNUNET_SCHEDULER_Task * timeout_task_id;
 
   /**
    * Flags for passing std descriptors to ARM (when starting ARM).
@@ -212,7 +212,7 @@ reconnect_arm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ARM_Handle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to ARM service after delay\n");
   reconnect_arm (h);
 }
@@ -240,7 +240,7 @@ reconnect_arm_later (struct GNUNET_ARM_Handle *h)
     h->client = NULL;
   }
   h->currently_down = GNUNET_YES;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
+  GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_arm_task, h);
   /* Don't clear pending messages on disconnection, deliver them later
@@ -408,7 +408,7 @@ client_notify_handler (void *cls,
     fail = GNUNET_YES;
     break;
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cm->timeout_task_id);
+  GNUNET_assert (NULL != cm->timeout_task_id);
   GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
   GNUNET_CONTAINER_DLL_remove (h->control_sent_head,
                                h->control_sent_tail, cm);
@@ -493,7 +493,7 @@ transmit_arm_message (void *cls, size_t size, void *buf)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "transmit_arm_message is running with %p buffer of size %lu. ARM is known to be %s\n",
        buf, size, h->currently_down ? "unconnected" : "connected");
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
+  GNUNET_assert (NULL == h->reconnect_task);
   h->cth = NULL;
   if ((GNUNET_YES == h->currently_down) && (NULL != buf))
   {
@@ -643,7 +643,7 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h = GNUNET_new (struct GNUNET_ARM_Handle);
   h->cfg = GNUNET_CONFIGURATION_dup (cfg);
   h->currently_down = GNUNET_YES;
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   h->conn_status = conn_status;
   h->conn_status_cls = cls;
   if (GNUNET_OK != reconnect_arm (h))
@@ -680,7 +680,7 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
     else
       GNUNET_CONTAINER_DLL_remove (h->control_sent_head,
                                    h->control_sent_tail, cm);
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cm->timeout_task_id);
+    GNUNET_assert (NULL != cm->timeout_task_id);
     GNUNET_SCHEDULER_cancel (cm->timeout_task_id);
     if (NULL != cm->result_cont)
       cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_DISCONNECTED,
@@ -694,10 +694,10 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
+  if (NULL != h->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    h->reconnect_task = NULL;
   }
   if (GNUNET_NO == h->service_test_is_active)
   {
@@ -984,10 +984,10 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
         GNUNET_CLIENT_disconnect (h->client);
         h->client = NULL;
       }
-      if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
+      if (NULL != h->reconnect_task)
       {
         GNUNET_SCHEDULER_cancel (h->reconnect_task);
-        h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+        h->reconnect_task = NULL;
       }
 
       LOG (GNUNET_ERROR_TYPE_DEBUG,

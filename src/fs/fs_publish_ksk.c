@@ -74,7 +74,7 @@ struct GNUNET_FS_PublishKskContext
   /**
    * Current task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier ksk_task;
+  struct GNUNET_SCHEDULER_Task * ksk_task;
 
   /**
    * Function to call once we're done.
@@ -156,7 +156,7 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_FS_PublishKskContext *pkc = cls;
   const char *keyword;
 
-  pkc->ksk_task = GNUNET_SCHEDULER_NO_TASK;
+  pkc->ksk_task = NULL;
   if ( (pkc->i == pkc->ksk_uri->data.ksk.keywordCount) ||
        (NULL == pkc->dsh) )
   {
@@ -236,10 +236,10 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
 void
 GNUNET_FS_publish_ksk_cancel (struct GNUNET_FS_PublishKskContext *pkc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != pkc->ksk_task)
+  if (NULL != pkc->ksk_task)
   {
     GNUNET_SCHEDULER_cancel (pkc->ksk_task);
-    pkc->ksk_task = GNUNET_SCHEDULER_NO_TASK;
+    pkc->ksk_task = NULL;
   }
   if (NULL != pkc->uc)
   {

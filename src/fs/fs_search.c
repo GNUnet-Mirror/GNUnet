@@ -223,7 +223,7 @@ probe_failure_handler (void *cls,
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
-  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+  sr->probe_cancel_task = NULL;
   sr->availability_trials++;
   GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
   sr->probe_ctx = NULL;
@@ -249,7 +249,7 @@ probe_success_handler (void *cls,
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
-  sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+  sr->probe_cancel_task = NULL;
   sr->availability_trials++;
   sr->availability_success++;
   GNUNET_FS_download_stop (sr->probe_ctx, GNUNET_YES);
@@ -303,34 +303,34 @@ GNUNET_FS_search_probe_progress_ (void *cls,
     /* ignore */
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
-    if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+    if (NULL != sr->probe_cancel_task)
     {
       GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-      sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+      sr->probe_cancel_task = NULL;
     }
     sr->probe_cancel_task =
         GNUNET_SCHEDULER_add_delayed (sr->remaining_probe_time,
                                       &probe_failure_handler, sr);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
-    if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+    if (NULL != sr->probe_cancel_task)
     {
       GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-      sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+      sr->probe_cancel_task = NULL;
     }
     sr->probe_cancel_task =
         GNUNET_SCHEDULER_add_now (&probe_success_handler, sr);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
-    if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+    if (NULL != sr->probe_cancel_task)
     {
       GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-      sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+      sr->probe_cancel_task = NULL;
     }
     sr = NULL;
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
-    if (GNUNET_SCHEDULER_NO_TASK == sr->probe_cancel_task)
+    if (NULL == sr->probe_cancel_task)
     {
       sr->probe_active_time = GNUNET_TIME_absolute_get ();
       sr->probe_cancel_task =
@@ -339,10 +339,10 @@ GNUNET_FS_search_probe_progress_ (void *cls,
     }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
-    if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+    if (NULL != sr->probe_cancel_task)
     {
       GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-      sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+      sr->probe_cancel_task = NULL;
     }
     dur = GNUNET_TIME_absolute_get_duration (sr->probe_active_time);
     sr->remaining_probe_time =
@@ -396,7 +396,7 @@ start_probe_ping_task (struct GNUNET_FS_SearchResult *sr)
   GNUNET_CONTAINER_DLL_insert (h->probes_head,
                                h->probes_tail,
                                sr);
-  if (GNUNET_SCHEDULER_NO_TASK == h->probe_ping_task)
+  if (NULL == h->probe_ping_task)
     h->probe_ping_task
       = GNUNET_SCHEDULER_add_now (&probe_ping_task_cb,
                                   h);
@@ -419,7 +419,7 @@ GNUNET_FS_stop_probe_ping_task_ (struct GNUNET_FS_SearchResult *sr)
   if (NULL == h->probes_head)
   {
     GNUNET_SCHEDULER_cancel (h->probe_ping_task);
-    h->probe_ping_task = GNUNET_SCHEDULER_NO_TASK;
+    h->probe_ping_task = NULL;
   }
 }
 
@@ -520,10 +520,10 @@ GNUNET_FS_search_stop_probe_ (struct GNUNET_FS_SearchResult *sr)
     sr->probe_ctx = NULL;
     GNUNET_FS_stop_probe_ping_task_ (sr);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+  if (NULL != sr->probe_cancel_task)
   {
     GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-    sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+    sr->probe_cancel_task = NULL;
   }
 }
 
@@ -1253,7 +1253,7 @@ do_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_CLIENT_Connection *client;
 
-  sc->task = GNUNET_SCHEDULER_NO_TASK;
+  sc->task = NULL;
   client = GNUNET_CLIENT_connect ("fs", sc->h->cfg);
   if (NULL == client)
   {
@@ -1446,10 +1446,10 @@ search_result_freeze_probes (void *cls,
     sr->probe_ctx = NULL;
     GNUNET_FS_stop_probe_ping_task_ (sr);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)
+  if (NULL != sr->probe_cancel_task)
   {
     GNUNET_SCHEDULER_cancel (sr->probe_cancel_task);
-    sr->probe_cancel_task = GNUNET_SCHEDULER_NO_TASK;
+    sr->probe_cancel_task = NULL;
   }
   if (NULL != sr->update_search)
     GNUNET_FS_search_pause (sr->update_search);
@@ -1545,10 +1545,10 @@ GNUNET_FS_search_signal_suspend_ (void *cls)
   pi.status = GNUNET_FS_STATUS_SEARCH_SUSPEND;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
   GNUNET_break (NULL == sc->client_info);
-  if (sc->task != GNUNET_SCHEDULER_NO_TASK)
+  if (sc->task != NULL)
   {
     GNUNET_SCHEDULER_cancel (sc->task);
-    sc->task = GNUNET_SCHEDULER_NO_TASK;
+    sc->task = NULL;
   }
   if (NULL != sc->client)
   {
@@ -1609,10 +1609,10 @@ GNUNET_FS_search_pause (struct GNUNET_FS_SearchContext *sc)
 {
   struct GNUNET_FS_ProgressInfo pi;
 
-  if (GNUNET_SCHEDULER_NO_TASK != sc->task)
+  if (NULL != sc->task)
   {
     GNUNET_SCHEDULER_cancel (sc->task);
-    sc->task = GNUNET_SCHEDULER_NO_TASK;
+    sc->task = NULL;
   }
   if (NULL != sc->client)
     GNUNET_CLIENT_disconnect (sc->client);
@@ -1636,7 +1636,7 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
   struct GNUNET_FS_ProgressInfo pi;
 
   GNUNET_assert (NULL == sc->client);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == sc->task);
+  GNUNET_assert (NULL == sc->task);
   do_reconnect (sc, NULL);
   GNUNET_FS_search_sync_ (sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_CONTINUED;
@@ -1721,7 +1721,7 @@ search_result_free (void *cls,
     GNUNET_assert (NULL == sr->update_search);
   }
   GNUNET_break (NULL == sr->probe_ctx);
-  GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sr->probe_cancel_task);
+  GNUNET_break (NULL == sr->probe_cancel_task);
   GNUNET_break (NULL == sr->client_info);
   GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);
@@ -1766,7 +1766,7 @@ GNUNET_FS_search_stop (struct GNUNET_FS_SearchContext *sc)
   pi.status = GNUNET_FS_STATUS_SEARCH_STOPPED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
   GNUNET_break (NULL == sc->client_info);
-  if (GNUNET_SCHEDULER_NO_TASK != sc->task)
+  if (NULL != sc->task)
     GNUNET_SCHEDULER_cancel (sc->task);
   if (NULL != sc->client)
     GNUNET_CLIENT_disconnect (sc->client);

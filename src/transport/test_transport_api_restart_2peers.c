@@ -45,11 +45,11 @@ static char *test_name;
 
 static int ok;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier send_task;
+static struct GNUNET_SCHEDULER_Task * send_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+static struct GNUNET_SCHEDULER_Task * reconnect_task;
 
 static struct PeerContext *p1;
 
@@ -72,17 +72,17 @@ static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
-  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_task != NULL)
     GNUNET_SCHEDULER_cancel (send_task);
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
-  if (reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (reconnect_task != NULL)
     GNUNET_SCHEDULER_cancel (reconnect_task);
-  reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  reconnect_task = NULL;
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -96,7 +96,7 @@ end ()
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
   if (restarted == GNUNET_YES)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was restarted, but communication did not resume\n");
@@ -104,13 +104,13 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (restarted == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was NOT (even) restarted\n");
 
-  if (reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (reconnect_task != NULL)
     GNUNET_SCHEDULER_cancel (reconnect_task);
-  reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  reconnect_task = NULL;
 
-  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_task != NULL)
     GNUNET_SCHEDULER_cancel (send_task);
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
   if (cc != NULL)
   {
@@ -137,7 +137,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerContext *p = cls;
 
-  reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  reconnect_task = NULL;
   GNUNET_TRANSPORT_try_connect (p1->th, &p2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
   reconnect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
@@ -212,7 +212,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_break (0);
     ok = 1;
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
@@ -230,7 +230,7 @@ notify_ready (void *cls, size_t size, void *buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready\n");
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     ok = 42;
@@ -259,7 +259,7 @@ notify_ready (void *cls, size_t size, void *buf)
 static void
 sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
@@ -321,9 +321,9 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
- if (GNUNET_SCHEDULER_NO_TASK != send_task)
+ if (NULL != send_task)
     GNUNET_SCHEDULER_cancel (send_task);
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 }
 
 
@@ -386,7 +386,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
@@ -406,7 +406,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,

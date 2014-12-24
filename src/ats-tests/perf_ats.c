@@ -46,12 +46,12 @@
 /**
  * Shutdown task
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Progress task
  */
-static GNUNET_SCHEDULER_TaskIdentifier progress_task;
+static struct GNUNET_SCHEDULER_Task * progress_task;
 
 /**
  * Test result
@@ -194,13 +194,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == logging)
     GNUNET_ATS_TEST_logging_clean_up(l);
 
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != progress_task)
+  shutdown_task = NULL;
+  if (NULL != progress_task)
   {
     fprintf (stderr, "0\n");
     GNUNET_SCHEDULER_cancel (progress_task);
   }
-  progress_task = GNUNET_SCHEDULER_NO_TASK;
+  progress_task = NULL;
 
   evaluate ();
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
@@ -213,7 +213,7 @@ static void
 print_progress ()
 {
   static int calls;
-  progress_task = GNUNET_SCHEDULER_NO_TASK;
+  progress_task = NULL;
 
   fprintf (stderr, "%llu..",
       (long long unsigned) perf_duration.rel_value_us / (1000 * 1000) - calls);
@@ -228,7 +228,7 @@ ats_pref_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct BenchmarkPeer *me = cls;
 
-  me->ats_task = GNUNET_SCHEDULER_NO_TASK;
+  me->ats_task = NULL;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, " Master [%u] set preference for slave [%u] to %f\n",
       me->no, me->pref_partner->no, me->pref_value);
@@ -248,7 +248,7 @@ start_benchmark()
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Benchmarking start\n"));
 
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel(shutdown_task);
   shutdown_task = GNUNET_SCHEDULER_add_delayed(perf_duration, &do_shutdown,
       NULL );

@@ -55,9 +55,9 @@ static unsigned long long total_bytes;
 
 static struct GNUNET_TIME_Absolute start_time;
 
-static GNUNET_SCHEDULER_TaskIdentifier err_task;
+static struct GNUNET_SCHEDULER_Task * err_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier connect_task;
+static struct GNUNET_SCHEDULER_Task * connect_task;
 
 
 struct PeerContext
@@ -119,7 +119,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CORE_disconnect (p2.ch);
   p2.ch = NULL;
   GNUNET_free_non_null (p2.hello);
-  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (connect_task != NULL)
     GNUNET_SCHEDULER_cancel (connect_task);
   GNUNET_TRANSPORT_disconnect (p1.th);
   p1.th = NULL;
@@ -148,7 +148,7 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_disconnect (p2.ch);
     p2.ch = NULL;
   }
-  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (connect_task != NULL)
     GNUNET_SCHEDULER_cancel (connect_task);
   if (p1.th != NULL)
   {

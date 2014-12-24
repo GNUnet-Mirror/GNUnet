@@ -66,7 +66,7 @@ static int ok = 1;
 /**
  * Task used to shutdown / expire the test
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Message to be exchanged

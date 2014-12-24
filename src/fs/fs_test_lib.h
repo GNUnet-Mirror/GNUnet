@@ -89,7 +89,7 @@ GNUNET_FS_TEST_download (struct GNUNET_TESTBED_Peer *peer,
                          struct GNUNET_TIME_Relative timeout,
                          uint32_t anonymity, uint32_t seed,
                          const struct GNUNET_FS_Uri *uri, unsigned int verbose,
-                         GNUNET_SCHEDULER_Task cont, void *cont_cls);
+                         GNUNET_SCHEDULER_TaskCallback cont, void *cont_cls);
 
 
 

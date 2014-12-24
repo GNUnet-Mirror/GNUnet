@@ -37,7 +37,7 @@
 
 #define ITERATIONS 10
 
-GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+struct GNUNET_SCHEDULER_Task * timeout_task;
 
 static struct PeerContext *p1;
 
@@ -54,10 +54,10 @@ end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
   GNUNET_TRANSPORT_TESTING_done (tth);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting\n");
@@ -68,7 +68,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 

@@ -78,13 +78,13 @@ static struct GNUNET_TIME_Relative backoff;
 /**
  * Task for reconnecting.
  */
-static GNUNET_SCHEDULER_TaskIdentifier r_task;
+static struct GNUNET_SCHEDULER_Task * r_task;
 
 /**
  * Task ID of shutdown task; only present while we have a
  * connection to the resolver service.
  */
-static GNUNET_SCHEDULER_TaskIdentifier s_task;
+static struct GNUNET_SCHEDULER_Task * s_task;
 
 
 /**
@@ -131,7 +131,7 @@ struct GNUNET_RESOLVER_RequestHandle
    * Task handle for making reply callbacks in numeric lookups
    * asynchronous, and for timeout handling.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Desired address family.
@@ -256,15 +256,15 @@ GNUNET_RESOLVER_disconnect ()
     GNUNET_CLIENT_disconnect (client);
     client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != r_task)
+  if (NULL != r_task)
   {
     GNUNET_SCHEDULER_cancel (r_task);
-    r_task = GNUNET_SCHEDULER_NO_TASK;
+    r_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != s_task)
+  if (NULL != s_task)
   {
     GNUNET_SCHEDULER_cancel (s_task);
-    s_task = GNUNET_SCHEDULER_NO_TASK;
+    s_task = NULL;
   }
 }
 
@@ -381,7 +381,7 @@ handle_response (void *cls,
         rh->addr_callback (rh->cls, NULL, 0);
     }
     GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-    if (GNUNET_SCHEDULER_NO_TASK != rh->task)
+    if (NULL != rh->task)
       GNUNET_SCHEDULER_cancel (rh->task);
     GNUNET_free (rh);
     GNUNET_CLIENT_disconnect (client);
@@ -410,7 +410,7 @@ handle_response (void *cls,
         rh->addr_callback (rh->cls, NULL, 0);
     }
     GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-    if (GNUNET_SCHEDULER_NO_TASK != rh->task)
+    if (NULL != rh->task)
       GNUNET_SCHEDULER_cancel (rh->task);
     GNUNET_free (rh);
     process_requests ();
@@ -428,7 +428,7 @@ handle_response (void *cls,
       if (GNUNET_SYSERR != rh->was_transmitted)
         rh->name_callback (rh->cls, NULL);
       GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-      if (GNUNET_SCHEDULER_NO_TASK != rh->task)
+      if (NULL != rh->task)
         GNUNET_SCHEDULER_cancel (rh->task);
       GNUNET_free (rh);
       GNUNET_CLIENT_disconnect (client);
@@ -485,7 +485,7 @@ handle_response (void *cls,
       if (GNUNET_SYSERR != rh->was_transmitted)
         rh->addr_callback (rh->cls, NULL, 0);
       GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-      if (GNUNET_SCHEDULER_NO_TASK != rh->task)
+      if (NULL != rh->task)
         GNUNET_SCHEDULER_cancel (rh->task);
       GNUNET_free (rh);
       GNUNET_CLIENT_disconnect (client);
@@ -519,7 +519,7 @@ numeric_resolution (void *cls,
   struct sockaddr_in6 v6;
   const char *hostname;
 
-  rh->task = GNUNET_SCHEDULER_NO_TASK;
+  rh->task = NULL;
   memset (&v4, 0, sizeof (v4));
   v4.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN
@@ -582,7 +582,7 @@ loopback_resolution (void *cls,
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
 
-  rh->task = GNUNET_SCHEDULER_NO_TASK;
+  rh->task = NULL;
   memset (&v4, 0, sizeof (v4));
   v4.sin_addr.s_addr = htonl (INADDR_LOOPBACK);
   v4.sin_family = AF_INET;
@@ -625,7 +625,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  s_task = GNUNET_SCHEDULER_NO_TASK;
+  s_task = NULL;
   GNUNET_RESOLVER_disconnect ();
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
 }
@@ -694,7 +694,7 @@ static void
 reconnect_task (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  r_task = GNUNET_SCHEDULER_NO_TASK;
+  r_task = NULL;
   if (NULL == req_head)
     return;                     /* no work pending */
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -721,7 +721,7 @@ reconnect ()
 {
   struct GNUNET_RESOLVER_RequestHandle *rh;
 
-  if (GNUNET_SCHEDULER_NO_TASK != r_task)
+  if (NULL != r_task)
     return;
   GNUNET_assert (NULL == client);
   if (NULL != (rh = req_head))
@@ -766,7 +766,7 @@ handle_lookup_timeout (void *cls,
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
 
-  rh->task = GNUNET_SCHEDULER_NO_TASK;
+  rh->task = NULL;
   rh->addr_callback (rh->cls,
                      NULL,
                      0);
@@ -837,10 +837,10 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int af,
                                            rh);
   GNUNET_CONTAINER_DLL_insert_tail (req_head, req_tail, rh);
   rh->was_queued = GNUNET_YES;
-  if (s_task != GNUNET_SCHEDULER_NO_TASK)
+  if (s_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (s_task);
-    s_task = GNUNET_SCHEDULER_NO_TASK;
+    s_task = NULL;
   }
   process_requests ();
   return rh;
@@ -863,7 +863,7 @@ numeric_reverse (void *cls,
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   char *result;
 
-  rh->task = GNUNET_SCHEDULER_NO_TASK;
+  rh->task = NULL;
   result = no_resolve (rh->af,
                        &rh[1],
                        rh->data_len);
@@ -937,10 +937,10 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
                                     req_tail,
                                     rh);
   rh->was_queued = GNUNET_YES;
-  if (s_task != GNUNET_SCHEDULER_NO_TASK)
+  if (s_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (s_task);
-    s_task = GNUNET_SCHEDULER_NO_TASK;
+    s_task = NULL;
   }
   process_requests ();
   return rh;
@@ -1024,10 +1024,10 @@ GNUNET_RESOLVER_hostname_resolve (int af,
 void
 GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh)
 {
-  if (rh->task != GNUNET_SCHEDULER_NO_TASK)
+  if (rh->task != NULL)
   {
     GNUNET_SCHEDULER_cancel (rh->task);
-    rh->task = GNUNET_SCHEDULER_NO_TASK;
+    rh->task = NULL;
   }
   if (GNUNET_NO == rh->was_transmitted)
   {

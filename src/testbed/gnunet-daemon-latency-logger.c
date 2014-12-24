@@ -98,7 +98,7 @@ struct sqlite3_stmt *stmt_insert;
 /**
  * Shutdown task identifier
  */
-GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 
 /**
@@ -136,7 +136,7 @@ free_iterator (void *cls,
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task = NULL;
   GNUNET_ATS_performance_done (ats);
   ats = NULL;
   if (NULL != stmt_insert)

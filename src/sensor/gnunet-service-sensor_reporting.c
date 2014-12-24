@@ -162,9 +162,9 @@ struct ValueInfo
   struct GNUNET_PEERSTORE_WatchContext *wc;
 
   /**
-   * Collection point reporting task (or #GNUNET_SCHEDULER_NO_TASK)
+   * Collection point reporting task (or #NULL)
    */
-  GNUNET_SCHEDULER_TaskIdentifier reporting_task;
+  struct GNUNET_SCHEDULER_Task * reporting_task;
 
 };
 
@@ -237,7 +237,7 @@ struct CadetPeer
   /**
    * Task used to try reconnection to collection point after failure
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Are we currently destroying the channel and its context?
@@ -400,10 +400,10 @@ destroy_value_info (struct ValueInfo *vi)
     GNUNET_PEERSTORE_watch_cancel (vi->wc);
     vi->wc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != vi->reporting_task)
+  if (NULL != vi->reporting_task)
   {
     GNUNET_SCHEDULER_cancel (vi->reporting_task);
-    vi->reporting_task = GNUNET_SCHEDULER_NO_TASK;
+    vi->reporting_task = NULL;
   }
   if (NULL != vi->last_value)
   {
@@ -463,10 +463,10 @@ static void
 destroy_cadet_peer (struct CadetPeer *cadetp)
 {
   cadetp->destroying = GNUNET_YES;
-  if (GNUNET_SCHEDULER_NO_TASK != cadetp->reconnect_task)
+  if (NULL != cadetp->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (cadetp->reconnect_task);
-    cadetp->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    cadetp->reconnect_task = NULL;
   }
   if (NULL != cadetp->mq)
   {
@@ -625,7 +625,7 @@ cp_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Retrying connection to collection point `%s'.\n",
        GNUNET_i2s (&cadetp->peer_id));
-  cadetp->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  cadetp->reconnect_task = NULL;
   GNUNET_assert (NULL == cadetp->channel);
   cadetp->channel =
       GNUNET_CADET_channel_create (cadet, cadetp, &cadetp->peer_id,
@@ -740,7 +740,7 @@ get_cadet_peer (struct GNUNET_PeerIdentity pid)
                                    GNUNET_APPLICATION_TYPE_SENSORDASHBOARD,
                                    GNUNET_CADET_OPTION_RELIABLE);
   cadetp->mq = cp_mq_create (cadetp);
-  cadetp->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  cadetp->reconnect_task = NULL;
   GNUNET_CONTAINER_DLL_insert (cadetp_head, cadetp_tail, cadetp);
   return cadetp;
 }

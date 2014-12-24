@@ -118,7 +118,7 @@ struct Plugin
   /**
    * Task calling transport service about external address
    */
-  GNUNET_SCHEDULER_TaskIdentifier notify_ext_task;
+  struct GNUNET_SCHEDULER_Task * notify_ext_task;
 
   /**
    * Plugin name.
@@ -206,7 +206,7 @@ struct Plugin
   /**
    * MHD IPv4 task
    */
-  GNUNET_SCHEDULER_TaskIdentifier server_v4_task;
+  struct GNUNET_SCHEDULER_Task * server_v4_task;
 
   /**
    * The IPv4 server is scheduled to run asap
@@ -221,7 +221,7 @@ struct Plugin
   /**
    * MHD IPv4 task
    */
-  GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
+  struct GNUNET_SCHEDULER_Task * server_v6_task;
 
   /**
    * The IPv6 server is scheduled to run asap
@@ -260,7 +260,7 @@ struct Plugin
   /**
    * curl perform task
    */
-  GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
+  struct GNUNET_SCHEDULER_Task * client_perform_task;
 
 };
 
@@ -426,12 +426,12 @@ struct Session
   /**
    * Task to wake up client receive handle when receiving is allowed again
    */
-  GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
+  struct GNUNET_SCHEDULER_Task * recv_wakeup_task;
 
   /**
    * Session timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Is client send handle paused since there are no data to send?

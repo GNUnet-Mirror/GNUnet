@@ -72,7 +72,7 @@ struct GNUNET_TRANSPORT_ValidationMonitoringContext
   /**
    * Task ID for reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Identity of the peer to monitor.
@@ -162,7 +162,7 @@ do_val_connect (void *cls,
 {
   struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx = cls;
 
-  val_ctx->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  val_ctx->reconnect_task = NULL;
   val_ctx->client = GNUNET_CLIENT_connect ("transport", val_ctx->cfg);
   GNUNET_assert (NULL != val_ctx->client);
   send_val_mon_request (val_ctx);
@@ -412,10 +412,10 @@ GNUNET_TRANSPORT_monitor_validation_entries_cancel (struct GNUNET_TRANSPORT_Vali
     GNUNET_CLIENT_disconnect (vic->client);
     vic->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != vic->reconnect_task)
+  if (NULL != vic->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (vic->reconnect_task);
-    vic->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    vic->reconnect_task = NULL;
   }
   GNUNET_free (vic);
 }

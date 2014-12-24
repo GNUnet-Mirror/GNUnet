@@ -265,7 +265,7 @@ static struct GNUNET_CONTAINER_Heap *retry_heap;
 /**
  * Task that re-transmits requests (using retry_heap).
  */
-static GNUNET_SCHEDULER_TaskIdentifier retry_task;
+static struct GNUNET_SCHEDULER_Task * retry_task;
 
 
 /**
@@ -459,7 +459,7 @@ transmit_next_request_task (void *cls,
   struct ClientQueryRecord *cqr;
   struct GNUNET_TIME_Relative delay;
 
-  retry_task = GNUNET_SCHEDULER_NO_TASK;
+  retry_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   while (NULL != (cqr = GNUNET_CONTAINER_heap_remove_root (retry_heap)))
@@ -628,7 +628,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                            GDS_NEIGHBOURS_get_id(),
                            &get->key);
   /* start remote requests */
-  if (GNUNET_SCHEDULER_NO_TASK != retry_task)
+  if (NULL != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);
   retry_task = GNUNET_SCHEDULER_add_now (&transmit_next_request_task, NULL);
   /* perform local lookup */
@@ -1496,10 +1496,10 @@ GDS_CLIENTS_done ()
 {
   GNUNET_assert (client_head == NULL);
   GNUNET_assert (client_tail == NULL);
-  if (GNUNET_SCHEDULER_NO_TASK != retry_task)
+  if (NULL != retry_task)
   {
     GNUNET_SCHEDULER_cancel (retry_task);
-    retry_task = GNUNET_SCHEDULER_NO_TASK;
+    retry_task = NULL;
   }
   if (NULL != retry_heap)
   {

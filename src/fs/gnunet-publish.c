@@ -127,7 +127,7 @@ static int do_disable_creation_time;
 /**
  * Task run on CTRL-C to kill everything nicely.
  */
-static GNUNET_SCHEDULER_TaskIdentifier kill_task;
+static struct GNUNET_SCHEDULER_Task * kill_task;
 
 /**
  * Handle to the directory scanner (for recursive insertions).
@@ -159,7 +159,7 @@ do_stop_task (void *cls,
 {
   struct GNUNET_FS_PublishContext *p;
 
-  kill_task = GNUNET_SCHEDULER_NO_TASK;
+  kill_task = NULL;
   if (NULL != identity)
   {
     GNUNET_IDENTITY_disconnect (identity);
@@ -188,7 +188,7 @@ do_stop_task (void *cls,
 static void
 stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  kill_task = GNUNET_SCHEDULER_NO_TASK;
+  kill_task = NULL;
   if (NULL != ds)
   {
     GNUNET_FS_directory_scan_abort (ds);
@@ -256,10 +256,10 @@ progress_cb (void *cls,
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     FPRINTF (stderr, _("Error publishing: %s.\n"),
              info->value.publish.specifics.error.message);
-    if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+    if (kill_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (kill_task);
-      kill_task = GNUNET_SCHEDULER_NO_TASK;
+      kill_task = NULL;
     }
     kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     break;
@@ -284,7 +284,7 @@ progress_cb (void *cls,
     }
     if (NULL == info->value.publish.pctx)
     {
-      if (GNUNET_SCHEDULER_NO_TASK != kill_task)
+      if (NULL != kill_task)
         GNUNET_SCHEDULER_cancel (kill_task);
       kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     }
@@ -669,10 +669,10 @@ directory_scan_cb (void *cls,
     FPRINTF (stdout,
              "%s",
              _("Internal error scanning directory.\n"));
-    if (kill_task != GNUNET_SCHEDULER_NO_TASK)
+    if (kill_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (kill_task);
-      kill_task = GNUNET_SCHEDULER_NO_TASK;
+      kill_task = NULL;
     }
     kill_task = GNUNET_SCHEDULER_add_now (&stop_scanner_task, NULL);
     break;

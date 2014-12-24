@@ -400,7 +400,7 @@ static unsigned int n_expired_opqs;
 /**
  * The id of the task to process the ready queue
  */
-GNUNET_SCHEDULER_TaskIdentifier process_rq_task_id;
+struct GNUNET_SCHEDULER_Task * process_rq_task_id;
 
 
 /**
@@ -534,10 +534,10 @@ rq_remove (struct GNUNET_TESTBED_Operation *op)
   GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, op->rq_entry);
   GNUNET_free (op->rq_entry);
   op->rq_entry = NULL;
-  if ( (NULL == rq_head) && (GNUNET_SCHEDULER_NO_TASK != process_rq_task_id) )
+  if ( (NULL == rq_head) && (NULL != process_rq_task_id) )
   {
     GNUNET_SCHEDULER_cancel (process_rq_task_id);
-    process_rq_task_id = GNUNET_SCHEDULER_NO_TASK;
+    process_rq_task_id = NULL;
   }
 }
 
@@ -558,7 +558,7 @@ process_rq_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct OperationQueue *queue;
   unsigned int cnt;
 
-  process_rq_task_id = GNUNET_SCHEDULER_NO_TASK;
+  process_rq_task_id = NULL;
   GNUNET_assert (NULL != rq_head);
   GNUNET_assert (NULL != (op = rq_head->op));
   rq_remove (op);
@@ -592,7 +592,7 @@ rq_add (struct GNUNET_TESTBED_Operation *op)
   rq_entry->op = op;
   GNUNET_CONTAINER_DLL_insert_tail (rq_head, rq_tail, rq_entry);
   op->rq_entry = rq_entry;
-  if (GNUNET_SCHEDULER_NO_TASK == process_rq_task_id)
+  if (NULL == process_rq_task_id)
     process_rq_task_id = GNUNET_SCHEDULER_add_now (&process_rq_task, NULL);
 }
 

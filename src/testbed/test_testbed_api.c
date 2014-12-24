@@ -90,7 +90,7 @@ static struct GNUNET_ARM_Handle *arm_handle;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * The testing result
@@ -139,7 +139,7 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down...\n");
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
@@ -162,9 +162,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #define FAIL_TEST(cond, ret) do {                                   \
     if (!(cond)) {                                              \
       GNUNET_break(0);                                          \
-      if (GNUNET_SCHEDULER_NO_TASK != abort_task)               \
+      if (NULL != abort_task)               \
         GNUNET_SCHEDULER_cancel (abort_task);                   \
-      abort_task = GNUNET_SCHEDULER_NO_TASK;                    \
+      abort_task = NULL;                    \
       GNUNET_SCHEDULER_add_now (do_shutdown, NULL);             \
       ret;                                                   \
     }                                                          \
@@ -181,7 +181,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   do_shutdown (cls, tc);
 }
 

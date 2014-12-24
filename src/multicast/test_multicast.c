@@ -45,7 +45,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Handle for task for timeout termination.
  */
-static GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
+static struct GNUNET_SCHEDULER_Task * end_badly_task;
 
 
 /**
@@ -96,10 +96,10 @@ end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending tests.\n");
 
-  if (end_badly_task != GNUNET_SCHEDULER_NO_TASK)
+  if (end_badly_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (end_badly_task);
-    end_badly_task = GNUNET_SCHEDULER_NO_TASK;
+    end_badly_task = NULL;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
 				&end_normally, NULL);

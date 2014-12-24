@@ -36,7 +36,7 @@
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
-static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_SCHEDULER_Task * endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -98,10 +98,10 @@ put_cont (void *cls, int32_t success, const char *emsg)
 {
   GNUNET_assert (NULL != cls);
   nsqe = NULL;
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+  if (endbadly_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+    endbadly_task = NULL;
   }
 
   switch (success) {

@@ -60,7 +60,7 @@ static char *fn2;
 
 static int err;
 
-static GNUNET_SCHEDULER_TaskIdentifier rtask;
+static struct GNUNET_SCHEDULER_Task * rtask;
 
 
 static void
@@ -76,10 +76,10 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fn2 = NULL;
   GNUNET_FS_stop (fs);
   fs = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != rtask)
+  if (NULL != rtask)
   {
     GNUNET_SCHEDULER_cancel (rtask);
-    rtask = GNUNET_SCHEDULER_NO_TASK;
+    rtask = NULL;
   }
 }
 
@@ -91,7 +91,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event);
 static void
 restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  rtask = GNUNET_SCHEDULER_NO_TASK;
+  rtask = NULL;
   GNUNET_FS_stop (fs);
   fs = GNUNET_FS_start (cfg, "test-fs-publish-persistence",
 			&progress_cb, NULL,

@@ -38,7 +38,7 @@ static int ret;
 /**
  * Handle to the cleanup task.
  */
-GNUNET_SCHEDULER_TaskIdentifier die_task;
+struct GNUNET_SCHEDULER_Task * die_task;
 
 /**
  * Identity of this peer.
@@ -57,7 +57,7 @@ struct GNUNET_CORE_Handle *core;
 static void
 cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
   if (core != NULL)
   {
@@ -73,7 +73,7 @@ static int
 receive (void *cls, const struct GNUNET_PeerIdentity *other,
          const struct GNUNET_MessageHeader *message)
 {
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received message from peer %s\n",
               GNUNET_i2s (other));

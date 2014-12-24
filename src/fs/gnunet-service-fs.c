@@ -167,7 +167,7 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
 /**
  * ID of our task that we use to age the cover counters.
  */
-static GNUNET_SCHEDULER_TaskIdentifier cover_age_task;
+static struct GNUNET_SCHEDULER_Task * cover_age_task;
 
 /**
  * Datastore 'GET' load tracking.
@@ -569,10 +569,10 @@ shutdown_task (void *cls,
   block_cfg = NULL;
   GNUNET_STATISTICS_destroy (GSF_stats, GNUNET_NO);
   GSF_stats = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != cover_age_task)
+  if (NULL != cover_age_task)
   {
     GNUNET_SCHEDULER_cancel (cover_age_task);
-    cover_age_task = GNUNET_SCHEDULER_NO_TASK;
+    cover_age_task = NULL;
   }
   GNUNET_FS_indexing_done ();
   GNUNET_LOAD_value_free (datastore_get_load);

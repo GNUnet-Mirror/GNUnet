@@ -33,7 +33,7 @@ static struct GNUNET_STATISTICS_Handle *h;
 
 static struct GNUNET_STATISTICS_Handle *h2;
 
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 
 static void

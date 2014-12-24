@@ -41,7 +41,7 @@ static struct GNUNET_FS_SearchContext *sks_search;
 
 static struct GNUNET_FS_SearchContext *ksk_search;
 
-static GNUNET_SCHEDULER_TaskIdentifier kill_task;
+static struct GNUNET_SCHEDULER_Task * kill_task;
 
 static int update_started;
 
@@ -58,7 +58,7 @@ abort_ksk_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (sks_search == NULL)
     {
       GNUNET_FS_stop (fs);
-      if (GNUNET_SCHEDULER_NO_TASK != kill_task)
+      if (NULL != kill_task)
         GNUNET_SCHEDULER_cancel (kill_task);
     }
   }
@@ -75,7 +75,7 @@ abort_sks_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (ksk_search == NULL)
   {
     GNUNET_FS_stop (fs);
-    if (GNUNET_SCHEDULER_NO_TASK != kill_task)
+    if (NULL != kill_task)
       GNUNET_SCHEDULER_cancel (kill_task);
   }
 }
@@ -86,7 +86,7 @@ do_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   err = 1;
   FPRINTF (stderr, "%s",  "Operation timed out\n");
-  kill_task = GNUNET_SCHEDULER_NO_TASK;
+  kill_task = NULL;
   abort_sks_search_task (NULL, tc);
   abort_ksk_search_task (NULL, tc);
 }

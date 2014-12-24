@@ -112,12 +112,12 @@ static struct GNUNET_TESTBED_Operation *common_operation;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Delayed connect job identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier delayed_connect_task;
+static struct GNUNET_SCHEDULER_Task * delayed_connect_task;
 
 /**
  * Different stages in testing
@@ -173,9 +173,9 @@ static enum Stage result;
 #define FAIL_TEST(cond) do {                                    \
     if (!(cond)) {                                              \
       GNUNET_break(0);                                          \
-      if (GNUNET_SCHEDULER_NO_TASK != abort_task)               \
+      if (NULL != abort_task)               \
         GNUNET_SCHEDULER_cancel (abort_task);                   \
-      abort_task = GNUNET_SCHEDULER_NO_TASK;                    \
+      abort_task = NULL;                    \
       GNUNET_SCHEDULER_add_now (do_shutdown, NULL);             \
       return;                                                   \
     }                                                          \
@@ -191,9 +191,9 @@ static enum Stage result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  if (GNUNET_SCHEDULER_NO_TASK != delayed_connect_task)
+  if (NULL != delayed_connect_task)
     GNUNET_SCHEDULER_cancel (delayed_connect_task);
   if (NULL != reg_handle)
     GNUNET_TESTBED_cancel_registration (reg_handle);
@@ -216,7 +216,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   do_shutdown (cls, tc);
 }
 
@@ -242,7 +242,7 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg);
 static void
 do_delayed_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  delayed_connect_task = GNUNET_SCHEDULER_NO_TASK;
+  delayed_connect_task = NULL;
   FAIL_TEST (NULL == common_operation);
   common_operation =
       GNUNET_TESTBED_overlay_connect (NULL, &op_comp_cb, NULL, peer1.peer,

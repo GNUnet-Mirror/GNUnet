@@ -55,12 +55,12 @@ static char *hosts_file;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Shutdown task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Global event mask for all testbed events
@@ -112,11 +112,11 @@ static int noninteractive;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  shutdown_task = NULL;
+  if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
   }
   if (NULL != cfg)
   {
@@ -137,9 +137,9 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   result = GNUNET_SYSERR;
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
@@ -185,7 +185,7 @@ controller_event_cb (void *cls,
       {
         printf ("\nAborting due to very high failure rate\n");
         print_overlay_links_summary ();
-        if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+        if (NULL != abort_task)
 	  GNUNET_SCHEDULER_cancel (abort_task);
         abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
         return;
@@ -233,7 +233,7 @@ test_run (void *cls,
   if (noninteractive)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   &do_shutdown, NULL);
     return;

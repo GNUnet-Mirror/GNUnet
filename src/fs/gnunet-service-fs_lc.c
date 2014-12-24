@@ -59,7 +59,7 @@ struct ClientRequest
   /**
    * Task scheduled to destroy the request.
    */
-  GNUNET_SCHEDULER_TaskIdentifier kill_task;
+  struct GNUNET_SCHEDULER_Task * kill_task;
 
 };
 
@@ -193,7 +193,7 @@ client_request_destroy (void *cls,
   struct ClientRequest *cr = cls;
   struct GSF_LocalClient *lc;
 
-  cr->kill_task = GNUNET_SCHEDULER_NO_TASK;
+  cr->kill_task = NULL;
   lc = cr->lc;
   GNUNET_CONTAINER_DLL_remove (lc->cr_head, lc->cr_tail, cr);
   GSF_pending_request_cancel_ (cr->pr, GNUNET_YES);
@@ -242,7 +242,7 @@ client_response_handler (void *cls,
   if (NULL == data)
   {
     /* local-only request, with no result, clean up. */
-    if (GNUNET_SCHEDULER_NO_TASK == cr->kill_task)
+    if (NULL == cr->kill_task)
       cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy,
                                                 cr);
     return;
@@ -285,7 +285,7 @@ client_response_handler (void *cls,
 		(int) eval);
     return;
   }
-  if (GNUNET_SCHEDULER_NO_TASK == cr->kill_task)
+  if (NULL == cr->kill_task)
     cr->kill_task = GNUNET_SCHEDULER_add_now (&client_request_destroy, cr);
 }
 
@@ -497,7 +497,7 @@ GSF_client_disconnect_handler_ (void *cls,
     return;
   while (NULL != (cr = pos->cr_head))
   {
-    if (GNUNET_SCHEDULER_NO_TASK != cr->kill_task)
+    if (NULL != cr->kill_task)
       GNUNET_SCHEDULER_cancel (cr->kill_task);
     client_request_destroy (cr, NULL);
   }

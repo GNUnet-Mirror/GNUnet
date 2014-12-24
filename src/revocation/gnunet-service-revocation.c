@@ -68,7 +68,7 @@ struct PeerEntry
   /**
    * Tasked used to trigger the set union operation.
    */
-  GNUNET_SCHEDULER_TaskIdentifier transmit_task;
+  struct GNUNET_SCHEDULER_Task * transmit_task;
 
   /**
    * Handle to active set union operation (over revocation sets).
@@ -468,7 +468,7 @@ transmit_task_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Starting set exchange with peer `%s'\n",
               GNUNET_i2s (&peer_entry->id));
-  peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+  peer_entry->transmit_task = NULL;
   peer_entry->so = GNUNET_SET_prepare (&peer_entry->id,
                                        &revocation_set_union_app_id,
                                        NULL,
@@ -570,10 +570,10 @@ handle_core_disconnect (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
   GNUNET_MQ_destroy (pos->mq);
-  if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pos->transmit_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
-    pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+    pos->transmit_task = NULL;
   }
   if (NULL != pos->so)
   {

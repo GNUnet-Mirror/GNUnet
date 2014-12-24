@@ -175,7 +175,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Main state machine task (if active).
  */
-static GNUNET_SCHEDULER_TaskIdentifier tt;
+static struct GNUNET_SCHEDULER_Task * tt;
 
 /**
  * Pending #GNUNET_TRANSPORT_get_hello() operation.
@@ -626,10 +626,10 @@ shutdown_task (void *cls,
     GNUNET_PEERINFO_add_peer_cancel (ac);
     ac = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != tt)
+  if (NULL != tt)
   {
     GNUNET_SCHEDULER_cancel (tt);
-    tt = GNUNET_SCHEDULER_NO_TASK;
+    tt = NULL;
   }
   if (NULL != pic)
   {
@@ -806,7 +806,7 @@ static void
 state_machine (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  tt = GNUNET_SCHEDULER_NO_TASK;
+  tt = NULL;
 
   if (NULL != put_uri)
   {

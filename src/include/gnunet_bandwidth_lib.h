@@ -113,7 +113,7 @@ struct GNUNET_BANDWIDTH_Tracker
    * Task scheduled to call the @e excess_cb once we have
    * reached the maximum bandwidth the tracker can hold.
    */
-  GNUNET_SCHEDULER_TaskIdentifier excess_task;
+  struct GNUNET_SCHEDULER_Task * excess_task;
 
   /**
    * Time when we last updated the tracker.

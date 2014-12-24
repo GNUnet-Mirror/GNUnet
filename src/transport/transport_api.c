@@ -84,7 +84,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
    * Task to trigger request timeout if the request is stalled due to
    * congestion.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * How many bytes is our notify callback waiting for?
@@ -171,7 +171,7 @@ struct GNUNET_TRANSPORT_GetHelloHandle
   /**
    * Task for calling the HelloUpdateCallback when we already have a HELLO
    */
-  GNUNET_SCHEDULER_TaskIdentifier notify_task;
+  struct GNUNET_SCHEDULER_Task * notify_task;
 
   /**
    * Closure for @e rec.
@@ -295,7 +295,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle
   /**
    * Function to call once we are done.
    */
-  GNUNET_SCHEDULER_Task cont;
+  GNUNET_SCHEDULER_TaskCallback cont;
 
   /**
    * Closure for @e cont
@@ -434,7 +434,7 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * ID of the task trying to reconnect to the service.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * ID of the task trying to trigger transmission for a peer while
@@ -442,7 +442,7 @@ struct GNUNET_TRANSPORT_Handle
    * messages and the smallest entry in the 'ready_heap' has a time
    * stamp in the future.
    */
-  GNUNET_SCHEDULER_TaskIdentifier quota_task;
+  struct GNUNET_SCHEDULER_Task * quota_task;
 
   /**
    * Delay until we try to reconnect.
@@ -754,9 +754,9 @@ demultiplexer (void *cls,
     n->is_ready = GNUNET_YES;
     if ((NULL != n->th) && (NULL == n->hn))
     {
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->th->timeout_task);
+      GNUNET_assert (NULL != n->th->timeout_task);
       GNUNET_SCHEDULER_cancel (n->th->timeout_task);
-      n->th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      n->th->timeout_task = NULL;
       /* we've been waiting for this (congestion, not quota,
        * caused delayed transmission) */
       n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap, n, 0);
@@ -835,7 +835,7 @@ timeout_request_due_to_congestion (void *cls,
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
   struct Neighbour *n = th->neighbour;
 
-  n->th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  n->th->timeout_task = NULL;
   GNUNET_assert (th == n->th);
   GNUNET_assert (NULL == n->hn);
   n->th = NULL;
@@ -897,7 +897,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
       /* peer not ready, wait for notification! */
       GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
       n->hn = NULL;
-      GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->th->timeout_task);
+      GNUNET_assert (NULL == n->th->timeout_task);
       n->th->timeout_task =
           GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                         (n->th->timeout),
@@ -963,7 +963,7 @@ schedule_transmission_task (void *cls,
   struct GNUNET_TRANSPORT_TransmitHandle *th;
   struct Neighbour *n;
 
-  h->quota_task = GNUNET_SCHEDULER_NO_TASK;
+  h->quota_task = NULL;
   GNUNET_assert (NULL != h->client);
   /* destroy all requests that have timed out */
   while ((NULL != (n = GNUNET_CONTAINER_heap_peek (h->ready_heap))) &&
@@ -1018,10 +1018,10 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
   struct Neighbour *n;
 
   GNUNET_assert (NULL != h->client);
-  if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
+  if (h->quota_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (h->quota_task);
-    h->quota_task = GNUNET_SCHEDULER_NO_TASK;
+    h->quota_task = NULL;
   }
   if (NULL != h->control_head)
     delay = GNUNET_TIME_UNIT_ZERO;
@@ -1127,7 +1127,7 @@ reconnect (void *cls,
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* shutdown, just give up */
@@ -1158,7 +1158,7 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (h->reconnect_task == NULL);
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
@@ -1174,10 +1174,10 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   /* Forget about all neighbours that we used to be connected to */
   GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
                                          &neighbour_delete, h);
-  if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
+  if (h->quota_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (h->quota_task);
-    h->quota_task = GNUNET_SCHEDULER_NO_TASK;
+    h->quota_task = NULL;
   }
   while ((NULL != (th = h->control_head)))
   {
@@ -1577,7 +1577,7 @@ GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
 struct GNUNET_TRANSPORT_OfferHelloHandle *
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
-                              GNUNET_SCHEDULER_Task cont, void *cls)
+                              GNUNET_SCHEDULER_TaskCallback cont, void *cls)
 {
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
   struct GNUNET_MessageHeader *msg;
@@ -1663,8 +1663,8 @@ call_hello_update_cb_async (void *cls,
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh = cls;
 
   GNUNET_assert (NULL != ghh->handle->my_hello);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != ghh->notify_task);
-  ghh->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != ghh->notify_task);
+  ghh->notify_task = NULL;
   ghh->rec (ghh->rec_cls,
             (const struct GNUNET_MessageHeader *) ghh->handle->my_hello);
 }
@@ -1711,7 +1711,7 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
 {
   struct GNUNET_TRANSPORT_Handle *handle = ghh->handle;
 
-  if (GNUNET_SCHEDULER_NO_TASK != ghh->notify_task)
+  if (NULL != ghh->notify_task)
     GNUNET_SCHEDULER_cancel (ghh->notify_task);
   GNUNET_CONTAINER_DLL_remove (handle->hwl_head, handle->hwl_tail, ghh);
   GNUNET_free (ghh);
@@ -1810,20 +1810,20 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transport disconnect called!\n");
   /* this disconnects all neighbours... */
-  if (handle->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
+  if (handle->reconnect_task == NULL)
     disconnect_and_schedule_reconnect (handle);
   /* and now we stop trying to connect again... */
-  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (handle->reconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    handle->reconnect_task = NULL;
   }
   GNUNET_CONTAINER_multipeermap_destroy (handle->neighbours);
   handle->neighbours = NULL;
-  if (handle->quota_task != GNUNET_SCHEDULER_NO_TASK)
+  if (handle->quota_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (handle->quota_task);
-    handle->quota_task = GNUNET_SCHEDULER_NO_TASK;
+    handle->quota_task = NULL;
   }
   GNUNET_free_non_null (handle->my_hello);
   handle->my_hello = NULL;
@@ -1926,9 +1926,9 @@ GNUNET_TRANSPORT_notify_transmit_ready_cancel (struct GNUNET_TRANSPORT_TransmitH
   }
   else
   {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != th->timeout_task);
+    GNUNET_assert (NULL != th->timeout_task);
     GNUNET_SCHEDULER_cancel (th->timeout_task);
-    th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    th->timeout_task = NULL;
   }
   GNUNET_free (th);
 }

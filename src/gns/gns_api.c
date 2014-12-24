@@ -154,7 +154,7 @@ struct GNUNET_GNS_Handle
   /**
    * Reconnect task
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * How long do we wait until we try to reconnect?
@@ -210,7 +210,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_GNS_Handle *handle = cls;
 
-  handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  handle->reconnect_task = NULL;
   reconnect (handle);
 }
 
@@ -484,10 +484,10 @@ GNUNET_GNS_disconnect (struct GNUNET_GNS_Handle *handle)
     GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
+  if (NULL != handle->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    handle->reconnect_task = NULL;
   }
   GNUNET_assert (NULL == handle->lookup_head);
   GNUNET_free (handle);

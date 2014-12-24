@@ -199,7 +199,7 @@ struct Barrier
   /**
    * Identifier for the timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier tout_task;
+  struct GNUNET_SCHEDULER_Task * tout_task;
 
   /**
    * The status of this barrier

@@ -31,9 +31,9 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier consume_task;
+static struct GNUNET_SCHEDULER_Task * consume_task;
 
 static struct GNUNET_ATS_SchedulingHandle *ats;
 
@@ -77,11 +77,11 @@ struct PeerContext
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
-  if (consume_task != GNUNET_SCHEDULER_NO_TASK)
+  die_task = NULL;
+  if (consume_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (consume_task);
-    consume_task = GNUNET_SCHEDULER_NO_TASK;
+    consume_task = NULL;
   }
   if (sh != NULL)
     GNUNET_ATS_reserve_bandwidth_cancel (sh);
@@ -98,15 +98,15 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end ()
 {
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
-  if (consume_task != GNUNET_SCHEDULER_NO_TASK)
+  if (consume_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (consume_task);
-    consume_task = GNUNET_SCHEDULER_NO_TASK;
+    consume_task = NULL;
   }
   GNUNET_ATS_scheduling_done (ats);
   GNUNET_ATS_performance_done (atp);
@@ -142,7 +142,7 @@ reservation_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
 static void
 consume_bandwidth (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  consume_task = GNUNET_SCHEDULER_NO_TASK;
+  consume_task = NULL;
   int32_t to_reserve = 500;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -393,10 +393,10 @@ check_completed (struct GNUNET_FS_DownloadContext *dc)
     GNUNET_FS_dequeue_ (dc->job_queue);
     dc->job_queue = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
+  if (NULL != dc->task)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
-    dc->task = GNUNET_SCHEDULER_NO_TASK;
+    dc->task = NULL;
   }
   if (NULL != dc->rfh)
   {
@@ -1380,7 +1380,7 @@ do_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_CLIENT_Connection *client;
 
-  dc->task = GNUNET_SCHEDULER_NO_TASK;
+  dc->task = NULL;
   client = GNUNET_CLIENT_connect ("fs", dc->h->cfg);
   if (NULL == client)
   {
@@ -1633,10 +1633,10 @@ reconstruct_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_FS_DownloadContext *dc = cls;
 
   /* clean up state from tree encoder */
-  if (dc->task != GNUNET_SCHEDULER_NO_TASK)
+  if (dc->task != NULL)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
-    dc->task = GNUNET_SCHEDULER_NO_TASK;
+    dc->task = NULL;
   }
   if (NULL != dc->rfh)
   {
@@ -1662,7 +1662,7 @@ get_next_block (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
 
-  dc->task = GNUNET_SCHEDULER_NO_TASK;
+  dc->task = NULL;
   GNUNET_FS_tree_encoder_next (dc->te);
 }
 
@@ -1866,7 +1866,7 @@ GNUNET_FS_download_start_task_ (void *cls,
   struct GNUNET_DISK_FileHandle *fh;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start task running...\n");
-  dc->task = GNUNET_SCHEDULER_NO_TASK;
+  dc->task = NULL;
   if (0 == dc->length)
   {
     /* no bytes required! */
@@ -2028,10 +2028,10 @@ GNUNET_FS_download_signal_suspend_ (void *cls)
   if (NULL != dc->parent)
     GNUNET_CONTAINER_DLL_remove (dc->parent->child_head, dc->parent->child_tail,
                                  dc);
-  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
+  if (NULL != dc->task)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
-    dc->task = GNUNET_SCHEDULER_NO_TASK;
+    dc->task = NULL;
   }
   pi.status = GNUNET_FS_STATUS_DOWNLOAD_SUSPEND;
   GNUNET_FS_download_make_status_ (&pi, dc);
@@ -2336,10 +2336,10 @@ GNUNET_FS_download_stop (struct GNUNET_FS_DownloadContext *dc, int do_delete)
 
   if (NULL != dc->top)
     GNUNET_FS_end_top (dc->h, dc->top);
-  if (GNUNET_SCHEDULER_NO_TASK != dc->task)
+  if (NULL != dc->task)
   {
     GNUNET_SCHEDULER_cancel (dc->task);
-    dc->task = GNUNET_SCHEDULER_NO_TASK;
+    dc->task = NULL;
   }
   search_was_null = (NULL == dc->search);
   if (NULL != dc->search)

@@ -163,7 +163,7 @@ static struct GNUNET_DATASTORE_QueueEntry *mig_qe;
 /**
  * ID of task that collects blocks for migration.
  */
-static GNUNET_SCHEDULER_TaskIdentifier mig_task;
+static struct GNUNET_SCHEDULER_Task * mig_task;
 
 /**
  * What is the maximum frequency at which we are allowed to
@@ -452,7 +452,7 @@ consider_gathering ()
     return;
   if (NULL != mig_qe)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != mig_task)
+  if (NULL != mig_task)
     return;
   if (mig_size >= MAX_MIGRATION_QUEUE)
     return;
@@ -575,7 +575,7 @@ static void
 gather_migration_blocks (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  mig_task = GNUNET_SCHEDULER_NO_TASK;
+  mig_task = NULL;
   if (mig_size >= MAX_MIGRATION_QUEUE)
     return;
   if (NULL == GSF_dsh)
@@ -682,10 +682,10 @@ GSF_push_init_ ()
 void
 GSF_push_done_ ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != mig_task)
+  if (NULL != mig_task)
   {
     GNUNET_SCHEDULER_cancel (mig_task);
-    mig_task = GNUNET_SCHEDULER_NO_TASK;
+    mig_task = NULL;
   }
   if (NULL != mig_qe)
   {

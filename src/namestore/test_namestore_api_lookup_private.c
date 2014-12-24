@@ -35,7 +35,7 @@
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
-static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_SCHEDULER_Task * endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -136,7 +136,7 @@ void lookup_it (void *cls,
 
   /* Done */
   GNUNET_SCHEDULER_cancel (endbadly_task);
-  endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+  endbadly_task = NULL;
   GNUNET_SCHEDULER_add_now (&end, NULL );
 }
 

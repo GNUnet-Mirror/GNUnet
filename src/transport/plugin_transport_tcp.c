@@ -269,7 +269,7 @@ struct Session
   /**
    * Task cleaning up a NAT client connection establishment attempt;
    */
-  GNUNET_SCHEDULER_TaskIdentifier nat_connection_timeout;
+  struct GNUNET_SCHEDULER_Task * nat_connection_timeout;
 
   /**
    * Messages currently pending for transmission
@@ -296,12 +296,12 @@ struct Session
   /**
    * ID of task used to delay receiving more to throttle sender.
    */
-  GNUNET_SCHEDULER_TaskIdentifier receive_delay_task;
+  struct GNUNET_SCHEDULER_Task * receive_delay_task;
 
   /**
    * Session timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * When will this session time out?
@@ -435,7 +435,7 @@ struct Plugin
   /**
    * ID of task used to update our addresses when one expires.
    */
-  GNUNET_SCHEDULER_TaskIdentifier address_update_task;
+  struct GNUNET_SCHEDULER_Task * address_update_task;
 
   /**
    * Address options
@@ -480,7 +480,7 @@ notify_session_monitor (struct Plugin *plugin,
     : GNUNET_NO;
   info.num_msg_pending = session->msgs_in_queue;
   info.num_bytes_pending = session->bytes_in_queue;
-  if (GNUNET_SCHEDULER_NO_TASK != session->receive_delay_task)
+  if (NULL != session->receive_delay_task)
     info.receive_delay = session->receive_delay;
   info.session_timeout = session->timeout;
   info.address = session->address;
@@ -813,10 +813,10 @@ tcp_plugin_disconnect_session (void *cls,
                              session->address->address,
                              session->address->address_length));
 
-  if (GNUNET_SCHEDULER_NO_TASK != session->timeout_task)
+  if (NULL != session->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (session->timeout_task);
-    session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    session->timeout_task = NULL;
     session->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
   }
 
@@ -853,10 +853,10 @@ tcp_plugin_disconnect_session (void *cls,
                                      session->address,
                                      session);
 
-  if (GNUNET_SCHEDULER_NO_TASK != session->nat_connection_timeout)
+  if (NULL != session->nat_connection_timeout)
   {
     GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
-    session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
+    session->nat_connection_timeout = NULL;
   }
 
   while (NULL != (pm = session->pending_messages_head))
@@ -894,7 +894,7 @@ tcp_plugin_disconnect_session (void *cls,
                           session,
                           GNUNET_TRANSPORT_SS_DONE);
 
-  if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
+  if (session->receive_delay_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (session->receive_delay_task);
     if (NULL != session->client)
@@ -941,7 +941,7 @@ session_timeout (void *cls,
   struct Session *s = cls;
   struct GNUNET_TIME_Relative left;
 
-  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  s->timeout_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (s->timeout);
   if (0 != left.rel_value_us)
   {
@@ -973,7 +973,7 @@ session_timeout (void *cls,
 static void
 reschedule_session_timeout (struct Session *s)
 {
-  GNUNET_assert(GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+  GNUNET_assert(NULL != s->timeout_task);
   s->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 }
 
@@ -1417,7 +1417,7 @@ nat_connect_timeout (void *cls,
 {
   struct Session *session = cls;
 
-  session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
+  session->nat_connection_timeout = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
        GNUNET_i2s (&session->target),
@@ -1460,7 +1460,7 @@ delayed_done (void *cls,
 {
   struct Session *session = cls;
 
-  session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  session->receive_delay_task = NULL;
   reschedule_session_timeout (session);
 
   GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
@@ -1483,7 +1483,7 @@ tcp_plugin_update_inbound_delay (void *cls,
                                  struct Session *session,
                                  struct GNUNET_TIME_Relative delay)
 {
-  if (GNUNET_SCHEDULER_NO_TASK == session->receive_delay_task)
+  if (NULL == session->receive_delay_task)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "New inbound delay %s\n",
@@ -1846,7 +1846,7 @@ struct PrettyPrinterContext
   /**
    * Timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Resolver handle
@@ -2166,10 +2166,10 @@ handle_tcp_nat_probe (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Found session for NAT probe!\n");
 
-  if (session->nat_connection_timeout != GNUNET_SCHEDULER_NO_TASK)
+  if (session->nat_connection_timeout != NULL)
   {
     GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
-    session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
+    session->nat_connection_timeout = NULL;
   }
 
   if (GNUNET_OK != GNUNET_SERVER_client_get_address (client, &vaddr, &alen))

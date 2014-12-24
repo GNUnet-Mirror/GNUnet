@@ -231,7 +231,7 @@ struct Episode
 
 struct LoggingHandle
 {
-  GNUNET_SCHEDULER_TaskIdentifier logging_task;
+  struct GNUNET_SCHEDULER_Task * logging_task;
   struct GNUNET_TIME_Relative log_freq;
 
   /* DLL list for logging time steps */
@@ -256,8 +256,8 @@ struct Experiment
 
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  GNUNET_SCHEDULER_TaskIdentifier experiment_timeout_task;
-  GNUNET_SCHEDULER_TaskIdentifier episode_timeout_task;
+  struct GNUNET_SCHEDULER_Task * experiment_timeout_task;
+  struct GNUNET_SCHEDULER_Task * episode_timeout_task;
   struct Episode *cur;
 
   GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb;
@@ -282,8 +282,8 @@ struct PreferenceGenerator
   struct GNUNET_TIME_Relative frequency;
   struct GNUNET_TIME_Relative feedback_frequency;
 
-  GNUNET_SCHEDULER_TaskIdentifier set_task;
-  GNUNET_SCHEDULER_TaskIdentifier feedback_task;
+  struct GNUNET_SCHEDULER_Task * set_task;
+  struct GNUNET_SCHEDULER_Task * feedback_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
 
@@ -326,7 +326,7 @@ struct PropertyGenerator
   struct GNUNET_TIME_Relative duration_period;
   struct GNUNET_TIME_Relative frequency;
 
-  GNUNET_SCHEDULER_TaskIdentifier set_task;
+  struct GNUNET_SCHEDULER_Task * set_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
 };

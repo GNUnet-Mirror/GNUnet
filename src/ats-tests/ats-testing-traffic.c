@@ -171,7 +171,7 @@ comm_schedule_send (void *cls,
 {
   struct BenchmarkPartner *p = cls;
 
-  p->tg->send_task = GNUNET_SCHEDULER_NO_TASK;
+  p->tg->send_task = NULL;
   p->last_message_sent = GNUNET_TIME_absolute_get();
   if (GNUNET_YES == top->test_core)
   {
@@ -389,10 +389,10 @@ GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg)
   GNUNET_CONTAINER_DLL_remove (tg_head, tg_tail, tg);
   tg->dest->tg = NULL;
 
-  if (GNUNET_SCHEDULER_NO_TASK != tg->send_task)
+  if (NULL != tg->send_task)
   {
     GNUNET_SCHEDULER_cancel (tg->send_task);
-    tg->send_task = GNUNET_SCHEDULER_NO_TASK;
+    tg->send_task = NULL;
   }
   if (top->test_core)
   {

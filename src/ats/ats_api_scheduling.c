@@ -177,12 +177,12 @@ struct GNUNET_ATS_SchedulingHandle
   /**
    * Task to trigger reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Task retrieving interfaces from the system
    */
-  GNUNET_SCHEDULER_TaskIdentifier interface_task;
+  struct GNUNET_SCHEDULER_Task * interface_task;
 
 
   /**
@@ -217,7 +217,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
 
-  sh->task = GNUNET_SCHEDULER_NO_TASK;
+  sh->task = NULL;
   reconnect (sh);
 }
 
@@ -825,7 +825,7 @@ static void
 get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ATS_SchedulingHandle * sh = cls;
-  sh->interface_task = GNUNET_SCHEDULER_NO_TASK;
+  sh->interface_task = NULL;
   delete_networks (sh);
   GNUNET_OS_network_interfaces_list(interface_proc, sh);
   sh->interface_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_PROCESSING_INTERVALL,
@@ -1005,10 +1005,10 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != sh->task)
+  if (NULL != sh->task)
   {
     GNUNET_SCHEDULER_cancel (sh->task);
-    sh->task = GNUNET_SCHEDULER_NO_TASK;
+    sh->task = NULL;
   }
 
   next = sh->sug_head;
@@ -1020,10 +1020,10 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
   }
 
   delete_networks (sh);
-  if (sh->interface_task != GNUNET_SCHEDULER_NO_TASK)
+  if (sh->interface_task != NULL)
   {
     GNUNET_SCHEDULER_cancel(sh->interface_task);
-    sh->interface_task = GNUNET_SCHEDULER_NO_TASK;
+    sh->interface_task = NULL;
   }
   GNUNET_array_grow (sh->session_array, sh->session_array_size, 0);
   GNUNET_free (sh);

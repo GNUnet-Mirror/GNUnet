@@ -45,9 +45,9 @@ static struct GNUNET_NAMESTORE_Handle *namestore;
 
 static struct MHD_Daemon *mhd;
 
-static GNUNET_SCHEDULER_TaskIdentifier mhd_task_id;
+static struct GNUNET_SCHEDULER_Task * mhd_task_id;
 
-static GNUNET_SCHEDULER_TaskIdentifier curl_task_id;
+static struct GNUNET_SCHEDULER_Task * curl_task_id;
 
 static CURL *curl;
 
@@ -117,15 +117,15 @@ mhd_ahc (void *cls,
 static void
 do_shutdown ()
 {
-  if (mhd_task_id != GNUNET_SCHEDULER_NO_TASK)
+  if (mhd_task_id != NULL)
   {
     GNUNET_SCHEDULER_cancel (mhd_task_id);
-    mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
+    mhd_task_id = NULL;
   }
-  if (curl_task_id != GNUNET_SCHEDULER_NO_TASK)
+  if (curl_task_id != NULL)
   {
     GNUNET_SCHEDULER_cancel (curl_task_id);
-    curl_task_id = GNUNET_SCHEDULER_NO_TASK;
+    curl_task_id = NULL;
   }
   if (NULL != mhd)
   {
@@ -164,7 +164,7 @@ static void
 curl_task (void *cls,
 	  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  curl_task_id = GNUNET_SCHEDULER_NO_TASK;
+  curl_task_id = NULL;
   curl_main ();
 }
 
@@ -314,7 +314,7 @@ static void
 mhd_task (void *cls,
 	  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
+  mhd_task_id = NULL;
   MHD_run (mhd);
   mhd_main ();
 }
@@ -332,7 +332,7 @@ mhd_main ()
   unsigned MHD_LONG_LONG timeout;
   struct GNUNET_TIME_Relative delay;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == mhd_task_id);
+  GNUNET_assert (NULL == mhd_task_id);
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);

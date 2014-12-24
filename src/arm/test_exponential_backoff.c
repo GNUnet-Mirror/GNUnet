@@ -90,7 +90,7 @@ struct ShutdownContext
   /**
    * Task set up to cancel the shutdown request on timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier cancel_task;
+  struct GNUNET_SCHEDULER_Task * cancel_task;
 
   /**
    * Task to call once shutdown complete

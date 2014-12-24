@@ -98,7 +98,7 @@ struct GNUNET_FRAGMENT_Context
   /**
    * Task performing work for the fragmenter.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Our fragmentation ID. (chosen at random)
@@ -157,7 +157,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   size_t fsize;
   int wrap;
 
-  fc->task = GNUNET_SCHEDULER_NO_TASK;
+  fc->task = NULL;
   GNUNET_assert (GNUNET_NO == fc->proc_busy);
   if (0 == fc->acks)
     return;                     /* all done */
@@ -323,7 +323,7 @@ GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc)
 {
   GNUNET_assert (fc->proc_busy == GNUNET_YES);
   fc->proc_busy = GNUNET_NO;
-  GNUNET_assert (fc->task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (fc->task == NULL);
   fc->task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining
                                     (fc->delay_until), &transmit_next, fc);
@@ -415,7 +415,7 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   if (0 != fc->acks)
   {
     /* more to transmit, do so right now (if tracker permits...) */
-    if (fc->task != GNUNET_SCHEDULER_NO_TASK)
+    if (fc->task != NULL)
     {
       /* schedule next transmission now, no point in waiting... */
       GNUNET_SCHEDULER_cancel (fc->task);
@@ -434,10 +434,10 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
   GNUNET_STATISTICS_update (fc->stats,
                             _("# fragmentation transmissions completed"), 1,
                             GNUNET_NO);
-  if (fc->task != GNUNET_SCHEDULER_NO_TASK)
+  if (fc->task != NULL)
   {
     GNUNET_SCHEDULER_cancel (fc->task);
-    fc->task = GNUNET_SCHEDULER_NO_TASK;
+    fc->task = NULL;
   }
   return GNUNET_OK;
 }
@@ -458,7 +458,7 @@ GNUNET_FRAGMENT_context_destroy (struct GNUNET_FRAGMENT_Context *fc,
 				 struct GNUNET_TIME_Relative *msg_delay,
 				 struct GNUNET_TIME_Relative *ack_delay)
 {
-  if (fc->task != GNUNET_SCHEDULER_NO_TASK)
+  if (fc->task != NULL)
     GNUNET_SCHEDULER_cancel (fc->task);
   if (NULL != ack_delay)
     *ack_delay = fc->ack_delay;

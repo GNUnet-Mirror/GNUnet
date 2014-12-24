@@ -206,12 +206,12 @@ struct ValidationEntry
   /**
    * ID of task that will clean up this entry if nothing happens.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * ID of task that will trigger address revalidation.
    */
-  GNUNET_SCHEDULER_TaskIdentifier revalidation_task;
+  struct GNUNET_SCHEDULER_Task * revalidation_task;
 
   /**
    * At what time did we send the latest validation request (PING)?
@@ -441,15 +441,15 @@ cleanup_validation_entry (void *cls,
                 GNUNET_CONTAINER_multipeermap_remove (validation_map,
                                                       &ve->pid, ve));
   GNUNET_HELLO_address_free (ve->address);
-  if (GNUNET_SCHEDULER_NO_TASK != ve->timeout_task)
+  if (NULL != ve->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (ve->timeout_task);
-    ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    ve->timeout_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ve->revalidation_task)
+  if (NULL != ve->revalidation_task)
   {
     GNUNET_SCHEDULER_cancel (ve->revalidation_task);
-    ve->revalidation_task = GNUNET_SCHEDULER_NO_TASK;
+    ve->revalidation_task = NULL;
   }
   if ((GNUNET_YES == ve->expecting_pong) &&
   		(validations_running > 0))
@@ -479,7 +479,7 @@ timeout_hello_validation (void *cls,
   struct GNUNET_TIME_Absolute max;
   struct GNUNET_TIME_Relative left;
 
-  ve->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ve->timeout_task = NULL;
   max = GNUNET_TIME_absolute_max (ve->valid_until, ve->revalidation_block);
   left = GNUNET_TIME_absolute_get_remaining (max);
   if (left.rel_value_us > 0)
@@ -653,7 +653,7 @@ revalidate_address (void *cls,
   struct GST_BlacklistCheck *bc;
   uint32_t rdelay;
 
-  ve->revalidation_task = GNUNET_SCHEDULER_NO_TASK;
+  ve->revalidation_task = NULL;
   delay = GNUNET_TIME_absolute_get_remaining (ve->revalidation_block);
   /* How long until we can possibly permit the next PING? */
   if (GNUNET_YES == ve->in_use)
@@ -816,7 +816,7 @@ add_valid_address (void *cls,
   ve = find_validation_entry (&public_key, address);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
 
-  if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
+  if (NULL == ve->revalidation_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting revalidations for valid address `%s'\n",
@@ -1270,7 +1270,7 @@ validate_address_iterator (void *cls,
   if (papi == NULL)
   {
     /* This plugin is currently unvailable ... retry later */
-    if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
+    if (NULL == ve->revalidation_task)
     {
       if (GNUNET_YES == ve->in_use)
         canonical_delay = CONNECTED_PING_FREQUENCY;
@@ -1292,7 +1292,7 @@ validate_address_iterator (void *cls,
   }
 
 
-  if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
+  if (NULL == ve->revalidation_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Validation process started for fresh address `%s'\n",

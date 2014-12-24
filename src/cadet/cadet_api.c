@@ -78,7 +78,7 @@ struct GNUNET_CADET_TransmitHandle
     /**
      * Task triggering a timeout, can be NO_TASK if the timeout is FOREVER.
      */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
     /**
      * Size of 'data' -- or the desired size of 'notify' if 'data' is NULL.
@@ -210,7 +210,7 @@ struct GNUNET_CADET_Handle
   /**
    * Task for trying to reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Callback for an info task (only one active at a time).
@@ -496,7 +496,7 @@ destroy_channel (struct GNUNET_CADET_Channel *ch, int call_cleaner)
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
 
     /* clean up request */
-    if (GNUNET_SCHEDULER_NO_TASK != th->timeout_task)
+    if (NULL != th->timeout_task)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
     GNUNET_free (th);
   }
@@ -528,7 +528,7 @@ timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CADET_TransmitHandle *th = cls;
   struct GNUNET_CADET_Handle *cadet = th->channel->cadet;
 
-  th->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  th->timeout_task = NULL;
   th->channel->packet_size = 0;
   GNUNET_CONTAINER_DLL_remove (cadet->th_head, cadet->th_tail, th);
   if (GNUNET_YES == th_is_payload (th))
@@ -711,7 +711,7 @@ reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CADET_Handle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   do_reconnect (h);
@@ -740,7 +740,7 @@ reconnect (struct GNUNET_CADET_Handle *h)
     next = ch->next;
     destroy_channel (ch, GNUNET_YES);
   }
-  if (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task)
+  if (NULL == h->reconnect_task)
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
                                                       &reconnect_cbk, h);
 }
@@ -1382,7 +1382,7 @@ send_callback (void *cls, size_t size, void *buf)
       psize = th->size;
     }
     GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= psize);
-    if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    if (th->timeout_task != NULL)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
     GNUNET_free (th);
@@ -1487,7 +1487,7 @@ GNUNET_CADET_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   h->ports = ports;
   h->next_chid = GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
 
   if (NULL != ports && ports[0] != 0 && NULL == new_channel)
   {
@@ -1576,10 +1576,10 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
     GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
+  if (NULL != handle->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel(handle->reconnect_task);
-    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    handle->reconnect_task = NULL;
   }
   GNUNET_free (handle);
 }
@@ -1761,7 +1761,7 @@ GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *t
 
   th->channel->packet_size = 0;
   cadet = th->channel->cadet;
-  if (th->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (th->timeout_task != NULL)
     GNUNET_SCHEDULER_cancel (th->timeout_task);
   GNUNET_CONTAINER_DLL_remove (cadet->th_head, cadet->th_tail, th);
   GNUNET_free (th);

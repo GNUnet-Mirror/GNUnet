@@ -73,11 +73,11 @@ static int stage;
 static int ok;
 static int connected;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static struct GNUNET_SCHEDULER_Task * timeout_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier stage_task;
+static struct GNUNET_SCHEDULER_Task * stage_task;
 
 #if VERBOSE
 #define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -93,22 +93,22 @@ end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Stopping\n");
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK )
+  if (die_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK )
+  if (timeout_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
 
-  if (stage_task != GNUNET_SCHEDULER_NO_TASK )
+  if (stage_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (stage_task);
-    stage_task = GNUNET_SCHEDULER_NO_TASK;
+    stage_task = NULL;
   }
 
   if (cc != NULL )
@@ -132,18 +132,18 @@ end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK )
+  if (timeout_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
 
-  if (stage_task != GNUNET_SCHEDULER_NO_TASK )
+  if (stage_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (stage_task);
-    stage_task = GNUNET_SCHEDULER_NO_TASK;
+    stage_task = NULL;
   }
 
   if (cc != NULL )
@@ -176,7 +176,7 @@ static void
 connect_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peers not connected, next stage\n");
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL );
 }
 
@@ -246,8 +246,8 @@ static int check_blacklist_config (char *cfg_file,
 static void
 run_stage(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  stage_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != die_task)
+  stage_task = NULL;
+  if (NULL != die_task)
     GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL );
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Running stage %u\n", stage);

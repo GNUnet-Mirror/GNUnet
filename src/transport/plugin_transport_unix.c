@@ -218,7 +218,7 @@ struct Session
   /**
    * Session timeout task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Number of messages we currently have in our write queue.
@@ -255,17 +255,17 @@ struct Plugin
   /**
    * ID of task used to update our addresses when one expires.
    */
-  GNUNET_SCHEDULER_TaskIdentifier address_update_task;
+  struct GNUNET_SCHEDULER_Task * address_update_task;
 
   /**
    * ID of read task
    */
-  GNUNET_SCHEDULER_TaskIdentifier read_task;
+  struct GNUNET_SCHEDULER_Task * read_task;
 
   /**
    * ID of write task
    */
-  GNUNET_SCHEDULER_TaskIdentifier write_task;
+  struct GNUNET_SCHEDULER_Task * write_task;
 
   /**
    * Number of bytes we currently have in our write queues.
@@ -482,10 +482,10 @@ unix_plugin_session_disconnect (void *cls,
 			 "# UNIX sessions active",
 			 GNUNET_CONTAINER_multipeermap_size (plugin->session_map),
 			 GNUNET_NO);
-  if (GNUNET_SCHEDULER_NO_TASK != session->timeout_task)
+  if (NULL != session->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (session->timeout_task);
-    session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    session->timeout_task = NULL;
     session->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
   }
   notify_session_monitor (plugin,
@@ -512,7 +512,7 @@ session_timeout (void *cls,
   struct Session *session = cls;
   struct GNUNET_TIME_Relative left;
 
-  session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  session->timeout_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (session->timeout);
   if (0 != left.rel_value_us)
   {
@@ -545,7 +545,7 @@ session_timeout (void *cls,
 static void
 reschedule_session_timeout (struct Session *session)
 {
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != session->timeout_task);
+  GNUNET_assert (NULL != session->timeout_task);
   session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 }
 
@@ -1226,7 +1226,7 @@ unix_plugin_select_read (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  plugin->read_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->read_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
@@ -1251,7 +1251,7 @@ unix_plugin_select_write (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  plugin->write_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->write_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY))
@@ -1358,7 +1358,7 @@ unix_plugin_send (void *cls,
   notify_session_monitor (plugin,
                           session,
                           GNUNET_TRANSPORT_SS_UPDATE);
-  if (GNUNET_SCHEDULER_NO_TASK == plugin->write_task)
+  if (NULL == plugin->write_task)
     plugin->write_task =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                       plugin->unix_sock.desc,
@@ -1629,7 +1629,7 @@ address_notification (void *cls,
   unix_path = (char *) &ua[1];
   memcpy (unix_path, plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
 
-  plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->address_update_task = NULL;
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
                                            PLUGIN_NAME,
                                            ua,
@@ -1886,20 +1886,20 @@ libgnunet_plugin_transport_unix_done (void *cls)
     GNUNET_free (msgw);
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->read_task)
+  if (NULL != plugin->read_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->read_task);
-    plugin->read_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->read_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->write_task)
+  if (NULL != plugin->write_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->write_task);
-    plugin->write_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->write_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->address_update_task)
+  if (NULL != plugin->address_update_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->address_update_task);
-    plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->address_update_task = NULL;
   }
   if (NULL != plugin->unix_sock.desc)
   {

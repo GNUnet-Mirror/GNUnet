@@ -97,7 +97,7 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
     GNUNET_CLIENT_disconnect (pc->client);
     pc->client = NULL;
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+  GNUNET_assert (NULL == pc->upload_task);
   GNUNET_free (pc);
 }
 
@@ -138,7 +138,7 @@ ds_put_cont (void *cls, int success,
       GNUNET_FS_unindex_start (pc->h, pc->fi_pos->filename, NULL);
     }
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+  GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
                                           &GNUNET_FS_publish_main_, pc);
@@ -316,7 +316,7 @@ publish_kblocks_cont (void *cls,
     signal_publish_error (p, pc, emsg);
     GNUNET_FS_file_information_sync_ (p);
     GNUNET_FS_publish_sync_ (pc);
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+    GNUNET_assert (NULL == pc->upload_task);
     pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority
       (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
@@ -334,7 +334,7 @@ publish_kblocks_cont (void *cls,
   else
     pc->fi_pos = p->dir;
   GNUNET_FS_publish_sync_ (pc);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+  GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
                                           &GNUNET_FS_publish_main_, pc);
@@ -449,7 +449,7 @@ encode_cont (void *cls,
     p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, flen);
   }
   /* continue with main */  /* continue with main */
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+  GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
                                           &GNUNET_FS_publish_main_, pc);
@@ -487,7 +487,7 @@ block_proc (void *cls,
   if (NULL == pc->dsh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting for datastore connection\n");
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+    GNUNET_assert (NULL == pc->upload_task);
     pc->upload_task =
         GNUNET_SCHEDULER_add_with_priority
         (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, &GNUNET_FS_publish_main_, pc);
@@ -947,7 +947,7 @@ GNUNET_FS_publish_main_ (void *cls,
   struct GNUNET_FS_FileInformation *p;
   char *fn;
 
-  pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
+  pc->upload_task = NULL;
   p = pc->fi_pos;
   if (NULL == p)
   {
@@ -1234,10 +1234,10 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
-  if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
+  if (NULL != pc->upload_task)
   {
     GNUNET_SCHEDULER_cancel (pc->upload_task);
-    pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
+    pc->upload_task = NULL;
   }
   pc->skip_next_fi_callback = GNUNET_YES;
   GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_suspend, pc);
@@ -1275,7 +1275,7 @@ finish_reserve (void *cls, int success,
     return;
   }
   pc->rid = success;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+  GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
                                           &GNUNET_FS_publish_main_, pc);
@@ -1373,7 +1373,7 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
   }
   else
   {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == ret->upload_task);
+    GNUNET_assert (NULL == ret->upload_task);
     ret->upload_task =
         GNUNET_SCHEDULER_add_with_priority
         (GNUNET_SCHEDULER_PRIORITY_BACKGROUND, &GNUNET_FS_publish_main_, ret);
@@ -1462,10 +1462,10 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     GNUNET_FS_publish_sks_cancel (pc->sks_pc);
     pc->sks_pc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pc->upload_task)
+  if (NULL != pc->upload_task)
   {
     GNUNET_SCHEDULER_cancel (pc->upload_task);
-    pc->upload_task = GNUNET_SCHEDULER_NO_TASK;
+    pc->upload_task = NULL;
   }
   pc->skip_next_fi_callback = GNUNET_YES;
   GNUNET_FS_file_information_inspect (pc->fi, &fip_signal_stop, pc);

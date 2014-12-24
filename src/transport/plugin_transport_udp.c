@@ -102,7 +102,7 @@ struct PrettyPrinterContext
   /**
    * Timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * IPv6 address
@@ -155,7 +155,7 @@ struct Session
   /**
    * Session timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * When does this session time out?
@@ -566,7 +566,7 @@ schedule_select (struct Plugin *plugin)
           GNUNET_TIME_absolute_get_remaining (
               udpw->session->flow_delay_from_other_peer));
 
-    if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK )
+    if (plugin->select_task != NULL )
       GNUNET_SCHEDULER_cancel (plugin->select_task);
 
     /* Schedule with:
@@ -587,7 +587,7 @@ schedule_select (struct Plugin *plugin)
           GNUNET_TIME_absolute_get_remaining (
               udpw->session->flow_delay_from_other_peer));
 
-    if (GNUNET_SCHEDULER_NO_TASK != plugin->select_task_v6)
+    if (NULL != plugin->select_task_v6)
       GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
     plugin->select_task_v6 = GNUNET_SCHEDULER_add_select (
         GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -1332,10 +1332,10 @@ udp_disconnect_session (void *cls,
       GNUNET_i2s (&s->target),
       udp_address_to_string (NULL, s->address->address, s->address->address_length));
   /* stop timeout task */
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  if (NULL != s->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    s->timeout_task = NULL;
   }
   if (NULL != s->frag_ctx)
   {
@@ -1500,7 +1500,7 @@ session_timeout (void *cls,
   struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative left;
 
-  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  s->timeout_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (s->timeout);
   if (left.rel_value_us > 0)
   {
@@ -1534,7 +1534,7 @@ reschedule_session_timeout (struct Session *s)
 {
   if (GNUNET_YES == s->in_destroy)
     return;
-  GNUNET_assert(GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+  GNUNET_assert(NULL != s->timeout_task);
   s->timeout = GNUNET_TIME_relative_to_absolute (UDP_SESSION_TIME_OUT);
 }
 
@@ -3027,7 +3027,7 @@ udp_plugin_select (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->select_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
@@ -3056,7 +3056,7 @@ udp_plugin_select_v6 (void *cls,
 {
   struct Plugin *plugin = cls;
 
-  plugin->select_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+  plugin->select_task_v6 = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (((tc->reason & GNUNET_SCHEDULER_REASON_READ_READY) != 0)
@@ -3610,15 +3610,15 @@ libgnunet_plugin_transport_udp_done (void *cls)
     return NULL;
   }
   stop_broadcast (plugin);
-  if (plugin->select_task != GNUNET_SCHEDULER_NO_TASK )
+  if (plugin->select_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (plugin->select_task);
-    plugin->select_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->select_task = NULL;
   }
-  if (plugin->select_task_v6 != GNUNET_SCHEDULER_NO_TASK )
+  if (plugin->select_task_v6 != NULL )
   {
     GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
-    plugin->select_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+    plugin->select_task_v6 = NULL;
   }
 
   /* Closing sockets */

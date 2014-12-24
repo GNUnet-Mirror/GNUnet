@@ -366,7 +366,7 @@ struct Operation
    * Timeout task, if the incoming peer has not been accepted
    * after the timeout, it will be disconnected.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Unique request id for the request from a remote peer, sent to the

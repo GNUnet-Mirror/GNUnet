@@ -344,12 +344,12 @@ struct NeighbourMapEntry
    * Main task that drives this peer (timeouts, keepalives, etc.).
    * Always runs the 'master_task'.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Task to disconnect neighbour after we received a DISCONNECT message
    */
-  GNUNET_SCHEDULER_TaskIdentifier delayed_disconnect_task;
+  struct GNUNET_SCHEDULER_Task * delayed_disconnect_task;
 
   /**
    * At what time should we sent the next keep-alive message?
@@ -539,7 +539,7 @@ static unsigned long long bytes_in_send_queue;
 /**
  * Task transmitting utilization data
  */
-static GNUNET_SCHEDULER_TaskIdentifier util_transmission_tk;
+static struct GNUNET_SCHEDULER_Task * util_transmission_tk;
 
 
 static struct GNUNET_CONTAINER_MultiPeerMap *registered_quota_notifications;
@@ -956,17 +956,17 @@ free_neighbour (struct NeighbourMapEntry *n,
   }
 
   /* Cancel the disconnect task */
-  if (GNUNET_SCHEDULER_NO_TASK != n->delayed_disconnect_task)
+  if (NULL != n->delayed_disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (n->delayed_disconnect_task);
-    n->delayed_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    n->delayed_disconnect_task = NULL;
   }
 
   /* Cancel the master task */
-  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+  if (NULL != n->task)
   {
     GNUNET_SCHEDULER_cancel (n->task);
-    n->task = GNUNET_SCHEDULER_NO_TASK;
+    n->task = NULL;
   }
   /* free rest of memory */
   GNUNET_free (n);
@@ -1054,7 +1054,7 @@ send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
     return; /* already gone */
   if (GNUNET_TRANSPORT_PS_DISCONNECT != n->state)
     return; /* have created a fresh entry since */
-  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+  if (NULL != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
 }
@@ -1168,7 +1168,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     break;
   }
   /* schedule timeout to clean up */
-  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+  if (NULL != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_delayed (DISCONNECT_SENT_TIMEOUT,
 					  &master_task, n);
@@ -1202,7 +1202,7 @@ transmit_send_continuation (void *cls,
     /* this is still "our" neighbour, remove us from its queue
        and allow it to send the next message now */
     n->is_active = NULL;
-    if (GNUNET_SCHEDULER_NO_TASK != n->task)
+    if (NULL != n->task)
       GNUNET_SCHEDULER_cancel (n->task);
     n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
   }
@@ -1650,7 +1650,7 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
       msg_size, GNUNET_i2s (target));
 
   GNUNET_CONTAINER_DLL_insert_tail (n->messages_head, n->messages_tail, mq);
-  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+  if (NULL != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
 }
@@ -2862,7 +2862,7 @@ static void
 utilization_transmission (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  util_transmission_tk = GNUNET_SCHEDULER_NO_TASK;
+  util_transmission_tk = NULL;
 
   if (0 < GNUNET_CONTAINER_multipeermap_size (neighbours))
     GNUNET_CONTAINER_multipeermap_iterate (neighbours, send_utilization_data, NULL);
@@ -2945,7 +2945,7 @@ master_task (void *cls,
   struct NeighbourMapEntry *n = cls;
   struct GNUNET_TIME_Relative delay;
 
-  n->task = GNUNET_SCHEDULER_NO_TASK;
+  n->task = NULL;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
@@ -3081,7 +3081,7 @@ master_task (void *cls,
     delay = GNUNET_TIME_relative_min (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time),
 				      delay);
   }
-  if (GNUNET_SCHEDULER_NO_TASK == n->task)
+  if (NULL == n->task)
     n->task = GNUNET_SCHEDULER_add_delayed (delay,
 					    &master_task,
 					    n);
@@ -3405,7 +3405,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     break;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != n->task)
+  if (NULL != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
   return GNUNET_YES;
@@ -3577,7 +3577,7 @@ void delayed_disconnect (void *cls,
 {
   struct NeighbourMapEntry *n = cls;
 
-  n->delayed_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  n->delayed_disconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting by request from peer %s\n",
               GNUNET_i2s (&n->id));
@@ -3884,10 +3884,10 @@ GST_neighbours_stop ()
 
   if (NULL == neighbours)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != util_transmission_tk)
+  if (NULL != util_transmission_tk)
   {
     GNUNET_SCHEDULER_cancel (util_transmission_tk);
-    util_transmission_tk = GNUNET_SCHEDULER_NO_TASK;
+    util_transmission_tk = NULL;
   }
 
   GNUNET_CONTAINER_multipeermap_iterate (neighbours, &disconnect_all_neighbours,

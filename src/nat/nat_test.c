@@ -60,7 +60,7 @@ struct NatActivity
   /**
    * Task reading from the incoming connection.
    */
-  GNUNET_SCHEDULER_TaskIdentifier rtask;
+  struct GNUNET_SCHEDULER_Task * rtask;
 };
 
 
@@ -141,12 +141,12 @@ struct GNUNET_NAT_Test
   /**
    * Identity of task for the listen socket (if any)
    */
-  GNUNET_SCHEDULER_TaskIdentifier ltask;
+  struct GNUNET_SCHEDULER_Task * ltask;
 
   /**
    * Task identifier for the timeout (if any)
    */
-  GNUNET_SCHEDULER_TaskIdentifier ttask;
+  struct GNUNET_SCHEDULER_Task * ttask;
 
   /**
    * GNUNET_YES if we're testing TCP
@@ -250,7 +250,7 @@ do_read (void *cls,
   struct GNUNET_NAT_Test *tst;
   uint16_t data;
 
-  na->rtask = GNUNET_SCHEDULER_NO_TASK;
+  na->rtask = NULL;
   tst = na->h;
   GNUNET_CONTAINER_DLL_remove (tst->na_head, tst->na_tail, na);
   if ((NULL != tc->write_ready) &&
@@ -287,7 +287,7 @@ do_accept (void *cls,
   struct GNUNET_NETWORK_Handle *s;
   struct NatActivity *wl;
 
-  tst->ltask = GNUNET_SCHEDULER_NO_TASK;
+  tst->ltask = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   tst->ltask =
@@ -386,7 +386,7 @@ do_timeout (void *cls,
 {
   struct GNUNET_NAT_Test *nh = cls;
 
-  nh->ttask = GNUNET_SCHEDULER_NO_TASK;
+  nh->ttask = NULL;
   nh->report (nh->report_cls,
               (GNUNET_NAT_ERROR_SUCCESS == nh->status)
               ? GNUNET_NAT_ERROR_TIMEOUT
@@ -495,10 +495,10 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
           _("NAT test failed to start NAT library\n"));
-      if (GNUNET_SCHEDULER_NO_TASK != nh->ltask)
+      if (NULL != nh->ltask)
       {
         GNUNET_SCHEDULER_cancel (nh->ltask);
-        nh->ltask = GNUNET_SCHEDULER_NO_TASK;
+        nh->ltask = NULL;
       }
       if (NULL != nh->lsock)
       {
@@ -541,9 +541,9 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
     GNUNET_NETWORK_socket_close (pos->sock);
     GNUNET_free (pos);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != tst->ttask)
+  if (NULL != tst->ttask)
     GNUNET_SCHEDULER_cancel (tst->ttask);
-  if (GNUNET_SCHEDULER_NO_TASK != tst->ltask)
+  if (NULL != tst->ltask)
     GNUNET_SCHEDULER_cancel (tst->ltask);
   if (NULL != tst->lsock)
     GNUNET_NETWORK_socket_close (tst->lsock);

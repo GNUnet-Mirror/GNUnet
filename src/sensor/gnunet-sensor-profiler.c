@@ -87,7 +87,7 @@ static const char *sensor_dst_dir = "/tmp/gnunet-sensor-profiler";
 /**
  * Scheduled task to shutdown
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+static struct GNUNET_SCHEDULER_Task * shutdown_task = NULL;
 
 /**
  * GNUnet configuration
@@ -157,7 +157,7 @@ static unsigned int sensor_names_size = 0;
 /**
  * Task run after any waiting period
  */
-static GNUNET_SCHEDULER_TaskIdentifier delayed_task = GNUNET_SCHEDULER_NO_TASK;
+static struct GNUNET_SCHEDULER_Task * delayed_task = NULL;
 
 
 /**
@@ -180,10 +180,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down.\n");
-  if (GNUNET_SCHEDULER_NO_TASK != delayed_task)
+  if (NULL != delayed_task)
   {
     GNUNET_SCHEDULER_cancel (delayed_task);
-    delayed_task = GNUNET_SCHEDULER_NO_TASK;
+    delayed_task = NULL;
   }
   for (i = 0; i < num_peers; i++)
   {
@@ -536,7 +536,7 @@ simulate_anomalies (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t an_peer;
   struct GNUNET_TIME_Relative shutdown_delay;
 
-  delayed_task = GNUNET_SCHEDULER_NO_TASK;
+  delayed_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Training period over, simulating anomalies now.\n");
   GNUNET_assert (anomalous_peers <= num_peers);
@@ -572,7 +572,7 @@ peers_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long long int training_points;
   struct GNUNET_TIME_Relative training_period;
 
-  delayed_task = GNUNET_SCHEDULER_NO_TASK;
+  delayed_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All peers are ready.\n");
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_number (cfg,

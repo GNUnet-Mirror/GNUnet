@@ -57,7 +57,7 @@ struct GNUNET_ARM_MonitorHandle
   /**
    * ID of the reconnect task (if any).
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Current delay we use for re-trying to connect to core.
@@ -82,7 +82,7 @@ struct GNUNET_ARM_MonitorHandle
   /**
    * ID of a task to run if we fail to get a reply to the init message in time.
    */
-  GNUNET_SCHEDULER_TaskIdentifier init_timeout_task_id;
+  struct GNUNET_SCHEDULER_Task * init_timeout_task_id;
 };
 
 static void
@@ -102,7 +102,7 @@ reconnect_arm_monitor_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to ARM service for monitoring after delay\n");
   reconnect_arm_monitor (h);
 }
@@ -129,13 +129,13 @@ reconnect_arm_monitor_later (struct GNUNET_ARM_MonitorHandle *h)
     h->monitor = NULL;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != h->init_timeout_task_id)
+  if (NULL != h->init_timeout_task_id)
   {
     GNUNET_SCHEDULER_cancel (h->init_timeout_task_id);
-    h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+    h->init_timeout_task_id = NULL;
   }
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
+  GNUNET_assert (NULL == h->reconnect_task);
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_arm_monitor_task, h);
 
@@ -156,7 +156,7 @@ init_timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Init message timed out\n");
 
-  h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  h->init_timeout_task_id = NULL;
   reconnect_arm_monitor_later (h);
 }
 
@@ -176,8 +176,8 @@ transmit_monitoring_init_message (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg;
   uint16_t msize;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->init_timeout_task_id);
+  GNUNET_assert (NULL == h->reconnect_task);
+  GNUNET_assert (NULL == h->init_timeout_task_id);
   h->cth = NULL;
   if (NULL == buf)
   {
@@ -254,8 +254,8 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h = GNUNET_new (struct GNUNET_ARM_MonitorHandle);
   h->cfg = GNUNET_CONFIGURATION_dup (cfg);
   h->currently_down = GNUNET_YES;
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
+  h->init_timeout_task_id = NULL;
   h->service_status = cont;
   h->cls = cont_cls;
   if (GNUNET_OK != reconnect_arm_monitor (h))
@@ -281,20 +281,20 @@ GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h)
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
     h->cth = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->init_timeout_task_id)
+  if (NULL != h->init_timeout_task_id)
   {
     GNUNET_SCHEDULER_cancel (h->init_timeout_task_id);
-    h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+    h->init_timeout_task_id = NULL;
   }
   if (NULL != h->monitor)
   {
     GNUNET_CLIENT_disconnect (h->monitor);
     h->monitor = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
+  if (NULL != h->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    h->reconnect_task = NULL;
   }
   GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_free (h);
@@ -335,10 +335,10 @@ monitor_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       reconnect_arm_monitor_later (h);
       return;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != h->init_timeout_task_id)
+    if (NULL != h->init_timeout_task_id)
     {
       GNUNET_SCHEDULER_cancel (h->init_timeout_task_id);
-      h->init_timeout_task_id = GNUNET_SCHEDULER_NO_TASK;
+      h->init_timeout_task_id = NULL;
     }
     res = (const struct GNUNET_ARM_StatusMessage *) msg;
     LOG (GNUNET_ERROR_TYPE_DEBUG,

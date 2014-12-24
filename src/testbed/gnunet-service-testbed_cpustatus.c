@@ -85,7 +85,7 @@ static double agedIOLoad = -1;
  */
 struct GNUNET_BIO_WriteHandle *bw;
 
-GNUNET_SCHEDULER_TaskIdentifier sample_load_task_id;
+struct GNUNET_SCHEDULER_Task * sample_load_task_id;
 
 
 #ifdef OSX
@@ -656,7 +656,7 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int mem_usage;
   unsigned int nproc;
 
-  sample_load_task_id = GNUNET_SCHEDULER_NO_TASK;
+  sample_load_task_id = NULL;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   ld_cpu = cpu_get_load ();
@@ -767,10 +767,10 @@ GST_stats_destroy ()
 #elif OSX
   GNUNET_free_non_null (prev_cpu_load);
 #endif
-  if (GNUNET_SCHEDULER_NO_TASK != sample_load_task_id)
+  if (NULL != sample_load_task_id)
   {
     GNUNET_SCHEDULER_cancel (sample_load_task_id);
-    sample_load_task_id = GNUNET_SCHEDULER_NO_TASK;
+    sample_load_task_id = NULL;
   }
   GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bw));
   bw = NULL;

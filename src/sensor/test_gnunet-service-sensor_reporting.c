@@ -89,7 +89,7 @@ struct TestPeer
   /**
    * GNUNET scheduler task that forces the anomaly after a stabilization delay
    */
-  GNUNET_SCHEDULER_TaskIdentifier delay_task;
+  struct GNUNET_SCHEDULER_Task * delay_task;
 
 };
 
@@ -152,7 +152,7 @@ static struct GNUNET_PEERSTORE_Handle *peerstore;
 /**
  * Task used to shutdown / expire the test
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Status of the test to be returned by main()
@@ -163,10 +163,10 @@ static int ok = 1;
 static void
 destroy_peer (struct TestPeer *peer)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != peer->delay_task)
+  if (NULL != peer->delay_task)
   {
     GNUNET_SCHEDULER_cancel (peer->delay_task);
-    peer->delay_task = GNUNET_SCHEDULER_NO_TASK;
+    peer->delay_task = NULL;
   }
   if (NULL != peer->sensor_op)
   {
@@ -280,7 +280,7 @@ force_anomaly_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPeer *peer = cls;
 
-  peer->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  peer->delay_task = NULL;
   GNUNET_SENSOR_force_anomaly (peer->sensor, (char *) sensor_name, GNUNET_YES,
                                NULL, NULL);
 }
@@ -481,7 +481,7 @@ peer_info_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   peer = GNUNET_new (struct TestPeer);
 
   peer->testbed_peer = testbed_peer;
-  peer->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  peer->delay_task = NULL;
   GNUNET_CRYPTO_get_peer_identity (pinfo->result.cfg, &peer->peer_id);
   if (NULL == peer_head)        /* First peer (collection point) */
   {

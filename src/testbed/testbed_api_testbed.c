@@ -253,17 +253,17 @@ struct GNUNET_TESTBED_RunHandle
   /**
    * Host registration task
    */
-  GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
+  struct GNUNET_SCHEDULER_Task * register_hosts_task;
 
   /**
    * Task to be run of a timeout
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Task run upon shutdown interrupts
    */
-  GNUNET_SCHEDULER_TaskIdentifier interrupt_task;
+  struct GNUNET_SCHEDULER_Task * interrupt_task;
 
   /**
    * The event mask for the controller
@@ -455,7 +455,7 @@ cleanup (struct GNUNET_TESTBED_RunHandle *rc)
 {
   unsigned int hid;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);
+  GNUNET_assert (NULL == rc->register_hosts_task);
   GNUNET_assert (NULL == rc->reg_handle);
   GNUNET_assert (NULL == rc->peers);
   GNUNET_assert (NULL == rc->hclist);
@@ -524,15 +524,15 @@ rc_cleanup_operations (struct GNUNET_TESTBED_RunHandle *rc)
     rc->hclist = NULL;
   }
   /* Stop register hosts task if it is running */
-  if (GNUNET_SCHEDULER_NO_TASK != rc->register_hosts_task)
+  if (NULL != rc->register_hosts_task)
   {
     GNUNET_SCHEDULER_cancel (rc->register_hosts_task);
-    rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
+    rc->register_hosts_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rc->timeout_task)
+  if (NULL != rc->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (rc->timeout_task);
-    rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    rc->timeout_task = NULL;
   }
   if (NULL != rc->reg_handle)
   {
@@ -561,7 +561,7 @@ static void
 cancel_interrupt_task (struct GNUNET_TESTBED_RunHandle *rc)
 {
   GNUNET_SCHEDULER_cancel (rc->interrupt_task);
-  rc->interrupt_task = GNUNET_SCHEDULER_NO_TASK;
+  rc->interrupt_task = NULL;
 }
 
 
@@ -730,7 +730,7 @@ static void
 call_master (struct GNUNET_TESTBED_RunHandle *rc)
 {
   GNUNET_SCHEDULER_cancel (rc->timeout_task);
-  rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  rc->timeout_task = NULL;
   if (NULL != rc->test_master)
     rc->test_master (rc->test_master_cls, rc, rc->num_peers, rc->peers,
                      rc->links_succeeded, rc->links_failed);
@@ -1006,7 +1006,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct RunContextOperation *rcop;
   unsigned int slave;
 
-  rc->register_hosts_task = GNUNET_SCHEDULER_NO_TASK;
+  rc->register_hosts_task = NULL;
   if (rc->reg_hosts == rc->num_hosts)
   {
     DEBUG ("All hosts successfully registered\n");
@@ -1199,7 +1199,7 @@ timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TESTBED_RunHandle *rc = cls;
 
-  rc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  rc->timeout_task = NULL;
   LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
    GNUNET_SCHEDULER_shutdown ();
    if (NULL != rc->test_master)

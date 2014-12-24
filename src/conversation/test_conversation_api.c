@@ -67,9 +67,9 @@ static GNUNET_MICROPHONE_RecordedDataCallback call_rdc;
 
 static void *call_rdc_cls;
 
-static GNUNET_SCHEDULER_TaskIdentifier phone_task;
+static struct GNUNET_SCHEDULER_Task * phone_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier call_task;
+static struct GNUNET_SCHEDULER_Task * call_task;
 
 
 static void
@@ -229,14 +229,14 @@ disable_mic (void *cls)
     phone_rdc = NULL;
     phone_rdc_cls = NULL;
     GNUNET_SCHEDULER_cancel (phone_task);
-    phone_task = GNUNET_SCHEDULER_NO_TASK;
+    phone_task = NULL;
   }
   else
   {
     call_rdc = NULL;
     call_rdc_cls = NULL;
     GNUNET_SCHEDULER_cancel (call_task);
-    call_task = GNUNET_SCHEDULER_NO_TASK;
+    call_task = NULL;
   }
 }
 

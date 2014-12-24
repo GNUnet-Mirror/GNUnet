@@ -144,12 +144,12 @@ struct GNUNET_TESTBED_LOGGER_Handle
   /**
    * Task to call the flush completion callback
    */
-  GNUNET_SCHEDULER_TaskIdentifier flush_completion_task;
+  struct GNUNET_SCHEDULER_Task * flush_completion_task;
 
   /**
    * Task to be executed when flushing takes too long
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_flush_task;
+  struct GNUNET_SCHEDULER_Task * timeout_flush_task;
 };
 
 
@@ -162,7 +162,7 @@ static void
 cancel_timeout_flush (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   GNUNET_SCHEDULER_cancel (h->timeout_flush_task);
-  h->timeout_flush_task = GNUNET_SCHEDULER_NO_TASK;
+  h->timeout_flush_task = NULL;
 }
 
 
@@ -180,14 +180,14 @@ call_flush_completion (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   void *cb_cls;
   size_t bw;
 
-  h->flush_completion_task = GNUNET_SCHEDULER_NO_TASK;
+  h->flush_completion_task = NULL;
   bw = h->bwrote;
   h->bwrote = 0;
   cb = h->cb;
   h->cb = NULL;
   cb_cls = h->cb_cls;
   h->cb_cls = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != h->timeout_flush_task)
+  if (NULL != h->timeout_flush_task)
     cancel_timeout_flush (h);
   if (NULL != cb)
     cb (cb_cls, bw);
@@ -202,7 +202,7 @@ call_flush_completion (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 trigger_flush_notification (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != h->flush_completion_task)
+  if (NULL != h->flush_completion_task)
     GNUNET_SCHEDULER_cancel (h->flush_completion_task);
   h->flush_completion_task = GNUNET_SCHEDULER_add_now (&call_flush_completion, h);
 }
@@ -354,7 +354,7 @@ GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h)
   struct MessageQueue *mq;
   unsigned int lost;
 
-  if (GNUNET_SCHEDULER_NO_TASK != h->flush_completion_task)
+  if (NULL != h->flush_completion_task)
     GNUNET_SCHEDULER_cancel (h->flush_completion_task);
   lost = 0;
   while (NULL != (mq = h->mq_head))
@@ -425,15 +425,15 @@ timeout_flush (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TESTBED_LOGGER_FlushCompletion cb;
   void *cb_cls;
 
-  h->timeout_flush_task = GNUNET_SCHEDULER_NO_TASK;
+  h->timeout_flush_task = NULL;
   cb = h->cb;
   h->cb = NULL;
   cb_cls = h->cb_cls;
   h->cb_cls = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != h->flush_completion_task)
+  if (NULL != h->flush_completion_task)
   {
     GNUNET_SCHEDULER_cancel (h->flush_completion_task);
-    h->flush_completion_task = GNUNET_SCHEDULER_NO_TASK;
+    h->flush_completion_task = NULL;
   }
   if (NULL != cb)
     cb (cb_cls, 0);
@@ -456,7 +456,7 @@ GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
 {
   h->cb = cb;
   h->cb_cls = cb_cls;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->timeout_flush_task);
+  GNUNET_assert (NULL == h->timeout_flush_task);
   h->timeout_flush_task =
       GNUNET_SCHEDULER_add_delayed (timeout, &timeout_flush, h);
   if (NULL == h->buf)
@@ -478,12 +478,12 @@ GNUNET_TESTBED_LOGGER_flush (struct GNUNET_TESTBED_LOGGER_Handle *h,
 void
 GNUNET_TESTBED_LOGGER_flush_cancel (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != h->flush_completion_task)
+  if (NULL != h->flush_completion_task)
   {
     GNUNET_SCHEDULER_cancel (h->flush_completion_task);
-    h->flush_completion_task = GNUNET_SCHEDULER_NO_TASK;
+    h->flush_completion_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->timeout_flush_task)
+  if (NULL != h->timeout_flush_task)
     cancel_timeout_flush (h);
   h->cb = NULL;
   h->cb_cls = NULL;

@@ -151,12 +151,12 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle *hc_handle;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Delayed connect job identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier delayed_connect_task;
+static struct GNUNET_SCHEDULER_Task * delayed_connect_task;
 
 /**
  * Different stages in testing
@@ -259,11 +259,11 @@ static enum Stage result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != hc_handle)
     GNUNET_TESTBED_is_host_habitable_cancel (hc_handle);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == delayed_connect_task);
+  GNUNET_assert (NULL == delayed_connect_task);
   if (NULL != common_operation)
     GNUNET_TESTBED_operation_done (common_operation);
   if (NULL != reg_handle)
@@ -294,11 +294,11 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != delayed_connect_task)
+  abort_task = NULL;
+  if (NULL != delayed_connect_task)
   {
     GNUNET_SCHEDULER_cancel (delayed_connect_task);
-    delayed_connect_task = GNUNET_SCHEDULER_NO_TASK;
+    delayed_connect_task = NULL;
   }
   do_shutdown (cls, tc);
 }
@@ -306,7 +306,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 abort_test ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
 }
@@ -333,7 +333,7 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg);
 static void
 do_delayed_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  delayed_connect_task = GNUNET_SCHEDULER_NO_TASK;
+  delayed_connect_task = NULL;
   if (NULL != common_operation)
   {
     GNUNET_break (0);
@@ -859,7 +859,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
                    "to use password less SSH logins to localhost.\n"
                    "Skipping test\n");
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
     (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     result = SKIP;
     return;

@@ -221,7 +221,7 @@ struct GNUNET_ATS_PerformanceHandle
   /**
    * Task to trigger reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Monitor request multiplexing
@@ -255,7 +255,7 @@ reconnect_task (void *cls,
 {
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
 
-  ph->task = GNUNET_SCHEDULER_NO_TASK;
+  ph->task = NULL;
   reconnect (ph);
 }
 
@@ -740,10 +740,10 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
     GNUNET_free (rc);
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != ph->task)
+  if (NULL != ph->task)
   {
     GNUNET_SCHEDULER_cancel (ph->task);
-    ph->task = GNUNET_SCHEDULER_NO_TASK;
+    ph->task = NULL;
   }
   if (NULL != ph->client)
   {

@@ -601,7 +601,7 @@ struct GNUNET_FS_SearchResult
    * complete on time (and that will need to be cancelled if we clean
    * up the search result before then).
    */
-  GNUNET_SCHEDULER_TaskIdentifier probe_cancel_task;
+  struct GNUNET_SCHEDULER_Task * probe_cancel_task;
 
   /**
    * When did the current probe become active?
@@ -1170,13 +1170,13 @@ struct GNUNET_FS_Handle
    * Task that processes the jobs in the running and pending queues
    * (and moves jobs around as needed).
    */
-  GNUNET_SCHEDULER_TaskIdentifier queue_job;
+  struct GNUNET_SCHEDULER_Task * queue_job;
 
   /**
    * Task we use to report periodically to the application that
    * certain search probes (from @e probes_head) are still running.
    */
-  GNUNET_SCHEDULER_TaskIdentifier probe_ping_task;
+  struct GNUNET_SCHEDULER_Task * probe_ping_task;
 
   /**
    * Average time we take for a single request to be satisfied.
@@ -1300,7 +1300,7 @@ struct GNUNET_FS_PublishContext
    * ID of the task performing the upload. NO_TASK if the upload has
    * completed.
    */
-  GNUNET_SCHEDULER_TaskIdentifier upload_task;
+  struct GNUNET_SCHEDULER_Task * upload_task;
 
   /**
    * Storage space to reserve for the operation.
@@ -1629,10 +1629,10 @@ struct GNUNET_FS_SearchContext
   /**
    * ID of a task that is using this struct and that must be cancelled
    * when the search is being stopped (if not
-   * #GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
+   * #NULL).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * How many of the entries in the search request
@@ -1961,12 +1961,12 @@ struct GNUNET_FS_DownloadContext
   /**
    * ID of a task that is using this struct and that must be cancelled
    * when the download is being stopped (if not
-   * #GNUNET_SCHEDULER_NO_TASK).  Used for the task that adds some
+   * #NULL).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service or
    * the task processing incrementally the data on disk, or the
    * task requesting blocks, etc.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * What is the first offset that we're interested

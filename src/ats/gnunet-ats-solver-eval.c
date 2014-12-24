@@ -244,7 +244,7 @@ static void
 logging_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LoggingHandle *l = cls;
-  l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+  l->logging_task = NULL;
 
   GNUNET_ATS_solver_logging_now (l);
 
@@ -268,12 +268,12 @@ GNUNET_ATS_solver_logging_start (struct GNUNET_TIME_Relative freq)
 void
 GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
+  if (NULL != l->logging_task)
     GNUNET_SCHEDULER_cancel (l->logging_task);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop logging\n");
 
-  l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+  l->logging_task = NULL;
 }
 
 static struct LoggingFileHandle *
@@ -513,9 +513,9 @@ GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
   struct LoggingAddress *log_a_cur;
   struct LoggingAddress *log_a_next;
 
-  if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
+  if (NULL != l->logging_task)
     GNUNET_SCHEDULER_cancel (l->logging_task);
-  l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+  l->logging_task = NULL;
 
   lts_next = l->head;
   while (NULL != (lts_cur = lts_next))
@@ -621,7 +621,7 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   double prop_value;
   struct GNUNET_ATS_Information atsi;
 
-  pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+  pg->set_task = NULL;
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains_value (sh->addresses,
       &pg->test_peer->peer_id, pg->test_address->ats_addr))
@@ -702,10 +702,10 @@ GNUNET_ATS_solver_generate_property_stop (struct PropertyGenerator *pg)
 {
   GNUNET_CONTAINER_DLL_remove (prop_gen_head, prop_gen_tail, pg);
 
-  if (GNUNET_SCHEDULER_NO_TASK != pg->set_task)
+  if (NULL != pg->set_task)
   {
     GNUNET_SCHEDULER_cancel (pg->set_task);
-    pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+    pg->set_task = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Removing old up preference generator peer [%u] address [%u] `%s'\n",
@@ -897,7 +897,7 @@ set_feedback_task (void *cls,
   struct GNUNET_TIME_Relative dur;
   double p_new;
 
-  pg->feedback_task = GNUNET_SCHEDULER_NO_TASK;
+  pg->feedback_task = NULL;
 
   if (NULL == (p = find_peer_by_id (pg->peer)))
   {
@@ -966,7 +966,7 @@ set_pref_task (void *cls,
   struct PreferenceGenerator *pg = cls;
   struct TestPeer *p;
   double pref_value;
-  pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+  pg->set_task = NULL;
 
   if (NULL == (p = find_peer_by_id (pg->peer)))
   {
@@ -1030,16 +1030,16 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
 {
   GNUNET_CONTAINER_DLL_remove (pref_gen_head, pref_gen_tail, pg);
 
-  if (GNUNET_SCHEDULER_NO_TASK != pg->feedback_task)
+  if (NULL != pg->feedback_task)
   {
     GNUNET_SCHEDULER_cancel (pg->feedback_task);
-    pg->feedback_task = GNUNET_SCHEDULER_NO_TASK;
+    pg->feedback_task = NULL;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != pg->set_task)
+  if (NULL != pg->set_task)
   {
     GNUNET_SCHEDULER_cancel (pg->set_task);
-    pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+    pg->set_task = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Removing old up preference generator peer [%u] `%s'\n",
@@ -2146,13 +2146,13 @@ static void
 timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct Experiment *e = cls;
-  e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  e->experiment_timeout_task = NULL;
   fprintf (stderr, "Experiment timeout!\n");
 
-  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  if (NULL != e->episode_timeout_task)
   {
     GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
-    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    e->episode_timeout_task = NULL;
   }
 
   e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time),
@@ -2524,7 +2524,7 @@ static void
 timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct Experiment *e = cls;
-  e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  e->episode_timeout_task = NULL;
   if (NULL != e->ep_done_cb)
     e->ep_done_cb (e->cur);
 
@@ -2534,10 +2534,10 @@ timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
   {
     /* done */
     fprintf (stderr, "Last episode done!\n");
-    if (GNUNET_SCHEDULER_NO_TASK != e->experiment_timeout_task)
+    if (NULL != e->experiment_timeout_task)
     {
       GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
-      e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      e->experiment_timeout_task = NULL;
     }
     e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time), GNUNET_OK);
     return;
@@ -2589,15 +2589,15 @@ GNUNET_ATS_solvers_experimentation_run (struct Experiment *e,
 void
 GNUNET_ATS_solvers_experimentation_stop (struct Experiment *e)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != e->experiment_timeout_task)
+  if (NULL != e->experiment_timeout_task)
   {
     GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
-    e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    e->experiment_timeout_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  if (NULL != e->episode_timeout_task)
   {
     GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
-    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    e->episode_timeout_task = NULL;
   }
   if (NULL != e->cfg)
   {

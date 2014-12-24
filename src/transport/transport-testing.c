@@ -193,7 +193,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct PeerContext *p1 = cc->p1;
   struct PeerContext *p2 = cc->p2;
 
-  cc->tct = GNUNET_SCHEDULER_NO_TASK;
+  cc->tct = NULL;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
@@ -534,9 +534,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
        "Canceling connect request %p!\n",
        cc);
 
-  if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
+  if (cc->tct != NULL)
     GNUNET_SCHEDULER_cancel (cc->tct);
-  cc->tct = GNUNET_SCHEDULER_NO_TASK;
+  cc->tct = NULL;
 
   GNUNET_CONTAINER_DLL_remove (tth->cc_head, tth->cc_tail, cc);
   GNUNET_free (cc);

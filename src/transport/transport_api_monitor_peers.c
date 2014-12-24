@@ -74,7 +74,7 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext
   /**
    * Task ID for reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Identity of the peer to monitor.
@@ -212,7 +212,7 @@ do_peer_connect (void *cls,
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 
-  pal_ctx->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  pal_ctx->reconnect_task = NULL;
   pal_ctx->client = GNUNET_CLIENT_connect ("transport", pal_ctx->cfg);
   GNUNET_assert (NULL != pal_ctx->client);
   send_peer_mon_request (pal_ctx);
@@ -455,10 +455,10 @@ GNUNET_TRANSPORT_monitor_peers_cancel (struct GNUNET_TRANSPORT_PeerMonitoringCon
     GNUNET_CLIENT_disconnect (pic->client);
     pic->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pic->reconnect_task)
+  if (NULL != pic->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (pic->reconnect_task);
-    pic->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    pic->reconnect_task = NULL;
   }
   GNUNET_free (pic);
 }

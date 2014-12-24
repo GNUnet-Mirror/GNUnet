@@ -107,7 +107,7 @@ char *cfg_file_p2;
 /**
  * Timeout task
  */
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 /**
  * Transport transmit handle used
@@ -190,7 +190,7 @@ end ()
           "kb/s");
   GNUNET_free (value_name);
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
 
   if (th != NULL)
@@ -224,7 +224,7 @@ static void
 end_badly ()
 {
   int i;
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   if (test_connected == GNUNET_YES)
@@ -347,7 +347,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u of size %u, got %u bytes of message %u\n",
                 ntohl (hdr->num), s, ntohs (message->size), ntohl (hdr->num));
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     test_sending = GNUNET_YES;
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
@@ -360,7 +360,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Expected message %u with bits %u, but body did not match\n",
                 ntohl (hdr->num), (unsigned char) n);
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     test_sending = GNUNET_YES;
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
@@ -384,7 +384,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (0 == (n % (TOTAL_MSGS / 100)))
   {
     FPRINTF (stderr, "%s",  ".");
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
@@ -412,7 +412,7 @@ notify_ready (void *cls, size_t size, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready for msg %u of %u\n",
                 msg_scheduled, TOTAL_MSGS);
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     ok = 42;
@@ -460,7 +460,7 @@ notify_ready (void *cls, size_t size, void *buf)
   {
     FPRINTF (stderr, "%s",  "\n");
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All messages scheduled to be sent\n");
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   }
@@ -554,7 +554,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
       GNUNET_SCHEDULER_cancel (die_task);
     //die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;

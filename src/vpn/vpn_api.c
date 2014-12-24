@@ -61,7 +61,7 @@ struct GNUNET_VPN_Handle
   /**
    * Identifier of a reconnect task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier rt;
+  struct GNUNET_SCHEDULER_Task * rt;
 
   /**
    * How long do we wait until we try to reconnect?
@@ -367,7 +367,7 @@ connect_task (void *cls,
 {
   struct GNUNET_VPN_Handle *vh = cls;
 
-  vh->rt = GNUNET_SCHEDULER_NO_TASK;
+  vh->rt = NULL;
   vh->client = GNUNET_CLIENT_connect ("vpn", vh->cfg);
   GNUNET_assert (NULL != vh->client);
   GNUNET_assert (NULL == vh->th);
@@ -578,10 +578,10 @@ GNUNET_VPN_disconnect (struct GNUNET_VPN_Handle *vh)
     GNUNET_CLIENT_disconnect (vh->client);
     vh->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != vh->rt)
+  if (NULL != vh->rt)
   {
     GNUNET_SCHEDULER_cancel (vh->rt);
-    vh->rt = GNUNET_SCHEDULER_NO_TASK;
+    vh->rt = NULL;
   }
   GNUNET_free (vh);
 }

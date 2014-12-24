@@ -84,7 +84,7 @@ struct BroadcastAddress
   /**
    * ID of select broadcast task
    */
-  GNUNET_SCHEDULER_TaskIdentifier broadcast_task;
+  struct GNUNET_SCHEDULER_Task * broadcast_task;
 
   struct Plugin *plugin;
 
@@ -302,7 +302,7 @@ udp_ipv4_broadcast_send (void *cls,
   uint16_t msg_size;
   char buf[65536] GNUNET_ALIGN;
 
-  baddr->broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+  baddr->broadcast_task = NULL;
 
   msg_size = prepare_beacon(plugin, (struct UDP_Beacon_Message *) &buf);
   if (0 != msg_size)
@@ -379,7 +379,7 @@ udp_ipv6_broadcast_send (void *cls,
   char buf[65536] GNUNET_ALIGN;
   const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) baddr->addr;
 
-  baddr->broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+  baddr->broadcast_task = NULL;
 
   msg_size = prepare_beacon(plugin, (struct UDP_Beacon_Message *) &buf);
   /* Note: unclear if this actually works to limit the multicast to
@@ -651,10 +651,10 @@ stop_broadcast (struct Plugin *plugin)
     {
       struct BroadcastAddress *p = plugin->broadcast_head;
 
-      if (p->broadcast_task != GNUNET_SCHEDULER_NO_TASK)
+      if (p->broadcast_task != NULL)
       {
         GNUNET_SCHEDULER_cancel (p->broadcast_task);
-        p->broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+        p->broadcast_task = NULL;
       }
       if ((GNUNET_YES == plugin->enable_ipv6) &&
           (NULL != plugin->sockv6) &&

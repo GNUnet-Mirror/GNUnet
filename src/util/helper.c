@@ -142,17 +142,17 @@ struct GNUNET_HELPER_Handle
   /**
    * Task to read from the helper.
    */
-  GNUNET_SCHEDULER_TaskIdentifier read_task;
+  struct GNUNET_SCHEDULER_Task * read_task;
 
   /**
    * Task to read from the helper.
    */
-  GNUNET_SCHEDULER_TaskIdentifier write_task;
+  struct GNUNET_SCHEDULER_Task * write_task;
 
   /**
    * Restart task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier restart_task;
+  struct GNUNET_SCHEDULER_Task * restart_task;
 
   /**
    * Does the helper support the use of a control pipe for signalling?
@@ -187,15 +187,15 @@ GNUNET_HELPER_kill (struct GNUNET_HELPER_Handle *h,
       sh->cont (sh->cont_cls, GNUNET_NO);
     GNUNET_free (sh);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->restart_task)
+  if (NULL != h->restart_task)
   {
     GNUNET_SCHEDULER_cancel (h->restart_task);
-    h->restart_task = GNUNET_SCHEDULER_NO_TASK;
+    h->restart_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->read_task)
+  if (NULL != h->read_task)
   {
     GNUNET_SCHEDULER_cancel (h->read_task);
-    h->read_task = GNUNET_SCHEDULER_NO_TASK;
+    h->read_task = NULL;
   }
   if (NULL == h->helper_proc)
     return GNUNET_SYSERR;
@@ -235,15 +235,15 @@ GNUNET_HELPER_wait (struct GNUNET_HELPER_Handle *h)
     GNUNET_OS_process_destroy (h->helper_proc);
     h->helper_proc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->read_task)
+  if (NULL != h->read_task)
   {
     GNUNET_SCHEDULER_cancel (h->read_task);
-    h->read_task = GNUNET_SCHEDULER_NO_TASK;
+    h->read_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->write_task)
+  if (NULL != h->write_task)
   {
     GNUNET_SCHEDULER_cancel (h->write_task);
-    h->write_task = GNUNET_SCHEDULER_NO_TASK;
+    h->write_task = NULL;
   }
   if (NULL != h->helper_in)
   {
@@ -284,10 +284,10 @@ static void
 stop_helper (struct GNUNET_HELPER_Handle *h,
 	     int soft_kill)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != h->restart_task)
+  if (NULL != h->restart_task)
   {
     GNUNET_SCHEDULER_cancel (h->restart_task);
-    h->restart_task = GNUNET_SCHEDULER_NO_TASK;
+    h->restart_task = NULL;
   }
   else
   {
@@ -322,7 +322,7 @@ helper_read (void *cls,
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE] GNUNET_ALIGN;
   ssize_t t;
 
-  h->read_task = GNUNET_SCHEDULER_NO_TASK;
+  h->read_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* try again */
@@ -460,7 +460,7 @@ restart_task (void *cls,
 {
   struct GNUNET_HELPER_Handle*h = cls;
 
-  h->restart_task = GNUNET_SCHEDULER_NO_TASK;
+  h->restart_task = NULL;
   start_helper (h);
 }
 
@@ -524,13 +524,13 @@ GNUNET_HELPER_destroy (struct GNUNET_HELPER_Handle *h)
   unsigned int c;
   struct GNUNET_HELPER_SendHandle *sh;
 
-  if (GNUNET_SCHEDULER_NO_TASK != h->write_task)
+  if (NULL != h->write_task)
   {
     GNUNET_SCHEDULER_cancel (h->write_task);
-    h->write_task = GNUNET_SCHEDULER_NO_TASK;
+    h->write_task = NULL;
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->read_task);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->restart_task);
+  GNUNET_assert (NULL == h->read_task);
+  GNUNET_assert (NULL == h->restart_task);
   while (NULL != (sh = h->sh_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->sh_head,
@@ -582,7 +582,7 @@ helper_write (void *cls,
   const char *buf;
   ssize_t t;
 
-  h->write_task = GNUNET_SCHEDULER_NO_TASK;
+  h->write_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* try again */
@@ -684,7 +684,7 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail (h->sh_head,
 				    h->sh_tail,
 				    sh);
-  if (GNUNET_SCHEDULER_NO_TASK == h->write_task)
+  if (NULL == h->write_task)
     h->write_task = GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
 						     h->fh_to_helper,
 						     &helper_write,
@@ -714,7 +714,7 @@ GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh)
     if (NULL == h->sh_head)
     {
       GNUNET_SCHEDULER_cancel (h->write_task);
-      h->write_task = GNUNET_SCHEDULER_NO_TASK;
+      h->write_task = NULL;
     }
   }
 }

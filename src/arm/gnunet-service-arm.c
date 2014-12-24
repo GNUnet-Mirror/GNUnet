@@ -81,7 +81,7 @@ struct ServiceListeningInfo
   /**
    * Task doing the accepting.
    */
-  GNUNET_SCHEDULER_TaskIdentifier accept_task;
+  struct GNUNET_SCHEDULER_Task * accept_task;
 
 };
 
@@ -200,13 +200,13 @@ static char *final_option;
 /**
  * ID of task called whenever we get a SIGCHILD.
  */
-static GNUNET_SCHEDULER_TaskIdentifier child_death_task;
+static struct GNUNET_SCHEDULER_Task * child_death_task;
 
 /**
  * ID of task called whenever the timeout for restarting a child
  * expires.
  */
-static GNUNET_SCHEDULER_TaskIdentifier child_restart_task;
+static struct GNUNET_SCHEDULER_Task * child_restart_task;
 
 /**
  * Pipe used to communicate shutdown via signal.
@@ -421,10 +421,10 @@ start_process (struct ServiceList *sl,
     {
       GNUNET_array_append (lsocks, ls,
 			   GNUNET_NETWORK_get_fd (sli->listen_socket));
-      if (sli->accept_task != GNUNET_SCHEDULER_NO_TASK)
+      if (sli->accept_task != NULL)
 	{
 	  GNUNET_SCHEDULER_cancel (sli->accept_task);
-	  sli->accept_task = GNUNET_SCHEDULER_NO_TASK;
+	  sli->accept_task = NULL;
 	}
     }
 #if WINDOWS
@@ -586,7 +586,7 @@ accept_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ServiceListeningInfo *sli = cls;
   struct ServiceList *sl = sli->sl;
 
-  sli->accept_task = GNUNET_SCHEDULER_NO_TASK;
+  sli->accept_task = NULL;
   GNUNET_assert (GNUNET_NO == in_shutdown);
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
@@ -971,10 +971,10 @@ do_shutdown ()
       GNUNET_SERVER_destroy (server);
       server = NULL;
     }
-  if (GNUNET_SCHEDULER_NO_TASK != child_death_task)
+  if (NULL != child_death_task)
     {
       GNUNET_SCHEDULER_cancel (child_death_task);
-      child_death_task = GNUNET_SCHEDULER_NO_TASK;
+      child_death_task = NULL;
     }
 }
 
@@ -1015,10 +1015,10 @@ shutdown_task (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "First shutdown phase\n");
-  if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
+  if (NULL != child_restart_task)
   {
     GNUNET_SCHEDULER_cancel (child_restart_task);
-    child_restart_task = GNUNET_SCHEDULER_NO_TASK;
+    child_restart_task = NULL;
   }
   in_shutdown = GNUNET_YES;
   /* first, stop listening */
@@ -1028,10 +1028,10 @@ shutdown_task (void *cls,
       {
 	GNUNET_CONTAINER_DLL_remove (pos->listen_head,
 				     pos->listen_tail, sli);
-	if (sli->accept_task != GNUNET_SCHEDULER_NO_TASK)
+	if (sli->accept_task != NULL)
 	  {
 	    GNUNET_SCHEDULER_cancel (sli->accept_task);
-	    sli->accept_task = GNUNET_SCHEDULER_NO_TASK;
+	    sli->accept_task = NULL;
 	  }
 	GNUNET_break (GNUNET_OK ==
 		      GNUNET_NETWORK_socket_close (sli->listen_socket));
@@ -1082,7 +1082,7 @@ delayed_restart_task (void *cls,
   struct GNUNET_TIME_Relative lowestRestartDelay;
   struct ServiceListeningInfo *sli;
 
-  child_restart_task = GNUNET_SCHEDULER_NO_TASK;
+  child_restart_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (GNUNET_NO == in_shutdown);
@@ -1110,7 +1110,7 @@ delayed_restart_task (void *cls,
       {
 	/* process is run on-demand, ensure it is re-started if there is demand */
 	for (sli = sl->listen_head; NULL != sli; sli = sli->next)
-	  if (GNUNET_SCHEDULER_NO_TASK == sli->accept_task)
+	  if (NULL == sli->accept_task)
 	  {
 	    /* accept was actually paused, so start it again */
 	    sli->accept_task =
@@ -1164,7 +1164,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_DISK_FileHandle *pr;
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
-  child_death_task = GNUNET_SCHEDULER_NO_TASK;
+  child_death_task = NULL;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
     {
       /* shutdown scheduled us, ignore! */
@@ -1239,7 +1239,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           /* process can still be re-started on-demand, ensure it is re-started if there is demand */
           for (sli = pos->listen_head; NULL != sli; sli = sli->next)
           {
-            GNUNET_break (GNUNET_SCHEDULER_NO_TASK == sli->accept_task);
+            GNUNET_break (NULL == sli->accept_task);
             sli->accept_task =
                 GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                     sli->listen_socket, &accept_connection, sli);
@@ -1255,7 +1255,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  /* schedule restart */
 	  pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
 	  pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
-          if (GNUNET_SCHEDULER_NO_TASK != child_restart_task)
+          if (NULL != child_restart_task)
             GNUNET_SCHEDULER_cancel (child_restart_task);
           child_restart_task = GNUNET_SCHEDULER_add_with_priority (
             GNUNET_SCHEDULER_PRIORITY_IDLE, &delayed_restart_task, NULL);

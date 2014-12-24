@@ -80,7 +80,7 @@ struct Request
    * Task run on timeout or shutdown to clean up without
    * response.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Number of bytes in 'addr'.
@@ -113,12 +113,12 @@ static struct GNUNET_NETWORK_Handle *listen_socket6;
 /**
  * Task for IPv4 socket.
  */
-static GNUNET_SCHEDULER_TaskIdentifier t4;
+static struct GNUNET_SCHEDULER_Task * t4;
 
 /**
  * Task for IPv6 socket.
  */
-static GNUNET_SCHEDULER_TaskIdentifier t6;
+static struct GNUNET_SCHEDULER_Task * t6;
 
 /**
  * DNS suffix, suffix of this gateway in DNS; defaults to '.zkey.eu'
@@ -176,9 +176,9 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != t4)
+  if (NULL != t4)
     GNUNET_SCHEDULER_cancel (t4);
-  if (GNUNET_SCHEDULER_NO_TASK != t6)
+  if (NULL != t6)
     GNUNET_SCHEDULER_cancel (t6);
   if (NULL != listen_socket4)
   {

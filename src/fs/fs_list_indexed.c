@@ -59,7 +59,7 @@ struct GNUNET_FS_GetIndexedContext
   /**
    * Continuation to trigger at the end.
    */
-  GNUNET_SCHEDULER_Task cont;
+  GNUNET_SCHEDULER_TaskCallback cont;
 
   /**
    * Closure for cont.

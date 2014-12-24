@@ -132,7 +132,7 @@ static struct MessageQueue *mq_tail;
 /**
  * The shutdown task handle
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
 
 
 /**
@@ -736,7 +736,7 @@ GST_clear_fopcq ()
   {
     GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fopc);
     GNUNET_TESTBED_forward_operation_msg_cancel_ (fopc->opc);
-    if (GNUNET_SCHEDULER_NO_TASK != fopc->timeout_task)
+    if (NULL != fopc->timeout_task)
       GNUNET_SCHEDULER_cancel (fopc->timeout_task);
     GNUNET_SERVER_client_drop (fopc->client);
     switch (fopc->type)
@@ -784,7 +784,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MessageQueue *mq_entry;
   uint32_t id;
 
-  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task_id = NULL;
   LOG_DEBUG ("Shutting down testbed service\n");
   /* cleanup any remaining forwarded operations */
   GST_clear_fopcq ();

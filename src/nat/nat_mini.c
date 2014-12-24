@@ -66,7 +66,7 @@ struct GNUNET_NAT_ExternalHandle
   /**
    * Read task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Handle to 'external-ip' process.
@@ -120,7 +120,7 @@ read_external_ipv4 (void *cls,
   ssize_t ret;
   struct in_addr addr;
 
-  eh->task = GNUNET_SCHEDULER_NO_TASK;
+  eh->task = NULL;
   if (GNUNET_YES == GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, eh->r))
     ret =
         GNUNET_DISK_file_read (eh->r, &eh->buf[eh->off],
@@ -170,7 +170,7 @@ signal_external_ip_error (void *cls,
 {
   struct GNUNET_NAT_ExternalHandle *eh = cls;
 
-  eh->task = GNUNET_SCHEDULER_NO_TASK;
+  eh->task = NULL;
   eh->cb (eh->cb_cls,
           NULL,
           eh->ret);
@@ -254,7 +254,7 @@ GNUNET_NAT_mini_get_external_ipv4_cancel (struct GNUNET_NAT_ExternalHandle *eh)
   }
   if (NULL != eh->opipe)
     GNUNET_DISK_pipe_close (eh->opipe);
-  if (GNUNET_SCHEDULER_NO_TASK != eh->task)
+  if (NULL != eh->task)
     GNUNET_SCHEDULER_cancel (eh->task);
   GNUNET_free (eh);
 }
@@ -300,7 +300,7 @@ struct GNUNET_NAT_MiniHandle
    * We check the mapping periodically to see if it
    * still works.  This task triggers the check.
    */
-  GNUNET_SCHEDULER_TaskIdentifier refresh_task;
+  struct GNUNET_SCHEDULER_Task * refresh_task;
 
   /**
    * Are we mapping TCP or UDP?
@@ -543,7 +543,7 @@ process_map_output (void *cls,
                 GNUNET_SYSERR,
                 NULL, 0,
                 GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
-    if (GNUNET_SCHEDULER_NO_TASK == mini->refresh_task)
+    if (NULL == mini->refresh_task)
       mini->refresh_task =
         GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, mini);
     return;
@@ -664,10 +664,10 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
 {
   char pstr[6];
 
-  if (GNUNET_SCHEDULER_NO_TASK != mini->refresh_task)
+  if (NULL != mini->refresh_task)
   {
     GNUNET_SCHEDULER_cancel (mini->refresh_task);
-    mini->refresh_task = GNUNET_SCHEDULER_NO_TASK;
+    mini->refresh_task = NULL;
   }
   if (NULL != mini->refresh_cmd)
   {

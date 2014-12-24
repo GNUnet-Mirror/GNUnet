@@ -135,17 +135,17 @@ struct Peer
    * ID of task we use to wait for the time to send the next HELLO
    * to this peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier hello_delay_task;
+  struct GNUNET_SCHEDULER_Task * hello_delay_task;
 
   /**
    * Task for issuing GNUNET_TRANSPORT_try_connect for this peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier attempt_connect_task;
+  struct GNUNET_SCHEDULER_Task * attempt_connect_task;
 
   /**
    * ID of task we use to clear peers from the greylist.
    */
-  GNUNET_SCHEDULER_TaskIdentifier greylist_clean_task;
+  struct GNUNET_SCHEDULER_Task * greylist_clean_task;
 
   /**
    * How often have we tried so far?
@@ -216,7 +216,7 @@ static struct GNUNET_TIME_Absolute next_connect_attempt;
 /**
  * Task scheduled to try to add peers.
  */
-static GNUNET_SCHEDULER_TaskIdentifier add_task;
+static struct GNUNET_SCHEDULER_Task * add_task;
 
 /**
  * Flag to disallow non-friend connections (pure F2F mode).
@@ -331,11 +331,11 @@ free_peer (void *cls, const struct GNUNET_PeerIdentity * pid, void *value)
                 GNUNET_CONTAINER_multipeermap_remove (peers, pid, pos));
   if (pos->hello_req != NULL)
     GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
-  if (pos->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pos->hello_delay_task != NULL)
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
-  if (pos->attempt_connect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pos->attempt_connect_task != NULL)
     GNUNET_SCHEDULER_cancel (pos->attempt_connect_task);
-  if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pos->greylist_clean_task != NULL)
     GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   GNUNET_free_non_null (pos->hello);
   if (pos->filter != NULL)
@@ -395,7 +395,7 @@ attempt_connect (struct Peer *pos)
   pos->next_connect_attempt = GNUNET_TIME_absolute_min (pos->next_connect_attempt,
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), MIN_CONNECT_FREQUENCY_DELAY));
 
-  if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pos->greylist_clean_task != NULL)
     GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   pos->greylist_clean_task =
       GNUNET_SCHEDULER_add_delayed (rem, &remove_from_greylist, pos);
@@ -422,7 +422,7 @@ do_attempt_connect (void *cls,
   struct Peer *pos = cls;
   struct GNUNET_TIME_Relative delay;
 
-  pos->attempt_connect_task = GNUNET_SCHEDULER_NO_TASK;
+  pos->attempt_connect_task = NULL;
   if (GNUNET_YES == pos->is_connected)
     return;
 
@@ -454,7 +454,7 @@ do_attempt_connect (void *cls,
 static void
 schedule_attempt_connect (struct Peer *pos)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != pos->attempt_connect_task)
+  if (NULL != pos->attempt_connect_task)
     return;
   pos->attempt_connect_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (next_connect_attempt),
 							    &do_attempt_connect,
@@ -475,7 +475,7 @@ remove_from_greylist (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct Peer *pos = cls;
   struct GNUNET_TIME_Relative rem;
 
-  pos->greylist_clean_task = GNUNET_SCHEDULER_NO_TASK;
+  pos->greylist_clean_task = NULL;
   rem = GNUNET_TIME_absolute_get_remaining (pos->greylisted_until);
   if (0 == rem.rel_value_us)
   {
@@ -646,7 +646,7 @@ schedule_next_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   size_t next_want;
   struct GNUNET_TIME_Relative delay;
 
-  pl->hello_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  pl->hello_delay_task = NULL;
   GNUNET_assert (GNUNET_YES == pl->is_connected);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;                     /* we're out of here */
@@ -702,10 +702,10 @@ reschedule_hellos (void *cls, const struct GNUNET_PeerIdentity * pid, void *valu
     GNUNET_CORE_notify_transmit_ready_cancel (peer->hello_req);
     peer->hello_req = NULL;
   }
-  if (peer->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
+  if (peer->hello_delay_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (peer->hello_delay_task);
-    peer->hello_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    peer->hello_delay_task = NULL;
   }
   peer->hello_delay_task =
       GNUNET_SCHEDULER_add_now (&schedule_next_hello, peer);
@@ -787,7 +787,7 @@ try_add_peers (void *cls, const struct GNUNET_PeerIdentity * pid, void *value)
 static void
 add_peer_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  add_task = GNUNET_SCHEDULER_NO_TASK;
+  add_task = NULL;
 
   GNUNET_CONTAINER_multipeermap_iterate (peers, &try_add_peers, NULL);
 }
@@ -827,10 +827,10 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_CORE_notify_transmit_ready_cancel (pos->hello_req);
     pos->hello_req = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pos->hello_delay_task)
+  if (NULL != pos->hello_delay_task)
   {
     GNUNET_SCHEDULER_cancel (pos->hello_delay_task);
-    pos->hello_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    pos->hello_delay_task = NULL;
   }
   GNUNET_STATISTICS_set (stats, gettext_noop ("# peers connected"),
                          connection_count, GNUNET_NO);
@@ -842,7 +842,7 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   if (((connection_count < target_connection_count) ||
        (friend_count < minimum_friend_count)) &&
-      (GNUNET_SCHEDULER_NO_TASK == add_task))
+      (NULL == add_task))
     add_task = GNUNET_SCHEDULER_add_now (&add_peer_task, NULL);
   if ((friend_count < minimum_friend_count) && (blacklist == NULL))
     blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_check, NULL);
@@ -1179,7 +1179,7 @@ hello_advertising_ready (void *cls, size_t size, void *buf)
                               GNUNET_NO);
   }
 
-  if (pl->hello_delay_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pl->hello_delay_task != NULL)
     GNUNET_SCHEDULER_cancel (pl->hello_delay_task);
   pl->next_hello_allowed =
       GNUNET_TIME_relative_to_absolute (HELLO_ADVERTISEMENT_MIN_FREQUENCY);
@@ -1211,10 +1211,10 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     handle = NULL;
   }
   whitelist_peers ();
-  if (GNUNET_SCHEDULER_NO_TASK != add_task)
+  if (NULL != add_task)
   {
     GNUNET_SCHEDULER_cancel (add_task);
-    add_task = GNUNET_SCHEDULER_NO_TASK;
+    add_task = NULL;
   }
   GNUNET_CONTAINER_multipeermap_iterate (peers, &free_peer, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (peers);

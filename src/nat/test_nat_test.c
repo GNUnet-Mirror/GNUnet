@@ -36,7 +36,7 @@ static int ret = 1;
 
 static struct GNUNET_NAT_Test *tst;
 
-static GNUNET_SCHEDULER_TaskIdentifier tsk;
+static struct GNUNET_SCHEDULER_Task * tsk;
 
 
 static void
@@ -54,7 +54,7 @@ report_result (void *cls,
   GNUNET_NAT_test_stop (tst);
   tst = NULL;
   GNUNET_SCHEDULER_cancel (tsk);
-  tsk = GNUNET_SCHEDULER_NO_TASK;
+  tsk = NULL;
 }
 
 
@@ -62,7 +62,7 @@ static void
 failed_timeout (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  tsk = GNUNET_SCHEDULER_NO_TASK;
+  tsk = NULL;
   fprintf (stderr,
 	   "NAT test failed to terminate on timeout\n");
   ret = 2;

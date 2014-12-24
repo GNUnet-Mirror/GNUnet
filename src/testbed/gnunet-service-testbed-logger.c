@@ -83,7 +83,7 @@ struct GNUNET_BIO_WriteHandle *bio;
 /**
  * The shutdown task handle
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
 
 /**
  * The number of connections we have
@@ -126,7 +126,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MessageQueue *mq_entry;
 
-  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task_id = NULL;
   in_shutdown = GNUNET_YES;
   if (0 != nconn)
   {
@@ -166,7 +166,7 @@ client_disconnected (void *cls, struct GNUNET_SERVER_Client *client)
   nconn--;
   if (GNUNET_YES != in_shutdown)
     return;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != shutdown_task_id);
+  GNUNET_assert (NULL != shutdown_task_id);
   GNUNET_SCHEDULER_cancel (shutdown_task_id);
   shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }

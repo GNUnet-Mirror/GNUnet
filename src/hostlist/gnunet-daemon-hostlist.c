@@ -275,16 +275,24 @@ run (void *cls,
     return;
   }
   stats = GNUNET_STATISTICS_create ("hostlist", cfg);
+  if (NULL == stats)
+  {
+    GNUNET_break (0);
+    return;
+  }
   if (bootstrapping)
-    GNUNET_HOSTLIST_client_start (cfg, stats, &client_ch, &client_dh,
-                                  &client_adv_handler, learning);
+    GNUNET_HOSTLIST_client_start (cfg, stats,
+                                  &client_ch,
+                                  &client_dh,
+                                  &client_adv_handler,
+                                  learning);
   core =
     GNUNET_CORE_connect (cfg, NULL,
 			 &core_init,
 			 &connect_handler,
-			 &disconnect_handler, NULL,
-			 GNUNET_NO, NULL,
-			 GNUNET_NO,
+			 &disconnect_handler,
+                         NULL, GNUNET_NO,
+                         NULL, GNUNET_NO,
 			 learning ? learn_handlers : no_learn_handlers);
 
 
@@ -346,7 +354,8 @@ main (int argc, char *const *argv)
   GNUNET_log_setup ("hostlist", "WARNING", NULL);
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "hostlist",
+       GNUNET_PROGRAM_run (argc, argv,
+                           "hostlist",
                            _("GNUnet hostlist server and client"),
                            options,
                            &run, NULL)) ? 0 : 1;

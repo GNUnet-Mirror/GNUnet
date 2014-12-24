@@ -38,7 +38,7 @@
 /**
  * Timeout task
  */
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 /**
  * Statistics handle
@@ -96,10 +96,10 @@ static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   if (NULL != sched_ats)
@@ -124,7 +124,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
   end ( NULL, NULL);
   ret = GNUNET_SYSERR;

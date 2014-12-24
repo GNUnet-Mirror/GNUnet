@@ -49,9 +49,9 @@ static struct GNUNET_OS_Process *proc;
 /* Pipe to read from started processes stdout (on read end) */
 static struct GNUNET_DISK_PipeHandle *pipe_stdout;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier read_task;
+static struct GNUNET_SCHEDULER_Task * read_task;
 
 static void
 runone (void);
@@ -72,10 +72,10 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_OS_process_destroy (proc);
     proc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != read_task)
+  if (NULL != read_task)
   {
     GNUNET_SCHEDULER_cancel (read_task);
-    read_task = GNUNET_SCHEDULER_NO_TASK;
+    read_task = NULL;
   }
   GNUNET_DISK_pipe_close (pipe_stdout);
   if (ok == 1)
@@ -223,7 +223,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   long delays[8];
   int rd;
 
-  read_task = GNUNET_SCHEDULER_NO_TASK;
+  read_task = NULL;
   rd = GNUNET_DISK_file_read (stdout_read_handle, buf_ptr,
                               sizeof (buf) - bytes);
   if (rd > 0)

@@ -334,7 +334,7 @@ struct GNS_ResolverHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task_id;
+  struct GNUNET_SCHEDULER_Task * task_id;
 
   /**
    * The name to resolve
@@ -549,7 +549,7 @@ fail_resolution (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
 
-  rh->task_id = GNUNET_SCHEDULER_NO_TASK;
+  rh->task_id = NULL;
   rh->proc (rh->proc_cls, 0, NULL);
   GNS_resolver_lookup_cancel (rh);
 }
@@ -845,7 +845,7 @@ dns_result_parser (void *cls,
 
   rh->dns_request = NULL;
   GNUNET_SCHEDULER_cancel (rh->task_id);
-  rh->task_id = GNUNET_SCHEDULER_NO_TASK;
+  rh->task_id = NULL;
   p = GNUNET_DNSPARSER_parse ((const char *) dns,
 			      dns_len);
   if (NULL == p)
@@ -2232,7 +2232,7 @@ recursive_resolution (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
 
-  rh->task_id = GNUNET_SCHEDULER_NO_TASK;
+  rh->task_id = NULL;
   if (MAX_RECURSION < rh->loop_limiter++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -2456,10 +2456,10 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
     GNUNET_free (rh->g2dc);
     rh->g2dc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rh->task_id)
+  if (NULL != rh->task_id)
   {
     GNUNET_SCHEDULER_cancel (rh->task_id);
-    rh->task_id = GNUNET_SCHEDULER_NO_TASK;
+    rh->task_id = NULL;
   }
   if (NULL != rh->get_handle)
   {

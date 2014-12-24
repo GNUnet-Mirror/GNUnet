@@ -97,12 +97,12 @@ static int do_disable_creation_time;
 /**
  * Handle for the 'shutdown' task.
  */
-static GNUNET_SCHEDULER_TaskIdentifier kill_task;
+static struct GNUNET_SCHEDULER_Task * kill_task;
 
 /**
  * Handle for the main task that does scanning and working.
  */
-static GNUNET_SCHEDULER_TaskIdentifier run_task;
+static struct GNUNET_SCHEDULER_Task * run_task;
 
 /**
  * Anonymity level option to use for publishing.
@@ -322,17 +322,17 @@ save_state ()
 static void
 do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  kill_task = GNUNET_SCHEDULER_NO_TASK;
+  kill_task = NULL;
   do_shutdown = GNUNET_YES;
   if (NULL != publish_proc)
   {
     GNUNET_OS_process_kill (publish_proc, SIGKILL);
     return;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != run_task)
+  if (NULL != run_task)
   {
     GNUNET_SCHEDULER_cancel (run_task);
-    run_task = GNUNET_SCHEDULER_NO_TASK;
+    run_task = NULL;
   }
 }
 
@@ -363,7 +363,7 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_DISK_FileHandle *pr;
 
 
-  run_task = GNUNET_SCHEDULER_NO_TASK;
+  run_task = NULL;
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
@@ -457,7 +457,7 @@ work (void *cls,
   const struct GNUNET_DISK_FileHandle *pr;
   int argc;
 
-  run_task = GNUNET_SCHEDULER_NO_TASK;
+  run_task = NULL;
   wi = work_head;
   GNUNET_CONTAINER_DLL_remove (work_head,
 			       work_tail,
@@ -629,7 +629,7 @@ add_file (void *cls,
 static void
 scan (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  run_task = GNUNET_SCHEDULER_NO_TASK;
+  run_task = NULL;
   start_time = GNUNET_TIME_absolute_get ();
   (void) GNUNET_DISK_directory_scan (dir_name,
 				     &add_file,

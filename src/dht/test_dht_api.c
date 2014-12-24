@@ -59,7 +59,7 @@ struct RetryContext
   /**
    * The task identifier of the retry task, so it can be cancelled.
    */
-  GNUNET_SCHEDULER_TaskIdentifier retry_task;
+  struct GNUNET_SCHEDULER_Task * retry_task;
 
 };
 
@@ -72,7 +72,7 @@ struct RetryContext retry_context;
 
 static int ok = 1;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 
 #if VERBOSE
@@ -86,7 +86,7 @@ static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_SCHEDULER_cancel (die_task);
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   GNUNET_DHT_disconnect (dht_handle);
   dht_handle = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -105,7 +105,7 @@ end_badly ()
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping get request!\n");
     GNUNET_DHT_get_stop (get_handle);
   }
-  if (retry_context.retry_task != GNUNET_SCHEDULER_NO_TASK)
+  if (retry_context.retry_task != NULL)
     GNUNET_SCHEDULER_cancel (retry_context.retry_task);
   GNUNET_DHT_disconnect (dht_handle);
   dht_handle = NULL;

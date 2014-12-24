@@ -55,9 +55,9 @@ static char *test_name;
 
 static int ok;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier send_task;
+static struct GNUNET_SCHEDULER_Task * send_task;
 
 static struct PeerContext *p1;
 
@@ -85,10 +85,10 @@ end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_task != NULL)
     GNUNET_SCHEDULER_cancel (send_task);
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
 
   if (th != NULL)
@@ -104,11 +104,11 @@ end ()
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_task != NULL)
     GNUNET_SCHEDULER_cancel (send_task);
 
   if (cc != NULL)
@@ -197,7 +197,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
@@ -259,7 +259,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
@@ -282,7 +282,7 @@ check ()
 #if WRITECONFIG
   setTransportOptions ("test_transport_api_data.conf");
 #endif
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv, test_name,

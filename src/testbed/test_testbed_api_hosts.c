@@ -61,7 +61,7 @@ static int status;
 /**
  * Shutdown task identifier
  */
-GNUNET_SCHEDULER_TaskIdentifier shutdown_id;
+struct GNUNET_SCHEDULER_Task * shutdown_id;
 
 /**
  * The shutdown task

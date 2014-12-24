@@ -32,7 +32,7 @@
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
-static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_SCHEDULER_Task * endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
@@ -117,10 +117,10 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_NAMESTORE_zone_iteration_stop (zi);
     zi = NULL;
   }
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+  if (endbadly_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+    endbadly_task = NULL;
   }
 
   if (privkey != NULL)
@@ -292,7 +292,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to created records: `%s'\n",
     		emsg);
     GNUNET_break (0);
-    if (GNUNET_SCHEDULER_NO_TASK != endbadly_task)
+    if (NULL != endbadly_task)
     	GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
@@ -311,7 +311,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
       GNUNET_break (0);
-      if (GNUNET_SCHEDULER_NO_TASK != endbadly_task)
+      if (NULL != endbadly_task)
       	GNUNET_SCHEDULER_cancel (endbadly_task);
       endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
       return;
@@ -360,7 +360,7 @@ empty_zone_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Expected empty zone but received zone private key\n"));
     GNUNET_break (0);
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    if (endbadly_task != NULL)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
@@ -370,7 +370,7 @@ empty_zone_proc (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		_("Expected no zone content but received data\n"));
     GNUNET_break (0);
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    if (endbadly_task != NULL)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;

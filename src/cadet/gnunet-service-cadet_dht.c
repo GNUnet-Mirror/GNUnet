@@ -93,7 +93,7 @@ static unsigned long long dht_replication_level;
 /**
  * Task to periodically announce itself in the network.
  */
-static GNUNET_SCHEDULER_TaskIdentifier announce_id_task;
+static struct GNUNET_SCHEDULER_Task * announce_id_task;
 
 /**
  * GET requests to stop on shutdown.
@@ -214,7 +214,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
-    announce_id_task = GNUNET_SCHEDULER_NO_TASK;
+    announce_id_task = NULL;
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
@@ -332,10 +332,10 @@ GCD_shutdown (void)
     GNUNET_DHT_disconnect (dht_handle);
     dht_handle = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != announce_id_task)
+  if (NULL != announce_id_task)
   {
     GNUNET_SCHEDULER_cancel (announce_id_task);
-    announce_id_task = GNUNET_SCHEDULER_NO_TASK;
+    announce_id_task = NULL;
   }
 }
 

@@ -131,7 +131,7 @@ process_job_queue (void *cls,
   int num_downloads_change;
   int block_limit_hit;
 
-  h->queue_job = GNUNET_SCHEDULER_NO_TASK;
+  h->queue_job = NULL;
   /* restart_at will be set to the time when it makes sense to
      re-evaluate the job queue (unless, of course, jobs complete
      or are added, then we'll be triggered immediately */
@@ -336,7 +336,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
   qe->priority = priority;
   GNUNET_CONTAINER_DLL_insert_after (h->pending_head, h->pending_tail,
                                      h->pending_tail, qe);
-  if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+  if (h->queue_job != NULL)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -364,7 +364,7 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe)
     stop_job (qe);
   GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, qe);
   GNUNET_free (qe);
-  if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+  if (h->queue_job != NULL)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);
 }
@@ -1619,7 +1619,7 @@ deserialize_publish_file (void *cls,
   /* re-start publishing (if needed)... */
   if (GNUNET_YES != pc->all_done)
   {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pc->upload_task);
+    GNUNET_assert (NULL == pc->upload_task);
     pc->upload_task =
         GNUNET_SCHEDULER_add_with_priority
         (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
@@ -2140,7 +2140,7 @@ GNUNET_FS_search_sync_ (struct GNUNET_FS_SearchContext *sc)
   GNUNET_assert ((GNUNET_YES == GNUNET_FS_uri_test_ksk (sc->uri)) ||
                  (GNUNET_YES == GNUNET_FS_uri_test_sks (sc->uri)));
   uris = GNUNET_FS_uri_to_string (sc->uri);
-  in_pause = (sc->task != GNUNET_SCHEDULER_NO_TASK) ? 'r' : '\0';
+  in_pause = (sc->task != NULL) ? 'r' : '\0';
   if ((GNUNET_OK != GNUNET_BIO_write_string (wh, uris)) ||
       (GNUNET_OK != write_start_time (wh, sc->start_time)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, sc->emsg)) ||
@@ -3130,7 +3130,7 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
   while (h->top_head != NULL)
     h->top_head->ssf (h->top_head->ssf_cls);
-  if (h->queue_job != GNUNET_SCHEDULER_NO_TASK)
+  if (h->queue_job != NULL)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   GNUNET_free (h->client_name);
   GNUNET_free (h);

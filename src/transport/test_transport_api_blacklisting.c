@@ -62,11 +62,11 @@ static struct GNUNET_TRANSPORT_Blacklist * blacklist_p1;
 
 static struct GNUNET_TRANSPORT_Blacklist * blacklist_p2;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier send_task;
+static struct GNUNET_SCHEDULER_Task * send_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 #if VERBOSE
 #define OKPP do { ok++; FPRINTF (stderr, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -80,13 +80,13 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping\n");
 
-  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_task != NULL)
     GNUNET_SCHEDULER_cancel (send_task);
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   if (cc != NULL)
@@ -139,16 +139,16 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (send_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (send_task);
-    send_task = GNUNET_SCHEDULER_NO_TASK;
+    send_task = NULL;
   }
 
-  if (shutdown_task != GNUNET_SCHEDULER_NO_TASK)
+  if (shutdown_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+    shutdown_task = NULL;
   }
 
   if (cc != NULL)
@@ -225,10 +225,10 @@ notify_ready (void *cls, size_t size, void *buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready\n");
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
     {
       GNUNET_SCHEDULER_cancel (die_task);
-      die_task = GNUNET_SCHEDULER_NO_TASK;
+      die_task = NULL;
     }
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     ok = 42;
@@ -257,7 +257,7 @@ notify_ready (void *cls, size_t size, void *buf)
 static void
 sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  send_task = GNUNET_SCHEDULER_NO_TASK;
+  send_task = NULL;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
@@ -359,7 +359,7 @@ blacklist_cb (void *cls,
     res = GNUNET_SYSERR;
   }
 
-  if (((blacklist_request_p2 == GNUNET_YES) && (blacklist_request_p1 == GNUNET_YES)) && (shutdown_task == GNUNET_SCHEDULER_NO_TASK))
+  if (((blacklist_request_p2 == GNUNET_YES) && (blacklist_request_p1 == GNUNET_YES)) && (shutdown_task == NULL))
   {
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 3), &end, NULL);
   }

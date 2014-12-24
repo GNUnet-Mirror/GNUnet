@@ -53,16 +53,16 @@ static char *search_dir;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
-static GNUNET_SCHEDULER_TaskIdentifier write_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
+static struct GNUNET_SCHEDULER_Task * write_task;
 
 static int result;
 
 #define CANCEL_TASK(task) do {                  \
-    if (GNUNET_SCHEDULER_NO_TASK != task) \
+    if (NULL != task) \
     {                                           \
       GNUNET_SCHEDULER_cancel (task);     \
-      task = GNUNET_SCHEDULER_NO_TASK;    \
+      task = NULL;    \
     }                                           \
   } while (0)
 
@@ -100,7 +100,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   shutdown_now ();
 }
 
@@ -178,7 +178,7 @@ do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   static int i;
   char buf[BSIZE];
 
-  write_task = GNUNET_SCHEDULER_NO_TASK;
+  write_task = NULL;
   if (0 == i)
     write_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(1), &do_write, NULL);
   (void) memset (buf, i, BSIZE);

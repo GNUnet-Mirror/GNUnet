@@ -32,7 +32,7 @@
 
 static struct GNUNET_NAMESTORE_Handle * nsh;
 
-static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_SCHEDULER_Task * endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey * privkey;
 
@@ -196,10 +196,10 @@ zone_proc (void *cls,
 
   if (2 == ++returned_records)
   {
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    if (endbadly_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+      endbadly_task = NULL;
     }
     if (GNUNET_YES == fail)
       GNUNET_SCHEDULER_add_now (&endbadly, NULL);

@@ -29,7 +29,7 @@
 
 static struct GNUNET_NSE_Handle *h;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 
 /**
@@ -69,7 +69,7 @@ check_nse_message (void *cls, struct GNUNET_TIME_Absolute timestamp,
            estimate, std_dev);
   /* Fantastic check below. Expect NaN, the only thing not equal to itself. */
   (*ok) = 0;
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_now (&end_test, NULL);
 }

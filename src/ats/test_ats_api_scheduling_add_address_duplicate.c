@@ -32,9 +32,9 @@
 /**
  * Timeout task
  */
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier wait_task;
+static struct GNUNET_SCHEDULER_Task * wait_task;
 
 /**
  * Statistics handle
@@ -95,13 +95,13 @@ stat_cb(void *cls, const char *subsystem,
       subsystem,name, value);
   if (1 < value)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != wait_task)
+    if (NULL != wait_task)
       GNUNET_SCHEDULER_cancel (wait_task);
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
   if (1 == value)
   {
-    if (GNUNET_SCHEDULER_NO_TASK == wait_task)
+    if (NULL == wait_task)
       wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
   }
   return GNUNET_OK;
@@ -112,12 +112,12 @@ static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
-  wait_task = GNUNET_SCHEDULER_NO_TASK;
+  wait_task = NULL;
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   if (NULL != sched_ats)
@@ -141,7 +141,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   end ( NULL, NULL);
   ret = GNUNET_SYSERR;
 }

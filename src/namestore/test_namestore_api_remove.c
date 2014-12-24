@@ -36,7 +36,7 @@
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
-static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_SCHEDULER_Task * endbadly_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -103,7 +103,7 @@ remove_cont (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Records could not be removed: `%s'\n"), emsg);
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    if (endbadly_task != NULL)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
@@ -111,7 +111,7 @@ remove_cont (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Records were removed, perform lookup\n");
   removed = GNUNET_YES;
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+  if (endbadly_task != NULL)
     GNUNET_SCHEDULER_cancel (endbadly_task);
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
@@ -130,7 +130,7 @@ put_cont (void *cls, int32_t success,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		"Namestore could not store record: `%s'\n",
 		emsg);
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    if (endbadly_task != NULL)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;

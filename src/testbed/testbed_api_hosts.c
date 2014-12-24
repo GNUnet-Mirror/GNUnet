@@ -1239,7 +1239,7 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle
   /**
    * Task id for the habitability check task
    */
-  GNUNET_SCHEDULER_TaskIdentifier habitability_check_task;
+  struct GNUNET_SCHEDULER_Task * habitability_check_task;
 
   /**
    * How long we wait before checking the process status. Should grow
@@ -1267,7 +1267,7 @@ habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   enum GNUNET_OS_ProcessStatusType type;
   int ret;
 
-  h->habitability_check_task = GNUNET_SCHEDULER_NO_TASK;
+  h->habitability_check_task = NULL;
   ret = GNUNET_OS_process_status (h->auxp, &type, &code);
   if (GNUNET_SYSERR == ret)
   {

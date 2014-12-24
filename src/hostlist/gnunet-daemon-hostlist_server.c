@@ -74,12 +74,12 @@ static struct GNUNET_PEERINFO_NotifyContext *notify;
 /**
  * Our primary task for IPv4.
  */
-static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v4;
+static struct GNUNET_SCHEDULER_Task * hostlist_task_v4;
 
 /**
  * Our primary task for IPv6.
  */
-static GNUNET_SCHEDULER_TaskIdentifier hostlist_task_v6;
+static struct GNUNET_SCHEDULER_Task * hostlist_task_v6;
 
 /**
  * Our canonical response.
@@ -618,7 +618,7 @@ process_notify (void *cls,
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static GNUNET_SCHEDULER_TaskIdentifier
+static struct GNUNET_SCHEDULER_Task *
 prepare_daemon (struct MHD_Daemon *daemon_handle);
 
 
@@ -636,9 +636,9 @@ run_daemon (void *cls,
   struct MHD_Daemon *daemon_handle = cls;
 
   if (daemon_handle == daemon_handle_v4)
-    hostlist_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+    hostlist_task_v4 = NULL;
   else
-    hostlist_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+    hostlist_task_v6 = NULL;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -656,10 +656,10 @@ run_daemon (void *cls,
  *
  * @param daemon_handle HTTP server to prepare to run
  */
-static GNUNET_SCHEDULER_TaskIdentifier
+static struct GNUNET_SCHEDULER_Task *
 prepare_daemon (struct MHD_Daemon *daemon_handle)
 {
-  GNUNET_SCHEDULER_TaskIdentifier ret;
+  struct GNUNET_SCHEDULER_Task * ret;
   fd_set rs;
   fd_set ws;
   fd_set es;
@@ -917,15 +917,15 @@ GNUNET_HOSTLIST_server_stop ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlist server shutdown\n");
-  if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v6)
+  if (NULL != hostlist_task_v6)
   {
     GNUNET_SCHEDULER_cancel (hostlist_task_v6);
-    hostlist_task_v6 = GNUNET_SCHEDULER_NO_TASK;
+    hostlist_task_v6 = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != hostlist_task_v4)
+  if (NULL != hostlist_task_v4)
   {
     GNUNET_SCHEDULER_cancel (hostlist_task_v4);
-    hostlist_task_v4 = GNUNET_SCHEDULER_NO_TASK;
+    hostlist_task_v4 = NULL;
   }
   if (NULL != daemon_handle_v4)
   {

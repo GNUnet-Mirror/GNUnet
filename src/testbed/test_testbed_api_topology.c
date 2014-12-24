@@ -46,7 +46,7 @@ static struct GNUNET_TESTBED_Operation *op;
 /**
  * Shutdown task
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Testing result
@@ -68,7 +68,7 @@ static unsigned int overlay_connects;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task = NULL;
   if (NULL != op)
   {
     GNUNET_TESTBED_operation_done (op);

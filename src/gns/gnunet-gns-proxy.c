@@ -356,7 +356,7 @@ struct MhdHttpList
   /**
    * The task ID
    */
-  GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+  struct GNUNET_SCHEDULER_Task * httpd_task;
 
   /**
    * is this an ssl daemon?
@@ -456,17 +456,17 @@ struct Socks5Request
   /**
    * Client socket read task
    */
-  GNUNET_SCHEDULER_TaskIdentifier rtask;
+  struct GNUNET_SCHEDULER_Task * rtask;
 
   /**
    * Client socket write task
    */
-  GNUNET_SCHEDULER_TaskIdentifier wtask;
+  struct GNUNET_SCHEDULER_Task * wtask;
 
   /**
    * Timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Read buffer
@@ -593,17 +593,17 @@ static struct GNUNET_NETWORK_Handle *lsock6;
 /**
  * The listen task ID for IPv4
  */
-static GNUNET_SCHEDULER_TaskIdentifier ltask4;
+static struct GNUNET_SCHEDULER_Task * ltask4;
 
 /**
  * The listen task ID for IPv6
  */
-static GNUNET_SCHEDULER_TaskIdentifier ltask6;
+static struct GNUNET_SCHEDULER_Task * ltask6;
 
 /**
  * The cURL download task (curl multi API).
  */
-static GNUNET_SCHEDULER_TaskIdentifier curl_download_task;
+static struct GNUNET_SCHEDULER_Task * curl_download_task;
 
 /**
  * The cURL multi handle
@@ -716,11 +716,11 @@ cleanup_s5r (struct Socks5Request *s5r)
   if ( (NULL != s5r->response) &&
        (curl_failure_response != s5r->response) )
     MHD_destroy_response (s5r->response);
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->rtask)
+  if (NULL != s5r->rtask)
     GNUNET_SCHEDULER_cancel (s5r->rtask);
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->timeout_task)
+  if (NULL != s5r->timeout_task)
     GNUNET_SCHEDULER_cancel (s5r->timeout_task);
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->wtask)
+  if (NULL != s5r->wtask)
     GNUNET_SCHEDULER_cancel (s5r->wtask);
   if (NULL != s5r->gns_lookup)
     GNUNET_GNS_lookup_cancel (s5r->gns_lookup);
@@ -1266,10 +1266,10 @@ curl_download_prepare ()
   long to;
   struct GNUNET_TIME_Relative rtime;
 
-  if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
+  if (NULL != curl_download_task)
   {
     GNUNET_SCHEDULER_cancel (curl_download_task);
-    curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+    curl_download_task = NULL;
   }
   max = -1;
   FD_ZERO (&rs);
@@ -1327,7 +1327,7 @@ curl_task_download (void *cls,
   CURLMcode mret;
   struct Socks5Request *s5r;
 
-  curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+  curl_download_task = NULL;
   do
   {
     running = 0;
@@ -1750,7 +1750,7 @@ mhd_log_callback (void *cls,
       }
       s5r->url = GNUNET_strdup (url);
       GNUNET_SCHEDULER_cancel (s5r->timeout_task);
-      s5r->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      s5r->timeout_task = NULL;
       return s5r;
     }
   }
@@ -1772,10 +1772,10 @@ kill_httpd (struct MhdHttpList *hd)
 			       hd);
   GNUNET_free_non_null (hd->domain);
   MHD_stop_daemon (hd->daemon);
-  if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
+  if (NULL != hd->httpd_task)
   {
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
-    hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+    hd->httpd_task = NULL;
   }
   GNUNET_free_non_null (hd->proxy_cert);
   if (hd == httpd)
@@ -1796,7 +1796,7 @@ kill_httpd_task (void *cls,
 {
   struct MhdHttpList *hd = cls;
 
-  hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  hd->httpd_task = NULL;
   kill_httpd (hd);
 }
 
@@ -1858,7 +1858,7 @@ schedule_httpd (struct MhdHttpList *hd)
     wrs = NULL;
     wws = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != hd->httpd_task)
+  if (NULL != hd->httpd_task)
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
   if ( (MHD_YES != haveto) &&
        (-1 == max) &&
@@ -1895,7 +1895,7 @@ do_httpd (void *cls,
 {
   struct MhdHttpList *hd = cls;
 
-  hd->httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  hd->httpd_task = NULL;
   MHD_run (hd->daemon);
   schedule_httpd (hd);
 }
@@ -1909,7 +1909,7 @@ do_httpd (void *cls,
 static void
 run_mhd_now (struct MhdHttpList *hd)
 {
-  if (GNUNET_SCHEDULER_NO_TASK !=
+  if (NULL !=
       hd->httpd_task)
     GNUNET_SCHEDULER_cancel (hd->httpd_task);
   hd->httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd,
@@ -2146,7 +2146,7 @@ timeout_s5r_handshake (void *cls,
 {
   struct Socks5Request *s5r = cls;
 
-  s5r->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  s5r->timeout_task = NULL;
   cleanup_s5r (s5r);
 }
 
@@ -2221,7 +2221,7 @@ do_write (void *cls,
   struct Socks5Request *s5r = cls;
   ssize_t len;
 
-  s5r->wtask = GNUNET_SCHEDULER_NO_TASK;
+  s5r->wtask = NULL;
   len = GNUNET_NETWORK_socket_send (s5r->sock,
 				    s5r->wbuf,
 				    s5r->wbuf_len);
@@ -2253,7 +2253,7 @@ do_write (void *cls,
     GNUNET_assert (0);
     break;
   case SOCKS5_REQUEST:
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s5r->rtask);
+    GNUNET_assert (NULL != s5r->rtask);
     break;
   case SOCKS5_DATA_TRANSFER:
     setup_data_transfer (s5r);
@@ -2285,7 +2285,7 @@ signal_socks_failure (struct Socks5Request *s5r,
   s_resp->version = SOCKS_VERSION_5;
   s_resp->reply = sc;
   s5r->state = SOCKS5_WRITE_THEN_CLEANUP;
-  if (GNUNET_SCHEDULER_NO_TASK != s5r->wtask)
+  if (NULL != s5r->wtask)
     s5r->wtask =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				      s5r->sock,
@@ -2314,7 +2314,7 @@ signal_socks_success (struct Socks5Request *s5r)
 	  sizeof (struct in_addr) + sizeof (uint16_t));
   s5r->wbuf_len += sizeof (struct Socks5ServerResponseMessage) +
     sizeof (struct in_addr) + sizeof (uint16_t);
-  if (GNUNET_SCHEDULER_NO_TASK == s5r->wtask)
+  if (NULL == s5r->wtask)
     s5r->wtask =
       GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				      s5r->sock,
@@ -2482,7 +2482,7 @@ do_s5r_read (void *cls,
   ssize_t rlen;
   size_t alen;
 
-  s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
+  s5r->rtask = NULL;
   if ( (NULL != tc->read_ready) &&
        (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) )
   {
@@ -2527,7 +2527,7 @@ do_s5r_read (void *cls,
     s5r->wbuf_len = sizeof (struct Socks5ServerHelloMessage);
     s_hello->version = SOCKS_VERSION_5;
     s_hello->auth_method = SOCKS_AUTH_NONE;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s5r->wtask);
+    GNUNET_assert (NULL == s5r->wtask);
     s5r->wtask = GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_FOREVER_REL,
 						 s5r->sock,
 						 &do_write, s5r);
@@ -2666,7 +2666,7 @@ do_s5r_read (void *cls,
     }
     /* We are done reading right now */
     GNUNET_SCHEDULER_cancel (s5r->rtask);
-    s5r->rtask = GNUNET_SCHEDULER_NO_TASK;
+    s5r->rtask = NULL;
     return;
   case SOCKS5_RESOLVING:
     GNUNET_assert (0);
@@ -2696,9 +2696,9 @@ do_accept (void *cls,
   struct Socks5Request *s5r;
 
   if (lsock == lsock4)
-    ltask4 = GNUNET_SCHEDULER_NO_TASK;
+    ltask4 = NULL;
   else
-    ltask6 = GNUNET_SCHEDULER_NO_TASK;
+    ltask6 = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (lsock == lsock4)
@@ -2778,20 +2778,20 @@ do_shutdown (void *cls,
     GNUNET_GNS_disconnect (gns_handle);
     gns_handle = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != curl_download_task)
+  if (NULL != curl_download_task)
   {
     GNUNET_SCHEDULER_cancel (curl_download_task);
-    curl_download_task = GNUNET_SCHEDULER_NO_TASK;
+    curl_download_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ltask4)
+  if (NULL != ltask4)
   {
     GNUNET_SCHEDULER_cancel (ltask4);
-    ltask4 = GNUNET_SCHEDULER_NO_TASK;
+    ltask4 = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ltask6)
+  if (NULL != ltask6)
   {
     GNUNET_SCHEDULER_cancel (ltask6);
-    ltask6 = GNUNET_SCHEDULER_NO_TASK;
+    ltask6 = NULL;
   }
   gnutls_x509_crt_deinit (proxy_ca.cert);
   gnutls_x509_privkey_deinit (proxy_ca.key);

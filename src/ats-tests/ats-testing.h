@@ -167,7 +167,7 @@ struct BenchmarkPeer
    * Masters only
    * Progress task
    */
-  GNUNET_SCHEDULER_TaskIdentifier ats_task;
+  struct GNUNET_SCHEDULER_Task * ats_task;
 
   /**
    * Masters only
@@ -232,7 +232,7 @@ struct TrafficGenerator
   long int max_rate;
   struct GNUNET_TIME_Relative duration_period;
 
-  GNUNET_SCHEDULER_TaskIdentifier send_task;
+  struct GNUNET_SCHEDULER_Task * send_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
 };
@@ -255,7 +255,7 @@ struct PreferenceGenerator
   struct GNUNET_TIME_Relative duration_period;
   struct GNUNET_TIME_Relative frequency;
 
-  GNUNET_SCHEDULER_TaskIdentifier set_task;
+  struct GNUNET_SCHEDULER_Task * set_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
 };
@@ -381,12 +381,12 @@ struct GNUNET_ATS_TEST_Topology
   /**
    * Shutdown task
    */
-  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+  struct GNUNET_SCHEDULER_Task * shutdown_task;
 
   /**
    * Progress task
    */
-  GNUNET_SCHEDULER_TaskIdentifier progress_task;
+  struct GNUNET_SCHEDULER_Task * progress_task;
 
   /**
    * Test result
@@ -524,8 +524,8 @@ struct Experiment
   unsigned int num_episodes;
   struct Episode *start;
 
-  GNUNET_SCHEDULER_TaskIdentifier experiment_timeout_task;
-  GNUNET_SCHEDULER_TaskIdentifier episode_timeout_task;
+  struct GNUNET_SCHEDULER_Task * experiment_timeout_task;
+  struct GNUNET_SCHEDULER_Task * episode_timeout_task;
   struct Episode *cur;
 
   GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb;

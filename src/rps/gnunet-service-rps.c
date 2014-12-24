@@ -695,7 +695,7 @@ float beta;
 /**
  * Identifier for the main task that runs periodically.
  */
-GNUNET_SCHEDULER_TaskIdentifier do_round_task;
+struct GNUNET_SCHEDULER_Task * do_round_task;
 
 /**
  * Time inverval the do_round task runs in.
@@ -1318,10 +1318,10 @@ shutdown_task (void *cls,
 {
   LOG(GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
-  if ( GNUNET_SCHEDULER_NO_TASK != do_round_task )
+  if ( NULL != do_round_task )
   {
     GNUNET_SCHEDULER_cancel (do_round_task);
-    do_round_task = GNUNET_SCHEDULER_NO_TASK;
+    do_round_task = NULL;
   }
 
   GNUNET_NSE_disconnect(nse);

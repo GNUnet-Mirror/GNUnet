@@ -130,12 +130,12 @@ struct PeerRecord
    * ID of timeout task for the 'pending_head' handle
    * which is the one with the smallest timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * ID of task to run 'next_request_transmission'.
    */
-  GNUNET_SCHEDULER_TaskIdentifier ntr_task;
+  struct GNUNET_SCHEDULER_Task * ntr_task;
 
   /**
    * SendMessageRequest ID generator for this peer.
@@ -289,7 +289,7 @@ struct GNUNET_CORE_Handle
   /**
    * ID of reconnect task (if any).
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Current delay we use for re-trying to connect to core.
@@ -344,7 +344,7 @@ reconnect_task (void *cls,
 {
   struct GNUNET_CORE_Handle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to CORE service after delay\n");
   reconnect (h);
@@ -369,15 +369,15 @@ disconnect_and_free_peer_entry (void *cls,
   struct GNUNET_CORE_TransmitHandle *th;
   struct PeerRecord *pr = value;
 
-  if (GNUNET_SCHEDULER_NO_TASK != pr->timeout_task)
+  if (NULL != pr->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (pr->timeout_task);
-    pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->timeout_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pr->ntr_task)
+  if (NULL != pr->ntr_task)
   {
     GNUNET_SCHEDULER_cancel (pr->ntr_task);
-    pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->ntr_task = NULL;
   }
   if ( (NULL != pr->prev) ||
        (NULL != pr->next) ||
@@ -401,8 +401,8 @@ disconnect_and_free_peer_entry (void *cls,
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (h->peers, key, pr));
   GNUNET_assert (pr->ch == h);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->timeout_task);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
+  GNUNET_assert (NULL == pr->timeout_task);
+  GNUNET_assert (NULL == pr->ntr_task);
   GNUNET_free (pr);
   return GNUNET_YES;
 }
@@ -420,7 +420,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   struct ControlMessage *cm;
   struct PeerRecord *pr;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
+  GNUNET_assert (NULL == h->reconnect_task);
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
@@ -432,7 +432,7 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
     h->client = NULL;
   }
   h->currently_down = GNUNET_YES;
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (h->reconnect_task == NULL);
   h->reconnect_task =
       GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
                                     &reconnect_task, h);
@@ -496,10 +496,10 @@ request_next_transmission (struct PeerRecord *pr)
   struct SendMessageRequest *smr;
   struct GNUNET_CORE_TransmitHandle *th;
 
-  if (pr->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (pr->timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (pr->timeout_task);
-    pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->timeout_task = NULL;
   }
   th = &pr->th;
   if (NULL == th->peer)
@@ -552,11 +552,11 @@ transmission_timeout (void *cls,
   struct GNUNET_CORE_Handle *h = pr->ch;
   struct GNUNET_CORE_TransmitHandle *th;
 
-  pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != pr->ntr_task)
+  pr->timeout_task = NULL;
+  if (NULL != pr->ntr_task)
   {
     GNUNET_SCHEDULER_cancel (pr->ntr_task);
-    pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->ntr_task = NULL;
   }
   th = &pr->th;
   th->peer = NULL;
@@ -609,7 +609,7 @@ transmit_message (void *cls,
   uint16_t msize;
   size_t ret;
 
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (h->reconnect_task == NULL);
   h->cth = NULL;
   if (NULL == buf)
   {
@@ -657,10 +657,10 @@ transmit_message (void *cls,
                                h->ready_peer_tail,
                                pr);
   th->peer = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != pr->timeout_task)
+  if (NULL != pr->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (pr->timeout_task);
-    pr->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->timeout_task = NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting SEND request to `%s' with %u bytes.\n",
@@ -1083,7 +1083,7 @@ init_done_task (void *cls, int success)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to exchange INIT with core, retrying\n");
-    if (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK)
+    if (h->reconnect_task == NULL)
       reconnect_later (h);
     return;
   }
@@ -1259,10 +1259,10 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   GNUNET_CONTAINER_multipeermap_iterate (handle->peers,
                                          &disconnect_and_free_peer_entry,
                                          handle);
-  if (handle->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (handle->reconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
-    handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    handle->reconnect_task = NULL;
   }
   GNUNET_CONTAINER_multipeermap_destroy (handle->peers);
   handle->peers = NULL;
@@ -1283,7 +1283,7 @@ run_request_next_transmission (void *cls,
 {
   struct PeerRecord *pr = cls;
 
-  pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+  pr->ntr_task = NULL;
   request_next_transmission (pr);
 }
 
@@ -1361,7 +1361,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->priority = priority;
   th->msize = notify_size;
   th->cork = cork;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
+  GNUNET_assert (NULL == pr->ntr_task);
   pr->ntr_task =
     GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1409,10 +1409,10 @@ GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)
                                  h->ready_peer_tail,
                                  pr);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pr->ntr_task)
+  if (NULL != pr->ntr_task)
   {
     GNUNET_SCHEDULER_cancel (pr->ntr_task);
-    pr->ntr_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->ntr_task = NULL;
   }
 }
 

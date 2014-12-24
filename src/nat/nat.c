@@ -230,27 +230,27 @@ struct GNUNET_NAT_Handle
   /**
    * ID of select gnunet-helper-nat-server stdout read task
    */
-  GNUNET_SCHEDULER_TaskIdentifier server_read_task;
+  struct GNUNET_SCHEDULER_Task * server_read_task;
 
   /**
    * ID of interface IP-scan task
    */
-  GNUNET_SCHEDULER_TaskIdentifier ifc_task;
+  struct GNUNET_SCHEDULER_Task * ifc_task;
 
   /**
    * ID of hostname DNS lookup task
    */
-  GNUNET_SCHEDULER_TaskIdentifier hostname_task;
+  struct GNUNET_SCHEDULER_Task * hostname_task;
 
   /**
    * ID of DynDNS lookup task
    */
-  GNUNET_SCHEDULER_TaskIdentifier dns_task;
+  struct GNUNET_SCHEDULER_Task * dns_task;
 
   /**
    * ID of task to add addresses from bind.
    */
-  GNUNET_SCHEDULER_TaskIdentifier bind_task;
+  struct GNUNET_SCHEDULER_Task * bind_task;
 
   /**
    * How often do we scan for changes in our IP address from our local
@@ -758,7 +758,7 @@ process_interfaces (void *cls, const char *name, int isDefault,
     return GNUNET_OK;
   }
   if ((h->internal_address == NULL) && (h->server_proc == NULL) &&
-      (h->server_read_task == GNUNET_SCHEDULER_NO_TASK) &&
+      (h->server_read_task == NULL) &&
       (GNUNET_YES == isDefault) && ((addr->sa_family == AF_INET) ||
                                     (addr->sa_family == AF_INET6)))
   {
@@ -784,7 +784,7 @@ restart_nat_server (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_Handle *h = cls;
 
-  h->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+  h->server_read_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   start_gnunet_nat_server (h);
@@ -811,7 +811,7 @@ nat_server_read (void *cls,
   const char *port_start;
   struct sockaddr_in sin_addr;
 
-  h->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+  h->server_read_task = NULL;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   memset (mybuf, 0, sizeof (mybuf));
@@ -946,7 +946,7 @@ list_interfaces (void *cls,
 {
   struct GNUNET_NAT_Handle *h = cls;
 
-  h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
+  h->ifc_task = NULL;
   remove_from_address_list_by_source (h, LAL_INTERFACE_ADDRESS);
   GNUNET_OS_network_interfaces_list (&process_interfaces, h);
   h->ifc_task =
@@ -967,7 +967,7 @@ resolve_hostname (void *cls,
 {
   struct GNUNET_NAT_Handle *h = cls;
 
-  h->hostname_task = GNUNET_SCHEDULER_NO_TASK;
+  h->hostname_task = NULL;
   remove_from_address_list_by_source (h, LAL_HOSTNAME_DNS);
   h->hostname_dns =
       GNUNET_RESOLVER_hostname_resolve (AF_UNSPEC, HOSTNAME_RESOLVE_TIMEOUT,
@@ -989,7 +989,7 @@ resolve_dns (void *cls,
   struct GNUNET_NAT_Handle *h = cls;
   struct LocalAddressList *pos;
 
-  h->dns_task = GNUNET_SCHEDULER_NO_TASK;
+  h->dns_task = NULL;
   for (pos = h->lal_head; NULL != pos; pos = pos->next)
     if (pos->source == LAL_EXTERNAL_IP)
       pos->source = LAL_EXTERNAL_IP_OLD;
@@ -1124,7 +1124,7 @@ add_from_bind (void *cls,
   struct sockaddr *sa;
   const struct sockaddr_in *v4;
 
-  h->bind_task = GNUNET_SCHEDULER_NO_TASK;
+  h->bind_task = NULL;
   for (i = 0; i < h->num_local_addrs; i++)
   {
     sa = h->local_addrs[i];
@@ -1384,30 +1384,30 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     GNUNET_RESOLVER_request_cancel (h->hostname_dns);
     h->hostname_dns = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->server_read_task)
+  if (NULL != h->server_read_task)
   {
     GNUNET_SCHEDULER_cancel (h->server_read_task);
-    h->server_read_task = GNUNET_SCHEDULER_NO_TASK;
+    h->server_read_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->bind_task)
+  if (NULL != h->bind_task)
   {
     GNUNET_SCHEDULER_cancel (h->bind_task);
-    h->bind_task = GNUNET_SCHEDULER_NO_TASK;
+    h->bind_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->ifc_task)
+  if (NULL != h->ifc_task)
   {
     GNUNET_SCHEDULER_cancel (h->ifc_task);
-    h->ifc_task = GNUNET_SCHEDULER_NO_TASK;
+    h->ifc_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->hostname_task)
+  if (NULL != h->hostname_task)
   {
     GNUNET_SCHEDULER_cancel (h->hostname_task);
-    h->hostname_task = GNUNET_SCHEDULER_NO_TASK;
+    h->hostname_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->dns_task)
+  if (NULL != h->dns_task)
   {
     GNUNET_SCHEDULER_cancel (h->dns_task);
-    h->dns_task = GNUNET_SCHEDULER_NO_TASK;
+    h->dns_task = NULL;
   }
   if (NULL != h->server_proc)
   {

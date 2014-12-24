@@ -222,17 +222,17 @@ struct Session
   /**
    * Session timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier put_disconnect_task;
+  struct GNUNET_SCHEDULER_Task * put_disconnect_task;
 
   /**
    * Session timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Task to wake up client receive handle when receiving is allowed again
    */
-  GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
+  struct GNUNET_SCHEDULER_Task * recv_wakeup_task;
 
   /**
    * Absolute time when to receive data again.
@@ -326,7 +326,7 @@ struct HTTP_Client_Plugin
   /**
    * curl perform task
    */
-  GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
+  struct GNUNET_SCHEDULER_Task * client_perform_task;
 
   /**
    * Type of proxy server:
@@ -440,21 +440,21 @@ client_delete_session (struct Session *s)
   struct HTTP_Message *next;
   CURLMcode mret;
 
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  if (NULL != s->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    s->timeout_task = NULL;
     s->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != s->put_disconnect_task)
+  if (NULL != s->put_disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
-    s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    s->put_disconnect_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != s->recv_wakeup_task)
+  if (NULL != s->recv_wakeup_task)
   {
     GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-    s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+    s->recv_wakeup_task = NULL;
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
@@ -541,7 +541,7 @@ client_delete_session (struct Session *s)
 static void
 client_reschedule_session_timeout (struct Session *s)
 {
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+  GNUNET_assert (NULL != s->timeout_task);
   s->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 }
 
@@ -579,10 +579,10 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
   struct GNUNET_TIME_Relative timeout;
 
   /* Cancel previous scheduled task */
-  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
+  if (plugin->client_perform_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->client_perform_task = NULL;
   }
   max = -1;
   FD_ZERO (&rs);
@@ -802,9 +802,9 @@ http_client_plugin_send (void *cls,
   if (H_PAUSED == s->put.state)
   {
     /* PUT request was paused, unpause */
-    GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
+    GNUNET_assert (s->put_disconnect_task != NULL);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
-    s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    s->put_disconnect_task = NULL;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Session %p/request %p: unpausing request\n",
          s, s->put.easyhandle);
@@ -851,10 +851,10 @@ http_client_plugin_session_disconnect (void *cls,
   client_delete_session (s);
 
   /* Re-schedule since handles have changed */
-  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
+  if (plugin->client_perform_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->client_perform_task = NULL;
   }
   client_schedule (plugin, GNUNET_YES);
 
@@ -1001,7 +1001,7 @@ client_put_disconnect (void *cls,
 {
   struct Session *s = cls;
 
-  s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  s->put_disconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p/request %p: will be disconnected due to no activity\n",
        s, s->put.easyhandle);
@@ -1132,7 +1132,7 @@ client_wake_up (void *cls,
 {
   struct Session *s = cls;
 
-  s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+  s->recv_wakeup_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1141,9 +1141,9 @@ client_wake_up (void *cls,
   if (H_PAUSED == s->put.state)
   {
     /* PUT request was paused, unpause */
-    GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
+    GNUNET_assert (s->put_disconnect_task != NULL);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
-    s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    s->put_disconnect_task = NULL;
     s->put.state = H_CONNECTED;
     if (NULL != s->put.easyhandle)
       curl_easy_pause (s->put.easyhandle, CURLPAUSE_CONT);
@@ -1271,10 +1271,10 @@ client_receive (void *stream,
          s->get.easyhandle,
          GNUNET_STRINGS_relative_time_to_string (delta,
                                                  GNUNET_YES));
-    if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
+    if (s->recv_wakeup_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-      s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+      s->recv_wakeup_task = NULL;
     }
     s->recv_wakeup_task
       = GNUNET_SCHEDULER_add_delayed (delta,
@@ -1313,7 +1313,7 @@ client_run (void *cls,
   int put_request; /* GNUNET_YES if easy handle is put, GNUNET_NO for get */
   int msgs_left;
 
-  plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->client_perform_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -1918,10 +1918,10 @@ client_connect (struct Session *s)
                          plugin->cur_requests,
                          GNUNET_NO);
   /* Re-schedule since handles have changed */
-  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
+  if (plugin->client_perform_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->client_perform_task = NULL;
   }
 
   /* Schedule task to run immediately */
@@ -1958,7 +1958,7 @@ client_session_timeout (void *cls,
   struct Session *s = cls;
   struct GNUNET_TIME_Relative left;
 
-  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  s->timeout_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (s->timeout);
   if (0 != left.rel_value_us)
   {
@@ -2166,10 +2166,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
                                          &destroy_session_cb,
                                          plugin);
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->client_perform_task)
+  if (NULL != plugin->client_perform_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->client_perform_task = NULL;
   }
   if (NULL != plugin->curl_multi_handle)
   {
@@ -2368,7 +2368,7 @@ http_client_plugin_update_inbound_delay (void *cls,
        "New inbound delay %s\n",
        GNUNET_STRINGS_relative_time_to_string (delay,
                                                GNUNET_NO));
-  if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
+  if (s->recv_wakeup_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
     s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delay,

@@ -74,12 +74,12 @@ static struct GNUNET_SPEAKER_Handle *speaker;
 /**
  * Task scheduled to switch from recording to playback.
  */
-static GNUNET_SCHEDULER_TaskIdentifier switch_task;
+static struct GNUNET_SCHEDULER_Task * switch_task;
 
 /**
  * The shutdown task.
  */
-static GNUNET_SCHEDULER_TaskIdentifier st;
+static struct GNUNET_SCHEDULER_Task * st;
 
 /**
  * Head of DLL with recorded frames.
@@ -104,7 +104,7 @@ do_shutdown (void *cls,
 {
   struct Recording *rec;
 
-  if (GNUNET_SCHEDULER_NO_TASK != switch_task)
+  if (NULL != switch_task)
     GNUNET_SCHEDULER_cancel (switch_task);
   if (NULL != microphone)
     GNUNET_MICROPHONE_destroy (microphone);
@@ -134,7 +134,7 @@ switch_to_speaker (void *cls,
 {
   struct Recording *rec;
 
-  switch_task = GNUNET_SCHEDULER_NO_TASK;
+  switch_task = NULL;
   microphone->disable_microphone (microphone->cls);
   if (GNUNET_OK !=
       speaker->enable_speaker (speaker->cls))

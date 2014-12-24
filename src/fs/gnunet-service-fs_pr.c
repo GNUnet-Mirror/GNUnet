@@ -157,7 +157,7 @@ struct GSF_PendingRequest
   /**
    * Task that warns us if the local datastore lookup takes too long.
    */
-  GNUNET_SCHEDULER_TaskIdentifier warn_task;
+  struct GNUNET_SCHEDULER_Task * warn_task;
 
   /**
    * Current offset for querying our local datastore for results.
@@ -632,10 +632,10 @@ clean_request (void *cls, const struct GNUNET_HashCode *key, void *value)
     GNUNET_DHT_get_stop (pr->gh);
     pr->gh = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
+  if (NULL != pr->warn_task)
   {
     GNUNET_SCHEDULER_cancel (pr->warn_task);
-    pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->warn_task = NULL;
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_remove (pr_map,
@@ -690,10 +690,10 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
       GNUNET_DHT_get_stop (pr->gh);
       pr->gh = NULL;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
+    if (NULL != pr->warn_task)
     {
       GNUNET_SCHEDULER_cancel (pr->warn_task);
-      pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+      pr->warn_task = NULL;
     }
     return;
   }
@@ -1307,7 +1307,7 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
   unsigned int old_rf;
 
   GNUNET_SCHEDULER_cancel (pr->warn_task);
-  pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  pr->warn_task = NULL;
   if (NULL != pr->qe)
   {
     pr->qe = NULL;
@@ -1514,10 +1514,10 @@ process_local_reply (void *cls, const struct GNUNET_HashCode * key, size_t size,
 check_error_and_continue:
   if (NULL != pr->qe)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
+  if (NULL != pr->warn_task)
   {
     GNUNET_SCHEDULER_cancel (pr->warn_task);
-    pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    pr->warn_task = NULL;
   }
   if (NULL == (cont = pr->llc_cont))
     return;                     /* no continuation */
@@ -1620,7 +1620,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                             ("# Datastore lookups concluded (error queueing)"),
                             1, GNUNET_NO);
   GNUNET_SCHEDULER_cancel (pr->warn_task);
-  pr->warn_task = GNUNET_SCHEDULER_NO_TASK;
+  pr->warn_task = NULL;
   pr->llc_cont = NULL;
   if (NULL != cont)
     cont (cont_cls, pr, pr->local_result);

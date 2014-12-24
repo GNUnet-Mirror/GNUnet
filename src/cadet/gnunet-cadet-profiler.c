@@ -147,7 +147,7 @@ struct CadetPeer
   /**
    * Task to do the next ping.
    */
-  GNUNET_SCHEDULER_TaskIdentifier ping_task;
+  struct GNUNET_SCHEDULER_Task * ping_task;
 
   float mean[number_rounds];
   float var[number_rounds];
@@ -209,17 +209,17 @@ static struct GNUNET_CADET_TEST_Context *test_ctx;
 /**
  * Task called to shutdown test.
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
+static struct GNUNET_SCHEDULER_Task * shutdown_handle;
 
 /**
  * Task called to disconnect peers, before shutdown.
  */
-static GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
+static struct GNUNET_SCHEDULER_Task * disconnect_task;
 
 /**
  * Task to perform tests
  */
-static GNUNET_SCHEDULER_TaskIdentifier test_task;
+static struct GNUNET_SCHEDULER_Task * test_task;
 
 /**
  * Round number.
@@ -320,7 +320,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Ending test.\n");
-  shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_handle = NULL;
 }
 
 
@@ -338,7 +338,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "disconnecting cadet service, called from line %ld\n", line);
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  disconnect_task = NULL;
   for (i = 0; i < peers_total; i++)
   {
     if (NULL != peers[i].op)
@@ -366,7 +366,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     }
   }
   GNUNET_CADET_TEST_cleanup (test_ctx);
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
+  if (NULL != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
   }
@@ -382,7 +382,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 static void
 abort_test (long line)
 {
-  if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (disconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
@@ -405,7 +405,7 @@ stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "... collecting statistics done.\n");
   GNUNET_TESTBED_operation_done (stats_op);
 
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                               (void *) __LINE__);
@@ -513,9 +513,9 @@ adjust_running_peers (unsigned int target)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "St%s peer %u: %s\n",
                 run ? "arting" : "opping", r, GNUNET_i2s (&peers[r].id));
 
-    if (GNUNET_SCHEDULER_NO_TASK != peers[r].ping_task)
+    if (NULL != peers[r].ping_task)
       GNUNET_SCHEDULER_cancel (peers[r].ping_task);
-    peers[r].ping_task = GNUNET_SCHEDULER_NO_TASK;
+    peers[r].ping_task = NULL;
 
     peers[r].up = run;
 
@@ -615,7 +615,7 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetPeer *peer = (struct CadetPeer *) cls;
 
-  peer->ping_task = GNUNET_SCHEDULER_NO_TASK;
+  peer->ping_task = NULL;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0
       || GNUNET_YES == test_finished)
@@ -797,7 +797,7 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
     peers_warmup++;
     if (peers_warmup < peers_total)
       return NULL;
-    if (GNUNET_SCHEDULER_NO_TASK != test_task)
+    if (NULL != test_task)
     {
       GNUNET_SCHEDULER_cancel (test_task);
       test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -873,7 +873,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   enum GNUNET_CADET_ChannelOption flags;
   unsigned long i;
 
-  test_task = GNUNET_SCHEDULER_NO_TASK;
+  test_task = NULL;
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -898,7 +898,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                        &ping, &peers[i]);
   }
   peers_running = peers_total;
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(round_time,

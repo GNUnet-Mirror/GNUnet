@@ -124,22 +124,22 @@ static struct GNUNET_DISK_PipeHandle *sigpipe;
 /**
  * Task identifier for the read task
  */
-static GNUNET_SCHEDULER_TaskIdentifier read_task_id;
+static struct GNUNET_SCHEDULER_Task * read_task_id;
 
 /**
  * Task identifier for the write task
  */
-static GNUNET_SCHEDULER_TaskIdentifier write_task_id;
+static struct GNUNET_SCHEDULER_Task * write_task_id;
 
 /**
  * Task to kill the child
  */
-static GNUNET_SCHEDULER_TaskIdentifier child_death_task_id;
+static struct GNUNET_SCHEDULER_Task * child_death_task_id;
 
 /**
  * shutdown task id
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
 
 /**
  * Are we done reading messages from stdin?
@@ -162,26 +162,26 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG_DEBUG ("Shutting down\n");
-  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task_id = NULL;
   if (NULL != testbed)
   {
     LOG_DEBUG ("Killing testbed\n");
     GNUNET_break (0 == GNUNET_OS_process_kill (testbed, GNUNET_TERM_SIG));
   }
-  if (GNUNET_SCHEDULER_NO_TASK != read_task_id)
+  if (NULL != read_task_id)
   {
     GNUNET_SCHEDULER_cancel (read_task_id);
-    read_task_id = GNUNET_SCHEDULER_NO_TASK;
+    read_task_id = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != write_task_id)
+  if (NULL != write_task_id)
   {
     GNUNET_SCHEDULER_cancel (write_task_id);
-    write_task_id = GNUNET_SCHEDULER_NO_TASK;
+    write_task_id = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != child_death_task_id)
+  if (NULL != child_death_task_id)
   {
     GNUNET_SCHEDULER_cancel (child_death_task_id);
-    child_death_task_id = GNUNET_SCHEDULER_NO_TASK;
+    child_death_task_id = NULL;
   }
   if (NULL != stdin_fd)
     (void) GNUNET_DISK_file_close (stdin_fd);
@@ -209,7 +209,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 shutdown_now (void)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task_id)
+  if (NULL != shutdown_task_id)
     GNUNET_SCHEDULER_cancel (shutdown_task_id);
   shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
@@ -228,7 +228,7 @@ write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ssize_t bytes_wrote;
 
   GNUNET_assert (NULL != wc);
-  write_task_id = GNUNET_SCHEDULER_NO_TASK;
+  write_task_id = NULL;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     GNUNET_free (wc->data);
@@ -275,7 +275,7 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int ret;
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
-  child_death_task_id = GNUNET_SCHEDULER_NO_TASK;
+  child_death_task_id = NULL;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     child_death_task_id =
@@ -518,7 +518,7 @@ read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   ssize_t sread;
 
-  read_task_id = GNUNET_SCHEDULER_NO_TASK;
+  read_task_id = NULL;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));

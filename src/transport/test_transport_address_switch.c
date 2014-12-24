@@ -67,11 +67,11 @@ GNUNET_NETWORK_STRUCT_END
 #define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier delayed_end_task;
+static struct GNUNET_SCHEDULER_Task * delayed_end_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier measure_task;
+static struct GNUNET_SCHEDULER_Task * measure_task;
 
 struct PeerContext *p1;
 char *cfg_file_p1;
@@ -142,7 +142,7 @@ stat_start_attempt_cb (void *cls, const char *subsystem, const char *name,
   else
     return GNUNET_OK;
 
-  if (GNUNET_SCHEDULER_NO_TASK == delayed_end_task)
+  if (NULL == delayed_end_task)
     delayed_end_task = GNUNET_SCHEDULER_add_delayed (DELAY, &end, NULL );
   return GNUNET_OK;
 }
@@ -207,22 +207,22 @@ stat_addresses_available (void *cls, const char *subsystem, const char *name,
 static void
 clean_up ()
 {
-  if (measure_task != GNUNET_SCHEDULER_NO_TASK )
+  if (measure_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (measure_task);
-    measure_task = GNUNET_SCHEDULER_NO_TASK;
+    measure_task = NULL;
   }
 
-  if (delayed_end_task != GNUNET_SCHEDULER_NO_TASK )
+  if (delayed_end_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (delayed_end_task);
-    delayed_end_task = GNUNET_SCHEDULER_NO_TASK;
+    delayed_end_task = NULL;
   }
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK )
+  if (die_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   if (NULL != p1_stat)
@@ -270,10 +270,10 @@ clean_up ()
     p2_stat = NULL;
   }
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK )
+  if (die_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   if (th != NULL )
@@ -308,7 +308,7 @@ end ()
   int result = 0;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  delayed_end_task = GNUNET_SCHEDULER_NO_TASK;
+  delayed_end_task = NULL;
   FPRINTF (stderr, "\n");
   if (p1_switch_attempts > 0)
   {
@@ -365,7 +365,7 @@ end ()
 static void
 end_badly ()
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   FPRINTF (stderr, "Peer 1 had %u addresses available, but did not try to switch\n",
@@ -432,7 +432,7 @@ notify_ready (void *cls, size_t size, void *buf)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Timeout occurred while waiting for transmit_ready for message\n");
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL );
     res = 1;
@@ -534,7 +534,7 @@ measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static int counter;
 
-  measure_task = GNUNET_SCHEDULER_NO_TASK;
+  measure_task = NULL;
 
   counter++;
   if ((DURATION.rel_value_us / 1000 / 1000LL) < counter)
@@ -608,7 +608,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   if ((p1 == NULL )|| (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
@@ -657,7 +657,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   if ((p1_stat == NULL )|| (p2_stat == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not create statistics for peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;

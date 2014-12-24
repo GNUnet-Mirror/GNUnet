@@ -78,7 +78,7 @@ struct CadetPeerPath
    * Task to delete the path.
    * We tried it, it didn't work, don't try again in a while.
    */
-  GNUNET_SCHEDULER_TaskIdentifier path_delete;
+  struct GNUNET_SCHEDULER_Task * path_delete;
 
 };
 

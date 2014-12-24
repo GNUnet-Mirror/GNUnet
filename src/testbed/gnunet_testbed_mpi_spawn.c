@@ -58,17 +58,17 @@ static enum GNUNET_OS_ProcessStatusType child_status;
 /**
  * The shutdown task
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
 
 /**
  * Task to kill the child
  */
-static GNUNET_SCHEDULER_TaskIdentifier terminate_task_id;
+static struct GNUNET_SCHEDULER_Task * terminate_task_id;
 
 /**
  * Task to kill the child
  */
-static GNUNET_SCHEDULER_TaskIdentifier child_death_task_id;
+static struct GNUNET_SCHEDULER_Task * child_death_task_id;
 
 /**
  * The shutdown task
@@ -76,7 +76,7 @@ static GNUNET_SCHEDULER_TaskIdentifier child_death_task_id;
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task_id = NULL;
   if (0 != child_exit_code)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Child exited with error code: %lu\n",
@@ -140,7 +140,7 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char c[16];
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
-  child_death_task_id = GNUNET_SCHEDULER_NO_TASK;
+  child_death_task_id = NULL;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     child_death_task_id =
@@ -152,7 +152,7 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
   LOG_DEBUG ("Child died\n");
   GNUNET_SCHEDULER_cancel (terminate_task_id);
-  terminate_task_id = GNUNET_SCHEDULER_NO_TASK;
+  terminate_task_id = NULL;
   GNUNET_assert (GNUNET_OK == GNUNET_OS_process_status (child, &child_status,
                                                         &child_exit_code));
   GNUNET_OS_process_destroy (child);

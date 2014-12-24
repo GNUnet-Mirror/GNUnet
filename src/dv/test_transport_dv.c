@@ -32,14 +32,14 @@ static int ok;
 
 struct GNUNET_TESTBED_Operation *topology_op;
 
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 
 static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task = NULL;
   if (NULL != topology_op)
   {
     GNUNET_TESTBED_operation_done (topology_op);

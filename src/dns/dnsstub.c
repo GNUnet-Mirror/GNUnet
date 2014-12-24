@@ -67,7 +67,7 @@ struct GNUNET_DNSSTUB_RequestSocket
   /**
    * Task for reading from dnsout4 and dnsout6.
    */
-  GNUNET_SCHEDULER_TaskIdentifier read_task;
+  struct GNUNET_SCHEDULER_Task * read_task;
 
   /**
    * When should this request time out?
@@ -125,10 +125,10 @@ cleanup_rs (struct GNUNET_DNSSTUB_RequestSocket *rs)
     GNUNET_NETWORK_socket_close (rs->dnsout6);
     rs->dnsout6 = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rs->read_task)
+  if (NULL != rs->read_task)
   {
     GNUNET_SCHEDULER_cancel (rs->read_task);
-    rs->read_task = GNUNET_SCHEDULER_NO_TASK;
+    rs->read_task = NULL;
   }
 }
 
@@ -223,10 +223,10 @@ get_request_socket (struct GNUNET_DNSSTUB_Context *ctx,
   default:
     return NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rs->read_task)
+  if (NULL != rs->read_task)
   {
     GNUNET_SCHEDULER_cancel (rs->read_task);
-    rs->read_task = GNUNET_SCHEDULER_NO_TASK;
+    rs->read_task = NULL;
   }
   if ( (NULL == rs->dnsout4) &&
        (NULL == rs->dnsout6) )
@@ -475,7 +475,7 @@ read_response (void *cls,
   struct GNUNET_DNSSTUB_RequestSocket *rs = cls;
   struct GNUNET_NETWORK_FDSet *rset;
 
-  rs->read_task = GNUNET_SCHEDULER_NO_TASK;
+  rs->read_task = NULL;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     /* timeout or shutdown */

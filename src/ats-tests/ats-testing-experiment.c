@@ -420,13 +420,13 @@ static void
 timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct Experiment *e = cls;
-  e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  e->experiment_timeout_task = NULL;
   fprintf (stderr, "Experiment timeout!\n");
 
-  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  if (NULL != e->episode_timeout_task)
   {
     GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
-    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    e->episode_timeout_task = NULL;
   }
 
   e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time),
@@ -578,7 +578,7 @@ static void
 timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct Experiment *e = cls;
-  e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  e->episode_timeout_task = NULL;
   if (NULL != e->ep_done_cb)
     e->ep_done_cb (e->cur);
 
@@ -588,10 +588,10 @@ timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
   {
     /* done */
     fprintf (stderr, "Last episode done!\n");
-    if (GNUNET_SCHEDULER_NO_TASK != e->experiment_timeout_task)
+    if (NULL != e->experiment_timeout_task)
     {
       GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
-      e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      e->experiment_timeout_task = NULL;
     }
     e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time), GNUNET_OK);
     return;
@@ -728,15 +728,15 @@ GNUNET_ATS_TEST_experimentation_load (char *filename)
 void
 GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != e->experiment_timeout_task)
+  if (NULL != e->experiment_timeout_task)
   {
     GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
-    e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    e->experiment_timeout_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  if (NULL != e->episode_timeout_task)
   {
     GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
-    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    e->episode_timeout_task = NULL;
   }
   free_experiment (e);
 }

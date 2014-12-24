@@ -45,14 +45,14 @@ static struct GNUNET_REGEX_Search *s;
 
 static int ok = 1;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 
 static void
 end (void *cls,
      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   GNUNET_REGEX_announce_cancel (a);
   a = NULL;
   GNUNET_REGEX_search_cancel (s);
@@ -64,7 +64,7 @@ end (void *cls,
 static void
 end_badly ()
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   FPRINTF (stderr, "%s",  "Testcase failed (timeout).\n");
   GNUNET_REGEX_announce_cancel (a);
   a = NULL;

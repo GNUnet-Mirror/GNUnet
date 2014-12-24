@@ -48,9 +48,9 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static GNUNET_SCHEDULER_TaskIdentifier err_task;
+static struct GNUNET_SCHEDULER_Task * err_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier con_task;
+static struct GNUNET_SCHEDULER_Task * con_task;
 
 static int ok;
 
@@ -88,10 +88,10 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   p1.th = NULL;
   GNUNET_TRANSPORT_disconnect (p2.th);
   p2.th = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != con_task)
+  if (NULL != con_task)
   {
     GNUNET_SCHEDULER_cancel (con_task);
-    con_task = GNUNET_SCHEDULER_NO_TASK;
+    con_task = NULL;
   }
   ok = 0;
 }
@@ -125,10 +125,10 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_disconnect (p2.th);
     p2.th = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != con_task)
+  if (NULL != con_task)
   {
     GNUNET_SCHEDULER_cancel (con_task);
-    con_task = GNUNET_SCHEDULER_NO_TASK;
+    con_task = NULL;
   }
   ok = 42;
 }
@@ -162,10 +162,10 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection established to peer `%4s'\n",
               GNUNET_i2s (peer));
-  if (GNUNET_SCHEDULER_NO_TASK != con_task)
+  if (NULL != con_task)
   {
     GNUNET_SCHEDULER_cancel (con_task);
-    con_task = GNUNET_SCHEDULER_NO_TASK;
+    con_task = NULL;
   }
   pc->connect_status = 1;
   if (pc == &p1)
@@ -250,7 +250,7 @@ connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
-    con_task = GNUNET_SCHEDULER_NO_TASK;
+    con_task = NULL;
     return;
   }
   con_task =

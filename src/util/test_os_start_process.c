@@ -46,7 +46,7 @@ static struct GNUNET_DISK_PipeHandle *hello_pipe_stdin;
  */
 static struct GNUNET_DISK_PipeHandle *hello_pipe_stdout;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 struct read_context
 {

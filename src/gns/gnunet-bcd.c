@@ -51,7 +51,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Our primary task for the HTTPD.
  */
-static GNUNET_SCHEDULER_TaskIdentifier http_task;
+static struct GNUNET_SCHEDULER_Task * http_task;
 
 /**
  * Our main website.
@@ -278,7 +278,7 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static GNUNET_SCHEDULER_TaskIdentifier
+static struct GNUNET_SCHEDULER_Task *
 prepare_daemon (struct MHD_Daemon *daemon_handle);
 
 
@@ -291,7 +291,7 @@ run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MHD_Daemon *daemon_handle = cls;
 
-  http_task = GNUNET_SCHEDULER_NO_TASK;
+  http_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
@@ -303,10 +303,10 @@ run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
  */
-static GNUNET_SCHEDULER_TaskIdentifier
+static struct GNUNET_SCHEDULER_Task *
 prepare_daemon (struct MHD_Daemon *daemon_handle)
 {
-  GNUNET_SCHEDULER_TaskIdentifier ret;
+  struct GNUNET_SCHEDULER_Task * ret;
   fd_set rs;
   fd_set ws;
   fd_set es;
@@ -389,10 +389,10 @@ server_stop (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "HTTP server shutdown\n");
-  if (GNUNET_SCHEDULER_NO_TASK != http_task)
+  if (NULL != http_task)
   {
     GNUNET_SCHEDULER_cancel (http_task);
-    http_task = GNUNET_SCHEDULER_NO_TASK;
+    http_task = NULL;
   }
   if (NULL != daemon_handle)
   {

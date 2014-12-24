@@ -40,7 +40,7 @@
 
 #define DEBUG_ATS_INFO GNUNET_NO
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
 /**
  * Scheduling handle
@@ -102,7 +102,7 @@ unsigned long long wan_quota_in;
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Error! Shutting down\n");
   if (sched_ats != NULL)
   {
@@ -123,10 +123,10 @@ static void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);

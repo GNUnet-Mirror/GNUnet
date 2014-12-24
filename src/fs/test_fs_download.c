@@ -57,7 +57,7 @@ static struct GNUNET_FS_DownloadContext *download;
 
 static struct GNUNET_FS_PublishContext *publish;
 
-static GNUNET_SCHEDULER_TaskIdentifier timeout_kill;
+static struct GNUNET_SCHEDULER_Task * timeout_kill;
 
 static char *fn;
 
@@ -80,7 +80,7 @@ timeout_kill_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     publish = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Timeout downloading file\n");
-  timeout_kill = GNUNET_SCHEDULER_NO_TASK;
+  timeout_kill = NULL;
   err = 1;
 }
 
@@ -120,7 +120,7 @@ abort_download_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (fn);
   fn = NULL;
   GNUNET_SCHEDULER_cancel (timeout_kill);
-  timeout_kill = GNUNET_SCHEDULER_NO_TASK;
+  timeout_kill = NULL;
 }
 
 

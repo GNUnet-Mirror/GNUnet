@@ -58,12 +58,12 @@ static int res_cb_wo_fo;
 
 struct GNUNET_PeerIdentity pid;
 
-GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+struct GNUNET_SCHEDULER_Task * timeout_task;
 
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   GNUNET_break(0);
   if (NULL != pnc_wo_fo)
   {
@@ -95,10 +95,10 @@ done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEERINFO_disconnect (h);
   h = NULL;
 
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  if (NULL != timeout_task)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
 
   if ((GNUNET_YES == res_cb_w_fo) && (GNUNET_NO == res_cb_wo_fo))

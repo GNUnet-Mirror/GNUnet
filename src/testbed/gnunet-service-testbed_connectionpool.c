@@ -126,12 +126,12 @@ struct PooledConnection
   /**
    * The task to expire this connection from the connection pool
    */
-  GNUNET_SCHEDULER_TaskIdentifier expire_task;
+  struct GNUNET_SCHEDULER_Task * expire_task;
 
   /**
    * The task to notify a waiting #GST_ConnectionPool_GetHandle object
    */
-  GNUNET_SCHEDULER_TaskIdentifier notify_task;
+  struct GNUNET_SCHEDULER_Task * notify_task;
 
   /**
    * Number of active requests using this pooled connection
@@ -286,10 +286,10 @@ destroy_pooled_connection (struct PooledConnection *entry)
                    GNUNET_CONTAINER_multihashmap32_remove (map,
                                                            entry->index,
                                                            entry));
-  if (GNUNET_SCHEDULER_NO_TASK != entry->notify_task)
+  if (NULL != entry->notify_task)
   {
     GNUNET_SCHEDULER_cancel (entry->notify_task);
-    entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+    entry->notify_task = NULL;
   }
   LOG_DEBUG ("Cleaning up handles of a pooled connection\n");
   if (NULL != entry->handle_transport)
@@ -322,7 +322,7 @@ expire (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PooledConnection *entry = cls;
 
-  entry->expire_task = GNUNET_SCHEDULER_NO_TASK;
+  entry->expire_task = NULL;
   destroy_pooled_connection (entry);
 }
 
@@ -335,10 +335,10 @@ expire (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 expire_task_cancel (struct PooledConnection *entry)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != entry->expire_task)
+  if (NULL != entry->expire_task)
   {
     GNUNET_SCHEDULER_cancel (entry->expire_task);
-    entry->expire_task = GNUNET_SCHEDULER_NO_TASK;
+    entry->expire_task = NULL;
   }
 }
 
@@ -355,7 +355,7 @@ add_to_lru (struct PooledConnection *entry)
   GNUNET_assert (!entry->in_lru);
   GNUNET_CONTAINER_DLL_insert_tail (head_lru, tail_lru, entry);
   entry->in_lru = GNUNET_YES;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == entry->expire_task);
+  GNUNET_assert (NULL == entry->expire_task);
   entry->expire_task = GNUNET_SCHEDULER_add_delayed (CACHE_EXPIRY,
                                                      &expire, entry);
 }
@@ -415,8 +415,8 @@ connection_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GST_ConnectionPool_GetHandle *gh;
   struct GST_ConnectionPool_GetHandle *gh_next;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != entry->notify_task);
-  entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != entry->notify_task);
+  entry->notify_task = NULL;
   gh = search_waiting (entry, entry->head_waiting);
   GNUNET_assert (NULL != gh);
   gh_next = NULL;
@@ -524,7 +524,7 @@ opstart_get_handle_transport (void *cls)
   }
   if (0 == entry->demand)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != entry->notify_task)
+  if (NULL != entry->notify_task)
     return;
   if (NULL != search_waiting (entry, entry->head_waiting))
   {
@@ -597,7 +597,7 @@ core_startup_cb (void *cls,
           sizeof (struct GNUNET_PeerIdentity));
   if (0 == entry->demand)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != entry->notify_task)
+  if (NULL != entry->notify_task)
     return;
   if (NULL != search_waiting (entry, entry->head_waiting))
   {
@@ -832,7 +832,7 @@ GST_connection_pool_get_handle (unsigned int peer_id,
   GNUNET_CONTAINER_DLL_insert (entry->head_waiting, entry->tail_waiting, gh);
   if (NULL != handle)
   {
-    if (GNUNET_SCHEDULER_NO_TASK == entry->notify_task)
+    if (NULL == entry->notify_task)
     {
       if (NULL != search_waiting (entry, entry->head_waiting))
         entry->notify_task = GNUNET_SCHEDULER_add_now (&connection_ready, entry);
@@ -888,10 +888,10 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
   {
     GNUNET_CONTAINER_DLL_remove (entry->head_waiting, entry->tail_waiting, gh);
     if ( (NULL == search_waiting (entry, entry->head_waiting))
-         && (GNUNET_SCHEDULER_NO_TASK != entry->notify_task) )
+         && (NULL != entry->notify_task) )
     {
       GNUNET_SCHEDULER_cancel (entry->notify_task);
-      entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
+      entry->notify_task = NULL;
     }
   }
   if (gh->notify_waiting)

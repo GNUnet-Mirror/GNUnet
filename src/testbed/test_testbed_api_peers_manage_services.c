@@ -52,7 +52,7 @@ static void *dummy_cls = (void *) 0xDEAD0001;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * States in this test
@@ -91,7 +91,7 @@ enum {
 #define FAIL_TEST(cond, ret) do {                               \
     if (!(cond)) {                                              \
       GNUNET_break(0);                                          \
-      if (GNUNET_SCHEDULER_NO_TASK != abort_task)               \
+      if (NULL != abort_task)               \
         GNUNET_SCHEDULER_cancel (abort_task);                   \
       abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);  \
       ret;                                                      \
@@ -109,7 +109,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   if (NULL != op)
   {
     GNUNET_TESTBED_operation_done (op);
@@ -151,7 +151,7 @@ op_comp_cb (void *cls,
   case STATE_SERVICE_DOWN:
     state = STATE_SERVICE_UP;
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
     state = STATE_OK;
     GNUNET_SCHEDULER_shutdown ();
     break;

@@ -96,7 +96,7 @@ set_pref_task (void *cls,
 {
   struct BenchmarkPartner *p = cls;
   double pref_value;
-  p->pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+  p->pg->set_task = NULL;
 
   pref_value = get_preference (p->pg);
 
@@ -214,10 +214,10 @@ GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg)
   GNUNET_CONTAINER_DLL_remove (pg_head, pg_tail, pg);
   pg->dest->pg = NULL;
 
-  if (GNUNET_SCHEDULER_NO_TASK != pg->set_task)
+  if (NULL != pg->set_task)
   {
     GNUNET_SCHEDULER_cancel (pg->set_task);
-    pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+    pg->set_task = NULL;
   }
 
   GNUNET_free (pg);

@@ -228,7 +228,7 @@ struct RequestContext
   /**
    * Task used to abort this operation with timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Length of the request message that follows this struct.

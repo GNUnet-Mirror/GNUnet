@@ -42,9 +42,9 @@ static int result = GNUNET_OK;
 
 static int got_data = GNUNET_NO;
 
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 static struct GNUNET_CADET_TransmitHandle *mth;
 
@@ -66,7 +66,7 @@ static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
   }
@@ -95,11 +95,11 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ABORT\n");
   result = GNUNET_SYSERR;
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  abort_task = NULL;
+  if (NULL != shutdown_task)
   {
     GNUNET_SCHEDULER_cancel (shutdown_task);
-    shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+    shutdown_task = NULL;
   }
   do_shutdown (cls, tc);
 }
@@ -123,7 +123,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback! Shutting down.\n");
   got_data = GNUNET_YES;
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,

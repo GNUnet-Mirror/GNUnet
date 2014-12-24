@@ -71,12 +71,12 @@ static int ok = 1;
 /**
  * Task to do DHT_puts
  */
-static GNUNET_SCHEDULER_TaskIdentifier put_task;
+static struct GNUNET_SCHEDULER_Task * put_task;
 
 /**
  * Task to time out / regular shutdown.
  */
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static struct GNUNET_SCHEDULER_Task * timeout_task;
 
 /**
  * Head of list of active GET operations.

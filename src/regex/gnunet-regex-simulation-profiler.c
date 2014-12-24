@@ -91,17 +91,17 @@ static struct ProgressMeter *meter;
 /**
  * Abort task identifier.
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Shutdown task identifier.
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Scan task identifier;
  */
-static GNUNET_SCHEDULER_TaskIdentifier scan_task;
+static struct GNUNET_SCHEDULER_Task * scan_task;
 
 /**
  * Global testing status.
@@ -276,8 +276,8 @@ free_meter (struct ProgressMeter *meter)
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  shutdown_task = NULL;
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != mysql_ctx)
     GNUNET_MYSQL_context_destroy (mysql_ctx);
@@ -298,9 +298,9 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   GNUNET_SCHEDULER_cancel (scan_task);
-  scan_task = GNUNET_SCHEDULER_NO_TASK;
+  scan_task = NULL;
   result = GNUNET_SYSERR;
   GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }

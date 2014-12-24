@@ -475,10 +475,10 @@ incoming_destroy (struct Operation *incoming)
   GNUNET_CONTAINER_DLL_remove (incoming_head,
                                incoming_tail,
                                incoming);
-  if (GNUNET_SCHEDULER_NO_TASK != incoming->timeout_task)
+  if (NULL != incoming->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (incoming->timeout_task);
-    incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    incoming->timeout_task = NULL;
   }
   /* make sure that the tunnel end handler will not destroy us again */
   incoming->vt = NULL;
@@ -543,9 +543,9 @@ incoming_suggest (struct Operation *incoming,
   incoming->suggest_id = suggest_id++;
   if (0 == suggest_id)
     suggest_id++;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != incoming->timeout_task);
+  GNUNET_assert (NULL != incoming->timeout_task);
   GNUNET_SCHEDULER_cancel (incoming->timeout_task);
-  incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  incoming->timeout_task = NULL;
   mqm = GNUNET_MQ_msg_nested_mh (cmsg,
                                  GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
@@ -624,7 +624,7 @@ handle_incoming_msg (struct Operation *op,
                                      &msg->app_id);
   if (NULL == listener)
   {
-    GNUNET_break (GNUNET_SCHEDULER_NO_TASK != op->timeout_task);
+    GNUNET_break (NULL != op->timeout_task);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "No matching listener for incoming request (op %u, app %s), waiting with timeout\n",
                 ntohl (msg->operation),
@@ -1279,7 +1279,7 @@ incoming_timeout_cb (void *cls,
 {
   struct Operation *incoming = cls;
 
-  incoming->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  incoming->timeout_task = NULL;
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;

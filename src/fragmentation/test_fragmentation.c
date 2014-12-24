@@ -60,7 +60,7 @@ static struct GNUNET_BANDWIDTH_Tracker trackers[NUM_MSGS];
 
 static struct GNUNET_FRAGMENT_Context *frags[NUM_MSGS];
 
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -68,7 +68,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   ret = 0;
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task = NULL;
   GNUNET_DEFRAGMENT_context_destroy (defrag);
   defrag = NULL;
   for (i = 0; i < NUM_MSGS; i++)
@@ -102,7 +102,7 @@ proc_msgs (void *cls, const struct GNUNET_MessageHeader *hdr)
   /* tolerate 10% loss, i.e. due to duplicate fragment IDs */
   if ((total >= NUM_MSGS - (NUM_MSGS / 10)) && (ret != 0))
   {
-    if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
+    if (NULL == shutdown_task)
       shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
   }
 }

@@ -422,7 +422,7 @@ static struct GNUNET_DHT_Handle *dht;
 /**
  * Task for doing DHT PUTs to advertise exit service.
  */
-static GNUNET_SCHEDULER_TaskIdentifier dht_task;
+static struct GNUNET_SCHEDULER_Task * dht_task;
 
 /**
  * Advertisement message we put into the DHT to advertise us
@@ -3198,10 +3198,10 @@ cleanup (void *cls,
     GNUNET_free (peer_key);
     peer_key = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != dht_task)
+  if (NULL != dht_task)
   {
     GNUNET_SCHEDULER_cancel (dht_task);
-    dht_task = GNUNET_SCHEDULER_NO_TASK;
+    dht_task = NULL;
   }
   if (NULL != dht_put)
   {
@@ -3445,7 +3445,7 @@ do_dht_put (void *cls,
 {
   struct GNUNET_TIME_Absolute expiration;
 
-  dht_task = GNUNET_SCHEDULER_NO_TASK;
+  dht_task = NULL;
   expiration = GNUNET_TIME_absolute_ntoh (dns_advertisement.expiration_time);
   if (GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us <
       GNUNET_TIME_UNIT_HOURS.rel_value_us)

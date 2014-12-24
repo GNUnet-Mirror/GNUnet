@@ -68,7 +68,7 @@ struct SessionKiller
   /**
    * The kill task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 };
 
 struct BlacklistCheckContext
@@ -246,7 +246,7 @@ kill_session_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct SessionKiller *sk = cls;
 
-  sk->task = GNUNET_SCHEDULER_NO_TASK;
+  sk->task = NULL;
   GNUNET_CONTAINER_DLL_remove(sk_head, sk_tail, sk);
   sk->plugin->disconnect_session (sk->plugin->cls, sk->session);
   GNUNET_free(sk);

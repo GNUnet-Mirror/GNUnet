@@ -35,7 +35,7 @@
 
 static int ok;
 
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static struct GNUNET_SCHEDULER_Task * timeout_task;
 
 struct PeerContext
 {
@@ -83,7 +83,7 @@ clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout trying to connect peers, test failed.\n");
   clean_up (NULL, tc);
@@ -106,10 +106,10 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected, shutting down.\n");
   ok = 0;
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
   GNUNET_SCHEDULER_add_now (&clean_up, NULL);
 }

@@ -412,7 +412,7 @@ struct GAS_RIL_Handle
   /**
    * Task identifier of the next time-step to be executed
    */
-  GNUNET_SCHEDULER_TaskIdentifier step_next_task_id;
+  struct GNUNET_SCHEDULER_Task * step_next_task_id;
 
   /**
    * Variable discount factor, dependent on time between steps
@@ -1546,7 +1546,7 @@ ril_step_scheduler_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
 {
   struct GAS_RIL_Handle *solver = cls;
 
-  solver->step_next_task_id = GNUNET_SCHEDULER_NO_TASK;
+  solver->step_next_task_id = NULL;
   ril_step (solver);
 }
 
@@ -1875,7 +1875,7 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
     time_next = GNUNET_TIME_UNIT_ZERO;
   }
 
-  if ((GNUNET_SCHEDULER_NO_TASK == solver->step_next_task_id) && (GNUNET_NO == solver->done))
+  if ((NULL == solver->step_next_task_id) && (GNUNET_NO == solver->done))
   {
     solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (time_next, &ril_step_scheduler_task,
           solver);
@@ -2939,7 +2939,7 @@ libgnunet_plugin_ats_ril_done (void *cls)
     cur_agent = next_agent;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != s->step_next_task_id)
+  if (NULL != s->step_next_task_id)
   {
     GNUNET_SCHEDULER_cancel (s->step_next_task_id);
   }

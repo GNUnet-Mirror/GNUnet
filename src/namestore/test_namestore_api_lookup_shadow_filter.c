@@ -42,9 +42,9 @@ static struct GNUNET_NAMESTORE_Handle *nsh;
 
 static struct GNUNET_NAMECACHE_Handle *nch;
 
-static GNUNET_SCHEDULER_TaskIdentifier endbadly_task;
+static struct GNUNET_SCHEDULER_Task * endbadly_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier delayed_lookup_task;
+static struct GNUNET_SCHEDULER_Task * delayed_lookup_task;
 
 static struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
 
@@ -99,10 +99,10 @@ cleanup ()
 static void
 endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != delayed_lookup_task)
+  if (NULL != delayed_lookup_task)
   {
     GNUNET_SCHEDULER_cancel (delayed_lookup_task);
-    delayed_lookup_task = GNUNET_SCHEDULER_NO_TASK;
+    delayed_lookup_task = NULL;
   }
   if (NULL != nsqe)
   {
@@ -222,17 +222,17 @@ name_lookup_active_proc (void *cls,
 
   ncqe = NULL;
   ncqe_shadow = NULL;
-  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+  if (endbadly_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (endbadly_task);
-    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
+    endbadly_task = NULL;
   }
 
   if (NULL == block)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Namestore returned no block\n"));
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
+    if (endbadly_task != NULL)
       GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task =  GNUNET_SCHEDULER_add_now (&endbadly, NULL);
     return;
@@ -249,7 +249,7 @@ name_lookup_shadow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing lookup for shadow record \n");
-  delayed_lookup_task = GNUNET_SCHEDULER_NO_TASK;
+  delayed_lookup_task = NULL;
   ncqe_shadow = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
       &name_lookup_active_proc, &records[1]);
 }

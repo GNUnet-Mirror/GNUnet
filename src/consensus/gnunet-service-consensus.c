@@ -154,7 +154,7 @@ struct ConsensusSession
   /**
    * Timeout task identifier for the current round or subround.
    */
-  GNUNET_SCHEDULER_TaskIdentifier round_timeout_tid;
+  struct GNUNET_SCHEDULER_Task * round_timeout_tid;
 
   /**
    * Number of other peers in the consensus.
@@ -440,12 +440,12 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: round over\n", session->local_peer_idx);
 
   if (tc != NULL)
-    session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+    session->round_timeout_tid = NULL;
 
-  if (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK)
+  if (session->round_timeout_tid != NULL)
   {
     GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
-    session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+    session->round_timeout_tid = NULL;
   }
 
   for (i = 0; i < session->num_peers; i++)
@@ -726,16 +726,16 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (tc != NULL)
   {
-    session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+    session->round_timeout_tid = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: consensus subround timed out\n",
                 session->local_peer_idx);
   }
 
   /* cancel timeout */
-  if (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK)
+  if (session->round_timeout_tid != NULL)
   {
     GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
-    session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+    session->round_timeout_tid = NULL;
   }
 
   for (i = 0; i < session->num_peers; i++)

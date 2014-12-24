@@ -112,7 +112,7 @@ struct GNUNET_FS_PublishUblockContext
   /**
    * Task to run continuation asynchronously.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
 };
 
@@ -155,7 +155,7 @@ run_cont (void *cls,
 {
   struct GNUNET_FS_PublishUblockContext *uc = cls;
 
-  uc->task = GNUNET_SCHEDULER_NO_TASK;
+  uc->task = NULL;
   uc->cont (uc->cont_cls, NULL);
   GNUNET_free (uc);
 }
@@ -316,7 +316,7 @@ GNUNET_FS_publish_ublock_cancel_ (struct GNUNET_FS_PublishUblockContext *uc)
 {
   if (NULL != uc->qre)
     GNUNET_DATASTORE_cancel (uc->qre);
-  if (GNUNET_SCHEDULER_NO_TASK != uc->task)
+  if (NULL != uc->task)
     GNUNET_SCHEDULER_cancel (uc->task);
   GNUNET_free (uc);
 }

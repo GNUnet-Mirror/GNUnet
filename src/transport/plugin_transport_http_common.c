@@ -205,7 +205,7 @@ struct PrettyPrinterContext
   /**
    * Timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Splitted Address

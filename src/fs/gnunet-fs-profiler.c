@@ -50,7 +50,7 @@ static struct GNUNET_TIME_Relative timeout;
 /**
  * Handle to the task run during termination.
  */
-static GNUNET_SCHEDULER_TaskIdentifier terminate_taskid;
+static struct GNUNET_SCHEDULER_Task * terminate_taskid;
 
 
 /**
@@ -115,7 +115,7 @@ static void
 terminate_task (void *cls,
 		const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  terminate_taskid = GNUNET_SCHEDULER_NO_TASK;
+  terminate_taskid = NULL;
   GNUNET_TESTBED_get_statistics (0, NULL,
                                  NULL, NULL,
 				 &process_stats,

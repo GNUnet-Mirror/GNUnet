@@ -40,14 +40,7 @@ extern "C"
 /**
  * Opaque reference to a task.
  */
-typedef unsigned long long GNUNET_SCHEDULER_TaskIdentifier;
-
-
-/**
- * Constant used to indicate that the scheduled
- * task has no others as prerequisites.
- */
-#define GNUNET_SCHEDULER_NO_TASK ((GNUNET_SCHEDULER_TaskIdentifier) 0)
+struct GNUNET_SCHEDULER_Task;
 
 /**
  * Reasons why the schedule may have triggered
@@ -56,36 +49,41 @@ typedef unsigned long long GNUNET_SCHEDULER_TaskIdentifier;
 enum GNUNET_SCHEDULER_Reason
 {
   /**
+   * This task is not ready.
+   */
+  GNUNET_SCHEDULER_REASON_NONE = 0,
+
+  /**
    * This is the very first task run during startup.
    */
-  GNUNET_SCHEDULER_REASON_STARTUP = 0,
+  GNUNET_SCHEDULER_REASON_STARTUP = 1,
 
   /**
    * We are shutting down and are running all shutdown-related tasks
    * (regardless of timeout, etc.).
    */
-  GNUNET_SCHEDULER_REASON_SHUTDOWN = 1,
+  GNUNET_SCHEDULER_REASON_SHUTDOWN = 2,
 
   /**
    * The specified timeout has expired.
    * (also set if the delay given was 0).
    */
-  GNUNET_SCHEDULER_REASON_TIMEOUT = 2,
+  GNUNET_SCHEDULER_REASON_TIMEOUT = 4,
 
   /**
    * The reading socket is ready.
    */
-  GNUNET_SCHEDULER_REASON_READ_READY = 4,
+  GNUNET_SCHEDULER_REASON_READ_READY = 8,
 
   /**
    * The writing socket is ready.
    */
-  GNUNET_SCHEDULER_REASON_WRITE_READY = 8,
+  GNUNET_SCHEDULER_REASON_WRITE_READY = 16,
 
   /**
    * The prerequisite task is done.
    */
-  GNUNET_SCHEDULER_REASON_PREREQ_DONE = 16
+  GNUNET_SCHEDULER_REASON_PREREQ_DONE = 32
 };
 
 
@@ -193,9 +191,9 @@ struct GNUNET_SCHEDULER_TaskContext
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-typedef void (*GNUNET_SCHEDULER_Task) (void *cls,
-                                       const struct GNUNET_SCHEDULER_TaskContext
-                                       * tc);
+typedef void
+(*GNUNET_SCHEDULER_TaskCallback) (void *cls,
+                                  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -209,11 +207,12 @@ typedef void (*GNUNET_SCHEDULER_Task) (void *cls,
  * @param timeout relative value when to return
  * @return number of selected sockets, #GNUNET_SYSERR on error
  */
-typedef int (*GNUNET_SCHEDULER_select) (void *cls,
-                                        struct GNUNET_NETWORK_FDSet *rfds,
-                                        struct GNUNET_NETWORK_FDSet *wfds,
-                                        struct GNUNET_NETWORK_FDSet *efds,
-                                        struct GNUNET_TIME_Relative timeout);
+typedef int
+(*GNUNET_SCHEDULER_select) (void *cls,
+                            struct GNUNET_NETWORK_FDSet *rfds,
+                            struct GNUNET_NETWORK_FDSet *wfds,
+                            struct GNUNET_NETWORK_FDSet *efds,
+                            struct GNUNET_TIME_Relative timeout);
 
 
 /**
@@ -231,7 +230,8 @@ typedef int (*GNUNET_SCHEDULER_select) (void *cls,
  * @param task_cls closure of task
  */
 void
-GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls);
+GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
+                      void *task_cls);
 
 
 /**
@@ -279,7 +279,7 @@ GNUNET_SCHEDULER_get_reason (void);
  * @return the closure of the callback of the cancelled task
  */
 void *
-GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task);
+GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task);
 
 
 /**
@@ -292,7 +292,8 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task);
  * @param reason reason for task invocation
  */
 void
-GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
+GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_TaskCallback task,
+                                   void *task_cls,
                                    enum GNUNET_SCHEDULER_Reason reason);
 
 
@@ -307,7 +308,8 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
  * @param priority priority to use for the task
  */
 void
-GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, void *task_cls,
+GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_TaskCallback task,
+                                                 void *task_cls,
 						 enum GNUNET_SCHEDULER_Reason reason,
 						 enum GNUNET_SCHEDULER_Priority priority);
 
@@ -321,9 +323,10 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, voi
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
-                                    GNUNET_SCHEDULER_Task task, void *task_cls);
+                                    GNUNET_SCHEDULER_TaskCallback task,
+                                    void *task_cls);
 
 
 /**
@@ -341,8 +344,9 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
-GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task, void *task_cls);
+struct GNUNET_SCHEDULER_Task *
+GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_TaskCallback task,
+                          void *task_cls);
 
 
 /**
@@ -359,9 +363,9 @@ GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task, void *task_cls);
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
-                                        GNUNET_SCHEDULER_Task task,
+                                        GNUNET_SCHEDULER_TaskCallback task,
                                         void *task_cls);
 
 
@@ -377,9 +381,10 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
-                              GNUNET_SCHEDULER_Task task, void *task_cls);
+                              GNUNET_SCHEDULER_TaskCallback task,
+                              void *task_cls);
 
 
 /**
@@ -394,10 +399,11 @@ GNUNET_SCHEDULER_add_delayed (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
 					    enum GNUNET_SCHEDULER_Priority priority,
-					    GNUNET_SCHEDULER_Task task, void *task_cls);
+					    GNUNET_SCHEDULER_TaskCallback task,
+                                            void *task_cls);
 
 
 /**
@@ -415,10 +421,11 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
                                struct GNUNET_NETWORK_Handle *rfd,
-                               GNUNET_SCHEDULER_Task task, void *task_cls);
+                               GNUNET_SCHEDULER_TaskCallback task,
+                               void *task_cls);
 
 
 /**
@@ -438,11 +445,12 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
 					     enum GNUNET_SCHEDULER_Priority priority,
 					     struct GNUNET_NETWORK_Handle *rfd,
-					     GNUNET_SCHEDULER_Task task, void *task_cls);
+					     GNUNET_SCHEDULER_TaskCallback task,
+                                             void *task_cls);
 
 
 /**
@@ -460,10 +468,11 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
                                 struct GNUNET_NETWORK_Handle *wfd,
-                                GNUNET_SCHEDULER_Task task, void *task_cls);
+                                GNUNET_SCHEDULER_TaskCallback task,
+                                void *task_cls);
 
 
 /**
@@ -484,12 +493,14 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
                                          enum GNUNET_SCHEDULER_Priority priority,
                                          struct GNUNET_NETWORK_Handle *fd,
-                                         int on_read, int on_write,
-                                         GNUNET_SCHEDULER_Task task, void *task_cls);
+                                         int on_read,
+                                         int on_write,
+                                         GNUNET_SCHEDULER_TaskCallback task,
+                                         void *task_cls);
 
 /**
  * Schedule a new task to be run with a specified delay or when the
@@ -506,10 +517,11 @@ GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
                                 const struct GNUNET_DISK_FileHandle *rfd,
-                                GNUNET_SCHEDULER_Task task, void *task_cls);
+                                GNUNET_SCHEDULER_TaskCallback task,
+                                void *task_cls);
 
 
 /**
@@ -527,10 +539,11 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
                                  const struct GNUNET_DISK_FileHandle *wfd,
-                                 GNUNET_SCHEDULER_Task task, void *task_cls);
+                                 GNUNET_SCHEDULER_TaskCallback task,
+                                 void *task_cls);
 
 
 /**
@@ -551,12 +564,13 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
                                          enum GNUNET_SCHEDULER_Priority priority,
                                          const struct GNUNET_DISK_FileHandle *fd,
                                          int on_read, int on_write,
-                                         GNUNET_SCHEDULER_Task task, void *task_cls);
+                                         GNUNET_SCHEDULER_TaskCallback task,
+                                         void *task_cls);
 
 
 /**
@@ -586,12 +600,13 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
-GNUNET_SCHEDULER_TaskIdentifier
+struct GNUNET_SCHEDULER_Task *
 GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              struct GNUNET_TIME_Relative delay,
                              const struct GNUNET_NETWORK_FDSet *rs,
                              const struct GNUNET_NETWORK_FDSet *ws,
-                             GNUNET_SCHEDULER_Task task, void *task_cls);
+                             GNUNET_SCHEDULER_TaskCallback task,
+                             void *task_cls);
 
 /**
  * Sets the select function to use in the scheduler (scheduler_select).

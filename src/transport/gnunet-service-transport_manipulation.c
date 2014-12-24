@@ -92,7 +92,7 @@ struct TM_Peer
   /**
    * Task to schedule delayed sendding
    */
-  GNUNET_SCHEDULER_TaskIdentifier send_delay_task;
+  struct GNUNET_SCHEDULER_Task * send_delay_task;
 
   /**
    * Send queue DLL head
@@ -191,7 +191,7 @@ struct DelayQueueEntry *generic_dqe_tail;
 /**
  * Task to schedule delayed sending based on general delay
  */
-GNUNET_SCHEDULER_TaskIdentifier generic_send_delay_task;
+struct GNUNET_SCHEDULER_Task * generic_send_delay_task;
 
 static void
 set_metric(struct TM_Peer *dest, int direction, uint32_t type, uint32_t value)
@@ -358,7 +358,7 @@ send_delayed(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != tmp)
     {
       GNUNET_break(GNUNET_YES == GST_neighbours_test_connected (&dqe->id));
-      tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+      tmp->send_delay_task = NULL;
       GNUNET_CONTAINER_DLL_remove(tmp->send_head, tmp->send_tail, dqe);
       GST_neighbours_send(&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout,
           dqe->cont, dqe->cont_cls);
@@ -376,7 +376,7 @@ send_delayed(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       /* Remove from generic queue */
       GNUNET_break(GNUNET_YES == GST_neighbours_test_connected (&dqe->id));
-      generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+      generic_send_delay_task = NULL;
       GNUNET_CONTAINER_DLL_remove(generic_dqe_head, generic_dqe_tail, dqe);
       GST_neighbours_send(&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout,
           dqe->cont, dqe->cont_cls);
@@ -434,7 +434,7 @@ GST_manipulation_send(const struct GNUNET_PeerIdentity *target, const void *msg,
           dqe->timeout = timeout;
           memcpy(dqe->msg, msg, msg_size);
           GNUNET_CONTAINER_DLL_insert_tail(tmp->send_head, tmp->send_tail, dqe);
-          if (GNUNET_SCHEDULER_NO_TASK == tmp->send_delay_task)
+          if (NULL == tmp->send_delay_task)
             tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed(delay,
                 &send_delayed, dqe);
           GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -462,7 +462,7 @@ GST_manipulation_send(const struct GNUNET_PeerIdentity *target, const void *msg,
       dqe->timeout = timeout;
       memcpy(dqe->msg, msg, msg_size);
       GNUNET_CONTAINER_DLL_insert_tail(generic_dqe_head, generic_dqe_tail, dqe);
-      if (GNUNET_SCHEDULER_NO_TASK == generic_send_delay_task)
+      if (NULL == generic_send_delay_task)
         {
           generic_send_delay_task = GNUNET_SCHEDULER_add_delayed(delay,
               &send_delayed, dqe);
@@ -642,10 +642,10 @@ free_tmps(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
             dqe->cont(dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
           GNUNET_free(dqe);
         }
-      if (GNUNET_SCHEDULER_NO_TASK != tmp->send_delay_task)
+      if (NULL != tmp->send_delay_task)
         {
           GNUNET_SCHEDULER_cancel(tmp->send_delay_task);
-          tmp->send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+          tmp->send_delay_task = NULL;
         }
       GNUNET_free(tmp);
     }
@@ -693,10 +693,10 @@ GST_manipulation_peer_disconnect(const struct GNUNET_PeerIdentity *peer)
               GNUNET_free(dqe);
             }
         }
-      if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
+      if (NULL != generic_send_delay_task)
         {
           GNUNET_SCHEDULER_cancel(generic_send_delay_task);
-          generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+          generic_send_delay_task = NULL;
           if (NULL != generic_dqe_head)
             generic_send_delay_task = GNUNET_SCHEDULER_add_delayed(
                 GNUNET_TIME_absolute_get_remaining(generic_dqe_head->sent_at),
@@ -725,10 +725,10 @@ GST_manipulation_stop()
         cur->cont(cur->cont_cls, GNUNET_SYSERR, cur->msg_size, 0);
       GNUNET_free(cur);
     }
-  if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
+  if (NULL != generic_send_delay_task)
     {
       GNUNET_SCHEDULER_cancel(generic_send_delay_task);
-      generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
+      generic_send_delay_task = NULL;
     }
 
   free_metric(&man_handle.general);

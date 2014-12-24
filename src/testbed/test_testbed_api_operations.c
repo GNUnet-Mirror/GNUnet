@@ -115,7 +115,7 @@ struct GNUNET_TESTBED_Operation *op9;
 /**
  * The delay task identifier
  */
-GNUNET_SCHEDULER_TaskIdentifier step_task;
+struct GNUNET_SCHEDULER_Task * step_task;
 
 
 /**
@@ -267,8 +267,8 @@ release_cb (void *cls);
 static void
 step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != step_task);
-  step_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != step_task);
+  step_task = NULL;
   switch (result)
   {
   case TEST_OP1_STARTED:
@@ -344,28 +344,28 @@ start_cb (void *cls)
   case TEST_INIT:
     GNUNET_assert (&op1 == cls);
     result = TEST_OP1_STARTED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     step_task =
         GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_PAUSE:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_STARTED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     step_task =
         GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_OP2_RELEASED:
     GNUNET_assert (&op3 == cls);
     result = TEST_OP3_STARTED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     step_task =
         GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
   case TEST_OP3_RELEASED:
     GNUNET_assert (&op4 == cls);
     result = TEST_OP4_STARTED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     step_task =
         GNUNET_SCHEDULER_add_delayed (STEP_DELAY, &step, NULL);
     break;
@@ -422,17 +422,17 @@ release_cb (void *cls)
   case TEST_OP2_STARTED:
     GNUNET_assert (&op2 == cls);
     result = TEST_OP2_RELEASED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     break;
   case TEST_OP3_STARTED:
     GNUNET_assert (&op3 == cls);
     result = TEST_OP3_RELEASED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     break;
   case TEST_OP4_STARTED:
     GNUNET_assert (&op4 == cls);
     result = TEST_OP4_RELEASED;
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == step_task);
+    GNUNET_assert (NULL == step_task);
     op5 = GNUNET_TESTBED_operation_create_ (&op5, &start_cb, &release_cb);
     GNUNET_TESTBED_operation_queue_insert2_ (q1, op5, 1);
     GNUNET_TESTBED_operation_begin_wait_ (op5);

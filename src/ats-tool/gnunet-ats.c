@@ -124,7 +124,7 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Shutdown task
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Hashmap to store addresses
@@ -345,7 +345,7 @@ transport_addr_to_str_cb (void *cls,
     if ((GNUNET_YES == stat_receive_done) && (0 == stat_pending))
     {
       /* All messages received and no resolutions pending*/
-      if (shutdown_task != GNUNET_SCHEDULER_NO_TASK)
+      if (shutdown_task != NULL)
         GNUNET_SCHEDULER_cancel (shutdown_task);
       shutdown_task = GNUNET_SCHEDULER_add_now (end, NULL);
     }
@@ -637,7 +637,7 @@ ats_perf_cb (void *cls,
     if (0 == stat_pending)
     {
       /* All messages received and no resolutions pending*/
-      if (shutdown_task != GNUNET_SCHEDULER_NO_TASK)
+      if (shutdown_task != NULL)
         GNUNET_SCHEDULER_cancel (shutdown_task);
       shutdown_task = GNUNET_SCHEDULER_add_now (end, NULL);
     }

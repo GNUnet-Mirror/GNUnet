@@ -153,7 +153,7 @@ struct ConnectingContext
   struct ConnectingContext *prev;
   struct PeerContext *p1;
   struct PeerContext *p2;
-  GNUNET_SCHEDULER_TaskIdentifier tct;
+  struct GNUNET_SCHEDULER_Task * tct;
   GNUNET_TRANSPORT_TESTING_connect_cb cb;
   void *cb_cls;
   struct GNUNET_TRANSPORT_Handle *th_p1;

@@ -83,7 +83,7 @@ struct MessageContext
    * Task scheduled for transmitting the next ACK to the
    * other peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier ack_task;
+  struct GNUNET_SCHEDULER_Task * ack_task;
 
   /**
    * When did we receive which fragment? Used to calculate
@@ -236,10 +236,10 @@ GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc)
   {
     GNUNET_CONTAINER_DLL_remove (dc->head, dc->tail, mc);
     dc->list_size--;
-    if (GNUNET_SCHEDULER_NO_TASK != mc->ack_task)
+    if (NULL != mc->ack_task)
     {
       GNUNET_SCHEDULER_cancel (mc->ack_task);
-      mc->ack_task = GNUNET_SCHEDULER_NO_TASK;
+      mc->ack_task = NULL;
     }
     GNUNET_free (mc);
   }
@@ -261,7 +261,7 @@ send_ack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_DEFRAGMENT_Context *dc = mc->dc;
   struct FragmentAcknowledgement fa;
 
-  mc->ack_task = GNUNET_SCHEDULER_NO_TASK;
+  mc->ack_task = NULL;
   fa.header.size = htons (sizeof (struct FragmentAcknowledgement));
   fa.header.type = htons (GNUNET_MESSAGE_TYPE_FRAGMENT_ACK);
   fa.fragment_id = htonl (mc->fragment_id);
@@ -388,10 +388,10 @@ discard_oldest_mc (struct GNUNET_DEFRAGMENT_Context *dc)
   GNUNET_assert (NULL != old);
   GNUNET_CONTAINER_DLL_remove (dc->head, dc->tail, old);
   dc->list_size--;
-  if (GNUNET_SCHEDULER_NO_TASK != old->ack_task)
+  if (NULL != old->ack_task)
   {
     GNUNET_SCHEDULER_cancel (old->ack_task);
-    old->ack_task = GNUNET_SCHEDULER_NO_TASK;
+    old->ack_task = NULL;
   }
   GNUNET_free (old);
 }
@@ -550,7 +550,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
        linear sequence; ACK now! */
     delay = GNUNET_TIME_UNIT_ZERO;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != mc->ack_task)
+  if (NULL != mc->ack_task)
     GNUNET_SCHEDULER_cancel (mc->ack_task);
   mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay, &send_ack, mc);
   if (duplicate == GNUNET_YES)

@@ -62,11 +62,11 @@ static unsigned long long total_bytes_recv;
 
 static struct GNUNET_TIME_Absolute start_time;
 
-static GNUNET_SCHEDULER_TaskIdentifier err_task;
+static struct GNUNET_SCHEDULER_Task * err_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier measure_task;
+static struct GNUNET_SCHEDULER_Task * measure_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier connect_task;
+static struct GNUNET_SCHEDULER_Task * connect_task;
 
 
 struct PeerContext
@@ -118,7 +118,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CORE_Handle *ch;
 
-  err_task = GNUNET_SCHEDULER_NO_TASK;
+  err_task = NULL;
   GNUNET_STATISTICS_destroy (p1.stats, GNUNET_NO);
   GNUNET_STATISTICS_destroy (p2.stats, GNUNET_NO);
   GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
@@ -128,10 +128,10 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_notify_transmit_ready_cancel (p1.nth);
     p1.nth = NULL;
   }
-  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (connect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = GNUNET_SCHEDULER_NO_TASK;
+    connect_task = NULL;
   }
   ch = p1.ch;
   p1.ch = NULL;
@@ -151,7 +151,7 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  err_task = GNUNET_SCHEDULER_NO_TASK;
+  err_task = NULL;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase failed!\n");
@@ -161,12 +161,12 @@ terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CORE_notify_transmit_ready_cancel (p1.nth);
     p1.nth = NULL;
   }
-  if (measure_task != GNUNET_SCHEDULER_NO_TASK)
+  if (measure_task != NULL)
     GNUNET_SCHEDULER_cancel (measure_task);
-  if (connect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (connect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = GNUNET_SCHEDULER_NO_TASK;
+    connect_task = NULL;
   }
 
   GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
@@ -231,7 +231,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long long quota_delta;
   enum GNUNET_ErrorType kind = GNUNET_ERROR_TYPE_DEBUG;
 
-  measure_task = GNUNET_SCHEDULER_NO_TASK;
+  measure_task = NULL;
   FPRINTF (stdout, "%s",  "\n");
   running = GNUNET_NO;
 
@@ -381,7 +381,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking core (1) for transmission to peer `%4s'\n",
                 GNUNET_i2s (&p2.id));
-    if (err_task != GNUNET_SCHEDULER_NO_TASK)
+    if (err_task != NULL)
       GNUNET_SCHEDULER_cancel (err_task);
     err_task =
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
@@ -410,12 +410,12 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;                     /* loopback */
   pc->connect_status = 0;
-  if (GNUNET_SCHEDULER_NO_TASK != measure_task)
+  if (NULL != measure_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Measurement aborted due to disconnect!\n");
     GNUNET_SCHEDULER_cancel (measure_task);
-    measure_task = GNUNET_SCHEDULER_NO_TASK;
+    measure_task = NULL;
   }
   if (pc->nth != NULL)
   {

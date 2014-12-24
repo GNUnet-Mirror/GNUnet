@@ -149,7 +149,7 @@ struct GNUNET_STATISTICS_GetHandle
   /**
    * Task run on timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Associated value.
@@ -230,7 +230,7 @@ struct GNUNET_STATISTICS_Handle
   /**
    * Task doing exponential back-off trying to reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier backoff_task;
+  struct GNUNET_SCHEDULER_Task * backoff_task;
 
   /**
    * Time for next connect retry.
@@ -367,10 +367,10 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
 static void
 free_action_item (struct GNUNET_STATISTICS_GetHandle *gh)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != gh->timeout_task)
+  if (NULL != gh->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (gh->timeout_task);
-    gh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    gh->timeout_task = NULL;
   }
   GNUNET_free_non_null (gh->subsystem);
   GNUNET_free_non_null (gh->name);
@@ -426,7 +426,7 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
   struct GNUNET_STATISTICS_GetHandle *gn;
   unsigned int i;
 
-  if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
+  if (NULL != h->backoff_task)
     return GNUNET_NO;
   if (NULL != h->client)
     return GNUNET_YES;
@@ -470,7 +470,7 @@ reconnect_task (void *cls,
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
-  h->backoff_task = GNUNET_SCHEDULER_NO_TASK;
+  h->backoff_task = NULL;
   schedule_action (h);
 }
 
@@ -502,7 +502,7 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
   int loss;
   struct GNUNET_STATISTICS_GetHandle *gh;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->backoff_task);
+  GNUNET_assert (NULL == h->backoff_task);
   if (GNUNET_YES == h->do_destroy)
   {
     /* So we are shutting down and the service is not reachable.
@@ -992,10 +992,10 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
   if (NULL == h)
     return;
   GNUNET_assert (GNUNET_NO == h->do_destroy); // Don't call twice.
-  if (GNUNET_SCHEDULER_NO_TASK != h->backoff_task)
+  if (NULL != h->backoff_task)
   {
     GNUNET_SCHEDULER_cancel (h->backoff_task);
-    h->backoff_task = GNUNET_SCHEDULER_NO_TASK;
+    h->backoff_task = NULL;
   }
   if (sync_first)
   {
@@ -1117,7 +1117,7 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
   struct GNUNET_TIME_Relative timeout;
 
   if ( (NULL != h->th) ||
-       (GNUNET_SCHEDULER_NO_TASK != h->backoff_task) )
+       (NULL != h->backoff_task) )
     return;                     /* action already pending */
   if (GNUNET_YES != try_connect (h))
   {
@@ -1172,7 +1172,7 @@ run_get_timeout (void *cls,
   GNUNET_STATISTICS_Callback cont = gh->cont;
   void *cont_cls = gh->cls;
 
-  gh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  gh->timeout_task = NULL;
   GNUNET_STATISTICS_get_cancel (gh);
   cont (cont_cls, GNUNET_SYSERR);
 }
@@ -1246,10 +1246,10 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh)
 {
   if (NULL == gh)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != gh->timeout_task)
+  if (NULL != gh->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (gh->timeout_task);
-    gh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    gh->timeout_task = NULL;
   }
   gh->cont = NULL;
   if (gh->sh->current == gh)

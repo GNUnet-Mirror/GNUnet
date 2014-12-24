@@ -214,7 +214,7 @@ struct GNUNET_NAMESTORE_Handle
   /**
    * Reconnect task
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Delay introduced before we reconnect.
@@ -874,7 +874,7 @@ reconnect_task (void *cls,
 {
   struct GNUNET_NAMESTORE_Handle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   reconnect (h);
 }
 
@@ -979,10 +979,10 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->reconnect_task)
+  if (NULL != h->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    h->reconnect_task = NULL;
   }
   GNUNET_free (h);
 }

@@ -159,7 +159,7 @@ struct GST_BlacklistCheck
   /**
    * Current task performing the check.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
 };
 
@@ -230,7 +230,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
         GNUNET_SERVER_notify_transmit_ready_cancel (bc->th);
         bc->th = NULL;
       }
-      if (bc->task == GNUNET_SCHEDULER_NO_TASK)
+      if (bc->task == NULL)
         bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
     }
     GNUNET_CONTAINER_DLL_remove (bl_head, bl_tail, bl);
@@ -392,7 +392,7 @@ transmit_blacklist_message (void *cls, size_t size, void *buf)
   bc->th = NULL;
   if (size == 0)
   {
-    GNUNET_assert (bc->task == GNUNET_SCHEDULER_NO_TASK);
+    GNUNET_assert (bc->task == NULL);
     bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to send blacklist test for peer `%s' to client\n",
@@ -432,7 +432,7 @@ do_blacklist_check (void *cls,
   struct GST_BlacklistCheck *bc = cls;
   struct Blacklisters *bl;
 
-  bc->task = GNUNET_SCHEDULER_NO_TASK;
+  bc->task = NULL;
   bl = bc->bl_pos;
   if (bl == NULL)
   {
@@ -642,7 +642,7 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
   }
   /* check if any other blacklist checks are waiting for this blacklister */
   for (bc = bc_head; bc != NULL; bc = bc->next)
-    if ((bc->bl_pos == bl) && (GNUNET_SCHEDULER_NO_TASK == bc->task))
+    if ((bc->bl_pos == bl) && (NULL == bc->task))
     {
       bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
       break;
@@ -817,10 +817,10 @@ GST_blacklist_test_cancel (struct GST_BlacklistCheck *bc)
       bc->bl_pos->bc = NULL;
     }
   }
-  if (GNUNET_SCHEDULER_NO_TASK != bc->task)
+  if (NULL != bc->task)
   {
     GNUNET_SCHEDULER_cancel (bc->task);
-    bc->task = GNUNET_SCHEDULER_NO_TASK;
+    bc->task = NULL;
   }
   if (NULL != bc->th)
   {

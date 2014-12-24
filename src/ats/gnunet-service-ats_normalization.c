@@ -194,7 +194,7 @@ static struct PreferenceClient *pc_tail;
  */
 static struct PeerRelative defvalues;
 
-static GNUNET_SCHEDULER_TaskIdentifier aging_task;
+static struct GNUNET_SCHEDULER_Task * aging_task;
 
 /**
  * Application Preference Normalization
@@ -385,7 +385,7 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int values_to_update;
   double backup;
 
-  aging_task = GNUNET_SCHEDULER_NO_TASK;
+  aging_task = NULL;
   values_to_update = 0;
   cur_client = NULL;
 
@@ -542,7 +542,7 @@ GAS_normalization_normalize_preference (void *client,
   run_preference_update (c_cur, p_cur, kind, score_abs);
 
   /* Start aging task */
-  if (GNUNET_SCHEDULER_NO_TASK == aging_task)
+  if (NULL == aging_task)
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
         &preference_aging, NULL );
 
@@ -959,7 +959,7 @@ GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
 
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
-  aging_task = GNUNET_SCHEDULER_NO_TASK;
+  aging_task = NULL;
   return;
 }
 
@@ -992,10 +992,10 @@ GAS_normalization_stop ()
   struct PreferenceClient *pc;
   struct PreferenceClient *next_pc;
 
-  if (GNUNET_SCHEDULER_NO_TASK != aging_task)
+  if (NULL != aging_task)
   {
     GNUNET_SCHEDULER_cancel (aging_task);
-    aging_task = GNUNET_SCHEDULER_NO_TASK;
+    aging_task = NULL;
   }
 
   next_pc = pc_head;

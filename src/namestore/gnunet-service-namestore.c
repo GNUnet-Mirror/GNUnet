@@ -152,7 +152,7 @@ struct ZoneMonitor
   /**
    * Task active during initial iteration.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Offset of the zone iteration used to address next result of the zone
@@ -355,10 +355,10 @@ client_disconnect_notification (void *cls,
       GNUNET_CONTAINER_DLL_remove (monitor_head,
 				   monitor_tail,
 				   zm);
-      if (GNUNET_SCHEDULER_NO_TASK != zm->task)
+      if (NULL != zm->task)
       {
 	GNUNET_SCHEDULER_cancel (zm->task);
-	zm->task = GNUNET_SCHEDULER_NO_TASK;
+	zm->task = NULL;
       }
       GNUNET_free (zm);
       break;
@@ -1614,7 +1614,7 @@ monitor_next (void *cls,
   struct ZoneMonitor *zm = cls;
   int ret;
 
-  zm->task = GNUNET_SCHEDULER_NO_TASK;
+  zm->task = NULL;
   ret = GSN_database->iterate_records (GSN_database->cls,
                                        (0 == memcmp (&zm->zone, &zero, sizeof (zero)))
                                        ? NULL

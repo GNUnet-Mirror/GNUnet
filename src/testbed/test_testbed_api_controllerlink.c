@@ -244,7 +244,7 @@ static struct GNUNET_CONFIGURATION_Handle *cfg3;
 /**
  * Abort task
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Operation handle for linking controllers
@@ -279,7 +279,7 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle *hc_handle;
 /**
  * The task handle for the delay task
  */
-GNUNET_SCHEDULER_TaskIdentifier delay_task_id;
+struct GNUNET_SCHEDULER_Task * delay_task_id;
 
 /**
  * Event mask
@@ -297,9 +297,9 @@ static enum Stage result;
 #define FAIL_TEST(cond) do {                                    \
     if (!(cond)) {                                              \
       GNUNET_break(0);                                          \
-      if (GNUNET_SCHEDULER_NO_TASK != abort_task)               \
+      if (NULL != abort_task)               \
         GNUNET_SCHEDULER_cancel (abort_task);                   \
-      abort_task = GNUNET_SCHEDULER_NO_TASK;                    \
+      abort_task = NULL;                    \
       GNUNET_SCHEDULER_add_now (do_shutdown, NULL);             \
       return;                                                   \
     }                                                          \
@@ -315,12 +315,12 @@ static enum Stage result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  if (GNUNET_SCHEDULER_NO_TASK != delay_task_id)
+  if (NULL != delay_task_id)
   {
     GNUNET_SCHEDULER_cancel (delay_task_id);
-    delay_task_id = GNUNET_SCHEDULER_NO_TASK;
+    delay_task_id = NULL;
   }
   if (NULL != hc_handle)
     GNUNET_TESTBED_is_host_habitable_cancel (hc_handle);
@@ -355,7 +355,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   do_shutdown (cls, tc);
 }
 
@@ -369,7 +369,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort_now (void *cls)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   abort_task = GNUNET_SCHEDULER_add_now (&do_abort, NULL);
 }
@@ -394,7 +394,7 @@ registration_cont (void *cls, const char *emsg);
 static void
 delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  delay_task_id = GNUNET_SCHEDULER_NO_TASK;
+  delay_task_id = NULL;
   switch (result)
   {
   case SLAVE2_PEER_CREATE_SUCCESS:
@@ -756,7 +756,7 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *_host,
                    "to use password less SSH logins to localhost.\n"
                    "Skipping test\n");
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
     (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     result = SKIP;
     return;

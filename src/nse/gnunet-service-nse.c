@@ -130,7 +130,7 @@ struct NSEPeerEntry
   /**
    * Task scheduled to send message to this peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier transmit_task;
+  struct GNUNET_SCHEDULER_Task * transmit_task;
 
   /**
    * Did we receive or send a message about the previous round
@@ -275,12 +275,12 @@ static unsigned int estimate_count;
 /**
  * Task scheduled to update our flood message for the next round.
  */
-static GNUNET_SCHEDULER_TaskIdentifier flood_task;
+static struct GNUNET_SCHEDULER_Task * flood_task;
 
 /**
  * Task scheduled to compute our proof.
  */
-static GNUNET_SCHEDULER_TaskIdentifier proof_task;
+static struct GNUNET_SCHEDULER_Task * proof_task;
 
 /**
  * Notification context, simplifies client broadcasts.
@@ -635,7 +635,7 @@ transmit_ready (void *cls,
                                     peer_entry);
   }
   if ((0 == ntohl (size_estimate_messages[idx].hop_count)) &&
-      (GNUNET_SCHEDULER_NO_TASK != proof_task))
+      (NULL != proof_task))
   {
     GNUNET_STATISTICS_update (stats,
                               "# flood messages not generated (no proof yet)",
@@ -681,7 +681,7 @@ transmit_task_cb (void *cls,
 {
   struct NSEPeerEntry *peer_entry = cls;
 
-  peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+  peer_entry->transmit_task = NULL;
 
   GNUNET_assert (NULL == peer_entry->th);
   peer_entry->th =
@@ -772,7 +772,7 @@ schedule_current_round (void *cls,
     peer_entry->previous_round = GNUNET_NO;
     return GNUNET_OK;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
+  if (NULL != peer_entry->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
     peer_entry->previous_round = GNUNET_NO;
@@ -806,7 +806,7 @@ update_flood_message (void *cls,
   struct GNUNET_TIME_Relative offset;
   unsigned int i;
 
-  flood_task = GNUNET_SCHEDULER_NO_TASK;
+  flood_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   offset = GNUNET_TIME_absolute_get_remaining (next_timestamp);
@@ -931,7 +931,7 @@ find_proof (void *cls,
   struct GNUNET_HashCode result;
   unsigned int i;
 
-  proof_task = GNUNET_SCHEDULER_NO_TASK;
+  proof_task = NULL;
   memcpy (&buf[sizeof (uint64_t)], &my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   i = 0;
@@ -1034,17 +1034,17 @@ update_flood_times (void *cls,
   {
     /* still stuck in previous round, no point to update, check that
      * we are active here though... */
-    if ( (GNUNET_SCHEDULER_NO_TASK == peer_entry->transmit_task) &&
+    if ( (NULL == peer_entry->transmit_task) &&
 	 (NULL == peer_entry->th) )
     {
         GNUNET_break (0);
     }
     return GNUNET_OK;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
+  if (NULL != peer_entry->transmit_task)
   {
     GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-    peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+    peer_entry->transmit_task = NULL;
   }
   delay = get_transmit_delay (0);
   peer_entry->transmit_task =
@@ -1169,10 +1169,10 @@ handle_p2p_size_estimate (void *cls,
     }
     /* got up-to-date information for current round, cancel transmission to
      * this peer altogether */
-    if (GNUNET_SCHEDULER_NO_TASK != peer_entry->transmit_task)
+    if (NULL != peer_entry->transmit_task)
     {
       GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-      peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+      peer_entry->transmit_task = NULL;
     }
     if (NULL != peer_entry->th)
     {
@@ -1189,7 +1189,7 @@ handle_p2p_size_estimate (void *cls,
     /* push back our result now, that peer is spreading bad information... */
     if (NULL == peer_entry->th)
     {
-      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+      if (peer_entry->transmit_task != NULL)
         GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
       peer_entry->transmit_task =
           GNUNET_SCHEDULER_add_now (&transmit_task_cb, peer_entry);
@@ -1214,10 +1214,10 @@ handle_p2p_size_estimate (void *cls,
   if (idx == estimate_index)
   {
       /* cancel any activity for current round */
-      if (peer_entry->transmit_task != GNUNET_SCHEDULER_NO_TASK)
+      if (peer_entry->transmit_task != NULL)
       {
         GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
-        peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+        peer_entry->transmit_task = NULL;
       }
       if (peer_entry->th != NULL)
       {
@@ -1303,9 +1303,9 @@ handle_core_disconnect (void *cls,
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
-  if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK) {
+  if (pos->transmit_task != NULL) {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
-    pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+    pos->transmit_task = NULL;
   }
   if (NULL != pos->th)
   {
@@ -1345,15 +1345,15 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != flood_task)
+  if (NULL != flood_task)
   {
     GNUNET_SCHEDULER_cancel (flood_task);
-    flood_task = GNUNET_SCHEDULER_NO_TASK;
+    flood_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != proof_task)
+  if (NULL != proof_task)
   {
     GNUNET_SCHEDULER_cancel (proof_task);
-    proof_task = GNUNET_SCHEDULER_NO_TASK;
+    proof_task = NULL;
     write_proof ();             /* remember progress */
   }
   if (NULL != nc)

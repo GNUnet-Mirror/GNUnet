@@ -86,7 +86,7 @@ struct GSF_PeerTransmitHandle
   /**
    * Task called on timeout, or 0 for none.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Function to call to get the actual message.
@@ -155,7 +155,7 @@ struct GSF_DelayedHandle
   /**
    * Task for the delay.
    */
-  GNUNET_SCHEDULER_TaskIdentifier delay_task;
+  struct GNUNET_SCHEDULER_Task * delay_task;
 
   /**
    * Size of the message.
@@ -184,7 +184,7 @@ struct PeerRequest
   /**
    * Task for asynchronous stopping of this request.
    */
-  GNUNET_SCHEDULER_TaskIdentifier kill_task;
+  struct GNUNET_SCHEDULER_Task * kill_task;
 
 };
 
@@ -209,7 +209,7 @@ struct GSF_ConnectedPeer
   /**
    * Task scheduled to revive migration to this peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier mig_revive_task;
+  struct GNUNET_SCHEDULER_Task * mig_revive_task;
 
   /**
    * Messages (replies, queries, content migration) we would like to
@@ -248,7 +248,7 @@ struct GSF_ConnectedPeer
   /**
    * Task scheduled if we need to retry bandwidth reservation later.
    */
-  GNUNET_SCHEDULER_TaskIdentifier rc_delay_task;
+  struct GNUNET_SCHEDULER_Task * rc_delay_task;
 
   /**
    * Active requests from this neighbour, map of query to 'struct PeerRequest'.
@@ -472,10 +472,10 @@ peer_transmit_ready_cb (void *cls, size_t size, void *buf)
     schedule_transmission (pth);
     return 0;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pth->timeout_task)
+  if (NULL != pth->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (pth->timeout_task);
-    pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    pth->timeout_task = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (cp->pth_head, cp->pth_tail, pth);
   if (GNUNET_YES == pth->is_query)
@@ -516,7 +516,7 @@ retry_reservation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity target;
 
   GNUNET_PEER_resolve (cp->ppd.pid, &target);
-  cp->rc_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  cp->rc_delay_task = NULL;
   cp->rc =
     GNUNET_ATS_reserve_bandwidth (GSF_ats, &target, DBLOCK_SIZE,
 				  &ats_reserve_callback, cp);
@@ -652,7 +652,7 @@ revive_migration (void *cls,
   struct GSF_ConnectedPeer *cp = cls;
   struct GNUNET_TIME_Relative bt;
 
-  cp->mig_revive_task = GNUNET_SCHEDULER_NO_TASK;
+  cp->mig_revive_task = NULL;
   bt = GNUNET_TIME_absolute_get_remaining (cp->ppd.migration_blocked_until);
   if (0 != bt.rel_value_us)
   {
@@ -715,7 +715,7 @@ GSF_handle_p2p_migration_stop_ (void *cls,
               GNUNET_i2s (other),
 	      GNUNET_STRINGS_relative_time_to_string (bt, GNUNET_YES));
   cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (bt);
-  if (GNUNET_SCHEDULER_NO_TASK == cp->mig_revive_task)
+  if (NULL == cp->mig_revive_task)
   {
     GSF_push_stop_ (cp);
     cp->mig_revive_task =
@@ -773,10 +773,10 @@ free_pending_request (struct PeerRequest *peerreq,
 {
   struct GSF_ConnectedPeer *cp = peerreq->cp;
 
-  if (GNUNET_SCHEDULER_NO_TASK != peerreq->kill_task)
+  if (NULL != peerreq->kill_task)
   {
     GNUNET_SCHEDULER_cancel (peerreq->kill_task);
-    peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
+    peerreq->kill_task = NULL;
   }
   GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# P2P searches active"),
                             -1, GNUNET_NO);
@@ -825,7 +825,7 @@ peer_request_destroy (void *cls,
   struct GSF_PendingRequest *pr = peerreq->pr;
   struct GSF_PendingRequestData *prd;
 
-  peerreq->kill_task = GNUNET_SCHEDULER_NO_TASK;
+  peerreq->kill_task = NULL;
   prd = GSF_pending_request_get_data_ (pr);
   cancel_pending_request (NULL, &prd->query, peerreq);
 }
@@ -987,7 +987,7 @@ handle_p2p_reply (void *cls,
   }
   if (GNUNET_BLOCK_EVALUATION_OK_LAST != eval)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK == peerreq->kill_task)
+  if (NULL == peerreq->kill_task)
   {
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
@@ -1356,7 +1356,7 @@ peer_transmit_timeout (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Timeout trying to transmit to other peer\n");
-  pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  pth->timeout_task = NULL;
   cp = pth->cp;
   GNUNET_CONTAINER_DLL_remove (cp->pth_head, cp->pth_tail, pth);
   if (GNUNET_YES == pth->is_query)
@@ -1440,10 +1440,10 @@ GSF_peer_transmit_cancel_ (struct GSF_PeerTransmitHandle *pth)
 {
   struct GSF_ConnectedPeer *cp;
 
-  if (GNUNET_SCHEDULER_NO_TASK != pth->timeout_task)
+  if (NULL != pth->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (pth->timeout_task);
-    pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    pth->timeout_task = NULL;
   }
   cp = pth->cp;
   GNUNET_CONTAINER_DLL_remove (cp->pth_head, cp->pth_tail, pth);
@@ -1586,10 +1586,10 @@ GSF_peer_disconnect_handler_ (void *cls,
     GNUNET_ATS_reserve_bandwidth_cancel (cp->rc);
     cp->rc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != cp->rc_delay_task)
+  if (NULL != cp->rc_delay_task)
   {
     GNUNET_SCHEDULER_cancel (cp->rc_delay_task);
-    cp->rc_delay_task = GNUNET_SCHEDULER_NO_TASK;
+    cp->rc_delay_task = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (cp->request_map,
                                          &cancel_pending_request, cp);
@@ -1608,10 +1608,10 @@ GSF_peer_disconnect_handler_ (void *cls,
   GNUNET_assert (0 == cp->cth_in_progress);
   while (NULL != (pth = cp->pth_head))
   {
-    if (pth->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    if (pth->timeout_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (pth->timeout_task);
-      pth->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      pth->timeout_task = NULL;
     }
     GNUNET_CONTAINER_DLL_remove (cp->pth_head, cp->pth_tail, pth);
     pth->gmc (pth->gmc_cls, 0, NULL);
@@ -1625,10 +1625,10 @@ GSF_peer_disconnect_handler_ (void *cls,
     GNUNET_free (dh);
   }
   GNUNET_PEER_change_rc (cp->ppd.pid, -1);
-  if (GNUNET_SCHEDULER_NO_TASK != cp->mig_revive_task)
+  if (NULL != cp->mig_revive_task)
   {
     GNUNET_SCHEDULER_cancel (cp->mig_revive_task);
-    cp->mig_revive_task = GNUNET_SCHEDULER_NO_TASK;
+    cp->mig_revive_task = NULL;
   }
   GNUNET_free (cp);
 }

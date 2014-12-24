@@ -155,12 +155,12 @@ struct Plugin
   /**
    * ID of select task for IPv4
    */
-  GNUNET_SCHEDULER_TaskIdentifier select_task;
+  struct GNUNET_SCHEDULER_Task * select_task;
 
   /**
    * ID of select task for IPv6
    */
-  GNUNET_SCHEDULER_TaskIdentifier select_task_v6;
+  struct GNUNET_SCHEDULER_Task * select_task_v6;
 
   /**
    * Tokenizer for inbound messages.

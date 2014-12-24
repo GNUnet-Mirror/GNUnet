@@ -46,7 +46,7 @@ static struct GNUNET_TESTBED_Operation *op;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Current peer id
@@ -73,7 +73,7 @@ static int wait_forever;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   GNUNET_SCHEDULER_shutdown (); /* Stop scheduler to shutdown testbed run */
 }
@@ -89,7 +89,7 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   (void) GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
@@ -117,10 +117,10 @@ test_master (void *cls,
   result = GNUNET_OK;
   if (GNUNET_YES == wait_forever)
   {
-    if (GNUNET_SCHEDULER_NO_TASK == abort_task)
+    if (NULL == abort_task)
       return;                   /* abort already scheduled */
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
     (void) GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                          &do_shutdown, NULL);
     return;

@@ -133,7 +133,7 @@ struct GNUNET_MQ_Handle
   /**
    * Task scheduled during #GNUNET_MQ_impl_send_continue.
    */
-  GNUNET_SCHEDULER_TaskIdentifier continue_task;
+  struct GNUNET_SCHEDULER_Task * continue_task;
 
   /**
    * Next id that should be used for the @e assoc_map,
@@ -310,7 +310,7 @@ impl_send_continue (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  mq->continue_task = GNUNET_SCHEDULER_NO_TASK;
+  mq->continue_task = NULL;
   /* call is only valid if we're actually currently sending
    * a message */
   current_envelope = mq->current_envelope;
@@ -345,7 +345,7 @@ impl_send_continue (void *cls,
 void
 GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
 {
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == mq->continue_task);
+  GNUNET_assert (NULL == mq->continue_task);
   mq->continue_task = GNUNET_SCHEDULER_add_now (&impl_send_continue,
                                                 mq);
 }
@@ -776,10 +776,10 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
   {
     mq->destroy_impl (mq, mq->impl_state);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != mq->continue_task)
+  if (NULL != mq->continue_task)
   {
     GNUNET_SCHEDULER_cancel (mq->continue_task);
-    mq->continue_task = GNUNET_SCHEDULER_NO_TASK;
+    mq->continue_task = NULL;
   }
   while (NULL != mq->envelope_head)
   {

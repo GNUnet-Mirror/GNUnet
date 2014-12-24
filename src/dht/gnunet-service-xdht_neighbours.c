@@ -854,25 +854,25 @@ struct VerifySuccessorContext
  * Task that sends FIND FINGER TRAIL requests. This task is started when we have
  * get our first friend.
  */
-static GNUNET_SCHEDULER_TaskIdentifier find_finger_trail_task;
+static struct GNUNET_SCHEDULER_Task * find_finger_trail_task;
 
 /**
  * Task that sends verify successor message. This task is started when we get
  * our successor for the first time.
  */
-static GNUNET_SCHEDULER_TaskIdentifier send_verify_successor_task;
+static struct GNUNET_SCHEDULER_Task * send_verify_successor_task;
 
 /**
  * Task that sends verify successor message. This task is started when we get
  * our successor for the first time.
  */
-static GNUNET_SCHEDULER_TaskIdentifier send_verify_successor_retry_task;
+static struct GNUNET_SCHEDULER_Task * send_verify_successor_retry_task;
 
 /**
  * Task that sends verify successor message. This task is started when we get
  * our successor for the first time.
  */
-static GNUNET_SCHEDULER_TaskIdentifier send_notify_new_successor_retry_task;
+static struct GNUNET_SCHEDULER_Task * send_notify_new_successor_retry_task;
 
 /**
  * Identity of this peer.
@@ -3238,7 +3238,7 @@ send_verify_successor_message (void *cls,
   successor = &finger_table[0];
 
   /* This task will be scheduled when the result for Verify Successor is received. */
-  send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
+  send_verify_successor_task = NULL;
 
   /* When verify successor is being called for first time *for current context*
    * cls will be NULL. If send_verify_successor_retry_task is not NO_TASK, we
@@ -3259,7 +3259,7 @@ send_verify_successor_message (void *cls,
      * --> Waiting for notify confirmation. again don't wait for it. notify
      *    confirmation will not succeded.
      */
-    if (send_verify_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+    if (send_verify_successor_retry_task != NULL)
     {
       /* FIXME: Are we scheduling retry task as soon as we send verify message.
        If yes then here before making this task, first check if the message
@@ -3374,7 +3374,7 @@ update_current_search_finger_index (unsigned int finger_table_index)
     current_search_finger_index = PREDECESSOR_FINGER_ID;
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &successor->finger_identity))
     {
-      if (GNUNET_SCHEDULER_NO_TASK == send_verify_successor_task)
+      if (NULL == send_verify_successor_task)
       {
         send_verify_successor_task =
                 GNUNET_SCHEDULER_add_now (&send_verify_successor_message, NULL);
@@ -5133,7 +5133,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
       GNUNET_free (key);
     }
-    if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+    if (send_verify_successor_task == NULL)
       send_verify_successor_task =
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
                                            &send_verify_successor_message,
@@ -5173,7 +5173,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
       successor_times--;
 
 
-    if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+    if (send_verify_successor_task == NULL)
       send_verify_successor_task =
               GNUNET_SCHEDULER_add_delayed(verify_successor_next_send_time,
                                            &send_verify_successor_message,
@@ -5262,7 +5262,7 @@ send_notify_new_successor (void *cls,
                                             ctx->target_friend);
 
   if (0 == ctx->num_retries_scheduled &&
-          send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+          send_notify_new_successor_retry_task != NULL)
   {
     // Result from previous notify successos hasn't arrived, so the retry task
     // hasn't been cancelled! Already a new notify successor must be called.
@@ -5271,7 +5271,7 @@ send_notify_new_successor (void *cls,
     old_notify_ctx = GNUNET_SCHEDULER_cancel(send_notify_new_successor_retry_task);
     GNUNET_free (old_notify_ctx->successor_trail);
     GNUNET_free (old_notify_ctx);
-    send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+    send_notify_new_successor_retry_task = NULL;
   }
 
   ctx->num_retries_scheduled++;
@@ -5337,12 +5337,12 @@ handle_dht_p2p_verify_successor_result(void *cls,
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
     /* Cancel Retry Task */
-    if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
+    if (NULL != send_verify_successor_retry_task)
     {
       struct VerifySuccessorContext *ctx;
       ctx = GNUNET_SCHEDULER_cancel(send_verify_successor_retry_task);
       GNUNET_free(ctx);
-      send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+      send_verify_successor_retry_task = NULL;
     }
     compare_and_update_successor (current_successor,
                                   probable_successor, trail, trail_length);
@@ -5533,15 +5533,15 @@ handle_dht_p2p_notify_succ_confirmation (void *cls,
     */
 
     // TODO: cancel schedule of notify_successor_retry_task
-    if (send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+    if (send_notify_new_successor_retry_task != NULL)
     {
       struct SendNotifyContext *notify_ctx;
       notify_ctx = GNUNET_SCHEDULER_cancel(send_notify_new_successor_retry_task);
       GNUNET_free (notify_ctx->successor_trail);
       GNUNET_free (notify_ctx);
-      send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+      send_notify_new_successor_retry_task = NULL;
     }
-    if (send_verify_successor_task == GNUNET_SCHEDULER_NO_TASK)
+    if (send_verify_successor_task == NULL)
     {
       verify_successor_next_send_time.rel_value_us =
       DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us +
@@ -6063,10 +6063,10 @@ handle_core_disconnect (void *cls,
   if (0 != GNUNET_CONTAINER_multipeermap_size (friend_peermap))
     return;
 
-  if (GNUNET_SCHEDULER_NO_TASK != find_finger_trail_task)
+  if (NULL != find_finger_trail_task)
   {
       GNUNET_SCHEDULER_cancel (find_finger_trail_task);
-      find_finger_trail_task = GNUNET_SCHEDULER_NO_TASK;
+      find_finger_trail_task = NULL;
   }
   else
     GNUNET_break (0);
@@ -6109,7 +6109,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
    * selected after some time out. This is to ensure that both peers have added
    * each other as their friend. */
   /* Got a first connection, good time to start with FIND FINGER TRAIL requests...*/
-  if (GNUNET_SCHEDULER_NO_TASK == find_finger_trail_task)
+  if (NULL == find_finger_trail_task)
   {
     find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
   }
@@ -6244,33 +6244,33 @@ GDS_NEIGHBOURS_done (void)
   GNUNET_CONTAINER_multipeermap_destroy (friend_peermap);
   friend_peermap = NULL;
 
-  if (GNUNET_SCHEDULER_NO_TASK != find_finger_trail_task)
+  if (NULL != find_finger_trail_task)
   {
     GNUNET_SCHEDULER_cancel (find_finger_trail_task);
-    find_finger_trail_task = GNUNET_SCHEDULER_NO_TASK;
+    find_finger_trail_task = NULL;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_task)
+  if (NULL != send_verify_successor_task)
   {
     GNUNET_SCHEDULER_cancel (send_verify_successor_task);
-    send_verify_successor_task = GNUNET_SCHEDULER_NO_TASK;
+    send_verify_successor_task = NULL;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != send_verify_successor_retry_task)
+  if (NULL != send_verify_successor_retry_task)
   {
     struct VerifySuccessorContext *ctx;
     ctx = GNUNET_SCHEDULER_cancel (send_verify_successor_retry_task);
     GNUNET_free(ctx);
-    send_verify_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+    send_verify_successor_retry_task = NULL;
   }
 
-  if (send_notify_new_successor_retry_task != GNUNET_SCHEDULER_NO_TASK)
+  if (send_notify_new_successor_retry_task != NULL)
   {
     struct SendNotifyContext *notify_ctx;
     notify_ctx = GNUNET_SCHEDULER_cancel(send_notify_new_successor_retry_task);
     GNUNET_free (notify_ctx->successor_trail);
     GNUNET_free (notify_ctx);
-    send_notify_new_successor_retry_task = GNUNET_SCHEDULER_NO_TASK;
+    send_notify_new_successor_retry_task = NULL;
   }
 }
 

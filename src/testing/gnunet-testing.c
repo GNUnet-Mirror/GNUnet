@@ -76,7 +76,7 @@ static char *tmpfilename;
 /**
  * Task identifier of the task that waits for stdin.
  */
-static GNUNET_SCHEDULER_TaskIdentifier tid;
+static struct GNUNET_SCHEDULER_Task * tid;
 
 /**
  * Peer started for '-r'.
@@ -207,10 +207,10 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (0 != UNLINK (tmpfilename))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", tmpfilename);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != tid)
+  if (NULL != tid)
   {
     GNUNET_SCHEDULER_cancel (tid);
-    tid = GNUNET_SCHEDULER_NO_TASK;
+    tid = NULL;
   }
   if (NULL != fh)
   {
@@ -231,7 +231,7 @@ stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int c;
 
-  tid = GNUNET_SCHEDULER_NO_TASK;
+  tid = NULL;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   GNUNET_assert (0 != (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason));

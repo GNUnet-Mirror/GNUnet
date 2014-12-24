@@ -34,7 +34,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+struct GNUNET_SCHEDULER_Task * timeout_task;
 
 static struct PeerContext *p1;
 static struct PeerContext *p2;
@@ -52,7 +52,7 @@ end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (timeout_task != NULL)
     GNUNET_SCHEDULER_cancel (timeout_task);
 
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -64,7 +64,7 @@ end ()
 static void
 end_badly ()
 {
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   if (NULL != cc)
@@ -167,7 +167,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer1 was not started successfully\n");
-    if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    if (timeout_task != NULL)
       GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
@@ -175,7 +175,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer2 was not started successfully\n");
-    if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    if (timeout_task != NULL)
       GNUNET_SCHEDULER_cancel (timeout_task);
     timeout_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }

@@ -48,9 +48,9 @@ static char *test_name;
 
 static int ok;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier timer_task;
+static struct GNUNET_SCHEDULER_Task * timer_task;
 
 static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
@@ -85,16 +85,16 @@ end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
-  if (timer_task != GNUNET_SCHEDULER_NO_TASK)
+  if (timer_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (timer_task);
-    timer_task = GNUNET_SCHEDULER_NO_TASK;
+    timer_task = NULL;
   }
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_NO_TASK;
+    die_task = NULL;
   }
 
   if (th != NULL)
@@ -123,14 +123,14 @@ end ()
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  if (timer_task != GNUNET_SCHEDULER_NO_TASK)
+  if (timer_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (timer_task);
-    timer_task = GNUNET_SCHEDULER_NO_TASK;
+    timer_task = NULL;
   }
   if (cc != NULL)
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
@@ -185,7 +185,7 @@ timer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static int percentage;
 
-  timer_task = GNUNET_SCHEDULER_NO_TASK;
+  timer_task = NULL;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
@@ -228,7 +228,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 	      GNUNET_STRINGS_relative_time_to_string (WAIT,
 						      GNUNET_YES));
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
   die_task = GNUNET_SCHEDULER_add_delayed (WAIT, &end_badly, NULL);
 
@@ -279,7 +279,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
@@ -298,7 +298,7 @@ check ()
     GNUNET_GETOPT_OPTION_END
   };
 
-  timer_task = GNUNET_SCHEDULER_NO_TASK;
+  timer_task = NULL;
 
   ok = 1;
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,

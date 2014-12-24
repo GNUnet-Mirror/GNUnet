@@ -104,7 +104,7 @@ static unsigned int num_hostkeys;
 /**
  * Task for shutdown
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 
 /**

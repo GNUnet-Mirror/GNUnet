@@ -57,7 +57,7 @@ static int opt_plot;
  */
 static int opt_verbose;
 
-GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+struct GNUNET_SCHEDULER_Task * timeout_task;
 
 struct Experiment *e;
 struct LoggingHandle *l;
@@ -183,10 +183,10 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
         GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment failed \n");
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  if (NULL != timeout_task)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
   /* Stop logging */
   GNUNET_ATS_TEST_logging_stop (l);

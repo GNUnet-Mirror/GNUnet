@@ -218,7 +218,7 @@ static struct GNUNET_TIME_Relative zone_publish_time_window;
 /**
  * zone publish task
  */
-static GNUNET_SCHEDULER_TaskIdentifier zone_publish_task;
+static struct GNUNET_SCHEDULER_Task * zone_publish_task;
 
 /**
  * #GNUNET_YES if zone has never been published before
@@ -281,10 +281,10 @@ shutdown_task (void *cls,
     GNUNET_STATISTICS_destroy (statistics, GNUNET_NO);
     statistics = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != zone_publish_task)
+  if (NULL != zone_publish_task)
   {
     GNUNET_SCHEDULER_cancel (zone_publish_task);
-    zone_publish_task = GNUNET_SCHEDULER_NO_TASK;
+    zone_publish_task = NULL;
   }
   if (NULL != namestore_iter)
   {
@@ -329,7 +329,7 @@ static void
 publish_zone_dht_next (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  zone_publish_task = GNUNET_SCHEDULER_NO_TASK;
+  zone_publish_task = NULL;
   GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
 }
 
@@ -609,7 +609,7 @@ static void
 publish_zone_dht_start (void *cls,
 			const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  zone_publish_task = GNUNET_SCHEDULER_NO_TASK;
+  zone_publish_task = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting DHT zone update!\n");

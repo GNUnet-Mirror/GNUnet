@@ -196,7 +196,7 @@ struct PeerPlan
   /**
    * Current task for executing the plan.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 };
 
 
@@ -337,7 +337,7 @@ plan (struct PeerPlan *pp, struct GSF_RequestPlan *rp)
                  GNUNET_CONTAINER_multihashmap_contains_value (pp->plan_map,
                                                                get_rp_key (rp),
                                                                rp));
-  if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+  if (NULL != pp->task)
     GNUNET_SCHEDULER_cancel (pp->task);
   pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
 #undef N
@@ -391,7 +391,7 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   if (NULL == buf)
   {
     /* failed, try again... */
-    if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+    if (NULL != pp->task)
       GNUNET_SCHEDULER_cancel (pp->task);
 
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
@@ -404,7 +404,7 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
   if (NULL == rp)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+    if (NULL != pp->task)
       GNUNET_SCHEDULER_cancel (pp->task);
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
     return 0;
@@ -412,7 +412,7 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
   msize = GSF_pending_request_get_message_ (get_latest (rp), buf_size, buf);
   if (msize > buf_size)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+    if (NULL != pp->task)
       GNUNET_SCHEDULER_cancel (pp->task);
     /* buffer to small (message changed), try again */
     pp->task = GNUNET_SCHEDULER_add_now (&schedule_peer_transmission, pp);
@@ -451,7 +451,7 @@ schedule_peer_transmission (void *cls,
   size_t msize;
   struct GNUNET_TIME_Relative delay;
 
-  pp->task = GNUNET_SCHEDULER_NO_TASK;
+  pp->task = NULL;
   if (NULL != pp->pth)
   {
     GSF_peer_transmit_cancel_ (pp->pth);
@@ -661,10 +661,10 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
     GSF_peer_transmit_cancel_ (pp->pth);
     pp->pth = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pp->task)
+  if (NULL != pp->task)
   {
     GNUNET_SCHEDULER_cancel (pp->task);
-    pp->task = GNUNET_SCHEDULER_NO_TASK;
+    pp->task = NULL;
   }
   while (NULL != (rp = GNUNET_CONTAINER_heap_remove_root (pp->priority_heap)))
   {

@@ -103,7 +103,7 @@ struct Neighbour
   /**
    * ID of task used for re-trying plaintext scheduling.
    */
-  GNUNET_SCHEDULER_TaskIdentifier retry_plaintext_task;
+  struct GNUNET_SCHEDULER_Task * retry_plaintext_task;
 
   /**
    * #GNUNET_YES if this peer currently has excess bandwidth.
@@ -172,10 +172,10 @@ free_neighbour (struct Neighbour *n)
     GSC_KX_stop (n->kxinfo);
     n->kxinfo = NULL;
   }
-  if (n->retry_plaintext_task != GNUNET_SCHEDULER_NO_TASK)
+  if (n->retry_plaintext_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (n->retry_plaintext_task);
-    n->retry_plaintext_task = GNUNET_SCHEDULER_NO_TASK;
+    n->retry_plaintext_task = NULL;
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_remove (neighbours,

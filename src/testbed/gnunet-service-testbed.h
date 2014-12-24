@@ -106,7 +106,7 @@ struct ForwardedOperationContext
   /**
    * Task ID for the timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * The id of the operation that has been forwarded

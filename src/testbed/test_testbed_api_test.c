@@ -53,12 +53,12 @@ static struct GNUNET_TESTBED_Operation *op;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * shutdown task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Testing result
@@ -75,8 +75,8 @@ static int result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  shutdown_task = NULL;
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != op)
     GNUNET_TESTBED_operation_done (op);
@@ -89,10 +89,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #define FAIL_TEST(cond) do {                                            \
     if (!(cond)) {                                                      \
       GNUNET_break(0);                                                  \
-      if (GNUNET_SCHEDULER_NO_TASK != abort_task)                       \
+      if (NULL != abort_task)                       \
         GNUNET_SCHEDULER_cancel (abort_task);                           \
-      abort_task = GNUNET_SCHEDULER_NO_TASK;                            \
-      if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)                    \
+      abort_task = NULL;                            \
+      if (NULL == shutdown_task)                    \
         shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);   \
       return;                                                           \
     }                                                                   \
@@ -109,8 +109,8 @@ static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  abort_task = NULL;
+  if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   do_shutdown (cls, tc);
 }

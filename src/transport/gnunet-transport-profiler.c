@@ -142,7 +142,7 @@ static struct GNUNET_PeerIdentity pid;
 /**
  * Task scheduled for cleanup / termination of the process.
  */
-static GNUNET_SCHEDULER_TaskIdentifier end;
+static struct GNUNET_SCHEDULER_Task * end;
 
 /**
  * Selected level of verbosity.
@@ -370,7 +370,7 @@ iteration_done ()
   if (it_count == benchmark_iterations)
   {
     benchmark_running = GNUNET_NO;
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
@@ -490,7 +490,7 @@ try_connect_cb (void *cls,
     FPRINTF (stderr,
              "%s",
              _("Failed to send connect request to transport service\n"));
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     ret = 1;

@@ -65,7 +65,7 @@ struct GNUNET_SENSOR_crypto_pow_context
   /**
    * Task that calculates the proof-of-work
    */
-  GNUNET_SCHEDULER_TaskIdentifier calculate_pow_task;
+  struct GNUNET_SCHEDULER_Task * calculate_pow_task;
 
   /**
    * Size of msg (allocated after this struct)
@@ -157,7 +157,7 @@ calculate_pow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                  cx->matching_bits))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Found pow %" PRIu64 ".\n", cx->pow);
-    cx->calculate_pow_task = GNUNET_SCHEDULER_NO_TASK;
+    cx->calculate_pow_task = NULL;
     result_block =
         GNUNET_malloc (sizeof (struct GNUNET_SENSOR_crypto_pow_block) +
                        cx->msg_size);
@@ -197,10 +197,10 @@ void
 GNUNET_SENSOR_crypto_pow_sign_cancel (struct GNUNET_SENSOR_crypto_pow_context
                                       *cx)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != cx->calculate_pow_task)
+  if (NULL != cx->calculate_pow_task)
   {
     GNUNET_SCHEDULER_cancel (cx->calculate_pow_task);
-    cx->calculate_pow_task = GNUNET_SCHEDULER_NO_TASK;
+    cx->calculate_pow_task = NULL;
   }
   GNUNET_free (cx);
   cx = NULL;

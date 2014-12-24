@@ -34,7 +34,7 @@ static struct GNUNET_TIME_Relative interval;
 
 static struct GNUNET_TIME_Relative delta;
 
-static GNUNET_SCHEDULER_TaskIdentifier speedup_task;
+static struct GNUNET_SCHEDULER_Task * speedup_task;
 
 
 static void
@@ -43,7 +43,7 @@ do_speedup (void *cls,
 {
   static long long current_offset;
 
-  speedup_task = GNUNET_SCHEDULER_NO_TASK;
+  speedup_task = NULL;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   current_offset += delta.rel_value_us;
@@ -97,10 +97,10 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_SPEEDUP_stop_ ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != speedup_task)
+  if (NULL != speedup_task)
   {
     GNUNET_SCHEDULER_cancel (speedup_task);
-    speedup_task = GNUNET_SCHEDULER_NO_TASK;
+    speedup_task = NULL;
   }
   if ( (0 != interval.rel_value_us) &&
        (0 != delta.rel_value_us) )

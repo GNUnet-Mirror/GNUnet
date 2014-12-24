@@ -94,7 +94,7 @@ struct GetStatsContext
   /**
    * The task for calling the continuation callback
    */
-  GNUNET_SCHEDULER_TaskIdentifier call_completion_task_id;
+  struct GNUNET_SCHEDULER_Task * call_completion_task_id;
 
   /**
    * The number of peers present in the peers array.  This number also
@@ -128,7 +128,7 @@ struct PeerGetStatsContext
   /**
    * Task to mark the statistics service connect operation as done
    */
-  GNUNET_SCHEDULER_TaskIdentifier op_done_task_id;
+  struct GNUNET_SCHEDULER_Task * op_done_task_id;
 
   /**
    * The index of this peer in the peers array of GetStatsContext
@@ -157,8 +157,8 @@ call_completion_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetStatsContext *sc = cls;
 
-  GNUNET_assert (sc->call_completion_task_id != GNUNET_SCHEDULER_NO_TASK);
-  sc->call_completion_task_id = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (sc->call_completion_task_id != NULL);
+  sc->call_completion_task_id = NULL;
   LOG_DEBUG ("Calling get_statistics() continuation callback\n");
   sc->cont (sc->cb_cls, sc->main_op, NULL);
 }
@@ -179,7 +179,7 @@ op_done_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TESTBED_Operation **op;
 
   sc = peer_sc->sc;
-  peer_sc->op_done_task_id = GNUNET_SCHEDULER_NO_TASK;
+  peer_sc->op_done_task_id = NULL;
   op = &sc->ops[peer_sc->peer_index];
   GNUNET_assert (NULL != *op);
   GNUNET_TESTBED_operation_done (*op);
@@ -312,7 +312,7 @@ statistics_da (void *cls, void *op_result)
     peer_sc->get_handle = NULL;
   }
   GNUNET_STATISTICS_destroy (sh, GNUNET_NO);
-  if (GNUNET_SCHEDULER_NO_TASK != peer_sc->op_done_task_id)
+  if (NULL != peer_sc->op_done_task_id)
     GNUNET_SCHEDULER_cancel (peer_sc->op_done_task_id);
   GNUNET_free (peer_sc);
 }
@@ -366,7 +366,7 @@ oprelease_get_stats (void *cls)
   unsigned int peer;
 
   LOG_DEBUG ("Cleaning up get_statistics operation\n");
-  if (GNUNET_SCHEDULER_NO_TASK != sc->call_completion_task_id)
+  if (NULL != sc->call_completion_task_id)
     GNUNET_SCHEDULER_cancel (sc->call_completion_task_id);
   if (NULL != sc->ops)
   {

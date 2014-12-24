@@ -66,7 +66,7 @@ struct PendingMessage
    * Continuation to call when the request has been
    * transmitted (for the first time) to the service; can be NULL.
    */
-  GNUNET_SCHEDULER_Task cont;
+  GNUNET_SCHEDULER_TaskCallback cont;
 
   /**
    * Closure for 'cont'.
@@ -155,7 +155,7 @@ struct GNUNET_DHT_PutHandle
   /**
    * Timeout task for this operation.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Unique ID for the PUT operation.
@@ -345,7 +345,7 @@ struct GNUNET_DHT_Handle
   /**
    * Task for trying to reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * How quickly should we retry?  Used for exponential back-off on
@@ -506,7 +506,7 @@ try_reconnect (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting with DHT %p\n", handle);
   handle->retry_time = GNUNET_TIME_STD_BACKOFF (handle->retry_time);
-  handle->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  handle->reconnect_task = NULL;
   if (GNUNET_YES != try_connect (handle))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "dht reconnect failed(!)\n");
@@ -531,7 +531,7 @@ do_disconnect (struct GNUNET_DHT_Handle *handle)
 
   if (NULL == handle->client)
     return;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == handle->reconnect_task);
+  GNUNET_assert (NULL == handle->reconnect_task);
   if (NULL != handle->th)
     GNUNET_CLIENT_notify_transmit_ready_cancel (handle->th);
   handle->th = NULL;
@@ -1126,7 +1126,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
     GNUNET_CLIENT_disconnect (handle->client);
     handle->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle->reconnect_task)
+  if (NULL != handle->reconnect_task)
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
   GNUNET_CONTAINER_multihashmap_destroy (handle->active_requests);
   GNUNET_free (handle);
@@ -1146,7 +1146,7 @@ timeout_put_request (void *cls,
   struct GNUNET_DHT_PutHandle *ph = cls;
   struct GNUNET_DHT_Handle *handle = ph->dht_handle;
 
-  ph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ph->timeout_task = NULL;
   if (NULL != ph->pending)
   {
     GNUNET_CONTAINER_DLL_remove (handle->pending_head, handle->pending_tail,
@@ -1283,10 +1283,10 @@ GNUNET_DHT_put_cancel (struct GNUNET_DHT_PutHandle *ph)
     GNUNET_free (ph->pending);
     ph->pending = NULL;
   }
-  if (ph->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (ph->timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (ph->timeout_task);
-    ph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    ph->timeout_task = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (handle->put_head,
 			       handle->put_tail,

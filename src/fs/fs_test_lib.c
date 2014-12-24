@@ -63,7 +63,7 @@ struct TestPublishOperation
   /**
    * Task to abort publishing (timeout).
    */
-  GNUNET_SCHEDULER_TaskIdentifier publish_timeout_task;
+  struct GNUNET_SCHEDULER_Task * publish_timeout_task;
 
   /**
    * Seed for file generation.
@@ -131,7 +131,7 @@ struct TestDownloadOperation
   /**
    * Function to call when download is done.
    */
-  GNUNET_SCHEDULER_Task download_cont;
+  GNUNET_SCHEDULER_TaskCallback download_cont;
 
   /**
    * Closure for download_cont.
@@ -146,7 +146,7 @@ struct TestDownloadOperation
   /**
    * Task to abort downloading (timeout).
    */
-  GNUNET_SCHEDULER_TaskIdentifier download_timeout_task;
+  struct GNUNET_SCHEDULER_Task * download_timeout_task;
 
   /**
    * Context for current download operation.
@@ -215,7 +215,7 @@ publish_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct TestPublishOperation *po = cls;
 
-  po->publish_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  po->publish_timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while trying to publish data\n");
   GNUNET_TESTBED_operation_done (po->fs_op);
@@ -242,7 +242,7 @@ publish_progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   {
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     GNUNET_SCHEDULER_cancel (po->publish_timeout_task);
-    po->publish_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    po->publish_timeout_task = NULL;
     po->publish_uri =
         GNUNET_FS_uri_dup (info->value.publish.specifics.completed.chk_uri);
     GNUNET_SCHEDULER_add_continuation (&report_uri, po,
@@ -489,7 +489,7 @@ download_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while trying to download file\n");
-  dop->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  dop->download_timeout_task = NULL;
   GNUNET_FS_download_stop (dop->download_context, GNUNET_YES);
   GNUNET_SCHEDULER_add_continuation (dop->download_cont,
                                      dop->download_cont_cls,
@@ -543,7 +543,7 @@ download_progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     GNUNET_SCHEDULER_cancel (dop->download_timeout_task);
-    dop->download_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    dop->download_timeout_task = NULL;
     GNUNET_SCHEDULER_add_continuation (&report_success, dop,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
     break;
@@ -627,7 +627,7 @@ GNUNET_FS_TEST_download (struct GNUNET_TESTBED_Peer *peer,
                          struct GNUNET_TIME_Relative timeout,
                          uint32_t anonymity, uint32_t seed,
                          const struct GNUNET_FS_Uri *uri, unsigned int verbose,
-                         GNUNET_SCHEDULER_Task cont, void *cont_cls)
+                         GNUNET_SCHEDULER_TaskCallback cont, void *cont_cls)
 {
   struct TestDownloadOperation *dop;
 

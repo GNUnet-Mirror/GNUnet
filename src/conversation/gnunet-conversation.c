@@ -173,7 +173,7 @@ static unsigned int line;
 /**
  * Task which handles the commands
  */
-static GNUNET_SCHEDULER_TaskIdentifier handle_cmd_task;
+static struct GNUNET_SCHEDULER_Task * handle_cmd_task;
 
 /**
  * Our speaker.
@@ -1036,10 +1036,10 @@ do_stop_task (void *cls,
     GNUNET_CONVERSATION_phone_destroy (phone);
     phone = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != handle_cmd_task)
+  if (NULL != handle_cmd_task)
   {
     GNUNET_SCHEDULER_cancel (handle_cmd_task);
-    handle_cmd_task = GNUNET_SCHEDULER_NO_TASK;
+    handle_cmd_task = NULL;
   }
   if (NULL != id)
   {

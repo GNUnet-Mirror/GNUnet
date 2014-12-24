@@ -89,12 +89,12 @@ struct GNUNET_HELPER_Handle *suid_helper;
 /**
  * Timeout task
  */
-static GNUNET_SCHEDULER_TaskIdentifier timeout_endbadly;
+static struct GNUNET_SCHEDULER_Task * timeout_endbadly;
 
 /**
  * Timeout task
  */
-static GNUNET_SCHEDULER_TaskIdentifier timeout_wait;
+static struct GNUNET_SCHEDULER_Task * timeout_wait;
 
 /**
  * Library name
@@ -138,10 +138,10 @@ end ()
   int c = 0;
   ok = 0;
 
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_endbadly)
+  if (NULL != timeout_endbadly)
   {
     GNUNET_SCHEDULER_cancel (timeout_endbadly);
-    timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
+    timeout_endbadly = NULL;
   }
   if (NULL != api)
     GNUNET_PLUGIN_unload (libname, api);
@@ -183,11 +183,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct AddressWrapper *w;
   int c = 0;
 
-  timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
+  timeout_endbadly = NULL;
+  if (NULL != timeout_wait)
   {
     GNUNET_SCHEDULER_cancel (timeout_wait);
-    timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+    timeout_wait = NULL;
   }
 
   if (pretty_printers_running > 0)
@@ -249,7 +249,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+  timeout_wait = NULL;
   if (0 == addresses_reported)
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
         "Plugin did not report any addresses, could not check address conversion functions\n");
@@ -260,15 +260,15 @@ wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end_badly_now ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
+  if (NULL != timeout_wait)
   {
     GNUNET_SCHEDULER_cancel (timeout_wait);
-    timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+    timeout_wait = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_endbadly)
+  if (NULL != timeout_endbadly)
   {
     GNUNET_SCHEDULER_cancel (timeout_endbadly);
-    timeout_endbadly = GNUNET_SCHEDULER_NO_TASK;
+    timeout_endbadly = NULL;
   }
   timeout_endbadly = GNUNET_SCHEDULER_add_now (&end_badly, NULL );
 }
@@ -418,10 +418,10 @@ env_notify_address (void *cls,
       end_badly_now ();
       return;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != timeout_wait)
+    if (NULL != timeout_wait)
     {
       GNUNET_SCHEDULER_cancel (timeout_wait);
-      timeout_wait = GNUNET_SCHEDULER_NO_TASK;
+      timeout_wait = NULL;
     }
 
     timeout_wait = GNUNET_SCHEDULER_add_delayed (WAIT, &wait_end, NULL );

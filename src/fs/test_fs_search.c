@@ -52,7 +52,7 @@ static struct GNUNET_FS_SearchContext *search;
 
 static struct GNUNET_FS_PublishContext *publish;
 
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static struct GNUNET_SCHEDULER_Task * timeout_task;
 
 static int err;
 
@@ -65,10 +65,10 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_FS_publish_stop (publish);
     publish = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  if (NULL != timeout_task)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
 }
 
@@ -78,7 +78,7 @@ abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   fprintf (stderr,
 	   "Timeout\n");
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   if (NULL != search)
   {
     GNUNET_FS_search_stop (search);

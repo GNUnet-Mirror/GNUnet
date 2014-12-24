@@ -92,7 +92,7 @@ struct LCFContext
   /**
    * The timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * The id of the operation which created this context
@@ -206,7 +206,7 @@ struct Neighbour
   /**
    * Task id for the task to call notifications from the notification list
    */
-  GNUNET_SCHEDULER_TaskIdentifier notify_task;
+  struct GNUNET_SCHEDULER_Task * notify_task;
 
   /**
    * How many references are present currently to this neighbour's connection
@@ -265,7 +265,7 @@ struct NeighbourConnectCtxt
   /**
    * Task to be run upon timeout
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * The notification handle associated with the neighbour's connection request
@@ -317,7 +317,7 @@ static struct LCFContextQueue *lcfq_tail;
 /**
  * The lcf_task handle
  */
-static GNUNET_SCHEDULER_TaskIdentifier lcf_proc_task_id;
+static struct GNUNET_SCHEDULER_Task * lcf_proc_task_id;
 
 /**
  * The size of the route list
@@ -602,7 +602,7 @@ lcf_proc_cc (void *cls, const char *emsg)
 {
   struct LCFContext *lcf = cls;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  GNUNET_assert (NULL == lcf_proc_task_id);
   switch (lcf->state)
   {
   case INIT:
@@ -652,14 +652,14 @@ lcf_forwarded_operation_timeout (void *cls,
 {
   struct LCFContext *lcf = cls;
 
-  lcf->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  lcf->timeout_task = NULL;
   //  GST_forwarded_operation_timeout (lcf->fopc, tc);
   LOG (GNUNET_ERROR_TYPE_WARNING,
        "A forwarded controller link operation has timed out\n");
   send_controller_link_response (lcf->client, lcf->operation_id, NULL,
                                  "A forwarded controller link operation has "
                                  "timed out\n");
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  GNUNET_assert (NULL == lcf_proc_task_id);
   lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
 }
 
@@ -676,7 +676,7 @@ lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct LCFContext *lcf = cls;
   struct LCFContextQueue *lcfq;
 
-  lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
+  lcf_proc_task_id = NULL;
   switch (lcf->state)
   {
   case INIT:
@@ -753,7 +753,7 @@ slave_event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
   GNUNET_TESTBED_operation_done (lcf->op);
   lcf->op = NULL;
   GNUNET_assert (FINISHED == lcf->state);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != lcf->timeout_task);
+  GNUNET_assert (NULL != lcf->timeout_task);
   GNUNET_SCHEDULER_cancel (lcf->timeout_task);
   if (NULL == event->details.operation_finished.emsg)
     send_controller_link_response (lcf->client, lcf->operation_id,
@@ -764,7 +764,7 @@ slave_event_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     send_controller_link_response (lcf->client, lcf->operation_id,
                                    NULL,
                                    event->details.operation_finished.emsg);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  GNUNET_assert (NULL == lcf_proc_task_id);
   lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcf);
   return;
 }
@@ -862,8 +862,8 @@ neighbour_connect_notify_task (void *cls,
   struct NeighbourConnectNotification *h;
 
   GNUNET_assert (NULL != (h = n->nl_head));
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != n->notify_task);
-  n->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != n->notify_task);
+  n->notify_task = NULL;
   GNUNET_assert (NULL != n->controller);
   GNUNET_CONTAINER_DLL_remove (n->nl_head, n->nl_tail, h);
   trigger_notifications (n);
@@ -888,7 +888,7 @@ trigger_notifications (struct Neighbour *n)
     return;
   if (NULL == n->controller)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK != n->notify_task)
+  if (NULL != n->notify_task)
     return;
   if (1 == n->inactive)
   {
@@ -936,7 +936,7 @@ oprelease_neighbour_conn (void *cls)
    struct Neighbour *n = cls;
 
    GNUNET_assert (0 == n->reference_cnt);
-   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == n->notify_task);
+   GNUNET_assert (NULL == n->notify_task);
    GNUNET_assert (NULL == n->nl_head);
    if (NULL != n->controller)
    {
@@ -1006,12 +1006,12 @@ GST_neighbour_get_connection_cancel (struct NeighbourConnectNotification *h)
   GNUNET_free (h);
   if (GNUNET_NO == cleanup_task)
     return;
-  if (GNUNET_SCHEDULER_NO_TASK == n->notify_task)
+  if (NULL == n->notify_task)
     return;
   GNUNET_assert (0 < n->reference_cnt);
   n->reference_cnt--;
   GNUNET_SCHEDULER_cancel (n->notify_task);
-  n->notify_task = GNUNET_SCHEDULER_NO_TASK;
+  n->notify_task = NULL;
   if (NULL == n->nl_head)
   {
     if ( (0 == n->reference_cnt) && (0 == n->inactive) )
@@ -1056,7 +1056,7 @@ cleanup_ncc (struct NeighbourConnectCtxt *ncc)
 {
   if (NULL != ncc->nh)
     GST_neighbour_get_connection_cancel (ncc->nh);
-  if (GNUNET_SCHEDULER_NO_TASK != ncc->timeout_task)
+  if (NULL != ncc->timeout_task)
     GNUNET_SCHEDULER_cancel (ncc->timeout_task);
   GNUNET_SERVER_client_drop (ncc->client);
   GNUNET_CONTAINER_DLL_remove (ncc_head, ncc_tail, ncc);
@@ -1126,7 +1126,7 @@ timeout_neighbour_connect (void *cls,
 {
  struct NeighbourConnectCtxt *ncc = cls;
 
- ncc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+ ncc->timeout_task = NULL;
  send_controller_link_response (ncc->client, ncc->op_id, NULL,
                                 "Could not connect to delegated controller");
  cleanup_ncc (ncc);
@@ -1145,7 +1145,7 @@ neighbour_connect_cb (void *cls, struct GNUNET_TESTBED_Controller *c)
   struct NeighbourConnectCtxt *ncc = cls;
 
   GNUNET_SCHEDULER_cancel (ncc->timeout_task);
-  ncc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ncc->timeout_task = NULL;
   ncc->nh = NULL;
   GST_neighbour_release_connection (ncc->n);
   send_controller_link_response (ncc->client, ncc->op_id, NULL, NULL);
@@ -1314,7 +1314,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
   lcfq->lcf->client = client;
   if (NULL == lcfq_head)
   {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+    GNUNET_assert (NULL == lcf_proc_task_id);
     GNUNET_CONTAINER_DLL_insert_tail (lcfq_head, lcfq_tail, lcfq);
     lcf_proc_task_id = GNUNET_SCHEDULER_add_now (&lcf_proc_task, lcfq->lcf);
   }
@@ -1354,20 +1354,20 @@ GST_free_lcfq ()
 
   if (NULL != lcfq_head)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != lcf_proc_task_id)
+    if (NULL != lcf_proc_task_id)
     {
       GNUNET_SCHEDULER_cancel (lcf_proc_task_id);
-      lcf_proc_task_id = GNUNET_SCHEDULER_NO_TASK;
+      lcf_proc_task_id = NULL;
     }
   }
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == lcf_proc_task_id);
+  GNUNET_assert (NULL == lcf_proc_task_id);
   for (lcfq = lcfq_head; NULL != lcfq; lcfq = lcfq_head)
   {
     lcf = lcfq->lcf;
     GNUNET_SERVER_client_drop (lcf->client);
     if (NULL != lcf->op)
       GNUNET_TESTBED_operation_done (lcf->op);
-    if (GNUNET_SCHEDULER_NO_TASK != lcf->timeout_task)
+    if (NULL != lcf->timeout_task)
       GNUNET_SCHEDULER_cancel (lcf->timeout_task);
     GNUNET_free (lcf);
     GNUNET_CONTAINER_DLL_remove (lcfq_head, lcfq_tail, lcfq);

@@ -302,12 +302,12 @@ struct GSC_KeyExchangeInfo
   /**
    * ID of task used for re-trying SET_KEY and PING message.
    */
-  GNUNET_SCHEDULER_TaskIdentifier retry_set_key_task;
+  struct GNUNET_SCHEDULER_Task * retry_set_key_task;
 
   /**
    * ID of task used for sending keep-alive pings.
    */
-  GNUNET_SCHEDULER_TaskIdentifier keep_alive_task;
+  struct GNUNET_SCHEDULER_Task * keep_alive_task;
 
   /**
    * Bit map indicating which of the 32 sequence numbers before the last
@@ -373,7 +373,7 @@ static struct GSC_KeyExchangeInfo *kx_tail;
  * Task scheduled for periodic re-generation (and thus rekeying) of our
  * ephemeral key.
  */
-static GNUNET_SCHEDULER_TaskIdentifier rekey_task;
+static struct GNUNET_SCHEDULER_Task * rekey_task;
 
 /**
  * Notification context for all monitors.
@@ -651,7 +651,7 @@ set_key_retry_task (void *cls,
 {
   struct GSC_KeyExchangeInfo *kx = cls;
 
-  kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+  kx->retry_set_key_task = NULL;
   kx->set_key_retry_frequency = GNUNET_TIME_STD_BACKOFF (kx->set_key_retry_frequency);
   GNUNET_assert (GNUNET_CORE_KX_STATE_DOWN != kx->status);
   send_key (kx);
@@ -746,15 +746,15 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
   GSC_SESSIONS_end (&kx->peer);
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# key exchanges stopped"),
                             1, GNUNET_NO);
-  if (kx->retry_set_key_task != GNUNET_SCHEDULER_NO_TASK)
+  if (kx->retry_set_key_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
-    kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+    kx->retry_set_key_task = NULL;
   }
-  if (kx->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+  if (kx->keep_alive_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
-    kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
+    kx->keep_alive_task = NULL;
   }
   kx->status = GNUNET_CORE_KX_PEER_DISCONNECT;
   monitor_notify_all (kx);
@@ -929,7 +929,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   switch (kx->status)
   {
   case GNUNET_CORE_KX_STATE_DOWN:
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
+    GNUNET_assert (NULL == kx->keep_alive_task);
     kx->status = GNUNET_CORE_KX_STATE_KEY_RECEIVED;
     monitor_notify_all (kx);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
@@ -937,7 +937,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     send_ping (kx);
     break;
   case GNUNET_CORE_KX_STATE_KEY_SENT:
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
+    GNUNET_assert (NULL == kx->keep_alive_task);
     kx->status = GNUNET_CORE_KX_STATE_KEY_RECEIVED;
     monitor_notify_all (kx);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
@@ -945,7 +945,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     send_ping (kx);
     break;
   case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
+    GNUNET_assert (NULL == kx->keep_alive_task);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
@@ -1069,7 +1069,7 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative retry;
   struct GNUNET_TIME_Relative left;
 
-  kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
+  kx->keep_alive_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (kx->timeout);
   if (0 == left.rel_value_us)
   {
@@ -1122,7 +1122,7 @@ update_timeout (struct GSC_KeyExchangeInfo *kx)
        are bigger than the threshold (5s) */
     monitor_notify_all (kx);
   }
-  if (kx->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
+  if (kx->keep_alive_task != NULL)
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
   kx->keep_alive_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
@@ -1213,10 +1213,10 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
               "Received PONG from `%s'\n",
               GNUNET_i2s (&kx->peer));
   /* no need to resend key any longer */
-  if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
+  if (NULL != kx->retry_set_key_task)
   {
     GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
-    kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+    kx->retry_set_key_task = NULL;
   }
   switch (kx->status)
   {
@@ -1234,7 +1234,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     kx->status = GNUNET_CORE_KX_STATE_UP;
     monitor_notify_all (kx);
     GSC_SESSIONS_create (&kx->peer, kx);
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
+    GNUNET_assert (NULL == kx->keep_alive_task);
     update_timeout (kx);
     break;
   case GNUNET_CORE_KX_STATE_UP:
@@ -1269,10 +1269,10 @@ static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
   GNUNET_assert (GNUNET_CORE_KX_STATE_DOWN != kx->status);
-  if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
+  if (NULL != kx->retry_set_key_task)
   {
      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
-     kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
+     kx->retry_set_key_task = NULL;
   }
   /* always update sender status in SET KEY message */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1402,10 +1402,10 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
                               gettext_noop ("# sessions terminated by key expiration"),
                               1, GNUNET_NO);
     GSC_SESSIONS_end (&kx->peer);
-    if (GNUNET_SCHEDULER_NO_TASK != kx->keep_alive_task)
+    if (NULL != kx->keep_alive_task)
     {
       GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
-      kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
+      kx->keep_alive_task = NULL;
     }
     kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
     monitor_notify_all (kx);
@@ -1684,10 +1684,10 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
 void
 GSC_KX_done ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != rekey_task)
+  if (NULL != rekey_task)
   {
     GNUNET_SCHEDULER_cancel (rekey_task);
-    rekey_task = GNUNET_SCHEDULER_NO_TASK;
+    rekey_task = NULL;
   }
   if (NULL != my_ephemeral_key)
   {

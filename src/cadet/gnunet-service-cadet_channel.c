@@ -183,7 +183,7 @@ struct CadetChannelReliability
     /**
      * Task to resend/poll in case no ACK is received.
      */
-  GNUNET_SCHEDULER_TaskIdentifier   retry_task;
+  struct GNUNET_SCHEDULER_Task *   retry_task;
 
     /**
      * Counter for exponential backoff.
@@ -729,7 +729,7 @@ channel_retransmit_message (void *cls,
   struct GNUNET_CADET_Data *payload;
   int fwd;
 
-  rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+  rel->retry_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -763,7 +763,7 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetChannelReliability *rel = cls;
 
-  rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+  rel->retry_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -815,7 +815,7 @@ ch_message_sent (void *cls,
       GNUNET_assert (chq == copy->chq);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = copy->rel;
-      if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
+      if (NULL == rel->retry_task)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry in 4 * %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
@@ -859,7 +859,7 @@ ch_message_sent (void *cls,
           && GNUNET_MESSAGE_TYPE_CADET_DATA_ACK != type
           && GNUNET_NO == rel->ch->destroy)
       {
-        GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
+        GNUNET_assert (NULL == rel->retry_task);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! STD BACKOFF %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->retry_timer,
                                                      GNUNET_NO));
@@ -1006,10 +1006,10 @@ channel_rel_free_all (struct CadetChannelReliability *rel)
     GCT_cancel (rel->uniq->tq);
     /* ch_message_sent is called freeing uniq */
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+  if (NULL != rel->retry_task)
   {
     GNUNET_SCHEDULER_cancel (rel->retry_task);
-    rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+    rel->retry_task = NULL;
   }
   GNUNET_free (rel);
 }
@@ -1174,10 +1174,10 @@ channel_confirm (struct CadetChannel *ch, int fwd)
     if (GCT_get_connections_buffer (ch->t) > 0 || GCT_is_loopback (ch->t))
       send_client_ack (ch, fwd);
 
-    if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+    if (NULL != rel->retry_task)
     {
       GNUNET_SCHEDULER_cancel (rel->retry_task);
-      rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+      rel->retry_task = NULL;
     }
     else if (NULL != rel->uniq)
     {
@@ -2079,10 +2079,10 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
   /* If some message was free'd, update the retransmission delay */
   if (GNUNET_YES == work)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+    if (NULL != rel->retry_task)
     {
       GNUNET_SCHEDULER_cancel (rel->retry_task);
-      rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+      rel->retry_task = NULL;
       if (NULL != rel->head_sent && NULL == rel->head_sent->chq)
       {
         struct GNUNET_TIME_Absolute new_target;
@@ -2179,12 +2179,12 @@ GCCH_handle_create (struct CadetTunnel *t,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate create channel\n");
-    if (GNUNET_SCHEDULER_NO_TASK != ch->dest_rel->retry_task)
+    if (NULL != ch->dest_rel->retry_task)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  clearing retry task\n");
       /* we were waiting to re-send our 'SYNACK', wait no more! */
       GNUNET_SCHEDULER_cancel (ch->dest_rel->retry_task);
-      ch->dest_rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+      ch->dest_rel->retry_task = NULL;
     }
     else if (NULL != ch->dest_rel->uniq)
     {

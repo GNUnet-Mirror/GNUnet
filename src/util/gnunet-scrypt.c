@@ -40,7 +40,7 @@ static struct GNUNET_CRYPTO_EddsaPublicKey pub;
 
 static uint64_t proof;
 
-static GNUNET_SCHEDULER_TaskIdentifier proof_task;
+static struct GNUNET_SCHEDULER_Task * proof_task;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -128,7 +128,7 @@ find_proof (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got Proof of Work %llu\n", proof);
-  proof_task = GNUNET_SCHEDULER_NO_TASK;
+  proof_task = NULL;
   memcpy (&buf[sizeof (uint64_t)], &pub,
           sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
   i = 0;

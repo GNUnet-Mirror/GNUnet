@@ -196,7 +196,7 @@ struct BenchmarkPeer
    * Masters only
    * Progress task
    */
-  GNUNET_SCHEDULER_TaskIdentifier ats_task;
+  struct GNUNET_SCHEDULER_Task * ats_task;
 
   /**
    * Masters only

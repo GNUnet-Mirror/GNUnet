@@ -131,7 +131,7 @@ struct GNUNET_PSYCSTORE_Handle
   /**
    * Task doing exponential back-off trying to reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Time for next connect retry.
@@ -200,7 +200,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 static void
 reschedule_connect (struct GNUNET_PSYCSTORE_Handle *h)
 {
-  GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+  GNUNET_assert (h->reconnect_task == NULL);
 
   if (NULL != h->th)
   {
@@ -545,7 +545,7 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PSYCSTORE_Handle *h = cls;
 
-  h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  h->reconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to PSYCstore service.\n");
   GNUNET_assert (NULL == h->client);
@@ -582,10 +582,10 @@ void
 GNUNET_PSYCSTORE_disconnect (struct GNUNET_PSYCSTORE_Handle *h)
 {
   GNUNET_assert (NULL != h);
-  if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (h->reconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
-    h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    h->reconnect_task = NULL;
   }
   if (NULL != h->th)
   {

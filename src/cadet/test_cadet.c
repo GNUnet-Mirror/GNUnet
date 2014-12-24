@@ -144,17 +144,17 @@ struct GNUNET_CADET_TEST_Context *test_ctx;
 /**
  * Task called to disconnect peers.
  */
-static GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
+static struct GNUNET_SCHEDULER_Task * disconnect_task;
 
 /**
  * Task To perform tests
  */
-static GNUNET_SCHEDULER_TaskIdentifier test_task;
+static struct GNUNET_SCHEDULER_Task * test_task;
 
 /**
  * Task called to shutdown test.
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
+static struct GNUNET_SCHEDULER_Task * shutdown_handle;
 
 /**
  * Cadet handle for the root peer
@@ -254,7 +254,7 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
-  shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_handle = NULL;
 }
 
 
@@ -278,7 +278,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "disconnecting cadet service of peers, called from line %ld\n",
                 line);
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  disconnect_task = NULL;
   for (i = 0; i < 2; i++)
   {
     GNUNET_TESTBED_operation_done (t_op[i]);
@@ -294,7 +294,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     incoming_ch = NULL;
   }
   GNUNET_CADET_TEST_cleanup (test_ctx);
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
+  if (NULL != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
   }
@@ -310,7 +310,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 static void
 abort_test (long line)
 {
-  if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (disconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
@@ -474,7 +474,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
 
   if ((ok % 20) == 0)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    if (NULL != disconnect_task)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " reschedule timeout\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -573,7 +573,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     }
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
@@ -604,7 +604,7 @@ stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
     ok--;
   GNUNET_TESTBED_operation_done (stats_op);
 
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                               (void *) __LINE__);
@@ -657,7 +657,7 @@ check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  disconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
   GNUNET_CADET_channel_destroy (ch);
   stats_op = GNUNET_TESTBED_get_statistics (peers_running, testbed_peers,
@@ -705,7 +705,7 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
                 "Incoming channel for unknown client %lu\n", (long) cls);
     GNUNET_break(0);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     if (KEEPALIVE == test)
@@ -761,7 +761,7 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
                 "Unknown peer! %d\n", i);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
 
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
@@ -791,7 +791,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
 
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+  if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }

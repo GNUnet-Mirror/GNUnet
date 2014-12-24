@@ -69,7 +69,7 @@ struct ClientEntry
   /**
    * Task for re-announcing.
    */
-  GNUNET_SCHEDULER_TaskIdentifier refresh_task;
+  struct GNUNET_SCHEDULER_Task * refresh_task;
 
 };
 
@@ -143,10 +143,10 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     nx = ce->next;
     if (ce->client == client)
     {
-      if (GNUNET_SCHEDULER_NO_TASK != ce->refresh_task)
+      if (NULL != ce->refresh_task)
       {
 	GNUNET_SCHEDULER_cancel (ce->refresh_task);
-	ce->refresh_task = GNUNET_SCHEDULER_NO_TASK;
+	ce->refresh_task = NULL;
       }
       if (NULL != ce->ah)
       {

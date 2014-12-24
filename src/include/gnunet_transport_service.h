@@ -432,7 +432,7 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
 struct GNUNET_TRANSPORT_OfferHelloHandle *
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
-                              GNUNET_SCHEDULER_Task cont, void *cls);
+                              GNUNET_SCHEDULER_TaskCallback cont, void *cls);
 
 
 /**

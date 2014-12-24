@@ -90,12 +90,12 @@ static unsigned int NUM_PEERS = 3;
 /**
  * Task called to disconnect peers.
  */
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static struct GNUNET_SCHEDULER_Task * timeout_task;
 
 /**
  * Task to do DHT_puts
  */
-static GNUNET_SCHEDULER_TaskIdentifier put_task;
+static struct GNUNET_SCHEDULER_Task * put_task;
 
 static struct GNUNET_DHT_MonitorHandle **monitors;
 

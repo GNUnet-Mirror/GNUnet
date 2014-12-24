@@ -119,7 +119,7 @@ struct GNUNET_CLIENT_MANAGER_Connection
   /**
    * Task doing exponential back-off trying to reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Time for next connect retry.
@@ -304,7 +304,7 @@ static void
 schedule_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
-  mgr->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  mgr->reconnect_task = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to %s service.\n", mgr->service_name);
@@ -382,10 +382,10 @@ GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
       GNUNET_CLIENT_MANAGER_drop_queue (mgr);
     }
   }
-  if (mgr->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  if (mgr->reconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (mgr->reconnect_task);
-    mgr->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    mgr->reconnect_task = NULL;
   }
   if (NULL != mgr->client_tmit)
   {
@@ -413,7 +413,7 @@ GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
 void
 GNUNET_CLIENT_MANAGER_reconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != mgr->reconnect_task)
+  if (NULL != mgr->reconnect_task)
     return;
 
   if (NULL != mgr->client_tmit)

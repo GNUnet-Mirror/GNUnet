@@ -194,7 +194,7 @@ static struct MHD_Daemon *httpd;
 /**
  * Main HTTP task.
  */
-static GNUNET_SCHEDULER_TaskIdentifier httpd_task;
+static struct GNUNET_SCHEDULER_Task * httpd_task;
 
 /**
  * Handle to the namestore.
@@ -239,10 +239,10 @@ do_httpd (void *cls,
 static void
 run_httpd_now ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != httpd_task)
+  if (NULL != httpd_task)
   {
     GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = GNUNET_SCHEDULER_NO_TASK;
+    httpd_task = NULL;
   }
   httpd_task = GNUNET_SCHEDULER_add_now (&do_httpd, NULL);
 }
@@ -846,7 +846,7 @@ static void
 do_httpd (void *cls,
 	  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  httpd_task = GNUNET_SCHEDULER_NO_TASK;
+  httpd_task = NULL;
   MHD_run (httpd);
   run_httpd ();
 }
@@ -862,10 +862,10 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != httpd_task)
+  if (NULL != httpd_task)
   {
     GNUNET_SCHEDULER_cancel (httpd_task);
-    httpd_task = GNUNET_SCHEDULER_NO_TASK;
+    httpd_task = NULL;
   }
   if (NULL != ns)
   {

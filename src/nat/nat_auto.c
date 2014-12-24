@@ -129,7 +129,7 @@ struct GNUNET_NAT_AutoHandle
   /**
    * Task identifier for the timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Where are we in the test?
@@ -196,7 +196,7 @@ reversal_test (void *cls,
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 
-  ah->task = GNUNET_SCHEDULER_NO_TASK;
+  ah->task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Testing connection reversal with ICMP server.\n"));
   GNUNET_RESOLVER_connect (ah->cfg);
@@ -603,10 +603,10 @@ GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
     GNUNET_NAT_mini_get_external_ipv4_cancel (ah->eh);
     ah->eh = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != ah->task)
+  if (NULL != ah->task)
   {
     GNUNET_SCHEDULER_cancel (ah->task);
-    ah->task = GNUNET_SCHEDULER_NO_TASK;
+    ah->task = NULL;
   }
   GNUNET_CONFIGURATION_destroy (ah->cfg);
   GNUNET_CONFIGURATION_destroy (ah->initial_cfg);

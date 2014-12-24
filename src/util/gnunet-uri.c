@@ -77,7 +77,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   const char *slash;
   char *subsystem;
   char *program;
-  GNUNET_SCHEDULER_TaskIdentifier rt;
+  struct GNUNET_SCHEDULER_Task * rt;
 
   if (NULL == (uri = args[0]))
   {

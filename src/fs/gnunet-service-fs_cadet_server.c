@@ -108,12 +108,12 @@ struct CadetClient
   /**
    * Task that is scheduled to asynchronously terminate the connection.
    */
-  GNUNET_SCHEDULER_TaskIdentifier terminate_task;
+  struct GNUNET_SCHEDULER_Task * terminate_task;
 
   /**
    * Task that is scheduled to terminate idle connections.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Size of the last write that was initiated.
@@ -163,7 +163,7 @@ timeout_cadet_task (void *cls,
   struct CadetClient *sc = cls;
   struct GNUNET_CADET_Channel *tun;
 
-  sc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  sc->timeout_task = NULL;
   tun = sc->channel;
   sc->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -181,7 +181,7 @@ timeout_cadet_task (void *cls,
 static void
 refresh_timeout_task (struct CadetClient *sc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
+  if (NULL != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task);
   sc->timeout_task = GNUNET_SCHEDULER_add_delayed (IDLE_TIMEOUT,
 						   &timeout_cadet_task,
@@ -530,9 +530,9 @@ cleaner_cb (void *cls,
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# cadet connections active"), -1,
 			    GNUNET_NO);
-  if (GNUNET_SCHEDULER_NO_TASK != sc->terminate_task)
+  if (NULL != sc->terminate_task)
     GNUNET_SCHEDULER_cancel (sc->terminate_task);
-  if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
+  if (NULL != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task);
   if (NULL != sc->wh)
     GNUNET_CADET_notify_transmit_ready_cancel (sc->wh);

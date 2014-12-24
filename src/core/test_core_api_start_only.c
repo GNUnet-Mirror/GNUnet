@@ -46,7 +46,7 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task_id;
+static struct GNUNET_SCHEDULER_Task * timeout_task_id;
 
 static int ok;
 

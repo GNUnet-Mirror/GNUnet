@@ -48,7 +48,7 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetPeer *peer;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Destroy delayed %p (%u)\n", path, path->length);
-  path->path_delete = GNUNET_SCHEDULER_NO_TASK;
+  path->path_delete = NULL;
   peer = GCP_get_short (path->peers[path->length - 1]);
   if (2 < path->length)
     GCP_remove_path (peer, path);
@@ -150,7 +150,7 @@ path_get_length (struct CadetPeerPath *path)
 void
 path_invalidate (struct CadetPeerPath *p)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != p->path_delete)
+  if (NULL != p->path_delete)
     return;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Invalidating path %p (%u)\n", p, p->length);
@@ -267,7 +267,7 @@ path_equivalent (const struct CadetPeerPath *p1,
 int
 path_is_valid (const struct CadetPeerPath *path)
 {
-  return (GNUNET_SCHEDULER_NO_TASK == path->path_delete);
+  return (NULL == path->path_delete);
 }
 
 
@@ -287,7 +287,7 @@ path_destroy (struct CadetPeerPath *p)
   LOG (GNUNET_ERROR_TYPE_INFO, "destroying path %p (%u)\n", p, p->length);
   GNUNET_PEER_decrement_rcs (p->peers, p->length);
   GNUNET_free_non_null (p->peers);
-  if (GNUNET_SCHEDULER_NO_TASK != p->path_delete)
+  if (NULL != p->path_delete)
     GNUNET_SCHEDULER_cancel (p->path_delete);
   GNUNET_free (p);
   return GNUNET_OK;

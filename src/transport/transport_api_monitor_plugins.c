@@ -72,7 +72,7 @@ struct GNUNET_TRANSPORT_PluginMonitor
   /**
    * Task ID for reconnect.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
 };
 
@@ -141,7 +141,7 @@ do_plugin_connect (void *cls,
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
 
-  pm->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  pm->reconnect_task = NULL;
   pm->client = GNUNET_CLIENT_connect ("transport", pm->cfg);
   GNUNET_assert (NULL != pm->client);
   send_plugin_mon_request (pm);
@@ -442,10 +442,10 @@ GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *
     GNUNET_CLIENT_disconnect (pm->client);
     pm->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != pm->reconnect_task)
+  if (NULL != pm->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (pm->reconnect_task);
-    pm->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    pm->reconnect_task = NULL;
   }
   clear_map (pm);
   GNUNET_CONTAINER_multihashmap32_destroy (pm->sessions);

@@ -62,7 +62,7 @@ static struct REGEX_INTERNAL_Announcement *announce_handle;
 /**
  * Periodically reannounce regex.
  */
-static GNUNET_SCHEDULER_TaskIdentifier reannounce_task;
+static struct GNUNET_SCHEDULER_Task * reannounce_task;
 
 /**
  * What's the maximum reannounce period.
@@ -145,7 +145,7 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative random_delay;
   char *regex = cls;
 
-  reannounce_task = GNUNET_SCHEDULER_NO_TASK;
+  reannounce_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_free (regex);
@@ -208,7 +208,7 @@ announce_regex (const char * regex)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Daemon for %s starting\n",
               policy_filename);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == reannounce_task);
+  GNUNET_assert (NULL == reannounce_task);
   copy = GNUNET_strdup (regex);
   reannounce_task = GNUNET_SCHEDULER_add_now (reannounce_regex, (void *) copy);
 }

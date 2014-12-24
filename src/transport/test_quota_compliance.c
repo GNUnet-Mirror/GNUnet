@@ -47,9 +47,9 @@ static char *test_plugin;
 
 static char *test_name;
 
-static GNUNET_SCHEDULER_TaskIdentifier die_task;
+static struct GNUNET_SCHEDULER_Task * die_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier measure_task;
+static struct GNUNET_SCHEDULER_Task * measure_task;
 
 struct PeerContext *p1;
 
@@ -153,7 +153,7 @@ end ()
                 datarate, quota_out_p1, quota_in_p2);
   }
 
-  if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  if (die_task != NULL)
     GNUNET_SCHEDULER_cancel (die_task);
 
   if (th != NULL)
@@ -171,10 +171,10 @@ end ()
 static void
 end_badly ()
 {
-  die_task = GNUNET_SCHEDULER_NO_TASK;
+  die_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
-  if (measure_task != GNUNET_SCHEDULER_NO_TASK)
+  if (measure_task != NULL)
     GNUNET_SCHEDULER_cancel (measure_task);
 
   if (test_connected == GNUNET_YES)
@@ -244,7 +244,7 @@ notify_ready (void *cls, size_t size, void *buf)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready for message %u of %u\n",
                 msg_scheduled, TOTAL_MSGS);
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
+    if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     test_failed = 1;
@@ -348,7 +348,7 @@ measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static int counter;
 
-  measure_task = GNUNET_SCHEDULER_NO_TASK;
+  measure_task = NULL;
 
   counter++;
   if ((DURATION.rel_value_us / 1000 / 1000LL) < counter)
@@ -472,7 +472,7 @@ run_measurement (unsigned long long p1_quota_in,
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    if (die_task != NULL)
       GNUNET_SCHEDULER_cancel (die_task);
     die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;

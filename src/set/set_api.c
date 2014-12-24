@@ -204,7 +204,7 @@ struct GNUNET_SET_ListenHandle
   /**
    * Task for reconnecting when the listener fails.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Operation we listen for.
@@ -786,7 +786,7 @@ listen_connect (void *cls,
          "Listener not reconnecting due to shutdown\n");
     return;
   }
-  lh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  lh->reconnect_task = NULL;
   GNUNET_assert (NULL == lh->client);
   lh->client = GNUNET_CLIENT_connect ("set", lh->cfg);
   if (NULL == lh->client)
@@ -860,10 +860,10 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
     GNUNET_CLIENT_disconnect (lh->client);
     lh->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != lh->reconnect_task)
+  if (NULL != lh->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (lh->reconnect_task);
-    lh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    lh->reconnect_task = NULL;
   }
   GNUNET_free (lh);
 }

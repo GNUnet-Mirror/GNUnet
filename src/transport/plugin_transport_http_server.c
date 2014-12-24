@@ -232,12 +232,12 @@ struct Session
   /**
    * Session timeout task
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Task to resume MHD handling when receiving is allowed again
    */
-  GNUNET_SCHEDULER_TaskIdentifier recv_wakeup_task;
+  struct GNUNET_SCHEDULER_Task * recv_wakeup_task;
 
   /**
    * Number of bytes waiting for transmission to this peer.
@@ -374,17 +374,17 @@ struct HTTP_Server_Plugin
   /**
    * MHD IPv4 task
    */
-  GNUNET_SCHEDULER_TaskIdentifier server_v4_task;
+  struct GNUNET_SCHEDULER_Task * server_v4_task;
 
   /**
    * MHD IPv6 task
    */
-  GNUNET_SCHEDULER_TaskIdentifier server_v6_task;
+  struct GNUNET_SCHEDULER_Task * server_v6_task;
 
   /**
    * Task calling transport service about external address
    */
-  GNUNET_SCHEDULER_TaskIdentifier notify_ext_task;
+  struct GNUNET_SCHEDULER_Task * notify_ext_task;
 
   /**
    * Notify transport only about external address
@@ -499,7 +499,7 @@ server_wake_up (void *cls,
 {
   struct Session *s = cls;
 
-  s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+  s->recv_wakeup_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -534,16 +534,16 @@ server_delete_session (struct Session *s)
   struct HTTP_Server_Plugin *plugin = s->plugin;
   struct HTTP_Message *msg;
 
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  if (NULL != s->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    s->timeout_task = NULL;
     s->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != s->recv_wakeup_task)
+  if (NULL != s->recv_wakeup_task)
   {
     GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-    s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
+    s->recv_wakeup_task = NULL;
     if (NULL != s->server_recv)
       MHD_resume_connection (s->server_recv->mhd_conn);
   }
@@ -649,7 +649,7 @@ server_session_timeout (void *cls,
   struct Session *s = cls;
   struct GNUNET_TIME_Relative left;
 
-  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  s->timeout_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (s->timeout);
   if (0 != left.rel_value_us)
   {
@@ -680,7 +680,7 @@ server_session_timeout (void *cls,
 static void
 server_reschedule_session_timeout (struct Session *s)
 {
- GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+ GNUNET_assert (NULL != s->timeout_task);
   s->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 }
 
@@ -917,7 +917,7 @@ server_v4_run (void *cls,
 {
   struct HTTP_Server_Plugin *plugin = cls;
 
-  plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->server_v4_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   plugin->server_v4_immediately = GNUNET_NO;
@@ -939,7 +939,7 @@ server_v6_run (void *cls,
 {
   struct HTTP_Server_Plugin *plugin = cls;
 
-  plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->server_v6_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   plugin->server_v6_immediately = GNUNET_NO;
@@ -957,12 +957,12 @@ server_v6_run (void *cls,
  * @param now schedule now
  * @return gnunet task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier
+static struct GNUNET_SCHEDULER_Task *
 server_schedule (struct HTTP_Server_Plugin *plugin,
                  struct MHD_Daemon *daemon_handle,
                  int now)
 {
-  GNUNET_SCHEDULER_TaskIdentifier ret;
+  struct GNUNET_SCHEDULER_Task * ret;
   fd_set rs;
   fd_set ws;
   fd_set es;
@@ -975,9 +975,9 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
   struct GNUNET_TIME_Relative tv;
 
   if (GNUNET_YES == plugin->in_shutdown)
-    return GNUNET_SCHEDULER_NO_TASK;
+    return NULL;
 
-  ret = GNUNET_SCHEDULER_NO_TASK;
+  ret = NULL;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);
@@ -1015,10 +1015,10 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
 
   if (daemon_handle == plugin->server_v4)
   {
-    if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
+    if (plugin->server_v4_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
-      plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+      plugin->server_v4_task = NULL;
     }
 #if 0
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1032,10 +1032,10 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
   }
   if (daemon_handle == plugin->server_v6)
   {
-    if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
+    if (plugin->server_v6_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
-      plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+      plugin->server_v6_task = NULL;
     }
 #if 0
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1073,10 +1073,10 @@ server_reschedule (struct HTTP_Server_Plugin *plugin,
     if (GNUNET_YES == now)
       plugin->server_v4_immediately = GNUNET_YES;
 
-    if (plugin->server_v4_task != GNUNET_SCHEDULER_NO_TASK)
+    if (plugin->server_v4_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
-      plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+      plugin->server_v4_task = NULL;
     }
     plugin->server_v4_task = server_schedule (plugin, plugin->server_v4, now);
   }
@@ -1089,10 +1089,10 @@ server_reschedule (struct HTTP_Server_Plugin *plugin,
     if (GNUNET_YES == now)
       plugin->server_v6_immediately = GNUNET_YES;
 
-    if (plugin->server_v6_task != GNUNET_SCHEDULER_NO_TASK)
+    if (plugin->server_v6_task != NULL)
     {
       GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
-      plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+      plugin->server_v6_task = NULL;
     }
     plugin->server_v6_task = server_schedule (plugin, plugin->server_v6, now);
   }
@@ -1895,7 +1895,7 @@ server_access_cb (void *cls,
             s, sc, GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
         GNUNET_assert(s->server_recv->mhd_conn == mhd_connection);
         MHD_suspend_connection (s->server_recv->mhd_conn);
-        if (GNUNET_SCHEDULER_NO_TASK == s->recv_wakeup_task)
+        if (NULL == s->recv_wakeup_task)
           s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delay,
               &server_wake_up, s);
       }
@@ -2881,7 +2881,7 @@ server_notify_external_hostname (void *cls,
   unsigned int urlen;
   char *url;
 
-  plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
+  plugin->notify_ext_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -3175,10 +3175,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
        _("Shutting down plugin `%s'\n"),
        plugin->name);
 
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
+  if (NULL != plugin->notify_ext_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->notify_ext_task);
-    plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->notify_ext_task = NULL;
   }
 
   if (NULL != plugin->ext_addr)
@@ -3213,16 +3213,16 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     MHD_stop_daemon (plugin->server_v6);
     plugin->server_v6 = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->server_v4_task)
+  if (NULL != plugin->server_v4_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_v4_task);
-    plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->server_v4_task = NULL;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->server_v6_task)
+  if (NULL != plugin->server_v6_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
-    plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->server_v6_task = NULL;
   }
 #if BUILD_HTTPS
   GNUNET_free_non_null (plugin->crypto_init);
@@ -3309,7 +3309,7 @@ http_server_plugin_update_inbound_delay (void *cls,
        "New inbound delay %s\n",
        GNUNET_STRINGS_relative_time_to_string (delay,
                                                GNUNET_NO));
-  if (GNUNET_SCHEDULER_NO_TASK != session->recv_wakeup_task)
+  if (NULL != session->recv_wakeup_task)
   {
     GNUNET_SCHEDULER_cancel (session->recv_wakeup_task);
     session->recv_wakeup_task

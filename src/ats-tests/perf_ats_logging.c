@@ -72,7 +72,7 @@
 /**
  * Logging task
  */
-static GNUNET_SCHEDULER_TaskIdentifier log_task;
+static struct GNUNET_SCHEDULER_Task * log_task;
 
 /**
  * Reference to perf_ats' masters
@@ -639,7 +639,7 @@ collect_log_now (void)
 static void
 collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  log_task = GNUNET_SCHEDULER_NO_TASK;
+  log_task = NULL;
 
   collect_log_now();
 
@@ -661,9 +661,9 @@ perf_logging_stop ()
   if (GNUNET_YES!= running)
     return;
 
-  if (GNUNET_SCHEDULER_NO_TASK != log_task)
+  if (NULL != log_task)
     GNUNET_SCHEDULER_cancel (log_task);
-  log_task = GNUNET_SCHEDULER_NO_TASK;
+  log_task = NULL;
   tc.reason = GNUNET_SCHEDULER_REASON_SHUTDOWN;
   collect_log_task (NULL, &tc);
 

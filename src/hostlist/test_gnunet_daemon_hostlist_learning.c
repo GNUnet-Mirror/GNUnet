@@ -64,9 +64,9 @@ static char *current_adv_uri;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-static GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+static struct GNUNET_SCHEDULER_Task * timeout_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier check_task;
+static struct GNUNET_SCHEDULER_Task * check_task;
 
 static struct PeerContext adv_peer;
 
@@ -83,10 +83,10 @@ static void
 shutdown_testcase ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown testcase....\n");
-  if (timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
-    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    timeout_task = NULL;
   }
   if (NULL != download_stats)
   {
@@ -113,10 +113,10 @@ shutdown_testcase ()
     GNUNET_STATISTICS_destroy (learn_peer.stats, GNUNET_NO);
     learn_peer.stats = NULL;
   }
-  if (check_task != GNUNET_SCHEDULER_NO_TASK)
+  if (check_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (check_task);
-    check_task = GNUNET_SCHEDULER_NO_TASK;
+    check_task = NULL;
   }
   if (NULL != current_adv_uri)
   {
@@ -168,7 +168,7 @@ shutdown_testcase ()
 static void
 timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while executing testcase, test failed.\n");
   timeout = GNUNET_YES;
@@ -269,7 +269,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *stat;
 
-  check_task = GNUNET_SCHEDULER_NO_TASK;
+  check_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_asprintf (&stat, gettext_noop ("# advertised URI `%s' downloaded"),

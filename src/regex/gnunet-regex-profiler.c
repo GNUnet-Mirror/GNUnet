@@ -170,7 +170,7 @@ struct RegexPeer
   /**
    * Operation timeout
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout;
+  struct GNUNET_SCHEDULER_Task * timeout;
 
   /**
    * Deamon start
@@ -211,17 +211,17 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Shutdown task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Host registration task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier register_hosts_task;
+static struct GNUNET_SCHEDULER_Task * register_hosts_task;
 
 /**
  * Global event mask for all testbed events
@@ -296,7 +296,7 @@ static unsigned int next_search;
 /**
  * Search timeout task identifier.
  */
-static GNUNET_SCHEDULER_TaskIdentifier search_timeout_task;
+static struct GNUNET_SCHEDULER_Task * search_timeout_task;
 
 /**
  * Search timeout in seconds.
@@ -410,10 +410,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char output_buffer[512];
   size_t size;
 
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  shutdown_task = NULL;
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
-  if (GNUNET_SCHEDULER_NO_TASK != register_hosts_task)
+  if (NULL != register_hosts_task)
     GNUNET_SCHEDULER_cancel (register_hosts_task);
 
   for (peer_cnt = 0; peer_cnt < num_peers; peer_cnt++)
@@ -479,9 +479,9 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned long i = (unsigned long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting from line %lu...\n", i);
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   result = GNUNET_SYSERR;
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+  if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
@@ -734,10 +734,10 @@ regex_found_handler (void *cls,
   strings_found++;
   parallel_searches--;
 
-  if (GNUNET_SCHEDULER_NO_TASK != peer->timeout)
+  if (NULL != peer->timeout)
   {
     GNUNET_SCHEDULER_cancel (peer->timeout);
-    peer->timeout = GNUNET_SCHEDULER_NO_TASK;
+    peer->timeout = NULL;
     if (GNUNET_NO == in_shutdown)
       GNUNET_SCHEDULER_add_now (&announce_next_regex, NULL);
   }
@@ -791,10 +791,10 @@ regex_found_handler (void *cls,
                 "All strings successfully matched in %s\n",
                 GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
 
-    if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
+    if (NULL != search_timeout_task)
     {
       GNUNET_SCHEDULER_cancel (search_timeout_task);
-      search_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      search_timeout_task = NULL;
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Collecting stats.\n");
@@ -853,7 +853,7 @@ find_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RegexPeer *p = cls;
 
-  p->timeout = GNUNET_SCHEDULER_NO_TASK;
+  p->timeout = NULL;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
@@ -996,7 +996,7 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (strings_found != num_peers)
     {
       struct GNUNET_TIME_Relative new_delay;
-      if (GNUNET_SCHEDULER_NO_TASK != search_timeout_task)
+      if (NULL != search_timeout_task)
         GNUNET_SCHEDULER_cancel (search_timeout_task);
       new_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 15);
       search_timeout_task = GNUNET_SCHEDULER_add_delayed (new_delay,
@@ -1130,10 +1130,10 @@ test_master (void *cls,
               "Testbed started in %s\n",
               GNUNET_STRINGS_relative_time_to_string (prof_time, GNUNET_NO));
 
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
-    abort_task = GNUNET_SCHEDULER_NO_TASK;
+    abort_task = NULL;
   }
 
   for (i = 0; i < num_peers; i++)

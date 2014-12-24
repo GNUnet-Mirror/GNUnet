@@ -187,7 +187,7 @@ struct GNUNET_SERVICE_Context
   /**
    * Task ID of the shutdown task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+  struct GNUNET_SCHEDULER_Task * shutdown_task;
 
   /**
    * Idle timeout for server.
@@ -1134,7 +1134,7 @@ shutdown_task (void *cls,
   struct GNUNET_SERVICE_Context *service = cls;
   struct GNUNET_SERVER_Handle *server = service->server;
 
-  service->shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  service->shutdown_task = NULL;
   if (0 != (service->options & GNUNET_SERVICE_OPTION_SOFT_SHUTDOWN))
     GNUNET_SERVER_stop_listening (server);
   else
@@ -1675,10 +1675,10 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx)
     }
   }
 #endif
-  if (GNUNET_SCHEDULER_NO_TASK != sctx->shutdown_task)
+  if (NULL != sctx->shutdown_task)
   {
     GNUNET_SCHEDULER_cancel (sctx->shutdown_task);
-    sctx->shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+    sctx->shutdown_task = NULL;
   }
   if (NULL != sctx->server)
     GNUNET_SERVER_destroy (sctx->server);

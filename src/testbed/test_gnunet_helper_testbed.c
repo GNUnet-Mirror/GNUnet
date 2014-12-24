@@ -58,12 +58,12 @@ static struct GNUNET_HELPER_SendHandle *shandle;
 /**
  * Abort task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier abort_task;
+static struct GNUNET_SCHEDULER_Task * abort_task;
 
 /**
  * Shutdown task identifier
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Configuratin handler
@@ -85,7 +85,7 @@ static int result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != abort_task)
+  if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
   if (NULL != helper)
     GNUNET_HELPER_stop (helper, GNUNET_NO);
@@ -104,12 +104,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  abort_task = GNUNET_SCHEDULER_NO_TASK;
+  abort_task = NULL;
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   result = GNUNET_SYSERR;
   if (NULL != shandle)
     GNUNET_HELPER_send_cancel (shandle);
-  if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
+  if (NULL == shutdown_task)
     shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
 }
 
@@ -167,7 +167,7 @@ mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)
                  uncompress ((Bytef *) config, &config_size,
                              (const Bytef *) &msg[1], xconfig_size));
   GNUNET_free (config);
-  if (GNUNET_SCHEDULER_NO_TASK == shutdown_task)
+  if (NULL == shutdown_task)
     shutdown_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                       (GNUNET_TIME_UNIT_SECONDS, 1),

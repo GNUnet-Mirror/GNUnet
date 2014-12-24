@@ -124,7 +124,7 @@ struct GNUNET_SENSOR_SensorInfo
   char *gnunet_stat_name;
 
   /**
-   * Handle to statistics get request (OR GNUNET_SCHEDULER_NO_TASK)
+   * Handle to statistics get request (OR NULL)
    */
   struct GNUNET_STATISTICS_GetHandle *gnunet_stat_get_handle;
 
@@ -178,9 +178,9 @@ struct GNUNET_SENSOR_SensorInfo
   int report_anomalies;
 
   /**
-   * Execution task (OR GNUNET_SCHEDULER_NO_TASK)
+   * Execution task (OR NULL)
    */
-  GNUNET_SCHEDULER_TaskIdentifier execution_task;
+  struct GNUNET_SCHEDULER_Task * execution_task;
 
   /**
    * Is the sensor being executed

@@ -274,7 +274,7 @@ load_sensor_from_cfg (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (dummy);
   }
   //execution task
-  sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
+  sensor->execution_task = NULL;
   //running
   sensor->running = GNUNET_NO;
   return sensor;
@@ -479,10 +479,10 @@ destroy_sensor (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_SENSOR_SensorInfo *sensor = value;
 
-  if (GNUNET_SCHEDULER_NO_TASK != sensor->execution_task)
+  if (NULL != sensor->execution_task)
   {
     GNUNET_SCHEDULER_cancel (sensor->execution_task);
-    sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
+    sensor->execution_task = NULL;
   }
   if (NULL != sensor->gnunet_stat_get_handle)
   {

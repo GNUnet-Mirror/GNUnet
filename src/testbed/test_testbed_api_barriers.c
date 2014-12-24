@@ -50,7 +50,7 @@ struct GNUNET_TESTBED_Barrier *barrier;
 /**
  * Identifier for the shutdown task
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 /**
  * Result of this test case
@@ -67,7 +67,7 @@ static int result;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task = NULL;
   if (NULL != barrier)
   {
     GNUNET_TESTBED_barrier_cancel (barrier);

@@ -179,7 +179,7 @@ static unsigned long long payload;
  * Identity of the task that is used to delete
  * expired content.
  */
-static GNUNET_SCHEDULER_TaskIdentifier expired_kill_task;
+static struct GNUNET_SCHEDULER_Task * expired_kill_task;
 
 /**
  * Minimum time that content should have to not be discarded instantly
@@ -381,7 +381,7 @@ expired_processor (void *cls,
 static void
 delete_expired (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
+  expired_kill_task = NULL;
   plugin->api->get_expiration (plugin->api->cls, &expired_processor, NULL);
 }
 
@@ -1423,10 +1423,10 @@ cleaning_task (void *cls,
     GNUNET_free (tcc->msg);
     GNUNET_free (tcc);
   }
-  if (expired_kill_task != GNUNET_SCHEDULER_NO_TASK)
+  if (expired_kill_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (expired_kill_task);
-    expired_kill_task = GNUNET_SCHEDULER_NO_TASK;
+    expired_kill_task = NULL;
   }
   if (GNUNET_YES == do_drop)
     plugin->api->drop (plugin->api->cls);

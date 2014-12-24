@@ -110,7 +110,7 @@ struct GNUNET_PEERINFO_IteratorContext
   /**
    * Task responsible for timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Timeout for the operation.
@@ -179,7 +179,7 @@ struct GNUNET_PEERINFO_Handle
   /**
    * ID for a reconnect task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier r_task;
+  struct GNUNET_SCHEDULER_Task * r_task;
 
   /**
    * Are we now receiving?
@@ -247,10 +247,10 @@ GNUNET_PEERINFO_disconnect (struct GNUNET_PEERINFO_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != h->r_task)
+  if (NULL != h->r_task)
   {
     GNUNET_SCHEDULER_cancel (h->r_task);
-    h->r_task = GNUNET_SCHEDULER_NO_TASK;
+    h->r_task = NULL;
   }
   GNUNET_free (h);
 }
@@ -287,7 +287,7 @@ reconnect_task (void *cls,
 {
   struct GNUNET_PEERINFO_Handle *h = cls;
 
-  h->r_task = GNUNET_SCHEDULER_NO_TASK;
+  h->r_task = NULL;
   reconnect (h);
 }
 
@@ -300,10 +300,10 @@ reconnect_task (void *cls,
 static void
 reconnect (struct GNUNET_PEERINFO_Handle *h)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != h->r_task)
+  if (NULL != h->r_task)
   {
     GNUNET_SCHEDULER_cancel (h->r_task);
-    h->r_task = GNUNET_SCHEDULER_NO_TASK;
+    h->r_task = NULL;
   }
   if (NULL != h->th)
   {
@@ -709,7 +709,7 @@ signal_timeout (void *cls,
   GNUNET_PEERINFO_Processor cb;
   void *cb_cls;
 
-  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ic->timeout_task = NULL;
   cb = ic->callback;
   cb_cls = ic->callback_cls;
   GNUNET_PEERINFO_iterate_cancel (ic);
@@ -811,10 +811,10 @@ GNUNET_PEERINFO_iterate_cancel (struct GNUNET_PEERINFO_IteratorContext *ic)
   struct GNUNET_PEERINFO_Handle *h;
 
   h = ic->h;
-  if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
+  if (NULL != ic->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (ic->timeout_task);
-    ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    ic->timeout_task = NULL;
   }
   ic->callback = NULL;
   if (GNUNET_YES == ic->request_transmitted)

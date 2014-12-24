@@ -140,14 +140,14 @@ struct CadetHandle
    * a few seconds to give the application a chance to give
    * us another query).
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Task to reset cadets that had errors (asynchronously,
    * as we may not be able to do it immediately during a
    * callback from the cadet API).
    */
-  GNUNET_SCHEDULER_TaskIdentifier reset_task;
+  struct GNUNET_SCHEDULER_Task * reset_task;
 
 };
 
@@ -258,7 +258,7 @@ cadet_timeout (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  mh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  mh->timeout_task = NULL;
   tun = mh->channel;
   mh->channel = NULL;
   if(NULL != tun)
@@ -278,7 +278,7 @@ reset_cadet_task (void *cls,
 {
   struct CadetHandle *mh = cls;
 
-  mh->reset_task = GNUNET_SCHEDULER_NO_TASK;
+  mh->reset_task = NULL;
   reset_cadet (mh);
 }
 
@@ -292,7 +292,7 @@ reset_cadet_task (void *cls,
 static void
 reset_cadet_async (struct CadetHandle *mh)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != mh->reset_task)
+  if (NULL != mh->reset_task)
     GNUNET_SCHEDULER_cancel (mh->reset_task);
   mh->reset_task = GNUNET_SCHEDULER_add_now (&reset_cadet_task,
 					     mh);
@@ -527,10 +527,10 @@ get_cadet (const struct GNUNET_PeerIdentity *target)
 					  target);
   if (NULL != mh)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != mh->timeout_task)
+    if (NULL != mh->timeout_task)
     {
       GNUNET_SCHEDULER_cancel (mh->timeout_task);
-      mh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+      mh->timeout_task = NULL;
     }
     return mh;
   }
@@ -698,9 +698,9 @@ cleaner_cb (void *cls,
 					 mh);
   if (NULL != mh->wh)
     GNUNET_CADET_notify_transmit_ready_cancel (mh->wh);
-  if (GNUNET_SCHEDULER_NO_TASK != mh->timeout_task)
+  if (NULL != mh->timeout_task)
     GNUNET_SCHEDULER_cancel (mh->timeout_task);
-  if (GNUNET_SCHEDULER_NO_TASK != mh->reset_task)
+  if (NULL != mh->reset_task)
     GNUNET_SCHEDULER_cancel (mh->reset_task);
   GNUNET_assert (0 ==
                  GNUNET_CONTAINER_multihashmap_size (mh->waiting_map));

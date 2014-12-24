@@ -208,7 +208,7 @@ struct TestContext
   /**
    * Task identifier for the timeout.
    */
-  GNUNET_SCHEDULER_TaskIdentifier tsk;
+  struct GNUNET_SCHEDULER_Task * tsk;
 
   /**
    * Name of plugin under test.
@@ -424,12 +424,12 @@ static struct GNUNET_PeerIdentity pid;
 /**
  * Task scheduled for cleanup / termination of the process.
  */
-static GNUNET_SCHEDULER_TaskIdentifier end;
+static struct GNUNET_SCHEDULER_Task * end;
 
 /**
  * Task for operation timeout
  */
-static GNUNET_SCHEDULER_TaskIdentifier op_timeout;
+static struct GNUNET_SCHEDULER_Task * op_timeout;
 
 /**
  * Selected level of verbosity.
@@ -522,11 +522,11 @@ shutdown_task (void *cls,
   struct ValidationResolutionContext *cur;
   struct ValidationResolutionContext *next;
 
-  end = GNUNET_SCHEDULER_NO_TASK;
-  if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+  end = NULL;
+  if (NULL != op_timeout)
   {
     GNUNET_SCHEDULER_cancel (op_timeout);
-    op_timeout = GNUNET_SCHEDULER_NO_TASK;
+    op_timeout = NULL;
   }
   if (NULL != tc_handle)
   {
@@ -612,13 +612,13 @@ operation_timeout (void *cls,
 {
   struct PeerResolutionContext *cur;
   struct PeerResolutionContext *next;
-  op_timeout = GNUNET_SCHEDULER_NO_TASK;
+  op_timeout = NULL;
   if ((try_connect) || (benchmark_send) || (benchmark_receive))
   {
     FPRINTF (stdout,
              _("Failed to connect to `%s'\n"),
              GNUNET_i2s_full (&pid));
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     ret = 1;
@@ -644,7 +644,7 @@ operation_timeout (void *cls,
     FPRINTF (stdout,
              "%s",
              _("Failed to list connections, timeout occured\n"));
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     ret = 1;
@@ -709,10 +709,10 @@ display_test_result (struct TestContext *tc,
              _("Configuration for plugin `%s' is working!\n"),
              tc->name);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != tc->tsk)
+  if (NULL != tc->tsk)
   {
     GNUNET_SCHEDULER_cancel (tc->tsk);
-    tc->tsk = GNUNET_SCHEDULER_NO_TASK;
+    tc->tsk = NULL;
   }
   if (NULL != tc->tst)
   {
@@ -873,15 +873,15 @@ process_validation_string (void *cls,
   GNUNET_free (vc);
   if ((0 == address_resolutions) && (iterate_validation))
   {
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
     {
       GNUNET_SCHEDULER_cancel (end);
-      end = GNUNET_SCHEDULER_NO_TASK;
+      end = NULL;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
-      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      op_timeout = NULL;
     }
     ret = 0;
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
@@ -966,7 +966,7 @@ process_validation_cb (void *cls,
 
     /* done */
     vic = NULL;
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
@@ -975,7 +975,7 @@ process_validation_cb (void *cls,
   {
     /* invalid response */
     vic = NULL;
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
@@ -1140,23 +1140,23 @@ notify_connect (void *cls,
         GNUNET_i2s_full (peer));
     ret = 0;
 
-    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
-      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      op_timeout = NULL;
     }
 
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   if (benchmark_send)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
-      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      op_timeout = NULL;
     }
     if (verbosity > 0)
       FPRINTF (stdout,
@@ -1197,13 +1197,13 @@ notify_disconnect (void *cls,
         GNUNET_i2s_full (peer));
     ret = 0;
 
-    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
-      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      op_timeout = NULL;
     }
 
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
@@ -1218,7 +1218,7 @@ notify_disconnect (void *cls,
   {
     FPRINTF (stdout, _("Disconnected from peer `%s' while benchmarking\n"),
         GNUNET_i2s (&pid));
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     return;
   }
@@ -1431,15 +1431,15 @@ process_peer_string (void *cls,
   GNUNET_free (rc);
   if ((0 == address_resolutions) && (iterate_connections))
   {
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
     {
       GNUNET_SCHEDULER_cancel (end);
-      end = GNUNET_SCHEDULER_NO_TASK;
+      end = NULL;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    if (NULL != op_timeout)
     {
       GNUNET_SCHEDULER_cancel (op_timeout);
-      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      op_timeout = NULL;
     }
     ret = 0;
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
@@ -1498,7 +1498,7 @@ process_peer_iteration_cb (void *cls,
     /* done */
     address_resolution_in_progress = GNUNET_NO;
     pic = NULL;
-    if (GNUNET_SCHEDULER_NO_TASK != end)
+    if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
@@ -1508,7 +1508,7 @@ process_peer_iteration_cb (void *cls,
        (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)))
       return; /* Display only connected peers */
 
-  if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+  if (NULL != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
   op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                              &operation_timeout,
@@ -1713,7 +1713,7 @@ process_peer_monitoring_cb (void *cls,
     return;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+  if (NULL != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
   op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                              &operation_timeout,
@@ -1792,7 +1792,7 @@ try_connect_cb (void *cls,
   FPRINTF (stderr,
            "%s",
            _("Failed to send connect request to transport service\n"));
-  if (GNUNET_SCHEDULER_NO_TASK != end)
+  if (NULL != end)
     GNUNET_SCHEDULER_cancel (end);
   ret = 1;
   end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
@@ -1827,7 +1827,7 @@ try_disconnect_cb (void *cls,
   }
   FPRINTF (stderr, "%s",
            _("Failed to send disconnect request to transport service\n"));
-  if (GNUNET_SCHEDULER_NO_TASK != end)
+  if (NULL != end)
     GNUNET_SCHEDULER_cancel (end);
   ret = 1;
   end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);

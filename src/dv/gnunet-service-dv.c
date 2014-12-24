@@ -230,7 +230,7 @@ struct DirectNeighbor
    * ID of the task we use to (periodically) update our consensus
    * with this peer.  Used if we are the initiating peer.
    */
-  GNUNET_SCHEDULER_TaskIdentifier initiate_task;
+  struct GNUNET_SCHEDULER_Task * initiate_task;
 
   /**
    * At what offset are we, with respect to inserting our own routes
@@ -386,7 +386,7 @@ static struct GNUNET_ATS_PerformanceHandle *ats;
 /**
  * Task scheduled to refresh routes based on direct neighbours.
  */
-static GNUNET_SCHEDULER_TaskIdentifier rr_task;
+static struct GNUNET_SCHEDULER_Task * rr_task;
 
 /**
  * #GNUNET_YES if we are shutting down.
@@ -1138,7 +1138,7 @@ static void
 refresh_routes_task (void *cls,
                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  rr_task = GNUNET_SCHEDULER_NO_TASK;
+  rr_task = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
 					 &refresh_routes,
                                          NULL);
@@ -1152,7 +1152,7 @@ refresh_routes_task (void *cls,
 static void
 schedule_refresh_routes ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK == rr_task)
+  if (NULL == rr_task)
     rr_task = GNUNET_SCHEDULER_add_now (&refresh_routes_task,
                                         NULL);
 }
@@ -1288,10 +1288,10 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
     GNUNET_SET_listen_cancel (neighbor->listen_handle);
     neighbor->listen_handle = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != neighbor->initiate_task)
+  if (NULL != neighbor->initiate_task)
   {
     GNUNET_SCHEDULER_cancel (neighbor->initiate_task);
-    neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
+    neighbor->initiate_task = NULL;
   }
 }
 
@@ -1745,7 +1745,7 @@ initiate_set_union (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Initiating SET union with peer `%s'\n",
 	      GNUNET_i2s (&neighbor->peer));
-  neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
+  neighbor->initiate_task = NULL;
   neighbor->my_set = GNUNET_SET_create (cfg,
 					GNUNET_SET_OPERATION_UNION);
   neighbor->set_op = GNUNET_SET_prepare (&neighbor->peer,
@@ -2154,10 +2154,10 @@ shutdown_task (void *cls,
 		       consensi[i].array_length,
 		       0);
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rr_task)
+  if (NULL != rr_task)
   {
     GNUNET_SCHEDULER_cancel (rr_task);
-    rr_task = GNUNET_SCHEDULER_NO_TASK;
+    rr_task = NULL;
   }
 }
 

@@ -87,7 +87,7 @@ struct GNUNET_TIME_Absolute echo_time;
 /**
  * Task for next echo request.
  */
-GNUNET_SCHEDULER_TaskIdentifier echo_task;
+struct GNUNET_SCHEDULER_Task * echo_task;
 
 /**
  * Peer to connect to.
@@ -118,7 +118,7 @@ static struct GNUNET_CADET_Channel *ch;
 /**
  * Shutdown task handle.
  */
-GNUNET_SCHEDULER_TaskIdentifier sd;
+struct GNUNET_SCHEDULER_Task * sd;
 
 
 

@@ -119,7 +119,7 @@ struct GNUNET_DNS_Handle
   /**
    * Task to reconnect to the service.
    */
-  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+  struct GNUNET_SCHEDULER_Task * reconnect_task;
 
   /**
    * Re-connect counter, to make sure we did not reconnect in the meantime.
@@ -169,7 +169,7 @@ reconnect (void *cls,
   struct ReplyQueueEntry *qe;
   struct GNUNET_DNS_Register *msg;
 
-  dh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  dh->reconnect_task = NULL;
   dh->dns_connection = GNUNET_CLIENT_connect ("dns", dh->cfg);
   if (NULL == dh->dns_connection)
     return;
@@ -508,10 +508,10 @@ GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != dh->reconnect_task)
+  if (NULL != dh->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (dh->reconnect_task);
-    dh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    dh->reconnect_task = NULL;
   }
   disconnect (dh);
   /* make sure client has no pending requests left over! */

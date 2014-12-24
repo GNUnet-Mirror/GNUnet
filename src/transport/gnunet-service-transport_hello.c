@@ -107,7 +107,7 @@ struct OwnAddressList *oal_tail;
 /**
  * Identifier of 'refresh_hello' task.
  */
-static GNUNET_SCHEDULER_TaskIdentifier hello_task;
+static struct GNUNET_SCHEDULER_Task * hello_task;
 
 
 /**
@@ -164,7 +164,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GeneratorContext gc;
   int friend_only;
 
-  hello_task = GNUNET_SCHEDULER_NO_TASK;
+  hello_task = NULL;
   gc.addr_pos = oal_head;
   gc.expiration = GNUNET_TIME_relative_to_absolute (hello_expiration);
 
@@ -198,7 +198,7 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 refresh_hello ()
 {
-  if (hello_task != GNUNET_SCHEDULER_NO_TASK)
+  if (hello_task != NULL)
     GNUNET_SCHEDULER_cancel (hello_task);
   hello_task = GNUNET_SCHEDULER_add_now (&refresh_hello_task, NULL);
 }
@@ -231,10 +231,10 @@ GST_hello_stop ()
 {
   hello_cb = NULL;
   hello_cb_cls = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != hello_task)
+  if (NULL != hello_task)
   {
     GNUNET_SCHEDULER_cancel (hello_task);
-    hello_task = GNUNET_SCHEDULER_NO_TASK;
+    hello_task = NULL;
   }
   if (NULL != our_hello)
   {

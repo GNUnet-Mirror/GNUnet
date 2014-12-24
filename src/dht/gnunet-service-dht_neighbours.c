@@ -334,7 +334,7 @@ struct PeerInfo
   /**
    * Task for scheduling preference updates
    */
-  GNUNET_SCHEDULER_TaskIdentifier preference_task;
+  struct GNUNET_SCHEDULER_Task * preference_task;
 
   /**
    * What is the identity of the peer?
@@ -422,7 +422,7 @@ static unsigned int bucket_size = DEFAULT_BUCKET_SIZE;
 /**
  * Task that sends FIND PEER requests.
  */
-static GNUNET_SCHEDULER_TaskIdentifier find_peer_task;
+static struct GNUNET_SCHEDULER_Task * find_peer_task;
 
 /**
  * Identity of this peer.
@@ -485,7 +485,7 @@ update_core_preference (void *cls,
   int bucket;
   struct GNUNET_HashCode phash;
 
-  peer->preference_task = GNUNET_SCHEDULER_NO_TASK;
+  peer->preference_task = NULL;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   GNUNET_CRYPTO_hash (&peer->id,
@@ -586,7 +586,7 @@ send_find_peer_message (void *cls,
   struct BloomConstructorContext bcc;
   struct GNUNET_CONTAINER_BloomFilter *peer_bf;
 
-  find_peer_task = GNUNET_SCHEDULER_NO_TASK;
+  find_peer_task = NULL;
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   if (newly_found_peers > bucket_size)
@@ -729,10 +729,10 @@ handle_core_disconnect (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (all_known_peers,
                                                        peer,
                                                        to_remove));
-  if (GNUNET_SCHEDULER_NO_TASK != to_remove->preference_task)
+  if (NULL != to_remove->preference_task)
   {
     GNUNET_SCHEDULER_cancel (to_remove->preference_task);
-    to_remove->preference_task = GNUNET_SCHEDULER_NO_TASK;
+    to_remove->preference_task = NULL;
   }
   GNUNET_CRYPTO_hash (peer,
 		      sizeof (struct GNUNET_PeerIdentity),
@@ -2240,10 +2240,10 @@ GDS_NEIGHBOURS_done ()
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (all_known_peers));
   GNUNET_CONTAINER_multipeermap_destroy (all_known_peers);
   all_known_peers = NULL;
-  if (GNUNET_SCHEDULER_NO_TASK != find_peer_task)
+  if (NULL != find_peer_task)
   {
     GNUNET_SCHEDULER_cancel (find_peer_task);
-    find_peer_task = GNUNET_SCHEDULER_NO_TASK;
+    find_peer_task = NULL;
   }
 }
 

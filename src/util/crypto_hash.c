@@ -98,7 +98,7 @@ struct GNUNET_CRYPTO_FileHashContext
   /**
    * Current task for hashing.
    */
-  GNUNET_SCHEDULER_TaskIdentifier task;
+  struct GNUNET_SCHEDULER_Task * task;
 
   /**
    * Priority we use.
@@ -143,7 +143,7 @@ file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_HashCode *res;
   size_t delta;
 
-  fhc->task = GNUNET_SCHEDULER_NO_TASK;
+  fhc->task = NULL;
   GNUNET_assert (fhc->offset <= fhc->fsize);
   delta = fhc->bsize;
   if (fhc->fsize - fhc->offset < delta)

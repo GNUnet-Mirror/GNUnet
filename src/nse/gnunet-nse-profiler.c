@@ -179,7 +179,7 @@ static struct GNUNET_CONFIGURATION_Handle *testing_cfg;
 /**
  * The shutdown task
  */
-static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
+static struct GNUNET_SCHEDULER_Task * shutdown_task_id;
 
 /**
  * Maximum number of connections to NSE services.
@@ -270,7 +270,7 @@ close_monitor_connections ()
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  shutdown_task_id = NULL;
   if (GNUNET_YES == shutting_down)
     return;
   shutting_down = GNUNET_YES;
@@ -298,7 +298,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 shutdown_now ()
 {
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task_id)
+  if (NULL != shutdown_task_id)
     GNUNET_SCHEDULER_cancel (shutdown_task_id);
   shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }

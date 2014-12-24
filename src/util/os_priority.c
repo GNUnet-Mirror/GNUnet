@@ -1693,7 +1693,7 @@ struct GNUNET_OS_CommandHandle
   /**
    * Task reading from pipe.
    */
-  GNUNET_SCHEDULER_TaskIdentifier rtask;
+  struct GNUNET_SCHEDULER_Task * rtask;
 
   /**
    * When to time out.
@@ -1719,7 +1719,7 @@ GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
 {
   if (NULL != cmd->proc)
   {
-    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != cmd->rtask);
+    GNUNET_assert (NULL != cmd->rtask);
     GNUNET_SCHEDULER_cancel (cmd->rtask);
   }
   (void) GNUNET_OS_process_kill (cmd->eip, SIGKILL);
@@ -1744,7 +1744,7 @@ cmd_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *end;
   ssize_t ret;
 
-  cmd->rtask = GNUNET_SCHEDULER_NO_TASK;
+  cmd->rtask = NULL;
   if (GNUNET_YES != GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, cmd->r))
   {
     /* timeout, shutdown, etc. */

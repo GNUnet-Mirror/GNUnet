@@ -106,7 +106,7 @@ struct GetPseuAuthorityHandle
   /**
    * Task to abort DHT lookup operation.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
 };
 
@@ -160,10 +160,10 @@ free_get_pseu_authority_handle (struct GetPseuAuthorityHandle *gph)
     GNUNET_NAMECACHE_cancel (gph->namecache_task);
     gph->namecache_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != gph->timeout_task)
+  if (NULL != gph->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (gph->timeout_task);
-    gph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    gph->timeout_task = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (gph_head, gph_tail, gph);
   GNUNET_free_non_null (gph->current_label);

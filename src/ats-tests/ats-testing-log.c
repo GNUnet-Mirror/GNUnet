@@ -233,7 +233,7 @@ struct LoggingHandle
   /**
    * Logging task
    */
-  GNUNET_SCHEDULER_TaskIdentifier log_task;
+  struct GNUNET_SCHEDULER_Task * log_task;
 
   /**
    * Reference to perf_ats' masters
@@ -815,7 +815,7 @@ static void
 collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LoggingHandle *l = cls;
-  l->log_task = GNUNET_SCHEDULER_NO_TASK;
+  l->log_task = NULL;
 
   GNUNET_ATS_TEST_logging_now (l);
 
@@ -837,9 +837,9 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
   if (GNUNET_YES!= l->running)
     return;
 
-  if (GNUNET_SCHEDULER_NO_TASK != l->log_task)
+  if (NULL != l->log_task)
     GNUNET_SCHEDULER_cancel (l->log_task);
-  l->log_task = GNUNET_SCHEDULER_NO_TASK;
+  l->log_task = NULL;
   l->running = GNUNET_NO;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,

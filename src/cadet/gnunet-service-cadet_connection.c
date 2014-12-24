@@ -95,7 +95,7 @@ struct CadetFlowControl
   /**
    * Task to poll the peer in case of a lost ACK causes stall.
    */
-  GNUNET_SCHEDULER_TaskIdentifier poll_task;
+  struct GNUNET_SCHEDULER_Task * poll_task;
 
   /**
    * How frequently to poll for ACKs.
@@ -190,13 +190,13 @@ struct CadetConnection
    * Task to keep the used paths alive at the owner,
    * time tunnel out on all the other peers.
    */
-  GNUNET_SCHEDULER_TaskIdentifier fwd_maintenance_task;
+  struct GNUNET_SCHEDULER_Task * fwd_maintenance_task;
 
   /**
    * Task to keep the used paths alive at the destination,
    * time tunnel out on all the other peers.
    */
-  GNUNET_SCHEDULER_TaskIdentifier bck_maintenance_task;
+  struct GNUNET_SCHEDULER_Task * bck_maintenance_task;
 
   /**
    * Queue handle for maintainance traffic. One handle for FWD and BCK since
@@ -400,7 +400,7 @@ fc_init (struct CadetFlowControl *fc)
   fc->last_pid_recv = (uint32_t) -1;
   fc->last_ack_sent = (uint32_t) 0;
   fc->last_ack_recv = (uint32_t) 0;
-  fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+  fc->poll_task = NULL;
   fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
   fc->queue_n = 0;
   fc->queue_max = (max_msgs_queue / max_connections) + 1;
@@ -1008,9 +1008,9 @@ connection_keepalive (struct CadetConnection *c, int fwd, int shutdown)
        GC_f2s (fwd), GCC_2s (c));
 
   if (fwd)
-    c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+    c->fwd_maintenance_task = NULL;
   else
-    c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+    c->bck_maintenance_task = NULL;
 
   if (GNUNET_NO != shutdown)
     return;
@@ -1066,8 +1066,8 @@ static void
 schedule_next_keepalive (struct CadetConnection *c, int fwd)
 {
   struct GNUNET_TIME_Relative delay;
-  GNUNET_SCHEDULER_TaskIdentifier *task_id;
-  GNUNET_SCHEDULER_Task keepalive_task;
+  struct GNUNET_SCHEDULER_Task * *task_id;
+  GNUNET_SCHEDULER_TaskCallback keepalive_task;
 
   if (GNUNET_NO == GCC_is_origin (c, fwd))
     return;
@@ -1100,7 +1100,7 @@ schedule_next_keepalive (struct CadetConnection *c, int fwd)
   }
 
   /* Check that no one scheduled it before us */
-  if (GNUNET_SCHEDULER_NO_TASK != *task_id)
+  if (NULL != *task_id)
   {
     /* No need for a _break. It can happen for instance when sending a SYNACK
      * for a duplicate SYN: the first SYNACK scheduled the task. */
@@ -1168,10 +1168,10 @@ connection_cancel_queues (struct CadetConnection *c, int fwd)
   }
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+  if (NULL != fc->poll_task)
   {
     GNUNET_SCHEDULER_cancel (fc->poll_task);
-    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    fc->poll_task = NULL;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Cancel POLL in ccq for fc %p\n", fc);
   }
   peer = get_hop (c, fwd);
@@ -1236,7 +1236,7 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CADET_Poll msg;
   struct CadetConnection *c;
 
-  fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+  fc->poll_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
@@ -1316,7 +1316,7 @@ connection_fwd_timeout (void *cls,
 {
   struct CadetConnection *c = cls;
 
-  c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  c->fwd_maintenance_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -1358,7 +1358,7 @@ connection_bck_timeout (void *cls,
 {
   struct CadetConnection *c = cls;
 
-  c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  c->bck_maintenance_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -1410,12 +1410,12 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
   else /* Relay, endpoint. */
   {
     struct GNUNET_TIME_Relative delay;
-    GNUNET_SCHEDULER_TaskIdentifier *ti;
-    GNUNET_SCHEDULER_Task f;
+    struct GNUNET_SCHEDULER_Task * *ti;
+    GNUNET_SCHEDULER_TaskCallback f;
 
     ti = fwd ? &c->fwd_maintenance_task : &c->bck_maintenance_task;
 
-    if (GNUNET_SCHEDULER_NO_TASK != *ti)
+    if (NULL != *ti)
       GNUNET_SCHEDULER_cancel (*ti);
     delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  timing out in %s\n",
@@ -2376,12 +2376,12 @@ GCC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
     fc->last_ack_recv = ack;
 
   /* Cancel polling if the ACK is big enough. */
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
+  if (NULL != fc->poll_task &&
       GC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
     GNUNET_SCHEDULER_cancel (fc->poll_task);
-    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    fc->poll_task = NULL;
     fc->poll_time = GNUNET_TIME_UNIT_SECONDS;
   }
 
@@ -2690,16 +2690,16 @@ GCC_destroy (struct CadetConnection *c)
 
   if (GNUNET_NO == GCC_is_origin (c, GNUNET_YES) && NULL != c->path)
     path_destroy (c->path);
-  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
+  if (NULL != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
-  if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
+  if (NULL != c->bck_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
-  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_fc.poll_task)
+  if (NULL != c->fwd_fc.poll_task)
   {
     GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL FWD canceled\n");
   }
-  if (GNUNET_SCHEDULER_NO_TASK != c->bck_fc.poll_task)
+  if (NULL != c->bck_fc.poll_task)
   {
     GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL BCK canceled\n");
@@ -3268,7 +3268,7 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL %s requested\n",
        GC_f2s (fwd));
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task || NULL != fc->poll_msg)
+  if (NULL != fc->poll_task || NULL != fc->poll_msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   not needed (%u, %p)\n",
          fc->poll_task, fc->poll_msg);
@@ -3295,10 +3295,10 @@ GCC_stop_poll (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task)
+  if (NULL != fc->poll_task)
   {
     GNUNET_SCHEDULER_cancel (fc->poll_task);
-    fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    fc->poll_task = NULL;
   }
 }
 

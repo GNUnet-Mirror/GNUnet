@@ -43,11 +43,11 @@ static struct GNUNET_VPN_Handle *vpn;
 
 static struct MHD_Daemon *mhd;
 
-static GNUNET_SCHEDULER_TaskIdentifier mhd_task_id;
+static struct GNUNET_SCHEDULER_Task * mhd_task_id;
 
-static GNUNET_SCHEDULER_TaskIdentifier curl_task_id;
+static struct GNUNET_SCHEDULER_Task * curl_task_id;
 
-static GNUNET_SCHEDULER_TaskIdentifier ctrl_c_task_id;
+static struct GNUNET_SCHEDULER_Task * ctrl_c_task_id;
 
 static struct GNUNET_VPN_RedirectionRequest *rr;
 
@@ -128,20 +128,20 @@ mhd_ahc (void *cls, struct MHD_Connection *connection, const char *url,
 static void
 do_shutdown ()
 {
-  if (mhd_task_id != GNUNET_SCHEDULER_NO_TASK)
+  if (mhd_task_id != NULL)
   {
     GNUNET_SCHEDULER_cancel (mhd_task_id);
-    mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
+    mhd_task_id = NULL;
   }
-  if (curl_task_id != GNUNET_SCHEDULER_NO_TASK)
+  if (curl_task_id != NULL)
   {
     GNUNET_SCHEDULER_cancel (curl_task_id);
-    curl_task_id = GNUNET_SCHEDULER_NO_TASK;
+    curl_task_id = NULL;
   }
-  if (ctrl_c_task_id != GNUNET_SCHEDULER_NO_TASK)
+  if (ctrl_c_task_id != NULL)
   {
     GNUNET_SCHEDULER_cancel (ctrl_c_task_id);
-    ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
+    ctrl_c_task_id = NULL;
   }
   if (NULL != mhd)
   {
@@ -173,7 +173,7 @@ curl_main (void);
 static void
 curl_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  curl_task_id = GNUNET_SCHEDULER_NO_TASK;
+  curl_task_id = NULL;
   curl_main ();
 }
 
@@ -301,7 +301,7 @@ mhd_main (void);
 static void
 mhd_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  mhd_task_id = GNUNET_SCHEDULER_NO_TASK;
+  mhd_task_id = NULL;
   MHD_run (mhd);
   mhd_main ();
 }
@@ -310,7 +310,7 @@ mhd_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 ctrl_c_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  ctrl_c_task_id = GNUNET_SCHEDULER_NO_TASK;
+  ctrl_c_task_id = NULL;
   do_shutdown ();
   GNUNET_break (0);
   global_ret = 1;
@@ -329,7 +329,7 @@ mhd_main ()
   unsigned MHD_LONG_LONG timeout;
   struct GNUNET_TIME_Relative delay;
 
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == mhd_task_id);
+  GNUNET_assert (NULL == mhd_task_id);
   FD_ZERO (&rs);
   FD_ZERO (&ws);
   FD_ZERO (&es);

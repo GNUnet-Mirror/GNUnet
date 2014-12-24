@@ -144,7 +144,7 @@ struct GNUNET_SERVER_Handle
   /**
    * Task scheduled to do the listening.
    */
-  GNUNET_SCHEDULER_TaskIdentifier listen_task;
+  struct GNUNET_SCHEDULER_Task * listen_task;
 
   /**
    * Alternative function to create a MST instance.
@@ -246,12 +246,12 @@ struct GNUNET_SERVER_Client
   /**
    * ID of task used to restart processing.
    */
-  GNUNET_SCHEDULER_TaskIdentifier restart_task;
+  struct GNUNET_SCHEDULER_Task * restart_task;
 
   /**
    * Task that warns about missing calls to #GNUNET_SERVER_receive_done.
    */
-  GNUNET_SCHEDULER_TaskIdentifier warn_task;
+  struct GNUNET_SCHEDULER_Task * warn_task;
 
   /**
    * Time when the warn task was started.
@@ -400,7 +400,7 @@ process_listen_socket (void *cls,
   struct GNUNET_SERVER_Client *client;
   unsigned int i;
 
-  server->listen_task = GNUNET_SCHEDULER_NO_TASK;
+  server->listen_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* ignore shutdown, someone else will take care of it! */
@@ -691,10 +691,10 @@ test_monitor_clients (struct GNUNET_SERVER_Handle *server)
 void
 GNUNET_SERVER_suspend (struct GNUNET_SERVER_Handle *server)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
+  if (NULL != server->listen_task)
   {
     GNUNET_SCHEDULER_cancel (server->listen_task);
-    server->listen_task = GNUNET_SCHEDULER_NO_TASK;
+    server->listen_task = NULL;
   }
 }
 
@@ -750,10 +750,10 @@ GNUNET_SERVER_stop_listening (struct GNUNET_SERVER_Handle *server)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server in soft shutdown\n");
-  if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
+  if (NULL != server->listen_task)
   {
     GNUNET_SCHEDULER_cancel (server->listen_task);
-    server->listen_task = GNUNET_SCHEDULER_NO_TASK;
+    server->listen_task = NULL;
   }
   if (NULL != server->listen_sockets)
   {
@@ -784,10 +784,10 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server shutting down.\n");
-  if (GNUNET_SCHEDULER_NO_TASK != server->listen_task)
+  if (NULL != server->listen_task)
   {
     GNUNET_SCHEDULER_cancel (server->listen_task);
-    server->listen_task = GNUNET_SCHEDULER_NO_TASK;
+    server->listen_task = NULL;
   }
   if (NULL != server->listen_sockets)
   {
@@ -909,10 +909,10 @@ warn_no_receive_done (void *cls,
 void
 GNUNET_SERVER_disable_receive_done_warning (struct GNUNET_SERVER_Client *client)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+  if (NULL != client->warn_task)
   {
     GNUNET_SCHEDULER_cancel (client->warn_task);
-    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    client->warn_task = NULL;
   }
 }
 
@@ -975,7 +975,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
         if (NULL != sender)
         {
           if ( (0 == sender->suspended) &&
-	       (GNUNET_SCHEDULER_NO_TASK == sender->warn_task) )
+	       (NULL == sender->warn_task) )
           {
 	    GNUNET_break (0 != type); /* type should never be 0 here, as we don't use 0 */
             sender->warn_start = GNUNET_TIME_absolute_get ();
@@ -1169,7 +1169,7 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_SERVER_Client *client = cls;
 
   GNUNET_assert (GNUNET_YES != client->shutdown_now);
-  client->restart_task = GNUNET_SCHEDULER_NO_TASK;
+  client->restart_task = NULL;
   if (GNUNET_NO == client->receive_pending)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Server begins to read again from client.\n");
@@ -1479,15 +1479,15 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client is being disconnected from the server.\n");
-  if (GNUNET_SCHEDULER_NO_TASK != client->restart_task)
+  if (NULL != client->restart_task)
   {
     GNUNET_SCHEDULER_cancel (client->restart_task);
-    client->restart_task = GNUNET_SCHEDULER_NO_TASK;
+    client->restart_task = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+  if (NULL != client->warn_task)
   {
     GNUNET_SCHEDULER_cancel (client->warn_task);
-    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    client->warn_task = NULL;
   }
   if (GNUNET_YES == client->receive_pending)
   {
@@ -1532,10 +1532,10 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 				   client->connection);
   /* need to cancel again, as it might have been re-added
      in the meantime (i.e. during callbacks) */
-  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+  if (NULL != client->warn_task)
   {
     GNUNET_SCHEDULER_cancel (client->warn_task);
-    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    client->warn_task = NULL;
   }
   if (GNUNET_YES == client->receive_pending)
   {
@@ -1684,10 +1684,10 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client,
          "GNUNET_SERVER_receive_done called, but more clients pending\n");
     return;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != client->warn_task)
+  if (NULL != client->warn_task)
   {
     GNUNET_SCHEDULER_cancel (client->warn_task);
-    client->warn_task = GNUNET_SCHEDULER_NO_TASK;
+    client->warn_task = NULL;
   }
   if (GNUNET_YES == client->in_process_client_buffer)
   {
@@ -1702,7 +1702,7 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GNUNET_SERVER_receive_done causes restart in reading from the socket\n");
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == client->restart_task);
+  GNUNET_assert (NULL == client->restart_task);
   client->restart_task = GNUNET_SCHEDULER_add_now (&restart_processing, client);
 }
 

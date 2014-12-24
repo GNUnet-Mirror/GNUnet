@@ -213,7 +213,7 @@ struct GNUNET_PEERSTORE_IterateContext
    * Task identifier for the function called
    * on iterate request timeout
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
 };
 
@@ -367,7 +367,7 @@ iterate_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_PEERSTORE_Processor callback;
   void *callback_cls;
 
-  ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  ic->timeout_task = NULL;
   callback = ic->callback;
   callback_cls = ic->callback_cls;
   GNUNET_PEERSTORE_iterate_cancel (ic);
@@ -729,10 +729,10 @@ handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
 void
 GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
 {
-  if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
+  if (NULL != ic->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (ic->timeout_task);
-    ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    ic->timeout_task = NULL;
   }
   if (GNUNET_NO == ic->iterating)
   {

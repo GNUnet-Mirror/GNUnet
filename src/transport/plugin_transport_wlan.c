@@ -204,7 +204,7 @@ struct PendingMessage
   /**
    * Timeout task (for this message).
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
 };
 
@@ -250,7 +250,7 @@ struct Session
   /**
    * Timeout task (for the session).
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
 };
 
@@ -300,7 +300,7 @@ struct FragmentMessage
   /**
    * Timeout task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * Continuation to call when we're done with this message.
@@ -379,7 +379,7 @@ struct MacEndpoint
   /**
    * Timeout task.
    */
-  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * count of messages in the fragment out queue for this mac endpoint
@@ -484,7 +484,7 @@ struct Plugin
   /**
    * Task that periodically sends a HELLO beacon via the helper.
    */
-  GNUNET_SCHEDULER_TaskIdentifier beacon_task;
+  struct GNUNET_SCHEDULER_Task * beacon_task;
 
   /**
    * Tracker for bandwidth limit
@@ -777,10 +777,10 @@ wlan_plugin_disconnect_session (void *cls,
   GNUNET_CONTAINER_DLL_remove (endpoint->sessions_head,
 			       endpoint->sessions_tail,
                                session);
-  if (session->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (session->timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (session->timeout_task);
-    session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    session->timeout_task = NULL;
   }
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _("# Sessions allocated"),
@@ -820,7 +820,7 @@ session_timeout (void *cls,
   struct Session *session = cls;
   struct GNUNET_TIME_Relative left;
 
-  session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  session->timeout_task = NULL;
   left = GNUNET_TIME_absolute_get_remaining (session->timeout);
   if (0 != left.rel_value_us)
   {
@@ -1025,10 +1025,10 @@ free_fragment_message (struct FragmentMessage *fm)
   GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
                                    &endpoint->msg_delay,
                                    &endpoint->ack_delay);
-  if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+  if (fm->timeout_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (fm->timeout_task);
-    fm->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    fm->timeout_task = NULL;
   }
   GNUNET_free (fm);
 }
@@ -1046,7 +1046,7 @@ fragmentmessage_timeout (void *cls,
 {
   struct FragmentMessage *fm = cls;
 
-  fm->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  fm->timeout_task = NULL;
   if (NULL != fm->cont)
   {
     fm->cont (fm->cont_cls,
@@ -1145,10 +1145,10 @@ free_macendpoint (struct MacEndpoint *endpoint)
   }
 
   plugin->mac_count--;
-  if (GNUNET_SCHEDULER_NO_TASK != endpoint->timeout_task)
+  if (NULL != endpoint->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (endpoint->timeout_task);
-    endpoint->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    endpoint->timeout_task = NULL;
   }
   GNUNET_free (endpoint);
 }
@@ -1167,7 +1167,7 @@ macendpoint_timeout (void *cls,
   struct MacEndpoint *endpoint = cls;
   struct GNUNET_TIME_Relative timeout;
 
-  endpoint->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  endpoint->timeout_task = NULL;
   timeout = GNUNET_TIME_absolute_get_remaining (endpoint->timeout);
   if (0 == timeout.rel_value_us)
   {
@@ -1923,10 +1923,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     GNUNET_HELLO_address_free (address);
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != plugin->beacon_task)
+  if (NULL != plugin->beacon_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->beacon_task);
-    plugin->beacon_task = GNUNET_SCHEDULER_NO_TASK;
+    plugin->beacon_task = NULL;
   }
   if (NULL != plugin->suid_helper)
   {
@@ -2077,7 +2077,7 @@ wlan_plugin_update_session_timeout (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
                                     struct Session *session)
 {
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != session->timeout_task);
+  GNUNET_assert (NULL != session->timeout_task);
   session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
 }
 

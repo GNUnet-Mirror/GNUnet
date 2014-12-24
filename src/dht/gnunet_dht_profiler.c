@@ -195,7 +195,7 @@ struct ActiveContext
   /**
    * Delay task
    */
-  GNUNET_SCHEDULER_TaskIdentifier delay_task;
+  struct GNUNET_SCHEDULER_Task * delay_task;
 
   /**
    * The size of the @e put_data
@@ -357,7 +357,7 @@ static int flag = 0;
 /**
  * Task to collect peer and its current successor statistics.
  */
-static GNUNET_SCHEDULER_TaskIdentifier successor_stats_task;
+static struct GNUNET_SCHEDULER_Task * successor_stats_task;
 
 /**
  * Closure for successor_stats_task.
@@ -441,7 +441,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       ac = a_ctx[cnt].ac;
       if (NULL != ac)
       {
-        if (GNUNET_SCHEDULER_NO_TASK != ac->delay_task)
+        if (NULL != ac->delay_task)
           GNUNET_SCHEDULER_cancel (ac->delay_task);
         if (NULL != ac->put_data)
           GNUNET_free (ac->put_data);
@@ -554,7 +554,7 @@ cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ActiveContext *ac = cls;
   struct Context *ctx = ac->ctx;
 
-  ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  ac->delay_task = NULL;
   GNUNET_assert (NULL != ac->dht_get);
   GNUNET_DHT_get_stop (ac->dht_get);
   ac->dht_get = NULL;
@@ -613,9 +613,9 @@ get_iter (void *cls,
   get_ac->nrefs--;
   GNUNET_DHT_get_stop (ac->dht_get);
   ac->dht_get = NULL;
-  if (ac->delay_task != GNUNET_SCHEDULER_NO_TASK)
+  if (ac->delay_task != NULL)
     GNUNET_SCHEDULER_cancel (ac->delay_task);
-  ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  ac->delay_task = NULL;
   GNUNET_assert (NULL != ctx->op);
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
@@ -646,7 +646,7 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct ActiveContext *get_ac;
   unsigned int r;
 
-  ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  ac->delay_task = NULL;
   get_ac = NULL;
   while (1)
   {
@@ -735,7 +735,7 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
 
-  ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  ac->delay_task = NULL;
   /* Generate and DHT PUT some random data */
   ac->put_data_size = 16;       /* minimum */
   ac->put_data_size += GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -1065,7 +1065,7 @@ successor_stats_cont (void *cls,
   int count;
 
   /* Don't schedule the task till we are looking for circle here. */
-  successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
+  successor_stats_task = NULL;
   GNUNET_TESTBED_operation_done (successor_stats_op);
   successor_stats_op = NULL;
   if (0 == max_searches)
@@ -1109,7 +1109,7 @@ successor_stats_cont (void *cls,
   if ((start_val == val) && (count == num_peers))
   {
     DEBUG("CIRCLE COMPLETED after %u tries", tries);
-    if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
+    if(NULL == successor_stats_task)
     {
       start_func();
     }
@@ -1123,11 +1123,11 @@ successor_stats_cont (void *cls,
                   "Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
                   " circle formation.  Exiting\n",
                   max_searches,tries);
-      if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
+      if (NULL != successor_stats_task)
       {
-        successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
+        successor_stats_task = NULL;
       }
-      if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
+      if(NULL == successor_stats_task)
       {
         start_func();
       }
@@ -1255,7 +1255,7 @@ service_started (void *cls,
   ctx->op = NULL;
   peers_started++;
   DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
-  if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
+  if (NULL == successor_stats_task && peers_started == num_peers)
   {
      DEBUG("successor_stats_task \n");
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);

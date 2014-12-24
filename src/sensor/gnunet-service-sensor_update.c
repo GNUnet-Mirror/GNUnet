@@ -168,7 +168,7 @@ static int updating;
 /**
  * GNUnet scheduler task that starts the update check process.
  */
-static GNUNET_SCHEDULER_TaskIdentifier update_task;
+static struct GNUNET_SCHEDULER_Task * update_task;
 
 /**
  * Pointer to service reset function called when we have new sensor updates.
@@ -237,10 +237,10 @@ SENSOR_update_stop ()
 
   up_default = NULL;
   up = up_head;
-  if (GNUNET_SCHEDULER_NO_TASK != update_task)
+  if (NULL != update_task)
   {
     GNUNET_SCHEDULER_cancel (update_task);
-    update_task = GNUNET_SCHEDULER_NO_TASK;
+    update_task = NULL;
   }
   while (NULL != up)
   {
@@ -390,7 +390,7 @@ check_for_updates (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MessageHeader *msg;
   size_t msg_size;
 
-  update_task = GNUNET_SCHEDULER_NO_TASK;
+  update_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (GNUNET_YES == updating)

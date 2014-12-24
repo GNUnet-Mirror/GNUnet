@@ -63,7 +63,7 @@ struct PutOperator
   /**
    * ID of task that collects blocks for DHT PUTs.
    */
-  GNUNET_SCHEDULER_TaskIdentifier dht_task;
+  struct GNUNET_SCHEDULER_Task * dht_task;
 
   /**
    * How many entires with zero anonymity of our type do we currently
@@ -158,7 +158,7 @@ delay_dht_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PutOperator *po = cls;
 
-  po->dht_task = GNUNET_SCHEDULER_NO_TASK;
+  po->dht_task = NULL;
   schedule_next_put (po);
 }
 
@@ -219,7 +219,7 @@ gather_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PutOperator *po = cls;
 
-  po->dht_task = GNUNET_SCHEDULER_NO_TASK;
+  po->dht_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   po->dht_qe =
@@ -263,10 +263,10 @@ GSF_put_done_ ()
   i = 0;
   while ((po = &operators[i])->dht_put_type != GNUNET_BLOCK_TYPE_ANY)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != po->dht_task)
+    if (NULL != po->dht_task)
     {
       GNUNET_SCHEDULER_cancel (po->dht_task);
-      po->dht_task = GNUNET_SCHEDULER_NO_TASK;
+      po->dht_task = NULL;
     }
     if (NULL != po->dht_put)
     {
