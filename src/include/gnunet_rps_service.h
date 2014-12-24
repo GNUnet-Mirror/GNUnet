@@ -56,7 +56,7 @@ struct GNUNET_RPS_Request_Handle;
  * @param num_peers the number of peers returned
  * @param peers array with num_peers PeerIDs
  */
-typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls, uint64_t num_peers, struct GNUNET_PeerIdentity *peers);
+typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls, uint64_t num_peers, const struct GNUNET_PeerIdentity *peers);
 
 /**
  * Request n random peers.

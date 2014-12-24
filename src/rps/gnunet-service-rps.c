@@ -774,7 +774,7 @@ touch_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNU
   }
   else
   {
-    ctx = GNUNET_malloc(sizeof(struct peer_context));
+    ctx = GNUNET_new(struct peer_context);
     ctx->in_flags = 0;
     ctx->mq = NULL;
     ctx->to_channel = NULL;
@@ -924,7 +924,6 @@ handle_cs_request (void *cls,
 
   // TODO
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
-  // Does not work because the compiler seems not to find it.
   cli_ctx = GNUNET_SERVER_client_get_user_context(client, struct client_ctx);
   if ( NULL == cli_ctx ) {
     cli_ctx = GNUNET_new(struct client_ctx);
@@ -932,7 +931,7 @@ handle_cs_request (void *cls,
     GNUNET_SERVER_client_set_user_context(client, cli_ctx);
   }
   
-  // TODO How many peers do we give back?
+  // How many peers do we give back?
   // Wait until we have enough random peers?
 
   ev = GNUNET_MQ_msg_extra(out_msg,
@@ -975,9 +974,6 @@ handle_peer_push (void *cls,
   struct GNUNET_PeerIdentity *peer;
 
   // TODO check the proof of work
-  // and check limit for PUSHes
-  // IF we count per peer PUSHes
-  // maybe remove from gossip/sampler list
   
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info( channel, GNUNET_CADET_OPTION_PEER );
   
@@ -1012,15 +1008,15 @@ handle_peer_pull_request (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
 
-  // TODO find some way to keep one peer from spamming with pull requests
+  // find some way to keep one peer from spamming with pull requests?
   // allow only one request per time interval ?
   // otherwise remove from peerlist?
 
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info(channel, GNUNET_CADET_OPTION_PEER);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "PULL REQUEST from peer %s received\n", GNUNET_i2s(peer));
 
-  mq = GNUNET_CADET_mq_create(channel); // TODO without mq?
-  //mq = get_mq(peer_map, peer);
+  //mq = GNUNET_CADET_mq_create(channel); // without mq?
+  mq = get_mq(peer_map, peer);
 
   //in_msg = (struct GNUNET_RPS_P2P_PullRequestMessage *) msg;
   // TODO how many peers do we actually send?
@@ -1033,9 +1029,6 @@ handle_peer_pull_request (void *cls,
          gossip_list_size * sizeof(struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send(mq, ev);
-
-  GNUNET_MQ_destroy(mq);
-
 
   return GNUNET_OK;
 }
@@ -1067,12 +1060,11 @@ handle_peer_pull_reply (void *cls,
 
   in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  for ( i = 0 ; i < GNUNET_ntohll(in_msg->num_peers) ; i++ ) {
+  for ( i = 0 ; i < GNUNET_ntohll(in_msg->num_peers) ; i++ )
+  {
     GNUNET_array_append(pull_list, pull_list_size, peers[i]);
   }
 
-  // TODO maybe a disconnect happens here
-  
   return GNUNET_OK;
 }
 
@@ -1232,7 +1224,8 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   void
 insertCB (void *cls, const struct GNUNET_PeerIdentity *id, struct GNUNET_HashCode hash)
 {
-  touch_mq(peer_map, id);
+  // We open a channel to be notified when this peer goes down.
+  touch_channel(peer_map, id);
 }
 
 /**
@@ -1298,8 +1291,6 @@ init_peer_cb (void *cls,
 }
 
 
-
-
 /**
  * Task run during shutdown.
  *
@@ -1321,13 +1312,10 @@ shutdown_task (void *cls,
   GNUNET_NSE_disconnect(nse);
   GNUNET_CADET_disconnect(cadet_handle);
   GNUNET_free(own_identity);
-  //GNUNET_free(round_interval);
-  //GNUNET_free(gossip_list);
   SAMPLER_samplers_destroy(sampler_list);
   GNUNET_array_grow(gossip_list, gossip_list_size, 0);
   GNUNET_array_grow(push_list, push_list_size, 0);
   GNUNET_array_grow(pull_list, pull_list_size, 0);
-  // TODO delete global data
 }
 
 
@@ -1421,7 +1409,6 @@ rps_start (struct GNUNET_SERVER_Handle *server)
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Ready to receive requests from clients\n");
 
 
-
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
 
@@ -1429,7 +1416,6 @@ rps_start (struct GNUNET_SERVER_Handle *server)
 				&shutdown_task,
 				NULL);
 }
-
 
 
 /**

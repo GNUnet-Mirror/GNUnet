@@ -96,14 +96,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 handle_reply (void *cls, uint64_t n, struct GNUNET_PeerIdentity *peers)
 {
-  //struct RPSPeer *peer = cls;
-
-  //FPRINTF (stderr,
-  //         "Received network size estimate from peer %u. logSize: %f std.dev. %f (%f/%u)\n",
-  //         (unsigned int) (peer - rps_peers),
-	//   estimate, std_dev,
-  //         GNUNET_NSE_log_estimate_to_n (estimate),
-	//   NUM_PEERS);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got peer %s\n", GNUNET_i2s(peers));
   
