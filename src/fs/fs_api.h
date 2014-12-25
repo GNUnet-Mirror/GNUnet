@@ -1629,10 +1629,10 @@ struct GNUNET_FS_SearchContext
   /**
    * ID of a task that is using this struct and that must be cancelled
    * when the search is being stopped (if not
-   * #NULL).  Used for the task that adds some
+   * NULL).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * How many of the entries in the search request
@@ -1961,12 +1961,12 @@ struct GNUNET_FS_DownloadContext
   /**
    * ID of a task that is using this struct and that must be cancelled
    * when the download is being stopped (if not
-   * #NULL).  Used for the task that adds some
+   * NULL).  Used for the task that adds some
    * artificial delay when trying to reconnect to the FS service or
    * the task processing incrementally the data on disk, or the
    * task requesting blocks, etc.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * What is the first offset that we're interested

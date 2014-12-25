@@ -162,9 +162,9 @@ struct ValueInfo
   struct GNUNET_PEERSTORE_WatchContext *wc;
 
   /**
-   * Collection point reporting task (or #NULL)
+   * Collection point reporting task (or NULL)
    */
-  struct GNUNET_SCHEDULER_Task * reporting_task;
+  struct GNUNET_SCHEDULER_Task *reporting_task;
 
 };
 
