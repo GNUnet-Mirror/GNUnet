@@ -94,7 +94,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  */
 static void
-handle_reply (void *cls, uint64_t n, struct GNUNET_PeerIdentity *peers)
+handle_reply (void *cls, uint64_t n, const struct GNUNET_PeerIdentity *peers)
 {
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got peer %s\n", GNUNET_i2s(peers));
