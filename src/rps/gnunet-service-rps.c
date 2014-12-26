@@ -1359,7 +1359,7 @@ handle_inbound_channel (void *cls,
   } else {
     struct peer_context *ctx;
 
-    ctx = GNUNET_malloc (sizeof(struct peer_context));
+    ctx = GNUNET_new(struct peer_context);
     ctx->in_flags = in_other_gossip_list;
     ctx->mq = NULL; // TODO create mq?
     ctx->from_channel = channel;
