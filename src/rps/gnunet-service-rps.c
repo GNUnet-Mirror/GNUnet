@@ -1109,18 +1109,20 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for ( i = 0 ; i < alpha * gossip_list_size ; i++ )
   { // TODO compute length
     peer = get_rand_peer(gossip_list, gossip_list_size);
-    // TODO check NULL == peer
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s(peer));
+    if (own_identity != peer)
+    { // FIXME if this fails schedule/loop this for later
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s(peer));
 
-    ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-    //ev = GNUNET_MQ_msg_extra();
-    /* TODO Compute proof of work here
-    push_msg; */
-    push_msg->placeholder = 0;
-    // FIXME sometimes it returns a pointer to a freed mq
-    GNUNET_MQ_send (get_mq (peer_map, peer), ev);
+      ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
+      //ev = GNUNET_MQ_msg_extra();
+      /* TODO Compute proof of work here
+         push_msg; */
+      push_msg->placeholder = 0;
+      // FIXME sometimes it returns a pointer to a freed mq
+      GNUNET_MQ_send (get_mq (peer_map, peer), ev);
 
-    // modify in_flags of respective peer?
+      // modify in_flags of respective peer?
+    }
   }
 
 
@@ -1131,14 +1133,16 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for ( i = 0 ; i < beta * gossip_list_size ; i++ )
   { // TODO compute length
     peer = get_rand_peer(gossip_list, gossip_list_size);
-    // TODO check empty_peer != peer
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s(peer));
+    if (own_identity != peer)
+    { // FIXME if this fails schedule/loop this for later
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s(peer));
 
-    ev = GNUNET_MQ_msg(pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-    //ev = GNUNET_MQ_msg_extra();
-    pull_msg->placeholder = 0;
-    GNUNET_MQ_send( get_mq(peer_map, peer), ev );
-    // modify in_flags of respective peer?
+      ev = GNUNET_MQ_msg(pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
+      //ev = GNUNET_MQ_msg_extra();
+      pull_msg->placeholder = 0;
+      GNUNET_MQ_send( get_mq(peer_map, peer), ev );
+      // modify in_flags of respective peer?
+    }
   }
 
 
