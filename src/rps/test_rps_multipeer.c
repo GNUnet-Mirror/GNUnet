@@ -132,15 +132,8 @@ rps_connect_complete_cb (void *cls,
       return;
     }
   peer->rps_handle = rps;
-  //sleep(50);
   GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
   GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
-  //sleep(10000);
-  //GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
-  //sleep(10000);
-  //GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
-  //sleep(10000);
-  //GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
 }
 
 
