@@ -727,6 +727,11 @@ static struct GNUNET_NSE_Handle *nse;
  */
 static struct GNUNET_CADET_Handle *cadet_handle;
 
+/**
+ * Global counter
+ */
+uint64_t g_i = 0;
+
 
 /***********************************************************************
  * Util functions
@@ -1281,15 +1286,22 @@ init_peer_cb (void *cls,
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Got peer %s (at %p) from CADET\n", GNUNET_i2s(peer), peer);
     SAMPLER_update_list(sampler_list, peer);
-    touch_peer_ctx(peer_map, peer);
+    touch_peer_ctx(peer_map, peer); // unneeded? -> insertCB
 
-    uint64_t i;
-    i = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG, gossip_list_size);
-    gossip_list[i] = *peer;
-    // TODO send push/pull to each of those peers?
+    gossip_list[g_i] = *peer;
+    g_i++;
+    // FIXME find a better way to have a global counter
+
+    // send push/pull to each of those peers?
   }
   else
   {
+    if (g_i < sampler_list->size)
+    {
+      memcpy(&gossip_list[g_i],
+          &(sampler_list->peer_ids[g_i]),
+          (sampler_list->size - g_i) * sizeof(struct GNUNET_PeerIdentity));
+    }
     rps_start( (struct GNUNET_SERVER_Handle *) cls);
   }
 }
