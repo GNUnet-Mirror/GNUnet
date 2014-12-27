@@ -1351,26 +1351,27 @@ handle_inbound_channel (void *cls,
                         uint32_t port,
                         enum GNUNET_CADET_ChannelOption options)
 {
+  struct peer_context *ctx;
+
   LOG(GNUNET_ERROR_TYPE_DEBUG, "New channel was established to us (Peer %s).\n", GNUNET_i2s(initiator));
 
   GNUNET_assert( NULL != channel );
 
-  // TODO we might not even store the from_channel
+  // we might not even store the from_channel
 
-  if ( GNUNET_CONTAINER_multipeermap_contains( peer_map, initiator ) ) {
-    ((struct peer_context *) GNUNET_CONTAINER_multipeermap_get( peer_map, initiator ))->from_channel = channel;
-    // FIXME there might already be an established channel
-  } else {
-    struct peer_context *ctx;
-
-    ctx = GNUNET_new(struct peer_context);
-    ctx->in_flags = in_other_gossip_list;
-    ctx->mq = NULL; // TODO create mq?
+  ctx = get_peer_ctx(peer_map, initiator);
+  if (NULL != ctx->from_channel)
+  {
     ctx->from_channel = channel;
-
-    GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, ctx,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
+
+  // FIXME there might already be an established channel
+
+  //ctx->in_flags = in_other_gossip_list;
+  ctx->mq = NULL; // TODO create mq?
+
+  GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, ctx,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   return NULL; // TODO
 }
 
