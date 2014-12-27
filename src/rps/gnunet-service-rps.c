@@ -1090,13 +1090,6 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   // TODO cleanup peer_map
 
 
-  /* If the NSE has changed adapt the lists accordingly */
-  if ( sampler_list->size != est_size )
-    SAMPLER_samplers_resize(sampler_list, est_size, own_identity);
-
-  GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
-
-
   /* Would it make sense to have one shuffeled gossip list and then
    * to send PUSHes to first alpha peers, PULL requests to next beta peers and
    * use the rest to update sampler?
@@ -1144,6 +1137,13 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       // modify in_flags of respective peer?
     }
   }
+
+
+  /* If the NSE has changed adapt the lists accordingly */
+  if ( sampler_list->size != est_size )
+    SAMPLER_samplers_resize(sampler_list, est_size, own_identity);
+
+  GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
 
 
   /* Update gossip list */
@@ -1351,7 +1351,7 @@ handle_inbound_channel (void *cls,
                         uint32_t port,
                         enum GNUNET_CADET_ChannelOption options)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "New channel was established to us.\n");
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "New channel was established to us (Peer %s).\n", GNUNET_i2s(initiator));
 
   GNUNET_assert( NULL != channel );
 
