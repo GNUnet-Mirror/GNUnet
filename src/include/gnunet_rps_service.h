@@ -106,6 +106,10 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
 
 /**
  * Seed rps service with peerIDs.
+ *
+ * @param h handle to the rps service
+ * @param n number of peers to seed
+ * @param ids the ids of the peers seeded
  */
   void
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,

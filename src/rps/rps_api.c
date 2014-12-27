@@ -201,6 +201,9 @@ GNUNET_RPS_request_peers_single_call (const struct GNUNET_CONFIGURATION_Handle *
 
 /**
  * Connect to the rps service
+ *
+ * @param cfg configuration to use
+ * @return a handle to the service
  */
   struct GNUNET_RPS_Handle *
 GNUNET_RPS_connect( const struct GNUNET_CONFIGURATION_Handle *cfg )
@@ -228,6 +231,12 @@ GNUNET_RPS_connect( const struct GNUNET_CONFIGURATION_Handle *cfg )
 
 /**
  * Request n random peers.
+ *
+ * @param h handle to the rps service
+ * @param n number of peers we want to receive
+ * @param ready_cb the callback called when the peers are available
+ * @param cls closure given to the callback
+ * @return a handle to cancel this request
  */
   struct GNUNET_RPS_Request_Handle *
 GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
@@ -257,6 +266,10 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
 
 /**
  * Seed rps service with peerIDs.
+ *
+ * @param h handle to the rps service
+ * @param n number of peers to seed
+ * @param ids the ids of the peers seeded
  */
   void
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
@@ -266,6 +279,8 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
 
 /**
  * Cancle an issued request.
+ *
+ * @param rh request handle of request to cancle
  */
   void
 GNUNET_RPS_request_cancel ( struct GNUNET_RPS_Request_Handle *rh )
@@ -274,7 +289,9 @@ GNUNET_RPS_request_cancel ( struct GNUNET_RPS_Request_Handle *rh )
 }
 
 /**
- * Disconnect to the rps service
+ * Disconnect from the rps service
+ *
+ * @param h the handle to the rps service
  */
   void
 GNUNET_RPS_disconnect ( struct GNUNET_RPS_Handle *h )
