@@ -131,6 +131,8 @@ rps_connect_complete_cb (void *cls,
       GNUNET_SCHEDULER_shutdown ();
       return;
     }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
+
   peer->rps_handle = rps;
   GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
   GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
