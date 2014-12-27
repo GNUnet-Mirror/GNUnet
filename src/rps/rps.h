@@ -149,7 +149,7 @@ struct GNUNET_RPS_CS_SeedMessage
   /**
    * Peers
    */
-  struct *GNUNET_PeerIdentity;
+  struct GNUNET_PeerIdentity *ids;
 };
 
 GNUNET_NETWORK_STRUCT_END
