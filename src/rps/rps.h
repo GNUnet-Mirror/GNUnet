@@ -136,4 +136,20 @@ struct GNUNET_RPS_CS_ReplyMessage
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
+/**
+ * Message from client to service with seed of peers
+ */
+struct GNUNET_RPS_CS_SeedMessage
+{
+  /**
+   * Number of peers
+   */
+  uint64_t n;
+
+  /**
+   * Peers
+   */
+  struct *GNUNET_PeerIdentity;
+};
+
 GNUNET_NETWORK_STRUCT_END
