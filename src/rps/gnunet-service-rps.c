@@ -1492,24 +1492,25 @@ run (void *cls,
   beta  = 0.45;
   // TODO initialise thresholds - ?
 
-  ///* Get alpha from the configuration */
-  //if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_float (cfg, "RPS",
-  //                                                       "ALPHA",
-  //                                                       &alpha))
-  //{
-  //  LOG(GNUNET_ERROR_TYPE_DEBUG, "No ALPHA specified in the config\n");
-  //}
-  //LOG(GNUNET_ERROR_TYPE_DEBUG, "ALPHA is %f\n", alpha);
+  /* Get alpha from the configuration */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_float (cfg, "RPS",
+                                                         "ALPHA",
+                                                         &alpha))
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "No ALPHA specified in the config\n");
+  }
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "ALPHA is %f\n", alpha);
  
-  ///* Get beta from the configuration */
-  //if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_float (cfg, "RPS",
-  //                                                       "BETA",
-  //                                                       &beta))
-  //{
-  //  LOG(GNUNET_ERROR_TYPE_DEBUG, "No BETA specified in the config\n");
-  //}
-  //LOG(GNUNET_ERROR_TYPE_DEBUG, "BETA is %f\n", beta);
+  /* Get beta from the configuration */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_float (cfg, "RPS",
+                                                         "BETA",
+                                                         &beta))
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "No BETA specified in the config\n");
+  }
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "BETA is %f\n", beta);
 
+  // TODO check that alpha + beta < 1
 
   peer_map = GNUNET_CONTAINER_multipeermap_create(est_size, GNUNET_NO);
 
