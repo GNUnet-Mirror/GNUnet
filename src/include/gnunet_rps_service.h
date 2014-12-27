@@ -105,6 +105,13 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
                           void *cls);
 
 /**
+ * Seed rps service with peerIDs.
+ */
+  void
+GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
+                     struct GNUNET_PeerIdentity * ids);
+
+/**
  * Cancle an issued request.
  *
  * @param rh handle of the pending request to be canceled
