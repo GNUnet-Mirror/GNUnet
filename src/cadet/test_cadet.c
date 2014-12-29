@@ -422,6 +422,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (GNUNET_NO == initialized)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending initializer\n");
+    msg_size = size_payload + 1000;
     if (SPEED_ACK == test)
       data_sent++;
   }
@@ -817,7 +818,8 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ack_sent = 0;
   GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                       GNUNET_TIME_UNIT_FOREVER_REL,
-                                      size_payload, &tmt_rdy, (void *) 0L);
+                                      size_payload + 1000,
+                                      &tmt_rdy, (void *) 0L);
 }
 
 /**
