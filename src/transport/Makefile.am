@@ -486,7 +486,8 @@ check_PROGRAMS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  $(WLAN_QUOTA_TEST) \
- $(BT_QUOTA_TEST)
+ $(BT_QUOTA_TEST) \
+ test_transport_api_slow_ats
 endif
 
 if ENABLE_TEST_RUN
@@ -555,7 +556,8 @@ TESTS = \
  test_quota_compliance_udp \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
- $(HTTPS_QUOTA_TEST)
+ $(HTTPS_QUOTA_TEST) \
+ test_transport_api_slow_ats
 endif
 
 test_transport_testing_startstop_SOURCES = \
@@ -1211,10 +1213,19 @@ test_transport_api_monitor_validation_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
+test_transport_api_slow_ats_SOURCES = \
+ test_transport_api.c
+test_transport_api_slow_ats_LDADD = \
+ libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la  \
+ libgnunettransporttesting.la
+
 
 EXTRA_DIST = \
 test_plugin_hostkey \
 test_plugin_hostkey.ecc \
+test_delay \
 template_cfg_peer1.conf\
 template_cfg_peer2.conf\
 test_plugin_transport_data.conf\
@@ -1340,5 +1351,6 @@ test_transport_blacklisting_cfg_blp_peer2_multiple_plugins.conf \
 test_transport_api_http_reverse_peer1.conf \
 test_transport_api_http_reverse_peer2.conf \
 perf_tcp_peer1.conf \
-perf_tcp_peer2.conf
-
+perf_tcp_peer2.conf \
+test_transport_api_slow_ats_peer1.conf \
+test_transport_api_slow_ats_peer2.conf
