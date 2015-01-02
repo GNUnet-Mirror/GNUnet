@@ -59,24 +59,6 @@ struct GNUNET_RPS_Request_Handle;
 typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls, uint64_t num_peers, const struct GNUNET_PeerIdentity *peers);
 
 /**
- * Request n random peers.
- *
- * This is a wrapper function that makes it unnecessary to have to
- * (dis)connect from/to the service.
- * 
- * @param cfg the configuration to use
- * @param n number of peers to be returned
- * @param ready_cb the callback to be called when the PeerIDs are available
- * @param cls closure given to the callback
- * @return handle to this request
- */
-  struct GNUNET_RPS_Request_Handle *
-GNUNET_RPS_request_peers_single_call (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          uint64_t n,
-                          GNUNET_RPS_NotifyReadyCB ready_cb,
-                          void *cls);
-
-/**
  * Connect to the rps service
  *
  * @param cfg configuration to use

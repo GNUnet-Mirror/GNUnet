@@ -149,57 +149,6 @@ mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
 }
 
 /**
- * Request n random peers.
- *
- * @param cfg the configuration to use.
- * @param n number of peers requesting.
- * @param cb a callback function called when the peers are ready
- * @param cls a closure given to the callback function
- */
-  struct GNUNET_RPS_Request_Handle *
-GNUNET_RPS_request_peers_single_call (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          uint64_t n,
-                          GNUNET_RPS_NotifyReadyCB ready_cb,
-                          void *cls)
-{
-  //struct GNUNET_CLIENT_Connection *service_conn;
-  //static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-  //  {&handle_reply, GNUNET_MESSAGE_TYPE_RPS_CS_REPLY, 0},
-  //  GNUNET_MQ_HANDLERS_END
-  //};
-  //struct cb_cls_pack *pack;
-  //struct GNUNET_MQ_Handle *mq;
-  //struct GNUNET_MQ_Envelope *ev;
-  //struct GNUNET_RPS_CS_RequestMessage *msg;
-  struct GNUNET_RPS_Handle *h;
-  struct GNUNET_RPS_Request_Handle *rh;
-
-  /* Connect to the service */
-  h = GNUNET_RPS_connect(cfg);
-  //h = GNUNET_new(struct GNUNET_RPS_Handle);
-  //h->conn = GNUNET_CLIENT_connect("rps", cfg);
-  //rh = GNUNET_new(struct GNUNET_RPS_Request_Handle);
-  ////pack = GNUNET_malloc(sizeof(struct cb_cls_pack));
-  ////pack->cb = ready_cb;
-  ////pack->cls = cls;
-  ////pack->service_conn = service_conn;
-  //mq = GNUNET_MQ_queue_for_connection_client(service_conn,
-  //                                           mq_handlers,
-  //                                           mq_error_handler, // TODO implement
-  //                                           h);
-
-  /* Send the request to the service */
-  rh = GNUNET_RPS_request_peers(h, n, ready_cb, cls);
-  //ev = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
-  //msg->num_peers = GNUNET_htonll(n);
-  //GNUNET_MQ_send(mq, ev);
-  //GNUNET_CLIENT_disconnect(service_conn);
-  //rh = GNUNET_new(struct GNUNET_RPS_Request_Handle);
-  GNUNET_RPS_disconnect(h);
-  return rh;
-}
-
-/**
  * Connect to the rps service
  *
  * @param cfg configuration to use
