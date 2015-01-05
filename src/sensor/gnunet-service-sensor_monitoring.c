@@ -335,6 +335,8 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                                 &end_sensor_run_stat,
                                                                 &sensor_statistics_iterator,
                                                                 sensorinfo);
+    if (NULL == sensorinfo->gnunet_stat_get_handle)
+      sensorinfo->running = GNUNET_NO;
   }
   else if (0 == strcmp ("process", sensorinfo->source))
   {

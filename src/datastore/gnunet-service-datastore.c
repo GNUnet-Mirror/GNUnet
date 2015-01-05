@@ -1661,6 +1661,8 @@ run (void *cls,
                              &process_stat_done,
                              &process_stat_in,
                              NULL);
+  if (NULL == stat_get)
+    process_stat_done (NULL, GNUNET_SYSERR);
   GNUNET_SERVER_disconnect_notify (server,
                                    &cleanup_reservations,
                                    NULL);

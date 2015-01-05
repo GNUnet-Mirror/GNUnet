@@ -1657,6 +1657,12 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                 &primary_task,
                                 &process_stat,
 				NULL);
+  if (NULL == sget)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Statistics request failed, scheduling hostlist download\n");
+    ti_check_download = GNUNET_SCHEDULER_add_now (&task_check, NULL);
+  }
   return GNUNET_OK;
 }
 
