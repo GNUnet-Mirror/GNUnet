@@ -206,12 +206,12 @@ struct ValidationEntry
   /**
    * ID of task that will clean up this entry if nothing happens.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * ID of task that will trigger address revalidation.
    */
-  struct GNUNET_SCHEDULER_Task * revalidation_task;
+  struct GNUNET_SCHEDULER_Task *revalidation_task;
 
   /**
    * At what time did we send the latest validation request (PING)?
@@ -426,7 +426,7 @@ cleanup_validation_entry (void *cls,
 {
   struct ValidationEntry *ve = value;
 
-  ve->next_validation = GNUNET_TIME_absolute_get_zero_();
+  ve->next_validation = GNUNET_TIME_UNIT_ZERO_ABS;
   ve->valid_until = GNUNET_TIME_UNIT_ZERO_ABS;
 
   /* Notify about deleted entry */
@@ -451,13 +451,17 @@ cleanup_validation_entry (void *cls,
     GNUNET_SCHEDULER_cancel (ve->revalidation_task);
     ve->revalidation_task = NULL;
   }
-  if ((GNUNET_YES == ve->expecting_pong) &&
-  		(validations_running > 0))
+  if ( (GNUNET_YES == ve->expecting_pong) &&
+       (validations_running > 0) )
   {
-  		validations_running --;
-  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  	              "Validation finished, %u validation processes running\n",
-  	              validations_running);
+    validations_running --;
+    GNUNET_STATISTICS_set (GST_stats,
+                           gettext_noop ("# validations running"),
+                           validations_running,
+                           GNUNET_NO);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Validation finished, %u validation processes running\n",
+                validations_running);
   }
   GNUNET_free (ve);
   return GNUNET_OK;
@@ -537,11 +541,6 @@ transmit_ping_if_allowed (void *cls,
               GST_plugins_a2s (ve->address),
               ve->address->transport_name);
 
-  next = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
-                                   validation_delay);
-  if (next.abs_value_us > validation_next.abs_value_us)
-    validation_next = next; /* We're going to send a PING so delay next validation */
-
   slen = strlen (ve->address->transport_name) + 1;
   hello = GST_hello_get ();
   hsize = ntohs (hello->size);
@@ -559,8 +558,7 @@ transmit_ping_if_allowed (void *cls,
   if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Not transmitting `%s' with `%s', message too big (%u bytes!). This should not happen.\n"),
+                _("Not transmitting `%s' with `%s', message too big (%u bytes!). This should not happen.\n"),
                 "HELLO", "PING", (unsigned int) tsize);
     /* message too big (!?), get rid of HELLO */
     hsize = 0;
@@ -580,15 +578,21 @@ transmit_ping_if_allowed (void *cls,
     memcpy (&message_buf[sizeof (struct TransportPingMessage) + slen + hsize],
             ve->address->address, ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
-    if (papi == NULL)
+    if (NULL == papi)
+    {
       ret = -1;
+      GNUNET_STATISTICS_update (GST_stats,
+                                gettext_noop ("# validations not attempted (no plugin)"),
+                                1,
+                                GNUNET_NO);
+    }
     else
     {
       GNUNET_assert (NULL != papi->send);
       GNUNET_assert (NULL != papi->get_session);
       struct Session * session = papi->get_session(papi->cls, ve->address);
 
-      if (session != NULL)
+      if (NULL != session)
       {
         ret = papi->send (papi->cls, session,
                           message_buf, tsize,
@@ -618,18 +622,24 @@ transmit_ping_if_allowed (void *cls,
   }
   if (-1 != ret)
   {
+    next = GNUNET_TIME_relative_to_absolute (validation_delay);
+    validation_next = GNUNET_MAX (next,
+                                  validation_next);
     ve->send_time = GNUNET_TIME_absolute_get ();
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# PING without HELLO messages sent"), 1,
+                              gettext_noop ("# PING for validation (without HELLO) sent"),
+                              1,
                               GNUNET_NO);
-
     ve->network = network;
     ve->expecting_pong = GNUNET_YES;
     validations_running++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Validation started, %u validation processes running\n",
                 validations_running);
+    GNUNET_STATISTICS_set (GST_stats,
+                           gettext_noop ("# validations running"),
+                           validations_running,
+                           GNUNET_NO);
     /*  Notify about PING sent */
     validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
   }
@@ -678,8 +688,9 @@ revalidate_address (void *cls,
                                                         GNUNET_YES),
                 GST_plugins_a2s (ve->address));
     ve->revalidation_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
-    ve->next_validation =  GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+        GNUNET_SCHEDULER_add_delayed (delay,
+                                      &revalidate_address, ve);
+    ve->next_validation =  GNUNET_TIME_relative_to_absolute (delay);
     return;
   }
   blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
@@ -694,7 +705,7 @@ revalidate_address (void *cls,
                 GST_plugins_a2s (ve->address));
     ve->revalidation_task =
       GNUNET_SCHEDULER_add_delayed (blocked_for, &revalidate_address, ve);
-    ve->next_validation =  GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), blocked_for);
+    ve->next_validation =  GNUNET_TIME_relative_to_absolute (blocked_for);
     return;
   }
   ve->revalidation_block = GNUNET_TIME_relative_to_absolute (canonical_delay);
@@ -715,7 +726,7 @@ revalidate_address (void *cls,
               GST_plugins_a2s (ve->address));
   ve->revalidation_task =
       GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
-  ve->next_validation =  GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
+  ve->next_validation =  GNUNET_TIME_relative_to_absolute (delay);
 
   /* start PINGing by checking blacklist */
   GNUNET_STATISTICS_update (GST_stats,
@@ -884,6 +895,10 @@ GST_validation_start (unsigned int max_fds)
   validation_delay.rel_value_us = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2);
   validations_fast_start_threshold = (max_fds / 2);
   validations_running = 0;
+  GNUNET_STATISTICS_set (GST_stats,
+                         gettext_noop ("# validations running"),
+                         validations_running,
+                         GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Validation uses a fast start threshold of %u connections and a delay between of %s\n ",
               validations_fast_start_threshold,
@@ -1450,6 +1465,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
               GNUNET_i2s (sender),
               tname,
               GST_plugins_a2s (ve->address));
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# validations succeeded"),
+                            1,
+                            GNUNET_NO);
   /* validity achieved, remember it! */
   ve->expecting_pong = GNUNET_NO;
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
@@ -1468,6 +1487,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   if (validations_running > 0)
   {
     validations_running --;
+    GNUNET_STATISTICS_set (GST_stats,
+                           gettext_noop ("# validations running"),
+                           validations_running,
+                           GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Validation finished, %u validation processes running\n",
                 validations_running);
