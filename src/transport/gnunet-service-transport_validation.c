@@ -274,6 +274,9 @@ struct ValidationEntry
    */
   int expecting_pong;
 
+  /**
+   * Which network type does our address belong to?
+   */
   enum GNUNET_ATS_Network_Type network;
 };
 
@@ -331,7 +334,9 @@ static struct GNUNET_PEERINFO_NotifyContext *pnc;
 static struct GNUNET_TIME_Relative validation_delay;
 
 /**
- * Number of validations running
+ * Number of validations running; any PING that was not yet
+ * matched by a PONG and for which we have not yet hit the
+ * timeout is considered a running 'validation'.
  */
 static unsigned int validations_running;
 
@@ -472,7 +477,7 @@ cleanup_validation_entry (void *cls,
  * Address validation cleanup task.  Assesses if the record is no
  * longer valid and then possibly triggers its removal.
  *
- * @param cls the 'struct ValidationEntry'
+ * @param cls the `struct ValidationEntry`
  * @param tc scheduler context (unused)
  */
 static void
@@ -484,7 +489,8 @@ timeout_hello_validation (void *cls,
   struct GNUNET_TIME_Relative left;
 
   ve->timeout_task = NULL;
-  max = GNUNET_TIME_absolute_max (ve->valid_until, ve->revalidation_block);
+  max = GNUNET_TIME_absolute_max (ve->valid_until,
+                                  ve->revalidation_block);
   left = GNUNET_TIME_absolute_get_remaining (max);
   if (left.rel_value_us > 0)
   {
@@ -504,7 +510,7 @@ timeout_hello_validation (void *cls,
  * Function called with the result from blacklisting.
  * Send a PING to the other peer if a communication is allowed.
  *
- * @param cls our 'struct ValidationEntry'
+ * @param cls our `struct ValidationEntry`
  * @param pid identity of the other peer
  * @param result #GNUNET_OK if the connection is allowed, #GNUNET_NO if not
  */
@@ -557,10 +563,7 @@ transmit_ping_if_allowed (void *cls,
 
   if (tsize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Not transmitting `%s' with `%s', message too big (%u bytes!). This should not happen.\n"),
-                "HELLO", "PING", (unsigned int) tsize);
-    /* message too big (!?), get rid of HELLO */
+    GNUNET_break (0);
     hsize = 0;
     tsize =
         sizeof (struct TransportPingMessage) + ve->address->address_length +
@@ -623,11 +626,11 @@ transmit_ping_if_allowed (void *cls,
   if (-1 != ret)
   {
     next = GNUNET_TIME_relative_to_absolute (validation_delay);
-    validation_next = GNUNET_MAX (next,
-                                  validation_next);
+    validation_next = GNUNET_TIME_absolute_max (next,
+                                                validation_next);
     ve->send_time = GNUNET_TIME_absolute_get ();
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# PING for validation (without HELLO) sent"),
+                              gettext_noop ("# PINGs for address validation sent"),
                               1,
                               GNUNET_NO);
     ve->network = network;
@@ -649,7 +652,7 @@ transmit_ping_if_allowed (void *cls,
 /**
  * Do address validation again to keep address valid.
  *
- * @param cls the 'struct ValidationEntry'
+ * @param cls the `struct ValidationEntry`
  * @param tc scheduler context (unused)
  */
 static void
@@ -665,20 +668,22 @@ revalidate_address (void *cls,
 
   ve->revalidation_task = NULL;
   delay = GNUNET_TIME_absolute_get_remaining (ve->revalidation_block);
-  /* How long until we can possibly permit the next PING? */
+  /* Considering current connectivity situation, what is the maximum
+     block period permitted? */
   if (GNUNET_YES == ve->in_use)
     canonical_delay = CONNECTED_PING_FREQUENCY;
   else if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us > 0)
     canonical_delay = VALIDATED_PING_FREQUENCY;
   else
     canonical_delay = UNVALIDATED_PING_KEEPALIVE;
-
-  if (delay.rel_value_us > canonical_delay.rel_value_us * 2)
-  {
-    /* situation changed, recalculate delay */
-    delay = canonical_delay;
-    ve->revalidation_block = GNUNET_TIME_relative_to_absolute (delay);
-  }
+  /* Use delay that is MIN of original delay and possibly adjusted
+     new maximum delay (which may be lower); the real delay
+     is originally randomized between "canonical_delay" and "2 * canonical_delay",
+     so continue to permit that window for the operation. */
+  delay = GNUNET_TIME_relative_min (delay,
+                                    GNUNET_TIME_relative_multiply (canonical_delay,
+                                                                   2));
+  ve->revalidation_block = GNUNET_TIME_relative_to_absolute (delay);
   if (delay.rel_value_us > 0)
   {
     /* should wait a bit longer */
@@ -693,9 +698,11 @@ revalidate_address (void *cls,
     ve->next_validation =  GNUNET_TIME_relative_to_absolute (delay);
     return;
   }
-  blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
-  if ((validations_running > validations_fast_start_threshold) &&
-  		(blocked_for.rel_value_us > 0))
+  /* check if globally we have too many active validations at a
+     too high rate, if so, delay ours */
+  blocked_for = GNUNET_TIME_absolute_get_remaining (validation_next);
+  if ( (validations_running > validations_fast_start_threshold) &&
+       (blocked_for.rel_value_us > 0) )
   {
     /* Validations are blocked, have to wait for blocked_for time */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -708,8 +715,10 @@ revalidate_address (void *cls,
     ve->next_validation =  GNUNET_TIME_relative_to_absolute (blocked_for);
     return;
   }
-  ve->revalidation_block = GNUNET_TIME_relative_to_absolute (canonical_delay);
 
+  /* We are good to go; remember to not go again for `canonical_delay` time;
+     add up to `canonical_delay` to randomize start time */
+  ve->revalidation_block = GNUNET_TIME_relative_to_absolute (canonical_delay);
   /* schedule next PINGing with some extra random delay to avoid synchronous re-validations */
   rdelay =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -726,7 +735,7 @@ revalidate_address (void *cls,
               GST_plugins_a2s (ve->address));
   ve->revalidation_task =
       GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
-  ve->next_validation =  GNUNET_TIME_relative_to_absolute (delay);
+  ve->next_validation = GNUNET_TIME_relative_to_absolute (delay);
 
   /* start PINGing by checking blacklist */
   GNUNET_STATISTICS_update (GST_stats,
@@ -764,7 +773,7 @@ find_validation_entry (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
                                               &validation_entry_match, &vemc);
   if (NULL != (ve = vemc.ve))
     return ve;
-  if (public_key == NULL)
+  if (NULL == public_key)
     return NULL;
   ve = GNUNET_new (struct ValidationEntry);
   ve->in_use = GNUNET_SYSERR; /* not defined */
@@ -783,7 +792,6 @@ find_validation_entry (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
                                      ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   validation_entry_changed (ve, GNUNET_TRANSPORT_VS_NEW);
-  ve->expecting_pong = GNUNET_NO;
   return ve;
 }
 
@@ -1599,7 +1607,10 @@ iterate_addresses (void *cls,
   struct IteratorContext *ic = cls;
   struct ValidationEntry *ve = value;
 
-  ic->cb (ic->cb_cls, &ve->public_key, ve->valid_until, ve->revalidation_block,
+  ic->cb (ic->cb_cls,
+          &ve->public_key,
+          ve->valid_until,
+          ve->revalidation_block,
           ve->address);
   return GNUNET_OK;
 }
