@@ -41,7 +41,10 @@ libexec_PROGRAMS = \
 
 
 gnunet_service_rps_SOURCES = \
+ gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
  gnunet-service-rps.c
+
+
 gnunet_service_rps_LDADD = \
   libgnunetrps.la \
   $(top_builddir)/src/util/libgnunetutil.la \
