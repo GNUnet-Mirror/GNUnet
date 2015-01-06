@@ -1241,7 +1241,7 @@ disk_utilization_change_cb (void *cls,
                 _("Datastore payload must have been inaccurate (%lld < %lld). Recomputing it.\n"),
                 (long long) payload,
                 (long long) -delta);
-    payload = plugin->api->estimate_size (plugin->api->cls);
+    plugin->api->estimate_size (plugin->api->cls, &payload);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("New payload: %lld\n"),
                 (long long) payload);
@@ -1404,7 +1404,7 @@ process_stat_done (void *cls, int success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain value from statistics service, recomputing it\n");
-    payload = plugin->api->estimate_size (plugin->api->cls);
+    plugin->api->estimate_size (plugin->api->cls, &payload);
   }
   if (GNUNET_YES == refresh_bf)
   {

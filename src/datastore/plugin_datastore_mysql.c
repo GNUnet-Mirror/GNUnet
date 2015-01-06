@@ -246,22 +246,25 @@ do_delete_entry (struct Plugin *plugin, unsigned long long uid)
  * @param cls our "struct Plugin *"
  * @return number of bytes used on disk
  */
-static unsigned long long
-mysql_plugin_estimate_size (void *cls)
+static void
+mysql_plugin_estimate_size (void *cls, unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
   MYSQL_BIND cbind[1];
   long long total;
 
+  if (NULL == estimate)
+    return;
   memset (cbind, 0, sizeof (cbind));
   total = 0;
   cbind[0].buffer_type = MYSQL_TYPE_LONGLONG;
   cbind[0].buffer = &total;
   cbind[0].is_unsigned = GNUNET_NO;
-  if (GNUNET_OK !=
+  if (GNUNET_OK ==
       GNUNET_MYSQL_statement_run_prepared_select (plugin->mc, plugin->get_size, 1, cbind, NULL, NULL, -1))
-    return 0;
-  return total;
+    *estimate = total;
+  else
+    *estimate = 0;
 }
 
 

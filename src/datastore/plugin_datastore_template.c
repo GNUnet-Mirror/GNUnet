@@ -47,11 +47,13 @@ struct Plugin
  * @param cls our "struct Plugin*"
  * @return number of bytes used on disk
  */
-static unsigned long long
-template_plugin_estimate_size (void *cls)
+static void
+template_plugin_estimate_size (void *cls, unsigned long long *estimate)
 {
+  if (NULL == estimate)
+    return;
   GNUNET_break (0);
-  return 0;
+  *estimate = 0;
 }
 
 

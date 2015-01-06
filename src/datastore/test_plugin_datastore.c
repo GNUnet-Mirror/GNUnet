@@ -241,7 +241,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (j = 0; j < PUT_10; j++)
     {
       put_value (crc->api, j, crc->i);
-      cs = crc->api->estimate_size (crc->api->cls);
+      crc->api->estimate_size (crc->api->cls, &cs);
       GNUNET_assert (os <= cs);
       os = cs;
     }

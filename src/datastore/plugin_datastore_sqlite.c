@@ -1135,8 +1135,8 @@ sqlite_plugin_drop (void *cls)
  * @param cls the `struct Plugin`
  * @return the size of the database on disk (estimate)
  */
-static unsigned long long
-sqlite_plugin_estimate_size (void *cls)
+static void
+sqlite_plugin_estimate_size (void *cls, unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
@@ -1147,12 +1147,15 @@ sqlite_plugin_estimate_size (void *cls)
   char *e;
 #endif
 
+  if (NULL == estimate)
+    return;
   if (SQLITE_VERSION_NUMBER < 3006000)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "datastore-sqlite",
                      _
                      ("sqlite version to old to determine size, assuming zero\n"));
-    return 0;
+    *estimate = 0;
+    return;
   }
   CHECK (SQLITE_OK == sqlite3_exec (plugin->dbh, "VACUUM", NULL, NULL, ENULL));
   CHECK (SQLITE_OK ==
@@ -1172,7 +1175,7 @@ sqlite_plugin_estimate_size (void *cls)
               _
               ("Using sqlite page utilization to estimate payload (%llu pages of size %llu bytes)\n"),
               (unsigned long long) pages, (unsigned long long) page_size);
-  return pages * page_size;
+  *estimate = pages * page_size;
 }
 
 

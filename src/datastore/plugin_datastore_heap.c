@@ -184,12 +184,13 @@ struct Plugin
  * @param cls our "struct Plugin*"
  * @return number of bytes used on disk
  */
-static unsigned long long
-heap_plugin_estimate_size (void *cls)
+static void
+heap_plugin_estimate_size (void *cls, unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
 
-  return plugin->size;
+  if (NULL != estimate)
+    *estimate = plugin->size;
 }
 
 

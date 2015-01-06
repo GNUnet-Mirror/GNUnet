@@ -228,13 +228,15 @@ init_connection (struct Plugin *plugin)
  * @param cls our `struct Plugin *`
  * @return number of bytes used on disk
  */
-static unsigned long long
-postgres_plugin_estimate_size (void *cls)
+static void
+postgres_plugin_estimate_size (void *cls, unsigned long long *estimate)
 {
   struct Plugin *plugin = cls;
   unsigned long long total;
   PGresult *ret;
 
+  if (NULL == estimate)
+    return;
   ret =
       PQexecParams (plugin->dbh,
                     "SELECT SUM(LENGTH(value))+256*COUNT(*) FROM gn090", 0,
@@ -242,23 +244,26 @@ postgres_plugin_estimate_size (void *cls)
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_TUPLES_OK, "PQexecParams", "get_size"))
   {
-    return 0;
+    *estimate = 0;
+    return;
   }
   if ((PQntuples (ret) != 1) || (PQnfields (ret) != 1) )
   {
     GNUNET_break (0);
     PQclear (ret);
-    return 0;
+    *estimate = 0;
+    return;
   }
   if (PQgetlength (ret, 0, 0) != sizeof (unsigned long long))
   {
     GNUNET_break (0 == PQgetlength (ret, 0, 0));
     PQclear (ret);
-    return 0;
+    *estimate = 0;
+    return;
   }
   total = GNUNET_ntohll (*(const unsigned long long *) PQgetvalue (ret, 0, 0));
   PQclear (ret);
-  return total;
+  *estimate = total;
 }
 
 

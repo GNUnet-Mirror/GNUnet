@@ -103,9 +103,10 @@ typedef int (*PluginDatumProcessor) (void *cls, const struct GNUNET_HashCode * k
  * currently using.
  *
  * @param cls closure
+ * @param estimate location to store estimate
  * @return number of bytes used on disk
  */
-typedef unsigned long long (*PluginEstimateSize) (void *cls);
+typedef void (*PluginEstimateSize) (void *cls, unsigned long long *estimate);
 
 
 /**
