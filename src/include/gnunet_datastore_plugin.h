@@ -102,6 +102,9 @@ typedef int (*PluginDatumProcessor) (void *cls, const struct GNUNET_HashCode * k
  * Get an estimate of how much space the database is
  * currently using.
  *
+ * NB: estimate is an output parameter because emscripten cannot handle
+ * returning 64-bit integers from dynamically loaded modules.
+ *
  * @param cls closure
  * @param estimate location to store estimate
  * @return number of bytes used on disk
