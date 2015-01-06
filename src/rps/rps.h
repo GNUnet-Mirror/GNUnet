@@ -81,7 +81,7 @@ struct GNUNET_RPS_P2P_PullReplyMessage
   /**
    * Number of PeerIDs sent
    */
-  uint64_t num_peers GNUNET_PACKED;
+  uint32_t num_peers GNUNET_PACKED;
 
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
@@ -103,14 +103,15 @@ struct GNUNET_RPS_CS_RequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Identifyer of the message.
-   */
-  uint64_t n;
-
-  /**
    * Number of random peer requested
    */
-  uint64_t num_peers GNUNET_PACKED;
+  uint32_t num_peers GNUNET_PACKED; 
+
+  /**
+   * Identifyer of the message.
+   */
+  uint64_t n GNUNET_PACKED;
+
 };
 
 /**
@@ -119,7 +120,7 @@ struct GNUNET_RPS_CS_RequestMessage
 struct GNUNET_RPS_CS_ReplyMessage
 {
   /**
-   * Header including size and type in NBO
+   * Type is #GNUNET_MESSAGE_TYPE_RPS_REPLY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -142,6 +143,11 @@ struct GNUNET_RPS_CS_ReplyMessage
 struct GNUNET_RPS_CS_SeedMessage
 {
   /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
    * Number of peers
    */
   uint64_t n;
@@ -149,7 +155,7 @@ struct GNUNET_RPS_CS_SeedMessage
   /**
    * Peers
    */
-  struct GNUNET_PeerIdentity *ids;
+  struct GNUNET_PeerIdentity ids;
 };
 
 GNUNET_NETWORK_STRUCT_END
