@@ -615,13 +615,16 @@ RPS_sampler_get_n_rand_peers (uint64_t n)
     // TODO check if we have too much (distinct) sampled peers
     // If we are not ready yet maybe schedule for later
     struct GNUNET_PeerIdentity *peers;
+    const struct GNUNET_PeerIdentity *peer;
     uint64_t i;
 
-    peers = GNUNET_malloc (n * sizeof(struct GNUNET_PeerIdentity));
+    peers = GNUNET_malloc (n * sizeof (struct GNUNET_PeerIdentity));
 
     for ( i = 0 ; i < n ; i++ ) {
       //peers[i] = RPS_sampler_get_rand_peer_(sampler->sampler_elements);
-      memcpy (&peers[i], RPS_sampler_get_rand_peer (), sizeof (struct GNUNET_PeerIdentity));
+      peer = RPS_sampler_get_rand_peer ();
+      memcpy (&peers[i], peer, sizeof (struct GNUNET_PeerIdentity));
+      //GNUNET_free (peer);
     }
     return peers;
   }

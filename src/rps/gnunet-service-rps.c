@@ -52,6 +52,7 @@
 
 // TODO Change API to accept good peers 'friends'
 
+// TODO store peers somewhere
 
 // hist_size_init, hist_size_max
 
@@ -469,9 +470,10 @@ handle_cs_request (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   uint64_t num_peers;
+  const struct GNUNET_PeerIdentity *peers;
   //uint64_t i;
 
-  // TODO
+  // TODO check message size
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
   cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct client_ctx);
   if ( NULL == cli_ctx ) {
@@ -483,15 +485,17 @@ handle_cs_request (void *cls,
   // How many peers do we give back?
   // Wait until we have enough random peers?
 
-  ev = GNUNET_MQ_msg_extra (out_msg,
-                            GNUNET_ntohll (msg->num_peers) * sizeof (struct GNUNET_PeerIdentity),
-                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
-  out_msg->num_peers = msg->num_peers; // No conversion between network and host order
-
   num_peers = GNUNET_ntohll (msg->num_peers);
-  //&out_msg[1] = RPS_sampler_get_n_rand_peers(sampler_list, num_peers);
+
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            num_peers * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
+  out_msg->num_peers = msg->num_peers; // No conversion between network and network order
+
+  //&out_msg[1] = RPS_sampler_get_n_rand_peers (num_peers);
+  peers = RPS_sampler_get_n_rand_peers (num_peers);
   memcpy(&out_msg[1],
-      RPS_sampler_get_n_rand_peers (num_peers),
+      peers,
       num_peers * sizeof (struct GNUNET_PeerIdentity));
   
   GNUNET_MQ_send(cli_ctx->mq, ev);
@@ -709,9 +713,6 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
 
-  GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
-
-
   /* Update gossip list */
   uint64_t r_index;
 
@@ -723,6 +724,8 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     uint64_t first_border;
     uint64_t second_border;
+    
+    GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
 
     first_border = round(alpha * gossip_list_size);
     for ( i = 0 ; i < first_border ; i++ )
@@ -747,7 +750,7 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for ( i = second_border ; i < gossip_list_size ; i++ )
     {
       /* Update gossip list with peers from history */
-      peer = RPS_sampler_get_rand_peer();
+      peer = RPS_sampler_get_rand_peer ();
       gossip_list[i] = *peer;
       // TODO change the in_flags accordingly
     }
@@ -818,7 +821,8 @@ removeCB (void *cls, const struct GNUNET_PeerIdentity *id)
         {
           GNUNET_MQ_destroy (ctx->mq);
         }
-        GNUNET_CADET_channel_destroy (ctx->to_channel);
+        // may already be freed at shutdown of cadet
+        //GNUNET_CADET_channel_destroy (ctx->to_channel);
       }
       // TODO cleanup peer
       GNUNET_CONTAINER_multipeermap_remove_all(peer_map, id);
@@ -848,12 +852,18 @@ init_peer_cb (void *cls,
   ipc = (struct init_peer_cls *) cls;
   if ( NULL != peer )
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Got peer %s (at %p) from CADET\n", GNUNET_i2s(peer), peer);
-    RPS_sampler_update_list(peer);
-    touch_peer_ctx(peer_map, peer); // unneeded? -> insertCB
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Got %" PRIX32 ". peer %s (at %p) from CADET (gossip_list_size: %u)\n",
+        ipc->i, GNUNET_i2s (peer), peer, gossip_list_size);
+    RPS_sampler_update_list (peer);
+    touch_peer_ctx (peer_map, peer); // unneeded? -> insertCB
 
-    gossip_list[ipc->i] = *peer;
-    ipc->i++;
+    if (ipc->i < gossip_list_size)
+    {
+      gossip_list[ipc->i] = *peer; // FIXME sometimes we're writing to invalid space here
+                                   // not sure whether fixed
+      ipc->i++;
+    }
 
     // send push/pull to each of those peers?
   }
@@ -862,10 +872,11 @@ init_peer_cb (void *cls,
     if (ipc->i < gossip_list_size)
     {
       memcpy(&gossip_list[ipc->i],
-          RPS_sampler_get_rand_peer(),
+          RPS_sampler_get_rand_peer (),
           (gossip_list_size - ipc->i) * sizeof(struct GNUNET_PeerIdentity));
     }
     rps_start (ipc->server);
+    GNUNET_free (ipc);
   }
 }
 
@@ -969,7 +980,7 @@ cleanup_channel(void *cls,
       (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
        // Guess simply casting isn't the nicest way...
        // FIXME wait for cadet to change this function
-  RPS_sampler_reinitialise_by_value(peer);
+  RPS_sampler_reinitialise_by_value (peer);
 }
 
 /**
@@ -1013,7 +1024,7 @@ run (void *cls,
 {
   // TODO check what this does -- copied from gnunet-boss
   // - seems to work as expected
-  GNUNET_log_setup("rps", GNUNET_error_type_to_string(GNUNET_ERROR_TYPE_DEBUG), NULL);
+  GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "RPS started\n");
 
@@ -1023,10 +1034,10 @@ run (void *cls,
 
 
   /* Get own ID */
-  own_identity = GNUNET_new(struct GNUNET_PeerIdentity);
-  GNUNET_CRYPTO_get_peer_identity(cfg, own_identity); // TODO check return value
-  GNUNET_assert(NULL != own_identity);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Own identity is %s (at %p).\n", GNUNET_i2s(own_identity), own_identity);
+  own_identity = GNUNET_new (struct GNUNET_PeerIdentity);
+  GNUNET_CRYPTO_get_peer_identity (cfg, own_identity); // TODO check return value
+  GNUNET_assert (NULL != own_identity);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Own identity is %s (at %p).\n", GNUNET_i2s(own_identity), own_identity);
 
 
   /* Get time interval from the configuration */
@@ -1034,7 +1045,7 @@ run (void *cls,
                                                         "ROUNDINTERVAL",
                                                         &round_interval))
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Failed to read ROUNDINTERVAL from config\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read ROUNDINTERVAL from config\n");
     GNUNET_SCHEDULER_shutdown();
     return;
   }
@@ -1044,17 +1055,16 @@ run (void *cls,
                                                          "INITSIZE",
                                                          (long long unsigned int *) &est_size))
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Failed to read INITSIZE from config\n");
-    GNUNET_SCHEDULER_shutdown();
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read INITSIZE from config\n");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", est_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", est_size);
 
   //gossip_list_size = est_size; // TODO rename est_size
 
   gossip_list = NULL;
-
-  GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
+  GNUNET_array_grow (gossip_list, gossip_list_size, est_size);
 
 
   /* connect to NSE */
