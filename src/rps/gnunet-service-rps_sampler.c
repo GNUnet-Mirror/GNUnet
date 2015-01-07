@@ -363,7 +363,7 @@ RPS_sampler_resize (unsigned int new_size)
         "SAMPLER: sampler->sampler_elements now points to %p\n",
         sampler->sampler_elements);
 
-    for (i = new_size ; i < old_size ; i++)
+    for (i = 0 ; i < old_size - new_size ; i++)
     {/* Remove unneeded rest */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing %" PRIX64 ". sampler\n", i);
       if (NULL != sampler->remove_cb)
