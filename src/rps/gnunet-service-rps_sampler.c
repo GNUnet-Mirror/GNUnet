@@ -151,7 +151,7 @@ static size_t max_size;
 /**
  * The size the extended sampler elements currently have.
  */
-static size_t extra_size;
+//static size_t extra_size;
 
 /**
  * Inedex to the sampler element that is the next to be returned
