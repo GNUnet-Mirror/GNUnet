@@ -156,7 +156,7 @@ static size_t extra_size;
 /**
  * Inedex to the sampler element that is the next to be returned
  */
-static struct RPS_SamplerElement **extended_samplers_index;
+static uint64_t extended_samplers_index;
 
 /**
  * Request counter.
@@ -349,17 +349,13 @@ RPS_sampler_resize (unsigned int new_size)
 
   old_size = sampler->sampler_size;
 
-  if (old_size > new_size*4 &&
-      extra_size > new_size*4)
+  if (old_size > new_size)
   { /* Shrinking */
-
-    new_size /= 2;
-
     /* Temporary store those to properly call the removeCB on those later */
     rem_list = GNUNET_malloc ((old_size - new_size) * sizeof (struct RPS_SamplerElement *));
     memcpy (rem_list,
         &sampler->sampler_elements[new_size],
-        (old_size - new_size) * sizeof(struct RPS_SamplerElement *));
+        (old_size - new_size) * sizeof (struct RPS_SamplerElement *));
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Shrinking sampler %d -> %d\n", old_size, new_size);
     GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, new_size);
@@ -367,7 +363,6 @@ RPS_sampler_resize (unsigned int new_size)
         "SAMPLER: sampler->sampler_elements now points to %p\n",
         sampler->sampler_elements);
 
-    // TODO move extended_samplers_index
     for (i = new_size ; i < old_size ; i++)
     {/* Remove unneeded rest */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing %" PRIX64 ". sampler\n", i);
@@ -376,18 +371,13 @@ RPS_sampler_resize (unsigned int new_size)
       GNUNET_free (rem_list[i]);
     }
   }
-  else if (old_size < new_size)// ||
-      //extra_size < new_size) // needed?
+  else if (old_size < new_size)
   { /* Growing */
-    new_size *= 2; // TODO check overflow
-
     LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Growing sampler %d -> %d\n", old_size, new_size);
     GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, new_size);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "SAMPLER: sampler->sampler_elements now points to %p\n",
         sampler->sampler_elements);
-
-    // TODO move extended_samplers_index
 
     for ( i = old_size ; i < new_size ; i++ )
     { /* Add new sampler elements */
@@ -447,7 +437,7 @@ RPS_sampler_init (size_t init_size, const struct GNUNET_PeerIdentity *id,
   RPS_sampler_resize (init_size);
   RPS_sampler_update_list (id); // no super nice desing but ok for the moment
 
-  extended_samplers_index = sampler->sampler_elements;
+  extended_samplers_index = 0;
 
   //GNUNET_assert (init_size == sampler->sampler_size);
 }
@@ -591,13 +581,12 @@ RPS_sampler_get_rand_peer ()
 
   // use _get_rand_peer_ ?
   peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  *peer = (*extended_samplers_index)->peer_id;
-  RPS_sampler_elem_reinit (*extended_samplers_index);
-  if ( extended_samplers_index == &sampler->sampler_elements[sampler->sampler_size -1] )
-    extended_samplers_index = &sampler->sampler_elements[0];
+  *peer = sampler->sampler_elements[extended_samplers_index]->peer_id;
+  RPS_sampler_elem_reinit (sampler->sampler_elements[extended_samplers_index]);
+  if ( extended_samplers_index == sampler->sampler_size )
+    extended_samplers_index = 0;
   else
     extended_samplers_index++;
-  // TODO
   return peer;
 }
 

@@ -411,20 +411,39 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_Peer
 nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimate, double std_dev)
 {
   double estimate;
+  unsigned int old_est;
   //double scale; // TODO this might go gloabal/config
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a ns estimate - logest: %f, std_dev: %f\n", logestimate, std_dev);
+  old_est = est_size;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Received a ns estimate - logest: %f, std_dev: %f (old_est: %f)\n",
+      logestimate, std_dev, old_est);
   //scale = .01;
-  estimate = GNUNET_NSE_log_estimate_to_n(logestimate);
+  estimate = GNUNET_NSE_log_estimate_to_n (logestimate);
   // GNUNET_NSE_log_estimate_to_n (logestimate);
-  estimate = pow(estimate, 1./3);
+  estimate = pow (estimate, 1./3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
   if ( 0 < estimate ) {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
     est_size = estimate;
   } else
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Not using estimate %f\n", estimate);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not using estimate %f\n", estimate);
+
+  /* If the NSE has changed adapt the lists accordingly */
+  // TODO respect the request rate, min, max
+  if (old_est > est_size*4)
+  { /* Shrinking */
+    RPS_sampler_resize (old_est/2);
+  }
+  else if (old_est < est_size)
+  { /* Growing */
+    if (est_size < old_est*2)
+      RPS_sampler_resize (old_est*2);
+    else
+      RPS_sampler_resize (est_size);
+  }
 }
 
 /**
@@ -641,12 +660,13 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   //n_arr = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) gossip_list_size);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %f (%f * %u) peers.\n",
       alpha * gossip_list_size, alpha, gossip_list_size);
+  // TODO send to at least one
   for ( i = 0 ; i < alpha * gossip_list_size ; i++ )
   { // TODO compute length
-    peer = get_rand_peer(gossip_list, gossip_list_size);
+    peer = get_rand_peer (gossip_list, gossip_list_size);
     if (own_identity != peer)
     { // FIXME if this fails schedule/loop this for later
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s(peer));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
       //ev = GNUNET_MQ_msg_extra();
@@ -664,14 +684,15 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Send PULL requests */
   //n_arr = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %f (%f * %u) peers.\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %f (%f * %u) peers.\n",
       beta * gossip_list_size, beta, gossip_list_size);
+  // TODO send to at least one
   for ( i = 0 ; i < beta * gossip_list_size ; i++ )
   { // TODO compute length
     peer = get_rand_peer(gossip_list, gossip_list_size);
     if (own_identity != peer)
     { // FIXME if this fails schedule/loop this for later
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s(peer));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg(pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
       //ev = GNUNET_MQ_msg_extra();
@@ -683,9 +704,6 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
   }
 
-
-  /* If the NSE has changed adapt the lists accordingly */
-  RPS_sampler_resize(est_size);
 
   GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
 
