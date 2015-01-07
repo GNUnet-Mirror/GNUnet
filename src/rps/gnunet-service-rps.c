@@ -263,6 +263,35 @@ uint64_t g_i = 0;
 ***********************************************************************/
 
 /**
+ * Check if peer is already in peer array.
+ */
+  int
+in_arr (const struct GNUNET_PeerIdentity *array,
+        unsigned int arr_size,
+        const struct GNUNET_PeerIdentity *peer)
+{
+  GNUNET_assert (NULL != peer);
+
+  if (0 == arr_size)
+    return GNUNET_NO;
+
+  GNUNET_assert (NULL != array);
+
+  unsigned int i;
+
+  i = 0;
+  while (0 != GNUNET_CRYPTO_cmp_peer_identity (&array[i], peer) &&
+         i < arr_size)
+    i++;
+
+  if (i == arr_size)
+    return GNUNET_NO;
+  else
+    return GNUNET_YES;
+}
+
+
+/**
  * Get random peer from the gossip list.
  */
   struct GNUNET_PeerIdentity *
@@ -503,9 +532,8 @@ handle_peer_push (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
   
   /* Add the sending peer to the push_list */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding peer to push_list of size %u\n", push_list_size);
-  GNUNET_array_append (push_list, push_list_size, *peer);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Size of push_list is now %u\n", push_list_size);
+  if (GNUNET_NO == in_arr (push_list, pull_list_size, peer))
+    GNUNET_array_append (push_list, push_list_size, *peer);
 
   return GNUNET_OK;
 }
@@ -598,7 +626,8 @@ handle_peer_pull_reply (void *cls,
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   for ( i = 0 ; i < GNUNET_ntohll (in_msg->num_peers) ; i++ )
   {
-    GNUNET_array_append (pull_list, pull_list_size, peers[i]);
+    if (GNUNET_NO == in_arr(pull_list, pull_list_size, &peers[i]))
+      GNUNET_array_append (pull_list, pull_list_size, peers[i]);
   }
 
   // TODO check that id is valid - whether it is reachable
@@ -613,7 +642,7 @@ handle_peer_pull_reply (void *cls,
  * This is executed regylary.
  */
 static void
-do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round\n");
 
