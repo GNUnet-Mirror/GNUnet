@@ -51,7 +51,7 @@ extern "C"
  *              addresses the server should bind to and listen on; the
  *              array will be NULL-terminated (on success)
  * @param addr_lens set (call by reference) to an array of the lengths
- *              of the respective 'struct sockaddr' struct in the @a addrs
+ *              of the respective `struct sockaddr` struct in the @a addrs
  *              array (on success)
  * @return number of addresses found on success,
  *              #GNUNET_SYSERR if the configuration
@@ -76,9 +76,10 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
  * @param server the initialized server
  * @param cfg configuration to use
  */
-typedef void (*GNUNET_SERVICE_Main) (void *cls,
-                                     struct GNUNET_SERVER_Handle *server,
-                                     const struct GNUNET_CONFIGURATION_Handle *cfg);
+typedef void
+(*GNUNET_SERVICE_Main) (void *cls,
+                        struct GNUNET_SERVER_Handle *server,
+                        const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**

@@ -105,22 +105,17 @@ typedef void (*GNUNET_DATASTORE_ContinuationWithStatus) (void *cls,
  * @param h handle to the datastore
  * @param amount how much space (in bytes) should be reserved (for content only)
  * @param entries how many entries will be created (to calculate per-entry overhead)
- * @param queue_priority ranking of this request in the priority queue
- * @param max_queue_size at what queue size should this request be dropped
- *        (if other requests of higher priority are in the queue)
- * @param timeout how long to wait at most for a response (or before dying in queue)
  * @param cont continuation to call when done; "success" will be set to
  *             a positive reservation value if space could be reserved.
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel; note that even if NULL is returned, the callback will be invoked
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h, uint64_t amount,
-                          uint32_t entries, unsigned int queue_priority,
-                          unsigned int max_queue_size,
-                          struct GNUNET_TIME_Relative timeout,
+GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
+                          uint64_t amount,
+                          uint32_t entries,
                           GNUNET_DATASTORE_ContinuationWithStatus cont,
                           void *cont_cls);
 

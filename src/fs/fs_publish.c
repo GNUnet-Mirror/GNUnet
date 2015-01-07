@@ -1366,8 +1366,6 @@ GNUNET_FS_publish_start (struct GNUNET_FS_Handle *h,
     ret->qre =
         GNUNET_DATASTORE_reserve (ret->dsh, ret->reserve_space,
                                   ret->reserve_entries,
-                                  UINT_MAX, UINT_MAX,
-                                  GNUNET_TIME_UNIT_FOREVER_REL,
                                   &finish_reserve,
                                   ret);
   }
