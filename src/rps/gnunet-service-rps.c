@@ -641,6 +641,7 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   uint64_t i;
   //unsigned int *n_arr;
+  unsigned int n_peers; /* Number of peers we send pushes/pulls to */
   struct GNUNET_RPS_P2P_PushMessage        *push_msg;
   struct GNUNET_RPS_P2P_PullRequestMessage *pull_msg; // FIXME Send empty message
   struct GNUNET_MQ_Envelope *ev;
@@ -658,10 +659,12 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Send PUSHes */
   //n_arr = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) gossip_list_size);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %f (%f * %u) peers.\n",
-      alpha * gossip_list_size, alpha, gossip_list_size);
-  // TODO send to at least one
-  for ( i = 0 ; i < alpha * gossip_list_size ; i++ )
+  n_peers = round (alpha * gossip_list_size);
+  if (0 == n_peers)
+    n_peers = 1;
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
+      n_peers, alpha, gossip_list_size);
+  for ( i = 0 ; i < n_peers ; i++ )
   { // TODO compute length
     peer = get_rand_peer (gossip_list, gossip_list_size);
     if (own_identity != peer)
@@ -684,10 +687,12 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Send PULL requests */
   //n_arr = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %f (%f * %u) peers.\n",
-      beta * gossip_list_size, beta, gossip_list_size);
-  // TODO send to at least one
-  for ( i = 0 ; i < beta * gossip_list_size ; i++ )
+  n_peers = round (beta * gossip_list_size);
+  if (0 == n_peers)
+    n_peers = 1;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %u (%f * %u) peers.\n",
+      n_peers, beta, gossip_list_size);
+  for ( i = 0 ; i < n_peers ; i++ )
   { // TODO compute length
     peer = get_rand_peer(gossip_list, gossip_list_size);
     if (own_identity != peer)
