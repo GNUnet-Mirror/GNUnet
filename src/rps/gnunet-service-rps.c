@@ -518,14 +518,13 @@ handle_peer_push (void *cls,
     void **channel_ctx,
     const struct GNUNET_MessageHeader *msg)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received\n");
-
   const struct GNUNET_PeerIdentity *peer;
 
-  // TODO check the proof of work
+  // (check the proof of work) 
   
   peer = (const struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
   
   /* Add the sending peer to the push_list */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding peer to push_list of size %u\n", push_list_size);
@@ -562,24 +561,24 @@ handle_peer_pull_request (void *cls,
   // allow only one request per time interval ?
   // otherwise remove from peerlist?
 
-  peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info(channel, GNUNET_CADET_OPTION_PEER);
+  peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "PULL REQUEST from peer %s received\n", GNUNET_i2s(peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REQUEST from peer %s received\n", GNUNET_i2s (peer));
 
   //mq = GNUNET_CADET_mq_create(channel); // without mq?
-  mq = get_mq(peer_map, peer);
+  mq = get_mq (peer_map, peer);
 
   //in_msg = (struct GNUNET_RPS_P2P_PullRequestMessage *) msg;
   // TODO how many peers do we actually send?
   // GNUNET_ntohll(in_msg->num_peers)
-  ev = GNUNET_MQ_msg_extra(out_msg,
-                           gossip_list_size * sizeof(struct GNUNET_PeerIdentity),
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                           gossip_list_size * sizeof (struct GNUNET_PeerIdentity),
                            GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
-  out_msg->num_peers = GNUNET_htonll(gossip_list_size);
-  memcpy(&out_msg[1], gossip_list,
-         gossip_list_size * sizeof(struct GNUNET_PeerIdentity));
+  out_msg->num_peers = GNUNET_htonll (gossip_list_size);
+  memcpy (&out_msg[1], gossip_list,
+         gossip_list_size * sizeof (struct GNUNET_PeerIdentity));
 
-  GNUNET_MQ_send(mq, ev);
+  GNUNET_MQ_send (mq, ev);
 
   return GNUNET_OK;
 }
@@ -601,7 +600,7 @@ handle_peer_pull_reply (void *cls,
     void **channel_ctx,
     const struct GNUNET_MessageHeader *msg)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
 
   struct GNUNET_RPS_P2P_PullReplyMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
@@ -620,9 +619,9 @@ handle_peer_pull_reply (void *cls,
     return GNUNET_SYSERR;
   }
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  for ( i = 0 ; i < GNUNET_ntohll(in_msg->num_peers) ; i++ )
+  for ( i = 0 ; i < GNUNET_ntohll (in_msg->num_peers) ; i++ )
   {
-    GNUNET_array_append(pull_list, pull_list_size, peers[i]);
+    GNUNET_array_append (pull_list, pull_list_size, peers[i]);
   }
 
   return GNUNET_OK;
