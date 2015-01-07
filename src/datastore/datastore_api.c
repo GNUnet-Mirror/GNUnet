@@ -546,10 +546,10 @@ try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_disconnect (struct GNUNET_DATASTORE_Handle *h)
 {
-  if (h->client == NULL)
+  if (NULL == h->client)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "client NULL in disconnect, will not try to reconnect\n");
+         "Client NULL in disconnect, will not try to reconnect\n");
     return;
   }
   GNUNET_CLIENT_disconnect (h->client);
@@ -564,17 +564,19 @@ do_disconnect (struct GNUNET_DATASTORE_Handle *h)
  * Function called whenever we receive a message from
  * the service.  Calls the appropriate handler.
  *
- * @param cls the 'struct GNUNET_DATASTORE_Handle'
+ * @param cls the `struct GNUNET_DATASTORE_Handle`
  * @param msg the received message
  */
 static void
-receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
+receive_cb (void *cls,
+            const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
   h->in_receive = GNUNET_NO;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving reply from datastore\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Receiving reply from datastore\n");
   if (h->skip_next_messages > 0)
   {
     h->skip_next_messages--;
@@ -600,7 +602,9 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
  * @return number of bytes written to @a buf
  */
 static size_t
-transmit_request (void *cls, size_t size, void *buf)
+transmit_request (void *cls,
+                  size_t size,
+                  void *buf)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
   struct GNUNET_DATASTORE_QueueEntry *qe;
@@ -609,9 +613,10 @@ transmit_request (void *cls, size_t size, void *buf)
   h->th = NULL;
   if (NULL == (qe = h->queue_head))
     return 0;                   /* no entry in queue */
-  if (buf == NULL)
+  if (NULL == buf)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to transmit request to DATASTORE.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to transmit request to DATASTORE.\n");
     GNUNET_STATISTICS_update (h->stats,
                               gettext_noop ("# transmission request failures"),
                               1, GNUNET_NO);
@@ -623,7 +628,8 @@ transmit_request (void *cls, size_t size, void *buf)
     process_queue (h);
     return 0;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmitting %u byte request to DATASTORE\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting %u byte request to DATASTORE\n",
        msize);
   memcpy (buf, &qe[1], msize);
   qe->was_transmitted = GNUNET_YES;
@@ -631,7 +637,8 @@ transmit_request (void *cls, size_t size, void *buf)
   qe->task = NULL;
   GNUNET_assert (GNUNET_NO == h->in_receive);
   h->in_receive = GNUNET_YES;
-  GNUNET_CLIENT_receive (h->client, &receive_cb, h,
+  GNUNET_CLIENT_receive (h->client,
+                         &receive_cb, h,
                          GNUNET_TIME_absolute_get_remaining (qe->timeout));
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats,
@@ -655,35 +662,44 @@ process_queue (struct GNUNET_DATASTORE_Handle *h)
 
   if (NULL == (qe = h->queue_head))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue empty\n");
-    return;                     /* no entry in queue */
+    /* no entry in queue */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Queue empty\n");
+    return;
   }
-  if (qe->was_transmitted == GNUNET_YES)
+  if (GNUNET_YES == qe->was_transmitted)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Head request already transmitted\n");
-    return;                     /* waiting for replies */
+    /* waiting for replies */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Head request already transmitted\n");
+    return;
   }
-  if (h->th != NULL)
+  if (NULL != h->th)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Pending transmission request\n");
-    return;                     /* request pending */
+    /* request pending */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Pending transmission request\n");
+    return;
   }
-  if (h->client == NULL)
+  if (NULL == h->client)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not connected\n");
-    return;                     /* waiting for reconnect */
+    /* waiting for reconnect */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not connected\n");
+    return;
   }
   if (GNUNET_YES == h->in_receive)
   {
     /* wait for response to previous query */
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Queueing %u byte request to DATASTORE\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Queueing %u byte request to DATASTORE\n",
        qe->message_size);
-  h->th =
-      GNUNET_CLIENT_notify_transmit_ready (h->client, qe->message_size,
-                                           GNUNET_TIME_absolute_get_remaining
-                                           (qe->timeout), GNUNET_YES,
+  h->th
+    = GNUNET_CLIENT_notify_transmit_ready (h->client, qe->message_size,
+                                           GNUNET_TIME_absolute_get_remaining (qe->timeout),
+                                           GNUNET_YES,
                                            &transmit_request, h);
   GNUNET_assert (GNUNET_NO == h->in_receive);
   GNUNET_break (NULL != h->th);
@@ -739,7 +755,8 @@ free_queue_entry (struct GNUNET_DATASTORE_QueueEntry *qe)
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
+process_status_message (void *cls,
+                        const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
   struct GNUNET_DATASTORE_QueueEntry *qe;
@@ -756,7 +773,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   rc = qe->qc.sc;
-  if (msg == NULL)
+  if (NULL == msg)
   {
     was_transmitted = qe->was_transmitted;
     free_queue_entry (qe);
@@ -764,7 +781,7 @@ process_status_message (void *cls, const struct GNUNET_MessageHeader *msg)
       do_disconnect (h);
     else
       process_queue (h);
-    if (rc.cont != NULL)
+    if (NULL != rc.cont)
       rc.cont (rc.cont_cls, GNUNET_SYSERR,
 	       GNUNET_TIME_UNIT_ZERO_ABS,
                _("Failed to receive status response from database."));
@@ -902,10 +919,6 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
  * @param h handle to the datastore
  * @param amount how much space (in bytes) should be reserved (for content only)
  * @param entries how many entries will be created (to calculate per-entry overhead)
- * @param queue_priority ranking of this request in the priority queue
- * @param max_queue_size at what queue size should this request be dropped
- *        (if other requests of higher priority are in the queue)
- * @param timeout how long to wait at most for a response (or before dying in queue)
  * @param cont continuation to call when done; "success" will be set to
  *             a positive reservation value if space could be reserved.
  * @param cont_cls closure for @a cont
@@ -915,9 +928,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h, uint64_t amount,
-                          uint32_t entries, unsigned int queue_priority,
-                          unsigned int max_queue_size,
-                          struct GNUNET_TIME_Relative timeout,
+                          uint32_t entries,
                           GNUNET_DATASTORE_ContinuationWithStatus cont,
                           void *cont_cls)
 {
@@ -925,16 +936,20 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h, uint64_t amount,
   struct ReserveMessage *rm;
   union QueueContext qc;
 
-  if (cont == NULL)
+  if (NULL == cont)
     cont = &drop_status_cont;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to reserve %llu bytes of data and %u entries\n",
        (unsigned long long) amount, (unsigned int) entries);
   qc.sc.cont = cont;
   qc.sc.cont_cls = cont_cls;
-  qe = make_queue_entry (h, sizeof (struct ReserveMessage), queue_priority,
-                         max_queue_size, timeout, &process_status_message, &qc);
-  if (qe == NULL)
+  qe = make_queue_entry (h,
+                         sizeof (struct ReserveMessage),
+                         UINT_MAX,
+                         UINT_MAX,
+                         GNUNET_TIME_UNIT_FOREVER_REL,
+                         &process_status_message, &qc);
+  if (NULL == qe)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Could not create queue entry to reserve\n");

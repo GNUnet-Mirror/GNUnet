@@ -1423,6 +1423,7 @@ process_stat_done (void *cls, int success)
   }
 
   GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_resume (server);
   expired_kill_task
     = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                           &delete_expired,
@@ -1451,7 +1452,7 @@ cleaning_task (void *cls,
     GNUNET_free (tcc->msg);
     GNUNET_free (tcc);
   }
-  if (expired_kill_task != NULL)
+  if (NULL != expired_kill_task)
   {
     GNUNET_SCHEDULER_cancel (expired_kill_task);
     expired_kill_task = NULL;
@@ -1509,7 +1510,7 @@ cleanup_reservations (void *cls,
     next = pos->next;
     if (pos->client == client)
     {
-      if (prev == NULL)
+      if (NULL == prev)
         reservations = next;
       else
         prev->next = next;
@@ -1653,6 +1654,7 @@ run (void *cls,
     }
     return;
   }
+  GNUNET_SERVER_suspend (server);
   stat_get =
       GNUNET_STATISTICS_get (stats,
                              "datastore",

@@ -418,7 +418,7 @@ run_continuation (void *cls,
     break;
   case RP_RESERVE:
     crc->phase = RP_PUT_MULTIPLE;
-    GNUNET_DATASTORE_reserve (datastore, 128 * 1024, 2, 1, 1, TIMEOUT,
+    GNUNET_DATASTORE_reserve (datastore, 128 * 1024, 2,
                               &get_reserved, crc);
     break;
   case RP_PUT_MULTIPLE:
