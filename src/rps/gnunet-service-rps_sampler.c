@@ -513,7 +513,6 @@ RPS_sampler_get_rand_peer_ ()
   sampler->sampler_elements[r_index]->last_request = GNUNET_TIME_absolute_get();
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Sgrp: Returning PeerID %s\n", GNUNET_i2s(peer));
 
-
   return peer;
 }
 

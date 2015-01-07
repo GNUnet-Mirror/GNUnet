@@ -54,6 +54,8 @@
 
 // TODO store peers somewhere
 
+// TODO check that every id we get is valid - is it reachable?
+
 // hist_size_init, hist_size_max
 
 /**
@@ -330,7 +332,7 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET
                                                    GNUNET_RPS_CADET_PORT,
                                                    GNUNET_CADET_OPTION_RELIABLE);
     // do I have to explicitly put it in the peer_map?
-    GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
+    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   return ctx->to_channel;
@@ -354,7 +356,7 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_Peer
     (void) get_channel (peer_map, peer_id);
     ctx->mq = GNUNET_CADET_mq_create (ctx->to_channel);
     //do I have to explicitly put it in the peer_map?
-    GNUNET_CONTAINER_multipeermap_put (peer_map, peer_id, ctx,
+    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer_id, ctx,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   return ctx->mq;
@@ -461,7 +463,7 @@ handle_cs_request (void *cls,
       peers,
       num_peers * sizeof (struct GNUNET_PeerIdentity));
   
-  GNUNET_MQ_send(cli_ctx->mq, ev);
+  GNUNET_MQ_send (cli_ctx->mq, ev);
   //GNUNET_MQ_destroy(mq);
 
   GNUNET_SERVER_receive_done (client,
@@ -489,6 +491,13 @@ handle_peer_push (void *cls,
 
   // (check the proof of work) 
   
+  // TODO accept empty message
+  if (ntohs(msg->size) != sizeof (struct GNUNET_RPS_P2P_PushMessage))
+  {
+    GNUNET_break_op (0); // At the moment our own implementation seems to break that.
+    return GNUNET_SYSERR;
+  }
+
   peer = (const struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
@@ -517,27 +526,26 @@ handle_peer_pull_request (void *cls,
     void **channel_ctx,
     const struct GNUNET_MessageHeader *msg)
 {
-
   struct GNUNET_PeerIdentity *peer;
   struct GNUNET_MQ_Handle *mq;
-  //struct GNUNET_RPS_P2P_PullRequestMessage *in_msg;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
 
-  // find some way to keep one peer from spamming with pull requests?
-  // allow only one request per time interval ?
-  // otherwise remove from peerlist?
+  // assert that msg->size is 0
+
+  // TODO accept empty message
+  if (ntohs(msg->size) != sizeof (struct GNUNET_RPS_P2P_PullRequestMessage))
+  {
+    GNUNET_break_op (0); // At the moment our own implementation seems to break that.
+    return GNUNET_SYSERR;
+  }
 
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REQUEST from peer %s received\n", GNUNET_i2s (peer));
 
-  //mq = GNUNET_CADET_mq_create(channel); // without mq?
   mq = get_mq (peer_map, peer);
 
-  //in_msg = (struct GNUNET_RPS_P2P_PullRequestMessage *) msg;
-  // TODO how many peers do we actually send?
-  // GNUNET_ntohll(in_msg->num_peers)
   ev = GNUNET_MQ_msg_extra (out_msg,
                            gossip_list_size * sizeof (struct GNUNET_PeerIdentity),
                            GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
@@ -573,23 +581,27 @@ handle_peer_pull_reply (void *cls,
   struct GNUNET_PeerIdentity *peers;
   uint64_t i;
 
-  // TODO check that we sent a request and that it is the first reply
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) < ntohs (msg->size))
   {
     GNUNET_break_op (0); // At the moment our own implementation seems to break that.
     return GNUNET_SYSERR;
   }
   in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
-  if (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) / sizeof (struct GNUNET_PeerIdentity)  != GNUNET_ntohll (in_msg->num_peers))
+  if (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) / sizeof (struct GNUNET_PeerIdentity) != GNUNET_ntohll (in_msg->num_peers))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+
+  // TODO check that we sent a request and that it is the first reply
+
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   for ( i = 0 ; i < GNUNET_ntohll (in_msg->num_peers) ; i++ )
   {
     GNUNET_array_append (pull_list, pull_list_size, peers[i]);
   }
+
+  // TODO check that id is valid - whether it is reachable
 
   return GNUNET_OK;
 }
@@ -641,7 +653,8 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       //ev = GNUNET_MQ_msg_extra();
       /* TODO Compute proof of work here
          push_msg; */
-      push_msg->placeholder = 0;
+      //push_msg->placeholder = 0;
+      push_msg = NULL;
       // FIXME sometimes it returns a pointer to a freed mq
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
@@ -660,13 +673,12 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       n_peers, beta, gossip_list_size);
   for ( i = 0 ; i < n_peers ; i++ )
   { // TODO compute length
-    peer = get_rand_peer(gossip_list, gossip_list_size);
+    peer = get_rand_peer (gossip_list, gossip_list_size);
     if (own_identity != peer)
     { // FIXME if this fails schedule/loop this for later
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
-      ev = GNUNET_MQ_msg(pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-      //ev = GNUNET_MQ_msg_extra();
+      ev = GNUNET_MQ_msg (pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
       //pull_msg->placeholder = 0;
       pull_msg = NULL;
       mq = get_mq (peer_map, peer);
@@ -713,7 +725,7 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for ( i = second_border ; i < gossip_list_size ; i++ )
     {
       /* Update gossip list with peers from history */
-      peer = RPS_sampler_get_rand_peer ();
+      peer = RPS_sampler_get_n_rand_peers (1),
       gossip_list[i] = *peer;
       // TODO change the in_flags accordingly
     }
@@ -743,15 +755,14 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Empty push/pull lists */
   GNUNET_array_grow (push_list, push_list_size, 0);
-  push_list_size = 0; // I guess that's not necessary but doesn't hurt
   GNUNET_array_grow (pull_list, pull_list_size, 0);
-  pull_list_size = 0; // I guess that's not necessary but doesn't hurt
 
 
   /* Schedule next round */
   do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
+
 
 /**
  * Open a connection to given peer and store channel and mq.
@@ -762,6 +773,7 @@ insertCB (void *cls, const struct GNUNET_PeerIdentity *id)
   // We open a channel to be notified when this peer goes down.
   (void) get_channel (peer_map, id);
 }
+
 
 /**
  * Close the connection to given peer and delete channel and mq.
@@ -788,7 +800,7 @@ removeCB (void *cls, const struct GNUNET_PeerIdentity *id)
         //GNUNET_CADET_channel_destroy (ctx->to_channel);
       }
       // TODO cleanup peer
-      GNUNET_CONTAINER_multipeermap_remove_all(peer_map, id);
+      (void) GNUNET_CONTAINER_multipeermap_remove_all (peer_map, id);
     }
   }
 }
@@ -835,7 +847,7 @@ init_peer_cb (void *cls,
     if (ipc->i < gossip_list_size)
     {
       memcpy(&gossip_list[ipc->i],
-          RPS_sampler_get_rand_peer (),
+          RPS_sampler_get_n_rand_peers (1),
           (gossip_list_size - ipc->i) * sizeof(struct GNUNET_PeerIdentity));
     }
     rps_start (ipc->server);
@@ -919,7 +931,7 @@ handle_inbound_channel (void *cls,
   //ctx->in_flags = in_other_gossip_list;
   ctx->mq = NULL; // TODO create mq?
 
-  GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, ctx,
+  (void) GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   return NULL; // TODO
 }
@@ -951,9 +963,10 @@ cleanup_channel(void *cls,
  */
 static void
 rps_start (struct GNUNET_SERVER_Handle *server)
-{ // TODO get msg sizes right
+{
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_cs_request, NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST, 0},
+    {&handle_cs_request, NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
+      sizeof (struct GNUNET_RPS_CS_RequestMessage)},
     {NULL, NULL, 0, 0}
   };
 
