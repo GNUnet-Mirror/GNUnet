@@ -200,11 +200,13 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     GNUNET_break (0);
     GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
                                        GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ERROR:
     FPRINTF (stderr, "Error downloading file: %s\n",
              event->value.download.specifics.error.message);
     GNUNET_SCHEDULER_add_now (&abort_download_task, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
