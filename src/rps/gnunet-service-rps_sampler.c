@@ -271,9 +271,9 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
 
   if ( 0 == GNUNET_CRYPTO_cmp_peer_identity(other, &(s_elem->peer_id)) )
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:          Got PeerID %s_elem\n",
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:          Got PeerID %s\n",
         GNUNET_i2s(other));
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Have already PeerID %s_elem\n",
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Have already PeerID %s\n",
         GNUNET_i2s(&(s_elem->peer_id)));
   }
   else
@@ -286,7 +286,7 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
     if ( EMPTY == s_elem->is_empty )
     { // Or whatever is a valid way to say
       // "we have no PeerID at the moment"
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Got PeerID %s_elem; Simply accepting (was empty previously).\n",
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Got PeerID %s; Simply accepting (was empty previously).\n",
           GNUNET_i2s(other));
       s_elem->peer_id = *other;
       //s_elem->peer_id = other;
@@ -298,14 +298,14 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
     }
     else if ( 0 > GNUNET_CRYPTO_hash_cmp(&other_hash, &s_elem->peer_id_hash) )
     {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:            Got PeerID %s_elem\n",
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:            Got PeerID %s\n",
           GNUNET_i2s(other));
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Discarding old PeerID %s_elem\n",
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Discarding old PeerID %s\n",
           GNUNET_i2s(&s_elem->peer_id));
 
       if ( NULL != sampler->remove_cb )
       {
-        LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing old PeerID %s_elem with the remove callback.\n",
+        LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing old PeerID %s with the remove callback.\n",
             GNUNET_i2s(&s_elem->peer_id));
         sampler->remove_cb(sampler->remove_cls, &s_elem->peer_id);
       }
@@ -316,16 +316,16 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
 
       if ( NULL != sampler->insert_cb )
       {
-        LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Inserting new PeerID %s_elem with the insert callback.\n",
+        LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Inserting new PeerID %s with the insert callback.\n",
             GNUNET_i2s(&s_elem->peer_id));
         sampler->insert_cb(sampler->insert_cls, &s_elem->peer_id);
       }
     }
     else
     {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:         Got PeerID %s_elem\n",
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER:         Got PeerID %s\n",
           GNUNET_i2s(other));
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Keeping old PeerID %s_elem\n",
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Keeping old PeerID %s\n",
           GNUNET_i2s(&s_elem->peer_id));
     }
   }
