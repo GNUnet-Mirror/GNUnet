@@ -291,29 +291,6 @@ get_rand_peer(const struct GNUNET_PeerIdentity *peer_list, unsigned int list_siz
 
 
 /**
- * Make sure the context of a given peer exists in the given peer_map.
- */
-  void
-touch_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer)
-{
-  struct peer_context *ctx;
-
-  if ( GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains( peer_map, peer ) )
-  {
-    ctx = GNUNET_CONTAINER_multipeermap_get(peer_map, peer);
-  }
-  else
-  {
-    ctx = GNUNET_new(struct peer_context);
-    ctx->in_flags = 0;
-    ctx->mq = NULL;
-    ctx->to_channel = NULL;
-    ctx->from_channel = NULL;
-    (void) GNUNET_CONTAINER_multipeermap_put( peer_map, peer, ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-  }
-}
-
-/**
  * Get the context of a peer. If not existing, create.
  */
   struct peer_context *
@@ -321,30 +298,22 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNE
 {
   struct peer_context *ctx;
 
-  touch_peer_ctx(peer_map, peer);
-  ctx = GNUNET_CONTAINER_multipeermap_get(peer_map, peer);
+  if ( GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  {
+    ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
+  }
+  else
+  {
+    ctx = GNUNET_new (struct peer_context);
+    ctx->in_flags = 0;
+    ctx->mq = NULL;
+    ctx->to_channel = NULL;
+    ctx->from_channel = NULL;
+    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
   return ctx;
 }
 
-/**
- * Get the channel of a peer. If not existing, create.
- */
-  void
-touch_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer)
-{
-  struct peer_context *ctx;
-
-  ctx = get_peer_ctx (peer_map, peer);
-  if (NULL == ctx->to_channel)
-  {
-    ctx->to_channel = GNUNET_CADET_channel_create(cadet_handle, NULL, peer,
-                                                  GNUNET_RPS_CADET_PORT,
-                                                  GNUNET_CADET_OPTION_RELIABLE);
-    // do I have to explicitly put it in the peer_map?
-    GNUNET_CONTAINER_multipeermap_put(peer_map, peer, ctx,
-                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  }
-}
 
 /**
  * Get the channel of a peer. If not existing, create.
@@ -355,31 +324,18 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET
   struct peer_context *ctx;
 
   ctx = get_peer_ctx (peer_map, peer);
-  touch_channel(peer_map, peer);
+  if (NULL == ctx->to_channel)
+  {
+    ctx->to_channel = GNUNET_CADET_channel_create (cadet_handle, NULL, peer,
+                                                   GNUNET_RPS_CADET_PORT,
+                                                   GNUNET_CADET_OPTION_RELIABLE);
+    // do I have to explicitly put it in the peer_map?
+    GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  }
   return ctx->to_channel;
 }
 
-/**
- * Make sure the mq for a given peer exists.
- *
- * If we already have a message queue open to this client,
- * simply return it, otherways create one.
- */
-  void
-touch_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer_id)
-{
-  struct peer_context *ctx;
-
-  ctx = get_peer_ctx(peer_map, peer_id);
-  if (NULL == ctx->mq)
-  {
-    touch_channel(peer_map, peer_id);
-    ctx->mq = GNUNET_CADET_mq_create(ctx->to_channel);
-    //do I have to explicitly put it in the peer_map?
-    GNUNET_CONTAINER_multipeermap_put(peer_map, peer_id, ctx,
-                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  }
-}
 
 /**
  * Get the message queue of a specific peer.
@@ -392,11 +348,18 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_Peer
 {
   struct peer_context *ctx;
 
-  ctx = get_peer_ctx(peer_map, peer_id);
-  touch_mq(peer_map, peer_id);
-
+  ctx = get_peer_ctx (peer_map, peer_id);
+  if (NULL == ctx->mq)
+  {
+    (void) get_channel (peer_map, peer_id);
+    ctx->mq = GNUNET_CADET_mq_create (ctx->to_channel);
+    //do I have to explicitly put it in the peer_map?
+    GNUNET_CONTAINER_multipeermap_put (peer_map, peer_id, ctx,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  }
   return ctx->mq;
 }
+
 
 /***********************************************************************
  * /Util functions
@@ -797,7 +760,7 @@ do_round(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 insertCB (void *cls, const struct GNUNET_PeerIdentity *id)
 {
   // We open a channel to be notified when this peer goes down.
-  touch_channel (peer_map, id);
+  (void) get_channel (peer_map, id);
 }
 
 /**
@@ -856,7 +819,7 @@ init_peer_cb (void *cls,
         "Got %" PRIX32 ". peer %s (at %p) from CADET (gossip_list_size: %u)\n",
         ipc->i, GNUNET_i2s (peer), peer, gossip_list_size);
     RPS_sampler_update_list (peer);
-    touch_peer_ctx (peer_map, peer); // unneeded? -> insertCB
+    (void) get_peer_ctx (peer_map, peer); // unneeded? -> insertCB
 
     if (ipc->i < gossip_list_size)
     {
