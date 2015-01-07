@@ -272,7 +272,6 @@ uri_ksk_parse (const char *s,
   char *dup;
   int saw_quote;
 
-  GNUNET_assert (NULL != s);
   slen = strlen (s);
   pos = strlen (GNUNET_FS_URI_KSK_PREFIX);
   if ((slen <= pos) || (0 != strncmp (s, GNUNET_FS_URI_KSK_PREFIX, pos)))
@@ -363,7 +362,6 @@ uri_sks_parse (const char *s,
   size_t pos;
   char *end;
 
-  GNUNET_assert (s != NULL);
   pos = strlen (GNUNET_FS_URI_SKS_PREFIX);
   if ((strlen (s) <= pos) || (0 != strncmp (s, GNUNET_FS_URI_SKS_PREFIX, pos)))
     return NULL;                /* not an SKS URI */
@@ -408,9 +406,6 @@ uri_chk_parse (const char *s,
   char h1[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)];
   char h2[sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded)];
 
-  if (NULL == s)
-    return NULL;
-  GNUNET_assert (s != NULL);
   slen = strlen (s);
   pos = strlen (GNUNET_FS_URI_CHK_PREFIX);
   if ((slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
@@ -629,6 +624,13 @@ GNUNET_FS_uri_parse (const char *uri,
   struct GNUNET_FS_Uri *ret;
   char *msg;
 
+  if (NULL == uri)
+  {
+    GNUNET_break (0);
+    if (NULL != emsg)
+      *emsg = GNUNET_strdup (_("invalid argument"));
+    return NULL;
+  }
   if (NULL == emsg)
     emsg = &msg;
   *emsg = NULL;
