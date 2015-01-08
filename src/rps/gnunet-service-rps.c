@@ -789,7 +789,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   time_next_round = GNUNET_TIME_relative_multiply (time_next_round, rand_delay);
   time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
   time_next_round = GNUNET_TIME_relative_add      (time_next_round, half_round_interval);
-  } while (GNUNET_TIME_FOREVER_REL != time_next_round);
+  } while (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != time_next_round.rel_value_us);
 
   /* Schedule next round */
   do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
