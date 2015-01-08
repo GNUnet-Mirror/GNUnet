@@ -656,7 +656,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_MQ_Handle *mq;
 
   // TODO print lists, ...
-  // TODO rendomise and spread calls herein over time
+  // TODO randomise and spread calls herein over time
 
 
   /* Would it make sense to have one shuffeled gossip list and then
@@ -672,23 +672,17 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
       n_peers, alpha, gossip_list_size);
   for ( i = 0 ; i < n_peers ; i++ )
-  { // TODO compute length
+  {
     peer = get_rand_peer (gossip_list, gossip_list_size);
     if (own_identity != peer)
     { // FIXME if this fails schedule/loop this for later
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-      //ev = GNUNET_MQ_msg_extra();
-      /* TODO Compute proof of work here
-         push_msg; */
-      //push_msg->placeholder = 0;
       push_msg = NULL;
       // FIXME sometimes it returns a pointer to a freed mq
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
-
-      // modify in_flags of respective peer?
     }
   }
 
@@ -701,18 +695,16 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %u (%f * %u) peers.\n",
       n_peers, beta, gossip_list_size);
   for ( i = 0 ; i < n_peers ; i++ )
-  { // TODO compute length
+  {
     peer = get_rand_peer (gossip_list, gossip_list_size);
     if (own_identity != peer)
     { // FIXME if this fails schedule/loop this for later
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-      //pull_msg->placeholder = 0;
       pull_msg = NULL;
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
-      // modify in_flags of respective peer?
     }
   }
 
@@ -786,6 +778,18 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_array_grow (push_list, push_list_size, 0);
   GNUNET_array_grow (pull_list, pull_list_size, 0);
 
+  struct GNUNET_TIME_Relative time_next_round;
+  struct GNUNET_TIME_Relative half_round_interval;
+  unsigned int rand_delay;
+  
+  do
+  {
+  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
+  rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT_MAX/10);
+  time_next_round = GNUNET_TIME_relative_multiply (time_next_round, rand_delay);
+  time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
+  time_next_round = GNUNET_TIME_relative_add      (time_next_round, half_round_interval);
+  } while (GNUNET_TIME_FOREVER_REL != time_next_round);
 
   /* Schedule next round */
   do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
