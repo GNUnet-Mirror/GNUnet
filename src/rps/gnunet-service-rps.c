@@ -782,9 +782,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative half_round_interval;
   unsigned int rand_delay;
   
+  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
   do
   {
-  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
   rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT_MAX/10);
   time_next_round = GNUNET_TIME_relative_multiply (time_next_round, rand_delay);
   time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
