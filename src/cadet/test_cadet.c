@@ -415,7 +415,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
 
     return 0;
   }
-  msg->size = htons (size);
+  msg->size = htons (msg_size);
   msg->type = htons (1);
   data = (uint32_t *) &msg[1];
   *data = htonl (counter);
