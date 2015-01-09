@@ -104,7 +104,22 @@ struct CadetTunnelKXCtx
   struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old;
 
   /**
-   * Challenge to send in a ping and expect in the pong.
+   * Same as @c e_key_old, for the case of two simultaneous KX.
+   * This can happen if cadet decides to start a re-key while the peer has also
+   * started its re-key (due to network delay this is impossible to avoid).
+   * In this case, the key material generated with the peer's old ephemeral
+   * *might* (but doesn't have to) be incorrect.
+   * Since no more than two re-keys can happen simultaneously, this is enough.
+   */
+  struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old2;
+
+  /**
+   * Same as @c d_key_old, for the case described in @c e_key_old2.
+   */
+  struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old2;
+
+  /**
+   * Challenge to send and expect in the PONG.
    */
   uint32_t challenge;
 
@@ -799,27 +814,34 @@ t_decrypt_and_validate (struct CadetTunnel *t,
   if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
     return decrypted_size;
 
-  /* If no key exchange is going on, we just failed */
+  /* If no key exchange is going on, we just failed. */
   if (NULL == t->kx_ctx)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed checksum validation on tunnel %s with no KX\n",
                 GCT_2s (t));
-    GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# wrong HMAC no KX", 1, GNUNET_NO);
     return -1;
   }
 
-  /* Try secondary (from previous KX period) key */
+  /* Try secondary key, from previous KX period. */
   key = &t->kx_ctx->d_key_old;
   decrypted_size = decrypt (key, dst, src, size, iv);
   t_hmac (src, size, iv, key, &hmac);
   if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
     return decrypted_size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  /* Hail Mary, try tertiary, key, in case of parallel re-keys. */
+  key = &t->kx_ctx->d_key_old2;
+  decrypted_size = decrypt (key, dst, src, size, iv);
+  t_hmac (src, size, iv, key, &hmac);
+  if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
+    return decrypted_size;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Failed checksum validation on tunnel %s with KX\n",
               GCT_2s (t));
-  GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats, "# wrong HMAC with KX", 1, GNUNET_NO);
   return -1;
 }
 
