@@ -1357,6 +1357,7 @@ send_callback (void *cls, size_t size, void *buf)
       {
         psize += sizeof (struct GNUNET_CADET_LocalData);
         GNUNET_assert (size >= psize);
+        GNUNET_assert (sizeof (struct GNUNET_MessageHeader) <= psize);
         dmsg->header.size = htons (psize);
         dmsg->id = htonl (ch->chid);
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);

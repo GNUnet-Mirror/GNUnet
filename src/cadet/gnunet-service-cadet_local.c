@@ -493,7 +493,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Sanity check for message size */
   size = ntohs (message->size) - sizeof (struct GNUNET_CADET_LocalData);
-  if (size < sizeof (struct GNUNET_MessageHeader))
+  if (sizeof (struct GNUNET_MessageHeader) > size)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
