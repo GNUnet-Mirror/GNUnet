@@ -588,4 +588,85 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
 }
 
 
+/**
+ * Context for cummulative hashing.
+ */
+struct GNUNET_HashContext
+{
+  /**
+   * Internal state of the hash function.
+   */
+  gcry_md_hd_t hd;
+};
+
+
+/**
+ * Start incremental hashing operation.
+ *
+ * @return context for incremental hash computation
+ */
+struct GNUNET_HashContext *
+GNUNET_CRYPTO_hash_context_start ()
+{
+  struct GNUNET_HashContext *hc;
+
+  hc = GNUNET_new (struct GNUNET_HashContext);
+  GNUNET_assert (0 ==
+                 gcry_md_open (&hc->hd,
+                               GCRY_MD_SHA512,
+                               0));
+  return hc;
+}
+
+
+/**
+ * Add data to be hashed.
+ *
+ * @param hc cummulative hash context
+ * @param buf data to add
+ * @param size number of bytes in @a buf
+ */
+void
+GNUNET_CRYPTO_hash_context_read (struct GNUNET_HashContext *hc,
+                         const void *buf,
+                         size_t size)
+{
+  gcry_md_write (hc->hd, buf, size);
+}
+
+
+/**
+ * Finish the hash computation.
+ *
+ * @param hc hash context to use
+ * @param r_hash where to write the latest / final hash code
+ */
+void
+GNUNET_CRYPTO_hash_context_finish (struct GNUNET_HashContext *hc,
+                           struct GNUNET_HashCode *r_hash)
+{
+  const void *res = gcry_md_read (hc->hd, 0);
+
+  GNUNET_assert (NULL != res);
+  if (NULL != r_hash)
+    memcpy (r_hash,
+            res,
+            sizeof (struct GNUNET_HashCode));
+  GNUNET_CRYPTO_hash_context_abort (hc);
+}
+
+
+/**
+ * Abort hashing, do not bother calculating final result.
+ *
+ * @param hc hash context to destroy
+ */
+void
+GNUNET_CRYPTO_hash_context_abort (struct GNUNET_HashContext *hc)
+{
+  gcry_md_close (hc->hd);
+  GNUNET_free (hc);
+}
+
+
 /* end of crypto_hash.c */

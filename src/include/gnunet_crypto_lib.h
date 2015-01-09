@@ -633,7 +633,57 @@ GNUNET_CRYPTO_hash_distance_u32 (const struct GNUNET_HashCode *a,
  * @param ret pointer to where to write the hashcode
  */
 void
-GNUNET_CRYPTO_hash (const void *block, size_t size, struct GNUNET_HashCode * ret);
+GNUNET_CRYPTO_hash (const void *block,
+                    size_t size,
+                    struct GNUNET_HashCode *ret);
+
+
+/**
+ * Context for cummulative hashing.
+ */
+struct GNUNET_HashContext;
+
+
+/**
+ * Start incremental hashing operation.
+ *
+ * @return context for incremental hash computation
+ */
+struct GNUNET_HashContext *
+GNUNET_CRYPTO_hash_context_start (void);
+
+
+/**
+ * Add data to be hashed.
+ *
+ * @param hc cummulative hash context
+ * @param buf data to add
+ * @param size number of bytes in @a buf
+ */
+void
+GNUNET_CRYPTO_hash_context_read (struct GNUNET_HashContext *hc,
+                         const void *buf,
+                         size_t size);
+
+
+/**
+ * Finish the hash computation.
+ *
+ * @param hc hash context to use, is freed in the process
+ * @param r_hash where to write the latest / final hash code
+ */
+void
+GNUNET_CRYPTO_hash_context_finish (struct GNUNET_HashContext *hc,
+                           struct GNUNET_HashCode *r_hash);
+
+
+/**
+ * Abort hashing, do not bother calculating final result.
+ *
+ * @param hc hash context to destroy
+ */
+void
+GNUNET_CRYPTO_hash_context_abort (struct GNUNET_HashContext *hc);
 
 
 /**
