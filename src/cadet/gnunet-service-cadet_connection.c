@@ -83,6 +83,13 @@ struct CadetFlowControl
   uint32_t last_pid_recv;
 
   /**
+   * Bitmap of past 32 messages received:
+   * - LSB being @c last_pid_recv.
+   * - MSB being @c last_pid_recv - 31 (mod UINTMAX).
+   */
+  uint32_t recv_bitmap;
+
+  /**
    * Last ACK sent to the peer (peer can't send more than this PID).
    */
   uint32_t last_ack_sent;
@@ -757,7 +764,7 @@ get_next_hop (const struct CadetConnection *c)
  * Get the hop in a connection.
  *
  * @param c Connection.
- * @param fwd Next hop?
+ * @param fwd Next in the FWD direction?
  *
  * @return Next peer in the connection.
  */
@@ -767,6 +774,42 @@ get_hop (struct CadetConnection *c, int fwd)
   if (fwd)
     return get_next_hop (c);
   return get_prev_hop (c);
+}
+
+
+/**
+ * Get a bit mask for a message received out-of-order.
+ *
+ * @param last_pid_recv Last PID we received prior to the out-of-order.
+ * @param ooo_pid PID of the out-of-order message.
+ */
+static uint32_t
+get_recv_bitmask (uint32_t last_pid_recv, uint32_t ooo_pid)
+{
+  return 1 << (last_pid_recv - ooo_pid);
+}
+
+
+/**
+ * Check is an out-of-order message is ok:
+ * - at most 31 messages behind.
+ * - not duplicate.
+ *
+ * @param last_pid_recv Last in-order PID received.
+ */
+static int
+is_ooo_ok (uint32_t last_pid_recv, uint32_t ooo_pid, uint32_t ooo_bitmap)
+{
+  uint32_t mask;
+
+  if (GC_is_pid_bigger (last_pid_recv - 31, ooo_pid))
+    return GNUNET_NO;
+
+  mask = get_recv_bitmask (last_pid_recv, ooo_pid);
+  if (0 != (ooo_bitmap & mask))
+    return GNUNET_NO;
+
+  return GNUNET_YES;
 }
 
 
@@ -2054,6 +2097,7 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   return GNUNET_OK;
 }
 
+
 /**
  * Generic handler for cadet network encrypted traffic.
  *
@@ -2126,29 +2170,41 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* Check PID */
   fc = fwd ? &c->bck_fc : &c->fwd_fc;
   pid = ntohl (msg->pid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u+)\n",
-       pid, fc->last_pid_recv + 1);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
+       pid, fc->last_pid_recv + 1, fc->last_ack_sent);
   if (GC_is_pid_bigger (pid, fc->last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
     GNUNET_break_op (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Received PID %u, (prev %u), ACK %u\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Received PID %u, (prev %u), ACK %u\n",
          pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
   }
-  if (GNUNET_NO == GC_is_pid_bigger (pid, fc->last_pid_recv))
+  if (GC_is_pid_bigger (pid, fc->last_pid_recv))
   {
-    GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-                " PID %u not expected (%u+), dropping!\n",
-                pid, fc->last_pid_recv + 1);
-    return GNUNET_OK;
+    unsigned int delta;
+
+    delta = pid - fc->last_pid_recv;
+    fc->last_pid_recv = pid;
+    fc->recv_bitmap <<= delta;
+    fc->recv_bitmap |= 1;
+    LOG (GNUNET_ERROR_TYPE_WARNING, " OK bitmap %X\n", fc->recv_bitmap);
+  }
+  else
+  {
+    GNUNET_STATISTICS_update (stats, "# out of order PID", 1, GNUNET_NO);
+    if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv, pid, fc->recv_bitmap))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "PID %u not expected (%u+), dropping!\n",
+          pid, fc->last_pid_recv - 31);
+      return GNUNET_OK;
+    }
+    fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
+    LOG (GNUNET_ERROR_TYPE_WARNING, " KO bitmap %X\n", fc->recv_bitmap);
   }
   if (CADET_CONNECTION_SENT == c->state || CADET_CONNECTION_ACK == c->state)
     connection_change_state (c, CADET_CONNECTION_READY);
   connection_reset_timeout (c, fwd);
-  fc->last_pid_recv = pid;
 
   /* Is this message for us? */
   if (GCC_is_terminal (c, fwd))
@@ -2161,7 +2217,6 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (GNUNET_NO != c->destroy);
       return GNUNET_OK;
     }
-    fc->last_pid_recv = pid;
     GCT_handle_encrypted (c->t, msg);
     GCC_send_ack (c, fwd, GNUNET_NO);
     return GNUNET_OK;
@@ -2361,13 +2416,11 @@ GCC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   id = GNUNET_PEER_search (peer);
   if (GCP_get_short_id (get_next_hop (c)) == id)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
     fc = &c->fwd_fc;
     fwd = GNUNET_YES;
   }
   else if (GCP_get_short_id (get_prev_hop (c)) == id)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
     fc = &c->bck_fc;
     fwd = GNUNET_NO;
   }
@@ -2378,8 +2431,8 @@ GCC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   ack = ntohl (msg->ack);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u (was %u)\n",
-              ack, fc->last_ack_recv);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " %s ACK %u (was %u)\n",
+       GC_f2s (fwd), ack, fc->last_ack_recv);
   if (GC_is_pid_bigger (ack, fc->last_ack_recv))
     fc->last_ack_recv = ack;
 
@@ -2478,8 +2531,7 @@ GCC_send_ack (struct CadetConnection *c, int fwd, int force)
 {
   unsigned int buffer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "GMC send %s ACK on %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMC send %s ACK on %s\n",
        GC_f2s (fwd), GCC_2s (c));
 
   if (NULL == c)
