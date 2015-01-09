@@ -88,6 +88,7 @@ libgnunetutil_la_SOURCES = \
   crypto_mpi.c \
   crypto_paillier.c \
   crypto_random.c \
+  crypto_rsa.c \
   disk.c \
   disk.h \
   getopt.c \
@@ -229,6 +230,7 @@ check_PROGRAMS = \
  test_crypto_hkdf \
  test_crypto_paillier \
  test_crypto_random \
+ test_crypto_rsa \
  test_disk \
  test_getopt \
  test_connection.nc \
@@ -402,6 +404,11 @@ test_crypto_paillier_LDADD = \
 test_crypto_random_SOURCES = \
  test_crypto_random.c
 test_crypto_random_LDADD = \
+ libgnunetutil.la
+
+test_crypto_rsa_SOURCES = \
+ test_crypto_rsa.c
+test_crypto_rsa_LDADD = \
  libgnunetutil.la
 
 test_disk_SOURCES = \

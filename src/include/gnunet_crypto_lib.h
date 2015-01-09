@@ -1392,6 +1392,263 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
 int
 GNUNET_CRYPTO_paillier_hom_get_remaining (const struct GNUNET_CRYPTO_PaillierCiphertext *c);
 
+
+/* ********* Chaum-style RSA-based blind signatures ******************* */
+
+
+
+
+/**
+ * The private information of an RSA key pair.
+ */
+struct GNUNET_CRYPTO_rsa_PrivateKey;
+
+/**
+ * The public information of an RSA key pair.
+ */
+struct GNUNET_CRYPTO_rsa_PublicKey;
+
+/**
+ * Key used to blind a message
+ */
+struct GNUNET_CRYPTO_rsa_BlindingKey;
+
+/**
+ * @brief an RSA signature
+ */
+struct GNUNET_CRYPTO_rsa_Signature;
+
+
+/**
+ * Create a new private key. Caller must free return value.
+ *
+ * @param len length of the key in bits (i.e. 2048)
+ * @return fresh private key
+ */
+struct GNUNET_CRYPTO_rsa_PrivateKey *
+GNUNET_CRYPTO_rsa_private_key_create (unsigned int len);
+
+
+/**
+ * Free memory occupied by the private key.
+ *
+ * @param key pointer to the memory to free
+ */
+void
+GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_rsa_PrivateKey *key);
+
+
+/**
+ * Encode the private key in a format suitable for
+ * storing it into a file.
+ *
+ * @param key the private key
+ * @param[out] buffer set to a buffer with the encoded key
+ * @return size of memory allocatedin @a buffer
+ */
+size_t
+GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+                              char **buffer);
+
+
+/**
+ * Decode the private key from the data-format back
+ * to the "normal", internal format.
+ *
+ * @param buf the buffer where the private key data is stored
+ * @param len the length of the data in @a buf
+ * @return NULL on error
+ */
+struct GNUNET_CRYPTO_rsa_PrivateKey *
+GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
+                              size_t len);
+
+
+/**
+ * Extract the public key of the given private key.
+ *
+ * @param priv the private key
+ * @retur NULL on error, otherwise the public key
+ */
+struct GNUNET_CRYPTO_rsa_PublicKey *
+GNUNET_CRYPTO_rsa_private_key_get_public (const struct GNUNET_CRYPTO_rsa_PrivateKey *priv);
+
+
+/**
+ * Free memory occupied by the public key.
+ *
+ * @param key pointer to the memory to free
+ */
+void
+GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_rsa_PublicKey *key);
+
+
+/**
+ * Encode the public key in a format suitable for
+ * storing it into a file.
+ *
+ * @param key the private key
+ * @param[out] buffer set to a buffer with the encoded key
+ * @return size of memory allocated in @a buffer
+ */
+size_t
+GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
+                             char **buffer);
+
+
+/**
+ * Decode the public key from the data-format back
+ * to the "normal", internal format.
+ *
+ * @param buf the buffer where the public key data is stored
+ * @param len the length of the data in @a buf
+ * @return NULL on error
+ */
+struct GNUNET_CRYPTO_rsa_PublicKey *
+GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
+                             size_t len);
+
+
+/**
+ * Create a blinding key
+ *
+ * @param len length of the key in bits (i.e. 2048)
+ * @return the newly created blinding key
+ */
+struct GNUNET_CRYPTO_rsa_BlindingKey *
+GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len);
+
+
+/**
+ * Destroy a blinding key
+ *
+ * @param bkey the blinding key to destroy
+ */
+void
+GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey);
+
+
+/**
+ * Encode the blinding key in a format suitable for
+ * storing it into a file.
+ *
+ * @param bkey the blinding key
+ * @param[out] buffer set to a buffer with the encoded key
+ * @return size of memory allocated in @a buffer
+ */
+size_t
+GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                               char **buffer);
+
+
+/**
+ * Decode the blinding key from the data-format back
+ * to the "normal", internal format.
+ *
+ * @param buf the buffer where the public key data is stored
+ * @param len the length of the data in @a buf
+ * @return NULL on error
+ */
+struct GNUNET_CRYPTO_rsa_BlindingKey *
+GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
+                               size_t len);
+
+
+/**
+ * Blinds the given message with the given blinding key
+ *
+ * @param hash hash of the message to sign
+ * @param bkey the blinding key
+ * @param pkey the public key of the signer
+ * @param[out] buffer set to a buffer with the blinded message to be signed
+ * @return number of bytes stored in @a buffer
+ */
+size_t
+GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
+                 struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                 struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                 char **buffer);
+
+
+/**
+ * Sign the given message.
+ *
+ * @param key private key to use for the signing
+ * @param msg the (blinded) message to sign
+ * @param msg_len number of bytes in @a msg to sign
+ * @return NULL on error, signature on success
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+                const void *msg,
+                size_t msg_len);
+
+
+/**
+ * Free memory occupied by signature.
+ *
+ * @param sig memory to freee
+ */
+void
+GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig);
+
+
+/**
+ * Encode the signature key in a format suitable for
+ * storing it into a file.
+ *
+ * @param sig the signature
+ * @param[out] buffer set to a buffer with the encoded key
+ * @return size of memory allocated in @a buffer
+ */
+size_t
+GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *sig,
+                            char **buffer);
+
+
+/**
+ * Decode the public key from the data-format back
+ * to the "normal", internal format.
+ *
+ * @param buf the buffer where the public key data is stored
+ * @param len the length of the data in @a buf
+ * @return NULL on error
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
+                            size_t len);
+
+
+/**
+ * Unblind a signature made on blinding signature purpose.  The signature
+ * purpose should have been generated with #GNUNET_CRYPTO_rsa_sign() using
+ * a message that was generated with #GNUNET_CRYPTO_rsa_blind().
+ *
+ * @param sig the signature made on the blinded signature purpose
+ * @param bkey the blinding key used to blind the signature purpose
+ * @param pkey the public key of the signer
+ * @return unblinded signature on success, NULL on error
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
+                   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                   struct GNUNET_CRYPTO_rsa_PublicKey *pkey);
+
+
+/**
+ * Verify signature with the given hash.
+ *
+ * @param hash the message to verify to match the @a sig
+ * @param sig signature that is being validated
+ * @param public_key public key of the signer
+ * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
+ */
+int
+GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
+                  const struct GNUNET_CRYPTO_rsa_Signature *sig,
+                  const struct GNUNET_CRYPTO_rsa_PublicKey *public_key);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
