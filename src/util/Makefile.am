@@ -227,6 +227,7 @@ check_PROGRAMS = \
  test_crypto_eddsa \
  test_crypto_ecdhe \
  test_crypto_hash \
+ test_crypto_hash_context \
  test_crypto_hkdf \
  test_crypto_paillier \
  test_crypto_random \
@@ -388,6 +389,11 @@ test_crypto_ecdhe_LDADD = \
 test_crypto_hash_SOURCES = \
  test_crypto_hash.c
 test_crypto_hash_LDADD = \
+ libgnunetutil.la
+
+test_crypto_hash_context_SOURCES = \
+ test_crypto_hash_context.c
+test_crypto_hash_context_LDADD = \
  libgnunetutil.la
 
 test_crypto_hkdf_SOURCES = \
