@@ -1635,11 +1635,14 @@ log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_CADET_Hash *hash)
 {
+  uint16_t size;
+
+  size = ntohs (message->size);
   LOG (GNUNET_ERROR_TYPE_INFO, "\n");
   LOG (GNUNET_ERROR_TYPE_INFO, "\n");
-  LOG (GNUNET_ERROR_TYPE_INFO, "<-- %s on connection %s from %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "<-- %s on connection %s from %s, %6u bytes\n",
        GC_m2s (ntohs (message->type)), GNUNET_h2s (GC_h2hc (hash)),
-       GNUNET_i2s (peer));
+       GNUNET_i2s (peer), (unsigned int) size);
 }
 
 /******************************************************************************/
@@ -1681,6 +1684,11 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Calculate hops */
   size -= sizeof (struct GNUNET_CADET_ConnectionCreate);
   if (size % sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+  if (0 != size % sizeof (struct GNUNET_PeerIdentity))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
