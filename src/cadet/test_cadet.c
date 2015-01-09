@@ -33,7 +33,7 @@
 /**
  * How namy messages to send
  */
-#define TOTAL_PACKETS 40000
+#define TOTAL_PACKETS 20
 
 /**
  * How long until we give up on connecting the peers?
@@ -43,7 +43,7 @@
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * DIFFERENT TESTS TO RUN
@@ -261,7 +261,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Disconnect from cadet services af all peers, call shutdown.
  *
- * @param cls Closure (unused).
+ * @param cls Closure (line number from which termination was requested).
  * @param tc Task Context.
  */
 static void
@@ -302,6 +302,92 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 }
 
 
+
+/**
+ * Stats callback. Finish the stats testbed operation and when all stats have
+ * been iterated, shutdown the test.
+ *
+ * @param cls Closure (line number from which termination was requested).
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " KA sent: %u, KA received: %u\n",
+              ka_sent, ka_received);
+  if (KEEPALIVE == test && (ka_sent < 2 || ka_sent > ka_received + 1))
+    ok--;
+  GNUNET_TESTBED_operation_done (stats_op);
+
+  if (NULL != disconnect_task)
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers, cls);
+
+}
+
+
+/**
+ * Process statistic values.
+ *
+ * @param cls closure (line number, unused)
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
+                const char *subsystem, const char *name,
+                uint64_t value, int is_persistent)
+{
+  static const char *s_sent = "# keepalives sent";
+  static const char *s_recv = "# keepalives received";
+  uint32_t i;
+
+  i = GNUNET_TESTBED_get_index (peer);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
+              i, subsystem, name, value);
+  if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
+    ka_sent = value;
+
+  if (0 == strncmp(s_recv, name, strlen (s_recv)) && peers_requested - 1 == i)
+    ka_received = value;
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Task to gather all statistics.
+ *
+ * @param cls Closure (NULL).
+ * @param tc Task Context.
+ */
+static void
+gather_stats_and_exit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
+
+  disconnect_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "gathering statistics\n");
+  if (NULL != ch)
+  {
+    GNUNET_CADET_channel_destroy (ch);
+    ch = NULL;
+  }
+  stats_op = GNUNET_TESTBED_get_statistics (peers_running, testbed_peers,
+                                            "cadet", NULL,
+                                            stats_iterator, stats_cont, cls);
+}
+
+
+
 /**
  * Abort test: schedule disconnect and shutdown immediately
  *
@@ -313,6 +399,7 @@ abort_test (long line)
   if (disconnect_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting test from %ld\n", line);
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                                 (void *) line);
   }
@@ -473,14 +560,14 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
 
   GNUNET_CADET_receive_done (channel);
 
-  if ((ok % 20) == 0)
+  if ((ok % 10) == 0)
   {
     if (NULL != disconnect_task)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " reschedule timeout\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                      &disconnect_cadet_peers,
+                                                      &gather_stats_and_exit,
                                                       (void *) __LINE__);
     }
   }
@@ -574,96 +661,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     }
   }
 
-  if (NULL != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                    &disconnect_cadet_peers,
-                                                    (void *) __LINE__);
-  }
-
   return GNUNET_OK;
-}
-
-
-/**
- * Stats callback. Finish the stats testbed operation and when all stats have
- * been iterated, shutdown the test.
- *
- * @param cls closure
- * @param op the operation that has been finished
- * @param emsg error message in case the operation has failed; will be NULL if
- *          operation has executed successfully.
- */
-static void
-stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " KA sent: %u, KA received: %u\n",
-              ka_sent, ka_received);
-  if (ka_sent < 2 || ka_sent > ka_received + 1)
-    ok--;
-  GNUNET_TESTBED_operation_done (stats_op);
-
-  if (NULL != disconnect_task)
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
-                                              (void *) __LINE__);
-
-}
-
-
-/**
- * Process statistic values.
- *
- * @param cls closure
- * @param peer the peer the statistic belong to
- * @param subsystem name of subsystem that created the statistic
- * @param name the name of the datum
- * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
- */
-static int
-stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
-                const char *subsystem, const char *name,
-                uint64_t value, int is_persistent)
-{
-  static const char *s_sent = "# keepalives sent";
-  static const char *s_recv = "# keepalives received";
-  uint32_t i;
-
-  i = GNUNET_TESTBED_get_index (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
-              i, subsystem, name, value);
-  if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
-    ka_sent = value;
-
-  if (0 == strncmp(s_recv, name, strlen (s_recv)) && peers_requested - 1 == i)
-    ka_received = value;
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Task check that keepalives were sent and received.
- *
- * @param cls Closure (NULL).
- * @param tc Task Context.
- */
-static void
-check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
-  disconnect_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
-  GNUNET_CADET_channel_destroy (ch);
-  stats_op = GNUNET_TESTBED_get_statistics (peers_running, testbed_peers,
-                                            "cadet", NULL,
-                                            stats_iterator, stats_cont, NULL);
 }
 
 
@@ -709,17 +707,9 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    if (KEEPALIVE == test)
-    {
-      struct GNUNET_TIME_Relative delay;
-      delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS , 5);
-      disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &check_keepalives, NULL);
-    }
-    else
-      disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                      &disconnect_cadet_peers,
-                                                      (void *) __LINE__);
+    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                    &gather_stats_and_exit,
+                                                    (void *) __LINE__);
   }
 
   return NULL;
@@ -765,7 +755,7 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
   if (NULL != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
+    disconnect_task = GNUNET_SCHEDULER_add_now (&gather_stats_and_exit,
                                                 (void *) __LINE__);
   }
 
@@ -779,7 +769,7 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
  * Testcase continues when the root receives confirmation of connected peers,
  * on callback funtion ch.
  *
- * @param cls Closure (unsued).
+ * @param cls Closure (unused).
  * @param tc Task Context.
  */
 static void
@@ -806,7 +796,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ch = GNUNET_CADET_channel_create (h1, NULL, p_id[1], 1, flags);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &disconnect_cadet_peers,
+                                                  &gather_stats_and_exit,
                                                   (void *) __LINE__);
   if (KEEPALIVE == test)
     return; /* Don't send any data. */
