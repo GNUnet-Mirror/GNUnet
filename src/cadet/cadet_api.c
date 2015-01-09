@@ -373,16 +373,8 @@ message_ready_size (struct GNUNET_CADET_Handle *h)
   for (th = h->th_head; NULL != th; th = th->next)
   {
     ch = th->channel;
-    if (GNUNET_NO == th_is_payload (th))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message internal\n");
+    if (GNUNET_NO == th_is_payload (th) || GNUNET_YES == ch->allow_send)
       return th->size;
-    }
-    if (GNUNET_YES == ch->allow_send)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message payload ok\n");
-      return th->size + DATA_OVERHEAD;
-    }
   }
   return 0;
 }
@@ -1320,7 +1312,7 @@ send_callback (void *cls, size_t size, void *buf)
   size_t nsize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "# Send packet() Buffer %u\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "# Send callback, buffer %u\n", size);
   if ((0 == size) || (NULL == buf))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "# Received NULL send callback on %p\n", h);
@@ -1733,7 +1725,7 @@ GNUNET_CADET_notify_transmit_ready (struct GNUNET_CADET_Channel *channel, int co
   th = GNUNET_new (struct GNUNET_CADET_TransmitHandle);
   th->channel = channel;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
-  th->size = notify_size + sizeof (struct GNUNET_CADET_LocalData);
+  th->size = notify_size + DATA_OVERHEAD;
   channel->packet_size = th->size;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    total size %u\n", th->size);
   th->notify = notify;
