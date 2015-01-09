@@ -222,6 +222,7 @@ channel_destroy_iterator (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Handler for client disconnection
  *
@@ -496,12 +497,15 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   /* Sanity check for message size */
   message_size = ntohs (message->size);
   if (sizeof (struct GNUNET_CADET_LocalData)
-      + sizeof (struct GNUNET_MessageHeader) > message_size)
+      + sizeof (struct GNUNET_MessageHeader) > message_size
+      || GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < message_size)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  /* Sanity check for payload size */
   payload_size = message_size - sizeof (struct GNUNET_CADET_LocalData);
   msg = (struct GNUNET_CADET_LocalData *) message;
   payload = (struct GNUNET_MessageHeader *) &msg[1];
