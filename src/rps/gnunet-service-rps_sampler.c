@@ -156,60 +156,7 @@ static size_t max_size;
 /**
  * Inedex to the sampler element that is the next to be returned
  */
-static uint64_t extended_samplers_index;
-
-/**
- * Request counter.
- *
- * Only needed in the beginning to check how many of the 64 deltas
- * we already have
- */
-static unsigned int req_counter;
-
-/**
- * Time of the last request we received.
- *
- * Used to compute the expected request rate.
- */
-static struct GNUNET_TIME_Absolute last_request;
-
-/**
- * Last 64 deltas between requests
- */
-static struct GNUNET_TIME_Relative request_deltas[64];
-
-/**
- * The prediction of the rate of requests
- */
-static struct GNUNET_TIME_Relative  request_rate;
-
-
-/**
- * Sum all time relatives of an array.
- */
-  struct GNUNET_TIME_Relative
-T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
-{
-  struct GNUNET_TIME_Relative sum;
-  uint64_t i;
-
-  sum = GNUNET_TIME_UNIT_ZERO;
-  for ( i = 0 ; i < arr_size ; i++ )
-  {
-    sum = GNUNET_TIME_relative_add (sum, rel_array[i]);
-  }
-  return sum;
-}
-
-/**
- * Compute the average of given time relatives.
- */
-  struct GNUNET_TIME_Relative
-T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
-{
-  return T_relative_sum (rel_array, arr_size); // FIXME find a way to devide that by arr_size
-}
-
+static uint64_t client_get_index;
 
 
 /**
@@ -437,7 +384,7 @@ RPS_sampler_init (size_t init_size, const struct GNUNET_PeerIdentity *id,
   RPS_sampler_resize (init_size);
   RPS_sampler_update_list (id); // no super nice desing but ok for the moment
 
-  extended_samplers_index = 0;
+  client_get_index = 0;
 
   //GNUNET_assert (init_size == sampler->sampler_size);
 }
@@ -516,6 +463,7 @@ RPS_sampler_get_rand_peer_ ()
   return peer;
 }
 
+
 /**
  * Get n random peers out of the sampled peers.
  *
@@ -564,28 +512,14 @@ RPS_sampler_get_rand_peer ()
 {
   struct GNUNET_PeerIdentity *peer;
 
-  if (64 > req_counter)
-    req_counter++;
-  if (1 < req_counter)
-  {
-    memcpy (&request_deltas[1],
-        request_deltas,
-        (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
-    request_deltas[0] = GNUNET_TIME_absolute_get_difference (last_request,
-        GNUNET_TIME_absolute_get ());
-    request_rate = T_relative_avg (request_deltas, req_counter);
-  }
-  last_request = GNUNET_TIME_absolute_get();
-  // TODO resize the size of the extended_samplers
-
   // use _get_rand_peer_ ?
   peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  *peer = sampler->sampler_elements[extended_samplers_index]->peer_id;
-  RPS_sampler_elem_reinit (sampler->sampler_elements[extended_samplers_index]);
-  if ( extended_samplers_index == sampler->sampler_size )
-    extended_samplers_index = 0;
+  *peer = sampler->sampler_elements[client_get_index]->peer_id;
+  RPS_sampler_elem_reinit (sampler->sampler_elements[client_get_index]);
+  if ( client_get_index == sampler->sampler_size )
+    client_get_index = 0;
   else
-    extended_samplers_index++;
+    client_get_index++;
   return peer;
 }
 
@@ -661,7 +595,6 @@ RPS_sampler_count_id (const struct GNUNET_PeerIdentity *id)
 RPS_sampler_destroy ()
 {
   RPS_sampler_resize (0);
-  GNUNET_free (request_deltas); // _array_grow()?
   GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, 0);
 }
 

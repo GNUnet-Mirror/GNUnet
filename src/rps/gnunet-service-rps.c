@@ -153,6 +153,10 @@ struct peer_context
  * /Housekeeping with peers
 ***********************************************************************/
 
+/***********************************************************************
+ * Globals
+***********************************************************************/
+
 /**
  * Set of all peers to keep track of them.
  */
@@ -199,8 +203,6 @@ static float beta;
  * The percentage gamma of history updates.
  * Simply 1 - alpha - beta
  */
-
-
 
 
 /**
@@ -256,6 +258,43 @@ static struct GNUNET_CADET_Handle *cadet_handle;
  * Global counter
  */
 uint64_t g_i = 0;
+
+
+/**
+ * Request counter.
+ *
+ * Only needed in the beginning to check how many of the 64 deltas
+ * we already have
+ */
+static unsigned int req_counter;
+
+/**
+ * Time of the last request we received.
+ *
+ * Used to compute the expected request rate.
+ */
+static struct GNUNET_TIME_Absolute last_request;
+
+/**
+ * Size of #request_deltas.
+ */
+#define REQUEST_DELTAS_SIZE 64
+static unsigned int request_deltas_size = REQUEST_DELTAS_SIZE;
+
+/**
+ * Last 64 deltas between requests
+ */
+static struct GNUNET_TIME_Relative request_deltas[REQUEST_DELTAS_SIZE];
+
+/**
+ * The prediction of the rate of requests
+ */
+static struct GNUNET_TIME_Relative  request_rate;
+
+
+/***********************************************************************
+ * /Globals
+***********************************************************************/
 
 
 /***********************************************************************
@@ -392,6 +431,34 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_Peer
 }
 
 
+/**
+ * Sum all time relatives of an array.
+  */
+  struct GNUNET_TIME_Relative
+T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
+{
+  struct GNUNET_TIME_Relative sum;
+  uint64_t i;
+
+  sum = GNUNET_TIME_UNIT_ZERO;
+  for ( i = 0 ; i < arr_size ; i++ )
+  {
+    sum = GNUNET_TIME_relative_add (sum, rel_array[i]);
+  }
+  return sum;
+}
+
+
+/**
+ * Compute the average of given time relatives.
+ */
+  struct GNUNET_TIME_Relative
+T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
+{
+  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array, arr_size), arr_size); // FIXME find a way to devide that by arr_size
+}
+
+
 /***********************************************************************
  * /Util functions
 ***********************************************************************/
@@ -466,6 +533,25 @@ handle_cs_request (void *cls,
   uint64_t num_peers;
   const struct GNUNET_PeerIdentity *peers;
   //uint64_t i;
+
+
+  /* Estimate request rate */
+  if (request_deltas_size > req_counter)
+    req_counter++;
+  if ( 1 < req_counter)
+  {
+    /* Shift last request deltas to the right */
+    memcpy (&request_deltas[1],
+        request_deltas,
+        (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
+    /* Add current delta to beginning */
+    request_deltas[0] = GNUNET_TIME_absolute_get_difference (last_request,
+        GNUNET_TIME_absolute_get ());
+    request_rate = T_relative_avg (request_deltas, req_counter);
+  }
+  last_request = GNUNET_TIME_absolute_get();
+  // TODO resize the size of the extended_samplers
+
 
   // TODO check message size
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
@@ -781,15 +867,20 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative time_next_round;
   struct GNUNET_TIME_Relative half_round_interval;
   unsigned int rand_delay;
-  
+
+  /* Compute random time value between .5 * round_interval and 1.5 *round_interval */
   half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
   do
   {
+  /*
+   * Compute random value between (0 and 1) * round_interval
+   * via multiplying round_interval with a 'fraction' (0 to value)/value
+   */
   rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT_MAX/10);
-  time_next_round = GNUNET_TIME_relative_multiply (time_next_round, rand_delay);
+  time_next_round = GNUNET_TIME_relative_multiply (round_interval,  rand_delay);
   time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
   time_next_round = GNUNET_TIME_relative_add      (time_next_round, half_round_interval);
-  } while (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != time_next_round.rel_value_us);
+  } while (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == time_next_round.rel_value_us);
 
   /* Schedule next round */
   do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
@@ -907,13 +998,14 @@ shutdown_task (void *cls,
     do_round_task = NULL;
   }
 
-  GNUNET_NSE_disconnect(nse);
-  GNUNET_CADET_disconnect(cadet_handle);
-  GNUNET_free(own_identity);
-  RPS_sampler_destroy();
-  GNUNET_array_grow(gossip_list, gossip_list_size, 0);
-  GNUNET_array_grow(push_list, push_list_size, 0);
-  GNUNET_array_grow(pull_list, pull_list_size, 0);
+  GNUNET_NSE_disconnect (nse);
+  GNUNET_CADET_disconnect (cadet_handle);
+  GNUNET_free (own_identity);
+  RPS_sampler_destroy ();
+  GNUNET_array_grow (request_deltas, request_deltas_size, 0);
+  GNUNET_array_grow (gossip_list, gossip_list_size, 0);
+  GNUNET_array_grow (push_list, push_list_size, 0);
+  GNUNET_array_grow (pull_list, pull_list_size, 0);
 }
 
 
