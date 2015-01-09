@@ -43,7 +43,7 @@
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
 /**
  * DIFFERENT TESTS TO RUN
@@ -315,7 +315,6 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 static void
 stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " KA sent: %u, KA received: %u\n",
               ka_sent, ka_received);
   if (KEEPALIVE == test && (ka_sent < 2 || ka_sent > ka_received + 1))
@@ -350,7 +349,7 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "STATS PEER %u - %s [%s]: %llu\n",
               i, subsystem, name, value);
   if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
     ka_sent = value;
