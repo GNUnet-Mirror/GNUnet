@@ -373,6 +373,7 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
   return h;
 }
 
+
 void
 GCD_search_stop (struct GCD_search_handle *h)
 {

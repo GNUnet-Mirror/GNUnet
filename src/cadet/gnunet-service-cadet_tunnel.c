@@ -1383,7 +1383,7 @@ send_kx (struct CadetTunnel *t,
   }
   type = ntohs (message->type);
 
-  /* Even if tunnel is being destroyed, send anyway.
+  /* Even if tunnel is "being destroyed", send anyway.
    * Could be a response to a rekey initiated by remote peer,
    * who is trying to create a new channel!
    */
@@ -1391,14 +1391,12 @@ send_kx (struct CadetTunnel *t,
   /* Must have a connection, or be looking for one. */
   if (NULL == t->connection_head)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s while no connection\n", GC_m2s (type));
     if (CADET_TUNNEL_SEARCHING != t->cstate)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
       GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_ERROR, "no connection, sending %s\n", GC_m2s (type));
       GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
       GCP_debug (t->peer, GNUNET_ERROR_TYPE_ERROR);
-      LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
     }
     return NULL;
   }
