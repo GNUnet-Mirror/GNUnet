@@ -28,6 +28,7 @@
 #include "cadet_protocol.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "cadet-api",__VA_ARGS__)
+#define DATA_OVERHEAD sizeof(struct GNUNET_CADET_LocalData)
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -360,7 +361,7 @@ th_is_payload (struct GNUNET_CADET_TransmitHandle *th)
  *
  * @param h Cadet handle.
  *
- * @return The size of the first ready message in the queue,
+ * @return The size of the first ready message in the queue, including overhead.
  *         0 if there is none.
  */
 static size_t
@@ -380,7 +381,7 @@ message_ready_size (struct GNUNET_CADET_Handle *h)
     if (GNUNET_YES == ch->allow_send)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  message payload ok\n");
-      return th->size;
+      return th->size + DATA_OVERHEAD;
     }
   }
   return 0;
@@ -1341,7 +1342,7 @@ send_callback (void *cls, size_t size, void *buf)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload\n");
       if (GNUNET_NO == ch->allow_send)
       {
-        /* This channel is not ready to transmit yet, try next message */
+        /* This channel is not ready to transmit yet, Try the next message */
         next = th->next;
         continue;
       }
@@ -1349,15 +1350,13 @@ send_callback (void *cls, size_t size, void *buf)
       GNUNET_assert (size >= th->size);
       dmsg = (struct GNUNET_CADET_LocalData *) cbuf;
       mh = (struct GNUNET_MessageHeader *) &dmsg[1];
-      psize = th->notify (th->notify_cls,
-                          size - sizeof (struct GNUNET_CADET_LocalData),
-                          mh);
+      psize = th->notify (th->notify_cls, size - DATA_OVERHEAD, mh);
 
       if (psize > 0)
       {
-        psize += sizeof (struct GNUNET_CADET_LocalData);
-        GNUNET_assert (size >= psize);
         GNUNET_assert (sizeof (struct GNUNET_MessageHeader) <= psize);
+        psize += DATA_OVERHEAD;
+        GNUNET_assert (size >= psize);
         dmsg->header.size = htons (psize);
         dmsg->id = htonl (ch->chid);
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
@@ -1385,9 +1384,9 @@ send_callback (void *cls, size_t size, void *buf)
     GNUNET_assert (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE >= psize);
     if (th->timeout_task != NULL)
       GNUNET_SCHEDULER_cancel (th->timeout_task);
+    next = th->next;
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
     GNUNET_free (th);
-    next = h->th_head;
     nsize = message_ready_size (h);
     cbuf += psize;
     size -= psize;
