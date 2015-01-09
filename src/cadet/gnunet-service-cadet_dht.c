@@ -218,7 +218,6 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
-
   /* TODO
    * - Set data expiration in function of X
    * - Adapt X to churn
@@ -230,12 +229,17 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     announce_id_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                      &announce_id, cls);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no hello, waiting!\n");
+    GNUNET_STATISTICS_update (stats, "# DHT announce skipped (no hello)",
+                              1, GNUNET_NO);
+
     return;
   }
   expiration = GNUNET_HELLO_get_last_expiration (hello);
   retry_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Hello %p size: %u\n", hello, size);
+  GNUNET_STATISTICS_update (stats, "# DHT announce",
+                            1, GNUNET_NO);
   memset (&phash, 0, sizeof (phash));
   memcpy (&phash, &my_full_id, sizeof (my_full_id));
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
@@ -346,8 +350,9 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
   struct GNUNET_HashCode phash;
   struct GCD_search_handle *h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Starting DHT GET for peer %s\n",
+       GNUNET_i2s (peer_id));
+  GNUNET_STATISTICS_update (stats, "# DHT search", 1, GNUNET_NO);
   memset (&phash, 0, sizeof (phash));
   memcpy (&phash, peer_id, sizeof (*peer_id));
   h = GNUNET_new (struct GCD_search_handle);
