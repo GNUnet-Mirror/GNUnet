@@ -523,7 +523,8 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   chid = ntohl (msg->id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes (%u payload) by client %u\n",
+       payload_size, payload_claimed_size, c->id);
 
   /* Channel exists? */
   fwd = chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;

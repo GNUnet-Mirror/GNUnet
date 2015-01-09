@@ -1349,12 +1349,12 @@ send_callback (void *cls, size_t size, void *buf)
         GNUNET_assert (sizeof (struct GNUNET_MessageHeader) <= psize);
         psize += DATA_OVERHEAD;
         GNUNET_assert (size >= psize);
+        dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
         dmsg->header.size = htons (psize);
         dmsg->id = htonl (ch->chid);
-        dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
              GC_m2s (ntohs (mh->type)));
-                ch->allow_send = GNUNET_NO;
+        ch->allow_send = GNUNET_NO;
       }
       else
       {
