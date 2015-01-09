@@ -471,14 +471,19 @@ static void
 handle_data (void *cls, struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
+  const struct GNUNET_MessageHeader *payload;
   struct GNUNET_CADET_LocalData *msg;
   struct CadetClient *c;
   struct CadetChannel *ch;
   CADET_ChannelNumber chid;
-  size_t size;
+  size_t message_size;
+  size_t payload_size;
+  size_t payload_claimed_size;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got data from a client!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got data from a client\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -487,22 +492,36 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
-
-  msg = (struct GNUNET_CADET_LocalData *) message;
 
   /* Sanity check for message size */
-  size = ntohs (message->size) - sizeof (struct GNUNET_CADET_LocalData);
-  if (sizeof (struct GNUNET_MessageHeader) > size)
+  message_size = ntohs (message->size);
+  if (sizeof (struct GNUNET_CADET_LocalData)
+      + sizeof (struct GNUNET_MessageHeader) > message_size)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  payload_size = message_size - sizeof (struct GNUNET_CADET_LocalData);
+  msg = (struct GNUNET_CADET_LocalData *) message;
+  payload = (struct GNUNET_MessageHeader *) &msg[1];
+  payload_claimed_size = ntohs (payload->size);
+  if (sizeof (struct GNUNET_MessageHeader) > payload_claimed_size
+      || GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < payload_claimed_size
+      || payload_claimed_size > payload_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "client claims to send %u bytes in %u payload\n",
+         payload_claimed_size, payload_size);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  chid = ntohl (msg->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Channel exists? */
-  chid = ntohl (msg->id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
   fwd = chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
   ch = GML_channel_get (c, chid);
   if (NULL == ch)
@@ -514,9 +533,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  if (GNUNET_OK !=
-      GCCH_handle_local_data (ch, c,
-                              (struct GNUNET_MessageHeader *)&msg[1], fwd))
+  if (GNUNET_OK != GCCH_handle_local_data (ch, c, fwd, payload, payload_size))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
