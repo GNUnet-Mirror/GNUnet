@@ -184,16 +184,17 @@ GCCH_handle_local_ack (struct CadetChannel *ch, int fwd);
  *
  * @param ch Channel.
  * @param c Client which sent the data.
- * @param message Message.
  * @param fwd Is this a FWD data?
+ * @param message Data message.
+ * @param size Size of data.
  *
  * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
  */
 int
 GCCH_handle_local_data (struct CadetChannel *ch,
-                        struct CadetClient *c,
-                        struct GNUNET_MessageHeader *message,
-                        int fwd);
+                        struct CadetClient *c, int fwd,
+                        const struct GNUNET_MessageHeader *message,
+                        size_t size);
 
 /**
  * Handle a channel destroy requested by a client.
