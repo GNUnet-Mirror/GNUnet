@@ -2188,7 +2188,6 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
     fc->last_pid_recv = pid;
     fc->recv_bitmap <<= delta;
     fc->recv_bitmap |= 1;
-    LOG (GNUNET_ERROR_TYPE_WARNING, " OK bitmap %X\n", fc->recv_bitmap);
   }
   else
   {
@@ -2200,7 +2199,6 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
-    LOG (GNUNET_ERROR_TYPE_WARNING, " KO bitmap %X\n", fc->recv_bitmap);
   }
   if (CADET_CONNECTION_SENT == c->state || CADET_CONNECTION_ACK == c->state)
     connection_change_state (c, CADET_CONNECTION_READY);
@@ -3425,6 +3423,7 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
         c->fwd_fc.last_pid_sent, c->fwd_fc.last_pid_recv);
   LOG2 (level, "CCC   last ACK sent: %5u, recv: %5u\n",
         c->fwd_fc.last_ack_sent, c->fwd_fc.last_ack_recv);
+  LOG2 (level, "CCC   recv PID bitmap: %X\n", c->fwd_fc.recv_bitmap);
   LOG2 (level, "CCC   POLL: task %d, msg  %p, msg_ack %p)\n",
         c->fwd_fc.poll_task, c->fwd_fc.poll_msg, c->fwd_fc.ack_msg);
 
@@ -3434,6 +3433,7 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
         c->bck_fc.last_pid_sent, c->bck_fc.last_pid_recv);
   LOG2 (level, "CCC   last ACK sent: %5u, recv: %5u\n",
         c->bck_fc.last_ack_sent, c->bck_fc.last_ack_recv);
+  LOG2 (level, "CCC   recv PID bitmap: %X\n", c->bck_fc.recv_bitmap);
   LOG2 (level, "CCC   POLL: task %d, msg  %p, msg_ack %p)\n",
         c->bck_fc.poll_task, c->bck_fc.poll_msg, c->bck_fc.ack_msg);
 
