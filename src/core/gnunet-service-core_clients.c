@@ -559,8 +559,8 @@ client_tokenizer_callback (void *cls, void *client,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Delivering message of type %u to %s\n",
-                ntohs (message->type),
+                "Delivering message of type %u and size %u to %s\n",
+                ntohs (message->type), ntohs (message->size),
                 GNUNET_i2s (&car->target));
     GSC_CLIENTS_deliver_message (&car->target, message,
 				 ntohs (message->size),
