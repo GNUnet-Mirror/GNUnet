@@ -424,10 +424,9 @@ notify_ready (void *cls, size_t size, void *buf)
 {
   char *cbuf = buf;
   struct TestMessage hdr;
-  unsigned int ret;
 
   th = NULL;
-  if (buf == NULL )
+  if (buf == NULL)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Timeout occurred while waiting for transmit_ready for message\n");
@@ -446,9 +445,7 @@ notify_ready (void *cls, size_t size, void *buf)
   hdr.header.type = htons (MTYPE);
   hdr.num = htonl (0);
   memcpy (&cbuf[0], &hdr, sizeof(struct TestMessage));
-  ret += sizeof(struct TestMessage);
   memset (&cbuf[sizeof(struct TestMessage)], '0', MSIZE - sizeof(struct TestMessage));
-  ret = MSIZE;
 
 #if VERBOSE
   char *receiver_s = GNUNET_strdup (GNUNET_i2s (&receiver->id));
@@ -466,10 +463,10 @@ notify_ready (void *cls, size_t size, void *buf)
         (p1_switch_attempts == p1_switch_fail + p1_switch_success) &&
         (p2_switch_attempts == p2_switch_fail + p2_switch_success) )
   {
-    bytes_sent_after_switch += ret;
+    bytes_sent_after_switch += MSIZE;
   }
 
-  return ret;
+  return MSIZE;
 }
 
 
