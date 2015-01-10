@@ -872,7 +872,7 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
         GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_MAX_CORK_DELAY);
   pos = session->sme_head;
   while ( (NULL != pos) &&
-          (pos->priority > sme->priority) )
+          (pos->priority >= sme->priority) )
     pos = pos->next;
   if (NULL == pos)
     GNUNET_CONTAINER_DLL_insert_tail (session->sme_head,
