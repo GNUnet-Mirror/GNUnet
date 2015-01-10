@@ -256,6 +256,7 @@ src/revocation/gnunet-service-revocation.c
 src/revocation/revocation_api.c
 src/rps/gnunet-rps.c
 src/rps/gnunet-service-rps.c
+src/rps/gnunet-service-rps_sampler.c
 src/rps/rps_api.c
 src/scalarproduct/gnunet-scalarproduct.c
 src/scalarproduct/gnunet-service-scalarproduct_alice.c
@@ -388,6 +389,7 @@ src/util/crypto_kdf.c
 src/util/crypto_mpi.c
 src/util/crypto_paillier.c
 src/util/crypto_random.c
+src/util/crypto_rsa.c
 src/util/crypto_symmetric.c
 src/util/disk.c
 src/util/getopt.c
