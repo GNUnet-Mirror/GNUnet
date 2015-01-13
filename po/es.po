@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-01-01 22:23+0100\n"
+"POT-Creation-Date: 2015-01-11 20:42+0100\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -1387,7 +1387,7 @@ msgid "# EPHEMERAL_KEY messages received"
 msgstr "# mensajes «SET_KEY» descifrados"
 
 #: src/core/gnunet-service-core_kx.c:999
-#: src/transport/gnunet-service-transport_validation.c:1016
+#: src/transport/gnunet-service-transport_validation.c:1039
 msgid "# PING messages received"
 msgstr "# mensajes PING recibidos"
 
@@ -1418,7 +1418,7 @@ msgid "# keepalive messages sent"
 msgstr "# mensajes «keepalive» enviados"
 
 #: src/core/gnunet-service-core_kx.c:1156
-#: src/transport/gnunet-service-transport_validation.c:1359
+#: src/transport/gnunet-service-transport_validation.c:1382
 msgid "# PONG messages received"
 msgstr "# mensajes PONG recibidos"
 
@@ -1556,8 +1556,8 @@ msgid "# items stored"
 msgstr "# elementos almacenados"
 
 #: src/datacache/datacache.c:143 src/datacache/datacache.c:150
-#: src/datastore/gnunet-service-datastore.c:1553
-#: src/datastore/gnunet-service-datastore.c:1564
+#: src/datastore/gnunet-service-datastore.c:1554
+#: src/datastore/gnunet-service-datastore.c:1565
 #, c-format
 msgid "No `%s' specified for `%s' in configuration!\n"
 msgstr "¡No se ha especificado ningún «%s» para «%s» en la configuración!\n"
@@ -1591,8 +1591,8 @@ msgstr "Caché de datos Postgres ejecutándose\n"
 
 #: src/datacache/plugin_datacache_sqlite.c:69
 #: src/datacache/plugin_datacache_sqlite.c:72
-#: src/datastore/plugin_datastore_mysql.c:806
-#: src/datastore/plugin_datastore_mysql.c:820
+#: src/datastore/plugin_datastore_mysql.c:809
+#: src/datastore/plugin_datastore_mysql.c:823
 #: src/datastore/plugin_datastore_sqlite.c:57 src/mysql/mysql.c:41
 #: src/mysql/mysql.c:48 src/mysql/mysql.c:522 src/mysql/mysql.c:531
 #: src/mysql/mysql.c:591 src/mysql/mysql.c:607
@@ -1660,69 +1660,69 @@ msgstr "# Peticiones omitidas de la cola del almacén de datos"
 msgid "# datastore connections (re)created"
 msgstr "# conexiones a almacenes de datos (re)creadas"
 
-#: src/datastore/datastore_api.c:616
+#: src/datastore/datastore_api.c:621
 msgid "# transmission request failures"
 msgstr "# fallos en peticiones de transmisión"
 
-#: src/datastore/datastore_api.c:638
+#: src/datastore/datastore_api.c:645
 msgid "# bytes sent to datastore"
 msgstr "# bytes mandados al almacén de datos"
 
-#: src/datastore/datastore_api.c:770
+#: src/datastore/datastore_api.c:787
 msgid "Failed to receive status response from database."
 msgstr ""
 "Se produjo un fallo al recibir el estado de respuesta de la base de datos."
 
-#: src/datastore/datastore_api.c:784
+#: src/datastore/datastore_api.c:801
 msgid "Error reading response from datastore service"
 msgstr "Error leyendo respuesta del servicio de almacenamiento de datos"
 
-#: src/datastore/datastore_api.c:796 src/datastore/datastore_api.c:802
+#: src/datastore/datastore_api.c:813 src/datastore/datastore_api.c:819
 msgid "Invalid error message received from datastore service"
 msgstr ""
 "Mensaje de error no válido recibido del servicio de almacenamiento de datos"
 
-#: src/datastore/datastore_api.c:806
+#: src/datastore/datastore_api.c:823
 msgid "# status messages received"
 msgstr "# mensajes de estado recibidos"
 
-#: src/datastore/datastore_api.c:876
+#: src/datastore/datastore_api.c:893
 msgid "# PUT requests executed"
 msgstr "# peticiones «PUT» ejecutadas"
 
-#: src/datastore/datastore_api.c:944
+#: src/datastore/datastore_api.c:959
 msgid "# RESERVE requests executed"
 msgstr "# peticiones «RESERVE» ejecutadas"
 
-#: src/datastore/datastore_api.c:1005
+#: src/datastore/datastore_api.c:1020
 msgid "# RELEASE RESERVE requests executed"
 msgstr "# Peticiones «RELEASE RESERVE» ejecutadas"
 
-#: src/datastore/datastore_api.c:1065
+#: src/datastore/datastore_api.c:1080
 msgid "# UPDATE requests executed"
 msgstr "# peticiones «UPDATE» ejecutadas"
 
-#: src/datastore/datastore_api.c:1129
+#: src/datastore/datastore_api.c:1144
 msgid "# REMOVE requests executed"
 msgstr "# peticiones «REMOVE» ejecutadas"
 
-#: src/datastore/datastore_api.c:1174
+#: src/datastore/datastore_api.c:1189
 msgid "Failed to receive response from database.\n"
 msgstr "Se produjo un fallo al recibir la respuesta de la base de datos.\n"
 
-#: src/datastore/datastore_api.c:1233
+#: src/datastore/datastore_api.c:1248
 msgid "# Results received"
 msgstr "# Resultados recibidos"
 
-#: src/datastore/datastore_api.c:1300
+#: src/datastore/datastore_api.c:1315
 msgid "# GET REPLICATION requests executed"
 msgstr "# peticiones «GET REPLICATION» ejecutadas"
 
-#: src/datastore/datastore_api.c:1363
+#: src/datastore/datastore_api.c:1378
 msgid "# GET ZERO ANONYMITY requests executed"
 msgstr "# peticiones «GET ZERO ANONYMITY» ejecutadas"
 
-#: src/datastore/datastore_api.c:1424
+#: src/datastore/datastore_api.c:1439
 msgid "# GET requests executed"
 msgstr "# peticiones «GET» ejecutadas"
 
@@ -1802,7 +1802,7 @@ msgstr "Espacio insuficiente para satisfacer la petición"
 #: src/datastore/gnunet-service-datastore.c:712
 #: src/datastore/gnunet-service-datastore.c:767
 #: src/datastore/gnunet-service-datastore.c:982
-#: src/datastore/gnunet-service-datastore.c:1525
+#: src/datastore/gnunet-service-datastore.c:1526
 msgid "# reserved"
 msgstr "# reservado"
 
@@ -1885,60 +1885,60 @@ msgstr "El módulo no soporta la función «get_keys». Por favor, corríjalo.\n
 msgid "Bloomfilter construction complete.\n"
 msgstr "Construcción de «bloomfilter» completa.\n"
 
-#: src/datastore/gnunet-service-datastore.c:1558
+#: src/datastore/gnunet-service-datastore.c:1559
 #, c-format
 msgid "# bytes used in file-sharing datastore `%s'"
 msgstr "# bytes usados en el almacén de ficheros compartidos «%s»"
 
-#: src/datastore/gnunet-service-datastore.c:1569
+#: src/datastore/gnunet-service-datastore.c:1570
 msgid "# quota"
 msgstr "# cuota"
 
-#: src/datastore/gnunet-service-datastore.c:1571
+#: src/datastore/gnunet-service-datastore.c:1572
 msgid "# cache size"
 msgstr "# tamaño de la caché"
 
-#: src/datastore/gnunet-service-datastore.c:1584
+#: src/datastore/gnunet-service-datastore.c:1585
 #, c-format
 msgid "Could not use specified filename `%s' for bloomfilter.\n"
 msgstr ""
 "No se pudo usar el nombre de fichero especificado «%s» para «bloomfilter».\n"
 
-#: src/datastore/gnunet-service-datastore.c:1602
-#: src/datastore/gnunet-service-datastore.c:1618
+#: src/datastore/gnunet-service-datastore.c:1603
+#: src/datastore/gnunet-service-datastore.c:1619
 #, c-format
 msgid "Failed to remove bogus bloomfilter file `%s'\n"
 msgstr ""
 "Se produjo un fallo al borrar el fichero de configuración defectuoso de "
 "«bloomfilter» «%s»:\n"
 
-#: src/datastore/gnunet-service-datastore.c:1648
+#: src/datastore/gnunet-service-datastore.c:1649
 msgid "Failed to initialize bloomfilter.\n"
 msgstr "Se produjo un fallo al inicializar «bloomfilter».\n"
 
-#: src/datastore/plugin_datastore_heap.c:820
+#: src/datastore/plugin_datastore_heap.c:821
 msgid "Heap database running\n"
 msgstr "Base de datos de montículo ejecutándose\n"
 
-#: src/datastore/plugin_datastore_mysql.c:783
+#: src/datastore/plugin_datastore_mysql.c:786
 #, c-format
 msgid "Failed to prepare statement `%s'\n"
 msgstr "Se produjo un fallo al preparar la sentencia «%s»\n"
 
-#: src/datastore/plugin_datastore_mysql.c:791
+#: src/datastore/plugin_datastore_mysql.c:794
 #, c-format
 msgid "`%s' for `%s' failed at %s:%d with error: %s\n"
 msgstr "«%s» para «%s» falló en %s: %d con error: %s\n"
 
-#: src/datastore/plugin_datastore_mysql.c:1022
+#: src/datastore/plugin_datastore_mysql.c:1025
 msgid "Mysql database running\n"
 msgstr "Base de datos Mysql ejecutándose\n"
 
-#: src/datastore/plugin_datastore_postgres.c:832
+#: src/datastore/plugin_datastore_postgres.c:837
 msgid "Failed to drop table from database.\n"
 msgstr "Se produjo un fallo al borrar una tabla de la base de datos.\n"
 
-#: src/datastore/plugin_datastore_postgres.c:868
+#: src/datastore/plugin_datastore_postgres.c:873
 #: src/namecache/plugin_namecache_postgres.c:414
 #: src/namestore/plugin_namestore_postgres.c:569
 msgid "Postgres database running\n"
@@ -1967,13 +1967,13 @@ msgstr ""
 "Datos no válidos en la base de datos.  Intentando arreglar (por borrado).\n"
 
 # to should be too, i think
-#: src/datastore/plugin_datastore_sqlite.c:1154
+#: src/datastore/plugin_datastore_sqlite.c:1156
 msgid "sqlite version to old to determine size, assuming zero\n"
 msgstr ""
 "la versión de sqlite es muy antigua para determinar el tamaño, se asume "
 "cero\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:1173
+#: src/datastore/plugin_datastore_sqlite.c:1176
 #, c-format
 msgid ""
 "Using sqlite page utilization to estimate payload (%llu pages of size %llu "
@@ -1982,13 +1982,13 @@ msgstr ""
 "Usando la utilización de páginas de sqlite para estimar el «payload» (%llu "
 "páginas de %llu bytes de tamaño)\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:1213
+#: src/datastore/plugin_datastore_sqlite.c:1216
 #: src/namecache/plugin_namecache_sqlite.c:580
 #: src/namestore/plugin_namestore_sqlite.c:716
 msgid "Sqlite database running\n"
 msgstr "Base de datos sqlite ejecutándose\n"
 
-#: src/datastore/plugin_datastore_template.c:257
+#: src/datastore/plugin_datastore_template.c:259
 msgid "Template database running\n"
 msgstr "Base de datos de plantilla ejecutándose\n"
 
@@ -3297,98 +3297,103 @@ msgstr "Se produjo un fallo al calcular el hash del fichero."
 msgid "Malformed KSK URI (`%' must be followed by HEX number)"
 msgstr "'%' debe ser seguido por un número hexadecimal"
 
-#: src/fs/fs_uri.c:283
+#: src/fs/fs_uri.c:282
 msgid "Malformed KSK URI (must not begin or end with `+')"
 msgstr "URI KSK mal formada (no debe empezar ni terminar con «+»)"
 
-#: src/fs/fs_uri.c:301
+#: src/fs/fs_uri.c:300
 #, fuzzy
 msgid "Malformed KSK URI (`++' not allowed)"
 msgstr "URI KSK mal formada (no debe empezar ni terminar con «+»)"
 
-#: src/fs/fs_uri.c:308
+#: src/fs/fs_uri.c:307
 #, fuzzy
 msgid "Malformed KSK URI (quotes not balanced)"
 msgstr "URI KSK mal formada (no debe empezar ni terminar con «+»)"
 
-#: src/fs/fs_uri.c:378
+#: src/fs/fs_uri.c:376
 #, fuzzy
 msgid "Malformed SKS URI (wrong syntax)"
 msgstr "URI SKS mal formada"
 
-#: src/fs/fs_uri.c:422
+#: src/fs/fs_uri.c:417
 #, fuzzy
 msgid "Malformed CHK URI (wrong syntax)"
 msgstr "URI CHK mal formada"
 
-#: src/fs/fs_uri.c:437
+#: src/fs/fs_uri.c:432
 msgid "Malformed CHK URI (failed to decode CHK)"
 msgstr ""
 
-#: src/fs/fs_uri.c:516
+#: src/fs/fs_uri.c:511
 #, fuzzy
 msgid "LOC URI malformed (wrong syntax)"
 msgstr "URI SKS mal formada"
 
-#: src/fs/fs_uri.c:531
+#: src/fs/fs_uri.c:526
 #, fuzzy
 msgid "LOC URI malformed (no CHK)"
 msgstr "URI SKS mal formada"
 
-#: src/fs/fs_uri.c:541
+#: src/fs/fs_uri.c:536
 #, fuzzy
 msgid "LOC URI malformed (missing LOC)"
 msgstr "URI SKS mal formada"
 
-#: src/fs/fs_uri.c:549
+#: src/fs/fs_uri.c:544
 #, fuzzy
 msgid "LOC URI malformed (wrong syntax for public key)"
 msgstr "URI SKS mal formada (no se pudo decodificar la clave pública)"
 
-#: src/fs/fs_uri.c:557
+#: src/fs/fs_uri.c:552
 #, fuzzy
 msgid "LOC URI malformed (could not decode public key)"
 msgstr "URI SKS mal formada (no se pudo decodificar la clave pública)"
 
-#: src/fs/fs_uri.c:563
+#: src/fs/fs_uri.c:558
 #, fuzzy
 msgid "LOC URI malformed (could not find signature)"
 msgstr "URI SKS mal formada (no se pudo encontrar la firma)"
 
-#: src/fs/fs_uri.c:569
+#: src/fs/fs_uri.c:564
 #, fuzzy
 msgid "LOC URI malformed (wrong syntax for signature)"
 msgstr "URI SKS mal formada (no se pudo encontrar la firma)"
 
-#: src/fs/fs_uri.c:578
+#: src/fs/fs_uri.c:573
 #, fuzzy
 msgid "LOC URI malformed (could not decode signature)"
 msgstr "URI SKS mal formada (no se pudo decodificar la firma)"
 
-#: src/fs/fs_uri.c:584
+#: src/fs/fs_uri.c:579
 #, fuzzy
 msgid "LOC URI malformed (wrong syntax for expiration time)"
 msgstr "URI SKS mal formada (no se encuentra el tiempo de expiración)"
 
-#: src/fs/fs_uri.c:590
+#: src/fs/fs_uri.c:585
 #, fuzzy
 msgid "LOC URI malformed (could not parse expiration time)"
 msgstr "URI SKS mal formada (no se encuentra el tiempo de expiración)"
 
-#: src/fs/fs_uri.c:602
+#: src/fs/fs_uri.c:597
 #, fuzzy
 msgid "LOC URI malformed (signature failed validation)"
 msgstr "URI SKS mal formada (se produjo un fallo al validar la firma)"
 
-#: src/fs/fs_uri.c:641
+#: src/fs/fs_uri.c:631
+#, fuzzy
+msgid "invalid argument"
+msgstr "Parámetro no válido «%s»\n"
+
+#: src/fs/fs_uri.c:643
 msgid "Unrecognized URI type"
 msgstr "Tipo de URI no reconocido"
 
-#: src/fs/fs_uri.c:1043 src/fs/fs_uri.c:1070
+#: src/fs/fs_uri.c:1045 src/fs/fs_uri.c:1072
 msgid "No keywords specified!\n"
 msgstr "¡Ninguna palabra clave especificada!\n"
 
-#: src/fs/fs_uri.c:1076
+#: src/fs/fs_uri.c:1078
 msgid "Number of double-quotes not balanced!\n"
 msgstr "¡Número de comillas dobles no balanceado!\n"
 
@@ -6591,18 +6596,18 @@ msgstr ""
 "La configuración especifica un valor no válido en la opción «%s» de la "
 "sección «%s»: %s\n"
 
-#: src/sensor/gnunet-service-sensor_monitoring.c:345
+#: src/sensor/gnunet-service-sensor_monitoring.c:347
 #, c-format
 msgid "Sensor `%s': External process should not be a path, disabling sensor.\n"
 msgstr ""
 
-#: src/sensor/gnunet-service-sensor_monitoring.c:368
+#: src/sensor/gnunet-service-sensor_monitoring.c:370
 #, c-format
 msgid ""
 "Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n"
 msgstr ""
 
-#: src/sensor/gnunet-service-sensor_monitoring.c:416
+#: src/sensor/gnunet-service-sensor_monitoring.c:418
 #, c-format
 msgid "Sensor `%s' execution task already set, this should not happen\n"
 msgstr ""
@@ -7651,52 +7656,56 @@ msgstr "Se produjo un fallo al cargar el módulo del transporte para «%s»\n"
 msgid "Did not load plugin `%s' due to missing functions\n"
 msgstr "Falló al cargar el plugin '%s' en %s:%d. Descargando plugin.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:493
+#: src/transport/gnunet-service-transport_validation.c:464
+#: src/transport/gnunet-service-transport_validation.c:643
+#: src/transport/gnunet-service-transport_validation.c:907
+#: src/transport/gnunet-service-transport_validation.c:1499
+#, fuzzy
+msgid "# validations running"
+msgstr "Base de datos sqlite ejecutándose\n"
+
+#: src/transport/gnunet-service-transport_validation.c:503
 msgid "# address records discarded"
 msgstr "# registros de direcciones descartados"
 
-#: src/transport/gnunet-service-transport_validation.c:563
-#, c-format
-msgid ""
-"Not transmitting `%s' with `%s', message too big (%u bytes!). This should "
-"not happen.\n"
+#: src/transport/gnunet-service-transport_validation.c:588
+msgid "# validations not attempted (no plugin)"
 msgstr ""
-"No transmitiendo «%s» con «%s», mensaje demasiado grande (¡%u bytes!). Esto "
-"no debería suceder.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:624
-msgid "# PING without HELLO messages sent"
-msgstr "# Mensajes PING sin HELLO mandados"
+#: src/transport/gnunet-service-transport_validation.c:633
+#, fuzzy
+msgid "# PINGs for address validation sent"
+msgstr "# revalidaciones de direcciones iniciadas"
 
-#: src/transport/gnunet-service-transport_validation.c:722
+#: src/transport/gnunet-service-transport_validation.c:742
 msgid "# address revalidations started"
 msgstr "# revalidaciones de direcciones iniciadas"
 
-#: src/transport/gnunet-service-transport_validation.c:1011
+#: src/transport/gnunet-service-transport_validation.c:1034
 msgid "# PING message for different peer received"
 msgstr "# Mensajes PING recibidos para un par diferente"
 
-#: src/transport/gnunet-service-transport_validation.c:1062
+#: src/transport/gnunet-service-transport_validation.c:1085
 #, fuzzy, c-format
 msgid "Plugin `%s' not available, cannot confirm having this address\n"
 msgstr ""
 "No confirmando el PING con dirección «%s» ya que no puedo confirmar tener "
 "esa dirección.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1072
+#: src/transport/gnunet-service-transport_validation.c:1095
 msgid "# failed address checks during validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1075
+#: src/transport/gnunet-service-transport_validation.c:1098
 #, c-format
 msgid "Address `%s' is not one of my addresses, not confirming PING\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1083
+#: src/transport/gnunet-service-transport_validation.c:1106
 msgid "# successful address checks during validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1095
+#: src/transport/gnunet-service-transport_validation.c:1118
 #, fuzzy, c-format
 msgid ""
 "Not confirming PING from peer `%s' with address `%s' since I cannot confirm "
@@ -7705,38 +7714,43 @@ msgstr ""
 "No confirmando el PING con dirección «%s» ya que no puedo confirmar tener "
 "esa dirección.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1103
+#: src/transport/gnunet-service-transport_validation.c:1126
 #, c-format
 msgid "Received a PING message with validation bug from `%s'\n"
 msgstr "Recibido un mensaje PING con un error de validación de «%s»\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1157
+#: src/transport/gnunet-service-transport_validation.c:1180
 #, fuzzy, c-format
 msgid "Failed to create PONG signature for peer `%s'\n"
 msgstr "Se produjo un fallo al crear la página para «%s»\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1206
+#: src/transport/gnunet-service-transport_validation.c:1229
 msgid "# PONGs unicast via reliable transport"
 msgstr "# unicast de PONG vía transporte confiable"
 
-#: src/transport/gnunet-service-transport_validation.c:1215
+#: src/transport/gnunet-service-transport_validation.c:1238
 msgid "# PONGs multicast to all available addresses"
 msgstr "# multicast de PONG a todas las direcciones disponibles"
 
-#: src/transport/gnunet-service-transport_validation.c:1387
+#: src/transport/gnunet-service-transport_validation.c:1410
 msgid "# PONGs dropped, no matching pending validation"
 msgstr "# PONG omitidos, no hay una validación pendiente coincidente"
 
-#: src/transport/gnunet-service-transport_validation.c:1402
+#: src/transport/gnunet-service-transport_validation.c:1425
 msgid "# PONGs dropped, signature expired"
 msgstr "# Mensajes PONG omitidos, firma expirada"
 
-#: src/transport/gnunet-service-transport_validation.c:1526
+#: src/transport/gnunet-service-transport_validation.c:1477
+#, fuzzy
+msgid "# validations succeeded"
+msgstr "# revalidaciones de direcciones iniciadas"
+
+#: src/transport/gnunet-service-transport_validation.c:1557
 #, fuzzy, c-format
 msgid "Validation received new %s message for peer `%s' with size %u\n"
 msgstr "Recibido último mensaje para %s\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1533
+#: src/transport/gnunet-service-transport_validation.c:1564
 #, c-format
 msgid "Adding `%s' without addresses for peer `%s'\n"
 msgstr "Añadiendo «%s» sin direcciones para el par «%s»\n"
@@ -8818,6 +8832,11 @@ msgstr "La verificación de la firma RSA fallo en %s:%d: %s\n"
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt no tiene la versión esperada (se necesita la versión %s).\n"
 
+#: src/util/crypto_rsa.c:786
+#, c-format
+msgid "RSA signature verification failed at %s:%d: %s\n"
+msgstr "La verificación de la firma RSA fallo en %s:%d: %s\n"
+
 #: src/util/disk.c:1202
 #, c-format
 msgid "Expected `%s' to be a directory!\n"
@@ -9652,6 +9671,16 @@ msgstr "Violación externa del protocolo detectada en %s:%d.\n"
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
 
+#~ msgid ""
+#~ "Not transmitting `%s' with `%s', message too big (%u bytes!). This should "
+#~ "not happen.\n"
+#~ msgstr ""
+#~ "No transmitiendo «%s» con «%s», mensaje demasiado grande (¡%u bytes!). "
+#~ "Esto no debería suceder.\n"
+
+#~ msgid "# PING without HELLO messages sent"
+#~ msgstr "# Mensajes PING sin HELLO mandados"
+
 #~ msgid "Starting default services `%s'\n"
 #~ msgstr "Iniciando servicios predeterminados «%s»\n"
 
@@ -10404,9 +10433,6 @@ msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
 
 #~ msgid "gnunet-rsa failed"
 #~ msgstr "«gnunet-rsa» falló"
-
-#~ msgid "RSA signature verification failed at %s:%d: %s\n"
-#~ msgstr "La verificación de la firma RSA fallo en %s:%d: %s\n"
 
 #~ msgid "`%s' failed for drive `%S': %u\n"
 #~ msgstr "«%s» falló para la unidad «%S»: %u\n"
