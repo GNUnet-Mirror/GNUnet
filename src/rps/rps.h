@@ -150,12 +150,9 @@ struct GNUNET_RPS_CS_SeedMessage
   /**
    * Number of peers
    */
-  uint64_t n;
+  uint64_t num_peers;
 
-  /**
-   * Peers
-   */
-  struct GNUNET_PeerIdentity ids;
+  /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
 GNUNET_NETWORK_STRUCT_END

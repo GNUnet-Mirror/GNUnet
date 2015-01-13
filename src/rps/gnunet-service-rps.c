@@ -190,7 +190,7 @@ static unsigned int sampler_size;
  * The size of sampler we need to be able to satisfy the client's need of
  * random peers.
  */
-static unsigned int sampler_size_client_need;
+//static unsigned int sampler_size_client_need;
 
 
 /**
@@ -526,8 +526,7 @@ nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimat
  * @param message the actual message
  */
 static void
-// TODO rename
-handle_cs_request (void *cls,
+handle_client_request (void *cls,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
@@ -594,6 +593,49 @@ handle_cs_request (void *cls,
   GNUNET_SERVER_receive_done (client,
 			      GNUNET_OK);
 }
+
+
+/**
+ * Handle seed from the client.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+  static void
+handle_client_seed (void *cls,
+            struct GNUNET_SERVER_Client *client,
+            const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_RPS_CS_SeedMessage *in_msg;
+  struct GNUNET_PeerIdentity *peers;
+  uint64_t i;
+
+  if (sizeof (struct GNUNET_RPS_CS_SeedMessage) < ntohs (message->size))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client,
+              GNUNET_SYSERR);
+  }
+  in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
+  if (ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage) /
+      sizeof (struct GNUNET_PeerIdentity) != GNUNET_ntohll (in_msg->num_peers))
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client,
+              GNUNET_SYSERR);
+  }
+
+  in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
+  peers = (struct GNUNET_PeerIdentity *) &message[1];
+
+  for ( i = 0 ; i < GNUNET_ntohll (in_msg->num_peers) ; i++ )
+    RPS_sampler_update_list (&peers[i]);
+
+  GNUNET_SERVER_receive_done (client,
+			      GNUNET_OK);
+}
+
 
 /**
  * Handle a PUSH message from another peer.
@@ -1100,8 +1142,9 @@ static void
 rps_start (struct GNUNET_SERVER_Handle *server)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_cs_request, NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
+    {&handle_client_request, NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
       sizeof (struct GNUNET_RPS_CS_RequestMessage)},
+    {&handle_client_seed,    NULL, GNUNET_MESSAGE_TYPE_RPS_CS_SEED, 0},
     {NULL, NULL, 0, 0}
   };
 

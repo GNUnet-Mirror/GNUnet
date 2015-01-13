@@ -65,7 +65,7 @@ typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls, uint64_t num_peers, const 
  * @return handle to the rps service
  */
   struct GNUNET_RPS_Handle *
-GNUNET_RPS_connect( const struct GNUNET_CONFIGURATION_Handle *cfg );
+GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 /**
  * Request n random peers.
@@ -95,7 +95,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
  */
   void
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
-                     struct GNUNET_PeerIdentity * ids);
+                     const struct GNUNET_PeerIdentity * ids);
 
 /**
  * Cancle an issued request.
@@ -103,7 +103,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
  * @param rh handle of the pending request to be canceled
  */
   void
-GNUNET_RPS_request_cancel ( struct GNUNET_RPS_Request_Handle *rh );
+GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
 
 /**
  * Disconnect from the rps service
@@ -111,7 +111,7 @@ GNUNET_RPS_request_cancel ( struct GNUNET_RPS_Request_Handle *rh );
  * @param h the handle to the rps service
  */
   void
-GNUNET_RPS_disconnect ( struct GNUNET_RPS_Handle *h );
+GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

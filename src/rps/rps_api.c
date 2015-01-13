@@ -108,8 +108,6 @@ struct cb_cls_pack
 };
 
 
-
-
 /**
  * This function is called, when the service replies to our request.
  * It calls the callback the caller gave us with the provided closure
@@ -141,9 +139,16 @@ handle_reply (void *cls,
 }
 
 /**
+ * Error handler for mq.
+ *
+ * This function is called whan mq encounters an error.
+ * Until now mq doesn't provide useful error messages.
+ *
+ * @param cls the closure
+ * @param error error code without specyfied meaning
  */
   static void
-mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   //TODO LOG
 }
@@ -155,7 +160,7 @@ mq_error_handler(void *cls, enum GNUNET_MQ_Error error)
  * @return a handle to the service
  */
   struct GNUNET_RPS_Handle *
-GNUNET_RPS_connect( const struct GNUNET_CONFIGURATION_Handle *cfg )
+GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
   //struct GNUNET_RPS_Request_Handle *rh;
@@ -197,19 +202,19 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
   struct GNUNET_RPS_CS_RequestMessage *msg;
 
   // assert func != NULL
-  rh = GNUNET_new(struct GNUNET_RPS_Request_Handle);
+  rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
   rh->h = h;
   rh->n = req_handlers_size; // TODO ntoh
   rh->ready_cb = ready_cb;
   rh->ready_cb_cls = cls;
 
-  GNUNET_array_append(req_handlers, req_handlers_size, *rh);
+  GNUNET_array_append (req_handlers, req_handlers_size, *rh);
   //memcpy(&req_handlers[req_handlers_size-1], rh, sizeof(struct GNUNET_RPS_Request_Handle));
 
-  ev = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
-  msg->num_peers = GNUNET_htonll(n);
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
+  msg->num_peers = GNUNET_htonll (n);
   msg->n = rh->n;
-  GNUNET_MQ_send(h->mq, ev);
+  GNUNET_MQ_send (h->mq, ev);
   return rh;
 }
 
@@ -222,8 +227,16 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
  */
   void
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
-                     struct GNUNET_PeerIdentity * ids)
+                     const struct GNUNET_PeerIdentity * ids)
 {
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_SeedMessage *msg;
+
+  ev = GNUNET_MQ_msg_extra (msg, n * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
+  msg->num_peers = GNUNET_htonll (n);
+  memcpy (&msg[1], ids, n * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_MQ_send (h->mq, ev);
 }
 
 /**
@@ -232,7 +245,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
  * @param rh request handle of request to cancle
  */
   void
-GNUNET_RPS_request_cancel ( struct GNUNET_RPS_Request_Handle *rh )
+GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
 {
   // TODO
 }
@@ -243,10 +256,10 @@ GNUNET_RPS_request_cancel ( struct GNUNET_RPS_Request_Handle *rh )
  * @param h the handle to the rps service
  */
   void
-GNUNET_RPS_disconnect ( struct GNUNET_RPS_Handle *h )
+GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
   if ( NULL != h->conn ) {
-    GNUNET_CLIENT_disconnect(h->conn);
+    GNUNET_CLIENT_disconnect (h->conn);
   }
 }
 

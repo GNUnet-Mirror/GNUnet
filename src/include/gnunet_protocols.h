@@ -2678,6 +2678,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY        954
 
+/**
+ * RPS CS SEED Message for the Client to seed peers into rps
+ */
+#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED        955
+
 
 /*******************************************************************************/
 
