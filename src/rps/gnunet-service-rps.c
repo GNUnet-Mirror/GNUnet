@@ -56,6 +56,8 @@
 
 // TODO check that every id we get is valid - is it reachable?
 
+// TODO ignore list
+
 // hist_size_init, hist_size_max
 
 /**
@@ -175,12 +177,20 @@ static unsigned int gossip_list_size;
 
 
 /**
- * The estimated size of the network.
+ * The size Brahms needs according to the network size.
  *
- * Influenced by the stdev.
+ * This is directly taken as the #gossip_list_size on update of the
+ * #gossip_list
+ * This is the minimum size the sampler grows to.
  */
-static unsigned int est_size;
-//size_t est_size;
+static unsigned int sampler_size;
+//size_t sampler_size;
+
+/**
+ * The size of sampler we need to be able to satisfy the client's need of
+ * random peers.
+ */
+static unsigned int sampler_size_client_need;
 
 
 /**
@@ -476,7 +486,7 @@ nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimat
   unsigned int old_est;
   //double scale; // TODO this might go gloabal/config
 
-  old_est = est_size;
+  old_est = sampler_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received a ns estimate - logest: %f, std_dev: %f (old_est: %f)\n",
@@ -489,22 +499,22 @@ nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimat
   // estimate += (std_dev * scale);
   if ( 0 < estimate ) {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
-    est_size = estimate;
+    sampler_size = estimate;
   } else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not using estimate %f\n", estimate);
 
   /* If the NSE has changed adapt the lists accordingly */
   // TODO respect the request rate, min, max
-  if (old_est > est_size*4)
+  if (old_est > sampler_size*4)
   { /* Shrinking */
     RPS_sampler_resize (old_est/2);
   }
-  else if (old_est < est_size)
+  else if (old_est < sampler_size)
   { /* Growing */
-    if (est_size < old_est*2)
+    if (sampler_size < old_est*2)
       RPS_sampler_resize (old_est*2);
     else
-      RPS_sampler_resize (est_size);
+      RPS_sampler_resize (sampler_size);
   }
 }
 
@@ -807,7 +817,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     uint64_t first_border;
     uint64_t second_border;
     
-    GNUNET_array_grow(gossip_list, gossip_list_size, est_size);
+    GNUNET_array_grow(gossip_list, gossip_list_size, sampler_size);
 
     first_border = round(alpha * gossip_list_size);
     for ( i = 0 ; i < first_border ; i++ )
@@ -1154,18 +1164,18 @@ run (void *cls,
   /* Get initial size of sampler/gossip list from the configuration */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "RPS",
                                                          "INITSIZE",
-                                                         (long long unsigned int *) &est_size))
+                                                         (long long unsigned int *) &sampler_size))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read INITSIZE from config\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", est_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", sampler_size);
 
-  //gossip_list_size = est_size; // TODO rename est_size
+  //gossip_list_size = sampler_size; // TODO rename sampler_size
 
   gossip_list = NULL;
-  GNUNET_array_grow (gossip_list, gossip_list_size, est_size);
+  GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size);
 
 
   /* connect to NSE */
@@ -1199,7 +1209,7 @@ run (void *cls,
 
   // TODO check that alpha + beta < 1
 
-  peer_map = GNUNET_CONTAINER_multipeermap_create (est_size, GNUNET_NO);
+  peer_map = GNUNET_CONTAINER_multipeermap_create (sampler_size, GNUNET_NO);
 
 
   /* Initialise cadet */
@@ -1221,7 +1231,7 @@ run (void *cls,
 
 
   /* Initialise sampler */
-  RPS_sampler_init (est_size, own_identity, insertCB, NULL, removeCB, NULL);
+  RPS_sampler_init (sampler_size, own_identity, insertCB, NULL, removeCB, NULL);
 
   /* Initialise push and pull maps */
   push_list = NULL;
