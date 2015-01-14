@@ -317,6 +317,7 @@ RPS_sampler_resize (unsigned int new_size)
         sampler->remove_cb (sampler->remove_cls, &rem_list[i]->peer_id);
       GNUNET_free (rem_list[i]);
     }
+    GNUNET_free (rem_list);
   }
   else if (old_size < new_size)
   { /* Growing */
@@ -370,7 +371,6 @@ RPS_sampler_init (size_t init_size, const struct GNUNET_PeerIdentity *id,
   /* Initialise context around extended sampler */
   min_size = 10; // TODO make input to _samplers_init()
   max_size = 1000; // TODO make input to _samplers_init()
-  GNUNET_new_array (64, struct GNUNET_TIME_Relative);
 
   sampler = GNUNET_new (struct RPS_Sampler);
   sampler->sampler_size = 0;
