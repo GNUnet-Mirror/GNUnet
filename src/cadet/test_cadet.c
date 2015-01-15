@@ -33,7 +33,7 @@
 /**
  * How namy messages to send
  */
-#define TOTAL_PACKETS 20
+#define TOTAL_PACKETS 2000
 
 /**
  * How long until we give up on connecting the peers?
@@ -265,7 +265,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc Task Context.
  */
 static void
-disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_cadet_peers (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   long line = (long) cls;
   unsigned int i;
@@ -275,7 +276,7 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
                 "disconnecting cadet peers due to SHUTDOWN! called from %ld\n",
                 line);
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "disconnecting cadet service of peers, called from line %ld\n",
                 line);
   disconnect_task = NULL;
@@ -370,11 +371,18 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
 static void
 gather_stats_and_exit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
   disconnect_task = NULL;
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "gathering statistics\n");
+
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+  {
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
+                                                (void *) __LINE__);
+    return;
+  }
+
+
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
@@ -430,10 +438,11 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CADET_Channel *channel;
   long src;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
+
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
   if (GNUNET_YES == test_backwards)
   {
     channel = incoming_ch;
@@ -443,6 +452,12 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     channel = ch;
     src = 0;
+  }
+
+  if (NULL == channel)
+  {
+    GNUNET_break (0);
+    return;
   }
   th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
