@@ -143,6 +143,11 @@ struct CadetPeer
      */
   struct GCD_search_handle *search_h;
 
+  /**
+   * Handle to stop the DHT search for paths to this peer
+   */
+  struct GNUNET_SCHEDULER_Task *search_delayed;
+
     /**
      * Tunnel to this peer, if any.
      */
@@ -694,6 +699,43 @@ shutdown_tunnel (void *cls,
 }
 
 
+
+/**
+ * Check if peer is searching for a path (either active or delayed search).
+ *
+ * @param peer Peer to check
+ *
+ * @return GNUNET_YES if there is a search active.
+ *         GNUNET_NO otherwise.
+ */
+static int
+is_searching (const struct CadetPeer *peer)
+{
+  return (NULL == peer->search_h && NULL == peer->search_delayed) ?
+         GNUNET_NO : GNUNET_YES;
+}
+
+
+/**
+ * @brief Start a search for a peer.
+ *
+ * @param cls Closure (Peer to search for).
+ * @param tc Task context.
+ */
+static void
+delayed_search (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CadetPeer *peer = cls;
+
+  peer->search_delayed = NULL;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+
+  GCP_start_search (peer);
+}
+
+
 /**
  * Destroy the peer_info and free any allocated resources linked to it
  *
@@ -719,10 +761,7 @@ peer_destroy (struct CadetPeer *peer)
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING, " not in peermap!!\n");
   }
-  if (NULL != peer->search_h)
-  {
-    GCD_search_stop (peer->search_h);
-  }
+  GCP_stop_search (peer);
   p = peer->path_head;
   while (NULL != p)
   {
@@ -1802,24 +1841,19 @@ GCP_connect (struct CadetPeer *peer)
     }
   }
 
-  if (NULL != peer->search_h && GNUNET_YES == rerun_search)
+  if (GNUNET_YES == rerun_search)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Stopping DHT GET for peer %s\n",
-         GCP_2s (peer));
-    GCD_search_stop (peer->search_h);
-    peer->search_h = NULL;
+    struct GNUNET_TIME_Relative delay;
+
+    GCP_stop_search (peer);
+    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100);
+    peer->search_delayed = GNUNET_SCHEDULER_add_delayed (delay, &delayed_search,
+                                                         peer);
+    return;
   }
 
-  if (NULL == peer->search_h)
-  {
-    const struct GNUNET_PeerIdentity *id;
-
-    id = GNUNET_PEER_resolve2 (peer->id);
-    peer->search_h = GCD_search (id, &search_handler, peer);
-    if (CADET_TUNNEL_NEW == GCT_get_cstate (t)
-        || 0 == GCT_count_any_connections (t))
-      GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
-  }
+  if (GNUNET_NO == is_searching (peer))
+    GCP_start_search (peer);
 }
 
 
@@ -2132,13 +2166,33 @@ GCP_remove_connection (struct CadetPeer *peer,
 void
 GCP_start_search (struct CadetPeer *peer)
 {
+  const struct GNUNET_PeerIdentity *id;
+  struct CadetTunnel *t = peer->tunnel;
+
   if (NULL != peer->search_h)
   {
     GNUNET_break (0);
     return;
   }
 
-  peer->search_h = GCD_search (GCP_get_id (peer), &search_handler, peer);
+  if (NULL != peer->search_delayed)
+    GCP_stop_search (peer);
+
+  id = GNUNET_PEER_resolve2 (peer->id);
+  peer->search_h = GCD_search (id, &search_handler, peer);
+
+  if (NULL == t)
+  {
+    /* Why would we search for a peer with no tunnel towards it? */
+    GNUNET_break (0);
+    return;
+  }
+
+  if (CADET_TUNNEL_NEW == GCT_get_cstate (t)
+      || 0 == GCT_count_any_connections (t))
+  {
+    GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
+  }
 }
 
 
@@ -2151,13 +2205,16 @@ GCP_start_search (struct CadetPeer *peer)
 void
 GCP_stop_search (struct CadetPeer *peer)
 {
-  if (NULL == peer->search_h)
+  if (NULL != peer->search_h)
   {
-    return;
+    GCD_search_stop (peer->search_h);
+    peer->search_h = NULL;
   }
-
-  GCD_search_stop (peer->search_h);
-  peer->search_h = NULL;
+  if (NULL != peer->search_delayed)
+  {
+    GNUNET_SCHEDULER_cancel (peer->search_delayed);
+    peer->search_delayed = NULL;
+  }
 }
 
 
@@ -2192,6 +2249,8 @@ GCP_get_short_id (const struct CadetPeer *peer)
 /**
  * Set tunnel.
  *
+ * If tunnel is NULL and there was a search active, stop it, as it's useless.
+ *
  * @param peer Peer.
  * @param t Tunnel.
  */
@@ -2199,7 +2258,7 @@ void
 GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t)
 {
   peer->tunnel = t;
-  if (NULL == t && NULL != peer->search_h)
+  if (NULL == t && GNUNET_YES == is_searching (peer))
   {
     GCP_stop_search (peer);
   }
