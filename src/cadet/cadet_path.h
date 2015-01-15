@@ -172,6 +172,19 @@ int
 path_destroy (struct CadetPeerPath *p);
 
 /**
+ * Compare two paths.
+ *
+ * @param p1 First path.
+ * @param p2 Second path.
+ *
+ * @return > 0 if p1 is longer, or the first differing PEER_Id is higher on p1.
+ *         < 0 if p2 is longer, or the first differing PEER_Id is higher on p2.
+ *         0 if they are identical.
+ */
+int
+path_cmp (const struct CadetPeerPath *p1, const struct CadetPeerPath *p2);
+
+/**
  * Builds a path from a PeerIdentity array.
  *
  * @param peers PeerIdentity array.
