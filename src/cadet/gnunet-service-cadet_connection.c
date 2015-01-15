@@ -720,6 +720,9 @@ get_prev_hop (const struct CadetConnection *c)
 {
   GNUNET_PEER_Id id;
 
+  if (NULL == c->path)
+    return NULL;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, " get prev hop %s [%u/%u]\n",
        GCC_2s (c), c->own_pos, c->path->length);
   if (0 == c->own_pos || c->path->length < 2)
@@ -745,6 +748,9 @@ static struct CadetPeer *
 get_next_hop (const struct CadetConnection *c)
 {
   GNUNET_PEER_Id id;
+
+  if (NULL == c->path)
+    return NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, " get next hop %s [%u/%u]\n",
        GCC_2s (c), c->own_pos, c->path->length);
@@ -2950,14 +2956,22 @@ void
 GCC_notify_broken (struct CadetConnection *c,
                    struct CadetPeer *peer)
 {
+  struct CadetPeer *hop;
   int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        " notify broken on %s due to %s disconnect\n",
        GCC_2s (c), GCP_2s (peer));
 
-  fwd = peer == get_prev_hop (c);
+  hop = get_prev_hop (c);
+  if (NULL == hop)
+  {
+    /* Path was NULL, we should have deleted the connection. */
+    GNUNET_break (0);
+    return;
+  }
 
+  fwd = (peer == hop);
   if (GNUNET_YES == GCC_is_terminal (c, fwd))
   {
     /* Local shutdown, no one to notify about this. */
