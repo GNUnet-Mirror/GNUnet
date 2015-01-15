@@ -350,7 +350,7 @@ GCD_search (const struct GNUNET_PeerIdentity *peer_id,
   struct GNUNET_HashCode phash;
   struct GCD_search_handle *h;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Starting DHT GET for peer %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting DHT GET for peer %s\n",
        GNUNET_i2s (peer_id));
   GNUNET_STATISTICS_update (stats, "# DHT search", 1, GNUNET_NO);
   memset (&phash, 0, sizeof (phash));
