@@ -2081,9 +2081,7 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
   for (iter = peer->path_head; NULL != iter; iter = next)
   {
     next = iter->next;
-    if (0 == memcmp (path->peers, iter->peers,
-                     sizeof (GNUNET_PEER_Id) * path->length)
-        && iter->length == path->length)
+    if (0 == path_cmp (path, iter))
     {
       GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
       if (iter != path)
