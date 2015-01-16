@@ -49,6 +49,18 @@ typedef void
     const struct GNUNET_PeerIdentity *id);
 
 /**
+ * Callback that is called from _get_n_rand_peers() when the PeerIDs are ready.
+ *
+ * @param cls the closure given alongside this function.
+ * @param ids the PeerIDs that were returned
+ *        to be freed
+ */
+  typedef void
+(*RPS_sampler_n_rand_peers_ready_cb) (void *cls,
+    struct GNUNET_PeerIdentity *ids, uint64_t num_peers);
+
+
+/**
  * A sampler sampling a stream of PeerIDs.
  */
 //struct RPS_Sampler;
@@ -102,15 +114,15 @@ RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id);
 
 
 /**
- * Get one random peer out of the sampled peers.
+ * Get n random peers out of the sampled peers.
  *
  * We might want to reinitialise this sampler after giving the
  * corrsponding peer to the client.
- *
- * @return a random PeerID of the PeerIDs previously put into the sampler.
+ * Random with or without consumption?
+ * Only used internally
  */
-  const struct GNUNET_PeerIdentity * 
-RPS_sampler_get_rand_peer ();
+  const struct GNUNET_PeerIdentity *
+RPS_sampler_get_n_rand_peers_ (uint64_t n);
 
 
 /**
@@ -120,10 +132,13 @@ RPS_sampler_get_rand_peer ();
  * corrsponding peer to the client.
  * Random with or without consumption?
  *
- * @return n random PeerIDs of the PeerIDs previously put into the sampler.
+ * @param cb callback that will be called once the ids are ready.
+ * @param cls closure given to @a cb
+ * @param num_peers the number of peers requested
  */
-  const struct GNUNET_PeerIdentity *
-RPS_sampler_get_n_rand_peers (uint64_t n);
+    void
+RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
+    void *cls, uint64_t num_peers);
 
 
 /**

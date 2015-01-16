@@ -133,6 +133,47 @@ struct RPS_Sampler
 };
 
 /**
+ * Closure to _get_n_rand_peers_ready_cb()
+ */
+struct RPS_GetNRandPeersReadyCls
+{
+  /**
+   * Number of peers we are waiting for.
+   */
+  uint64_t num_peers;
+
+  /**
+   * Number of peers we currently have.
+   */
+  uint64_t cur_num_peers;
+
+  /**
+   * Pointer to the array holding the ids.
+   */
+  struct GNUNET_PeerIdentity *ids;
+
+  /**
+   * Callback to be called when all ids are available.
+   */
+  RPS_sampler_n_rand_peers_ready_cb callback;
+
+  /**
+   * Closure given to the callback
+   */
+  void *cls;
+};
+
+/**
+ * Callback that is called from _get_rand_peer() when the PeerID is ready.
+ *
+ * @param cls the closure given alongside this function.
+ * @param id the PeerID that was returned
+ */
+typedef void
+(*RPS_sampler_rand_peer_ready_cb) (void *cls,
+        const struct GNUNET_PeerIdentity *id);
+
+/**
  * Global sampler variable.
  */
 struct RPS_Sampler *sampler;
@@ -157,6 +198,31 @@ static size_t max_size;
  * Inedex to the sampler element that is the next to be returned
  */
 static uint64_t client_get_index;
+
+
+/**
+ * Callback to _get_rand_peer() used by _get_n_rand_peers().
+ *
+ * Checks whether all n peers are available. If they are, 
+ * give those back.
+ */
+  void
+RPS_sampler_get_n_rand_peers_ready_cb (void *cls,
+    const struct GNUNET_PeerIdentity *id)
+{
+  struct RPS_GetNRandPeersReadyCls *n_peers_cls;
+
+  n_peers_cls = (struct RPS_GetNRandPeersReadyCls *) cls;
+
+  if (n_peers_cls->num_peers == n_peers_cls->cur_num_peers)
+  {
+    GNUNET_assert (NULL != n_peers_cls->callback);
+
+    n_peers_cls->callback (n_peers_cls->cls, n_peers_cls->ids, n_peers_cls->num_peers);
+    
+    GNUNET_free (n_peers_cls);
+  }
+}
 
 
 /**
@@ -507,20 +573,22 @@ RPS_sampler_get_n_rand_peers_ (uint64_t n)
  *
  * @return a random PeerID of the PeerIDs previously put into the sampler.
  */
-  const struct GNUNET_PeerIdentity * 
-RPS_sampler_get_rand_peer ()
+  void
+RPS_sampler_get_rand_peer (RPS_sampler_rand_peer_ready_cb cb,
+    void *cls, struct GNUNET_PeerIdentity *id)
 {
-  struct GNUNET_PeerIdentity *peer;
+  do
+  {
+  *id = sampler->sampler_elements[client_get_index]->peer_id;
 
-  // use _get_rand_peer_ ?
-  peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  *peer = sampler->sampler_elements[client_get_index]->peer_id;
   RPS_sampler_elem_reinit (sampler->sampler_elements[client_get_index]);
   if ( client_get_index == sampler->sampler_size )
     client_get_index = 0;
   else
     client_get_index++;
-  return peer;
+  } while (NOT_EMPTY == sampler->sampler_elements[client_get_index]->is_empty);
+
+  cb (cls, id);
 }
 
 
@@ -531,35 +599,39 @@ RPS_sampler_get_rand_peer ()
  * corrsponding peer to the client.
  * Random with or without consumption?
  *
- * @return n random PeerIDs of the PeerIDs previously put into the sampler.
+ * @param cb callback that will be called once the ids are ready.
+ * @param cls closure given to @a cb
+ * @param num_peers the number of peers requested
  */
-  const struct GNUNET_PeerIdentity *
-RPS_sampler_get_n_rand_peers (uint64_t n)
+  void
+RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
+    void *cls, uint64_t num_peers)
 {
   // use _get_rand_peers_ ?
   if ( 0 == sampler->sampler_size )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Sgrp: List empty - Returning NULL\n");
-    return NULL;
   }
   else
   {
     // TODO check if we have too much (distinct) sampled peers
     // If we are not ready yet maybe schedule for later
     struct GNUNET_PeerIdentity *peers;
-    const struct GNUNET_PeerIdentity *peer;
     uint64_t i;
+    struct RPS_GetNRandPeersReadyCls *cb_cls;
 
-    peers = GNUNET_malloc (n * sizeof (struct GNUNET_PeerIdentity));
+    peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
 
-    for ( i = 0 ; i < n ; i++ ) {
-      //peers[i] = RPS_sampler_get_rand_peer_(sampler->sampler_elements);
-      peer = RPS_sampler_get_rand_peer ();
-      memcpy (&peers[i], peer, sizeof (struct GNUNET_PeerIdentity));
-      //GNUNET_free (peer);
-    }
-    return peers;
+    cb_cls = GNUNET_new (struct RPS_GetNRandPeersReadyCls);
+    cb_cls->num_peers = num_peers;
+    cb_cls->cur_num_peers = 0;
+    cb_cls->callback = NULL;
+    cb_cls->cls = NULL;
+
+    for ( i = 0 ; i < num_peers ; i++ )
+      RPS_sampler_get_rand_peer (RPS_sampler_get_n_rand_peers_ready_cb,
+          cb_cls, &peers[i]);
   }
 }
 

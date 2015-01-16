@@ -518,6 +518,43 @@ nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimat
   }
 }
 
+
+/**
+ * Callback called once the requested PeerIDs are ready.
+ *
+ * Sends those to the requesting client.
+ */
+void client_respond (void *cls,
+    struct GNUNET_PeerIdentity *ids, uint64_t num_peers)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_ReplyMessage *out_msg;
+  struct GNUNET_SERVER_Client *client;
+  struct client_ctx *cli_ctx;
+
+  client = (struct GNUNET_SERVER_Client *) cls;
+
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            num_peers * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
+  out_msg->num_peers = GNUNET_htonll (num_peers);
+
+  memcpy(&out_msg[1],
+      ids,
+      num_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_free (ids);
+  
+  cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct client_ctx);
+  if ( NULL == cli_ctx ) {
+    cli_ctx = GNUNET_new (struct client_ctx);
+    cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
+    GNUNET_SERVER_client_set_user_context (client, cli_ctx);
+  }
+  
+  GNUNET_MQ_send (cli_ctx->mq, ev);
+}
+
+
 /**
  * Handle RPS request from the client.
  *
@@ -533,15 +570,7 @@ handle_client_request (void *cls,
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Client requested (a) random peer(s).\n");
 
   struct GNUNET_RPS_CS_RequestMessage *msg;
-  //unsigned int n_arr[sampler_list->size];// =
-    //GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
-  //struct GNUNET_MQ_Handle *mq;
-  struct client_ctx *cli_ctx;
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   uint64_t num_peers;
-  const struct GNUNET_PeerIdentity *peers;
-  //uint64_t i;
 
 
   /* Estimate request rate */
@@ -558,37 +587,16 @@ handle_client_request (void *cls,
         GNUNET_TIME_absolute_get ());
     request_rate = T_relative_avg (request_deltas, req_counter);
   }
-  last_request = GNUNET_TIME_absolute_get();
+  last_request = GNUNET_TIME_absolute_get ();
   // TODO resize the size of the extended_samplers
 
 
   // TODO check message size
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
-  cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct client_ctx);
-  if ( NULL == cli_ctx ) {
-    cli_ctx = GNUNET_new(struct client_ctx);
-    cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
-    GNUNET_SERVER_client_set_user_context (client, cli_ctx);
-  }
-  
-  // How many peers do we give back?
-  // Wait until we have enough random peers?
 
   num_peers = GNUNET_ntohll (msg->num_peers);
 
-  ev = GNUNET_MQ_msg_extra (out_msg,
-                            num_peers * sizeof (struct GNUNET_PeerIdentity),
-                            GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
-  out_msg->num_peers = msg->num_peers; // No conversion between network and network order
-
-  //&out_msg[1] = RPS_sampler_get_n_rand_peers (num_peers);
-  peers = RPS_sampler_get_n_rand_peers (num_peers);
-  memcpy(&out_msg[1],
-      peers,
-      num_peers * sizeof (struct GNUNET_PeerIdentity));
-  
-  GNUNET_MQ_send (cli_ctx->mq, ev);
-  //GNUNET_MQ_destroy(mq);
+  RPS_sampler_get_n_rand_peers (client_respond, client, num_peers);
 
   GNUNET_SERVER_receive_done (client,
 			      GNUNET_OK);
@@ -859,13 +867,13 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     uint64_t first_border;
     uint64_t second_border;
     
-    GNUNET_array_grow(gossip_list, gossip_list_size, sampler_size);
+    GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size);
 
-    first_border = round(alpha * gossip_list_size);
+    first_border = round (alpha * gossip_list_size);
     for ( i = 0 ; i < first_border ; i++ )
     { // TODO use RPS_sampler_get_n_rand_peers
       /* Update gossip list with peers received through PUSHes */
-      r_index = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
+      r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                        push_list_size);
       gossip_list[i] = push_list[r_index];
       // TODO change the in_flags accordingly
@@ -875,7 +883,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for ( i = first_border ; i < second_border ; i++ )
     {
       /* Update gossip list with peers received through PULLs */
-      r_index = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
+      r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                        pull_list_size);
       gossip_list[i] = pull_list[r_index];
       // TODO change the in_flags accordingly
@@ -884,7 +892,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for ( i = second_border ; i < gossip_list_size ; i++ )
     {
       /* Update gossip list with peers from history */
-      peer = RPS_sampler_get_n_rand_peers (1),
+      peer = RPS_sampler_get_n_rand_peers_ (1);
       gossip_list[i] = *peer;
       // TODO change the in_flags accordingly
     }
@@ -1023,7 +1031,7 @@ init_peer_cb (void *cls,
     if (ipc->i < gossip_list_size)
     {
       memcpy(&gossip_list[ipc->i],
-          RPS_sampler_get_n_rand_peers (1),
+          RPS_sampler_get_n_rand_peers_ (1),
           (gossip_list_size - ipc->i) * sizeof(struct GNUNET_PeerIdentity));
     }
     rps_start (ipc->server);
