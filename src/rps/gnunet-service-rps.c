@@ -688,10 +688,9 @@ handle_peer_push (void *cls,
 
   // (check the proof of work) 
   
-  // TODO accept empty message
-  if (ntohs(msg->size) != sizeof (struct GNUNET_RPS_P2P_PushMessage))
+  if (ntohs(msg->size) != sizeof (struct GNUNET_MessageHeader))
   {
-    GNUNET_break_op (0); // At the moment our own implementation seems to break that.
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
 
@@ -727,10 +726,8 @@ handle_peer_pull_request (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
 
-  // assert that msg->size is 0
 
-  // TODO accept empty message
-  if (ntohs(msg->size) != sizeof (struct GNUNET_RPS_P2P_PullRequestMessage))
+  if (ntohs(msg->size) != sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0); // At the moment our own implementation seems to break that.
     return GNUNET_SYSERR;
@@ -823,14 +820,13 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint64_t i;
   //unsigned int *n_arr;
   unsigned int n_peers; /* Number of peers we send pushes/pulls to */
-  struct GNUNET_RPS_P2P_PushMessage        *push_msg;
-  struct GNUNET_RPS_P2P_PullRequestMessage *pull_msg; // FIXME Send empty message
+  struct GNUNET_MessageHeader *push_msg;
+  struct GNUNET_MessageHeader *pull_msg;
   struct GNUNET_MQ_Envelope *ev;
   const struct GNUNET_PeerIdentity *peer;
   struct GNUNET_MQ_Handle *mq;
 
-  // TODO print lists, ...
-  // TODO randomise and spread calls herein over time
+  // TODO log lists, ...
 
 
   /* Would it make sense to have one shuffeled gossip list and then
@@ -853,7 +849,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-      push_msg = NULL;
       // FIXME sometimes it returns a pointer to a freed mq
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
@@ -876,7 +871,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-      pull_msg = NULL;
+      //pull_msg = NULL;
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
     }

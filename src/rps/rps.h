@@ -53,39 +53,6 @@ struct GNUNET_RPS_P2P_PushMessage
   uint64_t placeholder;
 };
 
-/**
- * P2P Message to request PeerIDs from other peer.
- */
-struct GNUNET_RPS_P2P_PullRequestMessage
-{
-  /**
-   * Header including size and type in NBO
-   */
-  struct GNUNET_MessageHeader header;
-
-  /* This probably stays empty as we just
-   * infrom the peer of our existence */
-  uint64_t placeholder;
-};
-
-/**
- * P2P Message to send PeerIDs to other peer.
- */
-struct GNUNET_RPS_P2P_PullReplyMessage
-{
-  /**
-   * Header including size and type in NBO
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Number of PeerIDs sent
-   */
-  uint32_t num_peers GNUNET_PACKED;
-
-  /* Followed by num_peers * GNUNET_PeerIdentity */
-};
-
 
 
 /***********************************************************************
