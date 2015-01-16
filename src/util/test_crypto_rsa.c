@@ -20,7 +20,7 @@
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 #include "platform.h"
-#include <gnunet/gnunet_util_lib.h>
+#include "gnunet_util_lib.h"
 
 #define KEY_SIZE 1024
 
