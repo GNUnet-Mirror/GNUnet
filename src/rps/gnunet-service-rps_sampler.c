@@ -579,13 +579,13 @@ RPS_sampler_get_rand_peer (RPS_sampler_rand_peer_ready_cb cb,
 {
   do
   {
-  *id = sampler->sampler_elements[client_get_index]->peer_id;
+    *id = sampler->sampler_elements[client_get_index]->peer_id;
 
-  RPS_sampler_elem_reinit (sampler->sampler_elements[client_get_index]);
-  if ( client_get_index == sampler->sampler_size )
-    client_get_index = 0;
-  else
-    client_get_index++;
+    RPS_sampler_elem_reinit (sampler->sampler_elements[client_get_index]);
+    if ( client_get_index == sampler->sampler_size )
+      client_get_index = 0;
+    else
+      client_get_index++;
   } while (NOT_EMPTY == sampler->sampler_elements[client_get_index]->is_empty);
 
   cb (cls, id);
