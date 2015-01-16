@@ -117,7 +117,9 @@ TESTING_TESTS = \
  test_ats_api_scheduling_destroy_address_twice \
  test_ats_api_scheduling_add_session \
  test_ats_api_scheduling_destroy_session \
+ test_ats_api_delayed_service_scheduling_add_address \
  test_ats_api_performance_list_all_addresses \
+ test_ats_api_delayed_service_performance_list_all_addresses \
  test_ats_api_performance_list_peer_addresses \
  test_ats_api_performance_list_all_addresses_active \
  test_ats_api_performance_monitor \
@@ -168,6 +170,15 @@ test_ats_api_scheduling_add_address_SOURCES = \
  test_ats_api_scheduling_add_address.c \
  test_ats_api_common.c test_ats_api_common.h
 test_ats_api_scheduling_add_address_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  libgnunetats.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+
+test_ats_api_delayed_service_scheduling_add_address_SOURCES = \
+ test_ats_api_delayed_service_scheduling_add_address.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_api_delayed_service_scheduling_add_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetats.la \
@@ -235,6 +246,15 @@ test_ats_api_performance_list_all_addresses_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
+	
+test_ats_api_delayed_service_performance_list_all_addresses_SOURCES = \
+ test_ats_api_delayed_service_performance_list_all_addresses.c
+test_ats_api_delayed_service_performance_list_all_addresses_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la	
 
 test_ats_api_performance_list_peer_addresses_SOURCES = \
  test_ats_api_performance_list_peer_addresses.c
@@ -500,7 +520,9 @@ test_ats_solver_preferences_ril_LDADD = \
 
 EXTRA_DIST = \
   ats.h \
+  test_delay \
   test_ats_api.conf \
+  test_ats_api_delayed.conf \
   test_ats_mlp.conf \
   test_ats_solver_default.conf \
   test_ats_solver_proportional.conf \
