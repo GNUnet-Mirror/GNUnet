@@ -38,19 +38,21 @@ GNUNET_NETWORK_STRUCT_BEGIN
 ***********************************************************************/
 
 /**
- * P2P Message to push own ID to other peer.
+ * P2P Message to send PeerIDs to other peer.
  */
-struct GNUNET_RPS_P2P_PushMessage
+struct GNUNET_RPS_P2P_PullReplyMessage
 {
   /**
    * Header including size and type in NBO
    */
   struct GNUNET_MessageHeader header;
 
-  /** 
-   * TODO Proof of work
+  /**
+   * Number of PeerIDs sent
    */
-  uint64_t placeholder;
+  uint32_t num_peers GNUNET_PACKED;
+
+  /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
 
