@@ -266,7 +266,7 @@ phone_event_handler (void *cls,
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
     FPRINTF (stdout,
-             _("Incoming call from `%s'. Please /accept #%u or /cancel %u the call.\n"),
+             _("Incoming call from `%s'. Please /accept %u or /cancel %u the call.\n"),
              GNUNET_GNSRECORD_pkey_to_zkey (caller_id),
              caller_num_gen,
              caller_num_gen);
