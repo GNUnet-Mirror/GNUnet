@@ -579,6 +579,7 @@ RPS_sampler_get_rand_peer (RPS_sampler_rand_peer_ready_cb cb,
 {
   do
   {
+    // TODO check if we can actually return that now - otherwise wait
     *id = sampler->sampler_elements[client_get_index]->peer_id;
 
     RPS_sampler_elem_reinit (sampler->sampler_elements[client_get_index]);
