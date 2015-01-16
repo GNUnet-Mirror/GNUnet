@@ -485,6 +485,54 @@ call_error_handler (void *cls,
 static void
 reconnect_call (struct GNUNET_CONVERSATION_Call *call)
 {
+  if (CS_ACTIVE == call->state)
+  {
+    call->speaker->disable_speaker (call->speaker->cls);
+    call->mic->disable_microphone (call->mic->cls);
+  }
+  if (NULL != call->mq)
+  {
+    GNUNET_MQ_destroy (call->mq);
+    call->mq = NULL;
+  }
+  if (NULL != call->client)
+  {
+    GNUNET_CLIENT_disconnect (call->client);
+    call->client = NULL;
+  }
+  call->state = CS_SHUTDOWN;
+  call->event_handler (call->event_handler_cls,
+                       GNUNET_CONVERSATION_EC_CALL_ERROR);
+  GNUNET_CONVERSATION_call_stop (call);
+}
+
+
+/**
+ * Call the phone of another user.
+ *
+ * @param cfg configuration to use, specifies our phone service
+ * @param caller_id identity of the caller
+ * @param zone_id GNS zone to use to resolve @a callee
+ * @param callee GNS name of the callee (used to locate the callee's record)
+ * @param speaker speaker to use (will be used automatically immediately once the
+ *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated); we will NOT generate
+ *        a ring tone on the speaker
+ * @param mic microphone to use (will be used automatically immediately once the
+ *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated)
+ * @param event_handler how to notify the owner of the phone about events
+ * @param event_handler_cls closure for @a event_handler
+ * @return handle for the call, NULL on hard errors
+ */
+struct GNUNET_CONVERSATION_Call *
+GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+				struct GNUNET_IDENTITY_Ego *caller_id,
+				struct GNUNET_IDENTITY_Ego *zone_id,
+				const char *callee,
+				struct GNUNET_SPEAKER_Handle *speaker,
+				struct GNUNET_MICROPHONE_Handle *mic,
+				GNUNET_CONVERSATION_CallEventHandler event_handler,
+				void *event_handler_cls)
+{
   static struct GNUNET_MQ_MessageHandler handlers[] =
   {
     { &handle_call_suspend,
@@ -505,31 +553,30 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
     { NULL, 0, 0 }
   };
   struct GNUNET_CRYPTO_EcdsaPublicKey my_zone;
+  struct GNUNET_CONVERSATION_Call *call;
 
-  if (CS_ACTIVE == call->state)
-  {
-    call->speaker->disable_speaker (call->speaker->cls);
-    call->mic->disable_microphone (call->mic->cls);
-  }
-  if (NULL != call->mq)
-  {
-    GNUNET_MQ_destroy (call->mq);
-    call->mq = NULL;
-  }
-  if (NULL != call->client)
-  {
-    GNUNET_CLIENT_disconnect (call->client);
-    call->client = NULL;
-  }
-  call->state = CS_SHUTDOWN;
-  call->client = GNUNET_CLIENT_connect ("conversation", call->cfg);
+  call = GNUNET_new (struct GNUNET_CONVERSATION_Call);
+  call->client = GNUNET_CLIENT_connect ("conversation", cfg);
   if (NULL == call->client)
   {
-    call->event_handler (call->event_handler_cls,
-                       GNUNET_CONVERSATION_EC_CALL_ERROR);
-    return;
+    GNUNET_break (0);
+    GNUNET_free (call);
+    return NULL;
   }
-
+  call->cfg = cfg;
+  call->caller_id = caller_id;
+  call->zone_id = zone_id;
+  call->callee = GNUNET_strdup (callee);
+  call->speaker = speaker;
+  call->mic = mic;
+  call->event_handler = event_handler;
+  call->event_handler_cls = event_handler_cls;
+  call->gns = GNUNET_GNS_connect (cfg);
+  if (NULL == call->gns)
+  {
+    GNUNET_CONVERSATION_call_stop (call);
+    return NULL;
+  }
   call->mq = GNUNET_MQ_queue_for_connection_client (call->client,
                                                     handlers,
                                                     &call_error_handler,
@@ -545,54 +592,6 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
                                         NULL /* FIXME: add shortening support */,
                                         &handle_gns_response, call);
   GNUNET_assert (NULL != call->gns_lookup);
-}
-
-
-/**
- * Call the phone of another user.
- *
- * @param cfg configuration to use, specifies our phone service
- * @param caller_id identity of the caller
- * @param zone_id GNS zone to use to resolve @a callee
- * @param callee GNS name of the callee (used to locate the callee's record)
- * @param speaker speaker to use (will be used automatically immediately once the
- *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated); we will NOT generate
- *        a ring tone on the speaker
- * @param mic microphone to use (will be used automatically immediately once the
- *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated)
- * @param event_handler how to notify the owner of the phone about events
- * @param event_handler_cls closure for @a event_handler
- */
-struct GNUNET_CONVERSATION_Call *
-GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-				struct GNUNET_IDENTITY_Ego *caller_id,
-				struct GNUNET_IDENTITY_Ego *zone_id,
-				const char *callee,
-				struct GNUNET_SPEAKER_Handle *speaker,
-				struct GNUNET_MICROPHONE_Handle *mic,
-				GNUNET_CONVERSATION_CallEventHandler event_handler,
-				void *event_handler_cls)
-{
-  struct GNUNET_CONVERSATION_Call *call;
-
-  call = GNUNET_new (struct GNUNET_CONVERSATION_Call);
-  call->cfg = cfg;
-  call->caller_id = caller_id;
-  call->zone_id = zone_id;
-  call->callee = GNUNET_strdup (callee);
-  call->speaker = speaker;
-  call->mic = mic;
-  call->event_handler = event_handler;
-  call->event_handler_cls = event_handler_cls;
-  call->gns = GNUNET_GNS_connect (cfg);
-  reconnect_call (call);
-
-  if ( (NULL == call->client) ||
-       (NULL == call->gns) )
-  {
-    GNUNET_CONVERSATION_call_stop (call);
-    return NULL;
-  }
   return call;
 }
 

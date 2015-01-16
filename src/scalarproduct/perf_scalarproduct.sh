@@ -10,7 +10,7 @@
 # 400                149           23
 # 800                304           32
 # Configure benchmark size:
-SIZE=25
+SIZE=1600
 #
 # Construct input vectors:
 INPUTALICE="-k CCC -e '"

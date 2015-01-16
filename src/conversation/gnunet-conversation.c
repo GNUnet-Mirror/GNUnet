@@ -440,8 +440,9 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_ERROR:
     FPRINTF (stdout,
              _("Error with the call, restarting it\n"));
-    call_state = CS_RESOLVING;
-    // FIXME: is this correct?
+    GNUNET_free (peer_name);
+    peer_name = NULL;
+    call = NULL;
     break;
   }
 }

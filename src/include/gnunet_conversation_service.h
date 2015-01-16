@@ -295,6 +295,7 @@ struct GNUNET_CONVERSATION_Call;
  */
 enum GNUNET_CONVERSATION_CallEventCode
 {
+
   /**
    * We are the caller and are now ringing the other party (GNS lookup
    * succeeded).
