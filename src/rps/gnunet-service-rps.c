@@ -173,15 +173,12 @@ static struct GNUNET_PeerIdentity *gossip_list;
 /**
  * Size of the gossiped list
  */
-static unsigned int gossip_list_size;
+//static unsigned int gossip_list_size;
+static uint32_t gossip_list_size;
 
 
 /**
- * The size Brahms needs according to the network size.
- *
- * This is directly taken as the #gossip_list_size on update of the
- * #gossip_list
- * This is the minimum size the sampler grows to.
+ * The actual size of the sampler
  */
 static unsigned int sampler_size;
 //size_t sampler_size;
@@ -190,7 +187,18 @@ static unsigned int sampler_size;
  * The size of sampler we need to be able to satisfy the client's need of
  * random peers.
  */
-//static unsigned int sampler_size_client_need;
+static unsigned int sampler_size_client_need;
+
+/**
+ * The size of sampler we need to be able to satisfy the Brahms protocol's
+ * need of random peers.
+ *
+ * This is directly taken as the #gossip_list_size on update of the
+ * #gossip_list
+ *
+ * This is one minimum size the sampler grows to.
+ */
+static unsigned int sampler_size_est_need;
 
 
 /**
@@ -469,6 +477,33 @@ T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
 ***********************************************************************/
 
 /**
+ * Wrapper around _sampler_resize()
+ */
+  void
+resize_wrapper()
+{
+  uint64_t bigger_size;
+
+  // TODO statistics
+
+  if (sampler_size_est_need > sampler_size_client_need)
+    bigger_size = sampler_size_client_need;
+  else
+    bigger_size = sampler_size_est_need;
+
+  // TODO respect the request rate, min, max
+  if (sampler_size > bigger_size*4)
+  { /* Shrinking */
+    RPS_sampler_resize (sampler_size/2);
+  }
+  else if (sampler_size < bigger_size)
+  { /* Growing */
+    RPS_sampler_resize (sampler_size*2);
+  }
+}
+
+
+/**
  * Function called by NSE.
  *
  * Updates sizes of sampler list and gossip list and adapt those lists
@@ -478,14 +513,11 @@ T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
 nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimate, double std_dev)
 {
   double estimate;
-  unsigned int old_est;
   //double scale; // TODO this might go gloabal/config
 
-  old_est = sampler_size;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Received a ns estimate - logest: %f, std_dev: %f (old_est: %f)\n",
-      logestimate, std_dev, old_est);
+      "Received a ns estimate - logest: %f, std_dev: %f (old_size: %f)\n",
+      logestimate, std_dev, sampler_size);
   //scale = .01;
   estimate = GNUNET_NSE_log_estimate_to_n (logestimate);
   // GNUNET_NSE_log_estimate_to_n (logestimate);
@@ -494,23 +526,12 @@ nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimat
   // estimate += (std_dev * scale);
   if ( 0 < estimate ) {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
-    sampler_size = estimate;
+    sampler_size_est_need = estimate;
   } else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Not using estimate %f\n", estimate);
 
   /* If the NSE has changed adapt the lists accordingly */
-  // TODO respect the request rate, min, max
-  if (old_est > sampler_size*4)
-  { /* Shrinking */
-    RPS_sampler_resize (old_est/2);
-  }
-  else if (old_est < sampler_size)
-  { /* Growing */
-    if (sampler_size < old_est*2)
-      RPS_sampler_resize (old_est*2);
-    else
-      RPS_sampler_resize (sampler_size);
-  }
+  resize_wrapper ();
 }
 
 
@@ -566,6 +587,7 @@ handle_client_request (void *cls,
 
   struct GNUNET_RPS_CS_RequestMessage *msg;
   uint64_t num_peers;
+  struct GNUNET_TIME_Relative max_round_duration;
 
 
   /* Estimate request rate */
@@ -581,15 +603,20 @@ handle_client_request (void *cls,
     request_deltas[0] = GNUNET_TIME_absolute_get_difference (last_request,
         GNUNET_TIME_absolute_get ());
     request_rate = T_relative_avg (request_deltas, req_counter);
+
+    max_round_duration = GNUNET_TIME_relative_add (round_interval,
+        GNUNET_TIME_relative_divide (round_interval, 2));
+    sampler_size_client_need = max_round_duration.rel_value_us / request_rate.rel_value_us;
+
+    resize_wrapper();
   }
   last_request = GNUNET_TIME_absolute_get ();
-  // TODO resize the size of the extended_samplers
 
 
   // TODO check message size
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
 
-  num_peers = GNUNET_ntohll (msg->num_peers);
+  num_peers = ntohl (msg->num_peers);
 
   RPS_sampler_get_n_rand_peers (client_respond, client, num_peers);
 
@@ -622,7 +649,7 @@ handle_client_seed (void *cls,
   }
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
   if (ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage) /
-      sizeof (struct GNUNET_PeerIdentity) != GNUNET_ntohll (in_msg->num_peers))
+      sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
@@ -632,7 +659,7 @@ handle_client_seed (void *cls,
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
   peers = (struct GNUNET_PeerIdentity *) &message[1];
 
-  for ( i = 0 ; i < GNUNET_ntohll (in_msg->num_peers) ; i++ )
+  for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
     RPS_sampler_update_list (&peers[i]);
 
   GNUNET_SERVER_receive_done (client,
@@ -711,14 +738,17 @@ handle_peer_pull_request (void *cls,
 
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REQUEST from peer %s received\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "PULL REQUEST from peer %s received, going to send %u peers\n",
+      GNUNET_i2s (peer), gossip_list_size);
 
   mq = get_mq (peer_map, peer);
 
   ev = GNUNET_MQ_msg_extra (out_msg,
                            gossip_list_size * sizeof (struct GNUNET_PeerIdentity),
                            GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
-  out_msg->num_peers = GNUNET_htonll (gossip_list_size);
+  //out_msg->num_peers = GNUNET_htonll (gossip_list_size);
+  out_msg->num_peers = htonl (gossip_list_size);
   memcpy (&out_msg[1], gossip_list,
          gossip_list_size * sizeof (struct GNUNET_PeerIdentity));
 
@@ -750,14 +780,17 @@ handle_peer_pull_reply (void *cls,
   struct GNUNET_PeerIdentity *peers;
   uint64_t i;
 
-  if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) < ntohs (msg->size))
+  if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
   {
     GNUNET_break_op (0); // At the moment our own implementation seems to break that.
     return GNUNET_SYSERR;
   }
   in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
-  if (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) / sizeof (struct GNUNET_PeerIdentity) != GNUNET_ntohll (in_msg->num_peers))
+  if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) / sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "message says it sends %" PRIu64 " peers, have space for %i peers\n",
+        ntohl (in_msg->num_peers),
+        (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) / sizeof (struct GNUNET_PeerIdentity));
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -765,9 +798,9 @@ handle_peer_pull_reply (void *cls,
   // TODO check that we sent a request and that it is the first reply
 
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  for ( i = 0 ; i < GNUNET_ntohll (in_msg->num_peers) ; i++ )
+  for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
   {
-    if (GNUNET_NO == in_arr(pull_list, pull_list_size, &peers[i]))
+    if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
       GNUNET_array_append (pull_list, pull_list_size, peers[i]);
   }
 
@@ -862,7 +895,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     uint64_t first_border;
     uint64_t second_border;
     
-    GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size);
+    GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size_est_need);
 
     first_border = round (alpha * gossip_list_size);
     for ( i = 0 ; i < first_border ; i++ )
@@ -1210,25 +1243,25 @@ run (void *cls,
   /* Get initial size of sampler/gossip list from the configuration */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "RPS",
                                                          "INITSIZE",
-                                                         (long long unsigned int *) &sampler_size))
+                                                         (long long unsigned int *) &sampler_size_est_need))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read INITSIZE from config\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", sampler_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", sampler_size_est_need);
 
   //gossip_list_size = sampler_size; // TODO rename sampler_size
 
   gossip_list = NULL;
-  GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size);
+  GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size_est_need);
 
 
   /* connect to NSE */
-  nse = GNUNET_NSE_connect(cfg, nse_callback, NULL);
+  nse = GNUNET_NSE_connect (cfg, nse_callback, NULL);
   // TODO check whether that was successful
   // TODO disconnect on shutdown
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Connected to NSE\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to NSE\n");
 
 
   alpha = 0.45;
@@ -1255,7 +1288,7 @@ run (void *cls,
 
   // TODO check that alpha + beta < 1
 
-  peer_map = GNUNET_CONTAINER_multipeermap_create (sampler_size, GNUNET_NO);
+  peer_map = GNUNET_CONTAINER_multipeermap_create (sampler_size_est_need, GNUNET_NO);
 
 
   /* Initialise cadet */
@@ -1277,7 +1310,8 @@ run (void *cls,
 
 
   /* Initialise sampler */
-  RPS_sampler_init (sampler_size, own_identity, insertCB, NULL, removeCB, NULL);
+  RPS_sampler_init (sampler_size_est_need, own_identity, insertCB, NULL, removeCB, NULL);
+  sampler_size = sampler_size_est_need;
 
   /* Initialise push and pull maps */
   push_list = NULL;
