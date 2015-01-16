@@ -1440,6 +1440,8 @@ send_packet (struct GNUNET_CADET_Handle *h,
   th->channel = channel;
   memcpy (&th[1], msg, msize);
   add_to_queue (h, th);
+  if (NULL != h->th)
+    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  calling ntfy tmt rdy for %u bytes\n", msize);
   h->th =
       GNUNET_CLIENT_notify_transmit_ready (h->client, msize,
