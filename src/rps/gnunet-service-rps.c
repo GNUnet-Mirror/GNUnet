@@ -264,11 +264,6 @@ static struct GNUNET_NSE_Handle *nse;
  */
 static struct GNUNET_CADET_Handle *cadet_handle;
 
-/**
- * Global counter
- */
-uint64_t g_i = 0;
-
 
 /**
  * Request counter.
