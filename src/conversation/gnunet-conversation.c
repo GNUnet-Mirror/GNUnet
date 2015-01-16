@@ -104,7 +104,6 @@ enum CallState
 };
 
 
-
 /**
  * List of incoming calls
  */
@@ -152,6 +151,7 @@ static struct GNUNET_CONVERSATION_Call *call;
 
 /**
  * Caller handle (for active incoming call).
+ * This call handler is NOT in the #cl_head / #cl_tail list.
  */
 static struct CallList *cl_active;
 
@@ -282,6 +282,9 @@ phone_event_handler (void *cls,
     for (cl = cl_head; NULL != cl; cl = cl->next)
       if (caller == cl->caller)
         break;
+    if ( (NULL == cl) &&
+         (caller == cl_active->caller) )
+      cl = cl_active;
     if (NULL == cl)
     {
       GNUNET_break (0);
@@ -290,13 +293,16 @@ phone_event_handler (void *cls,
     FPRINTF (stdout,
              _("Call from `%s' terminated\n"),
              GNUNET_GNSRECORD_pkey_to_zkey (&cl->caller_id));
-    GNUNET_CONTAINER_DLL_remove (cl_head,
-                                 cl_tail,
-                                 cl);
     if (cl == cl_active)
     {
       cl_active = NULL;
       phone_state = PS_LISTEN;
+    }
+    else
+    {
+      GNUNET_CONTAINER_DLL_remove (cl_head,
+                                   cl_tail,
+                                   cl);
     }
     GNUNET_free (cl);
     break;
