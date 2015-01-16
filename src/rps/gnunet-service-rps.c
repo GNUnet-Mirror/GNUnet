@@ -688,12 +688,6 @@ handle_peer_push (void *cls,
 
   // (check the proof of work) 
   
-  if (ntohs(msg->size) != sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-
   peer = (const struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
@@ -726,12 +720,6 @@ handle_peer_pull_request (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
 
-
-  if (ntohs(msg->size) != sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break_op (0); // At the moment our own implementation seems to break that.
-    return GNUNET_SYSERR;
-  }
 
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
@@ -1288,8 +1276,10 @@ run (void *cls,
 
   /* Initialise cadet */
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH        , 0},
-    {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST, 0},
+    {&handle_peer_push        , GNUNET_MESSAGE_TYPE_RPS_PP_PUSH        ,
+      sizeof (struct GNUNET_MessageHeader)},
+    {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
+      sizeof (struct GNUNET_MessageHeader)},
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
     {NULL, 0, 0}
   };
