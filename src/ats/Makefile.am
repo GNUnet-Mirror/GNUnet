@@ -26,6 +26,7 @@ if HAVE_LIBGLPK
   GN_MLP_PERF = perf_ats_mlp
   GN_MLP_ADD_ADDRESS = test_ats_solver_add_address_mlp
   GN_MLP_ADD_REQUEST_ADDRESS = test_ats_solver_add_address_and_request_mlp
+  GN_MLP_ADD_REQUEST_ADDRESS_DELAYED = test_ats_solver_add_address_and_request_delayed_mlp
   GN_MLP_REQUEST_ADD_ADDRESS = test_ats_solver_request_and_add_address_mlp
   GN_MLP_REQUEST_DELETE_ADDRESS = test_ats_solver_request_and_delete_address_mlp
   GN_MLP_PREFERENCES_ADDRESS = test_ats_solver_preferences_mlp
@@ -123,10 +124,11 @@ TESTING_TESTS = \
  test_ats_api_performance_list_peer_addresses \
  test_ats_api_performance_list_all_addresses_active \
  test_ats_api_performance_monitor \
- test_ats_api_delayed_service_performance_monitor\ 
+ test_ats_api_delayed_service_performance_monitor \
  test_ats_api_performance_monitor_initial_callback \
  test_ats_solver_add_address_proportional \
  test_ats_solver_add_address_and_request_proportional \
+ test_ats_solver_add_address_and_request_delayed_proportional\
  test_ats_solver_request_and_add_address_proportional \
  test_ats_solver_request_and_delete_address_proportional \
  test_ats_solver_alternative_after_delete_address_proportional \
@@ -134,12 +136,14 @@ TESTING_TESTS = \
  test_ats_solver_preferences_ril \
  $(GN_MLP_ADD_ADDRESS) \
  $(GN_MLP_ADD_REQUEST_ADDRESS) \
+ $(GN_MLP_ADD_REQUEST_ADDRESS_DELAYED) \
  $(GN_MLP_REQUEST_ADD_ADDRESS) \
  $(GN_MLP_REQUEST_DELETE_ADDRESS) \
  $(GN_MLP_ALTERNATIVE_DELETE_ADDRESS) \
  $(GN_MLP_PREFERENCES_ADDRESS) \
  test_ats_solver_add_address_ril \
  test_ats_solver_add_address_and_request_ril \
+  test_ats_solver_add_address_and_request_delayed_ril \
  test_ats_solver_request_and_add_address_ril \
  test_ats_solver_request_and_delete_address_ril \
  test_ats_solver_alternative_after_delete_address_ril \
@@ -347,6 +351,26 @@ test_ats_solver_add_address_and_request_proportional_LDADD = \
   libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
+test_ats_solver_add_address_and_request_delayed_proportional_SOURCES = \
+ test_ats_solver_add_address_and_request.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_add_address_and_request_delayed_proportional_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
+	
+test_ats_solver_add_address_and_request_delayed_ril_SOURCES = \
+ test_ats_solver_add_address_and_request.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_add_address_and_request_delayed_ril_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la	
+
 if HAVE_LIBGLPK
 test_ats_solver_add_address_and_request_mlp_SOURCES = \
  test_ats_solver_add_address_and_request.c \
@@ -358,6 +382,16 @@ test_ats_solver_add_address_and_request_mlp_LDADD = \
   libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
 endif
+
+test_ats_solver_add_address_and_request_delayed_mlp_SOURCES = \
+ test_ats_solver_add_address_and_request.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_add_address_and_request_delayed_mlp_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la	
 
 test_ats_solver_add_address_and_request_ril_SOURCES = \
  test_ats_solver_add_address_and_request.c \
@@ -538,9 +572,13 @@ EXTRA_DIST = \
   test_ats_mlp.conf \
   test_ats_solver_default.conf \
   test_ats_solver_proportional.conf \
+  test_ats_solver_proportional.conf \
   test_ats_solver_mlp.conf \
+  test_ats_solver_delayed_mlp.conf \
   test_ats_solver_ril.conf \
+  test_ats_solver_delayed_ril.conf \
   perf_ats_solver_mlp.conf \
+  test_ats_solver_delayed_mlp.conf \
   perf_ats_solver_proportional.conf \
   perf_ats_solver_ril.conf \
   perf_ats_solver.conf

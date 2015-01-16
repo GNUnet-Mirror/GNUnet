@@ -214,6 +214,7 @@ main (int argc, char *argv[])
   char *test_filename = GNUNET_strdup (argv[0]);
   char *config_file;
   char *solver;
+  int delayed = GNUNET_NO;
 
   ret = 0;
 
@@ -232,25 +233,42 @@ main (int argc, char *argv[])
     GNUNET_break (0);
     return -1;
   }
+
   solver += strlen (src_filename) +1;
+
+  if (NULL != strstr (solver, "delayed_"))
+  {
+    delayed = GNUNET_YES;
+    solver += strlen  ("delayed_");
+  }
 
   if (0 == strcmp(solver, "proportional"))
   {
-    config_file = "test_ats_solver_proportional.conf";
+    if (delayed)
+      config_file = "test_ats_solver_delayed_proportional.conf";
+    else
+      config_file = "test_ats_solver_proportional.conf";
   }
   else if (0 == strcmp(solver, "mlp"))
   {
-    config_file = "test_ats_solver_mlp.conf";
+    if (delayed)
+      config_file = "test_ats_solver_delayed_mlp.conf";
+    else
+      config_file = "test_ats_solver_mlp.conf";
   }
   else if ((0 == strcmp(solver, "ril")))
   {
-    config_file = "test_ats_solver_ril.conf";
+    if (delayed)
+      config_file = "test_ats_solver_delayed_ril.conf";
+    else
+      config_file = "test_ats_solver_ril.conf";
   }
   else
   {
     GNUNET_break (0);
     GNUNET_free (src_filename);
     GNUNET_free (test_filename);
+    FPRINTF (stderr, "Invalid test name or configuration not found `%s'\n",src_filename);
     return 1;
   }
 
