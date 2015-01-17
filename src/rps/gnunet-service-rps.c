@@ -808,8 +808,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint64_t i;
   //unsigned int *n_arr;
   unsigned int n_peers; /* Number of peers we send pushes/pulls to */
-  struct GNUNET_MessageHeader *push_msg;
-  struct GNUNET_MessageHeader *pull_msg;
   struct GNUNET_MQ_Envelope *ev;
   const struct GNUNET_PeerIdentity *peer;
   struct GNUNET_MQ_Handle *mq;
@@ -836,8 +834,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     { // FIXME if this fails schedule/loop this for later
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
-      ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-      // TODO replace with GNUNET_MQ_msg_header
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
       // FIXME sometimes it returns a pointer to a freed mq
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
@@ -859,8 +856,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     { // FIXME if this fails schedule/loop this for later
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
-      ev = GNUNET_MQ_msg (pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-      // TODO replace with GNUNET_MQ_msg_header
+      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
       //pull_msg = NULL;
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
@@ -1059,7 +1055,21 @@ init_peer_cb (void *cls,
   int
 peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
+  struct GNUNET_PeerIdentity *tmp_id;
   struct PeerContext *peer_ctx;
+
+  /* Check if we are starting to again iterate over same peers */
+  if (NULL == cls)
+  { /* Store first id we see */
+    tmp_id = GNUNET_new (struct GNUNET_PeerIdentity);
+    *tmp_id = *key;
+    cls = tmp_id;
+  }
+  else if (0 == GNUNET_CRYPTO_cmp_peer_identity (key, cls))
+  { /* Check if we see the first id again */
+    GNUNET_free (cls);
+    return GNUNET_NO;
+  }
 
   peer_ctx = (struct PeerContext *) value;
 
@@ -1179,6 +1189,8 @@ cleanup_channel (void *cls,
                 void *channel_ctx)
 {
   struct GNUNET_PeerIdentity *peer;
+  struct PeerContext *peer_ctx;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel to remote peer was destroyed.\n");
 
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
@@ -1186,6 +1198,11 @@ cleanup_channel (void *cls,
        // Guess simply casting isn't the nicest way...
        // FIXME wait for cadet to change this function
   RPS_sampler_reinitialise_by_value (peer);
+
+  peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
+  /* Somwewhat {ab,re}use the iterator function */
+  (void) peer_remove_cb (peer, peer, peer_ctx);
+  GNUNET_CONTAINER_multipeermap_remove_all (peer_map, peer);
 }
 
 /**
