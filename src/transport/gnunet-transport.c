@@ -694,20 +694,10 @@ display_test_result (struct TestContext *tc,
                tc->name);
       break;
     default:
+      FPRINTF (stderr,
+               _("Configuration for plugin `%s' did not work!\n"),
+               tc->name);
       break;
-  }
-
-  if (GNUNET_YES != result)
-  {
-    FPRINTF (stderr,
-             _("Configuration for plugin `%s' did not work!\n"),
-             tc->name);
-  }
-  else
-  {
-    FPRINTF (stderr,
-             _("Configuration for plugin `%s' is working!\n"),
-             tc->name);
   }
   if (NULL != tc->tsk)
   {
