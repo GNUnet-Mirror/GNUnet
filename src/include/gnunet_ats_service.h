@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2010,2011 Christian Grothoff (and other contributing authors)
+ (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -38,22 +38,45 @@
 /**
  * ATS network types as array initializer
  */
-#define GNUNET_ATS_NetworkType {GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN, GNUNET_ATS_NET_BT}
+#define GNUNET_ATS_NetworkType { GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN, GNUNET_ATS_NET_BT }
+
 
 /**
- * ATS network types as string array initializer
+ * Types of networks (with separate quotas) we support.
  */
-#define GNUNET_ATS_NetworkTypeString {"UNSPECIFIED", "LOOPBACK", "LAN", "WAN", "WLAN", "BLUETOOTH"}
-
 enum GNUNET_ATS_Network_Type
 {
+  /**
+   * Category of last resort.
+   */
   GNUNET_ATS_NET_UNSPECIFIED = 0,
+
+  /**
+   * Loopback (same host).
+   */
   GNUNET_ATS_NET_LOOPBACK = 1,
+
+  /**
+   * Local area network.
+   */
   GNUNET_ATS_NET_LAN = 2,
+
+  /**
+   * Wide area network (i.e. Internet)
+   */
   GNUNET_ATS_NET_WAN = 3,
+
+  /**
+   * Wireless LAN (i.e. 802.11abgn)
+   */
   GNUNET_ATS_NET_WLAN = 4,
+
+  /**
+   * Bluetooth LAN
+   */
   GNUNET_ATS_NET_BT = 5
 };
+
 
 /**
  * Default bandwidth assigned to a network : 64 KB/s
@@ -61,7 +84,7 @@ enum GNUNET_ATS_Network_Type
 #define GNUNET_ATS_DefaultBandwidth 65536
 
 /**
- * Undefined value for a GNUNET_ATS_Property
+ * Undefined value for an `enum GNUNET_ATS_Property`
  */
 #define GNUNET_ATS_VALUE_UNDEFINED UINT32_MAX
 
@@ -85,10 +108,6 @@ enum GNUNET_ATS_Network_Type
  */
 #define GNUNET_ATS_PropertyCount 11
 
-/**
- * ATS properties types as string array initializer
- */
-#define GNUNET_ATS_PropertyStrings {"TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "UTILIZATION_PAYLOAD_UP", "UTILIZATION_PAYLOAD_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"}
 
 /**
  * Enum defining all known property types for ATS Enum values are used
@@ -98,7 +117,7 @@ enum GNUNET_ATS_Network_Type
  * Cost are always stored in uint32_t, so all units used to define costs
  * have to be normalized to fit in uint32_t [0 .. UINT32_MAX-1]
  *
- * UINT32_MAX is reserved for uninitialized values GNUNET_ATS_VALUE_UNDEFINED
+ * UINT32_MAX is reserved for uninitialized values #GNUNET_ATS_VALUE_UNDEFINED
  */
 enum GNUNET_ATS_Property
 {
@@ -124,7 +143,6 @@ enum GNUNET_ATS_Property
    * Unit: [bytes/second]
    */
   GNUNET_ATS_UTILIZATION_IN,
-
 
   /**
    * Actual traffic on this connection from this peer to the other peer.
@@ -231,247 +249,9 @@ enum GNUNET_ATS_Property
    * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
    */
   GNUNET_ATS_COST_WLAN
-/* Cost related values */
-/* =================== */
-/**
- * Volume based cost in financial units to transmit data
- *
- * Note: This value is not bound to a specific currency or unit and only
- * used locally.
- * "cent" just refers the smallest amount of money in the respective
- * currency.
- *
- * Unit: [cent/MB]
- *
- * Interpretation: less is better
- *
- * Examples:
- * LAN:  0 [cent/MB]
- * 2G : 10 [cent/MB]
- */
-// GNUNET_ATS_COST_FINANCIAL_PER_VOLUME = 1,
-/**
- * Time based cost in financial units to transmit data
- *
- * Note: This value is not bound to a specific currency or unit and only
- * used locally.
- * "cent" just refers the smallest amount of money in the respective
- * currency.
- *
- * Unit: [cent/h]
- *
- * Interpretation: less is better
- *
- * Examples:
- * LAN   :  0 [cent/h]
- * Dialup: 10 [cent/h]
- */
-// GNUNET_ATS_COST_FINANCIAL_PER_TIME = 2,
-/**
- * Computational costs
- *
- * Effort of preparing data to be sent with this transport
- * Includes encoding, encryption and conversion of data
- * Partial values can be summed up: c_sum = c_enc + c_enc + c_conv
- * Resulting values depend on local system properties, e.g. CPU
- *
- * Unit: [ms/GB]
- *
- * Interpretation: less is better
- *
- * Examples:
- *
- * HTTPS with AES CBC-256: 	7,382
- * HTTPS with AES CBC-128: 	5,279
- * HTTPS with RC4-1024: 	2,652
- */
-// GNUNET_ATS_COST_COMPUTATIONAL = 3,
-/**
- * Energy consumption
- *
- * Energy consumption using this transport when sending with a certain
- * power at a certain bitrate. This is only an approximation based on:
- * Energy consumption E = P / D
- *
- * with:
- * Power P in Watt (J/s)
- * Datarate D in MBit/s
- *
- * Conversion between power P and dBm used by WLAN in radiotap's dBm TX power:
- *
- * Lp(dbm) = 10 log10 (P/ 1mW)
- *
- * => P = 1 mW  * 10^(Lp(dbm)/10)
- *
- * Unit: [mJ/MB]
- *
- * Interpretation: less is better
- *
- * Examples:
- *
- * LAN:       0
- * WLAN:      89 (600 mW @ 802.11g /w 54 MBit/s)
- * Bluetooth: 267 (100 mW @ BT2.0 EDR /w 3 MBit/s)
- */
-// GNUNET_ATS_COST_ENERGY_CONSUMPTION = 4,
-/**
- * Connect cost
- * How many bytes are transmitted to initiate a new connection using
- * this transport?
- *
- * Unit: [bytes]
- *
- * Interpretation: less is better
- *
- * Examples:
- *
- * UDP (No connection)      :
- *     0 bytes
- * TCP (TCP 3-Way handshake):
- *   220 bytes Ethernet,  172 bytes TCP/IP,  122 bytes TCP
- * HTTP (TCP + Header)      :
- *   477 bytes Ethernet,  429 bytes TCP/IP,  374 bytes TCP,  278 bytes HTTP
- * HTTPS  HTTP+TLS Handshake:
- *  2129 bytes Ethernet, 1975 bytes TCP/IP, 1755 bytes TCP, 1403 bytes HTTPS
- *
- * */
-// GNUNET_ATS_COST_CONNECT = 5,
-/**
- * Bandwidth cost
- *
- * How many bandwidth is available to consume?
- * Used to calculate which impact sending data with this transport has
- *
- * Unit: [kB/s]
- *
- * Interpretation: more is better
- *
- * Examples:
- * LAN:     12,800  (100 MBit/s)
- * WLAN:    6,912   (54 MBit/s)
- * Dial-up: 8       (64 Kbit/s)
- *
- */
-// GNUNET_ATS_COST_BANDWITH_AVAILABLE = 6,
-/**
- *  Network overhead
- *
- * How many bytes are sent over the wire when 1 kilobyte (1024 bytes)
- * of application data is transmitted?
- * A factor used with connect cost, bandwidth cost and energy cost
- * to describe the overhead produced by the transport protocol
- *
- * Unit: [bytes/kb]
- *
- * Interpretation: less is better
- *
- * Examples:
- *
- * TCP/IPv4 over Ethernet: 1024 + 38 + 20 + 20 = 1102 [bytes/kb]
- * TCP/IPv6 over Ethernet: 1024 + 38 + 20 + 40 = 1122 [bytes/kb]
- * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
- * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
- */
-// GNUNET_ATS_COST_NETWORK_OVERHEAD = 7,
-/* Quality related values */
-/* ====================== */
-/* Physical layer quality properties */
-/**
- * Signal strength on physical layer
- *
- * Unit: [dBm]
- */
-// GNUNET_ATS_QUALITY_PHY_SIGNAL_STRENGTH = 1025,
-/**
- * Collision rate on physical layer
- *
- * Unit: [B/s]
- */
-// GNUNET_ATS_QUALITY_PHY_COLLISION_RATE = 1026,
-/**
- * Error rate on physical layer
- *
- * Unit: [B/s]
- */
-// GNUNET_ATS_QUALITY_PHY_ERROR_RATE = 1027,
-/**
- * Jitter
- * Time variations of the delay
- * 1st derivative of a delay function
- *
- * Unit: [ms]
- */
-// GNUNET_ATS_QUALITY_NET_JITTER = 1029,
-/**
- * Error rate on network layer
- *
- * Unit: [B/s]
- *
- * Examples:
- *
- * LAN       :    0
- * WLAN      :  400
- * Bluetooth :  100
- * Note: This numbers are just assumptions as an example, not
- * measured or somehow determined
- */
-// GNUNET_ATS_QUALITY_NET_ERRORRATE = 1030,
-/**
- * Drop rate on network layer
- * Bytes actively dismissed by a network component during transmission
- * Reasons for dropped data can be full queues, congestion, quota violations...
- *
- * Unit: [B/s]
- *
- * Examples:
- *
- * LAN       :    0
- * WLAN      :  400
- * Bluetooth :  100
- * Note: This numbers are just assumptions as an example, not
- * measured or somehow determined
- */
-// GNUNET_ATS_QUALITY_NET_DROPRATE = 1031,
-/**
- * Loss rate on network layer
- * Bytes lost during transmission
- * Reasons can be collisions, ...
- *
- * Unit: [B/s]
- *
- * Examples:
- *
- * LAN       :    0
- * WLAN      :   40
- * Bluetooth :   10
- * Note: This numbers are just assumptions as an example, not measured
- * or somehow determined
- */
-// GNUNET_ATS_QUALITY_NET_LOSSRATE = 1032,
-/**
- * Throughput on network layer
- *
- * Unit: [kB/s]
- *
- * Examples:
- *
- * LAN   : 3400
- * WLAN  : 1200
- * Dialup: 	  4
- *
- */
-// GNUNET_ATS_QUALITY_NET_THROUGHPUT = 1033,
-/* Availability related values */
-/* =========================== */
-/**
- * Is a peer reachable?
- */
-// GNUNET_ATS_AVAILABILITY_REACHABLE = 2048,
-/**
- * Is there a connection established to a peer using this transport
- */
-// GNUNET_ATS_AVAILABILITY_CONNECTED = 2049
+
 };
+
 
 /**
  * Number of ATS quality properties
@@ -481,7 +261,7 @@ enum GNUNET_ATS_Property
 /**
  * ATS quality properties as array initializer
  */
-#define GNUNET_ATS_QualityProperties {GNUNET_ATS_QUALITY_NET_DELAY, GNUNET_ATS_QUALITY_NET_DISTANCE}
+#define GNUNET_ATS_QualityProperties { GNUNET_ATS_QUALITY_NET_DELAY, GNUNET_ATS_QUALITY_NET_DISTANCE }
 
 /**
  * ATS quality properties as string array initializer
@@ -559,7 +339,8 @@ struct Session;
 typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
     const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
+    const struct GNUNET_HELLO_Address *address,
+    struct Session *session,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
@@ -589,7 +370,7 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 
 /**
  * We would like to reset the address suggestion block time for this
- * peer
+ * peer.
  *
  * @param sh handle
  * @param peer identity of the peer we want to reset
@@ -630,25 +411,26 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
 /**
  * Convert a ATS property to a string
  *
- * @param type the atsi type
+ * @param type the property type
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_ATS_print_property_type (uint32_t type);
+GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type);
 
 
 /**
- * Convert a GNUNET_ATS_NetworkType to a string
+ * Convert a `enum GNUNET_ATS_Network_Type` to a string
  *
  * @param net the network type
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_ATS_print_network_type (uint32_t net);
+GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net);
 
 
 /**
  * Returns where the address is located: LAN or WAN or ...
+ *
  * @param sh the `struct GNUNET_ATS_SchedulingHandle` handle
  * @param addr address
  * @param addrlen address length
@@ -656,12 +438,12 @@ GNUNET_ATS_print_network_type (uint32_t net);
  */
 struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
-                             const struct sockaddr * addr,
+                             const struct sockaddr *addr,
                              socklen_t addrlen);
 
 
 /**
- * Test if a address and a session is known to ATS
+ * Test if a address and a session is known to ATS.
  *
  * @param sh the scheduling handle
  * @param address the address

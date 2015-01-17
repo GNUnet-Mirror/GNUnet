@@ -415,7 +415,6 @@ static char *
 generate_config (char *cfg_file, unsigned long long quota_in,
                  unsigned long long quota_out)
 {
-  char *networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char *in_name;
   char *out_name;
   char *fname = NULL;
@@ -430,12 +429,16 @@ generate_config (char *cfg_file, unsigned long long quota_in,
 
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-      GNUNET_asprintf (&in_name, "%s_QUOTA_IN", networks[c]);
-      GNUNET_asprintf (&out_name, "%s_QUOTA_OUT", networks[c]);
-      GNUNET_CONFIGURATION_set_value_number (cfg, "ats", in_name, quota_in);
-      GNUNET_CONFIGURATION_set_value_number (cfg, "ats", out_name, quota_out);
-      GNUNET_free (in_name);
-      GNUNET_free (out_name);
+    GNUNET_asprintf (&in_name,
+                     "%s_QUOTA_IN",
+                     GNUNET_ATS_print_network_type (c));
+    GNUNET_asprintf (&out_name,
+                     "%s_QUOTA_OUT",
+                     GNUNET_ATS_print_network_type (c));
+    GNUNET_CONFIGURATION_set_value_number (cfg, "ats", in_name, quota_in);
+    GNUNET_CONFIGURATION_set_value_number (cfg, "ats", out_name, quota_out);
+    GNUNET_free (in_name);
+    GNUNET_free (out_name);
   }
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_write (cfg, fname));
   GNUNET_CONFIGURATION_destroy (cfg);

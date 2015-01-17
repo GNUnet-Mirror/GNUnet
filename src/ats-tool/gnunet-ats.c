@@ -327,7 +327,6 @@ transport_addr_to_str_cb (void *cls,
   struct PendingResolutions *pr = cls;
   char *ats_str;
   char *ats_tmp;
-  char *ats_prop_arr[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
   char *ats_prop_value;
   unsigned int c;
   uint32_t ats_type;
@@ -416,7 +415,7 @@ transport_addr_to_str_cb (void *cls,
       GNUNET_asprintf (&ats_str,
                        "%s%s=%s, ",
                        ats_tmp,
-                       ats_prop_arr[ats_type],
+                       GNUNET_ATS_print_property_type (ats_type),
                        ats_prop_value);
       GNUNET_free(ats_tmp);
     }
@@ -675,7 +674,6 @@ ats_perf_cb (void *cls,
 static unsigned int
 print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char * entry_in = NULL;
   char * entry_out = NULL;
   char * quota_out_str;
@@ -689,10 +687,10 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
     GNUNET_asprintf (&entry_out,
                      "%s_QUOTA_OUT",
-                     network_str[c]);
+                     GNUNET_ATS_print_network_type (c));
     GNUNET_asprintf (&entry_in,
                      "%s_QUOTA_IN",
-                     network_str[c]);
+                     GNUNET_ATS_print_network_type (c));
 
     /* quota out */
     if (GNUNET_OK ==
@@ -714,7 +712,7 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
     {
       FPRINTF (stderr,
                "Outbound quota for network `%11s' not configured!\n",
-               network_str[c]);
+               GNUNET_ATS_print_network_type (c));
       GNUNET_asprintf (&quota_out_str, "-");
     }
     GNUNET_free(entry_out);
@@ -737,14 +735,14 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
     {
       FPRINTF (stderr,
                "Inbound quota for network `%11s' not configured!\n",
-               network_str[c]);
+               GNUNET_ATS_print_network_type (c));
       GNUNET_asprintf (&quota_in_str, "-");
     }
     GNUNET_free(entry_in);
 
     FPRINTF (stderr,
              _("Quota for network `%11s' (in/out): %10s / %10s\n"),
-             network_str[c],
+             GNUNET_ATS_print_network_type (c),
              quota_in_str,
              quota_out_str);
     GNUNET_free(quota_out_str);

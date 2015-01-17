@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_ats_plugin.h"
+#include "gnunet_ats_service.h"
 #include "gnunet-service-ats_addresses.h"
 
 #define PROP_STABILITY_FACTOR 1.25
@@ -317,7 +318,7 @@ struct Network
   /**
    * Network description
    */
-  char *desc;
+  const char *desc;
 
   /**
    * Total inbound quota
@@ -1293,7 +1294,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   best_address->active = GNUNET_YES;
   address_increment (s, net, GNUNET_NO, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_INFO, "Address %p for peer `%s' is now active\n",
-      best_address, GNUNET_i2s (peer));	
+      best_address, GNUNET_i2s (peer));
   /* Distribute bandwidth */
   distribute_bandwidth_in_network (s, net);
   return best_address;
@@ -1936,7 +1937,6 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_PROPORTIONAL_Handle *s;
   struct Network * cur;
-  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   float f_tmp;
   int c;
 
@@ -2022,19 +2022,22 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   for (c = 0; c < env->network_count; c++)
   {
     cur = &s->network_entries[c];
-    cur->total_addresses = 0;
-    cur->active_addresses = 0;
     cur->type = env->networks[c];
     cur->total_quota_in = env->in_quota[c];
     cur->total_quota_out = env->out_quota[c];
-    cur->desc = net_str[c];
+    cur->desc = GNUNET_ATS_print_network_type (c);
     GNUNET_asprintf (&cur->stat_total,
-        "# ATS addresses %s total", cur->desc);
+                     "# ATS addresses %s total",
+                     cur->desc);
     GNUNET_asprintf (&cur->stat_active,
-        "# ATS active addresses %s total", cur->desc);
+                     "# ATS active addresses %s total",
+                     cur->desc);
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Added network %u `%s' (%llu/%llu)\n",
-        c, cur->desc, cur->total_quota_in, cur->total_quota_out);
+         c,
+         cur->desc,
+         cur->total_quota_in,
+         cur->total_quota_out);
   }
   return s;
 }

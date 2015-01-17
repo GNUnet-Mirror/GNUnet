@@ -1706,17 +1706,19 @@ load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   return GNUNET_OK;
 }
 
+
 static enum GNUNET_ATS_Property
-parse_property_string (const char * str)
+parse_property_string (const char *str)
 {
-  int c = 0;
-  char *props[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
+  enum GNUNET_ATS_Property c;
 
   for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
-    if (0 == strcmp(str, props[c]))
+    if (0 == strcmp(str,
+                    GNUNET_ATS_print_property_type (c)))
       return c;
   return 0;
-};
+}
+
 
 static int
 load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
@@ -2770,7 +2772,6 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                  unsigned long long *in_dest,
                                                  int dest_length)
 {
-  char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char * entry_in = NULL;
   char * entry_out = NULL;
   char * quota_out_str;
@@ -2782,8 +2783,12 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     in_dest[c] = 0;
     out_dest[c] = 0;
-    GNUNET_asprintf (&entry_out, "%s_QUOTA_OUT", network_str[c]);
-    GNUNET_asprintf (&entry_in, "%s_QUOTA_IN", network_str[c]);
+    GNUNET_asprintf (&entry_out,
+                     "%s_QUOTA_OUT",
+                     GNUNET_ATS_print_network_type (c));
+    GNUNET_asprintf (&entry_in,
+                     "%s_QUOTA_IN",
+                     GNUNET_ATS_print_network_type (c));
 
     /* quota out */
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, "ats", entry_out, &quota_out_str))
@@ -2801,21 +2806,28 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (GNUNET_NO == res)
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
-              network_str[c], quota_out_str, GNUNET_ATS_DefaultBandwidth);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
+                      GNUNET_ATS_print_network_type (c),
+                      quota_out_str,
+                      GNUNET_ATS_DefaultBandwidth);
           out_dest[c] = GNUNET_ATS_DefaultBandwidth;
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Outbound quota configure for network `%s' is %llu\n"),
-              network_str[c], out_dest[c]);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Outbound quota configure for network `%s' is %llu\n",
+                      GNUNET_ATS_print_network_type (c),
+                      out_dest[c]);
       }
       GNUNET_free (quota_out_str);
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
-          network_str[c], GNUNET_ATS_DefaultBandwidth);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
+                  GNUNET_ATS_print_network_type (c),
+                  GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
 
@@ -2835,29 +2847,41 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (GNUNET_NO == res)
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
-              network_str[c], quota_in_str, GNUNET_ATS_DefaultBandwidth);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
+                      GNUNET_ATS_print_network_type (c),
+                      quota_in_str,
+                      GNUNET_ATS_DefaultBandwidth);
           in_dest[c] = GNUNET_ATS_DefaultBandwidth;
       }
       else
       {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Inbound quota configured for network `%s' is %llu\n"),
-              network_str[c], in_dest[c]);
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Inbound quota configured for network `%s' is %llu\n",
+                      GNUNET_ATS_print_network_type (c),
+                      in_dest[c]);
       }
       GNUNET_free (quota_in_str);
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
-          network_str[c], GNUNET_ATS_DefaultBandwidth);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
+                  GNUNET_ATS_print_network_type (c),
+                  GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loaded quota for network `%s' (in/out): %llu %llu\n", network_str[c], in_dest[c], out_dest[c]);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Loaded quota for network `%s' (in/out): %llu %llu\n",
+                GNUNET_ATS_print_network_type (c),
+                in_dest[c],
+                out_dest[c]);
     GNUNET_free (entry_out);
     GNUNET_free (entry_in);
   }
   return GNUNET_ATS_NetworkTypeCount;
 }
+
 
 /**
  * Information callback for the solver
@@ -2869,9 +2893,9 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 static void
 solver_info_cb (void *cls,
-    enum GAS_Solver_Operation op,
-    enum GAS_Solver_Status stat,
-    enum GAS_Solver_Additional_Information add)
+                enum GAS_Solver_Operation op,
+                enum GAS_Solver_Status stat,
+                enum GAS_Solver_Additional_Information add)
 {
   char *add_info;
   switch (add) {
@@ -3433,4 +3457,3 @@ main (int argc, char *argv[])
   return res;
 }
 /* end of file ats-testing-experiment.c*/
-

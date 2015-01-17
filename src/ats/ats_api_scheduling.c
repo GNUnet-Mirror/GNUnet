@@ -77,7 +77,7 @@ struct SessionRecord
   struct Session *session;
 
   /**
-   * Set to GNUNET_YES if the slot is used.
+   * Set to #GNUNET_YES if the slot is used.
    */
   int slot_used;
 };
@@ -122,7 +122,7 @@ struct GNUNET_ATS_SchedulingHandle
   GNUNET_ATS_AddressSuggestionCallback suggest_cb;
 
   /**
-   * Closure for 'suggest_cb'.
+   * Closure for @e suggest_cb.
    */
   void *suggest_cb_cls;
 
@@ -833,34 +833,72 @@ get_addresses (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                      sh);
 }
 
+
 /**
- * Convert a GNUNET_ATS_NetworkType to a string
+ * Convert a `enum GNUNET_ATS_Network_Type` to a string
  *
  * @param net the network type
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_ATS_print_network_type (uint32_t net)
+GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net)
 {
-  char *networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
-  if (net < GNUNET_ATS_NetworkTypeCount)
-    return networks[net];
-  return NULL;
+  switch (net)
+    {
+    case GNUNET_ATS_NET_UNSPECIFIED:
+      return "UNSPECIFIED";
+    case GNUNET_ATS_NET_LOOPBACK:
+      return "LOOPBACK";
+    case GNUNET_ATS_NET_LAN:
+      return "LAN";
+    case GNUNET_ATS_NET_WAN:
+      return "WAN";
+    case GNUNET_ATS_NET_WLAN:
+      return "WLAN";
+    case GNUNET_ATS_NET_BT:
+      return "BLUETOOTH";
+    default:
+      return NULL;
+    }
 }
+
 
 /**
  * Convert a ATS property to a string
  *
- * @param type the atsi type
+ * @param type the property type
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_ATS_print_property_type (uint32_t type)
+GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type)
 {
-	char *props[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
-	if ((type > 0) && (type < GNUNET_ATS_PropertyCount))
-		return props[type];
-	return NULL;
+  switch (type)
+  {
+  case GNUNET_ATS_ARRAY_TERMINATOR:
+    return "TERMINATOR";
+  case GNUNET_ATS_UTILIZATION_OUT:
+    return "UTILIZATION_UP";
+  case GNUNET_ATS_UTILIZATION_IN:
+    return "UTILIZATION_DOWN";
+  case GNUNET_ATS_UTILIZATION_PAYLOAD_OUT:
+    return "UTILIZATION_PAYLOAD_UP";
+  case GNUNET_ATS_UTILIZATION_PAYLOAD_IN:
+    return "UTILIZATION_PAYLOAD_DOWN";
+  case GNUNET_ATS_NETWORK_TYPE:
+    return "NETWORK_TYPE";
+  case GNUNET_ATS_QUALITY_NET_DELAY:
+    return "DELAY";
+  case GNUNET_ATS_QUALITY_NET_DISTANCE:
+    return "DISTANCE";
+  case GNUNET_ATS_COST_WAN:
+    return "COST_WAN";
+  case GNUNET_ATS_COST_LAN:
+    return "COST_LAN";
+  case GNUNET_ATS_COST_WLAN:
+    return "COST_WLAN";
+  default:
+    return NULL;
+  }
 }
 
 
@@ -1057,17 +1095,17 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
   do_transmit (sh);
 }
 
+
 /**
  * We would like to receive address suggestions for a peer. ATS will
  * respond with a call to the continuation immediately containing an address or
  * no address if none is available. ATS can suggest more addresses until we call
- * #GNUNET_ATS_suggest_address_cancel.
- *
+ * #GNUNET_ATS_suggest_address_cancel().
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
  * @param cont the continuation to call with the address
- * @param cont_cls the cls for the continuation
+ * @param cont_cls the cls for the @a cont
  * @return suggest handle
  */
 struct GNUNET_ATS_SuggestHandle *
@@ -1269,9 +1307,9 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param address the address
  * @param session session handle, can be NULL
  * @param ats performance data for the address
- * @param ats_count number of performance records in 'ats'
- * @return GNUNET_YES on success, GNUNET_NO if address or session are unknown,
- * GNUNET_SYSERR on hard failure
+ * @param ats_count number of performance records in @a ats
+ * @return #GNUNET_YES on success, #GNUNET_NO if address or session are unknown,
+ * #GNUNET_SYSERR on hard failure
  */
 int
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
@@ -1357,7 +1395,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param sh handle
  * @param address the address
  * @param session session handle, can be NULL
- * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
+ * @param in_use #GNUNET_YES if this address is now used, #GNUNET_NO
  * if address is not used any more
  */
 void
