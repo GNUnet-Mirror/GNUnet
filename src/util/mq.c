@@ -207,23 +207,22 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
   const struct GNUNET_MQ_MessageHandler *handler;
   int handled = GNUNET_NO;
 
-  handler = mq->handlers;
-  if (NULL == handler)
+  if (NULL == mq->handlers)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "No handler for message of type %d\n",
          ntohs (mh->type));
     return;
   }
-  for (; NULL != handler->cb; handler++)
+  for (handler = mq->handlers; NULL != handler->cb; handler++)
   {
     if (handler->type == ntohs (mh->type))
     {
       handler->cb (mq->handlers_cls, mh);
       handled = GNUNET_YES;
+      break;
     }
   }
-
   if (GNUNET_NO == handled)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "No handler for message of type %d\n",
