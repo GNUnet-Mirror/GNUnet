@@ -186,9 +186,10 @@ stat_cb(void *cls, const char *subsystem,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
       subsystem,name, value);
   if (GNUNET_NO == address_deleted)
-    GNUNET_ATS_suggest_address (sched_ats, &p.id, NULL, NULL);
+    GNUNET_ATS_suggest_address (sched_ats, &p.id);
   return GNUNET_OK;
 }
+
 
 static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,

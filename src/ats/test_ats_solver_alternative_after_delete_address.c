@@ -266,10 +266,11 @@ stat_cb(void *cls, const char *subsystem,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All addresses added, requesting....\n");
     /* We have 2 addresses, so we can request */
     addresses_added = GNUNET_YES;
-    GNUNET_ATS_suggest_address (sched_ats, &p.id, NULL, NULL);
+    GNUNET_ATS_suggest_address (sched_ats, &p.id);
   }
   return GNUNET_OK;
 }
+
 
 static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,

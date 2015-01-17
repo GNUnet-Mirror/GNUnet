@@ -256,8 +256,9 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session,
       test_ats_info, test_ats_count);
-  GNUNET_ATS_suggest_address(sched_ats, &test_hello_address.peer, NULL, NULL);
+  GNUNET_ATS_suggest_address(sched_ats, &test_hello_address.peer);
 }
+
 
 int
 main (int argc, char *argv[])

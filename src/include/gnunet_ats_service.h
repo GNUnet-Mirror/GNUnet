@@ -386,15 +386,11 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
- * @param cont the continuation to indicate success to call with the address
- * @param cont_cls the closure for the @a cont
  * @return suggestion handle
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer,
-                            GNUNET_ATS_AddressSuggestionCallback cont,
-                            void *cont_cls);
+                            const struct GNUNET_PeerIdentity *peer);
 
 
 /**

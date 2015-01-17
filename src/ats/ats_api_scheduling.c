@@ -90,9 +90,12 @@ struct ATS_Network
   struct ATS_Network * prev;
 
   struct sockaddr *network;
+
   struct sockaddr *netmask;
+
   socklen_t length;
 };
+
 
 /**
  * Handle for address suggestions
@@ -100,7 +103,9 @@ struct ATS_Network
 struct GNUNET_ATS_SuggestHandle
 {
   struct GNUNET_ATS_SuggestHandle *prev;
+
   struct GNUNET_ATS_SuggestHandle *next;
+
   struct GNUNET_PeerIdentity id;
 };
 
@@ -1104,15 +1109,11 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
- * @param cont the continuation to call with the address
- * @param cont_cls the cls for the @a cont
  * @return suggest handle
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer,
-                            GNUNET_ATS_AddressSuggestionCallback cont,
-                            void *cont_cls)
+                            const struct GNUNET_PeerIdentity *peer)
 {
   struct PendingMessage *p;
   struct RequestAddressMessage *m;
@@ -1123,17 +1124,20 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
   p = GNUNET_malloc (sizeof (struct PendingMessage) +
                      sizeof (struct RequestAddressMessage));
   p->size = sizeof (struct RequestAddressMessage);
-  p->is_init = GNUNET_NO;
   m = (struct RequestAddressMessage *) &p[1];
   m->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
   m->header.size = htons (sizeof (struct RequestAddressMessage));
   m->reserved = htonl (0);
   m->peer = *peer;
-  GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
+  GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head,
+                                    sh->pending_tail,
+                                    p);
   do_transmit (sh);
   s = GNUNET_new (struct GNUNET_ATS_SuggestHandle);
-  s->id = (*peer);
-  GNUNET_CONTAINER_DLL_insert_tail (sh->sug_head, sh->sug_tail, s);
+  s->id = *peer;
+  GNUNET_CONTAINER_DLL_insert_tail (sh->sug_head,
+                                    sh->sug_tail,
+                                    s);
   return s;
 }
 

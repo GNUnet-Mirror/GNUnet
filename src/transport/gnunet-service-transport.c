@@ -928,9 +928,13 @@ ats_request_address_change (void *cls,
     return;
   }
 
-  GST_neighbours_switch_to_address (&address->peer, address, session, ats,
-      ats_count, bandwidth_in, bandwidth_out);
+  GST_neighbours_switch_to_address (&address->peer,
+                                    address,
+                                    session,
+                                    ats, ats_count,
+                                    bandwidth_in, bandwidth_out);
 }
+
 
 /**
  * Function called to notify transport users that another

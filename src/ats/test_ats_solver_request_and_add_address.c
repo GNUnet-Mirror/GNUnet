@@ -199,7 +199,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Request */
-  GNUNET_ATS_suggest_address (sched_ats, &p.id, NULL, NULL);
+  GNUNET_ATS_suggest_address (sched_ats, &p.id);
 
 
   /* Adding address */

@@ -219,7 +219,7 @@ stat_cb(void *cls, const char *subsystem,
               "ATS statistics: `%s' `%s' %llu\n",
               subsystem,name,
               (unsigned long long) value);
-  GNUNET_ATS_suggest_address (sched_ats, &p.id, NULL, NULL);
+  GNUNET_ATS_suggest_address (sched_ats, &p.id);
   return GNUNET_OK;
 }
 
