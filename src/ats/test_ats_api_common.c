@@ -151,11 +151,10 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 						 unsigned long long *in_dest,
 						 int dest_length)
 {
-  char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
-  char * entry_in = NULL;
-  char * entry_out = NULL;
-  char * quota_out_str;
-  char * quota_in_str;
+  char *entry_in = NULL;
+  char *entry_out = NULL;
+  char *quota_out_str;
+  char *quota_in_str;
   int c;
   int res;
 
