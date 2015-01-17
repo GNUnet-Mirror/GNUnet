@@ -1799,6 +1799,7 @@ udp_plugin_create_session (void *cls,
   if (sizeof (struct IPv4UdpAddress) == address->address_length)
   {
     struct sockaddr_in v4;
+
     udp_v4 = (struct IPv4UdpAddress *) address->address;
     memset (&v4, '\0', sizeof (v4));
     v4.sin_family = AF_INET;
@@ -1807,9 +1808,10 @@ udp_plugin_create_session (void *cls,
 #endif
     v4.sin_port = udp_v4->u4_port;
     v4.sin_addr.s_addr = udp_v4->ipv4_addr;
-    s->ats = plugin->env->get_address_type (plugin->env->cls,
-                                            (const struct sockaddr *) &v4,
-                                            sizeof (v4));
+    s->ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+    s->ats.value = htonl (plugin->env->get_address_type (plugin->env->cls,
+                                                         (const struct sockaddr *) &v4,
+                                                         sizeof (v4)));
   }
   else if (sizeof (struct IPv6UdpAddress) == address->address_length)
   {
@@ -1822,8 +1824,10 @@ udp_plugin_create_session (void *cls,
 #endif
     v6.sin6_port = udp_v6->u6_port;
     v6.sin6_addr = udp_v6->ipv6_addr;
-    s->ats = plugin->env->get_address_type (plugin->env->cls,
-        (const struct sockaddr *) &v6, sizeof (v6));
+    s->ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+    s->ats.value = htonl (plugin->env->get_address_type (plugin->env->cls,
+                                                         (const struct sockaddr *) &v6,
+                                                         sizeof (v6)));
   }
 
   if (NULL == s)
@@ -2871,11 +2875,11 @@ analyze_send_error (struct Plugin *plugin,
                     const struct sockaddr *sa,
                     socklen_t slen, int error)
 {
-  struct GNUNET_ATS_Information type;
+  enum GNUNET_ATS_Network_Type type;
 
   type = plugin->env->get_address_type (plugin->env->cls, sa, slen);
-  if (((GNUNET_ATS_NET_LAN == ntohl (type.value))
-      || (GNUNET_ATS_NET_WAN == ntohl (type.value)))
+  if (((GNUNET_ATS_NET_LAN == type)
+       || (GNUNET_ATS_NET_WAN == type))
       && ((ENETUNREACH == errno)|| (ENETDOWN == errno)))
   {
     if (slen == sizeof (struct sockaddr_in))

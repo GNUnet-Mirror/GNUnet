@@ -633,35 +633,32 @@ plugin_env_session_end (void *cls, const struct GNUNET_HELLO_Address *address,
  *
  * @param cls closure
  * @param addr binary address
- * @param addrlen length of the address
- * @return ATS Information containing the network type
+ * @param addrlen length of the @a addr
+ * @return type of the network @a addr belongs to
  */
-static struct GNUNET_ATS_Information
-plugin_env_address_to_type (void *cls, const struct sockaddr *addr,
-    size_t addrlen)
+static enum GNUNET_ATS_Network_Type
+plugin_env_address_to_type (void *cls,
+                            const struct sockaddr *addr,
+                            size_t addrlen)
 {
-  struct GNUNET_ATS_Information ats;
-
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   if (NULL == GST_ats)
   {
     GNUNET_break(0);
-    return ats;
+    return GNUNET_ATS_NET_UNSPECIFIED;
   }
   if (((addr->sa_family != AF_INET) && (addrlen != sizeof(struct sockaddr_in)))
       && ((addr->sa_family != AF_INET6)
           && (addrlen != sizeof(struct sockaddr_in6)))
       && (addr->sa_family != AF_UNIX))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Malformed address with length %u `%s'\n", addrlen,
-        GNUNET_a2s (addr, addrlen));
     GNUNET_break(0);
-    return ats;
+    return GNUNET_ATS_NET_UNSPECIFIED;
   }
-  return GNUNET_ATS_address_get_type (GST_ats, addr, addrlen);
+  return GNUNET_ATS_address_get_type (GST_ats,
+                                      addr,
+                                      addrlen);
 }
+
 
 /**
  * Notify ATS about the new address including the network this address is

@@ -262,9 +262,9 @@ struct Session
   unsigned int msgs_in_queue;
 
   /**
-   * ATS network type in NBO
+   * ATS network type.
    */
-  uint32_t ats_address_network_type;
+  enum GNUNET_ATS_Network_Type ats_address_network_type;
 };
 
 
@@ -1173,9 +1173,9 @@ client_receive_mst_cb (void *cls,
   char *stat_txt;
 
   plugin = s->plugin;
+  GNUNET_break (s->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
   atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi.value = s->ats_address_network_type;
-  GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
+  atsi.value = htonl (s->ats_address_network_type);
 
   delay = s->plugin->env->receive (plugin->env->cls,
                                    s->address,
@@ -1941,7 +1941,7 @@ static enum GNUNET_ATS_Network_Type
 http_client_plugin_get_network (void *cls,
                                 struct Session *session)
 {
-  return ntohl (session->ats_address_network_type);
+  return session->ats_address_network_type;
 }
 
 
@@ -1998,7 +1998,7 @@ http_client_plugin_get_session (void *cls,
   struct HTTP_Client_Plugin *plugin = cls;
   struct Session *s;
   struct sockaddr *sa;
-  struct GNUNET_ATS_Information ats;
+  enum GNUNET_ATS_Network_Type net_type;
   size_t salen = 0;
   int res;
 
@@ -2021,8 +2021,7 @@ http_client_plugin_get_session (void *cls,
   }
 
   /* Determine network location */
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
+  net_type = GNUNET_ATS_NET_UNSPECIFIED;
   sa = http_common_socket_from_address (address->address,
                                         address->address_length,
                                         &res);
@@ -2039,15 +2038,15 @@ http_client_plugin_get_session (void *cls,
     {
       salen = sizeof (struct sockaddr_in6);
     }
-    ats = plugin->env->get_address_type (plugin->env->cls, sa, salen);
+    net_type = plugin->env->get_address_type (plugin->env->cls, sa, salen);
     GNUNET_free (sa);
   }
   else if (GNUNET_NO == res)
   {
     /* Cannot convert to sockaddr -> is external hostname */
-    ats.value = htonl (GNUNET_ATS_NET_WAN);
+    net_type = GNUNET_ATS_NET_WAN;
   }
-  if (GNUNET_ATS_NET_UNSPECIFIED == ntohl (ats.value))
+  if (GNUNET_ATS_NET_UNSPECIFIED == net_type)
   {
     GNUNET_break (0);
     return NULL;
@@ -2056,7 +2055,7 @@ http_client_plugin_get_session (void *cls,
   s = GNUNET_new (struct Session);
   s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
-  s->ats_address_network_type = ats.value;
+  s->ats_address_network_type = net_type;
 
   s->put.state = H_NOT_CONNECTED;
   s->timeout = GNUNET_TIME_relative_to_absolute (HTTP_CLIENT_SESSION_TIMEOUT);

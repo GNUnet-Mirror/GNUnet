@@ -35,11 +35,6 @@
  */
 #define GNUNET_ATS_NetworkTypeCount 6
 
-/**
- * ATS network types as array initializer
- */
-#define GNUNET_ATS_NetworkType { GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN, GNUNET_ATS_NET_BT }
-
 
 /**
  * Types of networks (with separate quotas) we support.
@@ -76,6 +71,13 @@ enum GNUNET_ATS_Network_Type
    */
   GNUNET_ATS_NET_BT = 5
 };
+
+
+/**
+ * ATS network types as array initializer
+ */
+#define GNUNET_ATS_NetworkType { GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN, GNUNET_ATS_NET_BT }
+
 
 
 /**
@@ -430,9 +432,9 @@ GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net);
  * @param sh the `struct GNUNET_ATS_SchedulingHandle` handle
  * @param addr address
  * @param addrlen address length
- * @return location as `struct GNUNET_ATS_Information`
+ * @return type of the network the address belongs to
  */
-struct GNUNET_ATS_Information
+enum GNUNET_ATS_Network_Type
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
                              const struct sockaddr *addr,
                              socklen_t addrlen);

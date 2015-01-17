@@ -1423,23 +1423,25 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                                               conn_info->client_addr,
                                               sizeof (struct sockaddr_in));
       addr_len = http_common_address_get_size (addr);
-      ats = plugin->env->get_address_type (plugin->env->cls,
-                                           conn_info->client_addr,
-                                           sizeof (struct sockaddr_in));
+      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+      ats.value = htonl (plugin->env->get_address_type (plugin->env->cls,
+                                                        conn_info->client_addr,
+                                                        sizeof (struct sockaddr_in)));
       break;
     case (AF_INET6):
       addr = http_common_address_from_socket (plugin->protocol,
                                               conn_info->client_addr,
                                               sizeof (struct sockaddr_in6));
       addr_len = http_common_address_get_size (addr);
-      ats = plugin->env->get_address_type (plugin->env->cls,
-                                           conn_info->client_addr,
-                                           sizeof (struct sockaddr_in6));
+      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+      ats.value = htonl (plugin->env->get_address_type (plugin->env->cls,
+                                                        conn_info->client_addr,
+                                                        sizeof (struct sockaddr_in6)));
       break;
     default:
-    	/* external host name */
+      /* external host name */
       ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      ats.type = htonl (GNUNET_ATS_NET_WAN);
+      ats.value = htonl (GNUNET_ATS_NET_WAN);
       return NULL;
     }
     s = GNUNET_new (struct Session);

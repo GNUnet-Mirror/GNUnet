@@ -120,15 +120,15 @@ typedef struct GNUNET_TIME_Relative
 
 
 /**
- * Function that will be called to figure if an address is an loopback,
- * LAN, WAN etc. address
+ * Function that will be called to figure if an address is an
+ * loopback, LAN, WAN etc. address
  *
  * @param cls closure
  * @param addr binary address
  * @param addrlen length of the @a addr
- * @return ATS Information containing the network type
+ * @return type of the network the address belongs to
  */
-typedef struct GNUNET_ATS_Information
+typedef enum GNUNET_ATS_Network_Type
 (*GNUNET_TRANSPORT_AddressToType) (void *cls,
                                    const struct sockaddr *addr,
                                    size_t addrlen);

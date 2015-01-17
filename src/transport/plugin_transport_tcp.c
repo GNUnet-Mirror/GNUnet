@@ -1521,7 +1521,7 @@ tcp_plugin_get_session (void *cls,
   const struct IPv4TcpAddress *t4;
   const struct IPv6TcpAddress *t6;
   unsigned int options;
-  struct GNUNET_ATS_Information ats;
+  enum GNUNET_ATS_Network_Type net_type;
   unsigned int is_natd = GNUNET_NO;
   size_t addrlen;
 #ifdef TCP_STEALTH
@@ -1612,7 +1612,8 @@ tcp_plugin_get_session (void *cls,
     return NULL;
   }
 
-  ats = plugin->env->get_address_type (plugin->env->cls, sb, sbs);
+  net_type = plugin->env->get_address_type (plugin->env->cls, sb, sbs);
+
 
   if ((is_natd == GNUNET_YES) && (addrlen == sizeof(struct IPv6TcpAddress)))
   {
@@ -1645,7 +1646,7 @@ tcp_plugin_get_session (void *cls,
                               address,
                               NULL,
                               GNUNET_YES);
-    session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
+    session->ats_address_network_type = net_type;
     GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
     session->nat_connection_timeout = GNUNET_SCHEDULER_add_delayed (NAT_TIMEOUT,
                                                                     &nat_connect_timeout,
@@ -1742,7 +1743,7 @@ tcp_plugin_get_session (void *cls,
                             address,
                             GNUNET_SERVER_connect_socket (plugin->server, sa),
                             GNUNET_NO);
-  session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
+  session->ats_address_network_type = net_type;
   GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
   GNUNET_SERVER_client_set_user_context(session->client, session);
   GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
@@ -2333,8 +2334,9 @@ handle_tcp_welcome (void *cls,
       }
       session = create_session (plugin, address, client, GNUNET_NO);
       GNUNET_HELLO_address_free (address);
-      ats = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
-      session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
+      session->ats_address_network_type = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
+      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+      ats.value = htonl (session->ats_address_network_type);
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Creating new%s session %p for peer `%s' client %p \n",
           GNUNET_HELLO_address_check_option (session->address,

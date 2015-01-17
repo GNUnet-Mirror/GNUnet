@@ -111,21 +111,24 @@ struct Mstv4Context
   struct Plugin *plugin;
 
   struct IPv4UdpAddress addr;
+
   /**
-   * ATS network type in NBO
+   * ATS network type.
    */
-  uint32_t ats_address_network_type;
+  enum GNUNET_ATS_Network_Type ats_address_network_type;
 };
+
 
 struct Mstv6Context
 {
   struct Plugin *plugin;
 
   struct IPv6UdpAddress addr;
+
   /**
-   * ATS network type in NBO
+   * ATS network type.
    */
-  uint32_t ats_address_network_type;
+  enum GNUNET_ATS_Network_Type ats_address_network_type;
 };
 
 
@@ -152,7 +155,7 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
 
   /* setup ATS */
   atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi.value = mc->ats_address_network_type;
+  atsi.value = htonl (mc->ats_address_network_type);
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
@@ -195,7 +198,7 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
 
   /* setup ATS */
   atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi.value = mc->ats_address_network_type;
+  atsi.value = htonl (mc->ats_address_network_type);
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
@@ -221,8 +224,6 @@ udp_broadcast_receive (struct Plugin *plugin,
                        const struct sockaddr *addr,
                        size_t addrlen)
 {
-  struct GNUNET_ATS_Information ats;
-
   if (addrlen == sizeof (struct sockaddr_in))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -235,8 +236,9 @@ udp_broadcast_receive (struct Plugin *plugin,
 
     mc->addr.ipv4_addr = av4->sin_addr.s_addr;
     mc->addr.u4_port = av4->sin_port;
-    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) addr, addrlen);
-    mc->ats_address_network_type = ats.value;
+    mc->ats_address_network_type = plugin->env->get_address_type (plugin->env->cls,
+                                                                  (const struct sockaddr *) addr,
+                                                                  addrlen);
 
     GNUNET_assert (NULL != plugin->broadcast_ipv4_mst);
     if (GNUNET_OK !=
@@ -256,8 +258,7 @@ udp_broadcast_receive (struct Plugin *plugin,
 
     mc->addr.ipv6_addr = av6->sin6_addr;
     mc->addr.u6_port = av6->sin6_port;
-    ats = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) addr, addrlen);
-    mc->ats_address_network_type = ats.value;
+    mc->ats_address_network_type = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) addr, addrlen);
     GNUNET_assert (NULL != plugin->broadcast_ipv4_mst);
     if (GNUNET_OK !=
         GNUNET_SERVER_mst_receive (plugin->broadcast_ipv6_mst, mc, buf, size,
@@ -473,7 +474,7 @@ iface_proc (void *cls,
 {
   struct Plugin *plugin = cls;
   struct BroadcastAddress *ba;
-  struct GNUNET_ATS_Information network;
+  enum GNUNET_ATS_Network_Type network;
 
   if (NULL == addr)
     return GNUNET_OK;
@@ -489,7 +490,7 @@ iface_proc (void *cls,
               GNUNET_a2s (netmask, addrlen), name, netmask);
 
   network = plugin->env->get_address_type (plugin->env->cls, broadcast_addr, addrlen);
-  if (GNUNET_ATS_NET_LOOPBACK == ntohl(network.value))
+  if (GNUNET_ATS_NET_LOOPBACK == network)
   {
     /* Broadcasting on loopback does not make sense */
     return GNUNET_YES;
