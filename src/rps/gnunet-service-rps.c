@@ -347,12 +347,12 @@ in_arr (const struct GNUNET_PeerIdentity *array,
  * Get random peer from the gossip list.
  */
   struct GNUNET_PeerIdentity *
-get_rand_peer(const struct GNUNET_PeerIdentity *peer_list, unsigned int list_size)
+get_rand_peer (const struct GNUNET_PeerIdentity *peer_list, unsigned int list_size)
 {
   uint64_t r_index;
   struct GNUNET_PeerIdentity *peer;
 
-  peer = GNUNET_new(struct GNUNET_PeerIdentity);
+  peer = GNUNET_new (struct GNUNET_PeerIdentity);
   // FIXME if we have only NULL in gossip list this will block
   // but then we might have a problem nevertheless
 
@@ -363,7 +363,7 @@ get_rand_peer(const struct GNUNET_PeerIdentity *peer_list, unsigned int list_siz
      * Choose the r_index of the peer we want to return
      * at random from the interval of the gossip list
      */
-    r_index = GNUNET_CRYPTO_random_u64(GNUNET_CRYPTO_QUALITY_STRONG,
+    r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                      list_size);
 
     *peer = peer_list[r_index];
@@ -480,7 +480,7 @@ T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
  * Wrapper around _sampler_resize()
  */
   void
-resize_wrapper()
+resize_wrapper ()
 {
   uint64_t bigger_size;
 
@@ -510,7 +510,7 @@ resize_wrapper()
  * accordingly.
  */
   void
-nse_callback(void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimate, double std_dev)
+nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimate, double std_dev)
 {
   double estimate;
   //double scale; // TODO this might go gloabal/config
@@ -555,7 +555,7 @@ void client_respond (void *cls,
                             GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
   out_msg->num_peers = GNUNET_htonll (num_peers);
 
-  memcpy(&out_msg[1],
+  memcpy (&out_msg[1],
       ids,
       num_peers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free (ids);
@@ -583,7 +583,7 @@ handle_client_request (void *cls,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Client requested (a) random peer(s).\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested (a) random peer(s).\n");
 
   struct GNUNET_RPS_CS_RequestMessage *msg;
   uint64_t num_peers;
@@ -608,7 +608,7 @@ handle_client_request (void *cls,
         GNUNET_TIME_relative_divide (round_interval, 2));
     sampler_size_client_need = max_round_duration.rel_value_us / request_rate.rel_value_us;
 
-    resize_wrapper();
+    resize_wrapper ();
   }
   last_request = GNUNET_TIME_absolute_get ();
 
@@ -803,7 +803,7 @@ handle_peer_pull_reply (void *cls,
 static void
 do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round\n");
 
   uint64_t i;
   //unsigned int *n_arr;
@@ -823,11 +823,11 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * in essence get random peers with consumption */
 
   /* Send PUSHes */
-  //n_arr = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) gossip_list_size);
+  //n_arr = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) gossip_list_size);
   n_peers = round (alpha * gossip_list_size);
   if (0 == n_peers)
     n_peers = 1;
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
       n_peers, alpha, gossip_list_size);
   for ( i = 0 ; i < n_peers ; i++ )
   {
@@ -845,7 +845,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
   /* Send PULL requests */
-  //n_arr = GNUNET_CRYPTO_random_permute(GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
+  //n_arr = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
   n_peers = round (beta * gossip_list_size);
   if (0 == n_peers)
     n_peers = 1;
@@ -873,7 +873,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        push_list_size != 0 &&
        pull_list_size != 0 )
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list. ()\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list. ()\n");
 
     uint64_t first_border;
     uint64_t second_border;
@@ -890,7 +890,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       // TODO change the in_flags accordingly
     }
 
-    second_border = first_border + round(beta * gossip_list_size);
+    second_border = first_border + round (beta * gossip_list_size);
     for ( i = first_border ; i < second_border ; i++ )
     {
       /* Update gossip list with peers received through PULLs */
@@ -911,7 +911,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "No update of the gossip list. ()\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the gossip list. ()\n");
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
 
@@ -1041,9 +1041,9 @@ init_peer_cb (void *cls,
   {
     if (ipc->i < gossip_list_size)
     {
-      memcpy(&gossip_list[ipc->i],
+      memcpy (&gossip_list[ipc->i],
           RPS_sampler_get_n_rand_peers_ (1),
-          (gossip_list_size - ipc->i) * sizeof(struct GNUNET_PeerIdentity));
+          (gossip_list_size - ipc->i) * sizeof (struct GNUNET_PeerIdentity));
     }
     rps_start (ipc->server);
     GNUNET_free (ipc);
@@ -1061,7 +1061,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
   if ( NULL != do_round_task )
   {
@@ -1110,13 +1110,13 @@ handle_inbound_channel (void *cls,
 {
   struct peer_context *ctx;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "New channel was established to us (Peer %s).\n", GNUNET_i2s(initiator));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "New channel was established to us (Peer %s).\n", GNUNET_i2s (initiator));
 
-  GNUNET_assert( NULL != channel );
+  GNUNET_assert ( NULL != channel );
 
   // we might not even store the from_channel
 
-  ctx = get_peer_ctx(peer_map, initiator);
+  ctx = get_peer_ctx (peer_map, initiator);
   if (NULL != ctx->from_channel)
   {
     ctx->from_channel = channel;
@@ -1140,12 +1140,12 @@ handle_inbound_channel (void *cls,
  * @param channel_ctx The context associated with this channel
  */
 static void
-cleanup_channel(void *cls,
+cleanup_channel (void *cls,
                 const struct GNUNET_CADET_Channel *channel,
                 void *channel_ctx)
 {
   struct GNUNET_PeerIdentity *peer;
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Channel to remote peer was destroyed.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel to remote peer was destroyed.\n");
 
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
       (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
@@ -1171,11 +1171,11 @@ rps_start (struct GNUNET_SERVER_Handle *server)
   GNUNET_SERVER_disconnect_notify (server,
 				   &handle_client_disconnect,
 				   NULL);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Ready to receive requests from clients\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Ready to receive requests from clients\n");
 
 
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
@@ -1199,7 +1199,7 @@ run (void *cls,
   // - seems to work as expected
   GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "RPS started\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS started\n");
 
   struct init_peer_cls *ipc;
 
@@ -1210,7 +1210,7 @@ run (void *cls,
   own_identity = GNUNET_new (struct GNUNET_PeerIdentity);
   GNUNET_CRYPTO_get_peer_identity (cfg, own_identity); // TODO check return value
   GNUNET_assert (NULL != own_identity);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Own identity is %s (at %p).\n", GNUNET_i2s(own_identity), own_identity);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Own identity is %s (at %p).\n", GNUNET_i2s (own_identity), own_identity);
 
 
   /* Get time interval from the configuration */
@@ -1219,7 +1219,7 @@ run (void *cls,
                                                         &round_interval))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read ROUNDINTERVAL from config\n");
-    GNUNET_SCHEDULER_shutdown();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
@@ -1256,9 +1256,9 @@ run (void *cls,
                                                          "ALPHA",
                                                          &alpha))
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "No ALPHA specified in the config\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "No ALPHA specified in the config\n");
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "ALPHA is %f\n", alpha);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ALPHA is %f\n", alpha);
  
   /* Get beta from the configuration */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_float (cfg, "RPS",
