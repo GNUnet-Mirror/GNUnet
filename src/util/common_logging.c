@@ -1137,11 +1137,12 @@ GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
  *  will be overwritten by next call to #GNUNET_a2s.
  */
 const char *
-GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
+GNUNET_a2s (const struct sockaddr *addr,
+            socklen_t addrlen)
 {
 #ifndef WINDOWS
 #define LEN GNUNET_MAX ((INET6_ADDRSTRLEN + 8),         \
-                        (sizeof (struct sockaddr_un) - sizeof (sa_family_t)))
+                        (1 + sizeof (struct sockaddr_un) - sizeof (sa_family_t)))
 #else
 #define LEN (INET6_ADDRSTRLEN + 8)
 #endif
@@ -1188,9 +1189,12 @@ GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
     if ('\0' == un->sun_path[0])
       off++;
     memset (buf, 0, sizeof (buf));
-    snprintf (buf, sizeof (buf) - 1, "%s%.*s", (off == 1) ? "@" : "",
-              (int) (addrlen - sizeof (sa_family_t) - 1 - off),
-              &un->sun_path[off]);
+    GNUNET_snprintf (buf,
+                     sizeof (buf),
+                     "%s%.*s",
+                     (1 == off) ? "@" : "",
+                     (int) (addrlen - sizeof (sa_family_t) - off),
+                     &un->sun_path[off]);
     return buf;
   default:
     return _("invalid address");
