@@ -374,16 +374,18 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
   ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
 #if DEBUG_NETWORK
   {
-    struct sockaddr name;
+    struct sockaddr_storage name;
     socklen_t namelen = sizeof (name);
+
     int gsn = getsockname (desc->fd,
-                           &name,
+                           (struct sockaddr *) &name,
                            &namelen);
 
     if (gsn == 0)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Accepting connection on `%s'\n",
-           GNUNET_a2s (&name, namelen));
+           GNUNET_a2s ((const struct sockaddr *) &name,
+                       namelen));
   }
 #endif
   ret->fd = accept (desc->fd,
