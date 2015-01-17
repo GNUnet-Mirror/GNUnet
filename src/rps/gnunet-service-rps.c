@@ -122,7 +122,7 @@ enum in_list_flag // probably unneeded
  *
  * This is stored in a multipeermap.
  */
-struct peer_context
+struct PeerContext
 {
   /**
    * In own gossip/sampler list, in other's gossip/sampler list
@@ -376,10 +376,10 @@ get_rand_peer (const struct GNUNET_PeerIdentity *peer_list, unsigned int list_si
 /**
  * Get the context of a peer. If not existing, create.
  */
-  struct peer_context *
+  struct PeerContext *
 get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer)
 {
-  struct peer_context *ctx;
+  struct PeerContext *ctx;
 
   if ( GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
@@ -387,7 +387,7 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNE
   }
   else
   {
-    ctx = GNUNET_new (struct peer_context);
+    ctx = GNUNET_new (struct PeerContext);
     ctx->in_flags = 0;
     ctx->mq = NULL;
     ctx->to_channel = NULL;
@@ -404,7 +404,7 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNE
   struct GNUNET_CADET_Channel *
 get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer)
 {
-  struct peer_context *ctx;
+  struct PeerContext *ctx;
 
   ctx = get_peer_ctx (peer_map, peer);
   if (NULL == ctx->to_channel)
@@ -429,7 +429,7 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET
   struct GNUNET_MQ_Handle *
 get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer_id)
 {
-  struct peer_context *ctx;
+  struct PeerContext *ctx;
 
   ctx = get_peer_ctx (peer_map, peer_id);
   if (NULL == ctx->mq)
@@ -837,6 +837,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (push_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
+      // TODO replace with GNUNET_MQ_msg_header
       // FIXME sometimes it returns a pointer to a freed mq
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
@@ -859,6 +860,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
       ev = GNUNET_MQ_msg (pull_msg, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
+      // TODO replace with GNUNET_MQ_msg_header
       //pull_msg = NULL;
       mq = get_mq (peer_map, peer);
       GNUNET_MQ_send (mq, ev);
@@ -977,7 +979,7 @@ insertCB (void *cls, const struct GNUNET_PeerIdentity *id)
 removeCB (void *cls, const struct GNUNET_PeerIdentity *id)
 {
   size_t s;
-  struct peer_context *ctx;
+  struct PeerContext *ctx;
 
   s = RPS_sampler_count_id (id);
   if ( 1 >= s )
@@ -1052,6 +1054,29 @@ init_peer_cb (void *cls,
 
 
 /**
+ * Callback used to clean the multipeermap.
+ */
+  int
+peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
+{
+  struct PeerContext *peer_ctx;
+
+  peer_ctx = (struct PeerContext *) value;
+
+  if ( NULL != peer_ctx->mq)
+    GNUNET_MQ_destroy (peer_ctx->mq);
+
+  if ( NULL != peer_ctx->to_channel)
+    GNUNET_CADET_channel_destroy (peer_ctx->to_channel);
+  
+  if ( NULL != peer_ctx->from_channel)
+    GNUNET_CADET_channel_destroy (peer_ctx->from_channel);
+  
+  return GNUNET_YES;
+}
+
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -1063,11 +1088,20 @@ shutdown_task (void *cls,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
+  uint64_t num_peers;
+
   if ( NULL != do_round_task )
   {
     GNUNET_SCHEDULER_cancel (do_round_task);
     do_round_task = NULL;
   }
+
+  num_peers = GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL);
+  if (GNUNET_SYSERR == num_peers)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Iterating over peers to disconnect from them was cancelled\n");
+
+  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
 
   GNUNET_NSE_disconnect (nse);
   GNUNET_CADET_disconnect (cadet_handle);
@@ -1108,7 +1142,7 @@ handle_inbound_channel (void *cls,
                         uint32_t port,
                         enum GNUNET_CADET_ChannelOption options)
 {
-  struct peer_context *ctx;
+  struct PeerContext *ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "New channel was established to us (Peer %s).\n", GNUNET_i2s (initiator));
 
