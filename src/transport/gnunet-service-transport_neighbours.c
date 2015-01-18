@@ -2296,7 +2296,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
  */
 int
 GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
-                               const struct GNUNET_PeerIdentity *peer)
+                                   const struct GNUNET_PeerIdentity *peer)
 {
   const struct TransportSynMessage *scm;
   struct NeighbourMapEntry *n;
@@ -2417,9 +2417,22 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
   return GNUNET_OK;
 }
 
+
+/**
+ * We've been asked to switch addresses, and just now
+ * got the result from the blacklist check to see if this
+ * is allowed.
+ *
+ * @param cls the `struct BlacklistCheckSwitchContext` with
+ *        the information about the future address
+ * @param peer the peer we may switch addresses on
+ * @param result #GNUNET_NO if we are not allowed to use the new
+ *        address
+ */
 static void
 switch_address_bl_check_cont (void *cls,
-    const struct GNUNET_PeerIdentity *peer, int result)
+                              const struct GNUNET_PeerIdentity *peer,
+                              int result)
 {
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -2668,10 +2681,9 @@ switch_address_bl_check_cont (void *cls,
   }
 
   GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
-  GNUNET_HELLO_address_free(blc_ctx->address);
+  GNUNET_HELLO_address_free (blc_ctx->address);
   GNUNET_free_non_null (blc_ctx->ats);
   GNUNET_free (blc_ctx);
-  return;
 }
 
 
@@ -2765,9 +2777,13 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     }
   }
 
-  GNUNET_CONTAINER_DLL_insert (pending_bc_head, pending_bc_tail, blc_ctx);
-  if (NULL != (blc = GST_blacklist_test_allowed (peer, address->transport_name,
-      &switch_address_bl_check_cont, blc_ctx)))
+  GNUNET_CONTAINER_DLL_insert (pending_bc_head,
+                               pending_bc_tail,
+                               blc_ctx);
+  if (NULL != (blc = GST_blacklist_test_allowed (peer,
+                                                 address->transport_name,
+                                                 &switch_address_bl_check_cont,
+                                                 blc_ctx)))
   {
     blc_ctx->blc = blc;
   }
