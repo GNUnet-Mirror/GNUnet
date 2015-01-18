@@ -117,9 +117,9 @@ enum PeerFlags
   IN_OWN_GOSSIP_LIST    = 0x08, // unneeded?
 
   /**
-   * We set this bit when we receive a hello in response to opening a channel.
+   * We set this bit when we can be sure the other peer is/was live.
    */
-  IS_LIVE               = 0x10
+  LIVING                = 0x10
 };
 
 /**
@@ -803,31 +803,6 @@ handle_peer_pull_reply (void *cls,
 
 
 /**
- * Handle Hello message from other peer.
- */
-  static int
-handle_peer_hello (void *cls,
-    struct GNUNET_CADET_Channel *channel,
-    void **channel_ctx,
-    const struct GNUNET_MessageHeader *msg)
-{
-  const struct GNUNET_PeerIdentity *peer;
-  struct PeerContext *peer_ctx;
-
-  peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel,
-                                                                       GNUNET_CADET_OPTION_PEER);
-  // FIXME wait for cadet to change this function
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "HELLO received from %s\n", GNUNET_i2s (peer));
-
-  peer_ctx = get_peer_ctx (peer_map, peer);
-  peer_ctx->peer_flags |= IS_LIVE;
-
-  return GNUNET_OK;
-}
-
-
-/**
  * Send out PUSHes and PULLs.
  *
  * This is executed regylary.
@@ -1181,11 +1156,6 @@ handle_inbound_channel (void *cls,
 
   GNUNET_assert (NULL != channel);
 
-  /* Send hello message to other peer */
-  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_HELLO);
-  mq = get_mq (peer_map, initiator);
-  GNUNET_MQ_send (mq, ev);
-
   // we might not even store the recv_channel
 
   ctx = get_peer_ctx (peer_map, initiator);
@@ -1359,8 +1329,6 @@ run (void *cls,
     {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
       sizeof (struct GNUNET_MessageHeader)},
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
-    {&handle_peer_hello       , GNUNET_MESSAGE_TYPE_RPS_PP_HELLO       ,
-      sizeof (struct GNUNET_MessageHeader)},
     {NULL, 0, 0}
   };
 
