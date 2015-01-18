@@ -82,7 +82,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * @return handle to this request
  */
   struct GNUNET_RPS_Request_Handle *
-GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
+GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
                           GNUNET_RPS_NotifyReadyCB ready_cb,
                           void *cls);
 

@@ -193,7 +193,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @return a handle to cancel this request
  */
   struct GNUNET_RPS_Request_Handle *
-GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
+GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
                           GNUNET_RPS_NotifyReadyCB ready_cb,
                           void *cls)
 {
@@ -212,7 +212,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint64_t n,
   //memcpy(&req_handlers[req_handlers_size-1], rh, sizeof(struct GNUNET_RPS_Request_Handle));
 
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
-  msg->num_peers = GNUNET_htonll (n);
+  msg->num_peers = htonl (n);
   msg->n = rh->n;
   GNUNET_MQ_send (h->mq, ev);
   return rh;
