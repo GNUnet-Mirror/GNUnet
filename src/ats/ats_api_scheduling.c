@@ -40,24 +40,57 @@
 
 
 /**
- * Information we track per session.
+ * Information we track per address.
+ * FIXME: but what about *incoming* connections?
+ *        "address" tells us about those, those
+ *        are only valid while we have a session.
+ *        Need to clarify all this!!!
  */
-struct SessionRecord
+struct GNUNET_ATS_AddressRecord
 {
   /**
-   * Identity of the peer (just needed for error checking).
+   * Address data.
    */
-  struct GNUNET_PeerIdentity peer;
+  struct GNUNET_HELLO_Address *address;
 
   /**
-   * Session handle.
+   * Session handle.  NULL if we have an address but no
+   * active session for this address.
    */
   struct Session *session;
 
   /**
-   * Set to #GNUNET_YES if the slot is used.
+   * Array with performance data about the address.
    */
-  int slot_used;
+  struct GNUNET_ATS_Information *ats;
+
+  /**
+   * Number of entries in @e ats.
+   */
+  uint32_t ats_count;
+
+  /**
+   * Which slot (index) in the session array does
+   * this record correspond to?  FIXME:
+   * FIXME: a linear search on this is really crappy!
+   * Maybe switch to a 64-bit global counter and be
+   * done with it?  Or does that then cause too much
+   * trouble on the ATS-service side?
+   */
+  uint32_t slot;
+
+  /**
+   * Is this address currently in use?
+   * FIXME: document what "in use" means, and why it
+   * is important!
+   */
+  int in_use;
+
+  /**
+   * We're about to destroy this address record, just ATS does
+   * not know this yet.
+   */
+  int in_destroy;
 };
 
 
@@ -162,7 +195,7 @@ struct GNUNET_ATS_SchedulingHandle
    * network).  Index 0 is always NULL and reserved to represent the NULL pointer.
    * Unused entries are also NULL.
    */
-  struct SessionRecord *session_array;
+  struct GNUNET_ATS_AddressRecord **session_array;
 
   /**
    * Task to trigger reconnect.
@@ -240,14 +273,12 @@ force_reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
  * @param peer peer the session belongs to
  * @return the session object (or NULL)
  */
-static struct Session *
+static struct GNUNET_ATS_AddressRecord *
 find_session (struct GNUNET_ATS_SchedulingHandle *sh,
               uint32_t session_id,
               const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-              "Find session %u from peer %s in %p\n",
-              (unsigned int) session_id, GNUNET_i2s (peer), sh);
+  struct GNUNET_ATS_AddressRecord *ar;
 
   if (session_id >= sh->session_array_size)
   {
@@ -256,90 +287,58 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh,
   }
   if (0 == session_id)
     return NULL;
-  if (sh->session_array[session_id].session == NULL)
+  ar = sh->session_array[session_id];
+  if (NULL == ar)
   {
-    GNUNET_break (0 ==
-                  memcmp (peer, &sh->session_array[session_id].peer,
-                          sizeof (struct GNUNET_PeerIdentity)));
+    GNUNET_break (0);
     return NULL;
   }
-
-  if (0 !=
-      memcmp (peer, &sh->session_array[session_id].peer,
-              sizeof (struct GNUNET_PeerIdentity)))
+  if (NULL == ar->address)
+  {
+    /* address was destroyed in the meantime, this can happen
+       as we communicate asynchronously with the ATS service. */
+    return NULL;
+  }
+  if (0 != memcmp (peer,
+                   &ar->address->peer,
+                   sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     force_reconnect (sh);
     return NULL;
   }
-  /* This check exploits the fact that first field of a session object
-   * is peer identity.
-   */
-  if (0 !=
-      memcmp (peer, sh->session_array[session_id].session,
-              sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     "ats-scheduling-api",
-                     "Session %p belongs to peer `%s'\n",
-                     sh->session_array[session_id].session,
-                     GNUNET_i2s_full ((struct GNUNET_PeerIdentity *) &sh->session_array[session_id].peer));
-/*
-    GNUNET_break (0);
-    sh->reconnect = GNUNET_YES;
-    return NULL;
-*/
-  }
-  return sh->session_array[session_id].session;
+  return ar;
 }
 
 
 /**
- * Get an available session ID for the given session object.
+ * Get an available session ID.
  *
  * @param sh our handle
- * @param session session object
- * @param peer peer the session belongs to
- * @return the session id
+ * @return an unused slot, but never NOT_FOUND (0)
  */
 static uint32_t
-find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh,
-                         struct Session *session,
-                         const struct GNUNET_PeerIdentity *peer)
+find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh)
 {
-  unsigned int i;
-  unsigned int f;
+  static uint32_t off;
+  uint32_t i;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "ats-scheduling-api",
-                   "Get session ID for session %p from peer %s in %p\n",
-                   session,
-                   GNUNET_i2s (peer),
-                   sh);
-  if (NULL == session)
-    return NOT_FOUND;
-  f = 0;
-  for (i = 1; i < sh->session_array_size; i++)
+  i = 0;
+  while ( ( (NOT_FOUND == off) ||
+            (NULL != sh->session_array[off % sh->session_array_size]) ) &&
+          (i < sh->session_array_size) )
   {
-    if ((f == 0) && (sh->session_array[i].slot_used == GNUNET_NO))
-      f = i;
+    off++;
+    i++;
   }
-  if (f == 0)
-  {
-    f = sh->session_array_size;
-    GNUNET_array_grow (sh->session_array, sh->session_array_size,
-                       sh->session_array_size * 2);
-  }
-  GNUNET_assert (f > 0);
-  sh->session_array[f].session = session;
-  sh->session_array[f].peer = *peer;
-  sh->session_array[f].slot_used = GNUNET_YES;
-
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-              "Assigning session ID %u for session %p of peer %s in %p\n", f,
-              session, GNUNET_i2s (peer), sh);
-
-  return f;
+  if ( (NOT_FOUND != off) &&
+       (NULL == sh->session_array[off % sh->session_array_size]) )
+    return off;
+  i = sh->session_array_size;
+  GNUNET_array_grow (sh->session_array,
+                     sh->session_array_size,
+                     sh->session_array_size * 2);
+  return i;
 }
 
 
@@ -348,78 +347,29 @@ find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh our handle
  * @param session session object
- * @param peer peer the session belongs to
+ * @param address the address we are looking for
  * @return the session id or NOT_FOUND for error
  */
 static uint32_t
 find_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
                  struct Session *session,
-                 const struct GNUNET_PeerIdentity *peer)
+                 const struct GNUNET_HELLO_Address *address)
 {
-  unsigned int i;
-  char * p2;
+  uint32_t i;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-              "Get session ID for session %p from peer %s in %p\n", session,
-              GNUNET_i2s (peer), sh);
-
-  if (NULL == session)
-    return NOT_FOUND;
-  for (i = 1; i < sh->session_array_size; i++)
+  if (NULL == address)
   {
-    if (session == sh->session_array[i].session)
-    {
-      if (0 != memcmp (peer, &sh->session_array[i].peer,
-                       sizeof (struct GNUNET_PeerIdentity)))
-      {
-        p2 = strdup (GNUNET_i2s (&sh->session_array[i].peer));
-        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "ats-scheduling-api",
-                    "Session %p did not match: old session was for peer `%s' new session is for `%s'\n",
-                    session, GNUNET_i2s (peer), p2);
-        GNUNET_free (p2);
-        return NOT_FOUND;
-      }
-      return i;
-    }
+    GNUNET_break (0);
+    return NOT_FOUND;
   }
+  for (i = 1; i < sh->session_array_size; i++)
+    if ( (NULL != sh->session_array[i]) &&
+         ( (session == sh->session_array[i]->session) ||
+           (NULL == sh->session_array[i]->session) ) &&
+         (0 == GNUNET_HELLO_address_cmp (address,
+                                         sh->session_array[i]->address)) )
+      return i;
   return NOT_FOUND;
-}
-
-
-/**
- * Remove the session of the given session ID from the session
- * table (it is no longer valid).
- *
- * @param sh our handle
- * @param session_id identifies session that is no longer valid
- * @param peer peer the session belongs to
- */
-static void
-remove_session (struct GNUNET_ATS_SchedulingHandle *sh,
-                uint32_t session_id,
-                const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "ats-scheduling-api",
-                   "Release sessionID %u from peer %s in %p\n",
-                   (unsigned int) session_id,
-                   GNUNET_i2s (peer),
-                   sh);
-
-  if (0 == session_id)
-    return;
-
-  GNUNET_assert (session_id < sh->session_array_size);
-  GNUNET_assert (GNUNET_YES == sh->session_array[session_id].slot_used);
-  GNUNET_assert (0 == memcmp (peer,
-                              &sh->session_array[session_id].peer,
-                              sizeof (struct GNUNET_PeerIdentity)));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "ats-scheduling-api",
-              "Session %p for peer `%s' removed from slot %u \n",
-              sh->session_array[session_id].session,
-              GNUNET_i2s (peer),
-              session_id);
-  sh->session_array[session_id].session = NULL;
 }
 
 
@@ -429,19 +379,15 @@ remove_session (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh our handle
  * @param session_id identifies session that is no longer valid
- * @param peer peer the session belongs to
  */
 static void
 release_session (struct GNUNET_ATS_SchedulingHandle *sh,
-                 uint32_t session_id,
-                 const struct GNUNET_PeerIdentity *peer)
+                 uint32_t session_id)
 {
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "ats-scheduling-api",
-                   "Release sessionID %u from peer %s in %p\n",
-                   (unsigned int) session_id,
-                   GNUNET_i2s (peer),
-                   sh);
+  struct GNUNET_ATS_AddressRecord *ar;
+
+  if (NOT_FOUND == session_id)
+    return;
   if (session_id >= sh->session_array_size)
   {
     GNUNET_break (0);
@@ -449,20 +395,16 @@ release_session (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
   /* this slot should have been removed from remove_session before */
-  GNUNET_assert (sh->session_array[session_id].session == NULL);
-
-  if (0 !=
-      memcmp (peer, &sh->session_array[session_id].peer,
-              sizeof (struct GNUNET_PeerIdentity)))
+  ar = sh->session_array[session_id];
+  if (NULL != ar->session)
   {
     GNUNET_break (0);
     force_reconnect (sh);
     return;
   }
-  sh->session_array[session_id].slot_used = GNUNET_NO;
-  memset (&sh->session_array[session_id].peer,
-          0,
-          sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_HELLO_address_free (ar->address);
+  GNUNET_free (ar);
+  sh->session_array[session_id] = NULL;
 }
 
 
@@ -481,10 +423,9 @@ process_ats_session_release_message (void *cls,
   const struct SessionReleaseMessage *srm;
 
   srm = (const struct SessionReleaseMessage *) msg;
-
+  /* FIXME: peer field in srm not necessary anymore */
   release_session (sh,
-                   ntohl (srm->session_id),
-                   &srm->peer);
+                   ntohl (srm->session_id));
 }
 
 
@@ -509,6 +450,7 @@ process_ats_address_suggestion_message (void *cls,
   uint32_t ats_count;
   struct GNUNET_HELLO_Address address;
   struct Session *s;
+  struct GNUNET_ATS_AddressRecord *ar;
 
   if (ntohs (msg->size) <= sizeof (struct AddressSuggestionMessage))
   {
@@ -516,6 +458,8 @@ process_ats_address_suggestion_message (void *cls,
     force_reconnect (sh);
     return;
   }
+  /* FIXME: we have all the address details, no need for ATS
+     to send those back to us any longer! */
   m = (const struct AddressSuggestionMessage *) msg;
   ats_count = ntohl (m->ats_count);
   plugin_address_length = ntohs (m->address_length);
@@ -536,22 +480,29 @@ process_ats_address_suggestion_message (void *cls,
   }
   uint32_t session_id = ntohl (m->session_id);
 
-  if (session_id == 0)
-    s = NULL;
-  else
+  if (0 == session_id)
   {
-    s = find_session (sh, session_id, &m->peer);
-    if (NULL == s)
-    {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                       "ats-scheduling-api",
-                       "ATS tries to use outdated session `%s'\n",
-                       GNUNET_i2s (&m->peer));
-      return;
-    }
+    GNUNET_break (0);
+    force_reconnect (sh);
+    return;
   }
+  ar = find_session (sh, session_id, &m->peer);
+  if (NULL == ar)
+  {
+    GNUNET_break (0);
+    force_reconnect (sh);
+    return;
+  }
+  s = ar->session;
   if (NULL == sh->suggest_cb)
     return;
+  if ( (GNUNET_YES == ar->in_destroy) &&
+       ( (0 != ntohl (m->bandwidth_out.value__)) ||
+         (0 != ntohl (m->bandwidth_in.value__)) ) )
+  {
+    /* ignore suggestion, as this address is dying */
+    return;
+  }
   address.peer = m->peer;
   address.address = plugin_address;
   address.address_length = plugin_address_length;
@@ -596,6 +547,66 @@ error_handler (void *cls,
               "ATS connection died (code %d), reconnecting\n",
               (int) error);
   force_reconnect (sh);
+}
+
+
+/**
+ * Generate the "AddressUpdateMessage" for the given
+ * session record.
+ *
+ * @param sh the scheduling handle to use for transmission
+ * @param ar the address to inform the ATS service about
+ * @param msg_type the message type to use when sending the message
+ *
+ * FIXME: maybe overloading with msg_type was not the best idea here...
+ */
+static void
+send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
+                          const struct GNUNET_ATS_AddressRecord *ar,
+                          uint16_t msg_type)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct AddressUpdateMessage *m;
+  struct GNUNET_ATS_Information *am;
+  char *pm;
+  size_t namelen;
+  size_t msize;
+
+  if (NULL == sh->mq)
+    return; /* disconnected, skip for now */
+  namelen = (NULL == ar->address->transport_name)
+    ? 0
+    : strlen (ar->address->transport_name) + 1;
+  msize = ar->address->address_length +
+    ar->ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
+
+  ev = GNUNET_MQ_msg_extra (m, msize, msg_type);
+  m->ats_count = htonl (ar->ats_count);
+  m->peer = ar->address->peer;
+  m->address_length = htons (ar->address->address_length);
+  m->address_local_info = htonl ((uint32_t) ar->address->local_info);
+  m->plugin_name_length = htons (namelen);
+  m->session_id = htonl (ar->slot);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
+              GNUNET_i2s (&ar->address->peer),
+              ar->address->transport_name,
+              ar->session,
+              ar->slot);
+  am = (struct GNUNET_ATS_Information *) &m[1];
+  memcpy (am,
+          ar->ats,
+          ar->ats_count * sizeof (struct GNUNET_ATS_Information));
+  pm = (char *) &am[ar->ats_count];
+  memcpy (pm,
+          ar->address->address,
+          ar->address->address_length);
+  if (NULL != ar->address->transport_name)
+    memcpy (&pm[ar->address->address_length],
+            ar->address->transport_name,
+            namelen);
+  GNUNET_MQ_send (sh->mq, ev);
 }
 
 
@@ -1082,7 +1093,7 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
- * @return suggest handle
+ * @return suggest handle, NULL if a request is already pending
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
@@ -1094,11 +1105,15 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
 
   s = GNUNET_new (struct GNUNET_ATS_SuggestHandle);
   s->id = *peer;
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (sh->sug_requests,
-                                                   &s->id,
-                                                   s,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multipeermap_put (sh->sug_requests,
+                                         &s->id,
+                                         s,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   if (NULL == sh->mq)
     return s;
   ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
@@ -1161,7 +1176,7 @@ GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
     return GNUNET_NO;
   if (NOT_FOUND != find_session_id (sh,
                                     session,
-                                    &address->peer))
+                                    address))
     return GNUNET_YES;  /* Exists */
   return GNUNET_NO;
 }
@@ -1186,24 +1201,20 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_ATS_Information *ats,
                         uint32_t ats_count)
 {
-  struct GNUNET_MQ_Envelope *ev;
-  struct AddressUpdateMessage *m;
-  struct GNUNET_ATS_Information *am;
-  char *pm;
+  struct GNUNET_ATS_AddressRecord *ar;
   size_t namelen;
   size_t msize;
-  uint32_t s = 0;
+  uint32_t s;
 
   if (NULL == address)
   {
+    /* we need a valid address */
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
   namelen = (NULL == address->transport_name)
     ? 0
     : strlen (address->transport_name) + 1;
-
   msize = address->address_length +
     ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
   if ((msize + sizeof (struct AddressUpdateMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
@@ -1212,48 +1223,28 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
       (ats_count >=
        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
   {
+    /* address too large for us, this should not happen */
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
-  if (NULL != session)
+  if (NOT_FOUND != find_session_id (sh, session, address))
   {
-    if (NOT_FOUND != (s = find_session_id (sh, session, &address->peer)))
-    {
-      /* Already existing, nothing todo */
-      return GNUNET_SYSERR;
-    }
-    s = find_empty_session_slot (sh,
-                                 session,
-                                 &address->peer);
-    GNUNET_break (NOT_FOUND != s);
+    /* Already existing, nothing todo, but this should not happen */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
-
-  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
-  m->ats_count = htonl (ats_count);
-  m->peer = address->peer;
-  m->address_length = htons (address->address_length);
-  m->address_local_info = htonl ((uint32_t) address->local_info);
-  m->plugin_name_length = htons (namelen);
-  m->session_id = htonl (s);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
-              GNUNET_i2s (&address->peer),
-              address->transport_name,
-              session,
-              s);
-  am = (struct GNUNET_ATS_Information *) &m[1];
-  memcpy (am,
-          ats,
-          ats_count * sizeof (struct GNUNET_ATS_Information));
-  pm = (char *) &am[ats_count];
-  memcpy (pm, address->address, address->address_length);
-  if (NULL != address->transport_name)
-    memcpy (&pm[address->address_length],
-            address->transport_name,
-            namelen);
-  GNUNET_MQ_send (sh->mq, ev);
+  s = find_empty_session_slot (sh);
+  ar = GNUNET_new (struct GNUNET_ATS_AddressRecord);
+  ar->slot = s;
+  ar->session = session;
+  ar->address = GNUNET_HELLO_address_copy (address);
+  GNUNET_array_grow (ar->ats,
+                     ar->ats_count,
+                     ats_count);
+  memcpy (ar->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+  sh->session_array[s] = ar;
+  send_add_address_message (sh, ar, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
   return GNUNET_OK;
 }
 
@@ -1265,6 +1256,8 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * Furthermore, the peer may not even be connected to us right now (in
  * which case the call may be ignored or the information may be stored
  * for later use).  Update bandwidth assignments.
+ *
+ * FIXME: change API so we do not have to do the linear search!
  *
  * @param sh handle
  * @param address the address
@@ -1281,69 +1274,24 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
-  struct GNUNET_MQ_Envelope *ev;
-  struct AddressUpdateMessage *m;
-  struct GNUNET_ATS_Information *am;
-  char *pm;
-  size_t namelen;
-  size_t msize;
-  uint32_t s = 0;
+  uint32_t s;
+  struct GNUNET_ATS_AddressRecord *ar;
 
-  if (NULL == address)
+  s = find_session_id (sh, session, address);
+  if (NOT_FOUND == s)
   {
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return GNUNET_NO;
   }
-  if (NULL == sh)
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-
-  namelen = (address->transport_name ==
-       NULL) ? 0 : strlen (address->transport_name) + 1;
-  msize = address->address_length +
-      ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
-  if ((msize + sizeof (struct AddressUpdateMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (ats_count >=
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-
-  if (NULL != session)
-  {
-    s = find_session_id (sh, session, &address->peer);
-    if (NOT_FOUND == s)
-      return GNUNET_NO;
-  }
-
-  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
-  m->ats_count = htonl (ats_count);
-  m->peer = address->peer;
-  m->address_length = htons (address->address_length);
-  m->address_local_info = htonl ((uint32_t) address->local_info);
-  m->plugin_name_length = htons (namelen);
-  m->session_id = htonl (s);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating address for peer `%s', plugin `%s', session %p id %u\n",
-              GNUNET_i2s (&address->peer),
-              address->transport_name,
-              session,
-              s);
-
-  am = (struct GNUNET_ATS_Information *) &m[1];
-  memcpy (am,
+  ar = sh->session_array[s];
+  GNUNET_array_grow (ar->ats,
+                     ar->ats_count,
+                     ats_count);
+  memcpy (ar->ats,
           ats,
           ats_count * sizeof (struct GNUNET_ATS_Information));
-  pm = (char *) &am[ats_count];
-  memcpy (pm, address->address, address->address_length);
-  memcpy (&pm[address->address_length], address->transport_name, namelen);
-  GNUNET_MQ_send (sh->mq, ev);
+  ar->session = session;
+  send_add_address_message (sh, ar, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
   return GNUNET_YES;
 }
 
@@ -1365,42 +1313,25 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
 {
   struct GNUNET_MQ_Envelope *ev;
   struct AddressUseMessage *m;
+  struct GNUNET_ATS_AddressRecord *ar;
   char *pm;
   size_t namelen;
   size_t msize;
   uint32_t s = 0;
 
-  namelen =
-      (address->transport_name ==
-       NULL) ? 0 : strlen (address->transport_name) + 1;
-  msize = address->address_length + namelen;
-  if ((msize + sizeof (struct AddressUseMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
+  s = find_session_id (sh, session, address);
+  if (s == NOT_FOUND)
   {
+    /* trying to set unknown address to NO */
     GNUNET_break (0);
     return;
   }
-
-  if (NULL != session)
-  {
-    s = find_session_id (sh, session, &address->peer);
-    if ((s == NOT_FOUND) && (GNUNET_NO == in_use))
-    {
-      /* trying to set unknown address to NO */
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Trying to set unknown address to unused for peer `%s', plugin `%s', session %p\n",
-                  GNUNET_i2s (&address->peer), address->transport_name, session);
-      GNUNET_break (0);
-      return;
-    }
-    if ((s == NOT_FOUND) && (GNUNET_YES == in_use))
-    {
-      /* trying to set new address to YES */
-      s = find_empty_session_slot (sh, session, &address->peer);
-      GNUNET_assert (NOT_FOUND != s);
-    }
-  }
+  ar = sh->session_array[s];
+  ar->in_use = in_use;
+  namelen = (NULL == address->transport_name)
+    ? 0
+    : strlen (address->transport_name) + 1;
+  msize = address->address_length + namelen;
 
   ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
   m->peer = address->peer;
@@ -1412,10 +1343,13 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting address used to %s for peer `%s', plugin `%s', session %p\n",
               (GNUNET_YES == in_use) ? "YES" : "NO",
-              GNUNET_i2s (&address->peer), address->transport_name, session);
+              GNUNET_i2s (&address->peer),
+              address->transport_name,
+              session);
 
   m->session_id = htonl (s);
   pm = (char *) &m[1];
+  /* FIXME: no need to send the address data */
   memcpy (pm, address->address, address->address_length);
   memcpy (&pm[address->address_length], address->transport_name, namelen);
   GNUNET_MQ_send (sh->mq, ev);
@@ -1428,6 +1362,9 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
  * If a session is given, only the session will be removed, if no session is
  * given the full address will be deleted.
  *
+ * FIXME: the above sentence already indicates that this API is a
+ * mess and troublesome. FIX IT!
+ *
  * @param sh handle
  * @param address the address
  * @param session session handle that is no longer valid, can be NULL
@@ -1437,18 +1374,30 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
                               const struct GNUNET_HELLO_Address *address,
                               struct Session *session)
 {
+  uint32_t s;
   struct GNUNET_MQ_Envelope *ev;
   struct AddressDestroyedMessage *m;
+  struct GNUNET_ATS_AddressRecord *ar;
   char *pm;
   size_t namelen;
   size_t msize;
-  uint32_t s;
 
-  if (NULL == address)
+  s = find_session_id (sh, session, address);
+  if (NOT_FOUND == s)
   {
     GNUNET_break (0);
     return;
   }
+  ar = sh->session_array[s];
+  if (NULL != session)
+  {
+    /* FIXME: this is yucky, fix API! */
+    GNUNET_break (ar->session == session);
+    ar->session = NULL;
+    return;
+  }
+
+
   GNUNET_assert (NULL != address->transport_name);
   namelen = strlen (address->transport_name) + 1;
   GNUNET_assert (namelen > 1);
@@ -1461,16 +1410,6 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
     return;
   }
 
-  s = find_session_id (sh, session, &address->peer);
-  if ((NULL != session) && (NOT_FOUND == s))
-  {
-    /* trying to delete unknown address */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Trying to delete unknown address for peer `%s', plugin `%s', session %p\n",
-                GNUNET_i2s (&address->peer), address->transport_name, session);
-    return;
-  }
-
   ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);
   m->peer = address->peer;
   m->address_length = htons (address->address_length);
@@ -1479,14 +1418,25 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deleting address for peer `%s', plugin `%s', session %p\n",
-              GNUNET_i2s (&address->peer), address->transport_name, session);
+              GNUNET_i2s (&address->peer),
+              address->transport_name,
+              session);
 
   m->session_id = htonl (s);
   pm = (char *) &m[1];
-  memcpy (pm, address->address, address->address_length);
-  memcpy (&pm[address->address_length], address->transport_name, namelen);
+  memcpy (pm,
+          address->address,
+          address->address_length);
+  memcpy (&pm[address->address_length],
+          address->transport_name,
+          namelen);
   GNUNET_MQ_send (sh->mq, ev);
-  remove_session (sh, s, &address->peer);
+  ar->session = NULL;
+  ar->in_destroy = GNUNET_YES;
+  GNUNET_array_grow (ar->ats,
+                     ar->ats_count,
+                     0);
 }
+
 
 /* end of ats_api_scheduling.c */

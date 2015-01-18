@@ -388,7 +388,7 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
- * @return suggestion handle
+ * @return suggestion handle, NULL if a request is already pending
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,

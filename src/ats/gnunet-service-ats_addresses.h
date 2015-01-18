@@ -319,7 +319,7 @@ struct ATS_Address
   size_t addr_len;
 
   /**
-   * Session ID, can be 0
+   * Session ID, can never be 0.
    */
   uint32_t session_id;
 
@@ -445,7 +445,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle);
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
  * @param local_address_info the local address for the address
- * @param session_id session id, can be 0.
+ * @param session_id session id, can never be 0.
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained in @a atsi
  */
@@ -477,7 +477,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address in @a plugin_addr
  * @param local_address_info the local address for the address
- * @param session_id session id, can be 0
+ * @param session_id session id, can never be 0
  * @param in_use #GNUNET_YES if #GNUNET_NO FIXME
  * @return #GNUNET_SYSERR on failure (address unknown ...)
  */
@@ -504,7 +504,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
  * @param local_address_info the local address for the address
- * @param session_id session id, can be 0
+ * @param session_id session id, can never be 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained in @a atsi
  */
@@ -528,7 +528,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address in @a plugin_addr
- * @param session_id session id, can be 0
+ * @param session_id session id, can never be 0
  * @param local_address_info the local address for the address
  */
 void

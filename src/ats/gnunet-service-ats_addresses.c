@@ -482,7 +482,7 @@ free_address (struct ATS_Address *addr)
  * @param plugin_addr address
  * @param plugin_addr_len address length
  * @param local_address_info additional local info for the address
- * @param session_id session identifier, can be 0
+ * @param session_id session identifier, can never be 0
  * @return the ATS_Address
  */
 static struct ATS_Address *
@@ -493,9 +493,9 @@ create_address (const struct GNUNET_PeerIdentity *peer,
                 uint32_t local_address_info,
                 uint32_t session_id)
 {
-  struct ATS_Address *aa = NULL;
-  int c1;
-  int c2;
+  struct ATS_Address *aa;
+  unsigned int c1;
+  unsigned int c2;
 
   aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len);
   aa->peer = *peer;
@@ -505,10 +505,6 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
   aa->local_address_info = local_address_info;
-  aa->assigned_bw_out = 0;
-  aa->assigned_bw_in = 0;
-  aa->last_notified_bw_out = 0;
-  aa->last_notified_bw_in = 0;
 
   for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1++)
   {
@@ -535,7 +531,7 @@ struct CompareAddressContext
 
 
 /**
- * Comapre addresses
+ * Comapre addresses.
  *
  * @param cls a CompareAddressContext containin the source address
  * @param key peer id
@@ -654,10 +650,9 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
  * @param local_address_info the local address for the address
- * @param session_id session id, can be 0
+ * @param session_id session id, can never be 0
  * @return an ATS_address or NULL
  */
-
 static struct ATS_Address *
 find_exact_address (struct GAS_Addresses_Handle *handle,
                     const struct GNUNET_PeerIdentity *peer,
@@ -724,7 +719,7 @@ get_property_cb (void *cls, const struct ATS_Address *address)
  *
  * @param address the address
  * @param type the type to extract in HBO
- * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
+ * @return the value in HBO or #GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
  */
 static int
 get_performance_info (struct ATS_Address *address, uint32_t type)
@@ -791,15 +786,15 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
                                 local_address_info, session_id);
   atsi_delta = NULL;
   disassemble_ats_information (new_address, atsi, atsi_count, &atsi_delta,
-      &atsi_delta_count);
-  GNUNET_free_non_null(atsi_delta);
+                               &atsi_delta_count);
+  GNUNET_free_non_null (atsi_delta);
   addr_net = get_performance_info (new_address, GNUNET_ATS_NETWORK_TYPE);
   if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
     addr_net = GNUNET_ATS_NET_UNSPECIFIED;
 
   /* Get existing address or address with session == 0 */
   existing_address = find_equivalent_address (handle, peer, new_address);
-  if (existing_address == NULL )
+  if (existing_address == NULL)
   {
     /* Add a new address */
     new_address->t_added = GNUNET_TIME_absolute_get();
@@ -957,21 +952,29 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
 
   if (GNUNET_NO == handle->running)
     return;
-
-  GNUNET_assert(NULL != handle->addresses);
+  GNUNET_assert (NULL != handle->addresses);
 
   /* Get existing address */
   aa = find_exact_address (handle, peer, plugin_name, plugin_addr,
-      plugin_addr_len, local_address_info, session_id);
-  if (aa == NULL )
+                           plugin_addr_len,
+                           local_address_info,
+                           session_id);
+  if (aa == NULL)
+  {
+    GNUNET_break (0);
     return;
+  }
   if (NULL == aa->solver_information)
+  {
+    GNUNET_break (0);
     return;
+  }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received `%s' for peer `%s' address \n",
-             "ADDRESS UPDATE",
-             GNUNET_i2s (peer), aa);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s' address \n",
+              "ADDRESS UPDATE",
+              GNUNET_i2s (peer),
+              aa);
 
   /* Update address */
   aa->t_last_activity = GNUNET_TIME_absolute_get();
@@ -1047,11 +1050,7 @@ struct DestroyContext
 
 
 /**
- * Delete an address
- *
- * If session != 0, just the session is deleted, the address itself still exists
- * If session == 0, remove full address
- * If session == 0 and addrlen == 0, destroy inbound address
+ * Delete an address.
  *
  * @param cls unused
  * @param key unused
@@ -1072,102 +1071,32 @@ destroy_by_session_id (void *cls,
                  memcmp (&aa->peer,
                          &des->peer,
                          sizeof (struct GNUNET_PeerIdentity)));
-  if (0 == des->session_id)
-  {
-    /* Session == 0, remove full address  */
-    if ((0 == strcmp (des->plugin, aa->plugin))
-        && (aa->addr_len == des->addr_len)
-        && (0 == memcmp (des->addr, aa->addr, aa->addr_len)))
-    {
-
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Deleting full address for peer `%s' session %u %p\n",
-                  GNUNET_i2s (&aa->peer),
-                  aa->session_id,
-                  aa);
-      /* Notify solver about deletion */
-      GNUNET_assert (GNUNET_YES ==
-                     GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
-                                                           &aa->peer,
-                                                           aa));
-      handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
-      GAS_performance_notify_all_clients (&aa->peer,
-                                          aa->plugin,
-                                          aa->addr,
-                                          aa->addr_len,
-                                          GNUNET_SYSERR,
-                                          NULL, 0,
-                                          zero_bw,
-                                          zero_bw);
-      free_address (aa);
-      dc->result = GNUNET_NO;
-      return GNUNET_OK; /* Continue iteration */
-    }
-  }
-  else
-  {
-    /* Session != 0, just remove session */
-    if (aa->session_id != des->session_id)
-      return GNUNET_OK; /* irrelevant */
-
-    if ((aa->session_id != 0) && (0 != strcmp (des->plugin, aa->plugin)))
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Different plugins during removal: `%s' vs `%s' \n",
-                  des->plugin,
-                  aa->plugin);
-      GNUNET_break (0);
-      return GNUNET_OK;
-    }
-    if (GNUNET_HELLO_ADDRESS_INFO_INBOUND ==
-        (aa->local_address_info && GNUNET_HELLO_ADDRESS_INFO_INBOUND))
-    {
-      /* Inbound connection died, delete full address */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Deleting inbound address for peer `%s': `%s' session %u\n",
-                  GNUNET_i2s (&aa->peer),
-                  aa->plugin,
-                  aa->session_id);
-
-      /* Notify solver about deletion */
-      GNUNET_assert(GNUNET_YES ==
-                    GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
-                                                          &aa->peer, aa));
-      handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
-      GAS_performance_notify_all_clients (&aa->peer,
-                                          aa->plugin,
-                                          aa->addr,
-                                          aa->addr_len,
-                                          GNUNET_SYSERR,
-                                          NULL, 0,
-                                          zero_bw,
-                                          zero_bw);
-      free_address (aa);
-      dc->result = GNUNET_NO;
-      return GNUNET_OK; /* Continue iteration */
-    }
-    else
-    {
-      /* Session died */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Deleting session for peer `%s': `%s' %u\n",
-                  GNUNET_i2s (&aa->peer),
-                  aa->plugin, aa->session_id);
-      /* Notify solver to delete session */
-      handle->env.sf.s_del (handle->solver, aa, GNUNET_YES);
-      aa->session_id = 0;
-      GAS_performance_notify_all_clients (&aa->peer,
-                                          aa->plugin,
-                                          aa->addr,
-                                          aa->addr_len,
-                                          GNUNET_NO,
-                                          NULL, 0,
-                                          zero_bw,
-                                          zero_bw);
-      return GNUNET_OK;
-    }
-  }
-  return GNUNET_OK;
+  if ( (0 != strcmp (des->plugin, aa->plugin)) ||
+       (aa->addr_len != des->addr_len) ||
+       (0 != memcmp (des->addr, aa->addr, aa->addr_len)))
+    return GNUNET_OK; /* wrong entry */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Deleting full address for peer `%s' session %u %p\n",
+              GNUNET_i2s (&aa->peer),
+              aa->session_id,
+              aa);
+  /* Notify solver about deletion */
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
+                                                       &aa->peer,
+                                                       aa));
+  handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
+  GAS_performance_notify_all_clients (&aa->peer,
+                                      aa->plugin,
+                                      aa->addr,
+                                      aa->addr_len,
+                                      GNUNET_SYSERR,
+                                      NULL, 0,
+                                      zero_bw,
+                                      zero_bw);
+  free_address (aa);
+  dc->result = GNUNET_NO;
+  return GNUNET_OK; /* Continue iteration */
 }
 
 
@@ -1180,7 +1109,7 @@ destroy_by_session_id (void *cls,
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address in @a plugin_addr
  * @param local_address_info the local address for the address
- * @param session_id session id, can be 0
+ * @param session_id session id, can never be 0
  */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
@@ -1207,6 +1136,7 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
                            session_id);
   if (NULL == ea)
   {
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
                 GNUNET_i2s (peer),
@@ -1323,7 +1253,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer)
+                                      const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->pending_requests_head;
 

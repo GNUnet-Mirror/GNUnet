@@ -93,7 +93,7 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client)
  * @param plugin_addr binary address for the plugin to use
  * @param plugin_addr_len number of bytes in @a plugin_addr
  * @param local_address_info the local address for the address
- * @param session_id session ID to use for the given client (other clients will see 0)
+ * @param session_id session ID to use for the given client
  * @param atsi performance data for the address
  * @param atsi_count number of performance records in @a atsi
  * @param bandwidth_out assigned outbound bandwidth
@@ -499,15 +499,14 @@ GAS_handle_address_destroyed (void *cls,
                          address, address_length,
                          ntohl (m->address_local_info),
                          ntohl (m->session_id));
-  if (0 != ntohl (m->session_id))
-  {
-    srm.header.type = ntohs (GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE);
-    srm.header.size = ntohs (sizeof (struct SessionReleaseMessage));
-    srm.session_id = m->session_id;
-    srm.peer = m->peer;
-    GNUNET_SERVER_notification_context_unicast (nc, client, &srm.header,
-                                                GNUNET_NO);
-  }
+  srm.header.type = ntohs (GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE);
+  srm.header.size = ntohs (sizeof (struct SessionReleaseMessage));
+  srm.session_id = m->session_id;
+  srm.peer = m->peer;
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              client,
+                                              &srm.header,
+                                              GNUNET_NO);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
