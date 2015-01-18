@@ -2664,15 +2664,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY   952
 
-/**
- * RPS Hello message. Sent directly after other peer established connection to
- * the first peer indicating that it is online and communication over this
- * channel is now possible.
- *
- * This might contain a pow over the sender id
- */
-#define GNUNET_MESSAGE_TYPE_RPS_PP_HELLO        953
-
 
 
 /* Client-Service Messages */
@@ -2680,17 +2671,17 @@ extern "C"
 /**
  * RPS CS REQUEST Message for the Client to request (a) random peer(s)
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST      954
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST      953
 
 /**
  * RPS CS REPLY Message for the Server to send (a) random peer(s)
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY        955
+#define GNUNET_MESSAGE_TYPE_RPS_CS_REPLY        954
 
 /**
  * RPS CS SEED Message for the Client to seed peers into rps
  */
-#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED         956
+#define GNUNET_MESSAGE_TYPE_RPS_CS_SEED         955
 
 
 /*******************************************************************************/
