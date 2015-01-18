@@ -928,7 +928,6 @@ ats_request_address_change (void *cls,
   GST_neighbours_switch_to_address (&address->peer,
                                     address,
                                     session,
-                                    ats, ats_count,
                                     bandwidth_in, bandwidth_out);
 }
 

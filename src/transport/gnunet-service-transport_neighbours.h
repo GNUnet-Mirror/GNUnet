@@ -255,8 +255,6 @@ GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
- * @param ats performance data
- * @param ats_count number of entries in ats
  * @param bandwidth_in inbound quota to be used when connection is up
  * @param bandwidth_out outbound quota to be used when connection is up
  */
@@ -264,8 +262,6 @@ void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
                                   const struct GNUNET_HELLO_Address *address,
                                   struct Session *session,
-                                  const struct GNUNET_ATS_Information *ats,
-                                  uint32_t ats_count,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 

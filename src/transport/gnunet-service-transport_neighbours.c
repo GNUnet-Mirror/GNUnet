@@ -2154,8 +2154,6 @@ struct BlacklistCheckSwitchContext
 
   struct GNUNET_HELLO_Address *address;
   struct Session *session;
-  struct GNUNET_ATS_Information *ats;
-  uint32_t ats_count;
 
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
@@ -2480,7 +2478,6 @@ switch_address_bl_check_cont (void *cls,
     /* Remove blacklist check and clean up */
     GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
     GNUNET_HELLO_address_free (blc_ctx->address);
-    GNUNET_free_non_null (blc_ctx->ats);
     GNUNET_free (blc_ctx);
     return;
   }
@@ -2504,7 +2501,6 @@ switch_address_bl_check_cont (void *cls,
 
     GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
     GNUNET_HELLO_address_free (blc_ctx->address);
-    GNUNET_free_non_null (blc_ctx->ats);
     GNUNET_free (blc_ctx);
     return;
   }
@@ -2526,9 +2522,7 @@ switch_address_bl_check_cont (void *cls,
 
       GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
       GNUNET_HELLO_address_free(blc_ctx->address);
-      GNUNET_free_non_null (blc_ctx->ats);
       GNUNET_free (blc_ctx);
-
       return;
     }
   }
@@ -2682,7 +2676,6 @@ switch_address_bl_check_cont (void *cls,
 
   GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
   GNUNET_HELLO_address_free (blc_ctx->address);
-  GNUNET_free_non_null (blc_ctx->ats);
   GNUNET_free (blc_ctx);
 }
 
@@ -2696,8 +2689,6 @@ switch_address_bl_check_cont (void *cls,
  * @param peer identity of the peer to switch the address for
  * @param address address of the other peer,
  * @param session session to use or NULL if transport should initiate a session
- * @param ats performance data
- * @param ats_count number of entries in ats
  * @param bandwidth_in inbound quota to be used when connection is up,
  * 	0 to disconnect from peer
  * @param bandwidth_out outbound quota to be used when connection is up,
@@ -2707,15 +2698,12 @@ void
 GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 				  const struct GNUNET_HELLO_Address *address,
 				  struct Session *session,
-				  const struct GNUNET_ATS_Information *ats,
-				  uint32_t ats_count,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct NeighbourMapEntry *n;
   struct GST_BlacklistCheck *blc;
   struct BlacklistCheckSwitchContext *blc_ctx;
-  int c;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS has decided on an address for peer %s\n",
@@ -2765,18 +2753,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   blc_ctx->session = session;
   blc_ctx->bandwidth_in = bandwidth_in;
   blc_ctx->bandwidth_out = bandwidth_out;
-  blc_ctx->ats_count = ats_count;
-  blc_ctx->ats = NULL;
-  if (ats_count > 0)
-  {
-    blc_ctx->ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
-    for (c = 0; c < ats_count; c++)
-    {
-      blc_ctx->ats[c].type = ats[c].type;
-      blc_ctx->ats[c].value = ats[c].value;
-    }
-  }
-
   GNUNET_CONTAINER_DLL_insert (pending_bc_head,
                                pending_bc_tail,
                                blc_ctx);
@@ -3907,7 +3883,6 @@ GST_neighbours_stop ()
     }
     if (NULL != cur->address)
       GNUNET_HELLO_address_free (cur->address);
-    GNUNET_free_non_null (cur->ats);
     GNUNET_free (cur);
   }
 
