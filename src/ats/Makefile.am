@@ -54,6 +54,7 @@ libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
   ats_api_performance.c
 libgnunetats_la_LIBADD = \
+ $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
 libgnunetats_la_LDFLAGS = \
@@ -251,7 +252,7 @@ test_ats_api_performance_list_all_addresses_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 test_ats_api_delayed_service_performance_list_all_addresses_SOURCES = \
  test_ats_api_delayed_service_performance_list_all_addresses.c
 test_ats_api_delayed_service_performance_list_all_addresses_LDADD = \
@@ -259,7 +260,7 @@ test_ats_api_delayed_service_performance_list_all_addresses_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   libgnunetats.la \
-	$(top_builddir)/src/statistics/libgnunetstatistics.la	
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_performance_list_peer_addresses_SOURCES = \
  test_ats_api_performance_list_peer_addresses.c
@@ -360,7 +361,7 @@ test_ats_solver_add_address_and_request_delayed_proportional_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 test_ats_solver_add_address_and_request_delayed_ril_SOURCES = \
  test_ats_solver_add_address_and_request.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -369,7 +370,7 @@ test_ats_solver_add_address_and_request_delayed_ril_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   libgnunetats.la \
-	$(top_builddir)/src/statistics/libgnunetstatistics.la	
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
 if HAVE_LIBGLPK
 test_ats_solver_add_address_and_request_mlp_SOURCES = \
@@ -391,7 +392,7 @@ test_ats_solver_add_address_and_request_delayed_mlp_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   libgnunetats.la \
-	$(top_builddir)/src/statistics/libgnunetstatistics.la	
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_solver_add_address_and_request_ril_SOURCES = \
  test_ats_solver_add_address_and_request.c \

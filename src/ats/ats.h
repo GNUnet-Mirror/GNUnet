@@ -28,7 +28,10 @@
 
 #include "gnunet_util_lib.h"
 
-
+/**
+ * Flag used to indicate which type of client is connecting
+ * to the ATS service.
+ */
 enum StartFlag
 {
 
@@ -39,6 +42,7 @@ enum StartFlag
   START_FLAG_PERFORMANCE_NO_PIC = 2
 };
 
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 struct ClientStartMessage
@@ -46,7 +50,7 @@ struct ClientStartMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * NBO value of an 'enum StartFlag'.
+   * NBO value of an `enum StartFlag`.
    */
   uint32_t start_flag GNUNET_PACKED;
 };
