@@ -467,13 +467,12 @@ env_notify_address (void *cls,
 }
 
 
-static struct GNUNET_ATS_Information
-env_get_address_type (void *cls, const struct sockaddr *addr, size_t addrlen)
+static enum GNUNET_ATS_Network_Type
+env_get_address_type (void *cls,
+                      const struct sockaddr *addr,
+                      size_t addrlen)
 {
-  struct GNUNET_ATS_Information ats;
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (GNUNET_ATS_NET_LOOPBACK);
-  return ats;
+  return GNUNET_ATS_NET_LOOPBACK;
 }
 
 
