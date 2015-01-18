@@ -1056,21 +1056,7 @@ init_peer_cb (void *cls,
   int
 peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
-  struct GNUNET_PeerIdentity *tmp_id;
   struct PeerContext *peer_ctx;
-
-  /* Check if we are starting to again iterate over same peers */
-  if (NULL == cls)
-  { /* Store first id we see */
-    tmp_id = GNUNET_new (struct GNUNET_PeerIdentity);
-    *tmp_id = *key;
-    cls = tmp_id;
-  }
-  else if (0 == GNUNET_CRYPTO_cmp_peer_identity (key, cls))
-  { /* Check if we see the first id again */
-    GNUNET_free (cls);
-    return GNUNET_NO;
-  }
 
   peer_ctx = (struct PeerContext *) value;
 
@@ -1083,7 +1069,8 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   if ( NULL != peer_ctx->from_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->from_channel);
 
-  // call _peermap_remove_all()?
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
+    LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
   
   return GNUNET_YES;
 }
@@ -1101,16 +1088,14 @@ shutdown_task (void *cls,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
-  uint32_t num_peers;
-
   if ( NULL != do_round_task )
   {
     GNUNET_SCHEDULER_cancel (do_round_task);
     do_round_task = NULL;
   }
 
-  num_peers = GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL);
-  if (GNUNET_SYSERR == num_peers)
+  
+  if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL))
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Iterating over peers to disconnect from them was cancelled\n");
 
@@ -1205,7 +1190,6 @@ cleanup_channel (void *cls,
   peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
   /* Somwewhat {ab,re}use the iterator function */
   (void) peer_remove_cb (peer, peer, peer_ctx);
-  GNUNET_CONTAINER_multipeermap_remove_all (peer_map, peer);
 }
 
 /**
