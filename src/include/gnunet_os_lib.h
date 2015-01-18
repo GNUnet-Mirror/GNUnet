@@ -229,13 +229,14 @@ GNUNET_OS_get_libexec_binary_path (const char *progname);
  * @param addrlen length of the address
  * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_OS_NetworkInterfaceProcessor) (void *cls,
-                                                    const char *name,
-                                                    int isDefault,
-                                                    const struct sockaddr *addr,
-                                                    const struct sockaddr *broadcast_addr,
-                                                    const struct sockaddr *netmask,
-                                                    socklen_t addrlen);
+typedef int
+(*GNUNET_OS_NetworkInterfaceProcessor) (void *cls,
+                                        const char *name,
+                                        int isDefault,
+                                        const struct sockaddr *addr,
+                                        const struct sockaddr *broadcast_addr,
+                                        const struct sockaddr *netmask,
+                                        socklen_t addrlen);
 
 
 /**
