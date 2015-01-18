@@ -37,7 +37,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -62,33 +62,31 @@ static struct PeerContext p;
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address;
-
-/**
- * Session
- */
-//static void *test_session;
+static struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+static struct GNUNET_ATS_Information test_ats_info[2];
 
 /**
  * Test ats count
  */
-uint32_t test_ats_count;
+static uint32_t test_ats_count;
 
 
-static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-static void end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static int
 stat_cb(void *cls, const char *subsystem,
         const char *name, uint64_t value,
         int is_persistent)
 {
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
       subsystem,name, value);
   if (1 == value)
@@ -141,19 +139,17 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = GNUNET_SYSERR;
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-  return;
 }
 
 

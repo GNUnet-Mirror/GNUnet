@@ -35,12 +35,12 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Configuration handle
  */
-struct GNUNET_CONFIGURATION_Handle *cfg;
+static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * ATS scheduling handle
@@ -52,7 +52,7 @@ static struct GNUNET_ATS_SchedulingHandle *sched_ats;
  */
 static struct GNUNET_ATS_PerformanceHandle *perf_ats;
 
-struct GNUNET_ATS_AddressListHandle* phal;
+static struct GNUNET_ATS_AddressListHandle* phal;
 
 static int ret;
 
@@ -85,9 +85,8 @@ static struct PeerContext p[2];
 static struct Address p0_addresses[2];
 static struct Address p1_addresses[2];
 
-struct GNUNET_HELLO_Address p0_ha[2];
-struct GNUNET_HELLO_Address p1_ha[2];
-struct GNUNET_HELLO_Address *s_ha[2];
+static struct GNUNET_HELLO_Address p0_ha[2];
+static struct GNUNET_HELLO_Address p1_ha[2];
 
 
 static void
@@ -228,9 +227,7 @@ address_suggest_cb (void *cls,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Did not expect suggestion callback!\n");

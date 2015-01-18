@@ -146,19 +146,17 @@ stat_cb(void *cls, const char *subsystem,
   return GNUNET_OK;
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-  return;
 }
 
 
@@ -277,7 +275,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
       GNUNET_i2s (&p[1].id));
 
   /* Add addresses */
-  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL );
+  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");

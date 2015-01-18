@@ -115,20 +115,19 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = GNUNET_SYSERR;
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-  return;
 }
+
 
 static void
 got_initial_value (void *cls, int success)

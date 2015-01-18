@@ -38,7 +38,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -63,7 +63,7 @@ static struct PeerContext p;
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address;
+static struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Session
@@ -73,24 +73,28 @@ static void *test_session;
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+static struct GNUNET_ATS_Information test_ats_info[2];
 
 /**
  * Test ats count
  */
-uint32_t test_ats_count;
+static uint32_t test_ats_count;
 
 
-static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static int
 stat_cb(void *cls, const char *subsystem,
         const char *name, uint64_t value,
         int is_persistent)
 {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              value);
   if (1 == value)
   {
     GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -100,7 +104,8 @@ stat_cb(void *cls, const char *subsystem,
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls,
+     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
 
@@ -128,6 +133,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = 0;
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -136,19 +142,17 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = GNUNET_SYSERR;
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-  return;
 }
 
 
@@ -189,8 +193,10 @@ got_initial_value (void *cls, int success)
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
-
+  GNUNET_ATS_address_add (sched_ats,
+                          &test_hello_address,
+                          test_session,
+                          test_ats_info, test_ats_count);
 }
 
 

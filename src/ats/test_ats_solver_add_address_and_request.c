@@ -43,7 +43,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -68,7 +68,7 @@ static struct PeerContext p;
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address;
+static struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Session
@@ -78,12 +78,12 @@ static void *test_session;
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+static struct GNUNET_ATS_Information test_ats_info[2];
 
 /**
  * Test ats count
  */
-uint32_t test_ats_count;
+static uint32_t test_ats_count;
 
 
 static int
@@ -133,21 +133,17 @@ address_suggest_cb (void *cls,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL == session);
   GNUNET_assert (ntohl(bandwidth_in.value__) > 0);
   GNUNET_assert (ntohl(bandwidth_out.value__) > 0);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received sugggestion for peer `%s'\n",
-      GNUNET_i2s (&address->peer));
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Received sugggestion for peer `%s'\n",
+              GNUNET_i2s (&address->peer));
   GNUNET_SCHEDULER_add_now (&end, NULL);
-  return;
 }
 
 

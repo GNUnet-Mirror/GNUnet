@@ -37,7 +37,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -92,15 +92,15 @@ static uint32_t test_ats_count;
 /**
  * Test state
  */
-int addresses_added = GNUNET_NO;
+static int addresses_added = GNUNET_NO;
 
-int first_address_suggested = GNUNET_NO;
+static int first_address_suggested = GNUNET_NO;
 
-int first_address_deleted = GNUNET_NO;
+static int first_address_deleted = GNUNET_NO;
 
-int second_address_deleted = GNUNET_NO;
+static int second_address_deleted = GNUNET_NO;
 
-int second_address_suggested = GNUNET_YES;
+static int second_address_suggested = GNUNET_YES;
 
 static struct GNUNET_HELLO_Address *first_suggestion = NULL;
 
@@ -166,9 +166,7 @@ address_suggest_cb (void *cls,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received a sugggestion for peer `%s' : `%s'\n",
     GNUNET_i2s (&address->peer), (char *) address->address);

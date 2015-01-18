@@ -43,7 +43,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -83,12 +83,13 @@ static void *test_session;
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[3];
+static struct GNUNET_ATS_Information test_ats_info[3];
 
 /**
  * Test ats count
  */
-uint32_t test_ats_count;
+static uint32_t test_ats_count;
+
 
 static int
 stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -129,6 +130,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = 0;
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -142,8 +144,8 @@ static void
 perf_info_cb (void *cls,
     const struct GNUNET_HELLO_Address *address, int address_active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+              const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   if (NULL == address)
     return;
@@ -152,15 +154,14 @@ perf_info_cb (void *cls,
       GNUNET_i2s (&address->peer));
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    const struct GNUNET_ATS_Information *atsi,
-                    uint32_t ats_count)
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   int c;
   double pref_val;
@@ -174,6 +175,7 @@ address_suggest_cb (void *cls,
         GNUNET_ATS_PREFERENCE_END);
   }
 }
+
 
 static int
 stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,

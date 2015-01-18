@@ -525,8 +525,7 @@ process_ats_address_suggestion_message (void *cls,
                   &address,
                   s,
                   m->bandwidth_out,
-                  m->bandwidth_in,
-                  atsi, ats_count);
+                  m->bandwidth_in);
 }
 
 

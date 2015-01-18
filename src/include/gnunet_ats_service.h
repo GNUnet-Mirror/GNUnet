@@ -325,18 +325,13 @@ struct Session;
  * Signature of a function called by ATS with the current bandwidth
  * and address preferences as determined by ATS.
  *
- * If an address is available immediately the address will be included. If no
- * address can be suggested, address, session, bandwidth and ATS information will
- * be NULL/0. ATS will suggest an address as soon as it can provide such an
- * address
- *
  * @param cls closure
  * @param address suggested address (including peer identity of the peer)
- * @param session session to use
- * @param bandwidth_out assigned outbound bandwidth for the connection
- * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in @a ats
+ * @param session session to use, NULL to establish a new outgoing session
+ * @param bandwidth_out assigned outbound bandwidth for the connection,
+ *        0 to disconnect
+ * @param bandwidth_in assigned inbound bandwidth for the connection,
+ *        0 to disconnect
  */
 typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
@@ -344,8 +339,7 @@ typedef void
     const struct GNUNET_HELLO_Address *address,
     struct Session *session,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**
