@@ -121,13 +121,6 @@ struct RPS_Sampler
   struct RPS_SamplerElement **sampler_elements;
 
   /**
-   * Index to a sampler element.
-   *
-   * Gets cycled on every hist_request.
-   */
-  uint64_t sampler_elem_index;
-
-  /**
    * Max time a round takes
    *
    * Used in the context of RPS
@@ -163,12 +156,12 @@ struct RPS_GetNRandPeersReadyCls
   /**
    * Number of peers we are waiting for.
    */
-  uint64_t num_peers;
+  uint32_t num_peers;
 
   /**
    * Number of peers we currently have.
    */
-  uint64_t cur_num_peers;
+  uint32_t cur_num_peers;
 
   /**
    * Pointer to the array holding the ids.
@@ -252,7 +245,7 @@ static size_t max_size;
 /**
  * Inedex to the sampler element that is the next to be returned
  */
-static uint64_t client_get_index;
+static uint32_t client_get_index;
 
 
 /**
@@ -270,15 +263,15 @@ RPS_sampler_get_n_rand_peers_ready_cb (void *cls,
   n_peers_cls = (struct RPS_GetNRandPeersReadyCls *) cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "SAMPLER: Got %" PRIX64 "th of %" PRIX64 " peers\n",
+      "SAMPLER: Got %" PRIX32 "th of %" PRIX32 " peers\n",
       n_peers_cls->cur_num_peers, n_peers_cls->num_peers);
 
-  if (n_peers_cls->num_peers == n_peers_cls->cur_num_peers)
+  if (n_peers_cls->num_peers - 1 == n_peers_cls->cur_num_peers)
   { /* All peers are ready -- return those to the client */
     GNUNET_assert (NULL != n_peers_cls->callback);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "SAMPLER: returning %" PRIX64 " peers to the client\n",
+        "SAMPLER: returning %" PRIX32 " peers to the client\n",
         n_peers_cls->num_peers);
     n_peers_cls->callback (n_peers_cls->cls, n_peers_cls->ids, n_peers_cls->num_peers);
     
@@ -423,7 +416,7 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
 RPS_sampler_resize (unsigned int new_size)
 {
   unsigned int old_size;
-  uint64_t i;
+  uint32_t i;
   struct RPS_SamplerElement **rem_list;
 
   // TODO check min and max size
@@ -446,7 +439,7 @@ RPS_sampler_resize (unsigned int new_size)
 
     for (i = 0 ; i < old_size - new_size ; i++)
     {/* Remove unneeded rest */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing %" PRIX64 ". sampler\n", i);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Removing %" PRIX32 ". sampler\n", i);
       if (NULL != sampler->remove_cb)
         sampler->remove_cb (sampler->remove_cls, &rem_list[i]->peer_id);
       GNUNET_free (rem_list[i]);
@@ -467,7 +460,7 @@ RPS_sampler_resize (unsigned int new_size)
       if (NULL != sampler->insert_cb)
         sampler->insert_cb (sampler->insert_cls, &sampler->sampler_elements[i]->peer_id);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "SAMPLER: Added %" PRIX64 ". sampler, now pointing to %p, contains %s\n",
+          "SAMPLER: Added %" PRIX32 ". sampler, now pointing to %p, contains %s\n",
           i, &sampler->sampler_elements[i], GNUNET_i2s (&sampler->sampler_elements[i]->peer_id));
     }
   }
@@ -502,7 +495,7 @@ RPS_sampler_init (size_t init_size,
     RPS_sampler_remove_cb rem_cb, void *rem_cls)
 {
   //struct RPS_Sampler *sampler;
-  //uint64_t i;
+  //uint32_t i;
 
   /* Initialise context around extended sampler */
   min_size = 10; // TODO make input to _samplers_init()
@@ -536,7 +529,7 @@ RPS_sampler_init (size_t init_size,
   void
 RPS_sampler_update_list (const struct GNUNET_PeerIdentity *id)
 {
-  uint64_t i;
+  uint32_t i;
 
   for ( i = 0 ; i < sampler->sampler_size ; i++ )
     RPS_sampler_elem_next (sampler->sampler_elements[i], id,
@@ -555,7 +548,7 @@ RPS_sampler_update_list (const struct GNUNET_PeerIdentity *id)
   void
 RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id)
 {
-  uint64_t i;
+  uint32_t i;
 
   for ( i = 0 ; i < sampler->sampler_size ; i++ )
   {
@@ -578,7 +571,7 @@ RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id)
   const struct GNUNET_PeerIdentity * 
 RPS_sampler_get_rand_peer_ ()
 {
-  uint64_t r_index;
+  uint32_t r_index;
   const struct GNUNET_PeerIdentity *peer; // do we have to malloc that?
 
   // TODO implement extra logic
@@ -611,7 +604,7 @@ RPS_sampler_get_rand_peer_ ()
  * Only used internally
  */
   const struct GNUNET_PeerIdentity *
-RPS_sampler_get_n_rand_peers_ (uint64_t n)
+RPS_sampler_get_n_rand_peers_ (uint32_t n)
 {
   if ( 0 == sampler->sampler_size )
   {
@@ -624,7 +617,7 @@ RPS_sampler_get_n_rand_peers_ (uint64_t n)
     // TODO check if we have too much (distinct) sampled peers
     // If we are not ready yet maybe schedule for later
     struct GNUNET_PeerIdentity *peers;
-    uint64_t i;
+    uint32_t i;
 
     peers = GNUNET_malloc (n * sizeof(struct GNUNET_PeerIdentity));
 
@@ -654,23 +647,41 @@ RPS_sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
   struct RPS_SamplerElement *s_elem;
   struct GNUNET_TIME_Relative last_request_diff;
   struct GNUNET_HashCode *hash;
+  uint32_t tmp_client_get_index;
   //struct GNUNET_TIME_Relative inv_last_request_diff;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Single peer was requested\n");
 
   gpc = (struct GetPeerCls *) cls;
   hash = GNUNET_new (struct GNUNET_HashCode);
+  if (0 < client_get_index)
+    tmp_client_get_index = client_get_index - 1;
+  else
+    tmp_client_get_index = sampler->sampler_size - 1;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "SAMPLER: scheduling for later if index reaches %" PRIX32 " (sampler size: %" PRIX32 ".\n",
+      tmp_client_get_index, sampler->sampler_size);
 
   do
   { /* Get first non empty sampler */
-    // TODO schedule for later if all samplers are empty
+    if (tmp_client_get_index == client_get_index)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: reached tmp_index %" PRIX32 ".\n", client_get_index);
+      gpc->get_peer_task = GNUNET_SCHEDULER_add_delayed (sampler->max_round_interval,
+                                                         &RPS_sampler_get_rand_peer,
+                                                         cls);
+      return;
+    }
+
     *gpc->id = sampler->sampler_elements[client_get_index]->peer_id;
 
     RPS_sampler_elem_reinit (sampler->sampler_elements[client_get_index]);
-    if ( client_get_index == sampler->sampler_size )
+    if ( client_get_index == sampler->sampler_size - 1 )
       client_get_index = 0;
     else
       client_get_index++;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: incremented index to %" PRIX32 ".\n", client_get_index);
   } while (EMPTY == sampler->sampler_elements[client_get_index]->is_empty);
 
   s_elem = sampler->sampler_elements[client_get_index];
@@ -698,7 +709,7 @@ RPS_sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
     // TODO add other reasons to wait here
   }
 
-  GNUNET_CRYPTO_hash (gpc->get_peer_task, sizeof (struct GNUNET_SCHEDULER_Task *), hash);
+  GNUNET_CRYPTO_hash (&gpc->get_peer_task, sizeof (struct GNUNET_SCHEDULER_Task *), hash);
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (get_peer_tasks, hash, gpc->get_peer_task))
       LOG (GNUNET_ERROR_TYPE_WARNING, "SAMPLER: Key to remove is not in the hashmap\n");
   GNUNET_free (gpc->get_peer_task);
@@ -722,7 +733,7 @@ RPS_sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
  */
   void
 RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
-    void *cls, uint64_t num_peers)
+    void *cls, uint32_t num_peers)
 {
   if ( 0 == sampler->sampler_size )
   {
@@ -734,35 +745,33 @@ RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
   {
     // TODO check if we have too much (distinct) sampled peers
     // If we are not ready yet maybe schedule for later
-    struct GNUNET_PeerIdentity *peers;
-    uint64_t i;
+    uint32_t i;
     struct RPS_GetNRandPeersReadyCls *cb_cls;
     struct GetPeerCls *gpc;
     struct GNUNET_HashCode *hash;
-
-    peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
+    
     hash = GNUNET_new (struct GNUNET_HashCode);
 
     cb_cls = GNUNET_new (struct RPS_GetNRandPeersReadyCls);
     cb_cls->num_peers = num_peers;
     cb_cls->cur_num_peers = 0;
-    cb_cls->ids = peers;
+    cb_cls->ids = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
     cb_cls->callback = cb;
     cb_cls->cls = cls;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "SAMPLER: Scheduling requests for %" PRIX64 " peers\n", num_peers);
+        "SAMPLER: Scheduling requests for %" PRIX32 " peers\n", num_peers);
 
     for ( i = 0 ; i < num_peers ; i++ )
     {
       gpc = GNUNET_new (struct GetPeerCls);
       gpc->cb = RPS_sampler_get_n_rand_peers_ready_cb;
       gpc->cb_cls = cb_cls;
-      gpc->id = &peers[i];
+      gpc->id = &cb_cls->ids[i];
 
       // maybe add a little delay
       gpc->get_peer_task = GNUNET_SCHEDULER_add_now (&RPS_sampler_get_rand_peer, gpc);
-      GNUNET_CRYPTO_hash (gpc->get_peer_task, sizeof (struct GNUNET_SCHEDULER_Task *), hash);
+      GNUNET_CRYPTO_hash (&gpc->get_peer_task, sizeof (struct GNUNET_SCHEDULER_Task *), hash);
       (void) GNUNET_CONTAINER_multihashmap_put (get_peer_tasks, hash, gpc->get_peer_task,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       //RPS_sampler_get_rand_peer (RPS_sampler_get_n_rand_peers_ready_cb,
@@ -779,11 +788,11 @@ RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
  *
  * @return the number of occurrences of id.
  */
-  uint64_t
+  uint32_t
 RPS_sampler_count_id (const struct GNUNET_PeerIdentity *id)
 {
-  uint64_t count;
-  uint64_t i;
+  uint32_t count;
+  uint32_t i;
 
   count = 0;
   for ( i = 0 ; i < sampler->sampler_size ; i++ )

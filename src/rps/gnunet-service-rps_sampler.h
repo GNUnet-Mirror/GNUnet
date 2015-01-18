@@ -57,7 +57,7 @@ typedef void
  */
   typedef void
 (*RPS_sampler_n_rand_peers_ready_cb) (void *cls,
-    struct GNUNET_PeerIdentity *ids, uint64_t num_peers);
+    struct GNUNET_PeerIdentity *ids, uint32_t num_peers);
 
 
 /**
@@ -124,7 +124,7 @@ RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id);
  * Only used internally
  */
   const struct GNUNET_PeerIdentity *
-RPS_sampler_get_n_rand_peers_ (uint64_t n);
+RPS_sampler_get_n_rand_peers_ (uint32_t n);
 
 
 /**
@@ -140,7 +140,7 @@ RPS_sampler_get_n_rand_peers_ (uint64_t n);
  */
     void
 RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
-    void *cls, uint64_t num_peers);
+    void *cls, uint32_t num_peers);
 
 
 /**
@@ -150,7 +150,7 @@ RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
  *
  * @return the number of occurrences of id.
  */
-  uint64_t
+  uint32_t
 RPS_sampler_count_id (const struct GNUNET_PeerIdentity *id);
 
 

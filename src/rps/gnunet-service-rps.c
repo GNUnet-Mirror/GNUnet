@@ -349,7 +349,7 @@ in_arr (const struct GNUNET_PeerIdentity *array,
   struct GNUNET_PeerIdentity *
 get_rand_peer (const struct GNUNET_PeerIdentity *peer_list, unsigned int list_size)
 {
-  uint64_t r_index;
+  uint32_t r_index;
   struct GNUNET_PeerIdentity *peer;
 
   peer = GNUNET_new (struct GNUNET_PeerIdentity);
@@ -448,10 +448,10 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_Peer
  * Sum all time relatives of an array.
   */
   struct GNUNET_TIME_Relative
-T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
+T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
 {
   struct GNUNET_TIME_Relative sum;
-  uint64_t i;
+  uint32_t i;
 
   sum = GNUNET_TIME_UNIT_ZERO;
   for ( i = 0 ; i < arr_size ; i++ )
@@ -466,7 +466,7 @@ T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
  * Compute the average of given time relatives.
  */
   struct GNUNET_TIME_Relative
-T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
+T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
 {
   return GNUNET_TIME_relative_divide (T_relative_sum (rel_array, arr_size), arr_size); // FIXME find a way to devide that by arr_size
 }
@@ -482,7 +482,7 @@ T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint64_t arr_size)
   void
 resize_wrapper ()
 {
-  uint64_t bigger_size;
+  uint32_t bigger_size;
 
   // TODO statistics
 
@@ -541,8 +541,9 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp, double logestima
  * Sends those to the requesting client.
  */
 void client_respond (void *cls,
-    struct GNUNET_PeerIdentity *ids, uint64_t num_peers)
+    struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler returned %" PRIX32 " peers\n", num_peers);
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   struct GNUNET_SERVER_Client *client;
@@ -553,7 +554,7 @@ void client_respond (void *cls,
   ev = GNUNET_MQ_msg_extra (out_msg,
                             num_peers * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
-  out_msg->num_peers = GNUNET_htonll (num_peers);
+  out_msg->num_peers = htonl (num_peers);
 
   memcpy (&out_msg[1],
       ids,
@@ -583,10 +584,8 @@ handle_client_request (void *cls,
             struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested (a) random peer(s).\n");
-
   struct GNUNET_RPS_CS_RequestMessage *msg;
-  uint64_t num_peers;
+  uint32_t num_peers;
   struct GNUNET_TIME_Relative max_round_duration;
 
 
@@ -618,6 +617,8 @@ handle_client_request (void *cls,
 
   num_peers = ntohl (msg->num_peers);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested %" PRIX32 " random peer(s).\n", num_peers);
+
   RPS_sampler_get_n_rand_peers (client_respond, client, num_peers);
 
   GNUNET_SERVER_receive_done (client,
@@ -639,7 +640,7 @@ handle_client_seed (void *cls,
 {
   struct GNUNET_RPS_CS_SeedMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
-  uint64_t i;
+  uint32_t i;
 
   if (sizeof (struct GNUNET_RPS_CS_SeedMessage) < ntohs (message->size))
   {
@@ -732,7 +733,7 @@ handle_peer_pull_request (void *cls,
   ev = GNUNET_MQ_msg_extra (out_msg,
                            gossip_list_size * sizeof (struct GNUNET_PeerIdentity),
                            GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
-  //out_msg->num_peers = GNUNET_htonll (gossip_list_size);
+  //out_msg->num_peers = htonl (gossip_list_size);
   out_msg->num_peers = htonl (gossip_list_size);
   memcpy (&out_msg[1], gossip_list,
          gossip_list_size * sizeof (struct GNUNET_PeerIdentity));
@@ -763,7 +764,7 @@ handle_peer_pull_reply (void *cls,
 
   struct GNUNET_RPS_P2P_PullReplyMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
-  uint64_t i;
+  uint32_t i;
 
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
   {
@@ -805,7 +806,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round\n");
 
-  uint64_t i;
+  uint32_t i;
   //unsigned int *n_arr;
   unsigned int n_peers; /* Number of peers we send pushes/pulls to */
   struct GNUNET_MQ_Envelope *ev;
@@ -865,7 +866,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
   /* Update gossip list */
-  uint64_t r_index;
+  uint32_t r_index;
 
   if ( push_list_size <= alpha * gossip_list_size &&
        push_list_size != 0 &&
@@ -873,8 +874,8 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list. ()\n");
 
-    uint64_t first_border;
-    uint64_t second_border;
+    uint32_t first_border;
+    uint32_t second_border;
     
     GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size_est_need);
 
@@ -1081,6 +1082,8 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   
   if ( NULL != peer_ctx->from_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->from_channel);
+
+  // call _peermap_remove_all()?
   
   return GNUNET_YES;
 }
@@ -1098,7 +1101,7 @@ shutdown_task (void *cls,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
-  uint64_t num_peers;
+  uint32_t num_peers;
 
   if ( NULL != do_round_task )
   {
