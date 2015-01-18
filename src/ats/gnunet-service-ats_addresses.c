@@ -249,26 +249,26 @@ struct GAS_Addresses_Suggestion_Requests
   struct GNUNET_PeerIdentity id;
 };
 
- /**
-  * Pending Address suggestion requests
-  */
- struct GAS_Addresses_Preference_Clients
- {
-   /**
-    * Next in DLL
-    */
-   struct GAS_Addresses_Preference_Clients *next;
+/**
+ * Pending Address suggestion requests
+ */
+struct GAS_Addresses_Preference_Clients
+{
+  /**
+   * Next in DLL
+   */
+  struct GAS_Addresses_Preference_Clients *next;
 
-   /**
-    * Previous in DLL
-    */
-   struct GAS_Addresses_Preference_Clients *prev;
+  /**
+   * Previous in DLL
+   */
+  struct GAS_Addresses_Preference_Clients *prev;
 
-   /**
-    * Peer ID
-    */
-   void *client;
- };
+  /**
+   * Peer ID
+   */
+  void *client;
+};
 
 /**
  * Handle for ATS address component
@@ -301,7 +301,7 @@ struct GAS_Addresses_Handle
   int ats_mode;
 
   /**
-   *  Solver handle
+   * Solver handle
    */
   void *solver;
 
@@ -316,12 +316,12 @@ struct GAS_Addresses_Handle
   struct GAS_Addresses_Suggestion_Requests *pending_requests_tail;
 
   /**
-   * Address suggestion requests DLL head
+   * Preference requests DLL head
    */
   struct GAS_Addresses_Preference_Clients *preference_clients_head;
 
   /**
-   * Address suggestion requests DLL head
+   * Preference requests DLL head
    */
   struct GAS_Addresses_Preference_Clients *preference_clients_tail;
 
@@ -1068,10 +1068,10 @@ destroy_by_session_id (void *cls,
   const struct ATS_Address *des = dc->aa;
   struct ATS_Address *aa = value;
 
-  GNUNET_assert(0 ==
-                memcmp (&aa->peer,
-                        &des->peer,
-                        sizeof (struct GNUNET_PeerIdentity)));
+  GNUNET_assert (0 ==
+                 memcmp (&aa->peer,
+                         &des->peer,
+                         sizeof (struct GNUNET_PeerIdentity)));
   if (0 == des->session_id)
   {
     /* Session == 0, remove full address  */
@@ -1207,16 +1207,17 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
                            session_id);
   if (NULL == ea)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
-               GNUNET_i2s (peer),
-               plugin_name,
-               session_id);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
+                GNUNET_i2s (peer),
+                plugin_name,
+                session_id);
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s' address %p session %u\n", "ADDRESS DESTROY",
+              "Received `%s' for peer `%s' address %p session %u\n",
+              "ADDRESS DESTROYED",
               GNUNET_i2s (peer),
               ea,
               session_id);
@@ -1226,7 +1227,8 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
                           plugin_name,
                           plugin_addr,
                           plugin_addr_len,
-                          local_address_info, session_id);
+                          local_address_info,
+                          session_id);
   GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
 					      peer,
 					      &destroy_by_session_id, &dc);

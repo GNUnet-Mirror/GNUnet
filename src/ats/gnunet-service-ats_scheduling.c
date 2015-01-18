@@ -482,7 +482,7 @@ GAS_handle_address_destroyed (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if ((plugin_name_length == 0) ||
+  if ((0 == plugin_name_length) ||
       (plugin_name[plugin_name_length - 1] != '\0'))
   {
     GNUNET_break (0);
@@ -493,7 +493,9 @@ GAS_handle_address_destroyed (void *cls,
                             "# addresses destroyed",
                             1,
                             GNUNET_NO);
-  GAS_addresses_destroy (address_handle, &m->peer, plugin_name,
+  GAS_addresses_destroy (address_handle,
+                         &m->peer,
+                         plugin_name,
                          address, address_length,
                          ntohl (m->address_local_info),
                          ntohl (m->session_id));
