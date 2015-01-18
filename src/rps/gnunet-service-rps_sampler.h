@@ -88,7 +88,9 @@ RPS_sampler_resize (unsigned int new_size);
  * @param rem_cls the closure given to #rem_cb
  */
   void
-RPS_sampler_init (size_t init_size, const struct GNUNET_PeerIdentity *id,
+RPS_sampler_init (size_t init_size,
+    const struct GNUNET_PeerIdentity *id,
+    struct GNUNET_TIME_Relative max_round_interval,
     RPS_sampler_insert_cb ins_cb, void *ins_cls,
     RPS_sampler_remove_cb rem_cb, void *rem_cls);
 

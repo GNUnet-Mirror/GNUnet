@@ -226,7 +226,7 @@ static float beta;
 /**
  * Identifier for the main task that runs periodically.
  */
-static struct GNUNET_SCHEDULER_Task * do_round_task;
+static struct GNUNET_SCHEDULER_Task *do_round_task;
 
 /**
  * Time inverval the do_round task runs in.
@@ -1346,7 +1346,14 @@ run (void *cls,
 
 
   /* Initialise sampler */
-  RPS_sampler_init (sampler_size_est_need, own_identity, insertCB, NULL, removeCB, NULL);
+  struct GNUNET_TIME_Relative half_round_interval;
+  struct GNUNET_TIME_Relative  max_round_interval;
+
+  half_round_interval = GNUNET_TIME_relative_multiply (round_interval, .5);
+  max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
+
+  RPS_sampler_init (sampler_size_est_need, own_identity, max_round_interval,
+      insertCB, NULL, removeCB, NULL);
   sampler_size = sampler_size_est_need;
 
   /* Initialise push and pull maps */
