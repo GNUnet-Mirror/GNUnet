@@ -43,7 +43,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -68,7 +68,7 @@ static struct PeerContext p;
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address;
+static struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Session
@@ -88,9 +88,11 @@ static uint32_t test_ats_count;
 
 static int address_deleted = GNUNET_NO;
 
+
 static int
 stat_cb(void *cls, const char *subsystem, const char *name, uint64_t value,
         int is_persistent);
+
 
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -125,10 +127,10 @@ static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = NULL;
-
-  end ( NULL, NULL);
+  end (NULL, NULL);
   ret = GNUNET_SYSERR;
 }
+
 
 static void
 address_suggest_cb (void *cls,
@@ -140,7 +142,6 @@ address_suggest_cb (void *cls,
                     const struct GNUNET_ATS_Information *atsi,
                     uint32_t ats_count)
 {
-
   if (GNUNET_NO == address_deleted)
   {
     /* Expected address suggestion */
@@ -154,7 +155,6 @@ address_suggest_cb (void *cls,
         GNUNET_i2s (&address->peer));
     address_deleted = GNUNET_YES;
     GNUNET_ATS_address_destroyed (sched_ats, &test_hello_address, NULL);
-
   }
   else
   {
@@ -173,7 +173,6 @@ address_suggest_cb (void *cls,
       GNUNET_SCHEDULER_add_now (&end, NULL);
     }
   }
-  return;
 }
 
 
@@ -183,8 +182,11 @@ stat_cb(void *cls, const char *subsystem,
         int is_persistent)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              value);
   if (GNUNET_NO == address_deleted)
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
   return GNUNET_OK;
@@ -192,8 +194,9 @@ stat_cb(void *cls, const char *subsystem,
 
 
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
@@ -231,8 +234,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address,
-      NULL, test_ats_info, test_ats_count);
-
+                          NULL,
+                          test_ats_info, test_ats_count);
 }
 
 
