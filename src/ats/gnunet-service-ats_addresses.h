@@ -230,7 +230,7 @@
  */
 enum ATS_Mode
 {
-  /*
+  /**
    * proportional mode:
    *
    * Assign each peer an equal amount of bandwidth (bw)
@@ -239,7 +239,7 @@ enum ATS_Mode
    */
   MODE_PROPORTIONAL,
 
-  /*
+  /**
    * MLP mode:
    *
    * Solve ressource assignment as an optimization problem
@@ -247,7 +247,7 @@ enum ATS_Mode
    */
   MODE_MLP,
 
-  /*
+  /**
    * Reinforcement Learning mode:
    *
    * Solve resource assignment using a learning agent
