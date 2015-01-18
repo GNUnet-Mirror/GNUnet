@@ -188,6 +188,7 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
   GST_neighbours_iterate (&transmit_our_hello, (void *) hello);
 }
 
+
 /**
  * We received some payload.  Prepare to pass it on to our clients.
  *
@@ -211,7 +212,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
 
   do_forward = GNUNET_SYSERR;
   ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
-  if (!GST_neighbours_test_connected (peer))
+  if (! GST_neighbours_test_connected (peer))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Discarded %u bytes type %u payload from peer `%s'\n", msg_size,
@@ -222,6 +223,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     return ret;
   }
 
+  // FIXME: why is this call here?
   GST_ats_add_address (address, session, NULL, 0);
 
   if (GNUNET_YES != do_forward)
@@ -357,6 +359,7 @@ connect_bl_check_cont (void *cls,
   GNUNET_free (blctx);
 }
 
+
 /**
  * Black list check result for try_connect call
  * If connection to the peer is allowed request adddress and
@@ -377,7 +380,9 @@ connect_transport_bl_check_cont (void *cls,
   if (GNUNET_OK == result)
   {
     /* Blacklist allows to speak to this transport */
-    GST_ats_add_address(blctx->address, blctx->session, blctx->ats, blctx->ats_count);
+    GST_ats_add_address (blctx->address,
+                         blctx->session,
+                         blctx->ats, blctx->ats_count);
   }
 
   if (NULL != blctx->address)
@@ -671,8 +676,9 @@ plugin_env_address_to_type (void *cls,
  */
 void
 GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-    struct Session *session, const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count)
+                     struct Session *session,
+                     const struct GNUNET_ATS_Information *ats,
+                     uint32_t ats_count)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_ATS_Information ats2[ats_count + 1];
@@ -710,13 +716,18 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   ats2[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats2[0].value = htonl (net);
   memcpy (&ats2[1], ats, sizeof(struct GNUNET_ATS_Information) * ats_count);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
-      GNUNET_i2s (&address->peer),
-      (0 == address->address_length) ? "<inbound>" : GST_plugins_a2s (address),
-      session, GNUNET_ATS_print_network_type (net));
-  GNUNET_ATS_address_add (GST_ats, address, session, ats2, ats_count + 1);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
+              GNUNET_i2s (&address->peer),
+              (0 == address->address_length)
+              ? "<inbound>"
+              : GST_plugins_a2s (address),
+              session,
+              GNUNET_ATS_print_network_type (net));
+  GNUNET_ATS_address_add (GST_ats, address, session,
+                          ats2, ats_count + 1);
 }
+
 
 /**
  * Notify ATS about property changes to an address

@@ -3161,6 +3161,8 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send SYN was successful */
+    // FIXME: shouldn't ATS already know about *outbound* sessions
+    // in particular?
     GST_ats_add_address (n->primary_address.address,
                          n->primary_address.session,
                          NULL, 0);
@@ -3204,6 +3206,7 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
     GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
 
     /* Notify about session... perhaps we obtained it */
+    // FIXME: why is this needed?
     GST_ats_add_address (n->alternative_address.address,
         n->alternative_address.session, NULL, 0);
     /* Set primary addresses */
@@ -3444,8 +3447,8 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
      now wait for the ACK to finally be connected
      - If we sent a SYN_ACK to this peer before */
 
-  if (   (GNUNET_TRANSPORT_PS_SYN_RECV_ACK != n->state) &&
-         (ACK_SEND_ACK != n->ack_state))
+  if ( (GNUNET_TRANSPORT_PS_SYN_RECV_ACK != n->state) &&
+       (ACK_SEND_ACK != n->ack_state))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received unexpected ACK message from peer `%s' in state %s/%s\n",
@@ -3486,8 +3489,10 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 
   /* Add session to ATS since no session was given (NULL) and we may have
    * obtained a new session */
-  GST_ats_add_address (n->primary_address.address, n->primary_address.session,
-      NULL, 0);
+  // FIXME: likely not the best place to do this...
+  GST_ats_add_address (n->primary_address.address,
+                       n->primary_address.session,
+                       NULL, 0);
 
   /* Set primary address to used */
   set_primary_address (n,
@@ -3511,6 +3516,7 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 {
   return test_connected (lookup_neighbour (target));
 }
+
 
 /**
  * Change the incoming quota for the given peer.

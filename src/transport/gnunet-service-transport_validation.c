@@ -833,13 +833,13 @@ add_valid_address (void *cls,
   }
 
   ve = find_validation_entry (&public_key, address);
-  ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until, expiration);
-
+  ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
+                                              expiration);
   if (NULL == ve->revalidation_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting revalidations for valid address `%s'\n",
-              GST_plugins_a2s (ve->address));
+                GST_plugins_a2s (ve->address));
     ve->next_validation = GNUNET_TIME_absolute_get();
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   }
@@ -1417,8 +1417,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_TIME_absolute_get_remaining
-      (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value_us == 0)
+  if (0 ==
+      GNUNET_TIME_absolute_get_remaining
+      (GNUNET_TIME_absolute_ntoh (pong->expiration)).rel_value_us)
   {
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -1490,6 +1491,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     ats[0].value = htonl ((uint32_t) ve->latency.rel_value_us);
     ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
     ats[1].value = htonl ((uint32_t) ve->network);
+    // FIXME: add vs. update!
     GNUNET_ATS_address_add (GST_ats, ve->address, NULL, ats, 2);
   }
   if (validations_running > 0)
