@@ -1146,8 +1146,6 @@ handle_inbound_channel (void *cls,
                         uint32_t port,
                         enum GNUNET_CADET_ChannelOption options)
 {
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_MQ_Handle *mq;
   struct PeerContext *ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
