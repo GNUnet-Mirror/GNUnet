@@ -710,7 +710,7 @@ RPS_sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
   }
 
   GNUNET_CRYPTO_hash (&gpc->get_peer_task, sizeof (struct GNUNET_SCHEDULER_Task *), hash);
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (get_peer_tasks, hash, gpc->get_peer_task))
+  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (get_peer_tasks, hash, &gpc->get_peer_task))
       LOG (GNUNET_ERROR_TYPE_WARNING, "SAMPLER: Key to remove is not in the hashmap\n");
   GNUNET_free (gpc->get_peer_task);
 
@@ -772,7 +772,7 @@ RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
       // maybe add a little delay
       gpc->get_peer_task = GNUNET_SCHEDULER_add_now (&RPS_sampler_get_rand_peer, gpc);
       GNUNET_CRYPTO_hash (&gpc->get_peer_task, sizeof (struct GNUNET_SCHEDULER_Task *), hash);
-      (void) GNUNET_CONTAINER_multihashmap_put (get_peer_tasks, hash, gpc->get_peer_task,
+      (void) GNUNET_CONTAINER_multihashmap_put (get_peer_tasks, hash, &gpc->get_peer_task,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       //RPS_sampler_get_rand_peer (RPS_sampler_get_n_rand_peers_ready_cb,
       //    cb_cls, &peers[i]);
