@@ -240,6 +240,7 @@ gnunet_transport_LDADD = \
 
 gnunet_service_transport_SOURCES = \
  gnunet-service-transport.c gnunet-service-transport.h \
+ gnunet-service-transport_ats.h gnunet-service-transport_ats.c \
  gnunet-service-transport_blacklist.h gnunet-service-transport_blacklist.c \
  gnunet-service-transport_clients.h gnunet-service-transport_clients.c \
  gnunet-service-transport_hello.h gnunet-service-transport_hello.c \
@@ -980,6 +981,7 @@ test_quota_compliance_http_SOURCES = \
 test_quota_compliance_http_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -988,6 +990,7 @@ test_quota_compliance_http_asymmetric_SOURCES = \
 test_quota_compliance_http_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -996,6 +999,7 @@ test_quota_compliance_https_SOURCES = \
 test_quota_compliance_https_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1004,6 +1008,7 @@ test_quota_compliance_https_asymmetric_SOURCES = \
 test_quota_compliance_https_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1121,6 +1126,7 @@ test_quota_compliance_tcp_SOURCES = \
 test_quota_compliance_tcp_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1129,6 +1135,7 @@ test_quota_compliance_tcp_asymmetric_SOURCES = \
 test_quota_compliance_tcp_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1137,6 +1144,7 @@ test_quota_compliance_udp_SOURCES = \
 test_quota_compliance_udp_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1145,6 +1153,7 @@ test_quota_compliance_unix_SOURCES = \
 test_quota_compliance_unix_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1153,6 +1162,7 @@ test_quota_compliance_unix_asymmetric_SOURCES = \
 test_quota_compliance_unix_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1161,6 +1171,7 @@ test_quota_compliance_wlan_SOURCES = \
 test_quota_compliance_wlan_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1169,6 +1180,7 @@ test_quota_compliance_wlan_asymmetric_SOURCES = \
 test_quota_compliance_wlan_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1178,6 +1190,7 @@ test_quota_compliance_bluetooth_LDADD = \
  $(top_builddir)/src/nat/libgnunetnat.la \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
@@ -1186,6 +1199,7 @@ test_quota_compliance_bluetooth_asymmetric_SOURCES = \
 test_quota_compliance_bluetooth_asymmetric_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 

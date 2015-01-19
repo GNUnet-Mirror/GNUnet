@@ -48,6 +48,12 @@
  */
 struct GNUNET_ATS_AddressRecord
 {
+
+  /**
+   * Scheduling handle this address record belongs to.
+   */
+  struct GNUNET_ATS_SchedulingHandle *sh;
+
   /**
    * Address data.
    */
@@ -331,7 +337,7 @@ find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh)
     off++;
     i++;
   }
-  if ( (NOT_FOUND != off) &&
+  if ( (NOT_FOUND != off % sh->session_array_size) &&
        (NULL == sh->session_array[off % sh->session_array_size]) )
     return off;
   i = sh->session_array_size;
@@ -1191,9 +1197,10 @@ GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param session session handle, can be NULL
  * @param ats performance data for the address
  * @param ats_count number of performance records in @a ats
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ * @return handle to the address representation inside ATS, NULL
+ *         on error (i.e. ATS knows this exact address already)
  */
-int
+struct GNUNET_ATS_AddressRecord *
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_HELLO_Address *address,
                         struct Session *session,
@@ -1209,7 +1216,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   {
     /* we need a valid address */
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return NULL;
   }
   namelen = (NULL == address->transport_name)
     ? 0
@@ -1224,17 +1231,18 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   {
     /* address too large for us, this should not happen */
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return NULL;
   }
 
   if (NOT_FOUND != find_session_id (sh, session, address))
   {
     /* Already existing, nothing todo, but this should not happen */
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return NULL;
   }
   s = find_empty_session_slot (sh);
   ar = GNUNET_new (struct GNUNET_ATS_AddressRecord);
+  ar->sh = sh;
   ar->slot = s;
   ar->session = session;
   ar->address = GNUNET_HELLO_address_copy (address);
@@ -1244,7 +1252,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   memcpy (ar->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
   sh->session_array[s] = ar;
   send_add_address_message (sh, ar, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
-  return GNUNET_OK;
+  return ar;
 }
 
 
@@ -1256,33 +1264,17 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * which case the call may be ignored or the information may be stored
  * for later use).  Update bandwidth assignments.
  *
- * FIXME: change API so we do not have to do the linear search!
- *
- * @param sh handle
- * @param address the address
+ * @param ar address record to update information for
  * @param session session handle, can be NULL
  * @param ats performance data for the address
  * @param ats_count number of performance records in @a ats
- * @return #GNUNET_YES on success, #GNUNET_NO if address or session are unknown,
- * #GNUNET_SYSERR on hard failure
  */
-int
-GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_HELLO_Address *address,
+void
+GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
                            struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
-  uint32_t s;
-  struct GNUNET_ATS_AddressRecord *ar;
-
-  s = find_session_id (sh, session, address);
-  if (NOT_FOUND == s)
-  {
-    GNUNET_break (0);
-    return GNUNET_NO;
-  }
-  ar = sh->session_array[s];
   GNUNET_array_grow (ar->ats,
                      ar->ats_count,
                      ats_count);
@@ -1290,8 +1282,9 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
           ats,
           ats_count * sizeof (struct GNUNET_ATS_Information));
   ar->session = session;
-  send_add_address_message (sh, ar, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
-  return GNUNET_YES;
+  send_add_address_message (ar->sh,
+                            ar,
+                            GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
 }
 
 
@@ -1384,7 +1377,7 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   s = find_session_id (sh, session, address);
   if (NOT_FOUND == s)
   {
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   ar = sh->session_array[s];

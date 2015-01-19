@@ -28,6 +28,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 
 #define VERBOSE_VALIDATION GNUNET_YES
@@ -85,52 +86,20 @@ typedef void
  *
  * @param cls closure, const char* with the name of the plugin we received the message from
  * @param address address and (claimed) identity of the other peer
- * @param message the message, NULL if we only care about
- *                learning about the delay until we should receive again
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")
+ * @param message the message, NULL if we only care about
+ *                learning about the delay until we should receive again
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */
 struct GNUNET_TIME_Relative
 GST_receive_callback (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    const struct GNUNET_MessageHeader *message);
+                      const struct GNUNET_HELLO_Address *address,
+                      struct Session *session,
+                      const struct GNUNET_MessageHeader *message);
 
-
-/**
- * Notify ATS about the new address including the network this address is
- * located in.
- *
- * @param address the address
- * @param session the session
- * @param ats ats information
- * @param ats_count number of @a ats information
- */
-void
-GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
-                     const struct GNUNET_ATS_Information *ats,
-                     uint32_t ats_count);
-
-
-/**
- * Notify ATS about property changes to an address
- *
- * @param peer the peer
- * @param address the address
- * @param session the session
- * @param ats performance information
- * @param ats_count number of elements in @a ats
- */
-void
-GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
-			const struct GNUNET_HELLO_Address *address,
-			struct Session *session,
-			const struct GNUNET_ATS_Information *ats,
-			uint32_t ats_count);
 
 #endif
 /* end of file gnunet-service-transport_plugins.h */

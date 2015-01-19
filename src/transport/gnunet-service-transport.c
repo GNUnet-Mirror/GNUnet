@@ -20,7 +20,7 @@
 
 /**
  * @file transport/gnunet-service-transport.c
- * @brief
+ * @brief main for gnunet-service-transport
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -31,6 +31,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet-service-transport.h"
+#include "gnunet-service-transport_ats.h"
 #include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_hello.h"
@@ -71,19 +72,21 @@ struct SessionKiller
   struct GNUNET_SCHEDULER_Task * task;
 };
 
+
 struct BlacklistCheckContext
 {
   struct BlacklistCheckContext *prev;
-  struct BlacklistCheckContext *next;
 
+  struct BlacklistCheckContext *next;
 
   struct GST_BlacklistCheck *blc;
 
   struct GNUNET_HELLO_Address *address;
+
   struct Session *session;
+
   struct GNUNET_MessageHeader *msg;
-  struct GNUNET_ATS_Information *ats;
-  uint32_t ats_count;
+
 };
 
 /* globals */
@@ -143,7 +146,14 @@ static struct SessionKiller *sk_head;
  */
 static struct SessionKiller *sk_tail;
 
+/**
+ * FIXME
+ */
 struct BlacklistCheckContext *bc_head;
+
+/**
+ * FIXME
+ */
 struct BlacklistCheckContext *bc_tail;
 
 
@@ -172,7 +182,7 @@ transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
     return;
 
   GST_neighbours_send (target, hello, ntohs (hello->size), hello_expiration,
-      NULL, NULL );
+                       NULL, NULL);
 }
 
 /**
@@ -193,15 +203,18 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  * We received some payload.  Prepare to pass it on to our clients.
  *
  * @param peer (claimed) identity of the other peer
- * @param address the address
- * @param session session used
+ * @param address address and (claimed) identity of the other peer
+ * @param session identifier used for this session (NULL for plugins
+ *                that do not offer bi-directional communication to the sender
+ *                using the same "connection")
  * @param message the message to process
  * @return how long the plugin should wait until receiving more data
  */
 static struct GNUNET_TIME_Relative
 process_payload (const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
-    const struct GNUNET_MessageHeader *message)
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session,
+                 const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TIME_Relative ret;
   int do_forward;
@@ -214,17 +227,17 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
   if (! GST_neighbours_test_connected (peer))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Discarded %u bytes type %u payload from peer `%s'\n", msg_size,
-        ntohs (message->type), GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Discarded %u bytes type %u payload from peer `%s'\n",
+                msg_size,
+                ntohs (message->type),
+                GNUNET_i2s (peer));
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
-    ("# bytes payload discarded due to not connected peer"), msg_size,
-        GNUNET_NO);
+                              ("# bytes payload discarded due to not connected peer"),
+                              msg_size,
+                              GNUNET_NO);
     return ret;
   }
-
-  // FIXME: why is this call here?
-  GST_ats_add_address (address, session, NULL, 0);
 
   if (GNUNET_YES != do_forward)
     return ret;
@@ -236,6 +249,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   GST_clients_broadcast (&im->header, GNUNET_YES);
   return ret;
 }
+
 
 /**
  * Task to asynchronously terminate a session.
@@ -254,16 +268,25 @@ kill_session_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free(sk);
 }
 
+
+/**
+ * FIXME.  Also, consider moving the "bc_*" logic into
+ * blacklist.h?
+ */
 static void
-cancel_pending_blacklist_checks (const struct GNUNET_HELLO_Address *address, struct Session *session)
+cancel_pending_blacklist_checks (const struct GNUNET_HELLO_Address *address,
+                                 struct Session *session)
 {
   struct BlacklistCheckContext *blctx;
   struct BlacklistCheckContext *next;
+
   next = bc_head;
   for (blctx = next; NULL != blctx; blctx = next)
   {
     next = blctx->next;
-    if ((NULL != blctx->address) && (0 == GNUNET_HELLO_address_cmp(blctx->address, address)) && (blctx->session == session))
+    if ( (NULL != blctx->address) &&
+         (0 == GNUNET_HELLO_address_cmp(blctx->address, address)) &&
+         (blctx->session == session))
     {
       GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, blctx);
       if (NULL != blctx->blc)
@@ -273,11 +296,11 @@ cancel_pending_blacklist_checks (const struct GNUNET_HELLO_Address *address, str
       }
       GNUNET_HELLO_address_free (blctx->address);
       GNUNET_free_non_null (blctx->msg);
-      GNUNET_free_non_null (blctx->ats);
       GNUNET_free (blctx);
     }
   }
 }
+
 
 /**
  * Force plugin to terminate session due to communication
@@ -287,7 +310,8 @@ cancel_pending_blacklist_checks (const struct GNUNET_HELLO_Address *address, str
  * @param session session to termiante
  */
 static void
-kill_session (const char *plugin_name, struct Session *session)
+kill_session (const char *plugin_name,
+              struct Session *session)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *plugin;
   struct SessionKiller *sk;
@@ -306,14 +330,15 @@ kill_session (const char *plugin_name, struct Session *session)
   sk->session = session;
   sk->plugin = plugin;
   sk->task = GNUNET_SCHEDULER_add_now (&kill_session_task, sk);
-  GNUNET_CONTAINER_DLL_insert(sk_head, sk_tail, sk);
+  GNUNET_CONTAINER_DLL_insert (sk_head,
+                               sk_tail,
+                               sk);
 }
-
 
 
 /**
  * Black list check result for try_connect call
- * If connection to the peer is allowed request adddress and
+ * If connection to the peer is allowed request adddress and ???
  *
  * @param cls blc_ctx bl context
  * @param peer the peer
@@ -321,7 +346,8 @@ kill_session (const char *plugin_name, struct Session *session)
  */
 static void
 connect_bl_check_cont (void *cls,
-    const struct GNUNET_PeerIdentity *peer, int result)
+                       const struct GNUNET_PeerIdentity *peer,
+                       int result)
 {
   struct BlacklistCheckContext *blctx = cls;
 
@@ -335,8 +361,9 @@ connect_bl_check_cont (void *cls,
                 "Received SYN message from peer `%s' with `%s' %p\n",
                 GNUNET_i2s (peer), GST_plugins_a2s (blctx->address), blctx->session);
 
-    if (GNUNET_OK != GST_neighbours_handle_session_syn (blctx->msg,
-        &blctx->address->peer))
+    if (GNUNET_OK !=
+        GST_neighbours_handle_session_syn (blctx->msg,
+                                           &blctx->address->peer))
     {
       cancel_pending_blacklist_checks (blctx->address, blctx->session);
       kill_session (blctx->address->transport_name, blctx->session);
@@ -351,38 +378,6 @@ connect_bl_check_cont (void *cls,
         GNUNET_i2s (peer));
     cancel_pending_blacklist_checks (blctx->address, blctx->session);
     kill_session (blctx->address->transport_name, blctx->session);
-  }
-
-  if (NULL != blctx->address)
-    GNUNET_HELLO_address_free (blctx->address);
-  GNUNET_free (blctx->msg);
-  GNUNET_free (blctx);
-}
-
-
-/**
- * Black list check result for try_connect call
- * If connection to the peer is allowed request adddress and
- *
- * @param cls blc_ctx bl context
- * @param peer the peer
- * @param result the result
- */
-static void
-connect_transport_bl_check_cont (void *cls,
-    const struct GNUNET_PeerIdentity *peer, int result)
-{
-  struct BlacklistCheckContext *blctx = cls;
-
-  GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, blctx);
-  blctx->blc = NULL;
-
-  if (GNUNET_OK == result)
-  {
-    /* Blacklist allows to speak to this transport */
-    GST_ats_add_address (blctx->address,
-                         blctx->session,
-                         blctx->ats, blctx->ats_count);
   }
 
   if (NULL != blctx->address)
@@ -426,7 +421,9 @@ GST_receive_callback (void *cls,
       GNUNET_i2s (&address->peer));
 
   GNUNET_STATISTICS_update (GST_stats, gettext_noop
-  ("# bytes total received"), ntohs (message->size), GNUNET_NO);
+                            ("# bytes total received"),
+                            ntohs (message->size),
+                            GNUNET_NO);
   GST_neighbours_notify_data_recv (&address->peer, address, session, message);
 
   switch (type)
@@ -442,19 +439,23 @@ GST_receive_callback (void *cls,
     }
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-        "Processing `%s' from `%s'\n", "PING", GST_plugins_a2s (address));
-    if (GNUNET_OK
-        != GST_validation_handle_ping (&address->peer, message, address, session))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Processing `%s' from `%s'\n", "PING",
+                GST_plugins_a2s (address));
+    if (GNUNET_OK !=
+        GST_validation_handle_ping (&address->peer,
+                                    message,
+                                    address,
+                                    session))
     {
       cancel_pending_blacklist_checks (address, session);
       kill_session (plugin_name, session);
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-        "Processing `%s' from `%s'\n", "PONG",
-        GST_plugins_a2s (address));
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Processing `%s' from `%s'\n", "PONG",
+               GST_plugins_a2s (address));
     if (GNUNET_OK != GST_validation_handle_pong (&address->peer, message))
     {
       GNUNET_break_op(0);
@@ -472,18 +473,6 @@ GST_receive_callback (void *cls,
     GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, blctx);
     if (NULL != (blc = GST_blacklist_test_allowed (&address->peer, NULL,
           &connect_bl_check_cont, blctx)))
-    {
-      blctx->blc = blc;
-    }
-
-    blctx = GNUNET_new (struct BlacklistCheckContext);
-    blctx->address = GNUNET_HELLO_address_copy (address);
-    blctx->session = session;
-    blctx->msg = GNUNET_malloc (ntohs(message->size));
-    memcpy (blctx->msg, message, ntohs(message->size));
-    GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, blctx);
-    if (NULL != (blc = GST_blacklist_test_allowed (&address->peer,
-        address->transport_name, &connect_transport_bl_check_cont, blctx)))
     {
       blctx->blc = blc;
     }
@@ -529,6 +518,7 @@ GST_receive_callback (void *cls,
   return ret;
 }
 
+
 /**
  * Function that will be called for each address the transport
  * is aware that it might be reachable under.  Update our HELLO.
@@ -539,8 +529,9 @@ GST_receive_callback (void *cls,
  * @param address the address to add or remove
  */
 static void
-plugin_env_address_change_notification (void *cls, int add_remove,
-    const struct GNUNET_HELLO_Address *address)
+plugin_env_address_change_notification (void *cls,
+                                        int add_remove,
+                                        const struct GNUNET_HELLO_Address *address)
 {
   static int addresses = 0;
   struct GNUNET_STATISTICS_Handle *cfg = GST_stats;
@@ -562,10 +553,11 @@ plugin_env_address_change_notification (void *cls, int add_remove,
   }
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Transport now has %u addresses to communicate\n", addresses);
-
+             "Transport now has %u addresses to communicate\n",
+             addresses);
   GST_hello_modify_addresses (add_remove, address);
 }
+
 
 /**
  * Function that will be called whenever the plugin internally
@@ -581,8 +573,9 @@ plugin_env_address_change_notification (void *cls, int add_remove,
  * @param session which session is being destoyed
  */
 static void
-plugin_env_session_end (void *cls, const struct GNUNET_HELLO_Address *address,
-    struct Session *session)
+plugin_env_session_end (void *cls,
+                        const struct GNUNET_HELLO_Address *address,
+                        struct Session *session)
 {
   struct SessionKiller *sk;
 
@@ -591,46 +584,37 @@ plugin_env_session_end (void *cls, const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
-
   if (NULL == session)
   {
     GNUNET_break (0);
     return;
   }
+  GNUNET_assert (strlen (address->transport_name) > 0);
 
-  GNUNET_assert(strlen (address->transport_name) > 0);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Session %p to peer `%s' ended \n",
-      session, GNUNET_i2s (&address->peer));
-
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Notification from plugin `%s' about terminated %s session %p from peer `%s' address `%s'\n",
-      address->transport_name,
-      GNUNET_HELLO_address_check_option (address,
-          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound", session,
-      GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Notification from plugin `%s' about terminated %s session %p from peer `%s' address `%s'\n",
+              address->transport_name,
+              GNUNET_HELLO_address_check_option (address,
+                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound", session,
+              GNUNET_i2s (&address->peer),
+              GST_plugins_a2s (address));
 
   GST_neighbours_session_terminated (&address->peer, session);
-
-  GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-      "transport-ats", "Telling ATS to destroy session %p from peer %s\n",
-      session, GNUNET_i2s (&address->peer));
-
-  /* Tell ATS that session has ended */
-  GNUNET_ATS_address_destroyed (GST_ats, address, session);
-
+  GST_ats_del_session (address, session);
   cancel_pending_blacklist_checks (address, session);
 
   for (sk = sk_head; NULL != sk; sk = sk->next)
   {
     if (sk->session == session)
     {
-      GNUNET_CONTAINER_DLL_remove(sk_head, sk_tail, sk);
+      GNUNET_CONTAINER_DLL_remove (sk_head, sk_tail, sk);
       GNUNET_SCHEDULER_cancel (sk->task);
       GNUNET_free(sk);
       break;
     }
   }
 }
+
 
 /**
  * Function that will be called to figure if an address is an loopback,
@@ -651,123 +635,11 @@ plugin_env_address_to_type (void *cls,
     GNUNET_break(0);
     return GNUNET_ATS_NET_UNSPECIFIED;
   }
-  if (((addr->sa_family != AF_INET) && (addrlen != sizeof(struct sockaddr_in)))
-      && ((addr->sa_family != AF_INET6)
-          && (addrlen != sizeof(struct sockaddr_in6)))
-      && (addr->sa_family != AF_UNIX))
-  {
-    GNUNET_break(0);
-    return GNUNET_ATS_NET_UNSPECIFIED;
-  }
   return GNUNET_ATS_address_get_type (GST_ats,
                                       addr,
                                       addrlen);
 }
 
-
-/**
- * Notify ATS about the new address including the network this address is
- * located in.
- *
- * @param address the address
- * @param session the session
- * @param ats ats information
- * @param ats_count number of @a ats information
- */
-void
-GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
-                     const struct GNUNET_ATS_Information *ats,
-                     uint32_t ats_count)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_ATS_Information ats2[ats_count + 1];
-  uint32_t net;
-
-  /* valid new address, let ATS know! */
-  if (NULL == address->transport_name)
-  {
-    GNUNET_break(0);
-    return;
-  }
-  if (NULL == (papi = GST_plugins_find (address->transport_name)))
-  {
-    /* we don't have the plugin for this address */
-    GNUNET_break(0);
-    return;
-  }
-
-  if (GNUNET_YES == GNUNET_ATS_session_known (GST_ats, address, session))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "ATS already knows the address, not passing it on again\n");
-    return;
-  }
-
-  net = papi->get_network (papi->cls, session);
-  if (GNUNET_ATS_NET_UNSPECIFIED == net)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        _("Could not obtain a valid network for `%s' %s (%s)\n"),
-        GNUNET_i2s (&address->peer), GST_plugins_a2s (address),
-        address->transport_name);
-    return;
-  }
-  ats2[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats2[0].value = htonl (net);
-  memcpy (&ats2[1], ats, sizeof(struct GNUNET_ATS_Information) * ats_count);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
-              GNUNET_i2s (&address->peer),
-              (0 == address->address_length)
-              ? "<inbound>"
-              : GST_plugins_a2s (address),
-              session,
-              GNUNET_ATS_print_network_type (net));
-  GNUNET_ATS_address_add (GST_ats, address, session,
-                          ats2, ats_count + 1);
-}
-
-
-/**
- * Notify ATS about property changes to an address
- *
- * @param peer the peer
- * @param address the address
- * @param session the session
- * @param ats performance information
- * @param ats_count number of elements in @a ats
- */
-void
-GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_HELLO_Address *address,
-                        struct Session *session,
-                        const struct GNUNET_ATS_Information *ats,
-                        uint32_t ats_count)
-{
-  struct GNUNET_ATS_Information *ats_new;
-
-  if (GNUNET_NO == GNUNET_ATS_session_known (GST_ats, address, session))
-    return;
-
-  /* Call to manipulation to manipulate ATS information */
-  ats_new = GST_manipulation_manipulate_metrics (peer, address, session, ats,
-      ats_count);
-  if (NULL == ats_new)
-  {
-    GNUNET_break(0);
-    return;
-  }
-  if (GNUNET_NO == GNUNET_ATS_address_update (GST_ats, address, session,
-        ats_new, ats_count))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        _("Address or session unknown: failed to update properties for peer `%s' plugin `%s' address `%s' session %p\n"),
-        GNUNET_i2s (peer), address->transport_name, GST_plugins_a2s (address),
-        session);
-  }
-  GNUNET_free(ats_new);
-}
 
 /**
  * Function that will be called to update metrics for an address
@@ -785,25 +657,16 @@ plugin_env_update_metrics (void *cls,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
-  if ((NULL == ats) || (0 == ats_count))
-    return;
-  GNUNET_assert(NULL != GST_ats);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating metrics for peer `%s' address %s session %p\n",
-              GNUNET_i2s (&address->peer),
-              GST_plugins_a2s (address),
-              session);
-  GST_ats_update_metrics (&address->peer,
-                          address,
+  GST_ats_update_metrics (address,
                           session,
                           ats, ats_count);
 }
 
 
 /**
- * Black list check result for try_connect call
- * If connection to the peer is allowed request adddress and
+ * Black list check result from blacklist check triggered when a
+ * plugin gave us a new session in #plugin_env_session_start().  If
+ * connection to the peer is disallowed, kill the session.
  *
  * @param cls blc_ctx bl context
  * @param peer the peer
@@ -811,26 +674,23 @@ plugin_env_update_metrics (void *cls,
  */
 static void
 plugin_env_session_start_bl_check_cont (void *cls,
-    const struct GNUNET_PeerIdentity *peer, int result)
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        int result)
 {
   struct BlacklistCheckContext *blctx = cls;
 
-  GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, blctx);
+  GNUNET_CONTAINER_DLL_remove (bc_head,
+                               bc_tail,
+                               blctx);
   blctx->blc = NULL;
-
-  if (GNUNET_OK == result)
+  if (GNUNET_OK != result)
   {
-    GST_ats_add_address (blctx->address, blctx->session,
-        blctx->ats, blctx->ats_count);
+    cancel_pending_blacklist_checks (blctx->address,
+                                     blctx->session);
+    kill_session (blctx->address->transport_name,
+                  blctx->session);
   }
-  else
-  {
-    cancel_pending_blacklist_checks (blctx->address, blctx->session);
-    kill_session (blctx->address->transport_name, blctx->session);
-  }
-
   GNUNET_HELLO_address_free (blctx->address);
-  GNUNET_free_non_null (blctx->ats);
   GNUNET_free (blctx);
 }
 
@@ -846,14 +706,13 @@ plugin_env_session_start_bl_check_cont (void *cls,
  */
 static void
 plugin_env_session_start (void *cls,
-                          struct GNUNET_HELLO_Address *address,
+                          const struct GNUNET_HELLO_Address *address,
                           struct Session *session,
                           const struct GNUNET_ATS_Information *ats,
                           uint32_t ats_count)
 {
   struct BlacklistCheckContext *blctx;
   struct GST_BlacklistCheck *blc;
-  int c;
 
   if (NULL == address)
   {
@@ -865,30 +724,46 @@ plugin_env_session_start (void *cls,
     GNUNET_break(0);
     return;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Notification from plugin `%s' about new %s session %p from peer `%s' address `%s'\n",
-      address->transport_name,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Notification from plugin `%s' about new %s session %p from peer `%s' address `%s'\n",
+              address->transport_name,
+              GNUNET_HELLO_address_check_option (address,
+                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
+              session,
+              GNUNET_i2s (&address->peer),
+              GST_plugins_a2s (address));
+  if (GNUNET_YES ==
       GNUNET_HELLO_address_check_option (address,
-          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
-      session, GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
-
+                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+  {
+    /* inbound is always new */
+    GST_ats_add_address (address,
+                         session,
+                         ats,
+                         ats_count);
+  }
+  else
+  {
+    /* outbound should already be known */
+    GST_ats_new_session (address,
+                         session);
+    GST_ats_update_metrics (address,
+                            session,
+                            ats,
+                            ats_count);
+  }
   /* Do blacklist check if communication with this peer is allowed */
   blctx = GNUNET_new (struct BlacklistCheckContext);
   blctx->address = GNUNET_HELLO_address_copy (address);
   blctx->session = session;
-  if (ats_count > 0)
-  {
-    blctx->ats = GNUNET_malloc (ats_count * sizeof (struct GNUNET_ATS_Information));
-    for (c = 0; c < ats_count; c++)
-    {
-      blctx->ats[c].type = ats[c].type;
-      blctx->ats[c].value = ats[c].value;
-    }
-  }
-
-  GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, blctx);
-  if (NULL != (blc = GST_blacklist_test_allowed (&address->peer, address->transport_name,
-        &plugin_env_session_start_bl_check_cont, blctx)))
+  GNUNET_CONTAINER_DLL_insert (bc_head,
+                               bc_tail,
+                               blctx);
+  if (NULL !=
+      (blc = GST_blacklist_test_allowed (&address->peer,
+                                         address->transport_name,
+                                         &plugin_env_session_start_bl_check_cont,
+                                         blctx)))
   {
     blctx->blc = blc;
   }
@@ -927,9 +802,9 @@ ats_request_address_change (void *cls,
   /* ATS tells me to disconnect from peer */
   if ((0 == bw_in) && (0 == bw_out))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "ATS tells me to disconnect from peer `%s'\n",
-        GNUNET_i2s (&address->peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ATS tells me to disconnect from peer `%s'\n",
+                GNUNET_i2s (&address->peer));
     GST_neighbours_force_disconnect (&address->peer);
     return;
   }
@@ -952,9 +827,9 @@ ats_request_address_change (void *cls,
  */
 static void
 neighbours_connect_notification (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+                                 const struct GNUNET_PeerIdentity *peer,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   size_t len = sizeof(struct ConnectInfoMessage);
   char buf[len] GNUNET_ALIGN;
@@ -962,8 +837,9 @@ neighbours_connect_notification (void *cls,
 
   connections++;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "We are now connected to peer `%s' and %u peers in total\n",
-      GNUNET_i2s (peer), connections);
+             "We are now connected to peer `%s' and %u peers in total\n",
+             GNUNET_i2s (peer),
+             connections);
   connect_msg->header.size = htons (sizeof(buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->id = *peer;
@@ -988,8 +864,8 @@ neighbours_disconnect_notification (void *cls,
 
   connections--;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Peer `%s' disconnected and we are connected to %u peers\n",
-      GNUNET_i2s (peer), connections);
+             "Peer `%s' disconnected and we are connected to %u peers\n",
+             GNUNET_i2s (peer), connections);
 
   GST_manipulation_peer_disconnect (peer);
   disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));
@@ -1021,12 +897,12 @@ neighbours_changed_notification (void *cls,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
-             GNUNET_i2s (peer),
-             (NULL != address) ? GST_plugins_a2s (address) : "<none>",
-             GNUNET_TRANSPORT_ps2s (state),
-             GNUNET_STRINGS_absolute_time_to_string (state_timeout));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
+              GNUNET_i2s (peer),
+              (NULL != address) ? GST_plugins_a2s (address) : "<none>",
+              GNUNET_TRANSPORT_ps2s (state),
+              GNUNET_STRINGS_absolute_time_to_string (state_timeout));
 
   GST_clients_broadcast_peer_notification (peer,
                                            address,
@@ -1043,12 +919,13 @@ neighbours_changed_notification (void *cls,
  * @param tc task context (unused)
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GST_neighbours_stop ();
   GST_validation_stop ();
   GST_plugins_unload ();
-
+  GST_ats_done ();
   GNUNET_ATS_scheduling_done (GST_ats);
   GST_ats = NULL;
   GST_clients_stop ();
@@ -1083,8 +960,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-    const struct GNUNET_CONFIGURATION_Handle *c)
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *keyfile;
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
@@ -1121,15 +999,16 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_stats = GNUNET_STATISTICS_create ("transport", GST_cfg);
   GST_peerinfo = GNUNET_PEERINFO_connect (GST_cfg);
   GNUNET_CRYPTO_eddsa_key_get_public (GST_my_private_key,
-      &GST_my_identity.public_key);
+                                      &GST_my_identity.public_key);
   GNUNET_assert(NULL != GST_my_private_key);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
              "My identity is `%4s'\n",
              GNUNET_i2s_full (&GST_my_identity));
 
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-      NULL );
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
+                                NULL);
   if (NULL == GST_peerinfo)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
@@ -1152,8 +1031,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   max_fd_rlimit = (9 * max_fd_rlimit) / 10; /* Keep 10% for rest of transport */
 #endif
-  GNUNET_CONFIGURATION_get_value_number (GST_cfg, "transport", "MAX_FD",
-      &max_fd_cfg);
+  GNUNET_CONFIGURATION_get_value_number (GST_cfg,
+                                         "transport",
+                                         "MAX_FD",
+                                         &max_fd_cfg);
 
   if (max_fd_cfg > max_fd_rlimit)
     max_fd = max_fd_cfg;
@@ -1162,9 +1043,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if (max_fd < DEFAULT_MAX_FDS)
     max_fd = DEFAULT_MAX_FDS;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Limiting number of sockets to %u: validation %u, neighbors: %u\n",
-      max_fd, (max_fd / 3), (max_fd / 3) * 2);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Limiting number of sockets to %u: validation %u, neighbors: %u\n",
+             max_fd, (max_fd / 3), (max_fd / 3) * 2);
 
   friend_only = GNUNET_CONFIGURATION_get_value_yesno (GST_cfg, "topology",
       "FRIENDS-ONLY");
@@ -1176,7 +1057,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
   GST_ats = GNUNET_ATS_scheduling_init (GST_cfg,
                                         &ats_request_address_change,
-                                        NULL );
+                                        NULL);
+  GST_ats_init ();
   GST_manipulation_init (GST_cfg);
   GST_plugins_load (&GST_manipulation_recv,
                     &GST_neighbours_register_quota_notification,

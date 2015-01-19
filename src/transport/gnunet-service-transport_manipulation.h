@@ -77,9 +77,10 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
  */
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    const struct GNUNET_MessageHeader *message);
+                       const struct GNUNET_HELLO_Address *address,
+                       struct Session *session,
+                       const struct GNUNET_MessageHeader *message);
+
 
 /**
  * Function that will be called to manipulate ATS information according to
@@ -90,13 +91,14 @@ GST_manipulation_recv (void *cls,
  * @param session the session
  * @param ats the ats information
  * @param ats_count the number of ats information
+ * @return modified @a ats information
  */
 struct GNUNET_ATS_Information *
-GST_manipulation_manipulate_metrics (const struct GNUNET_PeerIdentity *peer,
-		const struct GNUNET_HELLO_Address *address,
-		struct Session *session,
-		const struct GNUNET_ATS_Information *ats,
-		uint32_t ats_count);
+GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
+                                     struct Session *session,
+                                     const struct GNUNET_ATS_Information *ats,
+                                     uint32_t ats_count);
+
 
 /**
  * Notify manipulation about disconnect so it can discard queued messages

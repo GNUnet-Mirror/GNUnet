@@ -39,6 +39,7 @@ enum TRAFFIC_METRIC_DIRECTION
   TM_SEND = 0, TM_RECEIVE = 1, TM_BOTH = 2
 };
 
+
 /**
  * Struct containing information about manipulations to a specific peer
  */
@@ -104,6 +105,7 @@ struct TM_Peer
    */
   struct DelayQueueEntry *send_tail;
 };
+
 
 struct GST_ManipulationHandle
 {
@@ -487,34 +489,38 @@ GST_manipulation_send(const struct GNUNET_PeerIdentity *target, const void *msg,
  * @param ats_count the number of ats information
  */
 struct GNUNET_ATS_Information *
-GST_manipulation_manipulate_metrics(const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+GST_manipulation_manipulate_metrics(const struct GNUNET_HELLO_Address *address,
+                                    struct Session *session,
+                                    const struct GNUNET_ATS_Information *ats,
+                                    uint32_t ats_count)
 {
-  struct GNUNET_ATS_Information *ats_new =
-      GNUNET_malloc (sizeof (struct GNUNET_ATS_Information) *ats_count);
+  const struct GNUNET_PeerIdentity *peer = &address->peer;
+  struct GNUNET_ATS_Information *ats_new;
   struct TM_Peer *tmp;
   uint32_t m_tmp;
   uint32_t g_tmp;
-  int d;
-  tmp = GNUNET_CONTAINER_multipeermap_get(man_handle.peers, peer);
+  uint32_t d;
 
+  if (0 == ats_count)
+    return NULL;
+  ats_new = GNUNET_malloc (sizeof (struct GNUNET_ATS_Information) * ats_count);
+  tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, peer);
   for (d = 0; d < ats_count; d++)
-    {
-      ats_new[d] = ats[d];
-      m_tmp = UINT32_MAX;
-      if (NULL != tmp)
-        m_tmp = find_metric(tmp, ntohl(ats[d].type), TM_RECEIVE);
-      g_tmp = find_metric(&man_handle.general, ntohl(ats[d].type), TM_RECEIVE);
+  {
+    ats_new[d] = ats[d];
+    m_tmp = UINT32_MAX;
+    if (NULL != tmp)
+      m_tmp = find_metric(tmp, ntohl(ats[d].type), TM_RECEIVE);
+    g_tmp = find_metric(&man_handle.general, ntohl(ats[d].type), TM_RECEIVE);
 
-      if (UINT32_MAX != g_tmp)
-        ats_new[d].value = htonl(g_tmp);
-      if (UINT32_MAX != m_tmp)
-        ats_new[d].value = htonl(m_tmp);
-    }
-
+    if (UINT32_MAX != g_tmp)
+      ats_new[d].value = htonl(g_tmp);
+    if (UINT32_MAX != m_tmp)
+      ats_new[d].value = htonl(m_tmp);
+  }
   return ats_new;
 }
+
 
 /**
  * Adapter function between transport plugins and transport receive function
@@ -528,9 +534,9 @@ GST_manipulation_manipulate_metrics(const struct GNUNET_PeerIdentity *peer,
  */
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    const struct GNUNET_MessageHeader *message)
+                       const struct GNUNET_HELLO_Address *address,
+                       struct Session *session,
+                       const struct GNUNET_MessageHeader *message)
 {
   struct TM_Peer *tmp;
   uint32_t p_recv_delay;

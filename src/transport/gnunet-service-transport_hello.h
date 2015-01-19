@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file transport/gnunet-service-transport_hello.h
  * @brief hello API
@@ -32,15 +31,15 @@
 #include "gnunet_hello_lib.h"
 
 
-
 /**
  * Signature of a function to call whenever our hello changes.
  *
  * @param cls closure
  * @param hello updated HELLO
  */
-typedef void (*GST_HelloCallback) (void *cls,
-                                   const struct GNUNET_MessageHeader * hello);
+typedef void
+(*GST_HelloCallback) (void *cls,
+                      const struct GNUNET_MessageHeader *hello);
 
 
 /**
@@ -48,10 +47,12 @@ typedef void (*GST_HelloCallback) (void *cls,
  *
  * @param friend_only use a friend only hello
  * @param cb function to call whenever our HELLO changes
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  */
 void
-GST_hello_start (int friend_only, GST_HelloCallback cb, void *cb_cls);
+GST_hello_start (int friend_only,
+                 GST_HelloCallback cb,
+                 void *cb_cls);
 
 
 /**
@@ -73,7 +74,7 @@ GST_hello_get (void);
 /**
  * Add or remove an address from this peer's HELLO message.
  *
- * @param addremove GNUNET_YES to add, GNUNET_NO to remove
+ * @param addremove #GNUNET_YES to add, #GNUNET_NO to remove
  * @param address address to add or remove
  */
 void
@@ -88,8 +89,8 @@ GST_hello_modify_addresses (int addremove,
  * @param sig location where to cache PONG signatures for this address [set]
  * @param sig_expiration how long until the current 'sig' expires?
  *            (ZERO if sig was never created) [set]
- * @return GNUNET_YES if this is one of our addresses,
- *         GNUNET_NO if not
+ * @return #GNUNET_YES if this is one of our addresses,
+ *         #GNUNET_NO if not
  */
 int
 GST_hello_test_address (const struct GNUNET_HELLO_Address *address,

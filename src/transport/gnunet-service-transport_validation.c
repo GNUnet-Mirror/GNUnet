@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010-2014 Christian Grothoff (and other contributing authors)
+     (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,12 +24,13 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-transport_clients.h"
-#include "gnunet-service-transport_validation.h"
-#include "gnunet-service-transport_plugins.h"
-#include "gnunet-service-transport_hello.h"
+#include "gnunet-service-transport_ats.h"
 #include "gnunet-service-transport_blacklist.h"
+#include "gnunet-service-transport_clients.h"
+#include "gnunet-service-transport_hello.h"
 #include "gnunet-service-transport_neighbours.h"
+#include "gnunet-service-transport_plugins.h"
+#include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_ats_service.h"
@@ -253,6 +254,7 @@ struct ValidationEntry
    * Current state of this validation entry
    */
   enum GNUNET_TRANSPORT_ValidationState state;
+
   /**
    * Challenge number we used.
    */
@@ -273,6 +275,11 @@ struct ValidationEntry
    * Are we expecting a PONG message for this validation entry?
    */
   int expecting_pong;
+
+  /**
+   * Is this address known to ATS as valid right now?
+   */
+  int known_to_ats;
 
   /**
    * Which network type does our address belong to?
@@ -445,6 +452,11 @@ cleanup_validation_entry (void *cls,
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_remove (validation_map,
                                                       &ve->pid, ve));
+  if (GNUNET_YES == ve->known_to_ats)
+  {
+    GST_ats_expire_address (ve->address);
+    ve->known_to_ats = GNUNET_NO;
+  }
   GNUNET_HELLO_address_free (ve->address);
   if (NULL != ve->timeout_task)
   {
@@ -593,7 +605,8 @@ transmit_ping_if_allowed (void *cls,
     {
       GNUNET_assert (NULL != papi->send);
       GNUNET_assert (NULL != papi->get_session);
-      struct Session * session = papi->get_session(papi->cls, ve->address);
+      struct Session *session = papi->get_session (papi->cls,
+                                                   ve->address);
 
       if (NULL != session)
       {
@@ -847,8 +860,11 @@ add_valid_address (void *cls,
 
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (ve->network);
-  GNUNET_ATS_address_add (GST_ats, address, NULL, &ats, 1);
-
+  if (GNUNET_YES != ve->known_to_ats)
+  {
+    ve->known_to_ats = GNUNET_YES;
+    GST_ats_add_address (address, NULL, &ats, 1);
+  }
   return GNUNET_OK;
 }
 
@@ -975,6 +991,7 @@ multicast_pong (void *cls,
      GNUNET_break (0);
      return;
   }
+  GST_ats_new_session (address, session);
   papi->send (papi->cls, session,
               (const char *) pong,
               ntohs (pong->header.size),
@@ -1190,18 +1207,19 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 
   /* first see if the session we got this PING from can be used to transmit
    * a response reliably */
-  if (papi == NULL)
+  if (NULL == papi)
+  {
     ret = -1;
+  }
   else
   {
-    GNUNET_assert (papi->send != NULL);
-    GNUNET_assert (papi->get_session != NULL);
-
-    if (session == NULL)
+    GNUNET_assert (NULL != papi->send);
+    GNUNET_assert (NULL != papi->get_session);
+    if (NULL == session)
     {
       session = papi->get_session (papi->cls, sender_address);
     }
-    if (session == NULL)
+    if (NULL == session)
     {
       GNUNET_break (0);
       ret = -1;
@@ -1491,8 +1509,15 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     ats[0].value = htonl ((uint32_t) ve->latency.rel_value_us);
     ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
     ats[1].value = htonl ((uint32_t) ve->network);
-    // FIXME: add vs. update!
-    GNUNET_ATS_address_add (GST_ats, ve->address, NULL, ats, 2);
+    if (GNUNET_YES == ve->known_to_ats)
+    {
+      GST_ats_update_metrics (ve->address, NULL, ats, 2);
+    }
+    else
+    {
+      ve->known_to_ats = GNUNET_YES;
+      GST_ats_add_address (ve->address, NULL, ats, 2);
+    }
   }
   if (validations_running > 0)
   {
@@ -1668,7 +1693,6 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
   }
   if (ve->in_use == in_use)
   {
-
     if (GNUNET_YES == in_use)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

@@ -421,7 +421,7 @@ GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net);
 
 
 /**
- * Returns where the address is located: LAN or WAN or ...
+ * Returns where the address is located: loopback, LAN or WAN.
  *
  * @param sh the `struct GNUNET_ATS_SchedulingHandle` handle
  * @param addr address
@@ -449,6 +449,12 @@ GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * Handle used within ATS to track an address.
+ */
+struct GNUNET_ATS_AddressRecord;
+
+
+/**
  * We have a new address ATS should know. Addresses have to be added with this
  * function before they can be: updated, set in use and destroyed
  *
@@ -457,8 +463,11 @@ GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in @a ats
+ * @return handle to the address representation inside ATS, NULL
+ *         on error (i.e. ATS knows this exact address already, or
+ *         address is invalid)
  */
-int
+struct GNUNET_ATS_AddressRecord *
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_HELLO_Address *address,
                         struct Session *session,
@@ -470,20 +479,19 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * We have updated performance statistics for a given address.  Note
  * that this function can be called for addresses that are currently
  * in use as well as addresses that are valid but not actively in use.
- * Furthermore, the peer may not even be connected to us right now (in
- * which case the call may be ignored or the information may be stored
- * for later use).  Update bandwidth assignments.
+ * Furthermore, the peer may not even be connected to us right now (@a
+ * session value of NULL used to signal disconnect, or somehow we
+ * otherwise got updated on @a ats information).  Based on the
+ * information provided, ATS may update bandwidth assignments and
+ * suggest to switch addresses.
  *
- * @param sh handle
- * @param address updated address
+ * @param ar address record to update information for
  * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in @a ats
- * @return #GNUNET_OK or #GNUNET_SYSERR
  */
-int
-GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_HELLO_Address *address,
+void
+GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
                            struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
