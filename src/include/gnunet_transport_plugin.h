@@ -85,10 +85,11 @@ typedef void
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionStart) (void *cls,
-                                  struct GNUNET_HELLO_Address *address,
+                                  const struct GNUNET_HELLO_Address *address,
                                   struct Session *session,
                                   const struct GNUNET_ATS_Information *ats,
                                   uint32_t ats_count);
+
 
 /**
  * Function called by the transport for each received message.
@@ -120,8 +121,9 @@ typedef struct GNUNET_TIME_Relative
 
 
 /**
- * Function that will be called to figure if an address is an
- * loopback, LAN, WAN etc. address
+ * Function that can be called by plugins to figure if an address is
+ * an loopback, LAN or WAN address.   Ultimately invokes
+ * #GNUNET_ATS_address_get_type().
  *
  * @param cls closure
  * @param addr binary address
@@ -151,6 +153,7 @@ typedef void
 					  struct Session *session,
 					  const struct GNUNET_ATS_Information *ats,
 					  uint32_t ats_count);
+
 
 /**
  * Function that will be called for each address the transport
@@ -587,7 +590,7 @@ typedef int
 /**
  * Function to obtain the network type for a session
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin *`)
  * @param session the session
  * @return the network type
  */
@@ -718,7 +721,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
 
   /**
    * Function that will be called tell the plugin to create a session
-   * object
+   * object.
    */
   GNUNET_TRANSPORT_CreateSession get_session;
 

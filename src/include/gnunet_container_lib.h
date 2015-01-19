@@ -612,9 +612,10 @@ enum GNUNET_CONTAINER_MultiHashMapOption
  *         iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_HashMapIterator) (void *cls,
-                                                 const struct GNUNET_HashCode *key,
-                                                 void *value);
+typedef int
+(*GNUNET_CONTAINER_HashMapIterator) (void *cls,
+                                     const struct GNUNET_HashCode *key,
+                                     void *value);
 
 
 /**
@@ -856,9 +857,10 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct GNUNET_CONTAINER_MultiH
  *         iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_PeerMapIterator) (void *cls,
-                                                 const struct GNUNET_PeerIdentity *key,
-                                                 void *value);
+typedef int
+(*GNUNET_CONTAINER_PeerMapIterator) (void *cls,
+                                     const struct GNUNET_PeerIdentity *key,
+                                     void *value);
 
 
 struct GNUNET_CONTAINER_MultiPeerMap;
