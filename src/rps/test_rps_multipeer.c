@@ -24,7 +24,7 @@
  *        receive size pushes/pulls from each peer.  Expects to wait
  *        for one message from each peer.
  */
-#include"platform.h"
+#include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_rps_service.h"
 #include <time.h>
@@ -33,12 +33,18 @@
 /**
  * How many peers do we start?
  */
-#define NUM_PEERS 3
+#define NUM_PEERS 5
 
 /**
  * How long do we run the test?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
+
+/**
+ * Portion of malicious peers
+ */
+static double portion = .1;
 
 
 /**
@@ -62,6 +68,11 @@ struct RPSPeer
  * Information for all the peers.
  */
 static struct RPSPeer rps_peers[NUM_PEERS];
+
+/**
+ * IDs of the peers.
+ */
+static struct GNUNET_PeerIdentity rps_peer_ids[NUM_PEERS];
 
 /**
  * Return value from 'main'.
@@ -96,10 +107,66 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 handle_reply (void *cls, uint64_t n, const struct GNUNET_PeerIdentity *peers)
 {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got peer %s\n", GNUNET_i2s(peers));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got peer %s\n", GNUNET_i2s (peers));
   
   ok = 0;
+}
+
+
+/**
+ * (Randomly) request random peers.
+ */
+  void
+request_peers (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RPSPeer *peer = (struct RPSPeer *) cls;
+
+  GNUNET_RPS_request_peers (peer->rps_handle, 1, handle_reply, NULL);
+}
+
+
+/**
+ * Seed peers.
+ */
+  void
+seed_peers (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  unsigned int amount;
+  struct RPSPeer *peer = (struct RPSPeer *) cls;
+
+  GNUNET_assert (1 >= portion &&
+                 0 <  portion);
+                
+  amount = portion * NUM_PEERS;
+
+  // TODO log
+
+  GNUNET_RPS_seed_ids (peer->rps_handle, amount, rps_peer_ids);
+}
+
+
+/**
+ * Get the id of peer i.
+ */
+  void
+info_cb (void *cb_cls,
+         struct GNUNET_TESTBED_Operation *op,
+         const struct GNUNET_TESTBED_PeerInformation *pinfo,
+         const char *emsg)
+{
+  unsigned int *i = (unsigned int *) cb_cls;
+
+  if (NULL == pinfo || NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got Error: %s\n", emsg);
+    return;
+  }
+
+  rps_peer_ids[*i] = *(pinfo->result.id);
+
+  GNUNET_free (cb_cls);
 }
 
 
@@ -120,6 +187,7 @@ rps_connect_complete_cb (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
+  peer->rps_handle = rps;
 
   GNUNET_assert (op == peer->op);
   if (NULL != emsg)
@@ -133,9 +201,12 @@ rps_connect_complete_cb (void *cls,
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
 
-  peer->rps_handle = rps;
-  GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
-  GNUNET_RPS_request_peers(rps, 1, handle_reply, NULL);
+  GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                request_peers, peer);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                seed_peers, peer);
 }
 
 
@@ -194,9 +265,21 @@ run (void *cls,
      unsigned int links_failed)
 {
   unsigned int i;
+  unsigned int *tmp_i;
+
+  for ( i = 0 ; i < NUM_PEERS ; i++ )
+  {
+    tmp_i = GNUNET_new (unsigned int);
+    *tmp_i = i;
+
+    (void) GNUNET_TESTBED_peer_get_information (peers[i],
+                                                GNUNET_TESTBED_PIT_IDENTITY,
+                                                &info_cb, tmp_i);
+  }
 
   GNUNET_assert (NUM_PEERS == num_peers);
   for (i=0;i<num_peers;i++)
+    //rps_peers[i].peer_index = i;
     rps_peers[i].op = GNUNET_TESTBED_service_connect (&rps_peers[i],
 						      peers[i],
 						      "rps",
