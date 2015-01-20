@@ -56,7 +56,7 @@
 
 // TODO check that every id we get is valid - is it reachable?
 
-// TODO ignore list
+// TODO ignore list?
 
 // hist_size_init, hist_size_max
 
@@ -382,7 +382,8 @@ get_rand_peer (const struct GNUNET_PeerIdentity *peer_list, unsigned int list_si
  * Get the context of a peer. If not existing, create.
  */
   struct PeerContext *
-get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer)
+get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
+              const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *ctx;
 
@@ -397,9 +398,34 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNE
     ctx->mq = NULL;
     ctx->send_channel = NULL;
     ctx->recv_channel = NULL;
-    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
+                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   return ctx;
+}
+
+
+/**
+ * Callback that is called when a channel was effectively established.
+ * This is given to ntfy_tmt_rdy and called when the channel was
+ * successfully established.
+ */
+  size_t
+peer_is_live (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_PeerIdentity *peer;
+  struct PeerContext *peer_ctx;
+
+  peer = (struct GNUNET_PeerIdentity *) cls;
+  peer_ctx = get_peer_ctx (peer_map, peer);
+  peer_ctx->peer_flags |= LIVING;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %s is live\n", GNUNET_i2s (peer));
+
+  GNUNET_free (peer);
+
+  buf = NULL;
+  return 0;
 }
 
 
@@ -407,19 +433,28 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNE
  * Get the channel of a peer. If not existing, create.
  */
   struct GNUNET_CADET_Channel *
-get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer)
+get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
+             const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *ctx;
+  //struct GNUNET_PeerIdentity *tmp_peer;
 
   ctx = get_peer_ctx (peer_map, peer);
   if (NULL == ctx->send_channel)
   {
     ctx->send_channel = GNUNET_CADET_channel_create (cadet_handle, NULL, peer,
-                                                   GNUNET_RPS_CADET_PORT,
-                                                   GNUNET_CADET_OPTION_RELIABLE);
+                                                     GNUNET_RPS_CADET_PORT,
+                                                     GNUNET_CADET_OPTION_RELIABLE);
+
+    //tmp_peer = GNUNET_new (struct GNUNET_PeerIdentity);
+    //*tmp_peer = *peer;
+    //(void) GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
+    //                                         GNUNET_TIME_UNIT_FOREVER_REL,
+    //                                         0, peer_is_live, tmp_peer);
+
     // do I have to explicitly put it in the peer_map?
     (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   return ctx->send_channel;
 }
@@ -432,7 +467,8 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET
  * simply return it, otherways create one.
  */
   struct GNUNET_MQ_Handle *
-get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map, const struct GNUNET_PeerIdentity *peer_id)
+get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
+        const struct GNUNET_PeerIdentity *peer_id)
 {
   struct PeerContext *ctx;
 
@@ -654,7 +690,7 @@ handle_client_seed (void *cls,
               GNUNET_SYSERR);
   }
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
-  if (ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage) /
+  if ((ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
       sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
     GNUNET_break_op (0);
@@ -1179,7 +1215,7 @@ handle_inbound_channel (void *cls,
  * @param channel The channel being closed
  * @param channel_ctx The context associated with this channel
  */
-static void
+  static void
 cleanup_channel (void *cls,
                 const struct GNUNET_CADET_Channel *channel,
                 void *channel_ctx)
@@ -1203,7 +1239,7 @@ cleanup_channel (void *cls,
 /**
  * Actually start the service.
  */
-static void
+  static void
 rps_start (struct GNUNET_SERVER_Handle *server)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
@@ -1236,7 +1272,7 @@ rps_start (struct GNUNET_SERVER_Handle *server)
  * @param server the initialized server
  * @param c configuration to use
  */
-static void
+  static void
 run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -1332,11 +1368,11 @@ run (void *cls,
 
   const uint32_t ports[] = {GNUNET_RPS_CADET_PORT, 0}; // _PORT specified in src/rps/rps.h
   cadet_handle = GNUNET_CADET_connect (cfg,
-                                    cls,
-                                    &handle_inbound_channel,
-                                    &cleanup_channel,
-                                    cadet_handlers,
-                                    ports);
+                                       cls,
+                                       &handle_inbound_channel,
+                                       &cleanup_channel,
+                                       cadet_handlers,
+                                       ports);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to CADET\n");
 
 
@@ -1375,7 +1411,7 @@ run (void *cls,
  * @param argv command line arguments
  * @return 0 ok, 1 on error
  */
-int
+  int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
