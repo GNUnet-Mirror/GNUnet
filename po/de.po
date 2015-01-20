@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-01-11 20:42+0100\n"
+"POT-Creation-Date: 2014-12-26 00:38+0100\n"
 "PO-Revision-Date: 2006-03-17 21:37+0100\n"
 "Last-Translator: Nils Durner <durner@gnunet.org>\n"
 "Language-Team: German <de@li.org>\n"
@@ -1338,7 +1338,7 @@ msgid "# EPHEMERAL_KEY messages received"
 msgstr "# defragmentierter Nachrichten"
 
 #: src/core/gnunet-service-core_kx.c:999
-#: src/transport/gnunet-service-transport_validation.c:1039
+#: src/transport/gnunet-service-transport_validation.c:1016
 #, fuzzy
 msgid "# PING messages received"
 msgstr "# PING Nachrichten erstellt"
@@ -1371,7 +1371,7 @@ msgid "# keepalive messages sent"
 msgstr "# Klartext PING Nachrichten gesendet"
 
 #: src/core/gnunet-service-core_kx.c:1156
-#: src/transport/gnunet-service-transport_validation.c:1382
+#: src/transport/gnunet-service-transport_validation.c:1359
 #, fuzzy
 msgid "# PONG messages received"
 msgstr "# verschlüsselter PONG Nachrichten empfangen"
@@ -1523,8 +1523,8 @@ msgid "# items stored"
 msgstr "# bytes in der Datenbank"
 
 #: src/datacache/datacache.c:143 src/datacache/datacache.c:150
-#: src/datastore/gnunet-service-datastore.c:1554
-#: src/datastore/gnunet-service-datastore.c:1565
+#: src/datastore/gnunet-service-datastore.c:1553
+#: src/datastore/gnunet-service-datastore.c:1564
 #, fuzzy, c-format
 msgid "No `%s' specified for `%s' in configuration!\n"
 msgstr "In der Konfigurationsdatei wurden keine Anwendungen definiert!\n"
@@ -1559,8 +1559,8 @@ msgstr ""
 
 #: src/datacache/plugin_datacache_sqlite.c:69
 #: src/datacache/plugin_datacache_sqlite.c:72
-#: src/datastore/plugin_datastore_mysql.c:809
-#: src/datastore/plugin_datastore_mysql.c:823
+#: src/datastore/plugin_datastore_mysql.c:806
+#: src/datastore/plugin_datastore_mysql.c:820
 #: src/datastore/plugin_datastore_sqlite.c:57 src/mysql/mysql.c:41
 #: src/mysql/mysql.c:48 src/mysql/mysql.c:522 src/mysql/mysql.c:531
 #: src/mysql/mysql.c:591 src/mysql/mysql.c:607
@@ -1626,82 +1626,82 @@ msgstr "# gap Anfragen verworfen: Kollision in RT"
 msgid "# datastore connections (re)created"
 msgstr ""
 
-#: src/datastore/datastore_api.c:621
+#: src/datastore/datastore_api.c:616
 #, fuzzy
 msgid "# transmission request failures"
 msgstr "# Klartext PONG Nachrichten empfangen"
 
-#: src/datastore/datastore_api.c:645
+#: src/datastore/datastore_api.c:638
 #, fuzzy
 msgid "# bytes sent to datastore"
 msgstr "# bytes in der Datenbank"
 
-#: src/datastore/datastore_api.c:787
+#: src/datastore/datastore_api.c:770
 #, fuzzy
 msgid "Failed to receive status response from database."
 msgstr ""
 "\n"
 "Fehler beim Empfangen der Antwort von gnunetd.\n"
 
-#: src/datastore/datastore_api.c:801
+#: src/datastore/datastore_api.c:784
 msgid "Error reading response from datastore service"
 msgstr ""
 
-#: src/datastore/datastore_api.c:813 src/datastore/datastore_api.c:819
+#: src/datastore/datastore_api.c:796 src/datastore/datastore_api.c:802
 #, fuzzy
 msgid "Invalid error message received from datastore service"
 msgstr "Ungültige `%s' Nachricht von Knoten `%s' empfangen.\n"
 
-#: src/datastore/datastore_api.c:823
+#: src/datastore/datastore_api.c:806
 #, fuzzy
 msgid "# status messages received"
 msgstr "# verschlüsselter PING Nachrichten empfangen"
 
-#: src/datastore/datastore_api.c:893
+#: src/datastore/datastore_api.c:876
 #, fuzzy
 msgid "# PUT requests executed"
 msgstr "# dht Anfragen weitergeleitet"
 
-#: src/datastore/datastore_api.c:959
+#: src/datastore/datastore_api.c:944
 #, fuzzy
 msgid "# RESERVE requests executed"
 msgstr "# dht Anfragen weitergeleitet"
 
-#: src/datastore/datastore_api.c:1020
+#: src/datastore/datastore_api.c:1005
 msgid "# RELEASE RESERVE requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1080
+#: src/datastore/datastore_api.c:1065
 #, fuzzy
 msgid "# UPDATE requests executed"
 msgstr "# dht Anfragen weitergeleitet"
 
-#: src/datastore/datastore_api.c:1144
+#: src/datastore/datastore_api.c:1129
 #, fuzzy
 msgid "# REMOVE requests executed"
 msgstr "# dht Anfragen weitergeleitet"
 
-#: src/datastore/datastore_api.c:1189
+#: src/datastore/datastore_api.c:1174
 #, fuzzy
 msgid "Failed to receive response from database.\n"
 msgstr ""
 "\n"
 "Fehler beim Empfangen der Antwort von gnunetd.\n"
 
-#: src/datastore/datastore_api.c:1248
+#: src/datastore/datastore_api.c:1233
 #, fuzzy
 msgid "# Results received"
 msgstr "# Bytes empfangen über TCP"
 
-#: src/datastore/datastore_api.c:1315
+#: src/datastore/datastore_api.c:1300
 msgid "# GET REPLICATION requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1378
+#: src/datastore/datastore_api.c:1363
 msgid "# GET ZERO ANONYMITY requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1439
+#: src/datastore/datastore_api.c:1424
 #, fuzzy
 msgid "# GET requests executed"
 msgstr "# dht Anfragen weitergeleitet"
@@ -1778,7 +1778,7 @@ msgstr ""
 #: src/datastore/gnunet-service-datastore.c:712
 #: src/datastore/gnunet-service-datastore.c:767
 #: src/datastore/gnunet-service-datastore.c:982
-#: src/datastore/gnunet-service-datastore.c:1526
+#: src/datastore/gnunet-service-datastore.c:1525
 msgid "# reserved"
 msgstr ""
 
@@ -1862,62 +1862,62 @@ msgstr ""
 msgid "Bloomfilter construction complete.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1559
+#: src/datastore/gnunet-service-datastore.c:1558
 #, fuzzy, c-format
 msgid "# bytes used in file-sharing datastore `%s'"
 msgstr "# bytes erlaubt in der Datenbank"
 
-#: src/datastore/gnunet-service-datastore.c:1570
+#: src/datastore/gnunet-service-datastore.c:1569
 msgid "# quota"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1572
+#: src/datastore/gnunet-service-datastore.c:1571
 msgid "# cache size"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1585
+#: src/datastore/gnunet-service-datastore.c:1584
 #, c-format
 msgid "Could not use specified filename `%s' for bloomfilter.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1603
-#: src/datastore/gnunet-service-datastore.c:1619
+#: src/datastore/gnunet-service-datastore.c:1602
+#: src/datastore/gnunet-service-datastore.c:1618
 #, fuzzy, c-format
 msgid "Failed to remove bogus bloomfilter file `%s'\n"
 msgstr "Fehler beim Speichern der Konfigurationsdatei `%s':"
 
-#: src/datastore/gnunet-service-datastore.c:1649
+#: src/datastore/gnunet-service-datastore.c:1648
 #, fuzzy
 msgid "Failed to initialize bloomfilter.\n"
 msgstr "SQLite Datenbank konnte nicht initialisiert werden.\n"
 
-#: src/datastore/plugin_datastore_heap.c:821
+#: src/datastore/plugin_datastore_heap.c:820
 #, fuzzy
 msgid "Heap database running\n"
 msgstr "sqlite Datenspeicher"
 
-#: src/datastore/plugin_datastore_mysql.c:786
+#: src/datastore/plugin_datastore_mysql.c:783
 #, fuzzy, c-format
 msgid "Failed to prepare statement `%s'\n"
 msgstr "Fehler beim Lesen der Freunde-Liste von `%s'\n"
 
-#: src/datastore/plugin_datastore_mysql.c:794
+#: src/datastore/plugin_datastore_mysql.c:791
 #, fuzzy, c-format
 msgid "`%s' for `%s' failed at %s:%d with error: %s\n"
 msgstr "`%s' an `%s' schlug fehl bei %s:%d mit dem Fehler: %s\n"
 
-#: src/datastore/plugin_datastore_mysql.c:1025
+#: src/datastore/plugin_datastore_mysql.c:1022
 msgid "Mysql database running\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_postgres.c:837
+#: src/datastore/plugin_datastore_postgres.c:832
 #, fuzzy
 msgid "Failed to drop table from database.\n"
 msgstr ""
 "\n"
 "Fehler beim Empfangen der Antwort von gnunetd.\n"
 
-#: src/datastore/plugin_datastore_postgres.c:873
+#: src/datastore/plugin_datastore_postgres.c:868
 #: src/namecache/plugin_namecache_postgres.c:414
 #: src/namestore/plugin_namestore_postgres.c:569
 msgid "Postgres database running\n"
@@ -1945,25 +1945,25 @@ msgstr "SQLite Datenbank konnte nicht initialisiert werden: %s.\n"
 msgid "Invalid data in database.  Trying to fix (by deletion).\n"
 msgstr "Ungültige Daten in %s. Korrektur wird versucht (durch Löschung).\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:1156
+#: src/datastore/plugin_datastore_sqlite.c:1154
 msgid "sqlite version to old to determine size, assuming zero\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1176
+#: src/datastore/plugin_datastore_sqlite.c:1173
 #, c-format
 msgid ""
 "Using sqlite page utilization to estimate payload (%llu pages of size %llu "
 "bytes)\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1216
+#: src/datastore/plugin_datastore_sqlite.c:1213
 #: src/namecache/plugin_namecache_sqlite.c:580
 #: src/namestore/plugin_namestore_sqlite.c:716
 #, fuzzy
 msgid "Sqlite database running\n"
 msgstr "sqlite Datenspeicher"
 
-#: src/datastore/plugin_datastore_template.c:259
+#: src/datastore/plugin_datastore_template.c:257
 msgid "Template database running\n"
 msgstr ""
 
@@ -3269,91 +3269,86 @@ msgstr "Es konnte keine Verbindung mit gnunetd hergestellt werden."
 msgid "Malformed KSK URI (`%' must be followed by HEX number)"
 msgstr "Ungültige URL `%s' (muss mit `%s' beginnen)\n"
 
-#: src/fs/fs_uri.c:282
+#: src/fs/fs_uri.c:283
 #, fuzzy
 msgid "Malformed KSK URI (must not begin or end with `+')"
 msgstr "Ungültige URL `%s' (muss mit `%s' beginnen)\n"
 
-#: src/fs/fs_uri.c:300
+#: src/fs/fs_uri.c:301
 #, fuzzy
 msgid "Malformed KSK URI (`++' not allowed)"
 msgstr "Ungültige URL `%s' (muss mit `%s' beginnen)\n"
 
-#: src/fs/fs_uri.c:307
+#: src/fs/fs_uri.c:308
 #, fuzzy
 msgid "Malformed KSK URI (quotes not balanced)"
 msgstr "Ungültige URL `%s' (muss mit `%s' beginnen)\n"
 
-#: src/fs/fs_uri.c:376
+#: src/fs/fs_uri.c:378
 msgid "Malformed SKS URI (wrong syntax)"
 msgstr ""
 
-#: src/fs/fs_uri.c:417
+#: src/fs/fs_uri.c:422
 msgid "Malformed CHK URI (wrong syntax)"
 msgstr ""
 
-#: src/fs/fs_uri.c:432
+#: src/fs/fs_uri.c:437
 msgid "Malformed CHK URI (failed to decode CHK)"
 msgstr ""
 
-#: src/fs/fs_uri.c:511
+#: src/fs/fs_uri.c:516
 msgid "LOC URI malformed (wrong syntax)"
 msgstr ""
 
-#: src/fs/fs_uri.c:526
+#: src/fs/fs_uri.c:531
 msgid "LOC URI malformed (no CHK)"
 msgstr ""
 
-#: src/fs/fs_uri.c:536
+#: src/fs/fs_uri.c:541
 msgid "LOC URI malformed (missing LOC)"
 msgstr ""
 
-#: src/fs/fs_uri.c:544
+#: src/fs/fs_uri.c:549
 msgid "LOC URI malformed (wrong syntax for public key)"
 msgstr ""
 
-#: src/fs/fs_uri.c:552
+#: src/fs/fs_uri.c:557
 msgid "LOC URI malformed (could not decode public key)"
 msgstr ""
 
-#: src/fs/fs_uri.c:558
+#: src/fs/fs_uri.c:563
 msgid "LOC URI malformed (could not find signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:564
+#: src/fs/fs_uri.c:569
 msgid "LOC URI malformed (wrong syntax for signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:573
+#: src/fs/fs_uri.c:578
 msgid "LOC URI malformed (could not decode signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:579
+#: src/fs/fs_uri.c:584
 msgid "LOC URI malformed (wrong syntax for expiration time)"
 msgstr ""
 
-#: src/fs/fs_uri.c:585
+#: src/fs/fs_uri.c:590
 msgid "LOC URI malformed (could not parse expiration time)"
 msgstr ""
 
-#: src/fs/fs_uri.c:597
+#: src/fs/fs_uri.c:602
 msgid "LOC URI malformed (signature failed validation)"
 msgstr ""
 
-#: src/fs/fs_uri.c:631
-#, fuzzy
-msgid "invalid argument"
-msgstr "Ungültiger Parameter: `%s'\n"
-
-#: src/fs/fs_uri.c:643
+#: src/fs/fs_uri.c:641
 msgid "Unrecognized URI type"
 msgstr ""
 
-#: src/fs/fs_uri.c:1045 src/fs/fs_uri.c:1072
+#: src/fs/fs_uri.c:1043 src/fs/fs_uri.c:1070
 msgid "No keywords specified!\n"
 msgstr "Keine Schlüsselwörter angegeben!\n"
 
-#: src/fs/fs_uri.c:1078
+#: src/fs/fs_uri.c:1076
 msgid "Number of double-quotes not balanced!\n"
 msgstr ""
 
@@ -6517,18 +6512,18 @@ msgstr ""
 "Die Konfigurationsdatei muss in der Sektion `%s' unter `%s' ein Verzeichnis "
 "angeben, in dem FS Daten gespeichert werden.\n"
 
-#: src/sensor/gnunet-service-sensor_monitoring.c:347
+#: src/sensor/gnunet-service-sensor_monitoring.c:345
 #, c-format
 msgid "Sensor `%s': External process should not be a path, disabling sensor.\n"
 msgstr ""
 
-#: src/sensor/gnunet-service-sensor_monitoring.c:370
+#: src/sensor/gnunet-service-sensor_monitoring.c:368
 #, c-format
 msgid ""
 "Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n"
 msgstr ""
 
-#: src/sensor/gnunet-service-sensor_monitoring.c:418
+#: src/sensor/gnunet-service-sensor_monitoring.c:416
 #, c-format
 msgid "Sensor `%s' execution task already set, this should not happen\n"
 msgstr ""
@@ -7564,96 +7559,88 @@ msgstr "Anwendung `%s' konnte nicht initialisiert werden.\n"
 msgid "Did not load plugin `%s' due to missing functions\n"
 msgstr "Fehler beim Laden des Plugins `%s' bei %s:%d. Plugin wird entladen.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:464
-#: src/transport/gnunet-service-transport_validation.c:643
-#: src/transport/gnunet-service-transport_validation.c:907
-#: src/transport/gnunet-service-transport_validation.c:1499
-#, fuzzy
-msgid "# validations running"
-msgstr "sqlite Datenspeicher"
-
-#: src/transport/gnunet-service-transport_validation.c:503
+#: src/transport/gnunet-service-transport_validation.c:493
 msgid "# address records discarded"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:588
-msgid "# validations not attempted (no plugin)"
+#: src/transport/gnunet-service-transport_validation.c:563
+#, c-format
+msgid ""
+"Not transmitting `%s' with `%s', message too big (%u bytes!). This should "
+"not happen.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:633
-msgid "# PINGs for address validation sent"
-msgstr ""
+#: src/transport/gnunet-service-transport_validation.c:624
+#, fuzzy
+msgid "# PING without HELLO messages sent"
+msgstr "# Klartext PING Nachrichten gesendet"
 
-#: src/transport/gnunet-service-transport_validation.c:742
+#: src/transport/gnunet-service-transport_validation.c:722
 msgid "# address revalidations started"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1034
+#: src/transport/gnunet-service-transport_validation.c:1011
 #, fuzzy
 msgid "# PING message for different peer received"
 msgstr "# PING Nachrichten erstellt"
 
-#: src/transport/gnunet-service-transport_validation.c:1085
+#: src/transport/gnunet-service-transport_validation.c:1062
 #, c-format
 msgid "Plugin `%s' not available, cannot confirm having this address\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1095
+#: src/transport/gnunet-service-transport_validation.c:1072
 msgid "# failed address checks during validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1098
+#: src/transport/gnunet-service-transport_validation.c:1075
 #, c-format
 msgid "Address `%s' is not one of my addresses, not confirming PING\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1106
+#: src/transport/gnunet-service-transport_validation.c:1083
 msgid "# successful address checks during validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1118
+#: src/transport/gnunet-service-transport_validation.c:1095
 #, c-format
 msgid ""
 "Not confirming PING from peer `%s' with address `%s' since I cannot confirm "
 "having this address.\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1126
+#: src/transport/gnunet-service-transport_validation.c:1103
 #, c-format
 msgid "Received a PING message with validation bug from `%s'\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1180
+#: src/transport/gnunet-service-transport_validation.c:1157
 #, fuzzy, c-format
 msgid "Failed to create PONG signature for peer `%s'\n"
 msgstr "Namespace `%s' konnte nicht erstellt werden (existiert bereits?).\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1229
+#: src/transport/gnunet-service-transport_validation.c:1206
 msgid "# PONGs unicast via reliable transport"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1238
+#: src/transport/gnunet-service-transport_validation.c:1215
 msgid "# PONGs multicast to all available addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1410
+#: src/transport/gnunet-service-transport_validation.c:1387
 msgid "# PONGs dropped, no matching pending validation"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1425
+#: src/transport/gnunet-service-transport_validation.c:1402
 msgid "# PONGs dropped, signature expired"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_validation.c:1477
-msgid "# validations succeeded"
-msgstr ""
-
-#: src/transport/gnunet-service-transport_validation.c:1557
+#: src/transport/gnunet-service-transport_validation.c:1526
 #, fuzzy, c-format
 msgid "Validation received new %s message for peer `%s' with size %u\n"
 msgstr "GAP hat ungültige Inhalte von `%s' empfangen.\n"
 
-#: src/transport/gnunet-service-transport_validation.c:1564
+#: src/transport/gnunet-service-transport_validation.c:1533
 #, fuzzy, c-format
 msgid "Adding `%s' without addresses for peer `%s'\n"
 msgstr "Adresse des Knotens `%s' konnte nicht ermittelt werden.\n"
@@ -8714,11 +8701,6 @@ msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr ""
 "libgcrypt hat nicht die erwartete Version (Version %s wird vorausgesetzt).\n"
 
-#: src/util/crypto_rsa.c:786
-#, c-format
-msgid "RSA signature verification failed at %s:%d: %s\n"
-msgstr "RSA Signaturüberprüfung fehlgeschlagen bei %s:%d: %s\n"
-
 #: src/util/disk.c:1202
 #, fuzzy, c-format
 msgid "Expected `%s' to be a directory!\n"
@@ -9535,10 +9517,6 @@ msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "`%s' schlug bei Datei `%s' fehl. Ort: %s:%d. Fehler: %s\n"
 
 #, fuzzy
-#~ msgid "# PING without HELLO messages sent"
-#~ msgstr "# Klartext PING Nachrichten gesendet"
-
-#, fuzzy
 #~ msgid "Starting default services `%s'\n"
 #~ msgstr "Collection `%s' begonnen.\n"
 
@@ -10077,6 +10055,9 @@ msgstr "`%s' schlug bei Datei `%s' fehl. Ort: %s:%d. Fehler: %s\n"
 #, fuzzy
 #~ msgid "gnunet-rsa failed"
 #~ msgstr "gnunet-update ausführen"
+
+#~ msgid "RSA signature verification failed at %s:%d: %s\n"
+#~ msgstr "RSA Signaturüberprüfung fehlgeschlagen bei %s:%d: %s\n"
 
 #, fuzzy
 #~ msgid "`%s' failed for drive `%S': %u\n"
