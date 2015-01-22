@@ -579,6 +579,54 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * Transmit request for an address suggestion.
+ *
+ * @param cls the `struct GNUNET_ATS_SchedulingHandle`
+ * @param peer peer to ask for an address suggestion for
+ * @param value the `struct GNUNET_ATS_SuggestHandle`
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+transmit_suggestion (void *cls,
+                     const struct GNUNET_PeerIdentity *peer,
+                     void *value)
+{
+  struct GNUNET_ATS_SchedulingHandle *sh = cls;
+  struct GNUNET_MQ_Envelope *ev;
+  struct RequestAddressMessage *m;
+
+  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
+  m->reserved = htonl (0);
+  m->peer = *peer;
+  GNUNET_MQ_send (sh->mq, ev);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Generate and transmit the `struct AddressUseMessage` for the given
+ * address record.
+ *
+ * @param ar the address to inform the ATS service about
+ * @param in_use say if it is in use or not
+ */
+static void
+send_in_use_message (struct GNUNET_ATS_AddressRecord *ar,
+                     int in_use)
+{
+  struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
+  struct GNUNET_MQ_Envelope *ev;
+  struct AddressUseMessage *m;
+
+  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
+  m->peer = ar->address->peer;
+  m->in_use = htonl ((uint32_t) in_use);
+  m->session_id = htonl (ar->slot);
+  GNUNET_MQ_send (sh->mq, ev);
+}
+
+
+/**
  * Re-establish the connection to the ATS service.
  *
  * @param sh handle to use to re-connect.
@@ -596,6 +644,8 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
       { NULL, 0, 0 } };
   struct GNUNET_MQ_Envelope *ev;
   struct ClientStartMessage *init;
+  unsigned int i;
+  struct GNUNET_ATS_AddressRecord *ar;
 
   GNUNET_assert (NULL == sh->client);
   sh->client = GNUNET_CLIENT_connect ("ats", sh->cfg);
@@ -612,8 +662,18 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
                       GNUNET_MESSAGE_TYPE_ATS_START);
   init->start_flag = htonl (START_FLAG_SCHEDULING);
   GNUNET_MQ_send (sh->mq, ev);
-  // FIXME: iterate over addresses...
-  // FIXME: iterate over peermap for address suggestion requests!
+  for (i=0;i<sh->session_array_size;i++)
+  {
+    ar = sh->session_array[i];
+    if (NULL == ar)
+      continue;
+    send_add_address_message (sh, ar);
+    if (ar->in_use)
+      send_in_use_message (ar, GNUNET_YES);
+  }
+  GNUNET_CONTAINER_multipeermap_iterate (sh->sug_requests,
+                                         &transmit_suggestion,
+                                         sh);
 }
 
 
@@ -991,7 +1051,6 @@ free_sug_handle (void *cls,
 }
 
 
-
 /**
  * Client is done with ATS scheduling, release resources.
  *
@@ -1067,8 +1126,6 @@ struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
                             const struct GNUNET_PeerIdentity *peer)
 {
-  struct GNUNET_MQ_Envelope *ev;
-  struct RequestAddressMessage *m;
   struct GNUNET_ATS_SuggestHandle *s;
 
   s = GNUNET_new (struct GNUNET_ATS_SuggestHandle);
@@ -1084,10 +1141,9 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
   }
   if (NULL == sh->mq)
     return s;
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
-  m->reserved = htonl (0);
-  m->peer = *peer;
-  GNUNET_MQ_send (sh->mq, ev);
+  (void) transmit_suggestion (sh,
+                              &s->id,
+                              s);
   return s;
 }
 
@@ -1330,22 +1386,14 @@ void
 GNUNET_ATS_address_set_in_use (struct GNUNET_ATS_AddressRecord *ar,
                                int in_use)
 {
-  struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
-  struct GNUNET_MQ_Envelope *ev;
-  struct AddressUseMessage *m;
-
-  ar->in_use = in_use;
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
-  m->peer = ar->address->peer;
-  m->in_use = htonl ((uint32_t) in_use);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting address used to %s for peer `%s', plugin `%s', session %p\n",
               (GNUNET_YES == in_use) ? "YES" : "NO",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
               ar->session);
-  m->session_id = htonl (ar->slot);
-  GNUNET_MQ_send (sh->mq, ev);
+  ar->in_use = in_use;
+  send_in_use_message (ar, in_use);
 }
 
 
