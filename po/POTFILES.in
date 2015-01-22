@@ -334,6 +334,7 @@ src/topology/gnunet-daemon-topology.c
 src/transport/gnunet-helper-transport-bluetooth.c
 src/transport/gnunet-helper-transport-wlan.c
 src/transport/gnunet-helper-transport-wlan-dummy.c
+src/transport/gnunet-service-transport_ats.c
 src/transport/gnunet-service-transport_blacklist.c
 src/transport/gnunet-service-transport.c
 src/transport/gnunet-service-transport_clients.c
