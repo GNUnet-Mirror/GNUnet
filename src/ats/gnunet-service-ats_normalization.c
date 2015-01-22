@@ -145,7 +145,7 @@ struct Property
   uint32_t max;
 };
 
-struct Property properties[GNUNET_ATS_QualityPropertiesCount];
+static struct Property properties[GNUNET_ATS_QualityPropertiesCount];
 
 
 /**
@@ -161,12 +161,12 @@ static void *pref_changed_cb_cls;
 /**
  * Callback to call on changing property values
  */
-GAS_Normalization_property_changed_cb prop_ch_cb;
+static GAS_Normalization_property_changed_cb prop_ch_cb;
 
 /**
  * Closure for callback to call on changing property values
  */
-void *prop_ch_cb_cls;
+static void *prop_ch_cb_cls;
 
 /**
  * Hashmap to store peer information for preference normalization
@@ -196,9 +196,6 @@ static struct PeerRelative defvalues;
 
 static struct GNUNET_SCHEDULER_Task * aging_task;
 
-/**
- * Application Preference Normalization
- */
 
 /**
  * Update a peer
@@ -265,6 +262,7 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
   }
 }
 
+
 /**
  * Recalculate preference for a specific ATS property
  *
@@ -273,7 +271,8 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
  * @return the result
  */
 static void
-recalculate_relative_preferences (struct PreferenceClient *c, enum GNUNET_ATS_PreferenceKind kind)
+recalculate_relative_preferences (struct PreferenceClient *c,
+                                  enum GNUNET_ATS_PreferenceKind kind)
 {
   struct PreferencePeer *p_cur;
 
@@ -313,6 +312,7 @@ recalculate_relative_preferences (struct PreferenceClient *c, enum GNUNET_ATS_Pr
 
 }
 
+
 /**
  * Update the absolute preference value for a peer
  * @param c the client
@@ -322,8 +322,10 @@ recalculate_relative_preferences (struct PreferenceClient *c, enum GNUNET_ATS_Pr
  * @return the new relative preference value
  */
 static void
-update_abs_preference (struct PreferenceClient *c, struct PreferencePeer *p,
-    enum GNUNET_ATS_PreferenceKind kind, float score_abs)
+update_abs_preference (struct PreferenceClient *c,
+                       struct PreferencePeer *p,
+                       enum GNUNET_ATS_PreferenceKind kind,
+                       float score_abs)
 {
   double score = score_abs;
 
@@ -344,19 +346,27 @@ update_abs_preference (struct PreferenceClient *c, struct PreferencePeer *p,
   }
 }
 
-static int update_iterator (void *cls,
-                           const struct GNUNET_PeerIdentity *key,
-                           void *value)
+
+static int
+update_iterator (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
+                 void *value)
 {
   enum GNUNET_ATS_PreferenceKind *kind = cls;
-  update_relative_values_for_peer (key, (*kind), (struct PeerRelative *) value);
+  struct PeerRelative *pr = value;
+
+  update_relative_values_for_peer (key,
+                                   (*kind),
+                                   pr);
   return GNUNET_OK;
 }
 
+
 static void
 run_preference_update (struct PreferenceClient *c_cur,
-    struct PreferencePeer *p_cur,enum GNUNET_ATS_PreferenceKind kind,
-    float score_abs)
+                       struct PreferencePeer *p_cur,
+                       enum GNUNET_ATS_PreferenceKind kind,
+                       float score_abs)
 {
   double old_value;
 
@@ -369,6 +379,7 @@ run_preference_update (struct PreferenceClient *c_cur,
   /* Relative preference value changed, recalculate for all peers */
   GNUNET_CONTAINER_multipeermap_iterate (preference_peers, &update_iterator, &kind);
 }
+
 
 /**
  * Reduce absolute preferences since they got old
@@ -440,6 +451,7 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+
 /**
  * Normalize an updated preference value
  *
@@ -450,9 +462,9 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GAS_normalization_normalize_preference (void *client,
-    const struct GNUNET_PeerIdentity *peer,
-    enum GNUNET_ATS_PreferenceKind kind,
-    float score_abs)
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        enum GNUNET_ATS_PreferenceKind kind,
+                                        float score_abs)
 {
   struct PreferenceClient *c_cur;
   struct PreferencePeer *p_cur;
@@ -548,6 +560,7 @@ GAS_normalization_normalize_preference (void *client,
 
 }
 
+
 /**
  * Get the normalized preference values for a specific peer or
  * the default values if
@@ -569,6 +582,7 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
   }
   return rp->f_rel;
 }
+
 
 /**
  * Get the normalized preference values for a specific client and peer
@@ -606,6 +620,7 @@ GAS_normalization_get_preferences_by_client (const void *client,
   return p_cur->f_rel[pref];
 }
 
+
 /**
  * Get the normalized properties values for a specific peer or
  * the default values if
@@ -632,16 +647,16 @@ GAS_normalization_get_properties (const struct ATS_Address *address)
   return norm_values;
 }
 
+
 /**
  * Normalize a specific ATS type with the values in queue
  * @param address the address
  * @param atsi the ats information
  * @return the new average or GNUNET_ATS_VALUE_UNDEFINED
  */
-
-uint32_t
+static uint32_t
 property_average (struct ATS_Address *address,
-    const struct GNUNET_ATS_Information *atsi)
+                  const struct GNUNET_ATS_Information *atsi)
 {
   struct GAS_NormalizationInfo *ni;
   uint32_t current_type;
@@ -701,12 +716,14 @@ property_average (struct ATS_Address *address,
   return res;
 }
 
+
 struct FindMinMaxCtx
 {
   struct Property *p;
   uint32_t min;
   uint32_t max;
 };
+
 
 static int
 find_min_max_it (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
@@ -722,6 +739,7 @@ find_min_max_it (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
 
   return GNUNET_OK;
 }
+
 
 static int
 normalize_address (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
@@ -757,6 +775,7 @@ normalize_address (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
 
   return GNUNET_OK;
 }
+
 
 /**
  * Normalize avg_value to a range of values between [1.0, 2.0]
@@ -826,6 +845,7 @@ property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
   }
 }
 
+
 /**
  * Update and normalize atsi performance information
  *
@@ -835,10 +855,10 @@ property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
  * @param atsi_count the number of atsi information in the array
  */
 void
-GAS_normalization_normalize_property (
-    struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-    struct ATS_Address *address, const struct GNUNET_ATS_Information *atsi,
-    uint32_t atsi_count)
+GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
+                                      struct ATS_Address *address,
+                                      const struct GNUNET_ATS_Information *atsi,
+                                      uint32_t atsi_count)
 {
   struct Property *cur_prop;
   int c1;
@@ -847,11 +867,13 @@ GAS_normalization_normalize_property (
   uint32_t current_val;
   unsigned int existing_properties[] = GNUNET_ATS_QualityProperties;
 
-  GNUNET_assert(NULL != address);
-  GNUNET_assert(NULL != atsi);
+  GNUNET_assert (NULL != address);
+  GNUNET_assert (NULL != atsi);
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Updating %u elements for peer `%s'\n",
-      atsi_count, GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating %u elements for peer `%s'\n",
+       atsi_count,
+       GNUNET_i2s (&address->peer));
 
   for (c1 = 0; c1 < atsi_count; c1++)
   {
@@ -883,6 +905,7 @@ GAS_normalization_normalize_property (
   }
 }
 
+
 static void
 free_client (struct PreferenceClient *pc)
 {
@@ -898,12 +921,12 @@ free_client (struct PreferenceClient *pc)
   GNUNET_free(pc);
 }
 
+
 /**
  * A performance client disconnected
  *
  * @param client the client
  */
-
 void
 GAS_normalization_preference_client_disconnect (void *client)
 {
@@ -921,6 +944,7 @@ GAS_normalization_preference_client_disconnect (void *client)
   GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, c_cur);
   free_client (c_cur);
 }
+
 
 /**
  * Start the normalization component
@@ -963,6 +987,7 @@ GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
   return;
 }
 
+
 /**
  * Free a peer
  *
@@ -982,6 +1007,7 @@ free_peer (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
     GNUNET_break(0);
   return GNUNET_OK;
 }
+
 
 /**
  * Stop the normalization component and free all items
