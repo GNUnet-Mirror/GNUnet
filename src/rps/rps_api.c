@@ -179,7 +179,6 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                                 mq_error_handler, // TODO implement
                                                 h);
 
-
   return h;
 }
 
@@ -239,6 +238,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
   GNUNET_MQ_send (h->mq, ev);
 }
 
+
 /**
  * Cancle an issued request.
  *
@@ -250,6 +250,7 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
   // TODO
 }
 
+
 /**
  * Disconnect from the rps service
  *
@@ -258,9 +259,8 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
   void
 GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
-  if ( NULL != h->conn ) {
+  if ( NULL != h->conn )
     GNUNET_CLIENT_disconnect (h->conn);
-  }
 }
 
 
