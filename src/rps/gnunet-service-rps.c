@@ -231,16 +231,12 @@ static unsigned int sampler_size_est_need;
 /**
  * Percentage of total peer number in the gossip list
  * to send random PUSHes to
- *
- * TODO do not read from configuration
  */
 static float alpha;
 
 /**
  * Percentage of total peer number in the gossip list
  * to send random PULLs to
- *
- * TODO do not read from configuration
  */
 static float beta;
 
@@ -702,7 +698,6 @@ insert_in_sampler_scheduled (const struct PeerContext *peer_ctx)
 }
 
 
-
 /**
  * Wrapper around #RPS_sampler_resize()
  */
@@ -1064,7 +1059,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round\n");
 
   uint32_t i;
-  //unsigned int *n_arr;
+  unsigned int *permut;
   unsigned int n_peers; /* Number of peers we send pushes/pulls to */
   struct GNUNET_MQ_Envelope *ev;
   const struct GNUNET_PeerIdentity *peer;
@@ -1079,21 +1074,23 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * in essence get random peers with consumption */
 
   /* Send PUSHes */
-  //n_arr = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) gossip_list_size);
-  if (0 != gossip_list_size)
+  if (0 < gossip_list_size)
   {
-    n_peers = round (alpha * gossip_list_size);
-    if (0 == n_peers)
-      n_peers = 1;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
-        n_peers, alpha, gossip_list_size);
-    for ( i = 0 ; i < n_peers ; i++ )
+    permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
+                                           (unsigned int) gossip_list_size);
+    if (0 != gossip_list_size)
     {
-      // TODO
-      peer = get_rand_peer_ignore_list (gossip_list, gossip_list_size,
-                                        NULL, 0);
-      if (NULL != peer)
+      n_peers = round (alpha * gossip_list_size);
+      if (0 == n_peers)
+        n_peers = 1;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
+          n_peers, alpha, gossip_list_size);
+      for ( i = 0 ; i < n_peers ; i++ )
       {
+        // TODO
+        //peer = get_rand_peer_ignore_list (gossip_list, gossip_list_size,
+        //                                  NULL, 0);
+        peer = &gossip_list[permut[i]];
         if (own_identity != peer) // TODO
         { // FIXME if this fails schedule/loop this for later
           LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
@@ -1109,7 +1106,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
   /* Send PULL requests */
-  //n_arr = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
+  //permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
   if (0 != gossip_list_size)
   {
     n_peers = round (beta * gossip_list_size);
