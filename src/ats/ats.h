@@ -86,7 +86,7 @@ struct AddressAddMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Size of the `struct GNUNET_ATS_Information` array that follows this struct.
+   * Length of the `struct GNUNET_ATS_Information` array that follows this struct.
    */
   uint32_t ats_count GNUNET_PACKED;
 
@@ -126,51 +126,68 @@ struct AddressAddMessage
 };
 
 
+/**
+ * Message used to notify ATS that the performance
+ * characteristics for an address have changed.
+ */
 struct AddressUpdateMessage
 {
+  /**
+   * Message of type #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE.
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Length of the `struct GNUNET_ATS_Information` array that follows.
+   */
   uint32_t ats_count GNUNET_PACKED;
 
+  /**
+   * Which peer is this about? (Technically redundant, as the
+   * @e session_id should be sufficient, but enables ATS service
+   * to find the session faster).
+   */
   struct GNUNET_PeerIdentity peer;
 
-
-  uint16_t address_length GNUNET_PACKED;
-
-  uint16_t plugin_name_length GNUNET_PACKED;
-
+  /**
+   * Internal number this client uses to refer to this address.
+   */
   uint32_t session_id GNUNET_PACKED;
-
-  uint32_t address_local_info GNUNET_PACKED;
 
   /* followed by:
    * - struct GNUNET_ATS_Information [ats_count];
-   * - char address[address_length]
-   * - char plugin_name[plugin_name_length] (including '\0'-termination).
    */
 
 };
 
+
+/**
+ * Message sent from ATS client to ATS service to notify
+ * it if we started (or stopped) using an address.
+ */
 struct AddressUseMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE.
+   */
   struct GNUNET_MessageHeader header;
 
-  struct GNUNET_PeerIdentity peer;
-
-  uint16_t in_use GNUNET_PACKED;
-
-  uint16_t address_length GNUNET_PACKED;
-
-  uint16_t plugin_name_length GNUNET_PACKED;
-
+  /**
+   * Internal number this client uses to refer to this address.
+   */
   uint32_t session_id GNUNET_PACKED;
 
-  uint32_t address_local_info GNUNET_PACKED;
-
-  /* followed by:
-   * - char address[address_length]
-   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+  /**
+   * Which peer is this about? (Technically redundant, as the
+   * @e session_id should be sufficient, but enables ATS service
+   * to find the session faster).
    */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * #GNUNET_YES or #GNUNET_NO.
+   */
+  uint32_t in_use GNUNET_PACKED;
 
 };
 

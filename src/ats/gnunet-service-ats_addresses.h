@@ -473,10 +473,6 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address in @a plugin_addr
- * @param local_address_info the local address for the address
  * @param session_id session id, can never be 0
  * @param in_use #GNUNET_YES if #GNUNET_NO FIXME
  * @return #GNUNET_SYSERR on failure (address unknown ...)
@@ -484,26 +480,15 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 int
 GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
                       const struct GNUNET_PeerIdentity *peer,
-                      const char *plugin_name,
-                      const void *plugin_addr,
-                      size_t plugin_addr_len,
-                      uint32_t local_address_info,
                       uint32_t session_id,
                       int in_use);
 
 
 /**
- * Update an address with a session or performance information for a peer.
- *
- * If an address was added without a session it will be updated with the
- * session
+ * Update an address with new performance information for a peer.
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
- * @param local_address_info the local address for the address
  * @param session_id session id, can never be 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained in @a atsi
@@ -511,10 +496,6 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
 void
 GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                       const struct GNUNET_PeerIdentity *peer,
-                      const char *plugin_name,
-                      const void *plugin_addr,
-                      size_t plugin_addr_len,
-                      uint32_t local_address_info,
                       uint32_t session_id,
                       const struct GNUNET_ATS_Information *atsi,
                       uint32_t atsi_count);

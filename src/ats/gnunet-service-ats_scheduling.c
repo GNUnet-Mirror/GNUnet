@@ -311,10 +311,6 @@ GAS_handle_address_update (void *cls,
 {
   const struct AddressUpdateMessage *m;
   const struct GNUNET_ATS_Information *atsi;
-  const char *address;
-  const char *plugin_name;
-  uint16_t address_length;
-  uint16_t plugin_name_length;
   uint32_t ats_count;
   uint16_t size;
 
@@ -330,21 +326,12 @@ GAS_handle_address_update (void *cls,
   }
   m = (const struct AddressUpdateMessage *) message;
   ats_count = ntohl (m->ats_count);
-  address_length = ntohs (m->address_length);
-  plugin_name_length = ntohs (m->plugin_name_length);
   atsi = (const struct GNUNET_ATS_Information *) &m[1];
-  address = (const char *) &atsi[ats_count];
-  if (plugin_name_length != 0)
-    plugin_name = &address[address_length];
-  else
-    plugin_name = "";
 
-  if ((address_length + plugin_name_length +
-       ats_count * sizeof (struct GNUNET_ATS_Information) +
+  if ((ats_count * sizeof (struct GNUNET_ATS_Information) +
        sizeof (struct AddressUpdateMessage) != ntohs (message->size)) ||
       (ats_count >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
-       ((plugin_name_length > 0) && (plugin_name[plugin_name_length - 1] != '\0')))
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -356,11 +343,8 @@ GAS_handle_address_update (void *cls,
                             GNUNET_NO);
   GAS_addresses_update (address_handle,
                         &m->peer,
-                        plugin_name,
-                        address,
-                        address_length,
-                        ntohl (m->address_local_info),
-                        ntohl (m->session_id), atsi, ats_count);
+                        ntohl (m->session_id),
+                        atsi, ats_count);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -378,52 +362,13 @@ GAS_handle_address_in_use (void *cls,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct AddressUseMessage *m;
-  const char *address;
-  const char *plugin_name;
   int res;
-  uint16_t address_length;
-  uint16_t plugin_name_length;
-  uint16_t size;
-  uint16_t in_use;
 
-  size = ntohs (message->size);
-  if (size < sizeof (struct AddressUseMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   m = (const struct AddressUseMessage *) message;
-
-  address_length = ntohs (m->address_length);
-  plugin_name_length = ntohs (m->plugin_name_length);
-
-  address = (const char *) &m[1];
-  if (plugin_name_length != 0)
-    plugin_name = &address[address_length];
-  else
-    plugin_name = "";
-
-  if ((address_length + plugin_name_length +
-       sizeof (struct AddressUseMessage) != ntohs (message->size)) ||
-      ((plugin_name_length > 0) &&
-      (plugin_name[plugin_name_length - 1] != '\0')))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-
-  in_use = ntohs (m->in_use);
   res = GAS_addresses_in_use (address_handle,
                               &m->peer,
-                              plugin_name,
-                              address,
-                              address_length,
-                              ntohl (m->address_local_info),
                               ntohl (m->session_id),
-                              in_use);
-
+                              ntohl (m->in_use));
   if (GNUNET_OK != res)
   {
     GNUNET_break (0);

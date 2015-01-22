@@ -468,9 +468,9 @@ disassemble_ats_information (struct ATS_Address *dest,
 static void
 free_address (struct ATS_Address *addr)
 {
-  GNUNET_free(addr->plugin);
-  GNUNET_free_non_null(addr->atsi);
-  GNUNET_free(addr);
+  GNUNET_free (addr->plugin);
+  GNUNET_free_non_null (addr->atsi);
+  GNUNET_free (addr);
 }
 
 
@@ -642,44 +642,69 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
 
 
 /**
+ * Closure for #find_address_cb()
+ */
+struct FindAddressContext
+{
+  /**
+   * Session Id to look for.
+   */
+  uint32_t session_id;
+
+  /**
+   * Where to store matching address result.
+   */
+  struct ATS_Address *exact_address;
+
+};
+
+
+/**
+ * Find session matching given session ID.
+ *
+ * @param cls a `struct FindAddressContext`
+ * @param key peer id
+ * @param value the address to compare with
+ * @return #GNUNET_YES to continue, #GNUNET_NO if address is found
+ */
+static int
+find_address_cb (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
+                 void *value)
+{
+  struct FindAddressContext *fac = cls;
+  struct ATS_Address *aa = value;
+
+  if (aa->session_id == fac->session_id)
+  {
+    fac->exact_address = aa;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
  * Find the exact address
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
- * @param local_address_info the local address for the address
  * @param session_id session id, can never be 0
  * @return an ATS_address or NULL
  */
 static struct ATS_Address *
 find_exact_address (struct GAS_Addresses_Handle *handle,
                     const struct GNUNET_PeerIdentity *peer,
-                    const char *plugin_name,
-                    const void *plugin_addr,
-                    size_t plugin_addr_len,
-                    uint32_t local_address_info,
                     uint32_t session_id)
 {
-  struct ATS_Address *aa;
-  struct ATS_Address *ea;
+  struct FindAddressContext fac;
 
-  aa = create_address (peer,
-                       plugin_name,
-                       plugin_addr,
-                       plugin_addr_len,
-                       local_address_info,
-                       session_id);
-
-  /* Get existing address or address with session == 0 */
-  ea = find_equivalent_address (handle, peer, aa);
-  free_address (aa);
-  if (ea == NULL)
-    return NULL;
-  else if (ea->session_id != session_id)
-    return NULL;
-  return ea;
+  fac.exact_address = NULL;
+  fac.session_id = session_id;
+  GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
+					      peer,
+					      &find_address_cb, &fac);
+  return fac.exact_address;
 }
 
 
@@ -918,28 +943,17 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
 
 /**
- * Update an address with a session or performance information for a peer.
- *
- * If an address was added without a session it will be updated with the
- * session
+ * Update an address with new performance information for a peer.
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
- * @param local_address_info the local address for the address
- * @param session_id session id, can be 0
+ * @param session_id session id, never 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained in @a atsi
  */
 void
 GAS_addresses_update (struct GAS_Addresses_Handle *handle,
                       const struct GNUNET_PeerIdentity *peer,
-                      const char *plugin_name,
-                      const void *plugin_addr,
-                      size_t plugin_addr_len,
-                      uint32_t local_address_info,
                       uint32_t session_id,
                       const struct GNUNET_ATS_Information *atsi,
                       uint32_t atsi_count)
@@ -955,11 +969,10 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   GNUNET_assert (NULL != handle->addresses);
 
   /* Get existing address */
-  aa = find_exact_address (handle, peer, plugin_name, plugin_addr,
-                           plugin_addr_len,
-                           local_address_info,
+  aa = find_exact_address (handle,
+                           peer,
                            session_id);
-  if (aa == NULL)
+  if (NULL == aa)
   {
     GNUNET_break (0);
     return;
@@ -1129,10 +1142,6 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
   /* Get existing address */
   ea = find_exact_address (handle,
                            peer,
-                           plugin_name,
-                           plugin_addr,
-                           plugin_addr_len,
-                           local_address_info,
                            session_id);
   if (NULL == ea)
   {
@@ -1182,10 +1191,6 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
- * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param in_use #GNUNET_YES if #GNUNET_NO FIXME
  * @return #GNUNET_SYSERR on failure (address unknown ...)
@@ -1193,10 +1198,6 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
 int
 GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
                       const struct GNUNET_PeerIdentity *peer,
-                      const char *plugin_name,
-                      const void *plugin_addr,
-                      size_t plugin_addr_len,
-                      uint32_t local_address_info,
                       uint32_t session_id,
                       int in_use)
 {
@@ -1209,17 +1210,13 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
   if (GNUNET_NO == handle->running)
     return GNUNET_SYSERR;
   ea = find_exact_address (handle,
-                           peer, plugin_name,
-                           plugin_addr,
-                           plugin_addr_len,
-                           local_address_info,
+                           peer,
                            session_id);
   if (NULL == ea)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Trying to set unknown address `%s' `%s' `%u' to %s \n",
+                "Trying to set unknown address `%s' `%u' to %s \n",
                 GNUNET_i2s (peer),
-                plugin_name,
                 session_id,
                 (GNUNET_NO == in_use) ? "NO" : "YES");
     GNUNET_break (0);

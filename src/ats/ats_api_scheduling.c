@@ -1319,8 +1319,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
   struct GNUNET_MQ_Envelope *ev;
   struct AddressUpdateMessage *m;
   struct GNUNET_ATS_Information *am;
-  char *pm;
-  size_t namelen;
   size_t msize;
 
   GNUNET_array_grow (ar->ats,
@@ -1333,18 +1331,11 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
 
   if (NULL == sh->mq)
     return; /* disconnected, skip for now */
-  namelen = (NULL == ar->address->transport_name)
-    ? 0
-    : strlen (ar->address->transport_name) + 1;
-  msize = ar->address->address_length +
-    ar->ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
+  msize = ar->ats_count * sizeof (struct GNUNET_ATS_Information);
 
   ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
   m->ats_count = htonl (ar->ats_count);
   m->peer = ar->address->peer;
-  m->address_length = htons (ar->address->address_length);
-  m->address_local_info = htonl ((uint32_t) ar->address->local_info);
-  m->plugin_name_length = htons (namelen);
   m->session_id = htonl (ar->slot);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1357,14 +1348,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
   memcpy (am,
           ar->ats,
           ar->ats_count * sizeof (struct GNUNET_ATS_Information));
-  pm = (char *) &am[ar->ats_count];
-  memcpy (pm,
-          ar->address->address,
-          ar->address->address_length);
-  if (NULL != ar->address->transport_name)
-    memcpy (&pm[ar->address->address_length],
-            ar->address->transport_name,
-            namelen);
   GNUNET_MQ_send (sh->mq, ev);
 }
 
@@ -1383,36 +1366,18 @@ GNUNET_ATS_address_set_in_use (struct GNUNET_ATS_AddressRecord *ar,
   struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
   struct GNUNET_MQ_Envelope *ev;
   struct AddressUseMessage *m;
-  char *pm;
-  size_t namelen;
-  size_t msize;
 
   ar->in_use = in_use;
-  namelen = (NULL == ar->address->transport_name)
-    ? 0
-    : strlen (ar->address->transport_name) + 1;
-  msize = ar->address->address_length + namelen;
-
-  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
+  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
   m->peer = ar->address->peer;
-  m->in_use = htons (in_use);
-  m->address_length = htons (ar->address->address_length);
-  m->address_local_info = htonl ((uint32_t) ar->address->local_info);
-  m->plugin_name_length = htons (namelen);
-
+  m->in_use = htonl ((uint32_t) in_use);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting address used to %s for peer `%s', plugin `%s', session %p\n",
               (GNUNET_YES == in_use) ? "YES" : "NO",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
               ar->session);
-
   m->session_id = htonl (ar->slot);
-  pm = (char *) &m[1];
-  /* FIXME: no need to send the address data */
-  memcpy (pm, ar->address->address, ar->address->address_length);
-  memcpy (&pm[ar->address->address_length],
-          ar->address->transport_name, namelen);
   GNUNET_MQ_send (sh->mq, ev);
 }
 
