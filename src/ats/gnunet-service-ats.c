@@ -50,15 +50,16 @@ static struct GAS_Addresses_Handle *GSA_addresses;
 
 
 /**
- * We have received a `struct ClientStartMessage` from a client.  Find out which
- * type of client it is and notify the respective subsystem.
+ * We have received a `struct ClientStartMessage` from a client.  Find
+ * out which type of client it is and notify the respective subsystem.
  *
  * @param cls closure, unused
  * @param client handle to the client
  * @param message the start message
  */
 static void
-handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
+handle_ats_start (void *cls,
+                  struct GNUNET_SERVER_Client *client,
                   const struct GNUNET_MessageHeader *message)
 {
   const struct ClientStartMessage *msg =
@@ -150,7 +151,8 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_ats_start, NULL,
-     GNUNET_MESSAGE_TYPE_ATS_START, sizeof (struct ClientStartMessage)},
+     GNUNET_MESSAGE_TYPE_ATS_START,
+     sizeof (struct ClientStartMessage)},
     {&GAS_handle_request_address, NULL,
      GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS,
      sizeof (struct RequestAddressMessage)},
@@ -189,10 +191,11 @@ run (void *cls,
   GAS_performance_init (server, GSA_addresses);
   GAS_scheduling_init (server, GSA_addresses);
 
-  GNUNET_SERVER_disconnect_notify (server, &client_disconnect_handler, NULL);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &client_disconnect_handler, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleanup_task, NULL);
 }
 
 

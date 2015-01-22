@@ -270,8 +270,10 @@ struct GAS_Addresses_Preference_Clients
   void *client;
 };
 
+
 /**
- * Handle for ATS address component
+ * Handle for ATS address component.
+ * FIXME: these should probably all be 'static's instead.
  */
 struct GAS_Addresses_Handle
 {
@@ -635,7 +637,7 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
 					      peer,
 					      &compare_address_it, &cac);
 
-  if (cac.exact_address == NULL)
+  if (NULL == cac.exact_address)
     return cac.base_address;
   return cac.exact_address;
 }
@@ -819,7 +821,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
   /* Get existing address or address with session == 0 */
   existing_address = find_equivalent_address (handle, peer, new_address);
-  if (existing_address == NULL)
+  if (NULL == existing_address)
   {
     /* Add a new address */
     new_address->t_added = GNUNET_TIME_absolute_get();
@@ -862,6 +864,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     return;
   }
 
+  /* FIXME: this case should probably not be allowed... */
   /* We have an existing address we can use, clean up new */
   GNUNET_free(new_address->plugin);
   GNUNET_free_non_null(new_address->atsi);
@@ -1172,8 +1175,10 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
 {
   struct GAS_Addresses_Suggestion_Requests *cur = handle->pending_requests_head;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received request: `%s' for peer %s\n",
-      "request_address_cancel", GNUNET_i2s (peer));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received request: `%s' for peer %s\n",
+             "request_address_cancel",
+             GNUNET_i2s (peer));
 
   while (NULL != cur)
   {
@@ -1191,9 +1196,12 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
   }
   handle->env.sf.s_get_stop (handle->solver, peer);
   GAS_addresses_handle_backoff_reset (handle, peer);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Removed request pending for peer `%s\n",
-      GNUNET_i2s (peer));
-  GNUNET_CONTAINER_DLL_remove(handle->pending_requests_head, handle->pending_requests_tail, cur);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Removed request pending for peer `%s\n",
+             GNUNET_i2s (peer));
+  GNUNET_CONTAINER_DLL_remove (handle->pending_requests_head,
+                               handle->pending_requests_tail,
+                               cur);
   GNUNET_free(cur);
 }
 
@@ -1211,8 +1219,10 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   struct GAS_Addresses_Suggestion_Requests *cur = handle->pending_requests_head;
   struct ATS_Address *aa;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received `%s' for peer `%s'\n",
-      "REQUEST ADDRESS", GNUNET_i2s (peer));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Received `%s' for peer `%s'\n",
+             "REQUEST ADDRESS",
+             GNUNET_i2s (peer));
 
   if (GNUNET_NO == handle->running)
     return;
@@ -1316,7 +1326,6 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
  * @param stat operation status
  * @param add additional information
  */
-
 static void
 solver_info_cb (void *cls,
     enum GAS_Solver_Operation op,
@@ -1436,11 +1445,11 @@ normalized_preference_changed_cb (void *cls,
  * @param prop_rel the new relative preference value
  */
 static void
-normalized_property_changed_cb (void *cls, struct ATS_Address *address,
-    uint32_t type, double prop_rel)
+normalized_property_changed_cb (void *cls,
+                                struct ATS_Address *address,
+                                uint32_t type, double prop_rel)
 {
-  struct GAS_Addresses_Handle *ah = (struct GAS_Addresses_Handle *) cls;
-  GNUNET_assert(NULL != ah);
+  struct GAS_Addresses_Handle *ah = cls;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Normalized property %s for peer `%s' changed to %.3f \n",
@@ -1449,6 +1458,7 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
 
   ah->env.sf.s_address_update_property (ah->solver, address, type, 0, prop_rel);
 }
+
 
 static struct GAS_Addresses_Preference_Clients *
 find_preference_client (struct GAS_Addresses_Handle *handle, void *client)
@@ -1474,7 +1484,8 @@ void
 GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
                                             void *client)
 {
-  struct GAS_Addresses_Preference_Clients * pc;
+  struct GAS_Addresses_Preference_Clients *pc;
+
   if (NULL != (pc = find_preference_client (handle, client)))
   {
     GNUNET_CONTAINER_DLL_remove (handle->preference_clients_head,
@@ -1482,7 +1493,10 @@ GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
     GNUNET_free (pc);
     GNUNET_assert (handle->pref_clients > 0);
     handle->pref_clients --;
-    GNUNET_STATISTICS_set (handle->stat, "# active performance clients", handle->pref_clients, GNUNET_NO);
+    GNUNET_STATISTICS_set (handle->stat,
+                           "# active performance clients",
+                           handle->pref_clients,
+                           GNUNET_NO);
   }
   GAS_normalization_preference_client_disconnect (client);
 }
@@ -1502,7 +1516,8 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
     void *client, const struct GNUNET_PeerIdentity *peer,
     enum GNUNET_ATS_PreferenceKind kind, float score_abs)
 {
-  struct GAS_Addresses_Preference_Clients * pc;
+  struct GAS_Addresses_Preference_Clients *pc;
+
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Received `%s' for peer `%s' for client %p\n", "CHANGE PREFERENCE",
       GNUNET_i2s (peer), client);
@@ -1559,8 +1574,10 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
                                    float score_abs)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Received `%s' for peer `%s' for client %p\n", "PREFERENCE FEEDBACK",
-      GNUNET_i2s (peer), application);
+             "Received `%s' for peer `%s' for client %p\n",
+             "PREFERENCE FEEDBACK",
+             GNUNET_i2s (peer),
+             application);
 
   if (GNUNET_NO == handle->running)
     return;
@@ -1811,7 +1828,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
  */
 struct GAS_Addresses_Handle *
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const struct GNUNET_STATISTICS_Handle *stats)
+                    struct GNUNET_STATISTICS_Handle *stats)
 {
   struct GAS_Addresses_Handle *ah;
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
@@ -1823,7 +1840,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ah = GNUNET_new (struct GAS_Addresses_Handle);
   ah->running = GNUNET_NO;
 
-  ah->stat = (struct GNUNET_STATISTICS_Handle *) stats;
+  ah->stat = stats;
   /* Initialize the addresses database */
   ah->addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   ah->pref_clients = 0;
@@ -1943,8 +1960,10 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   /* up and running */
   ah->running = GNUNET_YES;
 
-  GNUNET_STATISTICS_set (ah->stat, "# addresses",
-      GNUNET_CONTAINER_multipeermap_size (ah->addresses), GNUNET_NO);
+  GNUNET_STATISTICS_set (ah->stat,
+                         "# addresses",
+                         GNUNET_CONTAINER_multipeermap_size (ah->addresses),
+                         GNUNET_NO);
 
   return ah;
 }

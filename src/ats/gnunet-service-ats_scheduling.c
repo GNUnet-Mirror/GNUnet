@@ -162,7 +162,8 @@ GAS_handle_request_address_cancel (void *cls,
   const struct RequestAddressMessage *msg =
       (const struct RequestAddressMessage *) message;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
               "REQUEST_ADDRESS_CANCEL");
   GNUNET_break (0 == ntohl (msg->reserved));
 

@@ -424,7 +424,7 @@ struct GAS_Addresses_Handle;
  */
 struct GAS_Addresses_Handle *
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    const struct GNUNET_STATISTICS_Handle *stats);
+                    struct GNUNET_STATISTICS_Handle *stats);
 
 
 /**

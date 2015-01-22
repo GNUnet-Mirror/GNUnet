@@ -619,7 +619,8 @@ GAS_handle_preference_change (void *cls,
   uint32_t nump;
   uint32_t i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
               "PREFERENCE_CHANGE");
   msize = ntohs (message->size);
   if (msize < sizeof (struct ChangePreferenceMessage))
