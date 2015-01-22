@@ -56,6 +56,14 @@ main (int argc,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));
   GNUNET_CRYPTO_rsa_signature_free (sig);
+  /* corrupt our hash and see if the signature is still valid */
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &hash,
+                              sizeof (struct GNUNET_HashCode));
+  GNUNET_assert (GNUNET_OK != GNUNET_CRYPTO_rsa_verify (&hash,
+                                                        sig,
+                                                        pub));
+  (void) fprintf (stderr, "The above warning is expected.\n");
+
 
   /* test blind signing */
   bkey = GNUNET_CRYPTO_rsa_blinding_key_create (KEY_SIZE);
