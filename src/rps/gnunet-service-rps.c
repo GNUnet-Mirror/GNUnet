@@ -48,13 +48,9 @@
 
 // TODO malicious peer
 
-// TODO Change API to accept initialisation peers
-
-// TODO Change API to accept good peers 'friends'
+// TODO connect to friends
 
 // TODO store peers somewhere
-
-// TODO check that every id we get is valid - is it reachable?
 
 // TODO ignore list?
 
