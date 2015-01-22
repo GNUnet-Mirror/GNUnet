@@ -68,7 +68,7 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
  * default preferences if peer does not exist
  */
 const double *
-GAS_normalization_get_properties (struct ATS_Address *address);
+GAS_normalization_get_properties (const struct ATS_Address *address);
 
 
 /**

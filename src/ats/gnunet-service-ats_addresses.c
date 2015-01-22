@@ -723,9 +723,10 @@ get_preferences_cb (void *cls,
  * @return array of double values with |GNUNET_ATS_QualityPropertiesCount| elements
  */
 const double *
-get_property_cb (void *cls, const struct ATS_Address *address)
+get_property_cb (void *cls,
+                 const struct ATS_Address *address)
 {
-  return GAS_normalization_get_properties ((struct ATS_Address *) address);
+  return GAS_normalization_get_properties (address);
 }
 
 
