@@ -168,6 +168,13 @@ struct PeerContext
   //size_t num_outstanding_ops;
 
   /**
+   * Handle to the callback given to cadet_ntfy_tmt_rdy()
+   *
+   * To be canceled on shutdown.
+   */
+  struct GNUNET_CADET_TransmitHandle *is_live_task;
+
+  /**
    * This is pobably followed by 'statistical' data (when we first saw
    * him, how did we get his ID, how many pushes (in a timeinterval),
    * ...)
@@ -501,9 +508,9 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
     {
       tmp_peer = GNUNET_new (struct GNUNET_PeerIdentity);
       *tmp_peer = *peer;
-      (void) GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
-                                                 GNUNET_TIME_UNIT_FOREVER_REL,
-                                                 0, peer_is_live, tmp_peer);
+      ctx->is_live_task = GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
+                                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                                              0, peer_is_live, tmp_peer);
     }
 
     // do I have to explicitly put it in the peer_map?
@@ -1258,6 +1265,9 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
   if ( NULL != peer_ctx->mq)
     GNUNET_MQ_destroy (peer_ctx->mq);
+
+  if ( NULL != peer_ctx->is_live_task)
+    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
 
   if ( NULL != peer_ctx->send_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
