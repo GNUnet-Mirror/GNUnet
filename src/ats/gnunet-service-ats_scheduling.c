@@ -241,7 +241,7 @@ GAS_handle_address_add (void *cls,
                         struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  const struct AddressUpdateMessage *m;
+  const struct AddressAddMessage *m;
   const struct GNUNET_ATS_Information *atsi;
   const char *address;
   const char *plugin_name;
@@ -254,13 +254,13 @@ GAS_handle_address_add (void *cls,
               "Received `%s' message\n",
               "ADDRESS_ADD");
   size = ntohs (message->size);
-  if (size < sizeof (struct AddressUpdateMessage))
+  if (size < sizeof (struct AddressAddMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  m = (const struct AddressUpdateMessage *) message;
+  m = (const struct AddressAddMessage *) message;
   ats_count = ntohl (m->ats_count);
   address_length = ntohs (m->address_length);
   plugin_name_length = ntohs (m->plugin_name_length);
@@ -273,7 +273,7 @@ GAS_handle_address_add (void *cls,
 
   if ((address_length + plugin_name_length +
        ats_count * sizeof (struct GNUNET_ATS_Information) +
-       sizeof (struct AddressUpdateMessage) != ntohs (message->size)) ||
+       sizeof (struct AddressAddMessage) != ntohs (message->size)) ||
       (ats_count >
        GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
        ((plugin_name_length > 0) && (plugin_name[plugin_name_length - 1] != '\0')))

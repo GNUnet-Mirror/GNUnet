@@ -556,8 +556,8 @@ error_handler (void *cls,
 
 
 /**
- * Generate the "AddressUpdateMessage" for the given
- * session record.
+ * Generate and transmit the `struct AddressAddMessage` for the given
+ * address record.
  *
  * @param sh the scheduling handle to use for transmission
  * @param ar the address to inform the ATS service about
@@ -567,7 +567,7 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
                           const struct GNUNET_ATS_AddressRecord *ar)
 {
   struct GNUNET_MQ_Envelope *ev;
-  struct AddressUpdateMessage *m;
+  struct AddressAddMessage *m;
   struct GNUNET_ATS_Information *am;
   char *pm;
   size_t namelen;

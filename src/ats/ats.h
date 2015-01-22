@@ -75,6 +75,57 @@ struct ResetBackoffMessage
 };
 
 
+/**
+ * ATS client to ATS service: here is another address you can use.
+ */
+struct AddressAddMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Size of the `struct GNUNET_ATS_Information` array that follows this struct.
+   */
+  uint32_t ats_count GNUNET_PACKED;
+
+  /**
+   * Identity of the peer that this address is for.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Number of bytes in the address that follows this struct.
+   */
+  uint16_t address_length GNUNET_PACKED;
+
+  /**
+   * Number of bytes in the plugin name that follows this struct.
+   */
+  uint16_t plugin_name_length GNUNET_PACKED;
+
+  /**
+   * Internal number this client will henceforth use to
+   * refer to this address.
+   */
+  uint32_t session_id GNUNET_PACKED;
+
+  /**
+   * Local-only information of the address, see
+   * `enum GNUNET_HELLO_AddressInfo`.
+   */
+  uint32_t address_local_info GNUNET_PACKED;
+
+  /* followed by:
+   * - struct GNUNET_ATS_Information [ats_count];
+   * - char address[address_length]
+   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+   */
+
+};
+
+
 struct AddressUpdateMessage
 {
   struct GNUNET_MessageHeader header;
