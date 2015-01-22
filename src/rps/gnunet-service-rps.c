@@ -683,6 +683,7 @@ insert_in_sampler (void *cls, const struct GNUNET_PeerIdentity *peer)
   RPS_sampler_update_list (peer);
 }
 
+
 /**
  * Check whether #insert_in_sampler was already scheduled
  */
@@ -722,6 +723,45 @@ resize_wrapper ()
   { /* Growing */
     RPS_sampler_resize (sampler_size*2);
   }
+}
+
+
+/**
+ * Estimate request rate
+ * 
+ * Called every time we receive a request from the client.
+ */
+  void
+est_request_rate()
+{
+  struct GNUNET_TIME_Relative max_round_duration;
+
+  if (request_deltas_size > req_counter)
+    req_counter++;
+  if ( 1 < req_counter)
+  {
+    /* Shift last request deltas to the right */
+    memcpy (&request_deltas[1],
+        request_deltas,
+        (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
+
+    /* Add current delta to beginning */
+    request_deltas[0] = GNUNET_TIME_absolute_get_difference (last_request,
+        GNUNET_TIME_absolute_get ());
+    request_rate = T_relative_avg (request_deltas, req_counter);
+
+    /* Compute the duration a round will maximally take */
+    max_round_duration = GNUNET_TIME_relative_add (round_interval,
+        GNUNET_TIME_relative_divide (round_interval, 2));
+
+    /* Set the estimated size the sampler has to have to
+     * satisfy the current client request rate */
+    sampler_size_client_need = max_round_duration.rel_value_us / request_rate.rel_value_us;
+
+    /* Resize the sampler */
+    resize_wrapper ();
+  }
+  last_request = GNUNET_TIME_absolute_get ();
 }
 
 
@@ -812,36 +852,14 @@ handle_client_request (void *cls,
 {
   struct GNUNET_RPS_CS_RequestMessage *msg;
   uint32_t num_peers;
-  struct GNUNET_TIME_Relative max_round_duration;
+  uint32_t i;
 
-
-  /* Estimate request rate */
-  if (request_deltas_size > req_counter)
-    req_counter++;
-  if ( 1 < req_counter)
-  {
-    /* Shift last request deltas to the right */
-    memcpy (&request_deltas[1],
-        request_deltas,
-        (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
-    /* Add current delta to beginning */
-    request_deltas[0] = GNUNET_TIME_absolute_get_difference (last_request,
-        GNUNET_TIME_absolute_get ());
-    request_rate = T_relative_avg (request_deltas, req_counter);
-
-    max_round_duration = GNUNET_TIME_relative_add (round_interval,
-        GNUNET_TIME_relative_divide (round_interval, 2));
-    sampler_size_client_need = max_round_duration.rel_value_us / request_rate.rel_value_us;
-
-    resize_wrapper ();
-  }
-  last_request = GNUNET_TIME_absolute_get ();
-
-
-  // TODO check message size
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
 
   num_peers = ntohl (msg->num_peers);
+
+  for (i = 0 ; i < num_peers ; i++)
+    est_request_rate();
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested %" PRIX32 " random peer(s).\n", num_peers);
 
