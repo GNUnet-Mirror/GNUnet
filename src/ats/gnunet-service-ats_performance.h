@@ -144,8 +144,7 @@ GAS_handle_monitor (void *cls,
  * @param addresses the address handle to use
  */
 void
-GAS_performance_init (struct GNUNET_SERVER_Handle *server,
-                      struct GAS_Addresses_Handle *GSA_addresses);
+GAS_performance_init (struct GNUNET_SERVER_Handle *server);
 
 
 /**

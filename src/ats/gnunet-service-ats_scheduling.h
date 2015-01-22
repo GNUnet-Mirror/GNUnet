@@ -164,8 +164,7 @@ GAS_handle_address_destroyed (void *cls,
  * @param ah the address handle to use
  */
 void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server,
-                     struct GAS_Addresses_Handle *ah);
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server);
 
 
 /**

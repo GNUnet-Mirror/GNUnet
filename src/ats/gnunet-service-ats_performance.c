@@ -60,11 +60,6 @@ struct PerformanceClient
 
 
 /**
- * Address handle
- */
-static struct GAS_Addresses_Handle *GSA_addresses;
-
-/**
  * Head of linked list of all clients to this service.
  */
 static struct PerformanceClient *pc_head;
@@ -113,7 +108,7 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
   if (NULL == pc)
     return;
   GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
-  GAS_addresses_preference_client_disconnect (GSA_addresses, client);
+  GAS_addresses_preference_client_disconnect (client);
   GNUNET_free (pc);
 }
 
@@ -314,8 +309,7 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert (pc_head,
                                pc_tail,
                                pc);
-  GAS_addresses_get_peer_info (GSA_addresses,
-                               NULL,
+  GAS_addresses_get_peer_info (NULL,
                                &peerinfo_it,
                                pc);
 }
@@ -528,16 +522,14 @@ GAS_handle_request_address_list (void *cls,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
     /* Return addresses for all peers */
-    GAS_addresses_get_peer_info (GSA_addresses,
-                                 NULL,
+    GAS_addresses_get_peer_info (NULL,
                                  &req_addr_peerinfo_it,
                                  &ai);
   }
   else
   {
     /* Return addresses for a specific peer */
-    GAS_addresses_get_peer_info (GSA_addresses,
-                                 &alrm->peer,
+    GAS_addresses_get_peer_info (&alrm->peer,
                                  &req_addr_peerinfo_it,
                                  &ai);
   }
@@ -644,8 +636,7 @@ GAS_handle_preference_change (void *cls,
                             1, GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i = 0; i < nump; i++)
-    GAS_addresses_preference_change (GSA_addresses,
-                                     client,
+    GAS_addresses_preference_change (client,
                                      &msg->peer,
                                      (enum GNUNET_ATS_PreferenceKind)
                                      ntohl (pi[i].preference_kind),
@@ -697,16 +688,14 @@ GAS_handle_preference_feedback (void *cls,
                             1, GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i = 0; i < nump; i++)
-    GAS_addresses_preference_feedback (GSA_addresses,
-                                     client,
-                                     &msg->peer,
-                                     GNUNET_TIME_relative_ntoh(msg->scope),
-                                     (enum GNUNET_ATS_PreferenceKind)
-                                     ntohl (pi[i].preference_kind),
-                                     pi[i].preference_value);
+    GAS_addresses_preference_feedback (client,
+                                       &msg->peer,
+                                       GNUNET_TIME_relative_ntoh(msg->scope),
+                                       (enum GNUNET_ATS_PreferenceKind)
+                                       ntohl (pi[i].preference_kind),
+                                       pi[i].preference_value);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
-
 
 
 /**
@@ -716,10 +705,8 @@ GAS_handle_preference_feedback (void *cls,
  * @param addresses the address handle to use
  */
 void
-GAS_performance_init (struct GNUNET_SERVER_Handle *server,
-                      struct GAS_Addresses_Handle *addresses)
+GAS_performance_init (struct GNUNET_SERVER_Handle *server)
 {
-  GSA_addresses = addresses;
   nc = GNUNET_SERVER_notification_context_create (server, 128);
 }
 

@@ -43,11 +43,6 @@ struct GNUNET_STATISTICS_Handle *GSA_stats;
  */
 static struct GNUNET_SERVER_Handle *GSA_server;
 
-/**
- * Handle to the address state.
- */
-static struct GAS_Addresses_Handle *GSA_addresses;
-
 
 /**
  * We have received a `struct ClientStartMessage` from a client.  Find
@@ -122,7 +117,7 @@ static void
 cleanup_task (void *cls,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GAS_addresses_done (GSA_addresses);
+  GAS_addresses_done ();
   GAS_scheduling_done ();
   GAS_performance_done ();
   GAS_reservations_done ();
@@ -187,9 +182,20 @@ run (void *cls,
   GSA_server = server;
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
-  GSA_addresses = GAS_addresses_init (cfg, GSA_stats);
-  GAS_performance_init (server, GSA_addresses);
-  GAS_scheduling_init (server, GSA_addresses);
+  if (GNUNET_OK !=
+      GAS_addresses_init (cfg, GSA_stats))
+  {
+    GNUNET_break (0);
+    GAS_reservations_done ();
+    if (NULL != GSA_stats)
+    {
+      GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
+      GSA_stats = NULL;
+    }
+    return;
+  }
+  GAS_performance_init (server);
+  GAS_scheduling_init (server);
 
   GNUNET_SERVER_disconnect_notify (server,
                                    &client_disconnect_handler, NULL);
