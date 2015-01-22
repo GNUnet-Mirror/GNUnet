@@ -561,14 +561,10 @@ error_handler (void *cls,
  *
  * @param sh the scheduling handle to use for transmission
  * @param ar the address to inform the ATS service about
- * @param msg_type the message type to use when sending the message
- *
- * FIXME: maybe overloading with msg_type was not the best idea here...
  */
 static void
 send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
-                          const struct GNUNET_ATS_AddressRecord *ar,
-                          uint16_t msg_type)
+                          const struct GNUNET_ATS_AddressRecord *ar)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct AddressUpdateMessage *m;
@@ -585,7 +581,7 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
   msize = ar->address->address_length +
     ar->ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
 
-  ev = GNUNET_MQ_msg_extra (m, msize, msg_type);
+  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
   m->ats_count = htonl (ar->ats_count);
   m->peer = ar->address->peer;
   m->address_length = htons (ar->address->address_length);
@@ -1249,9 +1245,11 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   GNUNET_array_grow (ar->ats,
                      ar->ats_count,
                      ats_count);
-  memcpy (ar->ats, ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+  memcpy (ar->ats,
+          ats,
+          ats_count * sizeof (struct GNUNET_ATS_Information));
   sh->session_array[s] = ar;
-  send_add_address_message (sh, ar, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
+  send_add_address_message (sh, ar);
   return ar;
 }
 
@@ -1289,6 +1287,7 @@ GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
 {
   GNUNET_break (session == ar->session);
   ar->session = NULL;
+  GNUNET_break (GNUNET_NO == ar->in_use);
   if (GNUNET_HELLO_address_check_option (ar->address,
                                          GNUNET_HELLO_ADDRESS_INFO_INBOUND))
   {
@@ -1316,15 +1315,57 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count)
 {
+  struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
+  struct GNUNET_MQ_Envelope *ev;
+  struct AddressUpdateMessage *m;
+  struct GNUNET_ATS_Information *am;
+  char *pm;
+  size_t namelen;
+  size_t msize;
+
   GNUNET_array_grow (ar->ats,
                      ar->ats_count,
                      ats_count);
   memcpy (ar->ats,
           ats,
           ats_count * sizeof (struct GNUNET_ATS_Information));
-  send_add_address_message (ar->sh,
-                            ar,
-                            GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
+
+
+  if (NULL == sh->mq)
+    return; /* disconnected, skip for now */
+  namelen = (NULL == ar->address->transport_name)
+    ? 0
+    : strlen (ar->address->transport_name) + 1;
+  msize = ar->address->address_length +
+    ar->ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
+
+  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
+  m->ats_count = htonl (ar->ats_count);
+  m->peer = ar->address->peer;
+  m->address_length = htons (ar->address->address_length);
+  m->address_local_info = htonl ((uint32_t) ar->address->local_info);
+  m->plugin_name_length = htons (namelen);
+  m->session_id = htonl (ar->slot);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
+              GNUNET_i2s (&ar->address->peer),
+              ar->address->transport_name,
+              ar->session,
+              ar->slot);
+  am = (struct GNUNET_ATS_Information *) &m[1];
+  memcpy (am,
+          ar->ats,
+          ar->ats_count * sizeof (struct GNUNET_ATS_Information));
+  pm = (char *) &am[ar->ats_count];
+  memcpy (pm,
+          ar->address->address,
+          ar->address->address_length);
+  if (NULL != ar->address->transport_name)
+    memcpy (&pm[ar->address->address_length],
+            ar->address->transport_name,
+            namelen);
+  GNUNET_MQ_send (sh->mq, ev);
 }
 
 
