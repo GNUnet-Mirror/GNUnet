@@ -219,31 +219,40 @@ struct AddressDestroyedMessage
 };
 
 
+/**
+ * ATS Service suggests to the transport service to use the address
+ * identified by the given @e session_id for the given @e peer with
+ * the given @e bandwidth_in and @e bandwidth_out limits from now on.
+ */
 struct AddressSuggestionMessage
 {
+  /**
+   * A message of type #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION.
+   */
   struct GNUNET_MessageHeader header;
 
-  uint32_t ats_count GNUNET_PACKED;
-
-  struct GNUNET_PeerIdentity peer;
-
-  uint16_t address_length GNUNET_PACKED;
-
-  uint16_t plugin_name_length GNUNET_PACKED;
-
+  /**
+   * Internal number this client uses to refer to the address this
+   * suggestion is about.
+   */
   uint32_t session_id GNUNET_PACKED;
 
-  uint32_t address_local_info GNUNET_PACKED;
+  /**
+   * Which peer is this about? (Technically redundant, as the
+   * @e session_id should be sufficient, but may enable client
+   * to find the session faster and/or check consistency).
+   */
+  struct GNUNET_PeerIdentity peer;
 
+  /**
+   * How much bandwidth we are allowed for sending.
+   */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
-
-  /* followed by:
-   * - struct GNUNET_ATS_Information [ats_count];
-   * - char address[address_length]
-   * - char plugin_name[plugin_name_length] (including '\0'-termination).
+  /**
+   * How much bandwidth we are allowed for receiving.
    */
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
 };
 

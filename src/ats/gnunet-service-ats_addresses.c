@@ -1244,10 +1244,10 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Suggesting address %p for peer `%s'\n",
       aa, GNUNET_i2s (peer));
 
-  GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr,
-      aa->addr_len, aa->local_address_info, aa->session_id, aa->atsi,
-      aa->atsi_count, GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
-      GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
+  GAS_scheduling_transmit_address_suggestion (peer,
+                                              aa->session_id,
+                                              GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
+                                              GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
 
   aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval,
       ATS_BLOCKING_DELTA);
@@ -1767,13 +1767,11 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
                "Telling transport to disconnect peer `%s'\n",
                 GNUNET_i2s (&address->peer));
 
-    /* *Notify scheduling clients about suggestion */
-    GAS_scheduling_transmit_address_suggestion (&address->peer, address->plugin,
-        address->addr, address->addr_len, address->local_address_info,
-        address->session_id, address->atsi, address->atsi_count,
-        GNUNET_BANDWIDTH_value_init (0),
-        GNUNET_BANDWIDTH_value_init (0));
-
+    /* Notify scheduling clients about suggestion */
+    GAS_scheduling_transmit_address_suggestion (&address->peer,
+                                                address->session_id,
+                                                GNUNET_BANDWIDTH_value_init (0),
+                                                GNUNET_BANDWIDTH_value_init (0));
     return;
   }
 
@@ -1791,11 +1789,10 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
       address->assigned_bw_out);
 
   /* *Notify scheduling clients about suggestion */
-  GAS_scheduling_transmit_address_suggestion (&address->peer, address->plugin,
-      address->addr, address->addr_len, address->local_address_info,
-      address->session_id, address->atsi, address->atsi_count,
-      GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
-      GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
+  GAS_scheduling_transmit_address_suggestion (&address->peer,
+                                              address->session_id,
+                                              GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
+                                              GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
 
   address->last_notified_bw_out = address->assigned_bw_out;
   address->last_notified_bw_in = address->assigned_bw_in;

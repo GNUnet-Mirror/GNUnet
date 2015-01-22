@@ -448,44 +448,11 @@ process_ats_address_suggestion_message (void *cls,
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
   const struct AddressSuggestionMessage *m;
-  const struct GNUNET_ATS_Information *atsi;
-  const char *plugin_address;
-  const char *plugin_name;
-  uint16_t plugin_address_length;
-  uint16_t plugin_name_length;
-  uint32_t ats_count;
-  struct GNUNET_HELLO_Address address;
-  struct Session *s;
   struct GNUNET_ATS_AddressRecord *ar;
+  uint32_t session_id;
 
-  if (ntohs (msg->size) <= sizeof (struct AddressSuggestionMessage))
-  {
-    GNUNET_break (0);
-    force_reconnect (sh);
-    return;
-  }
-  /* FIXME: we have all the address details, no need for ATS
-     to send those back to us any longer! */
   m = (const struct AddressSuggestionMessage *) msg;
-  ats_count = ntohl (m->ats_count);
-  plugin_address_length = ntohs (m->address_length);
-  atsi = (const struct GNUNET_ATS_Information *) &m[1];
-  plugin_address = (const char *) &atsi[ats_count];
-  plugin_name = &plugin_address[plugin_address_length];
-  plugin_name_length = ntohs (m->plugin_name_length);
-  if ((plugin_address_length + plugin_name_length +
-       ats_count * sizeof (struct GNUNET_ATS_Information) +
-       sizeof (struct AddressSuggestionMessage) != ntohs (msg->size)) ||
-      (ats_count >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information))
-      || (plugin_name[plugin_name_length - 1] != '\0'))
-  {
-    GNUNET_break (0);
-    force_reconnect (sh);
-    return;
-  }
-  uint32_t session_id = ntohl (m->session_id);
-
+  session_id = ntohl (m->session_id);
   if (0 == session_id)
   {
     GNUNET_break (0);
@@ -499,7 +466,6 @@ process_ats_address_suggestion_message (void *cls,
     force_reconnect (sh);
     return;
   }
-  s = ar->session;
   if (NULL == sh->suggest_cb)
     return;
   if ( (GNUNET_YES == ar->in_destroy) &&
@@ -509,27 +475,17 @@ process_ats_address_suggestion_message (void *cls,
     /* ignore suggestion, as this address is dying */
     return;
   }
-  address.peer = m->peer;
-  address.address = plugin_address;
-  address.address_length = plugin_address_length;
-  address.transport_name = plugin_name;
-  address.local_info = ntohl(m->address_local_info);
-
-  if ((s == NULL) && (0 == address.address_length))
+  if ( (NULL == ar->session) &&
+       (GNUNET_HELLO_address_check_option (ar->address,
+                                           GNUNET_HELLO_ADDRESS_INFO_INBOUND)) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "ATS returned invalid address for peer `%s' transport `%s' address length %i, session_id %i\n",
-                GNUNET_i2s (&address.peer),
-                address.transport_name,
-                plugin_address_length,
-                session_id);
-    GNUNET_break_op (0);
+    GNUNET_break (0);
     return;
   }
   sh->suggest_cb (sh->suggest_cb_cls,
                   &m->peer,
-                  &address,
-                  s,
+                  ar->address,
+                  ar->session,
                   m->bandwidth_out,
                   m->bandwidth_in);
 }
@@ -625,7 +581,7 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
         sizeof (struct SessionReleaseMessage) },
       { &process_ats_address_suggestion_message,
         GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
-        0 },
+        sizeof (struct AddressSuggestionMessage) },
       { NULL, 0, 0 } };
   struct GNUNET_MQ_Envelope *ev;
   struct ClientStartMessage *init;
