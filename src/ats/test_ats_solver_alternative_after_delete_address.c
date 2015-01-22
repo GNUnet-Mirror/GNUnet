@@ -106,6 +106,16 @@ static struct GNUNET_HELLO_Address *first_suggestion = NULL;
 
 static struct GNUNET_HELLO_Address *second_suggestion = NULL;
 
+/**
+ * 1st Address we will destroy.
+ */
+static struct GNUNET_ATS_AddressRecord *ar;
+
+/**
+ * 2nd Address we will destroy.
+ */
+static struct GNUNET_ATS_AddressRecord *ar2;
+
 
 static int
 stat_cb(void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -198,7 +208,8 @@ address_suggest_cb (void *cls,
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 1st address for peer `%s' : `%s'\n",
         GNUNET_i2s (&address->peer), (char *) address->address);
-      GNUNET_ATS_address_destroyed (sched_ats, address, session);
+      GNUNET_ATS_address_destroy (ar);
+      ar = NULL;
       first_address_deleted = GNUNET_YES;
 
       return;
@@ -225,7 +236,8 @@ address_suggest_cb (void *cls,
 
         GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 2nd address for peer `%s' : `%s'\n",
           GNUNET_i2s (&address->peer), (char *) address->address);
-        GNUNET_ATS_address_destroyed (sched_ats, address, session);
+        GNUNET_ATS_address_destroy (ar2);
+        ar2 = NULL;
         second_address_deleted = GNUNET_YES;
         return;
       }
@@ -318,9 +330,11 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
+  ar = GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL,
+                               test_ats_info, test_ats_count);
   /* Adding alternative address */
-  GNUNET_ATS_address_add (sched_ats, &alt_test_hello_address, NULL, test_ats_info, test_ats_count);
+  ar2 = GNUNET_ATS_address_add (sched_ats, &alt_test_hello_address, NULL,
+                                test_ats_info, test_ats_count);
 }
 
 

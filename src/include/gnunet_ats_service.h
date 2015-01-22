@@ -460,7 +460,7 @@ struct GNUNET_ATS_AddressRecord;
  *
  * @param sh handle
  * @param address the address
- * @param session session handle (if available)
+ * @param session session handle (if available, i.e. for incoming connections)
  * @param ats performance data for the address
  * @param ats_count number of performance records in @a ats
  * @return handle to the address representation inside ATS, NULL
@@ -476,6 +476,34 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
+ * An address was used to initiate a session.
+ *
+ * @param ar address record to update information for
+ * @param session session handle
+ */
+void
+GNUNET_ATS_address_add_session (struct GNUNET_ATS_AddressRecord *ar,
+                                struct Session *session);
+
+
+/**
+ * A session was destroyed, disassociate it from the
+ * given address record.  If this was an incoming
+ * addess, destroy the address as well.
+ *
+ * @param ar address record to update information for
+ * @param session session handle
+ * @return #GNUNET_YES if the @a ar was destroyed because
+ *                     it was an incoming address,
+ *         #GNUNET_NO if the @ar was kept because we can
+ *                    use it still to establish a new session
+ */
+int
+GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
+                                struct Session *session);
+
+
+/**
  * We have updated performance statistics for a given address.  Note
  * that this function can be called for addresses that are currently
  * in use as well as addresses that are valid but not actively in use.
@@ -486,47 +514,36 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * suggest to switch addresses.
  *
  * @param ar address record to update information for
- * @param session session handle (if available)
  * @param ats performance data for the address
  * @param ats_count number of performance records in @a ats
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
-                           struct Session *session,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
 
 
 /**
- * An address is now in use or not used any more.
+ * An address is now in use, or not used any more.
  *
- * @param sh handle
- * @param address the address
- * @param session session handle
+ * @param ar address record for which to toggle the flag
  * @param in_use #GNUNET_YES if this address is now used, #GNUNET_NO
- * if address is not used any more
+ *               if address is not used any more
  */
 void
-GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
-                           const struct GNUNET_HELLO_Address *address,
-                           struct Session *session,
-                           int in_use);
+GNUNET_ATS_address_set_in_use (struct GNUNET_ATS_AddressRecord *ar,
+                               int in_use);
 
 
 /**
- * An address got destroyed, stop including it as a valid address.
+ * An address got destroyed, stop using it as a valid address.
  *
- * If a session is given, only the session will be removed, if no session is
- * given the full address will be deleted.
- *
- * @param sh handle
- * @param address the address
- * @param session session handle that is no longer valid (if available)
+ * @param ar address record to destroy, it's validation has
+ *           expired and ATS may no longer use it
  */
 void
-GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
-                              const struct GNUNET_HELLO_Address *address,
-                              struct Session *session);
+GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar);
+
 
 
 /* ******************************** Performance API ***************************** */

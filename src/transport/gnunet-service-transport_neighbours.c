@@ -631,8 +631,12 @@ free_address (struct NeighbourAddress *na)
 {
   if (GNUNET_YES == na->ats_active)
   {
-    GST_validation_set_address_use (na->address, na->session, GNUNET_NO);
-    GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
+    GST_validation_set_address_use (na->address,
+                                    na->session,
+                                    GNUNET_NO);
+    GST_ats_set_in_use (na->address,
+                        na->session,
+                        GNUNET_NO);
   }
 
   na->bandwidth_in = GNUNET_BANDWIDTH_value_init (0);
@@ -816,10 +820,9 @@ set_primary_address (struct NeighbourMapEntry *n,
     if (is_active != n->primary_address.ats_active)
     {
       n->primary_address.ats_active = is_active;
-      GNUNET_ATS_address_in_use (GST_ats,
-                                 n->primary_address.address,
-                                 n->primary_address.session,
-                                 is_active);
+      GST_ats_set_in_use (n->primary_address.address,
+                          n->primary_address.session,
+                          is_active);
       GST_validation_set_address_use (n->primary_address.address,
                                       n->primary_address.session,
                                       is_active);
@@ -855,10 +858,9 @@ set_primary_address (struct NeighbourMapEntry *n,
   if (GNUNET_YES == is_active)
   {
     /* Telling ATS about new session */
-    GNUNET_ATS_address_in_use (GST_ats,
-                               n->primary_address.address,
-                               n->primary_address.session,
-                               GNUNET_YES);
+    GST_ats_set_in_use (n->primary_address.address,
+                        n->primary_address.session,
+                        GNUNET_YES);
     GST_validation_set_address_use (n->primary_address.address,
                                     n->primary_address.session,
                                     GNUNET_YES);

@@ -254,11 +254,8 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
                    "Telling ATS about new session %p for peer %s\n",
                    session,
                    GNUNET_i2s (&address->peer));
-  // FIXME: tell ATS API, but not using this call:
-  GNUNET_ATS_address_update (ai->ar,
-                             session,
-                             NULL, 0);
-
+  GNUNET_ATS_address_add_session (ai->ar,
+                                  session);
 }
 
 
@@ -300,14 +297,12 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
                    "Telling ATS to destroy session %p from peer %s\n",
                    session,
                    GNUNET_i2s (&address->peer));
-  /* FIXME: if this was an *inbound* address, destroy it
-     FULLY here well; but use different API, as looking up
-     inbound address without session is not great... */
-  GNUNET_ATS_address_destroyed (GST_ats, address, session);
   if (GNUNET_YES ==
-      GNUNET_HELLO_address_check_option (address,
-                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+      GNUNET_ATS_address_del_session (ai->ar, session))
+  {
+    ai->ar = NULL;
     GST_ats_expire_address (address);
+  }
 }
 
 
@@ -355,9 +350,32 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
                                                  ats,
                                                  ats_count);
   GNUNET_ATS_address_update (ai->ar,
-                             session,
                              ats_new, ats_count);
   GNUNET_free_non_null (ats_new);
+}
+
+
+/**
+ * Notify ATS about a new session now being in use (or not).
+ *
+ * @param address the address
+ * @param session the session
+ * @param in_use #GNUNET_YES or #GNUNET_NO
+ */
+void
+GST_ats_set_in_use (const struct GNUNET_HELLO_Address *address,
+                    struct Session *session,
+                    int in_use)
+{
+  struct AddressInfo *ai;
+
+  ai = find_ai (address, session);
+  if (NULL == ai)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_ATS_address_set_in_use (ai->ar, in_use);
 }
 
 
@@ -388,7 +406,8 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                    "transport-ats",
                    "Telling ATS to destroy address from peer %s\n",
                    GNUNET_i2s (&address->peer));
-  GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
+  if (NULL != ai->ar)
+    GNUNET_ATS_address_destroy (ai->ar);
   GNUNET_HELLO_address_free (ai->address);
   GNUNET_free (ai);
 }

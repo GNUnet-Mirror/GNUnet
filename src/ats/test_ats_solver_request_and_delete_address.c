@@ -85,6 +85,10 @@ struct GNUNET_ATS_Information test_ats_info[2];
  */
 static uint32_t test_ats_count;
 
+/**
+ * The address we will delete.
+ */
+static struct GNUNET_ATS_AddressRecord *ar;
 
 static int address_deleted = GNUNET_NO;
 
@@ -152,7 +156,8 @@ address_suggest_cb (void *cls,
         "Received sugggestion for peer `%s', deleting address\n",
         GNUNET_i2s (&address->peer));
     address_deleted = GNUNET_YES;
-    GNUNET_ATS_address_destroyed (sched_ats, &test_hello_address, NULL);
+    GNUNET_ATS_address_destroy (ar);
+    ar = NULL;
   }
   else
   {
@@ -231,9 +236,9 @@ run (void *cls,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address,
-                          NULL,
-                          test_ats_info, test_ats_count);
+  ar = GNUNET_ATS_address_add (sched_ats, &test_hello_address,
+                               NULL,
+                               test_ats_info, test_ats_count);
 }
 
 

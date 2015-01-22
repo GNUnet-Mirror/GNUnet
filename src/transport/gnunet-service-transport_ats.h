@@ -79,6 +79,19 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
 
 
 /**
+ * Notify ATS about a new session now being in use (or not).
+ *
+ * @param address the address
+ * @param session the session
+ * @param in_use #GNUNET_YES or #GNUNET_NO
+ */
+void
+GST_ats_set_in_use (const struct GNUNET_HELLO_Address *address,
+                    struct Session *session,
+                    int in_use);
+
+
+/**
  * Notify ATS about property changes to an address
  *
  * @param address the address

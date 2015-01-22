@@ -46,6 +46,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
 /**
+ * Our address record.
+ */
+static struct GNUNET_ATS_AddressRecord *ar;
+
+/**
  * Return value
  */
 static int ret;
@@ -139,9 +144,8 @@ stat_cb (void *cls, const char *subsystem,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Statistics observed address added, now destroying address\n");
-    GNUNET_ATS_address_destroyed (sched_ats,
-                                  &test_hello_address,
-                                  test_session);
+    GNUNET_ATS_address_destroy (ar);
+    ar = NULL;
   }
   return GNUNET_OK;
 }
@@ -211,11 +215,11 @@ got_initial_value (void *cls,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats,
-                          &test_hello_address,
-                          test_session,
-                          test_ats_info,
-                          test_ats_count);
+  ar = GNUNET_ATS_address_add (sched_ats,
+                               &test_hello_address,
+                               test_session,
+                               test_ats_info,
+                               test_ats_count);
 }
 
 
