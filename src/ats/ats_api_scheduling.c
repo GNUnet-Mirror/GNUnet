@@ -22,6 +22,14 @@
  * @brief automatic transport selection and outbound bandwidth determination
  * @author Christian Grothoff
  * @author Matthias Wachs
+ *
+ * TODO:
+ * - we could avoid a linear scan over the
+ *   active addresses in some cases, so if
+ *   there is need, we can still optimize here
+ * - we might want to split off the logic to
+ *   determine LAN vs. WAN, as it has nothing
+ *   to do with accessing the ATS service.
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -40,11 +48,9 @@
 
 
 /**
- * Information we track per address.
- * FIXME: but what about *incoming* connections?
- *        "address" tells us about those, those
- *        are only valid while we have a session.
- *        Need to clarify all this!!!
+ * Information we track per address, incoming or outgoing.  It also
+ * doesn't matter if we have a session, any address that ATS is
+ * allowed to suggest right now should be tracked.
  */
 struct GNUNET_ATS_AddressRecord
 {
@@ -86,15 +92,16 @@ struct GNUNET_ATS_AddressRecord
   uint32_t slot;
 
   /**
-   * Is this address currently in use?
-   * FIXME: document what "in use" means, and why it
-   * is important!
+   * Is this address currently in use?  In use means
+   * that the transport service will use this address
+   * for sending.
    */
   int in_use;
 
   /**
    * We're about to destroy this address record, just ATS does
-   * not know this yet.
+   * not know this yet.  Once ATS confirms its destruction,
+   * we can clean up.
    */
   int in_destroy;
 };
@@ -104,7 +111,10 @@ struct GNUNET_ATS_AddressRecord
  * We keep a list of our local networks so we can answer
  * LAN vs. WAN questions.  Note: WLAN is not detected yet.
  * (maybe we can do that heuristically based on interface
- * name in the future?)
+ * name in the future?).
+ *
+ * FIXME: should this be part of the ATS scheduling API?
+ * Seems to be more generic and independent of ATS.
  */
 struct ATS_Network
 {
@@ -429,7 +439,8 @@ process_ats_session_release_message (void *cls,
   const struct SessionReleaseMessage *srm;
 
   srm = (const struct SessionReleaseMessage *) msg;
-  /* FIXME: peer field in srm not necessary anymore */
+  /* Note: peer field in srm not necessary right now,
+     but might be good to have in the future */
   release_session (sh,
                    ntohl (srm->session_id));
 }

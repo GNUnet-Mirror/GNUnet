@@ -267,6 +267,32 @@ struct AddressDestroyedMessage
 
 
 /**
+ * Message sent by ATS service to client to confirm that it is done
+ * using the given session ID.
+ */
+struct SessionReleaseMessage
+{
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number the client used to identify the session.
+   */
+  uint32_t session_id GNUNET_PACKED;
+
+  /**
+   * Which peer is this about? (Technically redundant, as the
+   * @e session_id should be sufficient, but may enable client
+   * to find the session faster).
+   */
+  struct GNUNET_PeerIdentity peer;
+};
+
+
+
+/**
  * ATS Service suggests to the transport service to use the address
  * identified by the given @e session_id for the given @e peer with
  * the given @e bandwidth_in and @e bandwidth_out limits from now on.
@@ -373,19 +399,6 @@ struct ReservationRequestMessage
   struct GNUNET_PeerIdentity peer;
 };
 
-
-/**
- * Message sent by ATS service to client to confirm that it is done
- * using the given session ID.
- */
-struct SessionReleaseMessage
-{
-  struct GNUNET_MessageHeader header;
-
-  uint32_t session_id GNUNET_PACKED;
-
-  struct GNUNET_PeerIdentity peer;
-};
 
 
 struct ReservationResultMessage
