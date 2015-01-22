@@ -70,22 +70,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  */
 static struct GNUNET_PeerIdentity *own_identity;
 
-/**
- * Closure to the callback cadet calls on each peer it passes to us
- */
-struct init_peer_cls
-{
-  /**
-   * The server handle to later listen to client requests
-   */
-  struct GNUNET_SERVER_Handle *server;
-
-  /**
-   * Counts how many peers cadet already passed to us
-   */
-  uint32_t i;
-};
-
 
   struct GNUNET_PeerIdentity *
 get_rand_peer (const struct GNUNET_PeerIdentity *peer_list, unsigned int size);
@@ -122,6 +106,29 @@ enum PeerFlags
   LIVING                = 0x10
 };
 
+
+/**
+ * Functions of this type can be used to be stored at a peer for later execution.
+ */
+typedef void (* PeerOp) (void *cls, const struct GNUNET_PeerIdentity *peer);
+
+/**
+ * Outstanding operation on peer consisting of callback and closure
+ */
+struct PeerOutstandingOp
+{
+  /**
+   * Callback
+   */
+  PeerOp op;
+
+  /**
+   * Closure
+   */
+  void *op_cls;
+};
+
+
 /**
  * Struct used to keep track of other peer's status
  *
@@ -148,6 +155,17 @@ struct PeerContext
    * Channel open from client.
    */
   struct GNUNET_CADET_Channel *recv_channel; // unneeded?
+
+  /**
+   * Array of outstanding operations on this peer.
+   */
+  struct PeerOutstandingOp *outstanding_ops;
+
+  /**
+   * Number of outstanding operations.
+   */
+  unsigned int num_outstanding_ops;
+  //size_t num_outstanding_ops;
 
   /**
    * This is pobably followed by 'statistical' data (when we first saw
@@ -310,6 +328,12 @@ static struct GNUNET_TIME_Relative request_deltas[REQUEST_DELTAS_SIZE];
 static struct GNUNET_TIME_Relative  request_rate;
 
 
+/**
+ * Number of history update tasks.
+ */
+uint32_t num_hist_update_tasks;
+
+
 /***********************************************************************
  * /Globals
 ***********************************************************************/
@@ -398,10 +422,28 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
     ctx->mq = NULL;
     ctx->send_channel = NULL;
     ctx->recv_channel = NULL;
+    ctx->outstanding_ops = NULL;
+    ctx->num_outstanding_ops = 0;
     (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   return ctx;
+}
+
+
+/**
+ * Put random peer from sampler into the gossip list as history update.
+ */
+  void
+hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
+{
+  GNUNET_assert (1 == num_peers);
+
+  if (gossip_list_size < sampler_size_est_need)
+    GNUNET_array_append (gossip_list, gossip_list_size, *ids);
+
+  if (0 < num_hist_update_tasks)
+    num_hist_update_tasks--;
 }
 
 
@@ -422,6 +464,15 @@ peer_is_live (void *cls, size_t size, void *buf)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %s is live\n", GNUNET_i2s (peer));
 
+  if (0 != peer_ctx->num_outstanding_ops)
+  { /* Call outstanding operations */
+    unsigned int i;
+
+    for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
+      peer_ctx->outstanding_ops[i].op (peer_ctx->outstanding_ops[i].op_cls, peer);
+    GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
+  }
+
   GNUNET_free (peer);
 
   buf = NULL;
@@ -437,7 +488,7 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
              const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *ctx;
-  //struct GNUNET_PeerIdentity *tmp_peer;
+  struct GNUNET_PeerIdentity *tmp_peer;
 
   ctx = get_peer_ctx (peer_map, peer);
   if (NULL == ctx->send_channel)
@@ -446,11 +497,14 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
                                                      GNUNET_RPS_CADET_PORT,
                                                      GNUNET_CADET_OPTION_RELIABLE);
 
-    //tmp_peer = GNUNET_new (struct GNUNET_PeerIdentity);
-    //*tmp_peer = *peer;
-    //(void) GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
-    //                                         GNUNET_TIME_UNIT_FOREVER_REL,
-    //                                         0, peer_is_live, tmp_peer);
+    if (NULL == ctx->recv_channel)
+    {
+      tmp_peer = GNUNET_new (struct GNUNET_PeerIdentity);
+      *tmp_peer = *peer;
+      (void) GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 0, peer_is_live, tmp_peer);
+    }
 
     // do I have to explicitly put it in the peer_map?
     (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
@@ -509,16 +563,91 @@ T_relative_sum (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
   struct GNUNET_TIME_Relative
 T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
 {
-  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array, arr_size), arr_size); // FIXME find a way to devide that by arr_size
+  return GNUNET_TIME_relative_divide (T_relative_sum (rel_array, arr_size), arr_size);
 }
 
 
-/***********************************************************************
- * /Util functions
-***********************************************************************/
+/**
+ * Insert PeerID in #pull_list
+ *
+ * Called once we know a peer is live.
+ */
+  void
+insert_in_pull_list (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  if (GNUNET_NO == in_arr (pull_list, pull_list_size, peer))
+    GNUNET_array_append (pull_list, pull_list_size, *peer);
+}
 
 /**
- * Wrapper around _sampler_resize()
+ * Check whether #insert_in_pull_list was already scheduled
+ */
+  int
+insert_in_pull_list_scheduled (const struct PeerContext *peer_ctx)
+{
+  unsigned int i;
+
+  for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
+    if (insert_in_pull_list == peer_ctx->outstanding_ops[i].op)
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Insert PeerID in #gossip_list
+ *
+ * Called once we know a peer is live.
+ */
+  void
+insert_in_gossip_list (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  if (GNUNET_NO == in_arr (gossip_list, gossip_list_size, peer))
+    GNUNET_array_append (gossip_list, gossip_list_size, *peer);
+}
+
+/**
+ * Check whether #insert_in_pull_list was already scheduled
+ */
+  int
+insert_in_gossip_list_scheduled (const struct PeerContext *peer_ctx)
+{
+  unsigned int i;
+
+  for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
+    if (insert_in_gossip_list == peer_ctx->outstanding_ops[i].op)
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
+ * Update sampler with given PeerID.
+ */
+  void
+insert_in_sampler (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  RPS_sampler_update_list (peer);
+}
+
+/**
+ * Check whether #insert_in_sampler was already scheduled
+ */
+  int
+insert_in_sampler_scheduled (const struct PeerContext *peer_ctx)
+{
+  unsigned int i;
+
+  for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
+    if (insert_in_sampler== peer_ctx->outstanding_ops[i].op)
+      return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+
+/**
+ * Wrapper around #RPS_sampler_resize()
  */
   void
 resize_wrapper ()
@@ -543,6 +672,10 @@ resize_wrapper ()
   }
 }
 
+
+/***********************************************************************
+ * /Util functions
+***********************************************************************/
 
 /**
  * Function called by NSE.
@@ -660,7 +793,7 @@ handle_client_request (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested %" PRIX32 " random peer(s).\n", num_peers);
 
-  RPS_sampler_get_n_rand_peers (client_respond, client, num_peers);
+  RPS_sampler_get_n_rand_peers (client_respond, client, num_peers, GNUNET_YES);
 
   GNUNET_SERVER_receive_done (client,
 			      GNUNET_OK);
@@ -806,6 +939,8 @@ handle_peer_pull_reply (void *cls,
 
   struct GNUNET_RPS_P2P_PullReplyMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
+  struct PeerContext *peer_ctx;
+  struct PeerOutstandingOp out_op;
   uint32_t i;
 
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
@@ -828,8 +963,19 @@ handle_peer_pull_reply (void *cls,
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
   {
-    if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
-      GNUNET_array_append (pull_list, pull_list_size, peers[i]);
+    peer_ctx = get_peer_ctx (peer_map, &peers[i]);
+
+    if ((0 != (peer_ctx->peer_flags && LIVING)) ||
+        NULL != peer_ctx->recv_channel)
+    {
+      if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
+        GNUNET_array_append (pull_list, pull_list_size, peers[i]);
+    }
+    else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
+    {
+      out_op.op = insert_in_pull_list;
+      GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
+    }
   }
 
   // TODO check that id is valid - whether it is reachable
@@ -865,44 +1011,50 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Send PUSHes */
   //n_arr = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) gossip_list_size);
-  n_peers = round (alpha * gossip_list_size);
-  if (0 == n_peers)
-    n_peers = 1;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
-      n_peers, alpha, gossip_list_size);
-  for ( i = 0 ; i < n_peers ; i++ )
+  if (0 != gossip_list_size)
   {
-    peer = get_rand_peer (gossip_list, gossip_list_size);
-    if (own_identity != peer)
-    { // FIXME if this fails schedule/loop this for later
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
+    n_peers = round (alpha * gossip_list_size);
+    if (0 == n_peers)
+      n_peers = 1;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
+        n_peers, alpha, gossip_list_size);
+    for ( i = 0 ; i < n_peers ; i++ )
+    {
+      peer = get_rand_peer (gossip_list, gossip_list_size);
+      if (own_identity != peer)
+      { // FIXME if this fails schedule/loop this for later
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
-      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-      // FIXME sometimes it returns a pointer to a freed mq
-      mq = get_mq (peer_map, peer);
-      GNUNET_MQ_send (mq, ev);
+        ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
+        // FIXME sometimes it returns a pointer to a freed mq
+        mq = get_mq (peer_map, peer);
+        GNUNET_MQ_send (mq, ev);
+      }
     }
   }
 
 
   /* Send PULL requests */
   //n_arr = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
-  n_peers = round (beta * gossip_list_size);
-  if (0 == n_peers)
-    n_peers = 1;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %u (%f * %u) peers.\n",
-      n_peers, beta, gossip_list_size);
-  for ( i = 0 ; i < n_peers ; i++ )
+  if (0 != gossip_list_size)
   {
-    peer = get_rand_peer (gossip_list, gossip_list_size);
-    if (own_identity != peer)
-    { // FIXME if this fails schedule/loop this for later
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
+    n_peers = round (beta * gossip_list_size);
+    if (0 == n_peers)
+      n_peers = 1;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %u (%f * %u) peers.\n",
+        n_peers, beta, gossip_list_size);
+    for ( i = 0 ; i < n_peers ; i++ )
+    {
+      peer = get_rand_peer (gossip_list, gossip_list_size);
+      if (own_identity != peer)
+      { // FIXME if this fails schedule/loop this for later
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
-      ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-      //pull_msg = NULL;
-      mq = get_mq (peer_map, peer);
-      GNUNET_MQ_send (mq, ev);
+        ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
+        //pull_msg = NULL;
+        mq = get_mq (peer_map, peer);
+        GNUNET_MQ_send (mq, ev);
+      }
     }
   }
 
@@ -914,14 +1066,16 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        push_list_size != 0 &&
        pull_list_size != 0 )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list. ()\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list.\n");
 
     uint32_t first_border;
     uint32_t second_border;
     
-    GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size_est_need);
+    first_border = round (alpha * sampler_size_est_need);
+    second_border = first_border + round (beta * sampler_size_est_need);
 
-    first_border = round (alpha * gossip_list_size);
+    GNUNET_array_grow (gossip_list, gossip_list_size, second_border);
+
     for ( i = 0 ; i < first_border ; i++ )
     { // TODO use RPS_sampler_get_n_rand_peers
       /* Update gossip list with peers received through PUSHes */
@@ -931,7 +1085,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       // TODO change the peer_flags accordingly
     }
 
-    second_border = first_border + round (beta * gossip_list_size);
     for ( i = first_border ; i < second_border ; i++ )
     {
       /* Update gossip list with peers received through PULLs */
@@ -944,8 +1097,8 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for ( i = second_border ; i < gossip_list_size ; i++ )
     {
       /* Update gossip list with peers from history */
-      peer = RPS_sampler_get_n_rand_peers_ (1);
-      gossip_list[i] = *peer;
+      RPS_sampler_get_n_rand_peers (hist_update, NULL, 1, GNUNET_NO);
+      num_hist_update_tasks++;
       // TODO change the peer_flags accordingly
     }
 
@@ -1058,37 +1211,38 @@ init_peer_cb (void *cls,
               unsigned int best_path) // "How long is the best path?
                                       // (0 = unknown, 1 = ourselves, 2 = neighbor)"
 {
-  struct init_peer_cls *ipc;
+  struct GNUNET_SERVER_Handle *server;
+  struct PeerOutstandingOp out_op;
+  struct PeerContext *peer_ctx;
 
-  ipc = (struct init_peer_cls *) cls;
+  server = (struct GNUNET_SERVER_Handle *) cls;
   if ( NULL != peer )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Got %" PRIX32 ". peer %s (at %p) from CADET (gossip_list_size: %u)\n",
-        ipc->i, GNUNET_i2s (peer), peer, gossip_list_size);
-    RPS_sampler_update_list (peer);
-    (void) get_peer_ctx (peer_map, peer); // unneeded? -> insertCB
+        "Got peer %s (at %p) from CADET (gossip_list_size: %u)\n",
+        GNUNET_i2s (peer), peer, gossip_list_size);
 
-    if (ipc->i < gossip_list_size)
+    // maybe create a function for that
+    peer_ctx = get_peer_ctx (peer_map, peer);
+    if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
     {
-      gossip_list[ipc->i] = *peer; // FIXME sometimes we're writing to invalid space here
-                                   // not sure whether fixed
-      ipc->i++;
+      out_op.op = insert_in_sampler;
+      GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
     }
+
+    if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
+    {
+      out_op.op = insert_in_gossip_list;
+      GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
+    }
+
+    /* Issue livelyness test on peer */
+    (void) get_channel (peer_map, peer);
 
     // send push/pull to each of those peers?
   }
   else
-  {
-    if (ipc->i < gossip_list_size)
-    {
-      memcpy (&gossip_list[ipc->i],
-          RPS_sampler_get_n_rand_peers_ (1),
-          (gossip_list_size - ipc->i) * sizeof (struct GNUNET_PeerIdentity));
-    }
-    rps_start (ipc->server);
-    GNUNET_free (ipc);
-  }
+    rps_start (server);
 }
 
 
@@ -1236,6 +1390,7 @@ cleanup_channel (void *cls,
   (void) peer_remove_cb (peer, peer, peer_ctx);
 }
 
+
 /**
  * Actually start the service.
  */
@@ -1255,6 +1410,8 @@ rps_start (struct GNUNET_SERVER_Handle *server)
 				   NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Ready to receive requests from clients\n");
 
+
+  num_hist_update_tasks = 0;
 
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
@@ -1283,7 +1440,6 @@ run (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS started\n");
 
-  struct init_peer_cls *ipc;
 
   cfg = c;
 
@@ -1316,16 +1472,13 @@ run (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", sampler_size_est_need);
 
-  //gossip_list_size = sampler_size; // TODO rename sampler_size
 
   gossip_list = NULL;
-  GNUNET_array_grow (gossip_list, gossip_list_size, sampler_size_est_need);
 
 
   /* connect to NSE */
   nse = GNUNET_NSE_connect (cfg, nse_callback, NULL);
   // TODO check whether that was successful
-  // TODO disconnect on shutdown
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to NSE\n");
 
 
@@ -1383,7 +1536,7 @@ run (void *cls,
   half_round_interval = GNUNET_TIME_relative_multiply (round_interval, .5);
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
-  RPS_sampler_init (sampler_size_est_need, own_identity, max_round_interval,
+  RPS_sampler_init (sampler_size_est_need, max_round_interval,
       insertCB, NULL, removeCB, NULL);
   sampler_size = sampler_size_est_need;
 
@@ -1394,11 +1547,8 @@ run (void *cls,
   pull_list_size = 0;
 
 
-  ipc = GNUNET_new (struct init_peer_cls);
-  ipc->server = server;
-  ipc->i = 0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
-  GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, ipc);
+  GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, server);
 
   // TODO send push/pull to each of those peers?
 }

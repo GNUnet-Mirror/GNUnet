@@ -89,7 +89,6 @@ RPS_sampler_resize (unsigned int new_size);
  */
   void
 RPS_sampler_init (size_t init_size,
-    const struct GNUNET_PeerIdentity *id,
     struct GNUNET_TIME_Relative max_round_interval,
     RPS_sampler_insert_cb ins_cb, void *ins_cls,
     RPS_sampler_remove_cb rem_cb, void *rem_cls);
@@ -121,26 +120,16 @@ RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id);
  * We might want to reinitialise this sampler after giving the
  * corrsponding peer to the client.
  * Random with or without consumption?
- * Only used internally
- */
-  const struct GNUNET_PeerIdentity *
-RPS_sampler_get_n_rand_peers_ (uint32_t n);
-
-
-/**
- * Get n random peers out of the sampled peers.
- *
- * We might want to reinitialise this sampler after giving the
- * corrsponding peer to the client.
- * Random with or without consumption?
  *
  * @param cb callback that will be called once the ids are ready.
  * @param cls closure given to @a cb
+ * @param for_client #GNUNET_YES if result is used for client,
+ *                   #GNUNET_NO if used internally
  * @param num_peers the number of peers requested
  */
     void
 RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
-    void *cls, uint32_t num_peers);
+    void *cls, uint32_t num_peers, int for_client);
 
 
 /**
