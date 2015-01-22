@@ -1040,101 +1040,18 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
 
 
 /**
- * Closure for #destroy_by_session_id().
- */
-struct DestroyContext
-{
-  /**
-   * FIXME.
-   */
-  struct ATS_Address *aa;
-
-  /**
-   * FIXME.
-   */
-  struct GAS_Addresses_Handle *handle;
-
-  /**
-   * #GNUNET_NO  : full address
-   * #GNUNET_YES : just session
-   */
-  int result;
-};
-
-
-/**
- * Delete an address.
- *
- * @param cls unused
- * @param key unused
- * @param value the `struct ATS_Address *`
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-destroy_by_session_id (void *cls,
-		       const struct GNUNET_PeerIdentity *key,
-		       void *value)
-{
-  struct DestroyContext *dc = cls;
-  struct GAS_Addresses_Handle *handle = dc->handle;
-  const struct ATS_Address *des = dc->aa;
-  struct ATS_Address *aa = value;
-
-  GNUNET_assert (0 ==
-                 memcmp (&aa->peer,
-                         &des->peer,
-                         sizeof (struct GNUNET_PeerIdentity)));
-  if ( (0 != strcmp (des->plugin, aa->plugin)) ||
-       (aa->addr_len != des->addr_len) ||
-       (0 != memcmp (des->addr, aa->addr, aa->addr_len)))
-    return GNUNET_OK; /* wrong entry */
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Deleting full address for peer `%s' session %u %p\n",
-              GNUNET_i2s (&aa->peer),
-              aa->session_id,
-              aa);
-  /* Notify solver about deletion */
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
-                                                       &aa->peer,
-                                                       aa));
-  handle->env.sf.s_del (handle->solver, aa, GNUNET_NO);
-  GAS_performance_notify_all_clients (&aa->peer,
-                                      aa->plugin,
-                                      aa->addr,
-                                      aa->addr_len,
-                                      GNUNET_SYSERR,
-                                      NULL, 0,
-                                      zero_bw,
-                                      zero_bw);
-  free_address (aa);
-  dc->result = GNUNET_NO;
-  return GNUNET_OK; /* Continue iteration */
-}
-
-
-/**
  * Remove an address or just a session for a peer.
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address in @a plugin_addr
- * @param local_address_info the local address for the address
  * @param session_id session id, can never be 0
  */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
                        const struct GNUNET_PeerIdentity *peer,
-                       const char *plugin_name,
-                       const void *plugin_addr,
-                       size_t plugin_addr_len,
-                       uint32_t local_address_info,
                        uint32_t session_id)
 {
   struct ATS_Address *ea;
-  struct DestroyContext dc;
 
   if (GNUNET_NO == handle->running)
     return;
@@ -1147,9 +1064,8 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
+                "Tried to destroy unknown address for peer `%s' session id %u\n",
                 GNUNET_i2s (peer),
-                plugin_name,
                 session_id);
     return;
   }
@@ -1160,22 +1076,24 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
               GNUNET_i2s (peer),
               ea,
               session_id);
-  GNUNET_break (0 < strlen (plugin_name));
-  dc.handle = handle;
-  dc.aa = create_address (peer,
-                          plugin_name,
-                          plugin_addr,
-                          plugin_addr_len,
-                          local_address_info,
-                          session_id);
-  GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
-					      peer,
-					      &destroy_by_session_id, &dc);
+  GNUNET_CONTAINER_multipeermap_remove (handle->addresses,
+                                        peer,
+                                        ea);
+
+  handle->env.sf.s_del (handle->solver, ea, GNUNET_NO);
+  GAS_performance_notify_all_clients (peer,
+                                      ea->plugin,
+                                      ea->addr,
+                                      ea->addr_len,
+                                      GNUNET_SYSERR,
+                                      NULL, 0,
+                                      zero_bw,
+                                      zero_bw);
+  free_address (ea);
   GNUNET_STATISTICS_set (handle->stat,
                          "# addresses",
                          GNUNET_CONTAINER_multipeermap_size (handle->addresses),
                          GNUNET_NO);
-  free_address (dc.aa);
 }
 
 

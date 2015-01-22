@@ -1393,43 +1393,16 @@ GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar)
   struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
   struct GNUNET_MQ_Envelope *ev;
   struct AddressDestroyedMessage *m;
-  char *pm;
-  size_t namelen;
-  size_t msize;
 
   GNUNET_break (NULL == ar->session);
-  GNUNET_assert (NULL != ar->address->transport_name);
-  namelen = strlen (ar->address->transport_name) + 1;
-  GNUNET_assert (namelen > 1);
-  msize = ar->address->address_length + namelen;
-  if ((msize + sizeof (struct AddressDestroyedMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (ar->address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE))
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);
+  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);
+  m->session_id = htonl (ar->slot);
   m->peer = ar->address->peer;
-  m->address_length = htons (ar->address->address_length);
-  m->address_local_info = htonl ((uint32_t) ar->address->local_info);
-  m->plugin_name_length = htons (namelen);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deleting address for peer `%s', plugin `%s', session %p\n",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
               ar->session);
-
-  m->session_id = htonl (ar->slot);
-  pm = (char *) &m[1];
-  memcpy (pm,
-          ar->address->address,
-          ar->address->address_length);
-  memcpy (&pm[ar->address->address_length],
-          ar->address->transport_name,
-          namelen);
   GNUNET_MQ_send (sh->mq, ev);
   ar->session = NULL;
   ar->in_destroy = GNUNET_YES;

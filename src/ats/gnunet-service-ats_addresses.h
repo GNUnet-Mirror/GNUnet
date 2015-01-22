@@ -506,19 +506,11 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
  *
  * @param handle the address handle to use
  * @param peer peer
- * @param plugin_name transport plugin name
- * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address in @a plugin_addr
  * @param session_id session id, can never be 0
- * @param local_address_info the local address for the address
  */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
                        const struct GNUNET_PeerIdentity *peer,
-                       const char *plugin_name,
-                       const void *plugin_addr,
-                       size_t plugin_addr_len,
-                       uint32_t local_address_info,
                        uint32_t session_id);
 
 

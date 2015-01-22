@@ -393,56 +393,17 @@ GAS_handle_address_destroyed (void *cls,
 {
   const struct AddressDestroyedMessage *m;
   struct SessionReleaseMessage srm;
-  const char *address;
-  const char *plugin_name;
-  uint16_t address_length;
-  uint16_t plugin_name_length;
-  uint16_t size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message of size %u %u\n",
-              "ADDRESS_DESTROYED",
-              ntohs (message->size),
-              sizeof (struct AddressDestroyedMessage));
-  size = ntohs (message->size);
-  if ((size < sizeof (struct AddressDestroyedMessage)) || (client != my_client))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   m = (const struct AddressDestroyedMessage *) message;
-  GNUNET_break (0 == ntohl (m->reserved));
-  address_length = ntohs (m->address_length);
-  plugin_name_length = ntohs (m->plugin_name_length);
-  address = (const char *) &m[1];
-  if (plugin_name_length != 0)
-    plugin_name = &address[address_length];
-  else
-    plugin_name = "";
-  if ((address_length + plugin_name_length +
-       sizeof (struct AddressDestroyedMessage) != ntohs (message->size)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  if ((0 == plugin_name_length) ||
-      (plugin_name[plugin_name_length - 1] != '\0'))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
+              "ADDRESS_DESTROYED");
   GNUNET_STATISTICS_update (GSA_stats,
                             "# addresses destroyed",
                             1,
                             GNUNET_NO);
   GAS_addresses_destroy (address_handle,
                          &m->peer,
-                         plugin_name,
-                         address, address_length,
-                         ntohl (m->address_local_info),
                          ntohl (m->session_id));
   srm.header.type = ntohs (GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE);
   srm.header.size = ntohs (sizeof (struct SessionReleaseMessage));
