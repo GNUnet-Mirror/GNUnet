@@ -709,6 +709,8 @@ RPS_sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
     void *cls, uint32_t num_peers, int for_client)
 {
+  GNUNET_assert (GNUNET_YES == for_client ||
+                 GNUNET_NO  == for_client);
   GNUNET_assert (0 != sampler->sampler_size);
 
   // TODO check if we have too much (distinct) sampled peers
