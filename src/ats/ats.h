@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -35,18 +35,36 @@
 enum StartFlag
 {
 
+  /**
+   * This is a scheduling client (aka transport service)
+   */
   START_FLAG_SCHEDULING = 0,
 
+  /**
+   * Performance monitoring client that wants to learn about
+   * changes in performance characteristics.
+   */
   START_FLAG_PERFORMANCE_WITH_PIC = 1,
 
+  /**
+   * Performance monitoring client that does NOT want to learn
+   * about changes in performance characteristics.
+   */
   START_FLAG_PERFORMANCE_NO_PIC = 2
 };
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/**
+ * First message any client sends to ATS, used to self-identify
+ * (what type of client this is).
+ */
 struct ClientStartMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_START.
+   */
   struct GNUNET_MessageHeader header;
 
   /**
@@ -56,21 +74,50 @@ struct ClientStartMessage
 };
 
 
+/**
+ * Scheduling client to ATS service: we would like to have
+ * address suggestions for this peer.
+ */
 struct RequestAddressMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS or
+   * #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL to stop
+   * suggestions.
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Always zero.
+   */
   uint32_t reserved GNUNET_PACKED;
 
+  /**
+   * Peer to get address suggestions for.
+   */
   struct GNUNET_PeerIdentity peer;
 };
 
+
+/**
+ * Scheduling client to ATS service: reset backoff for
+ * address suggestions to this peer.
+ */
 struct ResetBackoffMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF.
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Always zero.
+   */
   uint32_t reserved GNUNET_PACKED;
 
+  /**
+   * Peer to reset backoff for.
+   */
   struct GNUNET_PeerIdentity peer;
 };
 
@@ -255,6 +302,8 @@ struct AddressSuggestionMessage
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
 };
+
+
 
 
 struct PeerInformationMessage
