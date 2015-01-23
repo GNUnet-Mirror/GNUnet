@@ -207,6 +207,7 @@ rps_connect_complete_cb (void *cls,
                                 request_peers, peer);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
                                 seed_peers, peer);
+  // TODO test seeding > GNUNET_SERVER_MAX_MESSAGE_SIZE peers
 }
 
 

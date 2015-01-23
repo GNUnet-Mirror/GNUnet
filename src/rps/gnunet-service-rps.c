@@ -38,8 +38,6 @@
 
 // TODO modify @brief in every file
 
-// TODO take care that messages are not longer than 64k
-
 // TODO check for overflows
 
 // TODO align message structs

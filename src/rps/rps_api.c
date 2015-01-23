@@ -228,10 +228,29 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
 GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
                      const struct GNUNET_PeerIdentity * ids)
 {
+  uint32_t size_needed;
+  uint32_t tmp_num_peers;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_SeedMessage *msg;
 
-  // FIXME was not able to find MAX size we are allowed to send
+  size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
+                n * sizeof (struct GNUNET_PeerIdentity);
+
+  while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
+  {
+    tmp_num_peers = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+        sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
+      sizeof (struct GNUNET_PeerIdentity);
+    n -= tmp_num_peers;
+    size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
+                  n * sizeof (struct GNUNET_PeerIdentity);
+
+    ev = GNUNET_MQ_msg_extra (msg, tmp_num_peers * sizeof (struct GNUNET_PeerIdentity),
+        GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
+    msg->num_peers = GNUNET_htonll (tmp_num_peers);
+    memcpy (&msg[1], ids, tmp_num_peers * sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_MQ_send (h->mq, ev);
+  }
 
   ev = GNUNET_MQ_msg_extra (msg, n * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
