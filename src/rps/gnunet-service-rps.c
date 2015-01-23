@@ -714,7 +714,7 @@ resize_wrapper ()
   else
     bigger_size = sampler_size_est_need;
 
-  // TODO respect the request rate, min, max
+  // TODO respect the min, max
   if (sampler_size > bigger_size*4)
   { /* Shrinking */
     RPS_sampler_resize (sampler_size/2);
@@ -813,9 +813,15 @@ void client_respond (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   struct GNUNET_SERVER_Client *client;
+  uint32_t size_needed;
   struct client_ctx *cli_ctx;
 
   client = (struct GNUNET_SERVER_Client *) cls;
+
+  size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
+                num_peers * sizeof (struct GNUNET_PeerIdentity);
+
+  GNUNET_assert (GNUNET_SERVER_MAX_MESSAGE_SIZE >= size_needed);
 
   ev = GNUNET_MQ_msg_extra (out_msg,
                             num_peers * sizeof (struct GNUNET_PeerIdentity),
@@ -852,11 +858,20 @@ handle_client_request (void *cls,
 {
   struct GNUNET_RPS_CS_RequestMessage *msg;
   uint32_t num_peers;
+  uint32_t size_needed;
   uint32_t i;
 
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
 
   num_peers = ntohl (msg->num_peers);
+  size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
+                num_peers * sizeof (struct GNUNET_PeerIdentity);
+
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
   for (i = 0 ; i < num_peers ; i++)
     est_request_rate();
@@ -961,6 +976,7 @@ handle_peer_pull_request (void *cls,
     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PeerIdentity *peer;
+  uint32_t send_size;
   struct GNUNET_MQ_Handle *mq;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
@@ -969,19 +985,33 @@ handle_peer_pull_request (void *cls,
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel,
                                                                        GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
+
+  /* Compute actual size */
+  send_size = sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) +
+              gossip_list_size * sizeof (struct GNUNET_PeerIdentity);
+
+  if (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < send_size)
+    /* Compute number of peers to send
+     * If too long, simply truncate */
+    send_size = (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE -
+                 sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+                 sizeof (struct GNUNET_PeerIdentity);
+  else
+    send_size = gossip_list_size;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "PULL REQUEST from peer %s received, going to send %u peers\n",
-      GNUNET_i2s (peer), gossip_list_size);
+      GNUNET_i2s (peer), send_size);
 
   mq = get_mq (peer_map, peer);
 
   ev = GNUNET_MQ_msg_extra (out_msg,
-                           gossip_list_size * sizeof (struct GNUNET_PeerIdentity),
+                           send_size * sizeof (struct GNUNET_PeerIdentity),
                            GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
   //out_msg->num_peers = htonl (gossip_list_size);
-  out_msg->num_peers = htonl (gossip_list_size);
+  out_msg->num_peers = htonl (send_size);
   memcpy (&out_msg[1], gossip_list,
-         gossip_list_size * sizeof (struct GNUNET_PeerIdentity));
+         send_size * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (mq, ev);
 
