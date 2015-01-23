@@ -421,13 +421,13 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
   struct GNUNET_PeerIdentity *tmp_peer_list;
   struct GNUNET_PeerIdentity *peer;
 
+  GNUNET_assert (NULL != peer_list);
+
   tmp_size = 0;
   tmp_peer_list = NULL;
   GNUNET_array_grow (tmp_peer_list, tmp_size, list_size);
   memcpy (tmp_peer_list, peer_list, list_size * sizeof (struct GNUNET_PeerIdentity));
   peer = GNUNET_new (struct GNUNET_PeerIdentity);
-  // FIXME if we have only NULL in gossip list this will block
-  // but then we might have a problem nevertheless
 
   do
   {
@@ -1105,16 +1105,12 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           n_peers, alpha, gossip_list_size);
       for ( i = 0 ; i < n_peers ; i++ )
       {
-        // TODO
-        //peer = get_rand_peer_ignore_list (gossip_list, gossip_list_size,
-        //                                  NULL, 0);
         peer = &gossip_list[permut[i]];
         if (own_identity != peer) // TODO
         { // FIXME if this fails schedule/loop this for later
           LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
           ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-          // FIXME sometimes it returns a pointer to a freed mq
           mq = get_mq (peer_map, peer);
           GNUNET_MQ_send (mq, ev);
         }
@@ -1418,6 +1414,7 @@ handle_client_disconnect (void *cls,
 {
 }
 
+
 /**
  * Handle the channel a peer opens to us.
  *
@@ -1450,15 +1447,17 @@ handle_inbound_channel (void *cls,
     ctx->recv_channel = channel;
   }
 
-  // FIXME there might already be an established channel
+  ctx->peer_flags |= LIVING;
 
   //ctx->peer_flags = IN_OTHER_GOSSIP_LIST;
-  ctx->mq = NULL; // TODO create mq?
+  ctx->mq = NULL;
 
   (void) GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+
   return NULL; // TODO
 }
+
 
 /**
  * This is called when a remote peer destroys a channel.
