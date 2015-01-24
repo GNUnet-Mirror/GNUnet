@@ -1286,7 +1286,7 @@ GNUNET_NETWORK_fdset_handle_set_first (struct GNUNET_NETWORK_FDSet *fds,
     GNUNET_array_grow (fds->handles,
                        fds->handles_size,
                        fds->handles_size * 2 + 2);
-  fds->handles[fds->handles_pos++] = h;
+  fds->handles[fds->handles_pos] = h;
   if (fds->handles[0] != h)
   {
     const struct GNUNET_DISK_FileHandle *bak = fds->handles[0];
