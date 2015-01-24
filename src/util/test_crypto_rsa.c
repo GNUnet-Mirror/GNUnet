@@ -49,6 +49,13 @@ main (int argc,
                       &hash);
   priv = GNUNET_CRYPTO_rsa_private_key_create (KEY_SIZE);
   pub = GNUNET_CRYPTO_rsa_private_key_get_public (priv);
+  /* Encoding */
+  size_t size;
+  char *enc;
+  enc = NULL;
+  size = GNUNET_CRYPTO_rsa_private_key_encode (priv, &enc);
+  GNUNET_free (enc);
+  
   /* try ordinary sig first */
   sig = GNUNET_CRYPTO_rsa_sign (priv,
                         &hash,

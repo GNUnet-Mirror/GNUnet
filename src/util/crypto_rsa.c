@@ -199,7 +199,7 @@ GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey 
                         NULL,
                         0);
   b = GNUNET_malloc (n);
-  GNUNET_assert (n ==
+  GNUNET_assert ((n - 1) ==     /* since the last byte is \0 */
                  gcry_sexp_sprint (key->sexp,
                                    GCRYSEXP_FMT_DEFAULT,
                                    b,
@@ -309,7 +309,7 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *k
                         NULL,
                         0);
   b = GNUNET_malloc (n);
-  GNUNET_assert (n ==
+  GNUNET_assert ((n -1) ==      /* since the last byte is \0 */
                  gcry_sexp_sprint (key->sexp,
                                    GCRYSEXP_FMT_ADVANCED,
                                    b,
@@ -636,7 +636,7 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *si
                         NULL,
                         0);
   b = GNUNET_malloc (n);
-  GNUNET_assert (n ==
+  GNUNET_assert ((n - 1) ==     /* since the last byte is \0 */
                  gcry_sexp_sprint (sig->sexp,
                                    GCRYSEXP_FMT_ADVANCED,
                                    b,
