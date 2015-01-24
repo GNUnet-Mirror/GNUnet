@@ -1912,7 +1912,7 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
     ftype = GNUNET_DISK_HANLDE_TYPE_PIPE;
     break;
   case FILE_TYPE_UNKNOWN:
-    if (GetLastError () == NO_ERROR)
+    if (GetLastError () == NO_ERROR || GetLastError () == ERROR_INVALID_HANDLE)
     {
       if (0 != ResetEvent (osfh))
         ftype = GNUNET_DISK_HANLDE_TYPE_EVENT;
