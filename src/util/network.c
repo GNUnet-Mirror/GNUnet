@@ -1273,6 +1273,34 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 
 
 /**
+ * Add a file handle to the fd set
+ * @param fds fd set
+ * @param h the file handle to add
+ */
+void
+GNUNET_NETWORK_fdset_handle_set_first (struct GNUNET_NETWORK_FDSet *fds,
+                                       const struct GNUNET_DISK_FileHandle *h)
+{
+#ifdef MINGW
+  if (fds->handles_pos == fds->handles_size)
+    GNUNET_array_grow (fds->handles,
+                       fds->handles_size,
+                       fds->handles_size * 2 + 2);
+  fds->handles[fds->handles_pos++] = h;
+  if (fds->handles[0] != h)
+  {
+    const struct GNUNET_DISK_FileHandle *bak = fds->handles[0];
+    fds->handles[0] = h;
+    fds->handles[fds->handles_pos] = bak;
+  }
+  fds->handles_pos++;
+#else
+  GNUNET_NETWORK_fdset_handle_set (fds, h);
+#endif
+}
+
+
+/**
  * Check if a file handle is part of an fd set
  *
  * @param fds fd set
@@ -1717,10 +1745,14 @@ pipe_except_ready (struct GNUNET_DISK_FileHandle *fh)
  * @param except GNUNET_NO if fds should be checked for readiness to read,
  * GNUNET_YES if fds should be checked for exceptions
  * (there is no way to check for write-readiness - pipes are always write-ready)
+ * @param set_for_sure a HANDLE that is known to be set already,
+ * because WaitForMultipleObjects() returned its index.
  * @return number of ready handles
  */
 static int
-check_handles_status (struct GNUNET_NETWORK_FDSet *fds, int except)
+check_handles_status (struct GNUNET_NETWORK_FDSet *fds,
+                      int except,
+                      HANDLE set_for_sure)
 {
   struct GNUNET_DISK_FileHandle *fh;
   unsigned int roff;
@@ -1729,7 +1761,11 @@ check_handles_status (struct GNUNET_NETWORK_FDSet *fds, int except)
   for (woff = 0, roff = 0; roff < fds->handles_pos; roff++)
   {
     fh = fds->handles[roff];
-    if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
+    if (fh == set_for_sure)
+    {
+      fds->handles[woff++] = fh;
+    }
+    else if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
     {
       if ((except && pipe_except_ready (fh)) ||
           (!except && pipe_read_ready (fh)))
@@ -1899,14 +1935,14 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
     /* Read Pipes */
     if (rfds && (rfds->handles_pos > 0))
-      retcode += check_handles_status (rfds, GNUNET_NO);
+      retcode += check_handles_status (rfds, GNUNET_NO, NULL);
 
     /* wfds handles remain untouched, on W32
        we pretend our pipes are "always" write-ready */
 
     /* except pipes */
     if (efds && (efds->handles_pos > 0))
-      retcode += check_handles_status (efds, GNUNET_YES);
+      retcode += check_handles_status (efds, GNUNET_YES, NULL);
 
     if (rfds)
     {
@@ -2131,7 +2167,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
     /* We may have some pipes ready for reading. */
     if (returnedpos < read_pipes_off)
-      retcode += check_handles_status (rfds, GNUNET_NO);
+      retcode += check_handles_status (rfds, GNUNET_NO, handle_array[returnedpos]);
     else
       rfds->handles_pos = 0;
 
@@ -2147,7 +2183,9 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   }
   if (efds)
   {
-    retcode += check_handles_status (rfds, GNUNET_YES);
+    retcode += check_handles_status (rfds,
+                                     GNUNET_YES,
+                                     returnedpos < nhandles ? handle_array[returnedpos] : NULL);
     if (-1 != sp.status)
       GNUNET_NETWORK_fdset_copy_native (efds, &aexcept, retcode);
   }

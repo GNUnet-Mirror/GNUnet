@@ -515,6 +515,18 @@ GNUNET_NETWORK_fdset_handle_set (struct GNUNET_NETWORK_FDSet *fds,
 
 
 /**
+ * Add a file handle to the fd set
+ * On W32: ensure that the handle is first in the array.
+ *
+ * @param fds fd set
+ * @param h the file handle to add
+ */
+void
+GNUNET_NETWORK_fdset_handle_set_first (struct GNUNET_NETWORK_FDSet *fds,
+                                       const struct GNUNET_DISK_FileHandle *h);
+
+
+/**
  * Check if a file handle is part of an fd set
  *
  * @param fds fd set
