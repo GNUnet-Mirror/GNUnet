@@ -35,7 +35,7 @@ test_cb (void *cls, const char *libname, void *lib_ret)
   ret = GNUNET_PLUGIN_unload (libname, "out");
   GNUNET_assert (NULL != ret);
   GNUNET_assert (0 == strcmp (ret, "World"));
-  GNUNET_free (ret);
+  free (ret);
 }
 
 

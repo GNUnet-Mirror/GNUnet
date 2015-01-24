@@ -348,7 +348,7 @@ env_notify_address (void *cls,
     GNUNET_CONTAINER_DLL_insert(head, tail, w);
     got_reply = GNUNET_NO;
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Testing: address_to_string \n");
-    w->addrstring = strdup (
+    w->addrstring = GNUNET_strdup (
         api->address_to_string (api, w->address->address,
             w->address->address_length));
     if (NULL == w->addrstring)

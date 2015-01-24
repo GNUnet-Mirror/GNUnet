@@ -357,7 +357,7 @@ result_processor (void *cls,
 	  break;
 	case GNUNET_DNSPARSER_TYPE_CNAME:
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
-	  rec.data.hostname = strdup (rd[i].data);
+	  rec.data.hostname = GNUNET_strdup (rd[i].data);
 	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_CNAME;
 	  memcpy (rec.data.hostname,

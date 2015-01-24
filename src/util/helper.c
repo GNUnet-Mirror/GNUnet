@@ -498,7 +498,7 @@ GNUNET_HELPER_start (int with_control_pipe,
   if (NULL != strstr (binary_name, "gnunet"))
     h->binary_name = GNUNET_OS_get_libexec_binary_path (binary_name);
   else
-    h->binary_name = strdup (binary_name);
+    h->binary_name = GNUNET_strdup (binary_name);
   for (c = 0; NULL != binary_argv[c]; c++);
   h->binary_argv = GNUNET_malloc (sizeof (char *) * (c + 1));
   for (c = 0; NULL != binary_argv[c]; c++)

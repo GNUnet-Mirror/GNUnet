@@ -765,7 +765,7 @@ copy_argv (const char *const *argv)
   for (argp = 0; NULL != argv[argp]; argp++) ;
   argv_dup = GNUNET_malloc (sizeof (char *) * (argp + 1));
   for (argp = 0; NULL != argv[argp]; argp++)
-    argv_dup[argp] = strdup (argv[argp]);
+    argv_dup[argp] = GNUNET_strdup (argv[argp]);
   return argv_dup;
 }
 

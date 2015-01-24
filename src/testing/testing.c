@@ -1253,11 +1253,11 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
   {
     /* No prefix */
     GNUNET_asprintf(&peer->main_binary, "%s", libexec_binary);
-    peer->args = strdup ("");
+    peer->args = GNUNET_strdup ("");
   }
   else
   {
-    peer->args = strdup (libexec_binary);
+    peer->args = GNUNET_strdup (libexec_binary);
   }
   peer->system = system;
   peer->key_number = key_number;
@@ -1724,10 +1724,10 @@ GNUNET_TESTING_service_run (const char *testdir,
   {
     /* No prefix */
     GNUNET_asprintf(&peer->main_binary, "%s", libexec_binary);
-    peer->args = strdup ("");
+    peer->args = GNUNET_strdup ("");
   }
   else
-    peer->args = strdup (libexec_binary);
+    peer->args = GNUNET_strdup (libexec_binary);
 
   GNUNET_free (libexec_binary);
   GNUNET_free (binary);
