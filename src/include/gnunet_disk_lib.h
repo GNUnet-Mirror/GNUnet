@@ -36,6 +36,11 @@ struct GNUNET_DISK_PipeHandle;
 enum GNUNET_FILE_Type
 {
   /**
+   * Handle represents an event.
+   */
+  GNUNET_DISK_HANLDE_TYPE_EVENT,
+
+  /**
    * Handle represents a file.
    */
   GNUNET_DISK_HANLDE_TYPE_FILE,

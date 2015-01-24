@@ -1725,15 +1725,26 @@ check_handles_status (struct GNUNET_NETWORK_FDSet *fds, int except)
   struct GNUNET_DISK_FileHandle *fh;
   unsigned int roff;
   unsigned int woff;
-  int is_pipe;
 
   for (woff = 0, roff = 0; roff < fds->handles_pos; roff++)
   {
     fh = fds->handles[roff];
-    is_pipe = fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE;
-    if ((except && is_pipe && pipe_except_ready (fh)) ||
-        (!except && (!is_pipe || pipe_read_ready (fh))))
-      fds->handles[woff++] = fh;
+    if (fh->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
+    {
+      if ((except && pipe_except_ready (fh)) ||
+          (!except && pipe_read_ready (fh)))
+        fds->handles[woff++] = fh;
+    }
+    else if (fh->type == GNUNET_DISK_HANLDE_TYPE_FILE)
+    {
+      if (!except)
+        fds->handles[woff++] = fh;
+    }
+    else
+    {
+      if (WAIT_OBJECT_0 == WaitForSingleObject (fh, 0))
+        fds->handles[woff++] = fh;
+    }
   }
   fds->handles_pos = woff;
   return woff;
@@ -1951,6 +1962,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
     for (i = 0; i <rfds->handles_pos; i++)
     {
       fh = rfds->handles[i];
+      if (fh->type == GNUNET_DISK_HANLDE_TYPE_EVENT)
+      {
+        handle_array[nhandles++] = fh->h;
+        continue;
+      }
       if (fh->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
         continue;
       /* Read zero bytes to check the status of the pipe */

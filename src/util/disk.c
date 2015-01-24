@@ -854,7 +854,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
 #ifdef MINGW
   DWORD bytes_read;
 
-  if (h->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
+  if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
   {
     if (!ReadFile (h->h, result, len, &bytes_read, NULL))
     {
@@ -862,7 +862,7 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
   }
-  else
+  else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
     if (!ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
     {
@@ -876,6 +876,10 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
       GetOverlappedResult (h->h, h->oOverlapRead, &bytes_read, TRUE);
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from pipe\n", bytes_read);
+  }
+  else
+  {
+    bytes_read = 0;
   }
   return bytes_read;
 #else
@@ -908,7 +912,7 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
 #ifdef MINGW
   DWORD bytes_read;
 
-  if (h->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
+  if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
   {
     if (!ReadFile (h->h, result, len, &bytes_read, NULL))
     {
@@ -916,7 +920,7 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
       return GNUNET_SYSERR;
     }
   }
-  else
+  else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
     if (!ReadFile (h->h, result, len, &bytes_read, h->oOverlapRead))
     {
@@ -936,6 +940,10 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
       }
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytes_read);
+  }
+  else
+  {
+    bytes_read = 0;
   }
   return bytes_read;
 #else
@@ -1005,7 +1013,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
 #ifdef MINGW
   DWORD bytes_written;
 
-  if (h->type != GNUNET_DISK_HANLDE_TYPE_PIPE)
+  if (h->type == GNUNET_DISK_HANLDE_TYPE_FILE)
   {
     if (!WriteFile (h->h, buffer, n, &bytes_written, NULL))
     {
@@ -1013,7 +1021,7 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
       return GNUNET_SYSERR;
     }
   }
-  else
+  else if (h->type == GNUNET_DISK_HANLDE_TYPE_PIPE)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "It is a pipe trying to write %u bytes\n", n);
     if (!WriteFile (h->h, buffer, n, &bytes_written, h->oOverlapWrite))
@@ -1061,6 +1069,10 @@ GNUNET_DISK_file_write (const struct GNUNET_DISK_FileHandle * h,
       }
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Wrote %u bytes\n", bytes_written);
+  }
+  else
+  {
+    bytes_written = 0;
   }
   return bytes_written;
 #else
@@ -1898,6 +1910,15 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
     break;
   case FILE_TYPE_PIPE:
     ftype = GNUNET_DISK_HANLDE_TYPE_PIPE;
+    break;
+  case FILE_TYPE_UNKNOWN:
+    if (GetLastError () == NO_ERROR)
+    {
+      if (0 != ResetEvent (osfh))
+        ftype = GNUNET_DISK_HANLDE_TYPE_EVENT;
+    }
+    else
+      return NULL;
     break;
   default:
     return NULL;
