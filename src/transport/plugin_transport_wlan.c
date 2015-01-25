@@ -1395,7 +1395,6 @@ process_data (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_HELLO_Address *address;
   struct MacAndSession *mas = client;
-  struct MacAndSession xmas;
   struct GNUNET_ATS_Information ats;
   struct FragmentMessage *fm;
   struct GNUNET_PeerIdentity tmpsource;
@@ -1448,6 +1447,17 @@ process_data (void *cls,
                                              &mas->endpoint->wlan_addr,
                                              sizeof (mas->endpoint->wlan_addr),
                                              GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+    mas->session = lookup_session (mas->endpoint,
+                                   &tmpsource);
+    if (NULL == mas->session)
+    {
+      mas->session = create_session (mas->endpoint,
+                                     &tmpsource);
+      plugin->env->session_start (plugin->env->cls,
+                                  address,
+                                  mas->session,
+                                  &ats, 1);
+    }
     plugin->env->receive (plugin->env->cls,
                           address,
                           mas->session,
@@ -1557,34 +1567,34 @@ process_data (void *cls,
 				GNUNET_NO);
       break;
     }
-    xmas.endpoint = mas->endpoint;
-    if (NULL == (xmas.session = lookup_session (mas->endpoint,
-                                                &wlanheader->sender)))
+    mas->session = lookup_session (mas->endpoint,
+                                   &wlanheader->sender);
+    if (NULL == mas->session)
     {
-      xmas.session = create_session (mas->endpoint,
+      mas->session = create_session (mas->endpoint,
                                      &wlanheader->sender);
       address = GNUNET_HELLO_address_allocate (&wlanheader->sender,
                                                PLUGIN_NAME,
                                                &mas->endpoint->wlan_addr,
                                                sizeof (struct WlanAddress),
                                                GNUNET_HELLO_ADDRESS_INFO_NONE);
-      plugin->env->session_start (NULL,
+      plugin->env->session_start (plugin->env->cls,
                                   address,
-                                  xmas.session,
+                                  mas->session,
                                   NULL, 0);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "Notifying transport about peer `%s''s new session %p \n",
+           "Notifying transport about peer `%s''s new session %p \n",
            GNUNET_i2s (&wlanheader->sender),
-           xmas.session);
+           mas->session);
       GNUNET_HELLO_address_free (address);
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Processing %u bytes of DATA from peer `%s'\n",
 	 (unsigned int) msize,
 	 GNUNET_i2s (&wlanheader->sender));
-    xmas.session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+    mas->session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     (void) GNUNET_SERVER_mst_receive (plugin->wlan_header_payload_tokenizer,
-				      &xmas,
+				      mas,
 				      (const char *) &wlanheader[1],
 				      msize - sizeof (struct WlanHeader),
 				      GNUNET_YES,
@@ -2188,9 +2198,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                  GNUNET_BANDWIDTH_value_init (100 * 1024 *
                                                               1024 / 8),
                                  100);
-  plugin->fragment_data_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
-  plugin->wlan_header_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
-  plugin->helper_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);
+  plugin->fragment_data_tokenizer = GNUNET_SERVER_mst_create (&process_data,
+                                                              plugin);
+  plugin->wlan_header_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data,
+                                                                    plugin);
+  plugin->helper_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data,
+                                                               plugin);
   plugin->beacon_task = GNUNET_SCHEDULER_add_now (&send_hello_beacon,
 						  plugin);
 
