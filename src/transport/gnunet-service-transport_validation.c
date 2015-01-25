@@ -844,6 +844,12 @@ add_valid_address (void *cls,
     /* Peerinfo returned own identity, skip validation */
     return GNUNET_OK;
   }
+  if (NULL == GST_plugins_find (address->transport_name))
+  {
+    /* might have been valid in the past, but we don't have that
+       plugin loaded right now */
+    return GNUNET_OK;
+  }
 
   ve = find_validation_entry (&public_key, address);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
