@@ -108,6 +108,8 @@ find_ai_cb (void *cls,
     fc->ret = ai;
     return GNUNET_NO;
   }
+  GNUNET_assert ( (fc->session != ai->session) ||
+                  (NULL == ai->session) );
   return GNUNET_YES;
 }
 
@@ -134,6 +136,21 @@ find_ai (const struct GNUNET_HELLO_Address *address,
                                               &find_ai_cb,
                                               &fc);
   return fc.ret;
+}
+
+
+/**
+ * Test if ATS knows about this address.
+ *
+ * @param address the address
+ * @param session the session
+ * @return #GNUNET_YES if address is known, #GNUNET_NO if not.
+ */
+int
+GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
+                  struct Session *session)
+{
+  return (NULL != find_ai (address, session)) ? GNUNET_YES : GNUNET_NO;
 }
 
 
@@ -170,10 +187,6 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   {
     GNUNET_break (NULL != session);
   }
-  else
-  {
-    GNUNET_break (NULL == session);
-  }
   ai = find_ai (address, session);
   if (NULL != ai)
   {
@@ -183,7 +196,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     /* we don't have the plugin for this address */
-    GNUNET_break(0);
+    GNUNET_assert (0);
     return;
   }
   if (NULL != session)
@@ -244,7 +257,12 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
   ai = find_ai (address, NULL);
   if (NULL == ai)
   {
-    GNUNET_break (NULL != (find_ai (address, session)));
+    /* We may already be aware of the session, even if some other part
+       of the code could not tell if it just created a new session or
+       just got one recycled from the plugin; hence, we may be called
+       with "new" session even for an "old" session; in that case,
+       check that this is the case, but just ignore it. */
+    GNUNET_assert (NULL != (find_ai (address, session)));
     return;
   }
   GNUNET_break (NULL == ai->session);
@@ -330,9 +348,9 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
        and if we get metrics for those, they were never known to
        ATS which means we end up here (however, in this
        case, the address must be an outbound address). */
-    GNUNET_break (GNUNET_YES !=
-                  GNUNET_HELLO_address_check_option (address,
-                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
+    GNUNET_assert (GNUNET_YES !=
+                   GNUNET_HELLO_address_check_option (address,
+                                                      GNUNET_HELLO_ADDRESS_INFO_INBOUND));
 
     return;
   }
@@ -394,7 +412,7 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
   ai = find_ai (address, NULL);
   if (NULL == ai)
   {
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   GNUNET_assert (GNUNET_YES ==
