@@ -2248,6 +2248,7 @@ try_connect_bl_check_cont (void *cls,
                          GNUNET_TRANSPORT_PS_INIT_ATS,
                          GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
   GNUNET_ATS_reset_backoff (GST_ats, peer);
+  GNUNET_assert (NULL == n->suggest_handle);
   n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats,
                                                   peer);
 }
@@ -2392,7 +2393,7 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SYN_RECV_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     if (NULL == n->suggest_handle)
-      GNUNET_ATS_suggest_address (GST_ats, peer);
+      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     break;
   case GNUNET_TRANSPORT_PS_INIT_ATS:
     /* SYN message takes priority over us asking ATS for address:
@@ -2446,7 +2447,7 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
     n->ack_state = ACK_SEND_SYN_ACK;
     n->connect_ack_timestamp = ts;
     /* Request an address for the peer */
-    GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
     set_state (n, GNUNET_TRANSPORT_PS_SYN_RECV_ATS);
     break;
