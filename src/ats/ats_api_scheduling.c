@@ -584,7 +584,8 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param cls the `struct GNUNET_ATS_SchedulingHandle`
  * @param peer peer to ask for an address suggestion for
  * @param value the `struct GNUNET_ATS_SuggestHandle`
- * @return #GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate), #GNUNET_SYSERR on
+ *         failure (message queue no longer exists)
  */
 static int
 transmit_suggestion (void *cls,
@@ -595,6 +596,8 @@ transmit_suggestion (void *cls,
   struct GNUNET_MQ_Envelope *ev;
   struct RequestAddressMessage *m;
 
+  if (NULL == sh->mq)
+    return GNUNET_SYSERR;
   ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
   m->reserved = htonl (0);
   m->peer = *peer;
@@ -662,6 +665,8 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
                       GNUNET_MESSAGE_TYPE_ATS_START);
   init->start_flag = htonl (START_FLAG_SCHEDULING);
   GNUNET_MQ_send (sh->mq, ev);
+  if (NULL == sh->mq)
+    return;
   for (i=0;i<sh->session_array_size;i++)
   {
     ar = sh->session_array[i];
@@ -670,6 +675,8 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
     send_add_address_message (sh, ar);
     if (ar->in_use)
       send_in_use_message (ar, GNUNET_YES);
+    if (NULL == sh->mq)
+      return;
   }
   GNUNET_CONTAINER_multipeermap_iterate (sh->sug_requests,
                                          &transmit_suggestion,
@@ -1344,6 +1351,12 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
   struct GNUNET_ATS_Information *am;
   size_t msize;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
+              GNUNET_i2s (&ar->address->peer),
+              ar->address->transport_name,
+              ar->session,
+              ar->slot);
   GNUNET_array_grow (ar->ats,
                      ar->ats_count,
                      ats_count);
@@ -1351,22 +1364,13 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
           ats,
           ats_count * sizeof (struct GNUNET_ATS_Information));
 
-
   if (NULL == sh->mq)
     return; /* disconnected, skip for now */
   msize = ar->ats_count * sizeof (struct GNUNET_ATS_Information);
-
   ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
   m->ats_count = htonl (ar->ats_count);
   m->peer = ar->address->peer;
   m->session_id = htonl (ar->slot);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
-              GNUNET_i2s (&ar->address->peer),
-              ar->address->transport_name,
-              ar->session,
-              ar->slot);
   am = (struct GNUNET_ATS_Information *) &m[1];
   memcpy (am,
           ar->ats,
@@ -1393,6 +1397,8 @@ GNUNET_ATS_address_set_in_use (struct GNUNET_ATS_AddressRecord *ar,
               ar->address->transport_name,
               ar->session);
   ar->in_use = in_use;
+  if (NULL == ar->sh->mq)
+    return;
   send_in_use_message (ar, in_use);
 }
 
@@ -1409,21 +1415,23 @@ GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar)
   struct GNUNET_MQ_Envelope *ev;
   struct AddressDestroyedMessage *m;
 
-  GNUNET_break (NULL == ar->session);
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);
-  m->session_id = htonl (ar->slot);
-  m->peer = ar->address->peer;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Deleting address for peer `%s', plugin `%s', session %p\n",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
               ar->session);
-  GNUNET_MQ_send (sh->mq, ev);
+  GNUNET_break (NULL == ar->session);
   ar->session = NULL;
   ar->in_destroy = GNUNET_YES;
   GNUNET_array_grow (ar->ats,
                      ar->ats_count,
                      0);
+  if (NULL == sh->mq)
+    return;
+  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);
+  m->session_id = htonl (ar->slot);
+  m->peer = ar->address->peer;
+  GNUNET_MQ_send (sh->mq, ev);
 }
 
 
