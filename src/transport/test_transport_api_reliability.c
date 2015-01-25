@@ -87,22 +87,22 @@ static int ok;
 /**
  * Context of peer 1
  */
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
 /**
  * Configuration file of peer 1
  */
-char *cfg_file_p1;
+static char *cfg_file_p1;
 
 /**
  * Context of peer 2
  */
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
 /**
  * Configuration file of peer 1
  */
-char *cfg_file_p2;
+static char *cfg_file_p2;
 
 /**
  * Timeout task
@@ -112,12 +112,12 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 /**
  * Transport transmit handle used
  */
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 /**
  * Transport testing handle
  */
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 /*
  * Total amount of bytes sent
@@ -145,7 +145,9 @@ static int msg_sent;
 static int msg_recv;
 
 static int test_connected;
+
 static int test_sending;
+
 static int test_send_timeout;
 
 
@@ -167,8 +169,10 @@ static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 #define OKPP do { ok++; } while (0)
 #endif
 
+
 static int
 get_bit (const char *map, unsigned int bit);
+
 
 static void
 end ()
