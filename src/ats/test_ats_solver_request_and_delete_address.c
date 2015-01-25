@@ -1,10 +1,4 @@
 /*
-  if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Failed to connect to performance API\n");
-    GNUNET_SCHEDULER_add_now (end_badly, NULL);
-  }
  This file is part of GNUnet.
  (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
@@ -24,7 +18,7 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats/test_ats_solver_add_address.c
+ * @file ats/test_ats_solver_request_and_delete_address.c
  * @brief solver test:  add address, request address, delete address and wait for disconnect
  * @author Christian Grothoff
  * @author Matthias Wachs
@@ -180,18 +174,19 @@ address_suggest_cb (void *cls,
 
 
 static int
-stat_cb(void *cls, const char *subsystem,
-        const char *name, uint64_t value,
-        int is_persistent)
+stat_cb (void *cls, const char *subsystem,
+         const char *name, uint64_t value,
+         int is_persistent)
 {
+  static struct GNUNET_ATS_SuggestHandle *sh;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "ATS statistics: `%s' `%s' %llu\n",
               subsystem,
               name,
               value);
-  if (GNUNET_NO == address_deleted)
-    GNUNET_ATS_suggest_address (sched_ats, &p.id);
+  if (NULL == sh)
+    sh = GNUNET_ATS_suggest_address (sched_ats, &p.id);
   return GNUNET_OK;
 }
 
