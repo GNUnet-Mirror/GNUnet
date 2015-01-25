@@ -1687,9 +1687,11 @@ udp_plugin_lookup_session (void *cls,
        "Looking for existing session for peer `%s' `%s' \n",
        GNUNET_i2s (&address->peer),
        udp_address_to_string(NULL, address->address, address->address_length));
-  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions, &address->peer,
-      session_cmp_it, &cctx);
-  if (cctx.res != NULL )
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions,
+                                              &address->peer,
+                                              session_cmp_it,
+                                              &cctx);
+  if (NULL != cctx.res)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found existing session %p\n",
@@ -1836,14 +1838,18 @@ udp_plugin_create_session (void *cls,
   if (NULL == s)
     return NULL; /* protocol not supported or address invalid */
   LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Creating new %s session %p for peer `%s' address `%s'\n",
-      GNUNET_HELLO_address_check_option (address, GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
+      "Creating new session %p for peer `%s' address `%s'\n",
       s, GNUNET_i2s (&address->peer),
       udp_address_to_string( NULL,address->address,address->address_length));
-  GNUNET_assert(
-      GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (plugin->sessions, &s->target, s, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  GNUNET_STATISTICS_set (plugin->env->stats, "# UDP sessions active",
-      GNUNET_CONTAINER_multipeermap_size (plugin->sessions), GNUNET_NO);
+  GNUNET_assert(GNUNET_OK ==
+                GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
+                                                   &s->target,
+                                                   s,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  GNUNET_STATISTICS_set (plugin->env->stats,
+                         "# UDP sessions active",
+                         GNUNET_CONTAINER_multipeermap_size (plugin->sessions),
+                         GNUNET_NO);
   return s;
 }
 
@@ -2330,18 +2336,19 @@ process_udp_message (struct Plugin *plugin,
     GNUNET_break(0);
     return;
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Received message with %u bytes from peer `%s' at `%s'\n",
-      (unsigned int ) ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
-      GNUNET_a2s (sender_addr, sender_addr_len));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message with %u bytes from peer `%s' at `%s'\n",
+       (unsigned int ) ntohs (msg->header.size), GNUNET_i2s (&msg->sender),
+       GNUNET_a2s (sender_addr, sender_addr_len));
 
-  address = GNUNET_HELLO_address_allocate ( &msg->sender, PLUGIN_NAME,
-                                            arg, args,
-                                            GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+  address = GNUNET_HELLO_address_allocate (&msg->sender, PLUGIN_NAME,
+                                           arg, args,
+                                           GNUNET_HELLO_ADDRESS_INFO_NONE);
   if (NULL == (s = udp_plugin_lookup_session (plugin, address)))
   {
     s = udp_plugin_create_session (plugin, address);
-    plugin->env->session_start (NULL, address, s, NULL, 0);
+    plugin->env->session_start (plugin->env->cls,
+                                address, s, NULL, 0);
     notify_session_monitor (s->plugin,
                             s,
                             GNUNET_TRANSPORT_SS_INIT);

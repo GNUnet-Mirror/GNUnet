@@ -1529,20 +1529,22 @@ tcp_plugin_get_session (void *cls,
 #endif
 
   addrlen = address->address_length;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Trying to get session for `%s' address of peer `%s'\n",
-      tcp_plugin_address_to_string(NULL, address->address, address->address_length),
-      GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to get session for `%s' address of peer `%s'\n",
+       tcp_plugin_address_to_string(NULL, address->address, address->address_length),
+       GNUNET_i2s (&address->peer));
 
-  if (GNUNET_HELLO_address_check_option(address, GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+  if (GNUNET_HELLO_address_check_option (address,
+                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND))
   {
     GNUNET_break (0);
     return NULL;
   }
 
   /* look for existing session */
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (plugin->sessionmap,
-          &address->peer))
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_contains (plugin->sessionmap,
+                                              &address->peer))
   {
     struct SessionItCtx si_ctx;
 
@@ -1550,15 +1552,18 @@ tcp_plugin_get_session (void *cls,
     si_ctx.result = NULL;
 
     GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessionmap,
-        &address->peer, &session_lookup_it, &si_ctx);
-    if (si_ctx.result != NULL)
+                                                &address->peer,
+                                                &session_lookup_it, &si_ctx);
+    if (NULL != si_ctx.result)
     {
       session = si_ctx.result;
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Found existing session for `%s' address `%s' session %p\n",
-          GNUNET_i2s (&address->peer),
-          tcp_plugin_address_to_string(NULL, address->address, address->address_length),
-          session);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Found existing session for `%s' address `%s' session %p\n",
+           GNUNET_i2s (&address->peer),
+           tcp_plugin_address_to_string (NULL,
+                                         address->address,
+                                         address->address_length),
+           session);
       return session;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1637,8 +1642,9 @@ tcp_plugin_get_session (void *cls,
   }
 
   if ((is_natd == GNUNET_YES) && (NULL != plugin->nat) &&
-      (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
-              &address->peer)))
+      (GNUNET_NO ==
+       GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
+                                               &address->peer)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found valid IPv4 NAT address (creating session)!\n");

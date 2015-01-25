@@ -140,6 +140,56 @@ find_ai (const struct GNUNET_HELLO_Address *address,
 
 
 /**
+ * Find matching address info, ignoring sessions.
+ *
+ * @param cls the `struct FindClosure`
+ * @param key which peer is this about
+ * @param value the `struct AddressInfo`
+ * @return #GNUNET_YES to continue to iterate, #GNUNET_NO if we found the value
+ */
+static int
+find_ai_no_session_cb (void *cls,
+                       const struct GNUNET_PeerIdentity *key,
+                       void *value)
+{
+  struct FindClosure *fc = cls;
+  struct AddressInfo *ai = value;
+
+  if (0 ==
+      GNUNET_HELLO_address_cmp (fc->address,
+                                ai->address))
+  {
+    fc->ret = ai;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Find the address information struct for the
+ * given address (ignoring sessions)
+ *
+ * @param address address to look for
+ * @return NULL if this combination is unknown
+ */
+static struct AddressInfo *
+find_ai_no_session (const struct GNUNET_HELLO_Address *address)
+{
+  struct FindClosure fc;
+
+  fc.address = address;
+  fc.session = NULL;
+  fc.ret = NULL;
+  GNUNET_CONTAINER_multipeermap_get_multiple (p2a,
+                                              &address->peer,
+                                              &find_ai_no_session_cb,
+                                              &fc);
+  return fc.ret;
+}
+
+
+/**
  * Test if ATS knows about this address.
  *
  * @param address the address
@@ -187,11 +237,22 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   {
     GNUNET_break (NULL != session);
   }
-  ai = find_ai (address, session);
+  ai = (NULL == session)
+    ? find_ai_no_session (address)
+    : find_ai (address, session);
   if (NULL != ai)
-  {
-    GNUNET_break (0);
     return;
+  if (NULL != session)
+  {
+    /* in this case, we must not find an existing
+       session-less address, as the caller should
+       have checked for this case if it were possible. */
+    ai = find_ai (address, NULL);
+    if (NULL != ai)
+    {
+      GNUNET_assert (0);
+      return;
+    }
   }
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
