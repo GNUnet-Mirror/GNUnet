@@ -2338,8 +2338,7 @@ process_udp_message (struct Plugin *plugin,
   address = GNUNET_HELLO_address_allocate ( &msg->sender, PLUGIN_NAME,
                                             arg, args,
                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
-  if ( (NULL == (s = udp_plugin_lookup_session (plugin, address))) &&
-       (GNUNET_YES != s->in_destroy) )
+  if (NULL == (s = udp_plugin_lookup_session (plugin, address)))
   {
     s = udp_plugin_create_session (plugin, address);
     plugin->env->session_start (NULL, address, s, NULL, 0);
