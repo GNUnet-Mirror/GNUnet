@@ -18,7 +18,7 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats/test_ats_solver_add_address.c
+ * @file ats/test_ats_solver_alternative_after_delete_address.c
  * @brief solver test:  add 2 addresses, request address, delete, expect alternative
  * @author Christian Grothoff
  * @author Matthias Wachs
@@ -92,19 +92,19 @@ static uint32_t test_ats_count;
 /**
  * Test state
  */
-static int addresses_added = GNUNET_NO;
+static int addresses_added;
 
-static int first_address_suggested = GNUNET_NO;
+static int first_address_suggested;
 
-static int first_address_deleted = GNUNET_NO;
+static int first_address_deleted;
 
-static int second_address_deleted = GNUNET_NO;
+static int second_address_deleted;
 
 static int second_address_suggested = GNUNET_YES;
 
-static struct GNUNET_HELLO_Address *first_suggestion = NULL;
+static struct GNUNET_HELLO_Address *first_suggestion;
 
-static struct GNUNET_HELLO_Address *second_suggestion = NULL;
+static struct GNUNET_HELLO_Address *second_suggestion;
 
 /**
  * 1st Address we will destroy.
@@ -118,8 +118,9 @@ static struct GNUNET_ATS_AddressRecord *ar2;
 
 
 static int
-stat_cb(void *cls, const char *subsystem, const char *name, uint64_t value,
-        int is_persistent);
+stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
+         int is_persistent);
+
 
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -159,6 +160,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = GNUNET_SYSERR;
 }
 
+
 static void
 end_badly_now ()
 {
@@ -170,6 +172,7 @@ end_badly_now ()
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
@@ -178,7 +181,8 @@ address_suggest_cb (void *cls,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received a sugggestion for peer `%s' : `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Received a sugggestion for peer `%s' : `%s'\n",
     GNUNET_i2s (&address->peer), (char *) address->address);
 
   if (GNUNET_NO == first_address_suggested)
@@ -199,17 +203,32 @@ address_suggest_cb (void *cls,
         return;
       }
 
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received 1st sugggestion for peer `%s' : `%s'\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Received 1st sugggestion for peer `%s' : `%s'\n",
         GNUNET_i2s (&address->peer), (char *) address->address);
 
       first_suggestion = GNUNET_HELLO_address_copy (address);
       first_address_suggested = GNUNET_YES;
 
 
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 1st address for peer `%s' : `%s'\n",
-        GNUNET_i2s (&address->peer), (char *) address->address);
-      GNUNET_ATS_address_destroy (ar);
-      ar = NULL;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Deleting 1st address for peer `%s' : `%s'\n",
+                  GNUNET_i2s (&address->peer),
+                  (char *) address->address);
+      if (0 == (strcmp ((char *) address->address,
+                        "test")))
+      {
+        GNUNET_assert (NULL != ar);
+        GNUNET_ATS_address_destroy (ar);
+        ar = NULL;
+      }
+      else
+      {
+        GNUNET_assert (NULL != ar2);
+        GNUNET_ATS_address_destroy (ar2);
+        ar2 = NULL;
+      }
+
       first_address_deleted = GNUNET_YES;
 
       return;
@@ -229,20 +248,33 @@ address_suggest_cb (void *cls,
       if (0 != memcmp (address->address, first_suggestion->address,
           (first_suggestion->address_length < address->address_length) ? first_suggestion->address_length : address->address_length))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received 2nd sugggestion for peer `%s' : `%s'\n",
-          GNUNET_i2s (&address->peer), (char *) address->address);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Received 2nd sugggestion for peer `%s' : `%s'\n",
+                    GNUNET_i2s (&address->peer),
+                    (char *) address->address);
         second_suggestion = GNUNET_HELLO_address_copy (address);
         second_address_suggested = GNUNET_YES;
 
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 2nd address for peer `%s' : `%s'\n",
-          GNUNET_i2s (&address->peer), (char *) address->address);
-        GNUNET_ATS_address_destroy (ar2);
-        ar2 = NULL;
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    "Deleting 2nd address for peer `%s' : `%s'\n",
+                    GNUNET_i2s (&address->peer),
+                    (char *) address->address);
+        if (NULL != ar)
+        {
+          GNUNET_assert (NULL == ar2);
+          GNUNET_ATS_address_destroy (ar);
+          ar = NULL;
+        }
+        else
+        {
+          GNUNET_assert (NULL != ar2);
+          GNUNET_ATS_address_destroy (ar2);
+          ar2 = NULL;
+        }
         second_address_deleted = GNUNET_YES;
         return;
       }
     }
-
   }
   if (GNUNET_YES == second_address_deleted)
   {
@@ -250,17 +282,18 @@ address_suggest_cb (void *cls,
     if ((ntohl(bandwidth_in.value__) == 0) &&
         (ntohl(bandwidth_out.value__) == 0))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS tells me to disconnect\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "ATS tells me to disconnect\n");
       GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Expected disconnect but received address `%s' with bandwidth \n",
-          (char *) address->address);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Expected disconnect but received address `%s' with bandwidth \n",
+                  (char *) address->address);
     }
   }
-  return;
 }
 
 
@@ -269,11 +302,15 @@ stat_cb(void *cls, const char *subsystem,
         const char *name, uint64_t value,
         int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              value);
   if ((GNUNET_NO == addresses_added) && (value == 2))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All addresses added, requesting....\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "All addresses added, requesting....\n");
     /* We have 2 addresses, so we can request */
     addresses_added = GNUNET_YES;
     GNUNET_ATS_suggest_address (sched_ats, &p.id);
@@ -283,8 +320,9 @@ stat_cb(void *cls, const char *subsystem,
 
 
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
@@ -295,7 +333,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not connect to ATS scheduling!\n");
     end_badly_now ();
     return;
   }
@@ -314,7 +353,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
   /* Adding address without session */
   test_session = NULL;
-  create_test_address (&test_addr, "test", test_session, "test", strlen ("test") + 1);
+  create_test_address (&test_addr, "test", test_session,
+                       "test", strlen ("test") + 1);
   test_hello_address.peer = p.id;
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
@@ -322,7 +362,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
   /* Adding alternative address without session */
   test_session = NULL;
-  create_test_address (&alt_test_addr, "test", test_session, "alt_test", strlen ("alt_test") + 1);
+  create_test_address (&alt_test_addr, "test", test_session,
+                       "alt_test", strlen ("alt_test") + 1);
   alt_test_hello_address.peer = p.id;
   alt_test_hello_address.transport_name = alt_test_addr.plugin;
   alt_test_hello_address.address = alt_test_addr.addr;
@@ -344,12 +385,12 @@ main (int argc, char *argv[])
   char *sep;
   char *src_filename = GNUNET_strdup (__FILE__);
   char *test_filename = GNUNET_strdup (argv[0]);
-  char *config_file;
+  const char *config_file;
   char *solver;
 
   ret = 0;
 
-  if (NULL == (sep  = (strstr (src_filename,".c"))))
+  if (NULL == (sep  = (strstr (src_filename, ".c"))))
   {
     GNUNET_break (0);
     return -1;
@@ -396,4 +437,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of file test_ats_solver_add_address.c */
+/* end of file test_ats_solver_alternative_after_delete_address.c */
