@@ -800,11 +800,11 @@ set_alternative_address (struct NeighbourMapEntry *n,
  */
 static void
 set_primary_address (struct NeighbourMapEntry *n,
-	     const struct GNUNET_HELLO_Address *address,
-	     struct Session *session,
-	     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-	     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-	     int is_active)
+                     const struct GNUNET_HELLO_Address *address,
+                     struct Session *session,
+                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                     int is_active)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
 

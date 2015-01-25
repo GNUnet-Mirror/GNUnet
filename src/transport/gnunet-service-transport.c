@@ -732,11 +732,15 @@ plugin_env_session_start (void *cls,
               session,
               GNUNET_i2s (&address->peer),
               GST_plugins_a2s (address));
-  if (GNUNET_YES ==
-      GNUNET_HELLO_address_check_option (address,
-                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+  if ( (GNUNET_YES ==
+        GNUNET_HELLO_address_check_option (address,
+                                           GNUNET_HELLO_ADDRESS_INFO_INBOUND)) ||
+       (GNUNET_NO ==
+        GST_ats_is_known (address, session) ) )
   {
-    /* inbound is always new */
+    /* inbound is always new, but outbound MAY already be known, but
+       for example for UNIX, we have symmetric connections and thus we
+       may not know the address yet; add if necessary! */
     GST_ats_add_address (address,
                          session,
                          ats,
@@ -744,7 +748,6 @@ plugin_env_session_start (void *cls,
   }
   else
   {
-    /* outbound should already be known */
     GST_ats_new_session (address,
                          session);
     GST_ats_update_metrics (address,
@@ -923,8 +926,8 @@ shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GST_neighbours_stop ();
-  GST_validation_stop ();
   GST_plugins_unload ();
+  GST_validation_stop ();
   GST_ats_done ();
   GNUNET_ATS_scheduling_done (GST_ats);
   GST_ats = NULL;
