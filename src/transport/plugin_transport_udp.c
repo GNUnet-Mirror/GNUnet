@@ -1327,13 +1327,10 @@ udp_disconnect_session (void *cls,
   struct UDP_MessageWrapper *next;
   struct FindReceiveContext frc;
 
-  GNUNET_assert (GNUNET_YES != s->in_destroy);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Session %p to peer `%s' address ended\n", s,
+  GNUNET_assert(GNUNET_YES != s->in_destroy);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' address ended\n", s,
       GNUNET_i2s (&s->target),
-      udp_address_to_string (NULL,
-                             s->address->address,
-                             s->address->address_length));
+      udp_address_to_string (NULL, s->address->address, s->address->address_length));
   /* stop timeout task */
   if (NULL != s->timeout_task)
   {
@@ -1408,10 +1405,10 @@ udp_disconnect_session (void *cls,
     }
   }
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
-                                                       &s->target,
-                                                       s));
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
+                                                      &s->target,
+                                                      s));
   GNUNET_STATISTICS_set (plugin->env->stats,
                          "# UDP sessions active",
                          GNUNET_CONTAINER_multipeermap_size (plugin->sessions),
@@ -2338,8 +2335,7 @@ process_udp_message (struct Plugin *plugin,
   address = GNUNET_HELLO_address_allocate ( &msg->sender, PLUGIN_NAME,
                                             arg, args,
                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
-  if ( (NULL == (s = udp_plugin_lookup_session (plugin, address))) &&
-       (GNUNET_YES != s->in_destroy) )
+  if (NULL == (s = udp_plugin_lookup_session (plugin, address)))
   {
     s = udp_plugin_create_session (plugin, address);
     plugin->env->session_start (NULL, address, s, NULL, 0);
@@ -2358,12 +2354,9 @@ process_udp_message (struct Plugin *plugin,
   si.arg = arg;
   si.args = args;
   s->rc++;
-  GNUNET_SERVER_mst_receive (plugin->mst,
-                             &si,
-                             (const char *) &msg[1],
-                             ntohs (msg->header.size) - sizeof(struct UDPMessage),
-                             GNUNET_YES,
-                             GNUNET_NO);
+  GNUNET_SERVER_mst_receive (plugin->mst, &si, (const char *) &msg[1],
+      ntohs (msg->header.size) - sizeof(struct UDPMessage), GNUNET_YES,
+      GNUNET_NO);
   s->rc--;
   if ((0 == s->rc) && (GNUNET_YES == s->in_destroy))
     free_session (s);
@@ -3621,12 +3614,12 @@ libgnunet_plugin_transport_udp_done (void *cls)
     return NULL;
   }
   stop_broadcast (plugin);
-  if (plugin->select_task != NULL)
+  if (plugin->select_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (plugin->select_task);
     plugin->select_task = NULL;
   }
-  if (plugin->select_task_v6 != NULL)
+  if (plugin->select_task_v6 != NULL )
   {
     GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
     plugin->select_task_v6 = NULL;

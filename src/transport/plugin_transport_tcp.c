@@ -2261,9 +2261,8 @@ handle_tcp_welcome (void *cls,
   struct GNUNET_ATS_Information ats;
 
 
-  if (0 == memcmp (&wm->clientIdentity,
-                   plugin->env->my_identity,
-                   sizeof(struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (&wm->clientIdentity, plugin->env->my_identity,
+          sizeof(struct GNUNET_PeerIdentity)))
   {
     /* refuse connections from ourselves */
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2278,14 +2277,10 @@ handle_tcp_welcome (void *cls,
     return;
   }
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Received %s message from `%4s' %p\n",
-      "WELCOME",
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received %s message from `%4s' %p\n", "WELCOME",
       GNUNET_i2s (&wm->clientIdentity), client);
   GNUNET_STATISTICS_update (plugin->env->stats,
-                            gettext_noop ("# TCP WELCOME messages received"),
-                            1,
-                            GNUNET_NO);
+      gettext_noop ("# TCP WELCOME messages received"), 1, GNUNET_NO);
   session = lookup_session_by_client (plugin, client);
   if (NULL != session)
   {
@@ -2293,9 +2288,8 @@ handle_tcp_welcome (void *cls,
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Found existing session %p for peer `%s'\n",
-           session,
-           GNUNET_a2s (vaddr, alen));
-      GNUNET_free (vaddr);
+           session, GNUNET_a2s (vaddr, alen));
+      GNUNET_free(vaddr);
     }
   }
   else
@@ -2343,27 +2337,23 @@ handle_tcp_welcome (void *cls,
       session->ats_address_network_type = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
       ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
       ats.value = htonl (session->ats_address_network_type);
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Creating new%s session %p for peer `%s' client %p \n",
-           GNUNET_HELLO_address_check_option (session->address,
-                                              GNUNET_HELLO_ADDRESS_INFO_INBOUND)
-           ? " inbound" : "",
-           session,
-           tcp_plugin_address_to_string (NULL,
-                                         (void *) session->address->address,
-                                         session->address->address_length),
-           client);
-      GNUNET_free (vaddr);
-      GNUNET_SERVER_client_set_user_context (session->client, session);
+      LOG(GNUNET_ERROR_TYPE_DEBUG,
+          "Creating new%s session %p for peer `%s' client %p \n",
+          GNUNET_HELLO_address_check_option (session->address,
+                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND)
+          ? " inbound" : "",
+          session,
+          tcp_plugin_address_to_string(NULL, (void *) session->address->address,
+                                       session->address->address_length),
+          client);
+      GNUNET_free(vaddr);
+      GNUNET_SERVER_client_set_user_context(session->client, session);
       GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
                                          &session->target,
                                          session,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
       /* Notify transport and ATS about new session */
-      plugin->env->session_start (plugin->env->cls,
-                                  session->address,
-                                  session,
-                                  &ats, 1);
+      plugin->env->session_start (NULL, session->address, session, &ats, 1);
       notify_session_monitor (plugin,
                               session,
                               GNUNET_TRANSPORT_SS_INIT);

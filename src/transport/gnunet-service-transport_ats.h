@@ -51,17 +51,6 @@ GST_ats_done (void);
 
 
 /**
- * Test if ATS knows about this address.
- *
- * @param address the address
- * @param session the session
- * @return #GNUNET_YES if address is known, #GNUNET_NO if not.
- */
-int
-GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
-                  struct Session *session);
-
-/**
  * Notify ATS about the new address including the network this address is
  * located in.
  *
