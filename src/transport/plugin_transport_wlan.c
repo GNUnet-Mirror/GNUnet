@@ -1446,7 +1446,7 @@ process_data (void *cls,
                                              PLUGIN_NAME,
                                              &mas->endpoint->wlan_addr,
                                              sizeof (mas->endpoint->wlan_addr),
-                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+                                             GNUNET_HELLO_ADDRESS_INFO_NONE);
     mas->session = lookup_session (mas->endpoint,
                                    &tmpsource);
     if (NULL == mas->session)

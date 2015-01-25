@@ -160,7 +160,9 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
   address = GNUNET_HELLO_address_allocate (&msg->sender, PLUGIN_NAME,
-      (const char *) &mc->addr, sizeof (mc->addr), GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+                                           (const char *) &mc->addr,
+                                           sizeof (mc->addr),
+                                           GNUNET_HELLO_ADDRESS_INFO_NONE);
   plugin->env->receive (plugin->env->cls, address, NULL, hello);
   plugin->env->update_address_metrics (plugin->env->cls, address,
 				       NULL, &atsi, 1);
@@ -202,8 +204,11 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  address = GNUNET_HELLO_address_allocate (&msg->sender, PLUGIN_NAME,
-      (const char *) &mc->addr, sizeof (mc->addr), GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+  address = GNUNET_HELLO_address_allocate (&msg->sender,
+                                           PLUGIN_NAME,
+                                           (const char *) &mc->addr,
+                                           sizeof (mc->addr),
+                                           GNUNET_HELLO_ADDRESS_INFO_NONE);
   plugin->env->receive (plugin->env->cls, address, NULL, hello);
   plugin->env->update_address_metrics (plugin->env->cls, address,
                                        NULL, &atsi, 1);
