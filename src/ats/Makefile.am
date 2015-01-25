@@ -117,7 +117,6 @@ TESTING_TESTS = \
  test_ats_api_scheduling_add_address_inbound \
  test_ats_api_scheduling_destroy_address \
  test_ats_api_scheduling_add_session \
- test_ats_api_scheduling_destroy_session \
  test_ats_api_delayed_service_scheduling_add_address \
  test_ats_api_performance_list_all_addresses \
  test_ats_api_delayed_service_performance_list_all_addresses \
@@ -219,14 +218,6 @@ test_ats_api_scheduling_destroy_address_LDADD = \
 test_ats_api_scheduling_add_session_SOURCES = \
  test_ats_api_scheduling_add_session.c test_ats_api_common.c
 test_ats_api_scheduling_add_session_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la
-
-test_ats_api_scheduling_destroy_session_SOURCES = \
- test_ats_api_scheduling_destroy_session.c test_ats_api_common.c
-test_ats_api_scheduling_destroy_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetats.la \

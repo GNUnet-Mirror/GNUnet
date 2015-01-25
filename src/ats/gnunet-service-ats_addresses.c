@@ -785,21 +785,25 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
   uint32_t previous_session;
   int c1;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received `%s' for peer `%s'\n",
-             "ADDRESS ADD",
-             GNUNET_i2s (peer));
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' for peer `%s'\n",
+              "ADDRESS ADD",
+              GNUNET_i2s (peer));
   if (GNUNET_NO == running)
+  {
+    GNUNET_break (0);
     return;
-
-  GNUNET_assert(NULL != addresses);
-
-  new_address = create_address (peer, plugin_name,
-                                plugin_addr, plugin_addr_len,
-                                local_address_info, session_id);
+  }
+  new_address = create_address (peer,
+                                plugin_name,
+                                plugin_addr,
+                                plugin_addr_len,
+                                local_address_info,
+                                session_id);
   atsi_delta = NULL;
-  disassemble_ats_information (new_address, atsi, atsi_count, &atsi_delta,
+  disassemble_ats_information (new_address,
+                               atsi, atsi_count,
+                               &atsi_delta,
                                &atsi_delta_count);
   GNUNET_free_non_null (atsi_delta);
   addr_net = get_performance_info (new_address, GNUNET_ATS_NETWORK_TYPE);

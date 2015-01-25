@@ -38,7 +38,7 @@
 /**
  * Timeout task
  */
-static struct GNUNET_SCHEDULER_Task * die_task;
+static struct GNUNET_SCHEDULER_Task *die_task;
 
 /**
  * Statistics handle
@@ -90,6 +90,7 @@ static int
 stat_cb(void *cls, const char *subsystem, const char *name, uint64_t value,
         int is_persistent);
 
+
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -127,6 +128,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = GNUNET_SYSERR;
 }
 
+
 static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
@@ -148,20 +150,27 @@ address_suggest_cb (void *cls,
 
 
 static int
-stat_cb(void *cls, const char *subsystem,
-        const char *name, uint64_t value,
-        int is_persistent)
+stat_cb (void *cls, const char *subsystem,
+         const char *name, uint64_t value,
+         int is_persistent)
 {
+  struct GNUNET_ATS_SuggestHandle *sh;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
-  GNUNET_ATS_suggest_address (sched_ats, &p.id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              value);
+  if (NULL == sh)
+    sh = GNUNET_ATS_suggest_address (sched_ats, &p.id);
   return GNUNET_OK;
 }
 
+
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
@@ -172,14 +181,16 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not connect to ATS scheduling!\n");
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
 
   /* Set up peer */
   memset (&p.id, '1', sizeof (p.id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
   /* Prepare ATS Information */
@@ -198,7 +209,9 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
+  GNUNET_ATS_address_add (sched_ats,
+                          &test_hello_address, NULL,
+                          test_ats_info, test_ats_count);
 }
 
 

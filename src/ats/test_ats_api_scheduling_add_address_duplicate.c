@@ -39,7 +39,7 @@ static struct GNUNET_SCHEDULER_Task * wait_task;
 /**
  * Statistics handle
  */
-struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
  * Scheduling handle
@@ -64,7 +64,7 @@ static struct PeerContext p;
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address;
+static struct GNUNET_HELLO_Address test_hello_address;
 
 /**
  * Session
@@ -74,25 +74,30 @@ static void *test_session;
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+static struct GNUNET_ATS_Information test_ats_info[2];
 
 /**
  * Test ats count
  */
-uint32_t test_ats_count;
+static uint32_t test_ats_count;
 
 
-static void end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
-static void end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+static void
+end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 static int
-stat_cb(void *cls, const char *subsystem,
-        const char *name, uint64_t value,
-        int is_persistent)
+stat_cb (void *cls, const char *subsystem,
+         const char *name, uint64_t value,
+         int is_persistent)
 {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,name, value);
   if (1 < value)
   {
     if (NULL != wait_task)
@@ -102,7 +107,8 @@ stat_cb(void *cls, const char *subsystem,
   if (1 == value)
   {
     if (NULL == wait_task)
-      wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
+      wait_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                &end, NULL);
   }
   return GNUNET_OK;
 }
@@ -111,15 +117,15 @@ stat_cb(void *cls, const char *subsystem,
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Shutting down\n");
   wait_task = NULL;
 
-  if (die_task != NULL)
+  if (NULL != die_task)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = NULL;
   }
-
   if (NULL != sched_ats)
   {
     GNUNET_ATS_scheduling_done (sched_ats);
@@ -138,6 +144,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = 0;
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -155,16 +162,21 @@ address_suggest_cb (void *cls,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
 
 static int
-dummy_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+dummy_stat (void *cls,
+            const char *subsystem,
+            const char *name,
+            uint64_t value,
             int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got dummy stat %s%s:%s = %llu\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Got dummy stat %s%s:%s = %llu\n",
               is_persistent ? "!" : " ", subsystem, name, value);
   return GNUNET_OK;
 }
@@ -174,6 +186,7 @@ static void
 got_initial_value (void *cls, int success)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct GNUNET_ATS_AddressRecord *ar;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got initial value\n");
 
@@ -181,14 +194,16 @@ got_initial_value (void *cls, int success)
   sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not connect to ATS scheduling!\n");
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }
 
   /* Set up peer */
   memset (&p.id, '1', sizeof (p.id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
   /* Prepare ATS Information */
@@ -200,17 +215,25 @@ got_initial_value (void *cls, int success)
 
   /* Adding address without session */
   test_session = NULL;
-  create_test_address (&test_addr, "test", test_session, "test", strlen ("test") + 1);
+  create_test_address (&test_addr, "test",
+                       test_session, "test",
+                       strlen ("test") + 1);
   test_hello_address.peer = p.id;
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
+  GNUNET_ATS_address_add (sched_ats,
+                          &test_hello_address, test_session,
+                          test_ats_info, test_ats_count);
   /* Adding duplicate */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session, test_ats_info, test_ats_count);
-
+  GNUNET_log_skip (1, GNUNET_NO);
+  ar = GNUNET_ATS_address_add (sched_ats,
+                               &test_hello_address, test_session,
+                               test_ats_info, test_ats_count);
+  GNUNET_log_skip (0, GNUNET_YES);
+  GNUNET_assert (NULL == ar);
 }
 
 
@@ -222,8 +245,6 @@ run (void *cls,
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   stats = GNUNET_STATISTICS_create ("ats", cfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
-
-
   GNUNET_STATISTICS_get (stats, "ats", "# addresses", TIMEOUT,
                                        &got_initial_value, &dummy_stat,
                                        GNUNET_CONFIGURATION_dup (cfg));

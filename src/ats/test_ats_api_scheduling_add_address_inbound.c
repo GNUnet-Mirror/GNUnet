@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file ats/test_ats_api_scheduling_add_address.c
+ * @file ats/test_ats_api_scheduling_add_address_inbound.c
  * @brief adding addresses with scheduling API
  * @author Christian Grothoff
  * @author Matthias Wachs
@@ -131,6 +131,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = 0;
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -148,7 +149,8 @@ address_suggest_cb (void *cls,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
@@ -188,16 +190,25 @@ got_initial_value (void *cls, int success)
   test_hello_address.address_length = 0;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
+  GNUNET_ATS_address_add (sched_ats,
+                          &test_hello_address, NULL,
+                          test_ats_info, test_ats_count);
 }
 
+
 static int
-dummy_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+dummy_stat (void *cls,
+            const char *subsystem,
+            const char *name,
+            uint64_t value,
             int is_persistent)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got dummy stat %s%s:%s = %llu\n",
-              is_persistent ? "!" : " ", subsystem, name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Got dummy stat %s%s:%s = %llu\n",
+              is_persistent ? "!" : " ",
+              subsystem,
+              name,
+              value);
   return GNUNET_OK;
 }
 
@@ -229,4 +240,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of file test_ats_api_scheduling_add_address.c */
+/* end of file test_ats_api_scheduling_add_address_inbound.c */

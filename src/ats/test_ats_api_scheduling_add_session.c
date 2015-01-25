@@ -79,6 +79,11 @@ static struct GNUNET_ATS_Information test_ats_info[2];
  */
 static uint32_t test_ats_count;
 
+/**
+ * Address record we will modify with a session later.
+ */
+static struct GNUNET_ATS_AddressRecord *ar;
+
 
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
@@ -89,26 +94,30 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static int
-stat_cb(void *cls, const char *subsystem,
-        const char *name, uint64_t value,
-        int is_persistent)
+stat_cb (void *cls, const char *subsystem,
+         const char *name, uint64_t value,
+         int is_persistent)
 {
   static int first_stat_cb = GNUNET_YES;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,name, value);
   if ((GNUNET_YES == first_stat_cb) && (1 == value))
   {
-    GNUNET_ATS_address_add (sched_ats, &test_hello_address, (struct Session *) &test_session, test_ats_info, test_ats_count);
+    GNUNET_ATS_address_add_session (ar,
+                                    (struct Session *) &test_session);
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &end, NULL);
   }
   if ((GNUNET_NO == first_stat_cb) && (1 == value))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS updated existing address\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "ATS updated existing address\n");
   }
   if (value > 1)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ATS did not update existing address, but added 2nd address!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "ATS did not update existing address, but added 2nd address!\n");
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
   }
 
@@ -145,6 +154,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ret = 0;
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -152,6 +162,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   end ( NULL, NULL);
   ret = GNUNET_SYSERR;
 }
+
 
 static void
 address_suggest_cb (void *cls,
@@ -187,7 +198,8 @@ run (void *cls,
 
   /* Set up peer */
   memset (&p.id, '1', sizeof (p.id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Created peer `%s'\n",
               GNUNET_i2s_full(&p.id));
 
   /* Prepare ATS Information */
@@ -205,7 +217,9 @@ run (void *cls,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Adding address */
-  GNUNET_ATS_address_add (sched_ats, &test_hello_address, NULL, test_ats_info, test_ats_count);
+  ar = GNUNET_ATS_address_add (sched_ats,
+                               &test_hello_address, NULL,
+                               test_ats_info, test_ats_count);
 }
 
 
