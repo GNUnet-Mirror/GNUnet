@@ -549,7 +549,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   else
     disablev6 = GNUNET_NO;
 
-  if (!disablev6)
+  if (! disablev6)
   {
     /* probe IPv6 support */
     desc = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_STREAM, 0);
@@ -562,8 +562,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
         return GNUNET_SYSERR;
       }
       LOG (GNUNET_ERROR_TYPE_INFO,
-           _
-           ("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
+           _("Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"),
            service_name, STRERROR (errno));
       disablev6 = GNUNET_YES;
     }
@@ -623,7 +622,8 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
            (unsigned long long) sizeof (s_un.sun_path));
       unixpath = GNUNET_NETWORK_shorten_unixpath (unixpath);
       LOG (GNUNET_ERROR_TYPE_INFO,
-	   _("Using `%s' instead\n"), unixpath);
+	   _("Using `%s' instead\n"),
+           unixpath);
     }
 #ifdef LINUX
     abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
@@ -654,7 +654,8 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
       }
       LOG (GNUNET_ERROR_TYPE_INFO,
            _("Disabling UNIX domain socket support for service `%s', failed to create UNIX domain socket: %s\n"),
-           service_name, STRERROR (errno));
+           service_name,
+           STRERROR (errno));
       GNUNET_free (unixpath);
       unixpath = NULL;
     }

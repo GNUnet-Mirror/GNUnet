@@ -346,7 +346,8 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
   if (fs != GNUNET_DISK_fn_read (fn, mem, fs))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-	 "Error while reading file %s\n", fn);
+	 "Error while reading file %s\n",
+         fn);
     GNUNET_free (fn);
     GNUNET_free (mem);
     return GNUNET_SYSERR;

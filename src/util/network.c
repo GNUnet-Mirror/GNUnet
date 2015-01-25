@@ -931,14 +931,13 @@ GNUNET_NETWORK_socket_create (int domain,
                               int protocol)
 {
   struct GNUNET_NETWORK_Handle *ret;
+  int fd;
 
-  ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
-  ret->fd = socket (domain, type, protocol);
-  if (-1 == ret->fd)
-  {
-    GNUNET_free (ret);
+  fd = socket (domain, type, protocol);
+  if (-1 == fd)
     return NULL;
-  }
+  ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
+  ret->fd = fd;
   if (GNUNET_OK !=
       initialize_network_handle (ret,
                                  domain,

@@ -939,7 +939,9 @@ GNUNET_DISK_file_read_non_blocking (const struct GNUNET_DISK_FileHandle *h,
         return GNUNET_SYSERR;
       }
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes\n", bytes_read);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Read %u bytes\n",
+         bytes_read);
   }
   else
   {
@@ -982,8 +984,10 @@ GNUNET_DISK_fn_read (const char *fn,
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
 
-  fh = GNUNET_DISK_file_open (fn, GNUNET_DISK_OPEN_READ, GNUNET_DISK_PERM_NONE);
-  if (!fh)
+  fh = GNUNET_DISK_file_open (fn,
+                              GNUNET_DISK_OPEN_READ,
+                              GNUNET_DISK_PERM_NONE);
+  if (NULL == fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_read (fh, result, len);
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
@@ -1196,7 +1200,7 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   unsigned int name_len;
   unsigned int n_size;
 
-  GNUNET_assert (dir_name != NULL);
+  GNUNET_assert (NULL != dir_name);
   dname = GNUNET_STRINGS_filename_expand (dir_name);
   if (dname == NULL)
     return GNUNET_SYSERR;
@@ -1208,7 +1212,7 @@ GNUNET_DISK_directory_scan (const char *dir_name,
     GNUNET_free (dname);
     return GNUNET_SYSERR;
   }
-  if (!S_ISDIR (istat.st_mode))
+  if (! S_ISDIR (istat.st_mode))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Expected `%s' to be a directory!\n"),
@@ -1218,7 +1222,7 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   }
   errno = 0;
   dinfo = OPENDIR (dname);
-  if ((errno == EACCES) || (dinfo == NULL))
+  if ((errno == EACCES) || (NULL == dinfo))
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING, "opendir", dname);
     if (dinfo != NULL)
@@ -1229,12 +1233,12 @@ GNUNET_DISK_directory_scan (const char *dir_name,
   name_len = 256;
   n_size = strlen (dname) + name_len + 2;
   name = GNUNET_malloc (n_size);
-  while ((finfo = READDIR (dinfo)) != NULL)
+  while (NULL != (finfo = READDIR (dinfo)))
   {
     if ((0 == strcmp (finfo->d_name, ".")) ||
         (0 == strcmp (finfo->d_name, "..")))
       continue;
-    if (callback != NULL)
+    if (NULL != callback)
     {
       if (name_len < strlen (finfo->d_name))
       {
