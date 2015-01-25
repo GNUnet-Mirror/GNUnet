@@ -154,7 +154,7 @@ stat_cb (void *cls, const char *subsystem,
          const char *name, uint64_t value,
          int is_persistent)
 {
-  struct GNUNET_ATS_SuggestHandle *sh;
+  static struct GNUNET_ATS_SuggestHandle *sh;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "ATS statistics: `%s' `%s' %llu\n",
