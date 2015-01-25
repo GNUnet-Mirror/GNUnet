@@ -587,17 +587,19 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   if (count_addresses != net->active_addresses)
   {
     GNUNET_break (0);
-    LOG(GNUNET_ERROR_TYPE_WARNING,
-        "%s: Counted %u active addresses, but network says to have %u active addresses \n",
-        net->desc, count_addresses, net->active_addresses);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "%s: Counted %u active addresses, but network says to have %u active addresses\n",
+         net->desc, count_addresses, net->active_addresses);
     for (cur_address = net->head; NULL != cur_address; cur_address = cur_address->next)
     {
       if (GNUNET_YES != cur_address->addr->active)
         continue;
 
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Active: `%s' `%s' length %u\n",
-          GNUNET_i2s (&cur_address->addr->peer), cur_address->addr->plugin,
-          cur_address->addr->addr_len);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Active: `%s' `%s' length %u\n",
+           GNUNET_i2s (&cur_address->addr->peer),
+           cur_address->addr->plugin,
+           cur_address->addr->addr_len);
     }
   }
 

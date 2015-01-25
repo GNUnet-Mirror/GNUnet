@@ -479,9 +479,7 @@ process_ats_address_suggestion_message (void *cls,
   }
   if (NULL == sh->suggest_cb)
     return;
-  if ( (GNUNET_YES == ar->in_destroy) &&
-       ( (0 != ntohl (m->bandwidth_out.value__)) ||
-         (0 != ntohl (m->bandwidth_in.value__)) ) )
+  if (GNUNET_YES == ar->in_destroy)
   {
     /* ignore suggestion, as this address is dying */
     return;
@@ -490,7 +488,7 @@ process_ats_address_suggestion_message (void *cls,
        (GNUNET_HELLO_address_check_option (ar->address,
                                            GNUNET_HELLO_ADDRESS_INFO_INBOUND)) )
   {
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   sh->suggest_cb (sh->suggest_cb_cls,
