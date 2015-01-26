@@ -308,6 +308,12 @@ struct FragmentMessage
   GNUNET_TRANSPORT_TransmitContinuation cont;
 
   /**
+   * Message we need to fragment and transmit, NULL after the
+   * @e fragmentcontext has been created.
+   */
+  struct GNUNET_MessageHeader *msg;
+
+  /**
    * Closure for @e cont
    */
   void *cont_cls;
@@ -484,7 +490,7 @@ struct Plugin
   /**
    * Task that periodically sends a HELLO beacon via the helper.
    */
-  struct GNUNET_SCHEDULER_Task * beacon_task;
+  struct GNUNET_SCHEDULER_Task *beacon_task;
 
   /**
    * Tracker for bandwidth limit
@@ -688,7 +694,8 @@ get_wlan_header (struct Plugin *plugin,
  * @param hdr pointer to the hdr where the ack is stored
  */
 static void
-send_ack (void *cls, uint32_t msg_id,
+send_ack (void *cls,
+          uint32_t msg_id,
 	  const struct GNUNET_MessageHeader *hdr)
 {
   struct MacEndpoint *endpoint = cls;
@@ -708,7 +715,8 @@ send_ack (void *cls, uint32_t msg_id,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending ACK to helper\n");
+       "Sending ACK to %s\n",
+       mac_to_string (&endpoint->wlan_addr.mac));
   radio_header = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) buf;
   get_radiotap_header (endpoint, radio_header, size);
   get_wlan_header (endpoint->plugin,
@@ -939,9 +947,9 @@ fragment_transmission_done (void *cls,
 {
   struct FragmentMessage *fm = cls;
 
-
   fm->sh = NULL;
   GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
+  fm->fragcontext = NULL;
 }
 
 
@@ -973,6 +981,11 @@ transmit_fragment (void *cls,
 
     radio_header = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *) buf;
     get_radiotap_header (endpoint, radio_header, size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Sending %u bytes of data to MAC `%s'\n",
+	 (unsigned int) msize,
+	 mac_to_string (&endpoint->wlan_addr.mac));
+
     get_wlan_header (endpoint->plugin,
 		     &radio_header->frame,
 		     &endpoint->wlan_addr.mac,
@@ -985,12 +998,17 @@ transmit_fragment (void *cls,
 				 &fragment_transmission_done, fm);
     fm->size_on_wire += size;
     if (NULL != fm->sh)
+    {
       GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
                                 _("# message fragments sent"),
 				1,
                                 GNUNET_NO);
+    }
     else
+    {
       GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
+      fm->fragcontext = NULL;
+    }
     GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
                               "# bytes currently in buffers",
                               -msize, GNUNET_NO);
@@ -1022,10 +1040,18 @@ free_fragment_message (struct FragmentMessage *fm)
     GNUNET_HELPER_send_cancel (fm->sh);
     fm->sh = NULL;
   }
-  GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
-                                   &endpoint->msg_delay,
-                                   &endpoint->ack_delay);
-  if (fm->timeout_task != NULL)
+  if (NULL != fm->msg)
+  {
+    GNUNET_free (fm->msg);
+    fm->msg = NULL;
+  }
+  if (NULL != fm->fragcontext)
+  {
+    GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
+                                     &endpoint->msg_delay,
+                                     &endpoint->ack_delay);
+  }
+  if (NULL != fm->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (fm->timeout_task);
     fm->timeout_task = NULL;
@@ -1096,17 +1122,25 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   fm->cont = cont;
   fm->cont_cls = cont_cls;
   /* 1 MBit/s typical data rate, 1430 byte fragments => ~100 ms per message */
-  fm->fragcontext =
-    GNUNET_FRAGMENT_context_create (plugin->env->stats,
-                                    WLAN_MTU,
-				    &plugin->tracker,
-				    endpoint->msg_delay,
-				    endpoint->ack_delay,
-				    msg,
-				    &transmit_fragment, fm);
   fm->timeout_task =
     GNUNET_SCHEDULER_add_delayed (timeout,
-				  &fragmentmessage_timeout, fm);
+                                  &fragmentmessage_timeout,
+                                  fm);
+  if (GNUNET_YES == plugin->have_mac)
+  {
+    fm->fragcontext =
+      GNUNET_FRAGMENT_context_create (plugin->env->stats,
+                                      WLAN_MTU,
+                                      &plugin->tracker,
+                                      fm->macendpoint->msg_delay,
+                                      fm->macendpoint->ack_delay,
+                                      msg,
+                                      &transmit_fragment, fm);
+  }
+  else
+  {
+    fm->msg = GNUNET_copy_message (msg);
+  }
   GNUNET_CONTAINER_DLL_insert_tail (endpoint->sending_messages_head,
 				    endpoint->sending_messages_tail,
 				    fm);
@@ -1362,13 +1396,13 @@ wlan_plugin_send (void *cls,
   wlanheader->sender = *plugin->env->my_identity;
   wlanheader->target = session->target;
   wlanheader->crc = htonl (GNUNET_CRYPTO_crc32_n (msgbuf, msgbuf_size));
-  memcpy (&wlanheader[1], msgbuf, msgbuf_size);
-
+  memcpy (&wlanheader[1],
+          msgbuf,
+          msgbuf_size);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             "# bytes currently in buffers",
                             msgbuf_size,
                             GNUNET_NO);
-
   send_with_fragmentation (session->mac,
 			   to,
 			   &session->target,
@@ -1631,6 +1665,59 @@ process_data (void *cls,
 
 
 /**
+ * Task to (periodically) send a HELLO beacon
+ *
+ * @param cls pointer to the plugin struct
+ * @param tc scheduler context
+ */
+static void
+send_hello_beacon (void *cls,
+		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Plugin *plugin = cls;
+  uint16_t size;
+  uint16_t hello_size;
+  struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *radioHeader;
+  const struct GNUNET_MessageHeader *hello;
+
+  hello = plugin->env->get_our_hello ();
+  hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
+  GNUNET_assert (sizeof (struct WlanHeader) + hello_size <= WLAN_MTU);
+  size = sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) + hello_size;
+  {
+    char buf[size] GNUNET_ALIGN;
+
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Sending %u byte HELLO beacon\n",
+	 (unsigned int) size);
+    radioHeader = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage*) buf;
+    get_radiotap_header (NULL, radioHeader, size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Broadcasting %u bytes of data to MAC `%s'\n",
+	 (unsigned int) size,
+	 mac_to_string (&bc_all_mac));
+    get_wlan_header (plugin, &radioHeader->frame, &bc_all_mac, size);
+    memcpy (&radioHeader[1], hello, hello_size);
+    if (NULL !=
+	GNUNET_HELPER_send (plugin->suid_helper,
+			    &radioHeader->header,
+			    GNUNET_YES /* can drop */,
+			    NULL, NULL))
+      GNUNET_STATISTICS_update (plugin->env->stats,
+                                _("# HELLO beacons sent"),
+				1, GNUNET_NO);
+  }
+  plugin->beacon_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+				  (HELLO_BEACON_SCALING_FACTOR,
+				   plugin->mac_count + 1),
+				  &send_hello_beacon,
+				  plugin);
+
+}
+
+
+/**
  * Function used for to process the data from the suid process
  *
  * @param cls the plugin handle
@@ -1648,6 +1735,8 @@ handle_helper_message (void *cls, void *client,
   struct WlanAddress wa;
   struct MacAndSession mas;
   uint16_t msize;
+  struct FragmentMessage *fm;
+  struct MacEndpoint *endpoint;
 
   msize = ntohs (hdr->size);
   switch (ntohs (hdr->type))
@@ -1677,9 +1766,38 @@ handle_helper_message (void *cls, void *client,
                                    GNUNET_NO,
                                    my_address);
       GNUNET_HELLO_address_free (my_address);
+      plugin->mac_address = cm->mac;
     }
-    plugin->mac_address = cm->mac;
-    plugin->have_mac = GNUNET_YES;
+    else
+    {
+      plugin->mac_address = cm->mac;
+      plugin->have_mac = GNUNET_YES;
+      for (endpoint = plugin->mac_head; NULL != endpoint; endpoint = endpoint->next)
+      {
+        for (fm = endpoint->sending_messages_head; NULL != fm; fm = fm->next)
+        {
+          if (NULL != fm->fragcontext)
+          {
+            GNUNET_break (0); /* should not happen */
+            continue;
+          }
+          fm->fragcontext =
+            GNUNET_FRAGMENT_context_create (plugin->env->stats,
+                                            WLAN_MTU,
+                                            &plugin->tracker,
+                                            fm->macendpoint->msg_delay,
+                                            fm->macendpoint->ack_delay,
+                                            fm->msg,
+                                            &transmit_fragment, fm);
+          GNUNET_free (fm->msg);
+          fm->msg = NULL;
+        }
+      }
+      GNUNET_break (NULL == plugin->beacon_task);
+      plugin->beacon_task = GNUNET_SCHEDULER_add_now (&send_hello_beacon,
+                                                      plugin);
+
+    }
 
     memset (&wa, 0, sizeof (struct WlanAddress));
     wa.mac = plugin->mac_address;
@@ -1743,6 +1861,14 @@ handle_helper_message (void *cls, void *client,
 	 "Receiving %u bytes of data from MAC `%s'\n",
 	 (unsigned int) (msize - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)),
 	 mac_to_string (&rxinfo->frame.addr2));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Receiving %u bytes of data to MAC `%s'\n",
+	 (unsigned int) (msize - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)),
+	 mac_to_string (&rxinfo->frame.addr1));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Receiving %u bytes of data with BSSID MAC `%s'\n",
+	 (unsigned int) (msize - sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapReceiveMessage)),
+	 mac_to_string (&rxinfo->frame.addr3));
     wa.mac = rxinfo->frame.addr2;
     wa.options = htonl (0);
     mas.endpoint = create_macendpoint (plugin, &wa);
@@ -1761,55 +1887,6 @@ handle_helper_message (void *cls, void *client,
     break;
   }
   return GNUNET_OK;
-}
-
-
-/**
- * Task to (periodically) send a HELLO beacon
- *
- * @param cls pointer to the plugin struct
- * @param tc scheduler context
- */
-static void
-send_hello_beacon (void *cls,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Plugin *plugin = cls;
-  uint16_t size;
-  uint16_t hello_size;
-  struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage *radioHeader;
-  const struct GNUNET_MessageHeader *hello;
-
-  hello = plugin->env->get_our_hello ();
-  hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
-  GNUNET_assert (sizeof (struct WlanHeader) + hello_size <= WLAN_MTU);
-  size = sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) + hello_size;
-  {
-    char buf[size] GNUNET_ALIGN;
-
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Sending %u byte HELLO beacon\n",
-	 (unsigned int) size);
-    radioHeader = (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage*) buf;
-    get_radiotap_header (NULL, radioHeader, size);
-    get_wlan_header (plugin, &radioHeader->frame, &bc_all_mac, size);
-    memcpy (&radioHeader[1], hello, hello_size);
-    if (NULL !=
-	GNUNET_HELPER_send (plugin->suid_helper,
-			    &radioHeader->header,
-			    GNUNET_YES /* can drop */,
-			    NULL, NULL))
-      GNUNET_STATISTICS_update (plugin->env->stats,
-                                _("# HELLO beacons sent"),
-				1, GNUNET_NO);
-  }
-  plugin->beacon_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-				  (HELLO_BEACON_SCALING_FACTOR,
-				   plugin->mac_count + 1),
-				  &send_hello_beacon,
-				  plugin);
-
 }
 
 
@@ -2204,8 +2281,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
                                                                     plugin);
   plugin->helper_payload_tokenizer = GNUNET_SERVER_mst_create (&process_data,
                                                                plugin);
-  plugin->beacon_task = GNUNET_SCHEDULER_add_now (&send_hello_beacon,
-						  plugin);
 
   plugin->options = 0;
 

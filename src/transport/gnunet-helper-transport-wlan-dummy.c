@@ -103,10 +103,14 @@ send_mac_to_plugin (char *buffer, struct GNUNET_TRANSPORT_WLAN_MacAddress *mac)
 
   struct GNUNET_TRANSPORT_WLAN_HelperControlMessage macmsg;
 
-  memcpy (&macmsg.mac, (char *) mac, sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
+  memcpy (&macmsg.mac,
+          (char *) mac,
+          sizeof (struct GNUNET_TRANSPORT_WLAN_MacAddress));
   macmsg.hdr.size = htons (sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   macmsg.hdr.type = htons (GNUNET_MESSAGE_TYPE_WLAN_HELPER_CONTROL);
-  memcpy (buffer, &macmsg, sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
+  memcpy (buffer,
+          &macmsg,
+          sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage));
   return sizeof (struct GNUNET_TRANSPORT_WLAN_HelperControlMessage);
 }
 
@@ -228,7 +232,9 @@ main (int argc, char *argv[])
   if ( (GNUNET_OK != GNUNET_DISK_directory_create_for_file (FIFO_FILE1)) ||
        (GNUNET_OK != GNUNET_DISK_directory_create_for_file (FIFO_FILE2)) )
   {
-    FPRINTF (stderr, "Failed to create directory for file `%s'\n", FIFO_FILE1);
+    FPRINTF (stderr,
+             "Failed to create directory for file `%s'\n",
+             FIFO_FILE1);
     return 1;
   }
   if (0 == strcmp (argv[1], "1") )
@@ -247,7 +253,9 @@ main (int argc, char *argv[])
     {
     	GNUNET_break (0 == (erg = mkfifo (FIFO_FILE2, 0666)));
       if ( (0 != erg) && (EEXIST != errno) )
-	FPRINTF (stderr, "Error in mkfifo(%s): %s\n", FIFO_FILE2,
+	FPRINTF (stderr,
+                 "Error in mkfifo(%s): %s\n",
+                 FIFO_FILE2,
 		 strerror (errno));
     }
   }
@@ -258,7 +266,9 @@ main (int argc, char *argv[])
     fpin = fopen (FIFO_FILE1, "r");
     if (NULL == fpin)
     {
-      FPRINTF (stderr, "fopen of read FIFO_FILE1 failed: %s\n", STRERROR (errno));
+      FPRINTF (stderr,
+               "fopen of read FIFO_FILE1 failed: %s\n",
+               STRERROR (errno));
       goto end;
     }
     if (NULL == (fpout = fopen (FIFO_FILE2, "w")))
@@ -268,7 +278,9 @@ main (int argc, char *argv[])
     }
     if (NULL == fpout)
     {
-      FPRINTF (stderr, "fopen of write FIFO_FILE2 failed: %s\n", STRERROR (errno));
+      FPRINTF (stderr,
+               "fopen of write FIFO_FILE2 failed: %s\n",
+               STRERROR (errno));
       goto end;
     }
   }
@@ -282,13 +294,17 @@ main (int argc, char *argv[])
     }
     if (NULL == fpout)
     {
-      FPRINTF (stderr, "fopen of write FIFO_FILE1 failed: %s\n", STRERROR (errno));
+      FPRINTF (stderr,
+               "fopen of write FIFO_FILE1 failed: %s\n",
+               STRERROR (errno));
       goto end;
     }
     fpin = fopen (FIFO_FILE2, "r");
     if (NULL == fpin)
     {
-      FPRINTF (stderr, "fopen of read FIFO_FILE2 failed: %s\n", STRERROR (errno));
+      FPRINTF (stderr,
+               "fopen of read FIFO_FILE2 failed: %s\n",
+               STRERROR (errno));
       goto end;
     }
   }
@@ -297,7 +313,9 @@ main (int argc, char *argv[])
   GNUNET_assert (fpin >= 0);
   if (fdpin >= FD_SETSIZE)
   {
-    FPRINTF (stderr, "File fdpin number too large (%d > %u)\n", fdpin,
+    FPRINTF (stderr,
+             "File fdpin number too large (%d > %u)\n",
+             fdpin,
              (unsigned int) FD_SETSIZE);
     goto end;
   }
@@ -307,7 +325,9 @@ main (int argc, char *argv[])
 
   if (fdpout >= FD_SETSIZE)
   {
-    FPRINTF (stderr, "File fdpout number too large (%d > %u)\n", fdpout,
+    FPRINTF (stderr,
+             "File fdpout number too large (%d > %u)\n",
+             fdpout,
              (unsigned int) FD_SETSIZE);
     goto end;
   }
