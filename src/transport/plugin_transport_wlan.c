@@ -1563,11 +1563,12 @@ process_data (void *cls,
         break;
       }
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "ACK not matched against any active fragmentation with MAC `%s'\n",
-         wlan_plugin_address_to_string (NULL,
-                                        &mas->endpoint->wlan_addr,
-                                        sizeof (mas->endpoint->wlan_addr)));
+    if (NULL == fm)
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "ACK not matched against any active fragmentation with MAC `%s'\n",
+           wlan_plugin_address_to_string (NULL,
+                                          &mas->endpoint->wlan_addr,
+                                          sizeof (mas->endpoint->wlan_addr)));
     break;
   case GNUNET_MESSAGE_TYPE_WLAN_DATA:
     if (NULL == mas->endpoint)
