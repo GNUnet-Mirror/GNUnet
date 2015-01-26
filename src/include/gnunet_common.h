@@ -302,11 +302,12 @@ enum GNUNET_ErrorType
  * @param date when was the message logged?
  * @param message what is the message
  */
-typedef void (*GNUNET_Logger) (void *cls,
-                               enum GNUNET_ErrorType kind,
-                               const char *component,
-                               const char *date,
-                               const char *message);
+typedef void
+(*GNUNET_Logger) (void *cls,
+                  enum GNUNET_ErrorType kind,
+                  const char *component,
+                  const char *date,
+                  const char *message);
 
 
 /**
@@ -316,7 +317,8 @@ typedef void (*GNUNET_Logger) (void *cls,
  * @return number of log calls to be ignored
  */
 int
-GNUNET_get_log_skip ();
+GNUNET_get_log_skip (void);
+
 
 #if !defined(GNUNET_CULL_LOGGING)
 int
