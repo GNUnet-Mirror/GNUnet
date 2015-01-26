@@ -516,6 +516,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                  data,
                  r_e,
                  ne[0]);
+  gcry_mpi_release (data);
   gcry_mpi_release (ne[0]);
   gcry_mpi_release (ne[1]);
   gcry_mpi_release (r_e);
