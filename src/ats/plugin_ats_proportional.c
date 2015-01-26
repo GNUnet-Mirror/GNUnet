@@ -1421,12 +1421,14 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   struct Network *cur_net;
 
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (s->requests, peer))
-	{
-    GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (s->requests,
-        peer, NULL));
-    LOG (GNUNET_ERROR_TYPE_INFO, "Stop suggesting addresses for peer `%s'\n",
-          GNUNET_i2s (peer));
-	}
+  {
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_remove (s->requests,
+                                                         peer, NULL));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Stop suggesting addresses for peer `%s'\n",
+         GNUNET_i2s (peer));
+  }
 
   cur = get_active_address (s, s->addresses, peer);
   if (NULL != cur)
