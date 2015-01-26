@@ -949,7 +949,6 @@ fragment_transmission_done (void *cls,
 
   fm->sh = NULL;
   GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
-  fm->fragcontext = NULL;
 }
 
 
@@ -1007,7 +1006,6 @@ transmit_fragment (void *cls,
     else
     {
       GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
-      fm->fragcontext = NULL;
     }
     GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
                               "# bytes currently in buffers",
@@ -1050,6 +1048,7 @@ free_fragment_message (struct FragmentMessage *fm)
     GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
                                      &endpoint->msg_delay,
                                      &endpoint->ack_delay);
+    fm->fragcontext = NULL;
   }
   if (NULL != fm->timeout_task)
   {
