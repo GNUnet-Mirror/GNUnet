@@ -488,7 +488,7 @@ process_ats_address_suggestion_message (void *cls,
        (GNUNET_HELLO_address_check_option (ar->address,
                                            GNUNET_HELLO_ADDRESS_INFO_INBOUND)) )
   {
-    GNUNET_assert (0);
+    GNUNET_assert (0); // FIXME: turn back into 'break' later!
     return;
   }
   sh->suggest_cb (sh->suggest_cb_cls,

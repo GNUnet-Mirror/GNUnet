@@ -48,6 +48,11 @@ static char *value;
 static int is_filename;
 
 /**
+ * Whether to show the sections.
+ */
+static int list_sections;
+
+/**
  * Return value from 'main'.
  */
 static int ret;
@@ -72,6 +77,20 @@ print_option (void *cls, const char *section,
 
 
 /**
+ * Print out given section name.
+ *
+ * @param cls unused
+ * @param section a section in the configuration file
+ */
+static void
+print_section_name (void *cls,
+                    const char *section)
+{
+  fprintf (stdout, "%s\n", section);
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -85,9 +104,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 {
   struct GNUNET_CONFIGURATION_Handle *out;
 
-  if (NULL == section)
+  if (NULL == section || list_sections)
   {
-    fprintf (stderr, _("--section argument is required\n"));
+    if (! list_sections)
+    {
+      fprintf (stderr, _("--section argument is required\n"));
+    }
+    fprintf (stderr, _("The following sections are available:\n"));
+    GNUNET_CONFIGURATION_iterate_sections (cfg, &print_section_name, NULL);
     ret = 1;
     return;
   }
@@ -168,6 +192,9 @@ main (int argc, char *const *argv)
     { 'V', "value", "VALUE",
       gettext_noop ("value to set"),
       1, &GNUNET_GETOPT_set_string, &value },
+    { 'S', "list-sections", NULL,
+      gettext_noop ("print available configuration sections"),
+      0, &GNUNET_GETOPT_set_one, &list_sections },
     GNUNET_GETOPT_OPTION_END
   };
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
