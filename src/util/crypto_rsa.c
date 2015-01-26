@@ -690,9 +690,9 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
 
 
 /**
- * Unblind a signature made on blinding signature purpose.  The signature
- * purpose should have been generated with #GNUNET_CRYPTO_rsa_sign() using
- * a message that was generated with #GNUNET_CRYPTO_rsa_blind().
+ * Unblind a blind-signed signature.  The signature should have been generated
+ * with #GNUNET_CRYPTO_rsa_sign() using a hash that was blinded with
+ * #GNUNET_CRYPTO_rsa_blind().
  *
  * @param sig the signature made on the blinded signature purpose
  * @param bkey the blinding key used to blind the signature purpose
@@ -758,7 +758,8 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
 
 
 /**
- * Verify signature with the given hash.
+ * Verify whether the given hash corresponds to the given signature and the
+ * signature is valid with respect to the given public key.
  *
  * @param hash hash of the message to verify to match the @a sig
  * @param sig signature that is being validated
