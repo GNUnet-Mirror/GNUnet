@@ -89,7 +89,7 @@ struct GNUNET_RPS_CS_RequestMessage
 struct GNUNET_RPS_CS_ReplyMessage
 {
   /**
-   * Type is #GNUNET_MESSAGE_TYPE_RPS_REPLY.
+   * Type is #GNUNET_MESSAGE_TYPE_RPS_CS_REPLY.
    */
   struct GNUNET_MessageHeader header;
 
