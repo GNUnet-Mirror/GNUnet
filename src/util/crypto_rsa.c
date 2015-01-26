@@ -617,8 +617,7 @@ GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig)
 
 
 /**
- * Encode the signature key in a format suitable for
- * storing it into a file.
+ * Encode the given signature in a format suitable for storing it into a file.
  *
  * @param sig the signature
  * @param[out] buffer set to a buffer with the encoded key
@@ -647,8 +646,8 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *si
 
 
 /**
- * Decode the public key from the data-format back
- * to the "normal", internal format.
+ * Decode the signature from the data-format back to the "normal", internal
+ * format.
  *
  * @param buf the buffer where the public key data is stored
  * @param len the length of the data in @a buf
