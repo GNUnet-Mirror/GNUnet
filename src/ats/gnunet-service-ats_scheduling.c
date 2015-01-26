@@ -51,7 +51,7 @@ static struct GNUNET_SERVER_Client *my_client;
 int
 GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
 {
-  if (my_client != NULL)
+  if (NULL != my_client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "This ATS already has a scheduling client, refusing new scheduling client for now.\n");
