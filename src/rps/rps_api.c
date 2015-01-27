@@ -217,6 +217,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
   return rh;
 }
 
+
 /**
  * Seed rps service with peerIDs.
  *
@@ -229,33 +230,40 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
                      const struct GNUNET_PeerIdentity * ids)
 {
   uint32_t size_needed;
-  uint32_t tmp_num_peers;
+  uint32_t num_peers_max;
+  const struct GNUNET_PeerIdentity *tmp_peer_pointer;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_SeedMessage *msg;
 
+  /* The actual size the message occupies */
   size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
-                n * sizeof (struct GNUNET_PeerIdentity);
+    n * sizeof (struct GNUNET_PeerIdentity);
+  /* The number of peers that fits in one message together with
+   * the respective header */
+  num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+      sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
+    sizeof (struct GNUNET_PeerIdentity);
+  tmp_peer_pointer = ids;
 
   while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
   {
-    tmp_num_peers = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
-        sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
-      sizeof (struct GNUNET_PeerIdentity);
-    n -= tmp_num_peers;
+    ev = GNUNET_MQ_msg_extra (msg, num_peers_max * sizeof (struct GNUNET_PeerIdentity),
+        GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
+    msg->num_peers = ntohl (num_peers_max);
+    memcpy (&msg[1], tmp_peer_pointer, num_peers_max * sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_MQ_send (h->mq, ev);
+
+    n -= num_peers_max;
     size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
                   n * sizeof (struct GNUNET_PeerIdentity);
-
-    ev = GNUNET_MQ_msg_extra (msg, tmp_num_peers * sizeof (struct GNUNET_PeerIdentity),
-        GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
-    msg->num_peers = GNUNET_htonll (tmp_num_peers);
-    memcpy (&msg[1], ids, tmp_num_peers * sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_MQ_send (h->mq, ev);
+    /* Set pointer to beginning of next block of num_peers_max peers */
+    tmp_peer_pointer = &ids[num_peers_max];
   }
 
   ev = GNUNET_MQ_msg_extra (msg, n * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
   msg->num_peers = GNUNET_htonll (n);
-  memcpy (&msg[1], ids, n * sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&msg[1], tmp_peer_pointer, n * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_MQ_send (h->mq, ev);
 }
 
