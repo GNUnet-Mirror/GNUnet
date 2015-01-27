@@ -431,6 +431,29 @@ GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Handle *
 
 
 /**
+ * Get Crockford32-encoded fixed-size binary data from a configuration.
+ *
+ * @param cfg configuration to access
+ * @param section section to access
+ * @param option option to access
+ * @param buf where to store the decoded binary result
+ * @param buf_size exact number of bytes to store in @a buf
+ * @return #GNUNET_OK on success
+ *         #GNUNET_NO is the value does not exist
+ *         #GNUNET_SYSERR on decoding error
+ */
+int
+GNUNET_CONFIGURATION_get_data (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               const char *section,
+                               const char *option,
+                               void *buf,
+                               size_t buf_size);
+
+
+
+
+
+/**
  * Expand an expression of the form "$FOO/BAR" to "DIRECTORY/BAR"
  * where either in the "PATHS" section or the environtment "FOO" is
  * set to "DIRECTORY".  We also support default expansion,

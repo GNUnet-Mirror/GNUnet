@@ -920,8 +920,8 @@ GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle
-                                     *cfg, const char *section,
+GNUNET_CONFIGURATION_get_value_time (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                     const char *section,
                                      const char *option,
                                      struct GNUNET_TIME_Relative *time)
 {
@@ -1036,6 +1036,53 @@ GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle 
 
 
 /**
+ * Get crockford32-encoded fixed-size binary data from a configuration.
+ *
+ * @param cfg configuration to access
+ * @param section section to access
+ * @param option option to access
+ * @param buf where to store the decoded binary result
+ * @param buf_size exact number of bytes to store in @a buf
+ * @return #GNUNET_OK on success
+ *         #GNUNET_NO is the value does not exist
+ *         #GNUNET_SYSERR on decoding error
+ */
+int
+GNUNET_CONFIGURATION_get_data (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               const char *section,
+                               const char *option,
+                               void *buf,
+                               size_t buf_size)
+{
+  char *enc;
+  int res;
+  size_t data_size;
+
+  if (GNUNET_OK !=
+      (res = GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                    section,
+                                                    option,
+                                                    &enc)))
+    return res;
+  data_size = (strlen (enc) * 5) / 8;
+  if (data_size != buf_size)
+  {
+    GNUNET_free (enc);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (enc,
+                                     strlen (enc),
+                                     buf, buf_size))
+  {
+    GNUNET_free (enc);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Test if we have a value for a particular option
  *
  * @param cfg configuration to inspect
@@ -1045,7 +1092,8 @@ GNUNET_CONFIGURATION_get_value_choice (const struct GNUNET_CONFIGURATION_Handle 
  */
 int
 GNUNET_CONFIGURATION_have_value (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                 const char *section, const char *option)
+                                 const char *section,
+                                 const char *option)
 {
   struct ConfigEntry *e;
 
