@@ -49,6 +49,7 @@ struct GNUNET_RPS_Handle
   struct GNUNET_MQ_Handle *mq;
 };
 
+
 /**
  * Handler to single requests from the client.
  */
@@ -75,6 +76,7 @@ struct GNUNET_RPS_Request_Handle
   void *ready_cb_cls;
 };
 
+
 /**
  * Array of Request_Handles.
  */
@@ -84,6 +86,7 @@ struct GNUNET_RPS_Request_Handle *req_handlers = NULL;
  * Current length of req_handlers.
  */
 unsigned int req_handlers_size = 0;
+
 
 /**
  * Struct used to pack the callback, its closure (provided by the caller)
@@ -138,6 +141,7 @@ handle_reply (void *cls,
   //GNUNET_CLIENT_disconnect(pack->service_conn);
 }
 
+
 /**
  * Error handler for mq.
  *
@@ -181,6 +185,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   return h;
 }
+
 
 /**
  * Request n random peers.
