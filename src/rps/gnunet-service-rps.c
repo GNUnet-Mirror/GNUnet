@@ -1542,6 +1542,10 @@ cleanup_channel (void *cls,
   RPS_sampler_reinitialise_by_value (peer);
 
   peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
+
+  if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
+    return;
+
   /* Somwewhat {ab,re}use the iterator function */
   /* Cast to void is ok, because it's used as void in peer_remove_cb */
   (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
