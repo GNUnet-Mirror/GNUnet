@@ -201,9 +201,9 @@ typedef void
  * @param new_channel Function called when an *incoming* channel is created.
  *                    Can be NULL if no inbound channels are desired.
  *                    See @a ports.
- * @param cleaner Function called when a channel is destroyed by the remote peer.
- *                It is NOT called if #GNUNET_CADET_channel_destroy is called on
- *                the channel.
+ * @param cleaner Function called when a channel is destroyed.
+ *                It is called immediately if #GNUNET_CADET_channel_destroy
+ *                is called on the channel.
  * @param handlers Callbacks for messages we care about, NULL-terminated. Each
  *                 one must call #GNUNET_CADET_receive_done on the channel to
  *                 receive the next message.  Messages of a type that is not
