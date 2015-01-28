@@ -711,9 +711,9 @@ resize_wrapper ()
   // TODO statistics
 
   if (sampler_size_est_need > sampler_size_client_need)
-    bigger_size = sampler_size_client_need;
-  else
     bigger_size = sampler_size_est_need;
+  else
+    bigger_size = sampler_size_client_need;
 
   // TODO respect the min, max
   sampler_size = RPS_sampler_get_size ();
