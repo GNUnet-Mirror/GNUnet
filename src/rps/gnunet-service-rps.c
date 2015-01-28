@@ -509,6 +509,8 @@ peer_is_live (void *cls, size_t size, void *buf)
   struct GNUNET_PeerIdentity *peer;
   struct PeerContext *peer_ctx;
 
+  // TODO check
+
   peer = (struct GNUNET_PeerIdentity *) cls;
   peer_ctx = get_peer_ctx (peer_map, peer);
   peer_ctx->peer_flags |= LIVING;
@@ -526,7 +528,11 @@ peer_is_live (void *cls, size_t size, void *buf)
 
   GNUNET_free (peer);
 
-  buf = NULL;
+  //if (NULL != peer_ctx->is_live_task)
+  //{
+  //  GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
+  //  peer_ctx->is_live_task = NULL; // needed?
+  //}
   return 0;
 }
 
@@ -1379,7 +1385,10 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
     GNUNET_MQ_destroy (peer_ctx->mq);
 
   if ( NULL != peer_ctx->is_live_task)
+  {
     GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
+    peer_ctx->is_live_task = NULL;
+  }
 
   if ( NULL != peer_ctx->send_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
