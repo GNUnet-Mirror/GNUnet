@@ -297,6 +297,21 @@ GNUNET_STRINGS_data_to_string (const void *data,
 
 
 /**
+ * Return the base32crockford encoding of the given buffer.
+ *
+ * The returned string will be freshly allocated, and must be free'd
+ * with #GNUNET_free().
+ *
+ * @param buffer with data
+ * @param size size of the buffer
+ * @return freshly allocated, null-terminated string
+ */
+char *
+GNUNET_STRINGS_data_to_string_alloc (const void *buf,
+                                     size_t size);
+
+
+/**
  * Convert Base32hex encoding back to data.
  * @a out_size must match exactly the size of the data before it was encoded.
  *

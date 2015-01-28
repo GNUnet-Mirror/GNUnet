@@ -846,10 +846,13 @@ getValue__ (unsigned char a)
  * @param out buffer to fill
  * @param out_size size of the buffer. Must be large enough to hold
  * (size * 8 + 4) / 5 bytes
- * @return pointer to the next byte in 'out' or NULL on error.
+ * @return pointer to the next byte in @a out or NULL on error.
  */
 char *
-GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t out_size)
+GNUNET_STRINGS_data_to_string (const void *data,
+                               size_t size,
+                               char *out,
+                               size_t out_size)
 {
   /**
    * 32 characters for encoding
@@ -861,8 +864,6 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
   unsigned int vbit;
   const unsigned char *udata;
 
-  GNUNET_assert (data != NULL);
-  GNUNET_assert (out != NULL);
   udata = data;
   if (out_size < (size * 8 + 4) / 5)
   {
@@ -898,6 +899,39 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
   if (wpos < out_size)
     out[wpos] = '\0';
   return &out[wpos];
+}
+
+
+/**
+ * Return the base32crockford encoding of the given buffer.
+ *
+ * The returned string will be freshly allocated, and must be free'd
+ * with GNUNET_free().
+ *
+ * @param buffer with data
+ * @param size size of the buffer
+ * @return freshly allocated, null-terminated string
+ */
+char *
+GNUNET_STRINGS_data_to_string_alloc (const void *buf,
+                                     size_t size)
+{
+  char *str_buf;
+  size_t len = size * 8;
+  char *end;
+
+  if (len % 5 > 0)
+    len += 5 - len % 5;
+  len /= 5;
+  str_buf = GNUNET_malloc (len + 1);
+  end = GNUNET_STRINGS_data_to_string (buf, size, str_buf, len);
+  if (NULL == end)
+  {
+    GNUNET_free (str_buf);
+    return NULL;
+  }
+  *end = '\0';
+  return str_buf;
 }
 
 
