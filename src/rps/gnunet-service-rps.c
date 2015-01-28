@@ -1206,8 +1206,8 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     uint32_t first_border;
     uint32_t second_border;
 
-    first_border = round (alpha * sampler_size_est_need);
-    second_border = first_border + round (beta * sampler_size_est_need);
+    first_border = ceil (alpha * sampler_size_est_need);
+    second_border = first_border + ceil (beta * sampler_size_est_need);
 
     GNUNET_array_grow (gossip_list, gossip_list_size, second_border);
 
