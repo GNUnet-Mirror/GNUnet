@@ -509,6 +509,8 @@ peer_is_live (void *cls, size_t size, void *buf)
   struct GNUNET_PeerIdentity *peer;
   struct PeerContext *peer_ctx;
 
+  //if (NULL == buf ||
+  //    0 == size)
   // TODO check
 
   peer = (struct GNUNET_PeerIdentity *) cls;
@@ -719,13 +721,15 @@ resize_wrapper ()
     bigger_size = sampler_size_est_need;
 
   // TODO respect the min, max
-  if (sampler_size > bigger_size*4)
+  if (sampler_size > bigger_size * 4)
   { /* Shrinking */
-    RPS_sampler_resize (sampler_size/2);
+    sampler_size = sampler_size / 2;
+    RPS_sampler_resize (sampler_size);
   }
   else if (sampler_size < bigger_size)
   { /* Growing */
-    RPS_sampler_resize (sampler_size*2);
+    sampler_size = sampler_size * 2;
+    RPS_sampler_resize (sampler_size);
   }
 }
 
@@ -795,7 +799,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
   //scale = .01;
   estimate = GNUNET_NSE_log_estimate_to_n (logestimate);
   // GNUNET_NSE_log_estimate_to_n (logestimate);
-  estimate = pow (estimate, 1.0 / 3);
+  estimate = pow (estimate, 1./3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
   if ( 0 < estimate ) {
@@ -1382,22 +1386,25 @@ init_peer_cb (void *cls,
 peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct PeerContext *peer_ctx;
+  const struct GNUNET_CADET_Channel *ch = (const struct GNUNET_CADET_Channel *) cls;
 
   peer_ctx = (struct PeerContext *) value;
 
-  if ( NULL != peer_ctx->mq)
+  if (NULL != peer_ctx->mq)
     GNUNET_MQ_destroy (peer_ctx->mq);
 
-  if ( NULL != peer_ctx->is_live_task)
+  if (NULL != peer_ctx->is_live_task)
   {
     GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
     peer_ctx->is_live_task = NULL;
   }
 
-  if ( NULL != peer_ctx->send_channel)
+  if (NULL  != peer_ctx->send_channel
+      && ch != peer_ctx->send_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-
-  if ( NULL != peer_ctx->recv_channel)
+  
+  if (NULL  != peer_ctx->recv_channel
+      && ch != peer_ctx->recv_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
@@ -1524,7 +1531,8 @@ cleanup_channel (void *cls,
 
   peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
   /* Somwewhat {ab,re}use the iterator function */
-  (void) peer_remove_cb (peer, peer, peer_ctx);
+  /* Cast to void is ok, because it's used as void in peer_remove_cb */
+  (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
 }
 
 
