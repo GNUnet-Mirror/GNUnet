@@ -1443,9 +1443,9 @@ shutdown_task (void *cls,
 
   GNUNET_NSE_disconnect (nse);
   GNUNET_CADET_disconnect (cadet_handle);
+  RPS_sampler_destroy ();
   GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
-  RPS_sampler_destroy ();
   GNUNET_array_grow (request_deltas, request_deltas_size, 0);
   GNUNET_array_grow (gossip_list, gossip_list_size, 0);
   GNUNET_array_grow (push_list, push_list_size, 0);
