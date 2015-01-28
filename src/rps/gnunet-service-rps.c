@@ -170,6 +170,11 @@ struct PeerContext
   struct GNUNET_CADET_TransmitHandle *is_live_task;
 
   /**
+   * Identity of the peer
+   */
+  struct GNUNET_PeerIdentity peer_id;
+
+  /**
    * This is pobably followed by 'statistical' data (when we first saw
    * him, how did we get his ID, how many pushes (in a timeinterval),
    * ...)
@@ -497,9 +502,10 @@ hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
  * This is given to ntfy_tmt_rdy and called when the channel was
  * successfully established.
  */
-  size_t
+static size_t
 peer_is_live (void *cls, size_t size, void *buf)
 {
+  struct PeerContext *ctx = cls;
   struct GNUNET_PeerIdentity *peer;
   struct PeerContext *peer_ctx;
 
@@ -507,7 +513,8 @@ peer_is_live (void *cls, size_t size, void *buf)
   //    0 == size)
   // TODO check
 
-  peer = (struct GNUNET_PeerIdentity *) cls;
+  ctx->is_live_task = NULL;
+  peer = &ctx->peer_id;
   peer_ctx = get_peer_ctx (peer_map, peer);
   peer_ctx->peer_flags |= LIVING;
 
@@ -521,8 +528,6 @@ peer_is_live (void *cls, size_t size, void *buf)
       peer_ctx->outstanding_ops[i].op (peer_ctx->outstanding_ops[i].op_cls, peer);
     GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
   }
-
-  GNUNET_free (peer);
 
   //if (NULL != peer_ctx->is_live_task)
   //{
@@ -541,7 +546,6 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
              const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *ctx;
-  struct GNUNET_PeerIdentity *tmp_peer;
 
   ctx = get_peer_ctx (peer_map, peer);
   if (NULL == ctx->send_channel)
@@ -552,11 +556,12 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 
     if (NULL == ctx->recv_channel)
     {
-      tmp_peer = GNUNET_new (struct GNUNET_PeerIdentity);
-      *tmp_peer = *peer;
-      ctx->is_live_task = GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
-                                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                                              0, peer_is_live, tmp_peer);
+      ctx->peer_id = *peer;
+      ctx->is_live_task =
+          GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
+                                              GNUNET_TIME_UNIT_FOREVER_REL,
+                                              sizeof (struct GNUNET_MessageHeader),
+                                              peer_is_live, ctx);
     }
 
     // do I have to explicitly put it in the peer_map?
@@ -1429,14 +1434,17 @@ shutdown_task (void *cls,
   }
 
 
+  /* FIXME instead of this, destroy every known channel */
+  {
   if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL))
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Iterating over peers to disconnect from them was cancelled\n");
-
-  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  }
 
   GNUNET_NSE_disconnect (nse);
   GNUNET_CADET_disconnect (cadet_handle);
+  GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
+  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   RPS_sampler_destroy ();
   GNUNET_array_grow (request_deltas, request_deltas_size, 0);
   GNUNET_array_grow (gossip_list, gossip_list_size, 0);
