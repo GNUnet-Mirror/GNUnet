@@ -1422,9 +1422,9 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
     LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
+  else
+    GNUNET_free (peer_ctx);
 
-  /* FIXME this will be called twice until the fixme in line 1451 is fixed */
-  GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
 
@@ -1448,7 +1448,6 @@ shutdown_task (void *cls,
   }
 
 
-  /* FIXME instead of this, destroy every known channel */
   {
   if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL))
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1538,22 +1537,26 @@ cleanup_channel (void *cls,
   struct GNUNET_PeerIdentity *peer;
   struct PeerContext *peer_ctx;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel to remote peer was destroyed.\n");
-
   peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
       (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
        // Guess simply casting isn't the nicest way...
        // FIXME wait for cadet to change this function
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up channel to peer %s\n",
+       GNUNET_i2s (peer));
+
   RPS_sampler_reinitialise_by_value (peer);
 
-  peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  {
+    peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
 
-  if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
-    return;
+    if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
+      return;
 
-  /* Somwewhat {ab,re}use the iterator function */
-  /* Cast to void is ok, because it's used as void in peer_remove_cb */
-  (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+    /* Somwewhat {ab,re}use the iterator function */
+    /* Cast to void is ok, because it's used as void in peer_remove_cb */
+    (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+  }
 }
 
 
