@@ -77,7 +77,7 @@ RPS_sampler_get_size ();
 /**
  * Grow or shrink the size of the sampler.
  *
- * @param new_size the new size of the sampler
+ * @param new_size the new size of the sampler (not 0)
  */
   void
 RPS_sampler_resize (unsigned int new_size);
@@ -85,8 +85,6 @@ RPS_sampler_resize (unsigned int new_size);
 
 /**
  * Empty the sampler.
- *
- * @param new_size the new size of the sampler
  */
 void
 RPS_sampler_empty ();
