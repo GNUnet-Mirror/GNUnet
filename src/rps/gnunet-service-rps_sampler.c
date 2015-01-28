@@ -82,7 +82,7 @@ struct RPS_SamplerElement
    * Time of last request.
    */
   struct GNUNET_TIME_Absolute last_client_request;
-  
+
   /**
    * Flag that indicates that we are not holding a valid PeerID right now.
    */
@@ -251,7 +251,7 @@ static uint32_t client_get_index;
 /**
  * Callback to _get_rand_peer() used by _get_n_rand_peers().
  *
- * Checks whether all n peers are available. If they are, 
+ * Checks whether all n peers are available. If they are,
  * give those back.
  */
   void
@@ -274,7 +274,7 @@ check_n_peers_ready (void *cls,
         "SAMPLER: returning %" PRIX32 " peers to the client\n",
         n_peers_cls->num_peers);
     n_peers_cls->callback (n_peers_cls->cls, n_peers_cls->ids, n_peers_cls->num_peers);
-    
+
     GNUNET_free (n_peers_cls);
   }
 }
@@ -315,7 +315,7 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el)
 RPS_sampler_elem_create (void)
 {
   struct RPS_SamplerElement *s;
-  
+
   s = GNUNET_new (struct RPS_SamplerElement);
 
   RPS_sampler_elem_reinit (s);
@@ -352,7 +352,7 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
         &other_hash);
 
     if ( EMPTY == s_elem->is_empty )
-    { 
+    {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Got PeerID %s; Simply accepting (was empty previously).\n",
           GNUNET_i2s(other));
       s_elem->peer_id = *other;
@@ -398,6 +398,17 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem, const struct GNUNET_Pe
     }
   }
   s_elem->is_empty = NOT_EMPTY;
+}
+
+/**
+ * Get the size of the sampler.
+ *
+ * @return the size of the sampler
+ */
+unsigned int
+RPS_sampler_get_size ()
+{
+  return sampler->sampler_size;
 }
 
 
@@ -464,7 +475,7 @@ RPS_sampler_resize (unsigned int new_size)
     return;
   }
 
-  GNUNET_assert(sampler->sampler_size == new_size);
+  GNUNET_assert (sampler->sampler_size == new_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Finished growing/shrinking.\n"); // remove
 }
 
@@ -473,7 +484,7 @@ RPS_sampler_resize (unsigned int new_size)
  * Initialise a tuple of sampler elements.
  *
  * @param init_size the size the sampler is initialised with
- * @param ins_cb the callback that will be called on every PeerID that is 
+ * @param ins_cb the callback that will be called on every PeerID that is
  *               newly inserted into a sampler element
  * @param ins_cls the closure given to #ins_cb
  * @param rem_cb the callback that will be called on every PeerID that is
@@ -766,7 +777,7 @@ RPS_sampler_count_id (const struct GNUNET_PeerIdentity *id)
   count = 0;
   for ( i = 0 ; i < sampler->sampler_size ; i++ )
   {
-    if ( 0 == GNUNET_CRYPTO_cmp_peer_identity (&sampler->sampler_elements[i]->peer_id, id) 
+    if ( 0 == GNUNET_CRYPTO_cmp_peer_identity (&sampler->sampler_elements[i]->peer_id, id)
         && EMPTY != sampler->sampler_elements[i]->is_empty)
       count++;
   }
@@ -786,7 +797,7 @@ clear_get_peer_tasks (void *cls, const struct GNUNET_HashCode *key, void *value)
   GNUNET_SCHEDULER_cancel (task);
 
   GNUNET_CONTAINER_multihashmap_remove (get_peer_tasks, key, value);
-  
+
   return GNUNET_YES;
 }
 

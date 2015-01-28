@@ -203,12 +203,6 @@ static uint32_t gossip_list_size;
 
 
 /**
- * The actual size of the sampler
- */
-static unsigned int sampler_size;
-//size_t sampler_size;
-
-/**
  * The size of sampler we need to be able to satisfy the client's need of
  * random peers.
  */
@@ -712,6 +706,7 @@ insert_in_sampler_scheduled (const struct PeerContext *peer_ctx)
 resize_wrapper ()
 {
   uint32_t bigger_size;
+  unsigned int sampler_size;
 
   // TODO statistics
 
@@ -721,15 +716,14 @@ resize_wrapper ()
     bigger_size = sampler_size_est_need;
 
   // TODO respect the min, max
+  sampler_size = RPS_sampler_get_size ();
   if (sampler_size > bigger_size * 4)
   { /* Shrinking */
-    sampler_size = sampler_size / 2;
-    RPS_sampler_resize (sampler_size);
+    RPS_sampler_resize (sampler_size / 2);
   }
   else if (sampler_size < bigger_size)
   { /* Growing */
-    sampler_size = sampler_size * 2;
-    RPS_sampler_resize (sampler_size);
+    RPS_sampler_resize (sampler_size * 2);
   }
 }
 
@@ -794,8 +788,8 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
   //double scale; // TODO this might go gloabal/config
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Received a ns estimate - logest: %f, std_dev: %f (old_size: %f)\n",
-      logestimate, std_dev, sampler_size);
+       "Received a ns estimate - logest: %f, std_dev: %f (old_size: %f)\n",
+       logestimate, std_dev, RPS_sampler_get_size());
   //scale = .01;
   estimate = GNUNET_NSE_log_estimate_to_n (logestimate);
   // GNUNET_NSE_log_estimate_to_n (logestimate);
@@ -1402,7 +1396,7 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   if (NULL  != peer_ctx->send_channel
       && ch != peer_ctx->send_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-  
+
   if (NULL  != peer_ctx->recv_channel
       && ch != peer_ctx->recv_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
@@ -1658,7 +1652,6 @@ run (void *cls,
 
   RPS_sampler_init (sampler_size_est_need, max_round_interval,
       insertCB, NULL, removeCB, NULL);
-  sampler_size = sampler_size_est_need;
 
   /* Initialise push and pull maps */
   push_list = NULL;

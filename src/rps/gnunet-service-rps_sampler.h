@@ -65,6 +65,14 @@ typedef void
  */
 //struct RPS_Sampler;
 
+/**
+ * Get the size of the sampler.
+ *
+ * @return the size of the sampler
+ */
+unsigned int
+RPS_sampler_get_size ();
+
 
 /**
  * Grow or shrink the size of the sampler.
@@ -80,7 +88,7 @@ RPS_sampler_resize (unsigned int new_size);
  *
  * @param init_size the size the sampler is initialised with
  * @param id with which all newly created sampler elements are initialised
- * @param ins_cb the callback that will be called on every PeerID that is 
+ * @param ins_cb the callback that will be called on every PeerID that is
  *               newly inserted into a sampler element
  * @param ins_cls the closure given to #ins_cb
  * @param rem_cb the callback that will be called on every PeerID that is
