@@ -1159,6 +1159,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         }
       }
     }
+    GNUNET_free (permut);
   }
 
 
@@ -1420,6 +1421,7 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
     LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
 
+  GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
 
