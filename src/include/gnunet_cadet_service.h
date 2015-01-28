@@ -177,7 +177,8 @@ typedef void *
 
 /**
  * Function called whenever a channel is destroyed.  Should clean up
- * any associated state.
+ * any associated state, including cancelling any pending transmission on this
+ * channel.
  *
  * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
  *
