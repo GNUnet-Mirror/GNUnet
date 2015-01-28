@@ -750,17 +750,20 @@ est_request_rate()
         (req_counter - 1) * sizeof (struct GNUNET_TIME_Relative));
 
     /* Add current delta to beginning */
-    request_deltas[0] = GNUNET_TIME_absolute_get_difference (last_request,
-        GNUNET_TIME_absolute_get ());
+    request_deltas[0] =
+        GNUNET_TIME_absolute_get_difference (last_request,
+                                             GNUNET_TIME_absolute_get ());
     request_rate = T_relative_avg (request_deltas, req_counter);
 
     /* Compute the duration a round will maximally take */
-    max_round_duration = GNUNET_TIME_relative_add (round_interval,
-        GNUNET_TIME_relative_divide (round_interval, 2));
+    max_round_duration =
+        GNUNET_TIME_relative_add (round_interval,
+                                  GNUNET_TIME_relative_divide (round_interval, 2));
 
     /* Set the estimated size the sampler has to have to
      * satisfy the current client request rate */
-    sampler_size_client_need = max_round_duration.rel_value_us / request_rate.rel_value_us;
+    sampler_size_client_need =
+        max_round_duration.rel_value_us / request_rate.rel_value_us;
 
     /* Resize the sampler */
     resize_wrapper ();
@@ -780,7 +783,8 @@ est_request_rate()
  * accordingly.
  */
   void
-nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp, double logestimate, double std_dev)
+nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
+              double logestimate, double std_dev)
 {
   double estimate;
   //double scale; // TODO this might go gloabal/config
@@ -791,7 +795,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp, double logestima
   //scale = .01;
   estimate = GNUNET_NSE_log_estimate_to_n (logestimate);
   // GNUNET_NSE_log_estimate_to_n (logestimate);
-  estimate = pow (estimate, 1./3);
+  estimate = pow (estimate, 1.0 / 3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
   if ( 0 < estimate ) {
