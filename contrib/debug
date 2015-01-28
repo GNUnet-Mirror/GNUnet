@@ -1,0 +1,36 @@
+#!/bin/bash
+
+COREPID=$1
+
+COREFILES=`ls -1 *core.$COREPID* 2>/dev/null | wc -l`
+COREFILE=`ls -1 *core.$COREPID* 2>/dev/null | head -n 1`
+
+if [ $COREFILES -gt 1 ]; then
+    echo "Multiple files, using $COREFILE"
+fi
+
+
+if [ $COREFILES -eq 0 ]; then
+    SERVICENAME=$1
+    COREFILES=`ls -1 core.*.*$SERVICENAME 2>/dev/null | wc -l`
+    COREFILE=`ls -1 core.*.*$SERVICENAME 2>/dev/null | head -n 1`
+
+    if [ $COREFILES -gt 1 ]; then
+	echo "Multiple files, using $COREFILE"
+    fi
+fi
+
+if [ $COREFILES -eq 0 ]; then
+    echo "Core file for $1 not found"
+    exit 1
+fi
+
+echo "Using $COREFILE"
+
+EXECPATH=${COREFILE#*!}
+EXECPATH=`echo $EXECPATH | sed -e 's/!/\//g'`
+echo $EXECPATH
+echo ""
+echo ""
+
+gdb --core $COREFILE /$EXECPATH
