@@ -62,7 +62,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Our own identity.
  */
-static struct GNUNET_PeerIdentity *own_identity;
+static struct GNUNET_PeerIdentity own_identity;
 
 
   struct GNUNET_PeerIdentity *
@@ -732,7 +732,7 @@ resize_wrapper ()
 
 /**
  * Estimate request rate
- * 
+ *
  * Called every time we receive a request from the client.
  */
   void
@@ -836,14 +836,14 @@ void client_respond (void *cls,
       ids,
       num_peers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free (ids);
-  
+
   cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct client_ctx);
   if ( NULL == cli_ctx ) {
     cli_ctx = GNUNET_new (struct client_ctx);
     cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
     GNUNET_SERVER_client_set_user_context (client, cli_ctx);
   }
-  
+
   GNUNET_MQ_send (cli_ctx->mq, ev);
 }
 
@@ -950,12 +950,12 @@ handle_peer_push (void *cls,
 {
   const struct GNUNET_PeerIdentity *peer;
 
-  // (check the proof of work) 
-  
+  // (check the proof of work)
+
   peer = (const struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
-  
+
   /* Add the sending peer to the push_list */
   if (GNUNET_NO == in_arr (push_list, pull_list_size, peer))
     GNUNET_array_append (push_list, push_list_size, *peer);
@@ -1140,7 +1140,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       for ( i = 0 ; i < n_peers ; i++ )
       {
         peer = &gossip_list[permut[i]];
-        if (own_identity != peer) // TODO
+        if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer)) // TODO
         { // FIXME if this fails schedule/loop this for later
           LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
@@ -1170,7 +1170,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       {
         GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, *peer);
 
-        if (own_identity != peer)
+        if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
         { // FIXME if this fails schedule/loop this for later
           LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
 
@@ -1195,7 +1195,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     uint32_t first_border;
     uint32_t second_border;
-    
+
     first_border = round (alpha * sampler_size_est_need);
     second_border = first_border + round (beta * sampler_size_est_need);
 
@@ -1392,13 +1392,13 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
   if ( NULL != peer_ctx->send_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-  
+
   if ( NULL != peer_ctx->recv_channel)
     GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
     LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
-  
+
   return GNUNET_YES;
 }
 
@@ -1421,7 +1421,7 @@ shutdown_task (void *cls,
     do_round_task = NULL;
   }
 
-  
+
   if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL))
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Iterating over peers to disconnect from them was cancelled\n");
@@ -1430,7 +1430,6 @@ shutdown_task (void *cls,
 
   GNUNET_NSE_disconnect (nse);
   GNUNET_CADET_disconnect (cadet_handle);
-  GNUNET_free (own_identity);
   RPS_sampler_destroy ();
   GNUNET_array_grow (request_deltas, request_deltas_size, 0);
   GNUNET_array_grow (gossip_list, gossip_list_size, 0);
@@ -1571,18 +1570,14 @@ run (void *cls,
   // TODO check what this does -- copied from gnunet-boss
   // - seems to work as expected
   GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS started\n");
-
-
   cfg = c;
 
 
   /* Get own ID */
-  own_identity = GNUNET_new (struct GNUNET_PeerIdentity);
-  GNUNET_CRYPTO_get_peer_identity (cfg, own_identity); // TODO check return value
-  GNUNET_assert (NULL != own_identity);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Own identity is %s (at %p).\n", GNUNET_i2s (own_identity), own_identity);
+  GNUNET_CRYPTO_get_peer_identity (cfg, &own_identity); // TODO check return value
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "STARTING SERVICE (rps) for peer [%s]\n",
+              GNUNET_i2s (&own_identity));
 
 
   /* Get time interval from the configuration */
