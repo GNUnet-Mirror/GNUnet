@@ -725,6 +725,7 @@ resize_wrapper ()
   { /* Growing */
     RPS_sampler_resize (sampler_size * 2);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler_size is now %u\n", sampler_size);
 }
 
 
@@ -788,7 +789,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
   //double scale; // TODO this might go gloabal/config
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received a ns estimate - logest: %f, std_dev: %f (old_size: %f)\n",
+       "Received a ns estimate - logest: %f, std_dev: %f (old_size: %u)\n",
        logestimate, std_dev, RPS_sampler_get_size());
   //scale = .01;
   estimate = GNUNET_NSE_log_estimate_to_n (logestimate);
@@ -796,7 +797,8 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
   estimate = pow (estimate, 1./3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
-  if ( 0 < estimate ) {
+  if (0 < ceil (estimate))
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
     sampler_size_est_need = estimate;
   } else
