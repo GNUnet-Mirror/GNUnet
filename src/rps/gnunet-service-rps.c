@@ -1389,7 +1389,8 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct PeerContext *peer_ctx;
   const struct GNUNET_CADET_Channel *ch = (const struct GNUNET_CADET_Channel *) cls;
-  struct GNUNET_CADET_Channel *destroy;
+  struct GNUNET_CADET_Channel *recv;
+  struct GNUNET_CADET_Channel *send;
 
   peer_ctx = (struct PeerContext *) value;
 
@@ -1402,25 +1403,27 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
     peer_ctx->is_live_task = NULL;
   }
 
-  if (NULL  != peer_ctx->send_channel
-      && ch != peer_ctx->send_channel)
+  send = peer_ctx->send_channel;
+  peer_ctx->send_channel = NULL;
+  recv = peer_ctx->send_channel;
+  peer_ctx->recv_channel = NULL;
+
+  if (NULL  != send
+      && ch != send)
   {
-    destroy = peer_ctx->send_channel;
-    peer_ctx->send_channel = NULL;
-    GNUNET_CADET_channel_destroy (destroy);
+    GNUNET_CADET_channel_destroy (send);
   }
 
-  if (NULL  != peer_ctx->recv_channel
-      && ch != peer_ctx->recv_channel)
+  if (NULL  != recv
+      && ch != recv)
   {
-    destroy = peer_ctx->recv_channel;
-    peer_ctx->recv_channel = NULL;
-    GNUNET_CADET_channel_destroy (destroy);
+    GNUNET_CADET_channel_destroy (recv);
   }
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
     LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
 
+  /* FIXME this will be called twice until the fixme in line 1451 is fixed */
   GNUNET_free (peer_ctx);
   return GNUNET_YES;
 }
