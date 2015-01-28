@@ -417,8 +417,8 @@ RPS_sampler_get_size ()
  *
  * @param new_size the new size of the sampler
  */
-  void
-RPS_sampler_resize (unsigned int new_size)
+static void
+sampler_resize (unsigned int new_size)
 {
   unsigned int old_size;
   uint32_t i;
@@ -477,6 +477,31 @@ RPS_sampler_resize (unsigned int new_size)
 
   GNUNET_assert (sampler->sampler_size == new_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "SAMPLER: Finished growing/shrinking.\n"); // remove
+}
+
+
+/**
+ * Grow or shrink the size of the sampler.
+ *
+ * @param new_size the new size of the sampler
+ */
+void
+RPS_sampler_resize (unsigned int new_size)
+{
+  GNUNET_assert (0 < new_size);
+  sampler_resize (new_size);
+}
+
+
+/**
+ * Empty the sampler.
+ *
+ * @param new_size the new size of the sampler
+ */
+void
+RPS_sampler_empty ()
+{
+  sampler_resize (0);
 }
 
 

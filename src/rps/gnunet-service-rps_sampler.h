@@ -84,6 +84,15 @@ RPS_sampler_resize (unsigned int new_size);
 
 
 /**
+ * Empty the sampler.
+ *
+ * @param new_size the new size of the sampler
+ */
+void
+RPS_sampler_empty ();
+
+
+/**
  * Initialise a tuple of samplers.
  *
  * @param init_size the size the sampler is initialised with
