@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  (C) 2014 Christian Grothoff (and other contributing authors)
+  (C) 2014,2015 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -55,14 +55,13 @@ main (int argc,
   enc = NULL;
   size = GNUNET_CRYPTO_rsa_private_key_encode (priv, &enc);
   GNUNET_free (enc);
-  
+
   /* try ordinary sig first */
   sig = GNUNET_CRYPTO_rsa_sign (priv,
                         &hash,
                         sizeof (hash));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));
-  GNUNET_CRYPTO_rsa_signature_free (sig);
   /* corrupt our hash and see if the signature is still valid */
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &hash,
                               sizeof (struct GNUNET_HashCode));
@@ -70,6 +69,7 @@ main (int argc,
                                                         sig,
                                                         pub));
   (void) fprintf (stderr, "The above warning is expected.\n");
+  GNUNET_CRYPTO_rsa_signature_free (sig);
 
 
   /* test blind signing */
