@@ -1078,6 +1078,7 @@ GNUNET_CONFIGURATION_get_data (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (enc);
     return GNUNET_SYSERR;
   }
+  GNUNET_free (enc);
   return GNUNET_OK;
 }
 
