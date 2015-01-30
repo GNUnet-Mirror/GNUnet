@@ -436,7 +436,7 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
                                         tmp_size);
 
     *peer = tmp_peer_list[r_index];
-    if (in_arr (tmp_peer_list, list_size, peer))
+    if (in_arr (ignore_list, ignore_size, peer))
     {
       rem_from_list (tmp_peer_list, &tmp_size, peer);
       if (0 == tmp_size)
@@ -802,7 +802,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
   estimate = pow (estimate, 1.0 / 3);
   // TODO add if std_dev is a number
   // estimate += (std_dev * scale);
-  if (0 < ceil (estimate))
+  if (2 < ceil (estimate))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing estimate to %f\n", estimate);
     sampler_size_est_need = estimate;
