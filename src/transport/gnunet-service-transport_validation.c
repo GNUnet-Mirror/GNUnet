@@ -604,7 +604,6 @@ transmit_ping_if_allowed (void *cls,
     else
     {
       GNUNET_assert (NULL != papi->send);
-      GNUNET_assert (NULL != papi->get_session);
       struct Session *session = papi->get_session (papi->cls,
                                                    ve->address);
 
@@ -612,7 +611,8 @@ transmit_ping_if_allowed (void *cls,
       {
         ret = papi->send (papi->cls, session,
                           message_buf, tsize,
-                          PING_PRIORITY, ACCEPTABLE_PING_DELAY,
+                          PING_PRIORITY,
+                          ACCEPTABLE_PING_DELAY,
                           NULL, NULL);
         network = papi->get_network (papi->cls, session);
         if (GNUNET_ATS_NET_UNSPECIFIED == network)

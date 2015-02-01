@@ -738,10 +738,10 @@ set_timeout (struct NeighbourMapEntry *n,
  */
 static void
 set_alternative_address (struct NeighbourMapEntry *n,
-             const struct GNUNET_HELLO_Address *address,
-             struct Session *session,
-             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+                         const struct GNUNET_HELLO_Address *address,
+                         struct Session *session,
+                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
 

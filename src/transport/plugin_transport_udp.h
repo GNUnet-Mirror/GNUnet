@@ -102,6 +102,23 @@ struct IPv6UdpAddress
 };
 GNUNET_NETWORK_STRUCT_END
 
+/**
+ * Either an IPv4 or IPv6 UDP address.  Note that without a "length",
+ * one cannot tell which one of the two types this address represents.
+ */
+union UdpAddress
+{
+  /**
+   * IPv4 case.
+   */
+  struct IPv4UdpAddress v4;
+
+  /**
+   * IPv6 case.
+   */
+  struct IPv6UdpAddress v6;
+};
+
 
 /**
  * UDP Message-Packet header (after defragmentation).
@@ -155,12 +172,12 @@ struct Plugin
   /**
    * ID of select task for IPv4
    */
-  struct GNUNET_SCHEDULER_Task * select_task;
+  struct GNUNET_SCHEDULER_Task *select_task;
 
   /**
    * ID of select task for IPv6
    */
-  struct GNUNET_SCHEDULER_Task * select_task_v6;
+  struct GNUNET_SCHEDULER_Task *select_task_v6;
 
   /**
    * Tokenizer for inbound messages.
@@ -218,14 +235,9 @@ struct Plugin
   struct GNUNET_NETWORK_Handle *sockv6;
 
   /**
-   * Tokenizer for inbound IPv6 messages.
+   * Tokenizer for inbound messages.
    */
-  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv6_mst;
-
-  /**
-   * Tokenizer for inbound IPv4 messages.
-   */
-  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv4_mst;
+  struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_mst;
 
   /**
    * Head of DLL of broadcast addresses
@@ -336,19 +348,36 @@ struct Plugin
 
 
 const char *
-udp_address_to_string (void *cls, const void *addr, size_t addrlen);
+udp_address_to_string (void *cls,
+                       const void *addr,
+                       size_t addrlen);
 
+
+/**
+ * We received a broadcast message.  Process it and all subsequent
+ * messages in the same packet.
+ *
+ * @param plugin the UDP plugin
+ * @param buf the buffer with the message(s)
+ * @param size number of bytes in @a buf
+ * @param udp_addr address of the sender
+ * @param udp_addr_len number of bytes in @a udp_addr
+ * @param network_type network type of the sender's address
+ */
 void
 udp_broadcast_receive (struct Plugin *plugin,
-                       const char * buf,
+                       const char *buf,
                        ssize_t size,
-                       const struct sockaddr *addr,
-                       size_t addrlen);
+                       const union UdpAddress *udp_addr,
+                       size_t udp_addr_len,
+                       enum GNUNET_ATS_Network_Type network_type);
+
 
 void
 setup_broadcast (struct Plugin *plugin,
                  struct sockaddr_in6 *server_addrv6,
                  struct sockaddr_in *server_addrv4);
+
 
 void
 stop_broadcast (struct Plugin *plugin);

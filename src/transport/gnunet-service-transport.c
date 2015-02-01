@@ -359,7 +359,9 @@ connect_bl_check_cont (void *cls,
     /* Blacklist allows to speak to this peer, forward SYN to neighbours  */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Received SYN message from peer `%s' with `%s' %p\n",
-                GNUNET_i2s (peer), GST_plugins_a2s (blctx->address), blctx->session);
+                GNUNET_i2s (peer),
+                GST_plugins_a2s (blctx->address),
+                blctx->session);
 
     if (GNUNET_OK !=
         GST_neighbours_handle_session_syn (blctx->msg,
@@ -416,16 +418,19 @@ GST_receive_callback (void *cls,
   if (NULL == message)
     goto end;
   type = ntohs (message->type);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Received Message with type %u from peer `%s'\n", type,
-      GNUNET_i2s (&address->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received Message with type %u from peer `%s'\n",
+              type,
+              GNUNET_i2s (&address->peer));
 
-  GNUNET_STATISTICS_update (GST_stats, gettext_noop
-                            ("# bytes total received"),
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# bytes total received"),
                             ntohs (message->size),
                             GNUNET_NO);
-  GST_neighbours_notify_data_recv (&address->peer, address, session, message);
-
+  GST_neighbours_notify_data_recv (&address->peer,
+                                   address,
+                                   session,
+                                   message);
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_HELLO_LEGACY:
@@ -434,8 +439,9 @@ GST_receive_callback (void *cls,
   case GNUNET_MESSAGE_TYPE_HELLO:
     if (GNUNET_OK != GST_validation_handle_hello (message))
     {
-      GNUNET_break_op(0);
-      cancel_pending_blacklist_checks (address, session);
+      GNUNET_break_op (0);
+      cancel_pending_blacklist_checks (address,
+                                       session);
     }
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
@@ -448,8 +454,10 @@ GST_receive_callback (void *cls,
                                     address,
                                     session))
     {
-      cancel_pending_blacklist_checks (address, session);
-      kill_session (plugin_name, session);
+      cancel_pending_blacklist_checks (address,
+                                       session);
+      kill_session (plugin_name,
+                    session);
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
@@ -472,22 +480,29 @@ GST_receive_callback (void *cls,
     memcpy (blctx->msg, message, ntohs(message->size));
     GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, blctx);
     if (NULL != (blc = GST_blacklist_test_allowed (&address->peer, NULL,
-          &connect_bl_check_cont, blctx)))
+                                                   &connect_bl_check_cont,
+                                                   blctx)))
     {
       blctx->blc = blc;
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN_ACK:
-    if (GNUNET_OK != GST_neighbours_handle_session_syn_ack (message,
-        &address->peer, address, session))
+    if (GNUNET_OK !=
+        GST_neighbours_handle_session_syn_ack (message,
+                                               &address->peer,
+                                               address,
+                                               session))
     {
       cancel_pending_blacklist_checks (address, session);
       kill_session (plugin_name, session);
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    if (GNUNET_OK
-        != GST_neighbours_handle_session_ack (message, &address->peer, address, session))
+    if (GNUNET_OK !=
+        GST_neighbours_handle_session_ack (message,
+                                           &address->peer,
+                                           address,
+                                           session))
     {
       GNUNET_break_op(0);
       cancel_pending_blacklist_checks (address, session);
@@ -505,16 +520,26 @@ GST_receive_callback (void *cls,
     break;
   default:
     /* should be payload */
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop
-    ("# bytes payload received"), ntohs (message->size), GNUNET_NO);
-    GST_neighbours_notify_payload_recv (&address->peer, address, session, message);
-    ret = process_payload (&address->peer, address, session, message);
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# bytes payload received"),
+                              ntohs (message->size),
+                              GNUNET_NO);
+    GST_neighbours_notify_payload_recv (&address->peer,
+                                        address,
+                                        session,
+                                        message);
+    ret = process_payload (&address->peer,
+                           address,
+                           session,
+                           message);
     break;
   }
   end:
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Allowing receive from peer %s to continue in %s\n", GNUNET_i2s (&address->peer),
-      GNUNET_STRINGS_relative_time_to_string (ret, GNUNET_YES));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Allowing receive from peer %s to continue in %s\n",
+              GNUNET_i2s (&address->peer),
+              GNUNET_STRINGS_relative_time_to_string (ret,
+                                                      GNUNET_YES));
   return ret;
 }
 
@@ -552,9 +577,9 @@ plugin_env_address_change_notification (void *cls,
     }
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Transport now has %u addresses to communicate\n",
-             addresses);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Transport now has %u addresses to communicate\n",
+              addresses);
   GST_hello_modify_addresses (add_remove, address);
 }
 
@@ -595,7 +620,8 @@ plugin_env_session_end (void *cls,
               "Notification from plugin `%s' about terminated %s session %p from peer `%s' address `%s'\n",
               address->transport_name,
               GNUNET_HELLO_address_check_option (address,
-                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound", session,
+                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
+              session,
               GNUNET_i2s (&address->peer),
               GST_plugins_a2s (address));
 
@@ -839,10 +865,10 @@ neighbours_connect_notification (void *cls,
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
 
   connections++;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "We are now connected to peer `%s' and %u peers in total\n",
-             GNUNET_i2s (peer),
-             connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "We are now connected to peer `%s' and %u peers in total\n",
+              GNUNET_i2s (peer),
+              connections);
   connect_msg->header.size = htons (sizeof(buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->id = *peer;
@@ -866,9 +892,10 @@ neighbours_disconnect_notification (void *cls,
   struct DisconnectInfoMessage disconnect_msg;
 
   connections--;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Peer `%s' disconnected and we are connected to %u peers\n",
-             GNUNET_i2s (peer), connections);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer `%s' disconnected and we are connected to %u peers\n",
+              GNUNET_i2s (peer),
+              connections);
 
   GST_manipulation_peer_disconnect (peer);
   disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));

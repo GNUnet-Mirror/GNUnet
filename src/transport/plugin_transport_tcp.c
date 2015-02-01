@@ -1743,7 +1743,8 @@ tcp_plugin_get_session (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
-       GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
+       GNUNET_i2s (&address->peer),
+       GNUNET_a2s (sb, sbs));
 
   session = create_session (plugin,
                             address,

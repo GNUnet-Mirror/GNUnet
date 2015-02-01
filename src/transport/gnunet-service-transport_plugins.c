@@ -196,7 +196,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     }
     if (NULL == plug->api->check_address)
     {
-    	fail = GNUNET_YES;
+      fail = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Missing function `%s' in transport plugin for `%s'\n"),
                   "check_address",
@@ -204,7 +204,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     }
     if (NULL == plug->api->get_session)
     {
-    	fail = GNUNET_YES;
+      fail = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Missing function `%s' in transport plugin for `%s'\n"),
                   "get_session",
@@ -212,7 +212,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     }
     if (NULL == plug->api->get_network)
     {
-    	fail = GNUNET_YES;
+      fail = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Missing function `%s' in transport plugin for `%s'\n"),
                   "get_network",
@@ -220,7 +220,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     }
     if (NULL == plug->api->send)
     {
-    	fail = GNUNET_YES;
+      fail = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Missing function `%s' in transport plugin for `%s'\n"),
                   "send",
