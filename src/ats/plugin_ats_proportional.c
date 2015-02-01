@@ -776,7 +776,7 @@ find_best_address_it (void *cls,
     GNUNET_assert (asi->activated.abs_value_us != GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us);
     active_time = GNUNET_TIME_absolute_get_duration (asi->activated);
     min_active_time.rel_value_us =  ((double) GNUNET_TIME_UNIT_SECONDS.rel_value_us) *
-        PROP_STABILITY_FACTOR;
+        ctx->s->stability_factor;
     if (active_time.rel_value_us <= min_active_time.rel_value_us)
     {
       /* Keep active address for stability reasons */
