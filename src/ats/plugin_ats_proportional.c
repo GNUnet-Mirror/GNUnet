@@ -2006,7 +2006,8 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   s->prop_factor = PROPORTIONALITY_FACTOR;
   if (GNUNET_SYSERR !=
       GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
-                                            "PROP_STABILITY_FACTOR", &f_tmp))
+                                            "PROP_PROPORTIONALITY_FACTOR",
+                                            &f_tmp))
   {
     if (f_tmp < 1.0)
     {
