@@ -762,7 +762,7 @@ plugin_env_session_start (void *cls,
         GNUNET_HELLO_address_check_option (address,
                                            GNUNET_HELLO_ADDRESS_INFO_INBOUND)) ||
        (GNUNET_NO ==
-        GST_ats_is_known (address, session) ) )
+        GST_ats_is_known (address, NULL) ) )
   {
     /* inbound is always new, but outbound MAY already be known, but
        for example for UNIX, we have symmetric connections and thus we
