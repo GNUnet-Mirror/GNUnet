@@ -571,47 +571,37 @@ transmit_ping_if_allowed (void *cls,
             ve->address->address,
 	    ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
-    if (NULL == papi)
+    GNUNET_assert (NULL != papi);
+    GNUNET_assert (NULL != papi->send);
+    struct Session *session = papi->get_session (papi->cls,
+                                                 ve->address);
+
+    if (NULL != session)
     {
-      ret = -1;
-      GNUNET_STATISTICS_update (GST_stats,
-                                gettext_noop ("# validations not attempted (no plugin)"),
-                                1,
-                                GNUNET_NO);
+      ret = papi->send (papi->cls, session,
+                        message_buf, tsize,
+                        PING_PRIORITY,
+                        ACCEPTABLE_PING_DELAY,
+                        NULL, NULL);
+      network = papi->get_network (papi->cls, session);
+      if (GNUNET_ATS_NET_UNSPECIFIED == network)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Could not obtain a valid network for `%s' `%s'\n",
+                    GNUNET_i2s (pid),
+                    GST_plugins_a2s (ve->address));
+        GNUNET_break(0);
+      }
+      GST_neighbours_notify_data_sent (ve->address, session, tsize);
     }
     else
     {
-      GNUNET_assert (NULL != papi->send);
-      struct Session *session = papi->get_session (papi->cls,
-                                                   ve->address);
-
-      if (NULL != session)
-      {
-        ret = papi->send (papi->cls, session,
-                          message_buf, tsize,
-                          PING_PRIORITY,
-                          ACCEPTABLE_PING_DELAY,
-                          NULL, NULL);
-        network = papi->get_network (papi->cls, session);
-        if (GNUNET_ATS_NET_UNSPECIFIED == network)
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "Could not obtain a valid network for `%s' `%s'\n",
-                      GNUNET_i2s (pid),
-                      GST_plugins_a2s (ve->address));
-          GNUNET_break(0);
-        }
-        GST_neighbours_notify_data_sent (ve->address, session, tsize);
-      }
-      else
-      {
-        /* Could not get a valid session */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Could not get a valid session for `%s' `%s'\n",
-                    GNUNET_i2s (pid),
-                    GST_plugins_a2s (ve->address));
-        ret = -1;
-      }
+      /* Could not get a valid session */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Could not get a valid session for `%s' `%s'\n",
+                  GNUNET_i2s (pid),
+                  GST_plugins_a2s (ve->address));
+      ret = -1;
     }
   }
   if (-1 != ret)
@@ -950,7 +940,12 @@ multicast_pong (void *cls,
 
   papi = GST_plugins_find (address->transport_name);
   if (NULL == papi)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Plugin %s not supported, cannot send PONG\n",
+                address->transport_name);
     return;
+  }
 
   GNUNET_assert (NULL != papi->send);
   GNUNET_assert (NULL != papi->get_session);
@@ -1343,6 +1338,16 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   addr++;
   slen = strlen (tname) + 1;
   addrlen = size - slen;
+
+  if (NULL == GST_plugins_find (tname))
+  {
+    /* we got the PONG, but the transport plugin specified in it
+       is not supported by this peer, so this cannot be a good
+       PONG for us. */
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
+
   address.peer = *sender;
   address.address = addr;
   address.address_length = addrlen;
@@ -1617,6 +1622,12 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
   if (GNUNET_HELLO_address_check_option (address,
                                          GNUNET_HELLO_ADDRESS_INFO_INBOUND))
     return; /* ignore inbound for validation */
+  if (NULL == GST_plugins_find (address->transport_name))
+  {
+    /* How can we use an address for which we don't have the plugin? */
+    GNUNET_break (0);
+    return;
+  }
   if (NULL != address)
     ve = find_validation_entry (address);
   else
@@ -1671,9 +1682,15 @@ GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address,
 
   if (NULL == address)
   {
-    GNUNET_break (0);           // FIXME: support having latency only with session...
+    GNUNET_break (0);
     return GNUNET_TIME_UNIT_FOREVER_REL;
   }
+  if (NULL == GST_plugins_find (address->transport_name))
+  {
+    GNUNET_break (0); /* but we don't have the plugin! */
+    return GNUNET_TIME_UNIT_FOREVER_REL;
+  }
+
   ve = find_validation_entry (address);
   if (NULL == ve)
     return GNUNET_TIME_UNIT_FOREVER_REL;
