@@ -392,41 +392,48 @@ start_cb (struct PeerContext *p, void *cls)
 
 static void
 monitor1_cb (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+	     const struct GNUNET_HELLO_Address *address,
+	     struct GNUNET_TIME_Absolute last_validation,
+	     struct GNUNET_TIME_Absolute valid_until,
+	     struct GNUNET_TIME_Absolute next_validation,
+	     enum GNUNET_TRANSPORT_ValidationState state)
 {
-  if ((NULL == peer) || (NULL == p1))
+  if ((NULL == address) || (NULL == p1))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitor 1: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_vs2s(state), GNUNET_STRINGS_absolute_time_to_string(valid_until));
-  if (0 == memcmp (peer, &p2->id, sizeof (p2->id)))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Monitor 1: %s %s %s\n",
+	      GNUNET_i2s (&address->peer), 
+	      GNUNET_TRANSPORT_vs2s (state),
+	      GNUNET_STRINGS_absolute_time_to_string(valid_until));
+  if (0 == memcmp (&address->peer,
+		   &p2->id,
+		   sizeof (p2->id)))
     p1_c++;
 }
 
 
 static void
 monitor2_cb (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+	     const struct GNUNET_HELLO_Address *address,
+	     struct GNUNET_TIME_Absolute last_validation,
+	     struct GNUNET_TIME_Absolute valid_until,
+	     struct GNUNET_TIME_Absolute next_validation,
+	     enum GNUNET_TRANSPORT_ValidationState state)
 {
-  if ((NULL == peer) || (NULL == p2))
+  if ((NULL == address) || (NULL == p2))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitor 2: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_vs2s(state), GNUNET_STRINGS_absolute_time_to_string(valid_until));
-  if (0 == memcmp (peer, &p1->id, sizeof (p1->id)))
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Monitor 2: %s %s %s\n",
+	      GNUNET_i2s (&address->peer),
+	      GNUNET_TRANSPORT_vs2s(state), 
+	      GNUNET_STRINGS_absolute_time_to_string(valid_until));
+  if (0 == memcmp (&address->peer,
+		   &p1->id,
+		   sizeof (p1->id)))
     p2_c++;
 }
-
 
 
 static void

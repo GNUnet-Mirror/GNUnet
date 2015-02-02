@@ -314,7 +314,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
                                             &ai->address->peer,
                                             ai,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  publish_p2a_stat_update ();  
+  publish_p2a_stat_update ();
 }
 
 
@@ -534,11 +534,11 @@ destroy_ai (void *cls,
 {
   struct AddressInfo *ai = value;
 
-  GNUNET_HELLO_address_free (ai->address);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (p2a,
                                                        key,
                                                        ai));
+  GNUNET_HELLO_address_free (ai->address);
   GNUNET_free (ai);
   return GNUNET_OK;
 }

@@ -38,11 +38,10 @@ extern "C"
 #endif
 
 /**
- * A GNUNET_PEER_Id is simply a shorter
- * version of a "struct GNUNET_PeerIdentifier"
- * that can be used inside of a GNUnet peer
- * to save memory when the same identifier
- * needs to be used over and over again.
+ * A GNUNET_PEER_Id is simply a shorter version of a "struct
+ * GNUNET_PeerIdentifier" that can be used inside of a GNUnet peer to
+ * save memory when the same identifier needs to be used over and over
+ * again.
  */
 typedef unsigned int GNUNET_PEER_Id;
 
@@ -82,10 +81,11 @@ GNUNET_PEER_change_rc (GNUNET_PEER_Id id, int delta);
  * Decrement multiple RCs of peer identities by one.
  *
  * @param ids array of PIDs to decrement the RCs of
- * @param count size of the ids array
+ * @param count size of the @a ids array
  */
 void
-GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count);
+GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids,
+                           unsigned int count);
 
 
 /**
@@ -95,14 +95,15 @@ GNUNET_PEER_decrement_rcs (const GNUNET_PEER_Id *ids, unsigned int count);
  * @param pid where to write the normal peer identity
  */
 void
-GNUNET_PEER_resolve (GNUNET_PEER_Id id, struct GNUNET_PeerIdentity *pid);
+GNUNET_PEER_resolve (GNUNET_PEER_Id id,
+                     struct GNUNET_PeerIdentity *pid);
 
 
 /**
  * Convert an interned PID to a normal peer identity.
  *
  * @param id interned PID to convert
- * @return pointer to peer identity, valid as long 'id' is valid
+ * @return pointer to peer identity, valid as long @a id is valid
  */
 const struct GNUNET_PeerIdentity *
 GNUNET_PEER_resolve2 (GNUNET_PEER_Id id);

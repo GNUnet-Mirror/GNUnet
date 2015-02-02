@@ -181,7 +181,7 @@ reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
   GNUNET_CLIENT_disconnect (val_ctx->client);
   val_ctx->client = NULL;
   /* notify clients about (re)connect */
-  val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+  val_ctx->cb (val_ctx->cb_cls, NULL,
                GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
                GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_TIMEOUT);
   val_ctx->backoff = GNUNET_TIME_STD_BACKOFF (val_ctx->backoff);
@@ -216,7 +216,7 @@ val_response_processor (void *cls,
     if (val_ctx->one_shot)
     {
       /* Disconnect */
-      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+      val_ctx->cb (val_ctx->cb_cls, NULL,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_TIMEOUT);
       GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
@@ -236,7 +236,7 @@ val_response_processor (void *cls,
     /* Done! */
     if (val_ctx->one_shot)
     {
-      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+      val_ctx->cb (val_ctx->cb_cls, NULL,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
       GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
@@ -254,7 +254,7 @@ val_response_processor (void *cls,
     GNUNET_break (0);
     if (val_ctx->one_shot)
     {
-      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+      val_ctx->cb (val_ctx->cb_cls, NULL,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
       GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
@@ -275,7 +275,7 @@ val_response_processor (void *cls,
     GNUNET_break (0);
     if (val_ctx->one_shot)
     {
-      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+      val_ctx->cb (val_ctx->cb_cls, NULL,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
       GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
@@ -286,14 +286,26 @@ val_response_processor (void *cls,
     }
     return;
   }
-  if ( (0 == tlen) && (0 == alen) )
+  if (0 == tlen)
   {
+    GNUNET_break (0); /* This must not happen: address without plugin */
+    return;
+  }
+  addr = (const char *) &vr_msg[1];
+  transport_name = &addr[alen];
+  
+  if (transport_name[tlen - 1] != '\0')
+  {
+    /* Corrupt plugin name */
     GNUNET_break (0);
     if (val_ctx->one_shot)
     {
-      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
-          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
-          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+      val_ctx->cb (val_ctx->cb_cls,
+		   NULL,
+		   GNUNET_TIME_UNIT_ZERO_ABS,
+		   GNUNET_TIME_UNIT_ZERO_ABS,
+		   GNUNET_TIME_UNIT_ZERO_ABS,
+		   GNUNET_TRANSPORT_VS_NONE);
       GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
     }
     else
@@ -302,51 +314,19 @@ val_response_processor (void *cls,
     }
     return;
   }
-  else
-  {
-    if (0 == tlen)
-    {
-      GNUNET_break (0); /* This must not happen: address without plugin */
-      return;
-    }
-    addr = (const char *) &vr_msg[1];
-    transport_name = &addr[alen];
-
-    if (transport_name[tlen - 1] != '\0')
-    {
-      /* Corrupt plugin name */
-      GNUNET_break (0);
-      if (val_ctx->one_shot)
-      {
-        val_ctx->cb (val_ctx->cb_cls,
-                     NULL, NULL,
-                     GNUNET_TIME_UNIT_ZERO_ABS,
-                     GNUNET_TIME_UNIT_ZERO_ABS,
-                     GNUNET_TIME_UNIT_ZERO_ABS,
-                     GNUNET_TRANSPORT_VS_NONE);
-        GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
-      }
-      else
-      {
-        reconnect_val_ctx (val_ctx);
-      }
-      return;
-    }
-
-    /* notify client */
-    address = GNUNET_HELLO_address_allocate (&vr_msg->peer,
-                                             transport_name,
-                                             addr, alen,
-                                             ntohl (vr_msg->local_address_info));
-    val_ctx->cb (val_ctx->cb_cls,
-                 &vr_msg->peer,
-                 address,
-                 GNUNET_TIME_absolute_ntoh (vr_msg->last_validation),
-                 GNUNET_TIME_absolute_ntoh (vr_msg->valid_until),
-                 GNUNET_TIME_absolute_ntoh (vr_msg->next_validation),
-                 ntohl(vr_msg->state));
-    GNUNET_HELLO_address_free (address);
-  }
+  
+  /* notify client */
+  address = GNUNET_HELLO_address_allocate (&vr_msg->peer,
+					   transport_name,
+					   addr, alen,
+					   ntohl (vr_msg->local_address_info));
+  val_ctx->cb (val_ctx->cb_cls,
+	       address,
+	       GNUNET_TIME_absolute_ntoh (vr_msg->last_validation),
+	       GNUNET_TIME_absolute_ntoh (vr_msg->valid_until),
+	       GNUNET_TIME_absolute_ntoh (vr_msg->next_validation),
+	       ntohl(vr_msg->state));
+  GNUNET_HELLO_address_free (address);
   /* expect more replies */
   GNUNET_CLIENT_receive (val_ctx->client,
                          &val_response_processor,

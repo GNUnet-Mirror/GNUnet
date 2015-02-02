@@ -1181,7 +1181,6 @@ struct IterationContext
  * Output information of validation entries to the given client.
  *
  * @param cls the `struct IterationContext *`
- * @param peer identity of the neighbour
  * @param address the address
  * @param last_validation point in time when last validation was performed
  * @param valid_until point in time how long address is valid
@@ -1190,7 +1189,6 @@ struct IterationContext
  */
 static void
 send_validation_information (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_HELLO_Address *address,
                              struct GNUNET_TIME_Absolute last_validation,
                              struct GNUNET_TIME_Absolute valid_until,
@@ -1201,13 +1199,13 @@ send_validation_information (void *cls,
   struct ValidationIterateResponseMessage *msg;
 
   if ( (GNUNET_YES != pc->all) &&
-       (0 != memcmp (peer, &pc->id, sizeof (pc->id))) )
+       (0 != memcmp (&address->peer, &pc->id, sizeof (pc->id))) )
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending information about for validation entry for peer `%s' using address `%s'\n",
-              GNUNET_i2s(peer),
+              GNUNET_i2s (&address->peer),
               (NULL != address) ? GST_plugins_a2s (address) : "<none>");
-  msg = compose_validation_iterate_response_message (peer, address);
+  msg = compose_validation_iterate_response_message (&address->peer, address);
   msg->last_validation = GNUNET_TIME_absolute_hton(last_validation);
   msg->valid_until = GNUNET_TIME_absolute_hton(valid_until);
   msg->next_validation = GNUNET_TIME_absolute_hton(next_validation);

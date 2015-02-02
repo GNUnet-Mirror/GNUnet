@@ -501,7 +501,7 @@ struct TestConnectionContext
  * blacklisting client.
  *
  * @param cls the `struct TestConnectionContext *`
- * @param peer neighbour's identity
+ * @param peer identity of the peer
  * @param address the address
  * @param state current state this peer is in
  * @param state_timeout timeout for the current state of the peer
@@ -509,18 +509,21 @@ struct TestConnectionContext
  * @param bandwidth_out bandwidth assigned outbound
  */
 static void
-test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+test_connection_ok (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+		    const struct GNUNET_HELLO_Address *address,
+		    enum GNUNET_TRANSPORT_PeerState state,
+		    struct GNUNET_TIME_Absolute state_timeout,
+		    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct TestConnectionContext *tcc = cls;
   struct GST_BlacklistCheck *bc;
 
   bc = GNUNET_new (struct GST_BlacklistCheck);
-  GNUNET_CONTAINER_DLL_insert(bc_head, bc_tail, bc);
+  GNUNET_CONTAINER_DLL_insert (bc_head,
+			       bc_tail,
+			       bc);
   bc->peer = *peer;
   bc->cont = &confirm_or_drop_neighbour;
   bc->cont_cls = NULL;

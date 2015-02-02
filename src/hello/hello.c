@@ -539,7 +539,7 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
  *
  * @param hello the hello message
  * @param publicKey where to copy the public key information, can be NULL
- * @return GNUNET_SYSERR if the HELLO was malformed
+ * @return #GNUNET_SYSERR if the HELLO was malformed
  */
 int
 GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,

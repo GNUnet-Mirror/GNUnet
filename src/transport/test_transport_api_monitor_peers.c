@@ -386,20 +386,19 @@ start_cb (struct PeerContext *p, void *cls)
 
 static void
 monitor1_cb (void *cls,
-             const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_HELLO_Address *address,
              enum GNUNET_TRANSPORT_PeerState state,
              struct GNUNET_TIME_Absolute state_timeout)
 {
-  if ((NULL == peer) || (NULL == p1))
+  if ((NULL == address) || (NULL == p1))
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Monitor 1: %s %s %s\n",
-              GNUNET_i2s (peer),
+              GNUNET_i2s (&address->peer),
               GNUNET_TRANSPORT_ps2s (state),
               GNUNET_STRINGS_absolute_time_to_string(state_timeout));
-  if ((0 == memcmp (peer, &p2->id, sizeof (p2->id)) &&
+  if ((0 == memcmp (&address->peer, &p2->id, sizeof (p2->id)) &&
       (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
       GNUNET_NO == p1_c) )
   {
@@ -412,20 +411,19 @@ monitor1_cb (void *cls,
 
 static void
 monitor2_cb (void *cls,
-             const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_HELLO_Address *address,
              enum GNUNET_TRANSPORT_PeerState state,
              struct GNUNET_TIME_Absolute state_timeout)
 {
-  if ((NULL == peer) || (NULL == p2))
+  if ((NULL == address) || (NULL == p2))
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Monitor 2: %s %s %s\n",
-              GNUNET_i2s (peer),
+              GNUNET_i2s (&address->peer),
               GNUNET_TRANSPORT_ps2s (state),
               GNUNET_STRINGS_absolute_time_to_string(state_timeout));
-  if ((0 == memcmp (peer, &p1->id, sizeof (p1->id)) &&
+  if ((0 == memcmp (&address->peer, &p1->id, sizeof (p1->id)) &&
       (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
       GNUNET_NO == p2_c) )
   {

@@ -41,7 +41,7 @@ extern "C"
 /**
  * Version number of the transport API.
  */
-#define GNUNET_TRANSPORT_VERSION 0x00000001
+#define GNUNET_TRANSPORT_VERSION 0x00000002
 
 
 /**
@@ -672,7 +672,7 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext;
  * @param cls closure
  * @param peer peer this update is about,
  *      NULL if this is the final last callback for a iteration operation
- * @param address address, NULL for disconnect notification in monitor mode
+ * @param address address, NULL if this is the final callback for iteration op
  * @param state current state this peer is in
  * @param state_timeout timeout for the current state of the peer
  */
@@ -789,13 +789,11 @@ enum GNUNET_TRANSPORT_ValidationState
  * the current state of the validation entry,
  *
  * If the monitoring was called with `one_shot==GNUNET_YES`, a final callback
- * with `peer==NULL` and `address==NULL` is executed.
+ * with `address==NULL` is executed.
  *
  * @param cls closure
- * @param peer peer this update is about,
+ * @param address address this update is about,
  *      NULL if this is the final last callback for a iteration operation
- * @param address address,
- *      NULL for disconnect notification in monitor mode
  * @param last_validation when was this address last validated
  * @param valid_until when does this address expire
  * @param next_validation time of the next validation operation
@@ -803,7 +801,6 @@ enum GNUNET_TRANSPORT_ValidationState
  */
 typedef void
 (*GNUNET_TRANSPORT_ValidationIterateCallback) (void *cls,
-                                               const struct GNUNET_PeerIdentity *peer,
                                                const struct GNUNET_HELLO_Address *address,
                                                struct GNUNET_TIME_Absolute last_validation,
                                                struct GNUNET_TIME_Absolute valid_until,
@@ -1061,5 +1058,3 @@ GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *
 /* ifndef GNUNET_TRANSPORT_SERVICE_H */
 #endif
 /* end of gnunet_transport_service.h */
-
-

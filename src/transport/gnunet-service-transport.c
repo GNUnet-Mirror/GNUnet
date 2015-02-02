@@ -161,7 +161,7 @@ struct BlacklistCheckContext *bc_tail;
  * Transmit our HELLO message to the given (connected) neighbour.
  *
  * @param cls the 'HELLO' message
- * @param target a connected neighbour
+ * @param peer identity of the peer
  * @param address the address
  * @param state current state this peer is in
  * @param state_timeout timeout for the current state of the peer
@@ -169,21 +169,26 @@ struct BlacklistCheckContext *bc_tail;
  * @param bandwidth_out outbound quota in NBO
  */
 static void
-transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+transmit_our_hello (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+		    const struct GNUNET_HELLO_Address *address,
+		    enum GNUNET_TRANSPORT_PeerState state,
+		    struct GNUNET_TIME_Absolute state_timeout,
+		    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+		    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   const struct GNUNET_MessageHeader *hello = cls;
 
-  if (GNUNET_NO == GST_neighbours_test_connected (target))
+  if (GNUNET_NO == GST_neighbours_test_connected (peer))
     return;
 
-  GST_neighbours_send (target, hello, ntohs (hello->size), hello_expiration,
+  GST_neighbours_send (peer,
+		       hello,
+		       ntohs (hello->size),
+		       hello_expiration,
                        NULL, NULL);
 }
+
 
 /**
  * My HELLO has changed. Tell everyone who should know.
@@ -202,7 +207,6 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
 /**
  * We received some payload.  Prepare to pass it on to our clients.
  *
- * @param peer (claimed) identity of the other peer
  * @param address address and (claimed) identity of the other peer
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
@@ -211,8 +215,7 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
  * @return how long the plugin should wait until receiving more data
  */
 static struct GNUNET_TIME_Relative
-process_payload (const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_HELLO_Address *address,
+process_payload (const struct GNUNET_HELLO_Address *address,
                  struct Session *session,
                  const struct GNUNET_MessageHeader *message)
 {
@@ -224,14 +227,16 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   char buf[size] GNUNET_ALIGN;
 
   do_forward = GNUNET_SYSERR;
-  ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
-  if (! GST_neighbours_test_connected (peer))
+  ret = GST_neighbours_calculate_receive_delay (&address->peer,
+						msg_size,
+						&do_forward);
+  if (! GST_neighbours_test_connected (&address->peer))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Discarded %u bytes type %u payload from peer `%s'\n",
                 msg_size,
                 ntohs (message->type),
-                GNUNET_i2s (peer));
+                GNUNET_i2s (&address->peer));
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
                               ("# bytes payload discarded due to not connected peer"),
                               msg_size,
@@ -244,7 +249,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im = (struct InboundMessage *) buf;
   im->header.size = htons (size);
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
-  im->peer = *peer;
+  im->peer = address->peer;
   memcpy (&im[1], message, ntohs (message->size));
   GST_clients_broadcast (&im->header, GNUNET_YES);
   return ret;
@@ -427,8 +432,7 @@ GST_receive_callback (void *cls,
                             gettext_noop ("# bytes total received"),
                             ntohs (message->size),
                             GNUNET_NO);
-  GST_neighbours_notify_data_recv (&address->peer,
-                                   address,
+  GST_neighbours_notify_data_recv (address,
                                    session,
                                    message);
   switch (type)
@@ -489,7 +493,6 @@ GST_receive_callback (void *cls,
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN_ACK:
     if (GNUNET_OK !=
         GST_neighbours_handle_session_syn_ack (message,
-                                               &address->peer,
                                                address,
                                                session))
     {
@@ -500,7 +503,6 @@ GST_receive_callback (void *cls,
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
     if (GNUNET_OK !=
         GST_neighbours_handle_session_ack (message,
-                                           &address->peer,
                                            address,
                                            session))
     {
@@ -524,12 +526,10 @@ GST_receive_callback (void *cls,
                               gettext_noop ("# bytes payload received"),
                               ntohs (message->size),
                               GNUNET_NO);
-    GST_neighbours_notify_payload_recv (&address->peer,
-                                        address,
+    GST_neighbours_notify_payload_recv (address,
                                         session,
                                         message);
-    ret = process_payload (&address->peer,
-                           address,
+    ret = process_payload (address,
                            session,
                            message);
     break;
@@ -838,8 +838,7 @@ ats_request_address_change (void *cls,
     return;
   }
 
-  GST_neighbours_switch_to_address (&address->peer,
-                                    address,
+  GST_neighbours_switch_to_address (address,
                                     session,
                                     bandwidth_in, bandwidth_out);
 }
@@ -911,12 +910,12 @@ neighbours_disconnect_notification (void *cls,
  * active address.
  *
  * @param cls closure
- * @param peer peer this update is about (never NULL)
- * @param address address, NULL on disconnect
+ * @param peer identity of the peer
+ * @param address address possibly NULL if peer is not connected
  * @param state current state this peer is in
  * @param state_timeout timeout for the current state of the peer
- * @param bandwidth_in bandwidth assigned inbound
- * @param bandwidth_out bandwidth assigned outbound
+ * @param bandwidth_in bandwidth assigned inbound, 0 on disconnect
+ * @param bandwidth_out bandwidth assigned outbound, 0 on disconnect
  */
 static void
 neighbours_changed_notification (void *cls,
@@ -930,10 +929,10 @@ neighbours_changed_notification (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
               GNUNET_i2s (peer),
-              (NULL != address) ? GST_plugins_a2s (address) : "<none>",
+              GST_plugins_a2s (address),
               GNUNET_TRANSPORT_ps2s (state),
               GNUNET_STRINGS_absolute_time_to_string (state_timeout));
-
+  /* FIXME: include bandwidth in notification! */
   GST_clients_broadcast_peer_notification (peer,
                                            address,
                                            state,

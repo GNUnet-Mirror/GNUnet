@@ -67,11 +67,6 @@ struct ValidationResolutionContext
   struct ValidationResolutionContext *prev;
 
   /**
-   * Peer identity
-   */
-  struct GNUNET_PeerIdentity id;
-
-  /**
    * Address to resolve
    */
   struct GNUNET_HELLO_Address *addrcp;
@@ -745,7 +740,6 @@ result_callback (void *cls,
 /**
  * Resolve address we got a validation state for to a string.
  *
- * @param id peer identity the address is for
  * @param address the address itself
  * @param numeric #GNUNET_YES to disable DNS, #GNUNET_NO to try reverse lookup
  * @param last_validation when was the address validated last
@@ -754,8 +748,7 @@ result_callback (void *cls,
  * @param state where are we in the validation state machine
  */
 static void
-resolve_validation_address (const struct GNUNET_PeerIdentity *id,
-                            const struct GNUNET_HELLO_Address *address,
+resolve_validation_address (const struct GNUNET_HELLO_Address *address,
                             int numeric,
                             struct GNUNET_TIME_Absolute last_validation,
                             struct GNUNET_TIME_Absolute valid_until,
@@ -795,7 +788,7 @@ process_validation_string (void *cls,
     {
       FPRINTF (stderr,
                "Failed to convert address for peer `%s' plugin `%s' length %u to string \n",
-               GNUNET_i2s (&vc->id),
+               GNUNET_i2s (&vc->addrcp->peer),
                vc->addrcp->transport_name,
                (unsigned int) vc->addrcp->address_length);
     }
@@ -816,7 +809,7 @@ process_validation_string (void *cls,
 
     FPRINTF (stdout,
              _("Peer `%s' %s %s\n\t%s%s\n\t%s%s\n\t%s%s\n"),
-             GNUNET_i2s (&vc->id),
+             GNUNET_i2s (&vc->addrcp->peer),
              (GNUNET_OK == res) ? address : "<invalid address>",
              (monitor_validation) ? GNUNET_TRANSPORT_vs2s (vc->state) : "",
              "Valid until    : ", s_valid,
@@ -840,8 +833,7 @@ process_validation_string (void *cls,
          (note: this should be unnecessary, as
          transport should fallback to numeric lookup
          internally if DNS takes too long anyway) */
-      resolve_validation_address (&vc->id,
-                                  vc->addrcp,
+      resolve_validation_address (vc->addrcp,
                                   GNUNET_NO,
                                   vc->last_validation,
                                   vc->valid_until,
@@ -852,7 +844,7 @@ process_validation_string (void *cls,
     {
       FPRINTF (stdout,
                _("Peer `%s' %s `%s' \n"),
-               GNUNET_i2s (&vc->id),
+               GNUNET_i2s (&vc->addrcp->peer),
                "<unable to resolve address>",
                GNUNET_TRANSPORT_vs2s (vc->state));
     }
@@ -882,7 +874,6 @@ process_validation_string (void *cls,
 /**
  * Resolve address we got a validation state for to a string.
  *
- * @param id peer identity the address is for
  * @param address the address itself
  * @param numeric #GNUNET_YES to disable DNS, #GNUNET_NO to try reverse lookup
  * @param last_validation when was the address validated last
@@ -891,8 +882,7 @@ process_validation_string (void *cls,
  * @param state where are we in the validation state machine
  */
 static void
-resolve_validation_address (const struct GNUNET_PeerIdentity *id,
-                            const struct GNUNET_HELLO_Address *address,
+resolve_validation_address (const struct GNUNET_HELLO_Address *address,
                             int numeric,
                             struct GNUNET_TIME_Absolute last_validation,
                             struct GNUNET_TIME_Absolute valid_until,
@@ -906,7 +896,6 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
   GNUNET_CONTAINER_DLL_insert(vc_head, vc_tail, vc);
   address_resolutions++;
 
-  vc->id = (*id);
   vc->transport = GNUNET_strdup(address->transport_name);
   vc->addrcp = GNUNET_HELLO_address_copy (address);
   vc->printed = GNUNET_NO;
@@ -928,7 +917,6 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
  * Resolve address we got a validation state for to a string.
  *
  * @param cls NULL
- * @param peer peer identity the address is for
  * @param address the address itself
  * @param last_validation when was the address validated last
  * @param valid_until until when is the address valid
@@ -937,14 +925,13 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
  */
 static void
 process_validation_cb (void *cls,
-                       const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_HELLO_Address *address,
                        struct GNUNET_TIME_Absolute last_validation,
                        struct GNUNET_TIME_Absolute valid_until,
                        struct GNUNET_TIME_Absolute next_validation,
                        enum GNUNET_TRANSPORT_ValidationState state)
 {
-  if ((NULL == peer) && (NULL == address))
+  if (NULL == address)
   {
     if (monitor_validation)
     {
@@ -961,7 +948,7 @@ process_validation_cb (void *cls,
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
-  if ((NULL == peer) || (NULL == address))
+  if (NULL == address)
   {
     /* invalid response */
     vic = NULL;
@@ -970,8 +957,7 @@ process_validation_cb (void *cls,
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
-  resolve_validation_address (peer,
-                              address,
+  resolve_validation_address (address,
                               numeric,
                               last_validation,
                               valid_until,
@@ -1451,7 +1437,7 @@ resolve_peer_address (const struct GNUNET_PeerIdentity *id,
   GNUNET_CONTAINER_DLL_insert(rc_head, rc_tail, rc);
   address_resolutions++;
 
-  rc->id = (*id);
+  rc->id = *id;
   rc->transport = GNUNET_strdup(address->transport_name);
   rc->addrcp = GNUNET_HELLO_address_copy (address);
   rc->printed = GNUNET_NO;

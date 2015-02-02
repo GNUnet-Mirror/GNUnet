@@ -67,15 +67,13 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
  * Query validation about the latest observed latency on a given
  * address.
  *
- * @param sender peer
  * @param address the address
  * @param session session
  * @return observed latency of the address, FOREVER if the address was
  *         never successfully validated
  */
 struct GNUNET_TIME_Relative
-GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
-                                    const struct GNUNET_HELLO_Address *address,
+GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address,
                                     struct Session *session);
 
 
@@ -84,7 +82,6 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
  * active address.
  *
  * @param cls closure
- * @param peer peer this update is about (never NULL)
  * @param address address (never NULL)
  * @param last_validation point in time when last validation was performed
  * @param valid_until point in time how long address is valid
@@ -93,7 +90,6 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
  */
 typedef void
 (*GST_ValidationChangedCallback) (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer,
                                   const struct GNUNET_HELLO_Address *address,
                                   struct GNUNET_TIME_Absolute last_validation,
                                   struct GNUNET_TIME_Absolute valid_until,
@@ -166,7 +162,6 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
  */
 typedef void
 (*GST_ValidationAddressCallback) (void *cls,
-                                  const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
                                   struct GNUNET_TIME_Absolute valid_until,
                                   struct GNUNET_TIME_Absolute validation_block,
                                   const struct GNUNET_HELLO_Address *address);

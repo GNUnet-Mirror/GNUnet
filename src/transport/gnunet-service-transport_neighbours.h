@@ -201,8 +201,8 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
  * Function called for each neighbour.
  *
  * @param cls closure
- * @param neighbour identity of the neighbour
- * @param address the address (or NULL)
+ * @param peer identity of the neighbour
+ * @param address the address of the neighbour
  * @param state current state the peer is in
  * @param state_timeout timeout for this state
  * @param bandwidth_in inbound quota in NBO
@@ -210,7 +210,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
  */
 typedef void
 (*GST_NeighbourIterator) (void *cls,
-                          const struct GNUNET_PeerIdentity *neighbour,
+                          const struct GNUNET_PeerIdentity *peer,
                           const struct GNUNET_HELLO_Address *address,
                           enum GNUNET_TRANSPORT_PeerState state,
                           struct GNUNET_TIME_Absolute state_timeout,
@@ -245,8 +245,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * FIXME
  */
 void
-GST_neighbours_notify_data_recv (const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_HELLO_Address *address,
+GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
                                  struct Session *session,
                                  const struct GNUNET_MessageHeader *message);
 
@@ -255,8 +254,7 @@ GST_neighbours_notify_data_recv (const struct GNUNET_PeerIdentity *peer,
  * FIXME
  */
 void
-GST_neighbours_notify_payload_recv (const struct GNUNET_PeerIdentity *peer,
-                                    const struct GNUNET_HELLO_Address *address,
+GST_neighbours_notify_payload_recv (const struct GNUNET_HELLO_Address *address,
                                     struct Session *session,
                                     const struct GNUNET_MessageHeader *message);
 
@@ -273,8 +271,7 @@ GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
  * FIXME
  */
 void
-GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_HELLO_Address *address,
+GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
                                  struct Session *session,
                                  size_t size);
 
@@ -283,16 +280,13 @@ GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
  * For an existing neighbour record, set the active connection to
  * use the given address.
  *
- * @param peer identity of the peer to switch the address for
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
+ * @param address address of the other peer to start using
  * @param session session to use (or NULL)
  * @param bandwidth_in inbound quota to be used when connection is up
  * @param bandwidth_out outbound quota to be used when connection is up
  */
 void
-GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
-                                  const struct GNUNET_HELLO_Address *address,
+GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
                                   struct Session *session,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
@@ -316,15 +310,12 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
  * Consider switching to it.
  *
  * @param message possibly a `struct SessionConnectMessage` (check format)
- * @param peer identity of the peer to switch the address for
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
+ * @param address address of the other peer
  * @param session session to use (or NULL)
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
 GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *message,
-                                       const struct GNUNET_PeerIdentity *peer,
                                        const struct GNUNET_HELLO_Address *address,
                                        struct Session *session);
 
@@ -335,15 +326,12 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
  * connected.  Otherwise, do nothing.
  *
  * @param message possibly a 'struct SessionConnectMessage' (check format)
- * @param peer identity of the peer to switch the address for
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
+ * @param address address of the other peer
  * @param session session to use (or NULL)
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
 GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
-				   const struct GNUNET_PeerIdentity *peer,
 				   const struct GNUNET_HELLO_Address *address,
 				   struct Session *session);
 
