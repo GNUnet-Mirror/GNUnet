@@ -251,7 +251,7 @@ struct ValidationEntry
   uint32_t challenge;
 
   /**
-   * When passing the address in 'add_valid_peer_address', did we
+   * When passing the address in #add_valid_peer_address(), did we
    * copy the address to the HELLO yet?
    */
   int copied;
@@ -277,41 +277,6 @@ struct ValidationEntry
   enum GNUNET_ATS_Network_Type network;
 };
 
-
-/**
- * Context of currently active requests to peerinfo
- * for validation of HELLOs.
- */
-struct CheckHelloValidatedContext
-{
-
-  /**
-   * This is a doubly-linked list.
-   */
-  struct CheckHelloValidatedContext *next;
-
-  /**
-   * This is a doubly-linked list.
-   */
-  struct CheckHelloValidatedContext *prev;
-
-  /**
-   * Hello that we are validating.
-   */
-  const struct GNUNET_HELLO_Message *hello;
-
-};
-
-
-/**
- * Head of linked list of HELLOs awaiting validation.
- */
-static struct CheckHelloValidatedContext *chvc_head;
-
-/**
- * Tail of linked list of HELLOs awaiting validation
- */
-static struct CheckHelloValidatedContext *chvc_tail;
 
 /**
  * Map of PeerIdentities to 'struct ValidationEntry*'s (addresses
@@ -936,17 +901,10 @@ GST_validation_start (unsigned int max_fds)
 void
 GST_validation_stop ()
 {
-  struct CheckHelloValidatedContext *chvc;
-
   GNUNET_CONTAINER_multipeermap_iterate (validation_map,
                                          &cleanup_validation_entry, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (validation_map);
   validation_map = NULL;
-  while (NULL != (chvc = chvc_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (chvc_head, chvc_tail, chvc);
-    GNUNET_free (chvc);
-  }
   GNUNET_PEERINFO_notify_cancel (pnc);
 }
 
