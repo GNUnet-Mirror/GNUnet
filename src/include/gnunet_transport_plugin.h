@@ -193,38 +193,6 @@ typedef struct GNUNET_TIME_Relative
 
 
 /**
- * Function to be called by the plugin to be notified about changes to the quota
- * for a specific peer, plugin and session
- *
- * @param cls closure
- * @param peer the peer to be notified about
- * @param plugin the plugin to be notified about
- * @param session the session for include in the notification
- *
- */
-typedef void
-(*GNUNET_TRANSPORT_RegisterQuotaNotification) (void *cls,
-                                               const struct GNUNET_PeerIdentity *peer,
-                                               const char *plugin,
-                                               struct Session *session);
-
-
-/**
- * Function to be called by the plugin to stop notification about changes to the quota
- * for a specific peer, plugin and session
- *
- * @param cls closure
- * @param peer the peer to be notified about
- * @param plugin the plugin to be notified about
- * @param session the session for include in the notification
- */
-typedef void
-(*GNUNET_TRANSPORT_UnregisterQuotaNotification) (void *cls,
-                                                 const struct GNUNET_PeerIdentity *peer,
-                                                 const char *plugin,
-                                                 struct Session *session);
-
-/**
  * Function that returns a HELLO message.
  *
  * @return HELLO message (FIXME with what?)
@@ -305,16 +273,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * LAN, WAN etc. address
    */
   GNUNET_TRANSPORT_UpdateAddressMetrics update_address_metrics;
-
-  /**
-   * FIXME: document!
-   */
-  GNUNET_TRANSPORT_RegisterQuotaNotification register_quota_notification;
-
-  /**
-   * FIXME: document!
-   */
-  GNUNET_TRANSPORT_UnregisterQuotaNotification unregister_quota_notification;
 
   /**
    * What is the maximum number of connections that this transport

@@ -522,11 +522,6 @@ static unsigned long long bytes_in_send_queue;
  */
 static struct GNUNET_SCHEDULER_Task * util_transmission_tk;
 
-/**
- * FIXME
- */
-static struct GNUNET_CONTAINER_MultiPeerMap *registered_quota_notifications;
-
 
 /**
  * FIXME
@@ -2027,173 +2022,32 @@ send_connect_ack_message (const struct GNUNET_HELLO_Address *address,
 
 }
 
-struct QuotaNotificationRequest
-{
-  struct GNUNET_PeerIdentity peer;
-  struct Session *session;
-  char *plugin;
-};
-
-struct QNR_LookContext
-{
-  struct GNUNET_PeerIdentity peer;
-  struct Session *session;
-  const char *plugin;
-
-  struct QuotaNotificationRequest *res;
-};
-
-static int
-find_notification_request (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
-{
-  struct QNR_LookContext *qnr_ctx = cls;
-  struct QuotaNotificationRequest *qnr = value;
-
-  if ((qnr->session == qnr_ctx->session) &&
-      (0 == memcmp (&qnr->peer,
-                    &qnr_ctx->peer,
-                    sizeof (struct GNUNET_PeerIdentity))) &&
-      (0 == strcmp(qnr_ctx->plugin, qnr->plugin)))
-  {
-    qnr_ctx->res = value;
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
-void
-GST_neighbours_register_quota_notification (void *cls,
-                                            const struct GNUNET_PeerIdentity *peer,
-                                            const char *plugin,
-                                            struct Session *session)
-{
-  struct QuotaNotificationRequest *qnr;
-  struct QNR_LookContext qnr_ctx;
-
-  if (NULL == registered_quota_notifications)
-  {
-    return; /* init or shutdown */
-  }
-
-  qnr_ctx.peer = (*peer);
-  qnr_ctx.plugin = plugin;
-  qnr_ctx.session = session;
-  qnr_ctx.res = NULL;
-
-  GNUNET_CONTAINER_multipeermap_get_multiple (registered_quota_notifications,
-      peer, &find_notification_request, &qnr_ctx);
-  if (NULL != qnr_ctx.res)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
-  qnr = GNUNET_new (struct QuotaNotificationRequest);
-  qnr->peer =  (*peer);
-  qnr->plugin = GNUNET_strdup (plugin);
-  qnr->session = session;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Adding notification for peer `%s' plugin `%s' session %p \n",
-      GNUNET_i2s (peer), plugin, session);
-
-  GNUNET_CONTAINER_multipeermap_put (registered_quota_notifications, peer,
-      qnr, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-}
-
-
-void
-GST_neighbours_unregister_quota_notification(void *cls,
-                                             const struct GNUNET_PeerIdentity *peer,
-                                             const char *plugin,
-                                             struct Session *session)
-{
-  struct QNR_LookContext qnr_ctx;
-
-  if (NULL == registered_quota_notifications)
-  {
-    return; /* init or shutdown */
-  }
-
-  qnr_ctx.peer = (*peer);
-  qnr_ctx.plugin = plugin;
-  qnr_ctx.session = session;
-  qnr_ctx.res = NULL;
-
-  GNUNET_CONTAINER_multipeermap_iterate (registered_quota_notifications,
-      &find_notification_request, &qnr_ctx);
-  if (NULL == qnr_ctx.res)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Removing notification for peer `%s' plugin `%s' session %p \n",
-      GNUNET_i2s (peer), plugin, session);
-
-  GNUNET_CONTAINER_multipeermap_remove (registered_quota_notifications, peer,
-      qnr_ctx.res);
-  GNUNET_free (qnr_ctx.res->plugin);
-  GNUNET_free (qnr_ctx.res);
-}
-
-
-static int
-notification_cb (void *cls,
-                 const struct GNUNET_PeerIdentity *key,
-                 void *value)
-{
-  /* struct NeighbourMapEntry *n = cls; */
-  struct QuotaNotificationRequest *qnr = value;
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_TIME_Relative delay;
-  int do_forward;
-
-  papi = GST_plugins_find(qnr->plugin);
-  if (NULL == papi)
-  {
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
-
-  delay = GST_neighbours_calculate_receive_delay (key, 0, &do_forward);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "New inbound delay for peer `%s' is %llu ms\n", GNUNET_i2s (key),
-      delay.rel_value_us / 1000);
-
-  if (NULL != papi->update_inbound_delay)
-    papi->update_inbound_delay (papi->cls, key, qnr->session, delay);
-  return GNUNET_OK;
-}
-
-
-static int
-free_notification_cb (void *cls,
-                      const struct GNUNET_PeerIdentity *key,
-                      void *value)
-{
-  /* struct NeighbourMapEntry *n = cls; */
-  struct QuotaNotificationRequest *qnr = value;
-
-  GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (registered_quota_notifications, key,
-      qnr));
-  GNUNET_free(qnr->plugin);
-  GNUNET_free(qnr);
-
-  return GNUNET_OK;
-}
-
 
 static void
 inbound_bw_tracker_update (void *cls)
 {
   struct NeighbourMapEntry *n = cls;
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct GNUNET_TIME_Relative delay;
+  int do_forward;
 
-  /* Quota was updated, tell plugins to update the time to receive next */
-  GNUNET_CONTAINER_multipeermap_get_multiple (registered_quota_notifications,
-      &n->id, &notification_cb, n);
+  if (NULL == n->primary_address.address)
+    return; /* not active, ignore */
+  papi = GST_plugins_find (n->primary_address.address->transport_name);
+  GNUNET_assert (NULL != papi);
+  if (NULL == papi->update_inbound_delay)
+    return;
+  delay = GST_neighbours_calculate_receive_delay (&n->id,
+                                                  0,
+                                                  &do_forward);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "New inbound delay for peer `%s' is %llu ms\n",
+              GNUNET_i2s (&n->id),
+              delay.rel_value_us / 1000);
+  papi->update_inbound_delay (papi->cls,
+                              &n->id,
+                              n->primary_address.session,
+                              delay);
 }
 
 
@@ -2220,11 +2074,15 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->util_payload_bytes_sent = 0;
   n->util_total_bytes_recv = 0;
   n->util_total_bytes_sent = 0;
-  GNUNET_BANDWIDTH_tracker_init (&n->in_tracker, &inbound_bw_tracker_update, n,
+  GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
+                                 &inbound_bw_tracker_update,
+                                 n,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
-  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_FOREVER_ABS);
+  set_state_and_timeout (n,
+                         GNUNET_TRANSPORT_PS_NOT_CONNECTED,
+                         GNUNET_TIME_UNIT_FOREVER_ABS);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (neighbours,
                                                     &n->id, n,
@@ -3900,7 +3758,6 @@ void
 GST_neighbours_start (unsigned int max_fds)
 {
   neighbours = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
-  registered_quota_notifications = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
   util_transmission_tk = GNUNET_SCHEDULER_add_delayed (UTIL_TRANSMISSION_INTERVAL,
       utilization_transmission, NULL);
 }
@@ -3967,12 +3824,6 @@ GST_neighbours_stop ()
       GNUNET_HELLO_address_free (cur->address);
     GNUNET_free (cur);
   }
-
-  GNUNET_CONTAINER_multipeermap_iterate (registered_quota_notifications,
-                                         &free_notification_cb, NULL);
-  GNUNET_CONTAINER_multipeermap_destroy (registered_quota_notifications);
-  registered_quota_notifications = NULL;
-
   neighbours = NULL;
 }
 

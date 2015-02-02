@@ -386,6 +386,7 @@ start_cb (struct PeerContext *p, void *cls)
 
 static void
 monitor1_cb (void *cls,
+             const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_HELLO_Address *address,
              enum GNUNET_TRANSPORT_PeerState state,
              struct GNUNET_TIME_Absolute state_timeout)
@@ -411,6 +412,7 @@ monitor1_cb (void *cls,
 
 static void
 monitor2_cb (void *cls,
+             const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_HELLO_Address *address,
              enum GNUNET_TRANSPORT_PeerState state,
              struct GNUNET_TIME_Absolute state_timeout)

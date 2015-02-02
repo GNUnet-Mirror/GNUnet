@@ -845,10 +845,6 @@ tcp_plugin_disconnect_session (void *cls,
     GNUNET_SERVER_notify_transmit_ready_cancel (session->transmit_handle);
     session->transmit_handle = NULL;
   }
-  plugin->env->unregister_quota_notification (plugin->env->cls,
-                                              &session->target,
-                                              PLUGIN_NAME,
-                                              session);
   session->plugin->env->session_end (session->plugin->env->cls,
                                      session->address,
                                      session);
@@ -1054,10 +1050,6 @@ create_session (struct Plugin *plugin,
                             session,
                             GNUNET_TRANSPORT_SS_HANDSHAKE);
   }
-  plugin->env->register_quota_notification (plugin->env->cls,
-                                            &address->peer,
-                                            PLUGIN_NAME,
-                                            session);
   return session;
 }
 

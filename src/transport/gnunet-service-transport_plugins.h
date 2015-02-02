@@ -50,8 +50,6 @@
  */
 void
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
-                  GNUNET_TRANSPORT_RegisterQuotaNotification register_quota_cb,
-                  GNUNET_TRANSPORT_UnregisterQuotaNotification unregister_quota_cb,
                   GNUNET_TRANSPORT_AddressNotification address_cb,
                   GNUNET_TRANSPORT_SessionStart session_start_cb,
                   GNUNET_TRANSPORT_SessionEnd session_end_cb,

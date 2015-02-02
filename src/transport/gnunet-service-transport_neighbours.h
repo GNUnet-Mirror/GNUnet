@@ -102,27 +102,6 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
                      GST_NeighbourSendContinuation cont, void *cont_cls);
 
 
-
-/**
- * FIXME
- */
-void
-GST_neighbours_register_quota_notification (void *cls,
-                                           const struct GNUNET_PeerIdentity *peer,
-                                           const char *plugin,
-                                           struct Session *session);
-
-
-/**
- * FIXME
- */
-void
-GST_neighbours_unregister_quota_notification (void *cls,
-                                              const struct GNUNET_PeerIdentity *peer,
-                                              const char *plugin,
-                                              struct Session *session);
-
-
 /**
  * We have received a message from the given sender.
  * How long should we delay before receiving more?
