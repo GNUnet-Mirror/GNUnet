@@ -1669,36 +1669,6 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Query validation about the latest observed latency on a given
- * address.
- *
- * @param address the address
- * @return observed latency of the address, FOREVER if the address was
- *         never successfully validated
- */
-struct GNUNET_TIME_Relative
-GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address)
-{
-  struct ValidationEntry *ve;
-
-  if (NULL == address)
-  {
-    GNUNET_break (0);
-    return GNUNET_TIME_UNIT_FOREVER_REL;
-  }
-  if (NULL == GST_plugins_find (address->transport_name))
-  {
-    GNUNET_break (0); /* but we don't have the plugin! */
-    return GNUNET_TIME_UNIT_FOREVER_REL;
-  }
-  ve = find_validation_entry (address);
-  if (NULL == ve)
-    return GNUNET_TIME_UNIT_FOREVER_REL;
-  return ve->latency;
-}
-
-
-/**
  * Closure for the validation_entries_iterate function.
  */
 struct ValidationIteratorContext
