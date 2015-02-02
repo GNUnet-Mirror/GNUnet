@@ -333,39 +333,49 @@ peer_response_processor (void *cls,
     return;
   }
 
-  if (0 == tlen)
+  if ( (0 == tlen) && (0 == alen) )
   {
-    GNUNET_break (0); /* This must not happen: address without plugin */
-    return;
+    /* No address available */
+    pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, NULL,
+        ntohl(pir_msg->state),
+        GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
   }
-  addr = (const char *) &pir_msg[1];
-  transport_name = &addr[alen];
-
-  if (transport_name[tlen - 1] != '\0')
+  else
   {
-    /* Corrupt plugin name */
-    GNUNET_break (0);
-    if (pal_ctx->one_shot)
+    if (0 == tlen)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-		   GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
-      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+      GNUNET_break (0); /* This must not happen: address without plugin */
+      return;
     }
-    else
+    addr = (const char *) &pir_msg[1];
+    transport_name = &addr[alen];
+
+    if (transport_name[tlen - 1] != '\0')
     {
-      reconnect_peer_ctx (pal_ctx);
+      /* Corrupt plugin name */
+      GNUNET_break (0);
+      if (pal_ctx->one_shot)
+      {
+        pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+            GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+        GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+      }
+      else
+      {
+        reconnect_peer_ctx (pal_ctx);
+      }
+      return;
     }
-    return;
+
+    /* notify client */
+    address = GNUNET_HELLO_address_allocate (&pir_msg->peer,
+        transport_name, addr, alen, ntohl(pir_msg->local_address_info));
+    pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, address,
+        ntohl(pir_msg->state),
+        GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
+    GNUNET_HELLO_address_free (address);
+
   }
-
-  /* notify client */
-  address = GNUNET_HELLO_address_allocate (&pir_msg->peer,
-					   transport_name, addr, alen, ntohl(pir_msg->local_address_info));
-  pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, address,
-	       ntohl(pir_msg->state),
-	       GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
-  GNUNET_HELLO_address_free (address);
-
 
   /* expect more replies */
   GNUNET_CLIENT_receive (pal_ctx->client, &peer_response_processor,
