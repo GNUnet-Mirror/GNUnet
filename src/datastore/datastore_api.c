@@ -1185,8 +1185,8 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
     free_queue_entry (qe);
     if (GNUNET_YES == was_transmitted)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           _("Failed to receive response from database.\n"));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Failed to receive response from database.\n");
       do_disconnect (h);
     }
     else
