@@ -195,11 +195,6 @@ struct ValidationEntry
   struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
   /**
-   * The identity of the peer. FIXME: duplicated (also in 'address')
-   */
-  struct GNUNET_PeerIdentity pid;
-
-  /**
    * Cached PONG signature
    */
   struct GNUNET_CRYPTO_EddsaSignature pong_sig_cache;
@@ -415,7 +410,7 @@ validation_entry_changed (struct ValidationEntry *ve,
                           enum GNUNET_TRANSPORT_ValidationState state)
 {
   ve->state = state;
-  GST_clients_broadcast_validation_notification (&ve->pid,
+  GST_clients_broadcast_validation_notification (&ve->address->peer,
                                                  ve->address,
                                                  ve->send_time,
                                                  ve->valid_until,
@@ -452,7 +447,8 @@ cleanup_validation_entry (void *cls,
   }
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_remove (validation_map,
-                                                      &ve->pid, ve));
+                                                      &ve->address->peer, 
+						      ve));
   if (GNUNET_YES == ve->known_to_ats)
   {
     GST_ats_expire_address (ve->address);
@@ -515,7 +511,7 @@ timeout_hello_validation (void *cls,
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# address records discarded"), 1,
                             GNUNET_NO);
-  cleanup_validation_entry (NULL, &ve->pid, ve);
+  cleanup_validation_entry (NULL, &ve->address->peer, ve);
 }
 
 
@@ -759,7 +755,7 @@ revalidate_address (void *cls,
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# address revalidations started"), 1,
                             GNUNET_NO);
-  bc = GST_blacklist_test_allowed (&ve->pid,
+  bc = GST_blacklist_test_allowed (&ve->address->peer,
 				   ve->address->transport_name,
                                    &transmit_ping_if_allowed, ve);
   if (NULL != bc)
@@ -798,7 +794,6 @@ find_validation_entry (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
   ve->in_use = GNUNET_SYSERR; /* not defined */
   ve->address = GNUNET_HELLO_address_copy (address);
   ve->public_key = *public_key;
-  ve->pid = address->peer;
   ve->pong_sig_valid_until = GNUNET_TIME_absolute_get_zero_();
   memset (&ve->pong_sig_cache, '\0', sizeof (struct GNUNET_CRYPTO_EddsaSignature));
   ve->latency = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1442,7 +1437,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     return GNUNET_OK;
   }
   /* now check that PONG is well-formed */
-  if (0 != memcmp (&ve->pid, sender, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (&ve->address->peer, 
+		   sender, 
+		   sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1795,10 +1792,10 @@ validation_entries_iterate (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
 	      "Notifying about validation entry for peer `%s' address `%s' \n",
-	      GNUNET_i2s (&ve->pid), 
+	      GNUNET_i2s (&ve->address->peer), 
 	      GST_plugins_a2s (ve->address));
   ic->cb (ic->cb_cls,
-	  &ve->pid, 
+	  &ve->address->peer, 
 	  ve->address, 
 	  ve->send_time,
 	  ve->valid_until,
