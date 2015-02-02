@@ -393,7 +393,8 @@ validation_entry_match (void *cls,
   struct ValidationEntryMatchContext *vemc = cls;
   struct ValidationEntry *ve = value;
 
-  if (0 == GNUNET_HELLO_address_cmp (ve->address, vemc->address))
+  if (0 == GNUNET_HELLO_address_cmp (ve->address, 
+				     vemc->address))
   {
     vemc->ve = ve;
     return GNUNET_NO;
@@ -587,11 +588,15 @@ transmit_ping_if_allowed (void *cls,
     /* build message with structure:
      *  [HELLO][TransportPingMessage][Transport name][Address] */
     memcpy (message_buf, hello, hsize);
-    memcpy (&message_buf[hsize], &ping, sizeof (struct TransportPingMessage));
+    memcpy (&message_buf[hsize],
+	    &ping, 
+	    sizeof (struct TransportPingMessage));
     memcpy (&message_buf[sizeof (struct TransportPingMessage) + hsize],
-            ve->address->transport_name, slen);
+            ve->address->transport_name, 
+	    slen);
     memcpy (&message_buf[sizeof (struct TransportPingMessage) + slen + hsize],
-            ve->address->address, ve->address->address_length);
+            ve->address->address,
+	    ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
     if (NULL == papi)
     {
@@ -754,7 +759,8 @@ revalidate_address (void *cls,
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop ("# address revalidations started"), 1,
                             GNUNET_NO);
-  bc = GST_blacklist_test_allowed (&ve->pid, ve->address->transport_name,
+  bc = GST_blacklist_test_allowed (&ve->pid,
+				   ve->address->transport_name,
                                    &transmit_ping_if_allowed, ve);
   if (NULL != bc)
     ve->bc = bc;                /* only set 'bc' if 'transmit_ping_if_allowed' was not already
@@ -1769,21 +1775,38 @@ struct ValidationIteratorContext
 };
 
 
+/**
+ * Function called on each entry in the validation map.
+ * Passes the information from the validation entry to
+ * the callback given in the closure.
+ *
+ * @param cls the `struct ValidationIteratorContext`
+ * @param key peer this is about
+ * @param value the `struct ValidationEntry`
+ * @return #GNUNET_OK (continue to iterate)
+ */
 static int
 validation_entries_iterate (void *cls,
-                           const struct GNUNET_PeerIdentity *key,
-                           void *value)
+			    const struct GNUNET_PeerIdentity *key,
+			    void *value)
 {
   struct ValidationIteratorContext *ic = cls;
   struct ValidationEntry *ve = value;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Notifying about validation entry for peer `%s' address `%s' \n",
-      GNUNET_i2s (&ve->pid), GST_plugins_a2s (ve->address));
-  ic->cb (ic->cb_cls, &ve->pid, ve->address, ve->send_time,
-      ve->valid_until, ve->next_validation, ve->state);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Notifying about validation entry for peer `%s' address `%s' \n",
+	      GNUNET_i2s (&ve->pid), 
+	      GST_plugins_a2s (ve->address));
+  ic->cb (ic->cb_cls,
+	  &ve->pid, 
+	  ve->address, 
+	  ve->send_time,
+	  ve->valid_until,
+	  ve->next_validation,
+	  ve->state);
   return GNUNET_OK;
 }
+
 
 /**
  * Iterate over all iteration entries

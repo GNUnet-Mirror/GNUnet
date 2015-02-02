@@ -85,6 +85,21 @@ struct FindClosure
 
 
 /**
+ * Provide an update on the `p2a` map size to statistics.
+ * This function should be called whenever the `p2a` map
+ * is changed.
+ */
+static void
+publish_p2a_stat_update ()
+{
+  GNUNET_STATISTICS_set (GST_stats,
+			 gettext_noop ("# Addresses given to ATS"),
+			 GNUNET_CONTAINER_multipeermap_size (p2a),
+			 GNUNET_NO);
+}
+
+
+/**
  * Find matching address info.
  *
  * @param cls the `struct FindClosure`
@@ -299,6 +314,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
                                             &ai->address->peer,
                                             ai,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  publish_p2a_stat_update ();  
 }
 
 
@@ -480,6 +496,7 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                  GNUNET_CONTAINER_multipeermap_remove (p2a,
                                                        &address->peer,
                                                        ai));
+  publish_p2a_stat_update ();
   GNUNET_break (NULL == ai->session);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                    "transport-ats",
@@ -518,6 +535,10 @@ destroy_ai (void *cls,
   struct AddressInfo *ai = value;
 
   GNUNET_HELLO_address_free (ai->address);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (p2a,
+                                                       key,
+                                                       ai));
   GNUNET_free (ai);
   return GNUNET_OK;
 }
@@ -532,6 +553,7 @@ GST_ats_done ()
   GNUNET_CONTAINER_multipeermap_iterate (p2a,
                                          &destroy_ai,
                                          NULL);
+  publish_p2a_stat_update ();
   GNUNET_CONTAINER_multipeermap_destroy (p2a);
   p2a = NULL;
 }
