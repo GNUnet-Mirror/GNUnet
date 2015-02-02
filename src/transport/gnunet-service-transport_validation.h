@@ -66,13 +66,11 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
  * address.
  *
  * @param address the address
- * @param session session
  * @return observed latency of the address, FOREVER if the address was
  *         never successfully validated
  */
 struct GNUNET_TIME_Relative
-GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address,
-                                    struct Session *session);
+GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address);
 
 
 /**

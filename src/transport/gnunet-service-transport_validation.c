@@ -1644,19 +1644,21 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Error setting address in use for peer `%s' `%s' to USED\n",
-                  GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
+                  GNUNET_i2s (&address->peer),
+                  GST_plugins_a2s (address));
     }
     if (GNUNET_NO == in_use)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Error setting address in use for peer `%s' `%s' to NOT_USED\n",
-                  GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
+                  GNUNET_i2s (&address->peer),
+                  GST_plugins_a2s (address));
     }
   }
 
   GNUNET_break (ve->in_use != in_use);  /* should be different... */
   ve->in_use = in_use;
-  if (in_use == GNUNET_YES)
+  if (GNUNET_YES == in_use)
   {
     /* from now on, higher frequeny, so reschedule now */
     if (NULL != ve->revalidation_task)
@@ -1671,13 +1673,11 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
  * address.
  *
  * @param address the address
- * @param session session
  * @return observed latency of the address, FOREVER if the address was
  *         never successfully validated
  */
 struct GNUNET_TIME_Relative
-GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address,
-                                    struct Session *session)
+GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address)
 {
   struct ValidationEntry *ve;
 
@@ -1691,12 +1691,12 @@ GST_validation_get_address_latency (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0); /* but we don't have the plugin! */
     return GNUNET_TIME_UNIT_FOREVER_REL;
   }
-
   ve = find_validation_entry (address);
   if (NULL == ve)
     return GNUNET_TIME_UNIT_FOREVER_REL;
   return ve->latency;
 }
+
 
 /**
  * Closure for the validation_entries_iterate function.
@@ -1751,7 +1751,7 @@ validation_entries_iterate (void *cls,
  * Iterate over all iteration entries
  *
  * @param cb function to call
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  */
 void
 GST_validation_iterate (GST_ValidationChangedCallback cb,
