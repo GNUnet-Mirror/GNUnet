@@ -523,6 +523,7 @@ transmit_ping_if_allowed (void *cls,
                 GNUNET_i2s (pid),
                 GST_plugins_a2s (ve->address),
                 ve->address->transport_name);
+    cleanup_validation_entry (NULL, pid, ve);
     return;
   }
 
