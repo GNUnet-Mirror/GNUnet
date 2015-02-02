@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2010,2011 Christian Grothoff (and other contributing authors)
+ (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -130,11 +130,6 @@ struct GNUNET_ATS_SchedulingHandle *GST_ats;
  * Hello address expiration
  */
 struct GNUNET_TIME_Relative hello_expiration;
-
-/**
- * DEBUGGING connection counter
- */
-static int connections;
 
 /**
  * Head of DLL of asynchronous tasks to kill sessions.
@@ -845,102 +840,6 @@ ats_request_address_change (void *cls,
 
 
 /**
- * Function called to notify transport users that another
- * peer connected to us.
- *
- * @param cls closure
- * @param peer the peer that connected
- * @param bandwidth_in inbound bandwidth in NBO
- * @param bandwidth_out outbound bandwidth in NBO
- */
-static void
-neighbours_connect_notification (void *cls,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
-{
-  size_t len = sizeof(struct ConnectInfoMessage);
-  char buf[len] GNUNET_ALIGN;
-  struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
-
-  connections++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "We are now connected to peer `%s' and %u peers in total\n",
-              GNUNET_i2s (peer),
-              connections);
-  connect_msg->header.size = htons (sizeof(buf));
-  connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  connect_msg->id = *peer;
-  connect_msg->quota_in = bandwidth_in;
-  connect_msg->quota_out = bandwidth_out;
-  GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
-}
-
-
-/**
- * Function called to notify transport users that another
- * peer disconnected from us.
- *
- * @param cls closure
- * @param peer the peer that disconnected
- */
-static void
-neighbours_disconnect_notification (void *cls,
-                                    const struct GNUNET_PeerIdentity *peer)
-{
-  struct DisconnectInfoMessage disconnect_msg;
-
-  connections--;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer `%s' disconnected and we are connected to %u peers\n",
-              GNUNET_i2s (peer),
-              connections);
-
-  GST_manipulation_peer_disconnect (peer);
-  disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));
-  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
-  disconnect_msg.reserved = htonl (0);
-  disconnect_msg.peer = *peer;
-  GST_clients_broadcast (&disconnect_msg.header, GNUNET_NO);
-}
-
-
-/**
- * Function called to notify transport users that a neighbour peer changed its
- * active address.
- *
- * @param cls closure
- * @param peer identity of the peer
- * @param address address possibly NULL if peer is not connected
- * @param state current state this peer is in
- * @param state_timeout timeout for the current state of the peer
- * @param bandwidth_in bandwidth assigned inbound, 0 on disconnect
- * @param bandwidth_out bandwidth assigned outbound, 0 on disconnect
- */
-static void
-neighbours_changed_notification (void *cls,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_HELLO_Address *address,
-                                 enum GNUNET_TRANSPORT_PeerState state,
-                                 struct GNUNET_TIME_Absolute state_timeout,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
-              GNUNET_i2s (peer),
-              GST_plugins_a2s (address),
-              GNUNET_TRANSPORT_ps2s (state),
-              GNUNET_STRINGS_absolute_time_to_string (state_timeout));
-  /* FIXME: include bandwidth in notification! */
-  GST_clients_broadcast_peer_notification (peer,
-                                           address,
-                                           state,
-                                           state_timeout);
-}
-
-
-/**
  * Function called when the service shuts down.  Unloads our plugins
  * and cancels pending validations.
  *
@@ -1097,11 +996,7 @@ run (void *cls,
                     &plugin_env_session_end,
                     &plugin_env_address_to_type,
                     &plugin_env_update_metrics);
-  GST_neighbours_start (NULL,
-                        &neighbours_connect_notification,
-                        &neighbours_disconnect_notification,
-                        &neighbours_changed_notification,
-                        (max_fd / 3) * 2);
+  GST_neighbours_start ((max_fd / 3) * 2);
   GST_clients_start (GST_server);
   GST_validation_start ((max_fd / 3));
 }

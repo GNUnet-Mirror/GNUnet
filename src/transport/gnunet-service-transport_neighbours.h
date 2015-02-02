@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -33,26 +33,14 @@
 #include "transport.h"
 #include "gnunet_util_lib.h"
 
-// TODO:
-// - ATS and similar info is a bit lacking in the API right now...
-
-
 
 /**
  * Initialize the neighbours subsystem.
  *
- * @param cls closure for callbacks
- * @param connect_cb function to call if we connect to a peer
- * @param disconnect_cb function to call if we disconnect from a peer
- * @param peer_address_cb function to call if a neighbour's active address changes
  * @param max_fds maximum number of fds to use
  */
 void
-GST_neighbours_start (void *cls,
-                      NotifyConnect connect_cb,
-                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_NeighbourChangeCallback peer_address_cb,
-                      unsigned int max_fds);
+GST_neighbours_start (unsigned int max_fds);
 
 
 /**

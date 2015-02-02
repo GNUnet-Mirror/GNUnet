@@ -29,6 +29,7 @@
 #include "gnunet-service-transport_blacklist.h"
 #include "gnunet-service-transport_clients.h"
 #include "gnunet-service-transport_neighbours.h"
+#include "gnunet-service-transport_manipulation.h"
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet-service-transport_validation.h"
 #include "gnunet-service-transport.h"
@@ -507,26 +508,6 @@ static struct BlacklistCheckSwitchContext *pending_bc_head;
 static struct BlacklistCheckSwitchContext *pending_bc_tail;
 
 /**
- * Closure for #connect_notify_cb, #disconnect_notify_cb and #neighbour_change_cb
- */
-static void *callback_cls;
-
-/**
- * Function to call when we connected to a neighbour.
- */
-static NotifyConnect connect_notify_cb;
-
-/**
- * Function to call when we disconnected from a neighbour.
- */
-static GNUNET_TRANSPORT_NotifyDisconnect disconnect_notify_cb;
-
-/**
- * Function to call when a neighbour changed address, state or bandwidth.
- */
-static GNUNET_TRANSPORT_NeighbourChangeCallback neighbour_change_cb;
-
-/**
  * counter for connected neighbours
  */
 static unsigned int neighbours_connected;
@@ -565,6 +546,93 @@ print_ack_state (enum GST_ACK_State s)
       return "N/A";
   }
 }
+
+
+/**
+ * Notify our clients that another peer connected to us.
+ *
+ * @param peer the peer that connected
+ * @param bandwidth_in inbound bandwidth in NBO
+ * @param bandwidth_out outbound bandwidth in NBO
+ */
+static void
+neighbours_connect_notification (const struct GNUNET_PeerIdentity *peer,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+{
+  size_t len = sizeof(struct ConnectInfoMessage);
+  char buf[len] GNUNET_ALIGN;
+  struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "We are now connected to peer `%s'\n",
+              GNUNET_i2s (peer));
+  connect_msg->header.size = htons (sizeof(buf));
+  connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
+  connect_msg->id = *peer;
+  connect_msg->quota_in = bandwidth_in;
+  connect_msg->quota_out = bandwidth_out;
+  GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
+}
+
+
+/**
+ * Notify our clients (and manipulation) that a peer disconnected from
+ * us.
+ *
+ * @param peer the peer that disconnected
+ */
+static void
+neighbours_disconnect_notification (const struct GNUNET_PeerIdentity *peer)
+{
+  struct DisconnectInfoMessage disconnect_msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer `%s' disconnected\n",
+              GNUNET_i2s (peer));
+  GST_manipulation_peer_disconnect (peer);
+  disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));
+  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+  disconnect_msg.reserved = htonl (0);
+  disconnect_msg.peer = *peer;
+  GST_clients_broadcast (&disconnect_msg.header,
+                         GNUNET_NO);
+}
+
+
+/**
+ * Notify transport clients that a neighbour peer changed its active
+ * address.
+ *
+ * @param peer identity of the peer
+ * @param address address possibly NULL if peer is not connected
+ * @param state current state this peer is in
+ * @param state_timeout timeout for the current state of the peer
+ * @param bandwidth_in bandwidth assigned inbound, 0 on disconnect
+ * @param bandwidth_out bandwidth assigned outbound, 0 on disconnect
+ */
+static void
+neighbours_changed_notification (const struct GNUNET_PeerIdentity *peer,
+                                 const struct GNUNET_HELLO_Address *address,
+                                 enum GNUNET_TRANSPORT_PeerState state,
+                                 struct GNUNET_TIME_Absolute state_timeout,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
+              GNUNET_i2s (peer),
+              GST_plugins_a2s (address),
+              GNUNET_TRANSPORT_ps2s (state),
+              GNUNET_STRINGS_absolute_time_to_string (state_timeout));
+  /* FIXME: include bandwidth in notification! */
+  GST_clients_broadcast_peer_notification (peer,
+                                           address,
+                                           state,
+                                           state_timeout);
+}
+
+
 
 /**
  * Lookup a neighbour entry in the neighbours hash map.
@@ -666,13 +734,12 @@ set_state (struct NeighbourMapEntry *n,
 	      "Neighbour `%s' changed state to %s\n",
 	      GNUNET_i2s (&n->id),
 	      GNUNET_TRANSPORT_ps2s(s));
-  neighbour_change_cb (callback_cls,
-                       &n->id,
-		       n->primary_address.address,
-		       n->state,
-		       n->timeout,
-		       n->primary_address.bandwidth_in,
-		       n->primary_address.bandwidth_out);
+  neighbours_changed_notification (&n->id,
+                                   n->primary_address.address,
+                                   n->state,
+                                   n->timeout,
+                                   n->primary_address.bandwidth_in,
+                                   n->primary_address.bandwidth_out);
 }
 
 
@@ -695,13 +762,12 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
 	      GNUNET_i2s (&n->id),
 	      GNUNET_TRANSPORT_ps2s(s),
 	      GNUNET_STRINGS_absolute_time_to_string (timeout));
-  neighbour_change_cb (callback_cls,
-                       &n->id,
-		       n->primary_address.address,
-		       n->state,
-		       n->timeout,
-		       n->primary_address.bandwidth_in,
-		       n->primary_address.bandwidth_out);
+  neighbours_changed_notification (&n->id,
+                                   n->primary_address.address,
+                                   n->state,
+                                   n->timeout,
+                                   n->primary_address.bandwidth_in,
+                                   n->primary_address.bandwidth_out);
 }
 
 
@@ -720,12 +786,11 @@ set_timeout (struct NeighbourMapEntry *n,
               "Neighbour `%s' changed timeout %s\n",
               GNUNET_i2s (&n->id),
               GNUNET_STRINGS_absolute_time_to_string (timeout));
-  neighbour_change_cb (callback_cls,
-                       &n->id,
-		       n->primary_address.address,
-		       n->state, n->timeout,
-		       n->primary_address.bandwidth_in,
-		       n->primary_address.bandwidth_out);
+  neighbours_changed_notification (&n->id,
+                                   n->primary_address.address,
+                                   n->state, n->timeout,
+                                   n->primary_address.bandwidth_in,
+                                   n->primary_address.bandwidth_out);
 }
 
 
@@ -875,13 +940,12 @@ set_primary_address (struct NeighbourMapEntry *n,
               GNUNET_i2s (&n->id),
               GST_plugins_a2s(address));
 
-  neighbour_change_cb (callback_cls,
-                       &n->id,
-                       n->primary_address.address,
-                       n->state,
-		       n->timeout,
-                       n->primary_address.bandwidth_in,
-                       n->primary_address.bandwidth_out);
+  neighbours_changed_notification (&n->id,
+                                   n->primary_address.address,
+                                   n->state,
+                                   n->timeout,
+                                   n->primary_address.bandwidth_in,
+                                   n->primary_address.bandwidth_out);
 }
 
 
@@ -895,13 +959,12 @@ static void
 unset_primary_address (struct NeighbourMapEntry *n)
 {
   /* Notify monitoring about change */
-  neighbour_change_cb (callback_cls,
-                       &n->id,
-                       n->primary_address.address,
-                       n->state,
-		       n->timeout,
-                       GNUNET_BANDWIDTH_value_init (0),
-                       GNUNET_BANDWIDTH_value_init (0));
+  neighbours_changed_notification (&n->id,
+                                   n->primary_address.address,
+                                   n->state,
+                                   n->timeout,
+                                   GNUNET_BANDWIDTH_value_init (0),
+                                   GNUNET_BANDWIDTH_value_init (0));
   /* Unset primary address */
   free_address (&n->primary_address);
 }
@@ -957,7 +1020,7 @@ free_neighbour (struct NeighbourMapEntry *n,
 			   gettext_noop ("# peers connected"),
 			   --neighbours_connected,
 			   GNUNET_NO);
-    disconnect_notify_cb (callback_cls, &n->id);
+    neighbours_disconnect_notification (&n->id);
   }
 
   /* Mark peer as disconnected */
@@ -1184,7 +1247,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 			   gettext_noop ("# peers connected"),
 			   --neighbours_connected,
 			   GNUNET_NO);
-    disconnect_notify_cb (callback_cls, &n->id);
+    neighbours_disconnect_notification (&n->id);
     set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
@@ -3213,10 +3276,9 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
 			   gettext_noop ("# peers connected"),
 			   ++neighbours_connected,
 			   GNUNET_NO);
-    connect_notify_cb (callback_cls,
-		       &n->id,
-                       n->primary_address.bandwidth_in,
-                       n->primary_address.bandwidth_out);
+    neighbours_connect_notification (&n->id,
+                                     n->primary_address.bandwidth_in,
+                                     n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send SYN was successful */
     set_primary_address (n,
                          n->primary_address.address,
@@ -3502,10 +3564,9 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
   if (GNUNET_NO == GST_neighbours_test_connected(&n->id))
   {
     /* Notify about connection */
-    connect_notify_cb (callback_cls,
-		       &n->id,
-		       n->primary_address.bandwidth_in,
-		       n->primary_address.bandwidth_out);
+    neighbours_connect_notification (&n->id,
+                                     n->primary_address.bandwidth_in,
+                                     n->primary_address.bandwidth_out);
     GNUNET_STATISTICS_set (GST_stats,
 			   gettext_noop ("# peers connected"),
 			   ++neighbours_connected,
@@ -3833,24 +3894,11 @@ GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
 /**
  * Initialize the neighbours subsystem.
  *
- * @param cls closure for callbacks
- * @param connect_cb function to call if we connect to a peer
- * @param disconnect_cb function to call if we disconnect from a peer
- * @param peer_address_cb function to call if we change an active address
- *                   of a neighbour
  * @param max_fds maximum number of fds to use
  */
 void
-GST_neighbours_start (void *cls,
-                      NotifyConnect connect_cb,
-                      GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_NeighbourChangeCallback peer_address_cb,
-                      unsigned int max_fds)
+GST_neighbours_start (unsigned int max_fds)
 {
-  callback_cls = cls;
-  connect_notify_cb = connect_cb;
-  disconnect_notify_cb = disconnect_cb;
-  neighbour_change_cb = peer_address_cb;
   neighbours = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
   registered_quota_notifications = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
   util_transmission_tk = GNUNET_SCHEDULER_add_delayed (UTIL_TRANSMISSION_INTERVAL,
@@ -3926,10 +3974,6 @@ GST_neighbours_stop ()
   registered_quota_notifications = NULL;
 
   neighbours = NULL;
-  callback_cls = NULL;
-  connect_notify_cb = NULL;
-  disconnect_notify_cb = NULL;
-  neighbour_change_cb = NULL;
 }
 
 
