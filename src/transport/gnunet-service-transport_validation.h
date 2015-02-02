@@ -52,14 +52,12 @@ GST_validation_stop (void);
  * Based on this, the validation module will measure latency for the
  * address more or less often.
  *
- * @param address the address
- * @param session the session
+ * @param address the address that we are now using (or not)
  * @param in_use #GNUNET_YES if we are now using the address for a connection,
  *               #GNUNET_NO if we are no longer using the address for a connection
  */
 void
 GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
-                                struct Session *session,
                                 int in_use);
 
 

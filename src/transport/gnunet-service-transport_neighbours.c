@@ -632,7 +632,6 @@ free_address (struct NeighbourAddress *na)
   if (GNUNET_YES == na->ats_active)
   {
     GST_validation_set_address_use (na->address,
-                                    na->session,
                                     GNUNET_NO);
     GST_ats_set_in_use (na->address,
                         na->session,
@@ -829,7 +828,6 @@ set_primary_address (struct NeighbourMapEntry *n,
                           n->primary_address.session,
                           is_active);
       GST_validation_set_address_use (n->primary_address.address,
-                                      n->primary_address.session,
                                       is_active);
     }
     if (GNUNET_YES == is_active)
@@ -867,7 +865,6 @@ set_primary_address (struct NeighbourMapEntry *n,
                         n->primary_address.session,
                         GNUNET_YES);
     GST_validation_set_address_use (n->primary_address.address,
-                                    n->primary_address.session,
                                     GNUNET_YES);
     GST_neighbours_set_incoming_quota (&address->peer, bandwidth_in);
     send_outbound_quota (&address->peer, bandwidth_out);
