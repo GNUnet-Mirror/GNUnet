@@ -613,6 +613,9 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
   if (NULL == client->connection)
   {
     /* already disconnected, fail instantly! */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		"Client API violation for service `%s'\n",
+		client->service_name);
     GNUNET_break (0);           /* this should not happen in well-written code! */
     if (NULL != handler)
       handler (handler_cls, NULL);

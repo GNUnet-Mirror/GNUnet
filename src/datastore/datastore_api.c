@@ -642,7 +642,7 @@ transmit_request (void *cls,
                          GNUNET_TIME_absolute_get_remaining (qe->timeout));
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (h->stats,
-                            gettext_noop ("# bytes sent to datastore"), 1,
+                            gettext_noop ("# bytes sent to datastore"), msize,
                             GNUNET_NO);
 #endif
   return msize;
