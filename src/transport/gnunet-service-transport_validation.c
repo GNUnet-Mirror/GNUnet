@@ -332,6 +332,21 @@ struct ValidationEntryMatchContext
 
 
 /**
+ * Provide an update on the `validation_map` map size to statistics.
+ * This function should be called whenever the `validation_map`
+ * is changed.
+ */
+static void
+publish_ve_stat_update ()
+{
+  GNUNET_STATISTICS_set (GST_stats,
+			 gettext_noop ("# Addresses in validation map"),
+			 GNUNET_CONTAINER_multipeermap_size (validation_map),
+			 GNUNET_NO);
+}
+
+
+/**
  * Iterate over validation entries until a matching one is found.
  *
  * @param cls the `struct ValidationEntryMatchContext *`
@@ -409,6 +424,7 @@ cleanup_validation_entry (void *cls,
                 GNUNET_CONTAINER_multipeermap_remove (validation_map,
                                                       &ve->address->peer,
 						      ve));
+  publish_ve_stat_update ();
   if (GNUNET_YES == ve->known_to_ats)
   {
     GST_ats_expire_address (ve->address);
@@ -428,7 +444,7 @@ cleanup_validation_entry (void *cls,
   if ( (GNUNET_YES == ve->expecting_pong) &&
        (validations_running > 0) )
   {
-    validations_running --;
+    validations_running--;
     GNUNET_STATISTICS_set (GST_stats,
                            gettext_noop ("# validations running"),
                            validations_running,
@@ -760,6 +776,7 @@ find_validation_entry (const struct GNUNET_HELLO_Address *address)
   GNUNET_CONTAINER_multipeermap_put (validation_map, &address->peer,
                                      ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  publish_ve_stat_update ();
   validation_entry_changed (ve, GNUNET_TRANSPORT_VS_NEW);
   return ve;
 }
@@ -1433,7 +1450,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
   if (validations_running > 0)
   {
-    validations_running --;
+    validations_running--;
     GNUNET_STATISTICS_set (GST_stats,
                            gettext_noop ("# validations running"),
                            validations_running,
