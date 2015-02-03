@@ -2003,7 +2003,12 @@ send_connect_ack_message (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * FIXME
+ * Function called by the bandwidth tracker for a peer whenever
+ * the tracker's state changed such that we need to recalculate
+ * the delay for flow control.  We calculate the latest delay
+ * and inform the plugin (if applicable).
+ *
+ * @param cls the `struct NeighbourMapEntry` to update calculations for
  */
 static void
 inbound_bw_tracker_update (void *cls)
