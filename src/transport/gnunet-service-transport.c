@@ -840,6 +840,7 @@ ats_request_address_change (void *cls,
     GST_neighbours_force_disconnect (peer);
     return;
   }
+  GNUNET_assert (NULL != address);
   GNUNET_STATISTICS_update (GST_stats,
                             "# ATS suggestions received",
                             1,
