@@ -2178,7 +2178,6 @@ try_connect_bl_check_cont (void *cls,
 }
 
 
-
 /**
  * Try to create a connection to the given target (eventually).
  *
@@ -2248,10 +2247,15 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
   /* Do blacklist check if connecting to this peer is allowed */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
-  GNUNET_CONTAINER_DLL_insert (pending_bc_head, pending_bc_tail, blc_ctx);
+  GNUNET_CONTAINER_DLL_insert (pending_bc_head,
+                               pending_bc_tail,
+                               blc_ctx);
 
-  if (NULL != (blc = GST_blacklist_test_allowed (target, NULL,
-        &try_connect_bl_check_cont, blc_ctx)))
+  if (NULL !=
+      (blc = GST_blacklist_test_allowed (target,
+                                         NULL,
+                                         &try_connect_bl_check_cont,
+                                         blc_ctx)))
   {
     blc_ctx->blc = blc;
   }
@@ -2391,9 +2395,66 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * We've been asked to switch addresses, and just now
- * got the result from the blacklist check to see if this
- * is allowed.
+ * Check if the given @a address is the same that we are already
+ * using for the respective neighbour. If so, update the bandwidth
+ * assignment and possibly the session and return #GNUNET_OK.
+ * If the new address is different from what the neighbour is
+ * using right now, return #GNUNET_NO.
+ *
+ * @param address address of the other peer,
+ * @param session session to use or NULL if transport should initiate a session
+ * @param bandwidth_in inbound quota to be used when connection is up,
+ * 	0 to disconnect from peer
+ * @param bandwidth_out outbound quota to be used when connection is up,
+ * 	0 to disconnect from peer
+ * @return #GNUNET_OK if we were able to just update the bandwidth and session,
+ *         #GNUNET_NO if more extensive changes are required (address changed)
+ */
+static int
+try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
+                         struct Session *session,
+                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+{
+  struct NeighbourMapEntry *n;
+  int connected;
+
+  n = lookup_neighbour (&address->peer);
+  if ( (NULL == n) ||
+       (NULL == n->primary_address.address) ||
+       (0 != GNUNET_HELLO_address_cmp (address,
+                                       n->primary_address.address)) )
+    return GNUNET_NO;
+  /* We are not really switching addresses, but merely adjusting
+     session and/or bandwidth, can do fast ATS update! */
+  if (session != n->primary_address.session)
+  {
+    /* switch to a different session, but keeping same address; could
+       happen if there is a 2nd inbound connection */
+    connected = GNUNET_TRANSPORT_is_connected (n->state);
+    if (GNUNET_YES == connected)
+      GST_ats_set_in_use (n->primary_address.address,
+                          n->primary_address.session,
+                          GNUNET_NO);
+    n->primary_address.session = session;
+    if (GNUNET_YES == connected)
+      GST_ats_set_in_use (n->primary_address.address,
+                          n->primary_address.session,
+                          GNUNET_YES);
+  }
+  n->primary_address.bandwidth_in = bandwidth_in;
+  n->primary_address.bandwidth_out = bandwidth_out;
+  GST_neighbours_set_incoming_quota (&address->peer,
+                                     bandwidth_in);
+  send_outbound_quota (&address->peer,
+                       bandwidth_out);
+  return GNUNET_OK;
+}
+
+
+/**
+ * We've been asked to switch addresses, and just now got the result
+ * from the blacklist check to see if this is allowed.
  *
  * @param cls the `struct BlacklistCheckSwitchContext` with
  *        the information about the future address
@@ -2410,62 +2471,28 @@ switch_address_bl_check_cont (void *cls,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct NeighbourMapEntry *n;
 
-  papi = GST_plugins_find (blc_ctx->address->transport_name);
-
-  if ( (NULL == (n = lookup_neighbour (peer))) ||
-       (result == GNUNET_NO) ||
-       (NULL == papi) )
+  if (result == GNUNET_NO)
   {
-    if (NULL == n)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Peer %s is unknown, suggestion ignored\n",
-                  GNUNET_i2s (peer));
-      GNUNET_STATISTICS_update (GST_stats,
-                                "# ATS suggestions ignored (neighbour unknown)",
-                                1,
-                                GNUNET_NO);
-    }
-    if (result == GNUNET_NO)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Blacklist denied to switch to suggested address `%s' session %p for peer `%s'\n",
-                  GST_plugins_a2s (blc_ctx->address),
-                  blc_ctx->session,
-                  GNUNET_i2s (&blc_ctx->address->peer));
-      GNUNET_STATISTICS_update (GST_stats,
-                                "# ATS suggestions ignored (blacklist denied)",
-                                1,
-                                GNUNET_NO);
-    }
-    if (NULL == papi)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Plugin `%s' for suggested address `%s' session %p for peer `%s' is not available\n",
-                  blc_ctx->address->transport_name,
-                  GST_plugins_a2s (blc_ctx->address),
-                  blc_ctx->session,
-                  GNUNET_i2s (&blc_ctx->address->peer));
-      GNUNET_STATISTICS_update (GST_stats,
-                                "# ATS suggestions ignored (plugin unknown)",
-                                1,
-                                GNUNET_NO);
-    }
-
-    /* This address is blacklisted, delete session */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Blacklist denied to switch to suggested address `%s' session %p for peer `%s'\n",
+                GST_plugins_a2s (blc_ctx->address),
+                blc_ctx->session,
+                GNUNET_i2s (&blc_ctx->address->peer));
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# ATS suggestions ignored (blacklist denied)",
+                              1,
+                              GNUNET_NO);
     /* FIXME: tell plugin to force killing session here and now! */
-
-    /* Remove blacklist check and clean up */
-    GNUNET_CONTAINER_DLL_remove (pending_bc_head,
-                                 pending_bc_tail,
-                                 blc_ctx);
-    GNUNET_HELLO_address_free (blc_ctx->address);
-    GNUNET_free (blc_ctx);
-    return;
+    /* FIXME: Let ATS know that the suggested address did not work! */
+    goto cleanup;
   }
+
+  papi = GST_plugins_find (blc_ctx->address->transport_name);
+  GNUNET_assert (NULL != papi);
 
   if (NULL == blc_ctx->session)
   {
+    /* need to create a session, ATS only gave us an address */
     blc_ctx->session = papi->get_session (papi->cls,
                                           blc_ctx->address);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2476,10 +2503,10 @@ switch_address_bl_check_cont (void *cls,
     if (NULL != blc_ctx->session)
       GST_ats_new_session (blc_ctx->address,
                            blc_ctx->session);
-
   }
   if (NULL == blc_ctx->session)
   {
+    /* session creation failed, bad!, fail! */
     GNUNET_STATISTICS_update (GST_stats,
                               "# ATS suggestions ignored (failed to create session)",
                               1,
@@ -2489,47 +2516,25 @@ switch_address_bl_check_cont (void *cls,
                 "Failed to obtain new session for peer `%s' and  address '%s'\n",
                 GNUNET_i2s (&blc_ctx->address->peer),
                 GST_plugins_a2s (blc_ctx->address));
-    /* FIXME: Delete address in ATS!? */
-    GNUNET_CONTAINER_DLL_remove (pending_bc_head,
-                                 pending_bc_tail,
-                                 blc_ctx);
-    GNUNET_HELLO_address_free (blc_ctx->address);
-    GNUNET_free (blc_ctx);
-    return;
+    /* FIXME: Let ATS know that the suggested address did not work! */
+    goto cleanup;
   }
 
-  if ( (NULL != n->primary_address.address) &&
-       (0 == GNUNET_HELLO_address_cmp (blc_ctx->address,
-                                       n->primary_address.address)) )
-  {
-    if (blc_ctx->session == n->primary_address.session)
-    {
-      // FIXME: handle this before blacklist check!
-      /* This address is already primary, update only quotas */
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Updating quota for peer `%s' address `%s' session %p\n",
-                  GNUNET_i2s (&blc_ctx->address->peer),
-                  GST_plugins_a2s (blc_ctx->address),
-                  blc_ctx->session);
-      set_primary_address (n,
-                           blc_ctx->address,
-                           blc_ctx->session,
-                           blc_ctx->bandwidth_in,
-                           blc_ctx->bandwidth_out,
-                           GNUNET_NO);
+  /* We did this check already before going into blacklist, but
+     it is theoretically possible that the situation changed in
+     the meantime, hence we check again here */
+  if (GNUNET_OK ==
+      try_run_fast_ats_update (blc_ctx->address,
+                               blc_ctx->session,
+                               blc_ctx->bandwidth_in,
+                               blc_ctx->bandwidth_out))
+    goto cleanup; /* was just a minor update, we're done */
 
-      GNUNET_CONTAINER_DLL_remove (pending_bc_head,
-                                   pending_bc_tail,
-                                   blc_ctx);
-      GNUNET_HELLO_address_free (blc_ctx->address);
-      GNUNET_free (blc_ctx);
-      return;
-    }
-    // FIXME: is this really OK?
-    GNUNET_STATISTICS_update (GST_stats,
-                              "# ATS suggestion oddity (address match, session missmatch)",
-                              1,
-                              GNUNET_NO);
+  /* check if we also need to setup the neighbour entry */
+  if (NULL == (n = lookup_neighbour (peer)))
+  {
+    n = setup_neighbour (peer);
+    n->state = GNUNET_TRANSPORT_PS_INIT_ATS;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -2553,7 +2558,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out,
                          GNUNET_NO);
-    if ( (ACK_SEND_SYN_ACK == n->ack_state) )
+    if (ACK_SEND_SYN_ACK == n->ack_state)
     {
       /* Send pending SYN_ACK message */
       n->ack_state = ACK_SEND_ACK;
@@ -2731,7 +2736,7 @@ switch_address_bl_check_cont (void *cls,
     GNUNET_break (0);
     break;
   }
-
+ cleanup:
   GNUNET_CONTAINER_DLL_remove (pending_bc_head,
                                pending_bc_tail,
                                blc_ctx);
@@ -2759,7 +2764,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
-  struct NeighbourMapEntry *n;
   struct GST_BlacklistCheck *blc;
   struct BlacklistCheckSwitchContext *blc_ctx;
 
@@ -2767,17 +2771,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
               "ATS has decided on an address for peer %s\n",
               GNUNET_i2s (&address->peer));
   GNUNET_assert (NULL != address->transport_name);
-  if (NULL == (n = lookup_neighbour (&address->peer)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %s is unknown, suggestion ignored\n",
-                GNUNET_i2s (&address->peer));
-    GNUNET_STATISTICS_update (GST_stats,
-                              "# ATS suggestions ignored (neighbour unknown)",
-                              1,
-                              GNUNET_NO);
+  if (GNUNET_OK ==
+      try_run_fast_ats_update (address,
+                               session,
+                               bandwidth_in,
+                               bandwidth_out))
     return;
-  }
 
   /* Check if plugin is available */
   if (NULL == (GST_plugins_find (address->transport_name)))
@@ -2796,18 +2795,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "ATS suggests %s address '%s' session %p for "
-	      "peer `%s' in state %s/%s \n",
+	      "ATS suggests %s address '%s' for peer `%s'\n",
 	      GNUNET_HELLO_address_check_option (address,
-						 GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
+						 GNUNET_HELLO_ADDRESS_INFO_INBOUND)
+              ? "inbound" : "outbound",
 	      GST_plugins_a2s (address),
-	      session,
-	      GNUNET_i2s (&address->peer),
-	      GNUNET_TRANSPORT_ps2s (n->state),
-	      print_ack_state (n->ack_state));
-
-  // FIXME: definitively do NOT do this if the
-  // suggested address did not change!!!
+	      GNUNET_i2s (&address->peer));
 
   /* Perform blacklist check */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
@@ -2897,7 +2890,7 @@ send_utilization_data (void *cls,
   n->util_payload_bytes_sent = 0;
   n->util_total_bytes_recv = 0;
   n->util_total_bytes_sent = 0;
-  n->last_util_transmission = GNUNET_TIME_absolute_get();
+  n->last_util_transmission = GNUNET_TIME_absolute_get ();
   return GNUNET_OK;
 }
 
@@ -2933,7 +2926,7 @@ GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
   n = lookup_neighbour (&address->peer);
   if (NULL == n)
     return;
-  n->util_total_bytes_recv += ntohs(message->size);
+  n->util_total_bytes_recv += ntohs (message->size);
 }
 
 
@@ -2947,7 +2940,7 @@ GST_neighbours_notify_payload_recv (const struct GNUNET_HELLO_Address *address,
   n = lookup_neighbour (&address->peer);
   if (NULL == n)
     return;
-  n->util_payload_bytes_recv += ntohs(message->size);
+  n->util_payload_bytes_recv += ntohs (message->size);
 }
 
 
@@ -2972,6 +2965,7 @@ GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
                                     size_t size)
 {
   struct NeighbourMapEntry *n;
+
   n = lookup_neighbour (peer);
   if (NULL == n)
     return;
@@ -3850,7 +3844,8 @@ GST_neighbours_start (unsigned int max_fds)
 {
   neighbours = GNUNET_CONTAINER_multipeermap_create (NEIGHBOUR_TABLE_SIZE, GNUNET_NO);
   util_transmission_tk = GNUNET_SCHEDULER_add_delayed (UTIL_TRANSMISSION_INTERVAL,
-      utilization_transmission, NULL);
+                                                       &utilization_transmission,
+                                                       NULL);
 }
 
 
