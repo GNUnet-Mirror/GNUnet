@@ -52,6 +52,7 @@ gnunet_ats_solver_eval_LDADD = \
 
 libgnunetats_la_SOURCES = \
   ats_api_connectivity.c \
+  ats_api_scanner.c \
   ats_api_scheduling.c \
   ats_api_performance.c
 libgnunetats_la_LIBADD = \

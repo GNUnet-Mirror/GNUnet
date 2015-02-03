@@ -147,6 +147,11 @@ static struct SessionKiller *sk_head;
 static struct SessionKiller *sk_tail;
 
 /**
+ * Interface scanner determines our LAN address range(s).
+ */
+static struct GNUNET_ATS_InterfaceScanner *is;
+
+/**
  * FIXME
  */
 struct BlacklistCheckContext *bc_head;
@@ -659,9 +664,9 @@ plugin_env_address_to_type (void *cls,
     GNUNET_break(0);
     return GNUNET_ATS_NET_UNSPECIFIED;
   }
-  return GNUNET_ATS_address_get_type (GST_ats,
-                                      addr,
-                                      addrlen);
+  return GNUNET_ATS_scanner_address_get_type (is,
+                                              addr,
+                                              addrlen);
 }
 
 
@@ -864,6 +869,8 @@ shutdown_task (void *cls,
   GST_ats = NULL;
   GNUNET_ATS_connectivity_done (GST_ats_connect);
   GST_ats_connect = NULL;
+  GNUNET_ATS_scanner_done (is);
+  is = NULL;
   GST_clients_stop ();
   GST_blacklist_stop ();
   GST_hello_stop ();
@@ -993,6 +1000,7 @@ run (void *cls,
   GST_hello_start (friend_only, &process_hello_update, NULL );
   GNUNET_assert(NULL != GST_hello_get());
   GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
+  is = GNUNET_ATS_scanner_init ();
   GST_ats_connect = GNUNET_ATS_connectivity_init (GST_cfg);
   GST_ats = GNUNET_ATS_scheduling_init (GST_cfg,
                                         &ats_request_address_change,

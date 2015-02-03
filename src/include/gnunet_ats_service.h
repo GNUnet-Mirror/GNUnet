@@ -305,6 +305,68 @@ struct GNUNET_ATS_Information
 GNUNET_NETWORK_STRUCT_END
 
 
+/* ********************* LAN Characterization library ************************ */
+/* Note: these functions do not really communicate with the ATS service */
+
+/**
+ * Convert a ATS property to a string
+ *
+ * @param type the property type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type);
+
+
+/**
+ * Convert a `enum GNUNET_ATS_Network_Type` to a string
+ *
+ * @param net the network type
+ * @return a string or NULL if invalid
+ */
+const char *
+GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net);
+
+
+/**
+ * Handle for the LAN Characterization library.
+ */
+struct GNUNET_ATS_InterfaceScanner;
+
+
+/**
+ * Returns where the address is located: loopback, LAN or WAN.
+ *
+ * @param is handle from #GNUNET_ATS_interface_scanner_init()
+ * @param addr address
+ * @param addrlen address length
+ * @return type of the network the address belongs to
+ */
+enum GNUNET_ATS_Network_Type
+GNUNET_ATS_scanner_address_get_type (struct GNUNET_ATS_InterfaceScanner *is,
+                                     const struct sockaddr *addr,
+                                     socklen_t addrlen);
+
+
+/**
+ * Initialize the ATS address characterization client handle.
+ *
+ * @return scanner handle, NULL on error
+ */
+struct GNUNET_ATS_InterfaceScanner *
+GNUNET_ATS_scanner_init (void);
+
+
+/**
+ * Terminate interface scanner.
+ *
+ * @param is scanner we are done with
+ */
+void
+GNUNET_ATS_scanner_done (struct GNUNET_ATS_InterfaceScanner *is);
+
+
+
 /* ********************Connection Suggestion API ***************************** */
 
 /**
@@ -403,7 +465,8 @@ typedef void
  */
 struct GNUNET_ATS_SchedulingHandle *
 GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    GNUNET_ATS_AddressSuggestionCallback suggest_cb, void *suggest_cb_cls);
+                            GNUNET_ATS_AddressSuggestionCallback suggest_cb,
+                            void *suggest_cb_cls);
 
 
 /**
@@ -425,40 +488,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 void
 GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
                           const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Convert a ATS property to a string
- *
- * @param type the property type
- * @return a string or NULL if invalid
- */
-const char *
-GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type);
-
-
-/**
- * Convert a `enum GNUNET_ATS_Network_Type` to a string
- *
- * @param net the network type
- * @return a string or NULL if invalid
- */
-const char *
-GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net);
-
-
-/**
- * Returns where the address is located: loopback, LAN or WAN.
- *
- * @param sh the `struct GNUNET_ATS_SchedulingHandle` handle
- * @param addr address
- * @param addrlen address length
- * @return type of the network the address belongs to
- */
-enum GNUNET_ATS_Network_Type
-GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
-                             const struct sockaddr *addr,
-                             socklen_t addrlen);
 
 
 /**
