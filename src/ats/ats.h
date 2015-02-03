@@ -50,7 +50,12 @@ enum StartFlag
    * Performance monitoring client that does NOT want to learn
    * about changes in performance characteristics.
    */
-  START_FLAG_PERFORMANCE_NO_PIC = 2
+  START_FLAG_PERFORMANCE_NO_PIC = 2,
+
+  /**
+   * Connection suggestion handle.
+   */
+  START_FLAG_CONNECTION_SUGGESTION = 3
 };
 
 

@@ -63,6 +63,11 @@ extern struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
  */
 extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
 
+/**
+ * ATS connectivity handle.
+ */
+extern struct GNUNET_ATS_ConnectivityHandle *GST_ats_connect;
+
 
 /**
  * Function to call when a peer's address has changed

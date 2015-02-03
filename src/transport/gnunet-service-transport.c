@@ -122,9 +122,14 @@ static struct GNUNET_SERVER_Handle *GST_server;
 struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
 
 /**
- * ATS handle.
+ * ATS scheduling handle.
  */
 struct GNUNET_ATS_SchedulingHandle *GST_ats;
+
+/**
+ * ATS connectivity handle.
+ */
+struct GNUNET_ATS_ConnectivityHandle *GST_ats_connect;
 
 /**
  * Hello address expiration
@@ -857,6 +862,8 @@ shutdown_task (void *cls,
   GST_ats_done ();
   GNUNET_ATS_scheduling_done (GST_ats);
   GST_ats = NULL;
+  GNUNET_ATS_connectivity_done (GST_ats_connect);
+  GST_ats_connect = NULL;
   GST_clients_stop ();
   GST_blacklist_stop ();
   GST_hello_stop ();
@@ -986,6 +993,7 @@ run (void *cls,
   GST_hello_start (friend_only, &process_hello_update, NULL );
   GNUNET_assert(NULL != GST_hello_get());
   GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
+  GST_ats_connect = GNUNET_ATS_connectivity_init (GST_cfg);
   GST_ats = GNUNET_ATS_scheduling_init (GST_cfg,
                                         &ats_request_address_change,
                                         NULL);

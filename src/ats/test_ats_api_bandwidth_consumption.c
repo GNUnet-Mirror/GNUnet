@@ -39,7 +39,12 @@ static struct GNUNET_ATS_SchedulingHandle *ats;
 
 static struct GNUNET_ATS_PerformanceHandle *atp;
 
-struct GNUNET_ATS_ReservationContext *sh;
+/**
+ * Connectivity handle
+ */
+static struct GNUNET_ATS_ConnectivityHandle *connect_ats;
+
+static struct GNUNET_ATS_ReservationContext *sh;
 
 static struct PeerContext *p;
 
@@ -75,29 +80,13 @@ struct PeerContext
 
 
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  die_task = NULL;
-  if (consume_task != NULL)
-  {
-    GNUNET_SCHEDULER_cancel (consume_task);
-    consume_task = NULL;
-  }
-  if (sh != NULL)
-    GNUNET_ATS_reserve_bandwidth_cancel (sh);
-  if (ats != NULL)
-    GNUNET_ATS_scheduling_done (ats);
-  if (atp != NULL)
-    GNUNET_ATS_performance_done (atp);
-  GNUNET_free (p->addr);
-  GNUNET_free (p);
-  ret = GNUNET_SYSERR;
-}
-
-
-static void
 end ()
 {
+  if (NULL != connect_ats)
+  {
+    GNUNET_ATS_connectivity_done (connect_ats);
+    connect_ats = NULL;
+  }
   if (die_task != NULL)
   {
     GNUNET_SCHEDULER_cancel (die_task);
@@ -108,11 +97,34 @@ end ()
     GNUNET_SCHEDULER_cancel (consume_task);
     consume_task = NULL;
   }
-  GNUNET_ATS_scheduling_done (ats);
-  GNUNET_ATS_performance_done (atp);
+  if (sh != NULL)
+  {
+    GNUNET_ATS_reserve_bandwidth_cancel (sh);
+    sh = NULL;
+  }
+  if (ats != NULL)
+  {
+    GNUNET_ATS_scheduling_done (ats);
+    ats = NULL;
+  }
+  if (atp != NULL)
+  {
+    GNUNET_ATS_performance_done (atp);
+    atp = NULL;
+  }
   GNUNET_free (p->addr);
   GNUNET_free (p);
+  p = NULL;
   ret = 0;
+}
+
+
+static void
+end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  die_task = NULL;
+  end ();
+  ret = GNUNET_SYSERR;
 }
 
 
@@ -182,6 +194,8 @@ run (void *cls,
 
   ret = GNUNET_SYSERR;
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
+  connect_ats = GNUNET_ATS_connectivity_init (mycfg);
+
   ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (ats == NULL)
   {
@@ -218,7 +232,7 @@ run (void *cls,
   GNUNET_ATS_address_update (ats, &p->id, addr->plugin, addr->addr,
                              addr->addr_len, addr->session, NULL, 0);
 
-  GNUNET_ATS_suggest_address (ats, &p->id);
+  GNUNET_ATS_connectivity_suggest (connect_ats, &p->id);
 }
 
 

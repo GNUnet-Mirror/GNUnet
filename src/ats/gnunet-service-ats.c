@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet-service-ats_connectivity.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
@@ -79,6 +80,9 @@ handle_ats_start (void *cls,
     break;
   case START_FLAG_PERFORMANCE_NO_PIC:
     GAS_performance_add_client (client, flag);
+    break;
+  case START_FLAG_CONNECTION_SUGGESTION:
+    /* This client won't receive messages from us, no need to 'add' */
     break;
   default:
     GNUNET_break (0);

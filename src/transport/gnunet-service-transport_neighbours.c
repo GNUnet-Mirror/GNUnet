@@ -373,7 +373,7 @@ struct NeighbourMapEntry
   /**
    * ATS address suggest handle
    */
-  struct GNUNET_ATS_SuggestHandle *suggest_handle;
+  struct GNUNET_ATS_ConnectivitySuggestHandle *suggest_handle;
 
   /**
    * Time where we should cut the connection (timeout) if we don't
@@ -1047,7 +1047,7 @@ free_neighbour (struct NeighbourMapEntry *n,
   /* Cancel address requests for this peer */
   if (NULL != n->suggest_handle)
   {
-    GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
+    GNUNET_ATS_connectivity_suggest_cancel (n->suggest_handle);
     n->suggest_handle = NULL;
   }
 
@@ -2173,8 +2173,8 @@ try_connect_bl_check_cont (void *cls,
                          GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
   GNUNET_ATS_reset_backoff (GST_ats, peer);
   GNUNET_assert (NULL == n->suggest_handle);
-  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats,
-                                                  peer);
+  n->suggest_handle = GNUNET_ATS_connectivity_suggest (GST_ats_connect,
+                                                       peer);
 }
 
 
@@ -2321,7 +2321,8 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SYN_RECV_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     if (NULL == n->suggest_handle)
-      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
+      n->suggest_handle = GNUNET_ATS_connectivity_suggest (GST_ats_connect,
+                                                           peer);
     break;
   case GNUNET_TRANSPORT_PS_INIT_ATS:
     /* SYN message takes priority over us asking ATS for address:
@@ -2375,7 +2376,8 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
     n->ack_state = ACK_SEND_SYN_ACK;
     n->connect_ack_timestamp = ts;
     /* Request an address for the peer */
-    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->suggest_handle = GNUNET_ATS_connectivity_suggest (GST_ats_connect,
+                                                         peer);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
     set_state (n, GNUNET_TRANSPORT_PS_SYN_RECV_ATS);
     break;

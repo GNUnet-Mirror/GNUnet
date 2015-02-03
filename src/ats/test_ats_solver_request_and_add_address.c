@@ -51,6 +51,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
 /**
+ * Connectivity handle
+ */
+static struct GNUNET_ATS_ConnectivityHandle *connect_ats;
+
+/**
  * Return value
  */
 static int ret;
@@ -105,7 +110,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ATS_scheduling_done (sched_ats);
     sched_ats = NULL;
   }
-
+  if (NULL != connect_ats)
+  {
+    GNUNET_ATS_connectivity_done (connect_ats);
+    connect_ats = NULL;
+  }
   GNUNET_STATISTICS_watch_cancel (stats, "ats", "# addresses", &stat_cb, NULL);
   if (NULL != stats)
   {
@@ -165,7 +174,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
 
-
+  connect_ats = GNUNET_ATS_connectivity_init (mycfg);
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
@@ -196,7 +205,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Request */
-  GNUNET_ATS_suggest_address (sched_ats, &p.id);
+  GNUNET_ATS_connectivity_suggest (connect_ats, &p.id);
 
 
   /* Adding address */

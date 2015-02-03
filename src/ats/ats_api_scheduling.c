@@ -146,18 +146,6 @@ struct ATS_Network
 
 
 /**
- * Handle for ATS address suggestion requests.
- */
-struct GNUNET_ATS_SuggestHandle
-{
-  /**
-   * ID of the peer for which address suggestion was requested.
-   */
-  struct GNUNET_PeerIdentity id;
-};
-
-
-/**
  * Handle to the ATS subsystem for bandwidth/transport scheduling information.
  */
 struct GNUNET_ATS_SchedulingHandle
@@ -177,13 +165,6 @@ struct GNUNET_ATS_SchedulingHandle
    * Closure for @e suggest_cb.
    */
   void *suggest_cb_cls;
-
-  /**
-   * Map with the identities of all the peers for which we would
-   * like to have address suggestions.  The key is the PID, the
-   * value is currently the `struct GNUNET_ATS_SuggestHandle`
-   */
-  struct GNUNET_CONTAINER_MultiPeerMap *sug_requests;
 
   /**
    * Connection to ATS service.
@@ -588,34 +569,6 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
- * Transmit request for an address suggestion.
- *
- * @param cls the `struct GNUNET_ATS_SchedulingHandle`
- * @param peer peer to ask for an address suggestion for
- * @param value the `struct GNUNET_ATS_SuggestHandle`
- * @return #GNUNET_OK (continue to iterate), #GNUNET_SYSERR on
- *         failure (message queue no longer exists)
- */
-static int
-transmit_suggestion (void *cls,
-                     const struct GNUNET_PeerIdentity *peer,
-                     void *value)
-{
-  struct GNUNET_ATS_SchedulingHandle *sh = cls;
-  struct GNUNET_MQ_Envelope *ev;
-  struct RequestAddressMessage *m;
-
-  if (NULL == sh->mq)
-    return GNUNET_SYSERR;
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
-  m->reserved = htonl (0);
-  m->peer = *peer;
-  GNUNET_MQ_send (sh->mq, ev);
-  return GNUNET_OK;
-}
-
-
-/**
  * Generate and transmit the `struct AddressUseMessage` for the given
  * address record.
  *
@@ -687,9 +640,6 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
     if (NULL == sh->mq)
       return;
   }
-  GNUNET_CONTAINER_multipeermap_iterate (sh->sug_requests,
-                                         &transmit_suggestion,
-                                         sh);
 }
 
 
@@ -1034,8 +984,6 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_array_grow (sh->session_array,
                      sh->session_array_size,
                      4);
-  sh->sug_requests = GNUNET_CONTAINER_multipeermap_create (32,
-                                                           GNUNET_YES);
   GNUNET_OS_network_interfaces_list (&interface_proc,
                                      sh);
   sh->interface_task = GNUNET_SCHEDULER_add_delayed (INTERFACE_PROCESSING_INTERVAL,
@@ -1043,27 +991,6 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                                      sh);
   reconnect (sh);
   return sh;
-}
-
-
-/**
- * Function called to free all `struct GNUNET_ATS_SuggestHandles`
- * in the map.
- *
- * @param cls NULL
- * @param key the key
- * @param value the value to free
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-free_sug_handle (void *cls,
-                 const struct GNUNET_PeerIdentity *key,
-                 void *value)
-{
-  struct GNUNET_ATS_SuggestHandle *cur = value;
-
-  GNUNET_free (cur);
-  return GNUNET_OK;
 }
 
 
@@ -1090,10 +1017,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
     GNUNET_SCHEDULER_cancel (sh->task);
     sh->task = NULL;
   }
-  GNUNET_CONTAINER_multipeermap_iterate (sh->sug_requests,
-                                         &free_sug_handle,
-                                         NULL);
-  GNUNET_CONTAINER_multipeermap_destroy (sh->sug_requests);
   if (NULL != sh->interface_task)
   {
     GNUNET_SCHEDULER_cancel (sh->interface_task);
@@ -1122,77 +1045,6 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
   struct ResetBackoffMessage *m;
 
   ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF);
-  m->reserved = htonl (0);
-  m->peer = *peer;
-  GNUNET_MQ_send (sh->mq, ev);
-}
-
-
-/**
- * We would like to receive address suggestions for a peer. ATS will
- * respond with a call to the continuation immediately containing an address or
- * no address if none is available. ATS can suggest more addresses until we call
- * #GNUNET_ATS_suggest_address_cancel().
- *
- * @param sh handle
- * @param peer identity of the peer we need an address for
- * @return suggest handle, NULL if a request is already pending
- */
-struct GNUNET_ATS_SuggestHandle *
-GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_ATS_SuggestHandle *s;
-
-  s = GNUNET_new (struct GNUNET_ATS_SuggestHandle);
-  s->id = *peer;
-  if (GNUNET_OK !=
-      GNUNET_CONTAINER_multipeermap_put (sh->sug_requests,
-                                         &s->id,
-                                         s,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
-  if (NULL == sh->mq)
-    return s;
-  (void) transmit_suggestion (sh,
-                              &s->id,
-                              s);
-  return s;
-}
-
-
-/**
- * We would like to stop receiving address updates for this peer
- *
- * @param sh handle
- * @param peer identity of the peer
- */
-void
-GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
-                                   const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  struct RequestAddressMessage *m;
-  struct GNUNET_ATS_SuggestHandle *s;
-
-  s = GNUNET_CONTAINER_multipeermap_get (sh->sug_requests,
-                                         peer);
-  if (NULL == s)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_remove (sh->sug_requests,
-                                                       &s->id,
-                                                       s));
-  GNUNET_free (s);
-  if (NULL == sh->mq)
-    return;
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL);
   m->reserved = htonl (0);
   m->peer = *peer;
   GNUNET_MQ_send (sh->mq, ev);

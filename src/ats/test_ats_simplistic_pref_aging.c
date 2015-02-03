@@ -48,6 +48,11 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
 /**
+ * Connectivity handle
+ */
+static struct GNUNET_ATS_ConnectivityHandle *connect_ats;
+
+/**
  * Performance handle
  */
 static struct GNUNET_ATS_PerformanceHandle *perf_ats;
@@ -67,11 +72,15 @@ static struct Test_Address test_addr[2];
  */
 static struct PeerContext p[2];
 
+/**
+ * Connectivity suggestion handles.
+ */
+static struct GNUNET_ATS_ConnectivitySuggestHandle *sh[2];
 
 /**
  * HELLO address
  */
-struct GNUNET_HELLO_Address test_hello_address[2];
+static struct GNUNET_HELLO_Address test_hello_address[2];
 
 /**
  * Session
@@ -81,22 +90,22 @@ static void *test_session[2];
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+static struct GNUNET_ATS_Information test_ats_info[2];
 
 /**
  * Test ats count
  */
-uint32_t test_ats_count;
+static uint32_t test_ats_count;
 
 /**
  * Configured WAN out quota
  */
-unsigned long long wan_quota_out;
+static unsigned long long wan_quota_out;
 
 /**
  * Configured WAN in quota
  */
-unsigned long long wan_quota_in;
+static unsigned long long wan_quota_in;
 
 
 static void
@@ -108,6 +117,11 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_ATS_scheduling_done (sched_ats);
     sched_ats = NULL;
+  }
+  if (NULL != connect_ats)
+  {
+    GNUNET_ATS_connectivity_done (connect_ats);
+    connect_ats = NULL;
   }
   if (perf_ats != NULL)
   {
@@ -129,8 +143,8 @@ end ()
     die_task = NULL;
   }
 
-  GNUNET_ATS_suggest_address_cancel (sched_ats, &p[0].id);
-  GNUNET_ATS_suggest_address_cancel (sched_ats, &p[1].id);
+  GNUNET_ATS_connectivity_suggest_cancel (sh[0]);
+  GNUNET_ATS_connectivity_suggest_cancel (sh[1]);
 
   if (NULL != sched_ats)
   	GNUNET_ATS_scheduling_done (sched_ats);
@@ -366,6 +380,7 @@ run (void *cls,
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   /* Connect to ATS scheduling */
+  connect_ats = GNUNET_ATS_connectivity_init (mycfg);
   sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL);
   if (sched_ats == NULL)
   {
@@ -439,8 +454,8 @@ run (void *cls,
   test_hello_address[1].address_length = test_addr[1].addr_len;
   GNUNET_ATS_address_add (sched_ats, &test_hello_address[1], test_session[1], test_ats_info, test_ats_count);
 
-  GNUNET_ATS_suggest_address (sched_ats, &p[0].id);
-  GNUNET_ATS_suggest_address (sched_ats, &p[1].id);
+  sh[0] = GNUNET_ATS_connectivity_suggest (connect_ats, &p[0].id);
+  sh[1] = GNUNET_ATS_connectivity_suggest (connect_ats, &p[1].id);
 }
 
 

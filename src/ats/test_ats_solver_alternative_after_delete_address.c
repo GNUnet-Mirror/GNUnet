@@ -45,6 +45,11 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
 /**
+ * Connectivity handle
+ */
+static struct GNUNET_ATS_ConnectivityHandle *connect_ats;
+
+/**
  * Return value
  */
 static int ret;
@@ -125,12 +130,16 @@ stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (die_task != NULL)
+  if (NULL != die_task)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = NULL;
   }
-
+  if (NULL != connect_ats)
+  {
+    GNUNET_ATS_connectivity_done (connect_ats);
+    connect_ats = NULL;
+  }
   if (NULL != sched_ats)
   {
     GNUNET_ATS_scheduling_done (sched_ats);
@@ -313,7 +322,7 @@ stat_cb(void *cls, const char *subsystem,
                 "All addresses added, requesting....\n");
     /* We have 2 addresses, so we can request */
     addresses_added = GNUNET_YES;
-    GNUNET_ATS_suggest_address (sched_ats, &p.id);
+    GNUNET_ATS_connectivity_suggest (connect_ats, &p.id);
   }
   return GNUNET_OK;
 }
@@ -328,6 +337,7 @@ run (void *cls,
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
 
+  connect_ats = GNUNET_ATS_connectivity_init (mycfg);
 
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL);

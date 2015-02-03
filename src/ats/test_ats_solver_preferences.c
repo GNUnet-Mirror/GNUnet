@@ -51,7 +51,12 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_ATS_SchedulingHandle *sched_ats;
 
 /**
- * Scheduling handle
+ * Connectivity handle
+ */
+static struct GNUNET_ATS_ConnectivityHandle *connect_ats;
+
+/**
+ * Performance handle
  */
 static struct GNUNET_ATS_PerformanceHandle *perf_ats;
 
@@ -95,6 +100,7 @@ static int
 stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
     int is_persistent);
 
+
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -111,7 +117,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ATS_scheduling_done (sched_ats);
     sched_ats = NULL;
   }
-
+  if (NULL != connect_ats)
+  {
+    GNUNET_ATS_connectivity_done (connect_ats);
+    connect_ats = NULL;
+  }
   if (NULL != perf_ats)
   {
     GNUNET_ATS_performance_done (perf_ats);
@@ -203,6 +213,7 @@ stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
   return GNUNET_OK;
 }
 
+
 static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
     struct GNUNET_TESTING_Peer *peer)
@@ -211,6 +222,8 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL );
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# active performance clients", &stat_cb, NULL );
+
+  connect_ats = GNUNET_ATS_connectivity_init (mycfg);
 
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL );
@@ -258,7 +271,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session,
       test_ats_info, test_ats_count);
-  GNUNET_ATS_suggest_address(sched_ats, &test_hello_address.peer);
+  GNUNET_ATS_connectivity_suggest (connect_ats, &test_hello_address.peer);
 }
 
 

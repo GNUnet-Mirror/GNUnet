@@ -304,17 +304,68 @@ struct GNUNET_ATS_Information
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+/* ********************Connection Suggestion API ***************************** */
+
+/**
+ * Handle to the ATS subsystem for making suggestions about
+ * connections the peer would like to have.
+ */
+struct GNUNET_ATS_ConnectivityHandle;
+
+/**
+ * Handle for address suggestion requests.
+ */
+struct GNUNET_ATS_ConnectivitySuggestHandle;
+
+
+/**
+ * Initialize the ATS connectivity suggestion client handle.
+ *
+ * @param cfg configuration to use
+ * @return ats connectivity handle, NULL on error
+ */
+struct GNUNET_ATS_ConnectivityHandle *
+GNUNET_ATS_connectivity_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+
+/**
+ * Shutdown ATS connectivity suggestion client.
+ *
+ * @param ch handle to destroy
+ */
+void
+GNUNET_ATS_connectivity_done (struct GNUNET_ATS_ConnectivityHandle *ch);
+
+
+/**
+ * We would like to establish a new connection with a peer.  ATS
+ * should suggest a good address to begin with.
+ *
+ * @param ch handle
+ * @param peer identity of the peer we need an address for
+ * @return suggestion handle, NULL if request is already pending
+ */
+struct GNUNET_ATS_ConnectivitySuggestHandle *
+GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
+                                 const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * We no longer care about being connected to a peer.
+ *
+ * @param sh handle
+ */
+void
+GNUNET_ATS_connectivity_suggest_cancel (struct GNUNET_ATS_ConnectivitySuggestHandle *sh);
+
+
 /* ******************************** Scheduling API ***************************** */
 
 /**
  * Handle to the ATS subsystem for bandwidth/transport scheduling information.
  */
 struct GNUNET_ATS_SchedulingHandle;
-
-/**
- * Handle for address suggestion requests
- */
-struct GNUNET_ATS_SuggestHandle;
 
 /**
  * Opaque session handle, defined by plugins.  Contents not known to ATS.
@@ -343,7 +394,7 @@ typedef void
 
 
 /**
- * Initialize the ATS subsystem.
+ * Initialize the ATS scheduling subsystem.
  *
  * @param cfg configuration to use
  * @param suggest_cb notification to call whenever the suggestation changed
@@ -374,30 +425,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 void
 GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
                           const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * We would like to establish a new connection with a peer.  ATS
- * should suggest a good address to begin with.
- *
- * @param sh handle
- * @param peer identity of the peer we need an address for
- * @return suggestion handle, NULL if a request is already pending
- */
-struct GNUNET_ATS_SuggestHandle *
-GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * We want to cancel ATS suggesting addresses for a peer.
- *
- * @param sh handle
- * @param peer identity of the peer
- */
-void
-GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
-                                   const struct GNUNET_PeerIdentity *peer);
 
 
 /**

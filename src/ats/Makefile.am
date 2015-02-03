@@ -51,6 +51,7 @@ gnunet_ats_solver_eval_LDADD = \
  $(LTLIBINTL)
 
 libgnunetats_la_SOURCES = \
+  ats_api_connectivity.c \
   ats_api_scheduling.c \
   ats_api_performance.c
 libgnunetats_la_LIBADD = \
@@ -99,6 +100,7 @@ libexec_PROGRAMS = \
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+ gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
  gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
