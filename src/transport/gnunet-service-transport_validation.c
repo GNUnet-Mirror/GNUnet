@@ -1519,21 +1519,30 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
       memcmp (&GST_my_identity,
 	      &pid,
 	      sizeof (struct GNUNET_PeerIdentity)))
+  {
+    /* got our own HELLO, how boring */
     return GNUNET_OK;
-  /* Add peer identity without addresses to peerinfo service */
-  h = GNUNET_HELLO_create (&pid.public_key, NULL, NULL, friend);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Validation received new %s message for peer `%s' with size %u\n"),
-              "HELLO",
-              GNUNET_i2s (&pid),
-              ntohs (hello->size));
-  GNUNET_PEERINFO_add_peer (GST_peerinfo, h, NULL, NULL);
+  }
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multipeermap_contains (validation_map,
+                                              &pid))
+  {
+    /* Add peer identity without addresses to peerinfo service */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Adding HELLO without addresses for peer `%s'\n",
+                GNUNET_i2s (&pid));
+    h = GNUNET_HELLO_create (&pid.public_key, NULL, NULL, friend);
+    GNUNET_PEERINFO_add_peer (GST_peerinfo, h, NULL, NULL);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("Adding `%s' without addresses for peer `%s'\n"), "HELLO",
-              GNUNET_i2s (&pid));
-
-  GNUNET_free (h);
+    GNUNET_free (h);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Validation received HELLO message for peer `%s' with size %u, checking for new addresses\n",
+                GNUNET_i2s (&pid),
+                ntohs (hello->size));
+  }
   GNUNET_assert (NULL ==
                  GNUNET_HELLO_iterate_addresses (hm,
 						 GNUNET_NO,

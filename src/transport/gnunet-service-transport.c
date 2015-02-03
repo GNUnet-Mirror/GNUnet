@@ -831,6 +831,14 @@ ats_request_address_change (void *cls,
   uint32_t bw_in = ntohl (bandwidth_in.value__);
   uint32_t bw_out = ntohl (bandwidth_out.value__);
 
+  if (NULL == peer)
+  {
+    /* ATS service died, all suggestions become invalid!
+       (but we'll keep using the allocations for a little
+       while, to keep going while ATS restarts) */
+    // FIXME: do something?
+    return;
+  }
   /* ATS tells me to disconnect from peer */
   if ((0 == bw_in) && (0 == bw_out))
   {
@@ -847,7 +855,8 @@ ats_request_address_change (void *cls,
                             GNUNET_NO);
   GST_neighbours_switch_to_address (address,
                                     session,
-                                    bandwidth_in, bandwidth_out);
+                                    bandwidth_in,
+                                    bandwidth_out);
 }
 
 

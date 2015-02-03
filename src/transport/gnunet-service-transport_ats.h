@@ -26,10 +26,6 @@
  * - add API to give ATS feedback about an address that was
  *   suggested but did not work out (without fully 'deleting'
  *   it forever)
- * - improve ATS API to take advantage of this new subsystem
- *   when calling ATS functions, make ATS API match this API
- *   more closely
- * - combine with API to tell ATS about address "use"
  */
 #ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
 #define GNUNET_SERVICE_TRANSPORT_ATS_H
@@ -60,6 +56,21 @@ GST_ats_done (void);
 int
 GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
                   struct Session *session);
+
+
+/**
+ * Temporarily block a valid address for use by ATS for address
+ * suggestions.  This function should be called if an address was
+ * suggested by ATS but failed to perform (i.e. failure to establish a
+ * session or to exchange the PING/PONG).
+ *
+ * @param address the address to block
+ * @param session the session (can be NULL)
+ */
+void
+GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
+                       struct Session *session);
+
 
 /**
  * Notify ATS about the new address including the network this address is

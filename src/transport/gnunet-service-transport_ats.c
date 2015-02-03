@@ -50,6 +50,29 @@ struct AddressInfo
    * Record with ATS API for the address.
    */
   struct GNUNET_ATS_AddressRecord *ar;
+
+  /**
+   * Time until when this address is blocked and should thus not be
+   * made available to ATS (@e ar should be NULL until this time).
+   * Used when transport determines that for some reason it
+   * (temporarily) cannot use an address, even though it has been
+   * validated.
+   */
+  struct GNUNET_TIME_Absolute blocked;
+
+  /**
+   * If an address is blocked as part of an exponential back-off,
+   * we track the current size of the backoff here.
+   */
+  struct GNUNET_TIME_Relative back_off;
+
+  /**
+   * Task scheduled to unblock an ATS-blocked address at
+   * @e blocked time, or NULL if the address is not blocked
+   * (and thus @e ar is non-NULL).
+   */
+  struct GNUNET_SCHEDULER_Task *unblock_task;
+
 };
 
 
@@ -220,6 +243,65 @@ GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
 
 
 /**
+ * The blocking time for an address has expired, allow ATS to
+ * suggest it again.
+ *
+ * @param cls the `struct AddressInfo` of the address to unblock
+ * @param tc unused
+ */
+static void
+unblock_address (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct AddressInfo *ai = cls;
+
+  ai->unblock_task = NULL;
+  ai->ar = GNUNET_ATS_address_add (GST_ats,
+                                   ai->address,
+                                   ai->session,
+                                   NULL, 0);
+  /* FIXME: should pass ATS information here! */
+}
+
+
+/**
+ * Temporarily block a valid address for use by ATS for address
+ * suggestions.  This function should be called if an address was
+ * suggested by ATS but failed to perform (i.e. failure to establish a
+ * session or to exchange the PING/PONG).
+ *
+ * @param address the address to block
+ * @param session the session (can be NULL)
+ */
+void
+GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
+                       struct Session *session)
+{
+  struct AddressInfo *ai;
+
+  ai = find_ai (address, session);
+  if (NULL == ai)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (NULL == ai->ar)
+  {
+    /* already blocked, how did it get used!? */
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_ATS_address_destroy (ai->ar);
+  ai->ar = NULL;
+  ai->back_off = GNUNET_TIME_STD_BACKOFF (ai->back_off);
+  ai->blocked = GNUNET_TIME_relative_to_absolute (ai->back_off);
+  ai->unblock_task = GNUNET_SCHEDULER_add_delayed (ai->back_off,
+                                                   &unblock_address,
+                                                   ai);
+}
+
+
+/**
  * Notify ATS about the new address including the network this address is
  * located in.
  *
@@ -349,8 +431,9 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
                    "Telling ATS about new session %p for peer %s\n",
                    session,
                    GNUNET_i2s (&address->peer));
-  GNUNET_ATS_address_add_session (ai->ar,
-                                  session);
+  if (NULL != ai->ar)
+    GNUNET_ATS_address_add_session (ai->ar,
+                                    session);
 }
 
 
@@ -392,6 +475,11 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
                    "Telling ATS to destroy session %p from peer %s\n",
                    session,
                    GNUNET_i2s (&address->peer));
+  if (NULL == ai->ar)
+  {
+    GST_ats_expire_address (address);
+    return;
+  }
   if (GNUNET_YES ==
       GNUNET_ATS_address_del_session (ai->ar, session))
   {
@@ -444,8 +532,10 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
                                                  session,
                                                  ats,
                                                  ats_count);
-  GNUNET_ATS_address_update (ai->ar,
-                             ats_new, ats_count);
+  if (NULL != ai->ar)
+    GNUNET_ATS_address_update (ai->ar,
+                               ats_new,
+                               ats_count);
   GNUNET_free_non_null (ats_new);
 }
 
@@ -470,6 +560,7 @@ GST_ats_set_in_use (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
+  GNUNET_assert (NULL != ai->ar);
   GNUNET_ATS_address_set_in_use (ai->ar, in_use);
 }
 
@@ -503,7 +594,15 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                    "Telling ATS to destroy address from peer %s\n",
                    GNUNET_i2s (&address->peer));
   if (NULL != ai->ar)
+  {
     GNUNET_ATS_address_destroy (ai->ar);
+    ai->ar = NULL;
+  }
+  if (NULL != ai->unblock_task)
+  {
+    GNUNET_SCHEDULER_cancel (ai->unblock_task);
+    ai->unblock_task = NULL;
+  }
   GNUNET_HELLO_address_free (ai->address);
   GNUNET_free (ai);
 }
@@ -538,6 +637,16 @@ destroy_ai (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (p2a,
                                                        key,
                                                        ai));
+  if (NULL != ai->unblock_task)
+  {
+    GNUNET_SCHEDULER_cancel (ai->unblock_task);
+    ai->unblock_task = NULL;
+  }
+  if (NULL != ai->ar)
+  {
+    GNUNET_ATS_address_destroy (ai->ar);
+    ai->ar = NULL;
+  }
   GNUNET_HELLO_address_free (ai->address);
   GNUNET_free (ai);
   return GNUNET_OK;
