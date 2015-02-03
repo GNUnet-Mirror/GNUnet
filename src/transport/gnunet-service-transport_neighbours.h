@@ -324,17 +324,6 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 
 
 /**
- * Obtain current latency information for the given neighbour.
- *
- * @param peer
- * @return observed latency of the address, FOREVER if the address was
- *         never successfully validated
- */
-struct GNUNET_TIME_Relative
-GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer);
-
-
-/**
  * Obtain current address information for the given neighbour.
  *
  * @param peer

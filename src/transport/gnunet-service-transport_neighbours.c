@@ -377,11 +377,6 @@ struct NeighbourMapEntry
   struct GNUNET_TIME_Absolute timeout;
 
   /**
-   * Latest calculated latency value
-   */
-  struct GNUNET_TIME_Relative latency;
-
-  /**
    * Tracker for inbound bandwidth.
    */
   struct GNUNET_BANDWIDTH_Tracker in_tracker;
@@ -1501,8 +1496,8 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   struct NeighbourMapEntry *n;
   const struct SessionKeepAliveMessage *msg;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  uint32_t latency;
   struct GNUNET_ATS_Information ats;
+  struct GNUNET_TIME_Relative latency;
 
   if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
     return;
@@ -1564,21 +1559,19 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
 
   n->primary_address.keep_alive_nonce = 0;
   n->expect_latency_response = GNUNET_NO;
-  n->latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   set_timeout (n, GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
 
+  latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Latency for peer `%s' is %s\n",
               GNUNET_i2s (&n->id),
-	      GNUNET_STRINGS_relative_time_to_string (n->latency,
+	      GNUNET_STRINGS_relative_time_to_string (latency,
 						      GNUNET_YES));
   /* append latency */
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-  if (n->latency.rel_value_us > UINT32_MAX)
-    latency = UINT32_MAX;
-  else
-    latency = n->latency.rel_value_us;
-  ats.value = htonl (latency);
+  ats.value = htonl ( (latency.rel_value_us > UINT32_MAX)
+                      ? UINT32_MAX
+                      : (uint32_t) latency.rel_value_us );
   GST_ats_update_metrics (n->primary_address.address,
                           n->primary_address.session,
                           &ats, 1);
@@ -2057,7 +2050,6 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n = GNUNET_new (struct NeighbourMapEntry);
   n->id = *peer;
   n->ack_state = ACK_UNDEFINED;
-  n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
   n->last_util_transmission = GNUNET_TIME_absolute_get();
   n->util_payload_bytes_recv = 0;
   n->util_payload_bytes_sent = 0;
@@ -3803,47 +3795,6 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
               "Forced disconnect from peer %s\n",
               GNUNET_i2s (target));
   disconnect_neighbour (n);
-}
-
-
-/**
- * Obtain current latency information for the given neighbour.
- *
- * @param peer to get the latency for
- * @return observed latency of the address, FOREVER if the
- *         the connection is not up
- */
-struct GNUNET_TIME_Relative
-GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
-{
-  struct NeighbourMapEntry *n;
-
-  n = lookup_neighbour (peer);
-  if (NULL == n)
-    return GNUNET_TIME_UNIT_FOREVER_REL;
-  switch (n->state)
-  {
-  case GNUNET_TRANSPORT_PS_CONNECTED:
-  case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
-  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-  case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-    return n->latency;
-  case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
-  case GNUNET_TRANSPORT_PS_INIT_ATS:
-  case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
-  case GNUNET_TRANSPORT_PS_SYN_RECV_ACK:
-  case GNUNET_TRANSPORT_PS_SYN_SENT:
-  case GNUNET_TRANSPORT_PS_DISCONNECT:
-  case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
-    return GNUNET_TIME_UNIT_FOREVER_REL;
-  default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unhandled state `%s'\n",
-                GNUNET_TRANSPORT_ps2s (n->state));
-    GNUNET_break (0);
-    break;
-  }
-  return GNUNET_TIME_UNIT_FOREVER_REL;
 }
 
 
