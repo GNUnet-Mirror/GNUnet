@@ -2412,31 +2412,44 @@ switch_address_bl_check_cont (void *cls,
 
   papi = GST_plugins_find (blc_ctx->address->transport_name);
 
-  if ( (NULL == (n = lookup_neighbour (peer))) || (result == GNUNET_NO) ||
-       (NULL == (papi)) )
+  if ( (NULL == (n = lookup_neighbour (peer))) ||
+       (result == GNUNET_NO) ||
+       (NULL == papi) )
   {
     if (NULL == n)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Peer %s is unknown, suggestion ignored\n",
                   GNUNET_i2s (peer));
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# ATS suggestions ignored (neighbour unknown)",
+                                1,
+                                GNUNET_NO);
     }
     if (result == GNUNET_NO)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Blacklist denied to switch to suggested address `%s' session %p for peer `%s'\n",
-          GST_plugins_a2s (blc_ctx->address),
-          blc_ctx->session,
-          GNUNET_i2s (&blc_ctx->address->peer));
+                  "Blacklist denied to switch to suggested address `%s' session %p for peer `%s'\n",
+                  GST_plugins_a2s (blc_ctx->address),
+                  blc_ctx->session,
+                  GNUNET_i2s (&blc_ctx->address->peer));
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# ATS suggestions ignored (blacklist denied)",
+                                1,
+                                GNUNET_NO);
     }
     if (NULL == papi)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Plugin `%s' for suggested address `%s' session %p for peer `%s' is not available\n",
-          blc_ctx->address->transport_name,
-          GST_plugins_a2s (blc_ctx->address),
-          blc_ctx->session,
-          GNUNET_i2s (&blc_ctx->address->peer));
+                  "Plugin `%s' for suggested address `%s' session %p for peer `%s' is not available\n",
+                  blc_ctx->address->transport_name,
+                  GST_plugins_a2s (blc_ctx->address),
+                  blc_ctx->session,
+                  GNUNET_i2s (&blc_ctx->address->peer));
+      GNUNET_STATISTICS_update (GST_stats,
+                                "# ATS suggestions ignored (plugin unknown)",
+                                1,
+                                GNUNET_NO);
     }
 
     /* This address is blacklisted, delete session */
@@ -2467,12 +2480,16 @@ switch_address_bl_check_cont (void *cls,
   }
   if (NULL == blc_ctx->session)
   {
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# ATS suggestions ignored (failed to create session)",
+                              1,
+                              GNUNET_NO);
     /* No session could be obtained, remove blacklist check and clean up */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain new session for peer `%s' and  address '%s'\n",
                 GNUNET_i2s (&blc_ctx->address->peer),
                 GST_plugins_a2s (blc_ctx->address));
-    /* Delete address in ATS */
+    /* FIXME: Delete address in ATS!? */
     GNUNET_CONTAINER_DLL_remove (pending_bc_head,
                                  pending_bc_tail,
                                  blc_ctx);
@@ -2482,32 +2499,44 @@ switch_address_bl_check_cont (void *cls,
   }
 
   if ( (NULL != n->primary_address.address) &&
-       (0 == GNUNET_HELLO_address_cmp(blc_ctx->address, n->primary_address.address)) )
+       (0 == GNUNET_HELLO_address_cmp (blc_ctx->address,
+                                       n->primary_address.address)) )
   {
     if (blc_ctx->session == n->primary_address.session)
     {
+      // FIXME: handle this before blacklist check!
       /* This address is already primary, update only quotas */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Updating quota for peer `%s' address `%s' session %p\n",
-          GNUNET_i2s (&blc_ctx->address->peer),
-          GST_plugins_a2s (blc_ctx->address),
-          blc_ctx->session);
+                  "Updating quota for peer `%s' address `%s' session %p\n",
+                  GNUNET_i2s (&blc_ctx->address->peer),
+                  GST_plugins_a2s (blc_ctx->address),
+                  blc_ctx->session);
+      set_primary_address (n,
+                           blc_ctx->address,
+                           blc_ctx->session,
+                           blc_ctx->bandwidth_in,
+                           blc_ctx->bandwidth_out,
+                           GNUNET_NO);
 
-      set_primary_address (n, blc_ctx->address, blc_ctx->session,
-          blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
-
-      GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
-      GNUNET_HELLO_address_free(blc_ctx->address);
+      GNUNET_CONTAINER_DLL_remove (pending_bc_head,
+                                   pending_bc_tail,
+                                   blc_ctx);
+      GNUNET_HELLO_address_free (blc_ctx->address);
       GNUNET_free (blc_ctx);
       return;
     }
+    // FIXME: is this really OK?
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# ATS suggestion oddity (address match, session missmatch)",
+                              1,
+                              GNUNET_NO);
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      "Peer `%s' switches to address `%s' session %p\n",
-      GNUNET_i2s (&blc_ctx->address->peer),
-      GST_plugins_a2s (blc_ctx->address),
-      blc_ctx->session);
+              "Peer `%s' switches to address `%s' session %p\n",
+              GNUNET_i2s (&blc_ctx->address->peer),
+              GST_plugins_a2s (blc_ctx->address),
+              blc_ctx->session);
 
   switch (n->state)
   {
@@ -2518,44 +2547,61 @@ switch_address_bl_check_cont (void *cls,
   case GNUNET_TRANSPORT_PS_INIT_ATS:
     /* We requested an address and ATS suggests one:
      * set primary address and send SYN message*/
-    set_primary_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
+    set_primary_address (n,
+                         blc_ctx->address,
+                         blc_ctx->session,
+                         blc_ctx->bandwidth_in,
+                         blc_ctx->bandwidth_out,
+                         GNUNET_NO);
     if ( (ACK_SEND_SYN_ACK == n->ack_state) )
     {
       /* Send pending SYN_ACK message */
       n->ack_state = ACK_SEND_ACK;
       send_connect_ack_message (n->primary_address.address,
-          n->primary_address.session, n->connect_ack_timestamp);
+                                n->primary_address.session,
+                                n->connect_ack_timestamp);
     }
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SYN_SENT,
-        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_SYN_SENT,
+                           GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_syn (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_SYN_SENT:
     /* ATS suggested a new address while waiting for an SYN_ACK:
      * Switch and send new SYN */
     /* ATS suggests a different address, switch again */
-    set_primary_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
+    set_primary_address (n,
+                         blc_ctx->address,
+                         blc_ctx->session,
+                         blc_ctx->bandwidth_in,
+                         blc_ctx->bandwidth_out,
+                         GNUNET_NO);
     if (ACK_SEND_SYN_ACK == n->ack_state)
     {
       /* Send pending SYN_ACK message */
       n->ack_state = ACK_SEND_ACK;
       send_connect_ack_message (n->primary_address.address,
-          n->primary_address.session, n->connect_ack_timestamp);
+                                n->primary_address.session,
+                                n->connect_ack_timestamp);
     }
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SYN_SENT,
-        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_SYN_SENT,
+                           GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_syn (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
     /* We requested an address and ATS suggests one:
      * set primary address and send SYN_ACK message*/
-    set_primary_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
+    set_primary_address (n,
+                         blc_ctx->address,
+                         blc_ctx->session,
+                         blc_ctx->bandwidth_in,
+                         blc_ctx->bandwidth_out,
+                         GNUNET_NO);
     /* Send an ACK message as a response to the SYN msg */
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
-        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
+                           GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_connect_ack_message (n->primary_address.address,
                               n->primary_address.session,
                               n->connect_ack_timestamp);
@@ -2570,12 +2616,18 @@ switch_address_bl_check_cont (void *cls,
     {
       n->ack_state = ACK_SEND_ACK;
       send_connect_ack_message (n->primary_address.address,
-          n->primary_address.session, n->connect_ack_timestamp);
+                                n->primary_address.session,
+                                n->connect_ack_timestamp);
     }
-    set_primary_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
-        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    set_primary_address (n,
+                         blc_ctx->address,
+                         blc_ctx->session,
+                         blc_ctx->bandwidth_in,
+                         blc_ctx->bandwidth_out,
+                         GNUNET_NO);
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
+                           GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED:
     GNUNET_assert (NULL != n->primary_address.address);
@@ -2583,46 +2635,68 @@ switch_address_bl_check_cont (void *cls,
     if (n->primary_address.session == blc_ctx->session)
     {
       /* not an address change, just a quota change */
-      set_primary_address (n, blc_ctx->address, blc_ctx->session,
-          blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_YES);
+      // FIXME: this case should have been caught above!
+      set_primary_address (n,
+                           blc_ctx->address,
+                           blc_ctx->session,
+                           blc_ctx->bandwidth_in,
+                           blc_ctx->bandwidth_out,
+                           GNUNET_YES);
       break;
     }
     /* ATS asks us to switch a life connection; see if we can get
        a SYN_ACK on it before we actually do this! */
-    set_alternative_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out);
+    set_alternative_address (n,
+                             blc_ctx->address,
+                             blc_ctx->session,
+                             blc_ctx->bandwidth_in,
+                             blc_ctx->bandwidth_out);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT,
-        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
-    GNUNET_STATISTICS_update (GST_stats, gettext_noop
-        ("# Attempts to switch addresses"), 1, GNUNET_NO);
+                           GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# Attempts to switch addresses"),
+                              1,
+                              GNUNET_NO);
     send_syn (&n->alternative_address);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-    set_primary_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
-    if ( (ACK_SEND_SYN_ACK == n->ack_state) )
+    set_primary_address (n,
+                         blc_ctx->address,
+                         blc_ctx->session,
+                         blc_ctx->bandwidth_in,
+                         blc_ctx->bandwidth_out,
+                         GNUNET_NO);
+    if (ACK_SEND_SYN_ACK == n->ack_state)
     {
       /* Send pending SYN_ACK message */
       n->ack_state = ACK_SEND_ACK;
       send_connect_ack_message (n->primary_address.address,
-          n->primary_address.session, n->connect_ack_timestamp);
+                                n->primary_address.session,
+                                n->connect_ack_timestamp);
     }
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_SENT,
-        GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_RECONNECT_SENT,
+                           GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     send_syn (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     /* ATS asks us to switch while we were trying to reconnect; switch to new
        address and send SYN again */
-    set_primary_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_SENT,
-        GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
+    set_primary_address (n,
+                         blc_ctx->address,
+                         blc_ctx->session,
+                         blc_ctx->bandwidth_in,
+                         blc_ctx->bandwidth_out,
+                         GNUNET_NO);
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_RECONNECT_SENT,
+                           GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     send_syn (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     if ( (0 == GNUNET_HELLO_address_cmp(n->primary_address.address,
-        blc_ctx->address) && n->primary_address.session == blc_ctx->session) )
+                                        blc_ctx->address)) &&
+         (n->primary_address.session == blc_ctx->session) )
     {
       /* ATS switches back to still-active session */
       free_address (&n->alternative_address);
@@ -2630,14 +2704,22 @@ switch_address_bl_check_cont (void *cls,
       break;
     }
     /* ATS asks us to switch a life connection, send */
-    set_alternative_address (n, blc_ctx->address, blc_ctx->session,
-        blc_ctx->bandwidth_in, blc_ctx->bandwidth_out);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT,
-        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    set_alternative_address (n,
+                             blc_ctx->address,
+                             blc_ctx->session,
+                             blc_ctx->bandwidth_in,
+                             blc_ctx->bandwidth_out);
+    set_state_and_timeout (n,
+                           GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT,
+                           GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_syn (&n->alternative_address);
     break;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
     /* not going to switch addresses while disconnecting */
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# ATS suggestion ignored (disconnecting)",
+                              1,
+                              GNUNET_NO);
     return;
   case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
     GNUNET_assert (0);
@@ -2650,7 +2732,9 @@ switch_address_bl_check_cont (void *cls,
     break;
   }
 
-  GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
+  GNUNET_CONTAINER_DLL_remove (pending_bc_head,
+                               pending_bc_tail,
+                               blc_ctx);
   GNUNET_HELLO_address_free (blc_ctx->address);
   GNUNET_free (blc_ctx);
 }
@@ -2688,6 +2772,10 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer %s is unknown, suggestion ignored\n",
                 GNUNET_i2s (&address->peer));
+    GNUNET_STATISTICS_update (GST_stats,
+                              "# ATS suggestions ignored (neighbour unknown)",
+                              1,
+                              GNUNET_NO);
     return;
   }
 
@@ -2717,6 +2805,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
 	      GNUNET_i2s (&address->peer),
 	      GNUNET_TRANSPORT_ps2s (n->state),
 	      print_ack_state (n->ack_state));
+
+  // FIXME: definitively do NOT do this if the
+  // suggested address did not change!!!
 
   /* Perform blacklist check */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);

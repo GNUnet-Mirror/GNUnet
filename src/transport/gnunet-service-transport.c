@@ -832,7 +832,10 @@ ats_request_address_change (void *cls,
     GST_neighbours_force_disconnect (&address->peer);
     return;
   }
-
+  GNUNET_STATISTICS_update (GST_stats,
+                            "# ATS suggestions received",
+                            1,
+                            GNUNET_NO);
   GST_neighbours_switch_to_address (address,
                                     session,
                                     bandwidth_in, bandwidth_out);
@@ -901,9 +904,11 @@ run (void *cls,
 
   /* setup globals */
   GST_cfg = c;
-  if (GNUNET_OK
-      != GNUNET_CONFIGURATION_get_value_filename (c, "PEER", "PRIVATE_KEY",
-          &keyfile))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (c,
+                                               "PEER",
+                                               "PRIVATE_KEY",
+                                               &keyfile))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         _("Transport service is lacking key configuration settings. Exiting.\n"));
