@@ -2092,42 +2092,42 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * FIXME
+ * Entry in a DLL we use to keep track of pending blacklist checks.
  */
 struct BlacklistCheckSwitchContext
 {
   /**
-   * FIXME
+   * DLL prev pointer.
    */
   struct BlacklistCheckSwitchContext *prev;
 
   /**
-   * FIXME
+   * DLL next pointer.
    */
   struct BlacklistCheckSwitchContext *next;
 
   /**
-   * FIXME
+   * Handle to the blacklist check we are performing.
    */
   struct GST_BlacklistCheck *blc;
 
   /**
-   * FIXME
+   * Address we are asking the blacklist subsystem about.
    */
   struct GNUNET_HELLO_Address *address;
 
   /**
-   * FIXME
+   * Session we should use in conjunction with @e address, can be NULL.
    */
   struct Session *session;
 
   /**
-   * FIXME
+   * Inbound bandwidth that was assigned to @e address.
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
   /**
-   * FIXME
+   * Outbound bandwidth that was assigned to @e address.
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 };
