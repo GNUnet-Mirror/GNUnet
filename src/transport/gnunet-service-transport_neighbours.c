@@ -2916,9 +2916,16 @@ utilization_transmission (void *cls,
 }
 
 
+/**
+ * Track information about data we received from the
+ * given address (used to notify ATS about our utilization
+ * of allocated resources).
+ *
+ * @param address the address we got data from
+ * @param message the message we received (really only the size is used)
+ */
 void
 GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
-                                 struct Session *session,
                                  const struct GNUNET_MessageHeader *message)
 {
   struct NeighbourMapEntry *n;
@@ -2930,9 +2937,16 @@ GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
 }
 
 
+/**
+ * Track information about payload (useful data) we received from the
+ * given address (used to notify ATS about our utilization of
+ * allocated resources).
+ *
+ * @param address the address we got data from
+ * @param message the message we received (really only the size is used)
+ */
 void
 GST_neighbours_notify_payload_recv (const struct GNUNET_HELLO_Address *address,
-                                    struct Session *session,
                                     const struct GNUNET_MessageHeader *message)
 {
   struct NeighbourMapEntry *n;
@@ -2944,6 +2958,15 @@ GST_neighbours_notify_payload_recv (const struct GNUNET_HELLO_Address *address,
 }
 
 
+/**
+ * Track information about data we transmitted using the given @a
+ * address and @a session (used to notify ATS about our utilization of
+ * allocated resources).
+ *
+ * @param address the address we transmitted data to
+ * @param session session we used to transmit data
+ * @param message the message we sent (really only the size is used)
+ */
 void
 GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
                                  struct Session *session,
@@ -2960,6 +2983,14 @@ GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
 }
 
 
+/**
+ * Track information about payload (useful data) we transmitted using the
+ * given address (used to notify ATS about our utilization of
+ * allocated resources).
+ *
+ * @param address the address we transmitted data to
+ * @param message the message we sent (really only the size is used)
+ */
 void
 GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
                                     size_t size)

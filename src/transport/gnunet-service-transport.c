@@ -428,7 +428,6 @@ GST_receive_callback (void *cls,
                             ntohs (message->size),
                             GNUNET_NO);
   GST_neighbours_notify_data_recv (address,
-                                   session,
                                    message);
   switch (type)
   {
@@ -522,7 +521,6 @@ GST_receive_callback (void *cls,
                               ntohs (message->size),
                               GNUNET_NO);
     GST_neighbours_notify_payload_recv (address,
-                                        session,
                                         message);
     ret = process_payload (address,
                            session,
