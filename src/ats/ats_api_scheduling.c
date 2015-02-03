@@ -481,7 +481,18 @@ process_ats_address_suggestion_message (void *cls,
     return;
   if (GNUNET_YES == ar->in_destroy)
   {
-    /* ignore suggestion, as this address is dying */
+    /* ignore suggestion, as this address is dying, unless BW is 0,
+       in that case signal 'disconnect' via BW 0 */
+    if ( (0 == ntohl (m->bandwidth_out.value__)) &&
+         (0 == ntohl (m->bandwidth_in.value__)) )
+    {
+      sh->suggest_cb (sh->suggest_cb_cls,
+                      &m->peer,
+                      NULL,
+                      NULL,
+                      m->bandwidth_out,
+                      m->bandwidth_in);
+    }
     return;
   }
   if ( (NULL == ar->session) &&
