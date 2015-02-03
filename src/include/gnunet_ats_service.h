@@ -439,12 +439,14 @@ struct Session;
  * and address preferences as determined by ATS.
  *
  * @param cls closure
- * @param address suggested address (including peer identity of the peer)
+ * @param peer for which we suggest an address, NULL if ATS connection died
+ * @param address suggested address (including peer identity of the peer),
+ *             may be NULL to signal disconnect from peer
  * @param session session to use, NULL to establish a new outgoing session
  * @param bandwidth_out assigned outbound bandwidth for the connection,
- *        0 to disconnect
+ *        0 to signal disconnect
  * @param bandwidth_in assigned inbound bandwidth for the connection,
- *        0 to disconnect
+ *        0 to signal disconnect
  */
 typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,

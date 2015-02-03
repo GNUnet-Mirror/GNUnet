@@ -135,6 +135,12 @@ struct GNUNET_BANDWIDTH_Tracker
 
 
 /**
+ * Convenience definition to use for 0-bandwidth.
+ */
+#define GNUNET_BANDWIDTH_ZERO GNUNET_BANDWIDTH_value_init (0)
+
+
+/**
  * Create a new bandwidth value.
  *
  * @param bytes_per_second value to create
