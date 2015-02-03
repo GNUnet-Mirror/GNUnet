@@ -836,8 +836,8 @@ ats_request_address_change (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "ATS tells me to disconnect from peer `%s'\n",
-                GNUNET_i2s (&address->peer));
-    GST_neighbours_force_disconnect (&address->peer);
+                GNUNET_i2s (peer));
+    GST_neighbours_force_disconnect (peer);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
