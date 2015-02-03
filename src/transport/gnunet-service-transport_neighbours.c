@@ -59,7 +59,7 @@
 /**
  * How long are we willing to wait for a response from ATS before timing out?
  */
-#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5000)
+#define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * How long are we willing to wait for an ACK from the other peer before
@@ -73,18 +73,12 @@
  * usual SETUP_CONNECTION_TIMEOUT as we do not inform the
  * higher layers about the disconnect during this period.
  */
-#define FAST_RECONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
-
-/**
- * How long are we willing to wait for a response from the blacklist
- * subsystem before timing out?
- */
-#define BLACKLIST_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define FAST_RECONNECT_TIMEOUT GNUNET_TIME_UNIT_SECONDS
 
 /**
  * Interval to send utilization data
  */
-#define UTIL_TRANSMISSION_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define UTIL_TRANSMISSION_INTERVAL GNUNET_TIME_UNIT_SECONDS
 
 /**
  * State describing which kind a reply this neighbour should send
