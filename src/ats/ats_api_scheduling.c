@@ -203,6 +203,10 @@ force_reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
+  sh->suggest_cb (sh->suggest_cb_cls,
+                  NULL, NULL, NULL,
+                  GNUNET_BANDWIDTH_ZERO,
+                  GNUNET_BANDWIDTH_ZERO);
   sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                            &reconnect_task,
                                            sh);
