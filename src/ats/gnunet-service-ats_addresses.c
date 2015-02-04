@@ -1760,8 +1760,8 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
     /* Notify scheduling clients about suggestion */
     GAS_scheduling_transmit_address_suggestion (&address->peer,
                                                 address->session_id,
-                                                GNUNET_BANDWIDTH_value_init (0),
-                                                GNUNET_BANDWIDTH_value_init (0));
+                                                zero_bw,
+                                                zero_bw);
     return;
   }
 

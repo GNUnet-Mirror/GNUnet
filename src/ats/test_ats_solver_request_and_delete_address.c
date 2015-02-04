@@ -124,9 +124,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-
   free_test_address (&test_addr);
-
   ret = 0;
 }
 
@@ -160,6 +158,7 @@ address_suggest_cb (void *cls,
         "Received sugggestion for peer `%s', deleting address\n",
         GNUNET_i2s (&address->peer));
     address_deleted = GNUNET_YES;
+    /* Destroying address and wait for disconnect suggestion */
     GNUNET_ATS_address_destroy (ar);
     ar = NULL;
   }
@@ -306,4 +305,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of file test_ats_solver_add_address.c */
+/* end of file test_ats_solver_request_and_delete_address_proportional.c */
