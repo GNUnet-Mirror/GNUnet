@@ -1122,8 +1122,8 @@ udp_plugin_check_address (void *cls,
   struct IPv4UdpAddress *v4;
   struct IPv6UdpAddress *v6;
 
-  if ((addrlen != sizeof(struct IPv4UdpAddress))
-      && (addrlen != sizeof(struct IPv6UdpAddress)))
+  if ( (addrlen != sizeof(struct IPv4UdpAddress)) &&
+       (addrlen != sizeof(struct IPv6UdpAddress)) )
   {
     GNUNET_break_op(0);
     return GNUNET_SYSERR;
@@ -1133,9 +1133,10 @@ udp_plugin_check_address (void *cls,
     v4 = (struct IPv4UdpAddress *) addr;
     if (GNUNET_OK != check_port (plugin, ntohs (v4->u4_port)))
       return GNUNET_SYSERR;
-    if (GNUNET_OK
-        != GNUNET_NAT_test_address (plugin->nat, &v4->ipv4_addr,
-            sizeof(struct in_addr)))
+    if (GNUNET_OK !=
+        GNUNET_NAT_test_address (plugin->nat,
+                                 &v4->ipv4_addr,
+                                 sizeof (struct in_addr)))
       return GNUNET_SYSERR;
   }
   else
@@ -3140,9 +3141,9 @@ setup_sockets (struct Plugin *plugin,
         server_addrv6.sin6_addr = in6addr_any;
 
       if (0 == plugin->port) /* autodetect */
-        server_addrv6.sin6_port = htons (
-            GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537)
-                + 32000);
+        server_addrv6.sin6_port
+          = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537)
+                   + 32000);
       else
         server_addrv6.sin6_port = htons (plugin->port);
       addrlen = sizeof(struct sockaddr_in6);
@@ -3155,20 +3156,21 @@ setup_sockets (struct Plugin *plugin,
             "Binding to IPv6 `%s'\n",
             GNUNET_a2s (server_addr, addrlen));
         /* binding */
-        if (GNUNET_OK
-            == GNUNET_NETWORK_socket_bind (plugin->sockv6, server_addr,
-                addrlen))
+        if (GNUNET_OK ==
+            GNUNET_NETWORK_socket_bind (plugin->sockv6,
+                                        server_addr,
+                                        addrlen))
           break;
         eno = errno;
         if (0 != plugin->port)
         {
-          tries = 10; /* fail */
+          tries = 10; /* fail immediately */
           break; /* bind failed on specific port */
         }
         /* autodetect */
-        server_addrv6.sin6_port = htons (
-            GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537)
-                + 32000);
+        server_addrv6.sin6_port
+          = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537)
+                   + 32000);
         tries++;
       }
       if (tries >= 10)
@@ -3177,8 +3179,11 @@ setup_sockets (struct Plugin *plugin,
         plugin->enable_ipv6 = GNUNET_NO;
         plugin->sockv6 = NULL;
       }
-
-      if (plugin->sockv6 != NULL )
+      else
+      {
+        plugin->port = ntohs (server_addrv6.sin6_port);
+      }
+      if (NULL != plugin->sockv6)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "IPv6 socket created on port %s\n",
@@ -3222,9 +3227,10 @@ setup_sockets (struct Plugin *plugin,
 
     if (0 == plugin->port)
       /* autodetect */
-      server_addrv4.sin_port = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                                                33537)
-                                      + 32000);
+      server_addrv4.sin_port
+        = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG,
+                                           33537)
+                 + 32000);
     else
       server_addrv4.sin_port = htons (plugin->port);
 
@@ -3252,17 +3258,20 @@ setup_sockets (struct Plugin *plugin,
       }
 
       /* autodetect */
-      server_addrv4.sin_port = htons (
-          GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537)
-              + 32000);
+      server_addrv4.sin_port
+        = htons (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 33537)
+                 + 32000);
       tries++;
     }
-
     if (tries >= 10)
     {
       GNUNET_NETWORK_socket_close (plugin->sockv4);
       plugin->enable_ipv4 = GNUNET_NO;
       plugin->sockv4 = NULL;
+    }
+    else
+    {
+      plugin->port = ntohs (server_addrv4.sin_port);
     }
 
     if (NULL != plugin->sockv4)
