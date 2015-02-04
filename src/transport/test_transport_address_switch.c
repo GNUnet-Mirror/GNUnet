@@ -21,8 +21,21 @@
  * @file transport/test_transport_address_switch.c
  * @brief base test case for transport implementations
  *
- * This test case tests if peers can successfully switch address when
- * connected by monitoring statistic values.
+ * This test case tests if peers can successfully switch addresses when
+ * connected for plugins supporting multiple addresses by monitoring transport's
+ * statistic values.
+ *
+ * This test starts 2 peers and connects them. When connected test messages
+ * are transmitted from peer 2 to peer 1. The test monitors transport's
+ * statistics values for information about address switch attempts.
+ *
+ * The test passes with success if one of the peers could successfully switch
+ * addresses in connected state and a test message was successfully transmitted
+ * after this switch.
+ *
+ * Since it is not possible to trigger an address switch from
+ * outside, the test still passes when no address switching attempt takes
+ * place. It fails if an address switch attempt fails.
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -527,6 +540,7 @@ notify_disconnect (void *cls,
 static void
 sendtask ()
 {
+  /* Transmit test messages */
   th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th,
                                                &p1->id, MSIZE,
                                                TIMEOUT_TRANSMIT,
@@ -572,9 +586,11 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "(i:s/+/-) \t i == peer 1/2, s/+/- : switch attempt/switch ok/switch fail\n");
 
+  /* Show progress */
   measure_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                &progress_indicator,
                                                NULL);
+  /* Peers are connected, start transmit test messages */
   GNUNET_SCHEDULER_add_now (&sendtask, NULL);
 }
 
@@ -602,6 +618,8 @@ start_cb (struct PeerContext *p, void *cls)
              sender->no, sender_c,
              receiver->no, GNUNET_i2s (&receiver->id));
   GNUNET_free (sender_c);
+
+  /* Connect the peers */
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2,
                                                &testing_connect_cb,
                                                NULL);
