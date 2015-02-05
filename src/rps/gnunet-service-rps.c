@@ -419,6 +419,8 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
   struct GNUNET_PeerIdentity *peer;
 
   GNUNET_assert (NULL != peer_list);
+  if (0 == list_size)
+    return NULL;
 
   tmp_size = 0;
   tmp_peer_list = NULL;
@@ -426,27 +428,32 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
   memcpy (tmp_peer_list, peer_list, list_size * sizeof (struct GNUNET_PeerIdentity));
   peer = GNUNET_new (struct GNUNET_PeerIdentity);
 
-  do
+  /**;
+   * Choose the r_index of the peer we want to return
+   * at random from the interval of the gossip list
+   */
+  r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
+                                      tmp_size);
+  *peer = tmp_peer_list[r_index];
+
+  while (in_arr (ignore_list, ignore_size, peer))
   {
+    rem_from_list (tmp_peer_list, &tmp_size, peer);
+
+    if (0 == tmp_size)
+      return NULL;
+
     /**;
      * Choose the r_index of the peer we want to return
      * at random from the interval of the gossip list
      */
     r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                         tmp_size);
-
     *peer = tmp_peer_list[r_index];
-    if (in_arr (ignore_list, ignore_size, peer))
-    {
-      rem_from_list (tmp_peer_list, &tmp_size, peer);
-      if (0 == tmp_size)
-        return NULL;
-      continue;
-    }
+  }
 
-  } while (NULL == peer);
 
-  GNUNET_free (tmp_peer_list);
+  GNUNET_array_grow (tmp_peer_list, tmp_size, 0);
 
   return peer;
 }
@@ -1079,7 +1086,7 @@ handle_peer_pull_reply (void *cls,
        // FIXME wait for cadet to change this function
   sender_ctx = get_peer_ctx (peer_map, sender);
 
-  if (0 == (peer_ctx->peer_flags || PULL_REPLY_PENDING))
+  if (0 == (sender_ctx->peer_flags || PULL_REPLY_PENDING))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1098,6 +1105,7 @@ handle_peer_pull_reply (void *cls,
     else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
     {
       out_op.op = insert_in_pull_list;
+      out_op.op_cls = NULL;
       GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
     }
   }
@@ -1123,11 +1131,16 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int *permut;
   unsigned int n_peers; /* Number of peers we send pushes/pulls to */
   struct GNUNET_MQ_Envelope *ev;
-  const struct GNUNET_PeerIdentity *peer;
+  struct GNUNET_PeerIdentity peer;
+  struct GNUNET_PeerIdentity *tmp_peer;
   struct GNUNET_MQ_Handle *mq;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Printing gossip list:\n");
+  for (i = 0 ; i < gossip_list_size ; i++)
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "\t%s\n", GNUNET_i2s (&gossip_list[i]));
   // TODO log lists, ...
-
 
   /* Would it make sense to have one shuffeled gossip list and then
    * to send PUSHes to first alpha peers, PULL requests to next beta peers and
@@ -1139,24 +1152,22 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
                                            (unsigned int) gossip_list_size);
-    if (0 != gossip_list_size)
+    n_peers = ceil (alpha * gossip_list_size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Going to send pushes to %u ceil (%f * %u) peers.\n",
+         n_peers, alpha, gossip_list_size);
+    for (i = 0 ; i < n_peers ; i++)
     {
-      n_peers = round (alpha * gossip_list_size);
-      if (0 == n_peers)
-        n_peers = 1;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pushes to %u (%f * %u) peers.\n",
-          n_peers, alpha, gossip_list_size);
-      for ( i = 0 ; i < n_peers ; i++ )
-      {
-        peer = &gossip_list[permut[i]];
-        if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer)) // TODO
-        { // FIXME if this fails schedule/loop this for later
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PUSH to peer %s of gossiped list.\n", GNUNET_i2s (peer));
+      peer = gossip_list[permut[i]];
+      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer)) // TODO
+      { // FIXME if this fails schedule/loop this for later
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Sending PUSH to peer %s of gossiped list.\n",
+             GNUNET_i2s (&peer));
 
-          ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-          mq = get_mq (peer_map, peer);
-          GNUNET_MQ_send (mq, ev);
-        }
+        ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
+        mq = get_mq (peer_map, &peer);
+        GNUNET_MQ_send (mq, ev);
       }
     }
     GNUNET_free (permut);
@@ -1165,30 +1176,29 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Send PULL requests */
   //permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
-  if (0 != gossip_list_size)
+  n_peers = ceil (beta * gossip_list_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Going to send pulls to %u ceil (%f * %u) peers.\n",
+       n_peers, beta, gossip_list_size);
+  for (i = 0 ; i < n_peers ; i++)
   {
-    n_peers = round (beta * gossip_list_size);
-    if (0 == n_peers)
-      n_peers = 1;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to send pulls to %u (%f * %u) peers.\n",
-        n_peers, beta, gossip_list_size);
-    for ( i = 0 ; i < n_peers ; i++ )
+    tmp_peer = get_rand_peer_ignore_list (gossip_list, gossip_list_size,
+        pending_pull_reply_list, pending_pull_reply_list_size);
+    if (NULL != tmp_peer)
     {
-      peer = get_rand_peer_ignore_list (gossip_list, gossip_list_size,
-                                        pending_pull_reply_list, pending_pull_reply_list_size);
-      if (NULL != peer)
-      {
-        GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, *peer);
+      peer = *tmp_peer;
+      GNUNET_free (tmp_peer);
+      GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, peer);
 
-        if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
-        { // FIXME if this fails schedule/loop this for later
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending PULL request to peer %s of gossiped list.\n", GNUNET_i2s (peer));
+      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer))
+      { // FIXME if this fails schedule/loop this for later
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Sending PULL request to peer %s of gossiped list.\n",
+             GNUNET_i2s (&peer));
 
-          ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-          //pull_msg = NULL;
-          mq = get_mq (peer_map, peer);
-          GNUNET_MQ_send (mq, ev);
-        }
+        ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
+        mq = get_mq (peer_map, &peer);
+        GNUNET_MQ_send (mq, ev);
       }
     }
   }
@@ -1206,12 +1216,12 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     uint32_t first_border;
     uint32_t second_border;
 
-    first_border = ceil (alpha * sampler_size_est_need);
-    second_border = first_border + ceil (beta * sampler_size_est_need);
+    first_border  =                ceil (alpha * sampler_size_est_need);
+    second_border = first_border + ceil (beta  * sampler_size_est_need);
 
     GNUNET_array_grow (gossip_list, gossip_list_size, second_border);
 
-    for ( i = 0 ; i < first_border ; i++ )
+    for (i = 0 ; i < first_border ; i++)
     { // TODO use RPS_sampler_get_n_rand_peers
       /* Update gossip list with peers received through PUSHes */
       r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
@@ -1220,7 +1230,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       // TODO change the peer_flags accordingly
     }
 
-    for ( i = first_border ; i < second_border ; i++ )
+    for (i = first_border ; i < second_border ; i++)
     {
       /* Update gossip list with peers received through PULLs */
       r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
@@ -1229,7 +1239,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       // TODO change the peer_flags accordingly
     }
 
-    for ( i = second_border ; i < gossip_list_size ; i++ )
+    for (i = second_border ; i < sampler_size_est_need ; i++)
     {
       /* Update gossip list with peers from history */
       RPS_sampler_get_n_rand_peers (hist_update, NULL, 1, GNUNET_NO);
@@ -1368,6 +1378,7 @@ init_peer_cb (void *cls,
     if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
     {
       out_op.op = insert_in_gossip_list;
+      out_op.op_cls = NULL;
       GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
     }
 

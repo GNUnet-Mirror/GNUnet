@@ -121,8 +121,10 @@ request_peers (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RPSPeer *peer = (struct RPSPeer *) cls;
+  struct GNUNET_RPS_Request_Handle *req_handle;
 
-  GNUNET_RPS_request_peers (peer->rps_handle, 1, handle_reply, NULL);
+  req_handle = GNUNET_RPS_request_peers (peer->rps_handle, 1, handle_reply, NULL);
+  GNUNET_free (req_handle);
 }
 
 
@@ -187,6 +189,8 @@ rps_connect_complete_cb (void *cls,
 {
   struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
+  struct GNUNET_RPS_Request_Handle *req_handle;
+
   peer->rps_handle = rps;
 
   GNUNET_assert (op == peer->op);
@@ -201,7 +205,8 @@ rps_connect_complete_cb (void *cls,
     }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
 
-  GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
+  req_handle = GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
+  GNUNET_free (req_handle);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
                                 request_peers, peer);
