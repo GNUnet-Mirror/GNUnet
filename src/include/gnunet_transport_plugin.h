@@ -491,7 +491,6 @@ typedef void
                                           struct Session *session);
 
 
-
 /**
  * Function that will be called whenever the transport service wants to
  * notify the plugin that the inbound quota changed and that the plugin

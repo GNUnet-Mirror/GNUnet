@@ -257,39 +257,14 @@ struct GAS_NormalizationInfo
 struct ATS_Address
 {
   /**
-   * Next element in DLL
-   */
-  struct ATS_Address *next;
-
-  /**
-   * Previous element in DLL
-   */
-  struct ATS_Address *prev;
-
-  /**
-   * Peer ID
+   * Peer ID this address is for.
    */
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Address
+   * Address (in plugin-specific binary format).
    */
   const void *addr;
-
-  /**
-   * Address length
-   */
-  size_t addr_len;
-
-  /**
-   * Session ID, can never be 0.
-   */
-  uint32_t session_id;
-
-  /**
-   * Field to store local flags
-   */
-  uint32_t local_address_info;
 
   /**
    * Plugin name
@@ -307,7 +282,32 @@ struct ATS_Address
   struct GNUNET_ATS_Information *atsi;
 
   /**
-   * ATS performance information for this address
+   * Time when address had last activity (update, in uses)
+   */
+  struct GNUNET_TIME_Absolute t_last_activity;
+
+  /**
+   * Time when address was added
+   */
+  struct GNUNET_TIME_Absolute t_added;
+
+  /**
+   * Address length, number of bytes in @e addr.
+   */
+  size_t addr_len;
+
+  /**
+   * Session ID, can never be 0.
+   */
+  uint32_t session_id;
+
+  /**
+   * Field to store local flags
+   */
+  uint32_t local_address_info;
+
+  /**
+   * ATS performance information for this address, size of the @e atsi array.
    */
   uint32_t atsi_count;
 
@@ -332,16 +332,6 @@ struct ATS_Address
   uint32_t last_notified_bw_out;
 
   /**
-   * Time when address had last activity (update, in uses)
-   */
-  struct GNUNET_TIME_Absolute t_last_activity;
-
-  /**
-   * Time when address was added
-   */
-  struct GNUNET_TIME_Absolute t_added;
-
-  /**
    * Is this the active address for this peer?
    */
   int active;
@@ -360,7 +350,7 @@ struct ATS_Address
 
 
 /**
- * A multihashmap to store all addresses
+ * A multipeermap mapping peer identities to `struct ATS_Address`.
  */
 extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
 
@@ -368,7 +358,7 @@ extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
 
 /**
  * Initialize address subsystem. The addresses subsystem manages the addresses
- * known and current performance information. 
+ * known and current performance information.
  */
 void
 GAS_addresses_init (void);
@@ -431,12 +421,10 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Remove all addresses
+ * Remove all addresses.
  */
 void
 GAS_addresses_destroy_all (void);
-
-
 
 
 /**
