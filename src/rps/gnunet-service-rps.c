@@ -441,7 +441,10 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
     rem_from_list (tmp_peer_list, &tmp_size, peer);
 
     if (0 == tmp_size)
+    {
+      GNUNET_free (peer);
       return NULL;
+    }
 
     /**;
      * Choose the r_index of the peer we want to return
@@ -1188,6 +1191,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       peer = *tmp_peer;
       GNUNET_free (tmp_peer);
+
       GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, peer);
 
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer))
@@ -1250,7 +1254,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the gossip list. ()\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "No update of the gossip list.\n");
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
 
@@ -1404,6 +1408,9 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   struct GNUNET_CADET_Channel *send;
 
   peer_ctx = (struct PeerContext *) value;
+
+  if (0 != peer_ctx->num_outstanding_ops)
+    GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
 
   if (NULL != peer_ctx->mq)
     GNUNET_MQ_destroy (peer_ctx->mq);
