@@ -17,9 +17,8 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
- * @file ats/gnunet-service-ats_performance.c
+ * @file ats/gnunet-service-ats_preferences.c
  * @brief ats service, interaction with 'performance' API
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -114,7 +113,6 @@ struct PreferenceClient
   /**
    * Next in DLL
    */
-
   struct PreferenceClient *next;
 
   /**
@@ -133,10 +131,6 @@ struct PreferenceClient
   double f_rel_sum[GNUNET_ATS_PreferenceCount];
 
   /**
-   * List of peer preferences for this client
-   */
-
-  /**
    * Head of peer list
    */
   struct PreferencePeer *p_head;
@@ -146,6 +140,7 @@ struct PreferenceClient
    */
   struct PreferencePeer *p_tail;
 };
+
 
 /**
  * Preference peer
@@ -194,7 +189,6 @@ struct PreferencePeer
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *preference_peers;
 
-
 /**
  * Clients in DLL: head
  */
@@ -234,7 +228,7 @@ find_preference_client (void *client)
  */
 static void
 update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
-				 enum GNUNET_ATS_PreferenceKind kind, 
+				 enum GNUNET_ATS_PreferenceKind kind,
 				 struct PeerRelative *rp)
 {
   struct PreferenceClient *c_cur;
@@ -283,7 +277,7 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
       /* No client had any preferences for this type and any peer */
       rp->f_rel[kind] = DEFAULT_REL_PREFERENCE;
     }
-    if (backup != rp->f_rel[kind]) 
+    if (backup != rp->f_rel[kind])
       GAS_normalized_preference_changed (&rp->id, kind, rp->f_rel[kind]);
   }
 }
@@ -493,7 +487,7 @@ update_abs_preference (struct PreferenceClient *c,
  * @param client the client
  */
 void
-GAS_addresses_preference_client_disconnect (void *client)
+GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   struct GAS_Addresses_Preference_Clients *pc;
 
@@ -513,7 +507,6 @@ GAS_addresses_preference_client_disconnect (void *client)
 }
 
 
-
 /**
  * Change the preference for a peer
  *
@@ -522,11 +515,11 @@ GAS_addresses_preference_client_disconnect (void *client)
  * @param kind the preference kind to change
  * @param score_abs the new preference score
  */
-void
-GAS_addresses_preference_change (void *client,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 enum GNUNET_ATS_PreferenceKind kind,
-                                 float score_abs)
+static void
+preference_change (void *client,
+                    const struct GNUNET_PeerIdentity *peer,
+                    enum GNUNET_ATS_PreferenceKind kind,
+                    float score_abs)
 {
   struct GAS_Addresses_Preference_Clients *pc;
 
@@ -604,114 +597,17 @@ GAS_handle_preference_change (void *cls,
                             1, GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i = 0; i < nump; i++)
-    GAS_addresses_preference_change (client,
-                                     &msg->peer,
-                                     (enum GNUNET_ATS_PreferenceKind)
-                                     ntohl (pi[i].preference_kind),
-                                     pi[i].preference_value);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-
-
-/**
- * Change the preference for a peer
- *
- * @param application the client sending this request
- * @param peer the peer id
- * @param scope the time interval for this feedback: [now - scope .. now]
- * @param kind the preference kind to change
- * @param score_abs the new preference score
- */
-void
-GAS_addresses_preference_feedback (void *application,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   const struct GNUNET_TIME_Relative scope,
-                                   enum GNUNET_ATS_PreferenceKind kind,
-                                   float score_abs)
-{
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received `%s' for peer `%s' for client %p\n",
-             "PREFERENCE FEEDBACK",
-             GNUNET_i2s (peer),
-             application);
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multipeermap_contains (GSA_addresses,
-					      peer))
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	       "Received `%s' for unknown peer `%s' from client %p\n",
-	       "PREFERENCE FEEDBACK",
-	       GNUNET_i2s (peer), 
-	       application);
-    return;
-  }
-
-  GAS_plugin_preference_feedback (application,
-				  peer,
-				  scope,
-				  kind,
-				  score_abs);
-}
-
-
-/**
- * Handle 'preference feedback' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_preference_feedback (void *cls,
-				struct GNUNET_SERVER_Client *client,
-				const struct GNUNET_MessageHeader *message)
-{
-  const struct FeedbackPreferenceMessage *msg;
-  const struct PreferenceInformation *pi;
-  uint16_t msize;
-  uint32_t nump;
-  uint32_t i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "PREFERENCE_FEEDBACK");
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct FeedbackPreferenceMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct FeedbackPreferenceMessage *) message;
-  nump = ntohl (msg->num_feedback);
-  if (msize !=
-      sizeof (struct FeedbackPreferenceMessage) +
-      nump * sizeof (struct PreferenceInformation))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  GNUNET_STATISTICS_update (GSA_stats,
-                            "# preference feedbacks requests processed",
-                            1, GNUNET_NO);
-  pi = (const struct PreferenceInformation *) &msg[1];
-  for (i = 0; i < nump; i++)
-    GAS_addresses_preference_feedback (client,
-                                       &msg->peer,
-                                       GNUNET_TIME_relative_ntoh(msg->scope),
-                                       (enum GNUNET_ATS_PreferenceKind)
-                                       ntohl (pi[i].preference_kind),
-                                       pi[i].preference_value);
+    preference_change (client,
+                       &msg->peer,
+                       (enum GNUNET_ATS_PreferenceKind)
+                       ntohl (pi[i].preference_kind),
+                       pi[i].preference_value);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
 /**
- * Shutdown preferences subsystem.
+ * Initialize preferences subsystem.
  */
 void
 GAS_preference_init ()
@@ -721,7 +617,6 @@ GAS_preference_init ()
   preference_peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
-
 }
 
 
@@ -734,14 +629,19 @@ GAS_preference_init ()
  * @return #GNUNET_OK to continue
  */
 static int
-free_peer (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
+free_peer (void *cls,
+           const struct GNUNET_PeerIdentity *key,
+           void *value)
 {
   struct PeerRelative *rp = value;
-  if (GNUNET_YES
-      == GNUNET_CONTAINER_multipeermap_remove (preference_peers, key, value))
-    GNUNET_free(rp);
+
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_remove (preference_peers,
+                                            key,
+                                            value))
+    GNUNET_free (rp);
   else
-    GNUNET_break(0);
+    GNUNET_break (0);
   return GNUNET_OK;
 }
 
@@ -751,6 +651,7 @@ free_client (struct PreferenceClient *pc)
 {
   struct PreferencePeer *next_p;
   struct PreferencePeer *p;
+
   next_p = pc->p_head;
   while (NULL != (p = next_p))
   {
@@ -760,9 +661,6 @@ free_client (struct PreferenceClient *pc)
   }
   GNUNET_free(pc);
 }
-
-
-
 
 
 /**
@@ -780,7 +678,6 @@ GAS_preference_done ()
     GNUNET_SCHEDULER_cancel (aging_task);
     aging_task = NULL;
   }
-
   next_pc = pc_head;
   while (NULL != (pc = next_pc))
   {
@@ -788,9 +685,9 @@ GAS_preference_done ()
     GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, pc);
     free_client (pc);
   }
-
-  GNUNET_CONTAINER_multipeermap_iterate (preference_peers, 
-					 &free_peer, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (preference_peers,
+					 &free_peer,
+                                         NULL);
   GNUNET_CONTAINER_multipeermap_destroy (preference_peers);
 
   while (NULL != (pcur = preference_clients_head))
@@ -807,8 +704,6 @@ GAS_preference_done ()
     GNUNET_free (pcur);
   }
 }
-
-
 
 
 /**
@@ -911,7 +806,8 @@ GAS_normalization_normalize_preference (void *client,
   /* Start aging task */
   if (NULL == aging_task)
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
-        &preference_aging, NULL );
+                                               &preference_aging,
+                                               NULL);
 
 }
 

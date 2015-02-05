@@ -111,7 +111,7 @@ client_disconnect_handler (void *cls,
   GAS_scheduling_remove_client (client);
   GAS_connectivity_remove_client (client);
   GAS_normalization_preference_client_disconnect (client);
-  GAS_addresses_preference_client_disconnect (client);
+  GAS_preference_client_disconnect (client);
 }
 
 
@@ -189,6 +189,7 @@ run (void *cls,
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init (server);
   GAS_connectivity_init ();
+  GAS_preference_init ();
   GAS_normalization_start ();
   GAS_addresses_init (server);
   if (GNUNET_OK !=
@@ -199,6 +200,7 @@ run (void *cls,
     GAS_normalization_stop ();
     GAS_reservations_done ();
     GAS_connectivity_done ();
+    GAS_preference_done ();
     if (NULL != GSA_stats)
     {
       GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);

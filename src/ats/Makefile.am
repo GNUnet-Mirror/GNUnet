@@ -45,6 +45,7 @@ gnunet_ats_solver_eval_SOURCES = \
  gnunet-ats-solver-eval.c gnunet-ats-solver-eval.h \
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
  gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+ gnunet-service-ats_feedback.c gnunet-service-ats_feedback.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h \
@@ -107,10 +108,11 @@ libexec_PROGRAMS = \
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
- gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
  gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
+ gnunet-service-ats_feedback.c gnunet-service-ats_feedback.h \
  gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+ gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
  gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
