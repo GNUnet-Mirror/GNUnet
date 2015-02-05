@@ -17,10 +17,9 @@
  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  Boston, MA 02111-1307, USA.
  */
-
 /**
  * @file ats/gnunet-service-ats_preferences.h
- * @brief FIXME
+ * @brief manage preferences expressed by clients
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
@@ -37,15 +36,6 @@
 #define DEFAULT_ABS_PREFERENCE 0.0
 
 #define DEFAULT_REL_PREFERENCE 0.0
-
-
-/**
- * A preference client disconnected.
- *
- * @param client the client
- */
-void
-GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 /**

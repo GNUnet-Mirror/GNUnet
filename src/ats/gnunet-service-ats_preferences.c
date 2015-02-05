@@ -19,7 +19,7 @@
 */
 /**
  * @file ats/gnunet-service-ats_preferences.c
- * @brief ats service, interaction with 'performance' API
+ * @brief manage preferences expressed by clients
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
@@ -35,7 +35,9 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-preferencesx",__VA_ARGS__)
 
 #define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 #define PREF_AGING_FACTOR 0.95
+
 #define PREF_EPSILON 0.01
 
 
@@ -50,48 +52,11 @@ struct PeerRelative
   double f_rel[GNUNET_ATS_PreferenceCount];
 
   /**
-   * Peer id
+   * Peer identity for which we have these preferences.
    */
   struct GNUNET_PeerIdentity id;
 };
 
-
-/**
- * FIXME
- */
-struct GAS_Addresses_Preference_Clients
-{
-  /**
-   * Next in DLL
-   */
-  struct GAS_Addresses_Preference_Clients *next;
-
-  /**
-   * Previous in DLL
-   */
-  struct GAS_Addresses_Preference_Clients *prev;
-
-  /**
-   * Peer ID
-   */
-  void *client;
-};
-
-
-/**
- * Preference requests DLL head
- */
-static struct GAS_Addresses_Preference_Clients *preference_clients_head;
-
-/**
- * Preference requests DLL head
- */
-static struct GAS_Addresses_Preference_Clients *preference_clients_tail;
-
-/**
- * Preferences clients
- */
-static int pref_clients;
 
 /**
  * Default values
@@ -202,20 +167,6 @@ static struct PreferenceClient *pc_tail;
 
 
 static struct GNUNET_SCHEDULER_Task * aging_task;
-
-
-
-
-static struct GAS_Addresses_Preference_Clients *
-find_preference_client (struct GNUNET_SERVER_Client *client)
-{
-  struct GAS_Addresses_Preference_Clients *cur;
-
-  for (cur = preference_clients_head; NULL != cur; cur = cur->next)
-    if (cur->client == client)
-      return cur;
-  return NULL;
-}
 
 
 /**
@@ -479,34 +430,6 @@ update_abs_preference (struct PreferenceClient *c,
 
 
 
-
-
-/**
- * A performance client disconnected
- *
- * @param client the client
- */
-void
-GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
-{
-  struct GAS_Addresses_Preference_Clients *pc;
-
-  if (NULL != (pc = find_preference_client (client)))
-  {
-    GNUNET_CONTAINER_DLL_remove (preference_clients_head,
-                                 preference_clients_tail,
-                                 pc);
-    GNUNET_free (pc);
-    GNUNET_assert (pref_clients > 0);
-    pref_clients --;
-    GNUNET_STATISTICS_set (GSA_stats,
-                           "# active performance clients",
-                           pref_clients,
-                           GNUNET_NO);
-  }
-}
-
-
 /**
  * Change the preference for a peer
  *
@@ -521,36 +444,22 @@ preference_change (struct GNUNET_SERVER_Client *client,
                     enum GNUNET_ATS_PreferenceKind kind,
                     float score_abs)
 {
-  struct GAS_Addresses_Preference_Clients *pc;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Received `%s' for peer `%s' for client %p\n", "CHANGE PREFERENCE",
-      GNUNET_i2s (peer), client);
-
   if (GNUNET_NO ==
       GNUNET_CONTAINER_multipeermap_contains (GSA_addresses,
 					      peer))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Received `%s' for unknown peer `%s' from client %p\n",
-        "CHANGE PREFERENCE", GNUNET_i2s (peer), client);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received CHANGE_PREFERENCE for unknown peer `%s'\n",
+                GNUNET_i2s (peer));
     return;
   }
-
-  if (NULL == find_preference_client (client))
-  {
-    pc = GNUNET_new (struct GAS_Addresses_Preference_Clients);
-    pc->client = client;
-    GNUNET_CONTAINER_DLL_insert (preference_clients_head,
-                                 preference_clients_tail,
-                                 pc);
-    pref_clients ++;
-    GNUNET_STATISTICS_set (GSA_stats,
-                           "# active performance clients",
-                           pref_clients,
-                           GNUNET_NO);
-  }
-  GAS_plugin_update_preferences (client, peer, kind, score_abs);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received CHANGE_PREFERENCE for peer `%s'\n",
+              GNUNET_i2s (peer));
+  GAS_plugin_update_preferences (client,
+                                 peer,
+                                 kind,
+                                 score_abs);
 }
 
 
@@ -669,7 +578,6 @@ free_client (struct PreferenceClient *pc)
 void
 GAS_preference_done ()
 {
-  struct GAS_Addresses_Preference_Clients *pcur;
   struct PreferenceClient *pc;
   struct PreferenceClient *next_pc;
 
@@ -690,19 +598,6 @@ GAS_preference_done ()
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (preference_peers);
 
-  while (NULL != (pcur = preference_clients_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (preference_clients_head,
-                                 preference_clients_tail,
-                                 pcur);
-    GNUNET_assert (pref_clients > 0);
-    pref_clients --;
-    GNUNET_STATISTICS_set (GSA_stats,
-                           "# active performance clients",
-                           pref_clients,
-                           GNUNET_NO);
-    GNUNET_free (pcur);
-  }
 }
 
 

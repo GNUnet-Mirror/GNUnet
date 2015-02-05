@@ -112,7 +112,6 @@ client_disconnect_handler (void *cls,
   GAS_scheduling_remove_client (client);
   GAS_connectivity_remove_client (client);
   GAS_normalization_preference_client_disconnect (client);
-  GAS_preference_client_disconnect (client);
 }
 
 
