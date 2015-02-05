@@ -32,6 +32,7 @@
 #include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
+#include "gnunet-service-ats_preferences.h"
 #include "gnunet-service-ats_plugins.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_normalization.h"
@@ -207,7 +208,7 @@ solver_info_cb (void *cls,
  * @param address the address with changes
  */
 static void
-bandwidth_changed_cb (void *cls, 
+bandwidth_changed_cb (void *cls,
 		      struct ATS_Address *address)
 {
   uint32_t diff_out;
@@ -222,7 +223,7 @@ bandwidth_changed_cb (void *cls,
 				      address->plugin,
 				      address->addr,
 				      address->addr_len,
-				      address->active, 
+				      address->active,
 				      address->atsi,
 				      address->atsi_count,
 				      GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
@@ -601,8 +602,8 @@ GAS_plugin_preference_feedback (void *application,
 {
   env.sf.s_feedback (solver,
 		     application,
-		     peer, 
-		     scope, 
+		     peer,
+		     scope,
 		     kind,
                      score_abs);
 }
@@ -635,9 +636,9 @@ GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 		GNUNET_i2s (pid));
     return;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
 	     "Suggesting address %p for peer `%s'\n",
-	     aa, 
+	     aa,
 	     GNUNET_i2s (pid));
 
   GAS_scheduling_transmit_address_suggestion (pid,

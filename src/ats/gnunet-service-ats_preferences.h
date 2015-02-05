@@ -49,6 +49,57 @@ GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 /**
+ * Get the normalized preference values for a specific peer.
+ *
+ * @param cls ignored
+ * @param id the peer
+ * @return pointer to the values, can be indexed
+ *  with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
+ */
+const double *
+GAS_normalization_get_preferences_by_peer (void *cls,
+					   const struct GNUNET_PeerIdentity *id);
+
+
+/**
+ * Get the normalized preference values for a specific client and peer
+ *
+ * @param client client
+ * @param peer the peer
+ * @param pref the preference type
+ * @return the value
+ */
+double
+GAS_normalization_get_preferences_by_client (const void *client,
+                                             const struct GNUNET_PeerIdentity *peer,
+                                             enum GNUNET_ATS_PreferenceKind pref);
+
+
+/**
+ * Normalize an updated preference value
+ *
+ * @param client the client with this preference
+ * @param peer the peer to change the preference for
+ * @param kind the kind to change the preference
+ * @param score_abs the normalized score
+ */
+void
+GAS_normalization_normalize_preference (void *client,
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        enum GNUNET_ATS_PreferenceKind kind,
+                                        float score_abs);
+
+
+/**
+ * A performance client disconnected
+ *
+ * @param client the disconnecting client
+ */
+void
+GAS_normalization_preference_client_disconnect (void *client);
+
+
+/**
  * Handle 'preference change' messages from clients.
  *
  * @param cls unused, NULL

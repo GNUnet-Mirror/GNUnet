@@ -26,6 +26,8 @@
 #ifndef GNUNET_SERVICE_ATS_FEEDBACK_H
 #define GNUNET_SERVICE_ATS_FEEDBACK_H
 
+#include "gnunet_util_lib.h"
+
 /**
  * Handle 'preference feedback' messages from clients.
  *

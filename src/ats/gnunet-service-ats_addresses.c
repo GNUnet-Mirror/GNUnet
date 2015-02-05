@@ -501,10 +501,10 @@ find_exact_address (const struct GNUNET_PeerIdentity *peer,
  * @return the value in HBO or #GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
  */
 static int
-get_performance_info (struct ATS_Address *address, uint32_t type)
+get_performance_info (struct ATS_Address *address,
+                      uint32_t type)
 {
-  int c1;
-  GNUNET_assert(NULL != address);
+  uint32_t c1;
 
   if ((NULL == address->atsi) || (0 == address->atsi_count))
     return GNUNET_ATS_VALUE_UNDEFINED;
@@ -550,11 +550,6 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s'\n",
-              "ADDRESS ADD",
-              GNUNET_i2s (peer));
   new_address = create_address (peer,
                                 plugin_name,
                                 plugin_addr,
@@ -581,13 +576,9 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
 						   GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   update_addresses_stat ();
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Adding new address %p for peer `%s', length %u, session id %u, %s\n",
-	      new_address,
+	      "Adding new address for peer `%s' slot %u\n",
 	      GNUNET_i2s (peer),
-	      plugin_addr_len,
-	      session_id,
-	      GNUNET_ATS_print_network_type (addr_net));
-
+	      session_id);
   /* Tell solver about new address */
   GAS_plugin_new_address (new_address,
 			  addr_net,
@@ -638,10 +629,9 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' for peer `%s' address \n",
-              "ADDRESS UPDATE",
+              "Received ADDRESS_UPDATE for peer `%s' slot %u\n",
               GNUNET_i2s (peer),
-              aa);
+              (unsigned int) session_id);
 
   /* Update address */
   aa->t_last_activity = GNUNET_TIME_absolute_get();
@@ -673,7 +663,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Remove an address or just a session for a peer.
+ * Remove an address for a peer.
  *
  * @param peer peer
  * @param session_id session id, can never be 0
@@ -693,9 +683,8 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received ADDRESS_DESTROYED for peer `%s' address %p session %u\n",
+              "Received ADDRESS_DESTROYED for peer `%s' session %u\n",
               GNUNET_i2s (peer),
-              ea,
               session_id);
   free_address (ea);
 }

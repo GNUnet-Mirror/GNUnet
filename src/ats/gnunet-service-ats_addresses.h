@@ -379,7 +379,7 @@ GAS_addresses_done (void);
  * @param peer peer
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
+ * @param plugin_addr_len length of the @a plugin_addr
  * @param local_address_info the local address for the address
  * @param session_id session id, can never be 0.
  * @param atsi performance information for this address
@@ -412,7 +412,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Remove an address or just a session for a peer.
+ * Remove an address for a peer.
  *
  * @param peer peer
  * @param session_id session id, can never be 0
@@ -432,7 +432,7 @@ GAS_addresses_destroy_all (void);
 /**
  * Iterator for #GAS_addresses_get_peer_info()
  *
- * @param p_it_cls closure closure
+ * @param cls closure
  * @param id the peer id
  * @param plugin_name plugin name
  * @param plugin_addr address
@@ -444,7 +444,7 @@ GAS_addresses_destroy_all (void);
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
 typedef void
-(*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
+(*GNUNET_ATS_PeerInfo_Iterator) (void *cls,
                                  const struct GNUNET_PeerIdentity *id,
                                  const char *plugin_name,
                                  const void *plugin_addr,
