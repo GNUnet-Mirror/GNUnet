@@ -39,8 +39,6 @@
 #define DEFAULT_REL_PREFERENCE 0.0
 
 
-
-
 /**
  * A preference client disconnected
  *
@@ -48,8 +46,6 @@
  */
 void
 GAS_addresses_preference_client_disconnect (void *client);
-
-
 
 
 /**
@@ -65,6 +61,20 @@ GAS_addresses_preference_change (void *client,
                                  const struct GNUNET_PeerIdentity *peer,
                                  enum GNUNET_ATS_PreferenceKind kind,
                                  float score_abs);
+
+
+/**
+ * Handle 'preference change' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_preference_change (void *cls,
+                              struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *message);
+
 
 
 /**
@@ -90,6 +100,20 @@ GAS_addresses_preference_feedback (void *application,
                                    const struct GNUNET_TIME_Relative scope,
                                    enum GNUNET_ATS_PreferenceKind kind,
                                    float score_abs);
+
+/**
+ * Handle 'preference feedback' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_preference_feedback (void *cls,
+                                struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message);
+
+
 
 /**
  * Shutdown preferences subsystem.

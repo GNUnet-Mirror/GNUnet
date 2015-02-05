@@ -60,10 +60,25 @@ GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Initialize reservations subsystem.
+ * Handle 'reservation request' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
  */
 void
-GAS_reservations_init (void);
+GAS_handle_reservation_request (void *cls,
+                                struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Initialize reservations subsystem.
+ *
+ * @param server handle to our server
+ */
+void
+GAS_reservations_init (struct GNUNET_SERVER_Handle *server);
 
 
 /**

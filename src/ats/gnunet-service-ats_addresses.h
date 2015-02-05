@@ -359,9 +359,11 @@ extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
 /**
  * Initialize address subsystem. The addresses subsystem manages the addresses
  * known and current performance information.
+ *
+ * @param server handle to our server
  */
 void
-GAS_addresses_init (void);
+GAS_addresses_init (struct GNUNET_SERVER_Handle *server);
 
 
 /**
@@ -465,6 +467,20 @@ void
 GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer,
                              GNUNET_ATS_PeerInfo_Iterator pi_it,
                              void *pi_it_cls);
+
+
+/**
+ * Handle 'address list request' messages from clients.
+ *
+ * @param cls unused, NULL
+ * @param client client that sent the request
+ * @param message the request message
+ */
+void
+GAS_handle_request_address_list (void *cls,
+                                 struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *message);
+
 
 #endif
 

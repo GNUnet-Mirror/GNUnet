@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -43,16 +43,6 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Unregister a client (which may have been a performance client,
- * but this is not assured).
- *
- * @param client handle of the (now dead) client
- */
-void
-GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
-
-
-/**
  * Transmit the given performance information to all performance
  * clients.
  *
@@ -82,62 +72,6 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Handle 'address list request' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_request_address_list (void *cls,
-                                 struct GNUNET_SERVER_Client *client,
-                                 const struct GNUNET_MessageHeader *message);
-
-/**
- * Handle 'reservation request' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_reservation_request (void *cls,
-                                struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Handle 'preference change' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_preference_change (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message);
-
-
-/**
- * Handle 'preference feedback' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_preference_feedback (void *cls,
-                                struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message);
-
-
-void
-GAS_handle_monitor (void *cls,
-                    struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *message);
-
-/**
  * Initialize performance subsystem.
  *
  * @param server handle to our server
@@ -153,8 +87,6 @@ GAS_performance_init (struct GNUNET_SERVER_Handle *server);
 void
 GAS_performance_done (void);
 
-
-/* FIXME: add API to broadcast performance updates! */
 
 #endif
 /* end of gnunet-service-ats_performance.h */
