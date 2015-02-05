@@ -70,7 +70,7 @@ GAS_normalization_get_preferences_by_peer (void *cls,
  * @return the value
  */
 double
-GAS_normalization_get_preferences_by_client (const void *client,
+GAS_normalization_get_preferences_by_client (const struct GNUNET_SERVER_Client *client,
                                              const struct GNUNET_PeerIdentity *peer,
                                              enum GNUNET_ATS_PreferenceKind pref);
 
@@ -84,7 +84,7 @@ GAS_normalization_get_preferences_by_client (const void *client,
  * @param score_abs the normalized score
  */
 void
-GAS_normalization_normalize_preference (void *client,
+GAS_normalization_normalize_preference (struct GNUNET_SERVER_Client *client,
                                         const struct GNUNET_PeerIdentity *peer,
                                         enum GNUNET_ATS_PreferenceKind kind,
                                         float score_abs);
@@ -96,7 +96,7 @@ GAS_normalization_normalize_preference (void *client,
  * @param client the disconnecting client
  */
 void
-GAS_normalization_preference_client_disconnect (void *client);
+GAS_normalization_preference_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 /**

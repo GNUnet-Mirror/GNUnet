@@ -207,7 +207,7 @@ static struct GNUNET_SCHEDULER_Task * aging_task;
 
 
 static struct GAS_Addresses_Preference_Clients *
-find_preference_client (void *client)
+find_preference_client (struct GNUNET_SERVER_Client *client)
 {
   struct GAS_Addresses_Preference_Clients *cur;
 
@@ -516,7 +516,7 @@ GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
  * @param score_abs the new preference score
  */
 static void
-preference_change (void *client,
+preference_change (struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_PeerIdentity *peer,
                     enum GNUNET_ATS_PreferenceKind kind,
                     float score_abs)
@@ -715,7 +715,7 @@ GAS_preference_done ()
  * @param score_abs the normalized score
  */
 void
-GAS_normalization_normalize_preference (void *client,
+GAS_normalization_normalize_preference (struct GNUNET_SERVER_Client *client,
                                         const struct GNUNET_PeerIdentity *peer,
                                         enum GNUNET_ATS_PreferenceKind kind,
                                         float score_abs)
@@ -846,7 +846,7 @@ GAS_normalization_get_preferences_by_peer (void *cls,
  * @return the value
  */
 double
-GAS_normalization_get_preferences_by_client (const void *client,
+GAS_normalization_get_preferences_by_client (const struct GNUNET_SERVER_Client *client,
                                              const struct GNUNET_PeerIdentity *peer,
                                              enum GNUNET_ATS_PreferenceKind pref)
 {
@@ -881,7 +881,7 @@ GAS_normalization_get_preferences_by_client (const void *client,
  * @param client the client
  */
 void
-GAS_normalization_preference_client_disconnect (void *client)
+GAS_normalization_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   struct PreferenceClient *c_cur;
   /* Find preference client */
@@ -897,4 +897,3 @@ GAS_normalization_preference_client_disconnect (void *client)
   GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, c_cur);
   free_client (c_cur);
 }
-
