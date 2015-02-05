@@ -416,6 +416,9 @@ libgnunet_plugin_transport_https_server_la_CFLAGS = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
+ test_transport_api_restart_2peers \
+ test_transport_address_switch_tcp \
+ test_transport_address_switch_udp \
  test_transport_testing_startstop \
  test_transport_testing_restart \
  test_transport_testing \
@@ -435,14 +438,11 @@ check_PROGRAMS = \
  test_transport_api_bidirectional_connect \
  test_transport_api_tcp \
  test_transport_api_restart_1peer \
- test_transport_api_restart_2peers \
  test_transport_api_timeout_tcp \
- test_transport_address_switch_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  test_transport_api_timeout_udp \
- test_transport_address_switch_udp \
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  $(UNIX_API_ABSTRACT_TEST) \

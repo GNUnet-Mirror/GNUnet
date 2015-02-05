@@ -105,29 +105,6 @@ struct RequestAddressMessage
 
 
 /**
- * Scheduling client to ATS service: reset backoff for
- * address suggestions to this peer.
- */
-struct ResetBackoffMessage
-{
-  /**
-   * Type is #GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Always zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Peer to reset backoff for.
-   */
-  struct GNUNET_PeerIdentity peer;
-};
-
-
-/**
  * ATS client to ATS service: here is another address you can use.
  */
 struct AddressAddMessage
@@ -209,37 +186,6 @@ struct AddressUpdateMessage
   /* followed by:
    * - struct GNUNET_ATS_Information [ats_count];
    */
-
-};
-
-
-/**
- * Message sent from ATS client to ATS service to notify
- * it if we started (or stopped) using an address.
- */
-struct AddressUseMessage
-{
-  /**
-   * Type is #GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Internal number this client uses to refer to this address.
-   */
-  uint32_t session_id GNUNET_PACKED;
-
-  /**
-   * Which peer is this about? (Technically redundant, as the
-   * @e session_id should be sufficient, but enables ATS service
-   * to find the session faster).
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   * #GNUNET_YES or #GNUNET_NO.
-   */
-  uint32_t in_use GNUNET_PACKED;
 
 };
 

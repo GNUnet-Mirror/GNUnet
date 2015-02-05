@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011 Christian Grothoff (and other contributing authors)
+ (C) 2011-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -37,7 +37,7 @@
 
 /**
  * NOTE: Do not change this documentation. This documentation is based on
- * gnunet.org:/vcs/fsnsg/ats-paper.git/tech-doku/ats-tech-guide.tex
+ * gnunet.org:/vcs/fsnsg/2014-p2p-ats.git/tech-doku/ats-tech-guide.tex
  * use build_txt.sh to generate plaintext output
  *
  *   1 ATS addresses : ATS address management
@@ -192,22 +192,10 @@
  *    available it will not respond at all If the client is not interested
  *    anymore, it has to cancel the address suggestion request.
  *
- *       1.7.6 Suggestions blocks and reset
- *
- *    After suggesting an address it is blocked for ATS_BLOCKING_DELTA sec. to
- *    prevent the client from being thrashed. If the client requires immediately
- *    it can reset this block using GAS_addresses_handle_backoff_reset.
- *
- *       1.7.7 Marking address in use
- *
- *    The client can notify addresses that it successfully uses an address and
- *    wants this address to be kept by calling GSA_address_in_use. Adresses will
- *    mark the address as used an notify the solver about the use.
- *
- *       1.7.8 Address lifecycle
+ *       1.7.6 Address lifecycle
  *
  *      * (add address)
- *      * (updated address) || (address in use)
+ *      * (updated address)
  *      * (delete address)
  *
  *     1.8 Bandwidth assignment
@@ -302,7 +290,9 @@ static int ats_mode;
 static void *solver;
 
 /**
- * Address suggestion requests DLL head
+ * Address suggestion requests DLL head.
+ * FIXME: This must become a Multipeermap! O(n) operations
+ * galore instead of O(1)!!!
  */
 static struct GAS_Addresses_Suggestion_Requests *pending_requests_head;
 
@@ -1086,66 +1076,6 @@ GAS_addresses_destroy (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Notification about active use of an address.
- * in_use == #GNUNET_YES:
- * 	This address is used to maintain an active connection with a peer.
- * in_use == #GNUNET_NO:
- * 	This address is no longer used to maintain an active connection with a peer.
- *
- * Note: can only be called with in_use == #GNUNET_NO if called with #GNUNET_YES
- * before
- *
- * @param peer peer
- * @param session_id session id, can be 0
- * @param in_use #GNUNET_YES if #GNUNET_NO FIXME
- * @return #GNUNET_SYSERR on failure (address unknown ...)
- */
-int
-GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
-                      uint32_t session_id,
-                      int in_use)
-{
-  struct ATS_Address *ea;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received `%s' for peer `%s'\n",
-             "ADDRESS IN USE",
-             GNUNET_i2s (peer));
-  if (GNUNET_NO == running)
-    return GNUNET_SYSERR;
-  ea = find_exact_address (peer,
-                           session_id);
-  if (NULL == ea)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Trying to set unknown address `%s' `%u' to %s \n",
-                GNUNET_i2s (peer),
-                session_id,
-                (GNUNET_NO == in_use) ? "NO" : "YES");
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (ea->used == in_use)
-  {
-    GNUNET_break (0);
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
-               "Address in use called multiple times for peer `%s': %s -> %s \n",
-               GNUNET_i2s (peer),
-               (GNUNET_NO == ea->used) ? "NO" : "YES",
-               (GNUNET_NO == in_use) ? "NO" : "YES");
-    return GNUNET_SYSERR;
-  }
-  /* Tell solver about update */
-  ea->used = in_use;
-  ea->t_last_activity = GNUNET_TIME_absolute_get();
-  env.sf.s_address_update_inuse (solver,
-                                 ea,
-                                 ea->used);
-  return GNUNET_OK;
-}
-
-
-/**
  * Cancel address suggestions for a peer
  *
  * @param peer the peer id
@@ -1169,16 +1099,15 @@ GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
 
   if (NULL == cur)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "No address requests pending for peer `%s', cannot remove!\n",
-        GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No address requests pending for peer `%s', cannot remove!\n",
+                GNUNET_i2s (peer));
     return;
   }
   env.sf.s_get_stop (solver, peer);
-  GAS_addresses_handle_backoff_reset (peer);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Removed request pending for peer `%s\n",
-             GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Removed request pending for peer `%s\n",
+              GNUNET_i2s (peer));
   GNUNET_CONTAINER_DLL_remove (pending_requests_head,
                                pending_requests_tail,
                                cur);
@@ -1213,10 +1142,10 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   if (NULL == cur)
   {
     cur = GNUNET_new (struct GAS_Addresses_Suggestion_Requests);
-    cur->id = (*peer);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Adding new address suggestion request for `%s'\n",
-         GNUNET_i2s (peer));
+    cur->id = *peer;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Adding new address suggestion request for `%s'\n",
+                GNUNET_i2s (peer));
     GNUNET_CONTAINER_DLL_insert (pending_requests_head,
                                  pending_requests_tail,
                                  cur);
@@ -1247,55 +1176,6 @@ GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Address %p ready for suggestion, block interval now %llu \n", aa,
       aa->block_interval);
-}
-
-/**
- * Iterator to reset address blocking
- *
- * @param cls not used
- * @param key the peer
- * @param value the address to reset
- * @return #GNUNET_OK to continue
- */
-static int
-reset_address_it (void *cls,
-		  const struct GNUNET_PeerIdentity *key,
-		  void *value)
-{
-  struct ATS_Address *aa = value;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	     "Resetting interval for peer `%s' address %p from %llu to 0\n",
-	     GNUNET_i2s (&aa->peer),
-	     aa,
-	     aa->block_interval);
-  aa->blocked_until = GNUNET_TIME_UNIT_ZERO_ABS;
-  aa->block_interval = GNUNET_TIME_UNIT_ZERO;
-  return GNUNET_OK;
-}
-
-
-/**
- * Reset suggestion backoff for a peer
- *
- * Suggesting addresses is blocked for ATS_BLOCKING_DELTA. Blocking can be
- * reset using this function
- *
- * @param peer the peer id
- */
-void
-GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received `%s' for peer `%s'\n",
-             "RESET BACKOFF",
-             GNUNET_i2s (peer));
-
-  GNUNET_break(GNUNET_SYSERR !=
-               GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
-                                                           peer,
-                                                           &reset_address_it,
-                                                           NULL));
 }
 
 
@@ -1741,7 +1621,9 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
       GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
 
   for (cur = pending_requests_head;NULL != cur; cur = cur->next)
-    if (0 == memcmp (&address->peer, &cur->id, sizeof(cur->id)))
+    if (0 == memcmp (&address->peer,
+                     &cur->id,
+                     sizeof(cur->id)))
       break; /* we have an address request pending*/
   if (NULL == cur)
   {
@@ -1891,10 +1773,10 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_asprintf (&plugin,
                    "libgnunet_plugin_ats_%s",
                    plugin_short);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             _("Initializing solver `%s '`%s'\n"),
-             plugin_short,
-             plugin);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Initializing solver `%s '`%s'\n",
+              plugin_short,
+              plugin);
   if (NULL == (solver = GNUNET_PLUGIN_load (plugin, &env)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1904,7 +1786,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   GNUNET_assert (NULL != env.sf.s_add);
-  GNUNET_assert (NULL != env.sf.s_address_update_inuse);
   GNUNET_assert (NULL != env.sf.s_address_update_property);
   GNUNET_assert (NULL != env.sf.s_address_update_session);
   GNUNET_assert (NULL != env.sf.s_address_update_network);

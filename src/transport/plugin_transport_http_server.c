@@ -604,6 +604,7 @@ server_delete_session (struct Session *s)
     plugin->env->session_end (plugin->env->cls,
                               s->address,
                               s);
+    s->known_to_service = GNUNET_NO;
   }
   if (NULL != s->msg_tk)
   {
@@ -1522,7 +1523,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     notify_session_monitor (plugin,
                             s,
                             GNUNET_TRANSPORT_SS_UP);
-    plugin->env->session_start (NULL,
+    plugin->env->session_start (plugin->env->cls,
                                 s->address,
                                 s,
                                 NULL, 0);
@@ -1670,7 +1671,7 @@ server_receive_mst_cb (void *cls,
   if (GNUNET_NO == s->known_to_service)
   {
     s->known_to_service = GNUNET_YES;
-    plugin->env->session_start (NULL,
+    plugin->env->session_start (plugin->env->cls,
                                 s->address,
                                 s,
                                 NULL,

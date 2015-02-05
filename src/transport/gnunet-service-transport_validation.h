@@ -132,6 +132,15 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
 
 
 /**
+ * Validate an individual address.
+ *
+ * @param address address we should try to validate
+ */
+void
+GST_validation_handle_address (const struct GNUNET_HELLO_Address *address);
+
+
+/**
  * Function called for each address (or address status change) that
  * the validation module is aware of (for the given target).
  *

@@ -481,18 +481,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 
 
 /**
- * We would like to reset the address suggestion block time for this
- * peer.
- *
- * @param sh handle
- * @param peer identity of the peer we want to reset
- */
-void
-GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
-                          const struct GNUNET_PeerIdentity *peer);
-
-
-/**
  * Test if a address and a session is known to ATS.
  *
  * @param sh the scheduling handle
@@ -579,18 +567,6 @@ void
 GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
                            const struct GNUNET_ATS_Information *ats,
                            uint32_t ats_count);
-
-
-/**
- * An address is now in use, or not used any more.
- *
- * @param ar address record for which to toggle the flag
- * @param in_use #GNUNET_YES if this address is now used, #GNUNET_NO
- *               if address is not used any more
- */
-void
-GNUNET_ATS_address_set_in_use (struct GNUNET_ATS_AddressRecord *ar,
-                               int in_use);
 
 
 /**

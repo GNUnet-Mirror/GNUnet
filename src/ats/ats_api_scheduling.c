@@ -92,13 +92,6 @@ struct GNUNET_ATS_AddressRecord
   uint32_t slot;
 
   /**
-   * Is this address currently in use?  In use means
-   * that the transport service will use this address
-   * for sending.
-   */
-  int in_use;
-
-  /**
    * We're about to destroy this address record, just ATS does
    * not know this yet.  Once ATS confirms its destruction,
    * we can clean up.
@@ -418,6 +411,11 @@ process_ats_address_suggestion_message (void *cls,
     if ( (0 == ntohl (m->bandwidth_out.value__)) &&
          (0 == ntohl (m->bandwidth_in.value__)) )
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "ATS suggests disconnect from peer `%s' with BW %u/%u\n",
+                  GNUNET_i2s (&ar->address->peer),
+                  (unsigned int) ntohl (m->bandwidth_out.value__),
+                  (unsigned int) ntohl (m->bandwidth_in.value__));
       sh->suggest_cb (sh->suggest_cb_cls,
                       &m->peer,
                       NULL,
@@ -434,6 +432,11 @@ process_ats_address_suggestion_message (void *cls,
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS suggests address slot %u for peer `%s' using plugin %s\n",
+              ar->slot,
+              GNUNET_i2s (&ar->address->peer),
+              ar->address->transport_name);
   sh->suggest_cb (sh->suggest_cb_cls,
                   &m->peer,
                   ar->address,
@@ -498,7 +501,7 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
   m->session_id = htonl (ar->slot);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
+              "Adding address for peer `%s', plugin `%s', session %p slot %u\n",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
               ar->session,
@@ -515,29 +518,6 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
     memcpy (&pm[ar->address->address_length],
             ar->address->transport_name,
             namelen);
-  GNUNET_MQ_send (sh->mq, ev);
-}
-
-
-/**
- * Generate and transmit the `struct AddressUseMessage` for the given
- * address record.
- *
- * @param ar the address to inform the ATS service about
- * @param in_use say if it is in use or not
- */
-static void
-send_in_use_message (struct GNUNET_ATS_AddressRecord *ar,
-                     int in_use)
-{
-  struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
-  struct GNUNET_MQ_Envelope *ev;
-  struct AddressUseMessage *m;
-
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_IN_USE);
-  m->peer = ar->address->peer;
-  m->in_use = htonl ((uint32_t) in_use);
-  m->session_id = htonl (ar->slot);
   GNUNET_MQ_send (sh->mq, ev);
 }
 
@@ -586,8 +566,6 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
     if (NULL == ar)
       continue;
     send_add_address_message (sh, ar);
-    if (ar->in_use)
-      send_in_use_message (ar, GNUNET_YES);
     if (NULL == sh->mq)
       return;
   }
@@ -648,27 +626,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
                      sh->session_array_size,
                      0);
   GNUNET_free (sh);
-}
-
-
-/**
- * We would like to reset the address suggestion block time for this
- * peer.
- *
- * @param sh handle
- * @param peer identity of the peer we want to reset
- */
-void
-GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
-                          const struct GNUNET_PeerIdentity *peer)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  struct ResetBackoffMessage *m;
-
-  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_RESET_BACKOFF);
-  m->reserved = htonl (0);
-  m->peer = *peer;
-  GNUNET_MQ_send (sh->mq, ev);
 }
 
 
@@ -799,7 +756,6 @@ GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
 {
   GNUNET_break (session == ar->session);
   ar->session = NULL;
-  GNUNET_break (GNUNET_NO == ar->in_use);
   if (GNUNET_HELLO_address_check_option (ar->address,
                                          GNUNET_HELLO_ADDRESS_INFO_INBOUND))
   {
@@ -834,7 +790,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
   size_t msize;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding address for peer `%s', plugin `%s', session %p id %u\n",
+              "Updating address for peer `%s', plugin `%s', session %p slot %u\n",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
               ar->session,
@@ -861,29 +817,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
 }
 
 
-/**
- * An address is now in use or not used any more.
- *
- * @param ar the address
- * @param in_use #GNUNET_YES if this address is now used, #GNUNET_NO
- * if address is not used any more
- */
-void
-GNUNET_ATS_address_set_in_use (struct GNUNET_ATS_AddressRecord *ar,
-                               int in_use)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Setting address used to %s for peer `%s', plugin `%s', session %p\n",
-              (GNUNET_YES == in_use) ? "YES" : "NO",
-              GNUNET_i2s (&ar->address->peer),
-              ar->address->transport_name,
-              ar->session);
-  ar->in_use = in_use;
-  if (NULL == ar->sh->mq)
-    return;
-  send_in_use_message (ar, in_use);
-}
-
 
 /**
  * An address got destroyed, stop using it as a valid address.
@@ -898,9 +831,10 @@ GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar)
   struct AddressDestroyedMessage *m;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Deleting address for peer `%s', plugin `%s', session %p\n",
+              "Deleting address for peer `%s', plugin `%s', slot %u session %p\n",
               GNUNET_i2s (&ar->address->peer),
               ar->address->transport_name,
+              ar->slot,
               ar->session);
   GNUNET_break (NULL == ar->session);
   ar->session = NULL;

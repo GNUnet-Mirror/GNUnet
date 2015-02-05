@@ -450,7 +450,7 @@ cleanup_validation_entry (void *cls,
                            validations_running,
                            GNUNET_NO);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Validation finished, %u validation processes running\n",
+                "Validation aborted, %u validation processes running\n",
                 validations_running);
   }
   GNUNET_free (ve);
@@ -830,7 +830,7 @@ add_valid_address (void *cls,
   if (GNUNET_YES != ve->known_to_ats)
   {
     ve->known_to_ats = GNUNET_YES;
-    GST_ats_add_address (address, NULL, &ats, 1);
+    GST_ats_add_address (address, &ats, 1);
   }
   return GNUNET_OK;
 }
@@ -1230,6 +1230,35 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
 
 
 /**
+ * Validate an individual address.
+ *
+ * @param address address we should try to validate
+ */
+void
+GST_validation_handle_address (const struct GNUNET_HELLO_Address *address)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct ValidationEntry *ve;
+
+  papi = GST_plugins_find (address->transport_name);
+  if (NULL == papi)
+  {
+    /* This plugin is currently unvailable ... ignore */
+    return;
+  }
+  ve = find_validation_entry (address);
+  if (NULL == ve->revalidation_task)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Validation process started for fresh address `%s' of %s\n",
+                GST_plugins_a2s (ve->address),
+                GNUNET_i2s (&ve->address->peer));
+    ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
+  }
+}
+
+
+/**
  * Iterator callback to go over all addresses and try to validate them
  * (unless blocked or already validated).
  *
@@ -1243,29 +1272,13 @@ validate_address_iterator (void *cls,
                            const struct GNUNET_HELLO_Address *address,
                            struct GNUNET_TIME_Absolute expiration)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions * papi;
-  struct ValidationEntry *ve;
-
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Skipping expired address from HELLO\n");
     return GNUNET_OK;           /* expired */
   }
-  papi = GST_plugins_find (address->transport_name);
-  if (NULL == papi)
-  {
-    /* This plugin is currently unvailable ... ignore */
-    return GNUNET_OK;
-  }
-  ve = find_validation_entry (address);
-  if (NULL == ve->revalidation_task)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Validation process started for fresh address `%s'\n",
-                GST_plugins_a2s (ve->address));
-    ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
-  }
+  GST_validation_handle_address (address);
   return GNUNET_OK;
 }
 
@@ -1457,7 +1470,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     else
     {
       ve->known_to_ats = GNUNET_YES;
-      GST_ats_add_address (ve->address, NULL, ats, 2);
+      GST_ats_add_address (ve->address, ats, 2);
     }
   }
   if (validations_running > 0)

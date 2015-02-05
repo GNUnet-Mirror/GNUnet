@@ -256,6 +256,10 @@ unblock_address (void *cls,
   struct AddressInfo *ai = cls;
 
   ai->unblock_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Unblocking address %s of peer %s\n",
+              GST_plugins_a2s (ai->address),
+              GNUNET_i2s (&ai->address->peer));
   ai->ar = GNUNET_ATS_address_add (GST_ats,
                                    ai->address,
                                    ai->session,
@@ -291,8 +295,26 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
-  GNUNET_ATS_address_destroy (ai->ar);
+  if (GNUNET_YES ==
+      GNUNET_HELLO_address_check_option (address,
+                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Removing address %s of peer %s from use (inbound died)\n",
+                GST_plugins_a2s (address),
+                GNUNET_i2s (&address->peer));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Blocking address %s of peer %s from use for a while\n",
+                GST_plugins_a2s (address),
+                GNUNET_i2s (&address->peer));
+  /* destroy session and address */
+  if ( (NULL == session) ||
+       (GNUNET_NO ==
+        GNUNET_ATS_address_del_session (ai->ar, session)) )
+    GNUNET_ATS_address_destroy (ai->ar);
   ai->ar = NULL;
+
+  /* determine when the address should come back to life */
   ai->back_off = GNUNET_TIME_STD_BACKOFF (ai->back_off);
   ai->blocked = GNUNET_TIME_relative_to_absolute (ai->back_off);
   ai->unblock_task = GNUNET_SCHEDULER_add_delayed (ai->back_off,
@@ -302,8 +324,10 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about the new address including the network this address is
- * located in.
+ * Notify ATS about the a new inbound address. We may already
+ * know the address (as this is called each time we receive
+ * a message from an inbound connection).  If the address is
+ * indeed new, make it available to ATS.
  *
  * @param address the address
  * @param session the session
@@ -311,10 +335,10 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
  * @param ats_count number of @a ats information
  */
 void
-GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
-                     const struct GNUNET_ATS_Information *ats,
-                     uint32_t ats_count)
+GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
+                             struct Session *session,
+                             const struct GNUNET_ATS_Information *ats,
+                             uint32_t ats_count)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_ATS_Information ats2[ats_count + 1];
@@ -328,55 +352,37 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_break(0);
     return;
   }
-  if (GNUNET_YES ==
-      GNUNET_HELLO_address_check_option (address,
-                                         GNUNET_HELLO_ADDRESS_INFO_INBOUND))
-  {
-    GNUNET_break (NULL != session);
-  }
-  ai = (NULL == session)
-    ? find_ai_no_session (address)
-    : find_ai (address, session);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_HELLO_address_check_option (address,
+                                                    GNUNET_HELLO_ADDRESS_INFO_INBOUND));
+  GNUNET_assert (NULL != session);
+  ai = find_ai (address, session);
   if (NULL != ai)
-    return;
-  if (NULL != session)
   {
-    /* in this case, we must not find an existing
-       session-less address, as the caller should
-       have checked for this case if it were possible. */
-    ai = find_ai (address, NULL);
-    if (NULL != ai)
-    {
-      GNUNET_assert (0);
-      return;
-    }
-  }
-  if (NULL == (papi = GST_plugins_find (address->transport_name)))
-  {
-    /* we don't have the plugin for this address */
-    GNUNET_assert (0);
+    /* This should only be called for new sessions, and thus
+       we should not already have the address */
+    GNUNET_break (0);
     return;
   }
-  if (NULL != session)
+  papi = GST_plugins_find (address->transport_name);
+  GNUNET_assert (NULL != papi);
+  net = papi->get_network (papi->cls, session);
+  if (GNUNET_ATS_NET_UNSPECIFIED == net)
   {
-    net = papi->get_network (papi->cls, session);
-    if (GNUNET_ATS_NET_UNSPECIFIED == net)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _ ("Could not obtain a valid network for `%s' %s (%s)\n"),
-                  GNUNET_i2s (&address->peer),
-                  GST_plugins_a2s (address),
-                  address->transport_name);
-      return;
-    }
-    ats2[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    ats2[0].value = htonl (net);
-    memcpy (&ats2[1],
-            ats,
-            sizeof(struct GNUNET_ATS_Information) * ats_count);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not obtain a valid network for `%s' %s (%s)\n"),
+                GNUNET_i2s (&address->peer),
+                GST_plugins_a2s (address),
+                address->transport_name);
+    return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
+  ats2[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats2[0].value = htonl (net);
+  memcpy (&ats2[1],
+          ats,
+          sizeof(struct GNUNET_ATS_Information) * ats_count);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying ATS about peer `%s''s new inbound address `%s' session %p in network %s\n",
               GNUNET_i2s (&address->peer),
               (0 == address->address_length)
               ? "<inbound>"
@@ -391,6 +397,55 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->session = session;
+  ai->ar = ar;
+  (void) GNUNET_CONTAINER_multipeermap_put (p2a,
+                                            &ai->address->peer,
+                                            ai,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  publish_p2a_stat_update ();
+}
+
+
+/**
+ * Notify ATS about the new address including the network this address is
+ * located in.  The address must NOT be inbound and must be new to ATS.
+ *
+ * @param address the address
+ * @param ats ats information
+ * @param ats_count number of @a ats information
+ */
+void
+GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
+                     const struct GNUNET_ATS_Information *ats,
+                     uint32_t ats_count)
+{
+  struct GNUNET_ATS_AddressRecord *ar;
+  struct AddressInfo *ai;
+
+  /* valid new address, let ATS know! */
+  if (NULL == address->transport_name)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  GNUNET_assert (GNUNET_YES !=
+                 GNUNET_HELLO_address_check_option (address,
+                                                    GNUNET_HELLO_ADDRESS_INFO_INBOUND));
+  ai = find_ai_no_session (address);
+  GNUNET_assert (NULL == ai);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Notifying ATS about peer `%s''s new address `%s'\n",
+              GNUNET_i2s (&address->peer),
+              (0 == address->address_length)
+              ? "<inbound>"
+              : GST_plugins_a2s (address));
+  ar = GNUNET_ATS_address_add (GST_ats,
+                               address,
+                               NULL,
+                               ats,
+                               ats_count);
+  ai = GNUNET_new (struct AddressInfo);
+  ai->address = GNUNET_HELLO_address_copy (address);
   ai->ar = ar;
   (void) GNUNET_CONTAINER_multipeermap_put (p2a,
                                             &ai->address->peer,
@@ -477,7 +532,14 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
                    GNUNET_i2s (&address->peer));
   if (NULL == ai->ar)
   {
-    GST_ats_expire_address (address);
+    /* If ATS doesn't know about the address/session, and this
+       was an inbound session that expired, then we must forget
+       about the address as well.  Otherwise, we are done as
+       we have set `ai->session` to NULL already. */
+    if (GNUNET_YES ==
+        GNUNET_HELLO_address_check_option (address,
+                                           GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+      GST_ats_expire_address (address);
     return;
   }
   if (GNUNET_YES ==
@@ -516,7 +578,6 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
     GNUNET_assert (GNUNET_YES !=
                    GNUNET_HELLO_address_check_option (address,
                                                       GNUNET_HELLO_ADDRESS_INFO_INBOUND));
-
     return;
   }
   /* Call to manipulation to manipulate ATS information */
@@ -541,31 +602,6 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about a new session now being in use (or not).
- *
- * @param address the address
- * @param session the session
- * @param in_use #GNUNET_YES or #GNUNET_NO
- */
-void
-GST_ats_set_in_use (const struct GNUNET_HELLO_Address *address,
-                    struct Session *session,
-                    int in_use)
-{
-  struct AddressInfo *ai;
-
-  ai = find_ai (address, session);
-  if (NULL == ai)
-  {
-    GNUNET_break (0);
-    return;
-  }
-  GNUNET_assert (NULL != ai->ar);
-  GNUNET_ATS_address_set_in_use (ai->ar, in_use);
-}
-
-
-/**
  * Notify ATS that the address has expired and thus cannot
  * be used any longer.  This function must only be called
  * if the corresponding session is already gone.
@@ -577,7 +613,11 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
 {
   struct AddressInfo *ai;
 
-  ai = find_ai (address, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Address %s of peer %s expired\n",
+              GST_plugins_a2s (address),
+              GNUNET_i2s (&address->peer));
+  ai = find_ai_no_session (address);
   if (NULL == ai)
   {
     GNUNET_assert (0);
@@ -595,7 +635,15 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                    GNUNET_i2s (&address->peer));
   if (NULL != ai->ar)
   {
-    GNUNET_ATS_address_destroy (ai->ar);
+    /* We usually should not have a session here when we
+       expire an address, but during shutdown a session
+       may be active while validation causes the address
+       to 'expire'.  So clean up both if necessary. */
+    if ( (NULL == ai->session) ||
+         (GNUNET_NO ==
+          GNUNET_ATS_address_del_session (ai->ar,
+                                          ai->session)) )
+      GNUNET_ATS_address_destroy (ai->ar);
     ai->ar = NULL;
   }
   if (NULL != ai->unblock_task)

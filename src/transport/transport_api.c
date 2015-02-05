@@ -512,7 +512,7 @@ outbound_bw_tracker_update (void *cls)
   if (NULL == n->hn)
     return;
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
-      n->th->notify_size + n->traffic_overhead);
+                                              n->th->notify_size + n->traffic_overhead);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "New outbound delay %llu us\n",
        GNUNET_STRINGS_relative_time_to_string (delay,
@@ -703,7 +703,8 @@ demultiplexer (void *cls,
          "CONNECT",
          GNUNET_i2s (&cim->id),
          ntohl (cim->quota_out.value__));
-    GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, cim->quota_out);
+    GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
+                                           cim->quota_out);
     if (h->nc_cb != NULL)
       h->nc_cb (h->cls, &n->id);
     break;
@@ -745,9 +746,10 @@ demultiplexer (void *cls,
 
     if (bytes_physical >= bytes_msg)
     {
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Overhead for %u byte message: %u\n",
-            bytes_msg, bytes_physical - bytes_msg);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Overhead for %u byte message: %u\n",
+           bytes_msg,
+           bytes_physical - bytes_msg);
       n->traffic_overhead += bytes_physical - bytes_msg;
     }
     GNUNET_break (GNUNET_NO == n->is_ready);

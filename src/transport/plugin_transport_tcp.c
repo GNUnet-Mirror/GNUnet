@@ -1523,7 +1523,9 @@ tcp_plugin_get_session (void *cls,
   addrlen = address->address_length;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to get session for `%s' address of peer `%s'\n",
-       tcp_plugin_address_to_string(NULL, address->address, address->address_length),
+       tcp_plugin_address_to_string (NULL,
+                                     address->address,
+                                     address->address_length),
        GNUNET_i2s (&address->peer));
 
   if (GNUNET_HELLO_address_check_option (address,

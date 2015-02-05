@@ -23,7 +23,6 @@
  *
  * This test case starts 2 peers, connects and exchanges a message
  * boths peer are restarted and tested if peers reconnect
- * C code apparently.
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -32,7 +31,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 900)
 
 /**
  * How long until we give up on transmitting the message?
@@ -163,7 +162,9 @@ static void
 restart (struct PeerContext *p, char *cfg_file)
 {
   GNUNET_assert (p != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Restarting peer %u (`%4s')\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Restarting peer %u (`%4s')\n",
+              p->no,
               GNUNET_i2s (&p->id));
   GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file, &restart_cb, p);
 }

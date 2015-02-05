@@ -2064,25 +2064,6 @@ GAS_mlp_address_session_changed (void *solver,
 
 
 /**
- * Transport session for this address has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param in_use usage state
- */
-static void
-GAS_mlp_address_inuse_changed (void *solver,
-                               struct ATS_Address *address,
-                               int in_use)
-{
-  /* Nothing to do here */
-  return;
-}
-
-
-/**
  * Network scope for this address has changed
  *
  * NOTE: values in addresses are already updated
@@ -2973,7 +2954,6 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   env->sf.s_add = &GAS_mlp_address_add;
   env->sf.s_address_update_property = &GAS_mlp_address_property_changed;
   env->sf.s_address_update_session = &GAS_mlp_address_session_changed;
-  env->sf.s_address_update_inuse = &GAS_mlp_address_inuse_changed;
   env->sf.s_address_update_network = &GAS_mlp_address_change_network;
   env->sf.s_get = &GAS_mlp_get_preferred_address;
   env->sf.s_get_stop = &GAS_mlp_stop_get_preferred_address;

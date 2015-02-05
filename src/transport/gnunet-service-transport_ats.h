@@ -21,11 +21,6 @@
  * @file transport/gnunet-service-transport_ats.h
  * @brief interfacing between transport and ATS service
  * @author Christian Grothoff
- *
- * FIXME:
- * - add API to give ATS feedback about an address that was
- *   suggested but did not work out (without fully 'deleting'
- *   it forever)
  */
 #ifndef GNUNET_SERVICE_TRANSPORT_ATS_H
 #define GNUNET_SERVICE_TRANSPORT_ATS_H
@@ -72,9 +67,14 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
                        struct Session *session);
 
 
+/* FIXME: might want to add a function to reset the
+   back-off from blocking */
+
 /**
- * Notify ATS about the new address including the network this address is
- * located in.
+ * Notify ATS about the a new inbound address.  We may already
+ * know the address (as this is called each time we receive
+ * a message from an inbound connection).  If the address is
+ * indeed new, make it available to ATS.
  *
  * @param address the address
  * @param session the session
@@ -82,8 +82,22 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
  * @param ats_count number of @a ats information
  */
 void
+GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
+                             struct Session *session,
+                             const struct GNUNET_ATS_Information *ats,
+                             uint32_t ats_count);
+
+
+/**
+ * Notify ATS about the new address including the network this address is
+ * located in.  The address must NOT be inbound and must be new to ATS.
+ *
+ * @param address the address
+ * @param ats ats information
+ * @param ats_count number of @a ats information
+ */
+void
 GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
                      const struct GNUNET_ATS_Information *ats,
                      uint32_t ats_count);
 
@@ -98,19 +112,6 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
 void
 GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
                      struct Session *session);
-
-
-/**
- * Notify ATS about a new session now being in use (or not).
- *
- * @param address the address
- * @param session the session
- * @param in_use #GNUNET_YES or #GNUNET_NO
- */
-void
-GST_ats_set_in_use (const struct GNUNET_HELLO_Address *address,
-                    struct Session *session,
-                    int in_use);
 
 
 /**

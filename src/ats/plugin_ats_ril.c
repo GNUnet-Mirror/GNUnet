@@ -2166,7 +2166,7 @@ GAS_ril_address_change_preference (void *solver,
  * @param network network type of this address
  */
 static void
-GAS_ril_address_add (void *solver, 
+GAS_ril_address_add (void *solver,
 		     struct ATS_Address *address,
 		     uint32_t network)
 {
@@ -2181,7 +2181,7 @@ GAS_ril_address_add (void *solver,
   int i;
   unsigned int zero;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "API_address_add()\n");
 
   net = ril_get_network (s, network);
@@ -2256,7 +2256,7 @@ GAS_ril_address_add (void *solver,
  */
 static void
 GAS_ril_address_delete (void *solver,
-			struct ATS_Address *address, 
+			struct ATS_Address *address,
 			int session_only)
 {
   struct GAS_RIL_Handle *s = solver;
@@ -2272,7 +2272,7 @@ GAS_ril_address_delete (void *solver,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "API_address_delete() Delete %s%s %s address %s for peer '%s'\n",
        session_only ? "session for " : "", address->active ? "active" : "inactive", address->plugin,
-       address->addr, 
+       address->addr,
        GNUNET_i2s (&address->peer));
 
   agent = ril_get_agent (s, &address->peer, GNUNET_NO);
@@ -2373,7 +2373,7 @@ GAS_ril_address_property_changed (void *solver,
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_property_changed() Property '%s' for peer '%s' address %s changed "
-          "to %.2f \n", 
+          "to %.2f \n",
       GNUNET_ATS_print_property_type (type),
       GNUNET_i2s (&address->peer),
       address->addr, rel_value);
@@ -2407,27 +2407,6 @@ GAS_ril_address_session_changed (void *solver,
 
 
 /**
- * Notify the solver that an address is (not) actively used by transport
- * to communicate with a remote peer
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param in_use usage state
- */
-static void
-GAS_ril_address_inuse_changed (void *solver,
-			       struct ATS_Address *address,
-			       int in_use)
-{
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
-      address->plugin, GNUNET_i2s (&address->peer), (GNUNET_YES == in_use) ? "USED" : "UNUSED");
-}
-
-
-/**
  * Notify solver that the network an address is located in has changed
  *
  * NOTE: values in addresses are already updated
@@ -2446,7 +2425,7 @@ GAS_ril_address_change_network (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, 
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_change_network() Network type changed, moving "
       "%s address of peer %s from '%s' to '%s'\n",
       (GNUNET_YES == address->active) ? "active" : "inactive", GNUNET_i2s (&address->peer),
@@ -2526,8 +2505,8 @@ GAS_ril_bulk_stop (void *solver)
 {
   struct GAS_RIL_Handle *s = solver;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, 
-      "API_bulk_stop() lock: %d\n", 
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "API_bulk_stop() lock: %d\n",
       s->bulk_lock - 1);
 
   if (s->bulk_lock < 1)
@@ -2604,7 +2583,7 @@ GAS_ril_stop_get_preferred_address (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "API_stop_get_preferred_address()");
 
   agent = ril_get_agent (s, peer, GNUNET_NO);
@@ -2872,7 +2851,6 @@ libgnunet_plugin_ats_ril_init (void *cls)
   env->sf.s_add = &GAS_ril_address_add;
   env->sf.s_address_update_property = &GAS_ril_address_property_changed;
   env->sf.s_address_update_session = &GAS_ril_address_session_changed;
-  env->sf.s_address_update_inuse = &GAS_ril_address_inuse_changed;
   env->sf.s_address_update_network = &GAS_ril_address_change_network;
   env->sf.s_get = &GAS_ril_get_preferred_address;
   env->sf.s_get_stop = &GAS_ril_stop_get_preferred_address;

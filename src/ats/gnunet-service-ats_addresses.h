@@ -196,16 +196,10 @@
  *    prevent the client from being thrashed. If the client requires immediately
  *    it can reset this block using GAS_addresses_handle_backoff_reset.
  *
- *       1.7.7 Marking address in use
- *
- *    The client can notify addresses that it successfully uses an address and
- *    wants this address to be kept by calling GSA_address_in_use. Adresses will
- *    mark the address as used an notify the solver about the use.
- *
- *       1.7.8 Address lifecycle
+ *       1.7.7 Address lifecycle
  *
  *      * (add address)
- *      * (updated address) || (address in use)
+ *      * (updated address)
  *      * (delete address)
  *
  *     1.8 Bandwidth assignment
@@ -451,27 +445,6 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                    uint32_t session_id,
                    const struct GNUNET_ATS_Information *atsi,
                    uint32_t atsi_count);
-
-
-/**
- * Notification about active use of an address.
- * in_use == #GNUNET_YES:
- * 	This address is used to maintain an active connection with a peer.
- * in_use == #GNUNET_NO:
- * 	This address is no longer used to maintain an active connection with a peer.
- *
- * Note: can only be called with in_use == #GNUNET_NO if called with #GNUNET_YES
- * before
- *
- * @param peer peer
- * @param session_id session id, can never be 0
- * @param in_use #GNUNET_YES if #GNUNET_NO FIXME
- * @return #GNUNET_SYSERR on failure (address unknown ...)
- */
-int
-GAS_addresses_in_use (const struct GNUNET_PeerIdentity *peer,
-                      uint32_t session_id,
-                      int in_use);
 
 
 /**
