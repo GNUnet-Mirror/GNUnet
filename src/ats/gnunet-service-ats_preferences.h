@@ -62,20 +62,6 @@ GAS_normalization_get_preferences_by_peer (void *cls,
 
 
 /**
- * Get the normalized preference values for a specific client and peer
- *
- * @param client client
- * @param peer the peer
- * @param pref the preference type
- * @return the value
- */
-double
-GAS_normalization_get_preferences_by_client (const struct GNUNET_SERVER_Client *client,
-                                             const struct GNUNET_PeerIdentity *peer,
-                                             enum GNUNET_ATS_PreferenceKind pref);
-
-
-/**
  * Normalize an updated preference value
  *
  * @param client the client with this preference

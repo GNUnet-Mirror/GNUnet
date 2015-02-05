@@ -838,44 +838,6 @@ GAS_normalization_get_preferences_by_peer (void *cls,
 
 
 /**
- * Get the normalized preference values for a specific client and peer
- *
- * @param client client
- * @param peer the peer
- * @param pref the preference type
- * @return the value
- */
-double
-GAS_normalization_get_preferences_by_client (const struct GNUNET_SERVER_Client *client,
-                                             const struct GNUNET_PeerIdentity *peer,
-                                             enum GNUNET_ATS_PreferenceKind pref)
-{
-  struct PreferenceClient *c_cur;
-  struct PreferencePeer *p_cur;
-
-  /* Find preference client */
-  for (c_cur = pc_head; NULL != c_cur; c_cur = c_cur->next)
-  {
-    if (client == c_cur->client)
-      break;
-  }
-  if (NULL == c_cur)
-    return -1.0;
-
-  for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
-  {
-    if (0 == memcmp (peer, &p_cur->id, sizeof (struct GNUNET_PeerIdentity)))
-      break;
-  }
-  if (NULL == p_cur)
-    return DEFAULT_REL_PREFERENCE; /* Not found, return default */
-
-  return p_cur->f_rel[pref];
-}
-
-
-
-/**
  * A performance client disconnected
  *
  * @param client the client
