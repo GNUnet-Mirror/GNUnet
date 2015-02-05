@@ -189,6 +189,7 @@ run (void *cls,
   GSA_server = server;
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
+  GAS_connectivity_init ();
   GAS_normalization_start ();
   GAS_addresses_init ();
   if (GNUNET_OK !=
@@ -198,6 +199,7 @@ run (void *cls,
     GAS_addresses_done ();
     GAS_normalization_stop ();
     GAS_reservations_done ();
+    GAS_connectivity_done ();
     if (NULL != GSA_stats)
     {
       GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
@@ -209,7 +211,7 @@ run (void *cls,
   GAS_scheduling_init (server);
 
   GNUNET_SERVER_disconnect_notify (server,
-                                   &client_disconnect_handler, 
+                                   &client_disconnect_handler,
 				   NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,

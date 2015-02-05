@@ -23,12 +23,6 @@
  * @brief ats service, interaction with 'connecivity' API
  * @author Matthias Wachs
  * @author Christian Grothoff
- *
- * FIXME:
- * - we should track requests by client, and if a client
- *   disconnects cancel all associated requests; right
- *   now, they will persist forever unless the client
- *   explicitly sends us a cancel before disconnecting!
  */
 #include "platform.h"
 #include "gnunet-service-ats.h"
@@ -39,117 +33,21 @@
 
 
 /**
- * Pending Address suggestion requests
+ * Active connection requests.
  */
-struct GAS_Addresses_Suggestion_Requests
+struct ConnectionRequest
 {
   /**
-   * Next in DLL
+   * Client that made the request.
    */
-  struct GAS_Addresses_Suggestion_Requests *next;
-
-  /**
-   * Previous in DLL
-   */
-  struct GAS_Addresses_Suggestion_Requests *prev;
-
-  /**
-   * Peer ID
-   */
-  struct GNUNET_PeerIdentity id;
+  struct GNUNET_SERVER_Client *client;
 };
 
 
 /**
- * Address suggestion requests DLL head.
- * FIXME: This must become a Multipeermap! O(n) operations
- * galore instead of O(1)!!!
+ * Address suggestion requests by peer.
  */
-static struct GAS_Addresses_Suggestion_Requests *pending_requests_head;
-
-/**
- * Address suggestion requests DLL tail
- */
-static struct GAS_Addresses_Suggestion_Requests *pending_requests_tail;
-
-
-
-
-/**
- * Cancel address suggestions for a peer
- *
- * @param peer the peer id
- */
-void
-GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer)
-{
-  struct GAS_Addresses_Suggestion_Requests *cur = pending_requests_head;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received request: `%s' for peer %s\n",
-	      "request_address_cancel",
-	      GNUNET_i2s (peer));
-
-  while (NULL != cur)
-  {
-    if (0 == memcmp (peer, &cur->id, sizeof(cur->id)))
-      break; /* found */
-    cur = cur->next;
-  }
-
-  if (NULL == cur)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No address requests pending for peer `%s', cannot remove!\n",
-                GNUNET_i2s (peer));
-    return;
-  }
-  GAS_plugin_request_connect_stop (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Removed request pending for peer `%s\n",
-              GNUNET_i2s (peer));
-  GNUNET_CONTAINER_DLL_remove (pending_requests_head,
-                               pending_requests_tail,
-                               cur);
-  GNUNET_free (cur);
-}
-
-
-/**
- * Request address suggestions for a peer
- *
- * @param peer the peer id
- */
-void
-GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer)
-{
-  struct GAS_Addresses_Suggestion_Requests *cur = pending_requests_head;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received `%s' for peer `%s'\n",
-             "REQUEST ADDRESS",
-             GNUNET_i2s (peer));
-
-  while (NULL != cur)
-  {
-    if (0 == memcmp (peer, &cur->id, sizeof(cur->id)))
-      break; /* already suggesting */
-    cur = cur->next;
-  }
-  if (NULL == cur)
-  {
-    cur = GNUNET_new (struct GAS_Addresses_Suggestion_Requests);
-    cur->id = *peer;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Adding new address suggestion request for `%s'\n",
-                GNUNET_i2s (peer));
-    GNUNET_CONTAINER_DLL_insert (pending_requests_head,
-                                 pending_requests_tail,
-                                 cur);
-  }
-  GAS_plugin_request_connect_start (peer);
-}
-
+static struct GNUNET_CONTAINER_MultiPeerMap *connection_requests;
 
 
 /**
@@ -166,18 +64,58 @@ GAS_handle_request_address (void *cls,
 {
   const struct RequestAddressMessage *msg =
       (const struct RequestAddressMessage *) message;
+  struct ConnectionRequest *cr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message\n",
               "REQUEST_ADDRESS");
   GNUNET_break (0 == ntohl (msg->reserved));
-  GAS_addresses_request_address (&msg->peer);
+  cr = GNUNET_new (struct ConnectionRequest);
+  cr->client = client;
+  (void) GNUNET_CONTAINER_multipeermap_put (connection_requests,
+                                            &msg->peer,
+                                            cr,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GAS_plugin_request_connect_start (&msg->peer);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
 /**
- * Handle 'request address' messages from clients.
+ * Free the connection request from the map if the
+ * closure matches the client.
+ *
+ * @param cls the client to match
+ * @param pid peer for which the request was made
+ * @param value the `struct ConnectionRequest`
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+free_matching_requests (void *cls,
+                        const struct GNUNET_PeerIdentity *pid,
+                        void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct ConnectionRequest *cr = value;
+
+  if (cr->client == client)
+  {
+    GAS_plugin_request_connect_stop (pid);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Removed request pending for peer `%s\n",
+                GNUNET_i2s (pid));
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (connection_requests,
+                                                         pid,
+                                                         cr));
+    GNUNET_free (cr);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handle 'request address cancel' messages from clients.
  *
  * @param cls unused, NULL
  * @param client client that sent the request
@@ -192,10 +130,13 @@ GAS_handle_request_address_cancel (void *cls,
       (const struct RequestAddressMessage *) message;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "REQUEST_ADDRESS_CANCEL");
+              "Received REQUEST_ADDRESS_CANCEL message for peer %s\n",
+              GNUNET_i2s (&msg->peer));
   GNUNET_break (0 == ntohl (msg->reserved));
-  GAS_addresses_request_address_cancel (&msg->peer);
+  GNUNET_CONTAINER_multipeermap_get_multiple (connection_requests,
+                                              &msg->peer,
+                                              &free_matching_requests,
+                                              client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -209,7 +150,41 @@ GAS_handle_request_address_cancel (void *cls,
 void
 GAS_connectivity_remove_client (struct GNUNET_SERVER_Client *client)
 {
-  // FIXME
+  GNUNET_CONTAINER_multipeermap_iterate (connection_requests,
+                                         &free_matching_requests,
+                                         client);
+}
+
+
+/**
+ * Shutdown connectivity subsystem.
+ */
+void
+GAS_connectivity_init ()
+{
+  connection_requests = GNUNET_CONTAINER_multipeermap_create (32, GNUNET_NO);
+}
+
+
+/**
+ * Free the connection request from the map.
+ *
+ * @param cls NULL
+ * @param pid peer for which the request was made
+ * @param value the `struct ConnectionRequest`
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+free_request (void *cls,
+              const struct GNUNET_PeerIdentity *pid,
+              void *value)
+{
+  struct ConnectionRequest *cr = value;
+
+  free_matching_requests (cr->client,
+                          pid,
+                          cr);
+  return GNUNET_OK;
 }
 
 
@@ -219,15 +194,10 @@ GAS_connectivity_remove_client (struct GNUNET_SERVER_Client *client)
 void
 GAS_connectivity_done ()
 {
-  struct GAS_Addresses_Suggestion_Requests *cur;
-
-  while (NULL != (cur = pending_requests_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (pending_requests_head,
-                                 pending_requests_tail,
-                                 cur);
-    GNUNET_free(cur);
-  }
+  GNUNET_CONTAINER_multipeermap_iterate (connection_requests,
+                                         &free_request,
+                                         NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (connection_requests);
 }
 
 
