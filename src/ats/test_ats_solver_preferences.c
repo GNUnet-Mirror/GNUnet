@@ -270,7 +270,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session,
-      test_ats_info, test_ats_count);
+                          test_ats_info, test_ats_count);
   GNUNET_ATS_connectivity_suggest (connect_ats, &test_hello_address.peer);
 }
 
