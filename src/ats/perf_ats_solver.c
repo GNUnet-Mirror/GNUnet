@@ -29,6 +29,7 @@
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_plugins.h"
 #include "gnunet-service-ats_normalization.h"
+#include "gnunet-service-ats_preferences.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_ats_plugin.h"
 #include "test_ats_api_common.h"
@@ -58,7 +59,7 @@ struct PerfHandle
   /**
    *  Solver handle
    */
-  void *solver;
+  struct GNUNET_ATS_SolverFunctions *sf;
 
   /**
    * Statistics stat;
@@ -372,7 +373,7 @@ perf_update_address (struct ATS_Address *cur)
         GNUNET_i2s (&cur->peer), cur,
         "GNUNET_ATS_QUALITY_NET_DELAY",
         abs_val, rel_val);
-    ph.env.sf.s_address_update_property (ph.solver, cur,
+    ph.sf->s_address_update_property (ph.sf->cls, cur,
         GNUNET_ATS_QUALITY_NET_DELAY,
         abs_val, rel_val);
     break;
@@ -384,7 +385,7 @@ perf_update_address (struct ATS_Address *cur)
         "Updating peer `%s' address %p type %s abs val %u rel val %.3f\n",
         GNUNET_i2s (&cur->peer), cur, "GNUNET_ATS_QUALITY_NET_DISTANCE",
         abs_val, rel_val);
-    ph.env.sf.s_address_update_property (ph.solver, cur,
+    ph.sf->s_address_update_property (ph.sf->cls, cur,
         GNUNET_ATS_QUALITY_NET_DISTANCE,
         abs_val, rel_val);
     break;
@@ -423,13 +424,13 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 const double *
 get_property_cb (void *cls, const struct ATS_Address *address)
 {
-  return GAS_normalization_get_properties (NULL, 
+  return GAS_normalization_get_properties (NULL,
 					   address);
 }
 
 
 static void
-perf_address_initial_update (void *solver,
+perf_address_initial_update (void *dead,
     struct GNUNET_CONTAINER_MultiPeerMap * addresses,
     struct ATS_Address *address)
 {
@@ -437,18 +438,44 @@ perf_address_initial_update (void *solver,
   double distance;
   uint32_t random = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
   delay = (100 + (double) random) / 100;
-  ph.env.sf.s_address_update_property (solver, address, GNUNET_ATS_QUALITY_NET_DELAY,
+  ph.sf->s_address_update_property (ph.sf->cls,
+                                    address, GNUNET_ATS_QUALITY_NET_DELAY,
       100,  delay);
 
   random = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
   distance = (100 + (double) random) / 100;
 
-  ph.env.sf.s_address_update_property (solver, address,
-      GNUNET_ATS_QUALITY_NET_DISTANCE, 10, distance);
+  ph.sf->s_address_update_property (ph.sf->cls, address,
+                                    GNUNET_ATS_QUALITY_NET_DISTANCE,
+                                    10, distance);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Initial update address %p : %.2f  %.2f\n", address, delay, distance);
+             "Initial update address %p : %.2f  %.2f\n",
+             address, delay, distance);
 }
+
+
+struct DUA_Ctx
+{
+  int r;
+  int c_cur_a;
+};
+
+
+static int
+do_update_address (void *cls,
+                   const struct GNUNET_PeerIdentity *pid,
+                   void *value)
+{
+  struct DUA_Ctx *ctx = cls;
+  struct ATS_Address *addr = value;
+
+  if (ctx->c_cur_a == ctx->r)
+    perf_update_address (addr);
+  ctx->c_cur_a++;
+  return GNUNET_OK;
+}
+
 
 /**
  * Update a certain percentage of peers
@@ -457,18 +484,16 @@ perf_address_initial_update (void *solver,
  * @param ca the current number of addresses
  * @param percentage_peers the percentage of peers to update
  */
-
 static void
 perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int percentage_peers)
 {
-  struct ATS_Address *cur_address;
   int c_peer;
   int c_select;
   int c_cur_p;
-  int c_cur_a;
   int r;
   int count;
   unsigned int m[cp];
+  struct DUA_Ctx dua_ctx;
 
   count = cp * ((double) percentage_peers / 100);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -496,15 +521,14 @@ perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int percen
     {
       r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, ca);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Updating peer [%u] address [%u]\n", c_cur_p, r);
+                 "Updating peer [%u] address [%u]\n", c_cur_p, r);
 
-      c_cur_a = 0;
-      for (cur_address = ph.peers[c_cur_p].head; NULL != cur_address; cur_address = cur_address->next)
-      {
-        if (c_cur_a == r)
-          perf_update_address (cur_address);
-        c_cur_a ++;
-      }
+      dua_ctx.c_cur_a = 0;
+      dua_ctx.r = r;
+      GNUNET_CONTAINER_multipeermap_get_multiple (ph.addresses,
+                                                  &ph.peers[c_cur_p].id,
+                                                  &do_update_address,
+                                                  &dua_ctx);
     }
   }
 }
@@ -520,9 +544,9 @@ static struct ATS_Address *
 perf_create_address (int cp, int ca)
 {
   struct ATS_Address *a;
+
   a = create_address (&ph.peers[cp].id,
       "Test 1", "test 1", strlen ("test 1") + 1, 0);
-  GNUNET_CONTAINER_DLL_insert (ph.peers[cp].head, ph.peers[cp].tail, a);
   GNUNET_CONTAINER_multipeermap_put (ph.addresses, &ph.peers[cp].id, a,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return a;
@@ -1028,15 +1052,34 @@ write_all_iterations (void)
   GNUNET_free_non_null (data_fn_update);
 }
 
+
+static int
+do_delete_address (void *cls,
+                   const struct GNUNET_PeerIdentity *pid,
+                   void *value)
+{
+  struct ATS_Address *cur = value;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Deleting addresses for peer %u\n",
+             pid);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (ph.addresses,
+                                                       pid,
+                                                       cur));
+  ph.sf->s_del (ph.sf->cls, cur, GNUNET_NO);
+  GNUNET_free_non_null (cur->atsi);
+  GNUNET_free (cur);
+  return GNUNET_OK;
+}
+
+
 /**
  * Run a performance iteration
  */
-
 static void
 perf_run_iteration (void)
 {
-  struct ATS_Address *cur;
-  struct ATS_Address *next;
   int cp;
   int ca;
   int count_p = ph.N_peers_end;
@@ -1059,7 +1102,7 @@ perf_run_iteration (void)
     if (GNUNET_NO == ph.bulk_running)
     {
       ph.bulk_running = GNUNET_YES;
-      ph.env.sf.s_bulk_start (ph.solver);
+      ph.sf->s_bulk_start (ph.sf->cls);
     }
     ph.current_p = cp + 1;
     for (ca = 0; ca < count_a; ca++)
@@ -1078,16 +1121,16 @@ perf_run_iteration (void)
       cur_addr->atsi_count = 1;
       cur_addr->atsi[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
       cur_addr->atsi[0].value = htonl (net);
-      ph.env.sf.s_add (ph.solver, cur_addr, net);
+      ph.sf->s_add (ph.sf->cls, cur_addr, net);
 
       ph.current_a = ca + 1;
-      perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
+      perf_address_initial_update (NULL, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Adding address for peer %u address %u in network %s\n", cp, ca,
           GNUNET_ATS_print_network_type(net));
     }
     /* Notify solver about request */
-    ph.env.sf.s_get (ph.solver, &ph.peers[cp].id);
+    ph.sf->s_get (ph.sf->cls, &ph.peers[cp].id);
 
     if (cp + 1 >= ph.N_peers_start)
     {
@@ -1096,7 +1139,7 @@ perf_run_iteration (void)
       {
         ph.expecting_solution = GNUNET_YES;
         ph.bulk_running = GNUNET_NO;
-        ph.env.sf.s_bulk_stop (ph.solver);
+        ph.sf->s_bulk_stop (ph.sf->cls);
       }
       else
         GNUNET_break (0);
@@ -1116,11 +1159,11 @@ perf_run_iteration (void)
         if (GNUNET_NO == ph.bulk_running)
         {
           ph.bulk_running = GNUNET_YES;
-          ph.env.sf.s_bulk_start (ph.solver);
+          ph.sf->s_bulk_start (ph.sf->cls);
         }
         perf_update_all_addresses (cp + 1, ca, ph.opt_update_percent);
         ph.bulk_running = GNUNET_NO;
-        ph.env.sf.s_bulk_stop (ph.solver);
+        ph.sf->s_bulk_stop (ph.sf->cls);
         /* Problem is solved by the solver here due to unlocking */
         ph.performed_update = GNUNET_NO;
         ph.expecting_solution = GNUNET_NO;
@@ -1133,24 +1176,16 @@ perf_run_iteration (void)
       "Done, cleaning up addresses\n");
   if (GNUNET_NO == ph.bulk_running)
   {
-    ph.env.sf.s_bulk_start (ph.solver);
+    ph.sf->s_bulk_start (ph.sf->cls);
     ph.bulk_running = GNUNET_YES;
   }
 
   for (cp = 0; cp < count_p; cp++)
   {
-    for (cur = ph.peers[cp].head; cur != NULL ; cur = next)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Deleting addresses for peer %u\n", cp);
-      GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (ph.addresses,
-          &ph.peers[cp].id, cur));
-      ph.env.sf.s_del (ph.solver, cur, GNUNET_NO);
-      next = cur->next;
-      GNUNET_CONTAINER_DLL_remove(ph.peers[cp].head, ph.peers[cp].tail, cur);
-      GNUNET_free_non_null (cur->atsi);
-      GNUNET_free (cur);
-    }
+    GNUNET_CONTAINER_multipeermap_get_multiple (ph.addresses,
+                                                &ph.peers[cp].id,
+                                                &do_delete_address,
+                                                NULL);
   }
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -1271,7 +1306,6 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.env.get_property = &get_property_cb;
   ph.env.network_count = GNUNET_ATS_NetworkTypeCount;
   ph.env.info_cb = &solver_info_cb;
-  ph.env.info_cb_cls = NULL;
 
   int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
@@ -1288,9 +1322,10 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   GNUNET_asprintf (&plugin, "libgnunet_plugin_ats_%s", ph.ats_string);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s'\n"), ph.ats_string);
-  if  (NULL == (ph.solver = GNUNET_PLUGIN_load (plugin, &ph.env)))
+  if  (NULL == (ph.sf = GNUNET_PLUGIN_load (plugin, &ph.env)))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize solver `%s'!\n"), plugin);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to initialize solver `%s'!\n"), plugin);
     ret = 1;
     return;
   }
@@ -1308,7 +1343,8 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   /* Unload solver*/
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
-  GNUNET_PLUGIN_unload (plugin, ph.solver);
+  GNUNET_PLUGIN_unload (plugin, ph.sf);
+  ph.sf = NULL;
   GNUNET_free (plugin);
   for (c = 0; c < ph.total_iterations; c++ )
   {
@@ -1328,7 +1364,6 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   GNUNET_CONFIGURATION_destroy (solver_cfg);
   GNUNET_STATISTICS_destroy (ph.stat, GNUNET_NO);
-  ph.solver = NULL;
 }
 
 /**

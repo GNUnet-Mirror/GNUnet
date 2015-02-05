@@ -217,12 +217,11 @@
  */
 struct GAS_PROPORTIONAL_Handle
 {
-   struct GNUNET_ATS_PluginEnvironment *env;
 
   /**
-   * Statistics handle
+   * Our execution environment.
    */
-  struct GNUNET_STATISTICS_Handle *stats;
+  struct GNUNET_ATS_PluginEnvironment *env;
 
   /**
    * Hashmap containing all valid addresses
@@ -233,36 +232,6 @@ struct GAS_PROPORTIONAL_Handle
    * Pending address requests
    */
   struct GNUNET_CONTAINER_MultiPeerMap *requests;
-
-  /**
-   * Bandwidth changed callback
-   */
-  GAS_bandwidth_changed_cb bw_changed;
-
-  /**
-   * Bandwidth changed callback cls
-   */
-  void *bw_changed_cls;
-
-  /**
-   * ATS function to get preferences
-   */
-  GAS_get_preferences get_preferences;
-
-  /**
-   * Closure for ATS function to get preferences
-   */
-  void *get_preferences_cls;
-
-  /**
-   * ATS function to get properties
-   */
-  GAS_get_properties get_properties;
-
-  /**
-   * Closure for ATS function to get properties
-   */
-  void *get_properties_cls;
 
   /**
    * Bulk lock
@@ -418,7 +387,8 @@ struct AddressWrapper
 void *
 libgnunet_plugin_ats_proportional_done (void *cls)
 {
-  struct GAS_PROPORTIONAL_Handle *s = cls;
+  struct GNUNET_ATS_SolverFunctions *sf = cls;
+  struct GAS_PROPORTIONAL_Handle *s = sf->cls;
   struct AddressWrapper *cur;
   struct AddressWrapper *next;
   int c;
@@ -572,8 +542,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     if (GNUNET_YES != cur_address->addr->active)
       continue;
 
-    GNUNET_assert( NULL != (peer_relative_prefs = s->get_preferences (s->get_preferences_cls,
-        &cur_address->addr->peer)));
+    GNUNET_assert( NULL != (peer_relative_prefs = s->env->get_preferences (s->env->cls,
+                                                                           &cur_address->addr->peer)));
     relative_peer_prefence = 0.0;
     relative_peer_prefence += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
     sum_relative_peer_prefences += relative_peer_prefence;
@@ -608,7 +578,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     if (GNUNET_YES == cur_address->addr->active)
     {
       GNUNET_assert( NULL != (peer_relative_prefs =
-          s->get_preferences (s->get_preferences_cls, &cur_address->addr->peer)));
+                              s->env->get_preferences (s->env->cls,
+                                                       &cur_address->addr->peer)));
 
       cur_pref = peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
       total_weight = net->active_addresses +
@@ -767,15 +738,15 @@ find_best_address_it (void *cls,
   }
 
   /* Now compare ATS information */
-  norm_prop_cur = ctx->s->get_properties (ctx->s->get_properties_cls,
-      (const struct ATS_Address *) current);
+  norm_prop_cur = ctx->s->env->get_property (ctx->s->env->cls,
+                                             current);
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
   cur_distance = norm_prop_cur[index];
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
   cur_delay = norm_prop_cur[index];
 
-  norm_prop_best = ctx->s->get_properties (ctx->s->get_properties_cls,
-      (const struct ATS_Address *) ctx->best);
+  norm_prop_best = ctx->s->env->get_property (ctx->s->env->cls,
+                                              ctx->best);
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
   best_distance = norm_prop_best[index];
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
@@ -951,16 +922,20 @@ address_increment (struct GAS_PROPORTIONAL_Handle *s,
   {
     s->total_addresses++;
     net->total_addresses++;
-    GNUNET_STATISTICS_update (s->stats, "# ATS addresses total", 1, GNUNET_NO);
-    GNUNET_STATISTICS_update (s->stats, net->stat_total, 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (s->env->stats,
+                              "# ATS addresses total", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (s->env->stats,
+                              net->stat_total, 1, GNUNET_NO);
   }
   if (GNUNET_YES == active)
   {
     net->active_addresses++;
     s->active_addresses++;
-    GNUNET_STATISTICS_update (s->stats, "# ATS active addresses total", 1,
+    GNUNET_STATISTICS_update (s->env->stats,
+                              "# ATS active addresses total", 1,
         GNUNET_NO);
-    GNUNET_STATISTICS_update (s->stats, net->stat_active, 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (s->env->stats,
+                              net->stat_active, 1, GNUNET_NO);
   }
 
 }
@@ -992,7 +967,8 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
     else
     {
       s->total_addresses--;
-      GNUNET_STATISTICS_update (s->stats, "# ATS addresses total", -1,
+      GNUNET_STATISTICS_update (s->env->stats,
+                                "# ATS addresses total", -1,
           GNUNET_NO);
     }
     if (net->total_addresses < 1)
@@ -1003,7 +979,8 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
     else
     {
       net->total_addresses--;
-      GNUNET_STATISTICS_update (s->stats, net->stat_total, -1, GNUNET_NO);
+      GNUNET_STATISTICS_update (s->env->stats,
+                                net->stat_total, -1, GNUNET_NO);
     }
   }
 
@@ -1017,7 +994,8 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
     else
     {
       net->active_addresses--;
-      GNUNET_STATISTICS_update (s->stats, net->stat_active, -1, GNUNET_NO);
+      GNUNET_STATISTICS_update (s->env->stats,
+                                net->stat_active, -1, GNUNET_NO);
     }
     if (s->active_addresses < 1)
     {
@@ -1027,7 +1005,8 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
     else
     {
       s->active_addresses--;
-      GNUNET_STATISTICS_update (s->stats, "# ATS addresses total", -1,
+      GNUNET_STATISTICS_update (s->env->stats,
+                                "# ATS addresses total", -1,
           GNUNET_NO);
     }
   }
@@ -1071,6 +1050,7 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
 {
   struct AddressWrapper *cur;
   struct AddressSolverInformation *asi;
+
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
       asi = cur->addr->solver_information;
@@ -1094,7 +1074,8 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
         /* Notify on change */
         if ((GNUNET_YES == cur->addr->active))
         {
-          s->bw_changed (s->bw_changed_cls, cur->addr);
+          s->env->bandwidth_changed_cb (s->env->cls,
+                                        cur->addr);
         }
       }
   }
@@ -1125,31 +1106,31 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
         n->active_addresses, n->total_addresses);
 
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_START,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_START,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
 
     /* Distribute  */
     distribute_bandwidth(s, n);
 
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_STOP,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_STOP,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
 
     /* Do propagation */
     propagate_bandwidth (s, n);
 
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
   }
   else
   {
     int i;
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_START,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_START,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
     {
@@ -1158,10 +1139,10 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
     }
 
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_STOP,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_STOP,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
     {
@@ -1169,7 +1150,7 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
       propagate_bandwidth(s, &s->network_entries[i]);
     }
     if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
   }
 }
@@ -1254,8 +1235,8 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
            "Disconnecting peer `%s' with previous address %p\n",
            GNUNET_i2s (peer),
            current_address);
-      s->bw_changed (s->bw_changed_cls,
-                     current_address);
+      s->env->bandwidth_changed_cb (s->env->cls,
+                                    current_address);
     }
   }
   if (NULL == best_address)
@@ -1347,7 +1328,7 @@ GAS_proportional_address_change_preference (void *solver,
  */
 static void
 GAS_proportional_address_preference_feedback (void *solver,
-                                              void *application,
+                                              struct GNUNET_SERVER_Client *application,
                                               const struct GNUNET_PeerIdentity *peer,
                                               const struct GNUNET_TIME_Relative scope,
                                               enum GNUNET_ATS_PreferenceKind kind,
@@ -1547,8 +1528,8 @@ GAS_proportional_address_delete (void *solver,
            "Disconnecting peer `%s' after deleting previous address %p\n",
            GNUNET_i2s (&address->peer),
            address);
-      s->bw_changed (s->bw_changed_cls,
-                     address);
+      s->env->bandwidth_changed_cb (s->env->cls,
+                                    address);
     }
   }
   if (GNUNET_NO == session_only)
@@ -1746,6 +1727,7 @@ GAS_proportional_address_add (void *solver,
 void *
 libgnunet_plugin_ats_proportional_init (void *cls)
 {
+  static struct GNUNET_ATS_SolverFunctions sf;
   struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_PROPORTIONAL_Handle *s;
   struct Network * cur;
@@ -1760,24 +1742,17 @@ libgnunet_plugin_ats_proportional_init (void *cls)
 
   s = GNUNET_new (struct GAS_PROPORTIONAL_Handle);
   s->env = env;
-  env->sf.s_add = &GAS_proportional_address_add;
-  env->sf.s_address_update_property = &GAS_proportional_address_property_changed;
-  env->sf.s_get = &GAS_proportional_get_preferred_address;
-  env->sf.s_get_stop = &GAS_proportional_stop_get_preferred_address;
-  env->sf.s_pref = &GAS_proportional_address_change_preference;
-  env->sf.s_feedback = &GAS_proportional_address_preference_feedback;
-  env->sf.s_del = &GAS_proportional_address_delete;
-  env->sf.s_bulk_start = &GAS_proportional_bulk_start;
-  env->sf.s_bulk_stop = &GAS_proportional_bulk_stop;
+  sf.cls = s;
+  sf.s_add = &GAS_proportional_address_add;
+  sf.s_address_update_property = &GAS_proportional_address_property_changed;
+  sf.s_get = &GAS_proportional_get_preferred_address;
+  sf.s_get_stop = &GAS_proportional_stop_get_preferred_address;
+  sf.s_pref = &GAS_proportional_address_change_preference;
+  sf.s_feedback = &GAS_proportional_address_preference_feedback;
+  sf.s_del = &GAS_proportional_address_delete;
+  sf.s_bulk_start = &GAS_proportional_bulk_start;
+  sf.s_bulk_stop = &GAS_proportional_bulk_stop;
 
-  s->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
-  s->bw_changed = env->bandwidth_changed_cb;
-  s->bw_changed_cls = env->bw_changed_cb_cls;
-  s->get_preferences = env->get_preferences;
-  s->get_preferences_cls = env->get_preference_cls;
-  s->get_properties = env->get_property;
-  s->get_properties_cls = env->get_property_cls;
-  s->network_count = env->network_count;
   s->network_entries = GNUNET_malloc (env->network_count * sizeof (struct Network));
 
   /* Init */
@@ -1849,7 +1824,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
          cur->total_quota_in,
          cur->total_quota_out);
   }
-  return s;
+  return &sf;
 }
 
 

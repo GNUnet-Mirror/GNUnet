@@ -219,44 +219,9 @@ struct GAS_MLP_Handle
   struct GNUNET_ATS_PluginEnvironment *env;
 
   /**
-   * Statistics handle
-   */
-  struct GNUNET_STATISTICS_Handle *stats;
-
-  /**
    * Address hashmap for lookups
    */
   const struct GNUNET_CONTAINER_MultiPeerMap *addresses;
-
-  /**
-   * Addresses' bandwidth changed callback
-   */
-  GAS_bandwidth_changed_cb bw_changed_cb;
-
-  /**
-   * Addresses' bandwidth changed callback closure
-   */
-  void *bw_changed_cb_cls;
-
-  /**
-   * ATS function to get preferences
-   */
-  GAS_get_preferences get_preferences;
-
-  /**
-   * Closure for ATS function to get preferences
-   */
-  void *get_preferences_cls;
-
-  /**
-   * ATS function to get properties
-   */
-  GAS_get_properties get_properties;
-
-  /**
-   * Closure for ATS function to get properties
-   */
-  void *get_properties_cls;
 
   /**
    * Exclude peer from next result propagation
@@ -281,7 +246,6 @@ struct GAS_MLP_Handle
   /**
    * Bulk lock
    */
-
   int stat_bulk_lock;
 
   /**
@@ -394,27 +358,41 @@ struct GAS_MLP_Handle
 struct MLP_information
 {
 
-  /* Bandwidth assigned outbound */
+  /**
+   * Bandwidth assigned outbound
+   */
   uint32_t b_out;
 
-  /* Bandwidth assigned inbound */
+  /**
+   * Bandwidth assigned inbound
+   */
   uint32_t b_in;
 
-  /* Address selected */
+  /**
+   * Address selected
+   */
   int n;
 
-  /* bandwidth column index */
+  /**
+   * bandwidth column index
+   */
   signed int c_b;
 
-  /* address usage column */
+  /**
+   * address usage column
+   */
   signed int c_n;
 
   /* row indexes */
 
-  /* constraint 1: bandwidth capping */
+  /**
+   * constraint 1: bandwidth capping
+   */
   unsigned int r_c1;
 
-  /* constraint 3: minimum bandwidth */
+  /**
+   * constraint 3: minimum bandwidth
+   */
   unsigned int r_c3;
 };
 
@@ -553,7 +531,7 @@ mlp_term_hook (void *info, const char *s)
  * @param cls not used
  * @param key the key
  * @param value ATS_Peer
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
 reset_peers (void *cls,
@@ -1177,7 +1155,7 @@ mlp_create_problem_add_address_information (void *cls,
     /* For all quality metrics, set quality of this address */
     if (GNUNET_YES == mlp->opt_dbg_optimize_quality)
     {
-      props = mlp->get_properties (mlp->get_properties_cls, address);
+      props = mlp->env->get_property (mlp->env->cls, address);
       for (c = 0; c < mlp->pv.m_q; c++)
       {
         if ((props[c] < 1.0) && (props[c] > 2.0))
@@ -1473,7 +1451,7 @@ mlp_propagate_results (void *cls,
       address->assigned_bw_out = mlp_bw_out;
       mlpi->b_out = mlp_bw_out;
       if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
-        mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+        mlp->env->bandwidth_changed_cb (mlp->env->cls, address);
       return GNUNET_OK;
     }
     else if (GNUNET_YES == address->active)
@@ -1489,7 +1467,7 @@ mlp_propagate_results (void *cls,
           address->assigned_bw_out = mlp_bw_out;
           mlpi->b_out = mlp_bw_out;
           if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
-            mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+            mlp->env->bandwidth_changed_cb (mlp->env->cls, address);
           return GNUNET_OK;
       }
     }
@@ -1537,7 +1515,7 @@ notify (struct GAS_MLP_Handle *mlp,
 	enum GAS_Solver_Additional_Information add)
 {
   if (NULL != mlp->env->info_cb)
-    mlp->env->info_cb (mlp->env->info_cb_cls, op, stat, add);
+    mlp->env->info_cb (mlp->env->cls, op, stat, add);
 }
 
 
@@ -2091,8 +2069,8 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp,
   double res;
   const double *preferences = NULL;
   int c;
-  preferences = mlp->get_preferences (mlp->get_preferences_cls, peer);
 
+  preferences = mlp->env->get_preferences (mlp->env->cls, peer);
   res = 0.0;
   for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
   {
@@ -2230,7 +2208,7 @@ GAS_mlp_address_delete (void *solver,
     if (NULL == GAS_mlp_get_preferred_address (solver, &address->peer))
     {
       /* No alternative address, disconnecting peer */
-      mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+      mlp->env->bandwidth_changed_cb (mlp->env->cls, address);
     }
   }
 
@@ -2327,10 +2305,13 @@ GAS_mlp_address_change_preference (void *solver,
   struct GAS_MLP_Handle *mlp = solver;
   struct ATS_Peer *p;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Changing preference for address for peer `%s' to %.2f\n",
-      GNUNET_i2s(peer), pref_rel);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Changing preference for address for peer `%s' to %.2f\n",
+       GNUNET_i2s(peer),
+       pref_rel);
 
-  GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (mlp->env->stats,
+                            "# LP address preference changes", 1, GNUNET_NO);
   /* Update the constraints with changed preferences */
 
 
@@ -2338,14 +2319,20 @@ GAS_mlp_address_change_preference (void *solver,
   /* Update relativity constraint c9 */
   if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers, peer)))
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "Updating preference for unknown peer `%s'\n", GNUNET_i2s(peer));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Updating preference for unknown peer `%s'\n",
+         GNUNET_i2s(peer));
     return;
   }
 
   if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     p->f = get_peer_pref_value (mlp, peer);
-    mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
+    mlp_create_problem_update_value (&mlp->p,
+                                     p->r_c9,
+                                     mlp->p.c_r,
+                                     - p->f,
+                                     __LINE__);
 
     /* Problem size changed: new address for peer with pending request */
     mlp->stat_mlp_prob_updated = GNUNET_YES;
@@ -2367,16 +2354,16 @@ GAS_mlp_address_change_preference (void *solver,
  */
 static void
 GAS_mlp_address_preference_feedback (void *solver,
-                                    void *application,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    const struct GNUNET_TIME_Relative scope,
-                                    enum GNUNET_ATS_PreferenceKind kind,
-                                    double score)
+                                     struct GNUNET_SERVER_Client *application,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_TIME_Relative scope,
+                                     enum GNUNET_ATS_PreferenceKind kind,
+                                     double score)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
+
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != peer);
-
   GNUNET_assert (NULL != s);
 }
 
@@ -2405,13 +2392,12 @@ mlp_free_peers (void *cls,
 void *
 libgnunet_plugin_ats_mlp_done (void *cls)
 {
-  struct GAS_MLP_Handle *mlp = cls;
-  GNUNET_assert (mlp != NULL);
+  struct GNUNET_ATS_SolverFunctions *sf = cls;
+  struct GAS_MLP_Handle *mlp = sf->cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Shutting down mlp solver\n");
   mlp_delete_problem (mlp);
-
   GNUNET_CONTAINER_multipeermap_iterate (mlp->requested_peers,
 					 &mlp_free_peers,
 					 mlp->requested_peers);
@@ -2431,6 +2417,7 @@ libgnunet_plugin_ats_mlp_done (void *cls)
 void *
 libgnunet_plugin_ats_mlp_init (void *cls)
 {
+  static struct GNUNET_ATS_SolverFunctions sf;
   struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_MLP_Handle * mlp = GNUNET_new (struct GAS_MLP_Handle);
 
@@ -2826,28 +2813,18 @@ libgnunet_plugin_ats_mlp_init (void *cls)
       }
   }
   mlp->env = env;
-  env->sf.s_add = &GAS_mlp_address_add;
-  env->sf.s_address_update_property = &GAS_mlp_address_property_changed;
-  env->sf.s_get = &GAS_mlp_get_preferred_address;
-  env->sf.s_get_stop = &GAS_mlp_stop_get_preferred_address;
-  env->sf.s_pref = &GAS_mlp_address_change_preference;
-  env->sf.s_feedback = &GAS_mlp_address_preference_feedback;
-  env->sf.s_del = &GAS_mlp_address_delete;
-  env->sf.s_bulk_start = &GAS_mlp_bulk_start;
-  env->sf.s_bulk_stop = &GAS_mlp_bulk_stop;
+  sf.cls = mlp;
+  sf.s_add = &GAS_mlp_address_add;
+  sf.s_address_update_property = &GAS_mlp_address_property_changed;
+  sf.s_get = &GAS_mlp_get_preferred_address;
+  sf.s_get_stop = &GAS_mlp_stop_get_preferred_address;
+  sf.s_pref = &GAS_mlp_address_change_preference;
+  sf.s_feedback = &GAS_mlp_address_preference_feedback;
+  sf.s_del = &GAS_mlp_address_delete;
+  sf.s_bulk_start = &GAS_mlp_bulk_start;
+  sf.s_bulk_stop = &GAS_mlp_bulk_stop;
 
-
-  /* Assign options to handle */
-  mlp->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
-  mlp->addresses = env->addresses;
-  mlp->bw_changed_cb = env->bandwidth_changed_cb;
-  mlp->bw_changed_cb_cls = env->bw_changed_cb_cls;
-  mlp->get_preferences =  env->get_preferences;
-  mlp->get_preferences_cls = env->get_preference_cls;
-  mlp->get_properties = env->get_property;
-  mlp->get_properties_cls = env->get_property_cls;
   /* Setting MLP Input variables */
-
   mlp->pv.b_min = b_min;
   mlp->pv.n_min = n_min;
   mlp->pv.m_q = GNUNET_ATS_QualityPropertiesCount;
@@ -2884,7 +2861,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "solver ready\n");
 
-  return mlp;
+  return &sf;
 }
 
 /* end of plugin_ats_mlp.c */

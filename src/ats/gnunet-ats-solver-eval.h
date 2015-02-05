@@ -70,7 +70,7 @@ struct SolverHandle
   /**
    * Solver handle
    */
-  void *solver;
+  struct GNUNET_ATS_SolverFunctions *sf;
 
   /**
    * Address hashmap

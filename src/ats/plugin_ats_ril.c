@@ -392,12 +392,7 @@ struct GAS_RIL_Handle
   /**
    * The solver-plugin environment of the solver-plugin API
    */
-  struct GNUNET_ATS_PluginEnvironment *plugin_envi;
-
-  /**
-   * Statistics handle
-   */
-  struct GNUNET_STATISTICS_Handle *stats;
+  struct GNUNET_ATS_PluginEnvironment *env;
 
   /**
    * Number of performed steps
@@ -786,8 +781,8 @@ ril_inform (struct GAS_RIL_Handle *solver,
             enum GAS_Solver_Operation op,
             enum GAS_Solver_Status stat)
 {
-  if (NULL != solver->plugin_envi->info_cb)
-    solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat, GAS_INFO_NONE);
+  if (NULL != solver->env->info_cb)
+    solver->env->info_cb (solver->env->cls, op, stat, GAS_INFO_NONE);
 }
 
 /**
@@ -974,8 +969,8 @@ agent_get_utility (struct RIL_Peer_Agent *agent)
   double delay_norm;
   double pref_match;
 
-  preferences = agent->envi->plugin_envi->get_preferences (agent->envi->plugin_envi->get_preference_cls,
-      &agent->peer);
+  preferences = agent->envi->env->get_preferences (agent->envi->env->cls,
+                                                   &agent->peer);
 
   delay_atsi = (double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_QUALITY_NET_DELAY);
   delay_norm = RIL_UTILITY_DELAY_MAX*exp(-delay_atsi*0.00001);
@@ -1937,7 +1932,7 @@ ril_step (struct GAS_RIL_Handle *solver)
   for (cur = solver->agents_head; NULL != cur; cur = cur->next)
   {
     if (cur->suggestion_issue) {
-      solver->plugin_envi->bandwidth_changed_cb(solver->plugin_envi->bw_changed_cb_cls, cur->suggestion_address);
+      solver->env->bandwidth_changed_cb(solver->env->cls, cur->suggestion_address);
       cur->suggestion_issue = GNUNET_NO;
     }
   }
@@ -2397,16 +2392,19 @@ GAS_ril_address_property_changed (void *solver,
  */
 static void
 GAS_ril_address_preference_feedback (void *solver,
-    void *application,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope,
-    enum GNUNET_ATS_PreferenceKind kind,
-    double score)
+                                     struct GNUNET_SERVER_Client *application,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_TIME_Relative scope,
+                                     enum GNUNET_ATS_PreferenceKind kind,
+                                     double score)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
-          "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
-      GNUNET_ATS_print_preference_type (kind), scope.rel_value_us / 1000000);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
+       "preference %s for %d seconds\n",
+       GNUNET_i2s (peer),
+       "UNKNOWN",
+       GNUNET_ATS_print_preference_type (kind),
+       scope.rel_value_us / 1000000);
 }
 
 
@@ -2555,6 +2553,7 @@ GAS_ril_stop_get_preferred_address (void *solver,
 void *
 libgnunet_plugin_ats_ril_init (void *cls)
 {
+  static struct GNUNET_ATS_SolverFunctions sf;
   struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_RIL_Handle *solver = GNUNET_new (struct GAS_RIL_Handle);
   struct RIL_Scope * cur;
@@ -2780,17 +2779,18 @@ libgnunet_plugin_ats_ril_init (void *cls)
     solver->parameters.social_welfare = RIL_DEFAULT_WELFARE;
   }
 
-  env->sf.s_add = &GAS_ril_address_add;
-  env->sf.s_address_update_property = &GAS_ril_address_property_changed;
-  env->sf.s_get = &GAS_ril_get_preferred_address;
-  env->sf.s_get_stop = &GAS_ril_stop_get_preferred_address;
-  env->sf.s_pref = &GAS_ril_address_change_preference;
-  env->sf.s_feedback = &GAS_ril_address_preference_feedback;
-  env->sf.s_del = &GAS_ril_address_delete;
-  env->sf.s_bulk_start = &GAS_ril_bulk_start;
-  env->sf.s_bulk_stop = &GAS_ril_bulk_stop;
+  solver->env = env;
+  sf.cls = solver;
+  sf.s_add = &GAS_ril_address_add;
+  sf.s_address_update_property = &GAS_ril_address_property_changed;
+  sf.s_get = &GAS_ril_get_preferred_address;
+  sf.s_get_stop = &GAS_ril_stop_get_preferred_address;
+  sf.s_pref = &GAS_ril_address_change_preference;
+  sf.s_feedback = &GAS_ril_address_preference_feedback;
+  sf.s_del = &GAS_ril_address_delete;
+  sf.s_bulk_start = &GAS_ril_bulk_start;
+  sf.s_bulk_stop = &GAS_ril_bulk_stop;
 
-  solver->plugin_envi = env;
   solver->networks_count = env->network_count;
   solver->network_entries = GNUNET_malloc (env->network_count * sizeof (struct RIL_Scope));
   solver->step_count = 0;
@@ -2818,7 +2818,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   LOG(GNUNET_ERROR_TYPE_DEBUG, "init()  RBF_DIVISOR = %llu\n",
       solver->parameters.rbf_divisor);
 
-  return solver;
+  return &sf;
 }
 
 
@@ -2830,7 +2830,8 @@ libgnunet_plugin_ats_ril_init (void *cls)
 void *
 libgnunet_plugin_ats_ril_done (void *cls)
 {
-  struct GAS_RIL_Handle *s = cls;
+  struct GNUNET_ATS_SolverFunctions *sf = cls;
+  struct GAS_RIL_Handle *s = sf->cls;
   struct RIL_Peer_Agent *cur_agent;
   struct RIL_Peer_Agent *next_agent;
 

@@ -108,29 +108,6 @@ print_generator_type (enum GeneratorType g)
   }
 }
 
-struct AddressLookupCtx
-{
-  struct ATS_Address *res;
-  char *plugin;
-  char *addr;
-};
-
-
-int find_address_it (void *cls,
-                     const struct GNUNET_PeerIdentity *key,
-                     void *value)
-{
-  struct AddressLookupCtx *ctx = cls;
-  struct ATS_Address *addr = value;
-
-  if ( (0 == strcmp (ctx->plugin, addr->plugin)) &&
-       (0 == strcmp (ctx->addr, addr->addr)) )
-  {
-       ctx->res = addr;
-       return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
 
 static struct TestPeer *
 find_peer_by_id (int id)
@@ -670,17 +647,17 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   atsi.value = htonl ((uint32_t) prop_value);
 
   /* set performance here! */
-  sh->env.sf.s_bulk_start (sh->solver);
+  sh->sf->s_bulk_start (sh->sf->cls);
   if (GNUNET_YES == opt_disable_normalization)
   {
     a->prop_abs[pg->ats_property] = prop_value;
     a->prop_norm[pg->ats_property] = prop_value;
-    sh->env.sf.s_address_update_property (sh->solver, a->ats_addr,
+    sh->sf->s_address_update_property (sh->sf->cls, a->ats_addr,
         pg->ats_property, prop_value, prop_value);
   }
   else
     GAS_normalization_normalize_property (pg->test_address->ats_addr, &atsi, 1);
-  sh->env.sf.s_bulk_stop (sh->solver);
+  sh->sf->s_bulk_stop (sh->sf->cls);
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
       &set_prop_task, pg);
@@ -949,7 +926,7 @@ set_feedback_task (void *cls,
       GNUNET_ATS_print_preference_type (pg->kind),
       feedback);
 
-  sh->env.sf.s_feedback (sh->solver, NULL + (pg->client_id), &p->peer_id,
+  sh->sf->s_feedback (sh->sf->cls, NULL + (pg->client_id), &p->peer_id,
       pg->feedback_frequency, pg->kind, feedback);
   pg->feedback_last = GNUNET_TIME_absolute_get();
 
@@ -1003,17 +980,17 @@ set_pref_task (void *cls,
       pg->peer, NULL + (pg->client_id),
       GNUNET_ATS_print_preference_type (pg->kind), pref_value);
 
-  sh->env.sf.s_bulk_start (sh->solver);
+  sh->sf->s_bulk_start (sh->sf->cls);
   if (GNUNET_YES == opt_disable_normalization)
   {
     p->pref_abs[pg->kind] = pref_value;
     p->pref_norm[pg->kind] = pref_value;
-    sh->env.sf.s_pref (sh->solver, &p->peer_id, pg->kind, pref_value);
+    sh->sf->s_pref (sh->sf->cls, &p->peer_id, pg->kind, pref_value);
   }
   else
     GAS_normalization_normalize_preference (NULL + (pg->client_id),
         &p->peer_id, pg->kind, pref_value);
-  sh->env.sf.s_bulk_stop (sh->solver);
+  sh->sf->s_bulk_stop (sh->sf->cls);
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
       set_pref_task, pg);
@@ -2250,7 +2227,7 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u in network `%s'\n",
     op->address_id, op->peer_id, GNUNET_ATS_print_network_type(a->network));
 
-  sh->env.sf.s_add (sh->solver, a->ats_addr, op->address_network);
+  sh->sf->s_add (sh->sf->cls, a->ats_addr, op->address_network);
 
 }
 
@@ -2292,7 +2269,7 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
               op->address_id,
               op->peer_id);
 
-  sh->env.sf.s_del (sh->solver, a->ats_addr, GNUNET_NO);
+  sh->sf->s_del (sh->sf->cls, a->ats_addr, GNUNET_NO);
 
   if (NULL != l)
   {
@@ -2437,7 +2414,7 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
       op->peer_id);
   p->is_requested = GNUNET_YES;
 
-  res = sh->env.sf.s_get (sh->solver, &p->peer_id);
+  res = sh->sf->s_get (sh->sf->cls, &p->peer_id);
   if (NULL != res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Suggested address for peer %u: %llu %llu\n",
@@ -2469,7 +2446,7 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
   p->is_requested = GNUNET_NO;
   p->assigned_bw_in = 0;
   p->assigned_bw_out = 0;
-  sh->env.sf.s_get_stop (sh->solver, &p->peer_id);
+  sh->sf->s_get_stop (sh->sf->cls, &p->peer_id);
 
   if (NULL != l)
   {
@@ -2755,15 +2732,18 @@ GNUNET_ATS_solvers_solver_stop (struct SolverHandle *sh)
 {
  GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) sh->env.stats,
      GNUNET_NO);
- GNUNET_PLUGIN_unload (sh->plugin, sh->solver);
-
+ GNUNET_PLUGIN_unload (sh->plugin, sh->sf);
+ sh->sf = NULL;
  GAS_normalization_stop();
 
- GNUNET_CONTAINER_multipeermap_iterate (sh->addresses, &free_all_it, NULL);
+ GNUNET_CONTAINER_multipeermap_iterate (sh->addresses,
+                                        &free_all_it,
+                                        NULL);
  GNUNET_CONTAINER_multipeermap_destroy(sh->addresses);
  GNUNET_free (sh->plugin);
  GNUNET_free (sh);
 }
+
 
 /**
  * Load quotas for networks from configuration
@@ -3096,8 +3076,9 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   }
 
   sh = GNUNET_new (struct SolverHandle);
-  GNUNET_asprintf (&sh->plugin, "libgnunet_plugin_ats_%s", solver_str);
-
+  GNUNET_asprintf (&sh->plugin,
+                   "libgnunet_plugin_ats_%s",
+                   solver_str);
   sh->addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
 
   /* setup environment */
@@ -3109,7 +3090,6 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   sh->env.get_property = &get_property_cb;
   sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
   sh->env.info_cb = &solver_info_cb;
-  sh->env.info_cb_cls = NULL;
   sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
   int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
@@ -3130,8 +3110,8 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
     return NULL;
   }
 
-  sh->solver = GNUNET_PLUGIN_load (sh->plugin, &sh->env);
-  if (NULL == sh->solver)
+  sh->sf = GNUNET_PLUGIN_load (sh->plugin, &sh->env);
+  if (NULL == sh->sf)
   {
     fprintf (stderr, "Failed to load solver `%s'\n", sh->plugin);
     GNUNET_break(0);
@@ -3142,6 +3122,7 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   }
   return sh;
 }
+
 
 static void
 done ()

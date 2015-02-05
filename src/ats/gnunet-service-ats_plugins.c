@@ -39,12 +39,12 @@
 static int ats_mode;
 
 /**
- * Solver handle. FIXME: TYPE!?
+ * Solver handle.
  */
-static void *solver;
+static struct GNUNET_ATS_SolverFunctions *sf;
 
 /**
- * Solver functions. FIXME.
+ * Solver environment.
  */
 static struct GNUNET_ATS_PluginEnvironment env;
 
@@ -67,7 +67,7 @@ GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
 				   double pref_rel)
 {
   /* Tell solver about update */
-  env.sf.s_pref (solver, peer, kind, pref_rel);
+  sf->s_pref (sf->cls, peer, kind, pref_rel);
 }
 
 
@@ -88,11 +88,11 @@ GAS_normalized_property_changed (struct ATS_Address *address,
 	      GNUNET_ATS_print_property_type (type),
 	      GNUNET_i2s (&address->peer),
 	      prop_rel);
-  env.sf.s_address_update_property (solver,
-                                    address,
-                                    type,
-                                    0,
-                                    prop_rel);
+  sf->s_address_update_property (sf->cls,
+                                 address,
+                                 type,
+                                 0,
+                                 prop_rel);
 }
 
 
@@ -453,14 +453,11 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   }
 
   load_quotas (cfg, quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount);
+  env.cls = NULL;
   env.info_cb = &solver_info_cb;
-  env.info_cb_cls = NULL;
   env.bandwidth_changed_cb = &bandwidth_changed_cb;
-  env.bw_changed_cb_cls = NULL;
   env.get_preferences = &GAS_normalization_get_preferences_by_peer;
-  env.get_preference_cls = NULL;
   env.get_property = &GAS_normalization_get_properties;
-  env.get_property_cls = NULL;
   env.cfg = cfg;
   env.stats = GSA_stats;
   env.addresses = GSA_addresses;
@@ -495,29 +492,11 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
               "Initializing solver `%s '`%s'\n",
               plugin_short,
               plugin);
-  if (NULL == (solver = GNUNET_PLUGIN_load (plugin, &env)))
+  if (NULL == (sf = GNUNET_PLUGIN_load (plugin, &env)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to initialize solver `%s'!\n"),
                 plugin);
-    return GNUNET_SYSERR;
-  }
-
-
-  GNUNET_assert (NULL != env.sf.s_add);
-  GNUNET_assert (NULL != env.sf.s_address_update_property);
-  GNUNET_assert (NULL != env.sf.s_get);
-  GNUNET_assert (NULL != env.sf.s_get_stop);
-  GNUNET_assert (NULL != env.sf.s_pref);
-  GNUNET_assert (NULL != env.sf.s_feedback);
-  GNUNET_assert (NULL != env.sf.s_del);
-  GNUNET_assert (NULL != env.sf.s_bulk_start);
-  GNUNET_assert (NULL != env.sf.s_bulk_stop);
-
-  if (NULL == solver)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to initialize solver!\n"));
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -531,8 +510,8 @@ void
 GAS_plugins_done ()
 {
   GNUNET_PLUGIN_unload (plugin,
-                        solver);
-  solver = NULL;
+                        sf);
+  sf = NULL;
   GNUNET_free (plugin);
   plugin = NULL;
 }
@@ -544,12 +523,12 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
 			const struct GNUNET_ATS_Information *atsi,
 			uint32_t atsi_count)
 {
-  env.sf.s_add (solver, new_address, addr_net);
-  env.sf.s_bulk_start (solver);
+  sf->s_add (sf->cls, new_address, addr_net);
+  sf->s_bulk_start (sf->cls);
   GAS_normalization_normalize_property (new_address,
 					atsi,
 					atsi_count);
-  env.sf.s_bulk_stop (solver);
+  sf->s_bulk_stop (sf->cls);
 }
 
 
@@ -558,18 +537,18 @@ GAS_plugin_update_address (struct ATS_Address *address,
 			   const struct GNUNET_ATS_Information *atsi,
 			   uint32_t atsi_count)
 {
-  env.sf.s_bulk_start (solver);
+  sf->s_bulk_start (sf->cls);
   GAS_normalization_normalize_property (address,
 					atsi,
 					atsi_count);
-  env.sf.s_bulk_stop (solver);
+  sf->s_bulk_stop (sf->cls);
 }
 
 
 void
 GAS_plugin_delete_address (struct ATS_Address *address)
 {
-  env.sf.s_del (solver, address, GNUNET_NO);
+  sf->s_del (sf->cls, address, GNUNET_NO);
 }
 
 
@@ -579,10 +558,10 @@ GAS_plugin_update_preferences (void *client,
 			       enum GNUNET_ATS_PreferenceKind kind,
 			       float score_abs)
 {
-  env.sf.s_bulk_start (solver);
+  sf->s_bulk_start (sf->cls);
   /* Tell normalization about change, normalization will call callback if preference changed */
   GAS_normalization_normalize_preference (client, peer, kind, score_abs);
-  env.sf.s_bulk_stop (solver);
+  sf->s_bulk_stop (sf->cls);
 }
 
 
@@ -593,7 +572,7 @@ GAS_plugin_preference_feedback (void *application,
 				enum GNUNET_ATS_PreferenceKind kind,
 				float score_abs)
 {
-  env.sf.s_feedback (solver,
+  sf->s_feedback (sf->cls,
 		     application,
 		     peer,
 		     scope,
@@ -605,14 +584,14 @@ GAS_plugin_preference_feedback (void *application,
 void
 GAS_plugin_solver_lock ()
 {
-  env.sf.s_bulk_start (solver);
+  sf->s_bulk_start (sf->cls);
 }
 
 
 void
 GAS_plugin_solver_unlock ()
 {
-  env.sf.s_bulk_start (solver);
+  sf->s_bulk_start (sf->cls);
 }
 
 
@@ -621,7 +600,7 @@ GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 {
   const struct ATS_Address *aa;
 
-  aa = env.sf.s_get (solver, pid);
+  aa = sf->s_get (sf->cls, pid);
   if (NULL == aa)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -648,7 +627,7 @@ GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 void
 GAS_plugin_request_connect_stop (const struct GNUNET_PeerIdentity *pid)
 {
-  env.sf.s_get_stop (solver, pid);
+  sf->s_get_stop (sf->cls, pid);
 }
 
 

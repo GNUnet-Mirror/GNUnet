@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet
- (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+ (C) 2009-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -53,8 +53,10 @@ struct ATS_Address;
  */
 typedef void
 (*GAS_solver_address_change_preference) (void *solver,
-    const struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind kind,
-    double pref_rel);
+                                         const struct GNUNET_PeerIdentity *peer,
+                                         enum GNUNET_ATS_PreferenceKind kind,
+                                         double pref_rel);
+
 
 /**
  * Give feedback about the current assignment
@@ -67,10 +69,12 @@ typedef void
  * @param score the feedback score
  */
 typedef void
-(*GAS_solver_address_feedback_preference) (void *solver, void *application,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope,
-    enum GNUNET_ATS_PreferenceKind kind, double score);
+(*GAS_solver_address_feedback_preference) (void *solver,
+                                           struct GNUNET_SERVER_Client *application,
+                                           const struct GNUNET_PeerIdentity *peer,
+                                           const struct GNUNET_TIME_Relative scope,
+                                           enum GNUNET_ATS_PreferenceKind kind,
+                                           double score);
 
 /**
  * Notify the solver about a bulk operation changing possibly a lot of values
@@ -81,6 +85,7 @@ typedef void
 typedef void
 (*GAS_solver_bulk_start) (void *solver);
 
+
 /**
  * Mark a bulk operation as done
  * Solver will resolve if values have changed
@@ -90,29 +95,32 @@ typedef void
 typedef void
 (*GAS_solver_bulk_stop) (void *solver);
 
+
 /**
  * Add a single address within a network to the solver
  *
  * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to add
  * @param network network type of this address
  */
 typedef void
-(*GAS_solver_address_add) (void *solver, struct ATS_Address *address,
-    uint32_t network);
+(*GAS_solver_address_add) (void *solver,
+                           struct ATS_Address *address,
+                           uint32_t network);
+
 
 /**
  * Delete an address or just the session from the solver
  *
  * @param solver the solver Handle
- * @param addresses the address hashmap containing all addresses
  * @param address the address to delete
  * @param session_only remove address or just session
  */
 typedef void
-(*GAS_solver_address_delete) (void *solver, struct ATS_Address *address,
-    int session_only);
+(*GAS_solver_address_delete) (void *solver,
+                              struct ATS_Address *address,
+                              int session_only);
+
 
 /**
  * Transport properties for this address have changed
@@ -125,40 +133,47 @@ typedef void
  */
 typedef void
 (*GAS_solver_address_property_changed) (void *solver,
-    struct ATS_Address *address, uint32_t type, uint32_t abs_value,
-    double rel_value);
+                                        struct ATS_Address *address,
+                                        uint32_t type,
+                                        uint32_t abs_value,
+                                        double rel_value);
 
 
 /**
  * Get the prefered address for a peer from solver
  *
  * @param solver the solver to use
- * @param addresses the address hashmap containing all addresses
  * @param peer the peer
  */
 typedef const struct ATS_Address *
 (*GAS_solver_get_preferred_address) (void *solver,
-    const struct GNUNET_PeerIdentity *peer);
+                                     const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Stop getting the prefered address for a peer from solver
  *
  * @param solver the solver to use
- * @param addresses the address hashmap containing all addresses
  * @param peer the peer
  */
 typedef void
 (*GAS_solver_stop_get_preferred_address) (void *solver,
-    const struct GNUNET_PeerIdentity *peer);
+                                          const struct GNUNET_PeerIdentity *peer);
+
 
 /**
- * Solver functions
+ * Solver functions.
  *
- * Each solver is required to set up this struct contained in the plugin
- * environment struct in during startup
+ * Each solver is required to set up and return an instance
+ * of this struct during initialization.
  */
 struct GNUNET_ATS_SolverFunctions
 {
+
+  /**
+   * Closure to pass to all solver functions in this struct.
+   */
+  void *cls;
 
   /**
    * Add a new address for a peer to the solver
@@ -226,15 +241,15 @@ struct GNUNET_ATS_SolverFunctions
   GAS_solver_bulk_stop s_bulk_stop;
 };
 
+
 /**
  * Operation codes for solver information callback
  *
  * Order of calls is expected to be:
- * GAS_OP_SOLVE_START
- *
- * GAS_OP_SOLVE_STOP
- * GAS_OP_SOLVE_UPDATE_NOTIFICATION_START
- * GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
+ * #GAS_OP_SOLVE_START
+ * #GAS_OP_SOLVE_STOP
+ * #GAS_OP_SOLVE_UPDATE_NOTIFICATION_START
+ * #GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
  *
  */
 enum GAS_Solver_Operation
@@ -296,6 +311,7 @@ enum GAS_Solver_Operation
   GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
 };
 
+
 /**
  * Status of a GAS_Solver_Operation operation
  */
@@ -311,6 +327,7 @@ enum GAS_Solver_Status
    */
   GAS_STAT_FAIL
 };
+
 
 /**
  * Status of the operation
@@ -345,20 +362,20 @@ enum GAS_Solver_Additional_Information
   GAS_INFO_PROP_ALL
 };
 
+
 /**
  * Callback to call with additional information
  * Used for measurement
  *
  * @param cls the closure
  * @param op the operation
- * @param peer the peer id
- * @param kind the preference kind to change
- * @param score the new preference score
- * @param pref_rel the normalized preference value for this kind over all clients
  */
 typedef void
-(*GAS_solver_information_callback) (void *cls, enum GAS_Solver_Operation op,
-    enum GAS_Solver_Status stat, enum GAS_Solver_Additional_Information);
+(*GAS_solver_information_callback) (void *cls,
+                                    enum GAS_Solver_Operation op,
+                                    enum GAS_Solver_Status stat,
+                                    enum GAS_Solver_Additional_Information);
+
 
 /**
  * Callback to call from solver when bandwidth for address has changed
@@ -366,7 +383,9 @@ typedef void
  * @param address the with changed bandwidth assigned
  */
 typedef void
-(*GAS_bandwidth_changed_cb) (void *cls, struct ATS_Address *address);
+(*GAS_bandwidth_changed_cb) (void *cls,
+                             struct ATS_Address *address);
+
 
 /**
  * Callback to call from solver to obtain application preference values for a
@@ -378,7 +397,9 @@ typedef void
  *      GNUNET_ATS_PreferenceCount elements
  */
 typedef const double *
-(*GAS_get_preferences) (void *cls, const struct GNUNET_PeerIdentity *id);
+(*GAS_get_preferences) (void *cls,
+                        const struct GNUNET_PeerIdentity *id);
+
 
 /**
  * Callback to call from solver to obtain transport properties for an
@@ -390,12 +411,14 @@ typedef const double *
  *      GNUNET_ATS_PreferenceCount elements
  */
 typedef const double *
-(*GAS_get_properties) (void *cls, const struct ATS_Address *address);
+(*GAS_get_properties) (void *cls,
+                       const struct ATS_Address *address);
+
 
 /**
- * The ATS service will pass a pointer to a struct
- * of this type as the first and only argument to the
- * entry point of each ATS solver.
+ * The ATS plugin will pass a pointer to a struct
+ * of this type as to the initialization function
+ * of the ATS plugins.
  */
 struct GNUNET_ATS_PluginEnvironment
 {
@@ -407,7 +430,12 @@ struct GNUNET_ATS_PluginEnvironment
   /**
    * Statistics handle to be used by the solver
    */
-  const struct GNUNET_STATISTICS_Handle *stats;
+  struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Closure to pass to all callbacks in this struct.
+   */
+  void *cls;
 
   /**
    * Hashmap containing all addresses available
@@ -420,19 +448,9 @@ struct GNUNET_ATS_PluginEnvironment
   GAS_bandwidth_changed_cb bandwidth_changed_cb;
 
   /**
-   * ATS addresses closure to be notified about bandwidth assignment changes
-   */
-  void *bw_changed_cb_cls;
-
-  /**
    * ATS addresses function to obtain preference values
    */
   GAS_get_preferences get_preferences;
-
-  /**
-   * ATS addresses function closure to obtain preference values
-   */
-  void *get_preference_cls;
 
   /**
    * ATS addresses function to obtain property values
@@ -440,26 +458,10 @@ struct GNUNET_ATS_PluginEnvironment
   GAS_get_properties get_property;
 
   /**
-   * ATS addresses function closure to obtain property values
-   */
-  void *get_property_cls;
-
-  /**
    * Callback for solver to call with status information,
    * can be NULL
    */
   GAS_solver_information_callback info_cb;
-
-  /**
-   * Closure for information callback,
-   * can be NULL
-   */
-  void *info_cb_cls;
-
-  /**
-   * The ATS solver plugin functions to call
-   */
-  struct GNUNET_ATS_SolverFunctions sf;
 
   /**
    *  Available networks
