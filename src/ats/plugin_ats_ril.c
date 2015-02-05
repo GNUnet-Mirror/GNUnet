@@ -2386,74 +2386,6 @@ GAS_ril_address_property_changed (void *solver,
 
 
 /**
- * Update the session of an address in the solver
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param cur_session the current session
- * @param new_session the new session
- */
-static void
-GAS_ril_address_session_changed (void *solver,
-				 struct ATS_Address *address,
-				 uint32_t cur_session,
-				 uint32_t new_session)
-{
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_session_changed()\n");
-}
-
-
-/**
- * Notify solver that the network an address is located in has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param current_network the current network
- * @param new_network the new network
- */
-static void
-GAS_ril_address_change_network (void *solver,
-				struct ATS_Address *address,
-				uint32_t current_network,
-				uint32_t new_network)
-{
-  struct GAS_RIL_Handle *s = solver;
-  struct RIL_Peer_Agent *agent;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_change_network() Network type changed, moving "
-      "%s address of peer %s from '%s' to '%s'\n",
-      (GNUNET_YES == address->active) ? "active" : "inactive", GNUNET_i2s (&address->peer),
-      GNUNET_ATS_print_network_type (current_network), GNUNET_ATS_print_network_type (new_network));
-
-  s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.epsilon = s->parameters.epsilon_init;
-
-  if (address->active && !ril_network_is_active (solver, new_network))
-  {
-    GAS_ril_address_delete (solver, address, GNUNET_NO);
-    return;
-  }
-
-  agent = ril_get_agent (s, &address->peer, GNUNET_NO);
-  if (NULL == agent)
-  {
-    GNUNET_assert(!ril_network_is_active (solver, current_network));
-
-    GAS_ril_address_add (s, address, new_network);
-    return;
-  }
-
-  address->solver_information = ril_get_network(solver, new_network);
-}
-
-
-/**
  * Give feedback about the current assignment
  *
  * @param solver the solver handle
@@ -2850,8 +2782,6 @@ libgnunet_plugin_ats_ril_init (void *cls)
 
   env->sf.s_add = &GAS_ril_address_add;
   env->sf.s_address_update_property = &GAS_ril_address_property_changed;
-  env->sf.s_address_update_session = &GAS_ril_address_session_changed;
-  env->sf.s_address_update_network = &GAS_ril_address_change_network;
   env->sf.s_get = &GAS_ril_get_preferred_address;
   env->sf.s_get_stop = &GAS_ril_stop_get_preferred_address;
   env->sf.s_pref = &GAS_ril_address_change_preference;

@@ -99,7 +99,8 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
   if (NULL == my_client)
     return;
   GNUNET_STATISTICS_update (GSA_stats,
-                            "# address suggestions made", 1,
+                            "# address suggestions made", 
+			    1,
                             GNUNET_NO);
   msg.header.size = htons (sizeof (struct AddressSuggestionMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION);
@@ -179,7 +180,7 @@ GAS_handle_address_add (void *cls,
                      plugin_name,
                      address,
                      address_length,
-                     ntohl(m->address_local_info),
+                     ntohl (m->address_local_info),
                      ntohl (m->session_id),
                      atsi, ats_count);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

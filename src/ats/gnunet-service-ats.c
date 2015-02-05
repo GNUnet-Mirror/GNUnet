@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file ats/gnunet-service-ats.c
  * @brief ats service
@@ -29,9 +28,12 @@
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_connectivity.h"
+#include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_performance.h"
+#include "gnunet-service-ats_preferences.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_reservations.h"
+#include "gnunet-service-ats_plugins.h"
 #include "ats.h"
 
 /**
@@ -108,6 +110,9 @@ client_disconnect_handler (void *cls,
     return;
   GAS_scheduling_remove_client (client);
   GAS_performance_remove_client (client);
+  GAS_connectivity_remove_client (client);
+  GAS_normalization_preference_client_disconnect (client);
+  GAS_addresses_preference_client_disconnect (client);
 }
 
 
@@ -121,9 +126,13 @@ static void
 cleanup_task (void *cls,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GAS_plugins_done ();
   GAS_addresses_done ();
+  GAS_normalization_stop ();
   GAS_scheduling_done ();
+  GAS_connectivity_done ();
   GAS_performance_done ();
+  GAS_preference_done ();
   GAS_reservations_done ();
   GNUNET_SERVER_disconnect_notify_cancel (GSA_server,
                                           &client_disconnect_handler,
@@ -180,10 +189,14 @@ run (void *cls,
   GSA_server = server;
   GSA_stats = GNUNET_STATISTICS_create ("ats", cfg);
   GAS_reservations_init ();
+  GAS_normalization_start ();
+  GAS_addresses_init ();
   if (GNUNET_OK !=
-      GAS_addresses_init (cfg, GSA_stats))
+      GAS_plugins_init (cfg))
   {
     GNUNET_break (0);
+    GAS_addresses_done ();
+    GAS_normalization_stop ();
     GAS_reservations_done ();
     if (NULL != GSA_stats)
     {
@@ -196,10 +209,12 @@ run (void *cls,
   GAS_scheduling_init (server);
 
   GNUNET_SERVER_disconnect_notify (server,
-                                   &client_disconnect_handler, NULL);
+                                   &client_disconnect_handler, 
+				   NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &cleanup_task, NULL);
+                                &cleanup_task,
+				NULL);
 }
 
 

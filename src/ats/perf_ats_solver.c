@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-ats_addresses.h"
+#include "gnunet-service-ats_plugins.h"
 #include "gnunet-service-ats_normalization.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_ats_plugin.h"
@@ -38,6 +39,11 @@
 #define DEFAULT_ADDRESSES       10
 #define DEFAULT_ATS_COUNT       2
 
+
+/**
+ * Handle for statistics.
+ */
+struct GNUNET_STATISTICS_Handle *GSA_stats;
 
 /**
  * Handle for ATS address component
@@ -385,7 +391,6 @@ perf_update_address (struct ATS_Address *cur)
   default:
     break;
   }
-  ph.env.sf.s_address_update_inuse (ph.solver, cur, GNUNET_YES);
 }
 
 
@@ -411,22 +416,17 @@ bandwidth_changed_cb (void *cls,
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
-  return GAS_normalization_get_preferences_by_peer (id);
+  return GAS_normalization_get_preferences_by_peer (NULL, id);
 }
 
 
 const double *
 get_property_cb (void *cls, const struct ATS_Address *address)
 {
-  return GAS_normalization_get_properties ((struct ATS_Address *) address);
+  return GAS_normalization_get_properties (NULL, 
+					   address);
 }
 
-static void
-normalized_property_changed_cb (void *cls, struct ATS_Address *peer,
-    uint32_t type, double prop_rel)
-{
-  /* TODO */
-}
 
 static void
 perf_address_initial_update (void *solver,
@@ -1284,7 +1284,7 @@ run (void *cls, char * const *args, const char *cfgfile,
         ph.env.out_quota[c],
         ph.env.in_quota[c]);
   }
-  GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL );
+  GAS_normalization_start ();
 
   GNUNET_asprintf (&plugin, "libgnunet_plugin_ats_%s", ph.ats_string);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s'\n"), ph.ats_string);

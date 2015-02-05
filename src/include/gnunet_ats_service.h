@@ -704,14 +704,16 @@ struct GNUNET_ATS_ReservationContext;
  * @param amount reserve N bytes for receiving, negative
  *                amounts can be used to undo a (recent) reservation;
  * @param rcb function to call with the resulting reservation information
- * @param rcb_cls closure for info
+ * @param rcb_cls closure for @a rcb
  * @return NULL on error
  * @deprecated will be replaced soon
  */
 struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_PeerIdentity *peer, int32_t amount,
-    GNUNET_ATS_ReservationCallback rcb, void *rcb_cls);
+			      const struct GNUNET_PeerIdentity *peer, 
+			      int32_t amount,
+			      GNUNET_ATS_ReservationCallback rcb,
+			      void *rcb_cls);
 
 
 /**
@@ -786,7 +788,8 @@ GNUNET_ATS_print_preference_type (uint32_t type);
  */
 void
 GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
-                                          const struct GNUNET_PeerIdentity *peer, ...);
+                                          const struct GNUNET_PeerIdentity *peer,
+					  ...);
 
 
 /**
@@ -808,8 +811,9 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
  */
 void
 GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope, ...);
+				      const struct GNUNET_PeerIdentity *peer,
+				      const struct GNUNET_TIME_Relative scope,
+				      ...);
 
 #endif
 /* end of file gnunet-service-transport_ats.h */

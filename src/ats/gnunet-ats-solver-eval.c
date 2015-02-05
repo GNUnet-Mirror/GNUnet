@@ -26,8 +26,16 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet-ats-solver-eval.h"
+#include "gnunet-service-ats_normalization.h"
+#include "gnunet-service-ats_preferences.h"
 
 #define BIG_M_STRING "unlimited"
+
+/**
+ * Handle for statistics.
+ */
+struct GNUNET_STATISTICS_Handle *GSA_stats;
+
 
 static struct Experiment *e;
 
@@ -36,6 +44,7 @@ static struct LoggingHandle *l;
 static struct SolverHandle *sh;
 
 static struct TestPeer *peer_head;
+
 static struct TestPeer *peer_tail;
 
 static double default_properties[GNUNET_ATS_PropertyCount];
@@ -670,8 +679,7 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         pg->ats_property, prop_value, prop_value);
   }
   else
-    GAS_normalization_normalize_property (sh->addresses,
-      pg->test_address->ats_addr, &atsi, 1);
+    GAS_normalization_normalize_property (pg->test_address->ats_addr, &atsi, 1);
   sh->env.sf.s_bulk_stop (sh->solver);
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
@@ -3040,7 +3048,8 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
     return p->pref_abs;
   }
   else
-    return GAS_normalization_get_preferences_by_peer (id);
+    return GAS_normalization_get_preferences_by_peer (NULL,
+						      id);
 }
 
 
@@ -3058,96 +3067,8 @@ get_property_cb (void *cls, const struct ATS_Address *address)
     a = find_address_by_ats_address (p, address);
     return a->prop_abs;
   }
-  return GAS_normalization_get_properties ((struct ATS_Address *) address);
-}
-
-
-static void
-set_updated_property ( struct ATS_Address *address, uint32_t type, double prop_rel)
-{
-  struct TestPeer *p;
-  struct TestAddress *a;
-
-  if (NULL == (p = find_peer_by_pid (&address->peer)))
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  if (NULL == (a = find_address_by_ats_address (p, address)))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  a->prop_norm[type] = prop_rel;
-  sh->env.sf.s_address_update_property (sh->solver, address, type, a->prop_abs [type], prop_rel);
-}
-
-
-static void
-normalized_property_changed_cb (void *cls, struct ATS_Address *address,
-    uint32_t type, double prop_rel)
-{
-  struct TestPeer *p;
-  struct PreferenceGenerator *pg;
-  struct GNUNET_TIME_Relative duration;
-  uint32_t delta;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Normalized property %s for peer `%s' changed to %.3f \n",
-      GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
-      prop_rel);
-
-  if (NULL != (p = find_peer_by_pid (&address->peer)))
-  {
-    for (pg = pref_gen_head; NULL != pg; pg = pg->next)
-    {
-      if (pg->peer == p->id)
-      {
-        duration = GNUNET_TIME_absolute_get_duration(pg->feedback_last_delay_update);
-        delta = duration.rel_value_us * pg->last_delay_value;
-        pg->feedback_delay_acc += delta;
-
-        pg->last_delay_value = prop_rel;
-        pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
-      }
-    }
-
-  }
-
-  set_updated_property (address, type, prop_rel);
-}
-
-static void
-set_updated_preference (const struct GNUNET_PeerIdentity *peer,
-    enum GNUNET_ATS_PreferenceKind kind,
-    double pref_rel)
-{
-  struct TestPeer *p;
-
-  if (NULL == (p = find_peer_by_pid (peer)))
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  p->pref_norm[kind] = pref_rel;
-  sh->env.sf.s_pref (sh->solver, peer, kind, pref_rel);
-}
-
-
-static void
-normalized_preference_changed_cb (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    enum GNUNET_ATS_PreferenceKind kind,
-    double pref_rel)
-{
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Normalized preference %s for peer `%s' changed to %.3f \n",
-      GNUNET_ATS_print_preference_type (kind), GNUNET_i2s (peer),
-      pref_rel);
-
-  set_updated_preference(peer, kind, pref_rel);
+  return GAS_normalization_get_properties (NULL,
+					   address);
 }
 
 
@@ -3196,8 +3117,7 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 
 
   /* start normalization */
-  GAS_normalization_start (&normalized_preference_changed_cb, NULL,
-      &normalized_property_changed_cb, NULL );
+  GAS_normalization_start ();
 
   /* load quotas */
   if (GNUNET_ATS_NetworkTypeCount != GNUNET_ATS_solvers_load_quotas (e->cfg,

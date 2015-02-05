@@ -43,6 +43,12 @@ plugin_LTLIBRARIES = \
 
 gnunet_ats_solver_eval_SOURCES = \
  gnunet-ats-solver-eval.c gnunet-ats-solver-eval.h \
+ gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+ gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+ gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+ gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
+ gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h \
+ gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_normalization.c
 gnunet_ats_solver_eval_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -101,9 +107,11 @@ libexec_PROGRAMS = \
 gnunet_service_ats_SOURCES = \
  gnunet-service-ats.c gnunet-service-ats.h\
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+ gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
  gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
  gnunet-service-ats_normalization.c gnunet-service-ats_normalization.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+ gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
 gnunet_service_ats_LDADD = \
@@ -516,7 +524,16 @@ test_ats_solver_alternative_after_delete_address_ril_LDADD = \
 #  libgnunetats.la
 
 perf_ats_solver_mlp_SOURCES = \
-  perf_ats_solver.c test_ats_api_common.c gnunet-service-ats_normalization.c
+  perf_ats_solver.c \
+  test_ats_api_common.c \
+  gnunet-service-ats_normalization.c \
+  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+  gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
+  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
+  gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
+
 perf_ats_solver_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -524,7 +541,16 @@ perf_ats_solver_mlp_LDADD = \
   libgnunetats.la
 
 perf_ats_solver_proportional_SOURCES = \
-  perf_ats_solver.c test_ats_api_common.c gnunet-service-ats_normalization.c
+  perf_ats_solver.c \
+  test_ats_api_common.c \
+  gnunet-service-ats_normalization.c \
+  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+  gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
+  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
+  gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
+
 perf_ats_solver_proportional_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -532,7 +558,16 @@ perf_ats_solver_proportional_LDADD = \
   libgnunetats.la
 
 perf_ats_solver_ril_SOURCES = \
-  perf_ats_solver.c test_ats_api_common.c gnunet-service-ats_normalization.c
+  perf_ats_solver.c \
+  test_ats_api_common.c \
+  gnunet-service-ats_normalization.c \
+  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+  gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
+  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
+  gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h
+
 perf_ats_solver_ril_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \

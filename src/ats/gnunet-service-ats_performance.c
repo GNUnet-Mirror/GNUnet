@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011-2014 Christian Grothoff (and other contributing authors)
+     (C) 2011-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -69,6 +69,7 @@ static struct PerformanceClient *pc_head;
  */
 static struct PerformanceClient *pc_tail;
 
+
 /**
  * Context for sending messages to performance clients.
  */
@@ -92,7 +93,6 @@ find_client (struct GNUNET_SERVER_Client *client)
   return NULL;
 }
 
-
 /**
  * Unregister a client (which may have been a performance client,
  * but this is not assured).
@@ -108,7 +108,6 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
   if (NULL == pc)
     return;
   GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
-  GAS_addresses_preference_client_disconnect (client);
   GNUNET_free (pc);
 }
 
@@ -593,109 +592,6 @@ GAS_handle_reservation_request (void *cls,
 }
 
 
-/**
- * Handle 'preference change' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_preference_change (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message)
-{
-  const struct ChangePreferenceMessage *msg;
-  const struct PreferenceInformation *pi;
-  uint16_t msize;
-  uint32_t nump;
-  uint32_t i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "PREFERENCE_CHANGE");
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct ChangePreferenceMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct ChangePreferenceMessage *) message;
-  nump = ntohl (msg->num_preferences);
-  if (msize !=
-      sizeof (struct ChangePreferenceMessage) +
-      nump * sizeof (struct PreferenceInformation))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  GNUNET_STATISTICS_update (GSA_stats,
-                            "# preference change requests processed",
-                            1, GNUNET_NO);
-  pi = (const struct PreferenceInformation *) &msg[1];
-  for (i = 0; i < nump; i++)
-    GAS_addresses_preference_change (client,
-                                     &msg->peer,
-                                     (enum GNUNET_ATS_PreferenceKind)
-                                     ntohl (pi[i].preference_kind),
-                                     pi[i].preference_value);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * Handle 'preference feedback' messages from clients.
- *
- * @param cls unused, NULL
- * @param client client that sent the request
- * @param message the request message
- */
-void
-GAS_handle_preference_feedback (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message)
-{
-  const struct FeedbackPreferenceMessage *msg;
-  const struct PreferenceInformation *pi;
-  uint16_t msize;
-  uint32_t nump;
-  uint32_t i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "PREFERENCE_FEEDBACK");
-  msize = ntohs (message->size);
-  if (msize < sizeof (struct FeedbackPreferenceMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  msg = (const struct FeedbackPreferenceMessage *) message;
-  nump = ntohl (msg->num_feedback);
-  if (msize !=
-      sizeof (struct FeedbackPreferenceMessage) +
-      nump * sizeof (struct PreferenceInformation))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
-  GNUNET_STATISTICS_update (GSA_stats,
-                            "# preference feedbacks requests processed",
-                            1, GNUNET_NO);
-  pi = (const struct PreferenceInformation *) &msg[1];
-  for (i = 0; i < nump; i++)
-    GAS_addresses_preference_feedback (client,
-                                       &msg->peer,
-                                       GNUNET_TIME_relative_ntoh(msg->scope),
-                                       (enum GNUNET_ATS_PreferenceKind)
-                                       ntohl (pi[i].preference_kind),
-                                       pi[i].preference_value);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
 
 
 /**

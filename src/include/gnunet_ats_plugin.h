@@ -128,34 +128,6 @@ typedef void
     struct ATS_Address *address, uint32_t type, uint32_t abs_value,
     double rel_value);
 
-/**
- * Transport session for this address has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param cur_session the current session
- * @param new_session the new session
- */
-typedef void
-(*GAS_solver_address_session_changed) (void *solver,
-    struct ATS_Address *address, uint32_t cur_session, uint32_t new_session);
-
-
-/**
- * Network scope for this address has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param current_network the current network
- * @param new_network the new network
- */
-typedef void
-(*GAS_solver_address_network_changed) (void *solver,
-    struct ATS_Address *address, uint32_t current_network, uint32_t new_network);
 
 /**
  * Get the prefered address for a peer from solver
@@ -199,16 +171,6 @@ struct GNUNET_ATS_SolverFunctions
    * Update the properties of an address in the solver
    */
   GAS_solver_address_property_changed s_address_update_property;
-
-  /**
-   * Update the session of an address in the solver
-   */
-  GAS_solver_address_session_changed s_address_update_session;
-
-  /**
-   * Notify solver that the network an address is located in has changed
-   */
-  GAS_solver_address_network_changed s_address_update_network;
 
   /**
    * Tell solver to notify ATS if the address to use changes for a specific

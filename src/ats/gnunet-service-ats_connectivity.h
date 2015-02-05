@@ -27,6 +27,24 @@
 #ifndef GNUNET_SERVICE_ATS_CONNECTIVITY_H
 #define GNUNET_SERVICE_ATS_CONNECTIVITY_H
 
+/**
+ * Request address suggestions for a peer
+ *
+ * @param peer the peer id
+ */
+void
+GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * Cancel address suggestions for a peer
+ *
+ * @param peer the peer id
+ */
+void
+GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer);
+
+
 
 /**
  * Handle 'request address' messages from clients.
@@ -52,6 +70,23 @@ void
 GAS_handle_request_address_cancel (void *cls,
                                    struct GNUNET_SERVER_Client *client,
                                    const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Unregister a client (which may have been a connectivity client,
+ * but this is not assured).
+ *
+ * @param client handle of the (now dead) client
+ */
+void
+GAS_connectivity_remove_client (struct GNUNET_SERVER_Client *client);
+
+
+/**
+ * Shutdown connectivity subsystem.
+ */
+void
+GAS_connectivity_done (void);
 
 
 #endif

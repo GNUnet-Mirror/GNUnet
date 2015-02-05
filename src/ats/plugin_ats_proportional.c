@@ -713,7 +713,6 @@ find_best_address_it (void *cls,
   struct FindBestAddressCtx *ctx = cls;
   struct ATS_Address *current = value;
   struct ATS_Address *current_best = current;
-  struct GNUNET_TIME_Absolute now;
   struct AddressSolverInformation *asi;
   struct GNUNET_TIME_Relative active_time;
   struct GNUNET_TIME_Relative min_active_time;
@@ -727,20 +726,6 @@ find_best_address_it (void *cls,
 
   current_best = NULL;
   asi = current->solver_information;
-  now = GNUNET_TIME_absolute_get ();
-
-  if ((current->active == GNUNET_NO)
-      && (current->blocked_until.abs_value_us
-          == GNUNET_TIME_absolute_max (now, current->blocked_until).abs_value_us))
-  {
-    /* This address is blocked for suggestion */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Address %p blocked for suggestion for %s \n",
-         current,
-         GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (now, current->blocked_until),
-                                                 GNUNET_YES));
-    return GNUNET_OK;
-  }
   if (NULL == asi)
   {
     GNUNET_break (0);
@@ -1695,143 +1680,6 @@ GAS_proportional_address_property_changed (void *solver,
   }
 }
 
-/**
- * Transport session for this address has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param cur_session the current session
- * @param new_session the new session
- */
-static void
-GAS_proportional_address_session_changed (void *solver,
-                                          struct ATS_Address *address,
-                                          uint32_t cur_session,
-                                          uint32_t new_session)
-{
-  struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct ATS_Address *best_address;
-  struct ATS_Address *active_address;
-  struct AddressSolverInformation *asi;
-
-  if (cur_session != new_session)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session changed from %u to %u\n",
-         cur_session,
-         new_session);
-  }
-
-  if (NULL == address->solver_information)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  if (GNUNET_NO ==
-      GNUNET_CONTAINER_multipeermap_contains (s->requests, &address->peer))
-    return; /* Peer is not requested */
-
-  /* This peer is requested, find active and best address */
-  active_address = get_active_address (s, s->addresses, &address->peer);
-  best_address = update_active_address (s, &address->peer);
-
-  if ((NULL != best_address) && ((NULL != active_address) &&
-      (GNUNET_YES == address_eq (active_address, best_address))))
-  {
-    asi = best_address->solver_information;
-    GNUNET_assert (NULL != asi);
-
-    /* We sticked to the same address, therefore redistribute  */
-    distribute_bandwidth_in_network (s, asi->network);
-  }
-}
-
-
-/**
- * Network scope for this address has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param current_network the current network
- * @param new_network the new network
- */
-static void
-GAS_proportional_address_change_network (void *solver,
-                                         struct ATS_Address *address,
-                                         uint32_t current_network,
-                                         uint32_t new_network)
-{
-  struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct AddressSolverInformation *asi;
-  int save_active = GNUNET_NO;
-
-  if (current_network == new_network)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
-  asi = address->solver_information;
-  if (NULL == asi)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
-  /* Network changed */
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Network type changed, moving %s address from `%s' to `%s'\n",
-      (GNUNET_YES == address->active) ? "active" : "inactive",
-      GNUNET_ATS_print_network_type (current_network),
-      GNUNET_ATS_print_network_type (new_network));
-
-
-  /* Start bulk to prevent disconnect */
-  GAS_proportional_bulk_start(s);
-
-  save_active = address->active;
-
-  /* Disable and assign no bandwidth */
-  address->active = GNUNET_NO;
-  address->assigned_bw_in = 0; /* no bandwidth assigned */
-  address->assigned_bw_out = 0; /* no bandwidth assigned */
-
-  /* Remove from old network */
-  GAS_proportional_address_delete (solver, address, GNUNET_NO);
-
-  /* Set new network type */
-  if (NULL == get_network (solver, new_network))
-  {
-    /* Address changed to invalid network... */
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        _("Invalid network type `%u' `%s': Disconnect!\n"), new_network,
-        GNUNET_ATS_print_network_type (new_network));
-    s->bw_changed (s->bw_changed_cls, address);
-  }
-  else
-  {
-    /* Add to new network and update*/
-    GAS_proportional_address_add (solver, address, new_network);
-  }
-  GAS_proportional_bulk_stop (s);
-
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (s->requests, &address->peer))
-    return; /* Peer is not requested */
-
-  /* Find new address to suggest */
-  if (GNUNET_YES == save_active)
-  {
-    /* No address available, therefore disconnect */
-    if (NULL == update_active_address (s, &address->peer))
-      s->bw_changed (s->bw_changed_cls, address);
-  }
-
-}
 
 /**
  * Add a new single address to a network
@@ -1914,8 +1762,6 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   s->env = env;
   env->sf.s_add = &GAS_proportional_address_add;
   env->sf.s_address_update_property = &GAS_proportional_address_property_changed;
-  env->sf.s_address_update_session = &GAS_proportional_address_session_changed;
-  env->sf.s_address_update_network = &GAS_proportional_address_change_network;
   env->sf.s_get = &GAS_proportional_get_preferred_address;
   env->sf.s_get_stop = &GAS_proportional_stop_get_preferred_address;
   env->sf.s_pref = &GAS_proportional_address_change_preference;

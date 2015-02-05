@@ -216,38 +216,7 @@
  *    The bandwidth assigned to a peer can be influenced by setting a preference
  *    for a peer. The prefernce will be given to to the solver with s_pref which
  *    has to take care of the preference value
-
  */
-
-/**
- * Available ressource assignment modes
- */
-enum ATS_Mode
-{
-  /**
-   * proportional mode:
-   *
-   * Assign each peer an equal amount of bandwidth (bw)
-   *
-   * bw_per_peer = bw_total / #active addresses
-   */
-  MODE_PROPORTIONAL,
-
-  /**
-   * MLP mode:
-   *
-   * Solve ressource assignment as an optimization problem
-   * Uses an mixed integer programming solver
-   */
-  MODE_MLP,
-
-  /**
-   * Reinforcement Learning mode:
-   *
-   * Solve resource assignment using a learning agent
-   */
-  MODE_RIL
-};
 
 
 /*
@@ -362,17 +331,6 @@ struct ATS_Address
    */
   uint32_t last_notified_bw_out;
 
-
-  /**
-   * Blocking interval
-   */
-  struct GNUNET_TIME_Relative block_interval;
-
-  /**
-   * Time when address can be suggested again
-   */
-  struct GNUNET_TIME_Absolute blocked_until;
-
   /**
    * Time when address had last activity (update, in uses)
    */
@@ -402,19 +360,18 @@ struct ATS_Address
 
 
 /**
- * Initialize address subsystem. The addresses subsystem manages the addresses
- * known and current performance information. It has a solver component
- * responsible for the resource allocation. It tells the solver about changes
- * and receives updates when the solver changes the ressource allocation.
- *
- * @param cfg configuration to use
- * @param stats the statistics handle to use
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error (failed to load
- *         solver plugin)
+ * A multihashmap to store all addresses
  */
-int
-GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                    struct GNUNET_STATISTICS_Handle *stats);
+extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
+
+
+
+/**
+ * Initialize address subsystem. The addresses subsystem manages the addresses
+ * known and current performance information. 
+ */
+void
+GAS_addresses_init (void);
 
 
 /**
@@ -480,83 +437,6 @@ void
 GAS_addresses_destroy_all (void);
 
 
-/**
- * Request address suggestions for a peer
- *
- * @param peer the peer id
- */
-void
-GAS_addresses_request_address (const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Cancel address suggestions for a peer
- *
- * @param peer the peer id
- */
-void
-GAS_addresses_request_address_cancel (const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Reset suggestion backoff for a peer
- *
- * Suggesting addresses is blocked for ATS_BLOCKING_DELTA. Blocking can be
- * reset using this function
- *
- * @param peer the peer id
- */
-void
-GAS_addresses_handle_backoff_reset (const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * A performance client disconnected
- *
- * @param client the client; FIXME: type!?
- */
-void
-GAS_addresses_preference_client_disconnect (void *client);
-
-
-/**
- * Change the preference for a peer
- *
- * @param client the client sending this request; FIXME: type!?
- * @param peer the peer id
- * @param kind the preference kind to change
- * @param score_abs the new preference score
- */
-void
-GAS_addresses_preference_change (void *client,
-                                 const struct GNUNET_PeerIdentity *peer,
-                                 enum GNUNET_ATS_PreferenceKind kind,
-                                 float score_abs);
-
-
-/**
- * Application feedback on how good preference requirements are fulfilled
- * for a specific preference in the given time scope [now - scope .. now]
- *
- * An application notifies ATS if (and only if) it has feedback information
- * for a specific property. This value is valid until the feedback score is
- * updated by the application.
- *
- * If the application has no feedback for this preference kind the application
- * will not explicitly call.
- *
- * @param application the application sending this request; FIXME: type?
- * @param peer the peer id
- * @param scope the time interval this valid for: [now - scope .. now]
- * @param kind the preference kind this feedback is intended for
- * @param score_abs the new preference score
- */
-void
-GAS_addresses_preference_feedback (void *application,
-                                   const struct GNUNET_PeerIdentity *peer,
-                                   const struct GNUNET_TIME_Relative scope,
-                                   enum GNUNET_ATS_PreferenceKind kind,
-                                   float score_abs);
 
 
 /**
