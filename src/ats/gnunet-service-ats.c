@@ -28,6 +28,7 @@
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_connectivity.h"
+#include "gnunet-service-ats_feedback.h"
 #include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_preferences.h"
