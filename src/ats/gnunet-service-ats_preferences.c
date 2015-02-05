@@ -64,14 +64,13 @@ struct PeerRelative
 static struct PeerRelative defvalues;
 
 
-
 /**
- * Preference client
+ * Preference client, information we keep track of per client.
  */
 struct PreferenceClient
 {
   /**
-   * Next in DLL
+   * Previous in DLL
    */
   struct PreferenceClient *prev;
 
@@ -79,21 +78,6 @@ struct PreferenceClient
    * Next in DLL
    */
   struct PreferenceClient *next;
-
-  /**
-   * Client handle
-   */
-  void *client;
-
-  /**
-   * Array of sum of absolute preferences for this client
-   */
-  double f_abs_sum[GNUNET_ATS_PreferenceCount];
-
-  /**
-   * Array of sum of relative preferences for this client
-   */
-  double f_rel_sum[GNUNET_ATS_PreferenceCount];
 
   /**
    * Head of peer list
@@ -104,31 +88,46 @@ struct PreferenceClient
    * Tail of peer list
    */
   struct PreferencePeer *p_tail;
+
+  /**
+   * Client handle
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Array of sum of absolute preferences for this client
+   */
+  double f_abs_sum[GNUNET_ATS_PreferenceCount];
+
+  /**
+   * Array of sum of relative preferences for this client
+   */
+  double f_rel_sum[GNUNET_ATS_PreferenceCount];
 };
 
 
 /**
- * Preference peer
+ * Preference information per peer and client.
  */
 struct PreferencePeer
 {
   /**
-   * Next in DLL
+   * Next in DLL of preference entries for the same client.
    */
   struct PreferencePeer *next;
 
   /**
-   * Previous in DLL
+   * Previous in DLL of preference entries for the same client.
    */
   struct PreferencePeer *prev;
 
   /**
-   * Client
+   * Client that expressed this preferences.
    */
   struct PreferenceClient *client;
 
   /**
-   * Peer id
+   * Peer identity for which the preference was expressed.
    */
   struct GNUNET_PeerIdentity id;
 
@@ -164,9 +163,10 @@ static struct PreferenceClient *pc_head;
  */
 static struct PreferenceClient *pc_tail;
 
-
-
-static struct GNUNET_SCHEDULER_Task * aging_task;
+/**
+ * Handle for task we run periodically to age preferences over time.
+ */
+static struct GNUNET_SCHEDULER_Task *aging_task;
 
 
 /**
@@ -210,12 +210,13 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "%u clients have a total relative preference for peer `%s' `%s' of %.3f and for %s in total %.3f\n",
-      peer_count, GNUNET_i2s (id),
-      GNUNET_ATS_print_preference_type (kind),
-      f_rel_total,
-      GNUNET_ATS_print_preference_type (kind),
-      f_rel_sum);
+       "%u clients have a total relative preference for peer `%s' `%s' of %.3f and for %s in total %.3f\n",
+       peer_count,
+       GNUNET_i2s (id),
+       GNUNET_ATS_print_preference_type (kind),
+       f_rel_total,
+       GNUNET_ATS_print_preference_type (kind),
+       f_rel_sum);
 
   /* Find entry for the peer containing relative values in the hashmap */
   if (NULL != rp)
@@ -234,6 +235,9 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
 }
 
 
+/**
+ * FIXME
+ */
 static int
 update_iterator (void *cls,
                  const struct GNUNET_PeerIdentity *key,
@@ -247,7 +251,6 @@ update_iterator (void *cls,
                                    pr);
   return GNUNET_OK;
 }
-
 
 
 /**
@@ -300,7 +303,10 @@ recalculate_relative_preferences (struct PreferenceClient *c,
 }
 
 
-
+/**
+ * FIXME.
+ *
+ */
 static void
 run_preference_update (struct PreferenceClient *c_cur,
                        struct PreferencePeer *p_cur,
@@ -322,8 +328,6 @@ run_preference_update (struct PreferenceClient *c_cur,
 }
 
 
-
-
 /**
  * Reduce absolute preferences since they got old
  *
@@ -331,12 +335,13 @@ run_preference_update (struct PreferenceClient *c_cur,
  * @param tc context
  */
 static void
-preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+preference_aging (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PreferencePeer *p;
   struct PreferenceClient *cur_client;
-  int i;
-  int values_to_update;
+  unsigned int i;
+  unsigned int values_to_update;
   double backup;
 
   aging_task = NULL;
@@ -382,16 +387,18 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (values_to_update > 0)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Rescheduling aging task due to %u elements to age\n",
-        values_to_update);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Rescheduling aging task due to %u elements to age\n",
+                values_to_update);
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
-        &preference_aging, NULL );
+                                               &preference_aging,
+                                               NULL);
   }
   else
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "No values to age left, not rescheduling aging task\n");
-
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No values to age left, not rescheduling aging task\n");
+  }
 }
 
 
@@ -720,11 +727,11 @@ const double *
 GAS_normalization_get_preferences_by_peer (void *cls,
 					   const struct GNUNET_PeerIdentity *id)
 {
-  GNUNET_assert(NULL != preference_peers);
-  GNUNET_assert(NULL != id);
-
   struct PeerRelative *rp;
-  if (NULL == (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers, id)))
+
+  if (NULL ==
+      (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers,
+                                               id)))
   {
     return defvalues.f_rel;
   }
