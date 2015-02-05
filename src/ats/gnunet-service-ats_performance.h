@@ -31,16 +31,6 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
-/**
- * Register a new performance client.
- *
- * @param client handle of the new client
- * @param flag flag specifying the type of the client
- */
-void
-GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
-                            enum StartFlag flag);
-
 
 /**
  * Transmit the given performance information to all performance
@@ -69,6 +59,17 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     uint32_t atsi_count,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+
+
+/**
+ * Register a new performance client.
+ *
+ * @param client handle of the new client
+ * @param flag flag specifying the type of the client
+ */
+void
+GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
+                            enum StartFlag flag);
 
 
 /**

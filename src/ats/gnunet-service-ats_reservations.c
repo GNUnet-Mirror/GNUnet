@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file ats/gnunet-service-ats_reservations.c
  * @brief ats service, inbound bandwidth reservation management
@@ -36,7 +35,7 @@
 
 
 /**
- * Map of peer identities to 'struct GNUNET_BANDWIDTH_Tracker *'s
+ * Map of peer identities to `struct GNUNET_BANDWIDTH_Tracker *`s
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *trackers;
 

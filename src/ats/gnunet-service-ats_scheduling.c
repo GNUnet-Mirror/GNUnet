@@ -25,7 +25,6 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "ats.h"
@@ -99,7 +98,7 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *pe
   if (NULL == my_client)
     return;
   GNUNET_STATISTICS_update (GSA_stats,
-                            "# address suggestions made", 
+                            "# address suggestions made",
 			    1,
                             GNUNET_NO);
   msg.header.size = htons (sizeof (struct AddressSuggestionMessage));

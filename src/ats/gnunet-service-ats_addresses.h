@@ -30,8 +30,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
 #include "gnunet-service-ats.h"
-#include "gnunet_statistics_service.h"
-#include "ats.h"
 
 /**
  * NOTE: Do not change this documentation. This documentation is based on

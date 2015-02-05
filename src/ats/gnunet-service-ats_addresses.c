@@ -25,14 +25,9 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_ats_service.h"
-#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
-#include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_plugins.h"
-#include "gnunet-service-ats_scheduling.h"
-#include "gnunet-service-ats_reservations.h"
 
 
 /**

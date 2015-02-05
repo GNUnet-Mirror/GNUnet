@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet-service-ats.h"
 #include "gnunet-service-ats_plugins.h"
 #include "gnunet-service-ats_feedback.h"
 #include "ats.h"

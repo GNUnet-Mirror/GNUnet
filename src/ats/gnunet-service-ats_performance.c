@@ -27,7 +27,6 @@
 #include "gnunet-service-ats.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
-#include "gnunet-service-ats_reservations.h"
 #include "ats.h"
 
 
@@ -60,17 +59,17 @@ static struct GNUNET_SERVER_NotificationContext *nc_pic;
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
-void
-GAS_performance_notify_client (struct GNUNET_SERVER_Client *client,
-                               const struct GNUNET_PeerIdentity *peer,
-                               const char *plugin_name,
-                               const void *plugin_addr,
-                               size_t plugin_addr_len,
-                               int active,
-                               const struct GNUNET_ATS_Information *atsi,
-                               uint32_t atsi_count,
-                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
+static void
+notify_client (struct GNUNET_SERVER_Client *client,
+               const struct GNUNET_PeerIdentity *peer,
+               const char *plugin_name,
+               const void *plugin_addr,
+               size_t plugin_addr_len,
+               int active,
+               const struct GNUNET_ATS_Information *atsi,
+               uint32_t atsi_count,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PeerInformationMessage *msg;
   size_t plugin_name_length = strlen (plugin_name) + 1;
@@ -146,15 +145,15 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GAS_performance_notify_client (NULL,
-                                 peer,
-                                 plugin_name,
-                                 plugin_addr,
-                                 plugin_addr_len,
-                                 active,
-                                 atsi, atsi_count,
-                                 bandwidth_out,
-                                 bandwidth_in);
+  notify_client (NULL,
+                 peer,
+                 plugin_name,
+                 plugin_addr,
+                 plugin_addr_len,
+                 active,
+                 atsi, atsi_count,
+                 bandwidth_out,
+                 bandwidth_in);
   GNUNET_STATISTICS_update (GSA_stats,
                             "# performance updates given to clients",
                             1,
@@ -198,15 +197,15 @@ peerinfo_it (void *cls,
               plugin_name,
               (unsigned int) ntohl (bandwidth_out.value__),
               (unsigned int) ntohl (bandwidth_in.value__));
-  GAS_performance_notify_client (client,
-                                 id,
-                                 plugin_name,
-                                 plugin_addr,
-                                 plugin_addr_len,
-                                 active,
-                                 atsi, atsi_count,
-                                 bandwidth_out,
-                                 bandwidth_in);
+  notify_client (client,
+                 id,
+                 plugin_name,
+                 plugin_addr,
+                 plugin_addr_len,
+                 active,
+                 atsi, atsi_count,
+                 bandwidth_out,
+                 bandwidth_in);
 }
 
 
