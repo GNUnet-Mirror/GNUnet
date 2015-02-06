@@ -125,8 +125,8 @@ static void
 cleanup_task (void *cls,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GAS_plugins_done ();
   GAS_addresses_done ();
+  GAS_plugins_done ();
   GAS_normalization_stop ();
   GAS_scheduling_done ();
   GAS_connectivity_done ();
