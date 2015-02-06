@@ -819,7 +819,9 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
 {
   int notify = GNUNET_NO;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "    set_active_suggestion() for peer '%s'\n", GNUNET_i2s (&agent->peer));
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "    set_active_suggestion() for peer '%s'\n",
+      GNUNET_i2s (&agent->peer));
 
   //address change
   if (agent->address_inuse != new_address)
@@ -2303,21 +2305,17 @@ GAS_ril_address_delete (void *solver,
                                agent->addresses_tail,
                                address_wrapped);
   GNUNET_free (address_wrapped);
+  address_was_used = GNUNET_NO;
   if (agent->suggestion_address == address)
   {
-    agent->suggestion_address = NULL;
     agent->suggestion_issue = GNUNET_NO;
+    agent->suggestion_address = NULL;
+  }
+  if (agent->address_inuse == address)
+  {
     address_was_used = GNUNET_YES;
   }
-  else if (agent->address_inuse == address)
-  {
-    agent->address_inuse = NULL;
-    address_was_used = GNUNET_YES;
-  }
-  else
-  {
-    address_was_used = GNUNET_NO;
-  }
+
 
   //decrease W
   m_new = agent->m - ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1));
@@ -2358,6 +2356,8 @@ GAS_ril_address_delete (void *solver,
   {
     if (NULL != agent->addresses_head) //if peer has an address left, use it
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Active address died, suggesting alternative!\n");
       envi_set_active_suggestion (s,
                                   agent,
                                   agent->addresses_head->address_naked,
@@ -2367,6 +2367,8 @@ GAS_ril_address_delete (void *solver,
     }
     else
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Active address died, suggesting disconnect!\n");
       envi_set_active_suggestion (s, agent, NULL, 0, 0, GNUNET_NO);
     }
   }

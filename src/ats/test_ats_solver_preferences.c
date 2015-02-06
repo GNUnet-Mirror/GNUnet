@@ -1,10 +1,4 @@
 /*
- if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL)))
- {
- GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
- "Failed to connect to performance API\n");
- GNUNET_SCHEDULER_add_now (end_badly, NULL);
- }
  This file is part of GNUnet.
  (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
@@ -28,6 +22,10 @@
  * @brief solver test: preference client handling
  * @author Christian Grothoff
  * @author Matthias Wachs
+ *
+ * FIXME: This test merely calls some of the API
+ *        functions, it fails to check that
+ *        preferences actually achieve anything.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -41,9 +39,9 @@
 static struct GNUNET_SCHEDULER_Task * die_task;
 
 /**
- * Statistics handle
+ * Task to terminate the test
  */
-static struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_SCHEDULER_Task *end_task;
 
 /**
  * Scheduling handle
@@ -96,15 +94,16 @@ static struct GNUNET_ATS_Information test_ats_info[3];
 static uint32_t test_ats_count;
 
 
-static int
-stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
-    int is_persistent);
-
-
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Done!\n");
+
+  if (perf_ats != NULL)
+  {
+    GNUNET_ATS_performance_done (perf_ats);
+    perf_ats = NULL;
+  }
 
   if (die_task != NULL )
   {
@@ -127,16 +126,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ATS_performance_done (perf_ats);
     perf_ats = NULL;
   }
-
-  GNUNET_STATISTICS_watch_cancel (stats, "ats", "# active performance clients", &stat_cb, NULL );
-  if (NULL != stats)
-  {
-    GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
-    stats = NULL;
-  }
-
   free_test_address (&test_addr);
-
   ret = 0;
 }
 
@@ -152,16 +142,16 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 perf_info_cb (void *cls,
-    const struct GNUNET_HELLO_Address *address, int address_active,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+              const struct GNUNET_HELLO_Address *address, int address_active,
+              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
               const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   if (NULL == address)
     return;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "ATS performance info: `%s'\n",
-      GNUNET_i2s (&address->peer));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+             "ATS performance info: `%s'\n",
+             GNUNET_i2s (&address->peer));
 }
 
 
@@ -175,43 +165,23 @@ address_suggest_cb (void *cls,
 {
   int c;
   double pref_val;
+
   if (NULL == perf_ats)
     return;
   for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
   {
     pref_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 10);
     GNUNET_ATS_performance_change_preference (perf_ats,
-        &test_hello_address.peer, GNUNET_ATS_PREFERENCE_LATENCY, pref_val,
-        GNUNET_ATS_PREFERENCE_END);
+                                              &test_hello_address.peer,
+                                              GNUNET_ATS_PREFERENCE_LATENCY, pref_val,
+                                              GNUNET_ATS_PREFERENCE_END);
   }
+  if (NULL == end_task)
+    end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                             &end, NULL);
+
 }
 
-
-static int
-stat_cb (void *cls, const char *subsystem, const char *name, uint64_t value,
-    int is_persistent)
-{
-  static int last_value = 0;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem, name, value);
-
-  if ((0 == last_value) && (1 == value))
-  {
-    if (perf_ats != NULL)
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Disconnecting performance client\n");
-      GNUNET_ATS_performance_done(perf_ats);
-      perf_ats = NULL;
-    }
-  }
-  if ((1 == last_value) && (0 == value))
-  {
-    GNUNET_SCHEDULER_add_now (&end, NULL);
-  }
-  last_value = value;
-
-  return GNUNET_OK;
-}
 
 
 static void
@@ -220,9 +190,6 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 {
 
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL );
-  stats = GNUNET_STATISTICS_create ("ats", mycfg);
-  GNUNET_STATISTICS_watch (stats, "ats", "# active performance clients", &stat_cb, NULL );
-
   connect_ats = GNUNET_ATS_connectivity_init (mycfg);
 
   /* Connect to ATS scheduling */
@@ -235,11 +202,11 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
     return;
   }
 
-  perf_ats = GNUNET_ATS_performance_init (mycfg, &perf_info_cb, NULL );
-  if (perf_ats == NULL )
+  perf_ats = GNUNET_ATS_performance_init (mycfg, &perf_info_cb, NULL);
+  if (perf_ats == NULL)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Could not connect to ATS performance!\n");
+               "Could not connect to ATS performance!\n");
     GNUNET_SCHEDULER_add_now (&end_badly, NULL );
     return;
   }
@@ -247,8 +214,9 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   /* Set up peer */
   memset (&p.id, '1', sizeof(p.id));
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Created peer `%s'\n",
-      GNUNET_i2s_full (&p.id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Created peer `%s'\n",
+             GNUNET_i2s_full (&p.id));
 
   /* Prepare ATS Information */
   test_ats_info[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
@@ -261,8 +229,9 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
   /* Adding address without session */
   test_session = NULL;
-  create_test_address (&test_addr, "test", test_session, "test",
-      strlen ("test") + 1);
+  create_test_address (&test_addr, "test",
+                       test_session, "test",
+                       strlen ("test") + 1);
   test_hello_address.peer = p.id;
   test_hello_address.transport_name = test_addr.plugin;
   test_hello_address.address = test_addr.addr;
