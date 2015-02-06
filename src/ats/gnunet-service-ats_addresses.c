@@ -215,11 +215,6 @@
  */
 struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
 
-/**
- * Context for sending messages to performance clients without PIC.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
 
 /**
  * Update statistic on number of addresses.
@@ -698,7 +693,6 @@ GAS_addresses_init (struct GNUNET_SERVER_Handle *server)
 {
   GSA_addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   update_addresses_stat ();
-  nc = GNUNET_SERVER_notification_context_create (server, 32);
 }
 
 
@@ -749,8 +743,6 @@ GAS_addresses_done ()
   GAS_addresses_destroy_all ();
   GNUNET_CONTAINER_multipeermap_destroy (GSA_addresses);
   GSA_addresses = NULL;
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
 }
 
 
@@ -902,6 +894,7 @@ transmit_req_addr (struct AddressIteration *ai,
   char *addrp;
   size_t plugin_name_length;
   size_t msize;
+  struct GNUNET_SERVER_NotificationContext *nc;
 
   if (NULL != plugin_name)
     plugin_name_length = strlen (plugin_name) + 1;
@@ -937,6 +930,13 @@ transmit_req_addr (struct AddressIteration *ai,
     memcpy (addrp, plugin_addr, plugin_addr_len);
   if (NULL != plugin_name)
     strcpy (&addrp[plugin_addr_len], plugin_name);
+  nc = *GNUNET_SERVER_client_get_user_context (ai->client,
+                                               struct GNUNET_SERVER_NotificationContext *);
+  if (NULL == nc)
+  {
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_SERVER_notification_context_unicast (nc,
                                               ai->client,
                                               &msg->header,
@@ -1021,8 +1021,6 @@ GAS_handle_request_address_list (void *cls,
   const struct AddressListRequestMessage *alrm;
   struct GNUNET_PeerIdentity allzeros;
 
-  GNUNET_SERVER_notification_context_add (nc,
-                                          client);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received ADDRESSLIST_REQUEST message\n");
   alrm = (const struct AddressListRequestMessage *) message;

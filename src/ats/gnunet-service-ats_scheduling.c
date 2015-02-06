@@ -57,7 +57,10 @@ GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client)
     return GNUNET_SYSERR;
   }
   my_client = client;
-  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_add (nc,
+                                          client);
+  GNUNET_SERVER_client_set_user_context (client,
+                                         &nc);
   return GNUNET_OK;
 }
 

@@ -95,15 +95,16 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static void
 ats_perf_cb (void *cls,
-            const struct GNUNET_HELLO_Address *address,
-            int address_active,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-            const struct GNUNET_ATS_Information *ats,
-            uint32_t ats_count)
+             const struct GNUNET_HELLO_Address *address,
+             int address_active,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+             const struct GNUNET_ATS_Information *ats,
+             uint32_t ats_count)
 {
   static int counter = 0;
 
+  fprintf (stderr, "HERE!\n");
   if (NULL == address)
   {
     phal = 0;
@@ -115,11 +116,11 @@ ats_perf_cb (void *cls,
     else
     {
       GNUNET_break (0);
-      GNUNET_SCHEDULER_add_now (end_badly, NULL);
+      GNUNET_SCHEDULER_shutdown ();
     }
     return;
   }
-  counter ++;
+  counter++;
 }
 
 
@@ -129,22 +130,27 @@ stat_cb(void *cls, const char *subsystem,
         int is_persistent)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,name, value);
   if (4 == value)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        "All addresses added, connecting to performance\n");
+                "All addresses added, connecting to performance\n");
     if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, NULL, NULL)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Failed to connect to performance API\n");
+                  "Failed to connect to performance API\n");
       GNUNET_SCHEDULER_add_now (end_badly, NULL);
     }
-    phal = GNUNET_ATS_performance_list_addresses (perf_ats, NULL, GNUNET_YES, &ats_perf_cb, NULL);
+    phal = GNUNET_ATS_performance_list_addresses (perf_ats,
+                                                  NULL,
+                                                  GNUNET_YES,
+                                                  &ats_perf_cb, NULL);
   }
   return GNUNET_OK;
 }
+
 
 static void
 address_suggest_cb (void *cls,
@@ -154,7 +160,8 @@ address_suggest_cb (void *cls,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Did not expect suggestion callback!\n");
   GNUNET_SCHEDULER_add_now (&end_badly, NULL);
 }
 
@@ -171,7 +178,8 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Shutting down\n");
   if (die_task != NULL )
   {
     GNUNET_SCHEDULER_cancel (die_task);
@@ -213,10 +221,10 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   ret = 1;
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
@@ -271,11 +279,13 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   p1_ha[1].peer = p[1].id;
   p1_ha[1].transport_name = p1_addresses[1].plugin;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Created peer 1: `%s'\n",
-      GNUNET_i2s (&p[1].id));
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Created peer 1: `%s'\n",
+             GNUNET_i2s (&p[1].id));
 
   /* Add addresses */
-  sched_ats = GNUNET_ATS_scheduling_init (cfg, &address_suggest_cb, NULL );
+  sched_ats = GNUNET_ATS_scheduling_init (cfg,
+                                          &address_suggest_cb, NULL);
   if (sched_ats == NULL )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not setup peer!\n");

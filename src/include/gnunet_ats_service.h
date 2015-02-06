@@ -638,7 +638,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param handle the performance handle to use
  * @param peer peer idm can be NULL for all peers
- * @param all GNUNET_YES to get information about all addresses or GNUNET_NO to
+ * @param all #GNUNET_YES to get information about all addresses or #GNUNET_NO to
  *        get only address currently used
  * @param infocb callback to call with the addresses,
  *        will callback with address == NULL when done
@@ -683,7 +683,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph);
  */
 typedef void
 (*GNUNET_ATS_ReservationCallback) (void *cls,
-                                   const struct GNUNET_PeerIdentity * peer,
+                                   const struct GNUNET_PeerIdentity *peer,
                                    int32_t amount,
                                    struct GNUNET_TIME_Relative res_delay);
 
@@ -710,7 +710,7 @@ struct GNUNET_ATS_ReservationContext;
  */
 struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
-			      const struct GNUNET_PeerIdentity *peer, 
+			      const struct GNUNET_PeerIdentity *peer,
 			      int32_t amount,
 			      GNUNET_ATS_ReservationCallback rcb,
 			      void *rcb_cls);

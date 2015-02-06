@@ -33,7 +33,7 @@
 /**
  * Context for sending messages to performance clients without PIC.
  */
-static struct GNUNET_SERVER_NotificationContext *nc;
+static struct GNUNET_SERVER_NotificationContext *nc_no_pic;
 
 /**
  * Context for sending messages to performance clients with PIC.
@@ -79,6 +79,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
       plugin_name_length;
   char buf[msize] GNUNET_ALIGN;
   struct GNUNET_ATS_Information *atsp;
+  struct GNUNET_SERVER_NotificationContext *nc;
   char *addrp;
 
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
@@ -109,6 +110,13 @@ notify_client (struct GNUNET_SERVER_Client *client,
   }
   else
   {
+    nc = *GNUNET_SERVER_client_get_user_context (client,
+                                                 struct GNUNET_SERVER_NotificationContext *);
+    if (NULL == nc)
+    {
+      GNUNET_break (0);
+      return;
+    }
     GNUNET_SERVER_notification_context_unicast (nc,
                                                 client,
                                                 &msg->header,
@@ -223,15 +231,19 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   {
     GNUNET_SERVER_notification_context_add (nc_pic,
                                             client);
-    GNUNET_SERVER_notification_context_add (nc,
-                                            client);
+    GNUNET_SERVER_client_set_user_context (client,
+                                           &nc_pic);
+    GAS_addresses_get_peer_info (NULL,
+                                 &peerinfo_it,
+                                 client);
   }
   else
-    GNUNET_SERVER_notification_context_add (nc,
+  {
+    GNUNET_SERVER_notification_context_add (nc_no_pic,
                                             client);
-  GAS_addresses_get_peer_info (NULL,
-                               &peerinfo_it,
-                               client);
+    GNUNET_SERVER_client_set_user_context (client,
+                                           &nc_no_pic);
+  }
 }
 
 
@@ -243,7 +255,7 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
 void
 GAS_performance_init (struct GNUNET_SERVER_Handle *server)
 {
-  nc = GNUNET_SERVER_notification_context_create (server, 32);
+  nc_no_pic = GNUNET_SERVER_notification_context_create (server, 32);
   nc_pic = GNUNET_SERVER_notification_context_create (server, 32);
 }
 
@@ -254,8 +266,8 @@ GAS_performance_init (struct GNUNET_SERVER_Handle *server)
 void
 GAS_performance_done ()
 {
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
+  GNUNET_SERVER_notification_context_destroy (nc_no_pic);
+  nc_no_pic = NULL;
   GNUNET_SERVER_notification_context_destroy (nc_pic);
   nc_pic = NULL;
 }

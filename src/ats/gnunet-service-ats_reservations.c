@@ -39,11 +39,6 @@
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *trackers;
 
-/**
- * Context for sending messages to performance clients without PIC.
- */
-static struct GNUNET_SERVER_NotificationContext *nc;
-
 
 /**
  * Reserve the given amount of incoming bandwidth (in bytes) from the
@@ -142,11 +137,17 @@ GAS_handle_reservation_request (void *cls,
   struct ReservationResultMessage result;
   int32_t amount;
   struct GNUNET_TIME_Relative res_delay;
+  struct GNUNET_SERVER_NotificationContext *nc;
 
-  GNUNET_SERVER_notification_context_add (nc,
-                                          client);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received RESERVATION_REQUEST message\n");
+  nc = *GNUNET_SERVER_client_get_user_context (client,
+                                               struct GNUNET_SERVER_NotificationContext *);
+  if (NULL == nc)
+  {
+    GNUNET_break (0);
+    return;
+  }
   amount = (int32_t) ntohl (msg->amount);
   res_delay = GAS_reservations_reserve (&msg->peer, amount);
   if (res_delay.rel_value_us > 0)
@@ -160,6 +161,7 @@ GAS_handle_reservation_request (void *cls,
                             "# reservation requests processed",
                             1,
                             GNUNET_NO);
+
   GNUNET_SERVER_notification_context_unicast (nc,
                                               client,
                                               &result.header,
@@ -178,7 +180,6 @@ void
 GAS_reservations_init (struct GNUNET_SERVER_Handle *server)
 {
   trackers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
-  nc = GNUNET_SERVER_notification_context_create (server, 128);
 }
 
 
@@ -211,9 +212,6 @@ GAS_reservations_done ()
                                          &free_tracker,
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (trackers);
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
-
 }
 
 /* end of gnunet-service-ats_reservations.c */

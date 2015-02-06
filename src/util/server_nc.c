@@ -211,7 +211,9 @@ GNUNET_SERVER_notification_context_create (struct GNUNET_SERVER_Handle *server,
   ret = GNUNET_new (struct GNUNET_SERVER_NotificationContext);
   ret->server = server;
   ret->queue_length = queue_length;
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, ret);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &handle_client_disconnect,
+                                   ret);
   return ret;
 }
 
@@ -234,7 +236,7 @@ GNUNET_SERVER_notification_context_destroy (struct GNUNET_SERVER_NotificationCon
 				 pos);
     if (NULL != pos->th)
     {
-      GNUNET_SERVER_notify_transmit_ready_cancel(pos->th);
+      GNUNET_SERVER_notify_transmit_ready_cancel (pos->th);
       pos->th = NULL;
     }
     GNUNET_SERVER_client_drop (pos->client);
@@ -307,7 +309,7 @@ transmit_message (void *cls,
   if (NULL == buf)
   {
     /* 'cl' should be freed via disconnect notification shortly */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Failed to transmit message from NC queue to client\n");
     return 0;
   }
