@@ -219,11 +219,6 @@ struct GAS_MLP_Handle
   struct GNUNET_ATS_PluginEnvironment *env;
 
   /**
-   * Address hashmap for lookups
-   */
-  const struct GNUNET_CONTAINER_MultiPeerMap *addresses;
-
-  /**
    * Exclude peer from next result propagation
    */
   const struct GNUNET_PeerIdentity *exclude_peer;
@@ -1290,8 +1285,9 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   /* create the glpk problem */
   p->prob = glp_create_prob ();
   GNUNET_assert (NULL != p->prob);
-  p->num_peers = mlp_create_problem_count_peers (mlp->requested_peers, mlp->addresses);
-  p->num_addresses = mlp_create_problem_count_addresses (mlp->requested_peers, mlp->addresses);
+  p->num_peers = mlp_create_problem_count_peers (mlp->requested_peers, mlp->env->addresses);
+  p->num_addresses = mlp_create_problem_count_addresses (mlp->requested_peers,
+                                                         mlp->env->addresses);
 
   /* Create problem matrix: 10 * #addresses + #q * #addresses + #q, + #peer + 2 + 1 */
   p->num_elements = (10 * p->num_addresses + mlp->pv.m_q * p->num_addresses +
@@ -1331,7 +1327,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   mlp_create_problem_add_invariant_rows (mlp, p);
 
   /* Adding address dependent columns constraint rows */
-  GNUNET_CONTAINER_multipeermap_iterate (mlp->addresses,
+  GNUNET_CONTAINER_multipeermap_iterate (mlp->env->addresses,
 					 &mlp_create_problem_add_address_information,
 					 mlp);
 
@@ -1618,7 +1614,7 @@ GAS_mlp_solve_problem (void *solver)
       notify(mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
       return GNUNET_OK; /* No pending requests */
     }
-  if (0 == GNUNET_CONTAINER_multipeermap_size(mlp->addresses))
+  if (0 == GNUNET_CONTAINER_multipeermap_size(mlp->env->addresses))
     {
       notify(mlp, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_NONE);
       return GNUNET_OK; /* No addresses available */
@@ -1831,7 +1827,7 @@ GAS_mlp_solve_problem (void *solver)
       GAS_INFO_NONE);
   if ((GNUNET_OK == res_lp) && (GNUNET_OK == mip_res))
     {
-      GNUNET_CONTAINER_multipeermap_iterate(mlp->addresses,
+      GNUNET_CONTAINER_multipeermap_iterate(mlp->env->addresses,
           &mlp_propagate_results, mlp);
     }
   notify (mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
@@ -2133,7 +2129,7 @@ GAS_mlp_get_preferred_address (void *solver,
       mlp->stat_mlp_prob_changed = GNUNET_YES;
 
       if ((GNUNET_YES == mlp->opt_mlp_auto_solve)&&
-          (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains(mlp->addresses,
+          (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains(mlp->env->addresses,
 								peer)))
       {
         mlp->exclude_peer = peer;
@@ -2143,7 +2139,7 @@ GAS_mlp_get_preferred_address (void *solver,
   }
   /* Get prefered address */
   res = NULL;
-  GNUNET_CONTAINER_multipeermap_get_multiple (mlp->addresses, peer,
+  GNUNET_CONTAINER_multipeermap_get_multiple (mlp->env->addresses, peer,
                                               &mlp_get_preferred_address_it, &res);
   return res;
 }
@@ -2429,12 +2425,6 @@ libgnunet_plugin_ats_mlp_init (void *cls)
 
   struct GNUNET_TIME_Relative max_duration;
   long long unsigned int max_iterations;
-
-  GNUNET_assert (NULL != env->cfg);
-  GNUNET_assert (NULL != env->addresses);
-  GNUNET_assert (NULL != env->bandwidth_changed_cb);
-  GNUNET_assert (NULL != env->get_preferences);
-  GNUNET_assert (NULL != env->get_property);
 
   /* Init GLPK environment */
   int res = glp_init_env();

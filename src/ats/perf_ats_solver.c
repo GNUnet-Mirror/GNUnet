@@ -329,6 +329,7 @@ end_now (int res)
   GNUNET_free_non_null (ph.iterations_results);
 
   GAS_normalization_stop ();
+  GAS_preference_done ();
   ret = res;
 }
 
@@ -1317,6 +1318,7 @@ run (void *cls, char * const *args, const char *cfgfile,
                 ph.env.in_quota[c]);
   }
   GAS_normalization_start ();
+  GAS_preference_init ();
 
   GNUNET_asprintf (&plugin, "libgnunet_plugin_ats_%s", ph.ats_string);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s'\n"), ph.ats_string);
