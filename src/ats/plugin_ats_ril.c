@@ -807,7 +807,7 @@ ril_get_max_bw (struct RIL_Scope *net)
  * @param new_address the address which is to be used
  * @param new_bw_in the new amount of inbound bandwidth set for this address
  * @param new_bw_out the new amount of outbound bandwidth set for this address
- * @param silent disables invocation of the bw_changed callback, if GNUNET_YES
+ * @param silent disables invocation of the bw_changed callback, if #GNUNET_YES
  */
 static void
 envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
@@ -1930,7 +1930,7 @@ ril_step (struct GAS_RIL_Handle *solver)
 
   ril_networks_update_state (solver);
 
-  solver->step_count += 1;
+  solver->step_count++;
   ril_step_schedule_next (solver);
 
   ril_inform (solver, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS);
@@ -2265,7 +2265,6 @@ GAS_ril_address_delete (void *solver,
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
   struct RIL_Address_Wrapped *address_wrapped;
-  int address_was_used;
   int address_index;
   unsigned int m_new;
   unsigned int n_new;
@@ -2305,17 +2304,6 @@ GAS_ril_address_delete (void *solver,
                                agent->addresses_tail,
                                address_wrapped);
   GNUNET_free (address_wrapped);
-  address_was_used = GNUNET_NO;
-  if (agent->suggestion_address == address)
-  {
-    agent->suggestion_issue = GNUNET_NO;
-    agent->suggestion_address = NULL;
-  }
-  if (agent->address_inuse == address)
-  {
-    address_was_used = GNUNET_YES;
-  }
-
 
   //decrease W
   m_new = agent->m - ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1));
@@ -2352,7 +2340,7 @@ GAS_ril_address_delete (void *solver,
   agent->m = m_new;
   agent->n = n_new;
 
-  if (address_was_used)
+  if (agent->address_inuse == address)
   {
     if (NULL != agent->addresses_head) //if peer has an address left, use it
     {
@@ -2372,9 +2360,15 @@ GAS_ril_address_delete (void *solver,
       envi_set_active_suggestion (s, agent, NULL, 0, 0, GNUNET_NO);
     }
   }
-
   ril_step (solver);
+  if (agent->suggestion_address == address)
+  {
+    agent->suggestion_issue = GNUNET_NO;
+    agent->suggestion_address = NULL;
+  }
+  GNUNET_assert (agent->address_inuse != address);
 }
+
 
 /**
  * Update the properties of an address in the solver

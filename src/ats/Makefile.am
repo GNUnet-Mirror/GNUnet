@@ -45,6 +45,7 @@ gnunet_ats_solver_eval_SOURCES = \
  gnunet-ats-solver-eval.c gnunet-ats-solver-eval.h \
  gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
  gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+ gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
  gnunet-service-ats_feedback.c gnunet-service-ats_feedback.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
  gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
@@ -530,6 +531,7 @@ perf_ats_solver_mlp_SOURCES = \
   test_ats_api_common.c \
   gnunet-service-ats_normalization.c \
   gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+  gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
   gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
   gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
   gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
@@ -547,6 +549,7 @@ perf_ats_solver_proportional_SOURCES = \
   test_ats_api_common.c \
   gnunet-service-ats_normalization.c \
   gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+  gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
   gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
   gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
   gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
@@ -564,6 +567,7 @@ perf_ats_solver_ril_SOURCES = \
   test_ats_api_common.c \
   gnunet-service-ats_normalization.c \
   gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+  gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
   gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
   gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
   gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \

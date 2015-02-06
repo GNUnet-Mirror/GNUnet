@@ -26,6 +26,7 @@
  */
 #include "platform.h"
 #include "gnunet_ats_plugin.h"
+#include "gnunet-service-ats_connectivity.h"
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_preferences.h"
 #include "gnunet-service-ats_plugins.h"
@@ -272,7 +273,9 @@ bandwidth_changed_cb (void *cls,
  */
 static unsigned int
 load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    unsigned long long *out_dest, unsigned long long *in_dest, int dest_length)
+             unsigned long long *out_dest,
+             unsigned long long *in_dest,
+             int dest_length)
 {
   char * entry_in = NULL;
   char * entry_out = NULL;
@@ -529,6 +532,7 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
 					atsi,
 					atsi_count);
   sf->s_bulk_stop (sf->cls);
+  // if (GAS_connectivity_has_peer (&new_address->peer)) GAS_plugin_request_connect_start (&new_address->peer);
 }
 
 
@@ -612,15 +616,10 @@ GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 	     "Suggesting address %p for peer `%s'\n",
 	     aa,
 	     GNUNET_i2s (pid));
-
   GAS_scheduling_transmit_address_suggestion (pid,
                                               aa->session_id,
                                               GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
                                               GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	     "Address %p ready for suggestion\n",
-	     aa);
 }
 
 
