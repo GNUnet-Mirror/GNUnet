@@ -452,7 +452,10 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_free(mode_str);
   }
 
-  load_quotas (cfg, quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount);
+  load_quotas (cfg,
+               quotas_out,
+               quotas_in,
+               GNUNET_ATS_NetworkTypeCount);
   env.cls = NULL;
   env.info_cb = &solver_info_cb;
   env.bandwidth_changed_cb = &bandwidth_changed_cb;
@@ -461,12 +464,9 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   env.cfg = cfg;
   env.stats = GSA_stats;
   env.addresses = GSA_addresses;
-
   env.network_count = GNUNET_ATS_NetworkTypeCount;
-  int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-    env.networks[c] = networks[c];
     env.out_quota[c] = quotas_out[c];
     env.in_quota[c] = quotas_in[c];
   }

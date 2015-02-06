@@ -2799,7 +2799,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   for (c = 0; c < env->network_count; c++)
   {
     cur = &solver->network_entries[c];
-    cur->type = env->networks[c];
+    cur->type = c;
     cur->bw_in_available = env->in_quota[c];
     cur->bw_out_available = env->out_quota[c];
     LOG(GNUNET_ERROR_TYPE_DEBUG, "init()  Quotas for %s network:  IN %llu - OUT %llu\n", GNUNET_ATS_print_network_type(cur->type), cur->bw_in_available/1024, cur->bw_out_available/1024);

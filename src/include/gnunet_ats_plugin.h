@@ -464,14 +464,10 @@ struct GNUNET_ATS_PluginEnvironment
   GAS_solver_information_callback info_cb;
 
   /**
-   *  Available networks
+   * Number of networks available, size of the @e out_quota
+   * and @e in_quota arrays.
    */
-  int networks[GNUNET_ATS_NetworkTypeCount];
-
-  /**
-   * Number of networks available
-   */
-  int network_count;
+  unsigned int network_count;
 
   /**
    * Array of configured outbound quotas

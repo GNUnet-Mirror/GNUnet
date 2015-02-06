@@ -2420,14 +2420,11 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   static struct GNUNET_ATS_SolverFunctions sf;
   struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_MLP_Handle * mlp = GNUNET_new (struct GAS_MLP_Handle);
-
   float f_tmp;
   unsigned long long tmp;
   unsigned int b_min;
   unsigned int n_min;
   int c;
-  int c2;
-  int found;
   char *outputformat;
 
   struct GNUNET_TIME_Relative max_duration;
@@ -2740,77 +2737,55 @@ libgnunet_plugin_ats_mlp_init (void *cls)
     n_min = MLP_DEFAULT_MIN_CONNECTIONS;
 
   /* Init network quotas */
-  int quotas[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-      found = GNUNET_NO;
-      for (c2 = 0; c2 < env->network_count; c2++)
-      {
-          if (quotas[c] == env->networks[c2])
-          {
-              mlp->pv.quota_index[c] = env->networks[c2];
-              mlp->pv.quota_out[c] = env->out_quota[c2];
-              mlp->pv.quota_in[c] = env->in_quota[c2];
+    mlp->pv.quota_index[c] = c;
+    mlp->pv.quota_out[c] = env->out_quota[c];
+    mlp->pv.quota_in[c] = env->in_quota[c];
 
-              found = GNUNET_YES;
-              LOG (GNUNET_ERROR_TYPE_INFO,
-                  "Quota for network `%s' (in/out) %llu/%llu\n",
-                  GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-                  mlp->pv.quota_out[c],
-                  mlp->pv.quota_in[c]);
-              break;
-
-          }
-      }
-
-      /* Check if defined quota could make problem unsolvable */
-      if ((n_min * b_min) > mlp->pv.quota_out[c])
-      {
-        LOG (GNUNET_ERROR_TYPE_INFO,
-            _("Adjusting inconsistent outbound quota configuration for network `%s', is %llu must be at least %llu\n"),
-            GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-            mlp->pv.quota_out[c],
-            (n_min * b_min));
-        mlp->pv.quota_out[c] = (n_min * b_min);
-      }
-      if ((n_min * b_min) > mlp->pv.quota_in[c])
-      {
-        LOG (GNUNET_ERROR_TYPE_INFO,
-            _("Adjusting inconsistent inbound quota configuration for network `%s', is %llu must be at least %llu\n"),
-            GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-            mlp->pv.quota_in[c],
-            (n_min * b_min));
-        mlp->pv.quota_in[c] = (n_min * b_min);
-      }
-
-      /* Check if bandwidth is too big to make problem solvable */
-      if (mlp->pv.BIG_M < mlp->pv.quota_out[c])
-      {
-        LOG (GNUNET_ERROR_TYPE_INFO,
-            _("Adjusting outbound quota configuration for network `%s'from %llu to %.0f\n"),
-            GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-            mlp->pv.quota_out[c],
-            mlp->pv.BIG_M);
-        mlp->pv.quota_out[c] = mlp->pv.BIG_M ;
-      }
-      if (mlp->pv.BIG_M < mlp->pv.quota_in[c])
-      {
-        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting inbound quota configuration for network `%s' from %llu to %.0f\n"),
-            GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-            mlp->pv.quota_in[c],
-            mlp->pv.BIG_M);
-        mlp->pv.quota_in[c] = mlp->pv.BIG_M ;
-      }
-
-      if (GNUNET_NO == found)
-      {
-        mlp->pv.quota_in[c] = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-        mlp->pv.quota_out[c] = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-        LOG (GNUNET_ERROR_TYPE_INFO, _("Using default quota configuration for network `%s' (in/out) %llu/%llu\n"),
-            GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-            mlp->pv.quota_in[c],
-            mlp->pv.quota_out[c]);
-      }
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Quota for network `%s' (in/out) %llu/%llu\n",
+         GNUNET_ATS_print_network_type (c),
+         mlp->pv.quota_out[c],
+         mlp->pv.quota_in[c]);
+    /* Check if defined quota could make problem unsolvable */
+    if ((n_min * b_min) > mlp->pv.quota_out[c])
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Adjusting inconsistent outbound quota configuration for network `%s', is %llu must be at least %llu\n"),
+           GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
+           mlp->pv.quota_out[c],
+           (n_min * b_min));
+      mlp->pv.quota_out[c] = (n_min * b_min);
+    }
+    if ((n_min * b_min) > mlp->pv.quota_in[c])
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Adjusting inconsistent inbound quota configuration for network `%s', is %llu must be at least %llu\n"),
+           GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
+           mlp->pv.quota_in[c],
+           (n_min * b_min));
+      mlp->pv.quota_in[c] = (n_min * b_min);
+    }
+    /* Check if bandwidth is too big to make problem solvable */
+    if (mlp->pv.BIG_M < mlp->pv.quota_out[c])
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Adjusting outbound quota configuration for network `%s'from %llu to %.0f\n"),
+           GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
+           mlp->pv.quota_out[c],
+           mlp->pv.BIG_M);
+      mlp->pv.quota_out[c] = mlp->pv.BIG_M ;
+    }
+    if (mlp->pv.BIG_M < mlp->pv.quota_in[c])
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Adjusting inbound quota configuration for network `%s' from %llu to %.0f\n"),
+           GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
+           mlp->pv.quota_in[c],
+           mlp->pv.BIG_M);
+      mlp->pv.quota_in[c] = mlp->pv.BIG_M ;
+    }
   }
   mlp->env = env;
   sf.cls = mlp;

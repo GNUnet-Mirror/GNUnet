@@ -282,7 +282,7 @@ struct Network
   /**
    * ATS network type
    */
-  unsigned int type;
+  enum GNUNET_ATS_Network_Type type;
 
   /**
    * Network description
@@ -875,11 +875,12 @@ get_active_address (void *solver,
                     const struct GNUNET_CONTAINER_MultiPeerMap * addresses,
                     const struct GNUNET_PeerIdentity *peer)
 {
-  static struct ATS_Address * dest = NULL;
+  static struct ATS_Address *dest;
 
   dest = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (addresses, peer,
-                                              &get_active_address_it, &dest);
+                                              &get_active_address_it,
+                                              &dest);
   return dest;
 }
 
@@ -892,15 +893,15 @@ get_active_address (void *solver,
  * @return the network struct
  */
 static struct Network *
-get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
+get_network (struct GAS_PROPORTIONAL_Handle *s,
+             enum GNUNET_ATS_Network_Type type)
 {
-  int c;
-  for (c = 0; c < s->network_count; c++)
+  if (type >= s->env->network_count)
   {
-    if (s->network_entries[c].type == type)
-      return &s->network_entries[c];
+    GNUNET_break (0);
+    return NULL;
   }
-  return NULL ;
+  return &s->network_entries[type];
 }
 
 
@@ -1672,24 +1673,23 @@ GAS_proportional_address_property_changed (void *solver,
 static void
 GAS_proportional_address_add (void *solver,
                               struct ATS_Address *address,
-                              uint32_t network)
+                              enum GNUNET_ATS_Network_Type network)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct Network *net = NULL;
-  struct AddressWrapper *aw = NULL;
+  struct Network *net;
+  struct AddressWrapper *aw;
   struct AddressSolverInformation *asi;
 
-  GNUNET_assert(NULL != s);
   net = get_network (s, network);
   if (NULL == net)
   {
-    GNUNET_break(0);
-
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Unknown network %u `%s' for new address %p for peer `%s'\n",
-        network, GNUNET_ATS_print_network_type(network),
-        address, GNUNET_i2s(&address->peer));
-
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Unknown network %u `%s' for new address %p for peer `%s'\n",
+         network,
+         GNUNET_ATS_print_network_type (network),
+         address,
+         GNUNET_i2s (&address->peer));
     return;
   }
 
@@ -1807,7 +1807,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   for (c = 0; c < env->network_count; c++)
   {
     cur = &s->network_entries[c];
-    cur->type = env->networks[c];
+    cur->type = c;
     cur->total_quota_in = env->in_quota[c];
     cur->total_quota_out = env->out_quota[c];
     cur->desc = GNUNET_ATS_print_network_type (c);

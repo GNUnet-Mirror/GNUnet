@@ -31,12 +31,6 @@
 #include "gnunet_hello_lib.h"
 
 /**
- * Number of network types supported by ATS
- */
-#define GNUNET_ATS_NetworkTypeCount 6
-
-
-/**
  * Types of networks (with separate quotas) we support.
  */
 enum GNUNET_ATS_Network_Type
@@ -70,14 +64,13 @@ enum GNUNET_ATS_Network_Type
    * Bluetooth LAN
    */
   GNUNET_ATS_NET_BT = 5
-};
-
 
 /**
- * ATS network types as array initializer
+ * Number of network types supported by ATS
  */
-#define GNUNET_ATS_NetworkType { GNUNET_ATS_NET_UNSPECIFIED, GNUNET_ATS_NET_LOOPBACK, GNUNET_ATS_NET_LAN, GNUNET_ATS_NET_WAN, GNUNET_ATS_NET_WLAN, GNUNET_ATS_NET_BT }
+#define GNUNET_ATS_NetworkTypeCount 6
 
+};
 
 
 /**

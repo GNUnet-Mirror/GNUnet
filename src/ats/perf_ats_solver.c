@@ -1307,16 +1307,14 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.env.network_count = GNUNET_ATS_NetworkTypeCount;
   ph.env.info_cb = &solver_info_cb;
 
-  int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
-    ph.env.networks[c] = networks[c];
     ph.env.out_quota[c] = quotas_out[c];
     ph.env.in_quota[c] = quotas_in[c];
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loading network quotas: `%s' %llu %llu \n",
-        GNUNET_ATS_print_network_type(ph.env.networks[c]),
-        ph.env.out_quota[c],
-        ph.env.in_quota[c]);
+                GNUNET_ATS_print_network_type (c),
+                ph.env.out_quota[c],
+                ph.env.in_quota[c]);
   }
   GAS_normalization_start ();
 

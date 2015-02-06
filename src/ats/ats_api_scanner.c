@@ -331,7 +331,7 @@ GNUNET_ATS_scanner_address_get_type (struct GNUNET_ATS_InterfaceScanner *is,
                                      socklen_t addrlen)
 {
   struct ATS_Network *cur = is->net_head;
-  enum GNUNET_ATS_NetworkType type = GNUNET_ATS_NET_UNSPECIFIED;
+  enum GNUNET_ATS_Network_Type type = GNUNET_ATS_NET_UNSPECIFIED;
 
   switch (addr->sa_family)
     {
