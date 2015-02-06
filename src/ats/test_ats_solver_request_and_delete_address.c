@@ -155,8 +155,8 @@ address_suggest_cb (void *cls,
     GNUNET_assert (ntohl(bandwidth_out.value__) > 0);
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        "Received sugggestion for peer `%s', deleting address\n",
-        GNUNET_i2s (&address->peer));
+                "Received sugggestion for peer `%s', deleting address\n",
+                GNUNET_i2s (&address->peer));
     address_deleted = GNUNET_YES;
     /* Destroying address and wait for disconnect suggestion */
     GNUNET_ATS_address_destroy (ar);
@@ -165,10 +165,9 @@ address_suggest_cb (void *cls,
   else
   {
     /* Expecting disconnect */
-
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Received sugggestion for peer `%s': %u %u\n",
-                GNUNET_i2s (&address->peer),
+                GNUNET_i2s (peer),
                 (unsigned int) ntohl (bandwidth_in.value__),
                 (unsigned int) ntohl (bandwidth_out.value__));
 

@@ -191,9 +191,8 @@ address_suggest_cb (void *cls,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Received a sugggestion for peer `%s' : `%s'\n",
-    GNUNET_i2s (&address->peer), (char *) address->address);
-
+              "Received a sugggestion for peer `%s'\n",
+              GNUNET_i2s (peer));
   if (GNUNET_NO == first_address_suggested)
   {
     if  (NULL == first_suggestion)
@@ -214,7 +213,7 @@ address_suggest_cb (void *cls,
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Received 1st sugggestion for peer `%s' : `%s'\n",
-        GNUNET_i2s (&address->peer), (char *) address->address);
+                  GNUNET_i2s (&address->peer), (char *) address->address);
 
       first_suggestion = GNUNET_HELLO_address_copy (address);
       first_address_suggested = GNUNET_YES;

@@ -154,7 +154,7 @@ address_suggest_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Received sugggestion for peer `%s'\n",
-              GNUNET_i2s (&address->peer));
+              GNUNET_i2s (peer));
   GNUNET_SCHEDULER_add_now (&end, NULL);
 }
 
