@@ -431,10 +431,6 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
                 "No resource assignment method configured, using proportional approach\n");
     mode_str = GNUNET_strdup ("proportional");
   }
-  load_quotas (cfg,
-               quotas_out,
-               quotas_in,
-               GNUNET_ATS_NetworkTypeCount);
   env.cls = NULL;
   env.info_cb = &solver_info_cb;
   env.bandwidth_changed_cb = &bandwidth_changed_cb;
@@ -444,11 +440,10 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   env.stats = GSA_stats;
   env.addresses = GSA_addresses;
   env.network_count = GNUNET_ATS_NetworkTypeCount;
-  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
-  {
-    env.out_quota[c] = quotas_out[c];
-    env.in_quota[c] = quotas_in[c];
-  }
+  load_quotas (cfg,
+               env.out_quota,
+               env.in_quota,
+               GNUNET_ATS_NetworkTypeCount);
 
   GNUNET_asprintf (&plugin,
                    "libgnunet_plugin_ats_%s",
