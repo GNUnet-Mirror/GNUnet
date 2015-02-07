@@ -28,6 +28,13 @@
 #define RPS_SAMPLER_H
 #include <inttypes.h>
 
+
+/**
+ * A sampler sampling a stream of PeerIDs.
+ */
+struct RPS_Sampler;
+
+
 /**
  * Callback that is called when a new PeerID is inserted into a sampler.
  *
@@ -36,6 +43,7 @@
  */
 typedef void
 (*RPS_sampler_insert_cb) (void *cls,
+    struct RPS_Sampler *sampler,
     const struct GNUNET_PeerIdentity *id);
 
 /**
@@ -46,6 +54,7 @@ typedef void
  */
 typedef void
 (*RPS_sampler_remove_cb) (void *cls,
+    struct RPS_Sampler *sampler,
     const struct GNUNET_PeerIdentity *id);
 
 /**
@@ -61,26 +70,23 @@ typedef void
 
 
 /**
- * A sampler sampling a stream of PeerIDs.
- */
-//struct RPS_Sampler;
-
-/**
  * Get the size of the sampler.
  *
+ * @param sampler the sampler to return the size of.
  * @return the size of the sampler
  */
 unsigned int
-RPS_sampler_get_size ();
+RPS_sampler_get_size (struct RPS_Sampler *sampler);
 
 
 /**
  * Grow or shrink the size of the sampler.
  *
+ * @param sampler the sampler to resize.
  * @param new_size the new size of the sampler (not 0)
  */
-  void
-RPS_sampler_resize (unsigned int new_size);
+void
+RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
 
 
 /**
@@ -94,8 +100,9 @@ RPS_sampler_resize (unsigned int new_size);
  * @param rem_cb the callback that will be called on every PeerID that is
  *               removed from a sampler element
  * @param rem_cls the closure given to #rem_cb
+ * @return a handle to a sampler that consists of sampler elements.
  */
-  void
+struct RPS_Sampler *
 RPS_sampler_init (size_t init_size,
     struct GNUNET_TIME_Relative max_round_interval,
     RPS_sampler_insert_cb ins_cb, void *ins_cls,
@@ -105,21 +112,26 @@ RPS_sampler_init (size_t init_size,
 /**
  * A fuction to update every sampler in the given list
  *
+ * @param sampler the sampler to update.
  * @param id the PeerID that is put in the sampler
  */
   void
-RPS_sampler_update_list (const struct GNUNET_PeerIdentity *id);
+RPS_sampler_update (struct RPS_Sampler *sampler,
+                    const struct GNUNET_PeerIdentity *id);
 
 
 /**
- * Reinitialise all previously initialised sampler elements with the given value.
+ * Reinitialise all previously initialised sampler elements with the given
+ * value.
  *
  * Used to get rid of a PeerID.
  *
+ * @param sampler the sampler to reinitialise a sampler in.
  * @param id the id of the samplers to update.
  */
   void
-RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id);
+RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
+                                   const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -129,6 +141,7 @@ RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id);
  * corrsponding peer to the client.
  * Random with or without consumption?
  *
+ * @param sampler the sampler to get peers from.
  * @param cb callback that will be called once the ids are ready.
  * @param cls closure given to @a cb
  * @param for_client #GNUNET_YES if result is used for client,
@@ -136,26 +149,31 @@ RPS_sampler_reinitialise_by_value (const struct GNUNET_PeerIdentity *id);
  * @param num_peers the number of peers requested
  */
     void
-RPS_sampler_get_n_rand_peers (RPS_sampler_n_rand_peers_ready_cb cb,
-    void *cls, uint32_t num_peers, int for_client);
+RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
+                              RPS_sampler_n_rand_peers_ready_cb cb,
+                              void *cls, uint32_t num_peers, int for_client);
 
 
 /**
  * Counts how many Samplers currently hold a given PeerID.
  *
+ * @param sampler the sampler to cound ids in.
  * @param id the PeerID to count.
  *
  * @return the number of occurrences of id.
  */
   uint32_t
-RPS_sampler_count_id (const struct GNUNET_PeerIdentity *id);
+RPS_sampler_count_id (struct RPS_Sampler *sampler,
+                      const struct GNUNET_PeerIdentity *id);
 
 
 /**
  * Cleans the samplers.
+ *
+ * @param sampler the sampler to destroy.
  */
   void
-RPS_sampler_destroy ();
+RPS_sampler_destroy (struct RPS_Sampler *sampler);
 
 #endif
 /* end of gnunet-service-rps.c */
