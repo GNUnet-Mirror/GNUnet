@@ -1,3 +1,4 @@
+# This Makefile.am is in the public domain
 # $Id$
 #
 # This file taken and modified from nss-gns.

@@ -1,3 +1,4 @@
+# This Makefile.am is in the public domain
 man_MANS = \
   gnunet.conf.5 \
   gnunet-arm.1 \

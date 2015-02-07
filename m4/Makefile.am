@@ -1,3 +1,4 @@
+# This Makefile.am is in the public domain
 EXTRA_DIST = glibc2.m4 intl.m4 intldir.m4 lock.m4 visibility.m4 \
 absolute-header.m4 \
 libunistring.m4 \

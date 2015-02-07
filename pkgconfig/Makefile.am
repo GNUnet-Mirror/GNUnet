@@ -1,3 +1,4 @@
+# This Makefile.am is in the public domain
 pcfiles = \
        gnunetarm.pc \
        gnunetats.pc \
