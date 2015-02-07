@@ -11,6 +11,7 @@ src/ats/gnunet-ats-solver-eval.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats.c
 src/ats/gnunet-service-ats_connectivity.c
+src/ats/gnunet-service-ats_feedback.c
 src/ats/gnunet-service-ats_normalization.c
 src/ats/gnunet-service-ats_performance.c
 src/ats/gnunet-service-ats_plugins.c
