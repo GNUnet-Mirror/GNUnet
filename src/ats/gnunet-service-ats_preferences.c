@@ -435,7 +435,7 @@ update_abs_preference (struct PreferenceClient *c,
     p->f_abs[kind] = score;
     /* p->f_abs[kind] = (p->f_abs[kind] + score) / 2;  */
     p->next_aging[kind] = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
-        PREF_AGING_INTERVAL);
+                                                    PREF_AGING_INTERVAL);
     break;
   case GNUNET_ATS_PREFERENCE_END:
     break;
@@ -471,10 +471,10 @@ preference_change (struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CHANGE_PREFERENCE for peer `%s'\n",
               GNUNET_i2s (peer));
-  GAS_plugin_update_preferences (client,
-                                 peer,
-                                 kind,
-                                 score_abs);
+  GAS_normalization_normalize_preference (client,
+                                          peer,
+                                          kind,
+                                          score_abs);
 }
 
 
@@ -664,7 +664,6 @@ GAS_normalization_normalize_preference (struct GNUNET_SERVER_Client *client,
       c_cur->f_abs_sum[i] = DEFAULT_ABS_PREFERENCE;
       c_cur->f_rel_sum[i] = DEFAULT_REL_PREFERENCE;
     }
-
     GNUNET_CONTAINER_DLL_insert (pc_head,
                                  pc_tail,
                                  c_cur);
@@ -685,7 +684,7 @@ GAS_normalization_normalize_preference (struct GNUNET_SERVER_Client *client,
   {
     p_cur = GNUNET_new (struct PreferencePeer);
     p_cur->client = c_cur;
-    p_cur->id = (*peer);
+    p_cur->id = *peer;
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     {
       /* Default value per peer absolute preference for a preference: 0 */
@@ -725,10 +724,12 @@ GAS_normalization_normalize_preference (struct GNUNET_SERVER_Client *client,
   if (p_cur->f_abs[kind] == old_value)
     return;
 
+  GAS_plugin_solver_lock ();
   run_preference_update (c_cur,
                          p_cur,
                          kind,
                          score_abs);
+  GAS_plugin_solver_unlock ();
 
   if (NULL == aging_task)
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,

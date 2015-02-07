@@ -277,10 +277,10 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
              unsigned long long *in_dest,
              int dest_length)
 {
-  char * entry_in = NULL;
-  char * entry_out = NULL;
-  char * quota_out_str;
-  char * quota_in_str;
+  char *entry_in = NULL;
+  char *entry_out = NULL;
+  char *quota_out_str;
+  char *quota_in_str;
   int c;
   int res;
 
@@ -367,11 +367,11 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (GNUNET_NO == res)
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                   _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
-                   GNUNET_ATS_print_network_type (c),
-                   quota_in_str,
-                   GNUNET_ATS_DefaultBandwidth);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
+                    GNUNET_ATS_print_network_type (c),
+                    quota_in_str,
+                    GNUNET_ATS_DefaultBandwidth);
         in_dest[c] = GNUNET_ATS_DefaultBandwidth;
       }
       else
@@ -385,17 +385,17 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
-                 GNUNET_ATS_print_network_type (c),
-                 GNUNET_ATS_DefaultBandwidth);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
+                  GNUNET_ATS_print_network_type (c),
+                  GNUNET_ATS_DefaultBandwidth);
       in_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Loaded quota for network `%s' (in/out): %llu %llu\n",
-               GNUNET_ATS_print_network_type (c),
-               in_dest[c],
-               out_dest[c]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Loaded quota for network `%s' (in/out): %llu %llu\n",
+                GNUNET_ATS_print_network_type (c),
+                in_dest[c],
+                out_dest[c]);
     GNUNET_free(entry_out);
     GNUNET_free(entry_in);
   }
@@ -520,6 +520,15 @@ GAS_plugins_done ()
 }
 
 
+/**
+ * Tell the solver that the given address can now be used
+ * for talking to the respective peer.
+ *
+ * @param new_address the new address
+ * @param addr_net network scope the address is in
+ * @param atsi performance data for the address
+ * @param atsi_count size of the @a atsi array
+ */
 void
 GAS_plugin_new_address (struct ATS_Address *new_address,
 			enum GNUNET_ATS_Network_Type addr_net,
@@ -532,10 +541,17 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
 					atsi,
 					atsi_count);
   sf->s_bulk_stop (sf->cls);
-  // if (GAS_connectivity_has_peer (&new_address->peer)) GAS_plugin_request_connect_start (&new_address->peer);
 }
 
 
+/**
+ * Tell the solver that updated performance data was
+ * observed for the given address.
+ *
+ * @param new_address the new address
+ * @param atsi updated performance data for the address
+ * @param atsi_count size of the @a atsi array
+ */
 void
 GAS_plugin_update_address (struct ATS_Address *address,
 			   const struct GNUNET_ATS_Information *atsi,
@@ -549,6 +565,12 @@ GAS_plugin_update_address (struct ATS_Address *address,
 }
 
 
+/**
+ * Tell the solver that the given address is no longer valid
+ * can cannot be used any longer.
+ *
+ * @param address address that was deleted
+ */
 void
 GAS_plugin_delete_address (struct ATS_Address *address)
 {
@@ -556,35 +578,36 @@ GAS_plugin_delete_address (struct ATS_Address *address)
 }
 
 
+/**
+ * Tell the solver that the given client has expressed its
+ * appreciation for the past performance of a given connection.
+ *
+ * @param application client providing the feedback
+ * @param peer peer the feedback is about
+ * @param scope timeframe the feedback applies to
+ * @param kind performance property the feedback relates to
+ * @param score_abs degree of the appreciation
+ */
 void
-GAS_plugin_update_preferences (void *client,
-			       const struct GNUNET_PeerIdentity *peer,
-			       enum GNUNET_ATS_PreferenceKind kind,
-			       float score_abs)
-{
-  sf->s_bulk_start (sf->cls);
-  /* Tell normalization about change, normalization will call callback if preference changed */
-  GAS_normalization_normalize_preference (client, peer, kind, score_abs);
-  sf->s_bulk_stop (sf->cls);
-}
-
-
-void
-GAS_plugin_preference_feedback (void *application,
+GAS_plugin_preference_feedback (struct GNUNET_SERVER_Client *application,
 				const struct GNUNET_PeerIdentity *peer,
 				const struct GNUNET_TIME_Relative scope,
 				enum GNUNET_ATS_PreferenceKind kind,
 				float score_abs)
 {
   sf->s_feedback (sf->cls,
-		     application,
-		     peer,
-		     scope,
-		     kind,
-                     score_abs);
+                  application,
+                  peer,
+                  scope,
+                  kind,
+                  score_abs);
 }
 
 
+/**
+ * Stop instant solving, there are many state updates
+ * happening in bulk right now.
+ */
 void
 GAS_plugin_solver_lock ()
 {
@@ -592,6 +615,9 @@ GAS_plugin_solver_lock ()
 }
 
 
+/**
+ * Resume instant solving, we are done with the bulk state updates.
+ */
 void
 GAS_plugin_solver_unlock ()
 {
@@ -599,6 +625,12 @@ GAS_plugin_solver_unlock ()
 }
 
 
+/**
+ * Notify the plugin that a request to connect to
+ * a particular peer was given to us.
+ *
+ * @param pid identity of peer we now care about
+ */
 void
 GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 {
@@ -623,6 +655,12 @@ GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 }
 
 
+/**
+ * Notify the plugin that a request to connect to
+ * a particular peer was dropped.
+ *
+ * @param pid identity of peer we care now less about
+ */
 void
 GAS_plugin_request_connect_stop (const struct GNUNET_PeerIdentity *pid)
 {
