@@ -62,8 +62,10 @@ GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
 				   enum GNUNET_ATS_PreferenceKind kind,
 				   double pref_rel)
 {
-  /* Tell solver about update */
-  sf->s_pref (sf->cls, peer, kind, pref_rel);
+  sf->s_pref (sf->cls,
+              peer,
+              kind,
+              pref_rel);
 }
 
 
@@ -106,7 +108,7 @@ solver_info_cb (void *cls,
 		enum GAS_Solver_Status status,
 		enum GAS_Solver_Additional_Information add)
 {
-  char *add_info;
+  const char *add_info;
 
   switch (add) {
     case GAS_INFO_NONE:
@@ -130,63 +132,71 @@ solver_info_cb (void *cls,
   }
   switch (op)
   {
-    case GAS_OP_SOLVE_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL", add_info);
-      return;
-    case GAS_OP_SOLVE_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL", add_info);
-      return;
-
-    case GAS_OP_SOLVE_SETUP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-
-    case GAS_OP_SOLVE_SETUP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-
-    case GAS_OP_SOLVE_MLP_LP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-    case GAS_OP_SOLVE_MLP_LP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-
-    case GAS_OP_SOLVE_MLP_MLP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-    case GAS_OP_SOLVE_MLP_MLP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-    case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_START",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-    case GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP",
-          (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
-      return;
-    default:
-      break;
-    }
+  case GAS_OP_SOLVE_START:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s' `%s'\n",
+                "GAS_OP_SOLVE_START",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL",
+                add_info);
+    return;
+  case GAS_OP_SOLVE_STOP:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s'\n",
+                "GAS_OP_SOLVE_STOP",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL",
+                add_info);
+    return;
+  case GAS_OP_SOLVE_SETUP_START:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s'\n",
+                "GAS_OP_SOLVE_SETUP_START",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_SETUP_STOP:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s'\n",
+                "GAS_OP_SOLVE_SETUP_STOP",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_MLP_LP_START:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s'\n",
+                "GAS_OP_SOLVE_LP_START",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_MLP_LP_STOP:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s'\n",
+                "GAS_OP_SOLVE_LP_STOP",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_MLP_MLP_START:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Solver notifies `%s' with result `%s'\n",
+                "GAS_OP_SOLVE_MLP_START",
+                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_MLP_MLP_STOP:
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Solver notifies `%s' with result `%s'\n",
+               "GAS_OP_SOLVE_MLP_STOP",
+               (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Solver notifies `%s' with result `%s'\n",
+               "GAS_OP_SOLVE_UPDATE_NOTIFICATION_START",
+               (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  case GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP:
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+               "Solver notifies `%s' with result `%s'\n",
+               "GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP",
+               (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
+    return;
+  default:
+    break;
+  }
 }
 
 
@@ -242,9 +252,10 @@ bandwidth_changed_cb (void *cls,
     return;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Sending bandwidth update for peer `%s': %u %u\n",
-      GNUNET_i2s (&address->peer), address->assigned_bw_out,
-      address->assigned_bw_out);
+             "Sending bandwidth update for peer `%s': %u/%u\n",
+             GNUNET_i2s (&address->peer),
+             address->assigned_bw_out,
+             address->assigned_bw_out);
 
   /* *Notify scheduling clients about suggestion */
   GAS_scheduling_transmit_address_suggestion (&address->peer,
@@ -291,9 +302,11 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_ATS_print_network_type (c));
 
     /* quota out */
-    if (GNUNET_OK
-        == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", entry_out,
-            &quota_out_str))
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "ats",
+                                               entry_out,
+                                               &quota_out_str))
     {
       res = GNUNET_NO;
       if (0 == strcmp (quota_out_str, GNUNET_ATS_MaxBandwidthString))
@@ -314,35 +327,37 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
       if (GNUNET_NO == res)
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                   _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
-                   GNUNET_ATS_print_network_type (c),
-                   quota_out_str,
-                   GNUNET_ATS_DefaultBandwidth);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Could not load quota for network `%s':  `%s', assigning default bandwidth %llu\n"),
+                    GNUNET_ATS_print_network_type (c),
+                    quota_out_str,
+                    GNUNET_ATS_DefaultBandwidth);
         out_dest[c] = GNUNET_ATS_DefaultBandwidth;
       }
       else
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                   _("Outbound quota configure for network `%s' is %llu\n"),
-                   GNUNET_ATS_print_network_type (c),
-                   out_dest[c]);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    _("Outbound quota configure for network `%s' is %llu\n"),
+                    GNUNET_ATS_print_network_type (c),
+                    out_dest[c]);
       }
-      GNUNET_free(quota_out_str);
+      GNUNET_free (quota_out_str);
     }
     else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
-                 GNUNET_ATS_print_network_type (c),
-                 GNUNET_ATS_DefaultBandwidth);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
+                  GNUNET_ATS_print_network_type (c),
+                  GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
 
     /* quota in */
-    if (GNUNET_OK
-        == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", entry_in,
-            &quota_in_str))
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "ats",
+                                               entry_in,
+                                               &quota_in_str))
     {
       res = GNUNET_NO;
       if (0 == strcmp (quota_in_str, GNUNET_ATS_MaxBandwidthString))
@@ -350,14 +365,17 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
         in_dest[c] = GNUNET_ATS_MaxBandwidth;
         res = GNUNET_YES;
       }
-      if ((GNUNET_NO == res)
-          && (GNUNET_OK
-              == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &in_dest[c])))
+      if ((GNUNET_NO == res) &&
+          (GNUNET_OK ==
+           GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str,
+                                               &in_dest[c])))
         res = GNUNET_YES;
-      if ((GNUNET_NO == res)
-          && (GNUNET_OK
-              == GNUNET_CONFIGURATION_get_value_number (cfg, "ats", entry_in,
-                  &in_dest[c])))
+      if ((GNUNET_NO == res) &&
+          (GNUNET_OK ==
+           GNUNET_CONFIGURATION_get_value_number (cfg,
+                                                  "ats",
+                                                  entry_in,
+                                                  &in_dest[c])))
         res = GNUNET_YES;
 
       if (GNUNET_NO == res)
@@ -371,12 +389,12 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
       }
       else
       {
-        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-                   _("Inbound quota configured for network `%s' is %llu\n"),
-                   GNUNET_ATS_print_network_type (c),
-                   in_dest[c]);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    _("Inbound quota configured for network `%s' is %llu\n"),
+                    GNUNET_ATS_print_network_type (c),
+                    in_dest[c]);
       }
-      GNUNET_free(quota_in_str);
+      GNUNET_free (quota_in_str);
     }
     else
     {
@@ -415,10 +433,13 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   /* Figure out configured solution method */
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "ats",
+                                             "MODE",
+                                             &mode_str))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-               "No resource assignment method configured, using proportional approach\n");
+                "No resource assignment method configured, using proportional approach\n");
     mode_str = GNUNET_strdup ("proportional");
   }
   load_quotas (cfg,
@@ -487,7 +508,9 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
 			const struct GNUNET_ATS_Information *atsi,
 			uint32_t atsi_count)
 {
-  sf->s_add (sf->cls, new_address, addr_net);
+  sf->s_add (sf->cls,
+             new_address,
+             addr_net);
   sf->s_bulk_start (sf->cls);
   GAS_normalization_normalize_property (new_address,
 					atsi,
@@ -505,7 +528,9 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
 void
 GAS_plugin_delete_address (struct ATS_Address *address)
 {
-  sf->s_del (sf->cls, address, GNUNET_NO);
+  sf->s_del (sf->cls,
+             address,
+             GNUNET_NO);
 }
 
 
@@ -595,7 +620,8 @@ GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 void
 GAS_plugin_request_connect_stop (const struct GNUNET_PeerIdentity *pid)
 {
-  sf->s_get_stop (sf->cls, pid);
+  sf->s_get_stop (sf->cls,
+                  pid);
 }
 
 
