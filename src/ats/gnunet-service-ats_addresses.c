@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet-service-ats_performance.h"
+#include "gnunet-service-ats_normalization.h"
 #include "gnunet-service-ats_plugins.h"
 
 
@@ -644,9 +645,9 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 					GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
 					GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
 
-    GAS_plugin_update_address (aa,
-			       atsi,
-			       atsi_count);
+    GAS_normalization_normalize_property (aa,
+                                          atsi,
+                                          atsi_count);
   }
   GNUNET_free_non_null (atsi_delta);
 }

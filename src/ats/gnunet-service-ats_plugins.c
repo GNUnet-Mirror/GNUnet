@@ -545,27 +545,6 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
 
 
 /**
- * Tell the solver that updated performance data was
- * observed for the given address.
- *
- * @param new_address the new address
- * @param atsi updated performance data for the address
- * @param atsi_count size of the @a atsi array
- */
-void
-GAS_plugin_update_address (struct ATS_Address *address,
-			   const struct GNUNET_ATS_Information *atsi,
-			   uint32_t atsi_count)
-{
-  sf->s_bulk_start (sf->cls);
-  GAS_normalization_normalize_property (address,
-					atsi,
-					atsi_count);
-  sf->s_bulk_stop (sf->cls);
-}
-
-
-/**
  * Tell the solver that the given address is no longer valid
  * can cannot be used any longer.
  *

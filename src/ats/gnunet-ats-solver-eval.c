@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-ats-solver-eval.h"
 #include "gnunet-service-ats_normalization.h"
-#include "gnunet-service-ats_preferences.h"
+#include "gnunet-service-ats_preferences.c"
 
 #define BIG_M_STRING "unlimited"
 
@@ -980,7 +980,6 @@ set_pref_task (void *cls,
       pg->peer, NULL + (pg->client_id),
       GNUNET_ATS_print_preference_type (pg->kind), pref_value);
 
-  sh->sf->s_bulk_start (sh->sf->cls);
   if (GNUNET_YES == opt_disable_normalization)
   {
     p->pref_abs[pg->kind] = pref_value;
@@ -988,14 +987,16 @@ set_pref_task (void *cls,
     sh->sf->s_pref (sh->sf->cls, &p->peer_id, pg->kind, pref_value);
   }
   else
-    GAS_normalization_normalize_preference (NULL + (pg->client_id),
-        &p->peer_id, pg->kind, pref_value);
-  sh->sf->s_bulk_stop (sh->sf->cls);
+    normalize_preference (NULL + (pg->client_id),
+                          &p->peer_id,
+                          pg->kind,
+                          pref_value);
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
-      set_pref_task, pg);
-
+                                               &set_pref_task,
+                                               pg);
 }
+
 
 static struct PreferenceGenerator *
 find_pref_gen (unsigned int peer, enum GNUNET_ATS_PreferenceKind kind)

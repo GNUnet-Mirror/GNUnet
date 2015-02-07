@@ -24,7 +24,7 @@
  * @author Matthias Wachs
  * @author Christian Grothoff
  *
- * FIXME: rename to 'properties'!?
+ * FIXME: rename to 'properties'!? merge with addresses!?
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -360,7 +360,7 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
        "Updating %u elements for peer `%s'\n",
        atsi_count,
        GNUNET_i2s (&address->peer));
-
+  GAS_plugin_solver_lock ();
   for (c1 = 0; c1 < atsi_count; c1++)
   {
     current_type = ntohl (atsi[c1].type);
@@ -391,6 +391,7 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
                         address,
                         current_val);
   }
+  GAS_plugin_solver_unlock ();
 }
 
 

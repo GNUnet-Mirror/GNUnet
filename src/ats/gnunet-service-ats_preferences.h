@@ -66,20 +66,6 @@ GAS_preference_done (void);
 
 
 /**
- * Normalize an updated preference value
- *
- * @param client the client with this preference
- * @param peer the peer to change the preference for
- * @param kind the kind to change the preference
- * @param score_abs the normalized score
- */
-void
-GAS_normalization_normalize_preference (struct GNUNET_SERVER_Client *client,
-                                        const struct GNUNET_PeerIdentity *peer,
-                                        enum GNUNET_ATS_PreferenceKind kind,
-                                        float score_abs);
-
-/**
  * Get the normalized preference values for a specific peer.
  *
  * @param cls ignored

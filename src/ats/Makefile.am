@@ -48,7 +48,6 @@ gnunet_ats_solver_eval_SOURCES = \
  gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
  gnunet-service-ats_feedback.c gnunet-service-ats_feedback.h \
  gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
- gnunet-service-ats_preferences.c gnunet-service-ats_preferences.h \
  gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h \
  gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
  gnunet-service-ats_normalization.c
