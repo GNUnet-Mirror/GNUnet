@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet
- (C) 2009-2015 Christian Grothoff (and other contributing authors)
+ Copyright (C) 2009-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -34,12 +34,12 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_statistics_service.h"
 
+
+/**
+ * Representation of an address the plugin can choose from.
+ */
 struct ATS_Address;
 
-/*
- * Solver API
- * ----------
- */
 
 /**
  * Change the preference for a peer

@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011-2014 Christian Grothoff (and other contributing authors)
+ Copyright (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -2824,7 +2824,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
     cur->type = c;
     cur->bw_in_available = env->in_quota[c];
     cur->bw_out_available = env->out_quota[c];
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "init()  Quotas for %s network:  IN %llu - OUT %llu\n", GNUNET_ATS_print_network_type(cur->type), cur->bw_in_available/1024, cur->bw_out_available/1024);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "init()  Quotas for %s network:  IN %llu - OUT %llu\n",
+         GNUNET_ATS_print_network_type(cur->type),
+         cur->bw_in_available/1024,
+         cur->bw_out_available/1024);
   }
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "init()  Parameters:\n");

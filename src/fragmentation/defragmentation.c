@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009, 2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -275,7 +275,7 @@ send_ack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * This function is from the GNU Scientific Library, linear/fit.c,
- * (C) 2000 Brian Gough
+ * Copyright (C) 2000 Brian Gough
  */
 static void
 gsl_fit_mul (const double *x, const size_t xstride, const double *y,

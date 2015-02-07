@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2011 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -28,6 +28,9 @@
 #define GNUNET_SERVICE_ATS_NORMALIZATION_H
 #include "gnunet_ats_service.h"
 
+/**
+ * Value we return for a normalized quality score if we have no data.
+ */
 #define DEFAULT_REL_QUALITY 1.0
 
 
@@ -37,8 +40,7 @@
  *
  * @param cls ignored
  * @param address the address
- * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind,
- * default preferences if peer does not exist
+ * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind
  */
 const double *
 GAS_normalization_get_properties (void *cls,
@@ -46,7 +48,7 @@ GAS_normalization_get_properties (void *cls,
 
 
 /**
- * Update and normalize a atsi performance information
+ * Update and normalize a @a atsi performance information
  *
  * @param address the address to update
  * @param atsi the array of performance information

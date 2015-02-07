@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2008--2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2008--2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,7 +23,7 @@
 
 /*
  * File for parsing top-level /proc entities.
- * Copyright (C) 1992-1998 by Michael K. Johnson, johnsonm@redhat.com
+ * Copyright Copyright (C) 1992-1998 by Michael K. Johnson, johnsonm@redhat.com
  * Copyright 1998-2003 Albert Cahalan
  * June 2003, Fabian Frederick, disk and slab info
  *

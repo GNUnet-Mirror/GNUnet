@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011-2014 Christian Grothoff (and other contributing authors)
+ Copyright (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -347,7 +347,6 @@ struct ATS_Address
  * A multipeermap mapping peer identities to `struct ATS_Address`.
  */
 extern struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
-
 
 
 /**

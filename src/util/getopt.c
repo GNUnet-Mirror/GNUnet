@@ -3,7 +3,7 @@
    "Keep this file name-space clean" means, talk to roland@gnu.ai.mit.edu
    before changing it!
 
-   Copyright (C) 1987, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97
+   Copyright Copyright (C) 1987, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97
      Free Software Foundation, Inc.
 
 NOTE: The canonical source of this file is maintained with the GNU C Library.
@@ -26,7 +26,7 @@ USA.
 
 
 This code was heavily modified for GNUnet.
-Copyright (C) 2006 Christian Grothoff
+Copyright Copyright (C) 2006 Christian Grothoff
 */
 
 /**

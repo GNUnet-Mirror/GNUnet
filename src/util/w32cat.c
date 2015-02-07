@@ -1,6 +1,6 @@
 /*
      W32 version of 'cat' program
-     (C) 2012 LRN
+     Copyright (C) 2012 LRN
 
      cat is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published

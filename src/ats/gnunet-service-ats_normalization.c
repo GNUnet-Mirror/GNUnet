@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011-2015 Christian Grothoff (and other contributing authors)
+ Copyright (C) 2011-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -74,8 +74,7 @@ static struct Property properties[GNUNET_ATS_QualityPropertiesCount];
  *
  * @param cls ignored
  * @param address the address
- * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind,
- * default preferences if peer does not exist
+ * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind
  */
 const double *
 GAS_normalization_get_properties (void *cls,
@@ -100,7 +99,7 @@ GAS_normalization_get_properties (void *cls,
  *
  * @param address the address
  * @param atsi the ats information
- * @return the new average or GNUNET_ATS_VALUE_UNDEFINED
+ * @return the new average or #GNUNET_ATS_VALUE_UNDEFINED
  */
 static uint32_t
 property_average (struct ATS_Address *address,
@@ -252,9 +251,12 @@ normalize_address (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Normalize `%s' address %p's '%s' with value %u to range [%u..%u] = %.3f\n",
-       GNUNET_i2s (&address->peer), address,
+       GNUNET_i2s (&address->peer),
+       address,
        GNUNET_ATS_print_property_type (p->atsi_type),
-       address->atsin[p->prop_type].avg, p->min, p->max,
+       address->atsin[p->prop_type].avg,
+       p->min,
+       p->max,
        address->atsin[p->prop_type].norm);
   GAS_normalized_property_changed (address,
 				   p->atsi_type,
@@ -350,8 +352,8 @@ GAS_normalization_normalize_property (struct ATS_Address *address,
                                       uint32_t atsi_count)
 {
   struct Property *cur_prop;
-  int c1;
-  int c2;
+  unsigned int c1;
+  unsigned int c2;
   uint32_t current_type;
   uint32_t current_val;
   unsigned int existing_properties[] = GNUNET_ATS_QualityProperties;

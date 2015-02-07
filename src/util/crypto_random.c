@@ -1,5 +1,5 @@
 /*
-     This file is part of GNUnet.  (C) 2001-2014 Christian Grothoff
+     This file is part of GNUnet.  Copyright (C) 2001-2014 Christian Grothoff
      (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
