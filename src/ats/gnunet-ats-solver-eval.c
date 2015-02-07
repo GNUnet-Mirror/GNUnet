@@ -206,7 +206,6 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       log_a->aid = cur_addr->aid;
       log_a->active = cur_addr->ats_addr->active;
       log_a->network = cur_addr->network;
-      log_a->used = cur_addr->ats_addr->used;
       log_a->assigned_bw_in = cur_addr->ats_addr->assigned_bw_in;
       log_a->assigned_bw_out = cur_addr->ats_addr->assigned_bw_out;
       for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
@@ -2170,11 +2169,6 @@ create_ats_address (const struct GNUNET_PeerIdentity *peer,
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   memcpy (aa->plugin, plugin_name, strlen (plugin_name) + 1);
   aa->session_id = session_id;
-  aa->active = GNUNET_NO;
-  aa->used = GNUNET_NO;
-  aa->solver_information = NULL;
-  aa->assigned_bw_in = 0;
-  aa->assigned_bw_out = 0;
 
   return aa;
 }

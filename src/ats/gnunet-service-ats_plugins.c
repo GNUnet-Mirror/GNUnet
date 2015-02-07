@@ -415,10 +415,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 int
 GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
-  unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
   char *mode_str;
-  unsigned int c;
 
   /* Figure out configured solution method */
   if (GNUNET_SYSERR ==
@@ -444,7 +441,6 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
                env.out_quota,
                env.in_quota,
                GNUNET_ATS_NetworkTypeCount);
-
   GNUNET_asprintf (&plugin,
                    "libgnunet_plugin_ats_%s",
                    mode_str);

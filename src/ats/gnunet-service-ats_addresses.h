@@ -270,7 +270,7 @@ struct ATS_Address
   char *plugin;
 
   /**
-   * Solver specific information for this address
+   * Solver-specific information for this address
    */
   void *solver_information;
 
@@ -300,7 +300,8 @@ struct ATS_Address
   uint32_t session_id;
 
   /**
-   * Field to store local flags
+   * Field to store local flags.
+   * FIXME: `enum GNUNET_HELLO_AddressInfo`?
    */
   uint32_t local_address_info;
 
@@ -333,11 +334,6 @@ struct ATS_Address
    * Is this the active address for this peer?
    */
   int active;
-
-  /**
-   * Is this the address for this peer in use?
-   */
-  int used;
 
   /**
    * Normalized ATS performance information for this address

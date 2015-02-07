@@ -135,7 +135,6 @@ struct LoggingAddress
 
   long long unsigned int aid;
   int active;
-  int used;
   uint32_t network;
   uint32_t assigned_bw_in;
   uint32_t assigned_bw_out;
