@@ -35,11 +35,6 @@
 
 
 /**
- * Configured ATS solver
- */
-static int ats_mode;
-
-/**
  * Solver handle.
  */
 static struct GNUNET_ATS_SolverFunctions *sf;
@@ -416,45 +411,16 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
   char *mode_str;
-  char *plugin_short;
-  int c;
+  unsigned int c;
 
   /* Figure out configured solution method */
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                "No resource assignment method configured, using proportional approach\n");
-    ats_mode = MODE_PROPORTIONAL;
+    mode_str = GNUNET_strdup ("proportional");
   }
-  else
-  {
-    for (c = 0; c < strlen (mode_str); c++)
-      mode_str[c] = toupper (mode_str[c]);
-    if (0 == strcmp (mode_str, "PROPORTIONAL"))
-      ats_mode = MODE_PROPORTIONAL;
-    else if (0 == strcmp (mode_str, "MLP"))
-    {
-      ats_mode = MODE_MLP;
-#if !HAVE_LIBGLPK
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Assignment method `%s' configured, but GLPK is not available, please install \n",
-                 mode_str);
-      ats_mode = MODE_PROPORTIONAL;
-#endif
-    }
-    else if (0 == strcmp (mode_str, "RIL"))
-      ats_mode = MODE_RIL;
-    else
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-                 "Invalid resource assignment method `%s' configured, using proportional approach\n",
-                 mode_str);
-      ats_mode = MODE_PROPORTIONAL;
-    }
-    GNUNET_free(mode_str);
-  }
-
   load_quotas (cfg,
                quotas_out,
                quotas_in,
@@ -474,27 +440,13 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
     env.in_quota[c] = quotas_in[c];
   }
 
-  switch (ats_mode) {
-    case MODE_PROPORTIONAL:
-      plugin_short = "proportional";
-      break;
-    case MODE_MLP:
-      plugin_short = "mlp";
-      break;
-    case MODE_RIL:
-      plugin_short = "ril";
-      break;
-    default:
-      plugin_short = NULL;
-      break;
-  }
   GNUNET_asprintf (&plugin,
                    "libgnunet_plugin_ats_%s",
-                   plugin_short);
+                   mode_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Initializing solver `%s '`%s'\n",
-              plugin_short,
-              plugin);
+              "Initializing solver `%s'\n",
+              mode_str);
+  GNUNET_free (mode_str);
   if (NULL == (sf = GNUNET_PLUGIN_load (plugin, &env)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

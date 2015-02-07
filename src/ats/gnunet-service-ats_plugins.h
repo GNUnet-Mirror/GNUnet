@@ -31,37 +31,6 @@
 
 
 /**
- * Available ressource assignment modes
- */
-enum ATS_Mode
-{
-  /**
-   * proportional mode:
-   *
-   * Assign each peer an equal amount of bandwidth (bw)
-   *
-   * bw_per_peer = bw_total / #active addresses
-   */
-  MODE_PROPORTIONAL,
-
-  /**
-   * MLP mode:
-   *
-   * Solve ressource assignment as an optimization problem
-   * Uses an mixed integer programming solver
-   */
-  MODE_MLP,
-
-  /**
-   * Reinforcement Learning mode:
-   *
-   * Solve resource assignment using a learning agent
-   */
-  MODE_RIL
-};
-
-
-/**
  * Initialize address subsystem. The addresses subsystem manages the addresses
  * known and current performance information. It has a solver component
  * responsible for the resource allocation. It tells the solver about changes
