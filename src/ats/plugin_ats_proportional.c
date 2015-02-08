@@ -375,18 +375,49 @@ struct GAS_PROPORTIONAL_Handle
  * Test if bandwidth is available in this network to add an additional address.
  *
  * @param net the network type to check
+ * @param extra for how many extra addresses do we check?
  * @return #GNUNET_YES or #GNUNET_NO
  */
 static int
-is_bandwidth_available_in_network (struct Network *net)
+is_bandwidth_available_in_network (struct Network *net,
+                                   int extra)
 {
-  unsigned int na = net->active_addresses + 1;
+  unsigned int na;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
 
+  GNUNET_assert (net->active_addresses + extra >= 0);
+  na = net->active_addresses + extra;
+  if (0 == na)
+    return GNUNET_YES;
   if ( ((net->total_quota_in / na) > min_bw) &&
        ((net->total_quota_out / na) > min_bw) )
     return GNUNET_YES;
   return GNUNET_NO;
+}
+
+
+/**
+ * Test if all peers in this network require connectivity at level at
+ * least @a con.
+ *
+ * @param s the solver handle
+ * @param net the network type to check
+ * @param con connection return value threshold to check
+ * @return #GNUNET_YES or #GNUNET_NO
+ */
+static int
+all_require_connectivity (struct GAS_PROPORTIONAL_Handle *s,
+                          struct Network *net,
+                          unsigned int con)
+{
+  struct AddressWrapper *aw;
+
+  for (aw = net->head; NULL != aw; aw = aw->next)
+    if (con >
+        s->env->get_connectivity (s->env->cls,
+                                  &aw->addr->peer))
+      return GNUNET_NO;
+  return GNUNET_YES;
 }
 
 
@@ -426,14 +457,12 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
        net->total_quota_in,
        net->total_quota_in);
 
-  if (net->active_addresses == 0)
-  {
+  if (0 == net->active_addresses)
     return; /* no addresses to update */
-  }
 
-  /* Idea
+  /* Idea:
    * Assign every peer in network minimum Bandwidth
-   * Distribute bandwidth left according to preference
+   * Distribute remaining bandwidth proportional to preferences.
    */
 
   if ((net->active_addresses * min_bw) > net->total_quota_in)
@@ -725,12 +754,37 @@ find_best_address_it (void *cls,
   double cur_delay;
   double cur_distance;
   int index;
+  unsigned int con;
+  int bw_available;
+  int need;
 
-  if (GNUNET_NO ==
-      is_bandwidth_available_in_network (asi->network))
+  /* we need +1 slot if 'current' is not yet active */
+  need = (GNUNET_YES == current->active) ? 0 : 1;
+  /* we save -1 slot if 'best' is active and belongs
+     to the same network (as we would replace it) */
+  if ( (NULL == ctx->best) &&
+       (GNUNET_YES == ctx->best->active) &&
+       (((struct AddressWrapper *) ctx->best->solver_information)->network ==
+        asi->network) )
+    need--;
+  /* we can gain -1 slot if this peers connectivity
+     requirement is higher than that of another peer
+     in that network scope */
+  con = ctx->s->env->get_connectivity (ctx->s->env->cls,
+                                       key);
+  if (GNUNET_YES !=
+      all_require_connectivity (ctx->s,
+                                asi->network,
+                                con))
+    need--;
+  /* test if minimum bandwidth for 'current' would be available */
+  bw_available
+    = is_bandwidth_available_in_network (asi->network,
+                                         need);
+  if (! bw_available)
   {
-    /* There's no bandwidth available in this network,
-       so we cannot use this address. */
+    /* Bandwidth for this address is unavailable, so we cannot use
+       it. */
     return GNUNET_OK;
   }
   if (GNUNET_YES == current->active)
@@ -908,6 +962,10 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   struct ATS_Address *best_address;
   struct AddressWrapper *asi_cur;
   struct AddressWrapper *asi_best;
+  struct AddressWrapper *aw;
+  struct AddressWrapper *aw_min;
+  unsigned int a_con;
+  unsigned int con_min;
 
   best_address = get_best_address (s,
                                    s->env->addresses,
@@ -982,6 +1040,33 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
        "Address %p for peer `%s' is now active\n",
        best_address,
        GNUNET_i2s (peer));
+
+
+  if (GNUNET_NO ==
+      is_bandwidth_available_in_network (asi_best->network,
+                                         0))
+  {
+    /* we went over the maximum number of addresses for
+       this scope; remove the address with the smallest
+       connectivity requirement */
+    con_min = UINT32_MAX;
+    aw_min = NULL;
+    for (aw = asi_best->network->head; NULL != aw; aw = aw->next)
+    {
+      if (con_min >
+          (a_con = s->env->get_connectivity (s->env->cls,
+                                             &aw->addr->peer)))
+      {
+        aw_min = aw;
+        con_min = a_con;
+        if (0 == con_min)
+          break;
+      }
+    }
+    update_active_address (s,
+                           aw_con->addr,
+                           &aw->addr->peer);
+  }
   distribute_bandwidth_in_network (s,
                                    asi_best->network);
 }
