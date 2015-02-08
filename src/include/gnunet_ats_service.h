@@ -639,10 +639,6 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
 void
 GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc);
 
-/**
- * Number of preference types supported by ATS
- */
-#define GNUNET_ATS_PreferenceCount 3
 
 /**
  * ATS preference types as array initializer
@@ -671,7 +667,7 @@ enum GNUNET_ATS_PreferenceKind
    * by a double value giving the desired value (can be negative).
    * Preference changes are forgotten if peers disconnect.
    */
-  GNUNET_ATS_PREFERENCE_BANDWIDTH,
+  GNUNET_ATS_PREFERENCE_BANDWIDTH = 1,
 
   /**
    * Change the peer's latency value to the given amount.  The
@@ -680,8 +676,16 @@ enum GNUNET_ATS_PreferenceKind
    * the inverse of the latency in microseconds (minimum: 1
    * microsecond) multiplied by the latency preferences.
    */
-  GNUNET_ATS_PREFERENCE_LATENCY
+  GNUNET_ATS_PREFERENCE_LATENCY = 2
+
+/**
+ * Number of preference types supported by ATS
+ */
+#define GNUNET_ATS_PreferenceCount 3
+
+
 };
+
 
 /**
  * Convert a GNUNET_ATS_PreferenceType to a string
@@ -690,7 +694,7 @@ enum GNUNET_ATS_PreferenceKind
  * @return a string or NULL if invalid
  */
 const char *
-GNUNET_ATS_print_preference_type (uint32_t type);
+GNUNET_ATS_print_preference_type (enum GNUNET_ATS_PreferenceKind type);
 
 
 /**
