@@ -555,7 +555,8 @@ GAS_plugin_solver_unlock ()
 void
 GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 {
-  sf->s_get (sf->cls, pid);
+  sf->s_get (sf->cls,
+             pid);
 }
 
 
