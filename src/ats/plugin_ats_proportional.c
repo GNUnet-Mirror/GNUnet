@@ -1212,35 +1212,10 @@ GAS_proportional_address_property_changed (void *solver,
                                            double rel_value)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct AddressWrapper *asi;
-  struct ATS_Address *best_address;
-  struct ATS_Address *active_address;
+  struct AddressWrapper *asi = address->solver_information;
 
-  asi = address->solver_information;
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Property `%s' for peer `%s' address %p changed to %.2f\n",
-       GNUNET_ATS_print_property_type (type),
-       GNUNET_i2s (&address->peer),
-       address,
-       rel_value);
-
-  if (0 ==
-      s->env->get_connectivity (s->env->cls,
-                                &address->peer))
-    return; /* Peer is not requested */
-
-  /* This peer is requested, find active and best address */
-  active_address = get_active_address (s,
-                                       &address->peer);
-  best_address = update_active_address (s,
-                                        &address->peer);
-  if (active_address == best_address)
-  {
-    /* We stuck to the same address, therefore redistribute
-       (NOTE: because otherwise update_active_address() already
-       calls distribute_bandwidth_in_network() )*/
-    distribute_bandwidth_in_network (s, asi->network);
-  }
+  distribute_bandwidth_in_network (s,
+                                   asi->network);
 }
 
 
