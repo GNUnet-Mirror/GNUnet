@@ -477,23 +477,20 @@ struct GAS_RIL_Handle
  */
 static double
 agent_q (struct RIL_Peer_Agent *agent,
-         const double *state, int action)
+         const double *state,
+         int action)
 {
-  int i;
-  double result = 0;
+  unsigned int i;
+  double result = 0.0;
 
   for (i = 0; i < agent->m; i++)
-  {
     result += state[i] * agent->W[action][i];
-  }
 
-  GNUNET_assert(!isnan(result));
-
-  //prevent crash when learning diverges
+  /* prevent crashes if learning diverges */
+  if (isnan(result))
+      return isnan(result) * UINT32_MAX;
   if (isinf(result))
-  {
     return isinf(result) * UINT32_MAX;
-  }
   return result;
 }
 
