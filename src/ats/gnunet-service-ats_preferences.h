@@ -32,9 +32,14 @@
 #include "gnunet_statistics_service.h"
 #include "ats.h"
 
-
+/**
+ * Default preference value we assume if we know nothing.
+ */
 #define DEFAULT_ABS_PREFERENCE 0.0
 
+/**
+ * Default relative preference value we assume if we know nothing.
+ */
 #define DEFAULT_REL_PREFERENCE 0.0
 
 
@@ -75,7 +80,7 @@ GAS_preference_done (void);
  */
 const double *
 GAS_preference_get_by_peer (void *cls,
-					   const struct GNUNET_PeerIdentity *id);
+                            const struct GNUNET_PeerIdentity *id);
 
 
 /**

@@ -968,10 +968,10 @@ set_pref_task (void *cls,
     sh->sf->s_pref (sh->sf->cls, &p->peer_id, pg->kind, pref_value);
   }
   else
-    normalize_preference (NULL + (pg->client_id),
-                          &p->peer_id,
-                          pg->kind,
-                          pref_value);
+    update_preference (NULL + (pg->client_id),
+                       &p->peer_id,
+                       pg->kind,
+                       pref_value);
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
                                                &set_pref_task,

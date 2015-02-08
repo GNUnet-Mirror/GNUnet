@@ -281,26 +281,54 @@ struct AddressSuggestionMessage
 };
 
 
-
-
+/**
+ *
+ */
 struct PeerInformationMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   *
+   */
   uint32_t ats_count GNUNET_PACKED;
 
+  /**
+   *
+   */
   uint32_t address_active GNUNET_PACKED;
 
+  /**
+   *
+   */
   uint32_t id GNUNET_PACKED;
 
+  /**
+   *
+   */
   struct GNUNET_PeerIdentity peer;
 
+  /**
+   *
+   */
   uint16_t address_length GNUNET_PACKED;
 
+  /**
+   *
+   */
   uint16_t plugin_name_length GNUNET_PACKED;
 
+  /**
+   *
+   */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
+  /**
+   *
+   */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
   /* followed by:
@@ -341,44 +369,95 @@ struct AddressListRequestMessage
 };
 
 
+/**
+ *
+ */
 struct ReservationRequestMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_RESERVATION_REQUEST
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   *
+   */
   int32_t amount GNUNET_PACKED;
 
+  /**
+   *
+   */
   struct GNUNET_PeerIdentity peer;
 };
 
 
-
+/**
+ *
+ */
 struct ReservationResultMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   *
+   */
   int32_t amount GNUNET_PACKED;
 
+  /**
+   *
+   */
   struct GNUNET_PeerIdentity peer;
 
+  /**
+   *
+   */
   struct GNUNET_TIME_RelativeNBO res_delay;
 };
 
+
+/**
+ * Variable-size entry in a `struct ChangePreferenceMessage` or
+ * `struct FeedbackPreferenceMessage`.
+ */
 struct PreferenceInformation
 {
 
+  /**
+   * An `enum GNUNET_ATS_PreferenceKind` in NBO.
+   */
   uint32_t preference_kind GNUNET_PACKED;
 
+  /**
+   * Degree of preference (or appreciation) for this @e
+   * preference_kind being expressed.
+   */
   float preference_value GNUNET_PACKED;
 
 };
 
 
+/**
+ * Client to ATS: I have a performance preference for a peer.
+ */
 struct ChangePreferenceMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE.
+   */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * How many `struct PreferenceInformation` entries follow
+   * this struct?
+   */
   uint32_t num_preferences GNUNET_PACKED;
 
+  /**
+   * Which peer is the preference being expressed for?
+   */
   struct GNUNET_PeerIdentity peer;
 
   /* followed by 'num_preferences'
@@ -391,6 +470,9 @@ struct ChangePreferenceMessage
  */
 struct FeedbackPreferenceMessage
 {
+  /**
+   * Type is #GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK.
+   */
   struct GNUNET_MessageHeader header;
 
   /**
