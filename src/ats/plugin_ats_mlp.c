@@ -2032,7 +2032,7 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp,
                      const struct GNUNET_PeerIdentity *peer)
 {
   double res;
-  const double *preferences = NULL;
+  const double *preferences;
   int c;
 
   preferences = mlp->env->get_preferences (mlp->env->cls, peer);

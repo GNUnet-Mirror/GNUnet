@@ -542,8 +542,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     if (GNUNET_YES != cur_address->addr->active)
       continue;
 
-    GNUNET_assert( NULL != (peer_relative_prefs = s->env->get_preferences (s->env->cls,
-                                                                           &cur_address->addr->peer)));
+    peer_relative_prefs = s->env->get_preferences (s->env->cls,
+                                                   &cur_address->addr->peer);
     relative_peer_prefence = 0.0;
     relative_peer_prefence += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
     sum_relative_peer_prefences += relative_peer_prefence;
@@ -577,9 +577,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   {
     if (GNUNET_YES == cur_address->addr->active)
     {
-      GNUNET_assert( NULL != (peer_relative_prefs =
-                              s->env->get_preferences (s->env->cls,
-                                                       &cur_address->addr->peer)));
+      peer_relative_prefs = s->env->get_preferences (s->env->cls,
+                                                     &cur_address->addr->peer);
 
       cur_pref = peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
       total_weight = net->active_addresses +

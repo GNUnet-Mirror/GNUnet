@@ -76,7 +76,7 @@ GAS_preference_done (void);
  * @param cls ignored
  * @param id the peer
  * @return pointer to the values, can be indexed
- *  with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
+ *  with `enum GNUNET_ATS_PreferenceKind`, never NULL
  */
 const double *
 GAS_preference_get_by_peer (void *cls,
