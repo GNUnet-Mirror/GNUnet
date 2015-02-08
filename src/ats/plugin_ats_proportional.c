@@ -1025,7 +1025,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * Changes the preferences for a peer in the problem
+ * The preferences for a peer in the problem changed.
  *
  * @param solver the solver handle
  * @param peer the peer to change the preference for
@@ -1039,29 +1039,9 @@ GAS_proportional_address_change_preference (void *solver,
 					    double pref_rel)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct ATS_Address *best_address;
-  struct ATS_Address *active_address;
-  struct AddressWrapper *asi;
 
-  if (0 ==
-      s->env->get_connectivity (s->env->cls,
-                                peer))
-    return; /* Peer is not requested */
-
-  /* This peer is requested, find best address */
-  active_address = get_active_address (s,
-                                       peer);
-  best_address = update_active_address (s, peer);
-
-  if ( (NULL != best_address) &&
-       (active_address == best_address) )
-  {
-    asi = best_address->solver_information;
-    GNUNET_assert (NULL != asi);
-
-    /* We sticked to the same address, therefore redistribute  */
-    distribute_bandwidth_in_network (s, asi->network);
-  }
+  distribute_bandwidth_in_network (s,
+                                   NULL);
 }
 
 
@@ -1083,7 +1063,7 @@ GAS_proportional_address_preference_feedback (void *solver,
                                               enum GNUNET_ATS_PreferenceKind kind,
                                               double score)
 {
-  /* don't care about feedback */
+  /* Proportional does not care about feedback */
 }
 
 
