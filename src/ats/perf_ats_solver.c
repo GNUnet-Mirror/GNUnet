@@ -415,18 +415,10 @@ bandwidth_changed_cb (void *cls,
 }
 
 
-const double *
+static const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
   return GAS_normalization_get_preferences_by_peer (NULL, id);
-}
-
-
-const double *
-get_property_cb (void *cls, const struct ATS_Address *address)
-{
-  return GAS_normalization_get_properties (NULL,
-					   address);
 }
 
 
@@ -1235,17 +1227,14 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   if (0 == strcmp(solver, "proportional"))
   {
-    ph.ats_mode = MODE_PROPORTIONAL;
     ph.ats_string = "proportional";
   }
   else if (0 == strcmp(solver, "mlp"))
   {
-    ph.ats_mode = MODE_MLP;
     ph.ats_string = "mlp";
   }
   else if ((0 == strcmp(solver, "ril")))
   {
-    ph.ats_mode = MODE_RIL;
     ph.ats_string = "ril";
   }
   else
@@ -1304,7 +1293,6 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.env.addresses = ph.addresses;
   ph.env.bandwidth_changed_cb = bandwidth_changed_cb;
   ph.env.get_preferences = &get_preferences_cb;
-  ph.env.get_property = &get_property_cb;
   ph.env.network_count = GNUNET_ATS_NetworkTypeCount;
   ph.env.info_cb = &solver_info_cb;
 

@@ -286,11 +286,6 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   memcpy (aa->plugin, plugin_name, strlen (plugin_name) + 1);
   aa->session_id = session_id;
-  aa->active = GNUNET_NO;
-  aa->used = GNUNET_NO;
-  aa->solver_information = NULL;
-  aa->assigned_bw_in = 0;
-  aa->assigned_bw_out = 0;
   return aa;
 }
 
