@@ -104,7 +104,6 @@ ats_perf_cb (void *cls,
 {
   static int counter = 0;
 
-  fprintf (stderr, "HERE!\n");
   if (NULL == address)
   {
     phal = 0;
