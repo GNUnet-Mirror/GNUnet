@@ -1079,14 +1079,17 @@ GAS_proportional_get_preferred_address (void *solver,
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct ATS_Address *best_address;
+  struct AddressWrapper *asi;
 
-  best_address = update_active_address (s, peer);
+  best_address = update_active_address (s,
+                                        peer);
   if (NULL == best_address)
     return;
   if (s->bulk_lock > 0)
     return;
-  s->env->bandwidth_changed_cb (s->env->cls,
-                                best_address);
+  asi = best_address->solver_information;
+  distribute_bandwidth_in_network (s,
+                                   asi->network);
 }
 
 
@@ -1220,9 +1223,8 @@ GAS_proportional_address_add (void *solver,
                             GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Adding new address %p for peer `%s', now total %u and active %u addresses in network `%s'\n",
-       address,
-       GNUNET_i2s (&address->peer),
+       "Added new address for `%s', now total %u and active %u addresses in network `%s'\n",
+    GNUNET_i2s (&address->peer),
        net->total_addresses,
        net->active_addresses,
        net->desc);
