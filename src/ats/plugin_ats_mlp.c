@@ -2063,9 +2063,8 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp,
  *
  * @param solver the MLP Handle
  * @param peer the peer
- * @return suggested address
  */
-static const struct ATS_Address *
+static void
 GAS_mlp_get_preferred_address (void *solver,
                                const struct GNUNET_PeerIdentity *peer)
 {
@@ -2073,11 +2072,9 @@ GAS_mlp_get_preferred_address (void *solver,
   struct ATS_Peer *p;
   struct ATS_Address *res;
 
-  GNUNET_assert (NULL != solver);
-  GNUNET_assert (NULL != peer);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n",
-      GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Getting preferred address for `%s'\n",
+       GNUNET_i2s (peer));
 
   /* Is this peer included in the problem? */
   if (NULL ==
@@ -2110,7 +2107,9 @@ GAS_mlp_get_preferred_address (void *solver,
   res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (mlp->env->addresses, peer,
                                               &mlp_get_preferred_address_it, &res);
-  return res;
+  if (NULL != res)
+    mlp->env->bandwidth_changed_cb (mlp->env->cls,
+                                    res);
 }
 
 
@@ -2128,6 +2127,7 @@ GAS_mlp_address_delete (void *solver,
 {
   struct GAS_MLP_Handle *mlp = solver;
   struct MLP_information *mlpi;
+  struct ATS_Address *res;
   int was_active;
 
   mlpi = address->solver_information;
@@ -2164,7 +2164,13 @@ GAS_mlp_address_delete (void *solver,
   }
   if (GNUNET_YES == was_active)
   {
-    if (NULL == GAS_mlp_get_preferred_address (solver, &address->peer))
+    GAS_mlp_get_preferred_address (solver, &address->peer);
+    res = NULL;
+    GNUNET_CONTAINER_multipeermap_get_multiple (mlp->env->addresses,
+                                                &address->peer,
+                                                &mlp_get_preferred_address_it,
+                                                &res);
+    if (NULL == res)
     {
       /* No alternative address, disconnecting peer */
       mlp->env->bandwidth_changed_cb (mlp->env->cls, address);

@@ -2484,7 +2484,7 @@ GAS_ril_bulk_stop (void *solver)
  * @param solver the solver handle
  * @param peer the identity of the peer
  */
-static const struct ATS_Address *
+static void
 GAS_ril_get_preferred_address (void *solver,
 			       const struct GNUNET_PeerIdentity *peer)
 {
@@ -2514,8 +2514,11 @@ GAS_ril_get_preferred_address (void *solver,
     s->parameters.temperature = s->parameters.temperature_init;
     s->parameters.epsilon = s->parameters.epsilon_init;
   }
-  return agent->address_inuse;
+  if (NULL != agent->address_inuse)
+    s->env->bandwidth_changed_cb (s->env->cls,
+                                  agent->address_inuse);
 }
+
 
 /**
  * Tell solver stop notifying ATS about changes for this peers

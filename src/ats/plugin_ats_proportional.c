@@ -929,26 +929,15 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   struct AddressWrapper *asi;
   struct Network *net;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Updating active address for peer `%s'\n",
-       GNUNET_i2s (peer));
-
-  /* Find active address */
   current_address = get_active_address (s,
                                         peer);
-
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Peer `%s' has active address %p\n",
-       GNUNET_i2s (peer),
-       current_address);
-
-  /* Find best address */
   best_address = get_best_address (s,
                                    s->env->addresses,
                                    peer);
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Peer `%s' has best address %p\n",
+       "Peer `%s' has active address %p and best address %p\n",
        GNUNET_i2s (peer),
+       current_address,
        best_address);
 
   if (NULL != current_address)
@@ -1106,19 +1095,21 @@ GAS_proportional_address_preference_feedback (void *solver,
  *
  * @param solver the solver handle
  * @param peer the identity of the peer
- * @return best address
  */
-static const struct ATS_Address *
+static void
 GAS_proportional_get_preferred_address (void *solver,
                                         const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  const struct ATS_Address *best_address;
+  struct ATS_Address *best_address;
 
   best_address = update_active_address (s, peer);
+  if (NULL == best_address)
+    return;
   if (s->bulk_lock > 0)
-    return NULL;
-  return best_address;
+    return;
+  s->env->bandwidth_changed_cb (s->env->cls,
+                                best_address);
 }
 
 

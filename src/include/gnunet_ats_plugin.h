@@ -143,7 +143,7 @@ typedef void
  * @param solver the solver to use
  * @param peer the peer
  */
-typedef const struct ATS_Address *
+typedef void
 (*GAS_solver_get_preferred_address) (void *solver,
                                      const struct GNUNET_PeerIdentity *peer);
 

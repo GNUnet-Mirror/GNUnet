@@ -246,11 +246,11 @@ bandwidth_changed_cb (void *cls,
        (diff_in < htonl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) )
     return;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Sending bandwidth update for peer `%s': %u/%u\n",
-             GNUNET_i2s (&address->peer),
-             address->assigned_bw_out,
-             address->assigned_bw_out);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Sending bandwidth update for peer `%s': %u/%u\n",
+              GNUNET_i2s (&address->peer),
+              address->assigned_bw_out,
+              address->assigned_bw_out);
 
   /* *Notify scheduling clients about suggestion */
   GAS_scheduling_transmit_address_suggestion (&address->peer,
@@ -555,24 +555,7 @@ GAS_plugin_solver_unlock ()
 void
 GAS_plugin_request_connect_start (const struct GNUNET_PeerIdentity *pid)
 {
-  const struct ATS_Address *aa;
-
-  aa = sf->s_get (sf->cls, pid);
-  if (NULL == aa)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Cannot suggest address for peer `%s'\n",
-		GNUNET_i2s (pid));
-    return;
-  }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-	     "Suggesting address %p for peer `%s'\n",
-	     aa,
-	     GNUNET_i2s (pid));
-  GAS_scheduling_transmit_address_suggestion (pid,
-                                              aa->session_id,
-                                              GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
-                                              GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
+  sf->s_get (sf->cls, pid);
 }
 
 

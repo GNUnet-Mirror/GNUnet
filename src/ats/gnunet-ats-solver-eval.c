@@ -2382,7 +2382,6 @@ static void
 enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct TestPeer *p;
-  const struct ATS_Address *res;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
@@ -2396,17 +2395,9 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
       op->peer_id);
   p->is_requested = GNUNET_YES;
 
-  res = sh->sf->s_get (sh->sf->cls, &p->peer_id);
-  if (NULL != res)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Suggested address for peer %u: %llu %llu\n",
-        op->peer_id,
-        res->assigned_bw_in,
-        res->assigned_bw_out);
-    if (NULL != l)
-      GNUNET_ATS_solver_logging_now (l);
-  }
+  sh->sf->s_get (sh->sf->cls, &p->peer_id);
 }
+
 
 static void
 enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
@@ -2421,10 +2412,9 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
-
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop requesting address for peer %u\n",
-      op->peer_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Stop requesting address for peer %u\n",
+              op->peer_id);
   p->is_requested = GNUNET_NO;
   p->assigned_bw_in = 0;
   p->assigned_bw_out = 0;
