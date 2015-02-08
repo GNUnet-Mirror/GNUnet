@@ -638,17 +638,22 @@ struct FindBestAddressCtx
 
 
 /**
- * Find index of a ATS property type in the array.
+ * Find index of a ATS property type in the quality properties array.
+ *
+ * @param type ATS property type
+ * @return index in the quality array, #GNUNET_SYSERR if the type
+ *         was not a quality property
  */
 static int
-find_property_index (uint32_t type)
+find_quality_property_index (enum GNUNET_ATS_Property type)
 {
-  int existing_types[] = GNUNET_ATS_QualityProperties;
-  int c;
+  enum GNUNET_ATS_Property existing_types[] = GNUNET_ATS_QualityProperties;
+  unsigned int c;
 
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
     if (existing_types[c] == type)
       return c;
+  GNUNET_break (0);
   return GNUNET_SYSERR;
 }
 
@@ -723,10 +728,10 @@ find_best_address_it (void *cls,
   }
 
   /* Now compare ATS information */
-  index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  index = find_quality_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
   cur_distance = current->atsin[index].norm;
   best_distance = ctx->best->atsin[index].norm;
-  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
+  index = find_quality_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
   cur_delay = current->atsin[index].norm;
   best_delay = ctx->best->atsin[index].norm;
 
@@ -802,7 +807,8 @@ get_best_address (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * Hashmap Iterator to find current active address for peer
+ * Address map iterator to find current active address for peer.
+ * Asserts that only one address is active per peer.
  *
  * @param cls last active address
  * @param key peer's key
@@ -815,27 +821,12 @@ get_active_address_it (void *cls,
                        void *value)
 {
   struct ATS_Address **dest = cls;
-  struct ATS_Address *aa = (struct ATS_Address *) value;
+  struct ATS_Address *aa = value;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-         "Checking address %p\n", aa);
-
-  if (GNUNET_YES == aa->active)
-  {
-  LOG (GNUNET_ERROR_TYPE_INFO,
-         "Address %p is active\n", aa);
-    if (NULL != (*dest))
-    {
-      /* should never happen */
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Multiple active addresses for peer `%s'\n",
-           GNUNET_i2s (&aa->peer));
-      GNUNET_break(0);
-      return GNUNET_NO;
-    }
-    (*dest) = aa;
-
-  }
+  if (GNUNET_YES != aa->active)
+    return GNUNET_OK;
+  GNUNET_assert (NULL == (*dest));
+  (*dest) = aa;
   return GNUNET_OK;
 }
 
