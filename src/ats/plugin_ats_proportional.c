@@ -422,33 +422,29 @@ all_require_connectivity (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * Update bandwidth assigned to peers in this network
+ * Update bandwidth assigned to peers in this network.  The basic idea
+ * is to assign every peer in the network the minimum bandwidth, and
+ * then distribute the remaining bandwidth proportional to application
+ * preferences.
  *
  * @param s the solver handle
  * @param net the network type to update
- * this address
  */
 static void
 distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
                       struct Network *net)
 {
+  const uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
   struct AddressWrapper *aw;
-  unsigned long long remaining_quota_in = 0;
-  unsigned long long quota_out_used = 0;
-  unsigned long long remaining_quota_out = 0;
-  unsigned long long quota_in_used = 0;
-  int count_addresses;
-  uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-  double relative_peer_prefence;
-  double sum_relative_peer_prefences; /* Important: has to be double not float due to precision */
-  double cur_pref; /* Important: has to be double not float due to precision */
+  unsigned long long remaining_quota_in;
+  unsigned long long quota_out_used;
+  unsigned long long remaining_quota_out;
+  unsigned long long quota_in_used;
+  unsigned int count_addresses;
+  double sum_relative_peer_prefences;
   double peer_weight;
   double total_weight;
-  const double *peer_relative_prefs = NULL; /* Important: has to be double not float due to precision */
-
-  uint32_t assigned_quota_in = 0;
-  uint32_t assigned_quota_out = 0;
-
+  const double *peer_relative_prefs;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Recalculate quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
@@ -460,11 +456,7 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   if (0 == net->active_addresses)
     return; /* no addresses to update */
 
-  /* Idea:
-   * Assign every peer in network minimum Bandwidth
-   * Distribute remaining bandwidth proportional to preferences.
-   */
-
+  /* sanity checks */
   if ((net->active_addresses * min_bw) > net->total_quota_in)
   {
     GNUNET_break(0);
@@ -476,16 +468,9 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     return;
   }
 
-  remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
-  remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Proportionally distributable bandwidth (in/out): %llu/%llu\n",
-       remaining_quota_in,
-       remaining_quota_out);
-  sum_relative_peer_prefences = 0.0;
-
   /* Calculate sum of relative preference for active addresses in this
      network */
+  sum_relative_peer_prefences = 0.0;
   count_addresses = 0;
   for (aw = net->head; NULL != aw; aw = aw->next)
   {
@@ -496,7 +481,6 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     sum_relative_peer_prefences += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
     count_addresses++;
   }
-
   if (count_addresses != net->active_addresses)
   {
     GNUNET_break (0);
@@ -505,88 +489,66 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
          net->desc,
          count_addresses,
          net->active_addresses);
-    for (aw = net->head; NULL != aw; aw = aw->next)
-    {
-      if (GNUNET_YES != aw->addr->active)
-        continue;
-
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Active: `%s' `%s' length %u\n",
-           GNUNET_i2s (&aw->addr->peer),
-           aw->addr->plugin,
-           aw->addr->addr_len);
-    }
+    /* try to fix... */
+    net->active_addresses = count_addresses;
   }
-
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Total relative preference %.3f for %u addresses in network %s\n",
        sum_relative_peer_prefences,
        net->active_addresses,
        net->desc);
 
+  /* check how much we have to distribute */
+  remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
+  remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Proportionally distributable bandwidth (in/out): %llu/%llu\n",
+       remaining_quota_in,
+       remaining_quota_out);
+
+  /* distribute remaining quota; we do not do it exactly proportional,
+     but balance "even" distribution ("net->active_addresses") with
+     the preference sum using the "prop_factor". */
+  total_weight = net->active_addresses +
+    s->prop_factor * sum_relative_peer_prefences;
+  quota_out_used = 0;
+  quota_in_used = 0;
   for (aw = net->head; NULL != aw; aw = aw->next)
   {
-    if (GNUNET_YES == aw->addr->active)
+    if (GNUNET_YES != aw->addr->active)
     {
-      peer_relative_prefs = s->env->get_preferences (s->env->cls,
-                                                     &aw->addr->peer);
-
-      cur_pref = peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
-      total_weight = net->active_addresses +
-          s->prop_factor * sum_relative_peer_prefences;
-      peer_weight = (1.0 + (s->prop_factor * cur_pref));
-
-      assigned_quota_in = min_bw
-          + ((peer_weight / total_weight) * remaining_quota_in);
-      assigned_quota_out = min_bw
-          + ((peer_weight / total_weight) * remaining_quota_out);
-
-      LOG (GNUNET_ERROR_TYPE_INFO,
-          "New quota for peer `%s' with weight (cur/total) %.3f/%.3f (in/out): %llu / %llu\n",
-          GNUNET_i2s (&aw->addr->peer),
-           peer_weight,
-           total_weight,
-          assigned_quota_in,
-           assigned_quota_out);
+      /* set to 0, just to be sure */
+      aw->calculated_quota_in = 0;
+      aw->calculated_quota_out = 0;
+      continue;
     }
-    else
-    {
-      assigned_quota_in = 0;
-      assigned_quota_out = 0;
-    }
+    peer_relative_prefs = s->env->get_preferences (s->env->cls,
+                                                   &aw->addr->peer);
+    peer_weight = 1.0
+      + s->prop_factor * peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
 
-    quota_in_used += assigned_quota_in;
-    quota_out_used += assigned_quota_out;
-    /* Prevent overflow due to rounding errors */
-    if (assigned_quota_in > UINT32_MAX)
-      assigned_quota_in = UINT32_MAX;
-    if (assigned_quota_out > UINT32_MAX)
-      assigned_quota_out = UINT32_MAX;
+    aw->calculated_quota_in = min_bw
+      + (peer_weight / total_weight) * remaining_quota_in;
+    aw->calculated_quota_out = min_bw
+      + (peer_weight / total_weight) * remaining_quota_out;
 
-    /* Store for later propagation */
-    aw->calculated_quota_in = assigned_quota_in;
-    aw->calculated_quota_out = assigned_quota_out;
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "New quotas for peer `%s' with weight (cur/total) %.3f/%.3f (in/out) are: %u/%u\n",
+         GNUNET_i2s (&aw->addr->peer),
+         peer_weight,
+         total_weight,
+         (unsigned int) aw->calculated_quota_in,
+         (unsigned int) aw->calculated_quota_out);
+    quota_in_used += aw->calculated_quota_in;
+    quota_out_used += aw->calculated_quota_out;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Total bandwidth assigned is (in/out): %llu /%llu\n",
        quota_in_used,
        quota_out_used);
-  if (quota_out_used > net->total_quota_out + 1) /* +1 is required due to rounding errors */
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Total outbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu / %llu\n",
-         net->active_addresses,
-         quota_out_used,
-         net->total_quota_out);
-  }
-  if (quota_in_used > net->total_quota_in + 1) /* +1 is required due to rounding errors */
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         "Total inbound bandwidth assigned is larger than allowed (used/allowed) for %u active addresses: %llu / %llu\n",
-         net->active_addresses,
-         quota_in_used,
-         net->total_quota_in);
-  }
+  /* +1 due to possible rounding errors */
+  GNUNET_break (quota_out_used <= net->total_quota_out + 1);
+  GNUNET_break (quota_in_used <= net->total_quota_in + 1);
 }
 
 
