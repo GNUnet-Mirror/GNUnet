@@ -83,14 +83,10 @@ GAS_plugin_notify_property_changed (struct ATS_Address *address,
  *
  * @param new_address the new address
  * @param addr_net network scope the address is in
- * @param atsi performance data for the address
- * @param atsi_count size of the @a atsi array
  */
 void
 GAS_plugin_new_address (struct ATS_Address *new_address,
-			enum GNUNET_ATS_Network_Type addr_net,
-			const struct GNUNET_ATS_Information *atsi,
-			uint32_t atsi_count);
+			enum GNUNET_ATS_Network_Type addr_net);
 
 
 /**

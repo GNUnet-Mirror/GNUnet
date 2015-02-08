@@ -43,8 +43,8 @@
  */
 void
 GAS_normalization_update_property (struct ATS_Address *address,
-				      const struct GNUNET_ATS_Information *atsi,
-				      uint32_t atsi_count);
+                                   const struct GNUNET_ATS_Information *atsi,
+                                   uint32_t atsi_count);
 
 
 /**

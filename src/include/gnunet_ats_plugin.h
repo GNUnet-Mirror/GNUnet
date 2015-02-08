@@ -402,6 +402,20 @@ typedef const double *
 
 
 /**
+ * Callback to call from solver to obtain application connectivity
+ * preferences for a peer.
+ *
+ * @param cls the cls
+ * @param id the peer id
+ * @return 0 if connectivity is not desired, non-null if address
+ *      suggestions are requested
+ */
+typedef unsigned int
+(*GAS_get_connectivity) (void *cls,
+                         const struct GNUNET_PeerIdentity *id);
+
+
+/**
  * The ATS plugin will pass a pointer to a struct
  * of this type as to the initialization function
  * of the ATS plugins.
@@ -437,6 +451,11 @@ struct GNUNET_ATS_PluginEnvironment
    * ATS addresses function to obtain preference values
    */
   GAS_get_preferences get_preferences;
+
+  /**
+   * ATS addresses function to obtain preference values
+   */
+  GAS_get_connectivity get_connectivity;
 
   /**
    * Callback for solver to call with status information,

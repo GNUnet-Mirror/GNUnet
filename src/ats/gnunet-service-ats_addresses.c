@@ -572,10 +572,13 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
 	      GNUNET_i2s (peer),
 	      session_id);
   /* Tell solver about new address */
+  GAS_plugin_solver_lock ();
   GAS_plugin_new_address (new_address,
-			  addr_net,
-			  atsi,
-			  atsi_count);
+			  addr_net);
+  GAS_normalization_update_property (new_address,
+                                     atsi,
+                                     atsi_count);
+  GAS_plugin_solver_unlock ();
   /* Notify performance clients about new address */
   GAS_performance_notify_all_clients (&new_address->peer,
 				      new_address->plugin,

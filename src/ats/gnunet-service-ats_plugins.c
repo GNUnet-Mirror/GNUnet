@@ -427,6 +427,7 @@ GAS_plugin_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   env.info_cb = &solver_info_cb;
   env.bandwidth_changed_cb = &bandwidth_changed_cb;
   env.get_preferences = &GAS_preference_get_by_peer;
+  env.get_connectivity = &GAS_connectivity_has_peer;
   env.cfg = cfg;
   env.stats = GSA_stats;
   env.addresses = GSA_addresses;
@@ -473,23 +474,14 @@ GAS_plugin_done ()
  *
  * @param new_address the new address
  * @param addr_net network scope the address is in
- * @param atsi performance data for the address
- * @param atsi_count size of the @a atsi array
  */
 void
 GAS_plugin_new_address (struct ATS_Address *new_address,
-			enum GNUNET_ATS_Network_Type addr_net,
-			const struct GNUNET_ATS_Information *atsi,
-			uint32_t atsi_count)
+			enum GNUNET_ATS_Network_Type addr_net)
 {
   sf->s_add (sf->cls,
              new_address,
              addr_net);
-  sf->s_bulk_start (sf->cls);
-  GAS_normalization_update_property (new_address,
-					atsi,
-					atsi_count);
-  sf->s_bulk_stop (sf->cls);
 }
 
 

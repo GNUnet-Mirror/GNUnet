@@ -22,8 +22,6 @@
  * @brief ats service, interaction with 'connecivity' API
  * @author Matthias Wachs
  * @author Christian Grothoff
- *
- * TODO: will need API to query connectivity requests!
  */
 #ifndef GNUNET_SERVICE_ATS_CONNECTIVITY_H
 #define GNUNET_SERVICE_ATS_CONNECTIVITY_H
@@ -33,11 +31,13 @@
  * Is the given peer in the list of peers for which we
  * have an address request?
  *
+ * @param cls unused, NULL
  * @param peer peer to query for
  * @return #GNUNET_YES if so, #GNUNET_NO if not
  */
-int
-GAS_connectivity_has_peer (const struct GNUNET_PeerIdentity *peer);
+unsigned int
+GAS_connectivity_has_peer (void *cls,
+                           const struct GNUNET_PeerIdentity *peer);
 
 
 /**

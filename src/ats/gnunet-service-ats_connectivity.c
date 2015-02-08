@@ -54,11 +54,13 @@ static struct GNUNET_CONTAINER_MultiPeerMap *connection_requests;
  * Is the given peer in the list of peers for which we
  * have an address request?
  *
+ * @param cls unused, NULL
  * @param peer peer to query for
  * @return #GNUNET_YES if so, #GNUNET_NO if not
  */
-int
-GAS_connectivity_has_peer (const struct GNUNET_PeerIdentity *peer)
+unsigned int
+GAS_connectivity_has_peer (void *cls,
+                           const struct GNUNET_PeerIdentity *peer)
 {
   return GNUNET_CONTAINER_multipeermap_contains (connection_requests,
                                                  peer);
