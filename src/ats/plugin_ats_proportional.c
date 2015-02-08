@@ -840,7 +840,7 @@ get_best_address (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * Decrease address count in network
+ * Decrease number of active addresses in network.
  *
  * @param s the solver handle
  * @param net the network type
@@ -849,28 +849,18 @@ static void
 address_decrement_active (struct GAS_PROPORTIONAL_Handle *s,
                           struct Network *net)
 {
-  if (net->active_addresses < 1)
-  {
-    GNUNET_break (0);
-  }
-  else
-  {
-    net->active_addresses--;
-    GNUNET_STATISTICS_update (s->env->stats,
-                              net->stat_active, -1, GNUNET_NO);
-  }
-  if (s->active_addresses < 1)
-  {
-    GNUNET_break (0);
-  }
-  else
-  {
-    s->active_addresses--;
-    GNUNET_STATISTICS_update (s->env->stats,
-                              "# ATS addresses total",
-                              -1,
-                              GNUNET_NO);
-  }
+  GNUNET_assert (net->active_addresses > 0);
+  net->active_addresses--;
+  GNUNET_STATISTICS_update (s->env->stats,
+                            net->stat_active,
+                            -1,
+                            GNUNET_NO);
+  GNUNET_assert (s->active_addresses > 0);
+  s->active_addresses--;
+  GNUNET_STATISTICS_update (s->env->stats,
+                            "# ATS addresses total",
+                            -1,
+                            GNUNET_NO);
 }
 
 
