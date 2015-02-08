@@ -726,6 +726,9 @@ GAS_addresses_destroy_all ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Destroying all addresses\n");
+  if (0 ==
+      GNUNET_CONTAINER_multipeermap_size (GSA_addresses))
+    return;
   GAS_plugin_solver_lock ();
   GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
                                          &destroy_all_address_it,
