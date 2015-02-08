@@ -64,6 +64,8 @@ unsigned int
 GAS_connectivity_has_peer (void *cls,
                            const struct GNUNET_PeerIdentity *peer)
 {
+  if (NULL == connection_requests)
+    return 0;
   /* TODO: return sum of 'strength's of connectivity requests */
   return GNUNET_CONTAINER_multipeermap_contains (connection_requests,
                                                  peer);
@@ -218,6 +220,7 @@ GAS_connectivity_done ()
                                          &free_request,
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (connection_requests);
+  connection_requests = NULL;
 }
 
 
