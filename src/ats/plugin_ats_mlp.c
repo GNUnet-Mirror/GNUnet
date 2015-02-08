@@ -2121,22 +2121,17 @@ GAS_mlp_get_preferred_address (void *solver,
  *
  * @param solver the MLP Handle
  * @param address the address to delete
- * @param session_only delete only session not whole address
  */
 static void
 GAS_mlp_address_delete (void *solver,
-			struct ATS_Address *address,
-			int session_only)
+			struct ATS_Address *address)
 {
   struct GAS_MLP_Handle *mlp = solver;
   struct MLP_information *mlpi;
   int was_active;
 
-  GNUNET_assert (NULL != solver);
-  GNUNET_assert (NULL != address);
-
   mlpi = address->solver_information;
-  if ((GNUNET_NO == session_only) && (NULL != mlpi))
+  if (NULL != mlpi)
   {
     /* Remove full address */
     GNUNET_free (mlpi);
@@ -2153,14 +2148,13 @@ GAS_mlp_address_delete (void *solver,
                                          &address->peer))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-         "Deleting %s for peer `%s' without address request \n",
-         (session_only == GNUNET_YES) ? "session" : "address",
+         "Deleting address for peer `%s' without address request \n",
          GNUNET_i2s(&address->peer));
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, "Deleting %s for peer `%s' with address request \n",
-      (session_only == GNUNET_YES) ? "session" : "address",
-      GNUNET_i2s(&address->peer));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Deleting address for peer `%s' with address request \n",
+      GNUNET_i2s (&address->peer));
 
   /* Problem size changed: new address for peer with pending request */
   mlp->stat_mlp_prob_changed = GNUNET_YES;
@@ -2176,8 +2170,6 @@ GAS_mlp_address_delete (void *solver,
       mlp->env->bandwidth_changed_cb (mlp->env->cls, address);
     }
   }
-
-  return;
 }
 
 

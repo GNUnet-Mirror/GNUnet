@@ -2257,12 +2257,10 @@ GAS_ril_address_add (void *solver,
  *
  * @param solver the solver handle
  * @param address the address to remove
- * @param session_only delete only session not whole address
  */
 static void
 GAS_ril_address_delete (void *solver,
-			struct ATS_Address *address,
-			int session_only)
+			struct ATS_Address *address)
 {
   struct GAS_RIL_Handle *s = solver;
   struct RIL_Peer_Agent *agent;
@@ -2274,8 +2272,9 @@ GAS_ril_address_delete (void *solver,
   struct RIL_Scope *net;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "API_address_delete() Delete %s%s %s address %s for peer '%s'\n",
-       session_only ? "session for " : "", address->active ? "active" : "inactive", address->plugin,
+       "API_address_delete() Delete %s %s address %s for peer '%s'\n",
+       address->active ? "active" : "inactive",
+       address->plugin,
        address->addr,
        GNUNET_i2s (&address->peer));
 

@@ -495,8 +495,7 @@ void
 GAS_plugin_delete_address (struct ATS_Address *address)
 {
   sf->s_del (sf->cls,
-             address,
-             GNUNET_NO);
+             address);
 }
 
 

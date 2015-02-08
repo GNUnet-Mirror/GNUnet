@@ -2251,7 +2251,7 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
               op->address_id,
               op->peer_id);
 
-  sh->sf->s_del (sh->sf->cls, a->ats_addr, GNUNET_NO);
+  sh->sf->s_del (sh->sf->cls, a->ats_addr);
 
   if (NULL != l)
   {

@@ -866,6 +866,15 @@ evaluate (int iteration)
 }
 
 
+static unsigned int
+get_connectivity_cb (void *cls,
+                     const struct GNUNET_PeerIdentity *peer)
+{
+  return GNUNET_CONTAINER_multipeermap_contains (ph.addresses,
+                                                 peer);
+}
+
+
 /**
  * Evaluate average results for all iterations
  */
@@ -1060,7 +1069,7 @@ do_delete_address (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (ph.addresses,
                                                        pid,
                                                        cur));
-  ph.sf->s_del (ph.sf->cls, cur, GNUNET_NO);
+  ph.sf->s_del (ph.sf->cls, cur);
   GNUNET_free_non_null (cur->atsi);
   GNUNET_free (cur);
   return GNUNET_OK;
@@ -1292,6 +1301,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   ph.env.addresses = ph.addresses;
   ph.env.bandwidth_changed_cb = bandwidth_changed_cb;
+  ph.env.get_connectivity = &get_connectivity_cb;
   ph.env.get_preferences = &get_preferences_cb;
   ph.env.network_count = GNUNET_ATS_NetworkTypeCount;
   ph.env.info_cb = &solver_info_cb;
