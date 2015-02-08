@@ -1062,16 +1062,10 @@ GAS_proportional_address_add (void *solver,
                             net->stat_total,
                             1,
                             GNUNET_NO);
-  if (0 !=
-      s->env->get_connectivity (s->env->cls,
-                                &address->peer))
-  {
-    /* This peer is requested, find best address */
-    update_active_address (s,
-                           get_active_address (s,
-                                               &address->peer),
-                           &address->peer);
-  }
+  update_active_address (s,
+                         get_active_address (s,
+                                             &address->peer),
+                         &address->peer);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Added new address for `%s', now total %u and active %u addresses in network `%s'\n",
        GNUNET_i2s (&address->peer),

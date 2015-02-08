@@ -81,8 +81,11 @@ static uint32_t test_ats_count;
 
 
 static int
-stat_cb(void *cls, const char *subsystem, const char *name, uint64_t value,
-        int is_persistent);
+stat_cb (void *cls,
+         const char *subsystem,
+         const char *name,
+         uint64_t value,
+         int is_persistent);
 
 
 static void
@@ -90,7 +93,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
 
-  if (die_task != NULL)
+  if (NULL != die_task)
   {
     GNUNET_SCHEDULER_cancel (die_task);
     die_task = NULL;
@@ -108,9 +111,7 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-
   free_test_address (&test_addr);
-
   ret = 0;
 }
 
@@ -132,19 +133,23 @@ address_suggest_cb (void *cls,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not expect suggestion callback!\n");
-  GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+  /* ignored in this test */
 }
 
 
 static int
-stat_cb(void *cls, const char *subsystem,
-        const char *name, uint64_t value,
-        int is_persistent)
+stat_cb (void *cls,
+         const char *subsystem,
+         const char *name,
+         uint64_t value,
+         int is_persistent)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,
+              name,
+              value);
   if (1 == value)
   {
     GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -152,9 +157,11 @@ stat_cb(void *cls, const char *subsystem,
   return GNUNET_OK;
 }
 
+
 static void
-run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   die_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
@@ -163,9 +170,10 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
 
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL);
-  if (sched_ats == NULL)
+  if (NULL == sched_ats)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not connect to ATS scheduling!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not connect to ATS scheduling!\n");
     GNUNET_SCHEDULER_add_now (&end_badly, NULL);
     return;
   }

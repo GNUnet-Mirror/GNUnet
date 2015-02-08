@@ -41,6 +41,8 @@ struct ConnectionRequest
    * Client that made the request.
    */
   struct GNUNET_SERVER_Client *client;
+
+  /* TODO: allow client to express a 'strength' for this request */
 };
 
 
@@ -62,6 +64,7 @@ unsigned int
 GAS_connectivity_has_peer (void *cls,
                            const struct GNUNET_PeerIdentity *peer)
 {
+  /* TODO: return sum of 'strength's of connectivity requests */
   return GNUNET_CONTAINER_multipeermap_contains (connection_requests,
                                                  peer);
 }

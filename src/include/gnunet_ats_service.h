@@ -321,8 +321,9 @@ GNUNET_ATS_connectivity_done (struct GNUNET_ATS_ConnectivityHandle *ch);
  *
  * @param ch handle
  * @param peer identity of the peer we need an address for
+ * TODO: add argument to allow client to express 'strength's of request
  * @return suggestion handle, NULL if request is already pending
- */
+  */
 struct GNUNET_ATS_ConnectivitySuggestHandle *
 GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
                                  const struct GNUNET_PeerIdentity *peer);
