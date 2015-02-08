@@ -646,7 +646,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
 					GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
 					GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
 
-    GAS_normalization_normalize_property (aa,
+    GAS_normalization_update_property (aa,
                                           atsi,
                                           atsi_count);
   }

@@ -238,7 +238,7 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
       rp->f_rel[kind] = DEFAULT_REL_PREFERENCE;
     }
     if (backup != rp->f_rel[kind])
-      GAS_normalized_preference_changed (&rp->id, kind,
+      GAS_plugin_notify_preference_changed (&rp->id, kind,
                                          rp->f_rel[kind]);
   }
 }
@@ -714,8 +714,8 @@ GAS_preference_done ()
  * default preferences if peer does not exist
  */
 const double *
-GAS_normalization_get_preferences_by_peer (void *cls,
-					   const struct GNUNET_PeerIdentity *id)
+GAS_preference_get_by_peer (void *cls,
+                            const struct GNUNET_PeerIdentity *id)
 {
   struct PeerRelative *rp;
 
@@ -735,7 +735,7 @@ GAS_normalization_get_preferences_by_peer (void *cls,
  * @param client the client
  */
 void
-GAS_normalization_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
+GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client)
 {
   struct PreferenceClient *c_cur;
 

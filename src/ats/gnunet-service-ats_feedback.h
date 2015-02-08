@@ -36,7 +36,7 @@
  * @param message the request message
  */
 void
-GAS_handle_preference_feedback (void *cls,
+GAS_handle_feedback (void *cls,
                                 struct GNUNET_SERVER_Client *client,
                                 const struct GNUNET_MessageHeader *message);
 

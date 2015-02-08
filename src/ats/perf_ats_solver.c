@@ -418,7 +418,7 @@ bandwidth_changed_cb (void *cls,
 static const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
-  return GAS_normalization_get_preferences_by_peer (NULL, id);
+  return GAS_preference_get_by_peer (NULL, id);
 }
 
 

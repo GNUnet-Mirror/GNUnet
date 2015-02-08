@@ -111,7 +111,7 @@ client_disconnect_handler (void *cls,
     return;
   GAS_scheduling_remove_client (client);
   GAS_connectivity_remove_client (client);
-  GAS_normalization_preference_client_disconnect (client);
+  GAS_preference_client_disconnect (client);
 }
 
 
@@ -127,7 +127,7 @@ cleanup_task (void *cls,
 {
   GAS_addresses_done ();
   GAS_connectivity_done ();
-  GAS_plugins_done ();
+  GAS_plugin_done ();
   GAS_normalization_stop ();
   GAS_scheduling_done ();
   GAS_performance_done ();
@@ -181,7 +181,7 @@ run (void *cls,
      sizeof (struct ReservationRequestMessage)},
     {&GAS_handle_preference_change, NULL,
      GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_CHANGE, 0},
-    {&GAS_handle_preference_feedback, NULL,
+    {&GAS_handle_feedback, NULL,
      GNUNET_MESSAGE_TYPE_ATS_PREFERENCE_FEEDBACK, 0},
     {NULL, NULL, 0, 0}
   };
@@ -193,7 +193,7 @@ run (void *cls,
   GAS_normalization_start ();
   GAS_addresses_init (server);
   if (GNUNET_OK !=
-      GAS_plugins_init (cfg))
+      GAS_plugin_init (cfg))
   {
     GNUNET_break (0);
     GAS_addresses_done ();

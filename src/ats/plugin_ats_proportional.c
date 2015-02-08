@@ -1097,53 +1097,61 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
         GNUNET_ATS_print_network_type(n->type),
         n->active_addresses, n->total_addresses);
 
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_START,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_START,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_SINGLE);
 
     /* Distribute  */
     distribute_bandwidth(s, n);
 
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_STOP,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_STOP,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_SINGLE);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_SINGLE);
 
     /* Do propagation */
     propagate_bandwidth (s, n);
 
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_SINGLE);
   }
   else
   {
     int i;
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_START,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_START,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
     {
       /* Distribute */
       distribute_bandwidth(s, &s->network_entries[i]);
     }
 
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_STOP,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_STOP,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_ALL);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
     {
       /* Do propagation */
       propagate_bandwidth(s, &s->network_entries[i]);
     }
-    if (NULL != s->env->info_cb)
-      s->env->info_cb(s->env->cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
-          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+    s->env->info_cb (s->env->cls,
+                     GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+                     GAS_STAT_SUCCESS,
+                     GAS_INFO_PROP_ALL);
   }
 }
 

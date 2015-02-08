@@ -783,8 +783,10 @@ ril_inform (struct GAS_RIL_Handle *solver,
             enum GAS_Solver_Operation op,
             enum GAS_Solver_Status stat)
 {
-  if (NULL != solver->env->info_cb)
-    solver->env->info_cb (solver->env->cls, op, stat, GAS_INFO_NONE);
+  solver->env->info_cb (solver->env->cls,
+                        op,
+                        stat,
+                        GAS_INFO_NONE);
 }
 
 /**

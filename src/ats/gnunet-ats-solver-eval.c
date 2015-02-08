@@ -639,7 +639,7 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         pg->ats_property, prop_value, prop_value);
   }
   else
-    GAS_normalization_normalize_property (pg->test_address->ats_addr, &atsi, 1);
+    GAS_normalization_update_property (pg->test_address->ats_addr, &atsi, 1);
   sh->sf->s_bulk_stop (sh->sf->cls);
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
@@ -3010,7 +3010,7 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
     return p->pref_abs;
   }
   else
-    return GAS_normalization_get_preferences_by_peer (NULL,
+    return GAS_preference_get_by_peer (NULL,
 						      id);
 }
 

@@ -23,8 +23,6 @@
  * @brief ats service address: management of ATS properties and preferences normalization
  * @author Matthias Wachs
  * @author Christian Grothoff
- *
- * FIXME: rename to 'properties'!? merge with addresses!?
  */
 #include "platform.h"
 #include <float.h>
@@ -221,7 +219,7 @@ notify_change (void *cls,
   struct Property *p = cls;
   struct ATS_Address *address = value;
 
-  GAS_normalized_property_changed (address,
+  GAS_plugin_notify_property_changed (address,
 				   p->atsi_type,
 				   address->atsin[p->prop_type].norm);
   return GNUNET_OK;
@@ -236,7 +234,7 @@ notify_change (void *cls,
  * @param atsi_count the number of atsi information in the array
  */
 void
-GAS_normalization_normalize_property (struct ATS_Address *address,
+GAS_normalization_update_property (struct ATS_Address *address,
                                       const struct GNUNET_ATS_Information *atsi,
                                       uint32_t atsi_count)
 {

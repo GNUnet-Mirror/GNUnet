@@ -58,9 +58,9 @@ static char *plugin;
  * @param pref_rel the new relative preference value
  */
 void
-GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
-				   enum GNUNET_ATS_PreferenceKind kind,
-				   double pref_rel)
+GAS_plugin_notify_preference_changed (const struct GNUNET_PeerIdentity *peer,
+                                      enum GNUNET_ATS_PreferenceKind kind,
+                                      double pref_rel)
 {
   sf->s_pref (sf->cls,
               peer,
@@ -77,15 +77,10 @@ GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
  * @param prop_rel the new relative preference value
  */
 void
-GAS_normalized_property_changed (struct ATS_Address *address,
-				 enum GNUNET_ATS_Property type,
-				 double prop_rel)
+GAS_plugin_notify_property_changed (struct ATS_Address *address,
+                                    enum GNUNET_ATS_Property type,
+                                    double prop_rel)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Normalized property %s for peer `%s' changed to %.3f \n",
-	      GNUNET_ATS_print_property_type (type),
-	      GNUNET_i2s (&address->peer),
-	      prop_rel);
   sf->s_address_update_property (sf->cls,
                                  address,
                                  type,
@@ -413,7 +408,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         solver plugin)
  */
 int
-GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
+GAS_plugin_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *mode_str;
 
@@ -431,7 +426,7 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   env.cls = NULL;
   env.info_cb = &solver_info_cb;
   env.bandwidth_changed_cb = &bandwidth_changed_cb;
-  env.get_preferences = &GAS_normalization_get_preferences_by_peer;
+  env.get_preferences = &GAS_preference_get_by_peer;
   env.cfg = cfg;
   env.stats = GSA_stats;
   env.addresses = GSA_addresses;
@@ -462,7 +457,7 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Shutdown address subsystem.
  */
 void
-GAS_plugins_done ()
+GAS_plugin_done ()
 {
   GNUNET_PLUGIN_unload (plugin,
                         sf);
@@ -491,7 +486,7 @@ GAS_plugin_new_address (struct ATS_Address *new_address,
              new_address,
              addr_net);
   sf->s_bulk_start (sf->cls);
-  GAS_normalization_normalize_property (new_address,
+  GAS_normalization_update_property (new_address,
 					atsi,
 					atsi_count);
   sf->s_bulk_stop (sf->cls);
@@ -524,11 +519,11 @@ GAS_plugin_delete_address (struct ATS_Address *address)
  * @param score_abs degree of the appreciation
  */
 void
-GAS_plugin_preference_feedback (struct GNUNET_SERVER_Client *application,
-				const struct GNUNET_PeerIdentity *peer,
-				const struct GNUNET_TIME_Relative scope,
-				enum GNUNET_ATS_PreferenceKind kind,
-				float score_abs)
+GAS_plugin_notify_feedback (struct GNUNET_SERVER_Client *application,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_TIME_Relative scope,
+                            enum GNUNET_ATS_PreferenceKind kind,
+                            float score_abs)
 {
   sf->s_feedback (sf->cls,
                   application,

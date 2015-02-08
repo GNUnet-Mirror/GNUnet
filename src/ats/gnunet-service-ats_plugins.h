@@ -41,14 +41,14 @@
  *         solver plugin)
  */
 int
-GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
+GAS_plugin_init (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 
 /**
  * Shutdown address subsystem.
  */
 void
-GAS_plugins_done (void);
+GAS_plugin_done (void);
 
 
 /**
@@ -59,9 +59,9 @@ GAS_plugins_done (void);
  * @param pref_rel the new relative preference value
  */
 void
-GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
-				   enum GNUNET_ATS_PreferenceKind kind,
-				   double pref_rel);
+GAS_plugin_notify_preference_changed (const struct GNUNET_PeerIdentity *peer,
+                                      enum GNUNET_ATS_PreferenceKind kind,
+                                      double pref_rel);
 
 
 /**
@@ -69,12 +69,12 @@ GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
  *
  * @param address the peer
  * @param type the ATS type
- * @param prop_rel the new relative preference value
+ * @param prop_rel the new relative property value
  */
 void
-GAS_normalized_property_changed (struct ATS_Address *address,
-				 enum GNUNET_ATS_Property type,
-				 double prop_rel);
+GAS_plugin_notify_property_changed (struct ATS_Address *address,
+                                    enum GNUNET_ATS_Property type,
+                                    double prop_rel);
 
 
 /**
@@ -114,13 +114,11 @@ GAS_plugin_delete_address (struct ATS_Address *address);
  * @param score_abs degree of the appreciation
  */
 void
-GAS_plugin_preference_feedback (struct GNUNET_SERVER_Client *application,
-				const struct GNUNET_PeerIdentity *peer,
-				const struct GNUNET_TIME_Relative scope,
-				enum GNUNET_ATS_PreferenceKind kind,
-				float score_abs);
-
-
+GAS_plugin_notify_feedback (struct GNUNET_SERVER_Client *application,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_TIME_Relative scope,
+                            enum GNUNET_ATS_PreferenceKind kind,
+                            float score_abs);
 
 
 /**

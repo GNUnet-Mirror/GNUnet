@@ -48,7 +48,7 @@ preference_feedback (struct GNUNET_SERVER_Client *application,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received PREFERENCE FEEDBACK for peer `%s'\n",
               GNUNET_i2s (peer));
-  GAS_plugin_preference_feedback (application,
+  GAS_plugin_notify_feedback (application,
 				  peer,
 				  scope,
 				  kind,
@@ -64,7 +64,7 @@ preference_feedback (struct GNUNET_SERVER_Client *application,
  * @param message the request message
  */
 void
-GAS_handle_preference_feedback (void *cls,
+GAS_handle_feedback (void *cls,
 				struct GNUNET_SERVER_Client *client,
 				const struct GNUNET_MessageHeader *message)
 {

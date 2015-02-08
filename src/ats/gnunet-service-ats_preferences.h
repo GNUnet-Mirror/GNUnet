@@ -74,7 +74,7 @@ GAS_preference_done (void);
  *  with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
  */
 const double *
-GAS_normalization_get_preferences_by_peer (void *cls,
+GAS_preference_get_by_peer (void *cls,
 					   const struct GNUNET_PeerIdentity *id);
 
 
@@ -84,7 +84,7 @@ GAS_normalization_get_preferences_by_peer (void *cls,
  * @param client the disconnecting client
  */
 void
-GAS_normalization_preference_client_disconnect (struct GNUNET_SERVER_Client *client);
+GAS_preference_client_disconnect (struct GNUNET_SERVER_Client *client);
 
 
 #endif

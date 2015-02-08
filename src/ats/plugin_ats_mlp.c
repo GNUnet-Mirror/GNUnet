@@ -1477,8 +1477,10 @@ notify (struct GAS_MLP_Handle *mlp,
 	enum GAS_Solver_Status stat,
 	enum GAS_Solver_Additional_Information add)
 {
-  if (NULL != mlp->env->info_cb)
-    mlp->env->info_cb (mlp->env->cls, op, stat, add);
+  mlp->env->info_cb (mlp->env->cls,
+                     op,
+                     stat,
+                     add);
 }
 
 
