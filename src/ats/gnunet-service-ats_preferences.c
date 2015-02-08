@@ -32,20 +32,23 @@
 #include "gnunet-service-ats_reservations.h"
 #include "ats.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "ats-preferencesx",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "ats-preferences",__VA_ARGS__)
 
 /**
- *
+ * How frequently do we age preference values?
  */
 #define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
- *
+ * By which factor do we age preferences expressed during
+ * each #PREF_AGING_INTERVAL?
  */
 #define PREF_AGING_FACTOR 0.95
 
 /**
- *
+ * What is the lowest threshold up to which prefernce values
+ * are aged, and below which we consider them zero and thus
+ * no longer subject to aging?
  */
 #define PREF_EPSILON 0.01
 
@@ -158,7 +161,9 @@ struct PreferencePeer
 
 
 /**
- * Hashmap to store peer information for preference normalization
+ * Hashmap to store peer information for preference normalization.
+ * Maps the identity of a peer to a `struct PeerRelative` containing
+ * the current relative preference values for that peer.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *preference_peers;
 
@@ -245,24 +250,6 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
 
 
 /**
- * FIXME
- */
-static int
-update_iterator (void *cls,
-                 const struct GNUNET_PeerIdentity *key,
-                 void *value)
-{
-  enum GNUNET_ATS_PreferenceKind *kind = cls;
-  struct PeerRelative *pr = value;
-
-  update_relative_values_for_peer (key,
-                                   *kind,
-                                   pr);
-  return GNUNET_OK;
-}
-
-
-/**
  * Recalculate preference for a specific ATS property
  *
  * @param c the preference client
@@ -287,8 +274,10 @@ recalculate_relative_preferences (struct PreferenceClient *c,
   for (p_cur = c->p_head; NULL != p_cur; p_cur = p_cur->next)
     c->f_abs_sum[kind] += p_cur->f_abs[kind];
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Client %p has sum of total preferences for %s of %.3f\n",
-      c->client, GNUNET_ATS_print_preference_type (kind), c->f_abs_sum[kind]);
+       "Client %p has sum of total preferences for %s of %.3f\n",
+       c->client,
+       GNUNET_ATS_print_preference_type (kind),
+       c->f_abs_sum[kind]);
 
   /* For all peers: calculate relative preference */
   for (p_cur = c->p_head; NULL != p_cur; p_cur = p_cur->next)
@@ -308,7 +297,24 @@ recalculate_relative_preferences (struct PreferenceClient *c,
         GNUNET_i2s (&p_cur->id),
         p_cur->f_rel[kind]);
   }
+}
 
+
+/**
+ * FIXME
+ */
+static int
+update_iterator (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
+                 void *value)
+{
+  enum GNUNET_ATS_PreferenceKind *kind = cls;
+  struct PeerRelative *pr = value;
+
+  update_relative_values_for_peer (key,
+                                   *kind,
+                                   pr);
+  return GNUNET_OK;
 }
 
 
@@ -538,11 +544,11 @@ normalize_preference (struct GNUNET_SERVER_Client *client,
     r_cur->id = *peer;
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-    GNUNET_assert(GNUNET_OK ==
-                  GNUNET_CONTAINER_multipeermap_put (preference_peers,
-                                                     &r_cur->id,
-                                                     r_cur,
-                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (preference_peers,
+                                                      &r_cur->id,
+                                                      r_cur,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
 
   /* Update absolute value */
@@ -583,8 +589,6 @@ GAS_handle_preference_change (void *cls,
   uint32_t nump;
   uint32_t i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received PREFERENCE_CHANGE message\n");
   msize = ntohs (message->size);
   if (msize < sizeof (struct ChangePreferenceMessage))
   {
@@ -594,14 +598,18 @@ GAS_handle_preference_change (void *cls,
   }
   msg = (const struct ChangePreferenceMessage *) message;
   nump = ntohl (msg->num_preferences);
-  if (msize !=
-      sizeof (struct ChangePreferenceMessage) +
-      nump * sizeof (struct PreferenceInformation))
+  if ( (msize !=
+        sizeof (struct ChangePreferenceMessage) +
+        nump * sizeof (struct PreferenceInformation)) ||
+       (UINT16_MAX / sizeof (struct PreferenceInformation) < nump) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received PREFERENCE_CHANGE message for peer `%s'\n",
+              GNUNET_i2s (&msg->peer));
   GNUNET_STATISTICS_update (GSA_stats,
                             "# preference change requests processed",
                             1, GNUNET_NO);
@@ -622,20 +630,21 @@ GAS_handle_preference_change (void *cls,
 void
 GAS_preference_init ()
 {
-  int i;
+  unsigned int i;
 
-  preference_peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+  preference_peers = GNUNET_CONTAINER_multipeermap_create (16,
+                                                           GNUNET_NO);
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
 }
 
 
 /**
- * Free a peer
+ * Free a peer's `struct PeerRelative`.
  *
  * @param cls unused
  * @param key the key
- * @param value RelativePeer
+ * @param value the `struct PeerRelative` to free.
  * @return #GNUNET_OK to continue
  */
 static int
@@ -645,13 +654,11 @@ free_peer (void *cls,
 {
   struct PeerRelative *rp = value;
 
-  if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_remove (preference_peers,
-                                            key,
-                                            value))
-    GNUNET_free (rp);
-  else
-    GNUNET_break (0);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (preference_peers,
+                                                       key,
+                                                       value));
+  GNUNET_free (rp);
   return GNUNET_OK;
 }
 
@@ -666,10 +673,12 @@ free_client (struct PreferenceClient *pc)
   while (NULL != (p = next_p))
   {
     next_p = p->next;
-    GNUNET_CONTAINER_DLL_remove(pc->p_head, pc->p_tail, p);
-    GNUNET_free(p);
+    GNUNET_CONTAINER_DLL_remove (pc->p_head,
+                                 pc->p_tail,
+                                 p);
+    GNUNET_free (p);
   }
-  GNUNET_free(pc);
+  GNUNET_free (pc);
 }
 
 
