@@ -1083,10 +1083,7 @@ GAS_proportional_address_preference_feedback (void *solver,
                                               enum GNUNET_ATS_PreferenceKind kind,
                                               double score)
 {
-  struct GAS_PROPORTIONAL_Handle *s = solver;
-
-  GNUNET_assert(NULL != peer);
-  GNUNET_assert(NULL != s);
+  /* don't care about feedback */
 }
 
 
