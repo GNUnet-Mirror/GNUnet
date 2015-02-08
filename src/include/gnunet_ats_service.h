@@ -346,6 +346,7 @@ struct GNUNET_ATS_SchedulingHandle;
 
 /**
  * Opaque session handle, defined by plugins.  Contents not known to ATS.
+ * FIXME: This violates our naming conventions.
  */
 struct Session;
 
