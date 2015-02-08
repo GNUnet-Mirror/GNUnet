@@ -597,45 +597,6 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
 
 
 /**
- * Translate ATS properties to text
- * Just intended for debugging
- *
- * @param ats_index the ATS index
- * @return string with result
- */
-static const char *
-mlp_ats_to_string (int ats_index)
-{
-  switch (ats_index) {
-    case GNUNET_ATS_ARRAY_TERMINATOR:
-      return "GNUNET_ATS_ARRAY_TERMINATOR";
-    case GNUNET_ATS_UTILIZATION_OUT:
-      return "GNUNET_ATS_UTILIZATION_OUT";
-    case GNUNET_ATS_UTILIZATION_IN:
-      return "GNUNET_ATS_UTILIZATION_IN";
-    case GNUNET_ATS_UTILIZATION_PAYLOAD_OUT:
-      return "GNUNET_ATS_UTILIZATION_PAYLOAD_OUT";
-    case GNUNET_ATS_UTILIZATION_PAYLOAD_IN:
-      return "GNUNET_ATS_UTILIZATION_PAYLOAD_IN";
-    case GNUNET_ATS_COST_LAN:
-      return "GNUNET_ATS_COST_LAN";
-    case GNUNET_ATS_COST_WAN:
-      return "GNUNET_ATS_COST_LAN";
-    case GNUNET_ATS_COST_WLAN:
-      return "GNUNET_ATS_COST_WLAN";
-    case GNUNET_ATS_NETWORK_TYPE:
-      return "GNUNET_ATS_NETWORK_TYPE";
-    case GNUNET_ATS_QUALITY_NET_DELAY:
-      return "GNUNET_ATS_QUALITY_NET_DELAY";
-    case GNUNET_ATS_QUALITY_NET_DISTANCE:
-      return "GNUNET_ATS_QUALITY_NET_DISTANCE";
-    default:
-      GNUNET_break (0);
-      return "unknown";
-  }
-}
-
-/**
  * Translate glpk status error codes to text
  * @param retcode return code
  * @return string with result
@@ -1217,7 +1178,8 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
     {
       for (c = 0; c < mlp->pv.m_q; c++)
       {
-        GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
+        GNUNET_asprintf (&name, "c7_q%i_%s", c,
+                         GNUNET_ATS_print_property_type (mlp->pv.q[c]));
         p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
         GNUNET_free (name);
         mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);

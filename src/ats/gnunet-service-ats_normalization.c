@@ -324,7 +324,7 @@ property_normalize (struct Property *p,
   /* Normalize the values of this property */
   if (GNUNET_NO == limits_changed)
   {
-    /* normalize just this  address */
+    /* normalize just this address */
     normalize_address (p,
                        &address->peer,
                        address);

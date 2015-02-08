@@ -576,8 +576,6 @@ GST_receive_callback (void *cls,
                               gettext_noop ("# bytes payload received"),
                               ntohs (message->size),
                               GNUNET_NO);
-    GST_neighbours_notify_payload_recv (address,
-                                        message);
     ret = process_payload (address,
                            session,
                            message);

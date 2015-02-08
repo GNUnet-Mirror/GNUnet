@@ -415,16 +415,6 @@ struct NeighbourMapEntry
   /**
    * Tracking utilization of outbound bandwidth
    */
-  uint32_t util_payload_bytes_sent;
-
-  /**
-   * Tracking utilization of inbound bandwidth
-   */
-  uint32_t util_payload_bytes_recv;
-
-  /**
-   * Tracking utilization of outbound bandwidth
-   */
   uint32_t util_total_bytes_sent;
 
   /**
@@ -2840,8 +2830,6 @@ send_utilization_data (void *cls,
 {
   struct NeighbourMapEntry *n = value;
   struct GNUNET_ATS_Information atsi[4];
-  uint32_t bps_pl_in;
-  uint32_t bps_pl_out;
   uint32_t bps_in;
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
@@ -2850,19 +2838,6 @@ send_utilization_data (void *cls,
     return GNUNET_OK;
   delta = GNUNET_TIME_absolute_get_difference (n->last_util_transmission,
                                                GNUNET_TIME_absolute_get ());
-
-  bps_pl_in = 0;
-
-  if ((0 != n->util_payload_bytes_recv) && (0 != delta.rel_value_us))
-    bps_pl_in =  (1000LL * 1000LL *  n->util_payload_bytes_recv) / (delta.rel_value_us);
-  bps_pl_out = 0;
-  if ((0 != n->util_payload_bytes_sent) && (0 != delta.rel_value_us))
-    bps_pl_out = (1000LL * 1000LL * n->util_payload_bytes_sent) / delta.rel_value_us;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "`%s' payload: received %u Bytes/s, sent %u Bytes/s\n",
-              GNUNET_i2s (key),
-              bps_pl_in,
-              bps_pl_out);
   bps_in = 0;
   if ((0 != n->util_total_bytes_recv) && (0 != delta.rel_value_us))
     bps_in =  (1000LL * 1000LL *  n->util_total_bytes_recv) / (delta.rel_value_us);
@@ -2880,17 +2855,9 @@ send_utilization_data (void *cls,
   atsi[0].value = htonl (bps_out);
   atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_IN);
   atsi[1].value = htonl (bps_in);
-
-  atsi[2].type = htonl (GNUNET_ATS_UTILIZATION_PAYLOAD_OUT);
-  atsi[2].value = htonl (bps_pl_out);
-  atsi[3].type = htonl (GNUNET_ATS_UTILIZATION_PAYLOAD_IN);
-  atsi[3].value = htonl (bps_pl_in);
-
   GST_ats_update_metrics (n->primary_address.address,
                           n->primary_address.session,
-                          atsi, 4);
-  n->util_payload_bytes_recv = 0;
-  n->util_payload_bytes_sent = 0;
+                          atsi, 2);
   n->util_total_bytes_recv = 0;
   n->util_total_bytes_sent = 0;
   n->last_util_transmission = GNUNET_TIME_absolute_get ();
@@ -2941,27 +2908,6 @@ GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Track information about payload (useful data) we received from the
- * given address (used to notify ATS about our utilization of
- * allocated resources).
- *
- * @param address the address we got data from
- * @param message the message we received (really only the size is used)
- */
-void
-GST_neighbours_notify_payload_recv (const struct GNUNET_HELLO_Address *address,
-                                    const struct GNUNET_MessageHeader *message)
-{
-  struct NeighbourMapEntry *n;
-
-  n = lookup_neighbour (&address->peer);
-  if (NULL == n)
-    return;
-  n->util_payload_bytes_recv += ntohs (message->size);
-}
-
-
-/**
  * Track information about data we transmitted using the given @a
  * address and @a session (used to notify ATS about our utilization of
  * allocated resources).
@@ -2983,27 +2929,6 @@ GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
   if (n->primary_address.session != session)
     return;
   n->util_total_bytes_sent += size;
-}
-
-
-/**
- * Track information about payload (useful data) we transmitted using the
- * given address (used to notify ATS about our utilization of
- * allocated resources).
- *
- * @param address the address we transmitted data to
- * @param message the message we sent (really only the size is used)
- */
-void
-GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
-                                    size_t size)
-{
-  struct NeighbourMapEntry *n;
-
-  n = lookup_neighbour (peer);
-  if (NULL == n)
-    return;
-  n->util_payload_bytes_sent += size;
 }
 
 

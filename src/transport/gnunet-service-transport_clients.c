@@ -700,9 +700,6 @@ handle_send_transmit_continuation (void *cls,
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
 
-  if (GNUNET_OK == success)
-    GST_neighbours_notify_payload_sent (&stcc->target,
-                                        bytes_payload);
   send_ok_msg.header.size = htons (sizeof (send_ok_msg));
   send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
   send_ok_msg.bytes_msg = htonl (bytes_payload);

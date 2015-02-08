@@ -78,23 +78,14 @@ GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type)
     return "UTILIZATION_UP";
   case GNUNET_ATS_UTILIZATION_IN:
     return "UTILIZATION_DOWN";
-  case GNUNET_ATS_UTILIZATION_PAYLOAD_OUT:
-    return "UTILIZATION_PAYLOAD_UP";
-  case GNUNET_ATS_UTILIZATION_PAYLOAD_IN:
-    return "UTILIZATION_PAYLOAD_DOWN";
   case GNUNET_ATS_NETWORK_TYPE:
     return "NETWORK_TYPE";
   case GNUNET_ATS_QUALITY_NET_DELAY:
     return "DELAY";
   case GNUNET_ATS_QUALITY_NET_DISTANCE:
     return "DISTANCE";
-  case GNUNET_ATS_COST_WAN:
-    return "COST_WAN";
-  case GNUNET_ATS_COST_LAN:
-    return "COST_LAN";
-  case GNUNET_ATS_COST_WLAN:
-    return "COST_WLAN";
   default:
+    GNUNET_break (0);
     return NULL;
   }
 }

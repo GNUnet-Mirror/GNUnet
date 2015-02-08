@@ -613,21 +613,6 @@ ats_performance_info_cb (void *cls,
          p->ats_distance = ntohl (ats[c_a].value);
          GNUNET_break (0);
          break;
-       case GNUNET_ATS_COST_WAN:
-         if (p->ats_cost_wan != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_cost_wan = ntohl (ats[c_a].value);
-         break;
-       case GNUNET_ATS_COST_LAN:
-         if (p->ats_cost_lan != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_cost_lan = ntohl (ats[c_a].value);
-         break;
-       case GNUNET_ATS_COST_WLAN:
-         if (p->ats_cost_wlan != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_cost_wlan = ntohl (ats[c_a].value);
-         break;
        default:
          break;
      }

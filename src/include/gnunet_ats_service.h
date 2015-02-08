@@ -98,11 +98,6 @@ enum GNUNET_ATS_Network_Type
  */
 #define GNUNET_ATS_MaxBandwidthString "unlimited"
 
-/**
- * Number of property types supported by ATS
- */
-#define GNUNET_ATS_PropertyCount 11
-
 
 /**
  * Enum defining all known property types for ATS Enum values are used
@@ -129,7 +124,7 @@ enum GNUNET_ATS_Property
    *
    * Unit: [bytes/second]
    */
-  GNUNET_ATS_UTILIZATION_OUT,
+  GNUNET_ATS_UTILIZATION_OUT = 1,
 
   /**
    * Actual traffic on this connection from the other peer to this peer.
@@ -137,29 +132,13 @@ enum GNUNET_ATS_Property
    *
    * Unit: [bytes/second]
    */
-  GNUNET_ATS_UTILIZATION_IN,
-
-  /**
-   * Actual traffic on this connection from this peer to the other peer.
-   * Only payload from layers > transport
-   *
-   * Unit: [bytes/second]
-   */
-  GNUNET_ATS_UTILIZATION_PAYLOAD_OUT,
-
-  /**
-   * Actual traffic on this connection from the other peer to this peer.
-   * Only payload from layers > transport
-   *
-   * Unit: [bytes/second]
-   */
-  GNUNET_ATS_UTILIZATION_PAYLOAD_IN,
+  GNUNET_ATS_UTILIZATION_IN = 2,
 
   /**
    * Is this address located in WAN, LAN or a loopback address
    * Value is element of GNUNET_ATS_Network_Type
    */
-  GNUNET_ATS_NETWORK_TYPE,
+  GNUNET_ATS_NETWORK_TYPE = 3,
 
   /**
    * Delay
@@ -173,77 +152,20 @@ enum GNUNET_ATS_Property
    * WLAN  :    2
    * Dialup:  500
    */
-  GNUNET_ATS_QUALITY_NET_DELAY,
+  GNUNET_ATS_QUALITY_NET_DELAY = 4,
 
   /**
    * Distance on network layer (required for distance-vector routing).
    *
    * Unit: [DV-hops]
    */
-  GNUNET_ATS_QUALITY_NET_DISTANCE,
+  GNUNET_ATS_QUALITY_NET_DISTANCE = 5
 
-  /**
-   * Network overhead on WAN (Wide-Area Network)
-   *
-   * How many bytes are sent on the WAN when 1 kilobyte (1024 bytes)
-   * of application data is transmitted?
-   * A factor used with connect cost, bandwidth cost and energy cost
-   * to describe the overhead produced by the transport protocol
-   *
-   * Unit: [bytes/kb]
-   *
-   * Interpretation: less is better
-   *
-   * Examples:
-   *
-   * TCP/IPv4 over Ethernet: 1024 + 38 + 20 + 20 = 1102 [bytes/kb]
-   * TCP/IPv6 over Ethernet: 1024 + 38 + 20 + 40 = 1122 [bytes/kb]
-   * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
-   * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
-   */
-  GNUNET_ATS_COST_WAN,
+/**
+ * Number of property types supported by ATS
+ */
+#define GNUNET_ATS_PropertyCount 6
 
-  /**
-   * Network overhead on LAN (Local-Area Network)
-   *
-   * How many bytes are sent on the LAN when 1 kilobyte (1024 bytes)
-   * of application data is transmitted?
-   * A factor used with connect cost, bandwidth cost and energy cost
-   * to describe the overhead produced by the transport protocol
-   *
-   * Unit: [bytes/kb]
-   *
-   * Interpretation: less is better
-   *
-   * Examples:
-   *
-   * TCP/IPv4 over Ethernet: 1024 + 38 + 20 + 20 = 1102 [bytes/kb]
-   * TCP/IPv6 over Ethernet: 1024 + 38 + 20 + 40 = 1122 [bytes/kb]
-   * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
-   * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
-   */
-  GNUNET_ATS_COST_LAN,
-
-  /**
-   * Network overhead on WLAN (Wireless Local Area Network)
-   *
-   * How many bytes are sent on the LAN when 1 kilobyte (1024 bytes)
-   * of application data is transmitted?
-   * A factor used with connect cost, bandwidth cost and energy cost
-   * to describe the overhead produced by the transport protocol
-   *
-   * Unit: [bytes/kb]
-   *
-   * Interpretation: less is better
-   *
-   * Examples:
-   *
-   * TCP/IPv4 over Ethernet: 1024 + 38 + 20 + 20 = 1102 [bytes/kb]
-   * TCP/IPv6 over Ethernet: 1024 + 38 + 20 + 40 = 1122 [bytes/kb]
-   * UDP/IPv4 over Ethernet: 1024 + 38 + 20 + 8  = 1090 [bytes/kb]
-   * UDP/IPv6 over Ethernet: 1024 + 38 + 40 + 8  = 1110 [bytes/kb]
-   */
-  GNUNET_ATS_COST_WLAN
 
 };
 
