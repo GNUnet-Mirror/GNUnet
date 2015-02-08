@@ -1103,29 +1103,14 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct ATS_Address *cur;
   struct AddressWrapper *asi;
-  struct Network *cur_net;
 
   cur = get_active_address (s,
                             peer);
   if (NULL == cur)
     return;
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Disabling %s address %p for peer `%s'\n",
-       (GNUNET_NO == cur->active) ? "inactive" : "active",
-       cur,
-       GNUNET_i2s (&cur->peer));
-
-  /* Disabling current address */
   asi = cur->solver_information;
-  cur_net = asi->network;
-  asi->activated = GNUNET_TIME_UNIT_ZERO_ABS;
-  cur->active = GNUNET_NO; /* No active any longer */
-  cur->assigned_bw_in = 0; /* no bandwidth assigned */
-  cur->assigned_bw_out = 0; /* no bandwidth assigned */
-  address_decrement_active (s,
-                            cur_net);
   distribute_bandwidth_in_network (s,
-                                   cur_net);
+                                   asi->network);
 }
 
 
