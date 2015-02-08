@@ -1277,22 +1277,10 @@ GAS_proportional_address_delete (void *solver,
                             GNUNET_NO);
   if (GNUNET_YES == address->active)
   {
-    /* Address was active, remove from network and update quotas*/
-    address->assigned_bw_in = 0;
-    address->assigned_bw_out = 0;
-    if (NULL ==
-        update_active_address (s,
-                               address,
-                               &address->peer))
-    {
-      /* No alternative address found, disconnect peer */
-      LOG (GNUNET_ERROR_TYPE_INFO,
-           "Disconnecting peer `%s' after deleting previous address %p\n",
-           GNUNET_i2s (&address->peer),
-           address);
-      s->env->bandwidth_changed_cb (s->env->cls,
-                                    address);
-    }
+    /* Address was active, remove from network and update quotas */
+    update_active_address (s,
+                           address,
+                           &address->peer);
     distribute_bandwidth_in_network (s, net);
   }
   GNUNET_free (aw);
