@@ -145,17 +145,20 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_ATS_scheduling_done (sched_ats);
     sched_ats = NULL;
   }
-
-  GNUNET_STATISTICS_watch_cancel (stats, "ats", "# addresses", &stat_cb, NULL);
+  GNUNET_STATISTICS_watch_cancel (stats,
+                                  "ats",
+                                  "# addresses",
+                                  &stat_cb, NULL);
   if (NULL != stats)
   {
     GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
     stats = NULL;
   }
-
   free_test_address (&test_addr);
   GNUNET_free_non_null (first_suggestion);
+  first_suggestion = NULL;
   GNUNET_free_non_null (second_suggestion);
+  second_suggestion = NULL;
   ret = 0;
 }
 
@@ -253,8 +256,11 @@ address_suggest_cb (void *cls,
         return;
       }
 
-      if (0 != memcmp (address->address, first_suggestion->address,
-          (first_suggestion->address_length < address->address_length) ? first_suggestion->address_length : address->address_length))
+      if (0 !=
+          memcmp (address->address,
+                  first_suggestion->address,
+                  (first_suggestion->address_length < address->address_length)
+                  ? first_suggestion->address_length : address->address_length))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "Received 2nd sugggestion for peer `%s' : `%s'\n",

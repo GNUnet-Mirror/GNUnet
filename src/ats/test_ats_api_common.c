@@ -44,6 +44,7 @@ create_test_address (struct Test_Address *dest, char * plugin, void *session, vo
   dest->addr_len = addrlen;
 }
 
+
 void
 free_test_address (struct Test_Address *dest)
 {
@@ -53,37 +54,46 @@ free_test_address (struct Test_Address *dest)
   dest->addr = NULL;
 }
 
+
 int
-compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
-                   const struct GNUNET_HELLO_Address *address2, void *session2)
+compare_addresses (const struct GNUNET_HELLO_Address *address1,
+                   void *session1,
+                   const struct GNUNET_HELLO_Address *address2,
+                   void *session2)
 {
-  if (0 != memcmp (&address1->peer, &address2->peer, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 !=
+      memcmp (&address1->peer,
+              &address2->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid peer id'\n");
-      return GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Suggestion with invalid peer id'\n");
+    return GNUNET_SYSERR;
   }
   if (0 != strcmp (address1->transport_name, address2->transport_name))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid plugin'\n");
-      return GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Suggestion with invalid plugin'\n");
+    return GNUNET_SYSERR;
   }
   if (address1->address_length != address2->address_length)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address length\n");
-      return GNUNET_SYSERR;
-
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Suggestion with invalid address length\n");
+    return GNUNET_SYSERR;
   }
-  else if (0 != memcmp (address1->address, address2->address, address2->address_length))
+  if (0 != memcmp (address1->address, address2->address, address2->address_length))
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid address\n");
-      return GNUNET_SYSERR;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Suggestion with invalid address\n");
+    return GNUNET_SYSERR;
   }
   if (session1 != session2)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Suggestion with invalid session1 %p vs session2 %p'\n",
-                  session1, session2);
-      return GNUNET_SYSERR;
-
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Suggestion with invalid session1 %p vs session2 %p'\n",
+                session1, session2);
+    return GNUNET_SYSERR;
   }
   return GNUNET_OK;
 }

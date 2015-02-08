@@ -917,29 +917,23 @@ get_active_address (struct GAS_PROPORTIONAL_Handle *s,
  * are different switch
  *
  * @param s solver handle
+ * @param current_address the address currently active for the peer,
+ *        NULL for none
  * @param peer the peer to check
  * return the new address or NULL if no update was performed
   */
 static struct ATS_Address *
 update_active_address (struct GAS_PROPORTIONAL_Handle *s,
+                       struct ATS_Address *current_address,
                        const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address *best_address;
-  struct ATS_Address *current_address;
   struct AddressWrapper *asi;
   struct Network *net;
 
-  current_address = get_active_address (s,
-                                        peer);
   best_address = get_best_address (s,
                                    s->env->addresses,
                                    peer);
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Peer `%s' has active address %p and best address %p\n",
-       GNUNET_i2s (peer),
-       current_address,
-       best_address);
-
   if (NULL != current_address)
   {
     GNUNET_assert (GNUNET_YES == current_address->active);
@@ -950,9 +944,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
       /* We switch to a new address (or to none),
          mark old address as inactive */
       LOG (GNUNET_ERROR_TYPE_INFO,
-           "Disabling previous %s address %p for peer `%s'\n",
-           (GNUNET_NO == current_address->active) ? "inactive" : "active",
-           current_address,
+           "Disabling previous active address for peer `%s'\n",
            GNUNET_i2s (peer));
 
       asi = current_address->solver_information;
@@ -997,7 +989,6 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   }
 
   asi = best_address->solver_information;
-  GNUNET_assert (NULL != asi);
   net = asi->network;
 
   /* Mark address as active */
@@ -1019,7 +1010,8 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
        best_address,
        GNUNET_i2s (peer));
   /* Distribute bandwidth */
-  distribute_bandwidth_in_network (s, net);
+  distribute_bandwidth_in_network (s,
+                                   net);
   return best_address;
 }
 
@@ -1082,6 +1074,8 @@ GAS_proportional_get_preferred_address (void *solver,
   struct AddressWrapper *asi;
 
   best_address = update_active_address (s,
+                                        get_active_address (s,
+                                                            peer),
                                         peer);
   if (NULL == best_address)
     return;
@@ -1152,11 +1146,13 @@ GAS_proportional_bulk_stop (void *solver)
     return;
   }
   s->bulk_lock--;
-  if ((0 == s->bulk_lock) && (0 < s->bulk_requests))
+  if ( (0 == s->bulk_lock) &&
+       (0 < s->bulk_requests) )
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "No lock pending, recalculating\n");
-    distribute_bandwidth_in_network (s, NULL);
+    distribute_bandwidth_in_network (s,
+                                     NULL);
     s->bulk_requests = 0;
   }
 }
@@ -1222,21 +1218,24 @@ GAS_proportional_address_add (void *solver,
                             1,
                             GNUNET_NO);
 
+  if (0 !=
+      s->env->get_connectivity (s->env->cls,
+                                &address->peer))
+  {
+    /* This peer is requested, find best address */
+    update_active_address (s,
+                           get_active_address (s,
+                                               &address->peer),
+                           &address->peer);
+  }
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Added new address for `%s', now total %u and active %u addresses in network `%s'\n",
-    GNUNET_i2s (&address->peer),
+       GNUNET_i2s (&address->peer),
        net->total_addresses,
        net->active_addresses,
        net->desc);
 
-  if (0 ==
-      s->env->get_connectivity (s->env->cls,
-                                &address->peer))
-    return; /* Peer is not requested */
 
-  /* This peer is requested, find best address */
-  update_active_address (s,
-                         &address->peer);
 }
 
 
@@ -1279,16 +1278,11 @@ GAS_proportional_address_delete (void *solver,
   if (GNUNET_YES == address->active)
   {
     /* Address was active, remove from network and update quotas*/
-    address->active = GNUNET_NO;
     address->assigned_bw_in = 0;
     address->assigned_bw_out = 0;
-    address_decrement_active (s, net);
-    /* FIXME: this may trigger the solver unnecessarily,
-       especially if update_active_address() succeeds! */
-    distribute_bandwidth_in_network (s, net);
-
     if (NULL ==
         update_active_address (s,
+                               address,
                                &address->peer))
     {
       /* No alternative address found, disconnect peer */
@@ -1299,6 +1293,7 @@ GAS_proportional_address_delete (void *solver,
       s->env->bandwidth_changed_cb (s->env->cls,
                                     address);
     }
+    distribute_bandwidth_in_network (s, net);
   }
   GNUNET_free (aw);
   address->solver_information = NULL;
