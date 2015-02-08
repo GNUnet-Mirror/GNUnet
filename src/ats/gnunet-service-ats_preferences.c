@@ -64,6 +64,12 @@ struct PeerRelative
    */
   double f_rel[GNUNET_ATS_PreferenceCount];
 
+  /**
+   * Number of clients that are expressing a preference for
+   * this peer. When this counter reaches zero, this entry
+   * is freed.
+   */
+  unsigned int num_clients;
 };
 
 
@@ -249,6 +255,67 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
 
 
 /**
+ * Free a peer's `struct PeerRelative`.
+ *
+ * @param cls unused
+ * @param key the key
+ * @param value the `struct PeerRelative` to free.
+ * @return #GNUNET_OK to continue
+ */
+static int
+free_peer (void *cls,
+           const struct GNUNET_PeerIdentity *key,
+           void *value)
+{
+  struct PeerRelative *rp = value;
+
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (preference_peers,
+                                                       key,
+                                                       value));
+  GNUNET_free (rp);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Free `struct PreferencePeer` entry in map.
+ *
+ * @param cls the `struct PreferenceClient` with the map
+ * @param key the peer the entry is for
+ * @param value the `struct PreferencePeer` entry to free
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+free_preference (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
+                 void *value)
+{
+  struct PreferenceClient *pc = cls;
+  struct PreferencePeer *p = value;
+  struct PeerRelative *pr;
+
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (pc->peer2pref,
+                                                       key,
+                                                       p));
+  GNUNET_free (p);
+  pr = GNUNET_CONTAINER_multipeermap_get (preference_peers,
+                                          key);
+  GNUNET_assert (NULL != pr);
+  GNUNET_assert (pr->num_clients > 0);
+  pr->num_clients--;
+  if (0 == pr->num_clients)
+  {
+    free_peer (NULL,
+               key,
+               pr);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Closure for #age_values().
  */
 struct AgeContext
@@ -309,12 +376,9 @@ age_values (void *cls,
   if (GNUNET_YES == dead)
   {
     /* all preferences are zero, remove this entry */
-    GNUNET_CONTAINER_multipeermap_remove (ac->cur_client->peer2pref,
-                                          peer,
-                                          p);
-    GNUNET_free (p);
-    /* FIXME: Consider destroying the `struct PeerRelative`
-       as well here... */
+    free_preference (ac->cur_client,
+                     peer,
+                     p);
   }
   return GNUNET_OK;
 }
@@ -526,6 +590,23 @@ update_preference (struct GNUNET_SERVER_Client *client,
                                  pc_tail,
                                  c_cur);
   }
+
+  /* check global peer entry exists */
+  if (NULL ==
+      (r_cur = GNUNET_CONTAINER_multipeermap_get (preference_peers,
+                                                  peer)))
+  {
+    /* Create struct for peer */
+    r_cur = GNUNET_new (struct PeerRelative);
+    for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+      r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (preference_peers,
+                                                      peer,
+                                                      r_cur,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+
   /* Find entry for peer */
   p_cur = GNUNET_CONTAINER_multipeermap_get (c_cur->peer2pref,
                                              peer);
@@ -545,21 +626,7 @@ update_preference (struct GNUNET_SERVER_Client *client,
                                                       peer,
                                                       p_cur,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  }
-
-  if (NULL ==
-      GNUNET_CONTAINER_multipeermap_get (preference_peers,
-                                         peer))
-  {
-    /* Create struct for peer */
-    r_cur = GNUNET_new (struct PeerRelative);
-    for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
-      r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (preference_peers,
-                                                      peer,
-                                                      r_cur,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    r_cur->num_clients++;
   }
 
   p_cur->f_abs[kind] += score_abs;
@@ -645,55 +712,6 @@ GAS_preference_init ()
                                                            GNUNET_NO);
   for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
-}
-
-
-/**
- * Free a peer's `struct PeerRelative`.
- *
- * @param cls unused
- * @param key the key
- * @param value the `struct PeerRelative` to free.
- * @return #GNUNET_OK to continue
- */
-static int
-free_peer (void *cls,
-           const struct GNUNET_PeerIdentity *key,
-           void *value)
-{
-  struct PeerRelative *rp = value;
-
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (preference_peers,
-                                                       key,
-                                                       value));
-  GNUNET_free (rp);
-  return GNUNET_OK;
-}
-
-
-/**
- * Free `struct PreferencePeer` entry in map.
- *
- * @param cls the `struct PreferenceClient` with the map
- * @param key the peer the entry is for
- * @param value the `struct PreferencePeer` entry to free
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-free_preference (void *cls,
-                 const struct GNUNET_PeerIdentity *key,
-                 void *value)
-{
-  struct PreferenceClient *pc = cls;
-  struct PreferencePeer *p = value;
-
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_remove (pc->peer2pref,
-                                                       key,
-                                                       p));
-  GNUNET_free (p);
-  return GNUNET_OK;
 }
 
 
