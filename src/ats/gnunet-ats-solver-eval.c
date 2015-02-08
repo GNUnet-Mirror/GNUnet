@@ -87,8 +87,6 @@ static int res;
 static void
 end_now ();
 
-const double *
-get_property_cb (void *cls, const struct ATS_Address *address);
 
 static char *
 print_generator_type (enum GeneratorType g)
@@ -140,23 +138,9 @@ find_address_by_id (struct TestPeer *peer, int aid)
 }
 
 
-static struct TestAddress *
-find_address_by_ats_address (struct TestPeer *p, const struct ATS_Address *addr)
-{
-  struct TestAddress *cur;
-  for (cur = p->addr_head; NULL != cur; cur = cur->next)
-    if ((0 == strcmp(cur->ats_addr->plugin, addr->plugin)) &&
-         (cur->ats_addr->addr_len == addr->addr_len) &&
-        (0 == memcmp (cur->ats_addr->addr, addr->addr, addr->addr_len)))
-      return cur;
-  return NULL;
-}
-
-
 /**
  * Logging
  */
-
 void
 GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
 {
@@ -660,13 +644,12 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
       &set_prop_task, pg);
-
 }
+
 
 /**
  * Set ats_property to 0 to find all pgs
  */
-
 static struct PropertyGenerator *
 find_prop_gen (unsigned int peer, unsigned int address,
     uint32_t ats_property)
@@ -784,7 +767,6 @@ GNUNET_ATS_solver_generate_property_start (unsigned int peer,
   pg->set_task = GNUNET_SCHEDULER_add_now (&set_prop_task, pg);
   return pg;
 }
-
 
 
 /**
@@ -1033,7 +1015,8 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
   GNUNET_free (pg);
 }
 
-struct TestAddress*
+
+static struct TestAddress*
 find_active_address (struct TestPeer *p)
 {
   struct TestAddress *cur;
@@ -1042,6 +1025,7 @@ find_active_address (struct TestPeer *p)
       return cur;
   return NULL;
 }
+
 
 /**
  * Generate between the source master and the partner and set property with a
@@ -1129,14 +1113,12 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != feedback_frequency.rel_value_us)
   {
     struct TestAddress * addr = find_active_address(p);
-    const double *properties = get_property_cb (NULL, addr->ats_addr);
 
     pg->last_assigned_bw_in = p->assigned_bw_in;
     pg->last_assigned_bw_out = p->assigned_bw_out;
     pg->feedback_bw_in_acc = 0;
     pg->feedback_bw_out_acc = 0;
-
-    pg->last_delay_value = properties[GNUNET_ATS_QUALITY_NET_DELAY];
+    pg->last_delay_value = addr->prop_norm[GNUNET_ATS_QUALITY_NET_DELAY];
     pg->feedback_delay_acc = 0;
 
     pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
@@ -1172,8 +1154,7 @@ GNUNET_ATS_solver_generate_preferences_stop_all ()
 /**
  * Experiments
  */
-
-const char *
+static const char *
 print_op (enum OperationType op)
 {
   switch (op) {
@@ -1199,6 +1180,7 @@ print_op (enum OperationType op)
   return "";
 }
 
+
 static struct Experiment *
 create_experiment ()
 {
@@ -1209,6 +1191,7 @@ create_experiment ()
   e->total_duration = GNUNET_TIME_UNIT_ZERO;
   return e;
 }
+
 
 static void
 free_experiment (struct Experiment *e)
@@ -1368,6 +1351,7 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
   return GNUNET_OK;
 }
 
+
 static int
 load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
     struct Episode *e,
@@ -1447,6 +1431,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
   return GNUNET_OK;
 }
 
+
 static enum GNUNET_ATS_Property
 parse_preference_string (const char * str)
 {
@@ -1457,7 +1442,8 @@ parse_preference_string (const char * str)
     if (0 == strcmp(str, props[c]))
       return c;
   return 0;
-};
+}
+
 
 static int
 load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
@@ -1627,6 +1613,7 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
 
   return GNUNET_OK;
 }
+
 
 static int
 load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
@@ -3028,25 +3015,6 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 }
 
 
-const double *
-get_property_cb (void *cls, const struct ATS_Address *address)
-{
-  struct TestPeer *p;
-  struct TestAddress *a;
-
-  if (GNUNET_YES == opt_disable_normalization)
-  {
-    p = find_peer_by_pid (&address->peer);
-    if (NULL == p)
-      return NULL;
-    a = find_address_by_ats_address (p, address);
-    return a->prop_abs;
-  }
-  return GAS_normalization_get_properties (NULL,
-					   address);
-}
-
-
 struct SolverHandle *
 GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 {
@@ -3081,7 +3049,6 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   sh->env.addresses = sh->addresses;
   sh->env.bandwidth_changed_cb = &solver_bandwidth_changed_cb;
   sh->env.get_preferences = &get_preferences_cb;
-  sh->env.get_property = &get_property_cb;
   sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
   sh->env.info_cb = &solver_info_cb;
   sh->env.network_count = GNUNET_ATS_NetworkTypeCount;

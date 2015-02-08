@@ -960,9 +960,8 @@ mlp_create_problem_add_address_information (void *cls,
   struct ATS_Peer *peer;
   struct MLP_information *mlpi;
   char *name;
-  const double *props;
+  double prop;
   double cur_bigm;
-
   uint32_t addr_net;
   uint32_t addr_net_index;
   unsigned long long max_quota;
@@ -1111,15 +1110,21 @@ mlp_create_problem_add_address_information (void *cls,
     /* For all quality metrics, set quality of this address */
     if (GNUNET_YES == mlp->opt_dbg_optimize_quality)
     {
-      props = mlp->env->get_property (mlp->env->cls, address);
       for (c = 0; c < mlp->pv.m_q; c++)
       {
-        if ((props[c] < 1.0) && (props[c] > 2.0))
+        prop = address->atsin[c].norm;
+        if ((prop < 1.0) && (prop > 2.0))
         {
-          fprintf (stderr, "PROP == %.3f \t ", props[c]);
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "PROP == %.3f \t ",
+                      prop);
           GNUNET_break (0);
         }
-        mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, props[c], __LINE__);
+        mlp_create_problem_set_value (p,
+                                      p->r_q[c],
+                                      mlpi->c_b,
+                                      prop,
+                                      __LINE__);
       }
     }
   }
@@ -1911,7 +1916,7 @@ GAS_mlp_address_add (void *solver,
 static void
 GAS_mlp_address_property_changed (void *solver,
                                   struct ATS_Address *address,
-                                  uint32_t type,
+                                  enum GNUNET_ATS_Property type,
                                   uint32_t abs_value,
                                   double rel_value)
 {

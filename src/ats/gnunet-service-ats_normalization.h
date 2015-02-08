@@ -35,19 +35,6 @@
 
 
 /**
- * Get the normalized properties values for a specific peer or
- * the default values if no normalized values are available.
- *
- * @param cls ignored
- * @param address the address
- * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind
- */
-const double *
-GAS_normalization_get_properties (void *cls,
-				  const struct ATS_Address *address);
-
-
-/**
  * Update and normalize a @a atsi performance information
  *
  * @param address the address to update

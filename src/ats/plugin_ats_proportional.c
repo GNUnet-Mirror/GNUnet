@@ -687,8 +687,6 @@ find_best_address_it (void *cls,
   struct AddressSolverInformation *asi;
   struct GNUNET_TIME_Relative active_time;
   struct GNUNET_TIME_Relative min_active_time;
-  const double *norm_prop_cur;
-  const double *norm_prop_best;
   double best_delay;
   double best_distance;
   double cur_delay;
@@ -738,19 +736,12 @@ find_best_address_it (void *cls,
   }
 
   /* Now compare ATS information */
-  norm_prop_cur = ctx->s->env->get_property (ctx->s->env->cls,
-                                             current);
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  cur_distance = norm_prop_cur[index];
+  cur_distance = current->atsin[index].norm;
+  best_distance = ctx->best->atsin[index].norm;
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  cur_delay = norm_prop_cur[index];
-
-  norm_prop_best = ctx->s->env->get_property (ctx->s->env->cls,
-                                              ctx->best);
-  index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  best_distance = norm_prop_best[index];
-  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  best_delay = norm_prop_best[index];
+  cur_delay = current->atsin[index].norm;
+  best_delay = ctx->best->atsin[index].norm;
 
   /* user shorter distance */
   if (cur_distance < best_distance)
@@ -1614,7 +1605,7 @@ GAS_proportional_address_add (void *solver,
 static void
 GAS_proportional_address_property_changed (void *solver,
                                            struct ATS_Address *address,
-                                           uint32_t type,
+                                           enum GNUNET_ATS_Property type,
                                            uint32_t abs_value,
                                            double rel_value)
 {
@@ -1738,7 +1729,6 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   GNUNET_assert (NULL != env->cfg);
   GNUNET_assert (NULL != env->bandwidth_changed_cb);
   GNUNET_assert (NULL != env->get_preferences);
-  GNUNET_assert (NULL != env->get_property);
 
   s = GNUNET_new (struct GAS_PROPORTIONAL_Handle);
   s->env = env;

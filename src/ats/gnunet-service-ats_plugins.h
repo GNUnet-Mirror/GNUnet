@@ -73,7 +73,7 @@ GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GAS_normalized_property_changed (struct ATS_Address *address,
-				 uint32_t type,
+				 enum GNUNET_ATS_Property type,
 				 double prop_rel);
 
 

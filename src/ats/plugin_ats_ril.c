@@ -2375,14 +2375,14 @@ GAS_ril_address_delete (void *solver,
  *
  * @param solver solver handle
  * @param address the address
- * @param type the ATSI type in HBO
+ * @param type the ATSI type
  * @param abs_value the absolute value of the property
  * @param rel_value the normalized value
  */
 static void
 GAS_ril_address_property_changed (void *solver,
 				  struct ATS_Address *address,
-				  uint32_t type,
+				  enum GNUNET_ATS_Property type,
 				  uint32_t abs_value,
 				  double rel_value)
 {
@@ -2583,14 +2583,14 @@ libgnunet_plugin_ats_ril_init (void *cls)
   char *string;
   float f_tmp;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_init() Initializing RIL solver\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "API_init() Initializing RIL solver\n");
 
-  GNUNET_assert(NULL != env);
-  GNUNET_assert(NULL != env->cfg);
-  GNUNET_assert(NULL != env->stats);
-  GNUNET_assert(NULL != env->bandwidth_changed_cb);
-  GNUNET_assert(NULL != env->get_preferences);
-  GNUNET_assert(NULL != env->get_property);
+  GNUNET_assert (NULL != env);
+  GNUNET_assert (NULL != env->cfg);
+  GNUNET_assert (NULL != env->stats);
+  GNUNET_assert (NULL != env->bandwidth_changed_cb);
+  GNUNET_assert (NULL != env->get_preferences);
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(env->cfg, "ats", "RIL_RBF_DIVISOR", &solver->parameters.rbf_divisor))
   {

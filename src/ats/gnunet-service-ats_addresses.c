@@ -412,6 +412,7 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1++)
   {
     aa->atsin[c1].avg_queue_index = 0;
+    aa->atsin[c1].norm = DEFAULT_REL_QUALITY;
     for (c2 = 0; c2 < GAS_normalization_queue_length; c2++)
       aa->atsin[c1].atsi_abs[c2] = GNUNET_ATS_VALUE_UNDEFINED;
   }

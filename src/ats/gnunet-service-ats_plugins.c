@@ -78,7 +78,7 @@ GAS_normalized_preference_changed (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GAS_normalized_property_changed (struct ATS_Address *address,
-				 uint32_t type,
+				 enum GNUNET_ATS_Property type,
 				 double prop_rel)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -432,7 +432,6 @@ GAS_plugins_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
   env.info_cb = &solver_info_cb;
   env.bandwidth_changed_cb = &bandwidth_changed_cb;
   env.get_preferences = &GAS_normalization_get_preferences_by_peer;
-  env.get_property = &GAS_normalization_get_properties;
   env.cfg = cfg;
   env.stats = GSA_stats;
   env.addresses = GSA_addresses;

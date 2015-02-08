@@ -134,7 +134,7 @@ typedef void
 typedef void
 (*GAS_solver_address_property_changed) (void *solver,
                                         struct ATS_Address *address,
-                                        uint32_t type,
+                                        enum GNUNET_ATS_Property type,
                                         uint32_t abs_value,
                                         double rel_value);
 
@@ -402,20 +402,6 @@ typedef const double *
 
 
 /**
- * Callback to call from solver to obtain transport properties for an
- * address
- *
- * @param cls the cls
- * @param address the address
- * @return carry of double values containing the preferences with
- *      GNUNET_ATS_PreferenceCount elements
- */
-typedef const double *
-(*GAS_get_properties) (void *cls,
-                       const struct ATS_Address *address);
-
-
-/**
  * The ATS plugin will pass a pointer to a struct
  * of this type as to the initialization function
  * of the ATS plugins.
@@ -451,11 +437,6 @@ struct GNUNET_ATS_PluginEnvironment
    * ATS addresses function to obtain preference values
    */
   GAS_get_preferences get_preferences;
-
-  /**
-   * ATS addresses function to obtain property values
-   */
-  GAS_get_properties get_property;
 
   /**
    * Callback for solver to call with status information,
