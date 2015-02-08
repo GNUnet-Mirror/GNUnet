@@ -889,53 +889,32 @@ get_network (struct GAS_PROPORTIONAL_Handle *s,
  *
  * @param s the solver handle
  * @param net the network type
- * @param total decrease total addresses
- * @param active decrease active addresses
  */
 static void
-address_decrement (struct GAS_PROPORTIONAL_Handle *s,
-                    struct Network *net,
-                    int total,
-                    int active)
+address_decrement_active (struct GAS_PROPORTIONAL_Handle *s,
+                          struct Network *net)
 {
-  if (GNUNET_YES == total)
+  if (net->active_addresses < 1)
   {
-    if (net->total_addresses < 1)
-    {
-      GNUNET_break(0);
-    }
-    else
-    {
-      net->total_addresses--;
-      GNUNET_STATISTICS_update (s->env->stats,
-                                net->stat_total, -1, GNUNET_NO);
-    }
+    GNUNET_break (0);
   }
-
-  if (GNUNET_YES == active)
+  else
   {
-    if (net->active_addresses < 1)
-    {
-      GNUNET_break (0);
-    }
-    else
-    {
-      net->active_addresses--;
-      GNUNET_STATISTICS_update (s->env->stats,
-                                net->stat_active, -1, GNUNET_NO);
-    }
-    if (s->active_addresses < 1)
-    {
-      GNUNET_break (0);
-    }
-    else
-    {
-      s->active_addresses--;
-      GNUNET_STATISTICS_update (s->env->stats,
-                                "# ATS addresses total",
-                                -1,
-                                GNUNET_NO);
-    }
+    net->active_addresses--;
+    GNUNET_STATISTICS_update (s->env->stats,
+                              net->stat_active, -1, GNUNET_NO);
+  }
+  if (s->active_addresses < 1)
+  {
+    GNUNET_break (0);
+  }
+  else
+  {
+    s->active_addresses--;
+    GNUNET_STATISTICS_update (s->env->stats,
+                              "# ATS addresses total",
+                              -1,
+                              GNUNET_NO);
   }
 }
 
@@ -1132,6 +1111,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
 
   if (NULL != current_address)
   {
+    GNUNET_assert (GNUNET_YES == current_address->active);
     if ( (NULL == best_address) ||
          ( (NULL != best_address) &&
            (GNUNET_NO == address_eq (current_address,
@@ -1146,17 +1126,12 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
            GNUNET_i2s (peer));
 
       asi = current_address->solver_information;
-      GNUNET_assert (NULL != asi);
-
       net = asi->network;
       asi->activated = GNUNET_TIME_UNIT_ZERO_ABS;
       current_address->active = GNUNET_NO; /* No active any longer */
       current_address->assigned_bw_in = 0; /* no bandwidth assigned */
       current_address->assigned_bw_out = 0; /* no bandwidth assigned */
-
-      address_decrement (s, net, GNUNET_NO, GNUNET_YES);
-
-      /* Update network of previous address */
+      address_decrement_active (s, net);
       distribute_bandwidth_in_network (s, net);
     }
     if (NULL == best_address)
@@ -1341,7 +1316,7 @@ GAS_proportional_stop_get_preferred_address (void *solver,
     cur->assigned_bw_in = 0; /* no bandwidth assigned */
     cur->assigned_bw_out = 0; /* no bandwidth assigned */
 
-    address_decrement (s, cur_net, GNUNET_NO, GNUNET_YES);
+    address_decrement_active (s, cur_net);
 
     distribute_bandwidth_in_network (s, cur_net);
   }
@@ -1537,7 +1512,7 @@ GAS_proportional_address_delete (void *solver,
   struct AddressWrapper *aw = address->solver_information;
   struct Network *net = aw->network;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Deleting %s address for peer `%s' from network `%s' (total: %u/active: %u)\n",
        (GNUNET_NO == address->active) ? "inactive" : "active",
        GNUNET_i2s (&address->peer),
@@ -1546,21 +1521,29 @@ GAS_proportional_address_delete (void *solver,
        net->active_addresses);
 
   /* Remove address */
-  address_decrement (s, net, GNUNET_YES, GNUNET_NO);
+  GNUNET_CONTAINER_DLL_remove (net->head,
+                               net->tail,
+                               aw);
+  GNUNET_assert (net->total_addresses > 0);
+  net->total_addresses--;
+  GNUNET_STATISTICS_update (s->env->stats,
+                            net->stat_total,
+                            -1,
+                            GNUNET_NO);
   if (GNUNET_YES == address->active)
   {
     /* Address was active, remove from network and update quotas*/
     address->active = GNUNET_NO;
     address->assigned_bw_in = 0;
     address->assigned_bw_out = 0;
-    aw->calculated_quota_in = 0;
-    aw->calculated_quota_out = 0;
-
-    address_decrement (s, net, GNUNET_NO, GNUNET_YES);
+    address_decrement_active (s, net);
+    /* FIXME: this may trigger the solver unnecessarily,
+       especially if update_active_address() succeeds! */
     distribute_bandwidth_in_network (s, net);
 
     if (NULL ==
-        update_active_address (s, &address->peer))
+        update_active_address (s,
+                               &address->peer))
     {
       /* No alternative address found, disconnect peer */
       LOG (GNUNET_ERROR_TYPE_INFO,
@@ -1571,13 +1554,9 @@ GAS_proportional_address_delete (void *solver,
                                     address);
     }
   }
-  GNUNET_CONTAINER_DLL_remove (net->head,
-                               net->tail,
-                               aw);
   GNUNET_free (aw);
   address->solver_information = NULL;
-
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "After deleting address now total %u and active %u addresses in network `%s'\n",
        net->total_addresses,
        net->active_addresses,
