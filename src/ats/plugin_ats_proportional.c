@@ -478,30 +478,30 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
 
   remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
   remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Remaining bandwidth : (in/out): %llu/%llu \n",
-      remaining_quota_in, remaining_quota_out);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Proportionally distributable bandwidth (in/out): %llu/%llu\n",
+       remaining_quota_in,
+       remaining_quota_out);
   sum_relative_peer_prefences = 0.0;
 
-  /* Calculate sum of relative preference for active addresses in this network */
+  /* Calculate sum of relative preference for active addresses in this
+     network */
   count_addresses = 0;
   for (aw = net->head; NULL != aw; aw = aw->next)
   {
     if (GNUNET_YES != aw->addr->active)
       continue;
-
     peer_relative_prefs = s->env->get_preferences (s->env->cls,
                                                    &aw->addr->peer);
-    relative_peer_prefence = 0.0;
-    relative_peer_prefence += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
-    sum_relative_peer_prefences += relative_peer_prefence;
-    count_addresses ++;
+    sum_relative_peer_prefences += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
+    count_addresses++;
   }
 
   if (count_addresses != net->active_addresses)
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "%s: Counted %u active addresses, but network says to have %u active addresses\n",
+         "%s: Counted %u active addresses, expected %u active addresses\n",
          net->desc,
          count_addresses,
          net->active_addresses);
@@ -762,7 +762,7 @@ find_best_address_it (void *cls,
   need = (GNUNET_YES == current->active) ? 0 : 1;
   /* we save -1 slot if 'best' is active and belongs
      to the same network (as we would replace it) */
-  if ( (NULL == ctx->best) &&
+  if ( (NULL != ctx->best) &&
        (GNUNET_YES == ctx->best->active) &&
        (((struct AddressWrapper *) ctx->best->solver_information)->network ==
         asi->network) )
@@ -1064,7 +1064,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
       }
     }
     update_active_address (s,
-                           aw_con->addr,
+                           aw_min->addr,
                            &aw->addr->peer);
   }
   distribute_bandwidth_in_network (s,
