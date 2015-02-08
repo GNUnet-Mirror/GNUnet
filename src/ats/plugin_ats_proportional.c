@@ -843,20 +843,18 @@ get_active_address_it (void *cls,
 /**
  * Find current active address for peer
  *
- * @param solver the solver handle
- * @param addresses the address set
+ * @param s the solver handle
  * @param peer the peer
  * @return active address or NULL
  */
 static struct ATS_Address *
-get_active_address (void *solver,
-                    const struct GNUNET_CONTAINER_MultiPeerMap * addresses,
+get_active_address (struct GAS_PROPORTIONAL_Handle *s,
                     const struct GNUNET_PeerIdentity *peer)
 {
-  static struct ATS_Address *dest;
+  struct ATS_Address *dest;
 
   dest = NULL;
-  GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
+  GNUNET_CONTAINER_multipeermap_get_multiple (s->env->addresses,
                                               peer,
                                               &get_active_address_it,
                                               &dest);
@@ -1092,7 +1090,6 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
 
   /* Find active address */
   current_address = get_active_address (s,
-                                        s->env->addresses,
                                         peer);
 
   LOG (GNUNET_ERROR_TYPE_INFO,
@@ -1220,7 +1217,6 @@ GAS_proportional_address_change_preference (void *solver,
 
   /* This peer is requested, find best address */
   active_address = get_active_address (s,
-                                       s->env->addresses,
                                        peer);
   best_address = update_active_address (s, peer);
 
@@ -1298,7 +1294,6 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   struct Network *cur_net;
 
   cur = get_active_address (s,
-                            s->env->addresses,
                             peer);
   if (NULL != cur)
   {
@@ -1383,27 +1378,13 @@ GAS_proportional_address_property_changed (void *solver,
                                            double rel_value)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  struct Network *n;
   struct AddressWrapper *asi;
   struct ATS_Address *best_address;
   struct ATS_Address *active_address;
 
   asi = address->solver_information;
-  if (NULL == asi)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
-  n = asi->network;
-  if (NULL == n)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Property `%s' for peer `%s' address %p changed to %.2f \n",
+       "Property `%s' for peer `%s' address %p changed to %.2f\n",
        GNUNET_ATS_print_property_type (type),
        GNUNET_i2s (&address->peer),
        address,
@@ -1416,7 +1397,6 @@ GAS_proportional_address_property_changed (void *solver,
 
   /* This peer is requested, find active and best address */
   active_address = get_active_address(s,
-                                      s->env->addresses,
                                       &address->peer);
   best_address = update_active_address (s,
                                         &address->peer);
@@ -1520,7 +1500,6 @@ GAS_proportional_address_delete (void *solver,
        net->total_addresses,
        net->active_addresses);
 
-  /* Remove address */
   GNUNET_CONTAINER_DLL_remove (net->head,
                                net->tail,
                                aw);
