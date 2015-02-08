@@ -114,12 +114,10 @@ typedef void
  *
  * @param solver the solver Handle
  * @param address the address to delete
- * @param session_only remove address or just session
  */
 typedef void
 (*GAS_solver_address_delete) (void *solver,
-                              struct ATS_Address *address,
-                              int session_only);
+                              struct ATS_Address *address);
 
 
 /**
