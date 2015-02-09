@@ -1890,6 +1890,7 @@ send_syn (struct NeighbourAddress *na)
         disconnect_neighbour (n);
         break;
     }
+    return;
   }
   GST_neighbours_notify_data_sent (na->address,
                                    na->session,
