@@ -612,8 +612,8 @@ tcp_nat_port_map_callback (void *cls,
  */
 static const char *
 tcp_plugin_address_to_string (void *cls,
-                       const void *addr,
-                       size_t addrlen)
+                              const void *addr,
+                              size_t addrlen)
 {
   static char rbuf[INET6_ADDRSTRLEN + 12];
   char buf[INET6_ADDRSTRLEN];
@@ -810,9 +810,9 @@ tcp_plugin_disconnect_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting session of peer `%s' address `%s'\n",
        GNUNET_i2s (&session->target),
-       tcp_plugin_address_to_string (NULL,
-                             session->address->address,
-                             session->address->address_length));
+       tcp_plugin_address_to_string (session->plugin,
+                                     session->address->address,
+                                     session->address->address_length));
 
   if (NULL != session->timeout_task)
   {
@@ -1166,9 +1166,12 @@ do_transmit (void *cls, size_t size, void *buf)
     session->bytes_in_queue -= pos->message_size;
     GNUNET_assert(size >= pos->message_size);
     LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Transmitting message of type %u size %u\n",
+        "Transmitting message of type %u size %u to %s\n",
         ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type),
-        pos->message_size);
+        pos->message_size,
+        tcp_plugin_address_to_string (session->plugin,
+                                      session->address->address,
+                                      session->address->address_length));
     /* FIXME: this memcpy can be up to 7% of our total runtime */
     memcpy (cbuf, pos->msg, pos->message_size);
     cbuf += pos->message_size;
@@ -1414,7 +1417,7 @@ nat_connect_timeout (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
        GNUNET_i2s (&session->target),
-       tcp_plugin_address_to_string (NULL,
+       tcp_plugin_address_to_string (session->plugin,
                                      session->address->address,
                                      session->address->address_length));
   tcp_plugin_disconnect_session (session->plugin,
@@ -1524,7 +1527,7 @@ tcp_plugin_get_session (void *cls,
   addrlen = address->address_length;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to get session for `%s' address of peer `%s'\n",
-       tcp_plugin_address_to_string (NULL,
+       tcp_plugin_address_to_string (plugin,
                                      address->address,
                                      address->address_length),
        GNUNET_i2s (&address->peer));
@@ -1555,7 +1558,7 @@ tcp_plugin_get_session (void *cls,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Found existing session for `%s' address `%s' session %p\n",
            GNUNET_i2s (&address->peer),
-           tcp_plugin_address_to_string (NULL,
+           tcp_plugin_address_to_string (plugin,
                                          address->address,
                                          address->address_length),
            session);
@@ -1563,7 +1566,7 @@ tcp_plugin_get_session (void *cls,
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Existing sessions did not match address `%s' or peer `%s'\n",
-         tcp_plugin_address_to_string (NULL,
+         tcp_plugin_address_to_string (plugin,
                                        address->address,
                                        address->address_length),
         GNUNET_i2s (&address->peer));
@@ -1755,7 +1758,7 @@ tcp_plugin_get_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new session for `%s' address `%s' session %p\n",
        GNUNET_i2s (&address->peer),
-       tcp_plugin_address_to_string (NULL,
+       tcp_plugin_address_to_string (plugin,
                                      address->address,
                                      address->address_length),
        session);
@@ -2190,8 +2193,9 @@ handle_tcp_nat_probe (void *cls,
   GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap, &session->target,
       session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   session->last_activity = GNUNET_TIME_absolute_get ();
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Found address `%s' for incoming connection\n",
-      GNUNET_a2s (vaddr, alen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found address `%s' for incoming connection\n",
+       GNUNET_a2s (vaddr, alen));
   switch (((const struct sockaddr *) vaddr)->sa_family)
   {
   case AF_INET:
@@ -2272,10 +2276,10 @@ handle_tcp_welcome (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
-      LOG(GNUNET_ERROR_TYPE_INFO,
-          "Received %s message from my own identity `%4s' on address `%s'\n",
-          "WELCOME", GNUNET_i2s (&wm->clientIdentity),
-          GNUNET_a2s (vaddr, alen));
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           "Received %s message from my own identity `%4s' on address `%s'\n",
+           "WELCOME", GNUNET_i2s (&wm->clientIdentity),
+           GNUNET_a2s (vaddr, alen));
       GNUNET_free(vaddr);
     }
     return;
@@ -2352,8 +2356,8 @@ handle_tcp_welcome (void *cls,
                                               GNUNET_HELLO_ADDRESS_INFO_INBOUND)
            ? " inbound" : "",
            session,
-           tcp_plugin_address_to_string (NULL,
-                                         (void *) session->address->address,
+           tcp_plugin_address_to_string (plugin,
+                                         session->address->address,
                                          session->address->address_length),
            client);
       GNUNET_free (vaddr);
@@ -2524,8 +2528,9 @@ disconnect_notify (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Destroying session of `%4s' with %s due to network-level disconnect.\n",
        GNUNET_i2s (&session->target),
-       tcp_plugin_address_to_string (session->plugin, session->address->address,
-                              session->address->address_length));
+       tcp_plugin_address_to_string (session->plugin,
+                                     session->address->address,
+                                     session->address->address_length));
 
   if (plugin->cur_connections == plugin->max_connections)
     GNUNET_SERVER_resume (plugin->server); /* Resume server  */
