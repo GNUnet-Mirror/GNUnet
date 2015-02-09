@@ -1681,9 +1681,11 @@ send_hello_beacon (void *cls,
   const struct GNUNET_MessageHeader *hello;
 
   hello = plugin->env->get_our_hello ();
-  hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
-  GNUNET_assert (sizeof (struct WlanHeader) + hello_size <= WLAN_MTU);
-  size = sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) + hello_size;
+  if (NULL != hello)
+  {
+    hello_size = GNUNET_HELLO_size ((struct GNUNET_HELLO_Message *) hello);
+    GNUNET_assert (sizeof (struct WlanHeader) + hello_size <= WLAN_MTU);
+    size = sizeof (struct GNUNET_TRANSPORT_WLAN_RadiotapSendMessage) + hello_size;
   {
     char buf[size] GNUNET_ALIGN;
 
@@ -1706,7 +1708,7 @@ send_hello_beacon (void *cls,
       GNUNET_STATISTICS_update (plugin->env->stats,
                                 _("# HELLO beacons sent"),
 				1, GNUNET_NO);
-  }
+  } }
   plugin->beacon_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
 				  (HELLO_BEACON_SCALING_FACTOR,

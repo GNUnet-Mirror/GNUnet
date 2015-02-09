@@ -90,28 +90,33 @@ static struct GNUNET_HELLO_Message *our_hello;
 static GST_HelloCallback hello_cb;
 
 /**
- * Closure for 'hello_cb'.
+ * Closure for #hello_cb.
  */
 static void *hello_cb_cls;
 
 /**
  * Head of my addresses.
  */
-struct OwnAddressList *oal_head;
+static struct OwnAddressList *oal_head;
 
 /**
  * Tail of my addresses.
  */
-struct OwnAddressList *oal_tail;
+static struct OwnAddressList *oal_tail;
 
 /**
- * Identifier of 'refresh_hello' task.
+ * Should we use a friend-only HELLO?
+ */
+static int friend_option;
+
+/**
+ * Identifier of #refresh_hello_task().
  */
 static struct GNUNET_SCHEDULER_Task * hello_task;
 
 
 /**
- * Closure for 'address_generator'.
+ * Closure for #address_generator().
  */
 struct GeneratorContext
 {
@@ -130,14 +135,16 @@ struct GeneratorContext
 /**
  * Add an address from the 'OwnAddressList' to the buffer.
  *
- * @param cls the 'struct GeneratorContext'
+ * @param cls the `struct GeneratorContext`
  * @param max maximum number of bytes left
  * @param buf where to write the address
- * @return bytes written or GNUNET_SYSERR to signal the
+ * @return bytes written or #GNUNET_SYSERR to signal the
  *         end of the iteration.
  */
 static ssize_t
-address_generator (void *cls, size_t max, void *buf)
+address_generator (void *cls,
+                   size_t max,
+                   void *buf)
 {
   struct GeneratorContext *gc = cls;
   ssize_t ret;
@@ -159,35 +166,40 @@ address_generator (void *cls, size_t max, void *buf)
  * @param tc scheduler context
  */
 static void
-refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+refresh_hello_task (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GeneratorContext gc;
-  int friend_only;
 
   hello_task = NULL;
   gc.addr_pos = oal_head;
   gc.expiration = GNUNET_TIME_relative_to_absolute (hello_expiration);
 
-
-  friend_only = GNUNET_HELLO_is_friend_only (our_hello);
-  GNUNET_free (our_hello);
+  GNUNET_free_non_null (our_hello);
   our_hello = GNUNET_HELLO_create (&GST_my_identity.public_key,
 				   &address_generator,
-				   &gc, friend_only);
+				   &gc,
+                                   friend_option);
   GNUNET_assert (NULL != our_hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Refreshed my %s `%s', new size is %d\n",
-              (GNUNET_YES == GNUNET_HELLO_is_friend_only (our_hello)) ? "friend-only" : "public",
-              "HELLO", GNUNET_HELLO_size (our_hello));
-  GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# refreshed my HELLO"), 1,
+              "Refreshed my %s HELLO, new size is %d\n",
+              (GNUNET_YES == friend_option) ? "friend-only" : "public",
+              GNUNET_HELLO_size (our_hello));
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# refreshed my HELLO"),
+                            1,
                             GNUNET_NO);
   if (NULL != hello_cb)
-    hello_cb (hello_cb_cls, GST_hello_get ());
-  GNUNET_PEERINFO_add_peer (GST_peerinfo, our_hello, NULL, NULL);
+    hello_cb (hello_cb_cls,
+              GST_hello_get ());
+  GNUNET_PEERINFO_add_peer (GST_peerinfo,
+                            our_hello,
+                            NULL,
+                            NULL);
   hello_task =
-      GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD, &refresh_hello_task,
+      GNUNET_SCHEDULER_add_delayed (HELLO_REFRESH_PERIOD,
+                                    &refresh_hello_task,
                                     NULL);
-
 }
 
 
@@ -198,9 +210,10 @@ refresh_hello_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 refresh_hello ()
 {
-  if (hello_task != NULL)
+  if (NULL != hello_task)
     GNUNET_SCHEDULER_cancel (hello_task);
-  hello_task = GNUNET_SCHEDULER_add_now (&refresh_hello_task, NULL);
+  hello_task = GNUNET_SCHEDULER_add_now (&refresh_hello_task,
+                                         NULL);
 }
 
 
@@ -209,16 +222,16 @@ refresh_hello ()
  *
  * @param friend_only use a friend only hello
  * @param cb function to call whenever our HELLO changes
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  */
 void
-GST_hello_start (int friend_only, GST_HelloCallback cb, void *cb_cls)
+GST_hello_start (int friend_only,
+                 GST_HelloCallback cb,
+                 void *cb_cls)
 {
   hello_cb = cb;
   hello_cb_cls = cb_cls;
-  our_hello = GNUNET_HELLO_create (&GST_my_identity.public_key,
-				   NULL, NULL, friend_only);
-  GNUNET_assert (NULL != our_hello);
+  friend_option = friend_only;
   refresh_hello ();
 }
 
@@ -259,7 +272,7 @@ GST_hello_get ()
 /**
  * Add or remove an address from this peer's HELLO message.
  *
- * @param addremove GNUNET_YES to add, GNUNET_NO to remove
+ * @param addremove #GNUNET_YES to add, #GNUNET_NO to remove
  * @param address address to add or remove
  */
 void
@@ -303,8 +316,8 @@ GST_hello_modify_addresses (int addremove,
  * @param sig location where to cache PONG signatures for this address [set]
  * @param sig_expiration how long until the current 'sig' expires?
  *            (ZERO if sig was never created) [set]
- * @return GNUNET_YES if this is one of our addresses,
- *         GNUNET_NO if not
+ * @return #GNUNET_YES if this is one of our addresses,
+ *         #GNUNET_NO if not
  */
 int
 GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
@@ -314,7 +327,8 @@ GST_hello_test_address (const struct GNUNET_HELLO_Address *address,
   struct OwnAddressList *al;
 
   for (al = oal_head; al != NULL; al = al->next)
-    if (0 == GNUNET_HELLO_address_cmp (address, al->address))
+    if (0 == GNUNET_HELLO_address_cmp (address,
+                                       al->address))
     {
       *sig = &al->pong_signature;
       *sig_expiration = &al->pong_sig_expires;

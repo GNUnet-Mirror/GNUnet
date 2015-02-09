@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010-2014 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -613,38 +613,57 @@ clients_handle_start (void *cls,
                       const struct GNUNET_MessageHeader *message)
 {
   const struct StartMessage *start;
+  const struct GNUNET_MessageHeader *hello;
   struct TransportClient *tc;
   uint32_t options;
 
   tc = lookup_client (client);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client %p sent START\n", tc);
   if (NULL != tc)
   {
     /* got 'start' twice from the same client, not allowed */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client %p sent START\n",
+              client);
   start = (const struct StartMessage *) message;
   options = ntohl (start->options);
   if ((0 != (1 & options)) &&
       (0 !=
-       memcmp (&start->self, &GST_my_identity,
+       memcmp (&start->self,
+               &GST_my_identity,
                sizeof (struct GNUNET_PeerIdentity))))
   {
     /* client thinks this is a different peer, reject */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   tc = setup_client (client);
   tc->send_payload = (0 != (2 & options));
-  unicast (tc,
-           GST_hello_get (),
-           GNUNET_NO);
-  GST_neighbours_iterate (&notify_client_about_neighbour, tc);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  hello = GST_hello_get ();
+  if (NULL == hello)
+  {
+    /* We are during startup and should have no neighbours, hence
+       iteration with NULL must work.  The HELLO will be sent to
+       all clients once it has been created, so this should happen
+       next anyway, and certainly before we get neighbours. */
+    GST_neighbours_iterate (NULL, NULL);
+  }
+  else
+  {
+    unicast (tc,
+             hello,
+             GNUNET_NO);
+    GST_neighbours_iterate (&notify_client_about_neighbour,
+                            tc);
+  }
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -791,35 +810,6 @@ clients_handle_send (void *cls,
 
 
 /**
- * Try to initiate a connection to the given peer if the blacklist
- * allowed it.
- *
- * @param cls closure (unused, NULL)
- * @param peer identity of peer that was tested
- * @param result #GNUNET_OK if the connection is allowed,
- *               #GNUNET_NO if not
- */
-static void
-try_connect_if_allowed (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
-                        int result)
-{
-  if (GNUNET_OK != result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Blacklist refuses connection attempt to peer `%s'\n"),
-                GNUNET_i2s (peer));
-    return;                     /* not allowed */
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Blacklist allows connection attempt to peer `%s'\n",
-              GNUNET_i2s (peer));
-
-  GST_neighbours_try_connect (peer);
-}
-
-
-/**
  * Handle request connect message
  *
  * @param cls closure (always NULL)
@@ -850,10 +840,7 @@ clients_handle_request_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received a request connect message for peer `%s'\n",
               GNUNET_i2s (&trcm->peer));
-  (void) GST_blacklist_test_allowed (&trcm->peer,
-                                     NULL,
-                                     &try_connect_if_allowed,
-                                     NULL);
+  GST_neighbours_try_connect (&trcm->peer);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1590,6 +1577,10 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg,
 {
   struct TransportClient *tc;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Asked to broadcast message of type %u with %u bytes\n",
+              (unsigned int) ntohs (msg->type),
+              (unsigned int) ntohs (msg->size));
   for (tc = clients_head; NULL != tc; tc = tc->next)
   {
     if ( (GNUNET_YES == may_drop) &&

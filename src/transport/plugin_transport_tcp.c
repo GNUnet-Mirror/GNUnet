@@ -559,7 +559,8 @@ tcp_nat_port_map_callback (void *cls,
   void *arg;
   size_t args;
 
-  LOG(GNUNET_ERROR_TYPE_INFO, "NAT notification to %s address `%s'\n",
+  LOG(GNUNET_ERROR_TYPE_INFO,
+      "NAT notification to %s address `%s'\n",
       (GNUNET_YES == add_remove) ? "add" : "remove",
       GNUNET_a2s (addr, addrlen));
   /* convert 'addr' to our internal format */
@@ -2133,7 +2134,8 @@ handle_tcp_nat_probe (void *cls,
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received NAT probe\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received NAT probe\n");
   /* We have received a TCP NAT probe, meaning we (hopefully) initiated
    * a connection to this peer by running gnunet-nat-client.  This peer
    * received the punch message and now wants us to use the new connection
@@ -2157,7 +2159,7 @@ handle_tcp_nat_probe (void *cls,
   }
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->nat_wait_conns,
-      &tcp_nat_probe->clientIdentity);
+                                               &tcp_nat_probe->clientIdentity);
   if (session == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2877,8 +2879,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   else
   {
     plugin->nat = GNUNET_NAT_register (plugin->env->cfg,
-                                       GNUNET_YES, 0, 0, NULL, NULL, NULL,
-                                       &try_connection_reversal, plugin);
+                                       GNUNET_YES,
+                                       0,
+                                       0,
+                                       NULL,
+                                       NULL,
+                                       NULL,
+                                       &try_connection_reversal,
+                                       plugin);
   }
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;

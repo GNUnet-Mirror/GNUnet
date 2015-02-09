@@ -355,7 +355,7 @@ struct GNUNET_TRANSPORT_Handle
    * The current HELLO message for this peer.  Updated
    * whenever transports change their addresses.
    */
-  struct GNUNET_HELLO_Message *my_hello;
+  struct GNUNET_MessageHeader *my_hello;
 
   /**
    * My client connection to the transport service.
@@ -655,7 +655,8 @@ demultiplexer (void *cls,
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving (my own) `%s' message, I am `%4s'.\n", "HELLO",
+         "Receiving (my own) HELLO message (%u bytes), I am `%4s'.\n",
+         (unsigned int) size,
          GNUNET_i2s (&me));
     GNUNET_free_non_null (h->my_hello);
     h->my_hello = NULL;
@@ -664,14 +665,13 @@ demultiplexer (void *cls,
       GNUNET_break (0);
       break;
     }
-    h->my_hello = GNUNET_malloc (size);
-    memcpy (h->my_hello, msg, size);
+    h->my_hello = GNUNET_copy_message (msg);
     hwl = h->hwl_head;
     while (NULL != hwl)
     {
       next_hwl = hwl->next;
       hwl->rec (hwl->rec_cls,
-                (const struct GNUNET_MessageHeader *) h->my_hello);
+                h->my_hello);
       hwl = next_hwl;
     }
     break;
@@ -1668,7 +1668,7 @@ call_hello_update_cb_async (void *cls,
   GNUNET_assert (NULL != ghh->notify_task);
   ghh->notify_task = NULL;
   ghh->rec (ghh->rec_cls,
-            (const struct GNUNET_MessageHeader *) ghh->handle->my_hello);
+            ghh->handle->my_hello);
 }
 
 
@@ -1696,7 +1696,7 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
   hwl->rec_cls = rec_cls;
   hwl->handle = handle;
   GNUNET_CONTAINER_DLL_insert (handle->hwl_head, handle->hwl_tail, hwl);
-  if (handle->my_hello != NULL)
+  if (NULL != handle->my_hello)
     hwl->notify_task = GNUNET_SCHEDULER_add_now (&call_hello_update_cb_async,
                                                  hwl);
   return hwl;

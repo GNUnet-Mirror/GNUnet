@@ -545,11 +545,10 @@ setup_broadcast (struct Plugin *plugin,
                  struct sockaddr_in6 *server_addrv6,
                  struct sockaddr_in *server_addrv4)
 {
-  const struct GNUNET_MessageHeader *hello;
-
-  hello = plugin->env->get_our_hello ();
   if (GNUNET_YES ==
-      GNUNET_HELLO_is_friend_only ((const struct GNUNET_HELLO_Message *) hello))
+      GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+                                            "topology",
+                                            "FRIENDS-ONLY"))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Disabling HELLO broadcasting due to friend-to-friend only configuration!\n"));

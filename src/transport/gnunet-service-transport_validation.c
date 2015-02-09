@@ -526,7 +526,12 @@ transmit_ping_if_allowed (void *cls,
     cleanup_validation_entry (NULL, pid, ve);
     return;
   }
-
+  hello = GST_hello_get ();
+  if (NULL == hello)
+  {
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting plain PING to `%s' `%s' `%s'\n",
               GNUNET_i2s (pid),
@@ -534,7 +539,6 @@ transmit_ping_if_allowed (void *cls,
               ve->address->transport_name);
 
   slen = strlen (ve->address->transport_name) + 1;
-  hello = GST_hello_get ();
   hsize = ntohs (hello->size);
   tsize =
       sizeof (struct TransportPingMessage) + ve->address->address_length +
@@ -900,7 +904,7 @@ GST_validation_start (unsigned int max_fds)
                          validations_running,
                          GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Validation uses a fast start threshold of %u connections and a delay between of %s\n ",
+              "Validation uses a fast start threshold of %u connections and a delay of %s\n",
               validations_fast_start_threshold,
               GNUNET_STRINGS_relative_time_to_string (validation_delay,
                                                       GNUNET_YES));

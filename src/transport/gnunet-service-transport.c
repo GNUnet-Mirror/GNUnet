@@ -215,6 +215,11 @@ transmit_our_hello (void *cls,
 {
   const struct GNUNET_MessageHeader *hello = cls;
 
+  if (0 ==
+      memcmp (peer,
+              &GST_my_identity,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* not to ourselves */
   if (GNUNET_NO == GST_neighbours_test_connected (peer))
     return;
 
@@ -236,8 +241,13 @@ static void
 process_hello_update (void *cls,
                       const struct GNUNET_MessageHeader *hello)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Broadcasting HELLO to clients\n");
   GST_clients_broadcast (hello, GNUNET_NO);
-  GST_neighbours_iterate (&transmit_our_hello, (void *) hello);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Broadcasting HELLO to neighbours\n");
+  GST_neighbours_iterate (&transmit_our_hello,
+                          (void *) hello);
 }
 
 
@@ -1051,14 +1061,18 @@ run (void *cls,
               "Limiting number of sockets to %u: validation %u, neighbors: %u\n",
              max_fd, (max_fd / 3), (max_fd / 3) * 2);
 
-  friend_only = GNUNET_CONFIGURATION_get_value_yesno (GST_cfg, "topology",
-      "FRIENDS-ONLY");
+  friend_only = GNUNET_CONFIGURATION_get_value_yesno (GST_cfg,
+                                                      "topology",
+                                                      "FRIENDS-ONLY");
   if (GNUNET_SYSERR == friend_only)
     friend_only = GNUNET_NO; /* According to topology defaults */
   /* start subsystems */
-  GST_hello_start (friend_only, &process_hello_update, NULL );
-  GNUNET_assert(NULL != GST_hello_get());
-  GST_blacklist_start (GST_server, GST_cfg, &GST_my_identity);
+  GST_hello_start (friend_only,
+                   &process_hello_update,
+                   NULL);
+  GST_blacklist_start (GST_server,
+                       GST_cfg,
+                       &GST_my_identity);
   is = GNUNET_ATS_scanner_init ();
   GST_ats_connect = GNUNET_ATS_connectivity_init (GST_cfg);
   GST_ats = GNUNET_ATS_scheduling_init (GST_cfg,

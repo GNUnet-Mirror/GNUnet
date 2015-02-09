@@ -108,15 +108,19 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
   int fail;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (GST_cfg, "TRANSPORT",
-                                             "NEIGHBOUR_LIMIT", &tneigh))
+      GNUNET_CONFIGURATION_get_value_number (GST_cfg,
+                                             "TRANSPORT",
+                                             "NEIGHBOUR_LIMIT",
+                                             &tneigh))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Transport service is lacking NEIGHBOUR_LIMIT option.\n"));
     return;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (GST_cfg, "TRANSPORT", "PLUGINS",
+      GNUNET_CONFIGURATION_get_value_string (GST_cfg,
+                                             "TRANSPORT",
+                                             "PLUGINS",
                                              &plugs))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -127,7 +131,9 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Loading `%s' transport plugin\n"),
                 pos);
-    GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", pos);
+    GNUNET_asprintf (&libname,
+                     "libgnunet_plugin_transport_%s",
+                     pos);
     plug = GNUNET_new (struct TransportPlugin);
     plug->short_name = GNUNET_strdup (pos);
     plug->lib_name = libname;
@@ -143,7 +149,9 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.update_address_metrics = metric_update_cb;
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
-    GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);
+    GNUNET_CONTAINER_DLL_insert (plugins_head,
+                                 plugins_tail,
+                                 plug);
   }
   GNUNET_free (plugs);
   next = plugins_head;
@@ -151,13 +159,16 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
   {
     plug = next;
     next = plug->next;
-    plug->api = GNUNET_PLUGIN_load (plug->lib_name, &plug->env);
+    plug->api = GNUNET_PLUGIN_load (plug->lib_name,
+                                    &plug->env);
     if (NULL == plug->api)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load transport plugin for `%s'\n"),
                   plug->lib_name);
-      GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
+      GNUNET_CONTAINER_DLL_remove (plugins_head,
+                                   plugins_tail,
+                                   plug);
       GNUNET_free (plug->short_name);
       GNUNET_free (plug->lib_name);
       GNUNET_free (plug);
@@ -258,7 +269,9 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   _("Did not load plugin `%s' due to missing functions\n"),
                   plug->lib_name);
       GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
-      GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
+      GNUNET_CONTAINER_DLL_remove (plugins_head,
+                                   plugins_tail,
+                                   plug);
       GNUNET_free (plug->short_name);
       GNUNET_free (plug->lib_name);
       GNUNET_free (plug);

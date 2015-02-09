@@ -3711,7 +3711,9 @@ GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls)
     return; /* can happen during shutdown */
   ic.cb = cb;
   ic.cb_cls = cb_cls;
-  GNUNET_CONTAINER_multipeermap_iterate (neighbours, &neighbours_iterate, &ic);
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
+                                         &neighbours_iterate,
+                                         &ic);
 }
 
 
