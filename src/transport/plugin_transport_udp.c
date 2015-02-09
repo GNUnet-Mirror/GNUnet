@@ -1347,7 +1347,7 @@ udp_disconnect_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p to peer `%s' address ended\n", s,
        GNUNET_i2s (&s->target),
-       udp_address_to_string (NULL,
+       udp_address_to_string (plugin,
                               s->address->address,
                               s->address->address_length));
   /* stop timeout task */
@@ -1534,11 +1534,11 @@ session_timeout (void *cls,
                                                     s);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Session %p was idle for %s, disconnecting\n",
-              s,
-              GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
-                                                      GNUNET_YES));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Session %p was idle for %s, disconnecting\n",
+       s,
+       GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
+                                               GNUNET_YES));
   /* call session destroy function */
   udp_disconnect_session (plugin, s);
 }
@@ -1635,10 +1635,10 @@ session_cmp_it (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Comparing address %s <-> %s\n",
-       udp_address_to_string (NULL,
+       udp_address_to_string (s->plugin,
                               address->address,
                               address->address_length),
-       udp_address_to_string (NULL,
+       udp_address_to_string (s->plugin,
                               s->address->address,
                               s->address->address_length));
   if (0 == GNUNET_HELLO_address_cmp(s->address, cctx->address))
@@ -1704,7 +1704,9 @@ udp_plugin_lookup_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Looking for existing session for peer `%s' `%s' \n",
        GNUNET_i2s (&address->peer),
-       udp_address_to_string(NULL, address->address, address->address_length));
+       udp_address_to_string (plugin,
+                              address->address,
+                              address->address_length));
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions,
                                               &address->peer,
                                               &session_cmp_it,
@@ -2035,7 +2037,7 @@ udp_plugin_send (void *cls,
        "UDP transmits %u-byte message to `%s' using address `%s'\n",
        udpmlen,
        GNUNET_i2s (&s->target),
-       udp_address_to_string (NULL,
+       udp_address_to_string (plugin,
                               s->address->address,
                               s->address->address_length));
 
@@ -2365,11 +2367,11 @@ ack_proc (void *cls,
   GNUNET_HELLO_address_free (address);
   if (NULL == s)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Trying to transmit ACK to peer `%s' but no session found!\n",
-                udp_address_to_string (rc->plugin,
-                                       rc->udp_addr,
-                                       rc->udp_addr_len));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Trying to transmit ACK to peer `%s' but no session found!\n",
+         udp_address_to_string (rc->plugin,
+                                rc->udp_addr,
+                                rc->udp_addr_len));
     GNUNET_CONTAINER_heap_remove_node (rc->hnode);
     GNUNET_DEFRAGMENT_context_destroy (rc->defrag);
     GNUNET_free (rc);
@@ -2440,14 +2442,18 @@ read_process_ack (struct Plugin *plugin,
                                            GNUNET_HELLO_ADDRESS_INFO_NONE);
   s = udp_plugin_lookup_session (plugin,
                                  address);
-  GNUNET_HELLO_address_free (address);
   if ( (NULL == s) ||
        (NULL == s->frag_ctx) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "UDP session for ACK not found\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "UDP session of address %s for ACK not found\n",
+         udp_address_to_string (plugin,
+                                address->address,
+                                address->address_length));
+    GNUNET_HELLO_address_free (address);
     return;
   }
+  GNUNET_HELLO_address_free (address);
 
   flow_delay.rel_value_us = (uint64_t) ntohl (udp_ack->delay);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -3209,8 +3215,8 @@ setup_sockets (struct Plugin *plugin,
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
                          "socket");
-    LOG(GNUNET_ERROR_TYPE_WARNING,
-        "Disabling IPv4 since it is not supported on this system!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Disabling IPv4 since it is not supported on this system!\n");
     plugin->enable_ipv4 = GNUNET_NO;
   }
   else
