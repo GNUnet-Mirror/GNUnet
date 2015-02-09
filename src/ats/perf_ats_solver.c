@@ -1189,6 +1189,11 @@ perf_run_iteration (void)
                                                 &do_delete_address,
                                                 NULL);
   }
+  if (GNUNET_NO == ph.bulk_running)
+  {
+    ph.sf->s_bulk_stop (ph.sf->cls);
+    ph.bulk_running = GNUNET_NO;
+  }
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Iteration done\n");

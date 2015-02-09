@@ -198,10 +198,6 @@ struct GAS_PROPORTIONAL_Handle
    */
   unsigned int active_addresses;
 
-  /**
-   * Number of networks in @a network_entries
-   */
-  unsigned int network_count;
 };
 
 
@@ -425,7 +421,7 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
 {
   unsigned int i;
 
-  if (GNUNET_YES == s->bulk_lock)
+  if (0 != s->bulk_lock)
   {
     s->bulk_requests++;
     return;
@@ -461,11 +457,14 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   }
   else
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Redistributing bandwidth in all %u networks\n",
+         s->env->network_count);
     s->env->info_cb (s->env->cls,
                      GAS_OP_SOLVE_START,
                      GAS_STAT_SUCCESS,
                      GAS_INFO_PROP_ALL);
-    for (i = 0; i < s->network_count; i++)
+    for (i = 0; i < s->env->network_count; i++)
       distribute_bandwidth (s,
                             &s->network_entries[i]);
     s->env->info_cb (s->env->cls,
@@ -476,7 +475,7 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
                      GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
                      GAS_STAT_SUCCESS,
                      GAS_INFO_PROP_ALL);
-    for (i = 0; i < s->network_count; i++)
+    for (i = 0; i < s->env->network_count; i++)
       propagate_bandwidth (s,
                            &s->network_entries[i]);
     s->env->info_cb (s->env->cls,
@@ -816,7 +815,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   }
   /* We do have a new address, activate it */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Suggesting new address %p for peer `%s'\n",
+       "Selecting new address %p for peer `%s'\n",
        best_address,
        GNUNET_i2s (peer));
   /* Mark address as active */
@@ -836,7 +835,6 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
        "Address %p for peer `%s' is now active\n",
        best_address,
        GNUNET_i2s (peer));
-
 
   if (GNUNET_NO ==
       is_bandwidth_available_in_network (asi_best->network,
@@ -1245,7 +1243,7 @@ libgnunet_plugin_ats_proportional_done (void *cls)
   struct AddressWrapper *next;
   unsigned int c;
 
-  for (c = 0; c < s->network_count; c++)
+  for (c = 0; c < s->env->network_count; c++)
   {
     GNUNET_break (0 == s->network_entries[c].total_addresses);
     GNUNET_break (0 == s->network_entries[c].active_addresses);
