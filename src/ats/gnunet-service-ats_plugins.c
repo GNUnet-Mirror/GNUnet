@@ -542,7 +542,7 @@ GAS_plugin_solver_lock ()
 void
 GAS_plugin_solver_unlock ()
 {
-  sf->s_bulk_start (sf->cls);
+  sf->s_bulk_stop (sf->cls);
 }
 
 
