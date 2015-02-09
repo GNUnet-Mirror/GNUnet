@@ -325,7 +325,6 @@ clean_up ()
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
     p2 = NULL;
   }
-
 }
 
 
@@ -368,7 +367,7 @@ end ()
     if (p2_switch_success != p2_switch_attempts)
     {
       GNUNET_break (0);
-      result ++;
+      result++;
     }
   }
   else if (p2_addresses_avail > 1)
@@ -383,14 +382,14 @@ end ()
   {
     FPRINTF (stderr, "No data sent after switching!\n");
     GNUNET_break (0);
-    res ++;
+    res++;
   }
   if ( ((p1_switch_attempts > 0) || (p2_switch_attempts > 0)) &&
        (bytes_recv_after_switch == 0) )
   {
     FPRINTF (stderr, "No data received after switching!\n");
     GNUNET_break (0);
-    res ++;
+    res++;
   }
 
   clean_up();
@@ -403,16 +402,25 @@ static void
 end_badly ()
 {
   die_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Fail (timeout)! Stopping peers\n");
+  clean_up();
+  if (0 == p1_switch_attempts + p2_switch_attempts)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Test did not work, as peers didn't switch (flawed testcase)!\n");
+    res = 0;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Fail (timeout)! No transmission after switch! Stopping peers\n");
+    res = GNUNET_YES;
+  }
   if (test_connected == GNUNET_YES)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peers got connected\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Peers got NOT EVEN connected\n");
-  clean_up();
-  res = GNUNET_YES;
 }
 
 

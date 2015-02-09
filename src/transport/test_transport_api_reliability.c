@@ -227,14 +227,17 @@ end ()
 static void
 end_badly ()
 {
-  int i;
-  die_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+  unsigned int i;
 
+  die_task = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Fail! Stopping peers\n");
   if (test_connected == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got connected\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peers got connected\n");
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers got NOT connected\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peers got NOT connected\n");
 
   if (test_sending == GNUNET_NO)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -246,7 +249,9 @@ end_badly ()
   {
     if (get_bit (bitmap, i) == 0)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Did not receive message %d\n", i);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Did not receive message %u\n",
+                  i);
       ok = -1;
     }
   }
