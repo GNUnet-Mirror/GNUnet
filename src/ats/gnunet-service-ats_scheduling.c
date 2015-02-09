@@ -206,9 +206,6 @@ GAS_handle_address_update (void *cls,
   uint32_t ats_count;
   uint16_t size;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "ADDRESS_UPDATE");
   size = ntohs (message->size);
   if (size < sizeof (struct AddressUpdateMessage))
   {

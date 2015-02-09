@@ -190,6 +190,7 @@ solver_info_cb (void *cls,
                (GAS_STAT_SUCCESS == status) ? "SUCCESS" : "FAIL");
     return;
   default:
+    GNUNET_break (0);
     break;
   }
 }
@@ -205,12 +206,14 @@ static void
 bandwidth_changed_cb (void *cls,
 		      struct ATS_Address *address)
 {
-  uint32_t diff_out;
-  uint32_t diff_in;
+  long long diff_out;
+  long long diff_in;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Bandwidth assignment changed for peer %s \n",
-              GNUNET_i2s (&address->peer));
+              "Bandwidth assignment changed for peer %s to %u/%u\n",
+              GNUNET_i2s (&address->peer),
+              (unsigned int) address->assigned_bw_in,
+              (unsigned int) address->assigned_bw_out);
 
   /* Notify performance clients about changes to address */
   GAS_performance_notify_all_clients (&address->peer,
@@ -226,7 +229,7 @@ bandwidth_changed_cb (void *cls,
   if ( (0 == address->assigned_bw_in) &&
        (0 == address->assigned_bw_out) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                "Telling transport to disconnect peer `%s'\n",
                 GNUNET_i2s (&address->peer));
 
@@ -239,14 +242,19 @@ bandwidth_changed_cb (void *cls,
   }
 
   /* Do bandwidth stability check */
-  diff_out = abs (address->assigned_bw_out - address->last_notified_bw_out);
-  diff_in = abs (address->assigned_bw_in - address->last_notified_bw_in);
-
-  if ( (diff_out < htonl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) &&
-       (diff_in < htonl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) )
+  diff_out = llabs ((long long) address->assigned_bw_out -
+                    (long long) address->last_notified_bw_out);
+  diff_in = llabs ((long long) address->assigned_bw_in -
+                   (long long) address->last_notified_bw_in);
+  if ( (diff_out < htonl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) &&
+       (diff_in < htonl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Bandwidth change too small, not notifying client\n");
     return;
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending bandwidth update for peer `%s': %u/%u\n",
               GNUNET_i2s (&address->peer),
               address->assigned_bw_out,
