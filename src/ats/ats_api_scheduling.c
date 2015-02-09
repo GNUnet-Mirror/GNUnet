@@ -145,6 +145,11 @@ struct GNUNET_ATS_SchedulingHandle
   struct GNUNET_SCHEDULER_Task *task;
 
   /**
+   * Reconnect backoff delay.
+   */
+  struct GNUNET_TIME_Relative backoff;
+
+  /**
    * Size of the @e session_array.
    */
   unsigned int session_array_size;
@@ -200,7 +205,8 @@ force_reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
                   NULL, NULL, NULL,
                   GNUNET_BANDWIDTH_ZERO,
                   GNUNET_BANDWIDTH_ZERO);
-  sh->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  sh->backoff = GNUNET_TIME_STD_BACKOFF (sh->backoff);
+  sh->task = GNUNET_SCHEDULER_add_delayed (sh->backoff,
                                            &reconnect_task,
                                            sh);
 }
@@ -432,6 +438,7 @@ process_ats_address_suggestion_message (void *cls,
     GNUNET_break (0);
     return;
   }
+  sh->backoff = GNUNET_TIME_UNIT_ZERO;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS suggests address slot %u for peer `%s' using plugin %s\n",
               ar->slot,

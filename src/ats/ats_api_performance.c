@@ -221,7 +221,12 @@ struct GNUNET_ATS_PerformanceHandle
   /**
    * Task to trigger reconnect.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
+
+  /**
+   * Reconnect backoff delay.
+   */
+  struct GNUNET_TIME_Relative backoff;
 
   /**
    * Monitor request multiplexing
@@ -609,6 +614,7 @@ process_ats_message (void *cls,
     GNUNET_break(0);
     goto reconnect;
   }
+  ph->backoff = GNUNET_TIME_UNIT_ZERO;
   GNUNET_CLIENT_receive (ph->client,
                          &process_ats_message,
                          ph,
@@ -635,8 +641,10 @@ process_ats_message (void *cls,
                       GNUNET_BANDWIDTH_value_init (0),
                       NULL, 0);
   }
-  ph->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                           &reconnect_task, ph);
+  ph->backoff = GNUNET_TIME_STD_BACKOFF (ph->backoff);
+  ph->task = GNUNET_SCHEDULER_add_delayed (ph->backoff,
+                                           &reconnect_task,
+                                           ph);
 }
 
 

@@ -78,6 +78,10 @@ struct GNUNET_ATS_ConnectivityHandle
    */
   struct GNUNET_SCHEDULER_Task *task;
 
+  /**
+   * Reconnect backoff delay.
+   */
+  struct GNUNET_TIME_Relative backoff;
 };
 
 
@@ -125,7 +129,8 @@ force_reconnect (struct GNUNET_ATS_ConnectivityHandle *ch)
     GNUNET_CLIENT_disconnect (ch->client);
     ch->client = NULL;
   }
-  ch->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  ch->backoff = GNUNET_TIME_STD_BACKOFF (ch->backoff);
+  ch->task = GNUNET_SCHEDULER_add_delayed (ch->backoff,
                                            &reconnect_task,
                                            ch);
 }
