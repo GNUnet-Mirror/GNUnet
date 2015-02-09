@@ -839,37 +839,29 @@ set_alternative_address (struct NeighbourMapEntry *n,
  *        address must be setup)
  * @param bandwidth_in inbound quota to be used when connection is up
  * @param bandwidth_out outbound quota to be used when connection is up
- * @param is_active #GNUNET_YES to mark this as the active address with ATS
  */
 static void
 set_primary_address (struct NeighbourMapEntry *n,
                      const struct GNUNET_HELLO_Address *address,
                      struct Session *session,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                     int is_active)
+                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   if (session == n->primary_address.session)
   {
-    if (is_active != n->primary_address.ats_active)
+    GST_validation_set_address_use (n->primary_address.address,
+                                    GNUNET_YES);
+    if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
     {
-      n->primary_address.ats_active = is_active;
-      GST_validation_set_address_use (n->primary_address.address,
-                                      is_active);
+      n->primary_address.bandwidth_in = bandwidth_in;
+      GST_neighbours_set_incoming_quota (&address->peer,
+                                         bandwidth_in);
     }
-    if (GNUNET_YES == is_active)
+    if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
     {
-      if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
-      {
-        n->primary_address.bandwidth_in = bandwidth_in;
-        GST_neighbours_set_incoming_quota (&address->peer, bandwidth_in);
-      }
-      if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
-      {
-        n->primary_address.bandwidth_out = bandwidth_out;
-        send_outbound_quota (&address->peer,
-                             bandwidth_out);
-      }
+      n->primary_address.bandwidth_out = bandwidth_out;
+      send_outbound_quota (&address->peer,
+                           bandwidth_out);
     }
     return;
   }
@@ -897,18 +889,14 @@ set_primary_address (struct NeighbourMapEntry *n,
   n->primary_address.bandwidth_in = bandwidth_in;
   n->primary_address.bandwidth_out = bandwidth_out;
   n->primary_address.session = session;
-  n->primary_address.ats_active = is_active;
   n->primary_address.keep_alive_nonce = 0;
-  if (GNUNET_YES == is_active)
-  {
-    /* subsystems about address use */
-    GST_validation_set_address_use (n->primary_address.address,
-                                    GNUNET_YES);
-    GST_neighbours_set_incoming_quota (&address->peer, bandwidth_in);
-    send_outbound_quota (&address->peer,
-                         bandwidth_out);
-  }
-
+  /* subsystems about address use */
+  GST_validation_set_address_use (n->primary_address.address,
+                                  GNUNET_YES);
+  GST_neighbours_set_incoming_quota (&address->peer,
+                                     bandwidth_in);
+  send_outbound_quota (&address->peer,
+                       bandwidth_out);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Neighbour `%s' switched to address `%s'\n",
               GNUNET_i2s (&n->id),
@@ -2559,8 +2547,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->address,
                          blc_ctx->session,
                          blc_ctx->bandwidth_in,
-                         blc_ctx->bandwidth_out,
-                         GNUNET_NO);
+                         blc_ctx->bandwidth_out);
     if (ACK_SEND_SYN_ACK == n->ack_state)
     {
       /* Send pending SYN_ACK message */
@@ -2581,8 +2568,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->address,
                          blc_ctx->session,
                          blc_ctx->bandwidth_in,
-                         blc_ctx->bandwidth_out,
-                         GNUNET_NO);
+                         blc_ctx->bandwidth_out);
     if (ACK_SEND_SYN_ACK == n->ack_state)
     {
       /* Send pending SYN_ACK message */
@@ -2602,8 +2588,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->address,
                          blc_ctx->session,
                          blc_ctx->bandwidth_in,
-                         blc_ctx->bandwidth_out,
-                         GNUNET_NO);
+                         blc_ctx->bandwidth_out);
     /* Send an ACK message as a response to the SYN msg */
     set_state_and_timeout (n,
                            GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
@@ -2627,8 +2612,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->address,
                          blc_ctx->session,
                          blc_ctx->bandwidth_in,
-                         blc_ctx->bandwidth_out,
-                         GNUNET_NO);
+                         blc_ctx->bandwidth_out);
     set_state_and_timeout (n,
                            GNUNET_TRANSPORT_PS_SYN_RECV_ACK,
                            GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
@@ -2658,8 +2642,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->address,
                          blc_ctx->session,
                          blc_ctx->bandwidth_in,
-                         blc_ctx->bandwidth_out,
-                         GNUNET_NO);
+                         blc_ctx->bandwidth_out);
     if (ACK_SEND_SYN_ACK == n->ack_state)
     {
       /* Send pending SYN_ACK message */
@@ -2679,8 +2662,7 @@ switch_address_bl_check_cont (void *cls,
                          blc_ctx->address,
                          blc_ctx->session,
                          blc_ctx->bandwidth_in,
-                         blc_ctx->bandwidth_out,
-                         GNUNET_NO);
+                         blc_ctx->bandwidth_out);
     set_state_and_timeout (n,
                            GNUNET_TRANSPORT_PS_RECONNECT_SENT,
                            GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
@@ -2792,9 +2774,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "ATS suggests address '%s' for peer `%s'\n",
+	      "ATS suggests address '%s' for peer `%s' at %u/%u speed\n",
 	      GST_plugins_a2s (address),
-	      GNUNET_i2s (&address->peer));
+	      GNUNET_i2s (&address->peer),
+              (unsigned int) ntohl (bandwidth_in.value__),
+              (unsigned int) ntohl (bandwidth_out.value__));
 
   /* Perform blacklist check */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
@@ -3184,8 +3168,7 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
                          n->primary_address.address,
                          n->primary_address.session,
                          n->primary_address.bandwidth_in,
-                         n->primary_address.bandwidth_out,
-                         GNUNET_YES);
+                         n->primary_address.bandwidth_out);
     send_session_ack_message (n);
     break;
   case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
@@ -3226,8 +3209,7 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
                          n->alternative_address.address,
                          n->alternative_address.session,
                          n->alternative_address.bandwidth_in,
-                         n->alternative_address.bandwidth_out,
-                         GNUNET_YES);
+                         n->alternative_address.bandwidth_out);
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# Successful attempts to switch addresses"),
                               1,
@@ -3488,8 +3470,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                        n->primary_address.address,
                        n->primary_address.session,
                        n->primary_address.bandwidth_in,
-                       n->primary_address.bandwidth_out,
-                       GNUNET_YES);
+                       n->primary_address.bandwidth_out);
   return GNUNET_OK;
 }
 

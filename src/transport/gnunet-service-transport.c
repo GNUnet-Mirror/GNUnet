@@ -895,7 +895,9 @@ ats_request_address_change (void *cls,
     /* ATS service died, all suggestions become invalid!
        (but we'll keep using the allocations for a little
        while, to keep going while ATS restarts) */
-    // FIXME: do something?
+    /* FIXME: We should drop all
+       connections now, as ATS won't explicitly tell
+       us and be unaware of ongoing resource allocations! */
     return;
   }
   /* ATS tells me to disconnect from peer */
