@@ -65,34 +65,39 @@ handle_ats_start (void *cls,
       (const struct ClientStartMessage *) message;
   enum StartFlag flag;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' message\n",
-              "ATS_START");
   flag = ntohl (msg->start_flag);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received ATS_START (%d) message\n",
+              (int) flag);
   switch (flag)
   {
   case START_FLAG_SCHEDULING:
     if (GNUNET_OK != GAS_scheduling_add_client (client))
     {
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_SYSERR);
       return;
     }
     break;
   case START_FLAG_PERFORMANCE_WITH_PIC:
-    GAS_performance_add_client (client, flag);
+    GAS_performance_add_client (client,
+                                flag);
     break;
   case START_FLAG_PERFORMANCE_NO_PIC:
-    GAS_performance_add_client (client, flag);
+    GAS_performance_add_client (client,
+                                flag);
     break;
   case START_FLAG_CONNECTION_SUGGESTION:
     /* This client won't receive messages from us, no need to 'add' */
     break;
   default:
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
