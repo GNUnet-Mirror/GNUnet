@@ -245,12 +245,7 @@ struct GNUNET_NAT_Handle
   /**
    * ID of DynDNS lookup task
    */
-  struct GNUNET_SCHEDULER_Task * dns_task;
-
-  /**
-   * ID of task to add addresses from bind.
-   */
-  struct GNUNET_SCHEDULER_Task * bind_task;
+  struct GNUNET_SCHEDULER_Task *dns_task;
 
   /**
    * How often do we scan for changes in our IP address from our local
@@ -1032,10 +1027,10 @@ upnp_add (void *cls,
           _("Error while running upnp client:\n"));
 
     //FIXME: convert error code to string
-    
+
     return;
   }
-  
+
   if (GNUNET_YES == add_remove)
   {
     add_to_address_list (h, LAL_UPNP, addr, addrlen);
@@ -1111,20 +1106,17 @@ add_minis (struct GNUNET_NAT_Handle *h,
 /**
  * Task to add addresses from original bind to set of valid addrs.
  *
- * @param cls the NAT handle
- * @param tc scheduler context
+ * @param h the NAT handle
  */
 static void
-add_from_bind (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+add_from_bind (struct GNUNET_NAT_Handle *h)
 {
   static struct in6_addr any = IN6ADDR_ANY_INIT;
-  struct GNUNET_NAT_Handle *h = cls;
+
   unsigned int i;
   struct sockaddr *sa;
   const struct sockaddr_in *v4;
 
-  h->bind_task = NULL;
   for (i = 0; i < h->num_local_addrs; i++)
   {
     sa = h->local_addrs[i];
@@ -1138,13 +1130,14 @@ add_from_bind (void *cls,
       }
       v4 = (const struct sockaddr_in *) sa;
       if (0 != v4->sin_addr.s_addr)
-        add_to_address_list (h, LAL_BINDTO_ADDRESS, sa,
+        add_to_address_list (h,
+                             LAL_BINDTO_ADDRESS, sa,
                              sizeof (struct sockaddr_in));
       if (h->enable_upnp)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-            "Running upnp client for address `%s'\n",
-            GNUNET_a2s (sa,sizeof (struct sockaddr_in)));
+                    "Running upnp client for address `%s'\n",
+                    GNUNET_a2s (sa,sizeof (struct sockaddr_in)));
         add_minis (h, ntohs (v4->sin_port));
       }
       break;
@@ -1155,9 +1148,12 @@ add_from_bind (void *cls,
         break;
       }
       if (0 !=
-          memcmp (&((const struct sockaddr_in6 *) sa)->sin6_addr, &any,
+          memcmp (&((const struct sockaddr_in6 *) sa)->sin6_addr,
+                  &any,
                   sizeof (struct in6_addr)))
-        add_to_address_list (h, LAL_BINDTO_ADDRESS, sa,
+        add_to_address_list (h,
+                             LAL_BINDTO_ADDRESS,
+                             sa,
                              sizeof (struct sockaddr_in6));
       break;
     default:
@@ -1165,7 +1161,6 @@ add_from_bind (void *cls,
     }
   }
 }
-
 
 
 /**
@@ -1178,7 +1173,7 @@ add_from_bind (void *cls,
  * @param is_tcp #GNUNET_YES for TCP, #GNUNET_NO for UDP
  * @param adv_port advertised port (port we are either bound to or that our OS
  *                 locally performs redirection from to our bound port).
- * @param num_addrs number of addresses in 'addrs'
+ * @param num_addrs number of addresses in @a addrs
  * @param addrs the local addresses packets should be redirected to
  * @param addrlens actual lengths of the addresses
  * @param address_callback function to call everytime the public IP address changes
@@ -1192,7 +1187,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      uint16_t adv_port,
                      unsigned int num_addrs,
                      const struct sockaddr **addrs,
-                     const socklen_t * addrlens,
+                     const socklen_t *addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls)
@@ -1227,7 +1222,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       memcpy (h->local_addrs[i], addrs[i], addrlens[i]);
     }
   }
-  h->bind_task = GNUNET_SCHEDULER_add_now (&add_from_bind, h);
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_have_value (cfg, "nat", "INTERNAL_ADDRESS"))
   {
@@ -1343,10 +1337,13 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (NULL != h->address_callback)
   {
-    h->ifc_task = GNUNET_SCHEDULER_add_now (&list_interfaces, h);
+    list_interfaces (h,
+                     NULL);
     if (GNUNET_YES == h->use_hostname)
-      h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname, h);
+      h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname,
+                                                   h);
   }
+  add_from_bind (h);
 
   return h;
 }
@@ -1388,11 +1385,6 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   {
     GNUNET_SCHEDULER_cancel (h->server_read_task);
     h->server_read_task = NULL;
-  }
-  if (NULL != h->bind_task)
-  {
-    GNUNET_SCHEDULER_cancel (h->bind_task);
-    h->bind_task = NULL;
   }
   if (NULL != h->ifc_task)
   {
@@ -1562,7 +1554,7 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
 
 /**
  * Converts enum GNUNET_NAT_StatusCode to a string
- * 
+ *
  * @param err error code to resolve to a string
  * @return pointer to a static string containing the error code
  */
