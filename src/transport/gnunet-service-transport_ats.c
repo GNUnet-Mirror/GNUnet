@@ -264,6 +264,7 @@ unblock_address (void *cls,
                                    ai->address,
                                    ai->session,
                                    NULL, 0);
+  GNUNET_break (NULL != ai->ar);
   /* FIXME: should pass ATS information here! */
 }
 
@@ -394,6 +395,7 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
                                session,
                                (NULL != session) ? ats2 : ats,
                                (NULL != session) ? ats_count + 1 : ats_count);
+  GNUNET_break (NULL != ar);
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->session = session;
@@ -444,6 +446,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
                                NULL,
                                ats,
                                ats_count);
+  GNUNET_break (NULL != ar);
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->ar = ar;
