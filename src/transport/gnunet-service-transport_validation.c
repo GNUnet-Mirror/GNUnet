@@ -529,7 +529,9 @@ transmit_ping_if_allowed (void *cls,
   hello = GST_hello_get ();
   if (NULL == hello)
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not PINGing peer `%s' as our HELLO is not yet ready\n",
+                GNUNET_i2s (pid));
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -700,7 +702,9 @@ revalidate_address (void *cls,
                               1,
                               GNUNET_NO);
     ve->revalidation_task =
-      GNUNET_SCHEDULER_add_delayed (blocked_for, &revalidate_address, ve);
+      GNUNET_SCHEDULER_add_delayed (blocked_for,
+                                    &revalidate_address,
+                                    ve);
     ve->next_validation = GNUNET_TIME_relative_to_absolute (blocked_for);
     return;
   }
