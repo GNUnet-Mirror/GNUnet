@@ -646,22 +646,12 @@ clients_handle_start (void *cls,
   tc = setup_client (client);
   tc->send_payload = (0 != (2 & options));
   hello = GST_hello_get ();
-  if (NULL == hello)
-  {
-    /* We are during startup and should have no neighbours, hence
-       iteration with NULL must work.  The HELLO will be sent to
-       all clients once it has been created, so this should happen
-       next anyway, and certainly before we get neighbours. */
-    GST_neighbours_iterate (NULL, NULL);
-  }
-  else
-  {
+  if (NULL != hello)
     unicast (tc,
              hello,
              GNUNET_NO);
-    GST_neighbours_iterate (&notify_client_about_neighbour,
-                            tc);
-  }
+  GST_neighbours_iterate (&notify_client_about_neighbour,
+                          tc);
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
 }

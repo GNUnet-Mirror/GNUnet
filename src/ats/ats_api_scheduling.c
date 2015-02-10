@@ -40,6 +40,7 @@
  */
 #define INTERFACE_PROCESSING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
+#define LOG(kind,...) GNUNET_log_from(kind, "ats-scheduling-api", __VA_ARGS__)
 
 /**
  * Session ID we use if there is no session / slot.
@@ -417,11 +418,11 @@ process_ats_address_suggestion_message (void *cls,
     if ( (0 == ntohl (m->bandwidth_out.value__)) &&
          (0 == ntohl (m->bandwidth_in.value__)) )
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "ATS suggests disconnect from peer `%s' with BW %u/%u\n",
-                  GNUNET_i2s (&ar->address->peer),
-                  (unsigned int) ntohl (m->bandwidth_out.value__),
-                  (unsigned int) ntohl (m->bandwidth_in.value__));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "ATS suggests disconnect from peer `%s' with BW %u/%u\n",
+           GNUNET_i2s (&ar->address->peer),
+           (unsigned int) ntohl (m->bandwidth_out.value__),
+           (unsigned int) ntohl (m->bandwidth_in.value__));
       sh->suggest_cb (sh->suggest_cb_cls,
                       &m->peer,
                       NULL,
@@ -439,11 +440,11 @@ process_ats_address_suggestion_message (void *cls,
     return;
   }
   sh->backoff = GNUNET_TIME_UNIT_ZERO;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS suggests address slot %u for peer `%s' using plugin %s\n",
-              ar->slot,
-              GNUNET_i2s (&ar->address->peer),
-              ar->address->transport_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "ATS suggests address slot %u for peer `%s' using plugin %s\n",
+       ar->slot,
+       GNUNET_i2s (&ar->address->peer),
+       ar->address->transport_name);
   sh->suggest_cb (sh->suggest_cb_cls,
                   &m->peer,
                   ar->address,
@@ -466,9 +467,9 @@ error_handler (void *cls,
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "ATS connection died (code %d), reconnecting\n",
-              (int) error);
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "ATS connection died (code %d), reconnecting\n",
+       (int) error);
   force_reconnect (sh);
 }
 
@@ -507,12 +508,12 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
   m->plugin_name_length = htons (namelen);
   m->session_id = htonl (ar->slot);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding address for peer `%s', plugin `%s', session %p slot %u\n",
-              GNUNET_i2s (&ar->address->peer),
-              ar->address->transport_name,
-              ar->session,
-              ar->slot);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding address for peer `%s', plugin `%s', session %p slot %u\n",
+       GNUNET_i2s (&ar->address->peer),
+       ar->address->transport_name,
+       ar->session,
+       ar->slot);
   am = (struct GNUNET_ATS_Information *) &m[1];
   memcpy (am,
           ar->ats,
@@ -706,7 +707,10 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     return NULL;
   }
 
-  if (NOT_FOUND != find_session_id (sh, session, address))
+  if (NOT_FOUND !=
+      find_session_id (sh,
+                       session,
+                       address))
   {
     /* Already existing, nothing todo, but this should not happen */
     GNUNET_break (0);
@@ -796,12 +800,12 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
   struct GNUNET_ATS_Information *am;
   size_t msize;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating address for peer `%s', plugin `%s', session %p slot %u\n",
-              GNUNET_i2s (&ar->address->peer),
-              ar->address->transport_name,
-              ar->session,
-              ar->slot);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating address for peer `%s', plugin `%s', session %p slot %u\n",
+       GNUNET_i2s (&ar->address->peer),
+       ar->address->transport_name,
+       ar->session,
+       ar->slot);
   GNUNET_array_grow (ar->ats,
                      ar->ats_count,
                      ats_count);
@@ -837,12 +841,12 @@ GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar)
   struct GNUNET_MQ_Envelope *ev;
   struct AddressDestroyedMessage *m;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Deleting address for peer `%s', plugin `%s', slot %u session %p\n",
-              GNUNET_i2s (&ar->address->peer),
-              ar->address->transport_name,
-              ar->slot,
-              ar->session);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Deleting address for peer `%s', plugin `%s', slot %u session %p\n",
+       GNUNET_i2s (&ar->address->peer),
+       ar->address->transport_name,
+       ar->slot,
+       ar->session);
   GNUNET_break (NULL == ar->session);
   ar->session = NULL;
   ar->in_destroy = GNUNET_YES;

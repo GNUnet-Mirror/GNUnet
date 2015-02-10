@@ -28,6 +28,9 @@
 #include "ats.h"
 
 
+#define LOG(kind,...) GNUNET_log_from(kind, "ats-connectivity-api", __VA_ARGS__)
+
+
 /**
  * Handle for ATS address suggestion requests.
  */
@@ -149,9 +152,9 @@ error_handler (void *cls,
 {
   struct GNUNET_ATS_ConnectivityHandle *ch = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "ATS connection died (code %d), reconnecting\n",
-              (int) error);
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "ATS connection died (code %d), reconnecting\n",
+       (int) error);
   force_reconnect (ch);
 }
 
@@ -308,9 +311,9 @@ GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
 {
   struct GNUNET_ATS_ConnectivitySuggestHandle *s;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Requesting ATS to suggest address for `%s'\n",
-              GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requesting ATS to suggest address for `%s'\n",
+       GNUNET_i2s (peer));
   s = GNUNET_new (struct GNUNET_ATS_ConnectivitySuggestHandle);
   s->ch = ch;
   s->id = *peer;
@@ -344,9 +347,9 @@ GNUNET_ATS_connectivity_suggest_cancel (struct GNUNET_ATS_ConnectivitySuggestHan
   struct GNUNET_MQ_Envelope *ev;
   struct RequestAddressMessage *m;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Telling ATS we no longer care for an address for `%s'\n",
-              GNUNET_i2s (&sh->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Telling ATS we no longer care for an address for `%s'\n",
+       GNUNET_i2s (&sh->id));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_remove (ch->sug_requests,
                                                        &sh->id,

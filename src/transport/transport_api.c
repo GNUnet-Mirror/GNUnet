@@ -689,8 +689,8 @@ demultiplexer (void *cls,
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving `%s' message for `%4s'.\n",
-         "CONNECT", GNUNET_i2s (&cim->id));
+         "Receiving CONNECT message for `%4s'.\n",
+         GNUNET_i2s (&cim->id));
     n = neighbour_find (h, &cim->id);
     if (NULL != n)
     {
@@ -699,8 +699,7 @@ demultiplexer (void *cls,
     }
     n = neighbour_add (h, &cim->id);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving `%s' message for `%4s' with quota %u\n",
-         "CONNECT",
+         "Receiving CONNECT message for `%4s' with quota %u\n",
          GNUNET_i2s (&cim->id),
          ntohl (cim->quota_out.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
@@ -717,8 +716,8 @@ demultiplexer (void *cls,
     dim = (const struct DisconnectInfoMessage *) msg;
     GNUNET_break (ntohl (dim->reserved) == 0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving `%s' message for `%4s'.\n",
-         "DISCONNECT", GNUNET_i2s (&dim->peer));
+         "Receiving DISCONNECT message for `%4s'.\n",
+         GNUNET_i2s (&dim->peer));
     n = neighbour_find (h, &dim->peer);
     if (NULL == n)
     {
@@ -766,9 +765,6 @@ demultiplexer (void *cls,
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_RECV:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving `%s' message.\n",
-         "RECV");
     if (size <
         sizeof (struct InboundMessage) + sizeof (struct GNUNET_MessageHeader))
     {
@@ -795,8 +791,6 @@ demultiplexer (void *cls,
       h->rec (h->cls, &im->peer, imm);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA:
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving `%s' message.\n", "SET_QUOTA");
     if (size != sizeof (struct QuotaSetMessage))
     {
       GNUNET_break (0);
@@ -807,16 +801,18 @@ demultiplexer (void *cls,
     if (NULL == n)
       break;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving `%s' message for `%4s' with quota %u\n",
-         "SET_QUOTA",
+         "Receiving SET_QUOTA message for `%4s' with quota %u\n",
          GNUNET_i2s (&qm->peer),
          ntohl (qm->quota.value__));
-    GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker, qm->quota);
+    GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
+                                           qm->quota);
     break;
   default:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Received unexpected message of type %u in %s:%u\n"),
-         ntohs (msg->type), __FILE__, __LINE__);
+         ntohs (msg->type),
+         __FILE__,
+         __LINE__);
     GNUNET_break (0);
     break;
   }
@@ -880,11 +876,14 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   /* first send control messages */
   while ((NULL != (th = h->control_head)) && (th->notify_size <= size))
   {
-    GNUNET_CONTAINER_DLL_remove (h->control_head, h->control_tail, th);
+    GNUNET_CONTAINER_DLL_remove (h->control_head,
+                                 h->control_tail,
+                                 th);
     nret = th->notify (th->notify_cls, size, &cbuf[ret]);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Added %u bytes of control message at %u\n",
-         nret, ret);
+         nret,
+         ret);
     GNUNET_free (th);
     ret += nret;
     size -= nret;
@@ -1093,13 +1092,11 @@ send_start (void *cls, size_t size, void *buf)
   {
     /* Can only be shutdown, just give up */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Shutdown while trying to transmit `%s' request.\n",
-         "START");
+         "Shutdown while trying to transmit START request.\n");
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting `%s' request.\n",
-       "START");
+       "Transmitting START request.\n");
   GNUNET_assert (size >= sizeof (struct StartMessage));
   s.header.size = htons (sizeof (struct StartMessage));
   s.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_START);

@@ -271,11 +271,12 @@ interface_proc (void *cls,
   /* Store in list */
 #if VERBOSE_ATS
   char * netmask = GNUNET_strdup (GNUNET_a2s((struct sockaddr *) net->netmask, addrlen));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding network `%s', netmask `%s'\n",
-              GNUNET_a2s ((struct sockaddr *) net->network,
-                          addrlen),
-              netmask);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   "ats-scanner-api",
+                   "Adding network `%s', netmask `%s'\n",
+                   GNUNET_a2s ((struct sockaddr *) net->network,
+                               addrlen),
+                   netmask);
   GNUNET_free (netmask);
 #endif
   GNUNET_CONTAINER_DLL_insert (is->net_head,
@@ -392,7 +393,7 @@ GNUNET_ATS_scanner_address_get_type (struct GNUNET_ATS_InterfaceScanner *is,
   if (type == GNUNET_ATS_NET_UNSPECIFIED)
     type = GNUNET_ATS_NET_WAN;
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "ats-scheduling-api",
+                   "ats-scanner-api",
                    "`%s' is in network `%s'\n",
                    GNUNET_a2s (addr,
                                addrlen),

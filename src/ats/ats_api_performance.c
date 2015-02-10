@@ -27,6 +27,10 @@
 #include "gnunet_ats_service.h"
 #include "ats.h"
 
+
+#define LOG(kind,...) GNUNET_log_from(kind, "ats-performance-api", __VA_ARGS__)
+
+
 /**
  * Message in linked list we should send to the ATS service.  The
  * actual binary message follows this struct.
@@ -520,11 +524,10 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received %s message for peer %s and plugin %s\n",
-              "ATS_ADDRESSLIST_RESPONSE",
-              GNUNET_i2s (&pi->peer),
-              plugin_name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received ATS_ADDRESSLIST_RESPONSE message for peer %s and plugin %s\n",
+       GNUNET_i2s (&pi->peer),
+       plugin_name);
 
   next = ph->addresslist_head;
   while (NULL != (alh = next))
@@ -546,9 +549,8 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
        (0 == ats_count) )
   {
     /* Done */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received last message for %s\n",
-                "ATS_ADDRESSLIST_RESPONSE");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received last message for ATS_ADDRESSLIST_RESPONSE\n");
     bandwidth_zero.value__ = htonl (0);
     GNUNET_CONTAINER_DLL_remove (ph->addresslist_head,
                                  ph->addresslist_tail,
@@ -622,8 +624,8 @@ process_ats_message (void *cls,
   return;
 
  reconnect:
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Reconnecting!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Reconnecting!\n");
   if (NULL != ph->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (ph->th);
