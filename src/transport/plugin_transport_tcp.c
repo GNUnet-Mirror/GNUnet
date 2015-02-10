@@ -331,6 +331,11 @@ struct Session
   unsigned int msgs_in_queue;
 
   /**
+   * Network type of the address.
+   */
+  enum GNUNET_ATS_Network_Type scope;
+
+  /**
    * Are we still expecting the welcome message? (#GNUNET_YES/#GNUNET_NO)
    */
   int expecting_welcome;
@@ -340,11 +345,8 @@ struct Session
    */
   int is_nat;
 
-  /**
-   * ATS network type in NBO
-   */
-  enum GNUNET_ATS_Network_Type ats_address_network_type;
 };
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -1011,7 +1013,7 @@ create_session (struct Plugin *plugin,
   session->address = GNUNET_HELLO_address_copy (address);
   session->target = address->peer;
   session->expecting_welcome = GNUNET_YES;
-  session->ats_address_network_type = GNUNET_ATS_NET_UNSPECIFIED;
+  session->scope = GNUNET_ATS_NET_UNSPECIFIED;
   pm = GNUNET_malloc (sizeof (struct PendingMessage) +
       sizeof (struct WelcomeMessage));
   pm->msg = (const char *) &pm[1];
@@ -1627,7 +1629,7 @@ tcp_plugin_get_session (void *cls,
   }
 
   net_type = plugin->env->get_address_type (plugin->env->cls, sb, sbs);
-
+  GNUNET_break (net_type != GNUNET_ATS_NET_UNSPECIFIED);
 
   if ((is_natd == GNUNET_YES) && (addrlen == sizeof(struct IPv6TcpAddress)))
   {
@@ -1661,8 +1663,7 @@ tcp_plugin_get_session (void *cls,
                               address,
                               NULL,
                               GNUNET_YES);
-    session->ats_address_network_type = net_type;
-    GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
+    session->scope = net_type;
     session->nat_connection_timeout = GNUNET_SCHEDULER_add_delayed (NAT_TIMEOUT,
                                                                     &nat_connect_timeout,
                                                                     session);
@@ -1759,9 +1760,9 @@ tcp_plugin_get_session (void *cls,
                             address,
                             GNUNET_SERVER_connect_socket (plugin->server, sa),
                             GNUNET_NO);
-  session->ats_address_network_type = net_type;
-  GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
-  GNUNET_SERVER_client_set_user_context(session->client, session);
+  session->scope = net_type;
+  GNUNET_SERVER_client_set_user_context (session->client,
+                                         session);
   GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
                                      &session->target,
                                      session,
@@ -2253,6 +2254,7 @@ handle_tcp_nat_probe (void *cls,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
  * We've received a welcome from this peer via TCP.  Possibly create a
  * fresh client record and send back our welcome.
@@ -2276,8 +2278,6 @@ handle_tcp_welcome (void *cls,
   struct IPv6TcpAddress t6;
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
-  struct GNUNET_ATS_Information ats;
-
 
   if (0 == memcmp (&wm->clientIdentity,
                    plugin->env->my_identity,
@@ -2369,12 +2369,10 @@ handle_tcp_welcome (void *cls,
                                 client,
                                 GNUNET_NO);
       GNUNET_HELLO_address_free (address);
-      session->ats_address_network_type
+      session->scope
         = plugin->env->get_address_type (plugin->env->cls,
                                          vaddr,
                                          alen);
-      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      ats.value = htonl (session->ats_address_network_type);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Creating new%s session %p for peer `%s' client %p \n",
            GNUNET_HELLO_address_check_option (session->address,
@@ -2395,7 +2393,7 @@ handle_tcp_welcome (void *cls,
       plugin->env->session_start (plugin->env->cls,
                                   session->address,
                                   session,
-                                  &ats, 1);
+                                  session->scope);
       notify_session_monitor (plugin,
                               session,
                               GNUNET_TRANSPORT_SS_INIT);
@@ -2443,7 +2441,6 @@ handle_tcp_data (void *cls,
   struct Session *session;
   struct GNUNET_TIME_Relative delay;
   uint16_t type;
-  struct GNUNET_ATS_Information distance;
 
   type = ntohs (message->type);
   if ( (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == type) ||
@@ -2507,10 +2504,6 @@ handle_tcp_data (void *cls,
                             ntohs (message->size),
                             GNUNET_NO);
 
-  distance.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  distance.value = htonl ((uint32_t) session->ats_address_network_type);
-  GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
-
   GNUNET_assert (GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
                                                                &session->target,
                                                                session));
@@ -2518,10 +2511,6 @@ handle_tcp_data (void *cls,
                                 session->address,
                                 session,
                                 message);
-  plugin->env->update_address_metrics (plugin->env->cls,
-                                       session->address,
-                                       session,
-                                       &distance, 1);
   reschedule_session_timeout (session);
   if (0 == delay.rel_value_us)
   {
@@ -2680,7 +2669,7 @@ static enum GNUNET_ATS_Network_Type
 tcp_plugin_get_network (void *cls,
                         struct Session *session)
 {
-  return session->ats_address_network_type;
+  return session->scope;
 }
 
 

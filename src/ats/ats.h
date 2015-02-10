@@ -27,6 +27,8 @@
 #define ATS_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
+
 
 /**
  * Flag used to indicate which type of client is connecting
@@ -115,16 +117,6 @@ struct AddressAddMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Length of the `struct GNUNET_ATS_Information` array that follows this struct.
-   */
-  uint32_t ats_count GNUNET_PACKED;
-
-  /**
-   * Identity of the peer that this address is for.
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
    * Number of bytes in the address that follows this struct.
    */
   uint16_t address_length GNUNET_PACKED;
@@ -133,6 +125,11 @@ struct AddressAddMessage
    * Number of bytes in the plugin name that follows this struct.
    */
   uint16_t plugin_name_length GNUNET_PACKED;
+
+  /**
+   * Identity of the peer that this address is for.
+   */
+  struct GNUNET_PeerIdentity peer;
 
   /**
    * Internal number this client will henceforth use to
@@ -146,8 +143,12 @@ struct AddressAddMessage
    */
   uint32_t address_local_info GNUNET_PACKED;
 
+  /**
+   * Performance properties of the address.
+   */
+  struct GNUNET_ATS_PropertiesNBO properties;
+
   /* followed by:
-   * - struct GNUNET_ATS_Information [ats_count];
    * - char address[address_length]
    * - char plugin_name[plugin_name_length] (including '\0'-termination).
    */
@@ -167,9 +168,9 @@ struct AddressUpdateMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Length of the `struct GNUNET_ATS_Information` array that follows.
+   * Internal number this client uses to refer to this address.
    */
-  uint32_t ats_count GNUNET_PACKED;
+  uint32_t session_id GNUNET_PACKED;
 
   /**
    * Which peer is this about? (Technically redundant, as the
@@ -179,13 +180,9 @@ struct AddressUpdateMessage
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Internal number this client uses to refer to this address.
+   * Performance properties of the address.
    */
-  uint32_t session_id GNUNET_PACKED;
-
-  /* followed by:
-   * - struct GNUNET_ATS_Information [ats_count];
-   */
+  struct GNUNET_ATS_PropertiesNBO properties;
 
 };
 
@@ -294,7 +291,17 @@ struct PeerInformationMessage
   /**
    *
    */
-  uint32_t ats_count GNUNET_PACKED;
+  uint16_t address_length GNUNET_PACKED;
+
+  /**
+   *
+   */
+  uint16_t plugin_name_length GNUNET_PACKED;
+
+  /**
+   *
+   */
+  struct GNUNET_PeerIdentity peer;
 
   /**
    *
@@ -309,21 +316,6 @@ struct PeerInformationMessage
   /**
    *
    */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
-   *
-   */
-  uint16_t address_length GNUNET_PACKED;
-
-  /**
-   *
-   */
-  uint16_t plugin_name_length GNUNET_PACKED;
-
-  /**
-   *
-   */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
   /**
@@ -331,8 +323,12 @@ struct PeerInformationMessage
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
+  /**
+   * Performance properties of the address.
+   */
+  struct GNUNET_ATS_PropertiesNBO properties;
+
   /* followed by:
-   * - struct GNUNET_ATS_Information [ats_count];
    * - char address[address_length]
    * - char plugin_name[plugin_name_length] (including '\0'-termination).
    */

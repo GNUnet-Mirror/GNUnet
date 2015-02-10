@@ -235,12 +235,12 @@ struct GAS_NormalizationInfo
   /**
    * Averaging queue
    */
-  uint32_t atsi_abs[GAS_normalization_queue_length];
+  uint64_t atsi_abs[GAS_normalization_queue_length];
 
   /**
    * Averaged ATSI values from queue
    */
-  uint32_t avg;
+  uint64_t avg;
 
   /**
    * Normalized values from queue to a range of values [1.0...2.0]
@@ -277,7 +277,7 @@ struct ATS_Address
   /**
    * ATS performance information for this address
    */
-  struct GNUNET_ATS_Information *atsi;
+  struct GNUNET_ATS_Properties properties;
 
   /**
    * Time when address had last activity (update, in uses)
@@ -336,10 +336,25 @@ struct ATS_Address
   int active;
 
   /**
-   * Normalized ATS performance information for this address
-   * Each entry can be accessed using the GNUNET_ATS_QualityProperties avg_queue_index
+   * Normalized delay information for this address.
    */
-  struct GAS_NormalizationInfo atsin[GNUNET_ATS_QualityPropertiesCount];
+  struct GAS_NormalizationInfo norm_delay;
+
+  /**
+   * Normalized distance information for this address.
+   */
+  struct GAS_NormalizationInfo norm_distance;
+
+  /**
+   * Normalized utilization inbound for this address.
+   */
+  struct GAS_NormalizationInfo norm_utilization_in;
+
+    /**
+   * Normalized utilization outbound for this address.
+   */
+  struct GAS_NormalizationInfo norm_utilization_out;
+
 };
 
 
@@ -375,8 +390,7 @@ GAS_addresses_done (void);
  * @param plugin_addr_len length of the @a plugin_addr
  * @param local_address_info the local address for the address
  * @param session_id session id, can never be 0.
- * @param atsi performance information for this address
- * @param atsi_count number of performance information contained in @a atsi
+ * @param prop performance information for this address
  */
 void
 GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
@@ -385,8 +399,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
                    size_t plugin_addr_len,
                    uint32_t local_address_info,
                    uint32_t session_id,
-                   const struct GNUNET_ATS_Information *atsi,
-                   uint32_t atsi_count);
+                   const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -394,14 +407,12 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
  *
  * @param peer peer
  * @param session_id session id, can never be 0
- * @param atsi performance information for this address
- * @param atsi_count number of performance information contained in @a atsi
+ * @param prop performance information for this address
  */
 void
 GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                       uint32_t session_id,
-                      const struct GNUNET_ATS_Information *atsi,
-                      uint32_t atsi_count);
+                      const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -432,7 +443,6 @@ GAS_addresses_destroy_all (void);
  * @param plugin_addr_len length of @a plugin_addr
  * @param address_active is address actively used
  * @param atsi ats performance information
- * @param atsi_count number of ats performance elements in @a atsi
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
@@ -443,8 +453,7 @@ typedef void
                                  const void *plugin_addr,
                                  size_t plugin_addr_len,
                                  const int address_active,
-                                 const struct GNUNET_ATS_Information *atsi,
-                                 uint32_t atsi_count,
+                                 const struct GNUNET_ATS_Properties *prop,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 

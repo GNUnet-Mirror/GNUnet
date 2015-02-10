@@ -62,32 +62,38 @@ GNUNET_ATS_print_network_type (enum GNUNET_ATS_Network_Type net)
 
 
 /**
- * Convert a ATS property to a string
+ * Convert ATS properties from host to network byte order.
  *
- * @param type the property type
- * @return a string or NULL if invalid
+ * @param nbo[OUT] value written
+ * @param hbo value read
  */
-const char *
-GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type)
+void
+GNUNET_ATS_properties_hton (struct GNUNET_ATS_PropertiesNBO *nbo,
+                            const struct GNUNET_ATS_Properties *hbo)
 {
-  switch (type)
-  {
-  case GNUNET_ATS_ARRAY_TERMINATOR:
-    return "TERMINATOR";
-  case GNUNET_ATS_UTILIZATION_OUT:
-    return "UTILIZATION_UP";
-  case GNUNET_ATS_UTILIZATION_IN:
-    return "UTILIZATION_DOWN";
-  case GNUNET_ATS_NETWORK_TYPE:
-    return "NETWORK_TYPE";
-  case GNUNET_ATS_QUALITY_NET_DELAY:
-    return "DELAY";
-  case GNUNET_ATS_QUALITY_NET_DISTANCE:
-    return "DISTANCE";
-  default:
-    GNUNET_break (0);
-    return NULL;
-  }
+  nbo->utilization_out = htonl (hbo->utilization_out);
+  nbo->utilization_in = htonl (hbo->utilization_in);
+  nbo->scope = htonl ((uint32_t) hbo->scope);
+  nbo->distance = htonl (hbo->distance);
+  nbo->delay = GNUNET_TIME_relative_hton (hbo->delay);
+}
+
+
+/**
+ * Convert ATS properties from network to host byte order.
+ *
+ * @param hbo[OUT] value written
+ * @param nbo value read
+ */
+void
+GNUNET_ATS_properties_ntoh (struct GNUNET_ATS_Properties *hbo,
+                            const struct GNUNET_ATS_PropertiesNBO *nbo)
+{
+  hbo->utilization_out = ntohl (nbo->utilization_out);
+  hbo->utilization_in = ntohl (nbo->utilization_in);
+  hbo->scope = ntohl ((uint32_t) nbo->scope);
+  hbo->distance = ntohl (nbo->distance);
+  hbo->delay = GNUNET_TIME_relative_ntoh (nbo->delay);
 }
 
 

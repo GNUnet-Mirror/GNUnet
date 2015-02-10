@@ -85,19 +85,15 @@ static struct TransportPlugin *plugins_tail;
  * @param cls closure
  * @param address address to update metrics for
  * @param session the session
- * @param ats the ats information to update
- * @param ats_count the number of @a ats elements
+ * @param distance new distance
  */
 static void
-plugin_env_update_metrics (void *cls,
-                           const struct GNUNET_HELLO_Address *address,
-                           struct Session *session,
-                           const struct GNUNET_ATS_Information *ats,
-                           uint32_t ats_count)
+plugin_env_update_distance (void *cls,
+                            const struct GNUNET_HELLO_Address *address,
+                            uint32_t distance)
 {
-  GST_ats_update_metrics (address,
-                          session,
-                          ats, ats_count);
+  GST_ats_update_distance (address,
+                           distance);
 }
 
 
@@ -191,7 +187,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.session_start = session_start_cb;
     plug->env.session_end = session_end_cb;
     plug->env.get_address_type = &plugin_env_address_to_type;
-    plug->env.update_address_metrics = &plugin_env_update_metrics;
+    plug->env.update_address_distance = &plugin_env_update_distance;
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
     GNUNET_CONTAINER_DLL_insert (plugins_head,

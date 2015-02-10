@@ -68,7 +68,8 @@ struct Entry
   struct GNUNET_PeerIdentity id;
 
   /**
-   * The last known value for latency
+   * The last known value for latency.
+   * FIXME: type!
    */
   unsigned int latency;
 
@@ -166,8 +167,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
+ * @param prop performance data for the address (as far as known)
  */
 static void
 addr_info_cb (void *cls,
@@ -175,8 +175,7 @@ addr_info_cb (void *cls,
               int address_active,
               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-              const struct GNUNET_ATS_Information *ats,
-              uint32_t ats_count)
+              const struct GNUNET_ATS_Properties *prop)
 {
   static const char *query_insert =
       "INSERT INTO ats_info("
@@ -189,8 +188,7 @@ addr_info_cb (void *cls,
       " datetime('now')"
       ");";
   struct Entry *entry;
-  int latency;
-  unsigned int cnt;
+  int latency; /* FIXME: type!? */
 
   if (NULL == address)
   {
@@ -201,15 +199,7 @@ addr_info_cb (void *cls,
   GNUNET_assert (NULL != db);
   if (GNUNET_YES != address_active)
     return;
-  for (cnt = 0; cnt < ats_count; cnt++)
-  {
-    if (GNUNET_ATS_QUALITY_NET_DELAY == ntohl (ats[cnt].type))
-      goto insert;
-  }
-  return;
-
- insert:
-  latency = (int) ntohl (ats[cnt].value);
+  latency = (int) prop->delay.rel_value_us;
   entry = NULL;
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (map,
                                                             &address->peer))

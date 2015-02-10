@@ -743,18 +743,17 @@ plugin_env_session_start_bl_check_cont (void *cls,
  * @param cls unused
  * @param address the address
  * @param session the new session
- * @param ats ats information
- * @param ats_count number of @a ats information
+ * @param scope network scope information
  */
 static void
 plugin_env_session_start (void *cls,
                           const struct GNUNET_HELLO_Address *address,
                           struct Session *session,
-                          const struct GNUNET_ATS_Information *ats,
-                          uint32_t ats_count)
+                          enum GNUNET_ATS_Network_Type scope)
 {
   struct BlacklistCheckContext *blctx;
   struct GST_BlacklistCheck *blc;
+  struct GNUNET_ATS_Properties prop;
 
   if (NULL == address)
   {
@@ -767,9 +766,8 @@ plugin_env_session_start (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Notification from plugin `%s' about new session %p from peer `%s' address `%s'\n",
+              "Notification from plugin `%s' about new session from peer `%s' address `%s'\n",
               address->transport_name,
-              session,
               GNUNET_i2s (&address->peer),
               GST_plugins_a2s (address));
   if (GNUNET_YES ==
@@ -779,22 +777,12 @@ plugin_env_session_start (void *cls,
     /* inbound is always new, but outbound MAY already be known, but
        for example for UNIX, we have symmetric connections and thus we
        may not know the address yet; add if necessary! */
+    /* FIXME: maybe change API here so we just pass scope? */
+    memset (&prop, 0, sizeof (prop));
+    prop.scope = scope;
     GST_ats_add_inbound_address (address,
                                  session,
-                                 ats,
-                                 ats_count);
-  }
-  else
-  {
-    if (GNUNET_YES ==
-        GST_ats_is_known (address,
-                          session))
-    {
-      GST_ats_update_metrics (address,
-                              session,
-                              ats,
-                              ats_count);
-    }
+                                 &prop);
   }
   /* Do blacklist check if communication with this peer is allowed */
   blctx = GNUNET_new (struct BlacklistCheckContext);
@@ -1034,7 +1022,7 @@ run (void *cls,
                                         &ats_request_address_change,
                                         NULL);
   GST_ats_init ();
-  GST_manipulation_init (GST_cfg);
+  GST_manipulation_init ();
   GST_plugins_load (&GST_manipulation_recv,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_start,
@@ -1053,7 +1041,8 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char * const *argv)
+main (int argc,
+      char * const *argv)
 {
   return
       (GNUNET_OK

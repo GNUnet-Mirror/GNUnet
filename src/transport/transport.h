@@ -468,7 +468,7 @@ struct ValidationMonitorMessage
   /**
    * One shot call or continous replies?
    */
-  uint32_t one_shot;
+  uint32_t one_shot GNUNET_PACKED;
 
   /**
    * The identity of the peer to look up.
@@ -492,7 +492,7 @@ struct PeerMonitorMessage
   /**
    * One shot call or continous replies?
    */
-  uint32_t one_shot;
+  uint32_t one_shot GNUNET_PACKED;
 
   /**
    * The identity of the peer to look up.
@@ -514,19 +514,29 @@ struct TrafficMetricMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * SEND, RECEIVE or BOTH?
+   * Always zero.
    */
-  uint16_t direction;
-
-  /**
-   * Traffic metrics count
-   */
-  uint16_t ats_count;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * The identity of the peer to look up.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Fake properties to generate.
+   */
+  struct GNUNET_ATS_PropertiesNBO properties;
+
+  /**
+   * Fake delay to add on inbound traffic.
+   */
+  struct GNUNET_TIME_RelativeNBO delay_in;
+
+  /**
+   * Fake delay to add on outbound traffic.
+   */
+  struct GNUNET_TIME_RelativeNBO delay_out;
 };
 
 

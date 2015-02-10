@@ -169,6 +169,7 @@ libgnunettransport_la_SOURCES = \
   transport_api_monitor_validation.c
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 libgnunettransport_la_LDFLAGS = \

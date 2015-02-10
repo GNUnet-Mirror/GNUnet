@@ -318,11 +318,6 @@ struct Plugin
   uint32_t myoptions;
 
   /**
-   * ATS network
-   */
-  struct GNUNET_ATS_Information ats_network;
-
-  /**
    * Are we using an abstract UNIX domain socket?
    */
   int is_abstract;
@@ -947,12 +942,12 @@ static void
 unix_demultiplexer (struct Plugin *plugin,
                     struct GNUNET_PeerIdentity *sender,
                     const struct GNUNET_MessageHeader *currhdr,
-                    const struct UnixAddress *ua, size_t ua_len)
+                    const struct UnixAddress *ua,
+                    size_t ua_len)
 {
   struct Session *session;
   struct GNUNET_HELLO_Address *address;
 
-  GNUNET_break (ntohl(plugin->ats_network.value) != GNUNET_ATS_NET_UNSPECIFIED);
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message from %s\n",
@@ -975,7 +970,7 @@ unix_demultiplexer (struct Plugin *plugin,
     plugin->env->session_start (NULL,
                                 session->address,
                                 session,
-                                &plugin->ats_network, 1);
+                                GNUNET_ATS_NET_LOOPBACK);
   }
   else
   {
@@ -986,10 +981,6 @@ unix_demultiplexer (struct Plugin *plugin,
                         session->address,
                         session,
                         currhdr);
-  plugin->env->update_address_metrics (plugin->env->cls,
-                                       session->address,
-                                       session,
-				       &plugin->ats_network, 1);
 }
 
 
@@ -1387,10 +1378,6 @@ unix_transport_server_start (void *cls)
     plugin->unix_socket_path[0] = '@';
     un->sun_path[0] = '\0';
   }
-  plugin->ats_network.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  plugin->ats_network.value = htonl (plugin->env->get_address_type (plugin->env->cls,
-                                                                    (const struct sockaddr *) un,
-                                                                    un_len));
   plugin->unix_sock.desc =
       GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
   if (NULL == plugin->unix_sock.desc)

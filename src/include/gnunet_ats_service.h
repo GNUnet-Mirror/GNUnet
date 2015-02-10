@@ -100,137 +100,118 @@ enum GNUNET_ATS_Network_Type
 
 
 /**
- * Enum defining all known property types for ATS Enum values are used
- * in the GNUNET_ATS_Information struct as
- * (key,value)-pairs.
- *
- * Cost are always stored in uint32_t, so all units used to define costs
- * have to be normalized to fit in uint32_t [0 .. UINT32_MAX-1]
- *
- * UINT32_MAX is reserved for uninitialized values #GNUNET_ATS_VALUE_UNDEFINED
+ * ATS performance characteristics for an address.
  */
-enum GNUNET_ATS_Property
+struct GNUNET_ATS_Properties
 {
-
-  /**
-   * End of the array.
-   * @deprecated
-   */
-  GNUNET_ATS_ARRAY_TERMINATOR = 0,
 
   /**
    * Actual traffic on this connection from this peer to the other peer.
-   * Includes transport overhead
+   * Includes transport overhead.
    *
    * Unit: [bytes/second]
    */
-  GNUNET_ATS_UTILIZATION_OUT = 1,
+  uint32_t utilization_out;
 
   /**
    * Actual traffic on this connection from the other peer to this peer.
-   * Includes transport overhead
+   * Includes transport overhead.
    *
    * Unit: [bytes/second]
    */
-  GNUNET_ATS_UTILIZATION_IN = 2,
+  uint32_t utilization_in;
 
   /**
-   * Is this address located in WAN, LAN or a loopback address
-   * Value is element of GNUNET_ATS_Network_Type
+   * Which network scope does the respective address belong to?
+   * This property does not change.
    */
-  GNUNET_ATS_NETWORK_TYPE = 3,
+  enum GNUNET_ATS_Network_Type scope;
 
   /**
-   * Delay
-   * Time between when the time packet is sent and the packet arrives
-   *
-   * Unit: [microseconds]
-   *
-   * Examples:
-   *
-   * LAN   :    1
-   * WLAN  :    2
-   * Dialup:  500
+   * Distance on network layer (required for distance-vector routing)
+   * in hops.  Zero for direct connections (i.e. plain TCP/UDP).
    */
-  GNUNET_ATS_QUALITY_NET_DELAY = 4,
+  unsigned int distance;
 
   /**
-   * Distance on network layer (required for distance-vector routing).
-   *
-   * Unit: [DV-hops]
+   * Delay.  Time between when the time packet is sent and the packet
+   * arrives.  FOREVER if we did not measure yet.
    */
-  GNUNET_ATS_QUALITY_NET_DISTANCE = 5
-
-/**
- * Number of property types supported by ATS
- */
-#define GNUNET_ATS_PropertyCount 6
-
+  struct GNUNET_TIME_Relative delay;
 
 };
 
 
 /**
- * Number of ATS quality properties
+ * ATS performance characteristics for an address in
+ * network byte order (for IPC).
  */
-#define GNUNET_ATS_QualityPropertiesCount 2
-
-/**
- * ATS quality properties as array initializer
- */
-#define GNUNET_ATS_QualityProperties { GNUNET_ATS_QUALITY_NET_DELAY, GNUNET_ATS_QUALITY_NET_DISTANCE }
-
-/**
- * ATS quality properties as string array initializer
- */
-#define GNUNET_ATS_QualityPropertiesString {"Delay", "Distance"}
-
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * struct used to communicate the transport's properties like cost and
- * quality of service as well as high-level constraints on resource
- * consumption.
- *
- *                             +---+
- *  +-----------+ Constraints  |   |  Plugin properties +---------+
- *  | Highlevel |------------> |ATS| <------------------|Transport|
- *  | Component | ATS struct   |   |    ATS struct      | Plugin  |
- *  +-----------+              |   |                    +---------+
- *                             +---+
- *
- * This structure will be used by transport plugins to communicate
- * costs to ATS or by higher level components to tell ATS their
- * constraints.  Always a pair of (GNUNET_ATS_Property,
- * uint32_t value).  Value is always uint32_t, so all units used to
- * define costs have to be normalized to fit uint32_t.
- */
-struct GNUNET_ATS_Information
+struct GNUNET_ATS_PropertiesNBO
 {
-  /**
-   * ATS property type, in network byte order.
-   */
-  uint32_t type GNUNET_PACKED;
 
   /**
-   * ATS property value, in network byte order.
+   * Actual traffic on this connection from this peer to the other peer.
+   * Includes transport overhead.
+   *
+   * Unit: [bytes/second]
    */
-  uint32_t value GNUNET_PACKED;
+  uint32_t utilization_out GNUNET_PACKED;
+
+  /**
+   * Actual traffic on this connection from the other peer to this peer.
+   * Includes transport overhead.
+   *
+   * Unit: [bytes/second]
+   */
+  uint32_t utilization_in GNUNET_PACKED;
+
+  /**
+   * Which network scope does the respective address belong to?
+   * This property does not change.
+   */
+  uint32_t scope GNUNET_PACKED;
+
+  /**
+   * Distance on network layer (required for distance-vector routing)
+   * in hops.  Zero for direct connections (i.e. plain TCP/UDP).
+   */
+  uint32_t distance GNUNET_PACKED;
+
+  /**
+   * Delay.  Time between when the time packet is sent and the packet
+   * arrives.  FOREVER if we did not measure yet.
+   */
+  struct GNUNET_TIME_RelativeNBO delay;
+
 };
-GNUNET_NETWORK_STRUCT_END
+
 
 
 /* ********************* LAN Characterization library ************************ */
 /* Note: these functions do not really communicate with the ATS service */
 
+
 /**
- * Convert a ATS property to a string
+ * Convert ATS properties from host to network byte order.
  *
- * @param type the property type
- * @return a string or NULL if invalid
+ * @param nbo[OUT] value written
+ * @param hbo value read
  */
-const char *
-GNUNET_ATS_print_property_type (enum GNUNET_ATS_Property type);
+void
+GNUNET_ATS_properties_hton (struct GNUNET_ATS_PropertiesNBO *nbo,
+                            const struct GNUNET_ATS_Properties *hbo);
+
+
+/**
+ * Convert ATS properties from network to host byte order.
+ *
+ * @param hbo[OUT] value written
+ * @param nbo value read
+ */
+void
+GNUNET_ATS_properties_ntoh (struct GNUNET_ATS_Properties *hbo,
+                            const struct GNUNET_ATS_PropertiesNBO *nbo);
+
 
 
 /**
@@ -367,11 +348,11 @@ struct Session;
  */
 typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+                                         const struct GNUNET_PeerIdentity *peer,
+                                         const struct GNUNET_HELLO_Address *address,
+                                         struct Session *session,
+                                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**
@@ -424,8 +405,7 @@ struct GNUNET_ATS_AddressRecord;
  * @param sh handle
  * @param address the address
  * @param session session handle (if available, i.e. for incoming connections)
- * @param ats performance data for the address
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address
  * @return handle to the address representation inside ATS, NULL
  *         on error (i.e. ATS knows this exact address already, or
  *         address is invalid)
@@ -434,8 +414,7 @@ struct GNUNET_ATS_AddressRecord *
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_HELLO_Address *address,
                         struct Session *session,
-                        const struct GNUNET_ATS_Information *ats,
-                        uint32_t ats_count);
+                        const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -477,13 +456,11 @@ GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
  * suggest to switch addresses.
  *
  * @param ar address record to update information for
- * @param ats performance data for the address
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
-                           const struct GNUNET_ATS_Information *ats,
-                           uint32_t ats_count);
+                           const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -515,8 +492,7 @@ struct GNUNET_ATS_PerformanceHandle;
  *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address
  */
 typedef void
 (*GNUNET_ATS_AddressInformationCallback) (void *cls,
@@ -524,8 +500,7 @@ typedef void
                                           int address_active,
                                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                           struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                                          const struct GNUNET_ATS_Information *ats,
-                                          uint32_t ats_count);
+                                          const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -650,7 +625,7 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc);
 /**
  * ATS preference types as string array initializer
  */
-#define GNUNET_ATS_PreferenceTypeString {"END", "BANDWIDTH", "LATENCY"}
+#define GNUNET_ATS_PreferenceTypeString {"BANDWIDTH", "LATENCY", "END" }
 
 /**
  * Enum defining all known preference categories.
@@ -659,17 +634,12 @@ enum GNUNET_ATS_PreferenceKind
 {
 
   /**
-   * End of preference list.
-   */
-  GNUNET_ATS_PREFERENCE_END = 0,
-
-  /**
    * Change the peer's bandwidth value (value per byte of bandwidth in
    * the goal function) to the given amount.  The argument is followed
    * by a double value giving the desired value (can be negative).
    * Preference changes are forgotten if peers disconnect.
    */
-  GNUNET_ATS_PREFERENCE_BANDWIDTH = 1,
+  GNUNET_ATS_PREFERENCE_BANDWIDTH = 0,
 
   /**
    * Change the peer's latency value to the given amount.  The
@@ -678,13 +648,12 @@ enum GNUNET_ATS_PreferenceKind
    * the inverse of the latency in microseconds (minimum: 1
    * microsecond) multiplied by the latency preferences.
    */
-  GNUNET_ATS_PREFERENCE_LATENCY = 2
+  GNUNET_ATS_PREFERENCE_LATENCY = 1,
 
-/**
- * Number of preference types supported by ATS
- */
-#define GNUNET_ATS_PreferenceCount 3
-
+  /**
+   * End of preference list.
+   */
+  GNUNET_ATS_PREFERENCE_END = 2
 
 };
 
@@ -703,9 +672,9 @@ GNUNET_ATS_print_preference_type (enum GNUNET_ATS_PreferenceKind type);
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
  *
- * @param ph performance handle
- * @param peer identifies the peer
- * @param ... 0-terminated specification of the desired changes
+ * @param ph performance handle @param peer identifies the peer
+ * @param ... #GNUNET_ATS_PREFERENCE_END-terminated specification of the
+ * desired changes
  */
 void
 GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
@@ -728,7 +697,7 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
  * @param ph performance handle
  * @param scope the time interval this valid for: [now - scope .. now]
  * @param peer identifies the peer
- * @param ... 0-terminated specification of the desired changes
+ * @param ... #GNUNET_ATS_PREFERENCE_END-terminated specification of the desired changes
  */
 void
 GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,

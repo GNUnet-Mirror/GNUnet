@@ -166,7 +166,8 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
   /* Store logging data here */
   for (cur = peer_head; NULL != cur; cur = cur->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %llu\n", cur->id);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Logging peer id %llu\n", cur->id);
 
     log_p = GNUNET_new (struct LoggingPeer);
     log_p->id = cur->id;
@@ -176,16 +177,18 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
     {
       log_p->pref_abs[c] = cur->pref_abs[c];
       log_p->pref_norm[c] = cur->pref_norm[c];
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t %s = %.2f %.2f [abs/rel]\n",
-          GNUNET_ATS_print_preference_type(c),
-          log_p->pref_abs[c], log_p->pref_norm[c]);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "\t %s = %.2f %.2f [abs/rel]\n",
+                  GNUNET_ATS_print_preference_type(c),
+                  log_p->pref_abs[c], log_p->pref_norm[c]);
     }
     GNUNET_CONTAINER_DLL_insert_tail(lts->head, lts->tail, log_p);
 
     for (cur_addr = cur->addr_head; NULL != cur_addr; cur_addr = cur_addr->next)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %llu address %llu \n",
-          cur->id, cur_addr->aid);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Logging peer id %llu address %llu\n",
+                  cur->id, cur_addr->aid);
       log_a = GNUNET_new (struct LoggingAddress);
       log_a->aid = cur_addr->aid;
       log_a->active = cur_addr->ats_addr->active;
@@ -196,9 +199,11 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       {
         log_a->prop_abs[c] = cur_addr->prop_abs[c];
         log_a->prop_norm[c] = cur_addr->prop_norm[c];
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t %s = %.2f %.2f [abs/rel]\n",
-            GNUNET_ATS_print_property_type(c),
-            log_a->prop_abs[c], log_a->prop_norm[c]);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "\t %s = %.2f %.2f [abs/rel]\n",
+                    GNUNET_ATS_print_property_type(c),
+                    log_a->prop_abs[c],
+                    log_a->prop_norm[c]);
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t Active = %i\n", log_a->active);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW in = %llu\n", log_a->assigned_bw_in);
@@ -209,16 +214,17 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
   }
 }
 
+
 static void
 logging_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LoggingHandle *l = cls;
+
   l->logging_task = NULL;
-
   GNUNET_ATS_solver_logging_now (l);
-
-  l->logging_task = GNUNET_SCHEDULER_add_delayed (l->log_freq, &logging_task, l);
-
+  l->logging_task = GNUNET_SCHEDULER_add_delayed (l->log_freq,
+                                                  &logging_task,
+                                                  l);
 }
 
 struct LoggingHandle *
@@ -395,7 +401,9 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
               GNUNET_ATS_print_property_type(c),
               log_a->prop_abs[c], log_a->prop_norm[c]);*/
           GNUNET_asprintf(&propstring_tmp,"%s%.3f;%.3f;",
-              propstring, log_a->prop_abs[c], log_a->prop_norm[c]);
+                          propstring,
+                          log_a->prop_abs[c],
+                          log_a->prop_norm[c]);
           GNUNET_free (propstring);
           propstring = GNUNET_strdup(propstring_tmp);
           GNUNET_free (propstring_tmp);
@@ -519,9 +527,9 @@ GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
 /**
  * Property Generators
  */
-
 static struct PropertyGenerator *prop_gen_head;
 static struct PropertyGenerator *prop_gen_tail;
+
 
 static double
 get_property (struct PropertyGenerator *pg)
@@ -3001,7 +3009,7 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
   }
   else
     return GAS_preference_get_by_peer (NULL,
-						      id);
+                                       id);
 }
 
 

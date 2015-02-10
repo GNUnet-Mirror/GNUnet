@@ -1054,7 +1054,8 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
  * @return a `struct GNUNET_TRANSPORT_TransmitHandle`
  */
 static struct GNUNET_TRANSPORT_TransmitHandle *
-schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h, size_t size,
+schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h,
+                           size_t size,
                            GNUNET_TRANSPORT_TransmitReadyNotify notify,
                            void *notify_cls)
 {
@@ -1476,7 +1477,9 @@ send_hello (void *cls, size_t size, void *buf)
  * @return number of bytes copied to @a buf
  */
 static size_t
-send_metric (void *cls, size_t size, void *buf)
+send_metric (void *cls,
+             size_t size,
+             void *buf)
 {
   struct TrafficMetricMessage *msg = cls;
   uint16_t ssize;
@@ -1484,14 +1487,12 @@ send_metric (void *cls, size_t size, void *buf)
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Timeout while trying to transmit `%s' request.\n",
-         "TRAFFIC_METRIC");
+         "Timeout while trying to transmit TRAFFIC_METRIC request.\n");
     GNUNET_free (msg);
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting `%s' request.\n",
-       "TRAFFIC_METRIC");
+       "Transmitting TRAFFIC_METRIC request.\n");
   ssize = ntohs (msg->header.size);
   GNUNET_assert (size >= ssize);
   memcpy (buf, msg, ssize);
@@ -1505,56 +1506,35 @@ send_metric (void *cls, size_t size, void *buf)
  *
  * @param handle transport handle
  * @param peer the peer to set the metric for
- * @param inbound set inbound direction (#GNUNET_YES or #GNUNET_NO)
- * @param outbound set outbound direction (#GNUNET_YES or #GNUNET_NO)
- * @param ats the metric as ATS information
- * @param ats_count the number of metrics
+ * @param prop the performance metrics to set
+ * @param delay_in inbound delay to introduce
+ * @param delay_out outbound delay to introduce
  *
- * Supported ATS values:
- * #GNUNET_ATS_QUALITY_NET_DELAY  (value in ms)
- * #GNUNET_ATS_QUALITY_NET_DISTANCE (value in count(hops))
- *
- * Example:
- * To enforce a delay of 10 ms for peer p1 in sending direction use:
- * <code>
- * struct GNUNET_ATS_Information ats;
- * ats.type = ntohl (GNUNET_ATS_QUALITY_NET_DELAY);
- * ats.value = ntohl (10);
- * GNUNET_TRANSPORT_set_traffic_metric (th, p1, TM_SEND, &ats, 1);
- * </code>
- * Note:
- * Delay restrictions in receiving direction will be enforced with
- * 1 message delay.
+ * Note: Delay restrictions in receiving direction will be enforced
+ * with one message delay.
  */
 void
 GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
-                                     const struct GNUNET_PeerIdentity *peer,
-                                     int inbound,
-                                     int outbound,
-                                     const struct GNUNET_ATS_Information *ats,
-                                     size_t ats_count)
+				     const struct GNUNET_PeerIdentity *peer,
+				     const struct GNUNET_ATS_Properties *prop,
+                                     struct GNUNET_TIME_Relative delay_in,
+                                     struct GNUNET_TIME_Relative delay_out)
 {
   struct TrafficMetricMessage *msg;
 
-  GNUNET_assert ((outbound == GNUNET_YES) || (outbound == GNUNET_NO));
-  GNUNET_assert ((inbound == GNUNET_YES) || (inbound == GNUNET_NO));
-  if ((GNUNET_NO == inbound) && (GNUNET_NO == outbound))
-    return;
-  if (0 == ats_count)
-    return;
-
-  size_t len = sizeof (struct TrafficMetricMessage) +
-    ats_count * sizeof (struct GNUNET_ATS_Information);
-
-  msg = GNUNET_malloc (len);
-  msg->header.size = htons (len);
+  msg = GNUNET_new (struct TrafficMetricMessage);
+  msg->header.size = htons (sizeof (struct TrafficMetricMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC);
-  msg->direction = htons (0 + outbound + 2 * inbound);
-  msg->ats_count = htons (ats_count);
-  msg->peer = (*peer);
-  memcpy (&msg[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
-  schedule_control_transmit (handle, len,
-                             &send_metric, msg);
+  msg->reserved = htonl (0);
+  msg->peer = *peer;
+  GNUNET_ATS_properties_hton (&msg->properties,
+                              prop);
+  msg->delay_in = GNUNET_TIME_relative_hton (delay_in);
+  msg->delay_out = GNUNET_TIME_relative_hton (delay_out);
+  schedule_control_transmit (handle,
+                             sizeof (struct TrafficMetricMessage),
+                             &send_metric,
+                             msg);
 }
 
 

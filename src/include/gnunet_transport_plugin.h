@@ -80,15 +80,13 @@ typedef void
  * @param cls unused
  * @param address the address
  * @param session the new session
- * @param ats ats information
- * @param ats_count number of @a ats information
+ * @param net network information
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionStart) (void *cls,
                                   const struct GNUNET_HELLO_Address *address,
                                   struct Session *session,
-                                  const struct GNUNET_ATS_Information *ats,
-                                  uint32_t ats_count);
+                                  enum GNUNET_ATS_Network_Type net);
 
 
 /**
@@ -137,22 +135,16 @@ typedef enum GNUNET_ATS_Network_Type
 
 
 /**
- * Function called when quality properties of an address change.
+ * Function called when distance of an address changes.
  *
  * @param cls closure
  * @param peer peer
- * @param address address
- * @param address_len length of the @a address
- * @param session session
- * @param ats ATS information
- * @param ats_count number entries in the @a ats array
+ * @param distance new distance
  */
 typedef void
-(*GNUNET_TRANSPORT_UpdateAddressMetrics) (void *cls,
-					  const struct GNUNET_HELLO_Address *address,
-					  struct Session *session,
-					  const struct GNUNET_ATS_Information *ats,
-					  uint32_t ats_count);
+(*GNUNET_TRANSPORT_UpdateAddressDistance) (void *cls,
+                                           const struct GNUNET_HELLO_Address *address,
+                                           uint32_t distance);
 
 
 /**
@@ -269,10 +261,10 @@ struct GNUNET_TRANSPORT_PluginEnvironment
   GNUNET_TRANSPORT_AddressToType get_address_type;
 
   /**
-   * Function that will be called to figure if an address is an loopback,
-   * LAN, WAN etc. address
+   * Function that will be called by DV to update distance for
+   * an address.
    */
-  GNUNET_TRANSPORT_UpdateAddressMetrics update_address_metrics;
+  GNUNET_TRANSPORT_UpdateAddressDistance update_address_distance;
 
   /**
    * What is the maximum number of connections that this transport

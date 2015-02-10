@@ -70,22 +70,15 @@ GAS_plugin_notify_preference_changed (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * The relative value for a property changed
+ * The relative value for a property changed.
  *
- * @param address the peer
- * @param type the ATS type
- * @param prop_rel the new relative preference value
+ * @param address the peer for which a property changed
  */
 void
-GAS_plugin_notify_property_changed (struct ATS_Address *address,
-                                    enum GNUNET_ATS_Property type,
-                                    double prop_rel)
+GAS_plugin_notify_property_changed (struct ATS_Address *address)
 {
   sf->s_address_update_property (sf->cls,
-                                 address,
-                                 type,
-                                 0,
-                                 prop_rel);
+                                 address);
 }
 
 
@@ -221,8 +214,7 @@ bandwidth_changed_cb (void *cls,
 				      address->addr,
 				      address->addr_len,
 				      address->active,
-				      address->atsi,
-				      address->atsi_count,
+				      &address->properties,
 				      GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
 				      GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
 
@@ -481,15 +473,13 @@ GAS_plugin_done ()
  * for talking to the respective peer.
  *
  * @param new_address the new address
- * @param addr_net network scope the address is in
  */
 void
-GAS_plugin_new_address (struct ATS_Address *new_address,
-			enum GNUNET_ATS_Network_Type addr_net)
+GAS_plugin_new_address (struct ATS_Address *new_address)
 {
   sf->s_add (sf->cls,
              new_address,
-             addr_net);
+             new_address->properties.scope); /* FIXME: remove 3rd arg here! */
 }
 
 

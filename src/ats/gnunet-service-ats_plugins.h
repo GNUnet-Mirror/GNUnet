@@ -65,16 +65,12 @@ GAS_plugin_notify_preference_changed (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * The relative value for a property changed
+ * The relative value for a property changed.
  *
  * @param address the peer
- * @param type the ATS type
- * @param prop_rel the new relative property value
  */
 void
-GAS_plugin_notify_property_changed (struct ATS_Address *address,
-                                    enum GNUNET_ATS_Property type,
-                                    double prop_rel);
+GAS_plugin_notify_property_changed (struct ATS_Address *address);
 
 
 /**
@@ -85,8 +81,7 @@ GAS_plugin_notify_property_changed (struct ATS_Address *address,
  * @param addr_net network scope the address is in
  */
 void
-GAS_plugin_new_address (struct ATS_Address *new_address,
-			enum GNUNET_ATS_Network_Type addr_net);
+GAS_plugin_new_address (struct ATS_Address *new_address);
 
 
 /**

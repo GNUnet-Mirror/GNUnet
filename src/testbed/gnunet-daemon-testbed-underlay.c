@@ -365,13 +365,15 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct WhiteListRow *wl_head;
   struct WhiteListRow *wl_entry;
   struct GNUNET_PeerIdentity identity;
-  struct GNUNET_ATS_Information params[1];
+  struct GNUNET_ATS_Properties prop;
+  struct GNUNET_TIME_Relative delay;
   unsigned long long pid;
   unsigned int nrows;
   int ret;
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (c, "TESTBED",
-                                                            "PEERID", &pid))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "TESTBED",
+                                             "PEERID", &pid))
   {
     GNUNET_break (0);
     return;
@@ -418,11 +420,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     goto close_db;
   }
   map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_NO);
-  params[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
   while (NULL != (wl_entry = wl_head))
   {
     wl_head = wl_entry->next;
-    params[0].value = wl_entry->latency;
+    delay.rel_value_us = wl_entry->latency;
+    memset (&prop, 0, sizeof (prop));
     GNUNET_assert (GNUNET_OK == get_identity (wl_entry->id, &identity));
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONTAINER_multipeermap_put (map, &identity, &identity,
@@ -432,9 +434,9 @@ run (void *cls, char *const *args, const char *cfgfile,
            GNUNET_i2s (&identity));
     GNUNET_TRANSPORT_set_traffic_metric (transport,
                                          &identity,
-                                         GNUNET_YES,
-                                         GNUNET_YES, /* FIXME: Separate inbound, outboud metrics */
-                                         params, 1);
+                                         &prop,
+                                         delay,
+                                         delay);
     GNUNET_free (wl_entry);
   }
   bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);

@@ -106,7 +106,10 @@ set_pref_task (void *cls,
       GNUNET_ATS_print_preference_type (p->pg->kind), pref_value);
 
   GNUNET_ATS_performance_change_preference(p->me->ats_perf_handle,
-      &p->dest->id, p->pg->kind, pref_value, GNUNET_ATS_PREFERENCE_END);
+                                           &p->dest->id,
+                                           p->pg->kind,
+                                           pref_value,
+                                           GNUNET_ATS_PREFERENCE_END);
 
   switch (p->pg->kind) {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
@@ -241,4 +244,3 @@ GNUNET_ATS_TEST_generate_preferences_stop_all ()
 }
 
 /* end of file ats-testing-preferences.c */
-

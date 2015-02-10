@@ -62,6 +62,29 @@ enum MLP_Output_Format
 };
 
 
+enum QualityMetrics
+{
+  RQ_QUALITY_METRIC_DELAY = 0,
+  RQ_QUALITY_METRIC_DISTANCE = 1,
+  RQ_QUALITY_METRIC_COUNT = 2
+};
+
+
+static const char *
+print_quality_type (enum QualityMetrics qm)
+{
+  switch (qm){
+  case RQ_QUALITY_METRIC_DELAY:
+    return "delay";
+  case RQ_QUALITY_METRIC_DISTANCE:
+    return "distance";
+  default:
+    GNUNET_break (0);
+    return NULL;
+  }
+}
+
+
 struct MLP_Solution
 {
   int lp_res;
@@ -125,7 +148,7 @@ struct MLP_Problem
   /* Row index constraint 9: relativity*/
   unsigned int r_c9;
   /* Row indices quality metrics  */
-  int r_q[GNUNET_ATS_QualityPropertiesCount];
+  int r_q[RQ_QUALITY_METRIC_COUNT];
   /* Row indices ATS network quotas */
   int r_quota[GNUNET_ATS_NetworkTypeCount];
 
@@ -136,7 +159,7 @@ struct MLP_Problem
   /* Column index Proportionality (R) column */
   int c_r;
   /* Column index quality metrics  */
-  int c_q[GNUNET_ATS_QualityPropertiesCount];
+  int c_q[RQ_QUALITY_METRIC_COUNT];
 
   /* Problem matrix */
   /* Current index */
@@ -161,23 +184,17 @@ struct MLP_Variables
   /* LP MIP Gap */
   double lp_mip_gap;
 
-  /* ATS Quality metrics
-   *
-   * Array with GNUNET_ATS_QualityPropertiesCount elements
-   * contains mapping to GNUNET_ATS_Property*/
-  int q[GNUNET_ATS_QualityPropertiesCount];
-
-  /* Number of quality metrics */
+  /* Number of quality metrics @deprecated, use RQ_QUALITY_METRIC_COUNT */
   int m_q;
 
   /* Number of quality metrics */
   int m_rc;
 
   /* Quality metric coefficients*/
-  double co_Q[GNUNET_ATS_QualityPropertiesCount];
+  double co_Q[RQ_QUALITY_METRIC_COUNT];
 
   /* Ressource costs coefficients*/
-  double co_RC[GNUNET_ATS_QualityPropertiesCount];
+  double co_RC[RQ_QUALITY_METRIC_COUNT];
 
   /* Diversity coefficient */
   double co_D;
@@ -207,7 +224,7 @@ struct MLP_Variables
    * array with GNUNET_ATS_QualityPropertiesCount elements
    * contains mapping to GNUNET_ATS_Property
    * */
-  int rc[GNUNET_ATS_QualityPropertiesCount];
+  int rc[RQ_QUALITY_METRIC_COUNT];
 
 };
 
@@ -584,7 +601,7 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
   mlp->p.r_c4 = MLP_UNDEFINED;
   mlp->p.r_c6 = MLP_UNDEFINED;
   mlp->p.r_c9 = MLP_UNDEFINED;
-  for (c = 0; c < mlp->pv.m_q ; c ++)
+  for (c = 0; c < RQ_QUALITY_METRIC_COUNT ; c ++)
     mlp->p.r_q[c] = MLP_UNDEFINED;
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c ++)
     mlp->p.r_quota[c] = MLP_UNDEFINED;
@@ -677,30 +694,6 @@ mlp_solve_to_string (int retcode)
       GNUNET_break (0);
       return "unknown error";
   }
-}
-
-/**
- * Extract an ATS performance info from an address
- *
- * @param address the address
- * @param type the type to extract in HBO
- * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
- */
-static uint32_t
-get_performance_info (struct ATS_Address *address, uint32_t type)
-{
-  int c1;
-  GNUNET_assert (NULL != address);
-
-  if ((NULL == address->atsi) || (0 == address->atsi_count))
-    return GNUNET_ATS_VALUE_UNDEFINED;
-
-  for (c1 = 0; c1 < address->atsi_count; c1++)
-  {
-    if (ntohl (address->atsi[c1].type) == type)
-      return ntohl (address->atsi[c1].value);
-  }
-  return GNUNET_ATS_VALUE_UNDEFINED;
 }
 
 
@@ -960,7 +953,6 @@ mlp_create_problem_add_address_information (void *cls,
   struct ATS_Peer *peer;
   struct MLP_information *mlpi;
   char *name;
-  double prop;
   double cur_bigm;
   uint32_t addr_net;
   uint32_t addr_net_index;
@@ -979,7 +971,7 @@ mlp_create_problem_add_address_information (void *cls,
       return GNUNET_OK;
   }
 
-  addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+  addr_net = address->properties.scope;
   for (addr_net_index = 0; addr_net_index < GNUNET_ATS_NetworkTypeCount; addr_net_index++)
   {
     if (mlp->pv.quota_index[addr_net_index] == addr_net)
@@ -1110,22 +1102,16 @@ mlp_create_problem_add_address_information (void *cls,
     /* For all quality metrics, set quality of this address */
     if (GNUNET_YES == mlp->opt_dbg_optimize_quality)
     {
-      for (c = 0; c < mlp->pv.m_q; c++)
-      {
-        prop = address->atsin[c].norm;
-        if ((prop < 1.0) && (prop > 2.0))
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "PROP == %.3f \t ",
-                      prop);
-          GNUNET_break (0);
-        }
-        mlp_create_problem_set_value (p,
-                                      p->r_q[c],
-                                      mlpi->c_b,
-                                      prop,
-                                      __LINE__);
-      }
+      mlp_create_problem_set_value (p,
+                                    p->r_q[RQ_QUALITY_METRIC_DELAY],
+                                    mlpi->c_b,
+                                    address->norm_delay.norm,
+                                    __LINE__);
+      mlp_create_problem_set_value (p,
+                                    p->r_q[RQ_QUALITY_METRIC_DISTANCE],
+                                    mlpi->c_b,
+                                    address->norm_distance.norm,
+                                    __LINE__);
     }
   }
 
@@ -1183,11 +1169,14 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
     {
       for (c = 0; c < mlp->pv.m_q; c++)
       {
-        GNUNET_asprintf (&name, "c7_q%i_%s", c,
-                         GNUNET_ATS_print_property_type (mlp->pv.q[c]));
+        GNUNET_asprintf (&name,
+                         "c7_q%i_%s", c,
+                         print_quality_type (c));
         p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
         GNUNET_free (name);
-        mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);
+        mlp_create_problem_set_value (p,
+                                      p->r_q[c],
+                                      p->c_q[c], -1, __LINE__);
       }
     }
   }
@@ -1222,7 +1211,7 @@ mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP
     {
       for (c = 0; c < mlp->pv.m_q; c++)
       {
-        GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
+        GNUNET_asprintf (&name, "q_%u", c);
         p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
         GNUNET_free (name);
       }
@@ -1866,13 +1855,10 @@ GAS_mlp_address_add (void *solver,
 {
   struct GAS_MLP_Handle *mlp = solver;
 
-  GNUNET_assert (NULL != solver);
-  GNUNET_assert (NULL != address);
-
   if (GNUNET_ATS_NetworkTypeCount <= network)
   {
-   GNUNET_break (0);
-   return;
+    GNUNET_break (0);
+    return;
   }
 
   if (NULL == address->solver_information)
@@ -1911,36 +1897,23 @@ GAS_mlp_address_add (void *solver,
  *
  * @param solver solver handle
  * @param address the address
- * @param type the ATSI type in HBO
- * @param abs_value the absolute value of the property
- * @param rel_value the normalized value
  */
 static void
 GAS_mlp_address_property_changed (void *solver,
-                                  struct ATS_Address *address,
-                                  enum GNUNET_ATS_Property type,
-                                  uint32_t abs_value,
-                                  double rel_value)
+                                  struct ATS_Address *address)
 {
   struct MLP_information *mlpi = address->solver_information;
   struct GAS_MLP_Handle *mlp = solver;
-  int c1;
-  int type_index;
-
-  GNUNET_assert (NULL != solver);
-  GNUNET_assert (NULL != address);
 
   if (NULL == mlpi)
   {
-      LOG (GNUNET_ERROR_TYPE_INFO,
-          _("Updating address property `%s' for peer `%s' %p not added before\n"),
-          GNUNET_ATS_print_property_type (type),
-          GNUNET_i2s(&address->peer),
-          address);
-      GNUNET_break (0);
-      return;
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Updating address property for peer `%s' %p not added before\n"),
+         GNUNET_i2s (&address->peer),
+         address);
+    GNUNET_break (0);
+    return;
   }
-
   if (NULL ==
       GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
                                          &address->peer))
@@ -1948,34 +1921,26 @@ GAS_mlp_address_property_changed (void *solver,
     /* Peer is not requested, so no need to update problem */
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, "Updating property `%s' address for peer `%s' to abs %llu rel %.3f\n",
-      GNUNET_ATS_print_property_type (type),
-      GNUNET_i2s(&address->peer),
-      abs_value,
-      rel_value);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating properties for peer `%s'\n",
+       GNUNET_i2s(&address->peer));
 
   if (GNUNET_YES == mlp->opt_dbg_feasibility_only)
     return;
 
-  /* Find row index */
-  type_index = -1;
-  for (c1 = 0; c1 < mlp->pv.m_q; c1++)
-  {
-    if (type == mlp->pv.q[c1])
-    {
-      type_index = c1;
-      break;
-    }
-  }
-  if (-1 == type_index)
-  {
-    GNUNET_break (0);
-    return; /* quality index not found */
-  }
-
   /* Update c7) [r_q[index]][c_b] = f_q * q_averaged[type_index] */
-  if (GNUNET_YES == mlp_create_problem_update_value (&mlp->p,
-      mlp->p.r_q[type_index], mlpi->c_b, rel_value, __LINE__))
+  if ( (GNUNET_YES ==
+        mlp_create_problem_update_value (&mlp->p,
+                                         mlp->p.r_q[RQ_QUALITY_METRIC_DELAY],
+                                         mlpi->c_b,
+                                         address->norm_delay.norm,
+                                         __LINE__)) ||
+       (GNUNET_YES ==
+        mlp_create_problem_update_value (&mlp->p,
+                                         mlp->p.r_q[RQ_QUALITY_METRIC_DISTANCE],
+                                         mlpi->c_b,
+                                         address->norm_distance.norm,
+                                         __LINE__)) )
   {
     mlp->stat_mlp_prob_updated = GNUNET_YES;
     if (GNUNET_YES == mlp->opt_mlp_auto_solve)
@@ -2037,17 +2002,14 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp,
 
   preferences = mlp->env->get_preferences (mlp->env->cls, peer);
   res = 0.0;
-  for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+  for (c = 0; c < GNUNET_ATS_PREFERENCE_END; c++)
   {
-    if (c != GNUNET_ATS_PREFERENCE_END)
-    {
-      /* fprintf (stderr, "VALUE[%u] %s %.3f \n",
-       *        c, GNUNET_i2s (&cur->addr->peer), t[c]); */
-      res += preferences[c];
-    }
+    /* fprintf (stderr, "VALUE[%u] %s %.3f \n",
+     *        c, GNUNET_i2s (&cur->addr->peer), t[c]); */
+    res += preferences[c];
   }
 
-  res /= (GNUNET_ATS_PreferenceCount -1);
+  res /= GNUNET_ATS_PREFERENCE_END;
   res += 1.0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2646,34 +2608,28 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   }
 
   /* Get quality metric coefficients from configuration */
-  int i_delay = MLP_NaN;
-  int i_distance = MLP_NaN;
-  int q[GNUNET_ATS_QualityPropertiesCount] = GNUNET_ATS_QualityProperties;
-  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+  for (c = 0; c < RQ_QUALITY_METRIC_COUNT; c++)
   {
     /* initialize quality coefficients with default value 1.0 */
-      mlp->pv.co_Q[c] = MLP_DEFAULT_QUALITY;
-
-    mlp->pv.q[c] = q[c];
-    if (q[c] == GNUNET_ATS_QUALITY_NET_DELAY)
-      i_delay = c;
-    if (q[c] == GNUNET_ATS_QUALITY_NET_DISTANCE)
-      i_distance = c;
+    mlp->pv.co_Q[c] = MLP_DEFAULT_QUALITY;
   }
 
-  if ( (i_delay != MLP_NaN) &&
-       (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
-          "MLP_COEFFICIENT_QUALITY_DELAY", &tmp)) )
-    mlp->pv.co_Q[i_delay] = (double) tmp / 100;
-  else
-    mlp->pv.co_Q[i_delay] = MLP_DEFAULT_QUALITY;
 
-  if ( (i_distance != MLP_NaN) &&
-        (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
-          "MLP_COEFFICIENT_QUALITY_DISTANCE", &tmp)) )
-    mlp->pv.co_Q[i_distance] = (double) tmp / 100;
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
+                                           "MLP_COEFFICIENT_QUALITY_DELAY",
+                                           &tmp))
+    mlp->pv.co_Q[RQ_QUALITY_METRIC_DELAY] = (double) tmp / 100;
   else
-    mlp->pv.co_Q[i_distance] = MLP_DEFAULT_QUALITY;
+    mlp->pv.co_Q[RQ_QUALITY_METRIC_DELAY] = MLP_DEFAULT_QUALITY;
+
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
+                                           "MLP_COEFFICIENT_QUALITY_DISTANCE",
+                                           &tmp))
+    mlp->pv.co_Q[RQ_QUALITY_METRIC_DISTANCE] = (double) tmp / 100;
+  else
+    mlp->pv.co_Q[RQ_QUALITY_METRIC_DISTANCE] = MLP_DEFAULT_QUALITY;
 
   /* Get minimum bandwidth per used address from configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
@@ -2759,7 +2715,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   /* Setting MLP Input variables */
   mlp->pv.b_min = b_min;
   mlp->pv.n_min = n_min;
-  mlp->pv.m_q = GNUNET_ATS_QualityPropertiesCount;
+  mlp->pv.m_q = RQ_QUALITY_METRIC_COUNT;
   mlp->stat_mlp_prob_changed = GNUNET_NO;
   mlp->stat_mlp_prob_updated = GNUNET_NO;
   mlp->opt_mlp_auto_solve = GNUNET_YES;

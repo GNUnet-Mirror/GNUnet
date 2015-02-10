@@ -333,34 +333,19 @@ GNUNET_TRANSPORT_check_peer_connected (struct GNUNET_TRANSPORT_Handle *handle,
  *
  * @param handle transport handle
  * @param peer the peer to set the metric for
- * @param inbound set inbound direction (#GNUNET_YES or #GNUNET_NO)
- * @param outbound set outbound direction (#GNUNET_YES or #GNUNET_NO)
- * @param ats the metric as ATS information
- * @param ats_count the number of metrics
+ * @param prop the performance metrics to set
+ * @param delay_in inbound delay to introduce
+ * @param delay_out outbound delay to introduce
  *
- * Supported ATS values:
- * #GNUNET_ATS_QUALITY_NET_DELAY  (value in ms)
- * #GNUNET_ATS_QUALITY_NET_DISTANCE (value in count(hops))
- *
- * Example
- * To enforce a delay of 10 ms for peer p1 in sending direction use:
- *
- * struct GNUNET_ATS_Information ats;
- * ats.type = ntohl (GNUNET_ATS_QUALITY_NET_DELAY);
- * ats.value = ntohl (10);
- * GNUNET_TRANSPORT_set_traffic_metric (th, p1, TM_SEND, &ats, 1);
- *
- * Note:
- * Delay restrictions in receiving direction will be enforced with
- * 1 message delay.
+ * Note: Delay restrictions in receiving direction will be enforced
+ * with one message delay.
  */
 void
 GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
 				     const struct GNUNET_PeerIdentity *peer,
-				     int inbound,
-				     int outbound,
-				     const struct GNUNET_ATS_Information *ats,
-				     size_t ats_count);
+				     const struct GNUNET_ATS_Properties *prop,
+                                     struct GNUNET_TIME_Relative delay_in,
+                                     struct GNUNET_TIME_Relative delay_out);
 
 
 /* *************************** HELLO *************************** */

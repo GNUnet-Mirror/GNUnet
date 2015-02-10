@@ -34,12 +34,10 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_statistics_service.h"
 
-
 /**
  * Representation of an address the plugin can choose from.
  */
 struct ATS_Address;
-
 
 /**
  * Change the preference for a peer
@@ -125,16 +123,10 @@ typedef void
  *
  * @param solver solver handle
  * @param address the address
- * @param type the ATSI type in HBO
- * @param abs_value the absolute value of the property
- * @param rel_value the normalized value
  */
 typedef void
 (*GAS_solver_address_property_changed) (void *solver,
-                                        struct ATS_Address *address,
-                                        enum GNUNET_ATS_Property type,
-                                        uint32_t abs_value,
-                                        double rel_value);
+                                        struct ATS_Address *address);
 
 
 /**
@@ -386,8 +378,8 @@ typedef void
 
 
 /**
- * Callback to call from solver to obtain application preference values for a
- * peer
+ * Callback to call from solver to obtain application preference
+ * values for a peer.
  *
  * @param cls the cls
  * @param id the peer id

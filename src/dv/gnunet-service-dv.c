@@ -1159,46 +1159,6 @@ schedule_refresh_routes ()
 
 
 /**
- * Get distance information from 'atsi'.
- *
- * @param atsi performance data
- * @param atsi_count number of entries in atsi
- * @return connected transport distance
- */
-static uint32_t
-get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
-                   uint32_t atsi_count)
-{
-  uint32_t i;
-
-  for (i = 0; i < atsi_count; i++)
-    if (ntohl (atsi[i].type) == GNUNET_ATS_QUALITY_NET_DISTANCE)
-      return (0 == ntohl (atsi[i].value)) ? DIRECT_NEIGHBOR_COST : ntohl (atsi[i].value); // FIXME: 0 check should not be required once ATS is fixed!
-  /* If we do not have explicit distance data, assume direct neighbor. */
-  return DIRECT_NEIGHBOR_COST;
-}
-
-
-/**
- * Get network information from 'atsi'.
- *
- * @param atsi performance data
- * @param atsi_count number of entries in atsi
- * @return connected transport network
- */
-static enum GNUNET_ATS_Network_Type
-get_atsi_network (const struct GNUNET_ATS_Information *atsi,
-                   uint32_t atsi_count)
-{
-  uint32_t i;
-
-  for (i = 0; i < atsi_count; i++)
-    if (ntohl (atsi[i].type) == GNUNET_ATS_NETWORK_TYPE)
-      return (enum GNUNET_ATS_Network_Type) ntohl (atsi[i].value);
-  return GNUNET_ATS_NET_UNSPECIFIED;
-}
-
-/**
  * Multipeermap iterator for freeing routes that go via a particular
  * neighbor that disconnected and is thus no longer available.
  *
@@ -1308,8 +1268,7 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
  *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address (as far as known)
  */
 static void
 handle_ats_update (void *cls,
@@ -1317,12 +1276,11 @@ handle_ats_update (void *cls,
 		   int active,
 		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
 		   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-		   const struct GNUNET_ATS_Information *ats,
-		   uint32_t ats_count)
+		   const struct GNUNET_ATS_Properties *prop)
 {
   struct DirectNeighbor *neighbor;
   uint32_t distance;
-  enum GNUNET_ATS_Network_Type network = GNUNET_ATS_NET_UNSPECIFIED;
+  enum GNUNET_ATS_Network_Type network;
 
   if (NULL == address)
   {
@@ -1335,8 +1293,8 @@ handle_ats_update (void *cls,
     // FIXME: handle disconnect/inactive case too!
     return;
   }
-  distance = get_atsi_distance (ats, ats_count);
-  network = get_atsi_network (ats, ats_count);
+  distance = prop->distance;
+  network = prop->scope;
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,

@@ -54,8 +54,7 @@ static struct GNUNET_SERVER_NotificationContext *nc_pic;
  *        to maintain a connection to a peer;
  *        #GNUNET_NO if the address is not actively used;
  *        #GNUNET_SYSERR if this address is no longer available for ATS
- * @param atsi performance data for the address
- * @param atsi_count number of performance records in @a atsi
+ * @param prop performance data for the address
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
@@ -66,40 +65,34 @@ notify_client (struct GNUNET_SERVER_Client *client,
                const void *plugin_addr,
                size_t plugin_addr_len,
                int active,
-               const struct GNUNET_ATS_Information *atsi,
-               uint32_t atsi_count,
+               const struct GNUNET_ATS_Properties *prop,
                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PeerInformationMessage *msg;
   size_t plugin_name_length = strlen (plugin_name) + 1;
   size_t msize =
-      sizeof (struct PeerInformationMessage) +
-      atsi_count * sizeof (struct GNUNET_ATS_Information) + plugin_addr_len +
-      plugin_name_length;
+    sizeof (struct PeerInformationMessage) +
+    plugin_addr_len +
+    plugin_name_length;
   char buf[msize] GNUNET_ALIGN;
-  struct GNUNET_ATS_Information *atsp;
   struct GNUNET_SERVER_NotificationContext *nc;
   char *addrp;
 
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  GNUNET_assert (atsi_count <
-                 GNUNET_SERVER_MAX_MESSAGE_SIZE /
-                 sizeof (struct GNUNET_ATS_Information));
   msg = (struct PeerInformationMessage *) buf;
   msg->header.size = htons (msize);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION);
   msg->id = htonl (0);
-  msg->ats_count = htonl (atsi_count);
   msg->peer = *peer;
   msg->address_length = htons (plugin_addr_len);
   msg->address_active = ntohl ((uint32_t) active);
   msg->plugin_name_length = htons (plugin_name_length);
   msg->bandwidth_out = bandwidth_out;
   msg->bandwidth_in = bandwidth_in;
-  atsp = (struct GNUNET_ATS_Information *) &msg[1];
-  memcpy (atsp, atsi, sizeof (struct GNUNET_ATS_Information) * atsi_count);
-  addrp = (char *) &atsp[atsi_count];
+  GNUNET_ATS_properties_hton (&msg->properties,
+                              prop);
+  addrp = (char *) &msg[1];
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
   if (NULL == client)
@@ -137,8 +130,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
  *        to maintain a connection to a peer;
  *        #GNUNET_NO if the address is not actively used;
  *        #GNUNET_SYSERR if this address is no longer available for ATS
- * @param atsi performance data for the address
- * @param atsi_count number of performance records in @a atsi
+ * @param prop performance data for the address
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
@@ -148,8 +140,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     const void *plugin_addr,
                                     size_t plugin_addr_len,
                                     int active,
-                                    const struct GNUNET_ATS_Information *atsi,
-                                    uint32_t atsi_count,
+                                    const struct GNUNET_ATS_Properties *prop,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
@@ -159,7 +150,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                  plugin_addr,
                  plugin_addr_len,
                  active,
-                 atsi, atsi_count,
+                 prop,
                  bandwidth_out,
                  bandwidth_in);
   GNUNET_STATISTICS_update (GSA_stats,
@@ -178,8 +169,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
  * @param plugin_addr address
  * @param plugin_addr_len length of @a plugin_addr
  * @param active is address actively used
- * @param atsi ats performance information
- * @param atsi_count number of ats performance elements in @a atsi
+ * @param prop performance information
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
@@ -190,8 +180,7 @@ peerinfo_it (void *cls,
              const void *plugin_addr,
              size_t plugin_addr_len,
              int active,
-             const struct GNUNET_ATS_Information *atsi,
-             uint32_t atsi_count,
+             const struct GNUNET_ATS_Properties *prop,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
@@ -211,7 +200,7 @@ peerinfo_it (void *cls,
                  plugin_addr,
                  plugin_addr_len,
                  active,
-                 atsi, atsi_count,
+                 prop,
                  bandwidth_out,
                  bandwidth_in);
 }

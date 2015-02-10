@@ -234,14 +234,12 @@ static void
 notify_distance_change (struct Session *session)
 {
   struct Plugin *plugin = session->plugin;
-  struct GNUNET_ATS_Information ats;
 
   if (GNUNET_YES != session->active)
     return;
-  ats.type = htonl ((uint32_t) GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats.value = htonl (session->distance);
-  plugin->env->update_address_metrics (plugin->env->cls,
-      session->address, session, &ats, 1);
+  plugin->env->update_address_distance (plugin->env->cls,
+                                        session->address,
+                                        session->distance);
 }
 
 
@@ -260,21 +258,20 @@ unbox_cb (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *session = client;
-  struct GNUNET_ATS_Information ats;
 
-  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats.value = htonl (session->distance);
   session->active = GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Delivering message of type %u with %u bytes from peer `%s'\n",
        ntohs (message->type),
        ntohs (message->size),
        GNUNET_i2s (&session->sender));
-
-  plugin->env->receive (plugin->env->cls, session->address, session,
+  plugin->env->receive (plugin->env->cls,
+                        session->address,
+                        session,
                         message);
-  plugin->env->update_address_metrics (plugin->env->cls,
-      session->address, session, &ats, 1);
+  plugin->env->update_address_distance (plugin->env->cls,
+                                        session->address,
+                                        session->distance);
   return GNUNET_OK;
 }
 
@@ -294,12 +291,12 @@ handle_dv_message_received (void *cls,
 			    const struct GNUNET_MessageHeader *msg)
 {
   struct Plugin *plugin = cls;
-  struct GNUNET_ATS_Information ats;
   struct Session *session;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received DV_MESSAGE_RECEIVED message for peer `%s': new distance %u\n",
-       GNUNET_i2s (sender), distance);
+       GNUNET_i2s (sender),
+       distance);
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       sender);
   if (NULL == session)
@@ -320,17 +317,19 @@ handle_dv_message_received (void *cls,
 			       GNUNET_NO);
     return;
   }
-  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats.value = htonl (distance);
   session->active = GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Delivering message of type %u with %u bytes from peer `%s'\n",
        ntohs (msg->type),
        ntohs (msg->size),
        GNUNET_i2s (sender));
-  plugin->env->receive (plugin->env->cls, session->address, session, msg);
-  plugin->env->update_address_metrics (plugin->env->cls,
-      session->address, session, &ats, 1);
+  plugin->env->receive (plugin->env->cls,
+                        session->address,
+                        session,
+                        msg);
+  plugin->env->update_address_distance (plugin->env->cls,
+                                        session->address,
+                                        session->distance);
 }
 
 
@@ -350,7 +349,6 @@ handle_dv_connect (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *session;
-  struct GNUNET_ATS_Information ats[2];
 
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   /**
@@ -358,8 +356,7 @@ handle_dv_connect (void *cls,
    * If you remove it, also remove libgnunetats linkage from Makefile.am
    */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received `%s' message for peer `%s' with next hop in network %s\n",
-       "DV_CONNECT",
+       "Received DV_CONNECT message for peer `%s' with next hop in network %s\n",
        GNUNET_i2s (peer),
        GNUNET_ATS_print_network_type (network));
 
@@ -375,7 +372,8 @@ handle_dv_connect (void *cls,
 
   session = GNUNET_new (struct Session);
   session->address = GNUNET_HELLO_address_allocate (peer, "dv",
-      NULL, 0, GNUNET_HELLO_ADDRESS_INFO_NONE);
+                                                    NULL, 0,
+                                                    GNUNET_HELLO_ADDRESS_INFO_NONE);
   session->sender = *peer;
   session->plugin = plugin;
   session->distance = distance;
@@ -391,14 +389,15 @@ handle_dv_connect (void *cls,
        GNUNET_i2s (peer),
        distance);
 
-  /* Notify transport and ats about new connection */
-  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  ats[0].value = htonl (distance);
-  ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats[1].value = htonl ((uint32_t) network);
   session->active = GNUNET_YES;
-  plugin->env->session_start (plugin->env->cls, session->address,
-                              session, ats, 2);
+  plugin->env->session_start (plugin->env->cls,
+                              session->address,
+                              session,
+                              network);
+  plugin->env->update_address_distance (plugin->env->cls,
+                                        session->address,
+                                        session->distance);
+
   notify_session_monitor (session->plugin,
                           session,
                           GNUNET_TRANSPORT_SS_UP);

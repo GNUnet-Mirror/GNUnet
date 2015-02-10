@@ -255,9 +255,9 @@ struct Session
   uint32_t tag;
 
   /**
-   * ATS network type in NBO
+   * ATS network type.
    */
-  uint32_t ats_address_network_type;
+  enum GNUNET_ATS_Network_Type scope;
 
   /**
    * #GNUNET_YES if this session is known to the service.
@@ -1363,13 +1363,13 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   struct ServerRequest *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
   struct HttpAddress *addr;
-  struct GNUNET_ATS_Information ats;
   struct GNUNET_PeerIdentity target;
   size_t addr_len;
   struct SessionTagContext stc;
   uint32_t options;
   int direction = GNUNET_SYSERR;
   unsigned int to;
+  enum GNUNET_ATS_Network_Type scope;
 
   conn_info = MHD_get_connection_info (mhd_connection,
                                        MHD_CONNECTION_INFO_CLIENT_ADDRESS);
@@ -1424,36 +1424,32 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                                               conn_info->client_addr,
                                               sizeof (struct sockaddr_in));
       addr_len = http_common_address_get_size (addr);
-      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      ats.value = htonl (plugin->env->get_address_type (plugin->env->cls,
-                                                        conn_info->client_addr,
-                                                        sizeof (struct sockaddr_in)));
+      scope = plugin->env->get_address_type (plugin->env->cls,
+                                             conn_info->client_addr,
+                                             sizeof (struct sockaddr_in));
       break;
     case (AF_INET6):
       addr = http_common_address_from_socket (plugin->protocol,
                                               conn_info->client_addr,
                                               sizeof (struct sockaddr_in6));
       addr_len = http_common_address_get_size (addr);
-      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      ats.value = htonl (plugin->env->get_address_type (plugin->env->cls,
-                                                        conn_info->client_addr,
-                                                        sizeof (struct sockaddr_in6)));
+      scope = plugin->env->get_address_type (plugin->env->cls,
+                                             conn_info->client_addr,
+                                             sizeof (struct sockaddr_in6));
       break;
     default:
       /* external host name */
-      ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-      ats.value = htonl (GNUNET_ATS_NET_WAN);
       return NULL;
     }
     s = GNUNET_new (struct Session);
     s->target = target;
     s->plugin = plugin;
+    s->scope = scope;
     s->address = GNUNET_HELLO_address_allocate (&s->target,
                                                 PLUGIN_NAME,
                                                 addr,
                                                 addr_len,
                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND);
-    s->ats_address_network_type = ats.value;
     s->next_receive = GNUNET_TIME_UNIT_ZERO_ABS;
     s->tag = stc.tag;
     s->timeout = GNUNET_TIME_relative_to_absolute (HTTP_SERVER_SESSION_TIMEOUT);
@@ -1526,7 +1522,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     plugin->env->session_start (plugin->env->cls,
                                 s->address,
                                 s,
-                                NULL, 0);
+                                s->scope);
   }
 
   if ( (NULL == s->server_recv) ||
@@ -1659,14 +1655,8 @@ server_receive_mst_cb (void *cls,
 {
   struct Session *s = cls;
   struct HTTP_Server_Plugin *plugin = s->plugin;
-  struct GNUNET_ATS_Information atsi;
   struct GNUNET_TIME_Relative delay;
   char *stat_txt;
-
-  atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi.value = s->ats_address_network_type;
-  GNUNET_break (s->ats_address_network_type !=
-                ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
   if (GNUNET_NO == s->known_to_service)
   {
@@ -1674,8 +1664,7 @@ server_receive_mst_cb (void *cls,
     plugin->env->session_start (plugin->env->cls,
                                 s->address,
                                 s,
-                                NULL,
-                                0);
+                                s->scope);
     notify_session_monitor (plugin,
                             s,
                             GNUNET_TRANSPORT_SS_UP);
@@ -1684,9 +1673,6 @@ server_receive_mst_cb (void *cls,
                                 s->address,
                                 s,
                                 message);
-  plugin->env->update_address_metrics (plugin->env->cls,
-                                       s->address, s,
-                                       &atsi, 1);
   GNUNET_asprintf (&stat_txt,
                    "# bytes received via %s_server",
                    plugin->protocol);
@@ -3287,7 +3273,7 @@ static enum GNUNET_ATS_Network_Type
 http_server_plugin_get_network (void *cls,
                                 struct Session *session)
 {
-  return ntohl (session->ats_address_network_type);
+  return session->scope;
 }
 
 

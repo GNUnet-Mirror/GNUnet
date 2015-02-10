@@ -98,6 +98,15 @@
 #define WLAN_MTU 1430
 
 
+/**
+ * Which network scope do we belong to?
+ */
+#if BUILD_WLAN
+static const enum GNUNET_ATS_Network_Type scope = GNUNET_ATS_NET_WLAN;
+#else
+static const enum GNUNET_ATS_Network_Type scope = GNUNET_ATS_NET_BT;
+#endif
+
 
 /**
  * Maximum number of messages in defragmentation queue per MAC
@@ -1428,19 +1437,12 @@ process_data (void *cls,
   struct Plugin *plugin = cls;
   struct GNUNET_HELLO_Address *address;
   struct MacAndSession *mas = client;
-  struct GNUNET_ATS_Information ats;
   struct FragmentMessage *fm;
   struct GNUNET_PeerIdentity tmpsource;
   const struct WlanHeader *wlanheader;
   int ret;
   uint16_t msize;
 
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-#if BUILD_WLAN
-  ats.value = htonl (GNUNET_ATS_NET_WLAN);
-#else
-  ats.value = htonl (GNUNET_ATS_NET_BT);
-#endif
   msize = ntohs (hdr->size);
 
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1489,16 +1491,12 @@ process_data (void *cls,
       plugin->env->session_start (plugin->env->cls,
                                   address,
                                   mas->session,
-                                  &ats, 1);
+                                  scope);
     }
     plugin->env->receive (plugin->env->cls,
                           address,
                           mas->session,
                           hdr);
-    plugin->env->update_address_metrics (plugin->env->cls,
-                                         address,
-                                         mas->session,
-                                         &ats, 1);
     GNUNET_HELLO_address_free (address);
     break;
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
@@ -1615,7 +1613,7 @@ process_data (void *cls,
       plugin->env->session_start (plugin->env->cls,
                                   address,
                                   mas->session,
-                                  NULL, 0);
+                                  scope);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Notifying transport about peer `%s''s new session %p \n",
            GNUNET_i2s (&wlanheader->sender),
@@ -1654,10 +1652,6 @@ process_data (void *cls,
                           mas->session->address,
                           mas->session,
                           hdr);
-    plugin->env->update_address_metrics (plugin->env->cls,
-                                         mas->session->address,
-                                         mas->session,
-                                         &ats, 1);
     break;
   }
   return GNUNET_OK;

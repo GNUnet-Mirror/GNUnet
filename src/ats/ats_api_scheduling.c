@@ -73,14 +73,9 @@ struct GNUNET_ATS_AddressRecord
   struct Session *session;
 
   /**
-   * Array with performance data about the address.
+   * Performance data about the address.
    */
-  struct GNUNET_ATS_Information *ats;
-
-  /**
-   * Number of entries in @e ats.
-   */
-  uint32_t ats_count;
+  struct GNUNET_ATS_PropertiesNBO properties;
 
   /**
    * Which slot (index) in the session array does
@@ -487,7 +482,6 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
 {
   struct GNUNET_MQ_Envelope *ev;
   struct AddressAddMessage *m;
-  struct GNUNET_ATS_Information *am;
   char *pm;
   size_t namelen;
   size_t msize;
@@ -497,16 +491,14 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
   namelen = (NULL == ar->address->transport_name)
     ? 0
     : strlen (ar->address->transport_name) + 1;
-  msize = ar->address->address_length +
-    ar->ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
-
+  msize = ar->address->address_length + namelen;
   ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
-  m->ats_count = htonl (ar->ats_count);
   m->peer = ar->address->peer;
   m->address_length = htons (ar->address->address_length);
   m->address_local_info = htonl ((uint32_t) ar->address->local_info);
   m->plugin_name_length = htons (namelen);
   m->session_id = htonl (ar->slot);
+  m->properties = ar->properties;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding address for peer `%s', plugin `%s', session %p slot %u\n",
@@ -514,11 +506,7 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
        ar->address->transport_name,
        ar->session,
        ar->slot);
-  am = (struct GNUNET_ATS_Information *) &m[1];
-  memcpy (am,
-          ar->ats,
-          ar->ats_count * sizeof (struct GNUNET_ATS_Information));
-  pm = (char *) &am[ar->ats_count];
+  pm = (char *) &m[1];
   memcpy (pm,
           ar->address->address,
           ar->address->address_length);
@@ -675,8 +663,7 @@ GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param sh handle
  * @param address the address
  * @param session session handle, can be NULL
- * @param ats performance data for the address
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address
  * @return handle to the address representation inside ATS, NULL
  *         on error (i.e. ATS knows this exact address already)
  */
@@ -684,8 +671,7 @@ struct GNUNET_ATS_AddressRecord *
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_HELLO_Address *address,
                         struct Session *session,
-                        const struct GNUNET_ATS_Information *ats,
-                        uint32_t ats_count)
+                        const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_AddressRecord *ar;
   size_t namelen;
@@ -701,13 +687,10 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   namelen = (NULL == address->transport_name)
     ? 0
     : strlen (address->transport_name) + 1;
-  msize = address->address_length +
-    ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
+  msize = address->address_length + namelen;
   if ((msize + sizeof (struct AddressUpdateMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
-      (ats_count >=
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
+      (namelen >= GNUNET_SERVER_MAX_MESSAGE_SIZE) )
   {
     /* address too large for us, this should not happen */
     GNUNET_break (0);
@@ -729,12 +712,8 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   ar->slot = s;
   ar->session = session;
   ar->address = GNUNET_HELLO_address_copy (address);
-  GNUNET_array_grow (ar->ats,
-                     ar->ats_count,
-                     ats_count);
-  memcpy (ar->ats,
-          ats,
-          ats_count * sizeof (struct GNUNET_ATS_Information));
+  GNUNET_ATS_properties_hton (&ar->properties,
+                              prop);
   sh->session_array[s] = ar;
   send_add_address_message (sh, ar);
   return ar;
@@ -793,19 +772,15 @@ GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
  * for later use).  Update bandwidth assignments.
  *
  * @param ar address record to update information for
- * @param ats performance data for the address
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address
  */
 void
 GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
-                           const struct GNUNET_ATS_Information *ats,
-                           uint32_t ats_count)
+                           const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_SchedulingHandle *sh = ar->sh;
   struct GNUNET_MQ_Envelope *ev;
   struct AddressUpdateMessage *m;
-  struct GNUNET_ATS_Information *am;
-  size_t msize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updating address for peer `%s', plugin `%s', session %p slot %u\n",
@@ -813,25 +788,16 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
        ar->address->transport_name,
        ar->session,
        ar->slot);
-  GNUNET_array_grow (ar->ats,
-                     ar->ats_count,
-                     ats_count);
-  memcpy (ar->ats,
-          ats,
-          ats_count * sizeof (struct GNUNET_ATS_Information));
-
+  GNUNET_ATS_properties_hton (&ar->properties,
+                              prop);
   if (NULL == sh->mq)
     return; /* disconnected, skip for now */
-  msize = ar->ats_count * sizeof (struct GNUNET_ATS_Information);
-  ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
-  m->ats_count = htonl (ar->ats_count);
-  m->peer = ar->address->peer;
+  ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_UPDATE);
   m->session_id = htonl (ar->slot);
-  am = (struct GNUNET_ATS_Information *) &m[1];
-  memcpy (am,
-          ar->ats,
-          ar->ats_count * sizeof (struct GNUNET_ATS_Information));
-  GNUNET_MQ_send (sh->mq, ev);
+  m->peer = ar->address->peer;
+  m->properties = ar->properties;
+  GNUNET_MQ_send (sh->mq,
+                  ev);
 }
 
 
@@ -857,9 +823,6 @@ GNUNET_ATS_address_destroy (struct GNUNET_ATS_AddressRecord *ar)
   GNUNET_break (NULL == ar->session);
   ar->session = NULL;
   ar->in_destroy = GNUNET_YES;
-  GNUNET_array_grow (ar->ats,
-                     ar->ats_count,
-                     0);
   if (NULL == sh->mq)
     return;
   ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_DESTROYED);

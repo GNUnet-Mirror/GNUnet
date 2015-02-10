@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2010-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,8 @@
 
 /**
  * @file transport/gnunet-service-transport_neighbours.h
- * @brief neighbour management API
+ * @brief neighbour manipulation API, allows manipulation of
+ *        performance metrics (delay and towards ATS)
  * @author Christian Grothoff
  */
 #ifndef GNUNET_SERVICE_TRANSPORT_MANIPULATION_H
@@ -44,10 +45,11 @@
  * @param client client sending message
  * @param message containing information
  */
-
 void
-GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
-    const struct GNUNET_MessageHeader *message);
+GST_manipulation_set_metric (void *cls,
+                             struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *message);
+
 
 /**
  * Adapter function between transport's send function and transport plugins
@@ -61,9 +63,12 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
  */
 void
 GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
-											 const void *msg, size_t msg_size,
-											 struct GNUNET_TIME_Relative timeout,
-											 GST_NeighbourSendContinuation cont, void *cont_cls);
+                       const void *msg,
+                       size_t msg_size,
+                       struct GNUNET_TIME_Relative timeout,
+                       GST_NeighbourSendContinuation cont,
+                       void *cont_cls);
+
 
 /**
  * Adapter function between transport plugins and transport receive function
@@ -86,18 +91,14 @@ GST_manipulation_recv (void *cls,
  * Function that will be called to manipulate ATS information according to
  * current manipulation settings
  *
- * @param peer the peer
  * @param address binary address
  * @param session the session
- * @param ats the ats information
- * @param ats_count the number of ats information
- * @return modified @a ats information
+ * @param prop[IN|OUT] metrics to modify
  */
-struct GNUNET_ATS_Information *
+void
 GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
                                      struct Session *session,
-                                     const struct GNUNET_ATS_Information *ats,
-                                     uint32_t ats_count);
+                                     struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -108,19 +109,19 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
 void
 GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer);
 
+
 /**
  * Initialize traffic manipulation
- *
- * @param GST_cfg configuration handle
  */
 void
-GST_manipulation_init (const struct GNUNET_CONFIGURATION_Handle *GST_cfg);
+GST_manipulation_init (void);
+
 
 /**
  * Stop traffic manipulation
  */
 void
-GST_manipulation_stop ();
+GST_manipulation_stop (void);
 
 #endif
 /* end of file gnunet-service-transport_neighbours.h */

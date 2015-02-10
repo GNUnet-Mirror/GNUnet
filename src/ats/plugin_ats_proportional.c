@@ -25,8 +25,8 @@
  */
 #include "platform.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_ats_plugin.h"
 #include "gnunet_ats_service.h"
+#include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
@@ -308,7 +308,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
       continue;
     peer_relative_prefs = s->env->get_preferences (s->env->cls,
                                                    &aw->addr->peer);
-    sum_relative_peer_prefences += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
+    sum_relative_peer_prefences
+      += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
     count_addresses++;
   }
   if (count_addresses != net->active_addresses)
@@ -504,27 +505,6 @@ struct FindBestAddressCtx
 
 
 /**
- * Find index of a ATS property type in the quality properties array.
- *
- * @param type ATS property type
- * @return index in the quality array, #GNUNET_SYSERR if the type
- *         was not a quality property
- */
-static int
-find_quality_property_index (enum GNUNET_ATS_Property type)
-{
-  enum GNUNET_ATS_Property existing_types[] = GNUNET_ATS_QualityProperties;
-  unsigned int c;
-
-  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
-    if (existing_types[c] == type)
-      return c;
-  GNUNET_break (0);
-  return GNUNET_SYSERR;
-}
-
-
-/**
  * Find a "good" address to use for a peer by iterating over the
  * addresses for this peer.  If we already have an existing address,
  * we stick to it.  Otherwise, we pick by lowest distance and then by
@@ -548,7 +528,6 @@ find_best_address_it (void *cls,
   double best_distance;
   double cur_delay;
   double cur_distance;
-  int index;
   unsigned int con;
   int bw_available;
   int need;
@@ -601,12 +580,10 @@ find_best_address_it (void *cls,
   }
 
   /* Now compare ATS information */
-  index = find_quality_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  cur_distance = current->atsin[index].norm;
-  best_distance = ctx->best->atsin[index].norm;
-  index = find_quality_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  cur_delay = current->atsin[index].norm;
-  best_delay = ctx->best->atsin[index].norm;
+  cur_distance = current->norm_distance.norm;
+  best_distance = ctx->best->norm_distance.norm;
+  cur_delay = current->norm_delay.norm;
+  best_delay = ctx->best->norm_delay.norm;
 
   /* user shorter distance */
   if (cur_distance < best_distance)
@@ -1006,16 +983,10 @@ GAS_proportional_bulk_stop (void *solver)
  *
  * @param solver solver handle
  * @param address the address
- * @param type the ATSI type
- * @param abs_value the absolute value of the property
- * @param rel_value the normalized value
  */
 static void
 GAS_proportional_address_property_changed (void *solver,
-                                           struct ATS_Address *address,
-                                           enum GNUNET_ATS_Property type,
-                                           uint32_t abs_value,
-                                           double rel_value)
+                                           struct ATS_Address *address)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct AddressWrapper *asi = address->solver_information;

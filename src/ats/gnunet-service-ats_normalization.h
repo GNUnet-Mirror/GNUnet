@@ -35,16 +35,12 @@
 
 
 /**
- * Update and normalize a @a atsi performance information
+ * Update and normalize a @a prop performance information
  *
  * @param address the address to update
- * @param atsi the array of performance information
- * @param atsi_count the number of atsi information in the array
  */
 void
-GAS_normalization_update_property (struct ATS_Address *address,
-                                   const struct GNUNET_ATS_Information *atsi,
-                                   uint32_t atsi_count);
+GAS_normalization_update_property (struct ATS_Address *address);
 
 
 /**

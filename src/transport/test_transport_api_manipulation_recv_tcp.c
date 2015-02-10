@@ -197,21 +197,25 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (messages_recv <= 1)
   {
-  	/* Received non-delayed message */
-  	dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
+    /* Received non-delayed message */
+    dur_normal = GNUNET_TIME_absolute_get_duration(start_normal);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received non-delayed message %u after %s\n",
                 messages_recv,
                 GNUNET_STRINGS_relative_time_to_string (dur_normal,
 							GNUNET_YES));
 
-    struct GNUNET_ATS_Information ats[2];
-  	ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-  	ats[0].value = htonl (1000 * 1000LL);
-  	ats[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  	ats[1].value = htonl (10);
+    struct GNUNET_ATS_Properties prop;
+    struct GNUNET_TIME_Relative delay;
 
-    GNUNET_TRANSPORT_set_traffic_metric (p1->th, &p2->id, GNUNET_YES, GNUNET_NO, ats, 2);
+    delay.rel_value_us = 1000 * 1000LL;
+    memset (&prop, 0, sizeof (prop));
+    prop.distance = 10;
+    GNUNET_TRANSPORT_set_traffic_metric (p1->th,
+                                         &p2->id,
+                                         &prop,
+                                         delay,
+                                         GNUNET_TIME_UNIT_ZERO);
     send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
   }
   if (2 == messages_recv)

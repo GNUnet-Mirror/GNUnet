@@ -84,8 +84,6 @@ static char *opt_type_str;
  */
 static unsigned int opt_pref_value;
 
-
-
 /**
  * Final status code.
  */
@@ -124,7 +122,7 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Shutdown task
  */
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *shutdown_task;
 
 /**
  * Hashmap to store addresses
@@ -161,14 +159,9 @@ struct PendingResolutions
   struct GNUNET_TRANSPORT_AddressToStringContext *tats_ctx;
 
   /**
-   * Array of performance data.
+   * Performance data.
    */
-  struct GNUNET_ATS_Information *ats;
-
-  /**
-   * Length of the @e ats array.
-   */
-  uint32_t ats_count;
+  struct GNUNET_ATS_Properties properties;
 
   /**
    * Amount of outbound bandwidth assigned by ATS.
@@ -325,20 +318,15 @@ transport_addr_to_str_cb (void *cls,
                           int res)
 {
   struct PendingResolutions *pr = cls;
-  char *ats_str;
-  char *ats_tmp;
-  char *ats_prop_value;
-  unsigned int c;
-  uint32_t ats_type;
-  uint32_t ats_value;
-  uint32_t network;
 
   if (NULL == address)
   {
     /* We're done */
-    GNUNET_CONTAINER_DLL_remove(head, tail, pr);
-    GNUNET_free(pr->address);
-    GNUNET_free(pr);
+    GNUNET_CONTAINER_DLL_remove (head,
+                                 tail,
+                                 pr);
+    GNUNET_free (pr->address);
+    GNUNET_free (pr);
     stat_pending--;
 
     if ((GNUNET_YES == stat_receive_done) && (0 == stat_pending))
@@ -374,64 +362,15 @@ transport_addr_to_str_cb (void *cls,
     return;
   }
 
-  ats_str = GNUNET_strdup (pr->active ? _("active ") : _("inactive "));
-  network = GNUNET_ATS_NET_UNSPECIFIED;
-  for (c = 0; c < pr->ats_count; c++)
-  {
-    ats_tmp = ats_str;
-
-    ats_type = ntohl (pr->ats[c].type);
-    ats_value = ntohl (pr->ats[c].value);
-
-    if (ats_type > GNUNET_ATS_PropertyCount)
-    {
-      FPRINTF (stderr,
-               "Invalid ATS property type %u %u for address %s\n",
-               ats_type,
-               pr->ats[c].type,
-               address);
-      continue;
-    }
-
-    switch (ats_type)
-    {
-    case GNUNET_ATS_NETWORK_TYPE:
-      if (ats_value > GNUNET_ATS_NetworkTypeCount)
-      {
-        GNUNET_break(0);
-        continue;
-      }
-      network = ats_value;
-      GNUNET_asprintf (&ats_prop_value,
-                       "%s",
-                       GNUNET_ATS_print_network_type (ats_value));
-      break;
-    default:
-      GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
-      break;
-    }
-    if ((opt_verbose) && (ats_type < GNUNET_ATS_PropertyCount))
-    {
-      GNUNET_asprintf (&ats_str,
-                       "%s%s=%s, ",
-                       ats_tmp,
-                       GNUNET_ATS_print_property_type (ats_type),
-                       ats_prop_value);
-      GNUNET_free(ats_tmp);
-    }
-    GNUNET_free(ats_prop_value);
-  }
-
   FPRINTF (stderr,
            _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
            GNUNET_i2s (&pr->address->peer),
            pr->address->transport_name,
            address,
-           GNUNET_ATS_print_network_type (network),
+           GNUNET_ATS_print_network_type (pr->properties.scope),
            ntohl (pr->bandwidth_out.value__),
            ntohl (pr->bandwidth_in.value__),
-           ats_str);
-  GNUNET_free (ats_str);
+           pr->active ? _("active ") : _("inactive "));
 }
 
 
@@ -489,8 +428,7 @@ find_address_it (void *cls,
  *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address (as far as known)
  */
 static void
 ats_perf_mon_cb (void *cls,
@@ -498,8 +436,7 @@ ats_perf_mon_cb (void *cls,
                  int active,
                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                 const struct GNUNET_ATS_Information *ats,
-                 uint32_t ats_count)
+                 const struct GNUNET_ATS_Properties *prop)
 {
   struct PendingResolutions *pr;
   struct PendingResolutions *cur;
@@ -517,7 +454,6 @@ ats_perf_mon_cb (void *cls,
       GNUNET_HELLO_address_free (cur->address);
       GNUNET_free (cur);
     }
-
     GNUNET_CONTAINER_multipeermap_iterate (addresses,
                                            &free_addr_it,
                                            NULL);
@@ -530,15 +466,19 @@ ats_perf_mon_cb (void *cls,
 
     actx.src = address;
     actx.res = NULL;
-    GNUNET_CONTAINER_multipeermap_get_multiple (addresses, &address->peer,
-        &find_address_it, &actx);
+    GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
+                                                &address->peer,
+                                                &find_address_it,
+                                                &actx);
     if (NULL == actx.res)
     {
       GNUNET_break (0);
       return;
     }
-    GNUNET_break(
-        GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (addresses, &address->peer, actx.res));
+    GNUNET_break(GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (addresses,
+                                                       &address->peer,
+                                                       actx.res));
     FPRINTF (stderr,
              _("Removed address of peer `%s' with plugin `%s'\n"),
              GNUNET_i2s (&address->peer),
@@ -554,8 +494,10 @@ ats_perf_mon_cb (void *cls,
 
     actx.src = address;
     actx.res = NULL;
-    GNUNET_CONTAINER_multipeermap_get_multiple (addresses, &address->peer,
-        &find_address_it, &actx);
+    GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
+                                                &address->peer,
+                                                &find_address_it,
+                                                &actx);
     if ((NULL != actx.res))
     {
       if ((bandwidth_in.value__ == actx.res->bandwidth_in.value__) &&
@@ -578,18 +520,15 @@ ats_perf_mon_cb (void *cls,
       a->bandwidth_in = bandwidth_in;
       a->bandwidth_out = bandwidth_out;
       a->active = active;
-      GNUNET_CONTAINER_multipeermap_put (addresses, &address->peer, a,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multipeermap_put (addresses,
+                                         &address->peer,
+                                         a,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
 
-  pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
-      ats_count * sizeof (struct GNUNET_ATS_Information));
-
-  pr->ats_count = ats_count;
-  pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
-  if (ats_count > 0)
-    memcpy (pr->ats, ats, ats_count * sizeof(struct GNUNET_ATS_Information));
+  pr = GNUNET_new (struct PendingResolutions);
+  pr->properties = *prop;
   pr->address = GNUNET_HELLO_address_copy (address);
   pr->bandwidth_in = bandwidth_in;
   pr->bandwidth_out = bandwidth_out;
@@ -614,8 +553,7 @@ ats_perf_mon_cb (void *cls,
           to a peer
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
- * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in @a ats
+ * @param prop performance data for the address (as far as known)
  */
 static void
 ats_perf_cb (void *cls,
@@ -623,8 +561,7 @@ ats_perf_cb (void *cls,
              int active,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-             const struct GNUNET_ATS_Information *ats,
-             uint32_t ats_count)
+             const struct GNUNET_ATS_Properties *prop)
 {
   struct PendingResolutions *pr;
 
@@ -643,13 +580,8 @@ ats_perf_cb (void *cls,
     return;
   }
 
-  pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
-      ats_count * sizeof (struct GNUNET_ATS_Information));
-
-  pr->ats_count = ats_count;
-  pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
-  if (ats_count > 0)
-    memcpy (pr->ats, ats, ats_count * sizeof(struct GNUNET_ATS_Information));
+  pr = GNUNET_new (struct PendingResolutions);
+  pr->properties = *prop;
   pr->address = GNUNET_HELLO_address_copy (address);
   pr->bandwidth_in = bandwidth_in;
   pr->bandwidth_out = bandwidth_out;
@@ -921,7 +853,10 @@ testservice_ats (void *cls,
                "%s",
                _("Cannot connect to ATS service, exiting...\n"));
 
-    GNUNET_ATS_performance_change_preference (ph, &pid, type, (double) opt_pref_value,
+    GNUNET_ATS_performance_change_preference (ph,
+                                              &pid,
+                                              type,
+                                              (double) opt_pref_value,
                                               GNUNET_ATS_PREFERENCE_END);
 
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,

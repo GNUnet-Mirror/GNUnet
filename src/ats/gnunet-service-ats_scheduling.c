@@ -135,13 +135,12 @@ GAS_handle_address_add (void *cls,
                         const struct GNUNET_MessageHeader *message)
 {
   const struct AddressAddMessage *m;
-  const struct GNUNET_ATS_Information *atsi;
   const char *address;
   const char *plugin_name;
   uint16_t address_length;
   uint16_t plugin_name_length;
-  uint32_t ats_count;
   uint16_t size;
+  struct GNUNET_ATS_Properties prop;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message\n",
@@ -154,38 +153,38 @@ GAS_handle_address_add (void *cls,
     return;
   }
   m = (const struct AddressAddMessage *) message;
-  ats_count = ntohl (m->ats_count);
   address_length = ntohs (m->address_length);
   plugin_name_length = ntohs (m->plugin_name_length);
-  atsi = (const struct GNUNET_ATS_Information *) &m[1];
-  address = (const char *) &atsi[ats_count];
+  address = (const char *) &m[1];
   if (plugin_name_length != 0)
     plugin_name = &address[address_length];
   else
     plugin_name = "";
 
   if ((address_length + plugin_name_length +
-       ats_count * sizeof (struct GNUNET_ATS_Information) +
        sizeof (struct AddressAddMessage) != ntohs (message->size)) ||
-      (ats_count >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)) ||
-       ((plugin_name_length > 0) && (plugin_name[plugin_name_length - 1] != '\0')))
+       ( (plugin_name_length > 0) &&
+         (plugin_name[plugin_name_length - 1] != '\0') ) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   GNUNET_STATISTICS_update (GSA_stats,
-                            "# addresses created", 1,
+                            "# addresses created",
+                            1,
                             GNUNET_NO);
+  GNUNET_ATS_properties_ntoh (&prop,
+                              &m->properties);
   GAS_addresses_add (&m->peer,
                      plugin_name,
                      address,
                      address_length,
                      ntohl (m->address_local_info),
                      ntohl (m->session_id),
-                     atsi, ats_count);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+                     &prop);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -202,38 +201,20 @@ GAS_handle_address_update (void *cls,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct AddressUpdateMessage *m;
-  const struct GNUNET_ATS_Information *atsi;
-  uint32_t ats_count;
-  uint16_t size;
+  struct GNUNET_ATS_Properties prop;
 
-  size = ntohs (message->size);
-  if (size < sizeof (struct AddressUpdateMessage))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   m = (const struct AddressUpdateMessage *) message;
-  ats_count = ntohl (m->ats_count);
-  atsi = (const struct GNUNET_ATS_Information *) &m[1];
-
-  if ((ats_count * sizeof (struct GNUNET_ATS_Information) +
-       sizeof (struct AddressUpdateMessage) != ntohs (message->size)) ||
-      (ats_count >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_ATS_Information)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
-  }
   GNUNET_STATISTICS_update (GSA_stats,
                             "# address updates received",
                             1,
                             GNUNET_NO);
+  GNUNET_ATS_properties_ntoh (&prop,
+                              &m->properties);
   GAS_addresses_update (&m->peer,
                         ntohl (m->session_id),
-                        atsi, ats_count);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+                        &prop);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 

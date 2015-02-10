@@ -364,35 +364,27 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
                     const struct GNUNET_MessageHeader *msg)
 {
   const struct PeerInformationMessage *pi;
-  const struct GNUNET_ATS_Information *atsi;
   const char *plugin_address;
   const char *plugin_name;
   struct GNUNET_HELLO_Address address;
   uint16_t plugin_address_length;
   uint16_t plugin_name_length;
-  uint32_t ats_count;
   int addr_active;
+  struct GNUNET_ATS_Properties prop;
 
   if (ntohs (msg->size) < sizeof(struct PeerInformationMessage))
   {
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-
   pi = (const struct PeerInformationMessage *) msg;
-  ats_count = ntohl (pi->ats_count);
   plugin_address_length = ntohs (pi->address_length);
   plugin_name_length = ntohs (pi->plugin_name_length);
   addr_active = (int) ntohl (pi->address_active);
-  atsi = (const struct GNUNET_ATS_Information *) &pi[1];
-  plugin_address = (const char *) &atsi[ats_count];
+  plugin_address = (const char *) &pi[1];
   plugin_name = &plugin_address[plugin_address_length];
   if ((plugin_address_length + plugin_name_length
-      + ats_count * sizeof(struct GNUNET_ATS_Information)
       + sizeof(struct PeerInformationMessage) != ntohs (msg->size))
-      || (ats_count
-          > GNUNET_SERVER_MAX_MESSAGE_SIZE
-              / sizeof(struct GNUNET_ATS_Information))
       || (plugin_name[plugin_name_length - 1] != '\0'))
   {
     GNUNET_break(0);
@@ -401,6 +393,8 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
 
   if (NULL != ph->addr_info_cb)
   {
+    GNUNET_ATS_properties_ntoh (&prop,
+                                &pi->properties);
     address.peer = pi->peer;
     address.address = plugin_address;
     address.address_length = plugin_address_length;
@@ -410,7 +404,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
                       addr_active,
                       pi->bandwidth_out,
                       pi->bandwidth_in,
-                      atsi, ats_count);
+                      &prop);
   }
   return GNUNET_OK;
 }
@@ -488,15 +482,14 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   const struct PeerInformationMessage *pi;
   struct GNUNET_ATS_AddressListHandle *alh;
   struct GNUNET_ATS_AddressListHandle *next;
-  const struct GNUNET_ATS_Information *atsi;
   const char *plugin_address;
   const char *plugin_name;
   struct GNUNET_HELLO_Address address;
   struct GNUNET_PeerIdentity allzeros;
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_zero;
+  struct GNUNET_ATS_Properties prop;
   uint16_t plugin_address_length;
   uint16_t plugin_name_length;
-  uint32_t ats_count;
   uint32_t active;
   uint32_t id;
 
@@ -507,18 +500,13 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   }
   pi = (const struct PeerInformationMessage *) msg;
   id = ntohl (pi->id);
-  ats_count = ntohl (pi->ats_count);
   active = ntohl (pi->address_active);
   plugin_address_length = ntohs (pi->address_length);
   plugin_name_length = ntohs (pi->plugin_name_length);
-  atsi = (const struct GNUNET_ATS_Information *) &pi[1];
-  plugin_address = (const char *) &atsi[ats_count];
+  plugin_address = (const char *) &pi[1];
   plugin_name = &plugin_address[plugin_address_length];
   if ( (plugin_address_length + plugin_name_length
-        + ats_count * sizeof(struct GNUNET_ATS_Information)
         + sizeof (struct PeerInformationMessage) != ntohs (msg->size)) ||
-       (ats_count > GNUNET_SERVER_MAX_MESSAGE_SIZE
-        / sizeof(struct GNUNET_ATS_Information)) ||
        (plugin_name[plugin_name_length - 1] != '\0') )
   {
     GNUNET_break(0);
@@ -545,8 +533,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   memset (&allzeros, '\0', sizeof (allzeros));
   if ( (0 == memcmp (&allzeros, &pi->peer, sizeof(allzeros))) &&
        (0 == plugin_name_length) &&
-       (0 == plugin_address_length) &&
-       (0 == ats_count) )
+       (0 == plugin_address_length) )
   {
     /* Done */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -561,7 +548,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
                GNUNET_NO,
                bandwidth_zero,
                bandwidth_zero,
-               NULL, 0);
+               NULL);
     GNUNET_free (alh);
     return GNUNET_OK;
   }
@@ -573,12 +560,16 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   if ( ( (GNUNET_YES == alh->all_addresses) ||
          (GNUNET_YES == active) ) &&
        (NULL != alh->cb) )
+  {
+    GNUNET_ATS_properties_ntoh (&prop,
+                                &pi->properties);
     alh->cb (ph->addr_info_cb_cls,
              &address,
              active,
              pi->bandwidth_out,
              pi->bandwidth_in,
-             atsi, ats_count);
+             &prop);
+  }
   return GNUNET_OK;
 }
 
@@ -641,7 +632,7 @@ process_ats_message (void *cls,
                       GNUNET_NO,
                       GNUNET_BANDWIDTH_value_init (0),
                       GNUNET_BANDWIDTH_value_init (0),
-                      NULL, 0);
+                      NULL);
   }
   ph->backoff = GNUNET_TIME_STD_BACKOFF (ph->backoff);
   ph->task = GNUNET_SCHEDULER_add_delayed (ph->backoff,
@@ -917,8 +908,9 @@ GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandl
 const char *
 GNUNET_ATS_print_preference_type (uint32_t type)
 {
-  char *prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceTypeString;
-  if (type < GNUNET_ATS_PreferenceCount)
+  const char *prefs[] = GNUNET_ATS_PreferenceTypeString;
+
+  if (type < GNUNET_ATS_PREFERENCE_END)
     return prefs[type];
   return NULL;
 }
@@ -930,7 +922,7 @@ GNUNET_ATS_print_preference_type (uint32_t type)
  *
  * @param ph performance handle
  * @param peer identifies the peer
- * @param ... 0-terminated specification of the desired changes
+ * @param ... #GNUNET_ATS_PREFERENCE_END-terminated specification of the desired changes
  */
 void
 GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
@@ -946,20 +938,18 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
 
   count = 0;
   va_start(ap, peer);
-  while (GNUNET_ATS_PREFERENCE_END != (kind =
-      va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
+  while (GNUNET_ATS_PREFERENCE_END !=
+         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
   {
     switch (kind)
     {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
       count++;
       (void) va_arg (ap, double);
-
       break;
     case GNUNET_ATS_PREFERENCE_LATENCY:
       count++;
       (void) va_arg (ap, double);
-
       break;
     default:
       GNUNET_assert(0);
@@ -1012,7 +1002,7 @@ GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *p
  * @param ph performance handle
  * @param scope the time interval this valid for: [now - scope .. now]
  * @param peer identifies the peer
- * @param ... 0-terminated specification of the desired changes
+ * @param ... #GNUNET_ATS_PREFERENCE_END-terminated specification of the desired changes
  */
 void
 GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
@@ -1029,8 +1019,8 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
 
   count = 0;
   va_start(ap, scope);
-  while (GNUNET_ATS_PREFERENCE_END != (kind =
-      va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
+  while (GNUNET_ATS_PREFERENCE_END !=
+         (kind = va_arg (ap, enum GNUNET_ATS_PreferenceKind) ))
   {
     switch (kind)
     {

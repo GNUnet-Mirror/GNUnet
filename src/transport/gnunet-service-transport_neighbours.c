@@ -1481,7 +1481,6 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   struct NeighbourMapEntry *n;
   const struct SessionKeepAliveMessage *msg;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_ATS_Information ats;
   struct GNUNET_TIME_Relative latency;
 
   if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
@@ -1524,8 +1523,9 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Received keep alive response from peer `%s' for session %p\n",
-        GNUNET_i2s (&n->id), n->primary_address.session);
+                "Received keep alive response from peer `%s' for session %p\n",
+                GNUNET_i2s (&n->id),
+                n->primary_address.session);
 
   }
 
@@ -1533,9 +1533,12 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   if (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Updating session for peer `%s' for session %p\n",
-        GNUNET_i2s (&n->id), n->primary_address.session);
-    papi->update_session_timeout (papi->cls, &n->id, n->primary_address.session);
+                "Updating session for peer `%s' for session %p\n",
+                GNUNET_i2s (&n->id),
+                n->primary_address.session);
+    papi->update_session_timeout (papi->cls,
+                                  &n->id,
+                                  n->primary_address.session);
   }
   else
   {
@@ -1554,15 +1557,8 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
               GNUNET_i2s (&n->id),
 	      GNUNET_STRINGS_relative_time_to_string (latency,
 						      GNUNET_YES));
-  /* append latency */
-  ats.type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-  ats.value = htonl ( (latency.rel_value_us > UINT32_MAX)
-                      ? UINT32_MAX
-                      : (uint32_t) latency.rel_value_us );
-  GST_ats_update_metrics (n->primary_address.address,
-                          n->primary_address.session,
-                          &ats,
-                          1);
+  GST_ats_update_delay (n->primary_address.address,
+                        GNUNET_TIME_relative_divide (latency, 2));
 }
 
 
@@ -1579,8 +1575,9 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
  * @return how long to wait before reading more from this sender
  */
 struct GNUNET_TIME_Relative
-GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
-                                        *sender, ssize_t size, int *do_forward)
+GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender,
+                                        ssize_t size,
+                                        int *do_forward)
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_TIME_Relative ret;
@@ -2824,7 +2821,6 @@ send_utilization_data (void *cls,
                        void *value)
 {
   struct NeighbourMapEntry *n = value;
-  struct GNUNET_ATS_Information atsi[2];
   uint32_t bps_in;
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
@@ -2846,14 +2842,9 @@ send_utilization_data (void *cls,
               GNUNET_i2s (key),
               bps_in,
               bps_out);
-  atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_OUT);
-  atsi[0].value = htonl (bps_out);
-  atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_IN);
-  atsi[1].value = htonl (bps_in);
-  GST_ats_update_metrics (n->primary_address.address,
-                          n->primary_address.session,
-                          atsi,
-                          2);
+  GST_ats_update_utilization (n->primary_address.address,
+                              bps_in,
+                              bps_out);
   n->util_total_bytes_recv = 0;
   n->util_total_bytes_sent = 0;
   n->last_util_transmission = GNUNET_TIME_absolute_get ();
@@ -3426,9 +3417,9 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop
-                            ("# ACK messages received"),
-                            1, GNUNET_NO);
+                            gettext_noop ("# ACK messages received"),
+                            1,
+                            GNUNET_NO);
   if (NULL == (n = lookup_neighbour (&address->peer)))
   {
     GNUNET_break_op (0);

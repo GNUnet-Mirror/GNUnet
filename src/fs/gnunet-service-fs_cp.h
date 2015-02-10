@@ -67,11 +67,6 @@ struct GSF_PeerPerformanceData
 {
 
   /**
-   * Transport performance data.
-   */
-  struct GNUNET_ATS_Information *atsi;
-
-  /**
    * List of the last clients for which this peer successfully
    * answered a query.
    */

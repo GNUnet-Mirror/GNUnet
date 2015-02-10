@@ -38,8 +38,7 @@ struct Test_Address
   void *addr;
   size_t addr_len;
 
-  struct GNUNET_ATS_Information *ats;
-  int ats_count;
+  struct GNUNET_ATS_Properties properties;
 
   void *session;
 };
@@ -61,13 +60,11 @@ free_test_address (struct Test_Address *dest);
 void
 create_test_address (struct Test_Address *dest, char * plugin, void *session, void *addr, size_t addrlen);
 
+
 int
 compare_addresses (const struct GNUNET_HELLO_Address *address1, void *session1,
                    const struct GNUNET_HELLO_Address *address2, void *session2);
 
-int
-compare_ats (const struct GNUNET_ATS_Information *ats_is, uint32_t ats_count_is,
-             const struct GNUNET_ATS_Information *ats_should, uint32_t ats_count_should);
 
 struct ATS_Address *
 create_address (const struct GNUNET_PeerIdentity *peer,

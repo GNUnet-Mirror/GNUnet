@@ -173,12 +173,6 @@ struct Session
   struct GNUNET_TIME_Relative last_expected_msg_delay;
 
   /**
-   * Address metrics (as set by the "update_address_metrics" by
-   * the environment).
-   */
-  struct GNUNET_ATS_Information ats;
-
-  /**
    * Our own address.
    */
   struct GNUNET_HELLO_Address *address;
@@ -200,6 +194,11 @@ struct Session
    * possible.
    */
   unsigned int rc;
+
+  /**
+   * Network type of the address.
+   */
+  enum GNUNET_ATS_Network_Type scope;
 
   /**
    * Is this session about to be destroyed (sometimes we cannot
@@ -1595,7 +1594,7 @@ static enum GNUNET_ATS_Network_Type
 udp_get_network (void *cls,
                  struct Session *session)
 {
-  return ntohl (session->ats.value);
+  return session->scope;
 }
 
 
@@ -1742,11 +1741,8 @@ udp_plugin_create_session (void *cls,
   struct Session *s;
 
   s = create_session (plugin, address);
-  s->ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  s->ats.value = htonl (network_type);
+  s->scope = network_type;
 
-  if (NULL == s)
-    return NULL; /* protocol not supported or address invalid */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new session %p for peer `%s' address `%s'\n",
        s,
@@ -2213,16 +2209,11 @@ process_inbound_tokenized_messages (void *cls,
   if (GNUNET_YES == si->session->in_destroy)
     return GNUNET_OK;
   /* setup ATS */
-  GNUNET_break (ntohl (si->session->ats.value) != GNUNET_ATS_NET_UNSPECIFIED);
   reschedule_session_timeout (si->session);
   delay = plugin->env->receive (plugin->env->cls,
                                 si->session->address,
                                 si->session,
                                 hdr);
-  plugin->env->update_address_metrics (plugin->env->cls,
-                                       si->session->address,
-                                       si->session,
-                                       &si->session->ats, 1);
   si->session->flow_delay_for_other_peer = delay;
   return GNUNET_OK;
 }
@@ -2274,8 +2265,7 @@ process_udp_message (struct Plugin *plugin,
     plugin->env->session_start (plugin->env->cls,
                                 address,
                                 s,
-                                NULL,
-                                0);
+                                s->scope);
     notify_session_monitor (s->plugin,
                             s,
                             GNUNET_TRANSPORT_SS_INIT);

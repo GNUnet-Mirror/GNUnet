@@ -62,7 +62,7 @@ struct PeerRelative
    * Array of relative preference values, to be indexed by
    * an `enum GNUNET_ATS_PreferenceKind`.
    */
-  double f_rel[GNUNET_ATS_PreferenceCount];
+  double f_rel[GNUNET_ATS_PREFERENCE_END];
 
   /**
    * Number of clients that are expressing a preference for
@@ -99,14 +99,14 @@ struct PreferencePeer
    * Absolute preference values for all preference types
    * as expressed by this client for this peer.
    */
-  double f_abs[GNUNET_ATS_PreferenceCount];
+  double f_abs[GNUNET_ATS_PREFERENCE_END];
 
   /**
    * Relative preference values for all preference types,
    * normalized in [0..1] based on how the respective
    * client scored other peers.
    */
-  double f_rel[GNUNET_ATS_PreferenceCount];
+  double f_rel[GNUNET_ATS_PREFERENCE_END];
 
 };
 
@@ -144,7 +144,7 @@ struct PreferenceClient
    * Array of sums of absolute preferences for all
    * peers as expressed by this client.
    */
-  double f_abs_sum[GNUNET_ATS_PreferenceCount];
+  double f_abs_sum[GNUNET_ATS_PREFERENCE_END];
 
 };
 
@@ -353,7 +353,7 @@ age_values (void *cls,
   int dead;
 
   dead = GNUNET_YES;
-  for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+  for (i = 0; i < GNUNET_ATS_PREFERENCE_END; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Aging preference for peer `%s'\n",
@@ -563,7 +563,7 @@ update_preference (struct GNUNET_SERVER_Client *client,
   struct PeerRelative *r_cur;
   unsigned int i;
 
-  if (kind >= GNUNET_ATS_PreferenceCount)
+  if (kind >= GNUNET_ATS_PREFERENCE_END)
   {
     GNUNET_break(0);
     return;
@@ -584,7 +584,7 @@ update_preference (struct GNUNET_SERVER_Client *client,
     c_cur = GNUNET_new (struct PreferenceClient);
     c_cur->peer2pref = GNUNET_CONTAINER_multipeermap_create (16,
                                                              GNUNET_NO);
-    for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+    for (i = 0; i < GNUNET_ATS_PREFERENCE_END; i++)
       c_cur->f_abs_sum[i] = DEFAULT_ABS_PREFERENCE;
     GNUNET_CONTAINER_DLL_insert (pc_head,
                                  pc_tail,
@@ -598,7 +598,7 @@ update_preference (struct GNUNET_SERVER_Client *client,
   {
     /* Create struct for peer */
     r_cur = GNUNET_new (struct PeerRelative);
-    for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+    for (i = 0; i < GNUNET_ATS_PREFERENCE_END; i++)
       r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (preference_peers,
@@ -614,7 +614,7 @@ update_preference (struct GNUNET_SERVER_Client *client,
   {
     /* Not found: create new peer entry */
     p_cur = GNUNET_new (struct PreferencePeer);
-    for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+    for (i = 0; i < GNUNET_ATS_PREFERENCE_END; i++)
     {
       /* Default value per peer absolute preference for a preference*/
       p_cur->f_abs[i] = DEFAULT_ABS_PREFERENCE;
@@ -710,7 +710,7 @@ GAS_preference_init ()
 
   preference_peers = GNUNET_CONTAINER_multipeermap_create (16,
                                                            GNUNET_NO);
-  for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+  for (i = 0; i < GNUNET_ATS_PREFERENCE_END; i++)
     defvalues.f_rel[i] = DEFAULT_REL_PREFERENCE;
 }
 

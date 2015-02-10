@@ -142,7 +142,6 @@ broadcast_mst_cb (void *cls,
   struct GNUNET_HELLO_Address *address;
   const struct GNUNET_MessageHeader *hello;
   const struct UDP_Beacon_Message *msg;
-  struct GNUNET_ATS_Information atsi;
 
   msg = (const struct UDP_Beacon_Message *) message;
 
@@ -156,13 +155,6 @@ broadcast_mst_cb (void *cls,
        udp_address_to_string (NULL,
                               mc->udp_addr,
                               mc->udp_addr_len));
-
-  /* setup ATS */
-  atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  atsi.value = htonl (mc->ats_address_network_type);
-  GNUNET_break (ntohl(mc->ats_address_network_type) !=
-                GNUNET_ATS_NET_UNSPECIFIED);
-
   hello = (struct GNUNET_MessageHeader *) &msg[1];
   address = GNUNET_HELLO_address_allocate (&msg->sender,
                                            PLUGIN_NAME,
@@ -173,11 +165,6 @@ broadcast_mst_cb (void *cls,
                         address,
                         NULL,
                         hello);
-  plugin->env->update_address_metrics (plugin->env->cls,
-                                       address,
-				       NULL,
-                                       &atsi,
-                                       1);
   GNUNET_HELLO_address_free (address);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _("# Multicast HELLO beacons received via UDP"),

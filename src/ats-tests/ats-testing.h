@@ -84,8 +84,7 @@ typedef void (*GNUNET_ATS_TEST_TopologySetupDoneCallback) (void *cls,
  * @param address_active is address active
  * @param bandwidth_out bandwidth outbound
  * @param bandwidth_in bandwidth inbound
- * @param ats ats information
- * @param ats_count number of ats inforation
+ * @param prop performance information
  */
 typedef void
 (*GNUNET_ATS_TEST_LogRequest) (void *cls,
@@ -93,8 +92,7 @@ typedef void
     int address_active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count);
+    const struct GNUNET_ATS_Properties *prop);
 
 /**
  * Information we track for a peer in the testbed.

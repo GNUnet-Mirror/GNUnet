@@ -29,6 +29,8 @@
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet_ats_service.h"
 
+#define LOG(kind,...) GNUNET_log_from(kind, "transport-ats", __VA_ARGS__)
+
 
 /**
  * Information we track for each address known to ATS.
@@ -50,6 +52,11 @@ struct AddressInfo
    * Record with ATS API for the address.
    */
   struct GNUNET_ATS_AddressRecord *ar;
+
+  /**
+   * Performance properties of this address.
+   */
+  struct GNUNET_ATS_Properties properties;
 
   /**
    * Time until when this address is blocked and should thus not be
@@ -256,16 +263,15 @@ unblock_address (void *cls,
   struct AddressInfo *ai = cls;
 
   ai->unblock_task = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Unblocking address %s of peer %s\n",
-              GST_plugins_a2s (ai->address),
-              GNUNET_i2s (&ai->address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Unblocking address %s of peer %s\n",
+       GST_plugins_a2s (ai->address),
+       GNUNET_i2s (&ai->address->peer));
   ai->ar = GNUNET_ATS_address_add (GST_ats,
                                    ai->address,
                                    ai->session,
-                                   NULL, 0);
+                                   &ai->properties);
   GNUNET_break (NULL != ai->ar);
-  /* FIXME: should pass ATS information here! */
 }
 
 
@@ -299,15 +305,15 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
   if (GNUNET_YES ==
       GNUNET_HELLO_address_check_option (address,
                                          GNUNET_HELLO_ADDRESS_INFO_INBOUND))
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Removing address %s of peer %s from use (inbound died)\n",
-                GST_plugins_a2s (address),
-                GNUNET_i2s (&address->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Removing address %s of peer %s from use (inbound died)\n",
+         GST_plugins_a2s (address),
+         GNUNET_i2s (&address->peer));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Blocking address %s of peer %s from use for a while\n",
-                GST_plugins_a2s (address),
-                GNUNET_i2s (&address->peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Blocking address %s of peer %s from use for a while\n",
+         GST_plugins_a2s (address),
+         GNUNET_i2s (&address->peer));
   /* destroy session and address */
   if ( (NULL == session) ||
        (GNUNET_NO ==
@@ -332,20 +338,15 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
  *
  * @param address the address
  * @param session the session
- * @param ats ats information
- * @param ats_count number of @a ats information
+ * @param prop performance information
  */
 void
 GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
                              struct Session *session,
-                             const struct GNUNET_ATS_Information *ats,
-                             uint32_t ats_count)
+                             const struct GNUNET_ATS_Properties *prop)
 {
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_ATS_Information ats2[ats_count + 1];
   struct GNUNET_ATS_AddressRecord *ar;
   struct AddressInfo *ai;
-  uint32_t net;
 
   /* valid new address, let ATS know! */
   if (NULL == address->transport_name)
@@ -365,40 +366,24 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
-  papi = GST_plugins_find (address->transport_name);
-  GNUNET_assert (NULL != papi);
-  net = papi->get_network (papi->cls, session);
-  if (GNUNET_ATS_NET_UNSPECIFIED == net)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not obtain a valid network for `%s' %s (%s)\n"),
-                GNUNET_i2s (&address->peer),
-                GST_plugins_a2s (address),
-                address->transport_name);
-    return;
-  }
-  ats2[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats2[0].value = htonl (net);
-  memcpy (&ats2[1],
-          ats,
-          sizeof(struct GNUNET_ATS_Information) * ats_count);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Notifying ATS about peer `%s''s new inbound address `%s' session %p in network %s\n",
-              GNUNET_i2s (&address->peer),
-              (0 == address->address_length)
-              ? "<inbound>"
-              : GST_plugins_a2s (address),
-              session,
-              GNUNET_ATS_print_network_type (net));
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying ATS about peer `%s''s new inbound address `%s' session %p in network %s\n",
+       GNUNET_i2s (&address->peer),
+       (0 == address->address_length)
+       ? "<inbound>"
+       : GST_plugins_a2s (address),
+       session,
+       GNUNET_ATS_print_network_type (prop->scope));
   ar = GNUNET_ATS_address_add (GST_ats,
                                address,
                                session,
-                               (NULL != session) ? ats2 : ats,
-                               (NULL != session) ? ats_count + 1 : ats_count);
+                               prop);
   GNUNET_break (NULL != ar);
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->session = session;
+  ai->properties = *prop;
   ai->ar = ar;
   (void) GNUNET_CONTAINER_multipeermap_put (p2a,
                                             &ai->address->peer,
@@ -413,13 +398,11 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
  * located in.  The address must NOT be inbound and must be new to ATS.
  *
  * @param address the address
- * @param ats ats information
- * @param ats_count number of @a ats information
+ * @param prop performance information
  */
 void
 GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-                     const struct GNUNET_ATS_Information *ats,
-                     uint32_t ats_count)
+                     const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_AddressRecord *ar;
   struct AddressInfo *ai;
@@ -435,21 +418,21 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
   ai = find_ai_no_session (address);
   GNUNET_assert (NULL == ai);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Notifying ATS about peer `%s''s new address `%s'\n",
-              GNUNET_i2s (&address->peer),
-              (0 == address->address_length)
-              ? "<inbound>"
-              : GST_plugins_a2s (address));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Notifying ATS about peer `%s''s new address `%s'\n",
+       GNUNET_i2s (&address->peer),
+       (0 == address->address_length)
+       ? "<inbound>"
+       : GST_plugins_a2s (address));
   ar = GNUNET_ATS_address_add (GST_ats,
                                address,
                                NULL,
-                               ats,
-                               ats_count);
+                               prop);
   GNUNET_break (NULL != ar);
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->ar = ar;
+  ai->properties = *prop;
   (void) GNUNET_CONTAINER_multipeermap_put (p2a,
                                             &ai->address->peer,
                                             ai,
@@ -484,11 +467,9 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
   }
   GNUNET_break (NULL == ai->session);
   ai->session = session;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "transport-ats",
-                   "Telling ATS about new session %p for peer %s\n",
-                   session,
-                   GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Telling ATS about new session for peer %s\n",
+       GNUNET_i2s (&address->peer));
   if (NULL != ai->ar)
     GNUNET_ATS_address_add_session (ai->ar,
                                     session);
@@ -528,11 +509,10 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
   }
   GNUNET_assert (session == ai->session);
   ai->session = NULL;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "transport-ats",
-                   "Telling ATS to destroy session %p from peer %s\n",
-                   session,
-                   GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Telling ATS to destroy session %p from peer %s\n",
+       session,
+       GNUNET_i2s (&address->peer));
   if (NULL == ai->ar)
   {
     /* If ATS doesn't know about the address/session, and this
@@ -555,52 +535,95 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about property changes to an address.
+ * Notify ATS about DV distance change to an address's.
  *
- * @param address our information about the address
- * @param session the session
- * @param ats performance information
- * @param ats_count number of elements in @a ats
+ * @param address the address
+ * @param distance new distance value
  */
 void
-GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
-                        struct Session *session,
-                        const struct GNUNET_ATS_Information *ats,
-                        uint32_t ats_count)
+GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
+                         uint32_t distance)
 {
-  struct GNUNET_ATS_Information *ats_new;
   struct AddressInfo *ai;
 
-  ai = find_ai (address, session);
+  ai = find_ai_no_session (address);
   if (NULL == ai)
-  {
-    /* We sometimes create sessions just for sending a PING,
-       and if we get metrics for those, they were never known to
-       ATS which means we end up here (however, in this
-       case, the address must be an outbound address). */
-    GNUNET_break (GNUNET_YES !=
-                  GNUNET_HELLO_address_check_option (address,
-                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
     return;
-  }
-  /* Call to manipulation to manipulate ATS information */
-  GNUNET_assert (NULL != GST_ats);
-  if ((NULL == ats) || (0 == ats_count))
-    return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Updating metrics for peer `%s' address %s session %p\n",
-              GNUNET_i2s (&address->peer),
-              GST_plugins_a2s (address),
-              session);
-  ats_new = GST_manipulation_manipulate_metrics (address,
-                                                 session,
-                                                 ats,
-                                                 ats_count);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updated distance for peer `%s' to %u\n",
+       GNUNET_i2s (&address->peer),
+       distance);
+  ai->properties.distance = distance;
+  GST_manipulation_manipulate_metrics (address,
+                                       ai->session,
+                                       &ai->properties);
   if (NULL != ai->ar)
     GNUNET_ATS_address_update (ai->ar,
-                               ats_new,
-                               ats_count);
-  GNUNET_free_non_null (ats_new);
+                               &ai->properties);
+}
+
+
+/**
+ * Notify ATS about property changes to an address's properties.
+ *
+ * @param address the address
+ * @param delay new delay value
+ */
+void
+GST_ats_update_delay (const struct GNUNET_HELLO_Address *address,
+                      struct GNUNET_TIME_Relative delay)
+{
+  struct AddressInfo *ai;
+
+  ai = find_ai_no_session (address);
+  if (NULL == ai)
+    return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updated latency for peer `%s' to %s\n",
+       GNUNET_i2s (&address->peer),
+       GNUNET_STRINGS_relative_time_to_string (delay,
+                                               GNUNET_YES));
+  ai->properties.delay = delay;
+  GST_manipulation_manipulate_metrics (address,
+                                       ai->session,
+                                       &ai->properties);
+  if (NULL != ai->ar)
+    GNUNET_ATS_address_update (ai->ar,
+                               &ai->properties);
+}
+
+
+/**
+ * Notify ATS about utilization changes to an address.
+ *
+ * @param address our information about the address
+ * @param bps_in new utilization inbound
+ * @param bps_out new utilization outbound
+ */
+void
+GST_ats_update_utilization (const struct GNUNET_HELLO_Address *address,
+                            uint32_t bps_in,
+                            uint32_t bps_out)
+{
+  struct AddressInfo *ai;
+
+  ai = find_ai_no_session (address);
+  if (NULL == ai)
+    return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating utilization for peer `%s' address %s: %u/%u\n",
+       GNUNET_i2s (&address->peer),
+       GST_plugins_a2s (address),
+       (unsigned int) bps_in,
+       (unsigned int) bps_out);
+  ai->properties.utilization_in = bps_in;
+  ai->properties.utilization_out = bps_out;
+  GST_manipulation_manipulate_metrics (address,
+                                       ai->session,
+                                       &ai->properties);
+  if (NULL != ai->ar)
+    GNUNET_ATS_address_update (ai->ar,
+                               &ai->properties);
 }
 
 
@@ -616,10 +639,10 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
 {
   struct AddressInfo *ai;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Address %s of peer %s expired\n",
-              GST_plugins_a2s (address),
-              GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Address %s of peer %s expired\n",
+       GST_plugins_a2s (address),
+       GNUNET_i2s (&address->peer));
   ai = find_ai_no_session (address);
   if (NULL == ai)
   {
@@ -632,10 +655,9 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                                                        ai));
   publish_p2a_stat_update ();
   GNUNET_break (NULL == ai->session);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   "transport-ats",
-                   "Telling ATS to destroy address from peer %s\n",
-                   GNUNET_i2s (&address->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Telling ATS to destroy address from peer %s\n",
+       GNUNET_i2s (&address->peer));
   if (NULL != ai->ar)
   {
     /* We usually should not have a session here when we

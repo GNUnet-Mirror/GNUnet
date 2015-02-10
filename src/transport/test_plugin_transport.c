@@ -522,11 +522,9 @@ env_session_end (void *cls,
 
 
 static void
-env_update_metrics (void *cls,
-                    const struct GNUNET_HELLO_Address *address,
-                    struct Session *session,
-                    const struct GNUNET_ATS_Information *ats,
-                    uint32_t ats_count)
+env_update_distance (void *cls,
+                     const struct GNUNET_HELLO_Address *address,
+                     uint32_t distance)
 {
 }
 
@@ -542,7 +540,7 @@ setup_plugin_environment ()
   env.receive = &env_receive;
   env.notify_address = &env_notify_address;
   env.get_address_type = &env_get_address_type;
-  env.update_address_metrics = &env_update_metrics;
+  env.update_address_distance = &env_update_distance;
   env.get_our_hello = &env_get_our_hello;
   env.session_end = &env_session_end;
 }

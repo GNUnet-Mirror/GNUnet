@@ -120,8 +120,8 @@ struct LoggingPeer
 
   long long unsigned int id;
   struct GNUNET_PeerIdentity peer_id;
-  double pref_abs[GNUNET_ATS_PreferenceCount];
-  double pref_norm[GNUNET_ATS_PreferenceCount];
+  double pref_abs[GNUNET_ATS_PREFERENCE_END];
+  double pref_norm[GNUNET_ATS_PREFERENCE_END];
   int is_requested;
 
   struct LoggingAddress *addr_head;
@@ -215,7 +215,7 @@ struct GNUNET_ATS_TEST_Operation
   enum OperationType type;
   enum GeneratorType gen_type;
   enum GNUNET_ATS_PreferenceKind pref_type;
-  enum GNUNET_ATS_Property prop_type;
+  // enum GNUNET_ATS_Property prop_type;
 };
 
 struct Episode

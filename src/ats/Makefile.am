@@ -18,8 +18,8 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-noinst_PROGRAMS = \
- gnunet-ats-solver-eval
+#noinst_PROGRAMS = \
+# gnunet-ats-solver-eval
 
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
@@ -42,21 +42,21 @@ plugin_LTLIBRARIES = \
   $(GN_MLP_LIB) \
   libgnunet_plugin_ats_ril.la
 
-gnunet_ats_solver_eval_SOURCES = \
- gnunet-ats-solver-eval.c gnunet-ats-solver-eval.h \
- gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
- gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
- gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
- gnunet-service-ats_feedback.c gnunet-service-ats_feedback.h \
- gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
- gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h \
- gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
- gnunet-service-ats_normalization.c
-gnunet_ats_solver_eval_LDADD = \
- $(top_builddir)/src/util/libgnunetutil.la \
- libgnunetats.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
- $(LTLIBINTL)
+#gnunet_ats_solver_eval_SOURCES = \
+# gnunet-ats-solver-eval.c gnunet-ats-solver-eval.h \
+# gnunet-service-ats_addresses.c gnunet-service-ats_addresses.h \
+# gnunet-service-ats_plugins.c gnunet-service-ats_plugins.h \
+# gnunet-service-ats_connectivity.c gnunet-service-ats_connectivity.h \
+# gnunet-service-ats_feedback.c gnunet-service-ats_feedback.h \
+# gnunet-service-ats_performance.c gnunet-service-ats_performance.h \
+# gnunet-service-ats_reservations.c gnunet-service-ats_reservations.h \
+# gnunet-service-ats_scheduling.c gnunet-service-ats_scheduling.h \
+# gnunet-service-ats_normalization.c
+#gnunet_ats_solver_eval_LDADD = \
+# $(top_builddir)/src/util/libgnunetutil.la \
+# libgnunetats.la \
+# $(top_builddir)/src/statistics/libgnunetstatistics.la \
+# $(LTLIBINTL)
 
 libgnunetats_la_SOURCES = \
   ats_api_connectivity.c \

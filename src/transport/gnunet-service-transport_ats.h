@@ -78,14 +78,12 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
  *
  * @param address the address
  * @param session the session
- * @param ats ats information
- * @param ats_count number of @a ats information
+ * @param prop performance information
  */
 void
 GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
                              struct Session *session,
-                             const struct GNUNET_ATS_Information *ats,
-                             uint32_t ats_count);
+                             const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -93,13 +91,11 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
  * located in.  The address must NOT be inbound and must be new to ATS.
  *
  * @param address the address
- * @param ats ats information
- * @param ats_count number of @a ats information
+ * @param prop performance information
  */
 void
 GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-                     const struct GNUNET_ATS_Information *ats,
-                     uint32_t ats_count);
+                     const struct GNUNET_ATS_Properties *prop);
 
 
 /**
@@ -115,18 +111,54 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about property changes to an address
+ * Notify ATS about property changes to an address's properties.
+ * FIXME: we probably want to split this one up for the different
+ * updatable properties.
  *
  * @param address the address
  * @param session the session
- * @param ats performance information
- * @param ats_count number of elements in @a ats
+ * @param prop updated performance information
  */
 void
 GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
 			struct Session *session,
-			const struct GNUNET_ATS_Information *ats,
-			uint32_t ats_count);
+			const struct GNUNET_ATS_Properties *prop);
+
+
+/**
+ * Notify ATS about utilization changes to an address.
+ *
+ * @param address our information about the address
+ * @param bps_in new utilization inbound
+ * @param bps_out new utilization outbound
+ */
+void
+GST_ats_update_utilization (const struct GNUNET_HELLO_Address *address,
+                            uint32_t bps_in,
+                            uint32_t bps_out);
+
+
+/**
+ * Notify ATS about property changes to an address's properties.
+ *
+ * @param address the address
+ * @param session the session
+ * @param delay new delay value
+ */
+void
+GST_ats_update_delay (const struct GNUNET_HELLO_Address *address,
+                      struct GNUNET_TIME_Relative delay);
+
+
+/**
+ * Notify ATS about property changes to an address's properties.
+ *
+ * @param address the address
+ * @param distance new distance value
+ */
+void
+GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
+                         uint32_t distance);
 
 
 /**

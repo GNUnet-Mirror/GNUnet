@@ -804,7 +804,7 @@ add_valid_address (void *cls,
   const struct GNUNET_HELLO_Message *hello = cls;
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
-  struct GNUNET_ATS_Information ats;
+  struct GNUNET_ATS_Properties prop;
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return GNUNET_OK;           /* expired */
@@ -832,13 +832,13 @@ add_valid_address (void *cls,
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   }
   validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
-
-  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats.value = htonl (ve->network);
+  memset (&prop, 0, sizeof (prop));
+  prop.scope = ve->network;
+  prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
   if (GNUNET_YES != ve->known_to_ats)
   {
     ve->known_to_ats = GNUNET_YES;
-    GST_ats_add_address (address, &ats, 1);
+    GST_ats_add_address (address, &prop);
   }
   return GNUNET_OK;
 }
@@ -1465,23 +1465,20 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
  	ve->pong_sig_valid_until = GNUNET_TIME_absolute_ntoh (pong->expiration);
   ve->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
   {
-    struct GNUNET_ATS_Information ats[2];
-
-    ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
-    ats[0].value = htonl ((uint32_t) ve->latency.rel_value_us);
-    ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-    ats[1].value = htonl ((uint32_t) ve->network);
     if (GNUNET_YES == ve->known_to_ats)
     {
-      GST_ats_update_metrics (ve->address,
-                              NULL,
-                              ats,
-                              2);
+      GST_ats_update_delay (ve->address,
+                            GNUNET_TIME_relative_divide (ve->latency, 2));
     }
     else
     {
+      struct GNUNET_ATS_Properties prop;
+
+      memset (&prop, 0, sizeof (prop));
+      prop.scope = ve->network;
+      prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
       ve->known_to_ats = GNUNET_YES;
-      GST_ats_add_address (ve->address, ats, 2);
+      GST_ats_add_address (ve->address, &prop);
     }
   }
   if (validations_running > 0)

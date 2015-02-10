@@ -934,29 +934,6 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   return state;
 }
 
-/**
- * Retrieves an ATS information value of an address
- *
- * @param address the address in question
- * @param type the ATS information type
- * @return the value
- */
-static unsigned int
-ril_get_atsi (struct ATS_Address *address, uint32_t type)
-{
-  int c1;
-  GNUNET_assert(NULL != address);
-
-  if ((NULL == address->atsi) || (0 == address->atsi_count))
-    return GNUNET_ATS_QUALITY_NET_DELAY == type ? UINT32_MAX : 1;
-
-  for (c1 = 0; c1 < address->atsi_count; c1++)
-  {
-    if (ntohl (address->atsi[c1].type) == type)
-      return ntohl (address->atsi[c1].value);
-  }
-  return GNUNET_ATS_QUALITY_NET_DELAY == type ? UINT32_MAX : 1;
-}
 
 /**
  * Returns the utility value of the connection an agent manages
@@ -975,16 +952,12 @@ agent_get_utility (struct RIL_Peer_Agent *agent)
   preferences = agent->envi->env->get_preferences (agent->envi->env->cls,
                                                    &agent->peer);
 
-  delay_atsi = (double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_QUALITY_NET_DELAY);
+  delay_atsi = agent->address_inuse->norm_delay.norm;
   delay_norm = RIL_UTILITY_DELAY_MAX*exp(-delay_atsi*0.00001);
 
   pref_match = preferences[GNUNET_ATS_PREFERENCE_LATENCY] * delay_norm;
   pref_match += preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] *
       sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
-//      sqrt((double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)/RIL_MIN_BW) * (double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)/RIL_MIN_BW));
-
-//  return (double) (agent->bw_in/RIL_MIN_BW);
-//  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
   return pref_match;
 }
 
@@ -1799,9 +1772,9 @@ ril_network_get_utilized (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network
       if (net->type == type)
       {
         if (direction_in)
-          sum += ril_get_atsi (cur->address_inuse, GNUNET_ATS_UTILIZATION_IN);
+          sum += cur->address_inuse->norm_utilization_in.norm;
         else
-          sum += ril_get_atsi (cur->address_inuse, GNUNET_ATS_UTILIZATION_OUT);
+          sum += cur->address_inuse->norm_utilization_out.norm;
       }
     }
   }
@@ -2373,27 +2346,16 @@ GAS_ril_address_delete (void *solver,
  *
  * @param solver solver handle
  * @param address the address
- * @param type the ATSI type
- * @param abs_value the absolute value of the property
- * @param rel_value the normalized value
  */
 static void
 GAS_ril_address_property_changed (void *solver,
-				  struct ATS_Address *address,
-				  enum GNUNET_ATS_Property type,
-				  uint32_t abs_value,
-				  double rel_value)
+				  struct ATS_Address *address)
 {
   struct GAS_RIL_Handle *s = solver;
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_property_changed() Property '%s' for peer '%s' address %s changed "
-          "to %.2f \n",
-      GNUNET_ATS_print_property_type (type),
-      GNUNET_i2s (&address->peer),
-      address->addr, rel_value);
-
-
+      "Properties for peer '%s' address changed\n",
+      GNUNET_i2s (&address->peer));
   s->parameters.temperature = s->parameters.temperature_init;
   s->parameters.epsilon = s->parameters.epsilon_init;
   ril_step (s);

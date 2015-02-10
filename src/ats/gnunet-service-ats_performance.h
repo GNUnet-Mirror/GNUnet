@@ -44,8 +44,7 @@
  *        to maintain a connection to a peer;
  *        #GNUNET_NO if the address is not actively used;
  *        #GNUNET_SYSERR if this address is no longer available for ATS
- * @param atsi performance data for the address
- * @param atsi_count number of performance records in @a atsi
+ * @param prop performance data for the address
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
@@ -55,8 +54,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     const void *plugin_addr,
                                     size_t plugin_addr_len,
                                     int active,
-                                    const struct GNUNET_ATS_Information *atsi,
-                                    uint32_t atsi_count,
+                                    const struct GNUNET_ATS_Properties *prop,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
