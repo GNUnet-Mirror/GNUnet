@@ -2819,7 +2819,8 @@ send_utilization_data (void *cls,
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
 
-  if (GNUNET_YES != test_connected (n))
+  if ( (GNUNET_YES != test_connected (n)) ||
+       (NULL == n->primary_address.address) )
     return GNUNET_OK;
   delta = GNUNET_TIME_absolute_get_difference (n->last_util_transmission,
                                                GNUNET_TIME_absolute_get ());
@@ -2829,7 +2830,6 @@ send_utilization_data (void *cls,
   bps_out = 0;
   if ((0 != n->util_total_bytes_sent) && (0 != delta.rel_value_us))
     bps_out = (1000LL * 1000LL * n->util_total_bytes_sent) / delta.rel_value_us;
-
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "`%s' total: received %u Bytes/s, sent %u Bytes/s\n",
