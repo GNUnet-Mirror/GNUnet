@@ -1473,7 +1473,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     ats[1].value = htonl ((uint32_t) ve->network);
     if (GNUNET_YES == ve->known_to_ats)
     {
-      GST_ats_update_metrics (ve->address, NULL, ats, 2);
+      GST_ats_update_metrics (ve->address,
+                              NULL,
+                              ats,
+                              2);
     }
     else
     {

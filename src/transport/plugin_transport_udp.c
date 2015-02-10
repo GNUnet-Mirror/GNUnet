@@ -2265,13 +2265,17 @@ process_udp_message (struct Plugin *plugin,
                                            udp_addr,
                                            udp_addr_len,
                                            GNUNET_HELLO_ADDRESS_INFO_NONE);
-  if (NULL == (s = udp_plugin_lookup_session (plugin, address)))
+  if (NULL ==
+      (s = udp_plugin_lookup_session (plugin, address)))
   {
     s = udp_plugin_create_session (plugin,
                                    address,
                                    network_type);
     plugin->env->session_start (plugin->env->cls,
-                                address, s, NULL, 0);
+                                address,
+                                s,
+                                NULL,
+                                0);
     notify_session_monitor (s->plugin,
                             s,
                             GNUNET_TRANSPORT_SS_INIT);
@@ -3566,9 +3570,13 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->sessions = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (
       GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
-  GNUNET_BANDWIDTH_tracker_init (&p->tracker, NULL, NULL,
-      GNUNET_BANDWIDTH_value_init ((uint32_t) udp_max_bps), 30);
+  p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages,
+                                     p);
+  GNUNET_BANDWIDTH_tracker_init (&p->tracker,
+                                 NULL,
+                                 NULL,
+                                 GNUNET_BANDWIDTH_value_init ((uint32_t) udp_max_bps),
+                                 30);
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Setting up sockets\n");
   res = setup_sockets (p,

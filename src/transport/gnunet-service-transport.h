@@ -68,6 +68,11 @@ extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
  */
 extern struct GNUNET_ATS_ConnectivityHandle *GST_ats_connect;
 
+/**
+ * Interface scanner determines our LAN address range(s).
+ */
+extern struct GNUNET_ATS_InterfaceScanner *GST_is;
+
 
 /**
  * Function to call when a peer's address has changed

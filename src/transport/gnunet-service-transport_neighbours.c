@@ -1034,7 +1034,7 @@ send_with_session (struct NeighbourMapEntry *n,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_TIME_Relative result = GNUNET_TIME_UNIT_FOREVER_REL;
 
-  GNUNET_assert (n->primary_address.session != NULL);
+  GNUNET_assert (NULL != n->primary_address.session);
   if ( ((NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)) ||
 	 (-1 == papi->send (papi->cls,
 			    n->primary_address.session,
@@ -1561,7 +1561,8 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
                       : (uint32_t) latency.rel_value_us );
   GST_ats_update_metrics (n->primary_address.address,
                           n->primary_address.session,
-                          &ats, 1);
+                          &ats,
+                          1);
 }
 
 
@@ -1680,14 +1681,20 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
   {
     GNUNET_break (0);
     if (NULL != cont)
-      cont (cont_cls, GNUNET_SYSERR, msg_size, 0);
+      cont (cont_cls,
+            GNUNET_SYSERR,
+            msg_size,
+            0);
     return;
   }
   if (GNUNET_YES != test_connected (n))
   {
     GNUNET_break (0);
     if (NULL != cont)
-      cont (cont_cls, GNUNET_SYSERR, msg_size, 0);
+      cont (cont_cls,
+            GNUNET_SYSERR,
+            msg_size,
+            0);
     return;
   }
   bytes_in_send_queue += msg_size;
@@ -1703,10 +1710,13 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target,
   mq->message_buf_size = msg_size;
   mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Enqueueing %u bytes to send to peer %s\n",
-      msg_size, GNUNET_i2s (target));
-
-  GNUNET_CONTAINER_DLL_insert_tail (n->messages_head, n->messages_tail, mq);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Enqueueing %u bytes to send to peer %s\n",
+              msg_size,
+              GNUNET_i2s (target));
+  GNUNET_CONTAINER_DLL_insert_tail (n->messages_head,
+                                    n->messages_tail,
+                                    mq);
   if (NULL != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
@@ -2814,7 +2824,7 @@ send_utilization_data (void *cls,
                        void *value)
 {
   struct NeighbourMapEntry *n = value;
-  struct GNUNET_ATS_Information atsi[4];
+  struct GNUNET_ATS_Information atsi[2];
   uint32_t bps_in;
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
@@ -2842,7 +2852,8 @@ send_utilization_data (void *cls,
   atsi[1].value = htonl (bps_in);
   GST_ats_update_metrics (n->primary_address.address,
                           n->primary_address.session,
-                          atsi, 2);
+                          atsi,
+                          2);
   n->util_total_bytes_recv = 0;
   n->util_total_bytes_sent = 0;
   n->last_util_transmission = GNUNET_TIME_absolute_get ();

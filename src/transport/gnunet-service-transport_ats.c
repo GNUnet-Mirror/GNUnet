@@ -575,9 +575,9 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
        and if we get metrics for those, they were never known to
        ATS which means we end up here (however, in this
        case, the address must be an outbound address). */
-    GNUNET_assert (GNUNET_YES !=
-                   GNUNET_HELLO_address_check_option (address,
-                                                      GNUNET_HELLO_ADDRESS_INFO_INBOUND));
+    GNUNET_break (GNUNET_YES !=
+                  GNUNET_HELLO_address_check_option (address,
+                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
     return;
   }
   /* Call to manipulation to manipulate ATS information */

@@ -747,7 +747,8 @@ clients_handle_send (void *cls,
   {
     /* client asked for transmission before 'START' */
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
@@ -756,7 +757,8 @@ clients_handle_send (void *cls,
       sizeof (struct OutboundMessage) + sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   obm = (const struct OutboundMessage *) message;
@@ -765,7 +767,8 @@ clients_handle_send (void *cls,
   if (msize < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
@@ -779,23 +782,27 @@ clients_handle_send (void *cls,
                               gettext_noop
                               ("# bytes payload dropped (other peer was not connected)"),
                               msize, GNUNET_NO);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received `%s' request from client with target `%4s' and first message of type %u and total size %u\n",
-              "SEND",
+              "Received SEND request for `%s' and first message of type %u and total size %u\n",
               GNUNET_i2s (&obm->peer),
               ntohs (obmm->type),
               msize);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
   stcc = GNUNET_new (struct SendTransmitContinuationContext);
   stcc->target = obm->peer;
   stcc->client = client;
   GNUNET_SERVER_client_keep (client);
-  GST_manipulation_send (&obm->peer, obmm, msize,
+  GST_manipulation_send (&obm->peer,
+                         obmm,
+                         msize,
                          GNUNET_TIME_relative_ntoh (obm->timeout),
-                         &handle_send_transmit_continuation, stcc);
+                         &handle_send_transmit_continuation,
+                         stcc);
 }
 
 
@@ -824,7 +831,8 @@ clients_handle_request_connect (void *cls,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -52,9 +52,7 @@ void
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   GNUNET_TRANSPORT_AddressNotification address_cb,
                   GNUNET_TRANSPORT_SessionStart session_start_cb,
-                  GNUNET_TRANSPORT_SessionEnd session_end_cb,
-                  GNUNET_TRANSPORT_AddressToType address_type_cb,
-                  GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb);
+                  GNUNET_TRANSPORT_SessionEnd session_end_cb);
 
 /**
  * Unload all plugins

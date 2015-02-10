@@ -269,7 +269,7 @@ struct Session
   /**
    * Task cleaning up a NAT client connection establishment attempt;
    */
-  struct GNUNET_SCHEDULER_Task * nat_connection_timeout;
+  struct GNUNET_SCHEDULER_Task *nat_connection_timeout;
 
   /**
    * Messages currently pending for transmission
@@ -296,12 +296,12 @@ struct Session
   /**
    * ID of task used to delay receiving more to throttle sender.
    */
-  struct GNUNET_SCHEDULER_Task * receive_delay_task;
+  struct GNUNET_SCHEDULER_Task *receive_delay_task;
 
   /**
    * Session timeout task
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * When will this session time out?
@@ -891,7 +891,7 @@ tcp_plugin_disconnect_session (void *cls,
                           session,
                           GNUNET_TRANSPORT_SS_DONE);
 
-  if (session->receive_delay_task != NULL)
+  if (NULL != session->receive_delay_task)
   {
     GNUNET_SCHEDULER_cancel (session->receive_delay_task);
     if (NULL != session->client)
@@ -1101,8 +1101,8 @@ do_transmit (void *cls, size_t size, void *buf)
     tl = NULL;
     ret = 0;
     now = GNUNET_TIME_absolute_get ();
-    while ((NULL != (pos = session->pending_messages_head))
-        && (pos->timeout.abs_value_us <= now.abs_value_us))
+    while ( (NULL != (pos = session->pending_messages_head)) &&
+            (pos->timeout.abs_value_us <= now.abs_value_us) )
     {
       GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
                                    session->pending_messages_tail,
@@ -1116,7 +1116,10 @@ do_transmit (void *cls, size_t size, void *buf)
            pos->message_size,
            GNUNET_i2s (&session->target));
       ret += pos->message_size;
-      GNUNET_CONTAINER_DLL_insert_after (hd, tl, tl, pos);
+      GNUNET_CONTAINER_DLL_insert_after (hd,
+                                         tl,
+                                         tl,
+                                         pos);
     }
     /* do this call before callbacks (so that if callbacks destroy
      * session, they have a chance to cancel actions done by this
@@ -1127,12 +1130,15 @@ do_transmit (void *cls, size_t size, void *buf)
      * the callbacks may abort the session */
     while (NULL != (pos = hd))
     {
-      GNUNET_CONTAINER_DLL_remove (hd, tl, pos);
-      if (pos->transmit_cont != NULL)
+      GNUNET_CONTAINER_DLL_remove (hd,
+                                   tl,
+                                   pos);
+      if (NULL != pos->transmit_cont)
         pos->transmit_cont (pos->transmit_cont_cls,
                             &pid,
                             GNUNET_SYSERR,
-                            pos->message_size, 0);
+                            pos->message_size,
+                            0);
       GNUNET_free (pos);
     }
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1165,19 +1171,23 @@ do_transmit (void *cls, size_t size, void *buf)
     GNUNET_assert (pos->message_size <= session->bytes_in_queue);
     session->bytes_in_queue -= pos->message_size;
     GNUNET_assert(size >= pos->message_size);
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Transmitting message of type %u size %u to %s\n",
-        ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type),
-        pos->message_size,
-        tcp_plugin_address_to_string (session->plugin,
-                                      session->address->address,
-                                      session->address->address_length));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmitting message of type %u size %u to %s\n",
+         ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type),
+         pos->message_size,
+         tcp_plugin_address_to_string (session->plugin,
+                                       session->address->address,
+                                       session->address->address_length));
     /* FIXME: this memcpy can be up to 7% of our total runtime */
-    memcpy (cbuf, pos->msg, pos->message_size);
+    memcpy (cbuf,
+            pos->msg,
+            pos->message_size);
     cbuf += pos->message_size;
     ret += pos->message_size;
     size -= pos->message_size;
-    GNUNET_CONTAINER_DLL_insert_tail (hd, tl, pos);
+    GNUNET_CONTAINER_DLL_insert_tail (hd,
+                                      tl,
+                                      pos);
   }
   notify_session_monitor (session->plugin,
                           session,
@@ -1193,19 +1203,19 @@ do_transmit (void *cls, size_t size, void *buf)
   while (NULL != (pos = hd))
   {
     GNUNET_CONTAINER_DLL_remove (hd, tl, pos);
-    if (pos->transmit_cont != NULL)
+    if (NULL != pos->transmit_cont)
       pos->transmit_cont (pos->transmit_cont_cls,
                           &pid,
                           GNUNET_OK,
                           pos->message_size,
                           pos->message_size); /* FIXME: include TCP overhead */
-    GNUNET_free(pos);
+    GNUNET_free (pos);
   }
   GNUNET_assert (NULL == hd);
   GNUNET_assert (NULL == tl);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Transmitting %u bytes\n",
-      ret);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting %u bytes\n",
+       ret);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes currently in TCP buffers"),
                             - (int64_t) ret,
@@ -1294,7 +1304,8 @@ tcp_plugin_send (void *cls,
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Asked to transmit %u bytes to `%s', added message to list.\n",
-      msgbuf_size, GNUNET_i2s (&session->target));
+      msgbuf_size,
+      GNUNET_i2s (&session->target));
 
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
@@ -1303,10 +1314,11 @@ tcp_plugin_send (void *cls,
   {
     GNUNET_assert (NULL != session->client);
     GNUNET_SERVER_client_set_timeout (session->client,
-        GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+                                      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_STATISTICS_update (plugin->env->stats,
-        gettext_noop ("# bytes currently in TCP buffers"), msgbuf_size,
-        GNUNET_NO);
+                              gettext_noop ("# bytes currently in TCP buffers"),
+                              msgbuf_size,
+                              GNUNET_NO);
 
     /* append pm to pending_messages list */
     GNUNET_CONTAINER_DLL_insert_tail (session->pending_messages_head,
@@ -1320,10 +1332,10 @@ tcp_plugin_send (void *cls,
     process_pending_messages (session);
     return msgbuf_size;
   }
-  else if (GNUNET_YES ==
-           GNUNET_CONTAINER_multipeermap_contains_value (plugin->nat_wait_conns,
-                                                         &session->target,
-                                                         session))
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_contains_value (plugin->nat_wait_conns,
+                                                    &session->target,
+                                                    session))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "This NAT WAIT session for peer `%s' is not yet ready!\n",
@@ -1342,22 +1354,20 @@ tcp_plugin_send (void *cls,
                             GNUNET_TRANSPORT_SS_HANDSHAKE);
     return msgbuf_size;
   }
-  else
-  {
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Invalid session %p\n",
-        session);
-    if (NULL != cont)
-      cont (cont_cls,
-            &session->target,
-            GNUNET_SYSERR,
-            pm->message_size,
-            0);
-    GNUNET_break (0);
-    GNUNET_free (pm);
-    return GNUNET_SYSERR; /* session does not exist here */
-  }
+  LOG(GNUNET_ERROR_TYPE_ERROR,
+      "Invalid session %p\n",
+      session);
+  if (NULL != cont)
+    cont (cont_cls,
+          &session->target,
+          GNUNET_SYSERR,
+          pm->message_size,
+          0);
+  GNUNET_break (0);
+  GNUNET_free (pm);
+  return GNUNET_SYSERR; /* session does not exist here */
 }
+
 
 /**
  * Closure for #session_lookup_it().
@@ -1390,12 +1400,13 @@ session_lookup_it (void *cls,
                    const struct GNUNET_PeerIdentity *key,
                    void *value)
 {
-  struct SessionItCtx * si_ctx = cls;
-  struct Session * session = value;
+  struct SessionItCtx *si_ctx = cls;
+  struct Session *session = value;
 
-  if (0 != GNUNET_HELLO_address_cmp (si_ctx->address, session->address))
+  if (0 !=
+      GNUNET_HELLO_address_cmp (si_ctx->address,
+                                session->address))
     return GNUNET_YES;
-  /* Found existing session */
   si_ctx->result = session;
   return GNUNET_NO;
 }
@@ -2273,12 +2284,16 @@ handle_tcp_welcome (void *cls,
                    sizeof(struct GNUNET_PeerIdentity)))
   {
     /* refuse connections from ourselves */
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    if (GNUNET_OK ==
+        GNUNET_SERVER_client_get_address (client,
+                                          &vaddr,
+                                          &alen))
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
-           "Received %s message from my own identity `%4s' on address `%s'\n",
-           "WELCOME", GNUNET_i2s (&wm->clientIdentity),
+           "Received WELCOME message from my own identity `%4s' on address `%s'\n",
+           GNUNET_i2s (&wm->clientIdentity),
            GNUNET_a2s (vaddr, alen));
       GNUNET_free(vaddr);
     }
@@ -2286,9 +2301,9 @@ handle_tcp_welcome (void *cls,
   }
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Received %s message from `%4s' %p\n",
-      "WELCOME",
-      GNUNET_i2s (&wm->clientIdentity), client);
+      "Received WELCOME message from `%4s' %p\n",
+      GNUNET_i2s (&wm->clientIdentity),
+      client);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP WELCOME messages received"),
                             1,
@@ -2296,7 +2311,8 @@ handle_tcp_welcome (void *cls,
   session = lookup_session_by_client (plugin, client);
   if (NULL != session)
   {
-    if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+    if (GNUNET_OK ==
+        GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Found existing session %p for peer `%s'\n",
@@ -2313,7 +2329,8 @@ handle_tcp_welcome (void *cls,
     if (plugin->cur_connections == plugin->max_connections)
       GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
 
-    if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
+    if (GNUNET_OK ==
+        GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
       if (alen == sizeof(struct sockaddr_in))
       {
@@ -2336,8 +2353,10 @@ handle_tcp_welcome (void *cls,
         t6.t6_port = s6->sin6_port;
         memcpy (&t6.ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
-            PLUGIN_NAME, &t6, sizeof (t6),
-            GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+                                                 PLUGIN_NAME,
+                                                 &t6,
+                                                 sizeof (t6),
+                                                 GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
       else
       {
@@ -2345,9 +2364,15 @@ handle_tcp_welcome (void *cls,
         GNUNET_free_non_null (vaddr);
         return;
       }
-      session = create_session (plugin, address, client, GNUNET_NO);
+      session = create_session (plugin,
+                                address,
+                                client,
+                                GNUNET_NO);
       GNUNET_HELLO_address_free (address);
-      session->ats_address_network_type = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
+      session->ats_address_network_type
+        = plugin->env->get_address_type (plugin->env->cls,
+                                         vaddr,
+                                         alen);
       ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
       ats.value = htonl (session->ats_address_network_type);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2418,13 +2443,15 @@ handle_tcp_data (void *cls,
   struct Session *session;
   struct GNUNET_TIME_Relative delay;
   uint16_t type;
+  struct GNUNET_ATS_Information distance;
 
   type = ntohs (message->type);
-  if ((GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == type)
-      || (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE == type))
+  if ( (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME == type) ||
+       (GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE == type) )
   {
     /* We don't want to propagate WELCOME and NAT Probe messages up! */
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
   session = lookup_session_by_client (plugin, client);
@@ -2434,14 +2461,19 @@ handle_tcp_data (void *cls,
     void *vaddr;
     size_t alen;
 
-    GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Received unexpected %u bytes of type %u from `%s'\n",
-        (unsigned int) ntohs (message->size),
-        (unsigned int) ntohs (message->type), GNUNET_a2s (vaddr, alen));
+    GNUNET_SERVER_client_get_address (client,
+                                      &vaddr,
+                                      &alen);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Received unexpected %u bytes of type %u from `%s'\n",
+         (unsigned int) ntohs (message->size),
+         (unsigned int) ntohs (message->type),
+         GNUNET_a2s (vaddr,
+                     alen));
     GNUNET_break_op(0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    GNUNET_free_non_null(vaddr);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    GNUNET_free_non_null (vaddr);
     return;
   }
   else if (GNUNET_YES == session->expecting_welcome)
@@ -2451,35 +2483,37 @@ handle_tcp_data (void *cls,
     size_t alen;
 
     GNUNET_SERVER_client_get_address (client, &vaddr, &alen);
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Received unexpected %u bytes of type %u from `%s'\n",
-        (unsigned int) ntohs (message->size),
-        (unsigned int) ntohs (message->type), GNUNET_a2s (vaddr, alen));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Received unexpected %u bytes of type %u from `%s'\n",
+         (unsigned int) ntohs (message->size),
+         (unsigned int) ntohs (message->type),
+         GNUNET_a2s (vaddr, alen));
     GNUNET_break_op(0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    GNUNET_free_non_null(vaddr);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+    GNUNET_free_non_null (vaddr);
     return;
   }
 
   session->last_activity = GNUNET_TIME_absolute_get ();
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Passing %u bytes of type %u from `%4s' to transport service.\n",
-      (unsigned int) ntohs (message->size),
-      (unsigned int) ntohs (message->type), GNUNET_i2s (&session->target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Passing %u bytes of type %u from `%4s' to transport service.\n",
+       (unsigned int) ntohs (message->size),
+       (unsigned int) ntohs (message->type),
+       GNUNET_i2s (&session->target));
 
   GNUNET_STATISTICS_update (plugin->env->stats,
-      gettext_noop ("# bytes received via TCP"), ntohs (message->size),
-      GNUNET_NO);
-  struct GNUNET_ATS_Information distance;
+                            gettext_noop ("# bytes received via TCP"),
+                            ntohs (message->size),
+                            GNUNET_NO);
 
   distance.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   distance.value = htonl ((uint32_t) session->ats_address_network_type);
-  GNUNET_break(session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
+  GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
 
-  GNUNET_assert(GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
-                                                              &session->target,
-                                                              session));
-
+  GNUNET_assert (GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
+                                                               &session->target,
+                                                               session));
   delay = plugin->env->receive (plugin->env->cls,
                                 session->address,
                                 session,
@@ -2722,9 +2756,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 {
   static const struct GNUNET_SERVER_MessageHandler my_handlers[] = {
     { &handle_tcp_welcome, NULL,
-      GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME, sizeof(struct WelcomeMessage) },
+      GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME,
+      sizeof(struct WelcomeMessage) },
     { &handle_tcp_nat_probe, NULL,
-      GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE, sizeof(struct TCP_NAT_ProbeMessage) },
+      GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE,
+      sizeof(struct TCP_NAT_ProbeMessage) },
     { &handle_tcp_data, NULL,
       GNUNET_MESSAGE_TYPE_ALL, 0 },
     { NULL, NULL, 0, 0 }
@@ -2936,8 +2972,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   for (i = 0;i < sizeof(my_handlers) / sizeof(struct GNUNET_SERVER_MessageHandler);i++)
     plugin->handlers[i].callback_cls = plugin;
 
-  GNUNET_SERVER_add_handlers (plugin->server, plugin->handlers);
-  GNUNET_SERVER_disconnect_notify (plugin->server, &disconnect_notify, plugin);
+  GNUNET_SERVER_add_handlers (plugin->server,
+                              plugin->handlers);
+  GNUNET_SERVER_disconnect_notify (plugin->server,
+                                   &disconnect_notify,
+                                   plugin);
   plugin->nat_wait_conns = GNUNET_CONTAINER_multipeermap_create (16,
                                                                  GNUNET_YES);
   if (0 != bport)

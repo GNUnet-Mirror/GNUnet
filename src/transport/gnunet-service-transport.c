@@ -176,7 +176,7 @@ static struct SessionKiller *sk_tail;
 /**
  * Interface scanner determines our LAN address range(s).
  */
-static struct GNUNET_ATS_InterfaceScanner *is;
+struct GNUNET_ATS_InterfaceScanner *GST_is;
 
 /**
  * Head of DLL of blacklist checks we have pending for
@@ -697,53 +697,6 @@ plugin_env_session_end (void *cls,
 
 
 /**
- * Function that will be called to figure if an address is an loopback,
- * LAN, WAN etc. address
- *
- * @param cls closure
- * @param addr binary address
- * @param addrlen length of the @a addr
- * @return type of the network @a addr belongs to
- */
-static enum GNUNET_ATS_Network_Type
-plugin_env_address_to_type (void *cls,
-                            const struct sockaddr *addr,
-                            size_t addrlen)
-{
-  if (NULL == GST_ats)
-  {
-    GNUNET_break(0);
-    return GNUNET_ATS_NET_UNSPECIFIED;
-  }
-  return GNUNET_ATS_scanner_address_get_type (is,
-                                              addr,
-                                              addrlen);
-}
-
-
-/**
- * Function that will be called to update metrics for an address
- *
- * @param cls closure
- * @param address address to update metrics for
- * @param session the session
- * @param ats the ats information to update
- * @param ats_count the number of @a ats elements
- */
-static void
-plugin_env_update_metrics (void *cls,
-                           const struct GNUNET_HELLO_Address *address,
-                           struct Session *session,
-                           const struct GNUNET_ATS_Information *ats,
-                           uint32_t ats_count)
-{
-  GST_ats_update_metrics (address,
-                          session,
-                          ats, ats_count);
-}
-
-
-/**
  * Black list check result from blacklist check triggered when a
  * plugin gave us a new session in #plugin_env_session_start().  If
  * connection to the peer is disallowed, kill the session.
@@ -940,8 +893,8 @@ shutdown_task (void *cls,
   GST_ats = NULL;
   GNUNET_ATS_connectivity_done (GST_ats_connect);
   GST_ats_connect = NULL;
-  GNUNET_ATS_scanner_done (is);
-  is = NULL;
+  GNUNET_ATS_scanner_done (GST_is);
+  GST_is = NULL;
   GST_clients_stop ();
   GST_blacklist_stop ();
   GST_hello_stop ();
@@ -1075,7 +1028,7 @@ run (void *cls,
   GST_blacklist_start (GST_server,
                        GST_cfg,
                        &GST_my_identity);
-  is = GNUNET_ATS_scanner_init ();
+  GST_is = GNUNET_ATS_scanner_init ();
   GST_ats_connect = GNUNET_ATS_connectivity_init (GST_cfg);
   GST_ats = GNUNET_ATS_scheduling_init (GST_cfg,
                                         &ats_request_address_change,
@@ -1085,9 +1038,7 @@ run (void *cls,
   GST_plugins_load (&GST_manipulation_recv,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_start,
-                    &plugin_env_session_end,
-                    &plugin_env_address_to_type,
-                    &plugin_env_update_metrics);
+                    &plugin_env_session_end);
   GST_neighbours_start ((max_fd / 3) * 2);
   GST_clients_start (GST_server);
   GST_validation_start ((max_fd / 3));

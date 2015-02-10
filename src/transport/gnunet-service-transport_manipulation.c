@@ -195,6 +195,7 @@ struct DelayQueueEntry *generic_dqe_tail;
  */
 struct GNUNET_SCHEDULER_Task * generic_send_delay_task;
 
+
 static void
 set_metric(struct TM_Peer *dest, int direction, uint32_t type, uint32_t value)
 {
@@ -228,8 +229,8 @@ set_metric(struct TM_Peer *dest, int direction, uint32_t type, uint32_t value)
   default:
     break;
     }
-
 }
+
 
 static uint32_t
 find_metric(struct TM_Peer *dest, uint32_t type, int direction)
@@ -245,10 +246,10 @@ find_metric(struct TM_Peer *dest, uint32_t type, int direction)
   return UINT32_MAX;
 }
 
+
 /**
  * Clean up metrics for a peer
  */
-
 static void
 free_metric(struct TM_Peer *dest)
 {
@@ -262,6 +263,7 @@ free_metric(struct TM_Peer *dest)
       GNUNET_free(cur);
     }
 }
+
 
 /**
  * Set traffic metric to manipulate
@@ -349,6 +351,7 @@ GST_manipulation_set_metric(void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
+
 static void
 send_delayed(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -359,11 +362,18 @@ send_delayed(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL != tmp)
     {
-      GNUNET_break(GNUNET_YES == GST_neighbours_test_connected (&dqe->id));
+      GNUNET_break (GNUNET_YES ==
+                    GST_neighbours_test_connected (&dqe->id));
       tmp->send_delay_task = NULL;
-      GNUNET_CONTAINER_DLL_remove(tmp->send_head, tmp->send_tail, dqe);
-      GST_neighbours_send(&dqe->id, dqe->msg, dqe->msg_size, dqe->timeout,
-          dqe->cont, dqe->cont_cls);
+      GNUNET_CONTAINER_DLL_remove (tmp->send_head,
+                                   tmp->send_tail,
+                                   dqe);
+      GST_neighbours_send (&dqe->id,
+                           dqe->msg,
+                           dqe->msg_size,
+                           dqe->timeout,
+                           dqe->cont,
+                           dqe->cont_cls);
 
       next = tmp->send_head;
       if (NULL != next)
@@ -394,89 +404,113 @@ send_delayed(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free(dqe);
 }
 
+
 /**
- * Adapter function between transport's send function and transport plugins
+ * Adapter function between transport's send function and transport plugins.
+ * Delays message transmission if an artificial delay is configured.
  *
  * @param target the peer the message to send to
  * @param msg the message received
  * @param msg_size message size
  * @param timeout timeout
  * @param cont the continuation to call after sending
- * @param cont_cls cls for continuation
+ * @param cont_cls cls for @a cont
  */
 void
-GST_manipulation_send(const struct GNUNET_PeerIdentity *target, const void *msg,
-    size_t msg_size, struct GNUNET_TIME_Relative timeout,
-    GST_NeighbourSendContinuation cont, void *cont_cls)
+GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
+                       const void *msg,
+                       size_t msg_size,
+                       struct GNUNET_TIME_Relative timeout,
+                       GST_NeighbourSendContinuation cont,
+                       void *cont_cls)
 {
   struct TM_Peer *tmp;
   struct DelayQueueEntry *dqe;
   struct GNUNET_TIME_Relative delay;
+  int do_delay;
 
-  if (NULL
-      != (tmp = GNUNET_CONTAINER_multipeermap_get(man_handle.peers, target)))
+  do_delay = GNUNET_NO;
+  if (NULL != (tmp =
+               GNUNET_CONTAINER_multipeermap_get (man_handle.peers,
+                                                  target)))
+  {
+    GNUNET_break (GNUNET_YES ==
+                  GST_neighbours_test_connected(target));
+    /* check for peer-specific delay */
+    if (UINT32_MAX !=
+        find_metric (tmp,
+                     GNUNET_ATS_QUALITY_NET_DELAY,
+                     TM_SEND))
     {
-      GNUNET_break(GNUNET_YES == GST_neighbours_test_connected(target));
-      /* Manipulate here */
-      /* Delay */
-      if (UINT32_MAX != find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND))
-        {
-          /* We have a delay */
-          delay.rel_value_us = find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY,
-              TM_SEND);
-          dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
-          dqe->id = *target;
-          dqe->tmp = tmp;
-          dqe->sent_at = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
-              delay);
-          dqe->cont = cont;
-          dqe->cont_cls = cont_cls;
-          dqe->msg = &dqe[1];
-          dqe->msg_size = msg_size;
-          dqe->timeout = timeout;
-          memcpy(dqe->msg, msg, msg_size);
-          GNUNET_CONTAINER_DLL_insert_tail(tmp->send_head, tmp->send_tail, dqe);
-          if (NULL == tmp->send_delay_task)
-            tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed(delay,
-                &send_delayed, dqe);
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-              "Delaying %u byte message to peer `%s' with generic delay for %ms\n", msg_size, GNUNET_i2s (target), GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-          return;
-        }
-    }
-  else if (UINT32_MAX
-      != find_metric(&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY,
-          TM_SEND))
-    {
-      GNUNET_break(GNUNET_YES == GST_neighbours_test_connected(target));
       /* We have a delay */
-      delay.rel_value_us = find_metric(&man_handle.general,
-          GNUNET_ATS_QUALITY_NET_DELAY, TM_SEND);
-      dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
-      dqe->id = *target;
-      dqe->tmp = NULL;
-      dqe->sent_at = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
-          delay);
-      dqe->cont = cont;
-      dqe->cont_cls = cont_cls;
-      dqe->msg = &dqe[1];
-      dqe->msg_size = msg_size;
-      dqe->timeout = timeout;
-      memcpy(dqe->msg, msg, msg_size);
-      GNUNET_CONTAINER_DLL_insert_tail(generic_dqe_head, generic_dqe_tail, dqe);
-      if (NULL == generic_send_delay_task)
-        {
-          generic_send_delay_task = GNUNET_SCHEDULER_add_delayed(delay,
-              &send_delayed, dqe);
-        }
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Delaying %u byte message to peer `%s' with peer specific delay for %s\n", msg_size, GNUNET_i2s (target), GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-      return;
+      delay.rel_value_us = find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY,
+                                       TM_SEND);
+      do_delay = GNUNET_YES;
     }
-
-  /* Normal sending */
-  GST_neighbours_send(target, msg, msg_size, timeout, cont, cont_cls);
+  }
+  else if (UINT32_MAX !=
+           find_metric(&man_handle.general,
+                       GNUNET_ATS_QUALITY_NET_DELAY,
+                       TM_SEND))
+  {
+    GNUNET_break (GNUNET_YES ==
+                  GST_neighbours_test_connected (target));
+    /* We have a delay */
+    delay.rel_value_us = find_metric (&man_handle.general,
+                                      GNUNET_ATS_QUALITY_NET_DELAY,
+                                      TM_SEND);
+    do_delay = GNUNET_YES;
+  }
+  if (GNUNET_NO == do_delay)
+  {
+    /* Normal sending */
+    GST_neighbours_send (target,
+                         msg,
+                         msg_size,
+                         timeout,
+                         cont, cont_cls);
+    return;
+  }
+  dqe = GNUNET_malloc (sizeof (struct DelayQueueEntry) + msg_size);
+  dqe->id = *target;
+  dqe->tmp = tmp;
+  dqe->sent_at = GNUNET_TIME_relative_to_absolute (delay);
+  dqe->cont = cont;
+  dqe->cont_cls = cont_cls;
+  dqe->msg = &dqe[1];
+  dqe->msg_size = msg_size;
+  dqe->timeout = timeout;
+  memcpy (dqe->msg,
+          msg,
+          msg_size);
+  if (NULL == tmp)
+  {
+    GNUNET_CONTAINER_DLL_insert_tail (generic_dqe_head,
+                                      generic_dqe_tail,
+                                      dqe);
+    if (NULL == generic_send_delay_task)
+      generic_send_delay_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                              &send_delayed,
+                                                              dqe);
+  }
+  else
+  {
+    GNUNET_CONTAINER_DLL_insert_tail (tmp->send_head,
+                                      tmp->send_tail,
+                                      dqe);
+    if (NULL == tmp->send_delay_task)
+      tmp->send_delay_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                           &send_delayed,
+                                                           dqe);
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delaying %u byte message to peer `%s' with peer specific delay for %s\n",
+              msg_size,
+              GNUNET_i2s (target),
+              GNUNET_STRINGS_relative_time_to_string (delay,
+                                                      GNUNET_YES));
 }
+
 
 /**
  * Function that will be called to manipulate ATS information according to
@@ -489,10 +523,10 @@ GST_manipulation_send(const struct GNUNET_PeerIdentity *target, const void *msg,
  * @param ats_count the number of ats information
  */
 struct GNUNET_ATS_Information *
-GST_manipulation_manipulate_metrics(const struct GNUNET_HELLO_Address *address,
-                                    struct Session *session,
-                                    const struct GNUNET_ATS_Information *ats,
-                                    uint32_t ats_count)
+GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
+                                     struct Session *session,
+                                     const struct GNUNET_ATS_Information *ats,
+                                     uint32_t ats_count)
 {
   const struct GNUNET_PeerIdentity *peer = &address->peer;
   struct GNUNET_ATS_Information *ats_new;
@@ -510,8 +544,11 @@ GST_manipulation_manipulate_metrics(const struct GNUNET_HELLO_Address *address,
     ats_new[d] = ats[d];
     m_tmp = UINT32_MAX;
     if (NULL != tmp)
-      m_tmp = find_metric(tmp, ntohl(ats[d].type), TM_RECEIVE);
-    g_tmp = find_metric(&man_handle.general, ntohl(ats[d].type), TM_RECEIVE);
+      m_tmp = find_metric (tmp, ntohl(ats[d].type),
+                           TM_RECEIVE);
+    g_tmp = find_metric (&man_handle.general,
+                         ntohl(ats[d].type),
+                         TM_RECEIVE);
 
     if (UINT32_MAX != g_tmp)
       ats_new[d].value = htonl(g_tmp);
@@ -565,13 +602,14 @@ GST_manipulation_recv (void *cls,
   if (quota_delay.rel_value_us > m_delay.rel_value_us)
     m_delay = quota_delay;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Delaying next receive for peer `%s' for %s\n",
-      GNUNET_i2s (&address->peer),
-      GNUNET_STRINGS_relative_time_to_string (m_delay, GNUNET_YES));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delaying next receive for peer `%s' for %s\n",
+              GNUNET_i2s (&address->peer),
+              GNUNET_STRINGS_relative_time_to_string (m_delay,
+                                                      GNUNET_YES));
   return m_delay;
-
 }
+
 
 /**
  * Initialize traffic manipulation
@@ -584,15 +622,21 @@ GST_manipulation_init(const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
   unsigned long long tmp;
   struct GNUNET_TIME_Relative delay;
 
-  if ((GNUNET_OK
-      == GNUNET_CONFIGURATION_get_value_number(GST_cfg, "transport",
-          "MANIPULATE_DISTANCE_IN", &tmp)) && (tmp > 0))
-    {
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "Setting inbound distance_in to %llu\n", (unsigned long long) tmp);
-      set_metric(&man_handle.general, TM_RECEIVE,
-          GNUNET_ATS_QUALITY_NET_DISTANCE, tmp);
-    }
+  if ( (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_number(GST_cfg,
+                                              "transport",
+                                              "MANIPULATE_DISTANCE_IN",
+                                              &tmp)) &&
+       (tmp > 0) )
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Setting inbound distance_in to %llu\n",
+               (unsigned long long) tmp);
+    set_metric (&man_handle.general,
+                TM_RECEIVE,
+                GNUNET_ATS_QUALITY_NET_DISTANCE,
+                tmp);
+  }
 
   if ((GNUNET_OK
       == GNUNET_CONFIGURATION_get_value_number(GST_cfg, "transport",
@@ -625,38 +669,43 @@ GST_manipulation_init(const struct GNUNET_CONFIGURATION_Handle *GST_cfg)
   man_handle.peers = GNUNET_CONTAINER_multipeermap_create(10, GNUNET_NO);
 }
 
+
 static int
-free_tmps(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
+free_tmps (void *cls,
+           const struct GNUNET_PeerIdentity *key,
+           void *value)
 {
+  struct TM_Peer *tmp = value;
   struct DelayQueueEntry *dqe;
-  struct DelayQueueEntry *next;
 
-  if (NULL != value)
-    {
-      struct TM_Peer *tmp = (struct TM_Peer *) value;
-
-      if (GNUNET_YES
-          != GNUNET_CONTAINER_multipeermap_remove(man_handle.peers, key, value))
-        GNUNET_break(0);
-      free_metric(tmp);
-      next = tmp->send_head;
-      while (NULL != (dqe = next))
-        {
-          next = dqe->next;
-          GNUNET_CONTAINER_DLL_remove(tmp->send_head, tmp->send_tail, dqe);
-          if (NULL != dqe->cont)
-            dqe->cont(dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
-          GNUNET_free(dqe);
-        }
-      if (NULL != tmp->send_delay_task)
-        {
-          GNUNET_SCHEDULER_cancel(tmp->send_delay_task);
-          tmp->send_delay_task = NULL;
-        }
-      GNUNET_free(tmp);
-    }
+  if (NULL == tmp)
+    return GNUNET_OK;
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_remove (man_handle.peers,
+                                                      key,
+                                                      value));
+  free_metric (tmp);
+  while (NULL != (dqe = tmp->send_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (tmp->send_head,
+                                 tmp->send_tail,
+                                 dqe);
+    if (NULL != dqe->cont)
+      dqe->cont (dqe->cont_cls,
+                 GNUNET_SYSERR,
+                 dqe->msg_size,
+                 0);
+    GNUNET_free (dqe);
+  }
+  if (NULL != tmp->send_delay_task)
+  {
+    GNUNET_SCHEDULER_cancel(tmp->send_delay_task);
+    tmp->send_delay_task = NULL;
+  }
+  GNUNET_free(tmp);
   return GNUNET_OK;
 }
+
 
 /**
  * Notify manipulation about disconnect so it can discard queued messages
@@ -664,52 +713,61 @@ free_tmps(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
  * @param peer the disconnecting peer
  */
 void
-GST_manipulation_peer_disconnect(const struct GNUNET_PeerIdentity *peer)
+GST_manipulation_peer_disconnect (const struct GNUNET_PeerIdentity *peer)
 {
   struct TM_Peer *tmp;
   struct DelayQueueEntry *dqe;
   struct DelayQueueEntry *next;
 
   if (NULL != (tmp = GNUNET_CONTAINER_multipeermap_get(man_handle.peers, peer)))
+  {
+    while (NULL != (dqe = tmp->send_head))
     {
-      next = tmp->send_head;
-      while (NULL != (dqe = next))
-        {
-          next = dqe->next;
-          GNUNET_CONTAINER_DLL_remove(tmp->send_head, tmp->send_tail, dqe);
-          if (NULL != dqe->cont)
-            dqe->cont(dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
-          GNUNET_free(dqe);
-        }
+      GNUNET_CONTAINER_DLL_remove (tmp->send_head,
+                                   tmp->send_tail,
+                                   dqe);
+      if (NULL != dqe->cont)
+        dqe->cont (dqe->cont_cls,
+                   GNUNET_SYSERR,
+                   dqe->msg_size,
+                   0);
+      GNUNET_free(dqe);
     }
-  else if (UINT32_MAX
-      != find_metric(&man_handle.general, GNUNET_ATS_QUALITY_NET_DELAY,
-          TM_SEND))
+  }
+  else if (UINT32_MAX != find_metric (&man_handle.general,
+                                      GNUNET_ATS_QUALITY_NET_DELAY,
+                                      TM_SEND))
+  {
+    next = generic_dqe_head;
+    while (NULL != (dqe = next))
     {
-      next = generic_dqe_head;
-      while (NULL != (dqe = next))
-        {
-          next = dqe->next;
-          if (0 == memcmp(peer, &dqe->id, sizeof(dqe->id)))
-            {
-              GNUNET_CONTAINER_DLL_remove(generic_dqe_head, generic_dqe_tail,
-                  dqe);
-              if (NULL != dqe->cont)
-                dqe->cont(dqe->cont_cls, GNUNET_SYSERR, dqe->msg_size, 0);
-              GNUNET_free(dqe);
-            }
-        }
-      if (NULL != generic_send_delay_task)
-        {
-          GNUNET_SCHEDULER_cancel(generic_send_delay_task);
-          generic_send_delay_task = NULL;
-          if (NULL != generic_dqe_head)
-            generic_send_delay_task = GNUNET_SCHEDULER_add_delayed(
-                GNUNET_TIME_absolute_get_remaining(generic_dqe_head->sent_at),
-                &send_delayed, generic_dqe_head);
-        }
+      next = dqe->next;
+      if (0 == memcmp(peer, &dqe->id, sizeof(dqe->id)))
+      {
+        GNUNET_CONTAINER_DLL_remove (generic_dqe_head,
+                                     generic_dqe_tail,
+                                     dqe);
+        if (NULL != dqe->cont)
+          dqe->cont (dqe->cont_cls,
+                     GNUNET_SYSERR,
+                     dqe->msg_size,
+                     0);
+        GNUNET_free(dqe);
+      }
     }
+    if (NULL != generic_send_delay_task)
+    {
+      GNUNET_SCHEDULER_cancel (generic_send_delay_task);
+      generic_send_delay_task = NULL;
+      if (NULL != generic_dqe_head)
+        generic_send_delay_task
+          = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining(generic_dqe_head->sent_at),
+                                          &send_delayed,
+                                          generic_dqe_head);
+    }
+  }
 }
+
 
 /**
  * Stop traffic manipulation
@@ -718,26 +776,30 @@ void
 GST_manipulation_stop()
 {
   struct DelayQueueEntry *cur;
-  struct DelayQueueEntry *next;
-  GNUNET_CONTAINER_multipeermap_iterate(man_handle.peers, &free_tmps, NULL);
-  GNUNET_CONTAINER_multipeermap_destroy(man_handle.peers);
 
-  next = generic_dqe_head;
-  while (NULL != (cur = next))
-    {
-      next = cur->next;
-      GNUNET_CONTAINER_DLL_remove(generic_dqe_head, generic_dqe_tail, cur);
-      if (NULL != cur->cont)
-        cur->cont(cur->cont_cls, GNUNET_SYSERR, cur->msg_size, 0);
-      GNUNET_free(cur);
-    }
+  GNUNET_CONTAINER_multipeermap_iterate (man_handle.peers,
+                                         &free_tmps,
+                                         NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (man_handle.peers);
+
+  while (NULL != (cur = generic_dqe_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (generic_dqe_head,
+                                 generic_dqe_tail,
+                                 cur);
+    if (NULL != cur->cont)
+      cur->cont (cur->cont_cls,
+                 GNUNET_SYSERR,
+                 cur->msg_size,
+                 0);
+    GNUNET_free (cur);
+  }
   if (NULL != generic_send_delay_task)
-    {
-      GNUNET_SCHEDULER_cancel(generic_send_delay_task);
-      generic_send_delay_task = NULL;
-    }
-
-  free_metric(&man_handle.general);
+  {
+    GNUNET_SCHEDULER_cancel (generic_send_delay_task);
+    generic_send_delay_task = NULL;
+  }
+  free_metric (&man_handle.general);
   man_handle.peers = NULL;
 }
 

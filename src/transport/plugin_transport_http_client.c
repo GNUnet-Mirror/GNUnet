@@ -1884,13 +1884,13 @@ client_connect (struct Session *s)
     return GNUNET_SYSERR;
   }
 
-  GNUNET_asprintf(&s->url,
-                  "%s/%s;%u",
-                  http_common_plugin_address_to_url(NULL,
-                                                    s->address->address,
-                                                    s->address->address_length),
-                  GNUNET_i2s_full (plugin->env->my_identity),
-                  plugin->last_tag);
+  GNUNET_asprintf (&s->url,
+                   "%s/%s;%u",
+                   http_common_plugin_address_to_url (NULL,
+                                                      s->address->address,
+                                                      s->address->address_length),
+                   GNUNET_i2s_full (plugin->env->my_identity),
+                   plugin->last_tag);
 
   plugin->last_tag++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1911,21 +1911,23 @@ client_connect (struct Session *s)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p: connected with GET %p and PUT %p\n",
-       s, s->get.easyhandle, s->put.easyhandle);
+       s, s->get.easyhandle,
+       s->put.easyhandle);
   /* Perform connect */
   GNUNET_STATISTICS_set (plugin->env->stats,
                          HTTP_STAT_STR_CONNECTIONS,
                          plugin->cur_requests,
                          GNUNET_NO);
   /* Re-schedule since handles have changed */
-  if (plugin->client_perform_task != NULL)
+  if (NULL != plugin->client_perform_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = NULL;
   }
 
   /* Schedule task to run immediately */
-  plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, plugin);
+  plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run,
+                                                          plugin);
   return res;
 }
 

@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet-service-transport.h"
 #include "gnunet-service-transport_hello.h"
+#include "gnunet-service-transport_ats.h"
 #include "gnunet-service-transport_plugins.h"
 
 /**
@@ -79,6 +80,53 @@ static struct TransportPlugin *plugins_tail;
 
 
 /**
+ * Function that will be called to update metrics for an address
+ *
+ * @param cls closure
+ * @param address address to update metrics for
+ * @param session the session
+ * @param ats the ats information to update
+ * @param ats_count the number of @a ats elements
+ */
+static void
+plugin_env_update_metrics (void *cls,
+                           const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
+                           const struct GNUNET_ATS_Information *ats,
+                           uint32_t ats_count)
+{
+  GST_ats_update_metrics (address,
+                          session,
+                          ats, ats_count);
+}
+
+
+/**
+ * Function that will be called to figure if an address is an loopback,
+ * LAN, WAN etc. address
+ *
+ * @param cls closure
+ * @param addr binary address
+ * @param addrlen length of the @a addr
+ * @return type of the network @a addr belongs to
+ */
+static enum GNUNET_ATS_Network_Type
+plugin_env_address_to_type (void *cls,
+                            const struct sockaddr *addr,
+                            size_t addrlen)
+{
+  if (NULL == GST_is)
+  {
+    GNUNET_break(0);
+    return GNUNET_ATS_NET_UNSPECIFIED;
+  }
+  return GNUNET_ATS_scanner_address_get_type (GST_is,
+                                              addr,
+                                              addrlen);
+}
+
+
+/**
  * Load and initialize all plugins.  The respective functions will be
  * invoked by the plugins when the respective events happen.  The
  * closure will be set to a 'const char*' containing the name of the
@@ -89,15 +137,12 @@ static struct TransportPlugin *plugins_tail;
  * @param session_start_cb function to call when a session was created
  * @param session_end_cb function to call when a session was terminated
  * @param address_type_cb function to call when a address type is requested
- * @param metric_update_cb function to call when address metrics change
  */
 void
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   GNUNET_TRANSPORT_AddressNotification address_cb,
                   GNUNET_TRANSPORT_SessionStart session_start_cb,
-                  GNUNET_TRANSPORT_SessionEnd session_end_cb,
-                  GNUNET_TRANSPORT_AddressToType address_type_cb,
-                  GNUNET_TRANSPORT_UpdateAddressMetrics metric_update_cb)
+                  GNUNET_TRANSPORT_SessionEnd session_end_cb)
 {
   struct TransportPlugin *plug;
   struct TransportPlugin *next;
@@ -145,8 +190,8 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.notify_address = address_cb;
     plug->env.session_start = session_start_cb;
     plug->env.session_end = session_end_cb;
-    plug->env.get_address_type = address_type_cb;
-    plug->env.update_address_metrics = metric_update_cb;
+    plug->env.get_address_type = &plugin_env_address_to_type;
+    plug->env.update_address_metrics = &plugin_env_update_metrics;
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
     GNUNET_CONTAINER_DLL_insert (plugins_head,
