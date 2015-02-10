@@ -1664,6 +1664,8 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
+  if (in_use == ve->in_use)
+    return;
   ve->in_use = in_use;
   if (GNUNET_YES == in_use)
   {
