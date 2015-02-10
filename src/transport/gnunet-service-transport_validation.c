@@ -1664,32 +1664,14 @@ GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
-  if (ve->in_use == in_use)
-  {
-    if (GNUNET_YES == in_use)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Error setting address in use for peer `%s' `%s' to USED\n",
-                  GNUNET_i2s (&address->peer),
-                  GST_plugins_a2s (address));
-    }
-    if (GNUNET_NO == in_use)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Error setting address in use for peer `%s' `%s' to NOT_USED\n",
-                  GNUNET_i2s (&address->peer),
-                  GST_plugins_a2s (address));
-    }
-  }
-
-  GNUNET_break (ve->in_use != in_use);  /* should be different... */
   ve->in_use = in_use;
   if (GNUNET_YES == in_use)
   {
     /* from now on, higher frequeny, so reschedule now */
     if (NULL != ve->revalidation_task)
       GNUNET_SCHEDULER_cancel (ve->revalidation_task);
-    ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
+    ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address,
+                                                      ve);
   }
 }
 
