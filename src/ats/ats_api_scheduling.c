@@ -615,6 +615,8 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
 {
+  unsigned int i;
+
   if (NULL != sh->mq)
   {
     GNUNET_MQ_destroy (sh->mq);
@@ -629,6 +631,11 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
   {
     GNUNET_SCHEDULER_cancel (sh->task);
     sh->task = NULL;
+  }
+  for (i=0;i<sh->session_array_size;i++)
+  {
+    GNUNET_free_non_null (sh->session_array[i]);
+    sh->session_array[i] = NULL;
   }
   GNUNET_array_grow (sh->session_array,
                      sh->session_array_size,
