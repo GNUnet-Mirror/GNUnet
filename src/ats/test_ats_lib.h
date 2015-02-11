@@ -111,9 +111,13 @@ enum CommandCode
    * Obtain list of all addresses, testing
    * #GNUNET_ATS_performance_list_addresses().
    */
-  CMD_LIST_ADDRESSES
+  CMD_LIST_ADDRESSES,
 
-  /* TODO: reserve bandwidth */
+  /**
+   * Reserve bandwidth, testing
+   * #GNUNET_ATS_reserve_bandwidth().
+   */
+  CMD_RESERVE_BANDWIDTH
 
 };
 
@@ -399,6 +403,38 @@ struct CommandListAddresses
 
 
 /**
+ * Details for the #CMD_RESERVE_BANDWIDTH command.
+ */
+struct CommandReserveBandwidth
+{
+  /**
+   * For which peer do we reserve bandwidth?
+   */
+  unsigned int pid;
+
+  /**
+   * How much should we try to reserve?
+   */
+  int32_t amount;
+
+  /**
+   * Should we expect this to work or fail?
+   * #GNUNET_YES: must work
+   * #GNUNET_NO: may work or fail
+   * #GNUNET_SYSERR: must fail
+   */
+  int expected_result;
+
+  /**
+   * Location where we store the return value from
+   * #GNUNET_ATS_reserve_bandwidth().
+   */
+  struct GNUNET_ATS_ReservationContext *rc;
+
+};
+
+
+/**
  * A command for the test case interpreter.
  */
 struct Command
@@ -443,6 +479,8 @@ struct Command
     struct CommandProvideFeedback provide_feedback;
 
     struct CommandListAddresses list_addresses;
+
+    struct CommandReserveBandwidth reserve_bandwidth;
 
   } details;
 

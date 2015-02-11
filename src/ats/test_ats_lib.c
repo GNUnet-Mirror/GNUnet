@@ -404,7 +404,8 @@ make_address (uint32_t pid,
 /**
  * Our dummy sessions.
  */
-struct Session {
+struct Session
+{
   /**
    * Field to avoid `0 == sizeof(struct Session)`.
    */
@@ -518,6 +519,59 @@ info_cb (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+}
+
+
+/**
+ * Function called with reservation result.
+ *
+ * @param cls closure with the reservation command (`struct Command`)
+ * @param peer identifies the peer
+ * @param amount set to the amount that was actually reserved or unreserved;
+ *               either the full requested amount or zero (no partial reservations)
+ * @param res_delay if the reservation could not be satisfied (amount was 0), how
+ *        long should the client wait until re-trying?
+ */
+static void
+reservation_cb (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                int32_t amount,
+                struct GNUNET_TIME_Relative res_delay)
+{
+  struct Command *cmd = cls;
+  struct GNUNET_PeerIdentity pid;
+
+  make_peer (cmd->details.reserve_bandwidth.pid,
+             &pid);
+  GNUNET_assert (0 == memcmp (peer,
+                              &pid,
+                              sizeof (struct GNUNET_PeerIdentity)));
+  switch (cmd->details.reserve_bandwidth.expected_result)
+  {
+  case GNUNET_OK:
+    if (amount != cmd->details.reserve_bandwidth.amount)
+    {
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    break;
+  case GNUNET_NO:
+    GNUNET_break ( (0 != amount) ||
+                   (0 != res_delay.rel_value_us) );
+    break;
+  case GNUNET_SYSERR:
+    if ( (amount != cmd->details.reserve_bandwidth.amount) ||
+         (0 == res_delay.rel_value_us) )
+    {
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    break;
+  }
+  off++;
+  run_interpreter ();
 }
 
 
@@ -777,6 +831,20 @@ interpreter (void *cls,
                                                    cmd->details.list_addresses.all,
                                                    &info_cb,
                                                    cmd);
+        return;
+      }
+    case CMD_RESERVE_BANDWIDTH:
+      {
+        struct GNUNET_PeerIdentity pid;
+
+        make_peer (cmd->details.reserve_bandwidth.pid,
+                   &pid);
+        cmd->details.reserve_bandwidth.rc
+          = GNUNET_ATS_reserve_bandwidth (perf_ats,
+                                          &pid,
+                                          cmd->details.reserve_bandwidth.amount,
+                                          &reservation_cb,
+                                          cmd);
         return;
       }
     } /* end switch */
