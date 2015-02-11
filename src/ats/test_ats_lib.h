@@ -117,7 +117,12 @@ enum CommandCode
    * Reserve bandwidth, testing
    * #GNUNET_ATS_reserve_bandwidth().
    */
-  CMD_RESERVE_BANDWIDTH
+  CMD_RESERVE_BANDWIDTH,
+
+  /**
+   * Wait for a bit.
+   */
+  CMD_SLEEP
 
 };
 
@@ -435,6 +440,18 @@ struct CommandReserveBandwidth
 
 
 /**
+ * Details for the #CMD_SLEEP command.
+ */
+struct CommandSleep
+{
+  /**
+   * How long should we wait before running the next command?
+   */
+  struct GNUNET_TIME_Relative delay;
+};
+
+
+/**
  * A command for the test case interpreter.
  */
 struct Command
@@ -481,6 +498,8 @@ struct Command
     struct CommandListAddresses list_addresses;
 
     struct CommandReserveBandwidth reserve_bandwidth;
+
+    struct CommandSleep sleep;
 
   } details;
 

@@ -30,6 +30,7 @@
 #include "gnunet-service-ats_performance.h"
 #include "gnunet-service-ats_preferences.h"
 #include "gnunet-service-ats_plugins.h"
+#include "gnunet-service-ats_reservations.h"
 #include "gnunet-service-ats_scheduling.h"
 #include "gnunet-service-ats_normalization.h"
 
@@ -207,7 +208,8 @@ bandwidth_changed_cb (void *cls,
               GNUNET_i2s (&address->peer),
               (unsigned int) address->assigned_bw_in,
               (unsigned int) address->assigned_bw_out);
-
+  GAS_reservations_set_bandwidth (&address->peer,
+                                  GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
   /* Notify performance clients about changes to address */
   GAS_performance_notify_all_clients (&address->peer,
 				      address->plugin,

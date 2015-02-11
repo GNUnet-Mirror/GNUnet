@@ -19,7 +19,7 @@
 */
 /**
  * @file ats/test_ats_reservation_api.c
- * @brief test ATS
+ * @brief test ATS bandwidth reservation API
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -28,7 +28,7 @@
 /**
  * Global timeout for the testcase.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
  * Definition of the test as a sequence of commands.
@@ -63,36 +63,35 @@ static struct Command test_commands[] = {
       .add_label = "add-address-0-0"
     }
   },
-  /* 3: reserve 32k -- should work */
+  /* 3: sleep 7s, should give us 5s * 64k/s = 320k buffer;
+     Note that this depends on MAX_BANDWIDTH_CARRY_S.  We
+     sleep more than 5s to show that only MAX_BANDWIDTH carries. */
+  {
+    .code = CMD_SLEEP,
+    .label = "sleep",
+    .details.sleep.delay = { 7 * 1000LL * 1000LL }
+  },
+  /* 4: reserve 128k -- should work (5s carry, so we had 320k) */
   {
     .code = CMD_RESERVE_BANDWIDTH,
-    .label = "initial reservation",
     .details.reserve_bandwidth = {
       .pid = 0,
-      .amount = 32 * 1024,
-      .expected_result = GNUNET_OK
+      .amount = 128 * 1024,
+      .expected_result = GNUNET_YES
     }
   },
-  /* 4: reserve another 32k -- might work */
-  {
-    .code = CMD_RESERVE_BANDWIDTH,
-    .details.reserve_bandwidth = {
-      .pid = 0,
-      .amount = 32 * 1024,
-      .expected_result = GNUNET_NO
-    }
-  },
-  /* 5: reserve another 128k -- might work */
+  /* 5: reserve another 192k -- should just work (now exactly pushing the limit) */
   {
     .code = CMD_RESERVE_BANDWIDTH,
     .label = "big reservation",
     .details.reserve_bandwidth = {
       .pid = 0,
-      .amount = 128 * 1024,
-      .expected_result = GNUNET_NO
+      .amount = 192 * 1024,
+      .expected_result = GNUNET_YES
     }
   },
-  /* 6: reserve another 32k -- should now fail */
+  /* 6: reserve another 32k -- should now fail (if MAX_BANDWIDTH_CARRY_S
+     is precisely observed) */
   {
     .code = CMD_RESERVE_BANDWIDTH,
     .label = "failing reservation",
@@ -102,21 +101,37 @@ static struct Command test_commands[] = {
       .expected_result = GNUNET_SYSERR
     }
   },
-  /* 7: remove address */
+  /* 7: sleep 3s, should give us 3s * 64k/s - 32k = 160k buffer */
+  {
+    .code = CMD_SLEEP,
+    .label = "sleep",
+    .details.sleep.delay = { 6 * 1000LL * 1000LL }
+  },
+  /* 8: reserve another 160k -- should now work */
+  {
+    .code = CMD_RESERVE_BANDWIDTH,
+    .label = "successful final reservation",
+    .details.reserve_bandwidth = {
+      .pid = 0,
+      .amount = 160 * 1024,
+      .expected_result = GNUNET_YES
+    }
+  },
+  /* 9: remove address */
   {
     .code = CMD_DEL_ADDRESS,
     .details.del_address = {
       .add_label = "add-address-0-0"
     }
   },
-  /* 8: check we got disconnected */
+  /* 10: check we got disconnected */
   {
     .code = CMD_AWAIT_DISCONNECT_SUGGESTION,
     .details.await_disconnect_suggestion = {
       .pid = 0
     }
   },
-  /* 9: just for symmetry, also stop asking for the connection */
+  /* 11: just for symmetry, also stop asking for the connection */
   {
     .code = CMD_REQUEST_CONNECTION_STOP,
     .details.request_connection_stop = {

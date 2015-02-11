@@ -567,7 +567,7 @@ reservation_cb (void *cls,
                    (0 != res_delay.rel_value_us) );
     break;
   case GNUNET_SYSERR:
-    if ( (amount != cmd->details.reserve_bandwidth.amount) ||
+    if ( (amount != 0) ||
          (0 == res_delay.rel_value_us) )
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -858,6 +858,12 @@ interpreter (void *cls,
                                           cmd);
         return;
       }
+    case CMD_SLEEP:
+      off++;
+      interpreter_task = GNUNET_SCHEDULER_add_delayed (cmd->details.sleep.delay,
+                                                       &interpreter,
+                                                       NULL);
+      return;
     } /* end switch */
   } /* end while(1) */
 }
