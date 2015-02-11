@@ -85,8 +85,10 @@ update_avg (uint64_t current_val,
       sum += (double) ni->atsi_abs[c1];
     }
   }
-  GNUNET_assert (0 != count);
-  ni->avg = sum / count;
+  if (0 == count)
+    ni->avg = curent_val; /* must be UINT64_MAX */
+  else
+    ni->avg = sum / count;
 }
 
 
