@@ -543,7 +543,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
                                  ph->addresslist_tail,
                                  alh);
     if (NULL != alh->cb)
-      alh->cb (ph->addr_info_cb_cls,
+      alh->cb (alh->cb_cls,
                NULL,
                GNUNET_NO,
                bandwidth_zero,
@@ -563,7 +563,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   {
     GNUNET_ATS_properties_ntoh (&prop,
                                 &pi->properties);
-    alh->cb (ph->addr_info_cb_cls,
+    alh->cb (alh->cb_cls,
              &address,
              active,
              pi->bandwidth_out,
