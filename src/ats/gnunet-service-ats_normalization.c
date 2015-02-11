@@ -86,7 +86,7 @@ update_avg (uint64_t current_val,
     }
   }
   if (0 == count)
-    ni->avg = curent_val; /* must be UINT64_MAX */
+    ni->avg = current_val; /* must be UINT64_MAX */
   else
     ni->avg = sum / count;
 }
