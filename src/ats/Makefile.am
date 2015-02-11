@@ -99,6 +99,7 @@ gnunet_service_ats_LDADD = \
 if HAVE_TESTING
 TESTING_TESTS = \
  test_ats_api_proportional \
+ test_ats_reservation_api_proportional \
  test_ats_api_ril
 if HAVE_LIBGLPK
 TESTING_TESTS += \
@@ -118,6 +119,15 @@ test_ats_api_proportional_SOURCES = \
  test_ats_api.c \
  test_ats_lib.c test_ats_lib.h
 test_ats_api_proportional_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  libgnunetats.la
+
+test_ats_reservation_api_proportional_SOURCES = \
+ test_ats_reservation_api.c \
+ test_ats_lib.c test_ats_lib.h
+test_ats_reservation_api_proportional_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/testing/libgnunettesting.la \

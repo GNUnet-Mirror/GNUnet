@@ -541,6 +541,7 @@ reservation_cb (void *cls,
   struct Command *cmd = cls;
   struct GNUNET_PeerIdentity pid;
 
+  cmd->details.reserve_bandwidth.rc = NULL;
   make_peer (cmd->details.reserve_bandwidth.pid,
              &pid);
   GNUNET_assert (0 == memcmp (peer,
@@ -551,6 +552,11 @@ reservation_cb (void *cls,
   case GNUNET_OK:
     if (amount != cmd->details.reserve_bandwidth.amount)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unexpectedly failed to reserve %d bytes with delay %s!\n",
+                  (int) amount,
+                  GNUNET_STRINGS_relative_time_to_string (res_delay,
+                                                          GNUNET_YES));
       GNUNET_break (0);
       GNUNET_SCHEDULER_shutdown ();
       return;
@@ -564,6 +570,11 @@ reservation_cb (void *cls,
     if ( (amount != cmd->details.reserve_bandwidth.amount) ||
          (0 == res_delay.rel_value_us) )
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unexpectedly reserved %d bytes with delay %s!\n",
+                  (int) amount,
+                  GNUNET_STRINGS_relative_time_to_string (res_delay,
+                                                          GNUNET_YES));
       GNUNET_break (0);
       GNUNET_SCHEDULER_shutdown ();
       return;
