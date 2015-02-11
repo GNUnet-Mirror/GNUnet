@@ -379,20 +379,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
 
 
 /**
- * Test if a address and a session is known to ATS.
- *
- * @param sh the scheduling handle
- * @param address the address
- * @param session the session
- * @return #GNUNET_YES or #GNUNET_NO
- */
-int
-GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
-                          const struct GNUNET_HELLO_Address *address,
-                          struct Session *session);
-
-
-/**
  * Handle used within ATS to track an address.
  */
 struct GNUNET_ATS_AddressRecord;
@@ -485,7 +471,9 @@ struct GNUNET_ATS_PerformanceHandle;
  * Signature of a function that is called with QoS information about an address.
  *
  * @param cls closure
- * @param address the address, NULL if ATS service was disconnected
+ * @param address the address, NULL if ATS service was disconnected or
+ *        when the iteration is completed in the case of
+ *        #GNUNET_ATS_performance_list_addresses()
  * @param address_active #GNUNET_YES if this address is actively used
  *        to maintain a connection to a peer;
  *        #GNUNET_NO if the address is not actively used;
@@ -524,7 +512,6 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              void *addr_info_cb_cls);
 
 
-
 /**
  * Get information about addresses known to the ATS subsystem.
  *
@@ -535,7 +522,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param infocb callback to call with the addresses,
  *        will callback with address == NULL when done
  * @param infocb_cls closure for @a infocb
- * @return ats performance context
+ * @return handle to abort the operation
  */
 struct GNUNET_ATS_AddressListHandle *
 GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,

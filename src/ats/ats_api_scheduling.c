@@ -462,7 +462,7 @@ error_handler (void *cls,
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
 
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_ERROR,
        "ATS connection died (code %d), reconnecting\n",
        (int) error);
   force_reconnect (sh);
@@ -540,9 +540,11 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   struct GNUNET_ATS_AddressRecord *ar;
 
   GNUNET_assert (NULL == sh->client);
-  sh->client = GNUNET_CLIENT_connect ("ats", sh->cfg);
+  sh->client = GNUNET_CLIENT_connect ("ats",
+                                      sh->cfg);
   if (NULL == sh->client)
   {
+    GNUNET_break (0);
     force_reconnect (sh);
     return;
   }
@@ -629,29 +631,6 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
                      sh->session_array_size,
                      0);
   GNUNET_free (sh);
-}
-
-
-/**
- * Test if a address and a session is known to ATS
- *
- * @param sh the scheduling handle
- * @param address the address
- * @param session the session
- * @return #GNUNET_YES or #GNUNET_NO
- */
-int
-GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
-                          const struct GNUNET_HELLO_Address *address,
-                          struct Session *session)
-{
-  if (NULL == session)
-    return GNUNET_NO;
-  if (NOT_FOUND != find_session_id (sh,
-                                    session,
-                                    address))
-    return GNUNET_YES;  /* Exists */
-  return GNUNET_NO;
 }
 
 
