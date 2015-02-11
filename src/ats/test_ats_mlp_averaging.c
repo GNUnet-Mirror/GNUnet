@@ -36,9 +36,9 @@
 
 static int ret;
 
-struct GNUNET_STATISTICS_Handle * stats;
+struct GNUNET_STATISTICS_Handle *stats;
 
-struct GNUNET_CONTAINER_MultiHashMap * addresses;
+struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
 struct GAS_MLP_Handle *mlp;
 
@@ -142,6 +142,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg, unsigned long long *
   return GNUNET_ATS_NetworkTypeCount;
 }
 
+
 static void
 check (void *cls, char *const *args, const char *cfgfile,
        const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -162,7 +163,7 @@ check (void *cls, char *const *args, const char *cfgfile,
 
   stats = GNUNET_STATISTICS_create("ats", cfg);
 
-  addresses = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+  addresses = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 
   quota_count = load_quotas(cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
   mlp = GAS_mlp_init (cfg, NULL, quotas, quotas_in, quotas_out, quota_count);
@@ -182,7 +183,7 @@ check (void *cls, char *const *args, const char *cfgfile,
   create_address (&addr[0], "dummy", 3, &a1_ats[0]);
   addr[0].atsp_network_type = GNUNET_ATS_NET_LAN;
 
-  GNUNET_CONTAINER_multihashmap_put(addresses, &addr[0].peer.hashPubKey, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_CONTAINER_multipeermap_put(addresses, &addr[0].peer, &addr[0], GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
   /* Add peer 1 address 1 */
   GAS_mlp_address_update (mlp, addresses, &addr[0]);
@@ -224,7 +225,7 @@ check (void *cls, char *const *args, const char *cfgfile,
               (unsigned int) ntohl (res[0]->assigned_bw_out.value__));
 
   /* Delete an address */
-  GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
+  GNUNET_CONTAINER_multipeermap_remove (addresses, &addr[0].peer, &addr[0]);
   GAS_mlp_address_delete (mlp, addresses, &addr[0]);
 
   GNUNET_assert (mlp->addresses_in_problem == 0);
@@ -255,11 +256,11 @@ main (int argc, char *argv[])
   };
 
   GNUNET_PROGRAM_run ((sizeof (argv2) / sizeof (char *)) - 1, argv2,
-                      "test_ats_mlp", "nohelp", options,
+                      "test_ats_mlp_averaging", "nohelp", options,
                       &check, NULL);
 
 
   return ret;
 }
 
-/* end of file test_ats_api_bandwidth_consumption.c */
+/* end of file test_ats_mlp_averaging.c */
