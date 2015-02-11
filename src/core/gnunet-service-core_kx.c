@@ -568,8 +568,9 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
      so we require manual intervention to get this one... */
 #if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Encrypted %u bytes for `%4s' using key %u, IV %u\n",
-              (unsigned int) size, GNUNET_i2s (&kx->peer),
+              "Encrypted %u bytes for `%s' using key %u, IV %u\n",
+              (unsigned int) size,
+              GNUNET_i2s (&kx->peer),
               (unsigned int) kx->encrypt_key.crc32, GNUNET_CRYPTO_crc32_n (iv,
                                                                            sizeof
                                                                            (iv)));
@@ -608,23 +609,30 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
     return GNUNET_SYSERR;
   }
   if (size !=
-      GNUNET_CRYPTO_symmetric_decrypt (in, (uint16_t) size, &kx->decrypt_key, iv,
-                                 out))
+      GNUNET_CRYPTO_symmetric_decrypt (in,
+                                       (uint16_t) size,
+                                       &kx->decrypt_key,
+                                       iv,
+                                       out))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# bytes decrypted"), size,
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# bytes decrypted"),
+                            size,
                             GNUNET_NO);
   /* the following is too sensitive to write to log files by accident,
      so we require manual intervention to get this one... */
 #if 0
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Decrypted %u bytes from `%4s' using key %u, IV %u\n",
-              (unsigned int) size, GNUNET_i2s (&kx->peer),
-              (unsigned int) kx->decrypt_key.crc32, GNUNET_CRYPTO_crc32_n (iv,
-                                                                           sizeof
-                                                                           (*iv)));
+              "Decrypted %u bytes from `%s' using key %u, IV %u\n",
+              (unsigned int) size,
+              GNUNET_i2s (&kx->peer),
+              (unsigned int) kx->decrypt_key.crc32,
+              GNUNET_CRYPTO_crc32_n (iv,
+                                     sizeof
+                                     (*iv)));
 #endif
   return GNUNET_OK;
 }
@@ -855,17 +863,21 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
                             gettext_noop ("# ephemeral keys received"),
                             1, GNUNET_NO);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request from `%4s'.\n", "EPHEMERAL_KEY",
-              GNUNET_i2s (&kx->peer));
   if (0 !=
       memcmp (&m->origin_identity,
-	      &kx->peer.public_key,
+	      &kx->peer,
               sizeof (struct GNUNET_PeerIdentity)))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received EPHEMERAL_KEY from %s, but expected %s\n",
+                GNUNET_i2s (&m->origin_identity),
+                GNUNET_i2s_full (&kx->peer));
     GNUNET_break_op (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service receives EPHEMERAL_KEY request from `%s'.\n",
+              GNUNET_i2s (&kx->peer));
   if ((ntohl (m->purpose.size) !=
        sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
        sizeof (struct GNUNET_TIME_AbsoluteNBO) +
@@ -1010,7 +1022,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   }
   m = (const struct PingMessage *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request from `%4s'.\n", "PING",
+              "Core service receives PING request from `%s'.\n",
               GNUNET_i2s (&kx->peer));
   derive_iv (&iv, &kx->decrypt_key, m->iv_seed, &GSC_my_identity);
   if (GNUNET_OK !=
@@ -1179,7 +1191,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
   }
   m = (const struct PongMessage *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' response from `%4s'.\n", "PONG",
+              "Core service receives PONG response from `%s'.\n",
               GNUNET_i2s (&kx->peer));
   /* mark as garbage, just to be sure */
   memset (&t, 255, sizeof (t));
@@ -1201,11 +1213,11 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
   {
     /* PONG malformed */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received malformed `%s' wanted sender `%4s' with challenge %u\n",
+                "Received malformed `%s' wanted sender `%s' with challenge %u\n",
                 "PONG", GNUNET_i2s (&kx->peer),
                 (unsigned int) kx->ping_challenge);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received malformed `%s' received from `%4s' with challenge %u\n",
+                "Received malformed `%s' received from `%s' with challenge %u\n",
                 "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge);
     return;
   }
