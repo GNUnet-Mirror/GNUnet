@@ -90,8 +90,13 @@ notify_client (struct GNUNET_SERVER_Client *client,
   msg->plugin_name_length = htons (plugin_name_length);
   msg->bandwidth_out = bandwidth_out;
   msg->bandwidth_in = bandwidth_in;
-  GNUNET_ATS_properties_hton (&msg->properties,
-                              prop);
+  if (NULL != prop)
+    GNUNET_ATS_properties_hton (&msg->properties,
+                                prop);
+  else
+    memset (&msg->properties,
+            0,
+            sizeof (struct GNUNET_ATS_Properties));
   addrp = (char *) &msg[1];
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
