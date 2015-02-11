@@ -241,6 +241,11 @@ struct GNUNET_ATS_PerformanceHandle
    * Request multiplexing
    */
   uint32_t id;
+
+  /**
+   * Is the receive loop active?
+   */
+  int in_receive;
 };
 
 /**
@@ -323,6 +328,14 @@ transmit_message_to_ats (void *cls,
     GNUNET_free(p);
   }
   do_transmit (ph);
+  if (GNUNET_NO == ph->in_receive)
+  {
+    ph->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (ph->client,
+                           &process_ats_message,
+                           ph,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+  }
   return ret;
 }
 
@@ -469,7 +482,7 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
 
 
 /**
- * We received a reservation result message.  Validate and process it.
+ * We received a PeerInformationMessage.  Validate and process it.
  *
  * @param ph our context with the callback
  * @param msg the message
@@ -593,18 +606,27 @@ process_ats_message (void *cls,
   {
   case GNUNET_MESSAGE_TYPE_ATS_PEER_INFORMATION:
     if (GNUNET_OK != process_pi_message (ph, msg))
+    {
+      GNUNET_break (0);
       goto reconnect;
+    }
     break;
   case GNUNET_MESSAGE_TYPE_ATS_RESERVATION_RESULT:
     if (GNUNET_OK != process_rr_message (ph, msg))
+    {
+      GNUNET_break (0);
       goto reconnect;
+    }
     break;
   case GNUNET_MESSAGE_TYPE_ATS_ADDRESSLIST_RESPONSE:
     if (GNUNET_OK != process_ar_message (ph, msg))
+    {
+      GNUNET_break (0);
       goto reconnect;
+    }
     break;
   default:
-    GNUNET_break(0);
+    GNUNET_break (0);
     goto reconnect;
   }
   ph->backoff = GNUNET_TIME_UNIT_ZERO;
@@ -622,17 +644,21 @@ process_ats_message (void *cls,
     GNUNET_CLIENT_notify_transmit_ready_cancel (ph->th);
     ph->th = NULL;
   }
-  GNUNET_CLIENT_disconnect (ph->client);
-  ph->client = NULL;
-  if (NULL != ph->addr_info_cb)
+  if (NULL != ph->client)
   {
-    /* Indicate reconnect */
-    ph->addr_info_cb (ph->addr_info_cb_cls,
-                      NULL,
-                      GNUNET_NO,
-                      GNUNET_BANDWIDTH_value_init (0),
-                      GNUNET_BANDWIDTH_value_init (0),
-                      NULL);
+    GNUNET_CLIENT_disconnect (ph->client);
+    ph->client = NULL;
+    ph->in_receive = GNUNET_NO;
+    if (NULL != ph->addr_info_cb)
+    {
+      /* Indicate reconnect */
+      ph->addr_info_cb (ph->addr_info_cb_cls,
+                        NULL,
+                        GNUNET_NO,
+                        GNUNET_BANDWIDTH_value_init (0),
+                        GNUNET_BANDWIDTH_value_init (0),
+                        NULL);
+    }
   }
   ph->backoff = GNUNET_TIME_STD_BACKOFF (ph->backoff);
   ph->task = GNUNET_SCHEDULER_add_delayed (ph->backoff,
@@ -656,10 +682,6 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
   ph->client = GNUNET_CLIENT_connect ("ats",
                                       ph->cfg);
   GNUNET_assert (NULL != ph->client);
-  GNUNET_CLIENT_receive (ph->client,
-                         &process_ats_message,
-                         ph,
-                         GNUNET_TIME_UNIT_FOREVER_REL);
   if ((NULL == (p = ph->pending_head)) || (GNUNET_YES != p->is_init))
   {
     p = GNUNET_malloc (sizeof (struct PendingMessage) +
