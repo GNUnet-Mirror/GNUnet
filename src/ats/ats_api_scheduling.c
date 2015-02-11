@@ -307,6 +307,7 @@ find_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
   }
   for (i = 1; i < sh->session_array_size; i++)
     if ( (NULL != sh->session_array[i]) &&
+         (GNUNET_NO == sh->session_array[i]->in_destroy) &&
          ( (session == sh->session_array[i]->session) ||
            (NULL == sh->session_array[i]->session) ) &&
          (0 == GNUNET_HELLO_address_cmp (address,
@@ -397,7 +398,9 @@ process_ats_address_suggestion_message (void *cls,
     force_reconnect (sh);
     return;
   }
-  ar = find_session (sh, session_id, &m->peer);
+  ar = find_session (sh,
+                     session_id,
+                     &m->peer);
   if (NULL == ar)
   {
     GNUNET_break (0);
@@ -730,7 +733,7 @@ int
 GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
                                 struct Session *session)
 {
-  GNUNET_break (session == ar->session);
+  GNUNET_assert (session == ar->session);
   ar->session = NULL;
   if (GNUNET_HELLO_address_check_option (ar->address,
                                          GNUNET_HELLO_ADDRESS_INFO_INBOUND))
