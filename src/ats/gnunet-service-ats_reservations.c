@@ -51,16 +51,22 @@ static struct GNUNET_CONTAINER_MultiPeerMap *trackers;
  *         peer is not connected, otherwise the time to wait
  *         until the reservation might succeed
  */
-struct GNUNET_TIME_Relative
-GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
-                          int32_t amount)
+static struct GNUNET_TIME_Relative
+reservations_reserve (const struct GNUNET_PeerIdentity *peer,
+                      int32_t amount)
 {
   struct GNUNET_BANDWIDTH_Tracker *tracker;
   struct GNUNET_TIME_Relative ret;
 
-  tracker = GNUNET_CONTAINER_multipeermap_get (trackers, peer);
+  tracker = GNUNET_CONTAINER_multipeermap_get (trackers,
+                                               peer);
   if (NULL == tracker)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Not connected, allowing reservation of %d bytes\n",
+                (int) amount);
     return GNUNET_TIME_UNIT_ZERO;       /* not connected, satisfy now */
+  }
   if (amount >= 0)
   {
     ret = GNUNET_BANDWIDTH_tracker_get_delay (tracker, amount);
@@ -75,7 +81,9 @@ GAS_reservations_reserve (const struct GNUNET_PeerIdentity *peer,
     }
   }
   (void) GNUNET_BANDWIDTH_tracker_consume (tracker, amount);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reserved %d bytes\n", (int) amount);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Reserved %d bytes\n",
+              (int) amount);
   return GNUNET_TIME_UNIT_ZERO;
 }
 
@@ -112,11 +120,14 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
     GNUNET_BANDWIDTH_tracker_init (tracker, NULL, NULL, bandwidth_in,
                                    MAX_BANDWIDTH_CARRY_S);
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (trackers, peer, tracker,
+                   GNUNET_CONTAINER_multipeermap_put (trackers,
+                                                      peer,
+                                                      tracker,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     return;
   }
-  GNUNET_BANDWIDTH_tracker_update_quota (tracker, bandwidth_in);
+  GNUNET_BANDWIDTH_tracker_update_quota (tracker,
+                                         bandwidth_in);
 }
 
 
@@ -149,7 +160,7 @@ GAS_handle_reservation_request (void *cls,
     return;
   }
   amount = (int32_t) ntohl (msg->amount);
-  res_delay = GAS_reservations_reserve (&msg->peer, amount);
+  res_delay = reservations_reserve (&msg->peer, amount);
   if (res_delay.rel_value_us > 0)
     amount = 0;
   result.header.size = htons (sizeof (struct ReservationResultMessage));
@@ -179,7 +190,8 @@ GAS_handle_reservation_request (void *cls,
 void
 GAS_reservations_init (struct GNUNET_SERVER_Handle *server)
 {
-  trackers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  trackers = GNUNET_CONTAINER_multipeermap_create (128,
+                                                   GNUNET_NO);
 }
 
 
