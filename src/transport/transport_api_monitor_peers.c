@@ -74,7 +74,7 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext
   /**
    * Task ID for reconnect.
    */
-  struct GNUNET_SCHEDULER_Task * reconnect_task;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
 
   /**
    * Identity of the peer to monitor.
@@ -115,7 +115,7 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
     return GNUNET_NO;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unhandled state `%s' \n",
+                "Unhandled state `%s'\n",
                 GNUNET_TRANSPORT_ps2s (state));
     GNUNET_break (0);
     break;
