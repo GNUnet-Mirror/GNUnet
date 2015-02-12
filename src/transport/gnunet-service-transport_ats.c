@@ -89,6 +89,10 @@ struct AddressInfo
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *p2a;
 
+/**
+ * Number of blocked addresses.
+ */
+static unsigned int num_blocked;
 
 /**
  * Closure for #find_ai().
@@ -124,8 +128,12 @@ publish_p2a_stat_update ()
 {
   GNUNET_STATISTICS_set (GST_stats,
 			 gettext_noop ("# Addresses given to ATS"),
-			 GNUNET_CONTAINER_multipeermap_size (p2a),
+			 GNUNET_CONTAINER_multipeermap_size (p2a) - num_blocked,
 			 GNUNET_NO);
+  GNUNET_STATISTICS_set (GST_stats,
+                         "# blocked addresses",
+                         num_blocked,
+                         GNUNET_NO);
 }
 
 
@@ -272,6 +280,8 @@ unblock_address (void *cls,
                                    ai->session,
                                    &ai->properties);
   GNUNET_break (NULL != ai->ar);
+  num_blocked--;
+  publish_p2a_stat_update ();
 }
 
 
@@ -302,6 +312,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
+  ai->back_off = GNUNET_TIME_STD_BACKOFF (ai->back_off);
   if (GNUNET_YES ==
       GNUNET_HELLO_address_check_option (address,
                                          GNUNET_HELLO_ADDRESS_INFO_INBOUND))
@@ -310,10 +321,12 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
          GST_plugins_a2s (address),
          GNUNET_i2s (&address->peer));
   else
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Blocking address %s of peer %s from use for a while\n",
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Blocking address %s of peer %s from use for %s\n",
          GST_plugins_a2s (address),
-         GNUNET_i2s (&address->peer));
+         GNUNET_i2s (&address->peer),
+         GNUNET_STRINGS_relative_time_to_string (ai->back_off,
+                                                 GNUNET_YES));
   /* destroy session and address */
   if ( (NULL == session) ||
        (GNUNET_NO ==
@@ -322,11 +335,12 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
   ai->ar = NULL;
 
   /* determine when the address should come back to life */
-  ai->back_off = GNUNET_TIME_STD_BACKOFF (ai->back_off);
   ai->blocked = GNUNET_TIME_relative_to_absolute (ai->back_off);
   ai->unblock_task = GNUNET_SCHEDULER_add_delayed (ai->back_off,
                                                    &unblock_address,
                                                    ai);
+  num_blocked++;
+  publish_p2a_stat_update ();
 }
 
 
@@ -653,7 +667,6 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                  GNUNET_CONTAINER_multipeermap_remove (p2a,
                                                        &address->peer,
                                                        ai));
-  publish_p2a_stat_update ();
   GNUNET_break (NULL == ai->session);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Telling ATS to destroy address from peer %s\n",
@@ -675,7 +688,9 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
   {
     GNUNET_SCHEDULER_cancel (ai->unblock_task);
     ai->unblock_task = NULL;
+    num_blocked--;
   }
+  publish_p2a_stat_update ();
   GNUNET_HELLO_address_free (ai->address);
   GNUNET_free (ai);
 }
@@ -714,6 +729,7 @@ destroy_ai (void *cls,
   {
     GNUNET_SCHEDULER_cancel (ai->unblock_task);
     ai->unblock_task = NULL;
+    num_blocked--;
   }
   if (NULL != ai->ar)
   {
