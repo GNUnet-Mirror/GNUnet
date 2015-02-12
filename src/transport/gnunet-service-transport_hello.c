@@ -112,7 +112,7 @@ static int friend_option;
 /**
  * Identifier of #refresh_hello_task().
  */
-static struct GNUNET_SCHEDULER_Task * hello_task;
+static struct GNUNET_SCHEDULER_Task *hello_task;
 
 
 /**
@@ -180,7 +180,6 @@ refresh_hello_task (void *cls,
 				   &address_generator,
 				   &gc,
                                    friend_option);
-  GNUNET_assert (NULL != our_hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Refreshed my %s HELLO, new size is %d\n",
               (GNUNET_YES == friend_option) ? "friend-only" : "public",
@@ -232,7 +231,7 @@ GST_hello_start (int friend_only,
   hello_cb = cb;
   hello_cb_cls = cb_cls;
   friend_option = friend_only;
-  refresh_hello ();
+  refresh_hello_task (NULL, NULL);
 }
 
 

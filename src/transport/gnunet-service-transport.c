@@ -1013,9 +1013,6 @@ run (void *cls,
   if (GNUNET_SYSERR == friend_only)
     friend_only = GNUNET_NO; /* According to topology defaults */
   /* start subsystems */
-  GST_hello_start (friend_only,
-                   &process_hello_update,
-                   NULL);
   GST_blacklist_start (GST_server,
                        GST_cfg,
                        &GST_my_identity);
@@ -1030,6 +1027,9 @@ run (void *cls,
                     &plugin_env_address_change_notification,
                     &plugin_env_session_start,
                     &plugin_env_session_end);
+  GST_hello_start (friend_only,
+                   &process_hello_update,
+                   NULL);
   GST_neighbours_start ((max_fd / 3) * 2);
   GST_clients_start (GST_server);
   GST_validation_start ((max_fd / 3));

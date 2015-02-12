@@ -541,13 +541,7 @@ transmit_ping_if_allowed (void *cls,
     return;
   }
   hello = GST_hello_get ();
-  if (NULL == hello)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Not PINGing peer `%s' as our HELLO is not yet ready\n",
-                GNUNET_i2s (pid));
-    return;
-  }
+  GNUNET_assert (NULL != hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmitting plain PING to `%s' `%s' `%s'\n",
               GNUNET_i2s (pid),
