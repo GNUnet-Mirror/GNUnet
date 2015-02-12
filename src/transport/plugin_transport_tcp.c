@@ -1573,25 +1573,18 @@ tcp_plugin_get_session (void *cls,
     {
       session = si_ctx.result;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Found existing session for `%s' address `%s' session %p\n",
+           "Found existing session for `%s' address `%s'\n",
            GNUNET_i2s (&address->peer),
            tcp_plugin_address_to_string (plugin,
                                          address->address,
-                                         address->address_length),
-           session);
+                                         address->address_length));
       return session;
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Existing sessions did not match address `%s' or peer `%s'\n",
-         tcp_plugin_address_to_string (plugin,
-                                       address->address,
-                                       address->address_length),
-        GNUNET_i2s (&address->peer));
   }
 
   if (addrlen == sizeof(struct IPv6TcpAddress))
   {
-    GNUNET_assert(NULL != address->address); /* make static analysis happy */
+    GNUNET_assert (NULL != address->address); /* make static analysis happy */
     t6 = address->address;
     options = t6->options;
     af = AF_INET6;
@@ -1627,12 +1620,16 @@ tcp_plugin_get_session (void *cls,
   }
   else
   {
-    GNUNET_STATISTICS_update (plugin->env->stats, gettext_noop
-    ("# requests to create session with invalid address"), 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              gettext_noop ("# requests to create session with invalid address"),
+                              1,
+                              GNUNET_NO);
     return NULL;
   }
 
-  net_type = plugin->env->get_address_type (plugin->env->cls, sb, sbs);
+  net_type = plugin->env->get_address_type (plugin->env->cls,
+                                            sb,
+                                            sbs);
   GNUNET_break (net_type != GNUNET_ATS_NET_UNSPECIFIED);
 
   if ((is_natd == GNUNET_YES) && (addrlen == sizeof(struct IPv6TcpAddress)))
@@ -1656,10 +1653,11 @@ tcp_plugin_get_session (void *cls,
     return NULL;
   }
 
-  if ((is_natd == GNUNET_YES) && (NULL != plugin->nat) &&
-      (GNUNET_NO ==
-       GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
-                                               &address->peer)))
+  if ( (is_natd == GNUNET_YES) &&
+       (NULL != plugin->nat) &&
+       (GNUNET_NO ==
+        GNUNET_CONTAINER_multipeermap_contains (plugin->nat_wait_conns,
+                                                &address->peer)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found valid IPv4 NAT address (creating session)!\n");
@@ -1753,8 +1751,13 @@ tcp_plugin_get_session (void *cls,
   }
   plugin->cur_connections++;
   if (plugin->cur_connections == plugin->max_connections)
+  {
+    GNUNET_STATISTICS_update (session->plugin->env->stats,
+                              gettext_noop ("# TCP service suspended"),
+                              1,
+                              GNUNET_NO);
     GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
-
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
        GNUNET_i2s (&address->peer),
@@ -2324,8 +2327,15 @@ handle_tcp_welcome (void *cls,
     if (NULL != plugin->service) /* Otherwise value is incremented in tcp_access_check */
       plugin->cur_connections++;
     if (plugin->cur_connections == plugin->max_connections)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("TCP connection limit reached, suspending server\n"));
+      GNUNET_STATISTICS_update (session->plugin->env->stats,
+                                gettext_noop ("# TCP service suspended"),
+                                1,
+                                GNUNET_NO);
       GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
-
+    }
     if (GNUNET_OK ==
         GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
@@ -2371,7 +2381,7 @@ handle_tcp_welcome (void *cls,
                                          vaddr,
                                          alen);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Creating new%s session %p for peer `%s' client %p \n",
+           "Creating new%s session %p for peer `%s' client %p\n",
            GNUNET_HELLO_address_check_option (session->address,
                                               GNUNET_HELLO_ADDRESS_INFO_INBOUND)
            ? " inbound" : "",
@@ -2553,15 +2563,21 @@ disconnect_notify (void *cls,
                                      session->address->address_length));
 
   if (plugin->cur_connections == plugin->max_connections)
+  {
+    GNUNET_STATISTICS_update (session->plugin->env->stats,
+                              gettext_noop ("# TCP service resumed"),
+                              1,
+                              GNUNET_NO);
     GNUNET_SERVER_resume (plugin->server); /* Resume server  */
+  }
 
   if (plugin->cur_connections < 1)
     GNUNET_break(0);
   else
     plugin->cur_connections--;
 
-  GNUNET_STATISTICS_update (session->plugin->env->stats, gettext_noop
-                            ("# network-level TCP disconnect events"),
+  GNUNET_STATISTICS_update (session->plugin->env->stats,
+                            gettext_noop ("# network-level TCP disconnect events"),
                             1,
                             GNUNET_NO);
   tcp_plugin_disconnect_session (plugin, session);
