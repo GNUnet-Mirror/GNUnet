@@ -203,16 +203,19 @@ refresh_hello_task (void *cls,
 
 
 /**
- * Schedule task to refresh hello (unless such a
- * task exists already).
+ * Schedule task to refresh hello (but only if such a
+ * task exists already, as otherwise the module might
+ * have been shutdown).
  */
 static void
 refresh_hello ()
 {
   if (NULL != hello_task)
+  {
     GNUNET_SCHEDULER_cancel (hello_task);
-  hello_task = GNUNET_SCHEDULER_add_now (&refresh_hello_task,
-                                         NULL);
+    hello_task = GNUNET_SCHEDULER_add_now (&refresh_hello_task,
+                                           NULL);
+  }
 }
 
 
