@@ -504,7 +504,7 @@ GST_receive_callback (void *cls,
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Processing `%s' from `%s'\n", "PING",
+                "Processing PING from `%s'\n",
                 GST_plugins_a2s (address));
     if (GNUNET_OK !=
         GST_validation_handle_ping (&address->peer,
@@ -520,7 +520,7 @@ GST_receive_callback (void *cls,
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-               "Processing `%s' from `%s'\n", "PONG",
+               "Processing PONG from `%s'\n",
                GST_plugins_a2s (address));
     if (GNUNET_OK != GST_validation_handle_pong (&address->peer, message))
     {
@@ -572,13 +572,16 @@ GST_receive_callback (void *cls,
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
-    GST_neighbours_handle_disconnect_message (&address->peer, message);
+    GST_neighbours_handle_disconnect_message (&address->peer,
+                                              message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
-    GST_neighbours_keepalive (&address->peer, message);
+    GST_neighbours_keepalive (&address->peer,
+                              message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE:
-    GST_neighbours_keepalive_response (&address->peer, message);
+    GST_neighbours_keepalive_response (&address->peer,
+                                       message);
     break;
   default:
     /* should be payload */
@@ -591,7 +594,7 @@ GST_receive_callback (void *cls,
                            message);
     break;
   }
-  end:
+ end:
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Allowing receive from peer %s to continue in %s\n",
               GNUNET_i2s (&address->peer),

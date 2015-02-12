@@ -413,7 +413,8 @@ cleanup_validation_entry (void *cls,
   ve->valid_until = GNUNET_TIME_UNIT_ZERO_ABS;
 
   /* Notify about deleted entry */
-  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_REMOVE);
+  validation_entry_changed (ve,
+                            GNUNET_TRANSPORT_VS_REMOVE);
 
   if (NULL != ve->bc)
   {
@@ -449,9 +450,6 @@ cleanup_validation_entry (void *cls,
                            gettext_noop ("# validations running"),
                            validations_running,
                            GNUNET_NO);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Validation aborted, %u validation processes running\n",
-                validations_running);
   }
   GNUNET_free (ve);
   return GNUNET_OK;
@@ -474,20 +472,30 @@ timeout_hello_validation (void *cls,
   struct GNUNET_TIME_Relative left;
 
   ve->timeout_task = NULL;
+  /* For valid addresses, we want to wait until the expire;
+     for addresses under PING validation, we want to wait
+     until we give up on the PING */
   max = GNUNET_TIME_absolute_max (ve->valid_until,
                                   ve->revalidation_block);
-  left = GNUNET_TIME_absolute_get_remaining (max);
+  left = GNUNET_TIME_absolute_get_remaining (ve->max);
   if (left.rel_value_us > 0)
   {
-    /* should wait a bit longer */
+    /* We should wait a bit longer. This happens when
+       address lifetimes are extended due to successful
+       validations. */
     ve->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (left, &timeout_hello_validation, ve);
+        GNUNET_SCHEDULER_add_delayed (left,
+                                      &timeout_hello_validation,
+                                      ve);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# address records discarded"), 1,
+                            gettext_noop ("# address records discarded (timeout)"),
+                            1,
                             GNUNET_NO);
-  cleanup_validation_entry (NULL, &ve->address->peer, ve);
+  cleanup_validation_entry (NULL,
+                            &ve->address->peer,
+                            ve);
 }
 
 
@@ -519,11 +527,17 @@ transmit_ping_if_allowed (void *cls,
   if (GNUNET_NO == result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Blacklist denies to send PING to `%s' `%s' `%s'\n",
+                "Blacklist denies sending PING to `%s' `%s' `%s'\n",
                 GNUNET_i2s (pid),
                 GST_plugins_a2s (ve->address),
                 ve->address->transport_name);
-    cleanup_validation_entry (NULL, pid, ve);
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# address records discarded (blacklist)"),
+                              1,
+                              GNUNET_NO);
+    cleanup_validation_entry (NULL,
+                              pid,
+                              ve);
     return;
   }
   hello = GST_hello_get ();
@@ -775,8 +789,10 @@ find_validation_entry (const struct GNUNET_HELLO_Address *address)
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   ve->timeout_task =
       GNUNET_SCHEDULER_add_delayed (UNVALIDATED_PING_KEEPALIVE,
-                                    &timeout_hello_validation, ve);
-  GNUNET_CONTAINER_multipeermap_put (validation_map, &address->peer,
+                                    &timeout_hello_validation,
+                                    ve);
+  GNUNET_CONTAINER_multipeermap_put (validation_map,
+                                     &address->peer,
                                      ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   publish_ve_stat_update ();

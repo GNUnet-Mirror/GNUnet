@@ -1402,7 +1402,7 @@ send_keepalive (struct NeighbourMapEntry *n)
                                GNUNET_YES,
 			       NULL, NULL);
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# keepalives sent"),
+                            gettext_noop ("# KEEPALIVES sent"),
                             1,
 			    GNUNET_NO);
   n->primary_address.keep_alive_nonce = nonce;
@@ -1428,9 +1428,12 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
   struct SessionKeepAliveMessage msg;
 
   if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
+  {
+    GNUNET_break_op (0);
     return;
+  }
 
-  msg_in = (struct SessionKeepAliveMessage *) m;
+  msg_in = (const struct SessionKeepAliveMessage *) m;
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
@@ -1449,8 +1452,9 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Received keep alive request from peer `%s' with nonce %u\n",
-      GNUNET_i2s (&n->id), ntohl (msg_in->nonce));
+              "Received KEEPALIVE request from peer `%s' with nonce %u\n",
+              GNUNET_i2s (&n->id),
+              ntohl (msg_in->nonce));
 
   /* send reply to allow neighbour to measure latency */
   msg.header.size = htons (sizeof (struct SessionKeepAliveMessage));
@@ -1484,50 +1488,50 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   struct GNUNET_TIME_Relative latency;
 
   if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
+  {
+    GNUNET_break_op (0);
     return;
+  }
 
   msg = (const struct SessionKeepAliveMessage *) m;
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# KEEPALIVE_RESPONSE messages discarded (not connected)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (not connected)"),
+                              1,
+                              GNUNET_NO);
     return;
   }
   if ( (GNUNET_TRANSPORT_PS_CONNECTED != n->state) ||
        (GNUNET_YES != n->expect_latency_response) )
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# KEEPALIVE_RESPONSE messages discarded (not expected)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (not expected)"),
+                              1,
+                              GNUNET_NO);
     return;
   }
   if (NULL == n->primary_address.address)
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# KEEPALIVE_RESPONSE messages discarded (address changed)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (address changed)"),
+                              1,
+                              GNUNET_NO);
     return;
   }
   if (n->primary_address.keep_alive_nonce != ntohl (msg->nonce))
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"),
+                              1,
+                              GNUNET_NO);
     return;
   }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received keep alive response from peer `%s' for session %p\n",
-                GNUNET_i2s (&n->id),
-                n->primary_address.session);
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# KEEPALIVE_RESPONSE messages received in good order"),
+                            1,
+                            GNUNET_NO);
 
-  }
 
   /* Update session timeout here */
   if (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name)))
@@ -1553,12 +1557,13 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
 
   latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Latency for peer `%s' is %s\n",
+              "Received KEEPALIVE_RESPONSE from peer `%s', latency is %s\n",
               GNUNET_i2s (&n->id),
 	      GNUNET_STRINGS_relative_time_to_string (latency,
 						      GNUNET_YES));
   GST_ats_update_delay (n->primary_address.address,
-                        GNUNET_TIME_relative_divide (latency, 2));
+                        GNUNET_TIME_relative_divide (latency,
+                                                     2));
 }
 
 
