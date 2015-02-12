@@ -517,11 +517,11 @@ transmit_ping_if_allowed (void *cls,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_TIME_Absolute next;
   const struct GNUNET_MessageHeader *hello;
-  enum GNUNET_ATS_Network_Type network;
   ssize_t ret;
   size_t tsize;
   size_t slen;
   uint16_t hsize;
+  struct Session *session;
 
   ve->bc = NULL;
   if (GNUNET_NO == result)
@@ -542,17 +542,10 @@ transmit_ping_if_allowed (void *cls,
   }
   hello = GST_hello_get ();
   GNUNET_assert (NULL != hello);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting plain PING to `%s' `%s' `%s'\n",
-              GNUNET_i2s (pid),
-              GST_plugins_a2s (ve->address),
-              ve->address->transport_name);
-
   slen = strlen (ve->address->transport_name) + 1;
   hsize = ntohs (hello->size);
-  tsize =
-      sizeof (struct TransportPingMessage) + ve->address->address_length +
-      slen + hsize;
+  tsize = sizeof (struct TransportPingMessage) +
+    ve->address->address_length + slen + hsize;
 
   ping.header.size =
       htons (sizeof (struct TransportPingMessage) +
@@ -570,11 +563,11 @@ transmit_ping_if_allowed (void *cls,
         slen + hsize;
   }
   {
-    char message_buf[tsize];
+    char message_buf[tsize] GNUNET_ALIGN;
 
-    /* build message with structure:
-     *  [HELLO][TransportPingMessage][Transport name][Address] */
-    memcpy (message_buf, hello, hsize);
+    memcpy (message_buf,
+            hello,
+            hsize);
     memcpy (&message_buf[hsize],
 	    &ping,
 	    sizeof (struct TransportPingMessage));
@@ -585,41 +578,42 @@ transmit_ping_if_allowed (void *cls,
             ve->address->address,
 	    ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
-    GNUNET_assert (NULL != papi);
-    GNUNET_assert (NULL != papi->send);
-    struct Session *session = papi->get_session (papi->cls,
-                                                 ve->address);
-
-    if (NULL != session)
-    {
-      ret = papi->send (papi->cls, session,
-                        message_buf, tsize,
-                        PING_PRIORITY,
-                        ACCEPTABLE_PING_DELAY,
-                        NULL, NULL);
-      network = papi->get_network (papi->cls, session);
-      if (GNUNET_ATS_NET_UNSPECIFIED == network)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Could not obtain a valid network for `%s' `%s'\n",
-                    GNUNET_i2s (pid),
-                    GST_plugins_a2s (ve->address));
-        GNUNET_break(0);
-      }
-      GST_neighbours_notify_data_sent (ve->address, session, tsize);
-    }
-    else
+    session = papi->get_session (papi->cls,
+                                 ve->address);
+    if (NULL == session)
     {
       /* Could not get a valid session */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Could not get a valid session for `%s' `%s'\n",
+                  "Failed to get session to send PING to `%s' at `%s'\n",
                   GNUNET_i2s (pid),
                   GST_plugins_a2s (ve->address));
-      ret = -1;
+      return;
     }
-  }
-  if (-1 != ret)
-  {
+
+    ret = papi->send (papi->cls, session,
+                      message_buf, tsize,
+                      PING_PRIORITY,
+                      ACCEPTABLE_PING_DELAY,
+                      NULL, NULL);
+    if (-1 == ret)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Failed to send PING to `%s' at `%s'\n",
+                  GNUNET_i2s (pid),
+                  GST_plugins_a2s (ve->address));
+      return;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmitted plain PING to `%s' `%s' `%s'\n",
+                GNUNET_i2s (pid),
+                GST_plugins_a2s (ve->address),
+                ve->address->transport_name);
+    ve->network = papi->get_network (papi->cls,
+                                     session);
+    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
+    GST_neighbours_notify_data_sent (ve->address,
+                                     session,
+                                     tsize);
     next = GNUNET_TIME_relative_to_absolute (validation_delay);
     validation_next = GNUNET_TIME_absolute_max (next,
                                                 validation_next);
@@ -628,7 +622,6 @@ transmit_ping_if_allowed (void *cls,
                               gettext_noop ("# PINGs for address validation sent"),
                               1,
                               GNUNET_NO);
-    ve->network = network;
     ve->expecting_pong = GNUNET_YES;
     validations_running++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -639,7 +632,9 @@ transmit_ping_if_allowed (void *cls,
                            validations_running,
                            GNUNET_NO);
     /*  Notify about PING sent */
-    validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
+    validation_entry_changed (ve,
+                              GNUNET_TRANSPORT_VS_UPDATE);
+
   }
 }
 
@@ -683,7 +678,7 @@ revalidate_address (void *cls,
   {
     /* should wait a bit longer */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Waiting for %s longer before validating address `%s'\n",
+                "Waiting for %s longer before (re)validating address `%s'\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
                                                         GNUNET_YES),
                 GST_plugins_a2s (ve->address));
@@ -727,7 +722,8 @@ revalidate_address (void *cls,
 
   delay = GNUNET_TIME_relative_add (canonical_delay,
                                     GNUNET_TIME_relative_multiply
-                                    (GNUNET_TIME_UNIT_MICROSECONDS, rdelay));
+                                    (GNUNET_TIME_UNIT_MICROSECONDS,
+                                     rdelay));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Validating now, next scheduled for %s, now validating address `%s'\n",
@@ -735,7 +731,9 @@ revalidate_address (void *cls,
                                                       GNUNET_YES),
               GST_plugins_a2s (ve->address));
   ve->revalidation_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
+      GNUNET_SCHEDULER_add_delayed (delay,
+                                    &revalidate_address,
+                                    ve);
   ve->next_validation = GNUNET_TIME_relative_to_absolute (delay);
 
   /* start PINGing by checking blacklist */
@@ -790,7 +788,8 @@ find_validation_entry (const struct GNUNET_HELLO_Address *address)
                                      ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   publish_ve_stat_update ();
-  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_NEW);
+  validation_entry_changed (ve,
+                            GNUNET_TRANSPORT_VS_NEW);
   return ve;
 }
 
@@ -841,7 +840,8 @@ add_valid_address (void *cls,
     ve->next_validation = GNUNET_TIME_absolute_get();
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   }
-  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
+  validation_entry_changed (ve,
+                            GNUNET_TRANSPORT_VS_UPDATE);
   memset (&prop, 0, sizeof (prop));
   prop.scope = ve->network;
   prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
@@ -1508,7 +1508,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
 
   /* Notify about new validity */
-  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
+  validation_entry_changed (ve,
+                            GNUNET_TRANSPORT_VS_UPDATE);
 
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;

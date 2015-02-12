@@ -862,9 +862,12 @@ tcp_plugin_disconnect_session (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          (NULL != pm->transmit_cont)
-         ? "Could not deliver message to `%4s'.\n"
-         : "Could not deliver message to `%4s', notifying.\n",
-         GNUNET_i2s (&session->target));
+         ? "Could not deliver message to `%s' at %s.\n"
+         : "Could not deliver message to `%s' at %s, notifying.\n",
+         GNUNET_i2s (&session->target),
+         tcp_plugin_address_to_string (session->plugin,
+                                       session->address->address,
+                                       session->address->address_length));
     GNUNET_STATISTICS_update (session->plugin->env->stats,
                               gettext_noop ("# bytes currently in TCP buffers"),
                               -(int64_t) pm->message_size, GNUNET_NO);
@@ -1003,8 +1006,11 @@ create_session (struct Plugin *plugin,
     GNUNET_assert (NULL == client);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating new session for peer `%4s'\n",
-       GNUNET_i2s (&address->peer));
+       "Creating new session for peer `%4s' at address %s\n",
+       GNUNET_i2s (&address->peer),
+       tcp_plugin_address_to_string (plugin,
+                                     address->address,
+                                     address->address_length));
   session = GNUNET_new (struct Session);
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->plugin = plugin;
@@ -1174,9 +1180,10 @@ do_transmit (void *cls, size_t size, void *buf)
     session->bytes_in_queue -= pos->message_size;
     GNUNET_assert(size >= pos->message_size);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Transmitting message of type %u size %u to %s\n",
+         "Transmitting message of type %u size %u to peer %s at %s\n",
          ntohs (((struct GNUNET_MessageHeader *) pos->msg)->type),
          pos->message_size,
+         GNUNET_i2s (&session->target),
          tcp_plugin_address_to_string (session->plugin,
                                        session->address->address,
                                        session->address->address_length));
@@ -1215,9 +1222,6 @@ do_transmit (void *cls, size_t size, void *buf)
   }
   GNUNET_assert (NULL == hd);
   GNUNET_assert (NULL == tl);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting %u bytes\n",
-       ret);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# bytes currently in TCP buffers"),
                             - (int64_t) ret,
@@ -1767,13 +1771,6 @@ tcp_plugin_get_session (void *cls,
                                      &session->target,
                                      session,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating new session for `%s' address `%s' session %p\n",
-       GNUNET_i2s (&address->peer),
-       tcp_plugin_address_to_string (plugin,
-                                     address->address,
-                                     address->address_length),
-       session);
   /* Send TCP Welcome */
   process_pending_messages (session);
 
