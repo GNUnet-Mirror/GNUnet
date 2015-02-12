@@ -375,15 +375,16 @@ handle_response (void *cls,
           GNUNET_free (nret);
         }
         /* finally, make termination call */
-        rh->name_callback (rh->cls, NULL);
+        rh->name_callback (rh->cls,
+                           NULL);
       }
       if (NULL != rh->addr_callback)
-        rh->addr_callback (rh->cls, NULL, 0);
+        rh->addr_callback (rh->cls,
+                           NULL,
+                           0);
     }
-    GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-    if (NULL != rh->task)
-      GNUNET_SCHEDULER_cancel (rh->task);
-    GNUNET_free (rh);
+    rh->was_transmitted = GNUNET_NO;
+    GNUNET_RESOLVER_request_cancel (rh);
     GNUNET_CLIENT_disconnect (client);
     client = NULL;
     reconnect ();
@@ -405,14 +406,15 @@ handle_response (void *cls,
     if (GNUNET_SYSERR != rh->was_transmitted)
     {
       if (NULL != rh->name_callback)
-        rh->name_callback (rh->cls, NULL);
+        rh->name_callback (rh->cls,
+                           NULL);
       if (NULL != rh->addr_callback)
-        rh->addr_callback (rh->cls, NULL, 0);
+        rh->addr_callback (rh->cls,
+                           NULL,
+                           0);
     }
-    GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-    if (NULL != rh->task)
-      GNUNET_SCHEDULER_cancel (rh->task);
-    GNUNET_free (rh);
+    rh->was_transmitted = GNUNET_NO;
+    GNUNET_RESOLVER_request_cancel (rh);
     process_requests ();
     return;
   }
@@ -426,11 +428,10 @@ handle_response (void *cls,
     {
       GNUNET_break (0);
       if (GNUNET_SYSERR != rh->was_transmitted)
-        rh->name_callback (rh->cls, NULL);
-      GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-      if (NULL != rh->task)
-        GNUNET_SCHEDULER_cancel (rh->task);
-      GNUNET_free (rh);
+        rh->name_callback (rh->cls,
+                           NULL);
+      rh->was_transmitted = GNUNET_NO;
+      GNUNET_RESOLVER_request_cancel (rh);
       GNUNET_CLIENT_disconnect (client);
       client = NULL;
       reconnect ();
@@ -442,7 +443,8 @@ handle_response (void *cls,
          GNUNET_a2s ((const void *) &rh[1],
                      rh->data_len));
     if (rh->was_transmitted != GNUNET_SYSERR)
-      rh->name_callback (rh->cls, hostname);
+      rh->name_callback (rh->cls,
+                         hostname);
     rh->received_response = GNUNET_YES;
   }
   /* return lookup results to caller */
@@ -483,17 +485,20 @@ handle_response (void *cls,
     {
       GNUNET_break (0);
       if (GNUNET_SYSERR != rh->was_transmitted)
-        rh->addr_callback (rh->cls, NULL, 0);
-      GNUNET_CONTAINER_DLL_remove (req_head, req_tail, rh);
-      if (NULL != rh->task)
-        GNUNET_SCHEDULER_cancel (rh->task);
-      GNUNET_free (rh);
+        rh->addr_callback (rh->cls,
+                           NULL,
+                           0);
+      rh->was_transmitted = GNUNET_NO;
+      GNUNET_RESOLVER_request_cancel (rh);
       GNUNET_CLIENT_disconnect (client);
       client = NULL;
       reconnect ();
       return;
     }
-    rh->addr_callback (rh->cls, sa, salen);
+    if (GNUNET_SYSERR != rh->was_transmitted)
+      rh->addr_callback (rh->cls,
+                         sa,
+                         salen);
   }
   GNUNET_CLIENT_receive (client,
                          &handle_response,
@@ -545,7 +550,9 @@ numeric_resolution (void *cls,
                          (const struct sockaddr *) &v6,
                          sizeof (v6));
     }
-    rh->addr_callback (rh->cls, NULL, 0);
+    rh->addr_callback (rh->cls,
+                       NULL,
+                       0);
     GNUNET_free (rh);
     return;
   }
@@ -556,7 +563,9 @@ numeric_resolution (void *cls,
     rh->addr_callback (rh->cls,
                        (const struct sockaddr *) &v6,
                        sizeof (v6));
-    rh->addr_callback (rh->cls, NULL, 0);
+    rh->addr_callback (rh->cls,
+                       NULL,
+                       0);
     GNUNET_free (rh);
     return;
   }
@@ -598,14 +607,22 @@ loopback_resolution (void *cls,
   switch (rh->af)
   {
   case AF_INET:
-    rh->addr_callback (rh->cls, (const struct sockaddr *) &v4, sizeof (v4));
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v4,
+                       sizeof (v4));
     break;
   case AF_INET6:
-    rh->addr_callback (rh->cls, (const struct sockaddr *) &v6, sizeof (v6));
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v6,
+                       sizeof (v6));
     break;
   case AF_UNSPEC:
-    rh->addr_callback (rh->cls, (const struct sockaddr *) &v6, sizeof (v6));
-    rh->addr_callback (rh->cls, (const struct sockaddr *) &v4, sizeof (v4));
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v6,
+                       sizeof (v6));
+    rh->addr_callback (rh->cls,
+                       (const struct sockaddr *) &v4,
+                       sizeof (v4));
     break;
   default:
     GNUNET_break (0);
@@ -653,7 +670,8 @@ process_requests ()
      * else happening... */
     s_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-                                      &shutdown_task, NULL);
+                                      &shutdown_task,
+                                      NULL);
     return;
   }
   if (GNUNET_YES == rh->was_transmitted)
@@ -664,7 +682,9 @@ process_requests ()
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_RESOLVER_REQUEST);
   msg->direction = htonl (rh->direction);
   msg->af = htonl (rh->af);
-  memcpy (&msg[1], &rh[1], rh->data_len);
+  memcpy (&msg[1],
+          &rh[1],
+          rh->data_len);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting DNS resolution request to DNS service\n");
   if (GNUNET_OK !=
@@ -672,7 +692,8 @@ process_requests ()
                                                &msg->header,
                                                GNUNET_TIME_absolute_get_remaining (rh->timeout),
                                                GNUNET_YES,
-                                               &handle_response, rh))
+                                               &handle_response,
+                                               rh))
   {
     GNUNET_CLIENT_disconnect (client);
     client = NULL;
@@ -701,7 +722,8 @@ reconnect_task (void *cls,
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to connect to DNS service\n");
-  client = GNUNET_CLIENT_connect ("resolver", resolver_cfg);
+  client = GNUNET_CLIENT_connect ("resolver",
+                                  resolver_cfg);
   if (NULL == client)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -747,9 +769,12 @@ reconnect ()
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Will try to connect to DNS service in %s\n",
-       GNUNET_STRINGS_relative_time_to_string (backoff, GNUNET_YES));
+       GNUNET_STRINGS_relative_time_to_string (backoff,
+                                               GNUNET_YES));
   GNUNET_assert (NULL != resolver_cfg);
-  r_task = GNUNET_SCHEDULER_add_delayed (backoff, &reconnect_task, NULL);
+  r_task = GNUNET_SCHEDULER_add_delayed (backoff,
+                                         &reconnect_task,
+                                         NULL);
   backoff = GNUNET_TIME_STD_BACKOFF (backoff);
 }
 
@@ -826,7 +851,8 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int af,
   /* then, check if this is a loopback address */
   i = 0;
   while (NULL != loopback[i])
-    if (0 == strcasecmp (loopback[i++], hostname))
+    if (0 == strcasecmp (loopback[i++],
+                         hostname))
     {
       rh->task = GNUNET_SCHEDULER_add_now (&loopback_resolution,
                                            rh);
@@ -835,9 +861,11 @@ GNUNET_RESOLVER_ip_get (const char *hostname, int af,
   rh->task = GNUNET_SCHEDULER_add_delayed (timeout,
                                            &handle_lookup_timeout,
                                            rh);
-  GNUNET_CONTAINER_DLL_insert_tail (req_head, req_tail, rh);
+  GNUNET_CONTAINER_DLL_insert_tail (req_head,
+                                    req_tail,
+                                    rh);
   rh->was_queued = GNUNET_YES;
-  if (s_task != NULL)
+  if (NULL != s_task)
   {
     GNUNET_SCHEDULER_cancel (s_task);
     s_task = NULL;
@@ -872,10 +900,12 @@ numeric_reverse (void *cls,
        result);
   if (NULL != result)
   {
-    rh->name_callback (rh->cls, result);
+    rh->name_callback (rh->cls,
+                       result);
     GNUNET_free (result);
   }
-  rh->name_callback (rh->cls, NULL);
+  rh->name_callback (rh->cls,
+                     NULL);
   GNUNET_free (rh);
 }
 
@@ -937,7 +967,7 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
                                     req_tail,
                                     rh);
   rh->was_queued = GNUNET_YES;
-  if (s_task != NULL)
+  if (NULL != s_task)
   {
     GNUNET_SCHEDULER_cancel (s_task);
     s_task = NULL;
@@ -1024,14 +1054,14 @@ GNUNET_RESOLVER_hostname_resolve (int af,
 void
 GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh)
 {
-  if (rh->task != NULL)
+  if (NULL != rh->task)
   {
     GNUNET_SCHEDULER_cancel (rh->task);
     rh->task = NULL;
   }
   if (GNUNET_NO == rh->was_transmitted)
   {
-    if (rh->was_queued == GNUNET_YES)
+    if (GNUNET_YES == rh->was_queued)
       GNUNET_CONTAINER_DLL_remove (req_head,
                                    req_tail,
                                    rh);
