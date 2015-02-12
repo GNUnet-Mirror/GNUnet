@@ -1384,10 +1384,11 @@ send_keepalive (struct NeighbourMapEntry *n)
 
   nonce = 0; /* 0 indicates 'not set' */
   while (0 == nonce)
-    nonce = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+    nonce = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                      UINT32_MAX);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending keep alive to peer `%s' with nonce %u\n",
+              "Sending KEEPALIVE to peer `%s' with nonce %u\n",
               GNUNET_i2s (&n->id),
               nonce);
   m.header.size = htons (sizeof (struct SessionKeepAliveMessage));
@@ -1455,6 +1456,10 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
               "Received KEEPALIVE request from peer `%s' with nonce %u\n",
               GNUNET_i2s (&n->id),
               ntohl (msg_in->nonce));
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop ("# KEEPALIVES received in good order"),
+                            1,
+			    GNUNET_NO);
 
   /* send reply to allow neighbour to measure latency */
   msg.header.size = htons (sizeof (struct SessionKeepAliveMessage));
@@ -1521,10 +1526,16 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   }
   if (n->primary_address.keep_alive_nonce != ntohl (msg->nonce))
   {
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"),
-                              1,
-                              GNUNET_NO);
+    if (0 == n->primary_address.keep_alive_nonce)
+      GNUNET_STATISTICS_update (GST_stats,
+                                gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (no nonce)"),
+                                1,
+                                GNUNET_NO);
+    else
+      GNUNET_STATISTICS_update (GST_stats,
+                                gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"),
+                                1,
+                                GNUNET_NO);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
