@@ -309,7 +309,7 @@ transmit_message (void *cls,
   if (NULL == buf)
   {
     /* 'cl' should be freed via disconnect notification shortly */
-    LOG (GNUNET_ERROR_TYPE_WARNING,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Failed to transmit message from NC queue to client\n");
     return 0;
   }
