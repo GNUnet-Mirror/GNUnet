@@ -1224,13 +1224,20 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 static void
 transmit_send_continuation (void *cls,
                             const struct GNUNET_PeerIdentity *receiver,
-                            int success, size_t size_payload, size_t physical)
+                            int success,
+                            size_t size_payload,
+                            size_t physical)
 {
   struct MessageQueue *mq = cls;
   struct NeighbourMapEntry *n;
 
   if (NULL == (n = lookup_neighbour (receiver)))
   {
+    if (NULL != mq->cont)
+      mq->cont (mq->cont_cls,
+                GNUNET_SYSERR /* not connected */,
+                size_payload,
+                0);
     GNUNET_free (mq);
     return; /* disconnect or other error while transmitting, can happen */
   }
@@ -1254,7 +1261,6 @@ transmit_send_continuation (void *cls,
                 physical);
     GNUNET_break (0);
   }
-
 
   GNUNET_break (size_payload == mq->message_buf_size);
   bytes_in_send_queue -= mq->message_buf_size;
@@ -1327,9 +1333,9 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     if (timeout.rel_value_us > 0)
       break;
     GNUNET_STATISTICS_update (GST_stats,
-			      gettext_noop
-			      ("# messages timed out while in transport queue"),
-			      1, GNUNET_NO);
+			      gettext_noop ("# messages timed out while in transport queue"),
+			      1,
+                              GNUNET_NO);
     GNUNET_CONTAINER_DLL_remove (n->messages_head,
                                  n->messages_tail,
                                  mq);
