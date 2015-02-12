@@ -608,6 +608,7 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
 {
+  struct GNUNET_ATS_AddressRecord *ar;
   unsigned int i;
 
   if (NULL != sh->mq)
@@ -627,8 +628,12 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
   }
   for (i=0;i<sh->session_array_size;i++)
   {
-    GNUNET_free_non_null (sh->session_array[i]);
-    sh->session_array[i] = NULL;
+    if (NULL != (ar = sh->session_array[i]))
+    {
+      GNUNET_HELLO_address_free (ar->address);
+      GNUNET_free (ar);
+      sh->session_array[i] = NULL;
+    }
   }
   GNUNET_array_grow (sh->session_array,
                      sh->session_array_size,
