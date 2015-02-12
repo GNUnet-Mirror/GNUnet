@@ -3467,12 +3467,9 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                          GNUNET_TRANSPORT_PS_CONNECTED,
                          GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
 
-  /* Set primary address to used */
-  set_primary_address (n,
-                       n->primary_address.address,
-                       n->primary_address.session,
-                       n->primary_address.bandwidth_in,
-                       n->primary_address.bandwidth_out);
+  /* Reset backoff for primary address  */
+  GST_ats_block_reset (n->primary_address.address,
+                       n->primary_address.session);
   return GNUNET_OK;
 }
 

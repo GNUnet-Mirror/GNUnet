@@ -67,8 +67,18 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
                        struct Session *session);
 
 
-/* FIXME: might want to add a function to reset the
-   back-off from blocking */
+/**
+ * Reset address blocking time.  Resets the exponential
+ * back-off timer for this address to zero.  Done when
+ * an address was used to create a successful connection.
+ *
+ * @param address the address to reset the blocking timer
+ * @param session the session (can be NULL)
+ */
+void
+GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
+                     struct Session *session);
+
 
 /**
  * Notify ATS about the a new inbound address.  We may already

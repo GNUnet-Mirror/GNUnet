@@ -345,6 +345,32 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
 
 
 /**
+ * Reset address blocking time.  Resets the exponential
+ * back-off timer for this address to zero.  Done when
+ * an address was used to create a successful connection.
+ *
+ * @param address the address to reset the blocking timer
+ * @param session the session (can be NULL)
+ */
+void
+GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
+                     struct Session *session)
+{
+  struct AddressInfo *ai;
+
+  ai = find_ai (address, session);
+  if (NULL == ai)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  /* address is in successful use, so it should not be blocked right now */
+  GNUNET_break (NULL == ai->unblock_task);
+  ai->back_off = GNUNET_TIME_UNIT_ZERO;
+}
+
+
+/**
  * Notify ATS about the a new inbound address. We may already
  * know the address (as this is called each time we receive
  * a message from an inbound connection).  If the address is
