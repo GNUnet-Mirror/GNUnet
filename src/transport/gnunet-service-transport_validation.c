@@ -477,7 +477,7 @@ timeout_hello_validation (void *cls,
      until we give up on the PING */
   max = GNUNET_TIME_absolute_max (ve->valid_until,
                                   ve->revalidation_block);
-  left = GNUNET_TIME_absolute_get_remaining (ve->max);
+  left = GNUNET_TIME_absolute_get_remaining (max);
   if (left.rel_value_us > 0)
   {
     /* We should wait a bit longer. This happens when
