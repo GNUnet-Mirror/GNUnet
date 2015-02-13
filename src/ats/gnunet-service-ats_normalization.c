@@ -232,7 +232,6 @@ GAS_normalization_update_property (struct ATS_Address *address)
 {
   const struct GNUNET_ATS_Properties *prop = &address->properties;
   struct PropertyRange range;
-  int range_changed;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updating properties for peer `%s'\n",
@@ -257,25 +256,23 @@ GAS_normalization_update_property (struct ATS_Address *address)
   {
     /* limits changed, (re)normalize all addresses */
     property_range = range;
-    range_changed = GNUNET_YES;
-  }
-  if (GNUNET_YES == range_changed)
     GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
                                            &normalize_address,
                                            NULL);
-  else
-    normalize_address (NULL,
-                       &address->peer,
-                       address);
-  /* after all peers have been updated, notify about changes */
-  if (GNUNET_YES == range_changed)
     GNUNET_CONTAINER_multipeermap_iterate (GSA_addresses,
                                            &notify_change,
                                            NULL);
+  }
   else
+  {
+    /* renormalize just this one address */
+    normalize_address (NULL,
+                       &address->peer,
+                       address);
     notify_change (NULL,
                    &address->peer,
                    address);
+  }
   GAS_plugin_solver_unlock ();
 }
 
