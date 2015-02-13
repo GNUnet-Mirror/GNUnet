@@ -58,9 +58,10 @@ update_addresses_stat ()
 static void
 free_address (struct ATS_Address *addr)
 {
-  GNUNET_CONTAINER_multipeermap_remove (GSA_addresses,
-                                        &addr->peer,
-                                        addr);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (GSA_addresses,
+                                                       &addr->peer,
+                                                       addr));
   update_addresses_stat ();
   GAS_plugin_delete_address (addr);
   GAS_performance_notify_all_clients (&addr->peer,
@@ -551,6 +552,7 @@ transmit_req_addr (struct AddressIteration *ai,
   char *addrp;
   size_t plugin_name_length;
   size_t msize;
+  struct GNUNET_SERVER_NotificationContext **uc;
   struct GNUNET_SERVER_NotificationContext *nc;
 
   if (NULL != plugin_name)
@@ -587,13 +589,14 @@ transmit_req_addr (struct AddressIteration *ai,
     memcpy (addrp, plugin_addr, plugin_addr_len);
   if (NULL != plugin_name)
     strcpy (&addrp[plugin_addr_len], plugin_name);
-  nc = *GNUNET_SERVER_client_get_user_context (ai->client,
-                                               struct GNUNET_SERVER_NotificationContext *);
-  if (NULL == nc)
+  uc = GNUNET_SERVER_client_get_user_context (ai->client,
+                                              struct GNUNET_SERVER_NotificationContext *);
+  if (NULL == uc)
   {
     GNUNET_break (0);
     return;
   }
+  nc = *uc;
   GNUNET_SERVER_notification_context_unicast (nc,
                                               ai->client,
                                               &msg->header,

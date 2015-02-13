@@ -491,9 +491,7 @@ send_add_address_message (struct GNUNET_ATS_SchedulingHandle *sh,
 
   if (NULL == sh->mq)
     return; /* disconnected, skip for now */
-  namelen = (NULL == ar->address->transport_name)
-    ? 0
-    : strlen (ar->address->transport_name) + 1;
+  namelen = strlen (ar->address->transport_name) + 1;
   msize = ar->address->address_length + namelen;
   ev = GNUNET_MQ_msg_extra (m, msize, GNUNET_MESSAGE_TYPE_ATS_ADDRESS_ADD);
   m->peer = ar->address->peer;
@@ -671,9 +669,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     GNUNET_break (0);
     return NULL;
   }
-  namelen = (NULL == address->transport_name)
-    ? 0
-    : strlen (address->transport_name) + 1;
+  namelen = strlen (address->transport_name) + 1;
   msize = address->address_length + namelen;
   if ((msize + sizeof (struct AddressUpdateMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||

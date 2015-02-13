@@ -76,6 +76,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
     plugin_addr_len +
     plugin_name_length;
   char buf[msize] GNUNET_ALIGN;
+  struct GNUNET_SERVER_NotificationContext **uc;
   struct GNUNET_SERVER_NotificationContext *nc;
   char *addrp;
 
@@ -108,13 +109,14 @@ notify_client (struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    nc = *GNUNET_SERVER_client_get_user_context (client,
+    uc = GNUNET_SERVER_client_get_user_context (client,
                                                  struct GNUNET_SERVER_NotificationContext *);
-    if (NULL == nc)
+    if (NULL == uc)
     {
       GNUNET_break (0);
       return;
     }
+    nc = *uc;
     GNUNET_SERVER_notification_context_unicast (nc,
                                                 client,
                                                 &msg->header,

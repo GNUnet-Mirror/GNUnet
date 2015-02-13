@@ -1383,6 +1383,7 @@ unix_transport_server_start (void *cls)
   if (NULL == plugin->unix_sock.desc)
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
+    GNUNET_free (un);
     return GNUNET_SYSERR;
   }
   if ('\0' != un->sun_path[0])

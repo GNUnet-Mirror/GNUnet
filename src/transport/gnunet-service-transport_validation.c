@@ -578,6 +578,7 @@ transmit_ping_if_allowed (void *cls,
             ve->address->address,
 	    ve->address->address_length);
     papi = GST_plugins_find (ve->address->transport_name);
+    GNUNET_assert (NULL != papi);
     session = papi->get_session (papi->cls,
                                  ve->address);
     if (NULL == session)

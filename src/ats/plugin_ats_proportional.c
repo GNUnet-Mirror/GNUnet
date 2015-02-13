@@ -215,7 +215,7 @@ is_bandwidth_available_in_network (struct Network *net,
   unsigned int na;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
 
-  GNUNET_assert (net->active_addresses + extra >= 0);
+  GNUNET_assert (((int)net->active_addresses) + extra >= 0);
   na = net->active_addresses + extra;
   if (0 == na)
     return GNUNET_YES;

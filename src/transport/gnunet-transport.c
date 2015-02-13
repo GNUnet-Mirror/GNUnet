@@ -940,17 +940,6 @@ process_validation_cb (void *cls,
                _("Monitor disconnected from transport service. Reconnecting.\n"));
       return;
     }
-
-    /* done */
-    vic = NULL;
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-    return;
-  }
-  if (NULL == address)
-  {
-    /* invalid response */
     vic = NULL;
     if (NULL != end)
       GNUNET_SCHEDULER_cancel (end);

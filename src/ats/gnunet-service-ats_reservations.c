@@ -152,17 +152,19 @@ GAS_handle_reservation_request (void *cls,
   struct ReservationResultMessage result;
   int32_t amount;
   struct GNUNET_TIME_Relative res_delay;
+  struct GNUNET_SERVER_NotificationContext **uc;
   struct GNUNET_SERVER_NotificationContext *nc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received RESERVATION_REQUEST message\n");
-  nc = *GNUNET_SERVER_client_get_user_context (client,
-                                               struct GNUNET_SERVER_NotificationContext *);
-  if (NULL == nc)
+  uc = GNUNET_SERVER_client_get_user_context (client,
+                                              struct GNUNET_SERVER_NotificationContext *);
+  if (NULL == uc)
   {
     GNUNET_break (0);
     return;
   }
+  nc = *uc;
   amount = (int32_t) ntohl (msg->amount);
   res_delay = reservations_reserve (&msg->peer, amount);
   if (res_delay.rel_value_us > 0)

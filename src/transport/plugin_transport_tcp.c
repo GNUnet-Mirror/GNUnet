@@ -1752,7 +1752,7 @@ tcp_plugin_get_session (void *cls,
   plugin->cur_connections++;
   if (plugin->cur_connections == plugin->max_connections)
   {
-    GNUNET_STATISTICS_update (session->plugin->env->stats,
+    GNUNET_STATISTICS_update (plugin->env->stats,
                               gettext_noop ("# TCP service suspended"),
                               1,
                               GNUNET_NO);
@@ -2330,7 +2330,7 @@ handle_tcp_welcome (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   _("TCP connection limit reached, suspending server\n"));
-      GNUNET_STATISTICS_update (session->plugin->env->stats,
+      GNUNET_STATISTICS_update (plugin->env->stats,
                                 gettext_noop ("# TCP service suspended"),
                                 1,
                                 GNUNET_NO);
