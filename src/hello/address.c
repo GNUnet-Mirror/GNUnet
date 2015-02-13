@@ -33,16 +33,17 @@
  *
  * @param address the address to check
  * @param option the respective option to check for
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
 GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address * address,
-    enum GNUNET_HELLO_AddressInfo option)
+                                   enum GNUNET_HELLO_AddressInfo option)
 {
   if (option == (address->local_info & option))
     return GNUNET_YES;
   return GNUNET_NO;
 }
+
 
 /**
  * Get the size of an address struct.
@@ -54,7 +55,7 @@ size_t
 GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
 {
   return sizeof (struct GNUNET_HELLO_Address) + address->address_length +
-        strlen (address->transport_name) + 1;
+    strlen (address->transport_name) + 1;
 }
 
 
@@ -70,7 +71,8 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
  */
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
-                               const char *transport_name, const void *address,
+                               const char *transport_name,
+                               const void *address,
                                size_t address_length,
                                enum GNUNET_HELLO_AddressInfo local_info)
 {
@@ -78,20 +80,21 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
   size_t slen;
   char *end;
 
-  GNUNET_assert (transport_name != NULL);
-
   slen = strlen (transport_name) + 1;
-  addr =
-      GNUNET_malloc (sizeof (struct GNUNET_HELLO_Address) + address_length +
-                     slen);
+  addr = GNUNET_malloc (sizeof (struct GNUNET_HELLO_Address) +
+                        address_length + slen);
   addr->peer = *peer;
   addr->address = &addr[1];
-  end = (char *) &addr[1];
-  memcpy (end, address, address_length);
   addr->address_length = address_length;
-  addr->transport_name = &end[address_length];
   addr->local_info = local_info;
-  memcpy (&end[address_length], transport_name, slen);
+  end = (char *) &addr[1];
+  addr->transport_name = &end[address_length];
+  memcpy (end,
+          address,
+          address_length);
+  memcpy (&end[address_length],
+          transport_name,
+          slen);
   return addr;
 }
 
@@ -105,7 +108,8 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
 {
-  return GNUNET_HELLO_address_allocate (&address->peer, address->transport_name,
+  return GNUNET_HELLO_address_allocate (&address->peer,
+                                        address->transport_name,
                                         address->address,
                                         address->address_length,
                                         address->local_info);
