@@ -185,6 +185,10 @@ struct PeerContext
  * /Housekeeping with peers
 ***********************************************************************/
 
+
+
+
+
 /***********************************************************************
  * Globals
 ***********************************************************************/
@@ -357,9 +361,30 @@ uint32_t num_hist_update_tasks;
 ***********************************************************************/
 
 
+
+
+
+
 /***********************************************************************
  * Util functions
 ***********************************************************************/
+
+/**
+ * Set a peer flag of given peer context.
+ */
+#define set_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags |= mask)
+
+/**
+ * Get peer flag of given peer context.
+ */
+#define get_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags & mask ? GNUNET_YES : GNUNET_NO)
+
+/**
+ * Unset flag of given peer context.
+ */
+#define unset_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags &= (~mask))
+
+
 
 /**
  * Check if peer is already in peer array.
@@ -435,7 +460,9 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
   tmp_size = 0;
   tmp_peer_list = NULL;
   GNUNET_array_grow (tmp_peer_list, tmp_size, list_size);
-  memcpy (tmp_peer_list, peer_list, list_size * sizeof (struct GNUNET_PeerIdentity));
+  memcpy (tmp_peer_list,
+          peer_list,
+          list_size * sizeof (struct GNUNET_PeerIdentity));
   peer = GNUNET_new (struct GNUNET_PeerIdentity);
 
   /**;
@@ -1127,7 +1154,7 @@ handle_peer_pull_reply (void *cls,
        // FIXME wait for cadet to change this function
   sender_ctx = get_peer_ctx (peer_map, sender);
 
-  if (0 == (sender_ctx->peer_flags || PULL_REPLY_PENDING))
+  if (0 == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1147,12 +1174,14 @@ handle_peer_pull_reply (void *cls,
     {
       out_op.op = insert_in_pull_list;
       out_op.op_cls = NULL;
-      GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
+      GNUNET_array_append (peer_ctx->outstanding_ops,
+                           peer_ctx->num_outstanding_ops,
+                           out_op);
     }
   }
 
-  sender_ctx->peer_flags &= (~PULL_REPLY_PENDING);
-  rem_from_list (pending_pull_reply_list, &pending_pull_reply_list_size, sender);
+  unset_peer_flag (sender_ctx, PULL_REPLY_PENDING);
+  rem_from_list (&pending_pull_reply_list, &pending_pull_reply_list_size, sender);
 
   return GNUNET_OK;
 }
@@ -1355,7 +1384,8 @@ insertCB (void *cls, struct RPS_Sampler *sampler,
 
 
 /**
- * Close the connection to given peer and delete channel and mq.
+ * Close the connection to given peer and delete channel and mq
+ * if the peer is not anymore in the sampler.
  */
   void
 removeCB (void *cls, struct RPS_Sampler *sampler,
@@ -1415,20 +1445,26 @@ init_peer_cb (void *cls,
 
     // maybe create a function for that
     peer_ctx = get_peer_ctx (peer_map, peer);
+    // FIXME this peer might already be marked as LIVE
     if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
     {
       out_op.op = insert_in_sampler;
-      GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
+      out_op.op_cls = NULL;
+      GNUNET_array_append (peer_ctx->outstanding_ops,
+                           peer_ctx->num_outstanding_ops,
+                           out_op);
     }
 
     if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
     {
       out_op.op = insert_in_gossip_list;
       out_op.op_cls = NULL;
-      GNUNET_array_append (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, out_op);
+      GNUNET_array_append (peer_ctx->outstanding_ops,
+                           peer_ctx->num_outstanding_ops,
+                           out_op);
     }
 
-    /* Issue livelyness test on peer */
+    /* Trigger livelyness test on peer */
     (void) get_channel (peer_map, peer);
 
     // send push/pull to each of those peers?
