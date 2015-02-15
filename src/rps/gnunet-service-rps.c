@@ -98,7 +98,7 @@ enum PeerFlags
   /**
    * We set this bit when we can be sure the other peer is/was live.
    */
-  LIVING               = 0x10
+  VALID                = 0x10
 };
 
 
@@ -582,7 +582,7 @@ peer_is_live (struct PeerContext *peer_ctx)
   struct GNUNET_PeerIdentity *peer;
 
   peer = &peer_ctx->peer_id;
-  set_peer_flag (peer_ctx, LIVING);
+  set_peer_flag (peer_ctx, VALID);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %s is live\n", GNUNET_i2s (peer));
 
