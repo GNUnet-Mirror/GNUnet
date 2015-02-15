@@ -1231,7 +1231,7 @@ handle_peer_pull_reply (void *cls,
        // FIXME wait for cadet to change this function
   sender_ctx = get_peer_ctx (peer_map, sender);
 
-  if (0 == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
+  if (GNUNET_YES == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
