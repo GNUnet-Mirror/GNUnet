@@ -1197,21 +1197,26 @@ handle_peer_pull_reply (void *cls,
   struct PeerOutstandingOp out_op;
   uint32_t i;
 
+  /* Check for protocol violation */
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
   {
-    GNUNET_break_op (0); // At the moment our own implementation seems to break that.
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
-  if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) / sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
+  if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+      sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "message says it sends %" PRIu64 " peers, have space for %i peers\n",
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        "message says it sends %" PRIu64 " peers, have space for %i peers\n",
         ntohl (in_msg->num_peers),
-        (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) / sizeof (struct GNUNET_PeerIdentity));
+        (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+            sizeof (struct GNUNET_PeerIdentity));
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
 
+  /* Do actual logic */
   sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
       (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
        // Guess simply casting isn't the nicest way...
@@ -1231,7 +1236,8 @@ handle_peer_pull_reply (void *cls,
     if (NULL != peer_ctx->send_channel
         || NULL != peer_ctx->recv_channel)
     {
-      if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
+      if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i])
+          && GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peers[i]))
         GNUNET_array_append (pull_list, pull_list_size, peers[i]);
     }
     else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
