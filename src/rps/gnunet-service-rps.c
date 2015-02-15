@@ -403,40 +403,67 @@ in_arr (const struct GNUNET_PeerIdentity *array,
 
   unsigned int i;
 
-  i = 0;
-  while (0 != GNUNET_CRYPTO_cmp_peer_identity (&array[i], peer) &&
-         i < arr_size)
-    i++;
-
-  if (i == arr_size)
-    return GNUNET_NO;
-  else
-    return GNUNET_YES;
+  for (i = 0; i < arr_size ; i++)
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&array[i], peer))
+      return GNUNET_YES;
+  return GNUNET_NO;
 }
+
+
+/**
+ * Print peerlist to log.
+ */
+void
+print_peer_list (struct GNUNET_PeerIdentity *list, unsigned int len)
+{
+  unsigned int i;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Printing peer list of length %u at %p:\n",
+       len,
+       list);
+  for (i = 0 ; i < len ; i++)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%u. peer: %s\n",
+         i, GNUNET_i2s (&list[i]));
+  }
+}
+
 
 /**
  * Remove peer from list.
  */
   void
-rem_from_list (struct GNUNET_PeerIdentity *peer_list,
+rem_from_list (struct GNUNET_PeerIdentity **peer_list,
                unsigned int *list_size,
                const struct GNUNET_PeerIdentity *peer)
 {
   unsigned int i;
+  struct GNUNET_PeerIdentity *tmp;
+
+  tmp = *peer_list;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Removing peer %s from list at %p\n",
+       GNUNET_i2s (peer),
+       tmp);
+  print_peer_list (tmp, *list_size);
 
   for ( i = 0 ; i < *list_size ; i++ )
   {
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&peer_list[i], peer))
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&tmp[i], peer))
     {
       if (i < *list_size -1)
       { /* Not at the last entry -- shift peers left */
-        memcpy (&peer_list[i], &peer_list[i +1],
-                (*list_size - i -1) * sizeof (struct GNUNET_PeerIdentity));
+        memcpy (&tmp[i], &tmp[i +1],
+                ((*list_size) - i -1) * sizeof (struct GNUNET_PeerIdentity));
       }
       /* Remove last entry (should be now useless PeerID) */
-      GNUNET_array_grow (peer_list, *list_size, *list_size -1);
+      GNUNET_array_grow (tmp, *list_size, (*list_size) -1);
     }
   }
+  *peer_list = tmp;
 }
 
 /**
@@ -475,7 +502,9 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
 
   while (in_arr (ignore_list, ignore_size, peer))
   {
-    rem_from_list (tmp_peer_list, &tmp_size, peer);
+    rem_from_list (&tmp_peer_list, &tmp_size, peer);
+
+    print_peer_list (tmp_peer_list, tmp_size);
 
     if (0 == tmp_size)
     {
@@ -1081,9 +1110,10 @@ handle_peer_pull_request (void *cls,
   if (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < send_size)
     /* Compute number of peers to send
      * If too long, simply truncate */
-    send_size = (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE -
-                 sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
-                 sizeof (struct GNUNET_PeerIdentity);
+    send_size =
+      (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE -
+       sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+       sizeof (struct GNUNET_PeerIdentity);
   else
     send_size = gossip_list_size;
 
