@@ -786,7 +786,7 @@ insert_in_gossip_list (void *cls, const struct GNUNET_PeerIdentity *peer)
 }
 
 /**
- * Check whether #insert_in_pull_list was already scheduled
+ * Check whether #insert_in_gossip_list was already scheduled
  */
   int
 insert_in_gossip_list_scheduled (const struct PeerContext *peer_ctx)
@@ -1115,7 +1115,7 @@ handle_peer_push (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
 
   /* Add the sending peer to the push_list */
-  if (GNUNET_NO == in_arr (push_list, pull_list_size, peer))
+  if (GNUNET_NO == in_arr (push_list, push_list_size, peer))
     GNUNET_array_append (push_list, push_list_size, *peer);
 
   return GNUNET_OK;
