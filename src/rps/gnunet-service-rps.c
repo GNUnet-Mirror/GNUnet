@@ -1750,9 +1750,17 @@ cleanup_channel (void *cls,
     if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
       return;
 
-    /* Somwewhat {ab,re}use the iterator function */
-    /* Cast to void is ok, because it's used as void in peer_remove_cb */
-    (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+    if (channel == peer_ctx->send_channel)
+    { /* Peer probably went down */
+      rem_from_list (&gossip_list, &gossip_list_size, peer);
+      rem_from_list (&pending_pull_reply_list, &pending_pull_reply_list_size, peer);
+
+      /* Somwewhat {ab,re}use the iterator function */
+      /* Cast to void is ok, because it's used as void in peer_remove_cb */
+      (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+    }
+    else
+      peer_ctx->recv_channel = NULL;
   }
 }
 
