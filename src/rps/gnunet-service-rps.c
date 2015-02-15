@@ -385,6 +385,12 @@ uint32_t num_hist_update_tasks;
 #define unset_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags &= (~mask))
 
 
+/**
+ * Clean the send channel of a peer
+ */
+void
+peer_clean (const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Check if peer is already in peer array.
@@ -745,6 +751,8 @@ insert_in_pull_list (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_NO == in_arr (pull_list, pull_list_size, peer))
     GNUNET_array_append (pull_list, pull_list_size, *peer);
+
+  peer_clean (peer);
 }
 
 /**
@@ -1346,7 +1354,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
   /* Update gossip list */
-  uint32_t r_index;
 
   if ( push_list_size <= alpha * gossip_list_size &&
        push_list_size != 0 &&
@@ -1356,6 +1363,16 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     uint32_t first_border;
     uint32_t second_border;
+    uint32_t r_index;
+    uint32_t peers_to_clean_size;
+    struct GNUNET_PeerIdentity *peers_to_clean;
+
+    peers_to_clean = NULL;
+    peers_to_clean_size = 0;
+    GNUNET_array_grow (peers_to_clean, peers_to_clean_size, gossip_list_size);
+    memcpy (peers_to_clean,
+            gossip_list,
+            gossip_list_size * sizeof (struct GNUNET_PeerIdentity));
 
     first_border  =                ceil (alpha * sampler_size_est_need);
     second_border = first_border + ceil (beta  * sampler_size_est_need);
@@ -1388,6 +1405,13 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       // TODO change the peer_flags accordingly
     }
 
+    for (i = 0 ; i < gossip_list_size ; i++)
+      rem_from_list (&peers_to_clean, &peers_to_clean_size, &gossip_list[i]);
+
+    for (i = 0 ; i < peers_to_clean_size ; i++)
+      peer_clean (&peers_to_clean[i]);
+
+    GNUNET_free (peers_to_clean);
   }
   else
   {
@@ -1397,7 +1421,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
   /* Update samplers */
-
   for ( i = 0 ; i < push_list_size ; i++ )
   {
     RPS_sampler_update (prot_sampler,   &push_list[i]);
@@ -1420,6 +1443,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative time_next_round;
   struct GNUNET_TIME_Relative half_round_interval;
   unsigned int rand_delay;
+
 
   /* Compute random time value between .5 * round_interval and 1.5 *round_interval */
   half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
@@ -1502,26 +1526,27 @@ init_peer_cb (void *cls,
 }
 
 
-///**
-// * Clean the send channel of a peer
-// */
-//void
-//peer_clean (const struct GNUNET_PeerIdentity *peer)
-//{
-//  struct PeerContext *peer_ctx;
-//  struct GNUNET_CADET_Channel *channel;
-//
-//  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
-//  {
-//    peer_ctx = get_peer_ctx (peer_map, peer);
-//    if (NULL != peer_ctx->send_channel)
-//    {
-//      channel = peer_ctx->send_channel;
-//      peer_ctx->send_channel = NULL;
-//      GNUNET_CADET_channel_destroy (channel);
-//    }
-//  }
-//}
+/**
+ * Clean the send channel of a peer
+ */
+void
+peer_clean (const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerContext *peer_ctx;
+  struct GNUNET_CADET_Channel *channel;
+
+  if (GNUNET_YES != in_arr (gossip_list, gossip_list_size, peer)
+      && GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  {
+    peer_ctx = get_peer_ctx (peer_map, peer);
+    if (NULL != peer_ctx->send_channel)
+    {
+      channel = peer_ctx->send_channel;
+      peer_ctx->send_channel = NULL;
+      GNUNET_CADET_channel_destroy (channel);
+    }
+  }
+}
 
 
 /**
@@ -1604,7 +1629,8 @@ shutdown_task (void *cls,
 
 
   {
-  if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL))
+  if (GNUNET_SYSERR ==
+        GNUNET_CONTAINER_multipeermap_iterate (peer_map, peer_remove_cb, NULL))
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Iterating over peers to disconnect from them was cancelled\n");
   }
