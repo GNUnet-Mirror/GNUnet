@@ -1505,8 +1505,7 @@ init_peer_cb (void *cls,
   struct PeerContext *peer_ctx;
 
   server = (struct GNUNET_SERVER_Handle *) cls;
-  if (NULL != peer
-      && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
+  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Got peer %s (at %p) from CADET (gossip_list_size: %u)\n",
@@ -1538,7 +1537,7 @@ init_peer_cb (void *cls,
 
     // send push/pull to each of those peers?
   }
-  else
+  else if (NULL == peer)
     rps_start (server);
 }
 
