@@ -657,7 +657,8 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 
     /* If we don't know whether peer is live,
      * get notified when we know it is live. */
-    if (NULL == ctx->recv_channel
+    if (GNUNET_YES != get_peer_flag (ctx, VALID)
+        && NULL == ctx->recv_channel
         && NULL == ctx->is_live_task)
     {
       ctx->peer_id = *peer;
@@ -1226,7 +1227,6 @@ handle_peer_pull_reply (void *cls,
     return GNUNET_SYSERR;
   }
 
-  /* Do actual logic */
   sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
       (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
        // Guess simply casting isn't the nicest way...
@@ -1239,11 +1239,13 @@ handle_peer_pull_reply (void *cls,
     return GNUNET_OK;
   }
 
+  /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
+  for (i = 0 ; i < ntohl (in_msg->num_peers) ; i++)
   {
     peer_ctx = get_peer_ctx (peer_map, &peers[i]);
-    if (NULL != peer_ctx->send_channel
+    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID)
+        || NULL != peer_ctx->send_channel
         || NULL != peer_ctx->recv_channel)
     {
       if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i])
