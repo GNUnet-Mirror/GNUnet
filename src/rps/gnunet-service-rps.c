@@ -609,8 +609,8 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
 {
   struct PeerContext *peer_ctx = (struct PeerContext *) cls;
 
-  if (NULL != buf ||
-      0 != size)
+  if (NULL != buf
+      && 0 != size)
     peer_is_live (peer_ctx);
 
   //if (NULL != peer_ctx->is_live_task)
@@ -1441,56 +1441,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-/**
- * Open a connection to given peer and store channel and mq.
- */
-  void
-insertCB (void *cls, struct RPS_Sampler *sampler,
-          const struct GNUNET_PeerIdentity *id)
-{
-  // We open a channel to be notified when this peer goes down.
-  (void) get_channel (peer_map, id);
-}
-
-
-/**
- * Close the connection to given peer and delete channel and mq
- * if the peer is not anymore in the sampler.
- */
-  void
-removeCB (void *cls, struct RPS_Sampler *sampler,
-          const struct GNUNET_PeerIdentity *id)
-{
-  size_t s;
-  struct PeerContext *ctx;
-
-  s = RPS_sampler_count_id (sampler, id);
-  if ( 1 >= s )
-  {
-    if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, id)
-        && 0 != GNUNET_CRYPTO_cmp_peer_identity (id, &own_identity))
-    {
-      ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, id);
-      if (NULL != ctx->send_channel)
-      {
-        if (NULL != ctx->mq)
-        {
-          GNUNET_MQ_destroy (ctx->mq);
-          ctx->mq = NULL;
-        }
-        // may already be freed at shutdown of cadet
-        // maybe this fails at our own channel
-        GNUNET_CADET_channel_destroy (ctx->send_channel);
-        ctx->send_channel = NULL;
-      }
-      // TODO cleanup peer
-      //(void) GNUNET_CONTAINER_multipeermap_remove_all (peer_map, id);
-    }
-  }
-}
-
 static void
 rps_start (struct GNUNET_SERVER_Handle *server);
+
 
 /**
  * This is called from GNUNET_CADET_get_peers().
@@ -1511,7 +1464,8 @@ init_peer_cb (void *cls,
   struct PeerContext *peer_ctx;
 
   server = (struct GNUNET_SERVER_Handle *) cls;
-  if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
+  if (NULL != peer
+      && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Got peer %s (at %p) from CADET (gossip_list_size: %u)\n",
@@ -1890,12 +1844,8 @@ run (void *cls,
   half_round_interval = GNUNET_TIME_relative_multiply (round_interval, .5);
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
-  prot_sampler =   RPS_sampler_init (sampler_size_est_need, max_round_interval,
-      //insertCB, NULL, removeCB, NULL);
-      NULL, NULL, NULL, NULL);
-  client_sampler = RPS_sampler_init (sampler_size_est_need, max_round_interval,
-      //nsertCB, NULL, removeCB, NULL);
-      NULL, NULL, NULL, NULL);
+  prot_sampler =   RPS_sampler_init (sampler_size_est_need, max_round_interval);
+  client_sampler = RPS_sampler_init (sampler_size_est_need, max_round_interval);
 
   /* Initialise push and pull maps */
   push_list = NULL;

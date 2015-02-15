@@ -104,6 +104,7 @@ struct RPS_SamplerElement
   uint32_t num_change;
 };
 
+
 /**
  * Sampler with its own array of SamplerElements
  */
@@ -126,26 +127,6 @@ struct RPS_Sampler
    * Used in the context of RPS
    */
   struct GNUNET_TIME_Relative max_round_interval;
-
-  /**
-   * Callback to be called when a peer gets inserted into a sampler.
-   */
-  RPS_sampler_insert_cb insert_cb;
-
-  /**
-   * Closure to the insert_cb.
-   */
-  void *insert_cls;
-
-  /**
-   * Callback to be called when a peer gets inserted into a sampler.
-   */
-  RPS_sampler_remove_cb remove_cb;
-
-  /**
-   * Closure to the remove_cb.
-   */
-  void *remove_cls;
 };
 
 /**
@@ -344,15 +325,13 @@ RPS_sampler_elem_create (void)
 static void
 RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
                        struct RPS_Sampler *sampler,
-                       const struct GNUNET_PeerIdentity *other,
-                       RPS_sampler_insert_cb insert_cb, void *insert_cls,
-                       RPS_sampler_remove_cb remove_cb, void *remove_cls)
+                       const struct GNUNET_PeerIdentity *other)
 {
   struct GNUNET_HashCode other_hash;
 
   s_elem->num_peers++;
 
-  if ( 0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)) )
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "         Got PeerID %s\n",
         GNUNET_i2s (other));
@@ -366,50 +345,31 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
         sizeof(struct GNUNET_PeerIdentity),
         &other_hash);
 
-    if ( EMPTY == s_elem->is_empty )
+    if (EMPTY == s_elem->is_empty)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Got PeerID %s; Simply accepting (was empty previously).\n",
-          GNUNET_i2s(other));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got PeerID %s; Simply accepting (was empty previously).\n",
+           GNUNET_i2s(other));
       s_elem->peer_id = *other;
       s_elem->peer_id_hash = other_hash;
 
-      if (NULL != insert_cb)
-        insert_cb (insert_cls, sampler, &(s_elem->peer_id));
-
       s_elem->num_change++;
     }
-    else if ( 0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &s_elem->peer_id_hash) )
+    else if (0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &s_elem->peer_id_hash))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "           Got PeerID %s\n",
           GNUNET_i2s (other));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
           GNUNET_i2s (&s_elem->peer_id));
 
-      if ( NULL != remove_cb )
-      {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing old PeerID %s with the remove callback.\n",
-            GNUNET_i2s (&s_elem->peer_id));
-        remove_cb (remove_cls, sampler, &s_elem->peer_id);
-      }
-
-      s_elem->peer_id = *other;
-      s_elem->peer_id_hash = other_hash;
-
-      if ( NULL != insert_cb )
-      {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Inserting new PeerID %s with the insert callback.\n",
-            GNUNET_i2s (&s_elem->peer_id));
-        insert_cb (insert_cls, sampler, &s_elem->peer_id);
-      }
-
       s_elem->num_change++;
     }
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "        Got PeerID %s\n",
-          GNUNET_i2s(other));
+          GNUNET_i2s (other));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Keeping old PeerID %s\n",
-          GNUNET_i2s(&s_elem->peer_id));
+          GNUNET_i2s (&s_elem->peer_id));
     }
   }
   s_elem->is_empty = NOT_EMPTY;
@@ -440,7 +400,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
 {
   unsigned int old_size;
   uint32_t i;
-  struct RPS_SamplerElement **rem_list;
 
   // TODO check min and max size
 
@@ -449,10 +408,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
   if (old_size > new_size)
   { /* Shrinking */
     /* Temporary store those to properly call the removeCB on those later */
-    rem_list = GNUNET_malloc ((old_size - new_size) * sizeof (struct RPS_SamplerElement *));
-    memcpy (rem_list,
-        &sampler->sampler_elements[new_size],
-        (old_size - new_size) * sizeof (struct RPS_SamplerElement *));
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Shrinking sampler %d -> %d\n", old_size, new_size);
     GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, new_size);
@@ -460,14 +415,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
         "sampler->sampler_elements now points to %p\n",
         sampler->sampler_elements);
 
-    for (i = 0 ; i < old_size - new_size ; i++)
-    {/* Remove unneeded rest */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing %" PRIX32 ". sampler\n", i);
-      if (NULL != sampler->remove_cb)
-        sampler->remove_cb (sampler->remove_cls, sampler, &rem_list[i]->peer_id);
-      GNUNET_free (rem_list[i]);
-    }
-    GNUNET_free (rem_list);
   }
   else if (old_size < new_size)
   { /* Growing */
@@ -480,8 +427,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
     for ( i = old_size ; i < new_size ; i++ )
     { /* Add new sampler elements */
       sampler->sampler_elements[i] = RPS_sampler_elem_create ();
-      if (NULL != sampler->insert_cb)
-        sampler->insert_cb (sampler->insert_cls, sampler, &sampler->sampler_elements[i]->peer_id);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
           "Added %" PRIX32 ". sampler, now pointing to %p, contains %s\n",
           i, &sampler->sampler_elements[i], GNUNET_i2s (&sampler->sampler_elements[i]->peer_id));
@@ -539,9 +484,7 @@ sampler_empty (struct RPS_Sampler *sampler)
  */
 struct RPS_Sampler *
 RPS_sampler_init (size_t init_size,
-    struct GNUNET_TIME_Relative max_round_interval,
-    RPS_sampler_insert_cb ins_cb, void *ins_cls,
-    RPS_sampler_remove_cb rem_cb, void *rem_cls)
+    struct GNUNET_TIME_Relative max_round_interval)
 {
   struct RPS_Sampler *sampler;
   //uint32_t i;
@@ -554,10 +497,6 @@ RPS_sampler_init (size_t init_size,
   sampler->sampler_size = 0;
   sampler->sampler_elements = NULL;
   sampler->max_round_interval = max_round_interval;
-  sampler->insert_cb = ins_cb;
-  sampler->insert_cls = ins_cls;
-  sampler->remove_cb = rem_cb;
-  sampler->remove_cls = rem_cls;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
   //GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, min_size);
   RPS_sampler_resize (sampler, init_size);
@@ -583,9 +522,8 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
 
   for ( i = 0 ; i < sampler->sampler_size ; i++ )
     RPS_sampler_elem_next (sampler->sampler_elements[i],
-        sampler, id,
-        sampler->insert_cb, sampler->insert_cls,
-        sampler->remove_cb, sampler->remove_cls);
+                           sampler,
+                           id);
 }
 
 
@@ -705,7 +643,8 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     tmp_id = gpc->sampler->sampler_elements[client_get_index]->peer_id;
     RPS_sampler_elem_reinit (gpc->sampler->sampler_elements[client_get_index]);
     RPS_sampler_elem_next (gpc->sampler->sampler_elements[client_get_index],
-                           gpc->sampler, &tmp_id, NULL, NULL, NULL, NULL);
+                           gpc->sampler,
+                           &tmp_id);
 
     /* Cycle the #client_get_index one step further */
     if ( client_get_index == gpc->sampler->sampler_size - 1 )

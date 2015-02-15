@@ -36,28 +36,6 @@ struct RPS_Sampler;
 
 
 /**
- * Callback that is called when a new PeerID is inserted into a sampler.
- *
- * @param cls the closure given alongside this function.
- * @param id the PeerID that is inserted
- */
-typedef void
-(*RPS_sampler_insert_cb) (void *cls,
-    struct RPS_Sampler *sampler,
-    const struct GNUNET_PeerIdentity *id);
-
-/**
- * Callback that is called when a new PeerID is removed from a sampler.
- *
- * @param cls the closure given alongside this function.
- * @param id the PeerID that is removed
- */
-typedef void
-(*RPS_sampler_remove_cb) (void *cls,
-    struct RPS_Sampler *sampler,
-    const struct GNUNET_PeerIdentity *id);
-
-/**
  * Callback that is called from _get_n_rand_peers() when the PeerIDs are ready.
  *
  * @param cls the closure given alongside this function.
@@ -104,9 +82,7 @@ RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
  */
 struct RPS_Sampler *
 RPS_sampler_init (size_t init_size,
-    struct GNUNET_TIME_Relative max_round_interval,
-    RPS_sampler_insert_cb ins_cb, void *ins_cls,
-    RPS_sampler_remove_cb rem_cb, void *rem_cls);
+    struct GNUNET_TIME_Relative max_round_interval);
 
 
 /**
