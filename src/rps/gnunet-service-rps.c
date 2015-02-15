@@ -689,18 +689,21 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
         const struct GNUNET_PeerIdentity *peer_id)
 {
-  struct PeerContext *ctx;
+  struct PeerContext *peer_ctx;
 
-  ctx = get_peer_ctx (peer_map, peer_id);
-  if (NULL == ctx->mq)
+  peer_ctx = get_peer_ctx (peer_map, peer_id);
+
+  GNUNET_assert (NULL == peer_ctx->is_live_task);
+
+  if (NULL == peer_ctx->mq)
   {
     (void) get_channel (peer_map, peer_id);
-    ctx->mq = GNUNET_CADET_mq_create (ctx->send_channel);
+    peer_ctx->mq = GNUNET_CADET_mq_create (peer_ctx->send_channel);
     //do I have to explicitly put it in the peer_map?
-    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer_id, ctx,
+    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer_id, peer_ctx,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
-  return ctx->mq;
+  return peer_ctx->mq;
 }
 
 
@@ -1225,8 +1228,8 @@ handle_peer_pull_reply (void *cls,
   for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
   {
     peer_ctx = get_peer_ctx (peer_map, &peers[i]);
-    if ((0 != (peer_ctx->peer_flags && LIVING)) ||
-        NULL != peer_ctx->recv_channel)
+    if (NULL != peer_ctx->send_channel
+        || NULL != peer_ctx->recv_channel)
     {
       if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
         GNUNET_array_append (pull_list, pull_list_size, peers[i]);
