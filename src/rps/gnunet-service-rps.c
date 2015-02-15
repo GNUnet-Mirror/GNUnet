@@ -1461,7 +1461,8 @@ removeCB (void *cls, struct RPS_Sampler *sampler,
   s = RPS_sampler_count_id (sampler, id);
   if ( 1 >= s )
   {
-    if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, id))
+    if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, id)
+        && 0 != GNUNET_CRYPTO_cmp_peer_identity (id, &own_identity))
     {
       ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, id);
       if (NULL != ctx->send_channel)
@@ -1469,12 +1470,15 @@ removeCB (void *cls, struct RPS_Sampler *sampler,
         if (NULL != ctx->mq)
         {
           GNUNET_MQ_destroy (ctx->mq);
+          ctx->mq = NULL;
         }
         // may already be freed at shutdown of cadet
-        //GNUNET_CADET_channel_destroy (ctx->send_channel);
+        // maybe this fails at our own channel
+        GNUNET_CADET_channel_destroy (ctx->send_channel);
+        ctx->send_channel = NULL;
       }
       // TODO cleanup peer
-      (void) GNUNET_CONTAINER_multipeermap_remove_all (peer_map, id);
+      //(void) GNUNET_CONTAINER_multipeermap_remove_all (peer_map, id);
     }
   }
 }
