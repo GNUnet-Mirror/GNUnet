@@ -780,6 +780,8 @@ insert_in_gossip_list (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_NO == in_arr (gossip_list, gossip_list_size, peer))
     GNUNET_array_append (gossip_list, gossip_list_size, *peer);
+
+  (void) get_channel (peer_map, peer);
 }
 
 /**
