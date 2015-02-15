@@ -1543,52 +1543,83 @@ init_peer_cb (void *cls,
 }
 
 
+///**
+// * Clean the send channel of a peer
+// */
+//void
+//peer_clean (const struct GNUNET_PeerIdentity *peer)
+//{
+//  struct PeerContext *peer_ctx;
+//  struct GNUNET_CADET_Channel *channel;
+//
+//  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+//  {
+//    peer_ctx = get_peer_ctx (peer_map, peer);
+//    if (NULL != peer_ctx->send_channel)
+//    {
+//      channel = peer_ctx->send_channel;
+//      peer_ctx->send_channel = NULL;
+//      GNUNET_CADET_channel_destroy (channel);
+//    }
+//  }
+//}
+
+
 /**
- * Callback used to clean the multipeermap.
+ * Callback used to remove peers from the multipeermap.
  */
   int
 peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
   struct PeerContext *peer_ctx;
-  const struct GNUNET_CADET_Channel *ch = (const struct GNUNET_CADET_Channel *) cls;
+  const struct GNUNET_CADET_Channel *channel =
+    (const struct GNUNET_CADET_Channel *) cls;
   struct GNUNET_CADET_Channel *recv;
   struct GNUNET_CADET_Channel *send;
 
-  peer_ctx = (struct PeerContext *) value;
-
-  if (0 != peer_ctx->num_outstanding_ops)
-    GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
-
-  if (NULL != peer_ctx->mq)
-    GNUNET_MQ_destroy (peer_ctx->mq);
-
-  if (NULL != peer_ctx->is_live_task)
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, value))
   {
-    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-    peer_ctx->is_live_task = NULL;
+    peer_ctx = (struct PeerContext *) value;
+
+    if (0 != peer_ctx->num_outstanding_ops)
+      GNUNET_array_grow (peer_ctx->outstanding_ops,
+                         peer_ctx->num_outstanding_ops,
+                         0);
+
+    if (NULL != peer_ctx->mq)
+      GNUNET_MQ_destroy (peer_ctx->mq);
+
+    if (NULL != peer_ctx->is_live_task)
+    {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Trying to cancle is_live_task for peer %s\n",
+         GNUNET_i2s (key));
+      GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
+      peer_ctx->is_live_task = NULL;
+    }
+
+    send = peer_ctx->send_channel;
+    peer_ctx->send_channel = NULL;
+    recv = peer_ctx->send_channel;
+    peer_ctx->recv_channel = NULL;
+
+    if (NULL != send
+        && channel != send)
+    {
+      GNUNET_CADET_channel_destroy (send);
+    }
+
+    if (NULL != recv
+        && channel != recv)
+    {
+      GNUNET_CADET_channel_destroy (recv);
+    }
+
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
+      LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
+    else
+      GNUNET_free (peer_ctx);
   }
-
-  send = peer_ctx->send_channel;
-  peer_ctx->send_channel = NULL;
-  recv = peer_ctx->send_channel;
-  peer_ctx->recv_channel = NULL;
-
-  if (NULL  != send
-      && ch != send)
-  {
-    GNUNET_CADET_channel_destroy (send);
-  }
-
-  if (NULL  != recv
-      && ch != recv)
-  {
-    GNUNET_CADET_channel_destroy (recv);
-  }
-
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
-    LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
-  else
-    GNUNET_free (peer_ctx);
 
   return GNUNET_YES;
 }
