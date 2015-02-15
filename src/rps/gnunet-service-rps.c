@@ -574,25 +574,15 @@ hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
 
 
 /**
- * Callback that is called when a channel was effectively established.
- * This is given to ntfy_tmt_rdy and called when the channel was
- * successfully established.
+ * Set the peer flag to living and call the outstanding operations on this peer.
  */
 static size_t
-peer_is_live (void *cls, size_t size, void *buf)
+peer_is_live (struct PeerContext *peer_ctx)
 {
-  struct PeerContext *ctx = cls;
   struct GNUNET_PeerIdentity *peer;
-  struct PeerContext *peer_ctx;
 
-  //if (NULL == buf ||
-  //    0 == size)
-  // TODO check
-
-  ctx->is_live_task = NULL;
-  peer = &ctx->peer_id;
-  peer_ctx = get_peer_ctx (peer_map, peer);
-  peer_ctx->peer_flags |= LIVING;
+  peer = &peer_ctx->peer_id;
+  set_peer_flag (peer_ctx, LIVING);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %s is live\n", GNUNET_i2s (peer));
 
@@ -605,11 +595,34 @@ peer_is_live (void *cls, size_t size, void *buf)
     GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
   }
 
+  return 0;
+}
+
+
+/**
+ * Callback that is called when a channel was effectively established.
+ * This is given to ntfy_tmt_rdy and called when the channel was
+ * successfully established.
+ */
+static size_t
+cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
+{
+  struct PeerContext *peer_ctx = (struct PeerContext *) cls;
+
+  if (NULL != buf ||
+      0 != size)
+    peer_is_live (peer_ctx);
+
   //if (NULL != peer_ctx->is_live_task)
   //{
+  //  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  //       "Trying to cancle is_live_task for peer %s\n",
+  //       GNUNET_i2s (&peer_ctx->peer_id));
   //  GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-  //  peer_ctx->is_live_task = NULL; // needed?
+  //  peer_ctx->is_live_task = NULL;
   //}
+  peer_ctx->is_live_task = NULL;
+
   return 0;
 }
 
@@ -623,26 +636,44 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 {
   struct PeerContext *ctx;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to establish channel to peer %s\n",
+       GNUNET_i2s (peer));
+
   ctx = get_peer_ctx (peer_map, peer);
   if (NULL == ctx->send_channel)
   {
-    ctx->send_channel = GNUNET_CADET_channel_create (cadet_handle, NULL, peer,
+    ctx->send_channel = GNUNET_CADET_channel_create (cadet_handle,
+                                                     NULL,
+                                                     peer,
                                                      GNUNET_RPS_CADET_PORT,
                                                      GNUNET_CADET_OPTION_RELIABLE);
 
-    if (NULL == ctx->recv_channel)
+    /* If we don't know whether peer is live,
+     * get notified when we know it is live. */
+    if (NULL == ctx->recv_channel
+        && NULL == ctx->is_live_task)
     {
       ctx->peer_id = *peer;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Get informed about peer %s getting live\n",
+           GNUNET_i2s (peer));
       ctx->is_live_task =
-          GNUNET_CADET_notify_transmit_ready (ctx->send_channel, GNUNET_NO,
+          GNUNET_CADET_notify_transmit_ready (ctx->send_channel,
+                                              GNUNET_NO,
                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                               sizeof (struct GNUNET_MessageHeader),
-                                              peer_is_live, ctx);
+                                              cadet_ntfy_tmt_rdy_cb,
+                                              ctx);
     }
+    // FIXME check whether this is NULL
 
     // do I have to explicitly put it in the peer_map?
-    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+    (void) GNUNET_CONTAINER_multipeermap_put
+      (peer_map,
+       peer,
+       ctx,
+       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   return ctx->send_channel;
 }
@@ -1621,7 +1652,7 @@ handle_inbound_channel (void *cls,
                         uint32_t port,
                         enum GNUNET_CADET_ChannelOption options)
 {
-  struct PeerContext *ctx;
+  struct PeerContext *peer_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
@@ -1631,19 +1662,21 @@ handle_inbound_channel (void *cls,
 
   // we might not even store the recv_channel
 
-  ctx = get_peer_ctx (peer_map, initiator);
-  if (NULL != ctx->recv_channel)
-  {
-    ctx->recv_channel = channel;
-  }
+  peer_ctx = get_peer_ctx (peer_map, initiator);
+  // FIXME what do we do if a channel is established twice?
+  //       overwrite? Clean old channel? ...?
+  //if (NULL != peer_ctx->recv_channel)
+  //{
+  //  peer_ctx->recv_channel = channel;
+  //}
+  peer_ctx->recv_channel = channel;
 
-  ctx->peer_flags |= LIVING;
+  peer_ctx->mq = NULL;
 
-  //ctx->peer_flags = IN_OTHER_GOSSIP_LIST;
-  ctx->mq = NULL;
-
-  (void) GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, ctx,
+  (void) GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, peer_ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+
+  peer_is_live (peer_ctx);
 
   return NULL; // TODO
 }
