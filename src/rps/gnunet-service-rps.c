@@ -1743,9 +1743,6 @@ cleanup_channel (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up channel to peer %s\n",
        GNUNET_i2s (peer));
 
-  RPS_sampler_reinitialise_by_value (prot_sampler,   peer);
-  RPS_sampler_reinitialise_by_value (client_sampler, peer);
-
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
@@ -1881,9 +1878,11 @@ run (void *cls,
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
   prot_sampler =   RPS_sampler_init (sampler_size_est_need, max_round_interval,
-      insertCB, NULL, removeCB, NULL);
+      //insertCB, NULL, removeCB, NULL);
+      NULL, NULL, NULL, NULL);
   client_sampler = RPS_sampler_init (sampler_size_est_need, max_round_interval,
-      insertCB, NULL, removeCB, NULL);
+      //nsertCB, NULL, removeCB, NULL);
+      NULL, NULL, NULL, NULL);
 
   /* Initialise push and pull maps */
   push_list = NULL;
