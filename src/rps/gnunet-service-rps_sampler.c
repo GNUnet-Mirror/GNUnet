@@ -610,7 +610,6 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t tmp_client_get_index;
 
   gpc->get_peer_task = NULL;
-  GNUNET_CONTAINER_DLL_remove (gpc_head, gpc_tail, gpc);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -630,13 +629,14 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do
   { /* Get first non empty sampler */
     if (tmp_client_get_index == client_get_index)
-    {
+    { /* We once cycled over the whole list */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "reached tmp_index %" PRIX32 ".\n",
            client_get_index);
       GNUNET_assert (NULL == gpc->get_peer_task);
       gpc->get_peer_task =
         GNUNET_SCHEDULER_add_delayed (gpc->sampler->max_round_interval,
-                                      &sampler_get_rand_peer, cls);
+                                      &sampler_get_rand_peer,
+                                      cls);
       return;
     }
 
@@ -680,7 +680,8 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (NULL == gpc->get_peer_task);
       gpc->get_peer_task =
         GNUNET_SCHEDULER_add_delayed (gpc->sampler->max_round_interval,
-                                      &sampler_get_rand_peer, cls);
+                                      &sampler_get_rand_peer,
+                                      cls);
       return;
     }
     // TODO add other reasons to wait here
@@ -688,6 +689,7 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   s_elem->last_client_request = GNUNET_TIME_absolute_get ();
 
+  GNUNET_CONTAINER_DLL_remove (gpc_head, gpc_tail, gpc);
   gpc->cont (gpc->cont_cls, gpc->id);
   GNUNET_free (gpc);
 }

@@ -1487,11 +1487,9 @@ init_peer_cb (void *cls,
               unsigned int best_path) // "How long is the best path?
                                       // (0 = unknown, 1 = ourselves, 2 = neighbor)"
 {
-  struct GNUNET_SERVER_Handle *server;
   struct PeerOutstandingOp out_op;
   struct PeerContext *peer_ctx;
 
-  server = (struct GNUNET_SERVER_Handle *) cls;
   if (NULL != peer
       && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
   {
@@ -1501,32 +1499,32 @@ init_peer_cb (void *cls,
 
     // maybe create a function for that
     peer_ctx = get_peer_ctx (peer_map, peer);
-    // FIXME this peer might already be marked as LIVE
-    if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
+    if (GNUNET_YES != get_peer_flag (peer_ctx, VALID))
     {
-      out_op.op = insert_in_sampler;
-      out_op.op_cls = NULL;
-      GNUNET_array_append (peer_ctx->outstanding_ops,
-                           peer_ctx->num_outstanding_ops,
-                           out_op);
-    }
+      if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
+      {
+        out_op.op = insert_in_sampler;
+        out_op.op_cls = NULL;
+        GNUNET_array_append (peer_ctx->outstanding_ops,
+                             peer_ctx->num_outstanding_ops,
+                             out_op);
+      }
 
-    if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
-    {
-      out_op.op = insert_in_gossip_list;
-      out_op.op_cls = NULL;
-      GNUNET_array_append (peer_ctx->outstanding_ops,
-                           peer_ctx->num_outstanding_ops,
-                           out_op);
-    }
+      if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
+      {
+        out_op.op = insert_in_gossip_list;
+        out_op.op_cls = NULL;
+        GNUNET_array_append (peer_ctx->outstanding_ops,
+                             peer_ctx->num_outstanding_ops,
+                             out_op);
+      }
 
-    /* Trigger livelyness test on peer */
-    (void) get_channel (peer_map, peer);
+      /* Trigger livelyness test on peer */
+      (void) get_channel (peer_map, peer);
+    }
 
     // send push/pull to each of those peers?
   }
-  else if (NULL == peer)
-    rps_start (server);
 }
 
 
@@ -1774,14 +1772,12 @@ rps_start (struct GNUNET_SERVER_Handle *server)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Ready to receive requests from clients\n");
 
 
-  num_hist_update_tasks = 0;
-
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled first round\n");
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task,
-				NULL);
+				                        &shutdown_task,
+				                        NULL);
 }
 
 
@@ -1886,10 +1882,15 @@ run (void *cls,
   pending_pull_reply_list_size = 0;
 
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
-  GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, server);
+  num_hist_update_tasks = 0;
 
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requesting peers from CADET\n");
+  GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, NULL);
   // TODO send push/pull to each of those peers?
+
+
+  rps_start (server);
 }
 
 
