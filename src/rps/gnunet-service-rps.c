@@ -454,7 +454,6 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
        "Removing peer %s from list at %p\n",
        GNUNET_i2s (peer),
        tmp);
-  print_peer_list (tmp, *list_size);
 
   for ( i = 0 ; i < *list_size ; i++ )
   {
@@ -556,6 +555,8 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
     ctx->recv_channel = NULL;
     ctx->outstanding_ops = NULL;
     ctx->num_outstanding_ops = 0;
+    ctx->is_live_task = NULL;
+    ctx->peer_id = *peer;
     (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
@@ -596,7 +597,7 @@ peer_is_live (struct PeerContext *peer_ctx)
   { /* Call outstanding operations */
     unsigned int i;
 
-    for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
+    for (i = 0 ; i < peer_ctx->num_outstanding_ops ; i++)
       peer_ctx->outstanding_ops[i].op (peer_ctx->outstanding_ops[i].op_cls, peer);
     GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
   }
@@ -658,6 +659,7 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
     /* If we don't know whether peer is live,
      * get notified when we know it is live. */
     if (GNUNET_YES != get_peer_flag (ctx, VALID)
+        && NULL != ctx->is_live_task
         && NULL == ctx->recv_channel
         && NULL == ctx->is_live_task)
     {
@@ -806,6 +808,9 @@ insert_in_gossip_list_scheduled (const struct PeerContext *peer_ctx)
   void
 insert_in_sampler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Updating samplers with peer %s from insert_in_sampler()\n",
+       GNUNET_i2s (peer));
   RPS_sampler_update (prot_sampler,   peer);
   RPS_sampler_update (client_sampler, peer);
 }
@@ -1066,7 +1071,7 @@ handle_client_seed (void *cls,
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
-              GNUNET_SYSERR);
+                                GNUNET_SYSERR);
   }
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
   if ((ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
@@ -1074,13 +1079,20 @@ handle_client_seed (void *cls,
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
-              GNUNET_SYSERR);
+                                GNUNET_SYSERR);
   }
 
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
   peers = (struct GNUNET_PeerIdentity *) &message[1];
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client seeded peers:\n");
+  print_peer_list (peers, ntohl (in_msg->num_peers));
+
   for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Updating samplers with seed %" PRIX32 ": %s\n",
+         GNUNET_i2s (&peers[i]));
     RPS_sampler_update (prot_sampler,   &peers[i]);
     RPS_sampler_update (client_sampler, &peers[i]);
 
@@ -1427,6 +1439,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Update samplers */
   for ( i = 0 ; i < push_list_size ; i++ )
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Updating with peer %s from push list\n",
+         GNUNET_i2s (&push_list[i]));
     RPS_sampler_update (prot_sampler,   &push_list[i]);
     RPS_sampler_update (client_sampler, &push_list[i]);
     // TODO set in_flag?
@@ -1434,6 +1449,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for ( i = 0 ; i < pull_list_size ; i++ )
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Updating with peer %s from pull list\n",
+         GNUNET_i2s (&pull_list[i]));
     RPS_sampler_update (prot_sampler,   &push_list[i]);
     RPS_sampler_update (client_sampler, &push_list[i]);
     // TODO set in_flag?
@@ -1586,22 +1604,21 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
     send = peer_ctx->send_channel;
     peer_ctx->send_channel = NULL;
-    recv = peer_ctx->send_channel;
-    peer_ctx->recv_channel = NULL;
-
     if (NULL != send
         && channel != send)
     {
       GNUNET_CADET_channel_destroy (send);
     }
 
+    recv = peer_ctx->send_channel;
+    peer_ctx->recv_channel = NULL;
     if (NULL != recv
         && channel != recv)
     {
       GNUNET_CADET_channel_destroy (recv);
     }
 
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
+    if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
       LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
     else
       GNUNET_free (peer_ctx);
@@ -1641,6 +1658,9 @@ shutdown_task (void *cls,
   GNUNET_CADET_disconnect (cadet_handle);
   RPS_sampler_destroy (prot_sampler);
   RPS_sampler_destroy (client_sampler);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Size of the peermap: %u\n",
+       GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   GNUNET_array_grow (gossip_list, gossip_list_size, 0);
@@ -1679,16 +1699,18 @@ handle_inbound_channel (void *cls,
                         enum GNUNET_CADET_ChannelOption options)
 {
   struct PeerContext *peer_ctx;
+  struct GNUNET_PeerIdentity peer;
 
+  peer = *initiator;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
-      GNUNET_i2s (initiator));
+      GNUNET_i2s (&peer));
 
   GNUNET_assert (NULL != channel);
 
   // we might not even store the recv_channel
 
-  peer_ctx = get_peer_ctx (peer_map, initiator);
+  peer_ctx = get_peer_ctx (peer_map, &peer);
   // FIXME what do we do if a channel is established twice?
   //       overwrite? Clean old channel? ...?
   //if (NULL != peer_ctx->recv_channel)
@@ -1699,7 +1721,7 @@ handle_inbound_channel (void *cls,
 
   peer_ctx->mq = NULL;
 
-  (void) GNUNET_CONTAINER_multipeermap_put (peer_map, initiator, peer_ctx,
+  (void) GNUNET_CONTAINER_multipeermap_put (peer_map, &peer, peer_ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
   peer_is_live (peer_ctx);
