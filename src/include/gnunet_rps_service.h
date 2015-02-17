@@ -94,7 +94,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
  * @param ids the ids of the peers seeded
  */
   void
-GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
+GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
                      const struct GNUNET_PeerIdentity * ids);
 
 /**
