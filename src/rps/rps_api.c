@@ -28,6 +28,10 @@
 #include "rps.h"
 #include "gnunet_rps_service.h"
 
+#include <inttypes.h>
+
+#define LOG(kind,...) GNUNET_log_from (kind, "rps-api",__VA_ARGS__)
+
 /**
  * Handler to handle requests from a client.
  */
@@ -231,14 +235,25 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
  * @param ids the ids of the peers seeded
  */
   void
-GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
-                     const struct GNUNET_PeerIdentity * ids)
+GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
+                     const struct GNUNET_PeerIdentity *ids)
 {
   uint32_t size_needed;
   uint32_t num_peers_max;
   const struct GNUNET_PeerIdentity *tmp_peer_pointer;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_SeedMessage *msg;
+
+  unsigned int i;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client wants to seed %" PRIX32 " peers:\n",
+       n);
+  for (i = 0 ; i < n ; i++)
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%u. peer: %s\n",
+         i,
+         GNUNET_i2s (&ids[i]));
 
   /* The actual size the message occupies */
   size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
@@ -267,8 +282,9 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint64_t n,
 
   ev = GNUNET_MQ_msg_extra (msg, n * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
-  msg->num_peers = GNUNET_htonll (n);
+  msg->num_peers = htonl (n);
   memcpy (&msg[1], tmp_peer_pointer, n * sizeof (struct GNUNET_PeerIdentity));
+
   GNUNET_MQ_send (h->mq, ev);
 }
 
