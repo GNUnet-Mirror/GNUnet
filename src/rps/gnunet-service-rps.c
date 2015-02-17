@@ -1065,17 +1065,10 @@ handle_client_seed (void *cls,
 {
   struct GNUNET_RPS_CS_SeedMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
+  uint32_t num_peers;
   uint32_t i;
 
-  if (sizeof (struct GNUNET_RPS_CS_SeedMessage) < ntohs (message->size))
-  {
-    GNUNET_break_op (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_SYSERR);
-  }
-  in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
-  if ((ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
-      sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
+  if (sizeof (struct GNUNET_RPS_CS_SeedMessage) > ntohs (message->size))
   {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
@@ -1083,21 +1076,40 @@ handle_client_seed (void *cls,
   }
 
   in_msg = (struct GNUNET_RPS_CS_SeedMessage *) message;
-  peers = (struct GNUNET_PeerIdentity *) &message[1];
+  num_peers = ntohl (in_msg->num_peers);
+  peers = (struct GNUNET_PeerIdentity *) &in_msg[1];
+  //peers = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
+  //memcpy (peers, &in_msg[1], num_peers * sizeof (struct GNUNET_PeerIdentity));
+
+  if ((ntohs (message->size) - sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
+      sizeof (struct GNUNET_PeerIdentity) != num_peers)
+  {
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client seeded peers:\n");
-  print_peer_list (peers, ntohl (in_msg->num_peers));
+  print_peer_list (peers, num_peers);
 
-  for ( i = 0 ; i < ntohl (in_msg->num_peers) ; i++ )
+  // TODO check for validity of ids
+
+  for (i = 0 ; i < num_peers ; i++)
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating samplers with seed %" PRIX32 ": %s\n",
+         i,
          GNUNET_i2s (&peers[i]));
+
     RPS_sampler_update (prot_sampler,   &peers[i]);
     RPS_sampler_update (client_sampler, &peers[i]);
+  }
+
+  //GNUNET_free (peers);
 
   GNUNET_SERVER_receive_done (client,
-			      GNUNET_OK);
+			                        GNUNET_OK);
 }
 
 
