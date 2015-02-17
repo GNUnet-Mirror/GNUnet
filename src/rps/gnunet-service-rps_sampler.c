@@ -605,6 +605,7 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPeerCls *gpc = (struct GetPeerCls *) cls;
   struct GNUNET_PeerIdentity tmp_id;
+  unsigned int empty_flag;
   struct RPS_SamplerElement *s_elem;
   struct GNUNET_TIME_Relative last_request_diff;
   uint32_t tmp_client_get_index;
@@ -641,10 +642,12 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
     tmp_id = gpc->sampler->sampler_elements[client_get_index]->peer_id;
+    empty_flag = gpc->sampler->sampler_elements[client_get_index]->is_empty;
     RPS_sampler_elem_reinit (gpc->sampler->sampler_elements[client_get_index]);
-    RPS_sampler_elem_next (gpc->sampler->sampler_elements[client_get_index],
-                           gpc->sampler,
-                           &tmp_id);
+    if (EMPTY != empty_flag)
+      RPS_sampler_elem_next (gpc->sampler->sampler_elements[client_get_index],
+                             gpc->sampler,
+                             &tmp_id);
 
     /* Cycle the #client_get_index one step further */
     if ( client_get_index == gpc->sampler->sampler_size - 1 )
