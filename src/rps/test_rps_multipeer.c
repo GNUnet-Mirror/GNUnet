@@ -132,18 +132,22 @@ request_peers (void *cls,
  * Seed peers.
  */
   void
-seed_peers (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+seed_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int amount;
   struct RPSPeer *peer = (struct RPSPeer *) cls;
+  unsigned int i;
 
-  GNUNET_assert (1 >= portion &&
-                 0 <  portion);
+  GNUNET_assert (1 >= portion
+                 && 0 <  portion);
                 
   amount = portion * NUM_PEERS;
 
-  // TODO log
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Seeding peers:\n");
+  for (i = 0 ; i < amount ; i++)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Seeding %u. peer: %s\n",
+                i,
+                GNUNET_i2s (&rps_peer_ids[i]));
 
   GNUNET_RPS_seed_ids (peer->rps_handle, amount, rps_peer_ids);
 }
