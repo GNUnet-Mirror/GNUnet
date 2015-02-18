@@ -204,12 +204,12 @@ struct GNUNET_CONNECTION_Handle
   /**
    * Read task that we may need to wait for.
    */
-  struct GNUNET_SCHEDULER_Task * read_task;
+  struct GNUNET_SCHEDULER_Task *read_task;
 
   /**
    * Write task that we may need to wait for.
    */
-  struct GNUNET_SCHEDULER_Task * write_task;
+  struct GNUNET_SCHEDULER_Task *write_task;
 
   /**
    * Handle to a pending DNS lookup request.
@@ -311,14 +311,14 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_NETWORK_Handle *osSocket)
  * Create a connection handle by accepting on a listen socket.  This
  * function may block if the listen socket has no connection ready.
  *
- * @param access function to use to check if access is allowed
- * @param access_cls closure for access
+ * @param access_cb function to use to check if access is allowed
+ * @param access_cb_cls closure for @a access_cb
  * @param lsock listen socket
  * @return the connection handle, NULL on error
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
-                                      void *access_cls,
+GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
+                                      void *access_cb_cls,
                                       struct GNUNET_NETWORK_Handle *lsock)
 {
   struct GNUNET_CONNECTION_Handle *connection;
@@ -415,8 +415,8 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
 #endif
   }
 
-  if ((NULL != access) &&
-      (GNUNET_YES != (aret = access (access_cls, gcp, uaddr, addrlen))))
+  if ((NULL != access_cb) &&
+      (GNUNET_YES != (aret = access_cb (access_cb_cls, gcp, uaddr, addrlen))))
   {
     if (GNUNET_NO == aret)
       LOG (GNUNET_ERROR_TYPE_INFO,

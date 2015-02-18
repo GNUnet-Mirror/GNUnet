@@ -122,12 +122,12 @@ struct GNUNET_SERVER_Handle
   /**
    * Function to call for access control.
    */
-  GNUNET_CONNECTION_AccessCheck access;
+  GNUNET_CONNECTION_AccessCheck access_cb;
 
   /**
-   * Closure for access.
+   * Closure for @e access_cb.
    */
-  void *access_cls;
+  void *access_cb_cls;
 
   /**
    * NULL-terminated array of sockets used to listen for new
@@ -413,8 +413,8 @@ process_listen_socket (void *cls,
     if (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_sockets[i]))
     {
       sock =
-          GNUNET_CONNECTION_create_from_accept (server->access,
-                                                server->access_cls,
+          GNUNET_CONNECTION_create_from_accept (server->access_cb,
+                                                server->access_cb_cls,
                                                 server->listen_sockets[i]);
       if (NULL != sock)
       {
@@ -522,8 +522,8 @@ open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
 /**
  * Create a new server.
  *
- * @param access function for access control
- * @param access_cls closure for access
+ * @param access_cb function for access control
+ * @param access_cb_cls closure for @a access_cb
  * @param lsocks NULL-terminated array of listen sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if #GNUNET_YES, connections sending messages of unknown type
@@ -532,8 +532,8 @@ open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
-                                   void *access_cls,
+GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access_cb,
+                                   void *access_cb_cls,
                                    struct GNUNET_NETWORK_Handle **lsocks,
                                    struct GNUNET_TIME_Relative idle_timeout,
                                    int require_found)
@@ -543,8 +543,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
   server = GNUNET_new (struct GNUNET_SERVER_Handle);
   server->idle_timeout = idle_timeout;
   server->listen_sockets = lsocks;
-  server->access = access;
-  server->access_cls = access_cls;
+  server->access_cb = access_cb;
+  server->access_cb_cls = access_cb_cls;
   server->require_found = require_found;
   if (NULL != lsocks)
     GNUNET_SERVER_resume (server);
@@ -555,8 +555,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
 /**
  * Create a new server.
  *
- * @param access function for access control
- * @param access_cls closure for access
+ * @param access_cb function for access control
+ * @param access_cb_cls closure for @a access_cb
  * @param server_addr address to listen on (including port), NULL terminated array
  * @param socklen length of server_addr
  * @param idle_timeout after how long should we timeout idle connections?
@@ -566,7 +566,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
+GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access_cb,
+		      void *access_cb_cls,
                       struct sockaddr *const *server_addr,
                       const socklen_t * socklen,
                       struct GNUNET_TIME_Relative idle_timeout,
@@ -619,8 +620,11 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
   {
     lsocks = NULL;
   }
-  return GNUNET_SERVER_create_with_sockets (access, access_cls, lsocks,
-                                            idle_timeout, require_found);
+  return GNUNET_SERVER_create_with_sockets (access_cb, 
+					    access_cb_cls,
+					    lsocks,
+                                            idle_timeout,
+					    require_found);
 }
 
 

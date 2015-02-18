@@ -119,8 +119,8 @@ struct GNUNET_SERVER_MessageHandler
 /**
  * Create a new server.
  *
- * @param access function for access control
- * @param access_cls closure for @a access
+ * @param access_cb function for access control
+ * @param access_cb_cls closure for @a access_cb
  * @param lsocks NULL-terminated array of listen sockets
  * @param idle_timeout after how long should we timeout idle connections?
  * @param require_found if #GNUNET_YES, connections sending messages of unknown type
@@ -129,8 +129,8 @@ struct GNUNET_SERVER_MessageHandler
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
-                                   void *access_cls,
+GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access_cb,
+                                   void *access_cb_cls,
                                    struct GNUNET_NETWORK_Handle **lsocks,
                                    struct GNUNET_TIME_Relative idle_timeout,
                                    int require_found);
@@ -138,8 +138,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
 /**
  * Create a new server.
  *
- * @param access function for access control
- * @param access_cls closure for @a access
+ * @param access_cb function for access control
+ * @param access_cb_cls closure for @a access_cb
  * @param server_addr address toes listen on (including port), NULL terminated array
  * @param socklen lengths of respective @a server_addr
  * @param idle_timeout after how long should we timeout idle connections?
@@ -149,7 +149,8 @@ GNUNET_SERVER_create_with_sockets (GNUNET_CONNECTION_AccessCheck access,
  *         (typically, "port" already in use)
  */
 struct GNUNET_SERVER_Handle *
-GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access, void *access_cls,
+GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access_cb,
+		      void *access_cb_cls,
                       struct sockaddr *const *server_addr,
                       const socklen_t * socklen,
                       struct GNUNET_TIME_Relative idle_timeout,

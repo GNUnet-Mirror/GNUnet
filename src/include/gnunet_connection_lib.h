@@ -161,14 +161,14 @@ GNUNET_CONNECTION_create_from_existing (struct GNUNET_NETWORK_Handle *osSocket);
  * Create a connection handle by accepting on a listen socket.  This
  * function may block if the listen socket has no connection ready.
  *
- * @param access function to use to check if access is allowed
- * @param access_cls closure for access
+ * @param access_cb function to use to check if access is allowed
+ * @param access_cb_cls closure for @a access_cb
  * @param lsock listen socket
  * @return the connection handle, NULL on error (for example, access refused)
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access,
-                                      void *access_cls,
+GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
+                                      void *access_cb_cls,
                                       struct GNUNET_NETWORK_Handle *lsock);
 
 
