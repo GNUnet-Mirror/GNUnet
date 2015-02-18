@@ -108,6 +108,8 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
 {
+  if (NULL == address)
+    return NULL;
   return GNUNET_HELLO_address_allocate (&address->peer,
                                         address->transport_name,
                                         address->address,
@@ -130,6 +132,13 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
 {
   int ret;
 
+  if ( (NULL == a1) &&
+       (NULL == a2) )
+    return 0;
+  if (NULL == a1)
+    return 1;
+  if (NULL == a2)
+    return -1;
   ret = strcmp (a1->transport_name, a2->transport_name);
   if (0 != ret)
     return ret;
