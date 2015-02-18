@@ -2142,16 +2142,6 @@ struct BlacklistCheckSwitchContext
   struct GST_BlacklistCheck *blc;
 
   /**
-   * Address we are asking the blacklist subsystem about.
-   */
-  struct GNUNET_HELLO_Address *address;
-
-  /**
-   * Session we should use in conjunction with @e address, can be NULL.
-   */
-  struct Session *session;
-
-  /**
    * Inbound bandwidth that was assigned to @e address.
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
@@ -2169,11 +2159,17 @@ struct BlacklistCheckSwitchContext
  *
  * @param cls blc_ctx bl context
  * @param peer the peer
- * @param result the result
+ * @param address address associated with the request
+ * @param session session associated with the request
+ * @param result #GNUNET_OK if the connection is allowed,
+ *               #GNUNET_NO if not,
+ *               #GNUNET_SYSERR if operation was aborted
  */
 static void
 try_connect_bl_check_cont (void *cls,
                            const struct GNUNET_PeerIdentity *peer,
+			   const struct GNUNET_HELLO_Address *address,
+			   struct Session *session,
                            int result)
 {
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
@@ -2281,7 +2277,9 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       (blc = GST_blacklist_test_allowed (target,
                                          NULL,
                                          &try_connect_bl_check_cont,
-                                         blc_ctx)))
+                                         blc_ctx,
+					 NULL,
+					 NULL)))
   {
     blc_ctx->blc = blc;
   }
@@ -2475,54 +2473,66 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
  * @param cls the `struct BlacklistCheckSwitchContext` with
  *        the information about the future address
  * @param peer the peer we may switch addresses on
- * @param result #GNUNET_NO if we are not allowed to use the new
- *        address
+ * @param address address associated with the request
+ * @param session session associated with the request
+ * @param result #GNUNET_OK if the connection is allowed,
+ *               #GNUNET_NO if not,
+ *               #GNUNET_SYSERR if operation was aborted
  */
 static void
 switch_address_bl_check_cont (void *cls,
                               const struct GNUNET_PeerIdentity *peer,
+			      const struct GNUNET_HELLO_Address *address,
+			      struct Session *session,
                               int result)
 {
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct NeighbourMapEntry *n;
 
-  if (result == GNUNET_NO)
+  if (GNUNET_SYSERR == result)
+    goto cleanup;
+
+  papi = GST_plugins_find (address->transport_name);
+  GNUNET_assert (NULL != papi);
+
+  if (GNUNET_NO == result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Blacklist denied to switch to suggested address `%s' session %p for peer `%s'\n",
-                GST_plugins_a2s (blc_ctx->address),
-                blc_ctx->session,
-                GNUNET_i2s (&blc_ctx->address->peer));
+                GST_plugins_a2s (address),
+		session,
+                GNUNET_i2s (peer));
     GNUNET_STATISTICS_update (GST_stats,
                               "# ATS suggestions ignored (blacklist denied)",
                               1,
                               GNUNET_NO);
-    /* FIXME: tell plugin to force killing session here and now
-       (note: _proper_ plugin API for this does not yet exist) */
-    GST_ats_block_address (blc_ctx->address,
-                           blc_ctx->session);
+    papi->disconnect_session (papi->cls,
+			      session);
+    if (GNUNET_YES !=
+	GNUNET_HELLO_address_check_option (address,
+					   GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+      GST_ats_block_address (address,
+			     NULL);
     goto cleanup;
   }
 
-  papi = GST_plugins_find (blc_ctx->address->transport_name);
-  GNUNET_assert (NULL != papi);
 
-  if (NULL == blc_ctx->session)
+  if (NULL == session)
   {
     /* need to create a session, ATS only gave us an address */
-    blc_ctx->session = papi->get_session (papi->cls,
-                                          blc_ctx->address);
+    session = papi->get_session (papi->cls,
+				 address);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Obtained new session for peer `%s' and  address '%s': %p\n",
-                GNUNET_i2s (&blc_ctx->address->peer),
-                GST_plugins_a2s (blc_ctx->address),
-                blc_ctx->session);
-    if (NULL != blc_ctx->session)
-      GST_ats_new_session (blc_ctx->address,
-                           blc_ctx->session);
+                GNUNET_i2s (&address->peer),
+                GST_plugins_a2s (address),
+                session);
+    if (NULL != session)
+      GST_ats_new_session (address,
+                           session);
   }
-  if (NULL == blc_ctx->session)
+  if (NULL == session)
   {
     /* session creation failed, bad!, fail! */
     GNUNET_STATISTICS_update (GST_stats,
@@ -2532,10 +2542,10 @@ switch_address_bl_check_cont (void *cls,
     /* No session could be obtained, remove blacklist check and clean up */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain new session for peer `%s' and address '%s'\n",
-                GNUNET_i2s (&blc_ctx->address->peer),
-                GST_plugins_a2s (blc_ctx->address));
-    GST_ats_block_address (blc_ctx->address,
-                           blc_ctx->session);
+                GNUNET_i2s (&address->peer),
+                GST_plugins_a2s (address));
+    GST_ats_block_address (address,
+                           session);
     goto cleanup;
   }
 
@@ -2543,8 +2553,8 @@ switch_address_bl_check_cont (void *cls,
      it is theoretically possible that the situation changed in
      the meantime, hence we check again here */
   if (GNUNET_OK ==
-      try_run_fast_ats_update (blc_ctx->address,
-                               blc_ctx->session,
+      try_run_fast_ats_update (address,
+                               session,
                                blc_ctx->bandwidth_in,
                                blc_ctx->bandwidth_out))
     goto cleanup; /* was just a minor update, we're done */
@@ -2558,23 +2568,23 @@ switch_address_bl_check_cont (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer `%s' switches to address `%s'\n",
-              GNUNET_i2s (&blc_ctx->address->peer),
-              GST_plugins_a2s (blc_ctx->address));
+              GNUNET_i2s (&address->peer),
+              GST_plugins_a2s (address));
 
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
     GNUNET_break (0);
-    GST_ats_block_address (blc_ctx->address,
-                           blc_ctx->session);
+    GST_ats_block_address (address,
+                           session);
     free_neighbour (n);
     return;
   case GNUNET_TRANSPORT_PS_INIT_ATS:
     /* We requested an address and ATS suggests one:
      * set primary address and send SYN message*/
     set_primary_address (n,
-                         blc_ctx->address,
-                         blc_ctx->session,
+                         address,
+                         session,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out);
     if (ACK_SEND_SYN_ACK == n->ack_state)
@@ -2594,8 +2604,8 @@ switch_address_bl_check_cont (void *cls,
      * Switch and send new SYN */
     /* ATS suggests a different address, switch again */
     set_primary_address (n,
-                         blc_ctx->address,
-                         blc_ctx->session,
+                         address,
+                         session,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out);
     if (ACK_SEND_SYN_ACK == n->ack_state)
@@ -2614,8 +2624,8 @@ switch_address_bl_check_cont (void *cls,
     /* We requested an address and ATS suggests one:
      * set primary address and send SYN_ACK message*/
     set_primary_address (n,
-                         blc_ctx->address,
-                         blc_ctx->session,
+                         address,
+                         session,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out);
     /* Send an ACK message as a response to the SYN msg */
@@ -2638,8 +2648,8 @@ switch_address_bl_check_cont (void *cls,
                             n->connect_ack_timestamp);
     }
     set_primary_address (n,
-                         blc_ctx->address,
-                         blc_ctx->session,
+			 address,
+                         session,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out);
     set_state_and_timeout (n,
@@ -2649,12 +2659,12 @@ switch_address_bl_check_cont (void *cls,
   case GNUNET_TRANSPORT_PS_CONNECTED:
     GNUNET_assert (NULL != n->primary_address.address);
     GNUNET_assert (NULL != n->primary_address.session);
-    GNUNET_break (n->primary_address.session != blc_ctx->session);
+    GNUNET_break (n->primary_address.session != session);
     /* ATS asks us to switch a life connection; see if we can get
        a SYN_ACK on it before we actually do this! */
     set_alternative_address (n,
-                             blc_ctx->address,
-                             blc_ctx->session,
+                             address,
+                             session,
                              blc_ctx->bandwidth_in,
                              blc_ctx->bandwidth_out);
     set_state_and_timeout (n,
@@ -2668,8 +2678,8 @@ switch_address_bl_check_cont (void *cls,
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
     set_primary_address (n,
-                         blc_ctx->address,
-                         blc_ctx->session,
+                         address,
+                         session,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out);
     if (ACK_SEND_SYN_ACK == n->ack_state)
@@ -2688,8 +2698,8 @@ switch_address_bl_check_cont (void *cls,
     /* ATS asks us to switch while we were trying to reconnect; switch to new
        address and send SYN again */
     set_primary_address (n,
-                         blc_ctx->address,
-                         blc_ctx->session,
+                         address,
+                         session,
                          blc_ctx->bandwidth_in,
                          blc_ctx->bandwidth_out);
     set_state_and_timeout (n,
@@ -2699,8 +2709,8 @@ switch_address_bl_check_cont (void *cls,
     break;
   case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
     if ( (0 == GNUNET_HELLO_address_cmp (n->primary_address.address,
-                                         blc_ctx->address)) &&
-         (n->primary_address.session == blc_ctx->session) )
+                                         address)) &&
+         (n->primary_address.session == session) )
     {
       /* ATS switches back to still-active session */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2713,8 +2723,8 @@ switch_address_bl_check_cont (void *cls,
     }
     /* ATS asks us to switch a life connection, send */
     set_alternative_address (n,
-                             blc_ctx->address,
-                             blc_ctx->session,
+			     address,
+                             session,
                              blc_ctx->bandwidth_in,
                              blc_ctx->bandwidth_out);
     set_state_and_timeout (n,
@@ -2743,7 +2753,6 @@ switch_address_bl_check_cont (void *cls,
   GNUNET_CONTAINER_DLL_remove (pending_bc_head,
                                pending_bc_tail,
                                blc_ctx);
-  GNUNET_HELLO_address_free (blc_ctx->address);
   GNUNET_free (blc_ctx);
 }
 
@@ -2811,8 +2820,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
 
   /* Perform blacklist check */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
-  blc_ctx->address = GNUNET_HELLO_address_copy (address);
-  blc_ctx->session = session;
   blc_ctx->bandwidth_in = bandwidth_in;
   blc_ctx->bandwidth_out = bandwidth_out;
   GNUNET_CONTAINER_DLL_insert (pending_bc_head,
@@ -2821,7 +2828,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
   if (NULL != (blc = GST_blacklist_test_allowed (&address->peer,
                                                  address->transport_name,
                                                  &switch_address_bl_check_cont,
-                                                 blc_ctx)))
+                                                 blc_ctx,
+						 address,
+						 session)))
   {
     blc_ctx->blc = blc;
   }
@@ -3835,8 +3844,6 @@ GST_neighbours_stop ()
       GST_blacklist_test_cancel (cur->blc);
       cur->blc = NULL;
     }
-    if (NULL != cur->address)
-      GNUNET_HELLO_address_free (cur->address);
     GNUNET_free (cur);
   }
 }

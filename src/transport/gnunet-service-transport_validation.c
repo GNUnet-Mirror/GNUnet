@@ -505,11 +505,17 @@ timeout_hello_validation (void *cls,
  *
  * @param cls our `struct ValidationEntry`
  * @param pid identity of the other peer
- * @param result #GNUNET_OK if the connection is allowed, #GNUNET_NO if not
+ * @param address_null address associated with the request, always NULL
+ * @param session_null session associated with the request, always NULL
+ * @param result #GNUNET_OK if the connection is allowed,
+ *               #GNUNET_NO if not,
+ *               #GNUNET_SYSERR if operation was aborted
  */
 static void
 transmit_ping_if_allowed (void *cls,
                           const struct GNUNET_PeerIdentity *pid,
+			  const struct GNUNET_HELLO_Address *address_null,
+			  struct Session *session_null,
                           int result)
 {
   struct ValidationEntry *ve = cls;
@@ -524,7 +530,7 @@ transmit_ping_if_allowed (void *cls,
   struct Session *session;
 
   ve->bc = NULL;
-  if (GNUNET_NO == result)
+  if (GNUNET_OK != result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Blacklist denies sending PING to `%s' `%s' `%s'\n",
@@ -743,7 +749,10 @@ revalidate_address (void *cls,
                             GNUNET_NO);
   bc = GST_blacklist_test_allowed (&ve->address->peer,
 				   ve->address->transport_name,
-                                   &transmit_ping_if_allowed, ve);
+                                   &transmit_ping_if_allowed,
+				   ve,
+				   NULL,
+				   NULL);
   if (NULL != bc)
     ve->bc = bc;                /* only set 'bc' if 'transmit_ping_if_allowed' was not already
                                  * called... */

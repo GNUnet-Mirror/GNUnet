@@ -69,52 +69,9 @@ struct SessionKiller
   /**
    * The kill task.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 };
 
-
-/**
- * We track active blacklist checks in a DLL so we can cancel them if
- * necessary.  We typically check against the blacklist a few times
- * during connection setup, as the check is asynchronous and the
- * blacklist may change its mind before the connection goes fully up.
- * Similarly, the session may die during the asynchronous check, so
- * we use this list to then cancel ongoing checks.
- */
-struct BlacklistCheckContext
-{
-  /**
-   * We keep these in a DLL.
-   */
-  struct BlacklistCheckContext *prev;
-
-  /**
-   * We keep these in a DLL.
-   */
-  struct BlacklistCheckContext *next;
-
-  /**
-   * Handle with the blacklist subsystem.
-   */
-  struct GST_BlacklistCheck *blc;
-
-  /**
-   * The address we are checking.
-   */
-  struct GNUNET_HELLO_Address *address;
-
-  /**
-   * Session associated with the address (or NULL).
-   */
-  struct Session *session;
-
-  /**
-   * Message to process in the continuation if the
-   * blacklist check is ok, can be NULL.
-   */
-  struct GNUNET_MessageHeader *msg;
-
-};
 
 /* globals */
 
@@ -177,20 +134,6 @@ static struct SessionKiller *sk_tail;
  * Interface scanner determines our LAN address range(s).
  */
 struct GNUNET_ATS_InterfaceScanner *GST_is;
-
-/**
- * Head of DLL of blacklist checks we have pending for
- * incoming sessions and/or SYN requests.  We may
- * want to move this into the blacklist-logic at some
- * point.
- */
-struct BlacklistCheckContext *bc_head;
-
-/**
- * Tail of DLL of blacklist checks we have pending for
- * incoming sessions and/or SYN requests.
- */
-struct BlacklistCheckContext *bc_tail;
 
 
 /**
@@ -323,44 +266,6 @@ kill_session_task (void *cls,
 
 
 /**
- * Cancel all blacklist checks that are pending for the given address and session.
- * NOTE: Consider moving the "bc_*" logic into blacklist.h?
- *
- * @param address address to remove from check
- * @param sesssion session that must match to remove for check
- */
-static void
-cancel_pending_blacklist_checks (const struct GNUNET_HELLO_Address *address,
-                                 struct Session *session)
-{
-  struct BlacklistCheckContext *blctx;
-  struct BlacklistCheckContext *next;
-
-  next = bc_head;
-  for (blctx = next; NULL != blctx; blctx = next)
-  {
-    next = blctx->next;
-    if ( (NULL != blctx->address) &&
-         (0 == GNUNET_HELLO_address_cmp(blctx->address, address)) &&
-         (blctx->session == session))
-    {
-      GNUNET_CONTAINER_DLL_remove (bc_head,
-                                   bc_tail,
-                                   blctx);
-      if (NULL != blctx->blc)
-      {
-        GST_blacklist_test_cancel (blctx->blc);
-        blctx->blc = NULL;
-      }
-      GNUNET_HELLO_address_free (blctx->address);
-      GNUNET_free_non_null (blctx->msg);
-      GNUNET_free (blctx);
-    }
-  }
-}
-
-
-/**
  * Force plugin to terminate session due to communication
  * issue.
  *
@@ -398,54 +303,49 @@ kill_session (const char *plugin_name,
  * Black list check result for try_connect call
  * If connection to the peer is allowed request adddress and ???
  *
- * @param cls blc_ctx bl context
+ * @param cls the message
  * @param peer the peer
+ * @param address the address
+ * @param session the session
  * @param result the result
  */
 static void
 connect_bl_check_cont (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
+		       const struct GNUNET_HELLO_Address *address,
+		       struct Session *session,
                        int result)
 {
-  struct BlacklistCheckContext *blctx = cls;
+  struct GNUNET_MessageHeader *msg = cls;
 
-  GNUNET_CONTAINER_DLL_remove (bc_head,
-                               bc_tail,
-                               blctx);
-  blctx->blc = NULL;
   if (GNUNET_OK == result)
   {
     /* Blacklist allows to speak to this peer, forward SYN to neighbours  */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Received SYN message from peer `%s' at `%s'\n",
                 GNUNET_i2s (peer),
-                GST_plugins_a2s (blctx->address));
+                GST_plugins_a2s (address));
     if (GNUNET_OK !=
-        GST_neighbours_handle_session_syn (blctx->msg,
-                                           &blctx->address->peer))
+        GST_neighbours_handle_session_syn (msg,
+                                           peer))
     {
-      cancel_pending_blacklist_checks (blctx->address,
-                                       blctx->session);
-      kill_session (blctx->address->transport_name,
-                    blctx->session);
+      GST_blacklist_abort_matching (address,
+				    session);
+      kill_session (address->transport_name,
+                    session);
     }
+    GNUNET_free (msg);
+    return;
   }
-  else
-  {
-    /* Blacklist denies to speak to this peer */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Discarding SYN message from `%s' due to denied blacklist check\n",
-                GNUNET_i2s (peer));
-    cancel_pending_blacklist_checks (blctx->address,
-                                     blctx->session);
-    kill_session (blctx->address->transport_name,
-                  blctx->session);
-  }
-
-  if (NULL != blctx->address)
-    GNUNET_HELLO_address_free (blctx->address);
-  GNUNET_free (blctx->msg);
-  GNUNET_free (blctx);
+  GNUNET_free (msg);
+  if (GNUNET_SYSERR == result)
+    return; /* check was aborted, session destroyed */
+  /* Blacklist denies to speak to this peer */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Discarding SYN message from `%s' due to denied blacklist check\n",
+	      GNUNET_i2s (peer));
+  kill_session (address->transport_name,
+		session);
 }
 
 
@@ -470,8 +370,6 @@ GST_receive_callback (void *cls,
 {
   const char *plugin_name = cls;
   struct GNUNET_TIME_Relative ret;
-  struct BlacklistCheckContext *blctx;
-  struct GST_BlacklistCheck *blc;
   uint16_t type;
 
   ret = GNUNET_TIME_UNIT_ZERO;
@@ -498,8 +396,8 @@ GST_receive_callback (void *cls,
     if (GNUNET_OK != GST_validation_handle_hello (message))
     {
       GNUNET_break_op (0);
-      cancel_pending_blacklist_checks (address,
-                                       session);
+      GST_blacklist_abort_matching (address,
+				    session);
     }
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
@@ -512,8 +410,8 @@ GST_receive_callback (void *cls,
                                     address,
                                     session))
     {
-      cancel_pending_blacklist_checks (address,
-                                       session);
+      GST_blacklist_abort_matching (address,
+				    session);
       kill_session (plugin_name,
                     session);
     }
@@ -524,31 +422,20 @@ GST_receive_callback (void *cls,
                GST_plugins_a2s (address));
     if (GNUNET_OK != GST_validation_handle_pong (&address->peer, message))
     {
-      GNUNET_break_op(0);
-      cancel_pending_blacklist_checks (address, session);
+      GNUNET_break_op (0);
+      GST_blacklist_abort_matching (address,
+				    session);
       kill_session (plugin_name, session);
     }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN:
     /* Do blacklist check if communication with this peer is allowed */
-    blctx = GNUNET_new (struct BlacklistCheckContext);
-    blctx->address = GNUNET_HELLO_address_copy (address);
-    blctx->session = session;
-    blctx->msg = GNUNET_malloc (ntohs(message->size));
-    memcpy (blctx->msg,
-            message,
-            ntohs (message->size));
-    GNUNET_CONTAINER_DLL_insert (bc_head,
-                                 bc_tail,
-                                 blctx);
-    if (NULL !=
-        (blc = GST_blacklist_test_allowed (&address->peer,
-                                           NULL,
-                                           &connect_bl_check_cont,
-                                           blctx)))
-    {
-      blctx->blc = blc;
-    }
+    (void) GST_blacklist_test_allowed (&address->peer,
+				       NULL,
+				       &connect_bl_check_cont,
+				       GNUNET_copy_message (message),
+				       address,
+				       session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_SYN_ACK:
     if (GNUNET_OK !=
@@ -556,7 +443,7 @@ GST_receive_callback (void *cls,
                                                address,
                                                session))
     {
-      cancel_pending_blacklist_checks (address, session);
+      GST_blacklist_abort_matching (address, session);
       kill_session (plugin_name, session);
     }
     break;
@@ -567,7 +454,7 @@ GST_receive_callback (void *cls,
                                            session))
     {
       GNUNET_break_op(0);
-      cancel_pending_blacklist_checks (address, session);
+      GST_blacklist_abort_matching (address, session);
       kill_session (plugin_name, session);
     }
     break;
@@ -684,7 +571,7 @@ plugin_env_session_end (void *cls,
 
   GST_neighbours_session_terminated (&address->peer, session);
   GST_ats_del_session (address, session);
-  cancel_pending_blacklist_checks (address, session);
+  GST_blacklist_abort_matching (address, session);
 
   for (sk = sk_head; NULL != sk; sk = sk->next)
   {
@@ -704,39 +591,34 @@ plugin_env_session_end (void *cls,
  * plugin gave us a new session in #plugin_env_session_start().  If
  * connection to the peer is disallowed, kill the session.
  *
- * @param cls blc_ctx bl context
+ * @param cls NULL
  * @param peer the peer
+ * @param address address associated with the request
+ * @param session session associated with the request
  * @param result the result
  */
 static void
 plugin_env_session_start_bl_check_cont (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
+					const struct GNUNET_HELLO_Address *address,
+					struct Session *session,
                                         int result)
 {
-  struct BlacklistCheckContext *blctx = cls;
-
-  GNUNET_CONTAINER_DLL_remove (bc_head,
-                               bc_tail,
-                               blctx);
-  blctx->blc = NULL;
   if (GNUNET_OK != result)
   {
-    cancel_pending_blacklist_checks (blctx->address,
-                                     blctx->session);
-    kill_session (blctx->address->transport_name,
-                  blctx->session);
+    kill_session (address->transport_name,
+                  session);
+    return;
   }
-  else if (GNUNET_YES !=
-           GNUNET_HELLO_address_check_option (blctx->address,
-                                              GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+  if (GNUNET_YES !=
+      GNUNET_HELLO_address_check_option (address,
+					 GNUNET_HELLO_ADDRESS_INFO_INBOUND))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Informing verifier about inbound session's address `%s'\n",
-                GST_plugins_a2s (blctx->address));
-    GST_validation_handle_address (blctx->address);
+                GST_plugins_a2s (address));
+    GST_validation_handle_address (address);
   }
-  GNUNET_HELLO_address_free (blctx->address);
-  GNUNET_free (blctx);
 }
 
 
@@ -754,8 +636,6 @@ plugin_env_session_start (void *cls,
                           struct Session *session,
                           enum GNUNET_ATS_Network_Type scope)
 {
-  struct BlacklistCheckContext *blctx;
-  struct GST_BlacklistCheck *blc;
   struct GNUNET_ATS_Properties prop;
 
   if (NULL == address)
@@ -788,20 +668,12 @@ plugin_env_session_start (void *cls,
                                  &prop);
   }
   /* Do blacklist check if communication with this peer is allowed */
-  blctx = GNUNET_new (struct BlacklistCheckContext);
-  blctx->address = GNUNET_HELLO_address_copy (address);
-  blctx->session = session;
-  GNUNET_CONTAINER_DLL_insert (bc_head,
-                               bc_tail,
-                               blctx);
-  if (NULL !=
-      (blc = GST_blacklist_test_allowed (&address->peer,
-                                         address->transport_name,
-                                         &plugin_env_session_start_bl_check_cont,
-                                         blctx)))
-  {
-    blctx->blc = blc;
-  }
+  (void) GST_blacklist_test_allowed (&address->peer,
+				     address->transport_name,
+				     &plugin_env_session_start_bl_check_cont,
+				     NULL,
+				     address,
+				     session);
 }
 
 

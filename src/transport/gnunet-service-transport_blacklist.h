@@ -27,6 +27,7 @@
 #define GNUNET_SERVICE_TRANSPORT_BLACKLIST_H
 
 #include "gnunet_statistics_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_util_lib.h"
 
 /**
@@ -99,12 +100,17 @@ struct GST_BlacklistCheck;
  *
  * @param cls closure
  * @param peer identity of peer that was tested
+ * @param address address associated with the request
+ * @param session session associated with the request
  * @param result #GNUNET_OK if the connection is allowed,
- *               #GNUNET_NO if not
+ *               #GNUNET_NO if not,
+ *               #GNUNET_SYSERR if operation was aborted
  */
 typedef void
 (*GST_BlacklistTestContinuation) (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
+				  const struct GNUNET_HELLO_Address *address,
+				  struct Session *session,
                                   int result);
 
 
@@ -115,13 +121,30 @@ typedef void
  * @param transport_name name of the transport to test, never NULL
  * @param cont function to call with result
  * @param cont_cls closure for @a cont
+ * @param address address to pass back to @a cont, can be NULL
+ * @param session session to pass back to @a cont, can be NULL
  * @return handle to the blacklist check, NULL if the decision
  *        was made instantly and @a cont was already called
  */
 struct GST_BlacklistCheck *
 GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
                             const char *transport_name,
-                            GST_BlacklistTestContinuation cont, void *cont_cls);
+                            GST_BlacklistTestContinuation cont, 
+			    void *cont_cls,
+			    const struct GNUNET_HELLO_Address *address,
+			    struct Session *session);
+
+
+/**
+ * Abort blacklist if @a address and @a session match.
+ *
+ * @param address address used to abort matching checks
+ * @param session session used to abort matching checks
+ */
+void
+GST_blacklist_abort_matching (const struct GNUNET_HELLO_Address *address,
+			      struct Session *session);
+
 
 
 /**

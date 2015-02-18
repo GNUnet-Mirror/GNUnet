@@ -303,7 +303,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
   ai = find_ai (address, session);
   if (NULL == ai)
   {
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return;
   }
   if (NULL == ai->ar)

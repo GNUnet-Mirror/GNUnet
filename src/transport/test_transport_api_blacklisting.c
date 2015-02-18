@@ -367,7 +367,8 @@ blacklist_cb (void *cls,
   return res;
 }
 
-void
+
+static void
 start_cb (struct PeerContext *p, void *cls)
 {
   static int started;
@@ -391,6 +392,7 @@ start_cb (struct PeerContext *p, void *cls)
                                                NULL);
 
 }
+
 
 static void
 run (void *cls, char *const *args, const char *cfgfile,
