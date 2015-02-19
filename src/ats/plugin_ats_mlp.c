@@ -785,7 +785,6 @@ mlp_create_problem_update_value (struct MLP_Problem *p,
   double *val_array;
   int *ind_array;
 
-  GNUNET_assert (NULL != p);
   GNUNET_assert (NULL != p->prob);
 
   /* Get number of columns and prepare data structure */
@@ -1589,8 +1588,8 @@ GAS_mlp_solve_problem (void *solver)
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
     notify(mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS, GAS_INFO_FULL);
-    mlp_delete_problem(mlp);
-    if (GNUNET_SYSERR == mlp_create_problem(mlp))
+    mlp_delete_problem (mlp);
+    if (GNUNET_SYSERR == mlp_create_problem (mlp))
       {
         notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL, GAS_INFO_FULL);
         return GNUNET_SYSERR;
@@ -1904,6 +1903,9 @@ GAS_mlp_address_property_changed (void *solver,
 {
   struct MLP_information *mlpi = address->solver_information;
   struct GAS_MLP_Handle *mlp = solver;
+
+  if (NULL == mlp->p.prob)
+    return; /* There is no MLP problem to update yet */
 
   if (NULL == mlpi)
   {
