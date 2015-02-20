@@ -159,6 +159,10 @@ struct GNUNET_HELPER_Handle
    */
   int with_control_pipe;
 
+  /**
+   * Count start attempts to increase linear back off
+   */
+  unsigned int retry_back_off;
 };
 
 
@@ -346,8 +350,9 @@ helper_read (void *cls,
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task =
-	GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed(
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+            h->retry_back_off), &restart_task, h);
     return;
   }
   if (0 == t)
@@ -365,9 +370,9 @@ helper_read (void *cls,
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed(
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+            h->retry_back_off), &restart_task, h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -390,9 +395,9 @@ helper_read (void *cls,
     }
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task =
-        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                      &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed(
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+            h->retry_back_off), &restart_task, h);
     return;
   }
 }
@@ -413,8 +418,9 @@ start_helper (struct GNUNET_HELPER_Handle *h)
     /* out of file descriptors? try again later... */
     stop_helper (h, GNUNET_NO);
     h->restart_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				    &restart_task, h);
+      GNUNET_SCHEDULER_add_delayed(
+          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+              h->retry_back_off), &restart_task, h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -433,9 +439,9 @@ start_helper (struct GNUNET_HELPER_Handle *h)
   {
     /* failed to start process? try again later... */
     stop_helper (h, GNUNET_NO);
-    h->restart_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				    &restart_task, h);
+    h->restart_task = GNUNET_SCHEDULER_add_delayed(
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+            h->retry_back_off), &restart_task, h);
     return;
   }
   GNUNET_DISK_pipe_close_end (h->helper_out, GNUNET_DISK_PIPE_END_WRITE);
@@ -461,6 +467,8 @@ restart_task (void *cls,
   struct GNUNET_HELPER_Handle*h = cls;
 
   h->restart_task = NULL;
+  h->retry_back_off++;
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%u\n",h->retry_back_off);
   start_helper (h);
 }
 
@@ -508,6 +516,7 @@ GNUNET_HELPER_start (int with_control_pipe,
   if (NULL != cb)
     h->mst = GNUNET_SERVER_mst_create (cb, h->cb_cls);
   h->exp_cb = exp_cb;
+  h->retry_back_off = 0;
   start_helper (h);
   return h;
 }
@@ -619,9 +628,9 @@ helper_write (void *cls,
 		"Stopping and restarting helper task!\n");
     stop_helper (h, GNUNET_NO);
     /* Restart the helper */
-    h->restart_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-				    &restart_task, h);
+      h->restart_task = GNUNET_SCHEDULER_add_delayed(
+          GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS,
+              h->retry_back_off), &restart_task, h);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
