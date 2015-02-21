@@ -479,10 +479,13 @@ open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
        * fail if we already took the port on IPv6; if both IPv4 and
        * IPv6 binds fail, then our caller will log using the
        * errno preserved in 'eno' */
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "bind");
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+                    "bind");
       if (0 != port)
-        LOG (GNUNET_ERROR_TYPE_ERROR, _("`%s' failed for port %d (%s).\n"),
-             "bind", port,
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("`%s' failed for port %d (%s).\n"),
+             "bind",
+             port,
              (AF_INET == server_addr->sa_family) ? "IPv4" : "IPv6");
       eno = 0;
     }
@@ -507,13 +510,15 @@ open_listen_socket (const struct sockaddr *server_addr, socklen_t socklen)
   }
   if (GNUNET_OK != GNUNET_NETWORK_socket_listen (sock, 5))
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "listen");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR,
+                  "listen");
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
     errno = 0;
     return NULL;
   }
   if (0 != port)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Server starts to listen on port %u.\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Server starts to listen on port %u.\n",
          port);
   return sock;
 }
@@ -620,7 +625,7 @@ GNUNET_SERVER_create (GNUNET_CONNECTION_AccessCheck access_cb,
   {
     lsocks = NULL;
   }
-  return GNUNET_SERVER_create_with_sockets (access_cb, 
+  return GNUNET_SERVER_create_with_sockets (access_cb,
 					    access_cb_cls,
 					    lsocks,
                                             idle_timeout,
@@ -1040,7 +1045,8 @@ process_incoming (void *cls,
  *            #GNUNET_SYSERR if we should instantly abort due to error in a previous step
  */
 static void
-process_mst (struct GNUNET_SERVER_Client *client, int ret)
+process_mst (struct GNUNET_SERVER_Client *client,
+             int ret)
 {
   while ((GNUNET_SYSERR != ret) && (NULL != client->server) &&
          (GNUNET_YES != client->shutdown_now) && (0 == client->suspended))
@@ -1053,7 +1059,8 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
       client->receive_pending = GNUNET_YES;
       GNUNET_CONNECTION_receive (client->connection,
                                  GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-                                 client->idle_timeout, &process_incoming,
+                                 client->idle_timeout,
+                                 &process_incoming,
                                  client);
       break;
     }
@@ -1092,12 +1099,16 @@ process_mst (struct GNUNET_SERVER_Client *client, int ret)
  * @param buf buffer with data received from network
  * @param available number of bytes available in buf
  * @param addr address of the sender
- * @param addrlen length of addr
+ * @param addrlen length of @a addr
  * @param errCode code indicating errors receiving, 0 for success
  */
 static void
-process_incoming (void *cls, const void *buf, size_t available,
-                  const struct sockaddr *addr, socklen_t addrlen, int errCode)
+process_incoming (void *cls,
+                  const void *buf,
+                  size_t available,
+                  const struct sockaddr *addr,
+                  socklen_t addrlen,
+                  int errCode)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct GNUNET_SERVER_Handle *server = client->server;
@@ -1108,17 +1119,22 @@ process_incoming (void *cls, const void *buf, size_t available,
   GNUNET_assert (GNUNET_YES == client->receive_pending);
   client->receive_pending = GNUNET_NO;
   now = GNUNET_TIME_absolute_get ();
-  end = GNUNET_TIME_absolute_add (client->last_activity, client->idle_timeout);
+  end = GNUNET_TIME_absolute_add (client->last_activity,
+                                  client->idle_timeout);
 
-  if ((NULL == buf) && (0 == available) && (NULL == addr) && (0 == errCode) &&
-      (GNUNET_YES != client->shutdown_now) && (NULL != server) &&
-      (GNUNET_YES == GNUNET_CONNECTION_check (client->connection)) &&
-      (end.abs_value_us > now.abs_value_us))
+  if ( (NULL == buf) &&
+       (0 == available) &&
+       (NULL == addr) &&
+       (0 == errCode) &&
+       (GNUNET_YES != client->shutdown_now) &&
+       (NULL != server) &&
+       (GNUNET_YES == GNUNET_CONNECTION_check (client->connection)) &&
+       (end.abs_value_us > now.abs_value_us) )
   {
     /* wait longer, timeout changed (i.e. due to us sending) */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receive time out, but no disconnect due to sending (%p)\n",
-         GNUNET_a2s (addr, addrlen));
+         client);
     client->receive_pending = GNUNET_YES;
     GNUNET_CONNECTION_receive (client->connection,
                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
@@ -1126,27 +1142,45 @@ process_incoming (void *cls, const void *buf, size_t available,
                                &process_incoming, client);
     return;
   }
-  if ((NULL == buf) || (0 == available) || (0 != errCode) || (NULL == server) ||
-      (GNUNET_YES == client->shutdown_now) ||
-      (GNUNET_YES != GNUNET_CONNECTION_check (client->connection)))
+  if ( (NULL == buf) ||
+       (0 == available) ||
+       (0 != errCode) ||
+       (NULL == server) ||
+       (GNUNET_YES == client->shutdown_now) ||
+       (GNUNET_YES != GNUNET_CONNECTION_check (client->connection)) )
   {
     /* other side closed connection, error connecting, etc. */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Failed to connect or other side closed connection (%p)\n",
+         client);
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Server receives %u bytes from `%s'.\n",
-       (unsigned int) available, GNUNET_a2s (addr, addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Server receives %u bytes from `%s'.\n",
+       (unsigned int) available,
+       GNUNET_a2s (addr, addrlen));
   GNUNET_SERVER_client_keep (client);
   client->last_activity = now;
 
   if (NULL != server->mst_receive)
-    ret =
-        client->server->mst_receive (client->server->mst_cls, client->mst,
-                                     client, buf, available, GNUNET_NO, GNUNET_YES);
+  {
+    ret = client->server->mst_receive (client->server->mst_cls,
+                                       client->mst,
+                                       client,
+                                       buf,
+                                       available,
+                                       GNUNET_NO,
+                                       GNUNET_YES);
+  }
   else if (NULL != client->mst)
   {
     ret =
-        GNUNET_SERVER_mst_receive (client->mst, client, buf, available, GNUNET_NO,
+        GNUNET_SERVER_mst_receive (client->mst,
+                                   client,
+                                   buf,
+                                   available,
+                                   GNUNET_NO,
                                    GNUNET_YES);
   }
   else
@@ -1154,8 +1188,8 @@ process_incoming (void *cls, const void *buf, size_t available,
     GNUNET_break (0);
     return;
   }
-
-  process_mst (client, ret);
+  process_mst (client,
+               ret);
   GNUNET_SERVER_client_drop (client);
 }
 
@@ -1164,11 +1198,12 @@ process_incoming (void *cls, const void *buf, size_t available,
  * Task run to start again receiving from the network
  * and process requests.
  *
- * @param cls our 'struct GNUNET_SERVER_Client*' to process more requests from
+ * @param cls our `struct GNUNET_SERVER_Client *` to process more requests from
  * @param tc scheduler context (unused)
  */
 static void
-restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_processing (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
@@ -1180,14 +1215,17 @@ restart_processing (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     client->receive_pending = GNUNET_YES;
     GNUNET_CONNECTION_receive (client->connection,
                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-                               client->idle_timeout, &process_incoming, client);
+                               client->idle_timeout,
+                               &process_incoming,
+                               client);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Server continues processing messages still in the buffer.\n");
   GNUNET_SERVER_client_keep (client);
   client->receive_pending = GNUNET_NO;
-  process_mst (client, GNUNET_NO);
+  process_mst (client,
+               GNUNET_NO);
   GNUNET_SERVER_client_drop (client);
 }
 
@@ -1258,15 +1296,17 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
         server->mst_create (server->mst_cls, client);
   else
     client->mst =
-        GNUNET_SERVER_mst_create (&client_message_tokenizer_callback, server);
+        GNUNET_SERVER_mst_create (&client_message_tokenizer_callback,
+                                  server);
   GNUNET_assert (NULL != client->mst);
   for (n = server->connect_notify_list_head; NULL != n; n = n->next)
     n->callback (n->callback_cls, client);
-
   client->receive_pending = GNUNET_YES;
   GNUNET_CONNECTION_receive (client->connection,
                              GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-                             client->idle_timeout, &process_incoming, client);
+                             client->idle_timeout,
+                             &process_incoming,
+                             client);
   return client;
 }
 
@@ -1572,7 +1612,7 @@ GNUNET_SERVER_client_disable_corking (struct GNUNET_SERVER_Client *client)
  * Wrapper for transmission notification that calls the original
  * callback and update the last activity time for our connection.
  *
- * @param cls the `struct GNUNET_SERVER_Client`
+ * @param cls the `struct GNUNET_SERVER_Client *`
  * @param size number of bytes we can transmit
  * @param buf where to copy the message
  * @return number of bytes actually transmitted

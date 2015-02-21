@@ -973,10 +973,10 @@ GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc,
 
   ret = shutdown (desc->fd, how);
 #ifdef MINGW
-  if (ret != 0)
+  if (0 != ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
 #endif
-  return ret == 0 ? GNUNET_OK : GNUNET_SYSERR;
+  return (0 == ret) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
 

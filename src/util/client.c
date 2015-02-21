@@ -217,7 +217,9 @@ struct GNUNET_CLIENT_Connection
 
   /**
    * Are we currently busy doing receive-processing?
-   * #GNUNET_YES if so, #GNUNET_NO if not.
+   * #GNUNET_YES if so, #GNUNET_NO if not. #GNUNET_SYSERR
+   * if the connection has failed (but we may not have
+   * closed the handle itself yet).
    */
   int in_receive;
 
@@ -504,8 +506,12 @@ check_complete (struct GNUNET_CLIENT_Connection *client)
  * @param errCode value of errno (on errors receiving)
  */
 static void
-receive_helper (void *cls, const void *buf, size_t available,
-                const struct sockaddr *addr, socklen_t addrlen, int errCode)
+receive_helper (void *cls,
+                const void *buf,
+                size_t available,
+                const struct sockaddr *addr,
+                socklen_t addrlen,
+                int errCode)
 {
   struct GNUNET_CLIENT_Connection *client = cls;
   struct GNUNET_TIME_Relative remaining;
@@ -515,19 +521,25 @@ receive_helper (void *cls, const void *buf, size_t available,
   GNUNET_assert (GNUNET_NO == client->msg_complete);
   GNUNET_assert (GNUNET_YES == client->in_receive);
   client->in_receive = GNUNET_NO;
-  if ((0 == available) || (NULL == client->connection) || (0 != errCode))
+  if ( (0 == available) ||
+       (NULL == client->connection) ||
+       (0 != errCode) )
   {
     /* signal timeout! */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Timeout in receive_helper, available %u, client->connection %s, errCode `%s'\n",
-         (unsigned int) available, NULL == client->connection ? "NULL" : "non-NULL",
+         (unsigned int) available,
+         NULL == client->connection ? "NULL" : "non-NULL",
          STRERROR (errCode));
     if (NULL != (receive_handler = client->receiver_handler))
     {
       receive_handler_cls = client->receiver_handler_cls;
       client->receiver_handler = NULL;
-      receive_handler (receive_handler_cls, NULL);
+      receive_handler (receive_handler_cls,
+                       NULL);
     }
+    /* remember failure */
+    client->in_receive = GNUNET_SYSERR;
     return;
   }
   /* FIXME: optimize for common fast case where buf contains the
@@ -565,7 +577,8 @@ receive_helper (void *cls, const void *buf, size_t available,
  * @param tc scheduler context
  */
 static void
-receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+receive_task (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_Connection *client = cls;
   GNUNET_CLIENT_MessageHandler handler = client->receiver_handler;
@@ -576,12 +589,22 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char mbuf[msize] GNUNET_ALIGN;
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) mbuf;
 
+  client->receive_task = NULL;
+  if ( (GNUNET_SYSERR == client->in_receive) &&
+       (GNUNET_YES != client->msg_complete) )
+  {
+    /* Connection failure, signal to caller! */
+    client->receiver_handler = NULL;
+    if (NULL != handler)
+      handler (handler_cls,
+               NULL);
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message of type %u and size %u from %s service.\n",
        ntohs (cmsg->type),
        msize,
        client->service_name);
-  client->receive_task = NULL;
   GNUNET_assert (GNUNET_YES == client->msg_complete);
   GNUNET_assert (client->received_pos >= msize);
   memcpy (msg, cmsg, msize);
@@ -618,25 +641,29 @@ GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
 		client->service_name);
     GNUNET_break (0);           /* this should not happen in well-written code! */
     if (NULL != handler)
-      handler (handler_cls, NULL);
+      handler (handler_cls,
+               NULL);
     return;
   }
   client->receiver_handler = handler;
   client->receiver_handler_cls = handler_cls;
   client->receive_timeout = GNUNET_TIME_relative_to_absolute (timeout);
-  if (GNUNET_YES == client->msg_complete)
+  if ( (GNUNET_YES == client->msg_complete) ||
+       (GNUNET_SYSERR == client->in_receive) )
   {
     GNUNET_assert (NULL == client->receive_task);
     client->receive_task = GNUNET_SCHEDULER_add_now (&receive_task, client);
+    return;
   }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "calling GNUNET_CONNECTION_receive\n");
-    GNUNET_assert (GNUNET_NO == client->in_receive);
-    client->in_receive = GNUNET_YES;
-    GNUNET_CONNECTION_receive (client->connection, GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
-                               timeout, &receive_helper, client);
-  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "calling GNUNET_CONNECTION_receive\n");
+  GNUNET_assert (GNUNET_NO == client->in_receive);
+  client->in_receive = GNUNET_YES;
+  GNUNET_CONNECTION_receive (client->connection,
+                             GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
+                             timeout,
+                             &receive_helper,
+                             client);
 }
 
 
@@ -751,7 +778,8 @@ service_test_report (struct GNUNET_CLIENT_TestHandle *th,
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-confirm_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+confirm_handler (void *cls,
+                 const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CLIENT_TestHandle *th = cls;
 
@@ -1036,7 +1064,7 @@ GNUNET_CLIENT_service_test (const char *service,
  * @param cls our `struct GNUNET_CLIENT_TransmissionHandle`
  * @param size number of bytes available for transmission
  * @param buf where to write them
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
 client_notify (void *cls, size_t size, void *buf);
@@ -1111,7 +1139,9 @@ client_delayed_retry (void *cls,
  * @return number of bytes written to @a buf
  */
 static size_t
-client_notify (void *cls, size_t size, void *buf)
+client_notify (void *cls,
+               size_t size,
+               void *buf)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
   struct GNUNET_CLIENT_Connection *client = th->client;
@@ -1126,14 +1156,16 @@ client_notify (void *cls, size_t size, void *buf)
   {
     delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
     delay.rel_value_us /= 2;
-    if ((GNUNET_YES != th->auto_retry) || (0 == --th->attempts_left) ||
-        (delay.rel_value_us < 1)||
-	(0 != (GNUNET_SCHEDULER_get_reason() & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
+    if ( (GNUNET_YES != th->auto_retry) ||
+         (0 == --th->attempts_left) ||
+         (delay.rel_value_us < 1)||
+         (0 != (GNUNET_SCHEDULER_get_reason() & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Transmission failed %u times, giving up.\n",
            MAX_ATTEMPTS - th->attempts_left);
-      GNUNET_break (0 == th->notify (th->notify_cls, 0, NULL));
+      GNUNET_break (0 ==
+                    th->notify (th->notify_cls, 0, NULL));
       GNUNET_free (th);
       return 0;
     }
@@ -1232,13 +1264,14 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
         GNUNET_SCHEDULER_add_delayed (client->back_off,
                                       &client_delayed_retry,
                                       th);
-
   }
   else
   {
-    th->th =
-        GNUNET_CONNECTION_notify_transmit_ready (client->connection, size, timeout,
-                                                 &client_notify, th);
+    th->th = GNUNET_CONNECTION_notify_transmit_ready (client->connection,
+                                                      size,
+                                                      timeout,
+                                                      &client_notify,
+                                                      th);
     if (NULL == th->th)
     {
       GNUNET_break (0);
@@ -1281,7 +1314,7 @@ GNUNET_CLIENT_notify_transmit_ready_cancel (struct GNUNET_CLIENT_TransmitHandle 
  * NULL and @a size zero if the socket was closed for
  * writing in the meantime.
  *
- * @param cls closure of type "struct TransmitGetResponseContext*"
+ * @param cls closure of type `struct TransmitGetResponseContext *`
  * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
  * @return number of bytes written to @a buf
@@ -1299,7 +1332,7 @@ transmit_for_response (void *cls,
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         _("Could not submit request, not expecting to receive a response.\n"));
+         "Could not submit request, not expecting to receive a response.\n");
     if (NULL != tc->rn)
       tc->rn (tc->rn_cls, NULL);
     GNUNET_free (tc);
@@ -1307,7 +1340,9 @@ transmit_for_response (void *cls,
   }
   GNUNET_assert (size >= msize);
   memcpy (buf, tc->hdr, msize);
-  GNUNET_CLIENT_receive (tc->client, tc->rn, tc->rn_cls,
+  GNUNET_CLIENT_receive (tc->client,
+                         tc->rn,
+                         tc->rn_cls,
                          GNUNET_TIME_absolute_get_remaining (tc->timeout));
   GNUNET_free (tc);
   return msize;

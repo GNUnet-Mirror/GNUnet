@@ -469,7 +469,8 @@ GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *connection,
  * @param errcode error code to send
  */
 static void
-signal_receive_error (struct GNUNET_CONNECTION_Handle *connection, int errcode)
+signal_receive_error (struct GNUNET_CONNECTION_Handle *connection,
+                      int errcode)
 {
   GNUNET_CONNECTION_Receiver receiver;
 
@@ -479,7 +480,12 @@ signal_receive_error (struct GNUNET_CONNECTION_Handle *connection, int errcode)
        connection);
   GNUNET_assert (NULL != (receiver = connection->receiver));
   connection->receiver = NULL;
-  receiver (connection->receiver_cls, NULL, 0, connection->addr, connection->addrlen, errcode);
+  receiver (connection->receiver_cls,
+            NULL,
+            0,
+            connection->addr,
+            connection->addrlen,
+            errcode);
 }
 
 
@@ -519,8 +525,9 @@ signal_transmit_error (struct GNUNET_CONNECTION_Handle *connection,
        connection);
   if (NULL != connection->sock)
   {
-    GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR);
-    GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (connection->sock));
+    (void) GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR);
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_NETWORK_socket_close (connection->sock));
     connection->sock = NULL;
     GNUNET_assert (NULL == connection->write_task);
   }
@@ -561,13 +568,15 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *connection)
   /* signal errors for jobs that used to wait on the connection */
   connection->destroy_later = 1;
   if (NULL != connection->receiver)
-    signal_receive_error (connection, ECONNREFUSED);
+    signal_receive_error (connection,
+                          ECONNREFUSED);
   if (NULL != connection->nth.notify_ready)
   {
-    GNUNET_assert (connection->nth.timeout_task != NULL);
+    GNUNET_assert (NULL != connection->nth.timeout_task);
     GNUNET_SCHEDULER_cancel (connection->nth.timeout_task);
     connection->nth.timeout_task = NULL;
-    signal_transmit_error (connection, ECONNREFUSED);
+    signal_transmit_error (connection,
+                           ECONNREFUSED);
   }
   if (-1 == connection->destroy_later)
   {
@@ -979,7 +988,9 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
     connection->destroy_later = -1;
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down connection (%p)\n", connection);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Shutting down connection (%p)\n",
+       connection);
   GNUNET_assert (NULL == connection->nth.notify_ready);
   GNUNET_assert (NULL == connection->receiver);
   if (NULL != connection->write_task)
@@ -1014,15 +1025,21 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
   if ( (NULL != connection->sock) &&
        (GNUNET_YES != connection->persist) )
   {
-    if ((GNUNET_YES != GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR)) &&
+    if ((GNUNET_OK !=
+         GNUNET_NETWORK_socket_shutdown (connection->sock,
+                                         SHUT_RDWR)) &&
 	(ENOTCONN != errno) &&
 	(ECONNRESET != errno) )
-      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "shutdown");
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                    "shutdown");
   }
   if (NULL != connection->sock)
   {
     if (GNUNET_YES != connection->persist)
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (connection->sock));
+    {
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_NETWORK_socket_close (connection->sock));
+    }
     else
     {
       GNUNET_NETWORK_socket_free_memory_only_ (connection->sock); /* at least no memory leak (we deliberately
@@ -1079,7 +1096,9 @@ receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_assert (GNUNET_NETWORK_fdset_isset (tc->read_ready, connection->sock));
 RETRY:
-  ret = GNUNET_NETWORK_socket_recv (connection->sock, buffer, connection->max);
+  ret = GNUNET_NETWORK_socket_recv (connection->sock,
+                                    buffer,
+                                    connection->max);
   if (-1 == ret)
   {
     if (EINTR == errno)
@@ -1088,11 +1107,20 @@ RETRY:
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "receive_ready read %u/%u bytes from `%s' (%p)!\n", (unsigned int) ret,
-       connection->max, GNUNET_a2s (connection->addr, connection->addrlen), connection);
+       "receive_ready read %u/%u bytes from `%s' (%p)!\n",
+       (unsigned int) ret,
+       connection->max,
+       GNUNET_a2s (connection->addr,
+                   connection->addrlen),
+       connection);
   GNUNET_assert (NULL != (receiver = connection->receiver));
   connection->receiver = NULL;
-  receiver (connection->receiver_cls, buffer, ret, connection->addr, connection->addrlen, 0);
+  receiver (connection->receiver_cls,
+            buffer,
+            ret,
+            connection->addr,
+            connection->addrlen,
+            0);
 }
 
 
@@ -1398,7 +1426,7 @@ SCHEDULE_WRITE:
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
  * @param notify function to call
- * @param notify_cls closure for notify
+ * @param notify_cls closure for @a notify
  * @return non-NULL if the notify callback was queued,
  *         NULL if we are already going to notify someone else (busy)
  */
@@ -1431,7 +1459,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
   {
     if (NULL != connection->write_task)
       GNUNET_SCHEDULER_cancel (connection->write_task);
-    connection->write_task = GNUNET_SCHEDULER_add_now (&connect_error, connection);
+    connection->write_task = GNUNET_SCHEDULER_add_now (&connect_error,
+                                                       connection);
     return &connection->nth;
   }
   if (NULL != connection->write_task)
@@ -1439,7 +1468,9 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
   if (NULL != connection->sock)
   {
     /* connected, try to transmit now */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduling transmission (%p).\n", connection);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Scheduling transmission (%p).\n",
+         connection);
     connection->write_task =
         GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_absolute_get_remaining
                                         (connection->nth.transmit_timeout),
@@ -1448,9 +1479,11 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
   }
   /* not yet connected, wait for connection */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Need to wait to schedule transmission for connection, adding timeout task (%p).\n", connection);
+       "Need to wait to schedule transmission for connection, adding timeout task (%p).\n",
+       connection);
   connection->nth.timeout_task =
-    GNUNET_SCHEDULER_add_delayed (timeout, &transmit_timeout, connection);
+    GNUNET_SCHEDULER_add_delayed (timeout,
+                                  &transmit_timeout, connection);
   return &connection->nth;
 }
 
