@@ -1051,7 +1051,7 @@ create_session (struct Plugin *plugin,
   session->address = GNUNET_HELLO_address_copy (address);
   session->target = address->peer;
   session->expecting_welcome = GNUNET_YES;
-  session->scope = GNUNET_ATS_NET_UNSPECIFIED;
+  session->scope = scope;
   pm = GNUNET_malloc (sizeof (struct PendingMessage) +
 		      sizeof (struct WelcomeMessage));
   pm->msg = (const char *) &pm[1];
@@ -2363,6 +2363,7 @@ handle_tcp_welcome (void *cls,
                                                                alen),
                                 client,
                                 GNUNET_NO);
+      GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != session->scope);
       GNUNET_HELLO_address_free (address);
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Creating new%s session %p for peer `%s' client %p\n",

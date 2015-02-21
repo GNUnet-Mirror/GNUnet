@@ -662,6 +662,7 @@ plugin_env_session_start (void *cls,
        may not know the address yet; add if necessary! */
     /* FIXME: maybe change API here so we just pass scope? */
     memset (&prop, 0, sizeof (prop));
+    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != scope);
     prop.scope = scope;
     GST_ats_add_inbound_address (address,
                                  session,
