@@ -394,8 +394,7 @@ GNUNET_SERVER_inject (struct GNUNET_SERVER_Handle *server,
  * @param server the server to use
  * @param connection the connection to manage (client must
  *        stop using this connection from now on)
- * @return the client handle (client should call
- *         #GNUNET_SERVER_client_drop on the return value eventually)
+ * @return the client handle
  */
 struct GNUNET_SERVER_Client *
 GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,

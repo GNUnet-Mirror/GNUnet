@@ -397,7 +397,6 @@ process_listen_socket (void *cls,
 {
   struct GNUNET_SERVER_Handle *server = cls;
   struct GNUNET_CONNECTION_Handle *sock;
-  struct GNUNET_SERVER_Client *client;
   unsigned int i;
 
   server->listen_task = NULL;
@@ -420,9 +419,8 @@ process_listen_socket (void *cls,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "Server accepted incoming connection.\n");
-        client = GNUNET_SERVER_connect_socket (server, sock);
-        /* decrement reference count, we don't keep "client" alive */
-        GNUNET_SERVER_client_drop (client);
+        (void) GNUNET_SERVER_connect_socket (server,
+                                             sock);
       }
     }
     i++;
@@ -1235,13 +1233,14 @@ restart_processing (void *cls,
  * received a complete message.
  *
  * @param cls closure (struct GNUNET_SERVER_Handle)
- * @param client identification of the client (struct GNUNET_SERVER_Client*)
+ * @param client identification of the client (`struct GNUNET_SERVER_Client *`)
  * @param message the actual message
  *
  * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
-client_message_tokenizer_callback (void *cls, void *client,
+client_message_tokenizer_callback (void *cls,
+                                   void *client,
                                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SERVER_Handle *server = cls;
@@ -1272,8 +1271,7 @@ client_message_tokenizer_callback (void *cls, void *client,
  * @param server the server to use
  * @param connection the connection to manage (client must
  *        stop using this connection from now on)
- * @return the client handle (client should call
- *         "client_drop" on the return value eventually)
+ * @return the client handle
  */
 struct GNUNET_SERVER_Client *
 GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
@@ -1284,7 +1282,6 @@ GNUNET_SERVER_connect_socket (struct GNUNET_SERVER_Handle *server,
 
   client = GNUNET_new (struct GNUNET_SERVER_Client);
   client->connection = connection;
-  client->reference_count = 1;
   client->server = server;
   client->last_activity = GNUNET_TIME_absolute_get ();
   client->idle_timeout = server->idle_timeout;
@@ -1491,7 +1488,7 @@ GNUNET_SERVER_connect_notify_cancel (struct GNUNET_SERVER_Handle *server,
 /**
  * Destroy the connection that is passed in via @a cls.  Used
  * as calling #GNUNET_CONNECTION_destroy from within a function
- * that was itself called from within 'process_notify' of
+ * that was itself called from within process_notify() of
  * 'connection.c' is not allowed (see #2329).
  *
  * @param cls connection to destroy
@@ -1547,27 +1544,34 @@ GNUNET_SERVER_client_disconnect (struct GNUNET_SERVER_Client *client)
 				 server->clients_tail,
 				 client);
     if (NULL != server->mst_destroy)
-      server->mst_destroy (server->mst_cls, client->mst);
+      server->mst_destroy (server->mst_cls,
+                           client->mst);
     else
       GNUNET_SERVER_mst_destroy (client->mst);
     client->mst = NULL;
     for (n = server->disconnect_notify_list_head; NULL != n; n = n->next)
-      n->callback (n->callback_cls, client);
+      n->callback (n->callback_cls,
+                   client);
   }
   client->reference_count--;
   if (client->reference_count > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "RC still positive, not destroying everything.\n");
+         "RC of %p still positive, not destroying everything.\n",
+         client);
     client->server = NULL;
     return;
   }
   if (GNUNET_YES == client->in_process_client_buffer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Still processing inputs, not destroying everything.\n");
+         "Still processing inputs of %p, not destroying everything.\n",
+         client);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "RC of %p now zero, destroying everything.\n",
+       client);
   if (GNUNET_YES == client->persist)
     GNUNET_CONNECTION_persist_ (client->connection);
   if (NULL != client->th.cth)

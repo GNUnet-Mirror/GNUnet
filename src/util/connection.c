@@ -421,9 +421,11 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
     if (GNUNET_NO == aret)
       LOG (GNUNET_ERROR_TYPE_INFO,
            _("Access denied to `%s'\n"),
-           GNUNET_a2s (uaddr, addrlen));
+           GNUNET_a2s (uaddr,
+                       addrlen));
     GNUNET_break (GNUNET_OK ==
-                  GNUNET_NETWORK_socket_shutdown (sock, SHUT_RDWR));
+                  GNUNET_NETWORK_socket_shutdown (sock,
+                                                  SHUT_RDWR));
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
     GNUNET_free (uaddr);
     return NULL;
@@ -525,7 +527,8 @@ signal_transmit_error (struct GNUNET_CONNECTION_Handle *connection,
        connection);
   if (NULL != connection->sock)
   {
-    (void) GNUNET_NETWORK_socket_shutdown (connection->sock, SHUT_RDWR);
+    (void) GNUNET_NETWORK_socket_shutdown (connection->sock,
+                                           SHUT_RDWR);
     GNUNET_break (GNUNET_OK ==
                   GNUNET_NETWORK_socket_close (connection->sock));
     connection->sock = NULL;
@@ -1301,14 +1304,17 @@ connect_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc task context describing why we are here
  */
 static void
-transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_ready (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
   ssize_t ret;
   size_t have;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "transmit_ready running (%p).\n", connection);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "transmit_ready running (%p).\n",
+       connection);
   GNUNET_assert (NULL != connection->write_task);
   connection->write_task = NULL;
   GNUNET_assert (NULL == connection->nth.timeout_task);
@@ -1331,7 +1337,9 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Transmit to `%s' fails, time out reached (%p).\n",
-         GNUNET_a2s (connection->addr, connection->addrlen), connection);
+         GNUNET_a2s (connection->addr,
+                     connection->addrlen),
+         connection);
     notify = connection->nth.notify_ready;
     GNUNET_assert (NULL != notify);
     connection->nth.notify_ready = NULL;
