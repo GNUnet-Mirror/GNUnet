@@ -924,8 +924,7 @@ tcp_plugin_disconnect_session (void *cls,
   if (NULL != session->receive_delay_task)
   {
     GNUNET_SCHEDULER_cancel (session->receive_delay_task);
-    if (NULL != session->client)
-      GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
+    session->receive_delay_task = NULL;
   }
   if (NULL != session->client)
   {
