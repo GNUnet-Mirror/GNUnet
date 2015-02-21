@@ -315,6 +315,8 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 			   int af,
                            int type)
 {
+  int eno;
+
   h->af = af;
   h->type = type;
   if (h->fd == INVALID_SOCKET)
@@ -322,7 +324,9 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 #ifdef MINGW
     SetErrnoFromWinsockError (WSAGetLastError ());
 #endif
+    eno = errno;
     GNUNET_free (h);
+    errno = eno;
     return GNUNET_SYSERR;
   }
 #ifndef MINGW
@@ -339,8 +343,10 @@ initialize_network_handle (struct GNUNET_NETWORK_Handle *h,
 
   if (GNUNET_SYSERR == GNUNET_NETWORK_socket_set_blocking (h, GNUNET_NO))
   {
+    eno = errno;
     GNUNET_break (0);
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (h));
+    errno = eno;
     return GNUNET_SYSERR;
   }
 #ifdef DARWIN
@@ -370,6 +376,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
 			      socklen_t *address_len)
 {
   struct GNUNET_NETWORK_Handle *ret;
+  int eno;
 
   ret = GNUNET_new (struct GNUNET_NETWORK_Handle);
 #if DEBUG_NETWORK
@@ -381,7 +388,7 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
                            (struct sockaddr *) &name,
                            &namelen);
 
-    if (gsn == 0)
+    if (0 == gsn)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Accepting connection on `%s'\n",
            GNUNET_a2s ((const struct sockaddr *) &name,
@@ -393,14 +400,19 @@ GNUNET_NETWORK_socket_accept (const struct GNUNET_NETWORK_Handle *desc,
                     address_len);
   if (-1 == ret->fd)
   {
+    eno = errno;
     GNUNET_free (ret);
+    errno = eno;
     return NULL;
   }
   if (GNUNET_OK !=
       initialize_network_handle (ret,
                                  (NULL != address) ? address->sa_family : desc->af,
                                  SOCK_STREAM))
+  {
+
     return NULL;
+  }
   return ret;
 }
 
