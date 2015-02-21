@@ -1366,7 +1366,9 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
        "NAT unregister called\n");
   while (NULL != (ml = h->mini_head))
   {
-    GNUNET_CONTAINER_DLL_remove (h->mini_head, h->mini_tail, ml);
+    GNUNET_CONTAINER_DLL_remove (h->mini_head,
+                                 h->mini_tail,
+                                 ml);
     if (NULL != ml->mini)
       GNUNET_NAT_mini_map_stop (ml->mini);
     GNUNET_free (ml);

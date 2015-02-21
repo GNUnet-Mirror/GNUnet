@@ -1285,11 +1285,12 @@ process_pending_messages (struct Session *session)
   if (NULL == (pm = session->pending_messages_head))
     return;
 
-  session->transmit_handle = GNUNET_SERVER_notify_transmit_ready (session->client,
-                                                                  pm->message_size,
-                                                                  GNUNET_TIME_absolute_get_remaining (pm->timeout),
-                                                                  &do_transmit,
-                                                                  session);
+  session->transmit_handle
+    = GNUNET_SERVER_notify_transmit_ready (session->client,
+                                           pm->message_size,
+                                           GNUNET_TIME_absolute_get_remaining (pm->timeout),
+                                           &do_transmit,
+                                           session);
 }
 
 
