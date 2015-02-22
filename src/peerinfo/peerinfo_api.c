@@ -59,7 +59,7 @@ struct GNUNET_PEERINFO_AddContext
   GNUNET_PEERINFO_Continuation cont;
 
   /**
-   * Closure for 'cont'.
+   * Closure for @e cont.
    */
   void *cont_cls;
 
@@ -110,7 +110,7 @@ struct GNUNET_PEERINFO_IteratorContext
   /**
    * Task responsible for timeout.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * Timeout for the operation.
@@ -179,7 +179,7 @@ struct GNUNET_PEERINFO_Handle
   /**
    * ID for a reconnect task.
    */
-  struct GNUNET_SCHEDULER_Task * r_task;
+  struct GNUNET_SCHEDULER_Task *r_task;
 
   /**
    * Are we now receiving?
@@ -430,8 +430,8 @@ trigger_transmit (struct GNUNET_PEERINFO_Handle *h)
  * @return handle to cancel add operation; all pending
  *         'add' operations will be cancelled automatically
  *        on disconnect, so it is not necessary to keep this
- *        handle (unless 'cont' is NULL and at some point
- *        calling 'cont' must be prevented)
+ *        handle (unless @a cont is NULL and at some point
+ *        calling @a cont must be prevented)
  */
 struct GNUNET_PEERINFO_AddContext *
 GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
@@ -445,10 +445,9 @@ GNUNET_PEERINFO_add_peer (struct GNUNET_PEERINFO_Handle *h,
 
   GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_id (hello, &peer));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Adding peer `%s' to PEERINFO database (%u bytes of `%s')\n",
+       "Adding peer `%s' to PEERINFO database (%u bytes of HELLO)\n",
        GNUNET_i2s (&peer),
-       hs,
-       "HELLO");
+       hs);
   ac = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_AddContext) + hs);
   ac->h = h;
   ac->size = hs;
