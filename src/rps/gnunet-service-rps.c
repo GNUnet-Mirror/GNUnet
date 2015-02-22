@@ -1205,6 +1205,7 @@ handle_peer_pull_request (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Handle PULL REPLY message from another peer.
  *
@@ -1218,9 +1219,9 @@ handle_peer_pull_request (void *cls,
  */
   static int
 handle_peer_pull_reply (void *cls,
-    struct GNUNET_CADET_Channel *channel,
-    void **channel_ctx,
-    const struct GNUNET_MessageHeader *msg)
+                        struct GNUNET_CADET_Channel *channel,
+                        void **channel_ctx,
+                        const struct GNUNET_MessageHeader *msg)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
 
@@ -1291,6 +1292,59 @@ handle_peer_pull_reply (void *cls,
 
   return GNUNET_OK;
 }
+
+
+#if ENABLE_MALICIOUS
+/**
+ * Turn RPS service to act malicious.
+ *
+ * @param cls Closure
+ * @param channel The channel the PUSH was received over
+ * @param channel_ctx The context associated with this channel
+ * @param msg The message header
+ */
+  static int
+handle_peer_act_malicious (void *cls,
+                           struct GNUNET_CADET_Channel *channel,
+                           void **channel_ctx,
+                           const struct GNUNET_MessageHeader *msg)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
+
+  /* Check for protocol violation */
+  //if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
+  //{
+  //  GNUNET_break_op (0);
+  //  return GNUNET_SYSERR;
+  //}
+  //in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
+  //if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+  //    sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
+  //{
+  //  LOG (GNUNET_ERROR_TYPE_ERROR,
+  //      "message says it sends %" PRIu64 " peers, have space for %i peers\n",
+  //      ntohl (in_msg->num_peers),
+  //      (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+  //          sizeof (struct GNUNET_PeerIdentity));
+  //  GNUNET_break_op (0);
+  //  return GNUNET_SYSERR;
+  //}
+
+  //sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
+  //    (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
+  //     // Guess simply casting isn't the nicest way...
+  //     // FIXME wait for cadet to change this function
+  //sender_ctx = get_peer_ctx (peer_map, sender);
+
+  //if (GNUNET_YES == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
+  //{
+  //  GNUNET_break_op (0);
+  //  return GNUNET_OK;
+  //}
+
+  /* Do actual logic */
+}
+#endif
 
 
 /**
@@ -1648,11 +1702,11 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
  */
 static void
 shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+	             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
-  if ( NULL != do_round_task )
+  if (NULL != do_round_task)
   {
     GNUNET_SCHEDULER_cancel (do_round_task);
     do_round_task = NULL;
@@ -1884,6 +1938,9 @@ run (void *cls,
     {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
       sizeof (struct GNUNET_MessageHeader)},
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
+    #if ENABLE_MALICIOUS
+    {&handle_peer_act_malicious, GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS , 0},
+    #endif
     {NULL, 0, 0}
   };
 

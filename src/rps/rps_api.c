@@ -235,7 +235,8 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
  * @param ids the ids of the peers seeded
  */
   void
-GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
+GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
+                     uint32_t n,
                      const struct GNUNET_PeerIdentity *ids)
 {
   uint32_t size_needed;
@@ -287,6 +288,31 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h, uint32_t n,
 
   GNUNET_MQ_send (h->mq, ev);
 }
+
+
+#if ENABLE_MALICIOUS
+/**
+ * Turn RPS service to act malicious.
+ *
+ * @param h handle to the rps service
+ * @param type which type of malicious peer to turn to.
+ *             0 Don't act malicious at all
+ *             1 Try to maximise representation
+ *             2 Try to partition the network
+ *               (isolate one peer from the rest)
+ * @param n number of @a ids
+ * @param ids the ids of the malicious peers
+ *            if @type is 2 the last id is the id of the
+ *            peer to be isolated from the rest
+ */
+  void
+GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
+                          uint32_t type,
+                          uint32_t num_peers,
+                          const struct GNUNET_PeerIdentity *ids)
+{
+}
+#endif
 
 
 /**

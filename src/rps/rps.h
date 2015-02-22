@@ -96,7 +96,7 @@ struct GNUNET_RPS_CS_ReplyMessage
   /**
    * Identifyer of the message.
    */
-  uint64_t n;
+  uint64_t n GNUNET_PACKED;
 
   /**
    * Number of random peer replied
@@ -107,7 +107,7 @@ struct GNUNET_RPS_CS_ReplyMessage
 };
 
 /**
- * Message from client to service with seed of peers
+ * Message from client to service with seed of peers.
  */
 struct GNUNET_RPS_CS_SeedMessage
 {
@@ -119,7 +119,34 @@ struct GNUNET_RPS_CS_SeedMessage
   /**
    * Number of peers
    */
-  uint64_t num_peers;
+  uint64_t num_peers GNUNET_PACKED;
+
+  /* Followed by num_peers * GNUNET_PeerIdentity */
+};
+
+/**
+ * Message from client to service to turn service malicious.
+ */
+struct GNUNET_RPS_CS_ActMaliciousMessage
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of malicious behaviour.
+   *
+   * 0 No malicious bahaviour at all
+   * 1 Try to maximise representation
+   * 2 Try to partition the network
+   */
+  uint32_t type GNUNET_PACKED;
+
+  /**
+   * Number of peers
+   */
+  uint64_t num_peers GNUNET_PACKED;
 
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
