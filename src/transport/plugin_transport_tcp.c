@@ -2385,9 +2385,6 @@ handle_tcp_welcome (void *cls,
                                   session->address,
                                   session,
                                   session->scope);
-      notify_session_monitor (plugin,
-                              session,
-                              GNUNET_TRANSPORT_SS_INIT);
     }
     else
     {

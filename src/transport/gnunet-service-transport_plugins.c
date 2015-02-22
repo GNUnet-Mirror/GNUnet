@@ -440,7 +440,8 @@ GST_plugins_monitor_subscribe (GNUNET_TRANSPORT_SessionInfoCallback cb,
       GNUNET_break (0);
     else
       pos->api->setup_monitor (pos->api->cls,
-			       cb, cb_cls);
+			       cb,
+			       cb_cls);
 }
 
 

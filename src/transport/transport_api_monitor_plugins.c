@@ -179,21 +179,6 @@ free_entry (void *cls,
 
 
 /**
- * We got disconnected, remove all existing entries from
- * the map and notify client.
- *
- * @param pm montitor that got disconnected
- */
-static void
-clear_map (struct GNUNET_TRANSPORT_PluginMonitor *pm)
-{
-  GNUNET_CONTAINER_multihashmap32_iterate (pm->sessions,
-                                           &free_entry,
-                                           pm);
-}
-
-
-/**
  * Cut the existing connection and reconnect.
  *
  * @param pm our context
@@ -203,7 +188,9 @@ reconnect_plugin_ctx (struct GNUNET_TRANSPORT_PluginMonitor *pm)
 {
   GNUNET_CLIENT_disconnect (pm->client);
   pm->client = NULL;
-  clear_map (pm);
+  GNUNET_CONTAINER_multihashmap32_iterate (pm->sessions,
+                                           &free_entry,
+                                           pm);
   pm->backoff = GNUNET_TIME_STD_BACKOFF (pm->backoff);
   pm->reconnect_task = GNUNET_SCHEDULER_add_delayed (pm->backoff,
                                                      &do_plugin_connect,
@@ -447,7 +434,9 @@ GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *
     GNUNET_SCHEDULER_cancel (pm->reconnect_task);
     pm->reconnect_task = NULL;
   }
-  clear_map (pm);
+  GNUNET_CONTAINER_multihashmap32_iterate (pm->sessions,
+                                           &free_entry,
+                                           pm);
   GNUNET_CONTAINER_multihashmap32_destroy (pm->sessions);
   GNUNET_free (pm);
 }
