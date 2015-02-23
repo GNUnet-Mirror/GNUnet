@@ -58,8 +58,16 @@ gnunet_service_rps_LDADD = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_rps_multipeer
+ test_rps_multipeer \
+ test_rps_malicious_1
 endif
+
+ld_rps_test_lib = \
+	libgnunetrps.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  -lm
+
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
@@ -68,12 +76,11 @@ endif
 
 test_rps_multipeer_SOURCES = \
  test_rps_multipeer.c
-test_rps_multipeer_LDADD = \
-  libgnunetrps.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la \
-  -lm
+test_rps_multipeer_LDADD = $(ld_rps_test_lib)
 
+test_rps_malicious_1_SOURCES = \
+	test_rps_malicious_1.c
+test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf

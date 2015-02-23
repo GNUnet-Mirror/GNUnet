@@ -235,14 +235,17 @@ rps_connect_adapter (void *cls,
 		                 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
+  #if ENABLE_MALICIOUS
   uint64_t num_mal_peers;
-
-  num_mal_peers = round (portion * NUM_PEERS);
+  #endif /* ENABLE_MALICIOUS */
 
   h = GNUNET_RPS_connect (cfg);
+
   #if ENABLE_MALICIOUS
+  num_mal_peers = round (portion * NUM_PEERS);
   GNUNET_RPS_act_malicious (h, htonl (1), htonl (num_mal_peers), rps_peer_ids);
-  #endif
+  #endif /* ENABLE_MALICIOUS */
+
   return h;
 }
 

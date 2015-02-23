@@ -311,8 +311,61 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t num_peers,
                           const struct GNUNET_PeerIdentity *ids)
 {
+  uint32_t size_needed;
+  uint32_t num_peers_max;
+  const struct GNUNET_PeerIdentity *tmp_peer_pointer;
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_ActMaliciousMessage *msg;
+
+  unsigned int i;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client turns malicious with %" PRIX32 " other peers:\n",
+       n);
+  for (i = 0 ; i < n ; i++)
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%u. peer: %s\n",
+         i,
+         GNUNET_i2s (&ids[i]));
+
+  /* The actual size the message occupies */
+  size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
+    n * sizeof (struct GNUNET_PeerIdentity);
+  /* The number of peers that fits in one message together with
+   * the respective header */
+  num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
+      sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
+    sizeof (struct GNUNET_PeerIdentity);
+  tmp_peer_pointer = ids;
+
+  while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
+  {
+    ev = GNUNET_MQ_msg_extra (msg,
+                              num_peers_max * sizeof (struct GNUNET_PeerIdentity),
+                              GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
+    msg->type = ntohl (type);
+    msg->num_peers = ntohl (num_peers_max);
+    memcpy (&msg[1], tmp_peer_pointer, num_peers_max * sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_MQ_send (h->mq, ev);
+
+    n -= num_peers_max;
+    size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
+                  n * sizeof (struct GNUNET_PeerIdentity);
+    /* Set pointer to beginning of next block of num_peers_max peers */
+    tmp_peer_pointer = &ids[num_peers_max];
+  }
+
+  ev = GNUNET_MQ_msg_extra (msg,
+                            n * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
+  msg->type = htonl (type);
+  msg->num_peers = htonl (n);
+  memcpy (&msg[1], tmp_peer_pointer, n * sizeof (struct GNUNET_PeerIdentity));
+
+  GNUNET_MQ_send (h->mq, ev);
+
 }
-#endif
+#endif /* ENABLE_MALICIOUS */
 
 
 /**
@@ -335,7 +388,7 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
   void
 GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
-  if ( NULL != h->conn )
+  if (NULL != h->conn)
     GNUNET_CLIENT_disconnect (h->conn);
 }
 

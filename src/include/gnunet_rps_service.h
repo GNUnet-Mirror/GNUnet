@@ -126,7 +126,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t type,
                           uint32_t num_peers,
                           const struct GNUNET_PeerIdentity *ids);
-#endif
+#endif /* ENABLE_MALICIOUS */
 
 
 /**

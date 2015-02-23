@@ -356,6 +356,33 @@ uint32_t pending_pull_reply_list_size;
 uint32_t num_hist_update_tasks;
 
 
+#if ENABLE_MALICIOUS
+/**
+ * Type of malicious peer
+ *
+ * 0 Don't act malicious at all - Default
+ * 1 Try to maximise representation
+ * 2 Try to partition the network
+ */
+uint32_t mal_type = 0;
+
+/**
+ * Other malicious peers
+ */
+static struct GNUNET_PeerIdentity *mal_peers;
+
+/**
+ * Number of other malicious peers
+ */
+static uint32_t num_mal_peers;
+
+/**
+ * If type is 2 this is the attacked peer
+ */
+struct struct GNUNET_PeerIdentity attacked_peer;
+#endif /* ENABLE_MALICIOUS */
+
+
 /***********************************************************************
  * /Globals
 ***********************************************************************/
@@ -1239,6 +1266,7 @@ handle_peer_pull_reply (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+
   in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
   if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
       sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
@@ -1309,42 +1337,64 @@ handle_peer_act_malicious (void *cls,
                            void **channel_ctx,
                            const struct GNUNET_MessageHeader *msg)
 {
+  struct GNUNET_PeerIdentity *peers;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
 
   /* Check for protocol violation */
-  //if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
-  //{
-  //  GNUNET_break_op (0);
-  //  return GNUNET_SYSERR;
-  //}
-  //in_msg = (struct GNUNET_RPS_P2P_PullReplyMessage *) msg;
-  //if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
-  //    sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
-  //{
-  //  LOG (GNUNET_ERROR_TYPE_ERROR,
-  //      "message says it sends %" PRIu64 " peers, have space for %i peers\n",
-  //      ntohl (in_msg->num_peers),
-  //      (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
-  //          sizeof (struct GNUNET_PeerIdentity));
-  //  GNUNET_break_op (0);
-  //  return GNUNET_SYSERR;
-  //}
+  if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
 
-  //sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
-  //    (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
-  //     // Guess simply casting isn't the nicest way...
-  //     // FIXME wait for cadet to change this function
-  //sender_ctx = get_peer_ctx (peer_map, sender);
+  in_msg = (struct GNUNET_RPS_CS_ActMaliciousMessage *) msg;
+  if ((ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
+      sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        "message says it sends %" PRIu64 " peers, have space for %i peers\n",
+        ntohl (in_msg->num_peers),
+        (ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
+            sizeof (struct GNUNET_PeerIdentity));
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
 
-  //if (GNUNET_YES == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
-  //{
-  //  GNUNET_break_op (0);
-  //  return GNUNET_OK;
-  //}
+  sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
+      (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
+       // Guess simply casting isn't the nicest way...
+       // FIXME wait for cadet to change this function
+  sender_ctx = get_peer_ctx (peer_map, sender);
+
+  if (GNUNET_YES == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_OK;
+  }
 
   /* Do actual logic */
+  peers = (struct GNUNET_PeerIdentity *) &msg[1];
+  num_peers = ntohl (in_msg->num_peers);
+  mal_type = ntohl (in_msg->type);
+
+  if (1 == mal_type)
+  { /* Try to maximise representation */
+    num_mal_peers = ntohl (in_msg->num_peers);
+    mal_peers = GNUNET_new_array (num_mal_peers,
+                                  struct GNUNET_PeerIdentity);
+    memcpy (mal_peers, peers, num_mal_peers);
+  }
+  else if (2 == mal_type)
+  { /* Try to partition the network */
+    num_mal_peers = ntohl (in_msg->num_peers) - 1;
+    mal_peers = GNUNET_new_array (num_mal_peers,
+                                  struct GNUNET_PeerIdentity);
+    memcpy (mal_peers, peers, num_mal_peers);
+    attacked_peer = peers[num_mal_peers];
+  }
 }
-#endif
+#endif /* ENABLE_MALICIOUS */
 
 
 /**
@@ -1940,7 +1990,7 @@ run (void *cls,
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
     #if ENABLE_MALICIOUS
     {&handle_peer_act_malicious, GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS , 0},
-    #endif
+    #endif /* ENABLE_MALICIOUS */
     {NULL, 0, 0}
   };
 

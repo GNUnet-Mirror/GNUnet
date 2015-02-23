@@ -124,6 +124,7 @@ struct GNUNET_RPS_CS_SeedMessage
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
+#if ENABLE_MALICIOUS
 /**
  * Message from client to service to turn service malicious.
  */
@@ -150,5 +151,6 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
 
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
+#endif /* ENABLE_MALICIOUS */
 
 GNUNET_NETWORK_STRUCT_END

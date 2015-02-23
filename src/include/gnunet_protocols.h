@@ -2677,7 +2677,7 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS   956
 
-#endif
+#endif /* ENABLE_MALICIOUS */
 
 /*******************************************************************************/
 
