@@ -1525,24 +1525,8 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                                 s->scope);
   }
 
-  if ( (NULL == s->server_recv) ||
-       (NULL == s->server_send) )
-  {
-    to = (HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL);
-    MHD_set_connection_option (mhd_connection,
-			       MHD_CONNECTION_OPTION_TIMEOUT, to);
-    server_reschedule (plugin, sc->mhd_daemon, GNUNET_NO);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p for peer `%s' fully connected\n",
-         s, GNUNET_i2s (&target));
-    to = (HTTP_SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
-    server_mhd_connection_timeout (plugin, s, to);
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Setting timeout for %p to %u sec.\n", sc, to);
+  to = (HTTP_SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
+  server_mhd_connection_timeout (plugin, s, to);
   return sc;
 }
 
