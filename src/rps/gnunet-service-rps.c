@@ -668,50 +668,30 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
 get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
              const struct GNUNET_PeerIdentity *peer)
 {
-  struct PeerContext *ctx;
+  struct PeerContext *peer_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to establish channel to peer %s\n",
        GNUNET_i2s (peer));
 
-  ctx = get_peer_ctx (peer_map, peer);
-  if (NULL == ctx->send_channel)
+  peer_ctx = get_peer_ctx (peer_map, peer);
+  if (NULL == peer_ctx->send_channel)
   {
-    ctx->send_channel = GNUNET_CADET_channel_create (cadet_handle,
-                                                     NULL,
-                                                     peer,
-                                                     GNUNET_RPS_CADET_PORT,
-                                                     GNUNET_CADET_OPTION_RELIABLE);
-
-    /* If we don't know whether peer is live,
-     * get notified when we know it is live. */
-    if (GNUNET_YES != get_peer_flag (ctx, VALID)
-        && NULL != ctx->is_live_task
-        && NULL == ctx->recv_channel
-        && NULL == ctx->is_live_task)
-    {
-      ctx->peer_id = *peer;
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Get informed about peer %s getting live\n",
-           GNUNET_i2s (peer));
-      ctx->is_live_task =
-          GNUNET_CADET_notify_transmit_ready (ctx->send_channel,
-                                              GNUNET_NO,
-                                              GNUNET_TIME_UNIT_FOREVER_REL,
-                                              sizeof (struct GNUNET_MessageHeader),
-                                              cadet_ntfy_tmt_rdy_cb,
-                                              ctx);
-    }
-    // FIXME check whether this is NULL
+    peer_ctx->send_channel =
+      GNUNET_CADET_channel_create (cadet_handle,
+                                   NULL,
+                                   peer,
+                                   GNUNET_RPS_CADET_PORT,
+                                   GNUNET_CADET_OPTION_RELIABLE);
 
     // do I have to explicitly put it in the peer_map?
     (void) GNUNET_CONTAINER_multipeermap_put
       (peer_map,
        peer,
-       ctx,
+       peer_ctx,
        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
-  return ctx->send_channel;
+  return peer_ctx->send_channel;
 }
 
 
@@ -729,8 +709,6 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 
   peer_ctx = get_peer_ctx (peer_map, peer_id);
 
-  GNUNET_assert (NULL == peer_ctx->is_live_task);
-
   if (NULL == peer_ctx->mq)
   {
     (void) get_channel (peer_map, peer_id);
@@ -740,6 +718,29 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   return peer_ctx->mq;
+}
+
+
+/**
+ * Issue check whether peer is live
+ *
+ * @param peer_ctx the context of the peer
+ */
+void
+check_peer_live (struct PeerContext *peer_ctx)
+{
+  (void) get_channel (peer_map, &peer_ctx->peer_id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Get informed about peer %s getting live\n",
+       GNUNET_i2s (&peer_ctx->peer_id));
+  peer_ctx->is_live_task =
+      GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
+                                          GNUNET_NO,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          sizeof (struct GNUNET_MessageHeader),
+                                          cadet_ntfy_tmt_rdy_cb,
+                                          peer_ctx);
+  // FIXME check whether this is NULL
 }
 
 
@@ -1312,6 +1313,7 @@ handle_peer_pull_reply (void *cls,
       GNUNET_array_append (peer_ctx->outstanding_ops,
                            peer_ctx->num_outstanding_ops,
                            out_op);
+      check_peer_live (peer_ctx);
     }
   }
 
@@ -1654,7 +1656,7 @@ init_peer_cb (void *cls,
       }
 
       /* Trigger livelyness test on peer */
-      (void) get_channel (peer_map, peer);
+      check_peer_live (peer_ctx);
     }
 
     // send push/pull to each of those peers?
@@ -1884,7 +1886,7 @@ cleanup_channel (void *cls,
       /* Cast to void is ok, because it's used as void in peer_remove_cb */
       (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
     }
-    else
+    else /* Other peer doesn't want to send us messages anymore */
       peer_ctx->recv_channel = NULL;
   }
 }
