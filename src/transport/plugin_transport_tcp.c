@@ -2147,7 +2147,8 @@ handle_tcp_nat_probe (void *cls,
   if (ntohs (message->size) != sizeof(struct TCP_NAT_ProbeMessage))
   {
     GNUNET_break_op(0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
@@ -2156,7 +2157,8 @@ handle_tcp_nat_probe (void *cls,
           sizeof(struct GNUNET_PeerIdentity)))
   {
     /* refuse connections from ourselves */
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
 
@@ -2166,7 +2168,8 @@ handle_tcp_nat_probe (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Did NOT find session for NAT probe!\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2235,7 +2238,8 @@ handle_tcp_nat_probe (void *cls,
     LOG(GNUNET_ERROR_TYPE_DEBUG,
         "Bad address for incoming connection!\n");
     GNUNET_free(vaddr);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     tcp_plugin_disconnect_session (plugin,
                                    session);
     return;
@@ -2354,6 +2358,8 @@ handle_tcp_welcome (void *cls,
       {
         GNUNET_break (0);
         GNUNET_free_non_null (vaddr);
+        GNUNET_SERVER_receive_done (client,
+                                    GNUNET_SYSERR);
         return;
       }
       session = create_session (plugin,
@@ -2391,6 +2397,8 @@ handle_tcp_welcome (void *cls,
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Did not obtain TCP socket address for incoming connection\n");
       GNUNET_break(0);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_SYSERR);
       return;
     }
   }
@@ -2398,7 +2406,8 @@ handle_tcp_welcome (void *cls,
   if (session->expecting_welcome != GNUNET_YES)
   {
     GNUNET_break_op(0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     GNUNET_break(0);
     return;
   }
@@ -2408,7 +2417,8 @@ handle_tcp_welcome (void *cls,
   process_pending_messages (session);
   GNUNET_SERVER_client_set_timeout (client,
                                     GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -2502,17 +2512,21 @@ handle_tcp_data (void *cls,
   reschedule_session_timeout (session);
   if (0 == delay.rel_value_us)
   {
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
   }
   else
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Throttling receiving from `%s' for %s\n",
-        GNUNET_i2s (&session->target),
-        GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Throttling receiving from `%s' for %s\n",
+         GNUNET_i2s (&session->target),
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES));
     GNUNET_SERVER_disable_receive_done_warning (client);
+    GNUNET_assert (NULL == session->receive_delay_task);
     session->receive_delay_task = GNUNET_SCHEDULER_add_delayed (delay,
-        &delayed_done, session);
+                                                                &delayed_done,
+                                                                session);
   }
 }
 

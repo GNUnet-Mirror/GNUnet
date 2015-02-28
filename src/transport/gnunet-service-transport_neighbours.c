@@ -3495,7 +3495,8 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                 print_ack_state (n->ack_state));
 
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# unexpected ACK messages"), 1,
+                              gettext_noop ("# unexpected ACK messages"),
+                              1,
                               GNUNET_NO);
     return GNUNET_OK;
   }
@@ -3510,7 +3511,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                          GNUNET_TRANSPORT_PS_CONNECTED,
                          GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
 
-  /* Reset backoff for primary address  */
+  /* Reset backoff for primary address */
   GST_ats_block_reset (n->primary_address.address,
                        n->primary_address.session);
   return GNUNET_OK;

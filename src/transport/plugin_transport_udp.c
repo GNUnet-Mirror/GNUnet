@@ -1929,7 +1929,9 @@ enqueue (struct Plugin *plugin,
   else
   {
     GNUNET_STATISTICS_update (plugin->env->stats,
-        "# UDP, total, bytes in buffers", udpw->msg_size, GNUNET_NO);
+                              "# UDP, total, bytes in buffers",
+                              udpw->msg_size,
+                              GNUNET_NO);
     plugin->bytes_in_buffer += udpw->msg_size;
   }
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -2509,9 +2511,10 @@ read_process_ack (struct Plugin *plugin,
 
   flow_delay.rel_value_us = (uint64_t) ntohl (udp_ack->delay);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "We received a sending delay of %s\n",
+       "We received a sending delay of %s for %s\n",
        GNUNET_STRINGS_relative_time_to_string (flow_delay,
-                                               GNUNET_YES));
+                                               GNUNET_YES),
+       GNUNET_i2s (&udp_ack->sender));
   s->flow_delay_from_other_peer = GNUNET_TIME_relative_to_absolute (flow_delay);
 
   ack = (const struct GNUNET_MessageHeader *) &udp_ack[1];
@@ -2537,8 +2540,7 @@ read_process_ack (struct Plugin *plugin,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Message full ACK'ed\n",
-       (unsigned int ) ntohs (msg->size),
+       "Message from %s at %s full ACK'ed\n",
        GNUNET_i2s (&udp_ack->sender),
        udp_address_to_string (plugin,
                               udp_addr,
