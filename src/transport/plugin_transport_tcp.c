@@ -2532,6 +2532,10 @@ connect_notify (void *cls,
   struct Plugin *plugin = cls;
 
   plugin->cur_connections++;
+  GNUNET_STATISTICS_set (plugin->env->stats,
+                         gettext_noop ("# TCP server connections"),
+                         plugin->cur_connections,
+                         GNUNET_NO);
   if (plugin->cur_connections != plugin->max_connections)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -2581,6 +2585,10 @@ disconnect_notify (void *cls,
   }
   GNUNET_assert (plugin->cur_connections >= 1);
   plugin->cur_connections--;
+  GNUNET_STATISTICS_set (plugin->env->stats,
+                         gettext_noop ("# TCP server connections"),
+                         plugin->cur_connections,
+                         GNUNET_NO);
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop ("# network-level TCP disconnect events"),
                             1,
@@ -3089,8 +3097,9 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   }
   GNUNET_CONTAINER_multipeermap_destroy (plugin->nat_wait_conns);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessionmap);
-  GNUNET_free(plugin);
-  GNUNET_free(api);
+  GNUNET_break (0 == plugin->cur_connections);
+  GNUNET_free (plugin);
+  GNUNET_free (api);
   return NULL;
 }
 
