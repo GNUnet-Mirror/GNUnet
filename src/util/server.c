@@ -1136,7 +1136,8 @@ process_incoming (void *cls,
     GNUNET_CONNECTION_receive (client->connection,
                                GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                GNUNET_TIME_absolute_get_remaining (end),
-                               &process_incoming, client);
+                               &process_incoming,
+                               client);
     return;
   }
   if ( (NULL == buf) ||
@@ -1656,8 +1657,8 @@ struct GNUNET_SERVER_TransmitHandle *
 GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
-                                     GNUNET_CONNECTION_TransmitReadyNotify
-                                     callback, void *callback_cls)
+                                     GNUNET_CONNECTION_TransmitReadyNotify callback,
+                                     void *callback_cls)
 {
   if (NULL != client->th.callback)
     return NULL;
@@ -1753,7 +1754,8 @@ GNUNET_SERVER_receive_done (struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GNUNET_SERVER_receive_done causes restart in reading from the socket\n");
   GNUNET_assert (NULL == client->restart_task);
-  client->restart_task = GNUNET_SCHEDULER_add_now (&restart_processing, client);
+  client->restart_task = GNUNET_SCHEDULER_add_now (&restart_processing,
+                                                   client);
 }
 
 

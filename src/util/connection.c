@@ -245,7 +245,7 @@ struct GNUNET_CONNECTION_Handle
   int8_t persist;
 
   /**
-   * Usually 0.  Set to 1 if this handle is in used and should
+   * Usually 0.  Set to 1 if this handle is in use, and should
    * #GNUNET_CONNECTION_destroy() be called right now, the action needs
    * to be deferred by setting it to -1.
    */
@@ -984,7 +984,10 @@ GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *connection)
 {
   if ((NULL != connection->ap_head) || (NULL != connection->dns_active))
     return GNUNET_YES;          /* still trying to connect */
-  return (NULL == connection->sock) ? GNUNET_NO : GNUNET_YES;
+  if ( (0 != connection->destroy_later) ||
+       (NULL == connection->sock) )
+    return GNUNET_NO;
+  return GNUNET_YES;
 }
 
 
@@ -1078,7 +1081,8 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
  * @param tc scheduler context
  */
 static void
-receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+receive_ready (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   char buffer[connection->max];
@@ -1172,8 +1176,10 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection,
   {
     connection->read_task =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_absolute_get_remaining
-                                     (connection->receive_timeout), connection->sock,
-                                     &receive_ready, connection);
+                                     (connection->receive_timeout),
+                                     connection->sock,
+                                     &receive_ready,
+                                     connection);
     return;
   }
   if ((NULL == connection->dns_active) && (NULL == connection->ap_head))
@@ -1198,7 +1204,8 @@ GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *connection)
 {
   if (NULL != connection->read_task)
   {
-    GNUNET_assert (connection == GNUNET_SCHEDULER_cancel (connection->read_task));
+    GNUNET_assert (connection ==
+                   GNUNET_SCHEDULER_cancel (connection->read_task));
     connection->read_task = NULL;
   }
   connection->receiver = NULL;
@@ -1243,7 +1250,8 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
   if (connection->write_buffer_size - connection->write_buffer_off < size)
   {
     /* need to compact */
-    memmove (connection->write_buffer, &connection->write_buffer[connection->write_buffer_pos],
+    memmove (connection->write_buffer,
+             &connection->write_buffer[connection->write_buffer_pos],
              used);
     connection->write_buffer_off -= connection->write_buffer_pos;
     connection->write_buffer_pos = 0;
@@ -1272,7 +1280,8 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
  * @param tc scheduler context
  */
 static void
-transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_timeout (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
@@ -1281,7 +1290,10 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmit to `%s:%u/%s' fails, time out reached (%p).\n",
        connection->hostname,
-       connection->port, GNUNET_a2s (connection->addr, connection->addrlen), connection);
+       connection->port,
+       GNUNET_a2s (connection->addr,
+                   connection->addrlen),
+       connection);
   notify = connection->nth.notify_ready;
   GNUNET_assert (NULL != notify);
   connection->nth.notify_ready = NULL;
@@ -1299,14 +1311,18 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc scheduler context
  */
 static void
-connect_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_error (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmission request of size %u fails (%s/%u), connection failed (%p).\n",
-       connection->nth.notify_size, connection->hostname, connection->port, connection);
+       connection->nth.notify_size,
+       connection->hostname,
+       connection->port,
+       connection);
   connection->write_task = NULL;
   notify = connection->nth.notify_ready;
   connection->nth.notify_ready = NULL;
@@ -1519,9 +1535,7 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
  * @param th notification to cancel
  */
 void
-GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
-                                                GNUNET_CONNECTION_TransmitHandle
-                                                *th)
+GNUNET_CONNECTION_notify_transmit_ready_cancel (struct GNUNET_CONNECTION_TransmitHandle *th)
 {
   GNUNET_assert (NULL != th->notify_ready);
   th->notify_ready = NULL;
