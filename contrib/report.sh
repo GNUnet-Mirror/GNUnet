@@ -10,7 +10,7 @@ fi
 echo "Please submit the following information with your bug report: "
 echo "--------------------------------------------------------------"
 OS=`uname -s 2>/dev/null`
-echo "OS             : $OS" 
+echo "OS             : $OS"
 REL=`uname -r 2>/dev/null`
 echo "OS RELEASE     : $REL"
 HW=`uname -m 2>/dev/null`
@@ -138,13 +138,13 @@ fi
 
 TEST=`$WHICH dpkg 2> /dev/null`
 if test -n "$TEST"; then
-  LINES=`dpkg -s libgmp3-dev | grep Version | wc -l`
+  LINES=`dpkg -s libgmp-dev | grep Version | wc -l 2> /dev/null`
   if test "$LINES" = "1"
   then
-    VERSION=`dpkg -s libgmp3-dev | grep Version | awk '{print $2}'`
-    echo "GMP            : libgmp3-dev-$VERSION.deb"
+    VERSION=`dpkg -s libgmp-dev | grep Version | awk '{print $2}'`
+    echo "GMP            : libgmp-dev-$VERSION.deb"
   else
-    echo "GMP            : dpkg: libgmp3-dev not installed"
+    echo "GMP            : dpkg: libgmp-dev not installed"
   fi
 else
   TEST=`$WHICH rpm 2> /dev/null`
@@ -191,6 +191,14 @@ if test -n "$TEST"; then
     awk '{print "libcurl        : "$2}'
 else
   echo "libcurl        : Not found"
+fi
+
+TEST=`$WHICH gnurl-config 2> /dev/null`
+if test -n "$TEST"; then
+  gnurl-config --version | head -n1 2> /dev/null | \
+    awk '{print "libgnurl       : "$2}'
+else
+  echo "libgnurl       : Not found"
 fi
 
 echo -n "libmicrohttpd  : "
