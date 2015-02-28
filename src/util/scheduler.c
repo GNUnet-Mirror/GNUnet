@@ -589,7 +589,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
     unsigned int i;
 
     for (i = 0; i < pos->num_backtrace_strings; i++)
-      LOG (GNUNET_ERROR_TYPE_ERROR,
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Task %p trace %u: %s\n",
            pos,
            i,
@@ -780,9 +780,16 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
       timeout = GNUNET_TIME_UNIT_ZERO;
     }
     if (NULL == scheduler_select)
-      ret = GNUNET_NETWORK_socket_select (rs, ws, NULL, timeout);
+      ret = GNUNET_NETWORK_socket_select (rs,
+                                          ws,
+                                          NULL,
+                                          timeout);
     else
-      ret = scheduler_select (scheduler_select_cls, rs, ws, NULL, timeout);
+      ret = scheduler_select (scheduler_select_cls,
+                              rs,
+                              ws,
+                              NULL,
+                              timeout);
     if (ret == GNUNET_SYSERR)
     {
       if (errno == EINTR)
@@ -801,9 +808,53 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
                       "system");
 #endif
 #endif
+#if DEBUG_FDS
+      struct GNUNET_SCHEDULER_Task *t;
+
+      for (t = pending_head; NULL != t; t = t->next)
+      {
+        if (-1 != t->read_fd)
+        {
+          int flags = fcntl (t->read_fd, F_GETFD);
+          if ((flags == -1) && (errno == EBADF))
+            {
+              LOG (GNUNET_ERROR_TYPE_ERROR,
+                   "Got invalid file descriptor %d!\n",
+                   t->read_fd);
+#if EXECINFO
+              unsigned int i;
+
+              for (i = 0; i < t->num_backtrace_strings; i++)
+                LOG (GNUNET_ERROR_TYPE_ERROR,
+                     "Trace: %s\n",
+                     t->backtrace_strings[i]);
+#endif
+            }
+        }
+        if (-1 != t->write_fd)
+          {
+            int flags = fcntl (t->write_fd, F_GETFD);
+            if ((flags == -1) && (errno == EBADF))
+              {
+                LOG (GNUNET_ERROR_TYPE_ERROR,
+                     "Got invalid file descriptor %d!\n",
+                     t->write_fd);
+#if EXECINFO
+                unsigned int i;
+
+                for (i = 0; i < t->num_backtrace_strings; i++)
+                  LOG (GNUNET_ERROR_TYPE_DEBUG,
+                       "Trace: %s\n",
+                       t->backtrace_strings[i]);
+#endif
+              }
+          }
+      }
+#endif
       GNUNET_assert (0);
       break;
     }
+
     if ( (0 == ret) &&
          (0 == timeout.rel_value_us) &&
          (busy_wait_warning > 16) )
@@ -1260,10 +1311,10 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
            "Got invalid file descriptor %d!\n",
            rfd);
 #if EXECINFO
-      int i;
+      unsigned int i;
 
       for (i = 0; i < t->num_backtrace_strings; i++)
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
+        LOG (GNUNET_ERROR_TYPE_ERROR,
              "Trace: %s\n",
              t->backtrace_strings[i]);
 #endif
@@ -1280,7 +1331,7 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
            "Got invalid file descriptor %d!\n",
            wfd);
 #if EXECINFO
-      int i;
+      unsigned int i;
 
       for (i = 0; i < t->num_backtrace_strings; i++)
         LOG (GNUNET_ERROR_TYPE_DEBUG,
