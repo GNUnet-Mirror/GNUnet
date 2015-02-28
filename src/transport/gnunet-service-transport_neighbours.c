@@ -1514,7 +1514,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (not connected)"),
+                              gettext_noop ("# KEEPALIVE_RESPONSEs discarded (not connected)"),
                               1,
                               GNUNET_NO);
     return;
@@ -1523,7 +1523,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
        (GNUNET_YES != n->expect_latency_response) )
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (not expected)"),
+                              gettext_noop ("# KEEPALIVE_RESPONSEs discarded (not expected)"),
                               1,
                               GNUNET_NO);
     return;
@@ -1531,7 +1531,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   if (NULL == n->primary_address.address)
   {
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (address changed)"),
+                              gettext_noop ("# KEEPALIVE_RESPONSEs discarded (address changed)"),
                               1,
                               GNUNET_NO);
     return;
@@ -1540,18 +1540,18 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   {
     if (0 == n->primary_address.keep_alive_nonce)
       GNUNET_STATISTICS_update (GST_stats,
-                                gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (no nonce)"),
+                                gettext_noop ("# KEEPALIVE_RESPONSEs discarded (no nonce)"),
                                 1,
                                 GNUNET_NO);
     else
       GNUNET_STATISTICS_update (GST_stats,
-                                gettext_noop ("# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"),
+                                gettext_noop ("# KEEPALIVE_RESPONSEs discarded (bad nonce)"),
                                 1,
                                 GNUNET_NO);
     return;
   }
   GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop ("# KEEPALIVE_RESPONSE messages received in good order"),
+                            gettext_noop ("# KEEPALIVE_RESPONSEs received (OK)"),
                             1,
                             GNUNET_NO);
 
