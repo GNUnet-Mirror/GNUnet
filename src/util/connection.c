@@ -342,7 +342,8 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
       GNUNET_NETWORK_socket_accept (lsock, (struct sockaddr *) &addr, &addrlen);
   if (NULL == sock)
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "accept");
+    if (EAGAIN != errno)
+      LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "accept");
     return NULL;
   }
   if ((addrlen > sizeof (addr)) || (addrlen < sizeof (sa_family_t)))

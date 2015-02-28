@@ -406,10 +406,10 @@ process_listen_socket (void *cls,
     GNUNET_SERVER_resume (server);
     return;
   }
-  i = 0;
-  while (NULL != server->listen_sockets[i])
+  for (i = 0; NULL != server->listen_sockets[i]; i++)
   {
-    if (GNUNET_NETWORK_fdset_isset (tc->read_ready, server->listen_sockets[i]))
+    if (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+                                    server->listen_sockets[i]))
     {
       sock =
           GNUNET_CONNECTION_create_from_accept (server->access_cb,
@@ -423,7 +423,6 @@ process_listen_socket (void *cls,
                                              sock);
       }
     }
-    i++;
   }
   /* listen for more! */
   GNUNET_SERVER_resume (server);
