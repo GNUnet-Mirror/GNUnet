@@ -1305,7 +1305,8 @@ sighandler_child_death ()
  * @return #GNUNET_OK (continue)
  */
 static void
-setup_service (void *cls, const char *section)
+setup_service (void *cls,
+               const char *section)
 {
   struct ServiceList *sl;
   char *binary;
@@ -1353,10 +1354,13 @@ setup_service (void *cls, const char *section)
   }
   config = NULL;
   if (( (GNUNET_OK !=
-	 GNUNET_CONFIGURATION_get_value_filename (cfg, section, "CONFIG",
+	 GNUNET_CONFIGURATION_get_value_filename (cfg, section,
+                                                  "CONFIG",
 						  &config)) &&
 	(GNUNET_OK !=
-	 GNUNET_CONFIGURATION_get_value_filename (cfg, "PATHS", "DEFAULTCONFIG",
+	 GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                  "PATHS",
+                                                  "DEFAULTCONFIG",
 						  &config)) ) ||
       (0 != STAT (config, &sbuf)))
   {
@@ -1381,26 +1385,39 @@ setup_service (void *cls, const char *section)
   if (GNUNET_CONFIGURATION_have_value (cfg, section, "PIPECONTROL"))
     sl->pipe_control = GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "PIPECONTROL");
 #endif
-  GNUNET_CONTAINER_DLL_insert (running_head, running_tail, sl);
-
+  GNUNET_CONTAINER_DLL_insert (running_head,
+                               running_tail,
+                               sl);
   if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "FORCESTART"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                            section,
+                                            "FORCESTART"))
   {
     sl->force_start = GNUNET_YES;
+    /* FIXME: we might like the pre-binding even for
+       _certain_ services that have force_start set,
+       otherwise interdependencies may again force
+       client's to retry connections during startup. */
     return;
   }
   else
   {
     if (GNUNET_YES !=
-        GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "AUTOSTART"))
+        GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                              section,
+                                              "AUTOSTART"))
       return;
   }
-  if (0 >= (ret = GNUNET_SERVICE_get_server_addresses (section, cfg,
-						       &addrs, &addr_lens)))
+  if (0 >= (ret = GNUNET_SERVICE_get_server_addresses (section,
+                                                       cfg,
+						       &addrs,
+                                                       &addr_lens)))
     return;
   /* this will free (or capture) addrs[i] */
   for (i = 0; i < ret; i++)
-    create_listen_socket (addrs[i], addr_lens[i], sl);
+    create_listen_socket (addrs[i],
+                          addr_lens[i],
+                          sl);
   GNUNET_free (addrs);
   GNUNET_free (addr_lens);
 }
