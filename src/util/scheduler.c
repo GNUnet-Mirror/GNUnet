@@ -590,8 +590,8 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
 
     for (i = 0; i < pos->num_backtrace_strings; i++)
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Task %llu trace %u: %s\n",
-           pos->id,
+           "Task %p trace %u: %s\n",
+           pos,
            i,
            pos->backtrace_strings[i]);
 #endif
@@ -809,7 +809,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
          (busy_wait_warning > 16) )
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
-           _("Looks like we're busy waiting...\n"));
+           "Looks like we're busy waiting...\n");
       short_wait (100);                /* mitigate */
     }
     check_ready (rs, ws);
