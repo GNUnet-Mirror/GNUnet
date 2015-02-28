@@ -38,17 +38,32 @@ test_fs (struct GNUNET_BLOCK_Context *ctx)
                             sizeof (block), &key))
     return 1;
   if (GNUNET_BLOCK_EVALUATION_OK_LAST !=
-      GNUNET_BLOCK_evaluate (ctx, GNUNET_BLOCK_TYPE_FS_DBLOCK, &key, NULL, 0,
-                             NULL, 0, block, sizeof (block)))
+      GNUNET_BLOCK_evaluate (ctx,
+                             GNUNET_BLOCK_TYPE_FS_DBLOCK,
+                             GNUNET_BLOCK_EO_NONE,
+                             &key,
+                             NULL, 0,
+                             NULL, 0,
+                             block, sizeof (block)))
     return 2;
   if (GNUNET_BLOCK_EVALUATION_REQUEST_VALID !=
-      GNUNET_BLOCK_evaluate (ctx, GNUNET_BLOCK_TYPE_FS_DBLOCK, &key, NULL, 0,
-                             NULL, 0, NULL, 0))
+      GNUNET_BLOCK_evaluate (ctx,
+                             GNUNET_BLOCK_TYPE_FS_DBLOCK,
+                             GNUNET_BLOCK_EO_NONE,
+                             &key,
+                             NULL, 0,
+                             NULL, 0,
+                             NULL, 0))
     return 4;
   GNUNET_log_skip (1, GNUNET_NO);
   if (GNUNET_BLOCK_EVALUATION_REQUEST_INVALID !=
-      GNUNET_BLOCK_evaluate (ctx, GNUNET_BLOCK_TYPE_FS_DBLOCK, &key, NULL, 0,
-                             "bogus", 5, NULL, 0))
+      GNUNET_BLOCK_evaluate (ctx,
+                             GNUNET_BLOCK_TYPE_FS_DBLOCK,
+                             GNUNET_BLOCK_EO_NONE,
+                             &key,
+                             NULL, 0,
+                             "bogus", 5,
+                             NULL, 0))
     return 8;
   GNUNET_log_skip (0, GNUNET_YES);
   return 0;

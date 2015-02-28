@@ -36,10 +36,11 @@
 
 /**
  * Function called to validate a reply or a request.  For
- * request evaluation, simply pass "NULL" for the reply_block.
+ * request evaluation, simply pass "NULL" for the @a reply_block.
  *
  * @param cls closure
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for @a bf
@@ -50,11 +51,15 @@
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_dht_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                           const struct GNUNET_HashCode * query,
+block_plugin_dht_evaluate (void *cls,
+                           enum GNUNET_BLOCK_Type type,
+                           enum GNUNET_BLOCK_EvaluationOptions eo,
+                           const struct GNUNET_HashCode *query,
                            struct GNUNET_CONTAINER_BloomFilter **bf,
-                           int32_t bf_mutator, const void *xquery,
-                           size_t xquery_size, const void *reply_block,
+                           int32_t bf_mutator,
+                           const void *xquery,
+                           size_t xquery_size,
+                           const void *reply_block,
                            size_t reply_block_size)
 {
   struct GNUNET_HashCode mhash;
@@ -100,9 +105,8 @@ block_plugin_dht_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
     }
     else
     {
-      *bf =
-          GNUNET_CONTAINER_bloomfilter_init (NULL, 8,
-                                             GNUNET_CONSTANTS_BLOOMFILTER_K);
+      *bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 8,
+                                               GNUNET_CONSTANTS_BLOOMFILTER_K);
     }
     GNUNET_CONTAINER_bloomfilter_add (*bf, &mhash);
   }

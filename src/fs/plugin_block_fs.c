@@ -42,25 +42,30 @@
  * request evaluation, simply pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
- * be done with the "get_key" function.
+ * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
- * @param bf_mutator mutation value for bf
+ * @param bf_mutator mutation value for @a bf
  * @param xquery extrended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
- * @param reply_block_size number of bytes in reply block
+ * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
+block_plugin_fs_evaluate (void *cls,
+                          enum GNUNET_BLOCK_Type type,
+                          enum GNUNET_BLOCK_EvaluationOptions eo,
                           const struct GNUNET_HashCode *query,
                           struct GNUNET_CONTAINER_BloomFilter **bf,
-                          int32_t bf_mutator, const void *xquery,
-                          size_t xquery_size, const void *reply_block,
+                          int32_t bf_mutator,
+                          const void *xquery,
+                          size_t xquery_size,
+                          const void *reply_block,
                           size_t reply_block_size)
 {
   const struct UBlock *ub;
@@ -110,22 +115,28 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
-    if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
-				  &ub->purpose,
-				  &ub->signature,
-				  &ub->verification_key))
+    if ( (0 == (eo & GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO)) &&
+         (GNUNET_OK !=
+          GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_FS_UBLOCK,
+                                      &ub->purpose,
+                                      &ub->signature,
+                                      &ub->verification_key)) )
     {
       GNUNET_break_op (0);
       return GNUNET_BLOCK_EVALUATION_RESULT_INVALID;
     }
     if (NULL != bf)
     {
-      GNUNET_CRYPTO_hash (reply_block, reply_block_size, &chash);
-      GNUNET_BLOCK_mingle_hash (&chash, bf_mutator, &mhash);
+      GNUNET_CRYPTO_hash (reply_block,
+                          reply_block_size,
+                          &chash);
+      GNUNET_BLOCK_mingle_hash (&chash,
+                                bf_mutator,
+                                &mhash);
       if (NULL != *bf)
       {
-        if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
+        if (GNUNET_YES ==
+            GNUNET_CONTAINER_bloomfilter_test (*bf, &mhash))
           return GNUNET_BLOCK_EVALUATION_OK_DUPLICATE;
       }
       else
@@ -147,14 +158,16 @@ block_plugin_fs_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  * @param cls closure
  * @param type block type
  * @param block block to get the key for
- * @param block_size number of bytes in block
+ * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_fs_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                         const void *block, size_t block_size,
+block_plugin_fs_get_key (void *cls,
+                         enum GNUNET_BLOCK_Type type,
+                         const void *block,
+                         size_t block_size,
                          struct GNUNET_HashCode *key)
 {
   const struct UBlock *ub;

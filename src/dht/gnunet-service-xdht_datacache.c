@@ -64,7 +64,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           const void *data)
 {
   int r;
-  
+
   if (NULL == datacache)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -76,12 +76,12 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
     GNUNET_break (0);
     return;
   }
-  
+
   /* Put size is actual data size plus struct overhead plus path length (if any) */
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
-  
+
   struct GNUNET_PeerIdentity peer = GDS_NEIGHBOURS_get_my_id();
   DEBUG("DATACACHE_PUT KEY = %s, peer = %s\n",GNUNET_h2s(key),GNUNET_i2s(&peer));
   r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
@@ -180,32 +180,41 @@ struct GetRequestContext
 /**
  * Iterator for local get request results,
  *
- * @param cls closure for iterator, a DatacacheGetContext
- * @param exp when does this value expire?
+ * @param cls closure for iterator, a `struct GetRequestContext`
  * @param key the key this data is stored under
  * @param size the size of the data identified by key
  * @param data the actual data
  * @param type the type of the data
- * @param put_path_length number of peers in 'put_path'
+ * @param exp when does this value expire?
+ * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
- * @return GNUNET_OK to continue iteration, anything else
+ * @return #GNUNET_OK to continue iteration, anything else
  * to stop iteration.
  */
 static int
 datacache_get_iterator (void *cls,
-                        const struct GNUNET_HashCode * key, size_t size,
-                        const char *data, enum GNUNET_BLOCK_Type type,
-			                  struct GNUNET_TIME_Absolute exp,
-			                  unsigned int put_path_length,
-			                  const struct GNUNET_PeerIdentity *put_path)
+                        const struct GNUNET_HashCode *key,
+                        size_t size,
+                        const char *data,
+                        enum GNUNET_BLOCK_Type type,
+                        struct GNUNET_TIME_Absolute exp,
+                        unsigned int put_path_length,
+                        const struct GNUNET_PeerIdentity *put_path)
 {
   struct GetRequestContext *ctx = cls;
   enum GNUNET_BLOCK_EvaluationResult eval;
 
   eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, type, key, ctx->reply_bf,
-                             ctx->reply_bf_mutator, ctx->xquery,
-                             ctx->xquery_size, data, size);
+      GNUNET_BLOCK_evaluate (GDS_block_context,
+                             type,
+                             GNUNET_BLOCK_EO_NONE,
+                             key,
+                             ctx->reply_bf,
+                             ctx->reply_bf_mutator,
+                             ctx->xquery,
+                             ctx->xquery_size,
+                             data,
+                             size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Found reply for query %s in datacache, evaluation result is %d\n",
        GNUNET_h2s (key), (int) eval);
@@ -221,7 +230,7 @@ datacache_get_iterator (void *cls,
                               ("# Good RESULTS found in datacache"), 1,
                               GNUNET_NO);
     struct GNUNET_PeerIdentity *get_path;
-    get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity) * 
+    get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity) *
                               ctx->get_path_length);
     struct GetPath *iterator;
     iterator = ctx->head;
@@ -271,7 +280,7 @@ datacache_get_iterator (void *cls,
                 _("Unsupported block type (%u) in local response!\n"), type);
     break;
   }
-  
+
   return (eval == GNUNET_BLOCK_EVALUATION_OK_LAST) ? GNUNET_NO : GNUNET_OK;
 }
 
@@ -315,13 +324,13 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
   ctx.get_path_length = get_path_length;
-  
+
   if (next_hop != NULL)
   {
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
   }
   unsigned int i = 0;
-  
+
   ctx.head = NULL;
   ctx.tail = NULL;
   if (get_path != NULL)
@@ -337,7 +346,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
       i++;
     }
   }
-  
+
   r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
                             &ctx);
   DEBUG ("DATACACHE_GET for key %s completed (%d). %u results found.\n",GNUNET_h2s (key), ctx.eval, r);

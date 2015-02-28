@@ -197,6 +197,7 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
  *
  * @param ctx block contxt
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for @a bf
@@ -209,18 +210,29 @@ find_plugin (struct GNUNET_BLOCK_Context *ctx,
 enum GNUNET_BLOCK_EvaluationResult
 GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
                        enum GNUNET_BLOCK_Type type,
-                       const struct GNUNET_HashCode * query,
+                       enum GNUNET_BLOCK_EvaluationOptions eo,
+                       const struct GNUNET_HashCode *query,
                        struct GNUNET_CONTAINER_BloomFilter **bf,
-                       int32_t bf_mutator, const void *xquery,
-                       size_t xquery_size, const void *reply_block,
+                       int32_t bf_mutator,
+                       const void *xquery,
+                       size_t xquery_size,
+                       const void *reply_block,
                        size_t reply_block_size)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);
 
   if (plugin == NULL)
     return GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED;
-  return plugin->evaluate (plugin->cls, type, query, bf, bf_mutator, xquery,
-                           xquery_size, reply_block, reply_block_size);
+  return plugin->evaluate (plugin->cls,
+                           type,
+                           eo,
+                           query,
+                           bf,
+                           bf_mutator,
+                           xquery,
+                           xquery_size,
+                           reply_block,
+                           reply_block_size);
 }
 
 
@@ -237,8 +249,10 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  */
 int
 GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
-                      enum GNUNET_BLOCK_Type type, const void *block,
-                      size_t block_size, struct GNUNET_HashCode * key)
+                      enum GNUNET_BLOCK_Type type,
+                      const void *block,
+                      size_t block_size,
+                      struct GNUNET_HashCode *key)
 {
   struct GNUNET_BLOCK_PluginFunctions *plugin = find_plugin (ctx, type);
 
@@ -250,9 +264,9 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
 
 /**
  * How many bytes should a bloomfilter be if we have already seen
- * entry_count responses?  Note that GNUNET_CONSTANTS_BLOOMFILTER_K gives us the number
- * of bits set per entry.  Furthermore, we should not re-size the
- * filter too often (to keep it cheap).
+ * entry_count responses?  Note that #GNUNET_CONSTANTS_BLOOMFILTER_K
+ * gives us the number of bits set per entry.  Furthermore, we should
+ * not re-size the filter too often (to keep it cheap).
  *
  * Since other peers will also add entries but not resize the filter,
  * we should generally pick a slightly larger size than what the
@@ -291,7 +305,7 @@ compute_bloomfilter_size (unsigned int entry_count)
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
-                                    const struct GNUNET_HashCode * seen_results,
+                                    const struct GNUNET_HashCode *seen_results,
                                     unsigned int seen_results_count)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf;

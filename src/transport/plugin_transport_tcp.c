@@ -3102,7 +3102,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
     GNUNET_SERVICE_stop (plugin->service);
   else
     GNUNET_SERVER_destroy (plugin->server);
-  GNUNET_free(plugin->handlers);
+  GNUNET_free (plugin->handlers);
   if (NULL != plugin->nat)
     GNUNET_NAT_unregister (plugin->nat);
   while (NULL != (tcp_probe = plugin->probe_head))
@@ -3111,7 +3111,7 @@ libgnunet_plugin_transport_tcp_done (void *cls)
                                  plugin->probe_tail,
                                  tcp_probe);
     GNUNET_CONNECTION_destroy (tcp_probe->sock);
-    GNUNET_free(tcp_probe);
+    GNUNET_free (tcp_probe);
   }
   GNUNET_CONTAINER_multipeermap_destroy (plugin->nat_wait_conns);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessionmap);

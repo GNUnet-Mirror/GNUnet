@@ -1708,6 +1708,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     switch (GNUNET_BLOCK_evaluate (GDS_block_context,
                                    ntohl (put->type),
+                                   GNUNET_BLOCK_EO_NONE,
                                    NULL,    /* query */
                                    NULL, 0, /* bloom filer */
                                    NULL, 0, /* xquery */
@@ -1953,8 +1954,16 @@ handle_dht_p2p_get (void *cls,
         GNUNET_CONTAINER_bloomfilter_init (&xquery[xquery_size], reply_bf_size,
                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
   eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, type, &get->key, &reply_bf,
-                             get->bf_mutator, xquery, xquery_size, NULL, 0);
+      GNUNET_BLOCK_evaluate (GDS_block_context,
+                             type,
+                             GNUNET_BLOCK_EO_NONE,
+                             &get->key,
+                             &reply_bf,
+                             get->bf_mutator,
+                             xquery,
+                             xquery_size,
+                             NULL,
+                             0);
   if (eval != GNUNET_BLOCK_EVALUATION_REQUEST_VALID)
   {
     /* request invalid or block type not supported */

@@ -1055,12 +1055,20 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
       return GNUNET_YES;        /* duplicate */
     }
   eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, record->type, key, NULL, 0,
-                             record->xquery, record->xquery_size, frc->data,
+      GNUNET_BLOCK_evaluate (GDS_block_context,
+                             record->type,
+                             GNUNET_BLOCK_EO_NONE,
+                             key,
+                             NULL,
+                             0,
+                             record->xquery,
+                             record->xquery_size,
+                             frc->data,
                              frc->data_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Evaluation result is %d for key %s for local client's query\n",
-       (int) eval, GNUNET_h2s (key));
+       (int) eval,
+       GNUNET_h2s (key));
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_LAST:

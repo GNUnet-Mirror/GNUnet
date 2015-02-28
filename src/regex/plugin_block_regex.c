@@ -34,29 +34,34 @@
 
 /**
  * Function called to validate a reply or a request of type
- * GNUNET_BLOCK_TYPE_REGEX.
+ * #GNUNET_BLOCK_TYPE_REGEX.
  * For request evaluation, pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
- * be done with the "get_key" function.
+ * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for bf
  * @param xquery extrended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
- * @param reply_block_size number of bytes in reply block
+ * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
+evaluate_block_regex (void *cls,
+                      enum GNUNET_BLOCK_Type type,
+                      enum GNUNET_BLOCK_EvaluationOptions eo,
                       const struct GNUNET_HashCode *query,
                       struct GNUNET_CONTAINER_BloomFilter **bf,
-                      int32_t bf_mutator, const void *xquery,
-                      size_t xquery_size, const void *reply_block,
+                      int32_t bf_mutator,
+                      const void *xquery,
+                      size_t xquery_size,
+                      const void *reply_block,
                       size_t reply_block_size)
 {
   if (NULL == reply_block)
@@ -131,25 +136,28 @@ evaluate_block_regex (void *cls, enum GNUNET_BLOCK_Type type,
 
 /**
  * Function called to validate a reply or a request of type
- * GNUNET_BLOCK_TYPE_REGEX_ACCEPT.
+ * #GNUNET_BLOCK_TYPE_REGEX_ACCEPT.
  * For request evaluation, pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
- * be done with the "get_key" function.
+ * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for bf
  * @param xquery extrended query data (can be NULL, depending on type)
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_block response to validate
- * @param reply_block_size number of bytes in reply block
+ * @param reply_block_size number of bytes in @a reply_block
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
+evaluate_block_regex_accept (void *cls,
+                             enum GNUNET_BLOCK_Type type,
+                             enum GNUNET_BLOCK_EvaluationOptions eo,
                              const struct GNUNET_HashCode * query,
                              struct GNUNET_CONTAINER_BloomFilter **bf,
                              int32_t bf_mutator, const void *xquery,
@@ -221,10 +229,11 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
  * request evaluation, simply pass "NULL" for the reply_block.
  * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
- * be done with the "get_key" function.
+ * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param cls closure
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for bf
@@ -235,11 +244,15 @@ evaluate_block_regex_accept (void *cls, enum GNUNET_BLOCK_Type type,
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_regex_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                             const struct GNUNET_HashCode * query,
+block_plugin_regex_evaluate (void *cls,
+                             enum GNUNET_BLOCK_Type type,
+                             enum GNUNET_BLOCK_EvaluationOptions eo,
+                             const struct GNUNET_HashCode *query,
                              struct GNUNET_CONTAINER_BloomFilter **bf,
-                             int32_t bf_mutator, const void *xquery,
-                             size_t xquery_size, const void *reply_block,
+                             int32_t bf_mutator,
+                             const void *xquery,
+                             size_t xquery_size,
+                             const void *reply_block,
                              size_t reply_block_size)
 {
   enum GNUNET_BLOCK_EvaluationResult result;
@@ -247,12 +260,20 @@ block_plugin_regex_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
   switch (type)
   {
     case GNUNET_BLOCK_TYPE_REGEX:
-      result = evaluate_block_regex (cls, type, query, bf, bf_mutator,
+      result = evaluate_block_regex (cls,
+                                     type,
+                                     eo,
+                                     query,
+                                     bf, bf_mutator,
                                      xquery, xquery_size,
                                      reply_block, reply_block_size);
       break;
     case GNUNET_BLOCK_TYPE_REGEX_ACCEPT:
-      result = evaluate_block_regex_accept (cls, type, query, bf, bf_mutator,
+      result = evaluate_block_regex_accept (cls,
+                                            type,
+                                            eo,
+                                            query,
+                                            bf, bf_mutator,
                                             xquery, xquery_size,
                                             reply_block, reply_block_size);
       break;
@@ -276,9 +297,11 @@ block_plugin_regex_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
-block_plugin_regex_get_key (void *cls, enum GNUNET_BLOCK_Type type,
-                            const void *block, size_t block_size,
-                            struct GNUNET_HashCode * key)
+block_plugin_regex_get_key (void *cls,
+                            enum GNUNET_BLOCK_Type type,
+                            const void *block,
+                            size_t block_size,
+                            struct GNUNET_HashCode *key)
 {
   switch (type)
   {

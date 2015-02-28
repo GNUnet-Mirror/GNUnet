@@ -487,7 +487,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   int do_free;
   struct GNUNET_HashCode ch;
   unsigned int i;
- 
+
   LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
 	       "XVINE CLIENT-RESULT %s\n",
                GNUNET_h2s_full (key));
@@ -519,8 +519,13 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
       return GNUNET_YES;        /* duplicate */
     }
   eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, record->type, key, NULL, 0,
-                             record->xquery, record->xquery_size, frc->data,
+      GNUNET_BLOCK_evaluate (GDS_block_context,
+                             record->type,
+                             GNUNET_BLOCK_EO_NONE,
+                             key, NULL, 0,
+                             record->xquery,
+                             record->xquery_size,
+                             frc->data,
                              frc->data_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Evaluation result is %d for key %s for local client's query\n",
@@ -834,7 +839,7 @@ GDS_CLIENTS_process_put (uint32_t options,
 
 
 /**
- * Route the given request via the DHT.  
+ * Route the given request via the DHT.
  */
 static void
 transmit_request (struct ClientQueryRecord *cqr)
@@ -843,16 +848,16 @@ transmit_request (struct ClientQueryRecord *cqr)
                             gettext_noop
                             ("# GET requests from clients injected"), 1,
                             GNUNET_NO);
-  
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating GET for %s, replication %u, already have %u replies\n",
        GNUNET_h2s (&cqr->key),
        cqr->replication,
        cqr->seen_replies_count);
-  
-  GDS_NEIGHBOURS_handle_get (&cqr->key, cqr->type, cqr->msg_options, 
+
+  GDS_NEIGHBOURS_handle_get (&cqr->key, cqr->type, cqr->msg_options,
                               cqr->replication);
-  
+
   /* exponential back-off for retries.
    * max GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD (15 min) */
   cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
@@ -941,8 +946,8 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             ntohl (put_msg->type),
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                             &put_msg[1]);
- 
-  GDS_NEIGHBOURS_handle_put (&put_msg->key, 
+
+  GDS_NEIGHBOURS_handle_put (&put_msg->key,
                               ntohl (put_msg->type), ntohl (put_msg->options),
                               ntohl (put_msg->desired_replication_level),
                               GNUNET_TIME_absolute_ntoh (put_msg->expiration),
@@ -1013,11 +1018,11 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->replication = ntohl (get->desired_replication_level);
   cqr->msg_options = ntohl (get->options);
   cqr->type = ntohl (get->type);
-  
+
   // FIXME use cqr->key, set multihashmap create to GNUNET_YES
   GNUNET_CONTAINER_multihashmap_put (forward_map, &get->key, cqr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  
+
   struct GNUNET_PeerIdentity my_identity;
   my_identity = GDS_NEIGHBOURS_get_my_id();
   GDS_CLIENTS_process_get (ntohl (get->options),
@@ -1309,7 +1314,7 @@ handle_dht_act_malicious (void *cls, struct GNUNET_SERVER_Client *client,
 
   msg = (const struct GNUNET_DHT_ActMaliciousMessage *)message;
   malicious_action = msg->action;
-  
+
   if(GNUNET_OK == GDS_NEIGHBOURS_act_malicious (malicious_action))
   {
     pm = GNUNET_malloc (sizeof (struct PendingMessage) +

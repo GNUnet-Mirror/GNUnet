@@ -119,6 +119,25 @@ enum GNUNET_BLOCK_Type
 
 
 /**
+ * Flags that can be set to control the evaluation.
+ */
+enum GNUNET_BLOCK_EvaluationOptions
+{
+
+  /**
+   * Default behavior.
+   */
+  GNUNET_BLOCK_EO_NONE = 0,
+
+  /**
+   * The block is obtained from the local database, skip cryptographic
+   * checks.
+   */
+  GNUNET_BLOCK_EO_LOCAL_SKIP_CRYPTO = 1
+};
+
+
+/**
  * Possible ways for how a block may relate to a query.
  */
 enum GNUNET_BLOCK_EvaluationResult
@@ -181,8 +200,9 @@ struct GNUNET_BLOCK_Context;
  * @param hc where to store the result.
  */
 void
-GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode * in, uint32_t mingle_number,
-                          struct GNUNET_HashCode * hc);
+GNUNET_BLOCK_mingle_hash (const struct GNUNET_HashCode *in,
+                          uint32_t mingle_number,
+                          struct GNUNET_HashCode *hc);
 
 
 /**
@@ -206,13 +226,14 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx);
 
 /**
  * Function called to validate a reply or a request.  For
- * request evaluation, simply pass "NULL" for the reply_block.
+ * request evaluation, simply pass "NULL" for the @a reply_block.
  * Note that it is assumed that the reply has already been
  * matched to the key (and signatures checked) as it would
- * be done with the "get_key" function.
+ * be done with the #GNUNET_BLOCK_get_key() function.
  *
  * @param ctx block contxt
  * @param type block type
+ * @param eo evaluation options to control evaluation
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for @a bf
@@ -225,10 +246,13 @@ GNUNET_BLOCK_context_destroy (struct GNUNET_BLOCK_Context *ctx);
 enum GNUNET_BLOCK_EvaluationResult
 GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
                        enum GNUNET_BLOCK_Type type,
-                       const struct GNUNET_HashCode * query,
+                       enum GNUNET_BLOCK_EvaluationOptions eo,
+                       const struct GNUNET_HashCode *query,
                        struct GNUNET_CONTAINER_BloomFilter **bf,
-                       int32_t bf_mutator, const void *xquery,
-                       size_t xquery_size, const void *reply_block,
+                       int32_t bf_mutator,
+                       const void *xquery,
+                       size_t xquery_size,
+                       const void *reply_block,
                        size_t reply_block_size);
 
 
@@ -247,8 +271,10 @@ GNUNET_BLOCK_evaluate (struct GNUNET_BLOCK_Context *ctx,
  */
 int
 GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
-                      enum GNUNET_BLOCK_Type type, const void *block,
-                      size_t block_size, struct GNUNET_HashCode * key);
+                      enum GNUNET_BLOCK_Type type,
+                      const void *block,
+                      size_t block_size,
+                      struct GNUNET_HashCode * key);
 
 
 
@@ -264,7 +290,7 @@ GNUNET_BLOCK_get_key (struct GNUNET_BLOCK_Context *ctx,
  */
 struct GNUNET_CONTAINER_BloomFilter *
 GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
-                                    const struct GNUNET_HashCode * seen_results,
+                                    const struct GNUNET_HashCode *seen_results,
                                     unsigned int seen_results_count);
 
 

@@ -199,9 +199,16 @@ process (void *cls, const struct GNUNET_HashCode * key, void *value)
     eval_key = key;
   }
   eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, pc->type, eval_key,
-                             &rr->reply_bf, rr->reply_bf_mutator, rr->xquery,
-                             rr->xquery_size, pc->data, pc->data_size);
+      GNUNET_BLOCK_evaluate (GDS_block_context,
+                             pc->type,
+                             GNUNET_BLOCK_EO_NONE,
+                             eval_key,
+                             &rr->reply_bf,
+                             rr->reply_bf_mutator,
+                             rr->xquery,
+                             rr->xquery_size,
+                             pc->data,
+                             pc->data_size);
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:

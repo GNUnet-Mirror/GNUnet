@@ -3736,6 +3736,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     switch (GNUNET_BLOCK_evaluate (GDS_block_context,
                                    ntohl (put->block_type),
+                                   GNUNET_BLOCK_EO_NONE,
                                    NULL,    /* query */
                                    NULL, 0, /* bloom filer */
                                    NULL, 0, /* xquery */

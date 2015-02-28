@@ -44,6 +44,7 @@
  *
  * @param cls closure
  * @param type block type
+ * @param eo control flags
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with @a query; possibly updated (!)
  * @param bf_mutator mutation value for @a bf
@@ -54,12 +55,16 @@
  * @return characterization of result
  */
 static enum GNUNET_BLOCK_EvaluationResult
-block_plugin_gns_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
-                          const struct GNUNET_HashCode *query,
-                          struct GNUNET_CONTAINER_BloomFilter **bf,
-                          int32_t bf_mutator, const void *xquery,
-                          size_t xquery_size, const void *reply_block,
-                          size_t reply_block_size)
+block_plugin_gns_evaluate (void *cls,
+                           enum GNUNET_BLOCK_Type type,
+                           enum GNUNET_BLOCK_EvaluationOptions eo,
+                           const struct GNUNET_HashCode *query,
+                           struct GNUNET_CONTAINER_BloomFilter **bf,
+                           int32_t bf_mutator,
+                           const void *xquery,
+                           size_t xquery_size,
+                           const void *reply_block,
+                           size_t reply_block_size)
 {
   const struct GNUNET_GNSRECORD_Block *block;
   struct GNUNET_HashCode h;

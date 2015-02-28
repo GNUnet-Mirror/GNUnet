@@ -42,6 +42,7 @@
  *
  * @param cls closure
  * @param type block type
+ * @param eo evaluation options to control evaluation
  * @param query original query (hash)
  * @param bf pointer to bloom filter associated with query; possibly updated (!)
  * @param bf_mutator mutation value for @a bf
@@ -54,6 +55,7 @@
 typedef enum GNUNET_BLOCK_EvaluationResult
 (*GNUNET_BLOCK_EvaluationFunction) (void *cls,
 				    enum GNUNET_BLOCK_Type type,
+                                    enum GNUNET_BLOCK_EvaluationOptions eo,
 				    const struct GNUNET_HashCode *query,
 				    struct GNUNET_CONTAINER_BloomFilter **bf,
 				    int32_t bf_mutator,
@@ -76,11 +78,12 @@ typedef enum GNUNET_BLOCK_EvaluationResult
  *         #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
-typedef int (*GNUNET_BLOCK_GetKeyFunction) (void *cls,
-                                            enum GNUNET_BLOCK_Type type,
-                                            const void *block,
-                                            size_t block_size,
-                                            struct GNUNET_HashCode * key);
+typedef int
+(*GNUNET_BLOCK_GetKeyFunction) (void *cls,
+                                enum GNUNET_BLOCK_Type type,
+                                const void *block,
+                                size_t block_size,
+                                struct GNUNET_HashCode *key);
 
 
 
