@@ -585,6 +585,7 @@ update_preference (struct GNUNET_SERVER_Client *client,
   if (NULL == c_cur)
   {
     c_cur = GNUNET_new (struct PreferenceClient);
+    c_cur->client = client;
     c_cur->peer2pref = GNUNET_CONTAINER_multipeermap_create (16,
                                                              GNUNET_NO);
     for (i = 0; i < GNUNET_ATS_PREFERENCE_END; i++)
