@@ -531,6 +531,8 @@ receive_helper (void *cls,
          (unsigned int) available,
          NULL == client->connection ? "NULL" : "non-NULL",
          STRERROR (errCode));
+    /* remember failure */
+    client->in_receive = GNUNET_SYSERR;
     if (NULL != (receive_handler = client->receiver_handler))
     {
       receive_handler_cls = client->receiver_handler_cls;
@@ -538,8 +540,6 @@ receive_helper (void *cls,
       receive_handler (receive_handler_cls,
                        NULL);
     }
-    /* remember failure */
-    client->in_receive = GNUNET_SYSERR;
     return;
   }
   /* FIXME: optimize for common fast case where buf contains the
