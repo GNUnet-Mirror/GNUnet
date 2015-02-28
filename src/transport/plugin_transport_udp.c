@@ -1672,7 +1672,6 @@ session_cmp_it (void *cls,
                 void *value)
 {
   struct SessionCompareContext *cctx = cls;
-  const struct GNUNET_HELLO_Address *address = cctx->address;
   struct Session *s = value;
 
   if (0 == GNUNET_HELLO_address_cmp (s->address,
