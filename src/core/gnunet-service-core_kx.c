@@ -850,7 +850,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   if ( ( (GNUNET_CORE_KX_STATE_KEY_RECEIVED == kx->status) ||
 	 (GNUNET_CORE_KX_STATE_UP == kx->status) ||
 	 (GNUNET_CORE_KX_STATE_REKEY_SENT == kx->status) ) &&
-       (end_t.abs_value_us <= kx->foreign_key_expires.abs_value_us) )
+       (end_t.abs_value_us < kx->foreign_key_expires.abs_value_us) )
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# old ephemeral keys ignored"),
@@ -886,8 +886,9 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
        sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)) ||
       (GNUNET_OK !=
        GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_SET_ECC_KEY,
-				 &m->purpose,
-                                 &m->signature, &m->origin_identity.public_key)))
+                                   &m->purpose,
+                                   &m->signature,
+                                   &m->origin_identity.public_key)))
   {
     /* invalid signature */
     GNUNET_break_op (0);
