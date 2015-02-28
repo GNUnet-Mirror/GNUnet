@@ -1416,6 +1416,7 @@ GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
 			      void *callback_cls)
 {
   struct NotifyList *n;
+  struct GNUNET_SERVER_Client *client;
 
   n = GNUNET_new (struct NotifyList);
   n->callback = callback;
@@ -1423,6 +1424,8 @@ GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
   GNUNET_CONTAINER_DLL_insert (server->connect_notify_list_head,
 			       server->connect_notify_list_tail,
 			       n);
+  for (client = server->clients_head; NULL != client; client = client->next)
+    callback (callback_cls, client);
 }
 
 
@@ -1435,8 +1438,8 @@ GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
  */
 void
 GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
-                                        GNUNET_SERVER_DisconnectCallback
-                                        callback, void *callback_cls)
+                                        GNUNET_SERVER_DisconnectCallback callback,
+                                        void *callback_cls)
 {
   struct NotifyList *pos;
 
