@@ -1,7 +1,0 @@
-#!/bin/sh
-MYDIR=`dirname $0`
-JTB_JAR=`echo ${MYDIR}/../contrib/jtb.jar`
-java -jar $JTB_JAR -printer -jd -np org.gnunet.seaspider.parser.nodes -vp org.gnunet.seaspider.parser.visitors -o C.out.jj "$1"
-rm -rf org/gnunet/seaspider/parser/
-mkdir -p org/gnunet/seaspider/parser/
-mv nodes visitors org/gnunet/seaspider/parser/

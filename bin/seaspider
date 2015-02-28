@@ -1,3 +1,0 @@
-#!/bin/sh
-MYDIR=`dirname $0`
-java -classpath ${MYDIR}/../contrib/seaspider.jar:${MYDIR}/../contrib/antlr-runtime-3.1.3.jar:${MYDIR}/../contrib/sqljet.1.0.3.b914.jar org.gnunet.seaspider.Seaspider contrib/seaspider.db $@
