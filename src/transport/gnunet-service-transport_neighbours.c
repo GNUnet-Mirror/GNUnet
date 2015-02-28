@@ -826,6 +826,9 @@ set_alternative_address (struct NeighbourMapEntry *n,
   n->alternative_address.session = session;
   n->alternative_address.ats_active = GNUNET_NO;
   n->alternative_address.keep_alive_nonce = 0;
+  GNUNET_assert (GNUNET_YES ==
+                 GST_ats_is_known (n->alternative_address.address,
+                                   n->alternative_address.session));
 }
 
 
@@ -890,6 +893,9 @@ set_primary_address (struct NeighbourMapEntry *n,
   n->primary_address.bandwidth_out = bandwidth_out;
   n->primary_address.session = session;
   n->primary_address.keep_alive_nonce = 0;
+  GNUNET_assert (GNUNET_YES ==
+                 GST_ats_is_known (n->primary_address.address,
+                                   n->primary_address.session));
   /* subsystems about address use */
   GST_validation_set_address_use (n->primary_address.address,
                                   GNUNET_YES);
@@ -2455,6 +2461,9 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
     /* switch to a different session, but keeping same address; could
        happen if there is a 2nd inbound connection */
     n->primary_address.session = session;
+    GNUNET_assert (GNUNET_YES ==
+                   GST_ats_is_known (n->primary_address.address,
+                                     n->primary_address.session));
   }
   n->primary_address.bandwidth_in = bandwidth_in;
   n->primary_address.bandwidth_out = bandwidth_out;
@@ -3398,6 +3407,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* Destroy the inbound address since it cannot be used */
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
+    GNUNET_assert (GNUNET_YES ==
+                   GST_ats_is_known (n->primary_address.address,
+                                     n->primary_address.session));
     memset (&n->alternative_address,
             0,
             sizeof (struct NeighbourAddress));

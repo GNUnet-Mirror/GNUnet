@@ -851,7 +851,7 @@ http_client_plugin_session_disconnect (void *cls,
   client_delete_session (s);
 
   /* Re-schedule since handles have changed */
-  if (plugin->client_perform_task != NULL)
+  if (NULL != plugin->client_perform_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = NULL;
