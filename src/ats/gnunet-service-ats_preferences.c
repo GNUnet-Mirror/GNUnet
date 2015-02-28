@@ -397,19 +397,22 @@ preference_aging (void *cls,
   struct AgeContext ac;
 
   aging_task = NULL;
+  GAS_plugin_solver_lock ();
   ac.values_to_update = 0;
   for (ac.cur_client = pc_head; NULL != ac.cur_client; ac.cur_client = ac.cur_client->next)
     GNUNET_CONTAINER_multipeermap_iterate (ac.cur_client->peer2pref,
                                            &age_values,
                                            &ac);
+  GAS_plugin_solver_unlock ();
   if (ac.values_to_update > 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Rescheduling aging task due to %u elements remaining to age\n",
                 ac.values_to_update);
-    aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
-                                               &preference_aging,
-                                               NULL);
+    if (NULL == aging_task)
+      aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
+                                                 &preference_aging,
+                                                 NULL);
   }
   else
   {
