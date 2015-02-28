@@ -170,7 +170,7 @@ struct GNUNET_CONNECTION_Handle
   GNUNET_CONNECTION_Receiver receiver;
 
   /**
-   * Closure for receiver.
+   * Closure for @e receiver.
    */
   void *receiver_cls;
 
@@ -180,24 +180,24 @@ struct GNUNET_CONNECTION_Handle
   char *write_buffer;
 
   /**
-   * Current size of our write buffer.
+   * Current size of our @e write_buffer.
    */
   size_t write_buffer_size;
 
   /**
-   * Current write-offset in write buffer (where
+   * Current write-offset in @e write_buffer (where
    * would we write next).
    */
   size_t write_buffer_off;
 
   /**
-   * Current read-offset in write buffer (how many
+   * Current read-offset in @e write_buffer (how many
    * bytes have already been sent).
    */
   size_t write_buffer_pos;
 
   /**
-   * Length of addr.
+   * Length of @e addr.
    */
   socklen_t addrlen;
 
@@ -246,7 +246,7 @@ struct GNUNET_CONNECTION_Handle
 
   /**
    * Usually 0.  Set to 1 if this handle is in used and should
-   * 'GNUNET_CONNECTION_destroy' be called right now, the action needs
+   * #GNUNET_CONNECTION_destroy() be called right now, the action needs
    * to be deferred by setting it to -1.
    */
   int8_t destroy_later;
@@ -277,7 +277,7 @@ GNUNET_CONNECTION_persist_ (struct GNUNET_CONNECTION_Handle *connection)
  * reach the other side before the process is terminated.
  *
  * @param connection the connection to make flushing and blocking
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_CONNECTION_disable_corking (struct GNUNET_CONNECTION_Handle *connection)
@@ -289,7 +289,7 @@ GNUNET_CONNECTION_disable_corking (struct GNUNET_CONNECTION_Handle *connection)
 /**
  * Create a connection handle by boxing an existing OS socket.  The OS
  * socket should henceforth be no longer used directly.
- * GNUNET_connection_destroy will close it.
+ * #GNUNET_connection_destroy() will close it.
  *
  * @param osSocket existing socket to box
  * @return the boxed connection handle
@@ -448,12 +448,13 @@ GNUNET_CONNECTION_create_from_accept (GNUNET_CONNECTION_AccessCheck access_cb,
  *
  * @param connection the client to get the address for
  * @param addr where to store the address
- * @param addrlen where to store the length of the address
- * @return GNUNET_OK on success
+ * @param addrlen where to store the length of the @a addr
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_CONNECTION_get_address (struct GNUNET_CONNECTION_Handle *connection,
-                               void **addr, size_t * addrlen)
+                               void **addr,
+                               size_t *addrlen)
 {
   if ((NULL == connection->addr) || (0 == connection->addrlen))
     return GNUNET_NO;
@@ -501,7 +502,8 @@ signal_receive_timeout (struct GNUNET_CONNECTION_Handle *connection)
 {
   GNUNET_CONNECTION_Receiver receiver;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection signals timeout to receiver (%p)!\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connection signals timeout to receiver (%p)!\n",
        connection);
   GNUNET_assert (NULL != (receiver = connection->receiver));
   connection->receiver = NULL;
@@ -560,8 +562,9 @@ static void
 connect_fail_continuation (struct GNUNET_CONNECTION_Handle *connection)
 {
   LOG (GNUNET_ERROR_TYPE_INFO,
-       _("Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"),
-       connection->hostname, connection->port);
+       "Failed to establish TCP connection to `%s:%u', no further addresses to try.\n",
+       connection->hostname,
+    connection->port);
   GNUNET_break (NULL == connection->ap_head);
   GNUNET_break (NULL == connection->ap_tail);
   GNUNET_break (GNUNET_NO == connection->dns_active);
@@ -623,7 +626,8 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *connection)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connection to `%s' succeeded! (%p)\n",
-       GNUNET_a2s (connection->addr, connection->addrlen), connection);
+       GNUNET_a2s (connection->addr, connection->addrlen),
+       connection);
   /* trigger jobs that waited for the connection */
   if (NULL != connection->receiver)
   {
@@ -709,12 +713,13 @@ connect_probe_continuation (void *cls,
  * Try to establish a connection given the specified address.
  * This function is called by the resolver once we have a DNS reply.
  *
- * @param cls our "struct GNUNET_CONNECTION_Handle *"
+ * @param cls our `struct GNUNET_CONNECTION_Handle *`
  * @param addr address to try, NULL for "last call"
- * @param addrlen length of addr
+ * @param addrlen length of @a addr
  */
 static void
-try_connect_using_address (void *cls, const struct sockaddr *addr,
+try_connect_using_address (void *cls,
+                           const struct sockaddr *addr,
                            socklen_t addrlen)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
@@ -733,8 +738,11 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
   GNUNET_assert (NULL == connection->addr);
   /* try to connect */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to connect using address `%s:%u/%s:%u'\n", connection->hostname, connection->port,
-       GNUNET_a2s (addr, addrlen), connection->port);
+       "Trying to connect using address `%s:%u/%s:%u'\n",
+       connection->hostname,
+       connection->port,
+       GNUNET_a2s (addr, addrlen),
+       connection->port);
   ap = GNUNET_malloc (sizeof (struct AddressProbe) + addrlen);
   ap->addr = (const struct sockaddr *) &ap[1];
   memcpy (&ap[1], addr, addrlen);
@@ -760,8 +768,10 @@ try_connect_using_address (void *cls, const struct sockaddr *addr,
     GNUNET_free (ap);
     return;                     /* not supported by OS */
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, _("Trying to connect to `%s' (%p)\n"),
-       GNUNET_a2s (ap->addr, ap->addrlen), connection);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Trying to connect to `%s' (%p)\n",
+       GNUNET_a2s (ap->addr, ap->addrlen),
+       connection);
   if ((GNUNET_OK !=
        GNUNET_NETWORK_socket_connect (ap->sock, ap->addr, ap->addrlen)) &&
       (EINPROGRESS != errno))
@@ -832,9 +842,8 @@ GNUNET_CONNECTION_create_from_connect (const struct GNUNET_CONFIGURATION_Handle 
  * @return the connection handle, NULL on systems without UNIX support
  */
 struct GNUNET_CONNECTION_Handle *
-GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
-                                                   GNUNET_CONFIGURATION_Handle
-                                                   *cfg, const char *unixpath)
+GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                                   const char *unixpath)
 {
 #ifdef AF_UNIX
   struct GNUNET_CONNECTION_Handle *connection;
@@ -897,7 +906,7 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
  *
  * @param s socket to connect
  * @param serv_addr server address
- * @param addrlen length of server address
+ * @param addrlen length of @a serv_addr
  * @return the connection handle
  */
 struct GNUNET_CONNECTION_Handle *
@@ -907,14 +916,17 @@ GNUNET_CONNECTION_connect_socket (struct GNUNET_NETWORK_Handle *s,
 {
   struct GNUNET_CONNECTION_Handle *connection;
 
-  if ((GNUNET_OK != GNUNET_NETWORK_socket_connect (s, serv_addr, addrlen)) &&
-      (EINPROGRESS != errno))
+  if ( (GNUNET_OK !=
+        GNUNET_NETWORK_socket_connect (s, serv_addr, addrlen)) &&
+       (EINPROGRESS != errno) )
   {
     /* maybe refused / unsupported address, try next */
-    LOG_STRERROR (GNUNET_ERROR_TYPE_INFO, "connect");
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         _("Attempt to connect to `%s' failed\n"),
-         GNUNET_a2s (serv_addr, addrlen));
+    LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG,
+                  "connect");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Attempt to connect to `%s' failed\n",
+         GNUNET_a2s (serv_addr,
+                     addrlen));
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (s));
     return NULL;
   }
@@ -923,8 +935,9 @@ GNUNET_CONNECTION_connect_socket (struct GNUNET_NETWORK_Handle *s,
   memcpy (connection->addr, serv_addr, addrlen);
   connection->addrlen = addrlen;
   LOG (GNUNET_ERROR_TYPE_INFO,
-       _("Trying to connect to `%s' (%p)\n"),
-       GNUNET_a2s (serv_addr, addrlen), connection);
+       "Trying to connect to `%s' (%p)\n",
+       GNUNET_a2s (serv_addr, addrlen),
+       connection);
   return connection;
 }
 
@@ -1129,7 +1142,7 @@ RETRY:
 
 /**
  * Receive data from the given connection.  Note that this function will
- * call "receiver" asynchronously using the scheduler.  It will
+ * call @a receiver asynchronously using the scheduler.  It will
  * "immediately" return.  Note that there MUST only be one active
  * receive call per connection at any given point in time (so do not
  * call receive again until the receiver callback has been invoked).
@@ -1138,10 +1151,11 @@ RETRY:
  * @param max maximum number of bytes to read
  * @param timeout maximum amount of time to wait
  * @param receiver function to call with received data
- * @param receiver_cls closure for receiver
+ * @param receiver_cls closure for @a receiver
  */
 void
-GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection, size_t max,
+GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection,
+                           size_t max,
                            struct GNUNET_TIME_Relative timeout,
                            GNUNET_CONNECTION_Receiver receiver,
                            void *receiver_cls)
@@ -1196,7 +1210,7 @@ GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *connection)
  * have enough space available first)!
  *
  * @param connection connection for which we should do this processing
- * @return GNUNET_YES if we were able to call notify
+ * @return #GNUNET_YES if we were able to call notify
  */
 static int
 process_notify (struct GNUNET_CONNECTION_Handle *connection)
@@ -1206,12 +1220,13 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
   size_t size;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "process_notify is running\n");
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "process_notify is running\n");
   GNUNET_assert (NULL == connection->write_task);
   if (NULL == (notify = connection->nth.notify_ready))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Noone to notify\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No one to notify\n");
     return GNUNET_NO;
   }
   used = connection->write_buffer_off - connection->write_buffer_pos;
@@ -1219,7 +1234,8 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
   size = connection->nth.notify_size;
   if (size > avail)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Not enough buffer\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Not enough buffer\n");
     return GNUNET_NO;
   }
   connection->nth.notify_ready = NULL;
@@ -1251,7 +1267,7 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
  *
  * This task notifies the client about the timeout.
  *
- * @param cls the 'struct GNUNET_CONNECTION_Handle'
+ * @param cls the `struct GNUNET_CONNECTION_Handle`
  * @param tc scheduler context
  */
 static void
@@ -1278,7 +1294,7 @@ transmit_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * This task notifies the client about the error.
  *
- * @param cls the 'struct GNUNET_CONNECTION_Handle'
+ * @param cls the `struct GNUNET_CONNECTION_Handle`
  * @param tc scheduler context
  */
 static void
@@ -1432,7 +1448,7 @@ SCHEDULE_WRITE:
  * @param connection connection
  * @param size number of bytes to send
  * @param timeout after how long should we give up (and call
- *        notify with buf NULL and size 0)?
+ *        @a notify with buf NULL and size 0)?
  * @param notify function to call
  * @param notify_cls closure for @a notify
  * @return non-NULL if the notify callback was queued,
