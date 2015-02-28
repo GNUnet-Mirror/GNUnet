@@ -1923,7 +1923,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
          wfds ? awrite.fd_count : 0,
          aexcept.fd_count,
          GetLastError ());
-    GNUNET_abort ();
+    GNUNET_assert (0);
   }
 
   /* Check aexcept, if something is in there and we copied that

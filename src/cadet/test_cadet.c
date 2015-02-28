@@ -599,7 +599,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Client %li not valid.\n", client);
-    GNUNET_abort ();
+    GNUNET_assert (0);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
   data = (uint32_t *) &message[1];

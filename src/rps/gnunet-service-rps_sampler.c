@@ -748,7 +748,7 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
     else if (GNUNET_NO == for_client)
       gpc->get_peer_task = GNUNET_SCHEDULER_add_now (&sampler_get_rand_peer2, gpc);
     else
-      GNUNET_abort ();
+      GNUNET_assert (0);
 
     GNUNET_CONTAINER_DLL_insert (gpc_head, gpc_tail, gpc);
   }

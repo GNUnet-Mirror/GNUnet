@@ -105,7 +105,7 @@ send_cb (void *cls)
 static void
 send_trap_cb (void *cls)
 {
-  GNUNET_abort ();
+  GNUNET_assert (0);
 }
 
 

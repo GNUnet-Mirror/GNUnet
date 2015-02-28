@@ -281,7 +281,7 @@ resize_logdefs ()
  * Abort the process, generate a core dump if possible.
  */
 void
-GNUNET_abort ()
+GNUNET_abort_ ()
 {
 #if WINDOWS
   DebugBreak ();
@@ -1253,7 +1253,7 @@ GNUNET_util_cl_init ()
 #endif
 #if WINDOWS
   if (!InitializeCriticalSectionAndSpinCount (&output_message_cs, 0x00000400))
-    GNUNET_abort ();
+    GNUNET_abort_ ();
 #endif
 }
 

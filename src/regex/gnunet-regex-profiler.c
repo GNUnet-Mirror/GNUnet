@@ -927,7 +927,7 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed to start/stop daemon at peer %u: %s\n", peer->id, emsg);
-    GNUNET_abort ();
+    GNUNET_assert (0);
   }
   else
   {
@@ -942,7 +942,7 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
   {
     search_peer = (search_peer + 1) % num_peers;
     if (i > num_peers)
-      GNUNET_abort (); /* we ran out of peers, must be a bug */
+      GNUNET_assert (0); /* we ran out of peers, must be a bug */
   }
   peers[search_peer].search_str = search_strings[peer->id];
   peers[search_peer].search_str_matched = GNUNET_NO;
@@ -1038,7 +1038,7 @@ dht_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   if (NULL != emsg || NULL == op || NULL == ca_result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "DHT connect failed: %s\n", emsg);
-    GNUNET_abort ();
+    GNUNET_assert (0);
   }
 
   GNUNET_assert (NULL != peer->dht_handle);

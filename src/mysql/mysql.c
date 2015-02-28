@@ -38,7 +38,7 @@
  * a failure of the command 'cmd' with the message given
  * by strerror(errno).
  */
-#define DIE_MYSQL(cmd, dbh) do { GNUNET_log_from (GNUNET_ERROR_TYPE__ERROR, "mysql", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); GNUNET_abort(); } while(0);
+#define DIE_MYSQL(cmd, dbh) do { GNUNET_log_from (GNUNET_ERROR_TYPE__ERROR, "mysql", _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, mysql_error((dbh)->dbf)); GNUNET_assert (0); } while(0);
 
 /**
  * Log an error message at log-level 'level' that indicates

@@ -519,7 +519,7 @@ core_init (void *cls,
                                        GNUNET_NO, /* For header-only out notification */
                                        core_handlers);    /* Register these handlers */
     if (10 < i++)
-      GNUNET_abort();
+      GNUNET_assert (0);
   }
   GML_start ();
   return;
@@ -1069,7 +1069,7 @@ fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       /* This should be encapsulted */
       msg_size = 0;
-      GNUNET_abort ();
+      GNUNET_assert (0);
       break;
     default:
       GNUNET_break (0);
@@ -1340,7 +1340,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
        GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
   if (error_level == GNUNET_ERROR_TYPE_ERROR)
-    GNUNET_abort ();
+    GNUNET_assert (0);
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */

@@ -443,9 +443,11 @@ GNUNET_log_config_invalid (enum GNUNET_ErrorType kind,
 /**
  * @ingroup logging
  * Abort the process, generate a core dump if possible.
+ * Most code should use `GNUNET_assert (0)` instead to
+ * first log the location of the failure.
  */
 void
-GNUNET_abort (void) GNUNET_NORETURN;
+GNUNET_abort_ (void) GNUNET_NORETURN;
 
 
 /**
@@ -585,14 +587,14 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
  * @ingroup logging
  * Use this for fatal errors that cannot be handled
  */
-#define GNUNET_assert(cond) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); GNUNET_abort(); } } while(0)
+#define GNUNET_assert(cond) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), __FILE__, __LINE__); GNUNET_abort_(); } } while(0)
 
 
 /**
  * @ingroup logging
  * Use this for fatal errors that cannot be handled
  */
-#define GNUNET_assert_at(cond, f, l) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), f, l); GNUNET_abort(); } } while(0)
+#define GNUNET_assert_at(cond, f, l) do { if (! (cond)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Assertion failed at %s:%d.\n"), f, l); GNUNET_abort_(); } } while(0)
 
 
 /**

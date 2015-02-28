@@ -580,7 +580,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
     if ((0 != (tc.reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) &&
         (-1 != pos->write_fd) &&
         (!GNUNET_NETWORK_fdset_test_native (ws, pos->write_fd)))
-      GNUNET_abort ();          // added to ready in previous select loop!
+      GNUNET_assert (0);          // added to ready in previous select loop!
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Running task: %p\n",
          pos);
@@ -801,7 +801,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
                       "system");
 #endif
 #endif
-      GNUNET_abort ();
+      GNUNET_assert (0);
       break;
     }
     if ( (0 == ret) &&

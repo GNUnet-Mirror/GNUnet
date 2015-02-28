@@ -40,7 +40,7 @@ conclude_done (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "conclude over\n");
   if (2 != elements_received)
-    GNUNET_abort ();
+    GNUNET_assert (0);
   GNUNET_SCHEDULER_shutdown ();
 }
 

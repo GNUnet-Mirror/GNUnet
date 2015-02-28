@@ -283,7 +283,7 @@ GNUNET_CRYPTO_random_init ()
     FPRINTF (stderr,
              _("libgcrypt has not the expected version (version %s is required).\n"),
              NEED_LIBGCRYPT_VERSION);
-    GNUNET_abort ();
+    GNUNET_assert (0);
   }
   if ((rc = gcry_control (GCRYCTL_DISABLE_SECMEM, 0)))
     FPRINTF (stderr,

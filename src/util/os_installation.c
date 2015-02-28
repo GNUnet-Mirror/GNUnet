@@ -173,7 +173,7 @@ get_path_from_module_filename ()
     real_pathlen = GetModuleFileNameW (dll_instance, modulepath, pathlen * sizeof (wchar_t));
   } while (real_pathlen >= pathlen && pathlen < 16*1024);
   if (real_pathlen >= pathlen)
-    GNUNET_abort ();
+    GNUNET_assert (0);
   /* To be safe */
   modulepath[real_pathlen] = '\0';
 
@@ -215,7 +215,7 @@ get_path_from_module_filename ()
   /* modulepath is GNUNET_PREFIX */
   u8_string = u16_to_u8 (modulepath, wcslen (modulepath), NULL, &u8_string_length);
   if (NULL == u8_string)
-    GNUNET_abort ();
+    GNUNET_assert (0);
 
   upath = GNUNET_malloc (u8_string_length + 1);
   memcpy (upath, u8_string, u8_string_length);

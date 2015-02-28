@@ -88,7 +88,7 @@ handle_test (void *cls,
   }
   if (num_received > NUM_MSG)
   {
-    GNUNET_abort ();
+    GNUNET_assert (0);
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -127,7 +127,7 @@ run (void *cls,
                               GNUNET_NO, handlers);
   if (NULL == core)
   {
-    GNUNET_abort ();
+    GNUNET_assert (0);
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);

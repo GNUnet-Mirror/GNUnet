@@ -398,9 +398,9 @@ const struct GNUNET_MessageHeader *
 GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq)
 {
   if (NULL == mq->current_envelope)
-    GNUNET_abort ();
+    GNUNET_assert (0);
   if (NULL == mq->current_envelope->mh)
-    GNUNET_abort ();
+    GNUNET_assert (0);
   return mq->current_envelope->mh;
 }
 
