@@ -2533,9 +2533,13 @@ connect_notify (void *cls,
 
   plugin->cur_connections++;
   GNUNET_STATISTICS_set (plugin->env->stats,
-                         gettext_noop ("# TCP server connections"),
+                         gettext_noop ("# TCP server connections active"),
                          plugin->cur_connections,
                          GNUNET_NO);
+  GNUNET_STATISTICS_update (plugin->env->stats,
+			    gettext_noop ("# TCP server connect events"),
+			    1,
+			    GNUNET_NO);
   if (plugin->cur_connections != plugin->max_connections)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -2586,7 +2590,7 @@ disconnect_notify (void *cls,
   GNUNET_assert (plugin->cur_connections >= 1);
   plugin->cur_connections--;
   GNUNET_STATISTICS_set (plugin->env->stats,
-                         gettext_noop ("# TCP server connections"),
+                         gettext_noop ("# TCP server connections active"),
                          plugin->cur_connections,
                          GNUNET_NO);
   GNUNET_STATISTICS_update (session->plugin->env->stats,
