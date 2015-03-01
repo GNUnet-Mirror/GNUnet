@@ -121,29 +121,14 @@ union UdpAddress
 
 
 /**
- * UDP Message-Packet header (after defragmentation).
+ * Information we track for each message in the queue.
  */
-struct UDPMessage
-{
-  /**
-   * Message header.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Always zero for now.
-   */
-  uint32_t reserved;
-
-  /**
-   * What is the identity of the sender
-   */
-  struct GNUNET_PeerIdentity sender;
-
-};
-
 struct UDP_MessageWrapper;
 
+
+/**
+ * Closure for #append_port().
+ */
 struct PrettyPrinterContext;
 
 
@@ -172,7 +157,7 @@ struct Plugin
   /**
    * ID of select task for IPv4
    */
-  struct GNUNET_SCHEDULER_Task *select_task;
+  struct GNUNET_SCHEDULER_Task *select_task_v4;
 
   /**
    * ID of select task for IPv6
@@ -205,29 +190,9 @@ struct Plugin
   struct GNUNET_NAT_Handle *nat;
 
   /**
-   * FD Read set
-   */
-  struct GNUNET_NETWORK_FDSet *rs_v4;
-
-  /**
-   * FD Write set
-   */
-  struct GNUNET_NETWORK_FDSet *ws_v4;
-
-  /**
    * The read socket for IPv4
    */
   struct GNUNET_NETWORK_Handle *sockv4;
-
-  /**
-   * FD Read set
-   */
-  struct GNUNET_NETWORK_FDSet *rs_v6;
-
-  /**
-   * FD Write set
-   */
-  struct GNUNET_NETWORK_FDSet *ws_v6;
 
   /**
    * The read socket for IPv6
@@ -347,6 +312,17 @@ struct Plugin
 };
 
 
+/**
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
+ *
+ * @param cls closure
+ * @param addr binary address (a `union UdpAddress`)
+ * @param addrlen length of the @a addr
+ * @return string representing the same address
+ */
 const char *
 udp_address_to_string (void *cls,
                        const void *addr,

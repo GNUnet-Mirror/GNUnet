@@ -527,6 +527,13 @@ iface_proc (void *cls,
 }
 
 
+/**
+ * Setup broadcasting subsystem.
+ *
+ * @param plugin
+ * @param server_addrv6
+ * @param server_addrv4
+ */
 void
 setup_broadcast (struct Plugin *plugin,
                  struct sockaddr_in6 *server_addrv6,
@@ -577,6 +584,11 @@ setup_broadcast (struct Plugin *plugin,
 }
 
 
+/**
+ * Stop broadcasting subsystem.
+ *
+ * @param plugin
+ */
 void
 stop_broadcast (struct Plugin *plugin)
 {
