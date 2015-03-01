@@ -342,16 +342,16 @@ test_addr_string (void *cls,
   if (NULL == w->addrstring)
   {
     GNUNET_break(0);
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Plugin cannot convert address to string!\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Plugin cannot convert address to string!\n");
     end_badly_now ();
     return;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Plugin added address `%s'\n",
-             w->addrstring);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-             "Testing address_to_string: OK\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Plugin added address `%s'\n",
+              w->addrstring);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Testing address_to_string: OK\n");
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Testing: string_to_address \n");
   s2a = NULL;
@@ -385,14 +385,16 @@ test_addr_string (void *cls,
   }
   else if (0 != memcmp (s2a, w->address->address, s2a_len))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-               "Plugin creates different address length when converting back and forth %i!\n",
-               memcmp (s2a, w->address->address, s2a_len));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Plugin creates different address length when converting back and forth %i!\n",
+                memcmp (s2a,
+                        w->address->address,
+                        s2a_len));
   }
   else
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Testing string_to_address: OK\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Testing string_to_address: OK\n");
   }
   GNUNET_free(s2a);
 
@@ -406,10 +408,13 @@ test_addr_string (void *cls,
                                &address_pretty_printer_cb, w);
 
   if (GNUNET_OK !=
-      api->check_address (api->cls, w->address->address, w->address->address_length))
+      api->check_address (api->cls,
+                          w->address->address,
+                          w->address->address_length))
   {
-    GNUNET_break(0);
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Plugin refuses added address!\n");
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Plugin refuses added address!\n");
     end_badly_now ();
     return;
   }
