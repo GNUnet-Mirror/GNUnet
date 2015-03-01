@@ -42,6 +42,9 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
+/**
+ * After how much inactivity should a UDP session time out?
+ */
 #define UDP_SESSION_TIME_OUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
@@ -57,7 +60,7 @@
 /**
  * We keep a defragmentation queue per sender address.  How many
  * sender addresses do we support at the same time? Memory consumption
- * is roughly a factor of 32k * UDP_MAX_MESSAGES_IN_DEFRAG times this
+ * is roughly a factor of 32k * #UDP_MAX_MESSAGES_IN_DEFRAG times this
  * value. (So 128 corresponds to 12 MB and should suffice for
  * connecting to roughly 128 peers via UDP).
  */
@@ -209,23 +212,6 @@ struct Session
   int in_destroy;
 };
 
-
-/**
- * Closure for #process_inbound_tokenized_messages().
- */
-struct SourceInformation
-{
-  /**
-   * Sender identity.
-   */
-  struct GNUNET_PeerIdentity sender;
-
-  /**
-   * Associated session.
-   */
-  struct Session *session;
-
-};
 
 /**
  * Closure for #find_receive_context().
@@ -2242,7 +2228,7 @@ udp_nat_port_map_callback (void *cls,
  * to the service.
  *
  * @param cls the `struct Plugin *`
- * @param client the `struct SourceInformation *`
+ * @param client the `struct Session *`
  * @param hdr the actual message
  * @return #GNUNET_OK (always)
  */
@@ -2252,19 +2238,18 @@ process_inbound_tokenized_messages (void *cls,
                                     const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
-  struct SourceInformation *si = client;
+  struct Session *session = client;
   struct GNUNET_TIME_Relative delay;
 
-  GNUNET_assert (NULL != si->session);
-  if (GNUNET_YES == si->session->in_destroy)
+  if (GNUNET_YES == session->in_destroy)
     return GNUNET_OK;
   /* setup ATS */
-  reschedule_session_timeout (si->session);
+  reschedule_session_timeout (session);
   delay = plugin->env->receive (plugin->env->cls,
-                                si->session->address,
-                                si->session,
+                                session->address,
+                                session,
                                 hdr);
-  si->session->flow_delay_for_other_peer = delay;
+  session->flow_delay_for_other_peer = delay;
   return GNUNET_OK;
 }
 
@@ -2285,7 +2270,6 @@ process_udp_message (struct Plugin *plugin,
                      size_t udp_addr_len,
                      enum GNUNET_ATS_Network_Type network_type)
 {
-  struct SourceInformation si;
   struct Session *s;
   struct GNUNET_HELLO_Address *address;
 
@@ -2327,11 +2311,9 @@ process_udp_message (struct Plugin *plugin,
   GNUNET_free (address);
 
   /* iterate over all embedded messages */
-  si.session = s;
-  si.sender = msg->sender;
   s->rc++;
   GNUNET_SERVER_mst_receive (plugin->mst,
-                             &si,
+                             s,
                              (const char *) &msg[1],
                              ntohs (msg->header.size) - sizeof(struct UDPMessage),
                              GNUNET_YES,
