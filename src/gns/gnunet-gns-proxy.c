@@ -522,6 +522,11 @@ struct Socks5Request
    * HTTP request headers for the curl request.
    */
   struct curl_slist *headers;
+  
+  /**
+   * DNS->IP mappings resolved through GNS
+   */
+  struct curl_slist *hosts;
 
   /**
    * HTTP response code to give to MHD for the response.
@@ -713,6 +718,10 @@ cleanup_s5r (struct Socks5Request *s5r)
     s5r->curl = NULL;
   }
   curl_slist_free_all (s5r->headers);
+  if (NULL != s5r->hosts)
+  {
+    curl_slist_free_all (s5r->hosts);
+  }
   if ( (NULL != s5r->response) &&
        (curl_failure_response != s5r->response) )
     MHD_destroy_response (s5r->response);
@@ -1481,6 +1490,7 @@ create_response (void *cls,
 {
   struct Socks5Request *s5r = *con_cls;
   char *curlurl;
+  char *curl_hosts;
   char ipstring[INET6_ADDRSTRLEN];
   char ipaddr[INET6_ADDRSTRLEN + 2];
   const struct sockaddr *sa;
@@ -1554,11 +1564,29 @@ create_response (void *cls,
     curl_easy_setopt (s5r->curl, CURLOPT_NOSIGNAL, 1L);
     curl_easy_setopt (s5r->curl, CURLOPT_PRIVATE, s5r);
     curl_easy_setopt (s5r->curl, CURLOPT_VERBOSE, 0);
+    /**
+     * Pre-populate cache to resolve Hostname.
+     * This is necessary as the DNS name in the CURLOPT_URL is used
+     * for SNI http://de.wikipedia.org/wiki/Server_Name_Indication
+     */
+    if (NULL != s5r->leho)
+    {
+        GNUNET_asprintf (&curl_hosts,
+                         "%s:%d:%s",
+                         s5r->leho,
+                         port,
+                         ipaddr);
+        s5r->hosts = curl_slist_append(NULL, curl_hosts);
+        curl_easy_setopt(s5r->curl, CURLOPT_RESOLVE, s5r->hosts);
+        GNUNET_free (curl_hosts);
+    }
     GNUNET_asprintf (&curlurl,
 		     (HTTPS_PORT != s5r->port)
 		     ? "http://%s:%d%s"
 		     : "https://%s:%d%s",
-		     ipaddr,
+		     (NULL != s5r->leho)
+                     ? s5r->leho
+                     : ipaddr,
 		     port,
 		     s5r->url);
     curl_easy_setopt (s5r->curl,
