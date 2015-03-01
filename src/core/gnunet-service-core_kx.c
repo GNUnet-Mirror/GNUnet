@@ -144,7 +144,7 @@ struct PingMessage
   struct GNUNET_PeerIdentity target;
 
   /**
-   * Random number chosen to make reply harder.
+   * Random number chosen to make replay harder.
    */
   uint32_t challenge GNUNET_PACKED;
 };
@@ -166,8 +166,7 @@ struct PongMessage
   uint32_t iv_seed GNUNET_PACKED;
 
   /**
-   * Random number to make faking the reply harder.  Must be
-   * first field after header (this is where we start to encrypt!).
+   * Random number to make replay attacks harder.
    */
   uint32_t challenge GNUNET_PACKED;
 
@@ -191,7 +190,7 @@ struct PongMessage
 struct EncryptedMessage
 {
   /**
-   * Message type is either #GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE.
+   * Message type is #GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE.
    */
   struct GNUNET_MessageHeader header;
 
@@ -201,10 +200,10 @@ struct EncryptedMessage
   uint32_t iv_seed GNUNET_PACKED;
 
   /**
-   * MAC of the encrypted message (starting at 'sequence_number'),
+   * MAC of the encrypted message (starting at @e sequence_number),
    * used to verify message integrity. Everything after this value
    * (excluding this value itself) will be encrypted and authenticated.
-   * ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
+   * #ENCRYPTED_HEADER_SIZE must be set to the offset of the *next* field.
    */
   struct GNUNET_HashCode hmac;
 
@@ -220,7 +219,7 @@ struct EncryptedMessage
   uint32_t reserved;
 
   /**
-   * Timestamp.  Used to prevent reply of ancient messages
+   * Timestamp.  Used to prevent replay of ancient messages
    * (recent messages are caught with the sequence number).
    */
   struct GNUNET_TIME_AbsoluteNBO timestamp;
@@ -302,12 +301,12 @@ struct GSC_KeyExchangeInfo
   /**
    * ID of task used for re-trying SET_KEY and PING message.
    */
-  struct GNUNET_SCHEDULER_Task * retry_set_key_task;
+  struct GNUNET_SCHEDULER_Task *retry_set_key_task;
 
   /**
    * ID of task used for sending keep-alive pings.
    */
-  struct GNUNET_SCHEDULER_Task * keep_alive_task;
+  struct GNUNET_SCHEDULER_Task *keep_alive_task;
 
   /**
    * Bit map indicating which of the 32 sequence numbers before the last
@@ -373,7 +372,7 @@ static struct GSC_KeyExchangeInfo *kx_tail;
  * Task scheduled for periodic re-generation (and thus rekeying) of our
  * ephemeral key.
  */
-static struct GNUNET_SCHEDULER_Task * rekey_task;
+static struct GNUNET_SCHEDULER_Task *rekey_task;
 
 /**
  * Notification context for all monitors.
@@ -476,12 +475,14 @@ derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
  */
 static void
 derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-           const struct GNUNET_CRYPTO_SymmetricSessionKey *skey, uint32_t seed,
+           const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+           uint32_t seed,
            const struct GNUNET_PeerIdentity *identity)
 {
   static const char ctx[] = "initialization vector";
 
-  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey, &seed, sizeof (seed),
+  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey,
+                                     &seed, sizeof (seed),
 				     identity,
 				     sizeof (struct GNUNET_PeerIdentity), ctx,
 				     sizeof (ctx), NULL);
@@ -499,12 +500,15 @@ derive_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
  */
 static void
 derive_pong_iv (struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-                const struct GNUNET_CRYPTO_SymmetricSessionKey *skey, uint32_t seed,
-                uint32_t challenge, const struct GNUNET_PeerIdentity *identity)
+                const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                uint32_t seed,
+                uint32_t challenge,
+                const struct GNUNET_PeerIdentity *identity)
 {
   static const char ctx[] = "pong initialization vector";
 
-  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey, &seed, sizeof (seed),
+  GNUNET_CRYPTO_symmetric_derive_iv (iv, skey,
+                                     &seed, sizeof (seed),
 				     identity,
 				     sizeof (struct GNUNET_PeerIdentity),
 				     &challenge, sizeof (challenge),
@@ -552,7 +556,9 @@ derive_aes_key (const struct GNUNET_PeerIdentity *sender,
 static int
 do_encrypt (struct GSC_KeyExchangeInfo *kx,
             const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-            const void *in, void *out, size_t size)
+            const void *in,
+            void *out,
+            size_t size)
 {
   if (size != (uint16_t) size)
   {
@@ -594,7 +600,9 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
 static int
 do_decrypt (struct GSC_KeyExchangeInfo *kx,
             const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
-            const void *in, void *out, size_t size)
+            const void *in,
+            void *out,
+            size_t size)
 {
   if (size != (uint16_t) size)
   {
@@ -754,12 +762,12 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
   GSC_SESSIONS_end (&kx->peer);
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# key exchanges stopped"),
                             1, GNUNET_NO);
-  if (kx->retry_set_key_task != NULL)
+  if (NULL != kx->retry_set_key_task)
   {
     GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
     kx->retry_set_key_task = NULL;
   }
-  if (kx->keep_alive_task != NULL)
+  if (NULL != kx->keep_alive_task)
   {
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
     kx->keep_alive_task = NULL;
@@ -1035,7 +1043,9 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   if (0 !=
-      memcmp (&t.target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+      memcmp (&t.target,
+              &GSC_my_identity,
+              sizeof (struct GNUNET_PeerIdentity)))
   {
     char sender[9];
     char peer[9];
@@ -1043,9 +1053,10 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     GNUNET_snprintf (sender, sizeof (sender), "%8s", GNUNET_i2s (&kx->peer));
     GNUNET_snprintf (peer, sizeof (peer), "%8s", GNUNET_i2s (&t.target));
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
-                sender, GNUNET_i2s (&GSC_my_identity), peer);
+                _("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
+                sender,
+                GNUNET_i2s (&GSC_my_identity),
+                peer);
     GNUNET_break_op (0);
     return;
   }
@@ -1056,12 +1067,21 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   tp.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PONG);
   tp.header.size = htons (sizeof (struct PongMessage));
   tp.iv_seed = calculate_seed (kx);
-  derive_pong_iv (&iv, &kx->encrypt_key, tp.iv_seed, t.challenge, &kx->peer);
-  do_encrypt (kx, &iv, &tx.challenge, &tp.challenge,
+  derive_pong_iv (&iv,
+                  &kx->encrypt_key,
+                  tp.iv_seed,
+                  t.challenge,
+                  &kx->peer);
+  do_encrypt (kx,
+              &iv,
+              &tx.challenge,
+              &tp.challenge,
               sizeof (struct PongMessage) - ((void *) &tp.challenge -
                                              (void *) &tp));
-  GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# PONG messages created"),
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# PONG messages created"),
+                            1,
+                            GNUNET_NO);
   GSC_NEIGHBOURS_transmit (&kx->peer,
                            &tp.header,
                            GNUNET_TIME_UNIT_FOREVER_REL /* FIXME: timeout */ );
@@ -1072,11 +1092,12 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
  * Task triggered when a neighbour entry is about to time out
  * (and we should prevent this by sending a PING).
  *
- * @param cls the 'struct GSC_KeyExchangeInfo'
+ * @param cls the `struct GSC_KeyExchangeInfo`
  * @param tc scheduler context (not used)
  */
 static void
-send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_keep_alive (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSC_KeyExchangeInfo *kx = cls;
   struct GNUNET_TIME_Relative retry;
@@ -1088,17 +1109,20 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# sessions terminated by timeout"),
-                              1, GNUNET_NO);
+                              1,
+                              GNUNET_NO);
     GSC_SESSIONS_end (&kx->peer);
     kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
     monitor_notify_all (kx);
     send_key (kx);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending KEEPALIVE to `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending KEEPALIVE to `%s'\n",
               GNUNET_i2s (&kx->peer));
   GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# keepalive messages sent"), 1,
+                            gettext_noop ("# keepalive messages sent"),
+                            1,
                             GNUNET_NO);
   setup_fresh_ping (kx);
   GSC_NEIGHBOURS_transmit (&kx->peer,
@@ -1108,7 +1132,9 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
                                 MIN_PING_FREQUENCY);
   kx->keep_alive_task =
-      GNUNET_SCHEDULER_add_delayed (retry, &send_keep_alive, kx);
+      GNUNET_SCHEDULER_add_delayed (retry,
+                                    &send_keep_alive,
+                                    kx);
 }
 
 
