@@ -1733,6 +1733,7 @@ mhd_completed_cb (void *cls,
 		"MHD encountered error handling request: %d\n",
 		toe);
   cleanup_s5r (s5r);
+  curl_download_prepare();
   *con_cls = NULL;
 }
 
