@@ -1259,7 +1259,8 @@ clients_handle_monitor_peers (void *cls,
                                           client)) )
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   GNUNET_SERVER_disable_receive_done_warning (client);
@@ -1281,19 +1282,23 @@ clients_handle_monitor_peers (void *cls,
     pc.all = GNUNET_NO;
     pc.id = msg->peer;
   }
-  GST_neighbours_iterate (&send_peer_information, &pc);
+  GST_neighbours_iterate (&send_peer_information,
+                          &pc);
 
   if (GNUNET_YES != ntohl (msg->one_shot))
   {
-    setup_peer_monitoring_client (client, &msg->peer);
+    setup_peer_monitoring_client (client,
+                                  &msg->peer);
   }
   else
   {
-    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-        GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
+    GNUNET_SERVER_transmit_context_append_data (tc,
+                                                NULL,
+                                                0,
+                                                GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
   }
-
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+  GNUNET_SERVER_transmit_context_run (tc,
+                                      GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
@@ -1396,8 +1401,8 @@ plugin_session_info_cb (void *cls,
 
   if (0 == GNUNET_SERVER_notification_context_get_size (plugin_nc))
   {
-    fprintf (stderr, "UNSUB!\n");
-    GST_plugins_monitor_subscribe (NULL, NULL);
+    GST_plugins_monitor_subscribe (NULL,
+                                   NULL);
     return;
   }
   if ( (NULL == info) &&
@@ -1443,9 +1448,13 @@ plugin_session_info_cb (void *cls,
   msg->plugin_name_len = htons (slen);
   msg->plugin_address_len = htons (alen);
   name = (char *) &msg[1];
-  memcpy (name, info->address->transport_name, slen);
+  memcpy (name,
+          info->address->transport_name,
+          slen);
   addr = &name[slen];
-  memcpy (addr, info->address->address, alen);
+  memcpy (addr,
+          info->address->address,
+          alen);
   if (NULL != sync_client)
     GNUNET_SERVER_notification_context_unicast (plugin_nc,
                                                 sync_client,
@@ -1473,9 +1482,12 @@ clients_handle_monitor_plugins (void *cls,
 {
   GNUNET_SERVER_client_mark_monitor (client);
   GNUNET_SERVER_disable_receive_done_warning (client);
-  GNUNET_SERVER_notification_context_add (plugin_nc, client);
+  GNUNET_SERVER_notification_context_add (plugin_nc,
+                                          client);
+  GNUNET_assert (NULL == sync_client);
   sync_client = client;
-  GST_plugins_monitor_subscribe (&plugin_session_info_cb, NULL);
+  GST_plugins_monitor_subscribe (&plugin_session_info_cb,
+                                 NULL);
 }
 
 

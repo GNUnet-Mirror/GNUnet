@@ -2397,6 +2397,9 @@ udp_plugin_create_session (void *cls,
                          "# UDP sessions active",
                          GNUNET_CONTAINER_multipeermap_size (plugin->sessions),
                          GNUNET_NO);
+  notify_session_monitor (plugin,
+                          s,
+                          GNUNET_TRANSPORT_SS_INIT);
   return s;
 }
 
@@ -2522,10 +2525,7 @@ process_udp_message (struct Plugin *plugin,
                                 address,
                                 s,
                                 s->scope);
-    notify_session_monitor (s->plugin,
-                            s,
-                            GNUNET_TRANSPORT_SS_INIT);
-    notify_session_monitor (s->plugin,
+    notify_session_monitor (plugin,
                             s,
                             GNUNET_TRANSPORT_SS_UP);
   }

@@ -412,14 +412,18 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
     return "<plugin unknown>";
   if (0 == address->address_length)
   {
-    GNUNET_snprintf (unable_to_show, sizeof (unable_to_show),
+    GNUNET_snprintf (unable_to_show,
+                     sizeof (unable_to_show),
                      "<unable to stringify %u-byte long address of %s transport>",
                      (unsigned int) address->address_length,
                      address->transport_name);
     return unable_to_show;
   }
-  return (NULL != (s = api->address_to_string (NULL, address->address,
-                                 address->address_length)) ? s : "<invalid>");
+  return (NULL != (s = api->address_to_string (NULL,
+                                               address->address,
+                                               address->address_length))
+          ? s
+          : "<invalid>");
 }
 
 
