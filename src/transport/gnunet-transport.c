@@ -1540,7 +1540,67 @@ struct PluginMonitorAddress
    * Resolved address as string.
    */
   char *str;
+
+  /**
+   * Last event we got and did not yet print because
+   * @e str was NULL (address not yet resolved).
+   */
+  struct GNUNET_TRANSPORT_SessionInfo si;
 };
+
+
+/**
+ * Print information about a plugin monitoring event.
+ *
+ * @param addr out internal context
+ * @param info the monitoring information
+ */
+static void
+print_plugin_event_info (struct PluginMonitorAddress *addr,
+			 const struct GNUNET_TRANSPORT_SessionInfo *info)
+{
+  const char *state;
+
+  switch (info->state)
+  {
+  case GNUNET_TRANSPORT_SS_INIT:
+    state = "INIT";
+    break;
+  case GNUNET_TRANSPORT_SS_HANDSHAKE:
+    state = "HANDSHAKE";
+    break;
+  case GNUNET_TRANSPORT_SS_UP:
+    state = "UP";
+    break;
+  case GNUNET_TRANSPORT_SS_UPDATE:
+    state = "UPDATE";
+    break;
+  case GNUNET_TRANSPORT_SS_DONE:
+    state = "DONE";
+    break;
+  default:
+    state = "UNKNOWN";
+    break;
+  }
+  fprintf (stdout,
+           "%s: state %s timeout in %s @ %s%s\n",
+           GNUNET_i2s (&info->address->peer),
+           state,
+           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (info->session_timeout),
+						   GNUNET_YES),
+	   addr->str,
+           (info->is_inbound == GNUNET_YES) ? " (INBOUND)" : "");
+  fprintf (stdout,
+           "%s: queue has %3u messages and %6u bytes\n",
+           GNUNET_i2s (&info->address->peer),
+           info->num_msg_pending,
+           info->num_bytes_pending);
+  if (0 != GNUNET_TIME_absolute_get_remaining (info->receive_delay).rel_value_us)
+    fprintf (stdout,
+	     "%s: receiving blocked until %s\n",
+	     GNUNET_i2s (&info->address->peer),
+	     GNUNET_STRINGS_absolute_time_to_string (info->receive_delay));
+}
 
 
 /**
@@ -1574,6 +1634,8 @@ address_cb (void *cls,
   if (NULL != addr->str)
     return;
   addr->str = GNUNET_strdup (address);
+  print_plugin_event_info (addr,
+			   &addr->si);
 }
 
 
@@ -1600,7 +1662,6 @@ plugin_monitoring_cb (void *cls,
                       void **session_ctx,
                       const struct GNUNET_TRANSPORT_SessionInfo *info)
 {
-  const char *state;
   struct PluginMonitorAddress *addr;
 
   if ( (NULL == info) &&
@@ -1632,44 +1693,17 @@ plugin_monitoring_cb (void *cls,
     addr = GNUNET_new (struct PluginMonitorAddress);
     addr->asc = GNUNET_TRANSPORT_address_to_string (cfg,
                                                     info->address,
-                                                    GNUNET_NO,
+                                                    numeric,
                                                     GNUNET_TIME_UNIT_FOREVER_REL,
                                                     &address_cb,
                                                     addr);
     *session_ctx = addr;
   }
-  switch (info->state)
-  {
-  case GNUNET_TRANSPORT_SS_INIT:
-    state = "INIT";
-    break;
-  case GNUNET_TRANSPORT_SS_HANDSHAKE:
-    state = "HANDSHAKE";
-    break;
-  case GNUNET_TRANSPORT_SS_UP:
-    state = "UP";
-    break;
-  case GNUNET_TRANSPORT_SS_UPDATE:
-    state = "UPDATE";
-    break;
-  case GNUNET_TRANSPORT_SS_DONE:
-    state = "DONE";
-    break;
-  default:
-    state = "UNKNOWN";
-    break;
-  }
-  fprintf (stdout,
-           "%s: %s %s (# %u/%u b) blocked until %s timeout in %s [%s]\n",
-           GNUNET_i2s (&info->address->peer),
-           addr->str,
-           (info->is_inbound == GNUNET_YES) ? "<-" : ((info->is_inbound == GNUNET_NO) ? "->" : "<>"),
-           info->num_msg_pending,
-           info->num_bytes_pending,
-           GNUNET_STRINGS_absolute_time_to_string (info->receive_delay),
-           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (info->session_timeout),
-                                                GNUNET_YES),
-           state);
+  if (NULL == addr->str)
+    addr->si = *info;
+  else
+    print_plugin_event_info (addr,
+			     info);
   if (GNUNET_TRANSPORT_SS_DONE == info->state)
   {
     if (NULL != addr->asc)
