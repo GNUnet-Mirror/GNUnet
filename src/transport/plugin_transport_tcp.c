@@ -2545,6 +2545,8 @@ connect_notify (void *cls,
 {
   struct Plugin *plugin = cls;
 
+  if (NULL == client)
+    return;
   plugin->cur_connections++;
   GNUNET_STATISTICS_set (plugin->env->stats,
                          gettext_noop ("# TCP server connections active"),
@@ -2583,7 +2585,10 @@ disconnect_notify (void *cls,
 
   if (NULL == client)
     return;
-  session = lookup_session_by_client (plugin, client);
+  GNUNET_assert (plugin->cur_connections >= 1);
+  plugin->cur_connections--;
+  session = lookup_session_by_client (plugin,
+                                      client);
   if (NULL == session)
     return; /* unknown, nothing to do */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2601,8 +2606,6 @@ disconnect_notify (void *cls,
                               GNUNET_NO);
     GNUNET_SERVER_resume (plugin->server); /* Resume server  */
   }
-  GNUNET_assert (plugin->cur_connections >= 1);
-  plugin->cur_connections--;
   GNUNET_STATISTICS_set (plugin->env->stats,
                          gettext_noop ("# TCP server connections active"),
                          plugin->cur_connections,

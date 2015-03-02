@@ -813,7 +813,8 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server)
   }
   while (NULL != (npos = server->disconnect_notify_list_head))
   {
-    npos->callback (npos->callback_cls, NULL);
+    npos->callback (npos->callback_cls,
+                    NULL);
     GNUNET_CONTAINER_DLL_remove (server->disconnect_notify_list_head,
 				 server->disconnect_notify_list_tail,
 				 npos);
@@ -821,7 +822,8 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server)
   }
   while (NULL != (npos = server->connect_notify_list_head))
   {
-    npos->callback (npos->callback_cls, NULL);
+    npos->callback (npos->callback_cls,
+                    NULL);
     GNUNET_CONTAINER_DLL_remove (server->connect_notify_list_head,
 				 server->connect_notify_list_tail,
 				 npos);
