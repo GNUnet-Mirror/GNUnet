@@ -157,6 +157,26 @@ struct SessionKeepAliveMessage
   uint32_t nonce GNUNET_PACKED;
 };
 
+
+/**
+ * Message a peer sends to another when connected to indicate that
+ * the other peer should limit transmissions to the indicated
+ * quota.
+ */
+struct SessionQuotaMessage
+{
+  /**
+   * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Quota to use (for sending), in bytes per second.
+   */
+  uint32_t quota GNUNET_PACKED;
+};
+
+
 /**
  * Message we send to the other peer to notify him that we intentionally
  * are disconnecting (to reduce timeouts).  This is just a friendly
@@ -336,7 +356,7 @@ struct NeighbourMapEntry
 
   /**
    * Main task that drives this peer (timeouts, keepalives, etc.).
-   * Always runs the 'master_task'.
+   * Always runs the #master_task().
    */
   struct GNUNET_SCHEDULER_Task *task;
 
@@ -386,6 +406,14 @@ struct NeighbourMapEntry
    * per non-violation (for each time interval).
    */
   unsigned int quota_violation_count;
+
+  /**
+   * Latest quota the other peer send us in bytes per second.
+   * We should not send more, least the other peer throttle
+   * receiving our traffic.
+   * FIXME: Not used (#3652).
+   */
+  unsigned int neighbour_receive_quota;
 
   /**
    * The current state of the peer.
@@ -2296,7 +2324,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
  * We received a 'SYN' message from the other peer.
  * Consider switching to it.
  *
- * @param message possibly a 'struct TransportSynMessage' (check format)
+ * @param message possibly a `struct TransportSynMessage` (check format)
  * @param peer identity of the peer to switch the address for
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
@@ -3589,6 +3617,47 @@ delayed_disconnect (void *cls,
 
 
 /**
+ * We received a quoat message from the given peer,
+ * validate and process.
+ *
+ * @param peer sender of the message
+ * @param msg the quota message
+ */
+void
+GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_MessageHeader *msg)
+{
+  struct NeighbourMapEntry *n;
+  const struct SessionQuotaMessage *sqm;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received QUOTA message from peer `%s'\n",
+              GNUNET_i2s (peer));
+  if (ntohs (msg->size) != sizeof (struct SessionQuotaMessage))
+  {
+    GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# quota messages ignored (malformed)"),
+                              1,
+                              GNUNET_NO);
+    return;
+  }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# QUOTA messages received"),
+                            1, GNUNET_NO);
+  sqm = (const struct SessionQuotaMessage *) msg;
+  if (NULL == (n = lookup_neighbour (peer)))
+  {
+    /* gone already */
+    return;
+  }
+  n->neighbour_receive_quota = ntohl (sqm->quota);
+  /* FIXME: tell someone? (#3652) */
+}
+
+
+/**
  * We received a disconnect message from the given peer,
  * validate and process.
  *
@@ -3602,7 +3671,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
   struct NeighbourMapEntry *n;
   const struct SessionDisconnectMessage *sdm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DISCONNECT message from peer `%s'\n",
               GNUNET_i2s (peer));
   if (ntohs (msg->size) != sizeof (struct SessionDisconnectMessage))
@@ -3610,7 +3679,8 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
     GNUNET_break_op (0);
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
-                              ("# disconnect messages ignored (malformed)"), 1,
+                              ("# disconnect messages ignored (malformed)"),
+                              1,
                               GNUNET_NO);
     return;
   }

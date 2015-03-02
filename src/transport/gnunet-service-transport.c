@@ -462,6 +462,10 @@ GST_receive_callback (void *cls,
     GST_neighbours_handle_disconnect_message (&address->peer,
                                               message);
     break;
+  case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA:
+    GST_neighbours_handle_quota_message (&address->peer,
+                                         message);
+    break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
     GST_neighbours_keepalive (&address->peer,
                               message);

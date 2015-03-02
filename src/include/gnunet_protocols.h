@@ -1286,6 +1286,13 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT 378
 
 /**
+ * Message exchanged between transport services to
+ * indicate that the sender should limit its transmission
+ * rate to the indicated quota.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA 379
+
+/**
  * Request to monitor addresses used by a peer or all peers.
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST 380

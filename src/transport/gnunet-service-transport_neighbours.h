@@ -307,6 +307,18 @@ GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
+ * We received a quoat message from the given peer,
+ * validate and process.
+ *
+ * @param peer sender of the message
+ * @param msg the quota message
+ */
+void
+GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_MessageHeader *msg);
+
+
+/**
  * We received a disconnect message from the given peer,
  * validate and process.
  *
