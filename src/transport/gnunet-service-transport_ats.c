@@ -80,6 +80,12 @@ struct AddressInfo
    */
   struct GNUNET_SCHEDULER_Task *unblock_task;
 
+  /**
+   * Set to #GNUNET_YES if the address has expired but we could
+   * not yet remove it because we still have a valid session.
+   */
+  int expired;
+
 };
 
 
@@ -330,7 +336,8 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
   /* destroy session and address */
   if ( (NULL == session) ||
        (GNUNET_NO ==
-        GNUNET_ATS_address_del_session (ai->ar, session)) )
+        GNUNET_ATS_address_del_session (ai->ar,
+                                        session)) )
     GNUNET_ATS_address_destroy (ai->ar);
   ai->ar = NULL;
 
@@ -534,7 +541,8 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
-  ai = find_ai (address, session);
+  ai = find_ai (address,
+                session);
   if (NULL == ai)
   {
     /* We sometimes create sessions just for sending a PING,
@@ -555,18 +563,20 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
        GNUNET_i2s (&address->peer));
   if (NULL == ai->ar)
   {
-    /* If ATS doesn't know about the address/session, and this
-       was an inbound session that expired, then we must forget
-       about the address as well.  Otherwise, we are done as
-       we have set `ai->session` to NULL already. */
-    if (GNUNET_YES ==
-        GNUNET_HELLO_address_check_option (address,
-                                           GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+    /* If ATS doesn't know about the address/session, and this was an
+       inbound session or one that expired, then we must forget about
+       the address as well.  Otherwise, we are done as we have set
+       `ai->session` to NULL already. */
+    if ( (GNUNET_YES == ai->expired) ||
+         (GNUNET_YES ==
+          GNUNET_HELLO_address_check_option (address,
+                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND)) )
       GST_ats_expire_address (address);
     return;
   }
   if (GNUNET_YES ==
-      GNUNET_ATS_address_del_session (ai->ar, session))
+      GNUNET_ATS_address_del_session (ai->ar,
+                                      session))
   {
     ai->ar = NULL;
     GST_ats_expire_address (address);
@@ -689,11 +699,23 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
     GNUNET_assert (0);
     return;
   }
+  if (NULL != ai->unblock_task)
+  {
+    GNUNET_SCHEDULER_cancel (ai->unblock_task);
+    ai->unblock_task = NULL;
+    num_blocked--;
+  }
+  if (NULL != ai->session)
+  {
+    ai->expired = GNUNET_YES;
+    GNUNET_ATS_address_destroy (ai->ar);
+    ai->ar = NULL;
+    return;
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (p2a,
                                                        &address->peer,
                                                        ai));
-  GNUNET_break (NULL == ai->session);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Telling ATS to destroy address from peer %s\n",
        GNUNET_i2s (&address->peer));
@@ -709,12 +731,6 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
                                           ai->session)) )
       GNUNET_ATS_address_destroy (ai->ar);
     ai->ar = NULL;
-  }
-  if (NULL != ai->unblock_task)
-  {
-    GNUNET_SCHEDULER_cancel (ai->unblock_task);
-    ai->unblock_task = NULL;
-    num_blocked--;
   }
   publish_p2a_stat_update ();
   GNUNET_HELLO_address_free (ai->address);
