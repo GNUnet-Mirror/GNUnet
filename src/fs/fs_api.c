@@ -202,6 +202,8 @@ process_job_queue (void *cls,
       break;
     }
   }
+  GNUNET_break (h->active_downloads ==
+                num_downloads_active + num_probes_active);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "PA: %u, PE: %u, PW: %u; DA: %u, DE: %u, DW: %u\n",
 	      num_probes_active,
@@ -210,6 +212,8 @@ process_job_queue (void *cls,
 	      num_downloads_active,
 	      num_downloads_expired,
 	      num_downloads_waiting);
+  GNUNET_break (h->active_downloads + num_probes_active <=
+                h->max_parallel_downloads);
   /* calculate start/stop decisions */
   if (h->active_downloads + num_downloads_waiting > h->max_parallel_downloads)
   {
@@ -225,17 +229,19 @@ process_job_queue (void *cls,
     /* start all downloads (we can) */
     num_downloads_change = num_downloads_waiting;
     /* also start probes if there is room, but use a lower cap of (mpd/4) + 1 */
-    if (h->max_parallel_downloads / 2 >= (h->active_downloads + num_downloads_change))
+    if (1 + h->max_parallel_downloads / 4 >= (h->active_downloads + num_downloads_change))
       num_probes_change = GNUNET_MIN (num_probes_waiting,
                                       (1 + h->max_parallel_downloads / 4) - (h->active_downloads + num_downloads_change));
     else
       num_probes_change = 0;
   }
-
+  GNUNET_break (num_downloads_change <= num_downloads_waiting);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Changing %d probes and %d downloads\n",
+	      "Changing %d probes and %d/%u/%u downloads\n",
 	      num_probes_change,
-	      num_downloads_change);
+	      num_downloads_change,
+              (unsigned int) h->active_downloads,
+              (unsigned int) h->max_parallel_downloads);
   /* actually stop probes */
   next = h->running_head;
   while (NULL != (qe = next))
@@ -289,7 +295,8 @@ process_job_queue (void *cls,
       break;
     }
   }
-  GNUNET_break ( (0 == num_downloads_change) || (GNUNET_YES == block_limit_hit) );
+  GNUNET_break ( (0 == num_downloads_change) ||
+                 (GNUNET_YES == block_limit_hit) );
   GNUNET_break (0 == num_probes_change);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
