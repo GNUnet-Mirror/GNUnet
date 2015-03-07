@@ -708,8 +708,11 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
   if (NULL != ai->session)
   {
     ai->expired = GNUNET_YES;
-    GNUNET_ATS_address_destroy (ai->ar);
-    ai->ar = NULL;
+    if (NULL != ai->ar)
+    {
+      GNUNET_ATS_address_destroy (ai->ar);
+      ai->ar = NULL;
+    }
     return;
   }
   GNUNET_assert (GNUNET_YES ==
