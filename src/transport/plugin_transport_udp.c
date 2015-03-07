@@ -2634,7 +2634,11 @@ ack_proc (void *cls,
   if (GNUNET_NO == rc->have_sender)
   {
     /* tried to defragment but never succeeded, hence will not ACK */
-    GNUNET_break_op (0);
+    /* This can happen if we just lost msgs */
+    GNUNET_STATISTICS_update (plugin->env->stats,
+                              "# UDP, fragments discarded without ACK",
+                              1,
+                              GNUNET_NO);
     return;
   }
   address = GNUNET_HELLO_address_allocate (&rc->sender,
