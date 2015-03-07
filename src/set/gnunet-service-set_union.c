@@ -234,8 +234,7 @@ struct SetState
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
+ * @return #GNUNET_YES if we should continue to iterate,
  *         #GNUNET_NO if not.
  */
 static int
@@ -546,6 +545,7 @@ prepare_ibf (struct Operation *op,
   if (NULL == op->state->key_to_element)
   {
     unsigned int len;
+
     len = GNUNET_CONTAINER_multihashmap_size (op->spec->set->elements);
     op->state->key_to_element = GNUNET_CONTAINER_multihashmap32_create (len + 1);
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
@@ -592,8 +592,9 @@ send_ibf (struct Operation *op,
     if (buckets_in_message > MAX_BUCKETS_PER_MESSAGE)
       buckets_in_message = MAX_BUCKETS_PER_MESSAGE;
 
-    ev = GNUNET_MQ_msg_extra (msg, buckets_in_message * IBF_BUCKET_SIZE,
-                               GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF);
+    ev = GNUNET_MQ_msg_extra (msg,
+                              buckets_in_message * IBF_BUCKET_SIZE,
+                              GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF);
     msg->reserved = 0;
     msg->order = ibf_order;
     msg->offset = htons (buckets_sent);
@@ -627,7 +628,8 @@ send_strata_estimator (struct Operation *op)
                                    SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
                                    GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE);
   strata_estimator_write (op->state->se, &strata_msg[1]);
-  GNUNET_MQ_send (op->mq, ev);
+  GNUNET_MQ_send (op->mq,
+                  ev);
   op->state->phase = PHASE_EXPECT_IBF;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "sent SE, expecting IBF\n");
@@ -1065,13 +1067,15 @@ send_remaining_elements (void *cls)
     struct GNUNET_MQ_Envelope *ev;
     struct GNUNET_SET_ResultMessage *rm;
     struct GNUNET_SET_Element *element;
-    element = &ke->element->element;
 
+    element = &ke->element->element;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "sending element (size %u) to client (full set)\n",
                 element->size);
     GNUNET_assert (0 != op->spec->client_request_id);
-    ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
+    ev = GNUNET_MQ_msg_extra (rm,
+                              element->size,
+                              GNUNET_MESSAGE_TYPE_SET_RESULT);
     if (NULL == ev)
     {
       GNUNET_MQ_discard (ev);
@@ -1280,7 +1284,8 @@ union_evaluate (struct Operation *op,
   }
   msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
   msg->app_id = op->spec->app_id;
-  GNUNET_MQ_send (op->mq, ev);
+  GNUNET_MQ_send (op->mq,
+                  ev);
 
   if (NULL != opaque_context)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1429,14 +1434,17 @@ union_peer_disconnect (struct Operation *op)
     struct GNUNET_MQ_Envelope *ev;
     struct GNUNET_SET_ResultMessage *msg;
 
-    ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
+    ev = GNUNET_MQ_msg (msg,
+                        GNUNET_MESSAGE_TYPE_SET_RESULT);
     msg->request_id = htonl (op->spec->client_request_id);
     msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
     msg->element_type = htons (0);
-    GNUNET_MQ_send (op->spec->set->client_mq, ev);
+    GNUNET_MQ_send (op->spec->set->client_mq,
+                    ev);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "other peer disconnected prematurely\n");
-    _GSS_operation_destroy (op, GNUNET_YES);
+    _GSS_operation_destroy (op,
+                            GNUNET_YES);
     return;
   }
   // else: the session has already been concluded

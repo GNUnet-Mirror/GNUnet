@@ -327,7 +327,8 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
     return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# client searches received"), 1,
+                            gettext_noop ("# client searches received"),
+                            1,
                             GNUNET_NO);
   sc = (msize - sizeof (struct SearchMessage)) / sizeof (struct GNUNET_HashCode);
   sm = (const struct SearchMessage *) message;
@@ -349,7 +350,9 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 	 (SEARCH_MESSAGE_OPTION_CONTINUED was always set) and that have a
 	 matching query and type */
       if ((GNUNET_YES != prd->has_started) &&
-	  (0 != memcmp (&prd->query, &sm->query, sizeof (struct GNUNET_HashCode))) &&
+	  (0 != memcmp (&prd->query,
+                        &sm->query,
+                        sizeof (struct GNUNET_HashCode))) &&
           (prd->type == type))
         break;
       cr = cr->next;
@@ -359,7 +362,9 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Have existing request, merging content-seen lists.\n");
-    GSF_pending_request_update_ (cr->pr, (const struct GNUNET_HashCode *) &sm[1], sc);
+    GSF_pending_request_update_ (cr->pr,
+                                 (const struct GNUNET_HashCode *) &sm[1],
+                                 sc);
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# client searches updated (merged content seen list)"),
@@ -372,7 +377,9 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
                               GNUNET_NO);
     cr = GNUNET_new (struct ClientRequest);
     cr->lc = lc;
-    GNUNET_CONTAINER_DLL_insert (lc->cr_head, lc->cr_tail, cr);
+    GNUNET_CONTAINER_DLL_insert (lc->cr_head,
+                                 lc->cr_tail,
+                                 cr);
     options = GSF_PRO_LOCAL_REQUEST;
     if (0 != (SEARCH_MESSAGE_OPTION_LOOPBACK_ONLY & ntohl (sm->options)))
       options |= GSF_PRO_LOCAL_ONLY;

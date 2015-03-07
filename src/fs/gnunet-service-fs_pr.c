@@ -1275,11 +1275,13 @@ warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_PendingRequest *pr = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
               _("Datastore lookup already took %s!\n"),
-              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pr->qe_start), GNUNET_YES));
+              GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pr->qe_start),
+                                                      GNUNET_YES));
   pr->warn_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &warn_delay_task,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &warn_delay_task,
                                     pr);
 }
 
@@ -1514,10 +1516,10 @@ process_local_reply (void *cls,
       ((GNUNET_YES == GSF_test_get_load_too_high_ (0)) ||
        (pr->public_data.results_found > 5 + 2 * pr->public_data.priority)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Load too high, done with request\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Load too high, done with request\n");
     GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop
-                              ("# Datastore lookups concluded (load too high)"),
+                              gettext_noop ("# Datastore lookups concluded (load too high)"),
                               1,
                               GNUNET_NO);
     goto check_error_and_continue;
@@ -1626,7 +1628,8 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
   pr->llc_cont_cls = cont_cls;
   pr->qe_start = GNUNET_TIME_absolute_get ();
   pr->warn_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, &warn_delay_task,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &warn_delay_task,
                                     pr);
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,

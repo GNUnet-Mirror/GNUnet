@@ -324,7 +324,8 @@ handle_result (void *cls,
   {
     /* status is not #GNUNET_SET_STATUS_OK => there's no attached element,
      * and this is the last result message we get */
-    GNUNET_MQ_assoc_remove (set->mq, ntohl (msg->request_id));
+    GNUNET_MQ_assoc_remove (set->mq,
+                            ntohl (msg->request_id));
     GNUNET_CONTAINER_DLL_remove (set->ops_head,
                                  set->ops_tail,
                                  oh);

@@ -1409,13 +1409,15 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
+GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
+                          uint64_t offset,
                           const struct GNUNET_HashCode * key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
                           unsigned int max_queue_size,
                           struct GNUNET_TIME_Relative timeout,
-                          GNUNET_DATASTORE_DatumProcessor proc, void *proc_cls)
+                          GNUNET_DATASTORE_DatumProcessor proc,
+                          void *proc_cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
   struct GetMessage *gm;
@@ -1427,8 +1429,13 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
        (unsigned int) type, GNUNET_h2s (key));
   qc.rc.proc = proc;
   qc.rc.proc_cls = proc_cls;
-  qe = make_queue_entry (h, sizeof (struct GetMessage), queue_priority,
-                         max_queue_size, timeout, &process_result_message, &qc);
+  qe = make_queue_entry (h,
+                         sizeof (struct GetMessage),
+                         queue_priority,
+                         max_queue_size,
+                         timeout,
+                         &process_result_message,
+                         &qc);
   if (qe == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Could not queue request for `%s'\n",
@@ -1436,8 +1443,10 @@ GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
     return NULL;
   }
 #if INSANE_STATISTICS
-  GNUNET_STATISTICS_update (h->stats, gettext_noop ("# GET requests executed"),
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (h->stats,
+                            gettext_noop ("# GET requests executed"),
+                            1,
+                            GNUNET_NO);
 #endif
   gm = (struct GetMessage *) &qe[1];
   gm->header.type = htons (GNUNET_MESSAGE_TYPE_DATASTORE_GET);
