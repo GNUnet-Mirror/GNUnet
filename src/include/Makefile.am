@@ -71,6 +71,8 @@ gnunetinclude_HEADERS = \
   gnunet_os_lib.h \
   gnunet_peer_lib.h \
   gnunet_peerinfo_service.h \
+  gnunet_peerstore_plugin.h \
+  gnunet_peerstore_service.h \
   gnunet_plugin_lib.h \
   gnunet_postgres_lib.h \
   gnunet_psycstore_plugin.h \

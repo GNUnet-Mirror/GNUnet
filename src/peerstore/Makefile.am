@@ -11,7 +11,7 @@ dist_pkgcfg_DATA = \
   peerstore.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -19,7 +19,7 @@ if USE_COVERAGE
 endif
 
 bin_PROGRAMS = \
- gnunet-peerstore 
+ gnunet-peerstore
 
 libexec_PROGRAMS = \
  gnunet-service-peerstore
@@ -36,7 +36,8 @@ gnunet_peerstore_LDADD = \
 
 gnunet_service_peerstore_SOURCES = \
  gnunet-service-peerstore.c \
- peerstore_common.c
+ peerstore_common.c peerstore_common.h \
+ peerstore.h
 gnunet_service_peerstore_CFLAGS = $(AM_CFLAGS)
 gnunet_service_peerstore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
