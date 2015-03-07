@@ -1282,7 +1282,8 @@ transmit_send_continuation (void *cls,
     n->is_active = NULL;
     if (NULL != n->task)
       GNUNET_SCHEDULER_cancel (n->task);
-    n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
+    n->task = GNUNET_SCHEDULER_add_now (&master_task,
+                                        n);
   }
   if (bytes_in_send_queue < mq->message_buf_size)
   {
@@ -1299,14 +1300,14 @@ transmit_send_continuation (void *cls,
   GNUNET_break (size_payload == mq->message_buf_size);
   bytes_in_send_queue -= mq->message_buf_size;
   GNUNET_STATISTICS_set (GST_stats,
-                        gettext_noop
-			 ("# bytes in message queue for other peers"),
-			 bytes_in_send_queue, GNUNET_NO);
+                         gettext_noop ("# bytes in message queue for other peers"),
+			 bytes_in_send_queue,
+                         GNUNET_NO);
   if (GNUNET_OK == success)
     GNUNET_STATISTICS_update (GST_stats,
-			      gettext_noop
-			      ("# messages transmitted to other peers"),
-			      1, GNUNET_NO);
+			      gettext_noop ("# messages transmitted to other peers"),
+			      1,
+                              GNUNET_NO);
   else
     GNUNET_STATISTICS_update (GST_stats,
 			      gettext_noop
@@ -1319,7 +1320,10 @@ transmit_send_continuation (void *cls,
               mq->message_buf_size,
               (success == GNUNET_OK) ? "success" : "FAILURE");
   if (NULL != mq->cont)
-    mq->cont (mq->cont_cls, success, size_payload, physical);
+    mq->cont (mq->cont_cls,
+              success,
+              size_payload,
+              physical);
   GNUNET_free (mq);
 }
 

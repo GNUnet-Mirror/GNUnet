@@ -1456,6 +1456,11 @@ enqueue (struct Plugin *plugin,
 {
   struct Session *session = udpw->session;
 
+  if (GNUNET_YES == session->in_destroy)
+  {
+    GNUNET_break (0);
+    return;
+  }
   if (plugin->bytes_in_buffer + udpw->msg_size > INT64_MAX)
   {
     GNUNET_break (0);
@@ -2174,7 +2179,10 @@ udp_disconnect_session (void *cls,
     fragmented_message_done (s->frag_ctx,
                              GNUNET_SYSERR);
   }
-
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
+                                                       &s->target,
+                                                       s));
   frc.rc = NULL;
   frc.udp_addr = s->address->address;
   frc.udp_addr_len = s->address->address_length;
@@ -2193,6 +2201,7 @@ udp_disconnect_session (void *cls,
       GNUNET_free (d_ctx);
     }
   }
+  s->in_destroy = GNUNET_YES;
   next = plugin->ipv4_queue_head;
   while (NULL != (udpw = next))
   {
@@ -2221,13 +2230,6 @@ udp_disconnect_session (void *cls,
       GNUNET_free (udpw);
     }
   }
-  notify_session_monitor (s->plugin,
-                          s,
-                          GNUNET_TRANSPORT_SS_DONE);
-  plugin->env->session_end (plugin->env->cls,
-                            s->address,
-                            s);
-
   if ( (NULL != s->frag_ctx) &&
        (NULL != s->frag_ctx->cont) )
   {
@@ -2242,23 +2244,18 @@ udp_disconnect_session (void *cls,
                        s->frag_ctx->payload_size,
                        s->frag_ctx->on_wire_size);
   }
-
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
-                                                       &s->target,
-                                                       s));
+  notify_session_monitor (s->plugin,
+                          s,
+                          GNUNET_TRANSPORT_SS_DONE);
+  plugin->env->session_end (plugin->env->cls,
+                            s->address,
+                            s);
   GNUNET_STATISTICS_set (plugin->env->stats,
                          "# UDP sessions active",
                          GNUNET_CONTAINER_multipeermap_size (plugin->sessions),
                          GNUNET_NO);
-  if (s->rc > 0)
-  {
-    s->in_destroy = GNUNET_YES;
-  }
-  else
-  {
+  if (0 == s->rc)
     free_session (s);
-  }
   return GNUNET_OK;
 }
 
