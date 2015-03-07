@@ -28,35 +28,61 @@
 #include "gnunet_set_service.h"
 
 
+/**
+ * Value to return from #main().
+ */
 static int ret;
 
 static struct GNUNET_PeerIdentity local_id;
 
 static struct GNUNET_HashCode app_id;
 static struct GNUNET_SET_Handle *set1;
+
 static struct GNUNET_SET_Handle *set2;
+
 static struct GNUNET_SET_ListenHandle *listen_handle;
-const static struct GNUNET_CONFIGURATION_Handle *config;
+
+static const struct GNUNET_CONFIGURATION_Handle *config;
 
 static int iter_count;
 
+/**
+ * Are we testing correctness for the empty set union?
+ */
+static int empty;
+
+/**
+ * Number of elements found in set 1
+ */
+static unsigned int count_set1;
+
+/**
+ * Number of elements found in set 2
+ */
+static unsigned int count_set2;
+
 
 static void
-result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
+result_cb_set1 (void *cls,
+                const struct GNUNET_SET_Element *element,
                 enum GNUNET_SET_Status status)
 {
   switch (status)
   {
     case GNUNET_SET_STATUS_OK:
-      printf ("set 1: got element\n");
+      count_set1++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "set 1: got element\n");
       break;
     case GNUNET_SET_STATUS_FAILURE:
-      printf ("set 1: failure\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "set 1: failure\n");
       ret = 1;
       GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_SET_STATUS_DONE:
-      printf ("set 1: done\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "set 1: done\n");
       GNUNET_SET_destroy (set1);
       set1 = NULL;
       if (NULL == set2)
@@ -69,21 +95,26 @@ result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
 
 
 static void
-result_cb_set2 (void *cls, const struct GNUNET_SET_Element *element,
-           enum GNUNET_SET_Status status)
+result_cb_set2 (void *cls,
+                const struct GNUNET_SET_Element *element,
+                enum GNUNET_SET_Status status)
 {
   switch (status)
   {
     case GNUNET_SET_STATUS_OK:
-      printf ("set 2: got element\n");
+      count_set2++;
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "set 2: got element\n");
       break;
     case GNUNET_SET_STATUS_FAILURE:
-      printf ("set 2: failure\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "set 2: failure\n");
       ret = 1;
       GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_SET_STATUS_DONE:
-      printf ("set 2: done\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "set 2: done\n");
       GNUNET_SET_destroy (set2);
       set2 = NULL;
       if (NULL == set1)
@@ -104,13 +135,14 @@ listen_cb (void *cls,
   struct GNUNET_SET_OperationHandle *oh;
 
   GNUNET_assert (NULL != context_msg);
-
   GNUNET_assert (ntohs (context_msg->type) == GNUNET_MESSAGE_TYPE_TEST);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "listen cb called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
-
-  oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_FULL, result_cb_set2, NULL);
+  oh = GNUNET_SET_accept (request,
+                          GNUNET_SET_RESULT_FULL,
+                          &result_cb_set2,
+                          NULL);
   GNUNET_SET_commit (oh, set2);
 }
 
@@ -129,11 +161,15 @@ start (void *cls)
   context_msg.size = htons (sizeof context_msg);
   context_msg.type = htons (GNUNET_MESSAGE_TYPE_TEST);
 
-  listen_handle = GNUNET_SET_listen (config, GNUNET_SET_OPERATION_UNION,
-                                     &app_id, listen_cb, NULL);
-  oh = GNUNET_SET_prepare (&local_id, &app_id, &context_msg,
+  listen_handle = GNUNET_SET_listen (config,
+                                     GNUNET_SET_OPERATION_UNION,
+                                     &app_id,
+                                     &listen_cb, NULL);
+  oh = GNUNET_SET_prepare (&local_id,
+                           &app_id,
+                           &context_msg,
                            GNUNET_SET_RESULT_FULL,
-                           result_cb_set1, NULL);
+                           &result_cb_set1, NULL);
   GNUNET_SET_commit (oh, set1);
 }
 
@@ -148,19 +184,31 @@ init_set2 (void *cls)
 {
   struct GNUNET_SET_Element element;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initializing set 2\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "initializing set 2\n");
+  if (empty)
+  {
+    start (NULL);
+    return;
+  }
   element.element_type = 0;
-
   element.data = "hello";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  GNUNET_SET_add_element (set2,
+                          &element,
+                          NULL,
+                          NULL);
   element.data = "quux";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set2, &element, NULL, NULL);
+  GNUNET_SET_add_element (set2,
+                          &element,
+                          NULL,
+                          NULL);
   element.data = "baz";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set2, &element, start, NULL);
+  GNUNET_SET_add_element (set2,
+                          &element,
+                          &start, NULL);
 }
 
 
@@ -172,16 +220,26 @@ init_set1 (void)
 {
   struct GNUNET_SET_Element element;
 
+  if (empty)
+  {
+    init_set2 (NULL);
+    return;
+  }
   element.element_type = 0;
-
   element.data = "hello";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set1, &element, NULL, NULL);
+  GNUNET_SET_add_element (set1,
+                          &element,
+                          NULL,
+                          NULL);
   element.data = "bar";
   element.size = strlen(element.data);
-  GNUNET_SET_add_element (set1, &element, init_set2, NULL);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "initialized set 1\n");
+  GNUNET_SET_add_element (set1,
+                          &element,
+                          &init_set2,
+                          NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "initialized set 1\n");
 }
 
 
@@ -195,7 +253,8 @@ iter_cb (void *cls,
     GNUNET_SET_destroy (cls);
     return GNUNET_YES;
   }
-  printf ("iter: got element\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "iter: got element\n");
   iter_count++;
   return GNUNET_YES;
 }
@@ -207,10 +266,9 @@ test_iter ()
   struct GNUNET_SET_Element element;
   struct GNUNET_SET_Handle *iter_set;
 
+  iter_count = 0;
   iter_set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
-
   element.element_type = 0;
-
   element.data = "hello";
   element.size = strlen(element.data);
   GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
@@ -221,7 +279,9 @@ test_iter ()
   element.size = strlen(element.data);
   GNUNET_SET_add_element (iter_set, &element, NULL, NULL);
 
-  GNUNET_SET_iterate (iter_set, iter_cb, iter_set);
+  GNUNET_SET_iterate (iter_set,
+                      &iter_cb,
+                      iter_set);
 }
 
 
@@ -255,15 +315,13 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-                                &timeout_fail, NULL);
+                                &timeout_fail,
+                                NULL);
 
   config = cfg;
-  GNUNET_CRYPTO_get_peer_identity (cfg, &local_id);
-  printf ("my id (from CRYPTO): %s\n", GNUNET_i2s (&local_id));
-  GNUNET_TESTING_peer_get_identity (peer, &local_id);
-  printf ("my id (from TESTING): %s\n", GNUNET_i2s (&local_id));
+  GNUNET_TESTING_peer_get_identity (peer,
+                                    &local_id);
 
   test_iter ();
 
@@ -275,15 +333,27 @@ run (void *cls,
   init_set1 ();
 }
 
+
 int
 main (int argc, char **argv)
 {
+  empty = 1;
   if (0 != GNUNET_TESTING_peer_run ("test_set_api",
                                     "test_set.conf",
                                     &run, NULL))
   {
     return 1;
   }
+  GNUNET_assert (0 == count_set1);
+  GNUNET_assert (0 == count_set2);
+  empty = 0;
+  if (0 != GNUNET_TESTING_peer_run ("test_set_api",
+                                    "test_set.conf",
+                                    &run, NULL))
+  {
+    return 1;
+  }
+  GNUNET_assert (4 == count_set1);
+  GNUNET_assert (4 == count_set2);
   return ret;
 }
-

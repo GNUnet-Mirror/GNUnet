@@ -65,7 +65,9 @@ libgnunetset_la_LDFLAGS = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_set_api test_set_union_result_full test_set_intersection_result_full
+ test_set_api \
+ test_set_union_result_full \
+ test_set_intersection_result_full
 endif
 
 if ENABLE_TEST_RUN
@@ -96,4 +98,3 @@ test_set_intersection_result_full_LDADD = \
 
 EXTRA_DIST = \
   test_set.conf
-
