@@ -411,9 +411,8 @@ struct NeighbourMapEntry
    * Latest quota the other peer send us in bytes per second.
    * We should not send more, least the other peer throttle
    * receiving our traffic.
-   * FIXME: Not used (#3652).
    */
-  unsigned int neighbour_receive_quota;
+  struct GNUNET_BANDWIDTH_Value32NBO neighbour_receive_quota;
 
   /**
    * The current state of the peer.
@@ -669,13 +668,15 @@ test_connected (struct NeighbourMapEntry *n)
 
 /**
  * Send information about a new outbound quota to our clients.
+ * Note that the outbound quota is enforced client-side (i.e.
+ * in libgnunettransport).
  *
  * @param target affected peer
  * @param quota new quota
  */
 static void
-send_outbound_quota (const struct GNUNET_PeerIdentity *target,
-                     struct GNUNET_BANDWIDTH_Value32NBO quota)
+send_outbound_quota_to_clients (const struct GNUNET_PeerIdentity *target,
+                                struct GNUNET_BANDWIDTH_Value32NBO quota)
 {
   struct QuotaSetMessage q_msg;
 
@@ -891,8 +892,8 @@ set_primary_address (struct NeighbourMapEntry *n,
     if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
     {
       n->primary_address.bandwidth_out = bandwidth_out;
-      send_outbound_quota (&address->peer,
-                           bandwidth_out);
+      send_outbound_quota_to_clients (&address->peer,
+                                      bandwidth_out);
     }
     return;
   }
@@ -929,8 +930,8 @@ set_primary_address (struct NeighbourMapEntry *n,
                                   GNUNET_YES);
   GST_neighbours_set_incoming_quota (&address->peer,
                                      bandwidth_in);
-  send_outbound_quota (&address->peer,
-                       bandwidth_out);
+  send_outbound_quota_to_clients (&address->peer,
+                                  bandwidth_out);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Neighbour `%s' switched to address `%s'\n",
               GNUNET_i2s (&n->id),
@@ -2479,6 +2480,7 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct NeighbourMapEntry *n;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
 
   n = lookup_neighbour (&address->peer);
   if ( (NULL == n) ||
@@ -2501,8 +2503,10 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
   n->primary_address.bandwidth_out = bandwidth_out;
   GST_neighbours_set_incoming_quota (&address->peer,
                                      bandwidth_in);
-  send_outbound_quota (&address->peer,
-                       bandwidth_out);
+  bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
+                                              n->neighbour_receive_quota);
+  send_outbound_quota_to_clients (&address->peer,
+                                  bandwidth_min);
   return GNUNET_OK;
 }
 
@@ -3633,6 +3637,7 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   const struct SessionQuotaMessage *sqm;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received QUOTA message from peer `%s'\n",
@@ -3656,8 +3661,12 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
     /* gone already */
     return;
   }
-  n->neighbour_receive_quota = ntohl (sqm->quota);
-  /* FIXME: tell someone? (#3652) */
+  n->neighbour_receive_quota = GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota));
+
+  bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
+                                              n->neighbour_receive_quota);
+  send_outbound_quota_to_clients (peer,
+                                  bandwidth_min);
 }
 
 
