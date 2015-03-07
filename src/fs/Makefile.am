@@ -513,29 +513,27 @@ test_gnunet_fs_idx.py: test_gnunet_fs_idx.py.in Makefile
 
 
 EXTRA_DIST = \
-  test_fs_defaults.conf \
   fs_test_lib_data.conf \
+  perf_gnunet_service_fs_p2p.conf \
   test_fs_data.conf \
+  test_fs_defaults.conf \
   test_fs_download_data.conf \
   test_fs_download_indexed.conf \
-  test_fs_download_cadet.conf \
   test_fs_file_information_data.conf \
-  fs_test_lib_data.conf \
   test_fs_list_indexed_data.conf \
   test_fs_namespace_data.conf \
   test_fs_publish_data.conf \
   test_fs_search_data.conf \
   test_fs_unindex_data.conf \
-  test_gnunet_service_fs_migration_data.conf \
-  test_gnunet_service_fs_p2p_cadet.conf \
   test_gnunet_fs_idx_data.conf \
   test_gnunet_fs_psd_data.conf \
   test_gnunet_fs_rec_data.conf \
-  perf_gnunet_service_fs_p2p.conf \
   test_gnunet_fs_rec_data.tgz \
   test_gnunet_fs_psd.py.in \
   test_gnunet_fs_rec.py.in \
   test_gnunet_fs_idx.py.in \
+  test_gnunet_service_fs_migration_data.conf \
+  test_gnunet_service_fs_p2p_cadet.conf \
   test_pseudonym_data.conf \
   $(bin_SCRIPTS)
 

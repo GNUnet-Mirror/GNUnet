@@ -48,7 +48,7 @@ gnunet_service_scalarproduct_alice_LDADD = \
 
 gnunet_service_scalarproduct_bob_SOURCES = \
   gnunet-service-scalarproduct.h \
-  gnunet-service-scalarproduct_bob.c gnunet-service-scalarproduct_bob.h
+  gnunet-service-scalarproduct_bob.c
 gnunet_service_scalarproduct_bob_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/cadet/libgnunetcadet.la \

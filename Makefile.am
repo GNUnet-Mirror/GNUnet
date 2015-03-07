@@ -17,7 +17,7 @@ doc_DATA = COPYING README
 ACLOCAL_AMFLAGS = -I m4
 
 ChangeLog:
-	if test -f $(top_srcdir)/.svn/entries; then \
+	if svn info > /dev/null; then \
 		svn log -v --xml -r HEAD:18409 | \
 			xsltproc --stringparam ignore-message-starting "-" \
 				 --stringparam strip-prefix "gnunet" \
