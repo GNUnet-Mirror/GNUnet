@@ -149,7 +149,7 @@ struct GNUNET_DEFRAGMENT_Context
   struct MessageContext *tail;
 
   /**
-   * Closure for 'proc' and 'ackp'.
+   * Closure for @e proc and @e ackp.
    */
   void *cls;
 
@@ -195,7 +195,7 @@ struct GNUNET_DEFRAGMENT_Context
  * @param mtu the maximum message size for each fragment
  * @param num_msgs how many fragmented messages
  *                 to we defragment at most at the same time?
- * @param cls closure for proc and ackp
+ * @param cls closure for @a proc and @a ackp
  * @param proc function to call with defragmented messages
  * @param ackp function to call with acknowledgements (to send
  *             back to the other side)
@@ -255,7 +255,8 @@ GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc)
  * @param tc the scheduler context
  */
 static void
-send_ack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_ack (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MessageContext *mc = cls;
   struct GNUNET_DEFRAGMENT_Context *dc = mc->dc;
@@ -267,9 +268,12 @@ send_ack (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   fa.fragment_id = htonl (mc->fragment_id);
   fa.bits = GNUNET_htonll (mc->bits);
   GNUNET_STATISTICS_update (mc->dc->stats,
-                            _("# acknowledgements sent for fragment"), 1,
+                            _("# acknowledgements sent for fragment"),
+                            1,
                             GNUNET_NO);
-  dc->ackp (dc->cls, mc->fragment_id, &fa.header);
+  dc->ackp (dc->cls,
+            mc->fragment_id,
+            &fa.header);
 }
 
 
@@ -402,7 +406,9 @@ discard_oldest_mc (struct GNUNET_DEFRAGMENT_Context *dc)
  *
  * @param dc the context
  * @param msg the message that was received
- * @return GNUNET_OK on success, GNUNET_NO if this was a duplicate, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_NO if this was a duplicate,
+ *         #GNUNET_SYSERR on error
  */
 int
 GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
@@ -453,7 +459,10 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_STATISTICS_update (dc->stats, _("# fragments received"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (dc->stats,
+                            _("# fragments received"),
+                            1,
+                            GNUNET_NO);
   num_fragments = (ntohs (msg->size) + dc->mtu - sizeof (struct FragmentHeader)-1) / (dc->mtu - sizeof (struct FragmentHeader));
   last = 0;
   for (mc = dc->head; NULL != mc; mc = mc->next)
@@ -495,7 +504,9 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
       mc->bits = (1LL << n) - 1;        /* set lowest 'bits' bit */
     if (dc->list_size >= dc->num_msgs)
       discard_oldest_mc (dc);
-    GNUNET_CONTAINER_DLL_insert (dc->head, dc->tail, mc);
+    GNUNET_CONTAINER_DLL_insert (dc->head,
+                                 dc->tail,
+                                 mc);
     dc->list_size++;
   }
 
@@ -518,7 +529,9 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   else
   {
     duplicate = GNUNET_YES;
-    GNUNET_STATISTICS_update (dc->stats, _("# duplicate fragments received"), 1,
+    GNUNET_STATISTICS_update (dc->stats,
+                              _("# duplicate fragments received"),
+                              1,
                               GNUNET_NO);
   }
 
@@ -529,9 +542,12 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
       bc++;
 
   /* notify about complete message */
-  if ((duplicate == GNUNET_NO) && (0 == mc->bits))
+  if ( (duplicate == GNUNET_NO) &&
+       (0 == mc->bits) )
   {
-    GNUNET_STATISTICS_update (dc->stats, _("# messages defragmented"), 1,
+    GNUNET_STATISTICS_update (dc->stats,
+                              _("# messages defragmented"),
+                              1,
                               GNUNET_NO);
     /* message complete, notify! */
     dc->proc (dc->cls, mc->msg);
@@ -541,10 +557,11 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   {
     dc->latency = estimate_latency (mc);
   }
-  delay = GNUNET_TIME_relative_multiply (dc->latency, bc + 1);
+  delay = GNUNET_TIME_relative_multiply (dc->latency,
+                                         bc + 1);
   if ( (last + fid == num_fragments) ||
-       (0 == mc->bits) ||
-       (GNUNET_YES == duplicate))
+       ( (0 == mc->bits) &&
+         (GNUNET_YES != duplicate)) )
   {
     /* message complete or duplicate or last missing fragment in
        linear sequence; ACK now! */
@@ -552,7 +569,9 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   }
   if (NULL != mc->ack_task)
     GNUNET_SCHEDULER_cancel (mc->ack_task);
-  mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay, &send_ack, mc);
+  mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                               &send_ack,
+                                               mc);
   if (duplicate == GNUNET_YES)
     return GNUNET_NO;
   return GNUNET_YES;

@@ -80,7 +80,7 @@ struct GNUNET_FRAGMENT_Context
   GNUNET_FRAGMENT_MessageProcessor proc;
 
   /**
-   * Closure for 'proc'.
+   * Closure for @e proc.
    */
   void *proc_cls;
 
@@ -98,7 +98,7 @@ struct GNUNET_FRAGMENT_Context
   /**
    * Task performing work for the fragmenter.
    */
-  struct GNUNET_SCHEDULER_Task * task;
+  struct GNUNET_SCHEDULER_Task *task;
 
   /**
    * Our fragmentation ID. (chosen at random)
@@ -121,12 +121,12 @@ struct GNUNET_FRAGMENT_Context
   unsigned int num_transmissions;
 
   /**
-   * GNUNET_YES if we called 'proc' and are now waiting for 'GNUNET_FRAGMENT_transmission_done'
+   * #GNUNET_YES if we called @e proc and are now waiting for #GNUNET_FRAGMENT_transmission_done()
    */
   int8_t proc_busy;
 
   /**
-   * GNUNET_YES if we are waiting for an ACK.
+   * #GNUNET_YES if we are waiting for an ACK.
    */
   int8_t wack;
 
@@ -139,13 +139,39 @@ struct GNUNET_FRAGMENT_Context
 
 
 /**
+ * Convert an ACK message to a printable format suitable for logging.
+ *
+ * @param ack message to print
+ * @return ack in human-readable format
+ */
+const char *
+GNUNET_FRAGMENT_print_ack (const struct GNUNET_MessageHeader *ack)
+{
+  static char buf[128];
+  const struct FragmentAcknowledgement *fa;
+
+  if (sizeof (struct FragmentAcknowledgement) !=
+      htons (ack->size))
+    return "<malformed ack>";
+  fa = (const struct FragmentAcknowledgement *) ack;
+  GNUNET_snprintf (buf,
+                   sizeof (buf),
+                   "%u-%llX",
+                   ntohl (fa->fragment_id),
+                   GNUNET_ntohll (fa->bits));
+  return buf;
+}
+
+
+/**
  * Transmit the next fragment to the other peer.
  *
- * @param cls the 'struct GNUNET_FRAGMENT_Context'
+ * @param cls the `struct GNUNET_FRAGMENT_Context`
  * @param tc scheduler context
  */
 static void
-transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_next (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FRAGMENT_Context *fc = cls;
   char msg[fc->mtu];
@@ -246,11 +272,11 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Create a fragmentation context for the given message.
- * Fragments the message into fragments of size "mtu" or
- * less.  Calls 'proc' on each un-acknowledged fragment,
- * using both the expected 'delay' between messages and
- * acknowledgements and the given 'tracker' to guide the
- * frequency of calls to 'proc'.
+ * Fragments the message into fragments of size @a mtu or
+ * less.  Calls @a proc on each un-acknowledged fragment,
+ * using both the expected @a msg_delay between messages and
+ * acknowledgements and the given @a tracker to guide the
+ * frequency of calls to @a proc.
  *
  * @param stats statistics context
  * @param mtu the maximum message size for each fragment
@@ -261,7 +287,7 @@ transmit_next (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *              and ACK based on previous messages
  * @param msg the message to fragment
  * @param proc function to call for each fragment to transmit
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return the fragmentation context
  */
 struct GNUNET_FRAGMENT_Context *
@@ -336,10 +362,10 @@ GNUNET_FRAGMENT_context_transmission_done (struct GNUNET_FRAGMENT_Context *fc)
  *
  * @param fc fragmentation context
  * @param msg acknowledgement message we received
- * @return GNUNET_OK if this ack completes the work of the 'fc'
+ * @return #GNUNET_OK if this ack completes the work of the 'fc'
  *                   (all fragments have been received);
- *         GNUNET_NO if more messages are pending
- *         GNUNET_SYSERR if this ack is not valid for this fc
+ *         #GNUNET_NO if more messages are pending
+ *         #GNUNET_SYSERR if this ack is not valid for this fc
  */
 int
 GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,

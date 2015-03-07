@@ -1980,6 +1980,12 @@ read_process_ack (struct Plugin *plugin,
     return;
   }
   udp_ack = (const struct UDP_ACK_Message *) msg;
+  ack = (const struct GNUNET_MessageHeader *) &udp_ack[1];
+  if (ntohs (ack->size) != ntohs (msg->size) - sizeof(struct UDP_ACK_Message))
+  {
+    GNUNET_break_op(0);
+    return;
+  }
   address = GNUNET_HELLO_address_allocate (&udp_ack->sender,
                                            PLUGIN_NAME,
                                            udp_addr,
@@ -2000,10 +2006,11 @@ read_process_ack (struct Plugin *plugin,
   if (NULL == s->frag_ctx)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-         "Fragmentation context of address %s for ACK not found\n",
+         "Fragmentation context of address %s for ACK (%s) not found\n",
          udp_address_to_string (plugin,
                                 address->address,
-                                address->address_length));
+                                address->address_length),
+         GNUNET_FRAGMENT_print_ack (ack));
     GNUNET_HELLO_address_free (address);
     return;
   }
@@ -2017,12 +2024,6 @@ read_process_ack (struct Plugin *plugin,
        GNUNET_i2s (&udp_ack->sender));
   s->flow_delay_from_other_peer = GNUNET_TIME_relative_to_absolute (flow_delay);
 
-  ack = (const struct GNUNET_MessageHeader *) &udp_ack[1];
-  if (ntohs (ack->size) != ntohs (msg->size) - sizeof(struct UDP_ACK_Message))
-  {
-    GNUNET_break_op(0);
-    return;
-  }
 
   if (GNUNET_OK !=
       GNUNET_FRAGMENT_process_ack (s->frag_ctx->frag,
