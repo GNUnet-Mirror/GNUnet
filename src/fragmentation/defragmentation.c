@@ -542,7 +542,7 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
       bc++;
 
   /* notify about complete message */
-  if ( (duplicate == GNUNET_NO) &&
+  if ( (GNUNET_NO == duplicate) &&
        (0 == mc->bits) )
   {
     GNUNET_STATISTICS_update (dc->stats,
@@ -567,12 +567,15 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
        linear sequence; ACK now! */
     delay = GNUNET_TIME_UNIT_ZERO;
   }
+  if (GNUNET_YES == duplicate)
+    delay = GNUNET_TIME_relative_multiply (delay,
+                                           2);
   if (NULL != mc->ack_task)
     GNUNET_SCHEDULER_cancel (mc->ack_task);
   mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                &send_ack,
                                                mc);
-  if (duplicate == GNUNET_YES)
+  if (GNUNET_YES == duplicate)
     return GNUNET_NO;
   return GNUNET_YES;
 }
