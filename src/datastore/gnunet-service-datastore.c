@@ -1459,8 +1459,11 @@ cleaning_task (void *cls,
   }
   if (GNUNET_YES == do_drop)
     plugin->api->drop (plugin->api->cls);
-  unload_plugin (plugin);
-  plugin = NULL;
+  if (NULL != plugin)
+  {
+    unload_plugin (plugin);
+    plugin = NULL;
+  }
   if (NULL != filter)
   {
     GNUNET_CONTAINER_bloomfilter_free (filter);
