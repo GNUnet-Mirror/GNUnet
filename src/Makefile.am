@@ -24,9 +24,13 @@ if HAVE_EXPERIMENTAL
   $(CONSENSUS) \
   $(SECRETSHARING) \
   $(SENSOR) \
-  $(SENSORDASHBOARD)
+  $(SENSORDASHBOARD) \
 endif
 
+if HAVE_WACHS
+  WACHS_DIR = \
+    ats-tests
+endif
 
 if BUILD_PULSE_HELPERS
 CONVERSATION_DIR = conversation
@@ -89,6 +93,5 @@ SUBDIRS = \
   exit \
   pt \
   integration-tests \
-  $(EXP_DIR)
-
-#  ats-tests
+  $(EXP_DIR) \
+  $(WACHS_DIR)
