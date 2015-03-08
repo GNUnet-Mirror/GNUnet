@@ -275,10 +275,13 @@ transmit_typemap_task (void *cls,
       GNUNET_SCHEDULER_add_delayed (delay,
                                     &transmit_typemap_task, session);
   GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# type map refreshes sent"), 1,
+                            gettext_noop ("# type map refreshes sent"),
+                            1,
                             GNUNET_NO);
   hdr = GSC_TYPEMAP_compute_type_map_message ();
-  GSC_KX_encrypt_and_transmit (session->kxinfo, hdr, ntohs (hdr->size));
+  GSC_KX_encrypt_and_transmit (session->kxinfo,
+                               hdr,
+                               ntohs (hdr->size));
   GNUNET_free (hdr);
 }
 
@@ -761,10 +764,13 @@ try_transmission (struct Session *session)
     }
     GNUNET_STATISTICS_set (GSC_stats,
                            "# avg payload per encrypted message",
-                           total_bytes / total_msgs, GNUNET_NO);
+                           total_bytes / total_msgs,
+                           GNUNET_NO);
     /* now actually transmit... */
     session->ready_to_transmit = GNUNET_NO;
-    GSC_KX_encrypt_and_transmit (session->kxinfo, pbuf, used);
+    GSC_KX_encrypt_and_transmit (session->kxinfo,
+                                 pbuf,
+                                 used);
   }
 }
 

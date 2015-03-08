@@ -1095,7 +1095,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
                             GNUNET_NO);
   GSC_NEIGHBOURS_transmit (&kx->peer,
                            &tp.header,
-                           GNUNET_TIME_UNIT_FOREVER_REL /* FIXME: timeout */ );
+                           kx->set_key_retry_frequency);
 }
 
 
@@ -1378,24 +1378,35 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
   ph->iv_seed = calculate_seed (kx);
   ph->reserved = 0;
   ph->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
-  memcpy (&ph[1], payload, payload_size);
+  memcpy (&ph[1],
+          payload,
+          payload_size);
 
   em = (struct EncryptedMessage *) cbuf;
   em->header.size = htons (used);
   em->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE);
   em->iv_seed = ph->iv_seed;
-  derive_iv (&iv, &kx->encrypt_key, ph->iv_seed, &kx->peer);
+  derive_iv (&iv,
+             &kx->encrypt_key,
+             ph->iv_seed,
+             &kx->peer);
   GNUNET_assert (GNUNET_OK ==
-                 do_encrypt (kx, &iv, &ph->sequence_number,
+                 do_encrypt (kx,
+                             &iv,
+                             &ph->sequence_number,
                              &em->sequence_number,
                              used - ENCRYPTED_HEADER_SIZE));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted %u bytes for %s\n",
-              used - ENCRYPTED_HEADER_SIZE, GNUNET_i2s (&kx->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Encrypted %u bytes for %s\n",
+              used - ENCRYPTED_HEADER_SIZE,
+              GNUNET_i2s (&kx->peer));
   derive_auth_key (&auth_key,
 		   &kx->encrypt_key,
 		   ph->iv_seed);
-  GNUNET_CRYPTO_hmac (&auth_key, &em->sequence_number,
-                      used - ENCRYPTED_HEADER_SIZE, &em->hmac);
+  GNUNET_CRYPTO_hmac (&auth_key,
+                      &em->sequence_number,
+                      used - ENCRYPTED_HEADER_SIZE,
+                      &em->hmac);
   GSC_NEIGHBOURS_transmit (&kx->peer,
                            &em->header,
                            GNUNET_TIME_UNIT_FOREVER_REL);

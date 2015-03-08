@@ -2500,14 +2500,20 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
                    GST_ats_is_known (n->primary_address.address,
                                      n->primary_address.session));
   }
-  n->primary_address.bandwidth_in = bandwidth_in;
-  n->primary_address.bandwidth_out = bandwidth_out;
-  GST_neighbours_set_incoming_quota (&address->peer,
-                                     bandwidth_in);
-  bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
-                                              n->neighbour_receive_quota);
-  send_outbound_quota_to_clients (&address->peer,
-                                  bandwidth_min);
+  if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
+  {
+    n->primary_address.bandwidth_in = bandwidth_in;
+    GST_neighbours_set_incoming_quota (&address->peer,
+                                       bandwidth_in);
+  }
+  if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
+  {
+    n->primary_address.bandwidth_out = bandwidth_out;
+    bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
+                                                n->neighbour_receive_quota);
+    send_outbound_quota_to_clients (&address->peer,
+                                    bandwidth_min);
+  }
   return GNUNET_OK;
 }
 
@@ -3569,7 +3575,9 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 
 
 /**
- * Change the incoming quota for the given peer.
+ * Change the incoming quota for the given peer.  Updates
+ * our own receive rate and informs the neighbour about
+ * the new quota.
  *
  * @param neighbour identity of peer to change qutoa for
  * @param quota new quota
@@ -3593,7 +3601,21 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
               ntohl (quota.value__), GNUNET_i2s (&n->id));
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
   if (0 != ntohl (quota.value__))
+  {
+    struct SessionQuotaMessage sqm;
+
+    sqm.header.size = htons (sizeof (struct SessionQuotaMessage));
+    sqm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA);
+    sqm.quota = quota.value__;
+    (void) send_with_session (n,
+                              &sqm,
+                              sizeof (sqm),
+                              UINT32_MAX - 1,
+                              GNUNET_TIME_UNIT_FOREVER_REL,
+                              GNUNET_NO,
+                              NULL, NULL);
     return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting peer `%4s' due to SET_QUOTA\n",
               GNUNET_i2s (&n->id));
