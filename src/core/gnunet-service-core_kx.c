@@ -716,7 +716,8 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
 	      "Initiating key exchange with `%s'\n",
               GNUNET_i2s (pid));
   GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# key exchanges initiated"), 1,
+                            gettext_noop ("# key exchanges initiated"),
+                            1,
                             GNUNET_NO);
   kx = GNUNET_new (struct GSC_KeyExchangeInfo);
   kx->peer = *pid;
@@ -745,7 +746,8 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
     /* peer with "higher" identity starts a delayed  KX, if the "lower" peer
      * does not start a KX since he sees no reasons to do so  */
     kx->retry_set_key_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                                           &set_key_retry_task, kx);
+                                                           &set_key_retry_task,
+                                                           kx);
   }
   return kx;
 }
@@ -795,7 +797,7 @@ send_ping (struct GSC_KeyExchangeInfo *kx)
                             GNUNET_NO);
   GSC_NEIGHBOURS_transmit (&kx->peer,
                            &kx->ping.header,
-                           MIN_PING_FREQUENCY);
+                           kx->set_key_retry_frequency);
 }
 
 
@@ -1024,7 +1026,8 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# PING messages received"), 1,
+                            gettext_noop ("# PING messages received"),
+                            1,
                             GNUNET_NO);
   if ( (kx->status != GNUNET_CORE_KX_STATE_KEY_RECEIVED) &&
        (kx->status != GNUNET_CORE_KX_STATE_UP) &&
@@ -1032,7 +1035,8 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   {
     /* ignore */
     GNUNET_STATISTICS_update (GSC_stats,
-			      gettext_noop ("# PING messages dropped (out of order)"), 1,
+			      gettext_noop ("# PING messages dropped (out of order)"),
+                              1,
 			      GNUNET_NO);
     return;
   }
@@ -1166,12 +1170,14 @@ update_timeout (struct GSC_KeyExchangeInfo *kx)
        are bigger than the threshold (5s) */
     monitor_notify_all (kx);
   }
-  if (kx->keep_alive_task != NULL)
+  if (NULL != kx->keep_alive_task)
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
   kx->keep_alive_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_divide
                                     (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                     2), &send_keep_alive, kx);
+                                     2),
+                                    &send_keep_alive,
+                                    kx);
 }
 
 
@@ -1197,7 +1203,8 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# PONG messages received"), 1,
+                            gettext_noop ("# PONG messages received"),
+                            1,
                             GNUNET_NO);
   switch (kx->status)
   {
@@ -1227,10 +1234,16 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
               GNUNET_i2s (&kx->peer));
   /* mark as garbage, just to be sure */
   memset (&t, 255, sizeof (t));
-  derive_pong_iv (&iv, &kx->decrypt_key, m->iv_seed, kx->ping_challenge,
+  derive_pong_iv (&iv,
+                  &kx->decrypt_key,
+                  m->iv_seed,
+                  kx->ping_challenge,
                   &GSC_my_identity);
   if (GNUNET_OK !=
-      do_decrypt (kx, &iv, &m->challenge, &t.challenge,
+      do_decrypt (kx,
+                  &iv,
+                  &m->challenge,
+                  &t.challenge,
                   sizeof (struct PongMessage) - ((void *) &m->challenge -
                                                  (void *) m)))
   {
@@ -1238,19 +1251,23 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# PONG messages decrypted"), 1,
+                            gettext_noop ("# PONG messages decrypted"),
+                            1,
                             GNUNET_NO);
-  if ((0 != memcmp (&t.target, &kx->peer, sizeof (struct GNUNET_PeerIdentity)))
-      || (kx->ping_challenge != t.challenge))
+  if ((0 != memcmp (&t.target,
+                    &kx->peer,
+                    sizeof (struct GNUNET_PeerIdentity))) ||
+      (kx->ping_challenge != t.challenge))
   {
     /* PONG malformed */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received malformed `%s' wanted sender `%s' with challenge %u\n",
-                "PONG", GNUNET_i2s (&kx->peer),
+                "Received malformed PONG wanted sender `%s' with challenge %u\n",
+                GNUNET_i2s (&kx->peer),
                 (unsigned int) kx->ping_challenge);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received malformed `%s' received from `%s' with challenge %u\n",
-                "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge);
+                "Received malformed PONG received from `%s' with challenge %u\n",
+                GNUNET_i2s (&t.target),
+                (unsigned int) t.challenge);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1272,8 +1289,8 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     return;
   case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# session keys confirmed via PONG"), 1,
+                              gettext_noop ("# session keys confirmed via PONG"),
+                              1,
                               GNUNET_NO);
     kx->status = GNUNET_CORE_KX_STATE_UP;
     monitor_notify_all (kx);
@@ -1283,15 +1300,15 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
     break;
   case GNUNET_CORE_KX_STATE_UP:
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# timeouts prevented via PONG"), 1,
+                              gettext_noop ("# timeouts prevented via PONG"),
+                              1,
                               GNUNET_NO);
     update_timeout (kx);
     break;
   case GNUNET_CORE_KX_STATE_REKEY_SENT:
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# rekey operations confirmed via PONG"), 1,
+                              gettext_noop ("# rekey operations confirmed via PONG"),
+                              1,
                               GNUNET_NO);
     kx->status = GNUNET_CORE_KX_STATE_UP;
     monitor_notify_all (kx);
@@ -1331,7 +1348,8 @@ send_key (struct GSC_KeyExchangeInfo *kx)
     send_ping (kx);
   kx->retry_set_key_task =
       GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
-                                    &set_key_retry_task, kx);
+                                    &set_key_retry_task,
+                                    kx);
 }
 
 
@@ -1434,9 +1452,9 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   if (GNUNET_CORE_KX_STATE_UP != kx->status)
   {
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# DATA message dropped (out of order)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# DATA message dropped (out of order)"),
+                              1,
+                              GNUNET_NO);
     return;
   }
   if (0 == GNUNET_TIME_absolute_get_remaining (kx->foreign_key_expires).rel_value_us)
@@ -1460,10 +1478,16 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   }
 
   /* validate hash */
-  derive_auth_key (&auth_key, &kx->decrypt_key, m->iv_seed);
-  GNUNET_CRYPTO_hmac (&auth_key, &m->sequence_number,
-                      size - ENCRYPTED_HEADER_SIZE, &ph);
-  if (0 != memcmp (&ph, &m->hmac, sizeof (struct GNUNET_HashCode)))
+  derive_auth_key (&auth_key,
+                   &kx->decrypt_key,
+                   m->iv_seed);
+  GNUNET_CRYPTO_hmac (&auth_key,
+                      &m->sequence_number,
+                      size - ENCRYPTED_HEADER_SIZE,
+                      &ph);
+  if (0 != memcmp (&ph,
+                   &m->hmac,
+                   sizeof (struct GNUNET_HashCode)))
   {
     /* checksum failed */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1471,10 +1495,16 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
 		GNUNET_i2s (&kx->peer));
     return;
   }
-  derive_iv (&iv, &kx->decrypt_key, m->iv_seed, &GSC_my_identity);
+  derive_iv (&iv,
+             &kx->decrypt_key,
+             m->iv_seed,
+             &GSC_my_identity);
   /* decrypt */
   if (GNUNET_OK !=
-      do_decrypt (kx, &iv, &m->sequence_number, &buf[ENCRYPTED_HEADER_SIZE],
+      do_decrypt (kx,
+                  &iv,
+                  &m->sequence_number,
+                  &buf[ENCRYPTED_HEADER_SIZE],
                   size - ENCRYPTED_HEADER_SIZE))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1492,7 +1522,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
     /* duplicate, ignore */
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop ("# bytes dropped (duplicates)"),
-                              size, GNUNET_NO);
+                              size,
+                              GNUNET_NO);
     return;
   }
   if ((kx->last_sequence_number_received > snum) &&
@@ -1587,9 +1618,9 @@ deliver_message (void *cls,
   if (GNUNET_CORE_KX_STATE_UP != dmc->kx->status)
   {
     GNUNET_STATISTICS_update (GSC_stats,
-                              gettext_noop
-                              ("# PAYLOAD dropped (out of order)"),
-                              1, GNUNET_NO);
+                              gettext_noop ("# PAYLOAD dropped (out of order)"),
+                              1,
+                              GNUNET_NO);
     return GNUNET_OK;
   }
   switch (ntohs (m->type))

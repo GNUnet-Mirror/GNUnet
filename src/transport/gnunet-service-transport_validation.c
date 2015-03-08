@@ -1524,10 +1524,10 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;
   hello = GNUNET_HELLO_create (&ve->address->peer.public_key,
-                               &add_valid_peer_address, 
+                               &add_valid_peer_address,
 			       ve,
                                GNUNET_NO);
-  GNUNET_PEERINFO_add_peer (GST_peerinfo, 
+  GNUNET_PEERINFO_add_peer (GST_peerinfo,
 			    hello,
 			    NULL,
 			    NULL);
@@ -1549,7 +1549,6 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
   const struct GNUNET_HELLO_Message *hm =
       (const struct GNUNET_HELLO_Message *) hello;
   struct GNUNET_PeerIdentity pid;
-  struct GNUNET_HELLO_Message *h;
   int friend;
 
   friend = GNUNET_HELLO_is_friend_only (hm);

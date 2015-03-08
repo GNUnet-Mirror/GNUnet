@@ -2140,6 +2140,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->id = *peer;
   n->ack_state = ACK_UNDEFINED;
   n->last_util_transmission = GNUNET_TIME_absolute_get();
+  n->neighbour_receive_quota = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
                                  &inbound_bw_tracker_update,
                                  n,
@@ -3661,7 +3662,9 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
     /* gone already */
     return;
   }
-  n->neighbour_receive_quota = GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota));
+  n->neighbour_receive_quota
+    = GNUNET_BANDWIDTH_value_max (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+                                  GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota)));
 
   bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
                                               n->neighbour_receive_quota);

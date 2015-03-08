@@ -457,8 +457,12 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
   me = GNUNET_malloc (sizeof (struct NeighbourMessageEntry) + msize);
   me->deadline = GNUNET_TIME_relative_to_absolute (timeout);
   me->size = msize;
-  memcpy (&me[1], msg, msize);
-  GNUNET_CONTAINER_DLL_insert_tail (n->message_head, n->message_tail, me);
+  memcpy (&me[1],
+          msg,
+          msize);
+  GNUNET_CONTAINER_DLL_insert_tail (n->message_head,
+                                    n->message_tail,
+                                    me);
   process_queue (n);
 }
 

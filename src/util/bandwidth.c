@@ -61,7 +61,26 @@ GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
 {
   return
       GNUNET_BANDWIDTH_value_init (GNUNET_MIN
-                                   (ntohl (b1.value__), ntohl (b2.value__)));
+                                   (ntohl (b1.value__),
+                                    ntohl (b2.value__)));
+}
+
+
+/**
+ * Compute the MAX of two bandwidth values.
+ *
+ * @param b1 first value
+ * @param b2 second value
+ * @return the min of b1 and b2
+ */
+struct GNUNET_BANDWIDTH_Value32NBO
+GNUNET_BANDWIDTH_value_max (struct GNUNET_BANDWIDTH_Value32NBO b1,
+                            struct GNUNET_BANDWIDTH_Value32NBO b2)
+{
+  return
+      GNUNET_BANDWIDTH_value_init (GNUNET_MAX
+                                   (ntohl (b1.value__),
+                                    ntohl (b2.value__)));
 }
 
 
