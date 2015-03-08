@@ -789,6 +789,10 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
 static void
 send_ping (struct GSC_KeyExchangeInfo *kx)
 {
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# PING messages transmitted"),
+                            1,
+                            GNUNET_NO);
   GSC_NEIGHBOURS_transmit (&kx->peer,
                            &kx->ping.header,
                            MIN_PING_FREQUENCY);
@@ -955,7 +959,8 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     monitor_notify_all (kx);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
-    send_ping (kx);
+    else
+      send_ping (kx);
     break;
   case GNUNET_CORE_KX_STATE_KEY_SENT:
     GNUNET_assert (NULL == kx->keep_alive_task);
@@ -963,27 +968,29 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     monitor_notify_all (kx);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
-    send_ping (kx);
+    else
+      send_ping (kx);
     break;
   case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
     GNUNET_assert (NULL == kx->keep_alive_task);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
-    send_ping (kx);
+    else
+      send_ping (kx);
     break;
   case GNUNET_CORE_KX_STATE_UP:
     kx->status = GNUNET_CORE_KX_STATE_REKEY_SENT;
     monitor_notify_all (kx);
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
-    /* we got a new key, need to reconfirm! */
-    send_ping (kx);
+    else
+      send_ping (kx);
     break;
   case GNUNET_CORE_KX_STATE_REKEY_SENT:
     if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
-    /* we got a new key, need to reconfirm! */
-    send_ping (kx);
+    else
+      send_ping (kx);
     break;
   default:
     GNUNET_break (0);
@@ -1125,9 +1132,7 @@ send_keep_alive (void *cls,
                             1,
                             GNUNET_NO);
   setup_fresh_ping (kx);
-  GSC_NEIGHBOURS_transmit (&kx->peer,
-                           &kx->ping.header,
-                           kx->set_key_retry_frequency);
+  send_ping (kx);
   retry =
       GNUNET_TIME_relative_max (GNUNET_TIME_relative_divide (left, 2),
                                 MIN_PING_FREQUENCY);
@@ -1322,6 +1327,8 @@ send_key (struct GSC_KeyExchangeInfo *kx)
   GSC_NEIGHBOURS_transmit (&kx->peer,
                            &current_ekm.header,
                            kx->set_key_retry_frequency);
+  if (GNUNET_CORE_KX_STATE_KEY_SENT != kx->status)
+    send_ping (kx);
   kx->retry_set_key_task =
       GNUNET_SCHEDULER_add_delayed (kx->set_key_retry_frequency,
                                     &set_key_retry_task, kx);
