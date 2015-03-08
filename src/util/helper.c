@@ -468,7 +468,9 @@ restart_task (void *cls,
 
   h->restart_task = NULL;
   h->retry_back_off++;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%u\n",h->retry_back_off);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+              "Restarting helper with back-off %u\n",
+              h->retry_back_off);
   start_helper (h);
 }
 
