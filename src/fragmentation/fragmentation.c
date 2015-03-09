@@ -90,7 +90,7 @@ struct GNUNET_FRAGMENT_Context
   uint64_t acks;
 
   /**
-   * Bitfield with all possible bits for 'acks' (used to mask the
+   * Bitfield with all possible bits for @e acks (used to mask the
    * ack we get back).
    */
   uint64_t acks_mask;
@@ -121,7 +121,7 @@ struct GNUNET_FRAGMENT_Context
   unsigned int num_transmissions;
 
   /**
-   * #GNUNET_YES if we called @e proc and are now waiting for #GNUNET_FRAGMENT_transmission_done()
+   * #GNUNET_YES if we called @e proc and are now waiting for #GNUNET_FRAGMENT_context_transmission_done()
    */
   int8_t proc_busy;
 

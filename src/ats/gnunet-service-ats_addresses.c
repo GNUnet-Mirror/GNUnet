@@ -37,6 +37,7 @@
 struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
 
 
+
 /**
  * Update statistic on number of addresses.
  */

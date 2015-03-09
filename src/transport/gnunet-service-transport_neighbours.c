@@ -391,7 +391,7 @@ struct NeighbourMapEntry
   /**
    * Time where we should cut the connection (timeout) if we don't
    * make progress in the state machine (or get a KEEPALIVE_RESPONSE
-   * if we are in #S_CONNECTED).
+   * if we are in #GNUNET_TRANSPORT_PS_CONNECTED).
    */
   struct GNUNET_TIME_Absolute timeout;
 

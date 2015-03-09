@@ -171,12 +171,18 @@ typedef void
         const struct GNUNET_PeerIdentity *id);
 
 /**
- * Closure to #RPS_sampler_get_rand_peer()
+ * Closure for #sampler_get_rand_peer()
  */
 struct GetPeerCls
 {
-  /** DLL */
+  /**
+   * DLL
+   */
   struct GetPeerCls *next;
+
+  /**
+   * DLL
+   */
   struct GetPeerCls *prev;
 
   /**
@@ -195,7 +201,7 @@ struct GetPeerCls
   RPS_sampler_rand_peer_ready_cont cont;
 
   /**
-   * The closure to the callback
+   * The closure to the callback @e cont
    */
   void *cont_cls;
 
@@ -234,8 +240,8 @@ static uint32_t client_get_index;
 
 
 /** FIXME document */
-struct GetPeerCls *gpc_head;
-struct GetPeerCls *gpc_tail;
+static struct GetPeerCls *gpc_head;
+static struct GetPeerCls *gpc_tail;
 
 
 /**
@@ -244,13 +250,11 @@ struct GetPeerCls *gpc_tail;
  * Checks whether all n peers are available. If they are,
  * give those back.
  */
-  void
+static void
 check_n_peers_ready (void *cls,
     const struct GNUNET_PeerIdentity *id)
 {
-  struct NRandPeersReadyCls *n_peers_cls;
-
-  n_peers_cls = (struct NRandPeersReadyCls *) cls;
+  struct NRandPeersReadyCls *n_peers_cls = cls;
 
   n_peers_cls->cur_num_peers++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -320,7 +324,7 @@ RPS_sampler_elem_create (void)
  * Input an PeerID into the given sampler element.
  *
  * @param sampler the sampler the @a s_elem belongs to.
- *                Needed to know the 
+ *                Needed to know the
  */
 static void
 RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
@@ -562,7 +566,7 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
 static void
 sampler_get_rand_peer2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GetPeerCls *gpc = (struct GetPeerCls *) cls;
+  struct GetPeerCls *gpc = cls;
   uint32_t r_index;
 
   gpc->get_peer_task = NULL;
@@ -603,7 +607,7 @@ sampler_get_rand_peer2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 static void
 sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GetPeerCls *gpc = (struct GetPeerCls *) cls;
+  struct GetPeerCls *gpc = cls;
   struct GNUNET_PeerIdentity tmp_id;
   unsigned int empty_flag;
   struct RPS_SamplerElement *s_elem;
