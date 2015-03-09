@@ -299,7 +299,7 @@ GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_rsa_PublicKey *key)
  */
 size_t
 GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
-                             char **buffer)
+                                     char **buffer)
 {
   size_t n;
   char *b;
@@ -320,6 +320,28 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *k
 
 
 /**
+ * Compute hash over the public key.
+ *
+ * @param key public key to hash
+ * @param hc where to store the hash code
+ */
+void
+GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
+                                   struct GNUNET_HashCode *hc)
+{
+  char *buf;
+  size_t buf_size;
+
+  buf_size = GNUNET_CRYPTO_rsa_public_key_encode (key,
+                                                  &buf);
+  GNUNET_CRYPTO_hash (buf,
+                      buf_size,
+                      hc);
+  GNUNET_free (buf);
+}
+
+
+/**
  * Decode the public key from the data-format back
  * to the "normal", internal format.
  *
@@ -329,7 +351,7 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *k
  */
 struct GNUNET_CRYPTO_rsa_PublicKey *
 GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
-                             size_t len)
+                                     size_t len)
 {
   struct GNUNET_CRYPTO_rsa_PublicKey *key;
   gcry_mpi_t n;

@@ -1539,6 +1539,17 @@ GNUNET_CRYPTO_rsa_private_key_get_public (const struct GNUNET_CRYPTO_rsa_Private
 
 
 /**
+ * Compute hash over the public key.
+ *
+ * @param key public key to hash
+ * @param hc where to store the hash code
+ */
+void
+GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
+                                   struct GNUNET_HashCode *hc);
+
+
+/**
  * Free memory occupied by the public key.
  *
  * @param key pointer to the memory to free
