@@ -24,6 +24,7 @@
  */
 
 #include "gnunet_rps_service.h"
+//#define ENABLE_MALICIOUS 1
 
 /**
  * Mesh port used by RPS.
@@ -72,15 +73,14 @@ struct GNUNET_RPS_CS_RequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of random peer requested
-   */
-  uint32_t num_peers GNUNET_PACKED; 
-
-  /**
    * Identifyer of the message.
    */
   uint64_t n GNUNET_PACKED;
 
+  /**
+   * Number of random peer requested
+   */
+  uint32_t num_peers GNUNET_PACKED;
 };
 
 /**
@@ -101,7 +101,7 @@ struct GNUNET_RPS_CS_ReplyMessage
   /**
    * Number of random peer replied
    */
-  uint64_t num_peers GNUNET_PACKED;
+  uint32_t num_peers GNUNET_PACKED;
 
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
@@ -119,7 +119,7 @@ struct GNUNET_RPS_CS_SeedMessage
   /**
    * Number of peers
    */
-  uint64_t num_peers GNUNET_PACKED;
+  uint32_t num_peers GNUNET_PACKED;
 
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
@@ -147,7 +147,7 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
   /**
    * Number of peers
    */
-  uint64_t num_peers GNUNET_PACKED;
+  uint32_t num_peers GNUNET_PACKED;
 
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };

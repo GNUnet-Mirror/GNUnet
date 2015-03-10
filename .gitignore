@@ -1004,6 +1004,7 @@
 # /src/rps/
 /src/rps/rps.conf
 /src/rps/test_rps_multipeer
+/src/rps/test_rps_malicious*
 /src/rps/Makefile.in
 /src/rps/Makefile
 /src/rps/.deps

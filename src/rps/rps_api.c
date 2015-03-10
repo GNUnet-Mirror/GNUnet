@@ -128,18 +128,14 @@ handle_reply (void *cls,
               const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_RPS_CS_ReplyMessage *msg;
-  //struct cb_cls_pack *pack;
-  //struct GNUNET_RPS_Handle *h;
   struct GNUNET_PeerIdentity *peers;
   struct GNUNET_RPS_Request_Handle *rh;
 
   /* Give the peers back */
   msg = (struct GNUNET_RPS_CS_ReplyMessage *) message;
-  //pack = (struct cb_cls_pack *) cls;
-  //h = (struct GNUNET_RPS_Handle *) cls;
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   rh = &req_handlers[msg->n];
-  rh->ready_cb((rh)->ready_cb_cls, msg->num_peers, peers);
+  rh->ready_cb((rh)->ready_cb_cls, msg->num_peers, peers); // FIXME? ntohl ()
 
   /* Disconnect */
   //GNUNET_CLIENT_disconnect(pack->service_conn);
@@ -270,7 +266,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
   {
     ev = GNUNET_MQ_msg_extra (msg, num_peers_max * sizeof (struct GNUNET_PeerIdentity),
         GNUNET_MESSAGE_TYPE_RPS_CS_SEED);
-    msg->num_peers = ntohl (num_peers_max);
+    msg->num_peers = htonl (num_peers_max);
     memcpy (&msg[1], tmp_peer_pointer, num_peers_max * sizeof (struct GNUNET_PeerIdentity));
     GNUNET_MQ_send (h->mq, ev);
 

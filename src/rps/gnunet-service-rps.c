@@ -379,7 +379,7 @@ static uint32_t num_mal_peers;
 /**
  * If type is 2 this is the attacked peer
  */
-struct struct GNUNET_PeerIdentity attacked_peer;
+static struct GNUNET_PeerIdentity attacked_peer;
 #endif /* ENABLE_MALICIOUS */
 
 
@@ -1057,7 +1057,7 @@ handle_client_request (void *cls,
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
 
   num_peers = ntohl (msg->num_peers);
-  size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
+  size_needed = sizeof (struct GNUNET_RPS_CS_RequestMessage) +
                 num_peers * sizeof (struct GNUNET_PeerIdentity);
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
@@ -1303,7 +1303,7 @@ handle_peer_pull_reply (void *cls,
         || NULL != peer_ctx->recv_channel)
     {
       if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i])
-          && GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peers[i]))
+          && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peers[i]))
         GNUNET_array_append (pull_list, pull_list_size, peers[i]);
     }
     else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
@@ -1339,12 +1339,13 @@ handle_peer_act_malicious (void *cls,
                            void **channel_ctx,
                            const struct GNUNET_MessageHeader *msg)
 {
+  struct GNUNET_RPS_CS_ActMaliciousMessage *in_msg;
+  struct GNUNET_PeerIdentity *sender;
+  struct PeerContext *sender_ctx;
   struct GNUNET_PeerIdentity *peers;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
-
   /* Check for protocol violation */
-  if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
+  if (sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage) > ntohs (msg->size))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -1375,10 +1376,15 @@ handle_peer_act_malicious (void *cls,
     return GNUNET_OK;
   }
 
+
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  num_peers = ntohl (in_msg->num_peers);
+  num_mal_peers = ntohl (in_msg->num_peers);
   mal_type = ntohl (in_msg->type);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Now acting malicious type %" PRIX32 "\n",
+       mal_type);
 
   if (1 == mal_type)
   { /* Try to maximise representation */
@@ -1395,6 +1401,8 @@ handle_peer_act_malicious (void *cls,
     memcpy (mal_peers, peers, num_mal_peers);
     attacked_peer = peers[num_mal_peers];
   }
+
+  return GNUNET_OK;
 }
 #endif /* ENABLE_MALICIOUS */
 

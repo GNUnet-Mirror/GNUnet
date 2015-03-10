@@ -242,8 +242,11 @@ rps_connect_adapter (void *cls,
   h = GNUNET_RPS_connect (cfg);
 
   #if ENABLE_MALICIOUS
+  GNUNET_assert (1 >= portion
+                 && 0 <  portion);
+
   num_mal_peers = round (portion * NUM_PEERS);
-  GNUNET_RPS_act_malicious (h, htonl (1), htonl (num_mal_peers), rps_peer_ids);
+  GNUNET_RPS_act_malicious (h, htonl (1), num_mal_peers, rps_peer_ids);
   #endif /* ENABLE_MALICIOUS */
 
   return h;
