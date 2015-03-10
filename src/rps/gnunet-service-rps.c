@@ -1404,18 +1404,50 @@ handle_peer_act_malicious (void *cls,
 
   return GNUNET_OK;
 }
+
+
+/**
+ * Send out PUSHes and PULLs maliciously.
+ *
+ * This is executed regylary.
+ */
+static void
+do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously.\n");
+
+  /* Do stuff */
+
+  /* Compute random time value between .5 * round_interval and 1.5 *round_interval */
+  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
+  do
+  {
+  /*
+   * Compute random value between (0 and 1) * round_interval
+   * via multiplying round_interval with a 'fraction' (0 to value)/value
+   */
+  rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT_MAX/10);
+  time_next_round = GNUNET_TIME_relative_multiply (round_interval,  rand_delay);
+  time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
+  time_next_round = GNUNET_TIME_relative_add      (time_next_round, half_round_interval);
+  } while (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == time_next_round.rel_value_us);
+
+  /* Schedule next round */
+  do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_mal_round, NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
+}
 #endif /* ENABLE_MALICIOUS */
 
 
 /**
- * Send out PUSHes and PULLs.
+ * Send out PUSHes and PULLs, possibly update #gossip_list, samplers.
  *
  * This is executed regylary.
  */
 static void
 do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round.\n");
 
   uint32_t i;
   unsigned int *permut;
