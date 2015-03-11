@@ -256,8 +256,6 @@ create_response (void *cls,
     }
     return MHD_YES;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Size %d\n", *upload_data_size);
   if (GN_REST_STATE_INIT == con_handle->state)
   {
     if (0 != *upload_data_size)

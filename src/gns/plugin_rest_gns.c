@@ -220,6 +220,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   const char *typename;
   char *string_val;
   char *result;
+  const char *exp_str;
   json_t *result_root;
   json_t *result_name;
   json_t *result_array;
@@ -254,6 +255,24 @@ process_lookup_result (void *cls, uint32_t rd_count,
       record_obj = json_object();
       json_object_set_new (record_obj, "type", json_string (typename));
       json_object_set_new (record_obj, "value", json_string (string_val));
+
+      if (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd[i].flags)
+      {
+        struct GNUNET_TIME_Relative time_rel;
+        time_rel.rel_value_us = rd[i].expiration_time;
+        exp_str = GNUNET_STRINGS_relative_time_to_string (time_rel, 1);
+      }
+      else
+      {
+        struct GNUNET_TIME_Absolute time_abs;
+        time_abs.abs_value_us = rd[i].expiration_time;
+        exp_str = GNUNET_STRINGS_absolute_time_to_string (time_abs);
+      }
+      json_object_set_new (record_obj, "expiration_time", json_string (exp_str));
+
+      json_object_set_new (record_obj, "expired",
+                           json_boolean (GNUNET_YES == GNUNET_GNSRECORD_is_expired (&(rd[i]))));
+
       json_array_append (result_array, record_obj);
       json_decref (record_obj);
     }
@@ -262,7 +281,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   json_object_set (result_root, "query_result", result_array);
   json_decref (result_array);
   result = json_dumps (result_root, JSON_COMPACT);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
   json_decref (result_root);
   handle->proc (handle->proc_cls, result, strlen (result), GNUNET_OK);
   GNUNET_free (result);
