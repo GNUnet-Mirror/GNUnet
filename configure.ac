@@ -1216,6 +1216,15 @@ AC_ARG_ENABLE([wachs],
 AC_MSG_RESULT($enable_wachs)
 AM_CONDITIONAL([HAVE_WACHS], [test "x$enable_wachs" = "xyes"])
 
+# REST API
+AC_MSG_CHECKING(whether to compile REST API)
+AC_ARG_ENABLE([rest],
+   [AS_HELP_STRING([--enable-rest], [enable REST])],
+   [enable_rest=${enableval}],
+   [enable_rest=no])
+AC_MSG_RESULT($enable_rest)
+AM_CONDITIONAL([HAVE_REST], [test "x$enable_rest" = "xyes"])
+
 # should malicious code be compiled (should only be used for testing)?
 AC_MSG_CHECKING(whether to compile malicious code)
 AC_ARG_ENABLE([malicious],
@@ -1520,6 +1529,7 @@ src/util/Makefile
 src/util/resolver.conf
 src/vpn/Makefile
 src/vpn/vpn.conf
+src/rest/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetats.pc

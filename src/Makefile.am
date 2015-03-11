@@ -48,6 +48,10 @@ if HAVE_POSTGRESQL
  POSTGRES_DIR = postgres
 endif
 
+if HAVE_REST
+ REST_DIR = rest
+endif
+
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
@@ -60,6 +64,7 @@ SUBDIRS = \
   peerinfo \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
+  $(REST_DIR) \
   datacache \
   datastore \
   template \
