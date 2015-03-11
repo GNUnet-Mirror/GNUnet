@@ -331,7 +331,11 @@ mhd_completed_cb (void *cls,
 static void
 kill_httpd ()
 {
-  MHD_stop_daemon (httpd);
+  if (NULL != httpd)
+  {
+    MHD_stop_daemon (httpd);
+    httpd = NULL;
+  }
   if (NULL != httpd_task)
   { 
     GNUNET_SCHEDULER_cancel (httpd_task);
