@@ -205,6 +205,55 @@ do_error (void *cls,
 }
 
 /**
+ * Create json representation of a GNSRECORD
+ *
+ * @param rd the GNSRECORD_Data
+ */
+json_t *
+gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
+{
+  const char *typename;
+  char *string_val;
+  const char *exp_str;
+  json_t *record_obj;
+
+  typename = GNUNET_GNSRECORD_number_to_typename (rd->record_type);
+  string_val = GNUNET_GNSRECORD_value_to_string (rd->record_type,
+                                                 rd->data,
+                                                 rd->data_size);
+
+  if (NULL == string_val)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Record of type %d malformed, skipping\n",
+                (int) rd->record_type);
+    return NULL;
+  }
+  record_obj = json_object();
+  json_object_set_new (record_obj, "type", json_string (typename));
+  json_object_set_new (record_obj, "value", json_string (string_val));
+  GNUNET_free (string_val);
+
+  if (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd->flags)
+  {
+    struct GNUNET_TIME_Relative time_rel;
+    time_rel.rel_value_us = rd->expiration_time;
+    exp_str = GNUNET_STRINGS_relative_time_to_string (time_rel, 1);
+  }
+  else
+  {
+    struct GNUNET_TIME_Absolute time_abs;
+    time_abs.abs_value_us = rd->expiration_time;
+    exp_str = GNUNET_STRINGS_absolute_time_to_string (time_abs);
+  }
+  json_object_set_new (record_obj, "expiration_time", json_string (exp_str));
+
+  json_object_set_new (record_obj, "expired",
+                       json_boolean (GNUNET_YES == GNUNET_GNSRECORD_is_expired (rd)));
+  return record_obj;
+}
+
+/**
  * Function called with the result of a GNS lookup.
  *
  * @param cls the 'const char *' name that was resolved
@@ -217,10 +266,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
 {
   struct LookupHandle *handle = cls;
   uint32_t i;
-  const char *typename;
-  char *string_val;
   char *result;
-  const char *exp_str;
   json_t *result_root;
   json_t *result_name;
   json_t *result_array;
@@ -238,45 +284,10 @@ process_lookup_result (void *cls, uint32_t rd_count,
     if ( (rd[i].record_type != handle->type) &&
          (GNUNET_GNSRECORD_TYPE_ANY != handle->type) )
       continue;
-    typename = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
-    string_val = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-                                                   rd[i].data,
-                                                   rd[i].data_size);
-    if (NULL == string_val)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Record %u of type %d malformed, skipping\n",
-                  (unsigned int) i,
-                  (int) rd[i].record_type);
-      continue;
-    }
-    else
-    {
-      record_obj = json_object();
-      json_object_set_new (record_obj, "type", json_string (typename));
-      json_object_set_new (record_obj, "value", json_string (string_val));
 
-      if (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd[i].flags)
-      {
-        struct GNUNET_TIME_Relative time_rel;
-        time_rel.rel_value_us = rd[i].expiration_time;
-        exp_str = GNUNET_STRINGS_relative_time_to_string (time_rel, 1);
-      }
-      else
-      {
-        struct GNUNET_TIME_Absolute time_abs;
-        time_abs.abs_value_us = rd[i].expiration_time;
-        exp_str = GNUNET_STRINGS_absolute_time_to_string (time_abs);
-      }
-      json_object_set_new (record_obj, "expiration_time", json_string (exp_str));
-
-      json_object_set_new (record_obj, "expired",
-                           json_boolean (GNUNET_YES == GNUNET_GNSRECORD_is_expired (&(rd[i]))));
-
-      json_array_append (result_array, record_obj);
-      json_decref (record_obj);
-    }
-    GNUNET_free (string_val);
+    record_obj = gnsrecord_to_json (&(rd[i]));
+    json_array_append (result_array, record_obj);
+    json_decref (record_obj);
   }
   json_object_set (result_root, "query_result", result_array);
   json_decref (result_array);
@@ -287,6 +298,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
   GNUNET_free (result);
   cleanup_handle (handle);
 }
+
 
 /**
  * Perform the actual resolution, starting with the zone
