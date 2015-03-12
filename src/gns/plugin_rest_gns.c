@@ -33,7 +33,7 @@
 #include <gnunet_gns_service.h>
 #include <jansson.h>
 
-#define API_NAMESPACE "gns"
+#define API_NAMESPACE "/gns"
 
 /**
  * @brief struct returned by the initialization function of the plugin
@@ -694,7 +694,7 @@ libgnunet_plugin_rest_gns_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_namestore_sqlite_done (void *cls)
+libgnunet_plugin_rest_gns_done (void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;

@@ -1,6 +1,8 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+ plugindir = $(libdir)/gnunet
+
 if MINGW
  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
 endif
@@ -17,8 +19,25 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   identity.conf
 
+if HAVE_REST
+REST_PLUGIN = libgnunet_plugin_rest_identity.la
+plugin_LTLIBRARIES = ${REST_PLUGIN}
+endif
 
-lib_LTLIBRARIES = libgnunetidentity.la
+lib_LTLIBRARIES = \
+	libgnunetidentity.la 
+
+
+libgnunet_plugin_rest_identity_la_SOURCES = \
+  plugin_rest_identity.c
+libgnunet_plugin_rest_identity_la_LIBADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_identity_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 
 libgnunetidentity_la_SOURCES = \
   identity_api.c \
@@ -63,6 +82,7 @@ if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS) 
 endif
+
 
 test_identity_SOURCES = \
  test_identity.c

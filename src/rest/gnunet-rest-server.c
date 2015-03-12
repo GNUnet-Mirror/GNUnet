@@ -597,7 +597,9 @@ load_plugin (void *cls,
                 libname);
     return;
   }
-  GNUNET_CRYPTO_hash (plugin->name, strlen (plugin->name), &key);
+  GNUNET_assert (1 < strlen (plugin->name));
+  GNUNET_assert ('/' == *plugin->name);
+  GNUNET_CRYPTO_hash (plugin->name+1, strlen (plugin->name+1), &key);
   if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (plugin_map,
                                                       &key,
                                                       plugin,
@@ -608,7 +610,7 @@ load_plugin (void *cls,
                 libname);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Loaded plugin `%s'\n",
               libname);
 }
