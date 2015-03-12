@@ -32,9 +32,7 @@
 
 #define API_NAMESPACE "/identity"
 
-#define EGO_NAMESPACE "/identity/ego"
-
-#define SVC_NAMESPACE "/identity/service"
+#define EGO_NAMESPACE "/identity"
 
 #define ID_REST_STATE_INIT 0
 
@@ -96,6 +94,11 @@ struct RequestHandle
   struct GNUNET_IDENTITY_Handle *identity_handle;
 
   /**
+   * IDENTITY Operation
+   */
+  struct GNUNET_IDENTITY_Operation *op;
+
+  /**
    * Desired timeout for the lookup (default is no timeout).
    */
   struct GNUNET_TIME_Relative timeout;
@@ -149,6 +152,11 @@ struct RequestHandle
    * the length of the REST data
    */
   size_t data_size;
+
+  /**
+   * HTTP method
+   */
+  const char* method;
 
 };
 
@@ -254,6 +262,111 @@ ego_info_response (struct RequestHandle *handle)
 
 }
 
+static void
+create_finished (void *cls, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->op = NULL;
+  if (NULL != emsg)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
+  handle->proc (handle->proc_cls, NULL, 0, GNUNET_OK);
+  cleanup_handle (handle);
+}
+
+static void
+ego_create_cont (struct RequestHandle *handle)
+{
+  const char* egoname;
+  char term_data[handle->data_size];
+  json_t *egoname_json;
+  json_t *root_json;
+  json_error_t error;
+  struct EgoEntry *ego_entry;
+
+  if (strlen (API_NAMESPACE) != strlen (handle->url))
+  {
+    GNUNET_break(0);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+  if (0 >= handle->data_size)
+  {
+    GNUNET_break(0);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+
+  term_data[handle->data_size] = '\0';
+  memcpy (term_data, handle->data, handle->data_size);
+  root_json = json_loads (term_data, 0, &error);
+
+  if ((NULL == root_json) || !json_is_object (root_json))
+  {
+    GNUNET_break(0);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+  egoname_json = json_object_get (root_json, "ego");
+  if (!json_is_string (egoname_json))
+  {
+    GNUNET_break(0);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+  egoname = json_string_value (egoname_json);
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+  {
+    if (0 == strcasecmp (egoname, ego_entry->identifier))
+    {
+      json_decref (egoname_json);
+      json_decref (root_json);
+      handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+      cleanup_handle (handle);
+      return;
+    }
+  }
+  GNUNET_asprintf (&handle->name, "%s", egoname);
+  json_decref (egoname_json);
+  json_decref (root_json);
+  handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
+                                              handle->name,
+                                              &create_finished,
+                                              handle);
+}
+
+void 
+subsys_set_cont (struct RequestHandle *handle)
+{
+}
+
+void 
+ego_delete_cont (struct RequestHandle *handle)
+{
+}
+
+void
+init_cont (struct RequestHandle *handle)
+{
+  if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_GET))
+    ego_info_response (handle);
+  else if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_POST))
+    ego_create_cont (handle);
+  else if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_PUT))
+    subsys_set_cont (handle);
+  else if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_DELETE))
+    ego_delete_cont (handle);
+  else
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+}
 
 /**
  * If listing is enabled, prints information about the egos.
@@ -297,6 +410,19 @@ list_ego (void *cls,
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   
+  if ((NULL == ego) && (ID_REST_STATE_INIT == handle->state))
+  {
+    handle->state = ID_REST_STATE_POST_INIT;
+    init_cont (handle);
+    return;
+  }
+  if (ID_REST_STATE_INIT == handle->state) {
+        ego_entry = GNUNET_new (struct EgoEntry);
+    GNUNET_IDENTITY_ego_get_public_key (ego, &(ego_entry->pk));
+    GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);
+    GNUNET_CONTAINER_DLL_insert_tail(handle->ego_head,handle->ego_tail, ego_entry);
+  }
+
   if ( (NULL == handle->set_ego) &&
        (NULL != ego) &&
        (NULL != identifier) &&
@@ -325,19 +451,7 @@ list_ego (void *cls,
     GNUNET_free (handle->set_ego); //decref?
     handle->set_ego = NULL;
   }
-  if ((NULL == ego) && (ID_REST_STATE_INIT == handle->state))
-  {
-    //TODO all read
-    handle->state = ID_REST_STATE_POST_INIT;
-    ego_info_response (handle);
-    return;
-  }
-  if (ID_REST_STATE_INIT == handle->state) {
-        ego_entry = GNUNET_new (struct EgoEntry);
-    GNUNET_IDENTITY_ego_get_public_key (ego, &(ego_entry->pk));
-    GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);
-    GNUNET_CONTAINER_DLL_insert_tail(handle->ego_head,handle->ego_tail, ego_entry);
-  }
+  
 }
 
 /**
@@ -378,6 +492,7 @@ rest_identity_process_request(const char *method,
   handle->url = url;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connected\n");
+  handle->method = method;
 }
 
 /**
