@@ -263,6 +263,20 @@ ego_info_response (struct RequestHandle *handle)
 }
 
 static void
+delete_finished (void *cls, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->op = NULL;
+  if (NULL != emsg)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+  }
+  handle->proc (handle->proc_cls, NULL, 0, GNUNET_OK);
+  cleanup_handle (handle);
+}
+
+static void
 create_finished (void *cls, const char *emsg)
 {
   struct RequestHandle *handle = cls;
@@ -351,6 +365,41 @@ subsys_set_cont (struct RequestHandle *handle)
 void 
 ego_delete_cont (struct RequestHandle *handle)
 {
+  const char *egoname;
+  struct EgoEntry *ego_entry;
+  int ego_exists = GNUNET_NO;
+
+  if (strlen (API_NAMESPACE)+1 >= strlen (handle->url))
+  {
+    GNUNET_break(0);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+
+  egoname = &handle->url[strlen(API_NAMESPACE)+1];
+  for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+  {
+    if (0 == strcasecmp (egoname, ego_entry->identifier))
+    {
+      ego_exists = GNUNET_YES;
+      break;
+    }
+  }
+  if (GNUNET_NO == ego_exists)
+  {
+    GNUNET_break(0);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+  handle->op = GNUNET_IDENTITY_delete (handle->identity_handle,
+                                       egoname,
+                                       &delete_finished,
+                                       handle);
+
 }
 
 void
