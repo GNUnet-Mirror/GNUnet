@@ -333,16 +333,12 @@ create_response (void *cls,
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
-    if (GNUNET_OK == con_handle->status) {
-      return MHD_queue_response (con,
-                                 MHD_HTTP_OK,
+    MHD_add_response_header (con_handle->response,"Access-Control-Allow-Origin","*");
+    int ret = MHD_queue_response (con,
+                                 con_handle->status,
                                  con_handle->response);
-    } else {
-      return MHD_queue_response (con,
-                                 MHD_HTTP_BAD_REQUEST,
-                                 con_handle->response);
-    }
     cleanup_handle (con_handle);
+    return ret;
   }
   return MHD_YES;
 }

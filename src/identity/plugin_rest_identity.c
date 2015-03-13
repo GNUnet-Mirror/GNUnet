@@ -395,7 +395,6 @@ ego_info_response (struct RequestHandle *handle)
     GNUNET_free (keystring);
     if (NULL == egoname)
     {
-      GNUNET_break (0);
       json_array_append (ego_arr, ego_json);
       json_decref (ego_json);
     }
@@ -403,9 +402,9 @@ ego_info_response (struct RequestHandle *handle)
       break;
   }
   if (NULL == egoname)
-    json_object_set (root_json, JSON_API_TYPE_DATA, ego_arr);
+    json_object_set (root_json, "egos", ego_arr);
   else
-    json_object_set (root_json, JSON_API_TYPE_DATA, ego_json);
+    json_object_set (root_json, "ego", ego_json);
 
   result_str = json_dumps (root_json, JSON_COMPACT);
   json_decref (ego_arr);
