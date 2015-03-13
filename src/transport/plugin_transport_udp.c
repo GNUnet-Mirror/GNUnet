@@ -2669,7 +2669,6 @@ ack_proc (void *cls,
     delay = s->flow_delay_for_other_peer.rel_value_us;
   else
     delay = UINT32_MAX;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending ACK to `%s' including delay of %s\n",
        udp_address_to_string (plugin,

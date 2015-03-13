@@ -19,7 +19,7 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file namestore/plugin_rest_namestore.c
+ * @file identity/plugin_rest_identity.c
  * @brief GNUnet Namestore REST plugin
  *
  */
