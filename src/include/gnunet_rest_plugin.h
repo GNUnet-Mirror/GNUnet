@@ -27,6 +27,7 @@
 #define GNUNET_REST_PLUGIN_H
 
 #include "gnunet_util_lib.h"
+#include "microhttpd.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -40,13 +41,11 @@ extern "C"
  * Iterator called on obtained result for a REST result.
  *
  * @param cls closure
- * @param data REST result
- * @param data_len length of result
+ * @param resp the response
  * @param status status code (HTTP)
  */
 typedef void (*GNUNET_REST_ResultProcessor) (void *cls,
-                                             const char *data,
-                                             size_t data_len,
+                                             struct MHD_Response *resp,
                                              int status);
 
 struct RestConnectionDataHandle

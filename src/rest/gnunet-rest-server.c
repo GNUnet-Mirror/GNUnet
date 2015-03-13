@@ -168,15 +168,10 @@ run_mhd_now ()
  */
 void
 plugin_callback (void *cls,
-                 const char *data,
-                 size_t len,
+                 struct MHD_Response *resp,
                  int status)
 {
   struct MhdConnectionHandle *handle = cls;
-  struct MHD_Response *resp = MHD_create_response_from_buffer (len,
-                                                               (void*)data,
-                                                               MHD_RESPMEM_MUST_COPY);
-  (void) MHD_add_response_header (resp,MHD_HTTP_HEADER_CONTENT_TYPE,"application/json");
   handle->status = status;
   handle->response = resp;
   run_mhd_now(); 

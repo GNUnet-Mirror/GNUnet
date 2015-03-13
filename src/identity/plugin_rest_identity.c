@@ -169,6 +169,28 @@ struct RequestHandle
 };
 
 /**
+ * Create s JSON Response for MHD
+ *
+ * @param data the JSON to return (can be NULL)
+ * @return a MHD_Response handle
+ */
+struct MHD_Response*
+create_json_response (const char *data)
+{
+  size_t len;
+  if (NULL == data)
+    len = 0;
+  else
+    len = strlen (data);
+  struct MHD_Response *resp = MHD_create_response_from_buffer (len,
+                                                               (void*)data,
+                                                               MHD_RESPMEM_MUST_COPY);
+  MHD_add_response_header (resp,MHD_HTTP_HEADER_CONTENT_TYPE,"application/json");
+  return resp;
+}
+
+
+/**
  * Cleanup lookup handle
  * @praram handle Handle to clean up
  */
@@ -214,10 +236,19 @@ do_error (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct RequestHandle *handle = cls;
-  handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+  struct MHD_Response *resp = create_json_response (NULL);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
   cleanup_handle (handle);
 }
 
+/**
+ * Callback for IDENTITY_get()
+ *
+ * @param cls the RequestHandle
+ * @param ego the Ego found
+ * @param ctx the context
+ * @param name the id of the ego
+ */
 void
 get_ego_for_subsys (void *cls,
                     struct GNUNET_IDENTITY_Ego *ego,
@@ -226,6 +257,7 @@ get_ego_for_subsys (void *cls,
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
   char *result_str;
   char *keystring;
   json_t *ego_json;
@@ -261,11 +293,19 @@ get_ego_for_subsys (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   json_decref (ego_json);
   json_decref (root_json);
-  handle->proc (handle->proc_cls, result_str, strlen (result_str), GNUNET_OK);
+  resp = create_json_response (result_str);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
 }
 
+/**
+ * Validate the namespace of the requested url
+ * TODO move this to a lib
+ *
+ * @param url the url
+ * @param ns the namespace
+ */
 int
 check_namespace (const char *url, const char *ns)
 {
@@ -284,6 +324,11 @@ check_namespace (const char *url, const char *ns)
 
 }
 
+/**
+ * Create a response with requested ego(s)
+ *
+ * @param handle the RequestHandle
+ */
 void
 ego_info_response (struct RequestHandle *handle)
 {
@@ -293,13 +338,15 @@ ego_info_response (struct RequestHandle *handle)
   char *subsys_val;
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
+  struct MHD_Response *resp;
   json_t *ego_arr;
   json_t *ego_json;
   json_t *root_json;
 
   if (GNUNET_NO == check_namespace (handle->url, EGO_NAMESPACE))
   {
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    resp = create_json_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
     cleanup_handle (handle);
     GNUNET_break (0);
     return;
@@ -355,7 +402,6 @@ ego_info_response (struct RequestHandle *handle)
     else
       break;
   }
-  GNUNET_break (0);
   if (NULL == egoname)
     json_object_set (root_json, JSON_API_TYPE_DATA, ego_arr);
   else
@@ -367,7 +413,8 @@ ego_info_response (struct RequestHandle *handle)
     json_decref (ego_json);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  handle->proc (handle->proc_cls, result_str, strlen (result_str), MHD_HTTP_OK);
+  resp = create_json_response (result_str);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
 
@@ -377,6 +424,7 @@ static void
 do_finished (void *cls, const char *emsg)
 {
   struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
 
   handle->op = NULL;
   if (NULL != emsg)
@@ -384,7 +432,8 @@ do_finished (void *cls, const char *emsg)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->proc (handle->proc_cls, NULL, 0, GNUNET_OK);
+  resp = create_json_response (NULL);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
   cleanup_handle (handle);
 }
 
@@ -392,6 +441,7 @@ static void
 set_finished (void *cls, const char *emsg)
 {
   struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
 
   handle->op = NULL;
   if (NULL != emsg)
@@ -399,7 +449,8 @@ set_finished (void *cls, const char *emsg)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->proc (handle->proc_cls, NULL, 0, MHD_HTTP_NO_CONTENT);
+  resp = create_json_response (NULL);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
   cleanup_handle (handle);
 }
 
@@ -407,6 +458,7 @@ static void
 create_finished (void *cls, const char *emsg)
 {
   struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
 
   handle->op = NULL;
   if (NULL != emsg)
@@ -414,7 +466,8 @@ create_finished (void *cls, const char *emsg)
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->proc (handle->proc_cls, NULL, 0, MHD_HTTP_NO_CONTENT);
+  resp = create_json_response (NULL);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_NO_CONTENT);
   cleanup_handle (handle);
 }
 
@@ -423,23 +476,22 @@ ego_create_cont (struct RequestHandle *handle)
 {
   const char* egoname;
   char term_data[handle->data_size+1];
-  json_t *egoname_json;
-  json_t *root_json;
-  json_error_t error;
   struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
+  json_t *root_json;
+  json_t *data_json;
+  json_t *type_json;
+  json_t *egoname_json;
+  json_error_t error;
 
   if (strlen (API_NAMESPACE) != strlen (handle->url))
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   if (0 >= handle->data_size)
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -449,19 +501,36 @@ ego_create_cont (struct RequestHandle *handle)
 
   if ((NULL == root_json) || !json_is_object (root_json))
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  data_json = json_object_get (root_json, JSON_API_TYPE_DATA);
+  if ((NULL == data_json) || !json_is_object (data_json))
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  type_json = json_object_get (data_json, "type");
+  if (!json_is_string (type_json) ||
+      (0 != strcmp (JSON_API_TYPE_EGO, json_string_value (type_json))))
+  {
+    json_decref (data_json);
+    json_decref (root_json);
+    resp = create_json_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
     cleanup_handle (handle);
     return;
   }
-  egoname_json = json_object_get (root_json, "ego");
+  json_decref (type_json);
+  egoname_json = json_object_get (data_json, "id");
   if (!json_is_string (egoname_json))
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    json_decref (data_json);
+    json_decref (root_json);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+
   egoname = json_string_value (egoname_json);
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
@@ -470,14 +539,17 @@ ego_create_cont (struct RequestHandle *handle)
     if (0 == strcasecmp (egoname, ego_entry->identifier))
     {
       json_decref (egoname_json);
+      json_decref (data_json);
       json_decref (root_json);
-      handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+      resp = create_json_response (NULL);
+      handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
       cleanup_handle (handle);
       return;
     }
   }
   GNUNET_asprintf (&handle->name, "%s", egoname);
   json_decref (egoname_json);
+  json_decref (data_json);
   json_decref (root_json);
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
@@ -492,6 +564,7 @@ subsys_set_cont (struct RequestHandle *handle)
   const char *subsys;
   char term_data[handle->data_size+1];
   struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
   int ego_exists = GNUNET_NO;
   json_t *root_json;
   json_t *data_json;
@@ -502,9 +575,7 @@ subsys_set_cont (struct RequestHandle *handle)
 
   if (strlen (API_NAMESPACE) > strlen (handle->url))
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -521,17 +592,15 @@ subsys_set_cont (struct RequestHandle *handle)
   }
   if (GNUNET_NO == ego_exists)
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    resp = create_json_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
   }
 
   if (0 >= handle->data_size)
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -541,16 +610,14 @@ subsys_set_cont (struct RequestHandle *handle)
 
   if ((NULL == root_json) || !json_is_object (root_json))
   {
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   data_json = json_object_get (root_json, "data");
   if (!json_is_object (data_json))
   {
     json_decref (root_json);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   id_json = json_object_get (data_json, "id");
@@ -559,21 +626,18 @@ subsys_set_cont (struct RequestHandle *handle)
   {
     json_decref (root_json);
     json_decref (data_json);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   json_decref (id_json);
-  
+
   type_json = json_object_get (data_json, "type");
   if (!json_is_string (type_json) ||
       (0 != strcmp (JSON_API_TYPE_EGO, json_string_value (type_json))))
   {
     json_decref (root_json);
     json_decref (data_json);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
-    GNUNET_break (0);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   json_decref (type_json);
@@ -583,8 +647,7 @@ subsys_set_cont (struct RequestHandle *handle)
   {
     json_decref (root_json);
     json_decref (data_json);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   subsys = json_string_value (subsys_json);
@@ -603,13 +666,12 @@ ego_delete_cont (struct RequestHandle *handle)
 {
   const char *egoname;
   struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
   int ego_exists = GNUNET_NO;
 
   if (strlen (API_NAMESPACE) >= strlen (handle->url))
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -626,8 +688,8 @@ ego_delete_cont (struct RequestHandle *handle)
   }
   if (GNUNET_NO == ego_exists)
   {
-    GNUNET_break(0);
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    resp = create_json_response (NULL);
+    handle->proc (handle->proc_cls, resp, MHD_HTTP_NOT_FOUND);
     cleanup_handle (handle);
     return;
   }

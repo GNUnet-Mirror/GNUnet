@@ -35,6 +35,14 @@
 
 #define API_NAMESPACE "/gns"
 
+#define GNUNET_REST_JSON_ATTR_ID "id"
+
+#define GNUNET_REST_JSON_ATTR_TYPE "type"
+
+#define GNUNET_GNS_JSON_RECORD_TYPE "rtype"
+
+#define GNUNET_REST_JSON_ATTR_DATA "data"
+
 /**
  * @brief struct returned by the initialization function of the plugin
  */
@@ -190,6 +198,27 @@ cleanup_handle (struct LookupHandle *handle)
 
 
 /**
+ * Create s JSON Response for MHD
+ * TODO move to lib
+ * @param data the JSON to return (can be NULL)
+ * @return a MHD_Response handle
+ */
+struct MHD_Response*
+create_json_response (const char *data)
+{
+  size_t len;
+  if (NULL == data)
+    len = 0;
+  else
+    len = strlen (data);
+  struct MHD_Response *resp = MHD_create_response_from_buffer (len,
+                                                               (void*)data,
+                                                               MHD_RESPMEM_MUST_COPY);
+  MHD_add_response_header (resp,MHD_HTTP_HEADER_CONTENT_TYPE,"application/json");
+  return resp;
+}
+
+/**
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
@@ -200,7 +229,8 @@ do_error (void *cls,
           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LookupHandle *handle = cls;
-  handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+  struct MHD_Response *resp = create_json_response (NULL);
+  handle->proc (handle->proc_cls, resp, GNUNET_SYSERR);
   cleanup_handle (handle);
 }
 
@@ -265,20 +295,22 @@ process_lookup_result (void *cls, uint32_t rd_count,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct LookupHandle *handle = cls;
+  struct MHD_Response *resp;
   uint32_t i;
   char *result;
   json_t *result_root;
-  json_t *result_name;
+  json_t *result_data;
   json_t *result_array;
   json_t *record_obj;
 
   result_root = json_object();
-  result_name = json_string (handle->name);
   result_array = json_array();
-  json_object_set (result_root, "name", result_name);
-  json_decref (result_name);
+  result_data = json_object();
+  json_object_set_new (result_root, GNUNET_REST_JSON_ATTR_ID, json_string (handle->name));
+  json_object_set (result_root,
+                   GNUNET_REST_JSON_ATTR_TYPE,
+                   json_string (GNUNET_GNS_JSON_RECORD_TYPE));
   handle->lookup_request = NULL;
-
   for (i=0; i<rd_count; i++)
   {
     if ( (rd[i].record_type != handle->type) &&
@@ -289,12 +321,15 @@ process_lookup_result (void *cls, uint32_t rd_count,
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
-  json_object_set (result_root, "query_result", result_array);
+  json_object_set (result_root, GNUNET_REST_JSON_ATTR_DATA, result_data);
+  json_decref (result_data);
+  json_object_set (result_data, "query_result", result_array);
   json_decref (result_array);
   result = json_dumps (result_root, JSON_COMPACT);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result);
   json_decref (result_root);
-  handle->proc (handle->proc_cls, result, strlen (result), GNUNET_OK);
+  resp = create_json_response (result);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result);
   cleanup_handle (handle);
 }
@@ -329,10 +364,7 @@ lookup_with_keys (struct LookupHandle *handle, const struct GNUNET_CRYPTO_EcdsaP
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Please specify name to lookup!\n"));
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 }
@@ -405,8 +437,7 @@ identity_zone_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Ego for not found, cannot perform lookup.\n"));
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   else
@@ -443,8 +474,7 @@ identity_master_cb (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
-    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &handle->pkey);
@@ -501,6 +531,7 @@ parse_url (const char *url, struct LookupHandle *handle)
 
 /**
  * Parse json from REST request
+ * TODO  1. this leaks 2. Rework JSON API. This is confusing
  *
  * @param data REST data
  * @param data_size data size
@@ -578,8 +609,7 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
   if (GNUNET_OK != parse_url (conndata_handle->url, handle))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing url...\n");
-    proc (proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -590,8 +620,7 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
     if (GNUNET_OK != parse_json (conndata_handle->data, conndata_handle->data_size, handle))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing json...\n");
-      proc (proc_cls, NULL, 0, GNUNET_SYSERR);
-      cleanup_handle (handle);
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
       return;
     }
   }
@@ -608,8 +637,7 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Connecting to GNS failed\n");
-    proc (proc_cls, NULL, 0, GNUNET_SYSERR);
-    cleanup_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
@@ -620,8 +648,7 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
                                                     strlen(handle->pkey_str),
                                                     &(handle->pkey)))
     {
-      proc (proc_cls, NULL, 0, GNUNET_SYSERR);
-      cleanup_handle (handle);
+      GNUNET_SCHEDULER_add_now (&do_error, handle);
       return;
     }
     lookup_with_public_key (handle);
