@@ -367,7 +367,7 @@ ego_info_response (struct RequestHandle *handle)
     json_decref (ego_json);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  handle->proc (handle->proc_cls, result_str, strlen (result_str), GNUNET_OK);
+  handle->proc (handle->proc_cls, result_str, strlen (result_str), MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
 
@@ -382,8 +382,39 @@ do_finished (void *cls, const char *emsg)
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
   }
   handle->proc (handle->proc_cls, NULL, 0, GNUNET_OK);
+  cleanup_handle (handle);
+}
+
+static void
+set_finished (void *cls, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->op = NULL;
+  if (NULL != emsg)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->proc (handle->proc_cls, NULL, 0, MHD_HTTP_NO_CONTENT);
+  cleanup_handle (handle);
+}
+
+static void
+create_finished (void *cls, const char *emsg)
+{
+  struct RequestHandle *handle = cls;
+
+  handle->op = NULL;
+  if (NULL != emsg)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->proc (handle->proc_cls, NULL, 0, MHD_HTTP_NO_CONTENT);
   cleanup_handle (handle);
 }
 
@@ -450,7 +481,7 @@ ego_create_cont (struct RequestHandle *handle)
   json_decref (root_json);
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
-                                       &do_finished,
+                                       &create_finished,
                                        handle);
 }
 
@@ -463,10 +494,13 @@ subsys_set_cont (struct RequestHandle *handle)
   struct EgoEntry *ego_entry;
   int ego_exists = GNUNET_NO;
   json_t *root_json;
+  json_t *data_json;
+  json_t *type_json;
+  json_t *id_json;
   json_t *subsys_json;
   json_error_t error;
 
-  if (strlen (API_NAMESPACE) >= strlen (handle->url))
+  if (strlen (API_NAMESPACE) > strlen (handle->url))
   {
     GNUNET_break(0);
     handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
@@ -474,7 +508,7 @@ subsys_set_cont (struct RequestHandle *handle)
     return;
   }
 
-  egoname = &handle->url[strlen(API_NAMESPACE)+1];
+  egoname = &handle->url[strlen(EGO_NAMESPACE)+1];
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
        ego_entry = ego_entry->next)
@@ -507,15 +541,48 @@ subsys_set_cont (struct RequestHandle *handle)
 
   if ((NULL == root_json) || !json_is_object (root_json))
   {
-    GNUNET_break(0);
     handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
     cleanup_handle (handle);
     return;
   }
-  subsys_json = json_object_get (root_json, "subsystem");
+  data_json = json_object_get (root_json, "data");
+  if (!json_is_object (data_json))
+  {
+    json_decref (root_json);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+  id_json = json_object_get (data_json, "id");
+  if (!json_is_string (id_json) ||
+      (0 != strcmp (egoname, json_string_value (id_json))))
+  {
+    json_decref (root_json);
+    json_decref (data_json);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    return;
+  }
+  json_decref (id_json);
+  
+  type_json = json_object_get (data_json, "type");
+  if (!json_is_string (type_json) ||
+      (0 != strcmp (JSON_API_TYPE_EGO, json_string_value (type_json))))
+  {
+    json_decref (root_json);
+    json_decref (data_json);
+    handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
+    cleanup_handle (handle);
+    GNUNET_break (0);
+    return;
+  }
+  json_decref (type_json);
+
+  subsys_json = json_object_get (data_json, "subsystem");
   if (!json_is_string (subsys_json))
   {
-    GNUNET_break(0);
+    json_decref (root_json);
+    json_decref (data_json);
     handle->proc (handle->proc_cls, NULL, 0, GNUNET_SYSERR);
     cleanup_handle (handle);
     return;
@@ -527,7 +594,7 @@ subsys_set_cont (struct RequestHandle *handle)
   handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
                                     handle->subsys,
                                     ego_entry->ego,
-                                    &do_finished,
+                                    &set_finished,
                                     handle);
 }
 
