@@ -203,6 +203,17 @@ main (int argc, char *av[])
              "Failed to determine my own hostname, testcase not run.\n");
     return 0;
   }
+  if ( (0 == strcmp (hostname,
+		     "localhost")) ||
+       (0 == strcmp (hostname,
+		     "ipv6-localnet")) )
+  {
+    /* we cannot use 'localhost' as this would not trigger the
+       resolver service (see resolver_api.c); so in this case,
+       we fall back to (ab)using gnu.org. */
+    strcpy (hostname,
+	    "www.gnu.org");
+  }
   if (NULL == gethostbyname (hostname))
   {
     FPRINTF (stderr,
