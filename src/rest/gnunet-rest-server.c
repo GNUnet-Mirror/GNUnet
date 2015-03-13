@@ -61,12 +61,12 @@
 /**
  * The task ID
  */
-struct GNUNET_SCHEDULER_Task * httpd_task;
+static struct GNUNET_SCHEDULER_Task * httpd_task;
 
 /**
  * is this an ssl daemon? //TODO
  */
-int is_ssl;
+static int is_ssl;
 
 /**
  * The port the service is running on (default 7776)
@@ -111,7 +111,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Map of loaded plugins.
  */
-struct GNUNET_CONTAINER_MultiHashMap *plugin_map;
+static struct GNUNET_CONTAINER_MultiHashMap *plugin_map;
 
 /**
  * MHD Connection handle 
@@ -164,20 +164,27 @@ run_mhd_now ()
  * @param cls closure (MHD connection handle)
  * @param data the data to return to the caller
  * @param len length of the data
- * @param status GNUNET_OK if successful
+ * @param status #GNUNET_OK if successful
  */
-void
+static void
 plugin_callback (void *cls,
                  struct MHD_Response *resp,
                  int status)
 {
   struct MhdConnectionHandle *handle = cls;
+  struct MHD_Response *resp = MHD_create_response_from_buffer (len,
+                                                               (void*)data,
+                                                               MHD_RESPMEM_MUST_COPY);
+  (void) MHD_add_response_header (resp,
+				  MHD_HTTP_HEADER_CONTENT_TYPE,
+				  "application/json");
   handle->status = status;
   handle->response = resp;
   run_mhd_now(); 
 }
 
-int
+
+static int
 cleanup_url_map (void *cls,
                  const struct GNUNET_HashCode *key,
                  void *value)
@@ -186,7 +193,8 @@ cleanup_url_map (void *cls,
   return GNUNET_YES;
 }
 
-void
+
+static void
 cleanup_handle (struct MhdConnectionHandle *handle)
 {
   if (NULL != handle->response)
@@ -203,10 +211,10 @@ cleanup_handle (struct MhdConnectionHandle *handle)
     GNUNET_free (handle->data_handle);
   }
   GNUNET_free (handle);
-
 }
 
-int
+
+static int
 url_iterator (void *cls,
               enum MHD_ValueKind kind,
               const char *key,
@@ -293,17 +301,14 @@ create_response (void *cls,
       con_handle->plugin = GNUNET_CONTAINER_multihashmap_get (plugin_map,
                                                               &key);
     }
-    else
-      con_handle->plugin = NULL;
-
     if (NULL == con_handle->plugin)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Queueing response with MHD\n");
       GNUNET_free (con_handle);
-      MHD_queue_response (con,
-                          MHD_HTTP_INTERNAL_SERVER_ERROR,
-                          failure_response);
+      return MHD_queue_response (con,
+				 MHD_HTTP_NOT_FOUND,
+				 failure_response);
     }
     return MHD_YES;
   }
@@ -326,14 +331,15 @@ create_response (void *cls,
                                          &plugin_callback,
                                          con_handle);
     *upload_data_size = 0;
-
   }
   if (NULL != con_handle->response)
   {
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
-    MHD_add_response_header (con_handle->response,"Access-Control-Allow-Origin","*");
+    /* FIXME: this is a bit dangerous... */
+    MHD_add_response_header (con_handle->response,
+			     "Access-Control-Allow-Origin",
+			     "*");
     int ret = MHD_queue_response (con,
                                  con_handle->status,
                                  con_handle->response);
@@ -342,6 +348,7 @@ create_response (void *cls,
   }
   return MHD_YES;
 }
+
 
 /* ******************** MHD HTTP setup and event loop ******************** */
 
@@ -360,13 +367,21 @@ mhd_completed_cb (void *cls,
                   void **con_cls,
                   enum MHD_RequestTerminationCode toe)
 {
+  struct MhdConnectionHandle *con_handle;
 
+  con_handle = *con_cls;
+  if (NULL != con_handle)
+  {
+    MHD_destroy_response (con_handle->response);
+    GNUNET_free (con_handle);
+    *con_cls = NULL;
+  }
   if (MHD_REQUEST_TERMINATED_COMPLETED_OK != toe)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "MHD encountered error handling request: %d\n",
                 toe);
-  *con_cls = NULL;
 }
+
 
 /**
  * Kill the MHD daemon.
@@ -386,6 +401,7 @@ kill_httpd ()
   }
 }
 
+
 /**
  * Task run whenever HTTP server is idle for too long. Kill it.
  *
@@ -399,6 +415,8 @@ kill_httpd_task (void *cls,
   httpd_task = NULL;
   kill_httpd ();
 }
+
+
 /**
  * Schedule MHD.  This function should be called initially when an
  * MHD is first getting its client socket, and will then automatically
@@ -483,6 +501,7 @@ do_httpd (void *cls,
   schedule_httpd ();
 }
 
+
 /**
  * Accept new incoming connections
  *
@@ -534,6 +553,7 @@ do_accept (void *cls,
   schedule_httpd ();
 }
 
+
 /**
  * Task run on shutdown
  *
@@ -548,6 +568,7 @@ do_shutdown (void *cls,
               "Shutting down...\n");
   kill_httpd ();
 }
+
 
 /**
  * Create an IPv4 listen socket bound to our port.
@@ -584,6 +605,7 @@ bind_v4 ()
   return ls;
 }
 
+
 /**
  * Create an IPv6 listen socket bound to our port.
  *
@@ -619,6 +641,7 @@ bind_v6 ()
   return ls;
 }
 
+
 /**
  * Callback for plugin load
  *
@@ -626,7 +649,7 @@ bind_v6 ()
  * @param libname the name of the library loaded
  * @param lib_ret the object returned by the plugin initializer
  */
-void
+static void
 load_plugin (void *cls,
              const char *libname,
              void *lib_ret)
@@ -658,6 +681,7 @@ load_plugin (void *cls,
               libname);
 }
 
+
 /**
  * Main function that will be run
  *
@@ -667,7 +691,9 @@ load_plugin (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls, 
+     char *const *args, 
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
@@ -676,7 +702,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   /* Open listen socket proxy */
   lsock6 = bind_v6 ();
   if (NULL == lsock6)
+  {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+  }
   else
   {
     if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock6, 5))
@@ -693,7 +721,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   lsock4 = bind_v4 ();
   if (NULL == lsock4)
+  {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+  }
   else
   {
     if (GNUNET_OK != GNUNET_NETWORK_socket_listen (lsock4, 5))
@@ -737,6 +767,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
 }
+
 
 /**
  *
