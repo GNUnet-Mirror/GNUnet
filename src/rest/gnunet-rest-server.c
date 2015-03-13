@@ -220,11 +220,7 @@ url_iterator (void *cls,
   struct RestConnectionDataHandle *handle = cls;
   struct GNUNET_HashCode hkey;
   char *val;
-  if (NULL == handle->url_param_map)
-  {
-    handle->url_param_map = GNUNET_CONTAINER_multihashmap_create (16,
-                                                                  GNUNET_NO);
-  }
+  
   GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
   GNUNET_asprintf (&val, "%s", value);
   if (GNUNET_OK !=
@@ -323,6 +319,8 @@ create_response (void *cls,
     rest_conndata_handle->url = url;
     rest_conndata_handle->data = upload_data;
     rest_conndata_handle->data_size = *upload_data_size;
+    rest_conndata_handle->url_param_map = GNUNET_CONTAINER_multihashmap_create (16,
+                                                                                GNUNET_NO);
     con_handle->data_handle = rest_conndata_handle;
     MHD_get_connection_values (con,
                                MHD_GET_ARGUMENT_KIND,
