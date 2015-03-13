@@ -56,8 +56,7 @@
 #define MHD_CACHE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 #define GN_REST_STATE_INIT 0
-#define GN_REST_STATE_UPLOAD 1
-#define GN_REST_STATE_RECV 2
+#define GN_REST_STATE_PROCESSING 1
 
 /**
  * The task ID
@@ -125,6 +124,8 @@ struct MhdConnectionHandle
 
   struct GNUNET_REST_Plugin *plugin;
 
+  struct RestConnectionDataHandle *data_handle;
+
   int status;
 
   int state;
@@ -181,6 +182,64 @@ plugin_callback (void *cls,
   run_mhd_now(); 
 }
 
+int
+cleanup_url_map (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
+{
+  GNUNET_free_non_null (value);
+  return GNUNET_YES;
+}
+
+void
+cleanup_handle (struct MhdConnectionHandle *handle)
+{
+  if (NULL != handle->response)
+    MHD_destroy_response (handle->response);
+  if (NULL != handle->data_handle)
+  {
+    if (NULL != handle->data_handle->url_param_map)
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (handle->data_handle->url_param_map,
+                                             &cleanup_url_map,
+                                             NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (handle->data_handle->url_param_map);
+    }
+    GNUNET_free (handle->data_handle);
+  }
+  GNUNET_free (handle);
+
+}
+
+int
+url_iterator (void *cls,
+              enum MHD_ValueKind kind,
+              const char *key,
+              const char *value)
+{
+  struct RestConnectionDataHandle *handle = cls;
+  struct GNUNET_HashCode hkey;
+  char *val;
+  if (NULL == handle->url_param_map)
+  {
+    handle->url_param_map = GNUNET_CONTAINER_multihashmap_create (16,
+                                                                  GNUNET_NO);
+  }
+  GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
+  GNUNET_asprintf (&val, "%s", value);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (handle->url_param_map,
+                                         &hkey,
+                                         val,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not load add url param `%s'=%s\n",
+                key, value);
+  }
+  return MHD_YES;
+}
+
 /* ********************************* MHD response generation ******************* */
 
 /**
@@ -219,6 +278,7 @@ create_response (void *cls,
   char *plugin_name;
   struct GNUNET_HashCode key;
   struct MhdConnectionHandle *con_handle;
+  struct RestConnectionDataHandle *rest_conndata_handle;
 
   con_handle = *con_cls;
 
@@ -258,29 +318,22 @@ create_response (void *cls,
   }
   if (GN_REST_STATE_INIT == con_handle->state)
   {
-    if (0 != *upload_data_size)
-    {
-      con_handle->state = GN_REST_STATE_UPLOAD;
+    rest_conndata_handle = GNUNET_new (struct RestConnectionDataHandle);
+    rest_conndata_handle->method = meth;
+    rest_conndata_handle->url = url;
+    rest_conndata_handle->data = upload_data;
+    rest_conndata_handle->data_size = *upload_data_size;
+    con_handle->data_handle = rest_conndata_handle;
+    MHD_get_connection_values (con,
+                               MHD_GET_ARGUMENT_KIND,
+                               &url_iterator,
+                               rest_conndata_handle);
+    con_handle->state = GN_REST_STATE_PROCESSING;
+    con_handle->plugin->process_request (rest_conndata_handle,
+                                         &plugin_callback,
+                                         con_handle);
+    *upload_data_size = 0;
 
-      con_handle->plugin->process_request (meth,
-                                           url,
-                                           upload_data,
-                                           *upload_data_size,
-                                           &plugin_callback,
-                                           con_handle);
-      *upload_data_size = 0;
-
-    }
-    else 
-    {
-      con_handle->state = GN_REST_STATE_RECV;
-      con_handle->plugin->process_request (meth,
-                                           url,
-                                           NULL,
-                                           0,
-                                           &plugin_callback,
-                                           con_handle);
-    }
   }
   if (NULL != con_handle->response)
   {
@@ -296,6 +349,7 @@ create_response (void *cls,
                                  MHD_HTTP_BAD_REQUEST,
                                  con_handle->response);
     }
+    cleanup_handle (con_handle);
   }
   return MHD_YES;
 }

@@ -1,22 +1,22 @@
 /*
-     This file is part of GNUnet.
-     Copyright (C) 2012-2015 Christian Grothoff (and other contributing authors)
+   This file is part of GNUnet.
+   Copyright (C) 2012-2015 Christian Grothoff (and other contributing authors)
 
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
+   GNUnet is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published
+   by the Free Software Foundation; either version 3, or (at your
+   option) any later version.
 
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
+   GNUnet is distributed in the hope that it will be useful, but
+   WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   General Public License for more details.
 
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
-*/
+   You should have received a copy of the GNU General Public License
+   along with GNUnet; see the file COPYING.  If not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+   */
 /**
  * @author Martin Schanzenbach
  * @file include/gnunet_rest_plugin.h
@@ -45,9 +45,19 @@ extern "C"
  * @param status status code (HTTP)
  */
 typedef void (*GNUNET_REST_ResultProcessor) (void *cls,
-                          const char *data,
-                          size_t data_len,
-                          int status);
+                                             const char *data,
+                                             size_t data_len,
+                                             int status);
+
+struct RestConnectionDataHandle
+{
+  struct GNUNET_CONTAINER_MultiHashMap *url_param_map;
+  const char *method;
+  const char *url;
+  const char *data;
+  size_t data_size;
+
+};
 
 /**
  * @brief struct returned by the initialization function of the plugin
@@ -61,7 +71,7 @@ struct GNUNET_REST_Plugin
    *
    */
   void *cls;
-  
+
   /**
    * Plugin name. Used as the namespace for the API.
    * e.g. http://hostname:port/<name>
@@ -78,12 +88,9 @@ struct GNUNET_REST_Plugin
    * @param proc the callback for result
    * @param proc_cls closure for callback
    */
-  void (*process_request) (const char *method,
-                          const char *url,
-                          const char *data,
-                          size_t data_size,
-                          GNUNET_REST_ResultProcessor proc,
-                          void *proc_cls);
+  void (*process_request) (struct RestConnectionDataHandle *handle,
+                           GNUNET_REST_ResultProcessor proc,
+                           void *proc_cls);
 
 };
 

@@ -567,10 +567,7 @@ parse_json (const char *data, size_t data_size, struct LookupHandle *handle)
  * @return GNUNET_OK if request accepted
  */
 void
-rest_gns_process_request(const char *method,
-                         const char *url,
-                         const char *data,
-                         size_t data_size,
+rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
                          GNUNET_REST_ResultProcessor proc,
                          void *proc_cls)
 {
@@ -578,7 +575,7 @@ rest_gns_process_request(const char *method,
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
 
   //parse name and type from url
-  if (GNUNET_OK != parse_url (url, handle))
+  if (GNUNET_OK != parse_url (conndata_handle->url, handle))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing url...\n");
     proc (proc_cls, NULL, 0, GNUNET_SYSERR);
@@ -588,9 +585,9 @@ rest_gns_process_request(const char *method,
 
   handle->proc_cls = proc_cls;
   handle->proc = proc;
-  if (0 < data_size)
+  if (0 < conndata_handle->data_size)
   {
-    if (GNUNET_OK != parse_json (data, data_size, handle))
+    if (GNUNET_OK != parse_json (conndata_handle->data, conndata_handle->data_size, handle))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing json...\n");
       proc (proc_cls, NULL, 0, GNUNET_SYSERR);
