@@ -38,6 +38,8 @@
 
 #define ID_REST_STATE_POST_INIT 1
 
+#define URL_PARAM_SUBSYS "service"
+
 /**
  * @brief struct returned by the initialization function of the plugin
  */
@@ -87,6 +89,8 @@ struct RequestHandle
    * Ego list
    */
   struct EgoEntry *ego_tail;
+
+  struct RestConnectionDataHandle *conndata_handle;
   
   /**
    * The processing state
@@ -208,15 +212,55 @@ do_error (void *cls,
   cleanup_handle (handle);
 }
 
+void
+get_ego_for_subsys (void *cls,
+                    struct GNUNET_IDENTITY_Ego *ego,
+                    void **ctx,
+                    const char *name)
+{
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  char *result_str;
+  char *keystring;
+  json_t *ego_json;
+  json_t *ego_arr;
 
+  ego_arr = json_array ();
+
+  //Return all egos
+    for (ego_entry = handle->ego_head;
+       NULL != ego_entry;
+       ego_entry = ego_entry->next)
+  {
+    if ( (NULL != name) && (0 != strcmp (name, ego_entry->identifier)) )
+      continue;
+    if (NULL == name)
+      continue;
+    ego_json = json_object ();
+    keystring = GNUNET_CRYPTO_ecdsa_public_key_to_string (&ego_entry->pk);
+    json_object_set_new (ego_json, "identity", json_string (ego_entry->identifier));
+    json_object_set_new (ego_json, "key", json_string (keystring));
+    json_array_append (ego_arr, ego_json);
+    json_decref (ego_json);
+    GNUNET_free (keystring);
+  }
+  result_str = json_dumps (ego_arr, JSON_COMPACT);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
+  json_decref (ego_arr);
+  handle->proc (handle->proc_cls, result_str, strlen (result_str), GNUNET_OK);
+  GNUNET_free (result_str);
+  cleanup_handle (handle);
+}
 
 void
 ego_info_response (struct RequestHandle *handle)
 {
-  const char* egoname;
-  char* keystring;
-  char* result_str;
+  const char *egoname;
+  char *keystring;
+  char *result_str;
+  char *subsys_val;
   struct EgoEntry *ego_entry;
+  struct GNUNET_HashCode key;
   json_t *ego_arr;
   json_t *ego_json;
 
@@ -227,6 +271,28 @@ ego_info_response (struct RequestHandle *handle)
     GNUNET_break (0);
     return;
   }
+
+  if ( (strlen (EGO_NAMESPACE) + 1 >= strlen (handle->url) )) {
+    GNUNET_CRYPTO_hash (URL_PARAM_SUBSYS, strlen (URL_PARAM_SUBSYS), &key);
+    if ( GNUNET_YES ==
+         GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                                 &key) )
+    {
+      subsys_val = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                      &key);
+      if (NULL != subsys_val)
+      {
+        GNUNET_asprintf (&handle->subsys, "%s", subsys_val);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for %s's ego\n", subsys_val);
+        handle->op = GNUNET_IDENTITY_get (handle->identity_handle,
+                                          handle->subsys,
+                                          &get_ego_for_subsys,
+                                          handle);
+        return;
+      }
+    }
+  }
+
   ego_arr = json_array ();
 
   egoname = &handle->url[strlen (EGO_NAMESPACE)];
@@ -237,7 +303,7 @@ ego_info_response (struct RequestHandle *handle)
   }
 
   //Return all egos
-    for (ego_entry = handle->ego_head;
+  for (ego_entry = handle->ego_head;
        NULL != ego_entry;
        ego_entry = ego_entry->next)
   {
@@ -336,9 +402,9 @@ ego_create_cont (struct RequestHandle *handle)
   json_decref (egoname_json);
   json_decref (root_json);
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
-                                              handle->name,
-                                              &do_finished,
-                                              handle);
+                                       handle->name,
+                                       &do_finished,
+                                       handle);
 }
 
 void 
@@ -505,16 +571,16 @@ init_cont (struct RequestHandle *handle)
  * @param identifier identifier assigned by the user for this ego,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
-*/
+ */
 static void
 list_ego (void *cls,
-	   struct GNUNET_IDENTITY_Ego *ego,
-	   void **ctx,
-	   const char *identifier)
+          struct GNUNET_IDENTITY_Ego *ego,
+          void **ctx,
+          const char *identifier)
 {
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
-  
+
   if ((NULL == ego) && (ID_REST_STATE_INIT == handle->state))
   {
     handle->state = ID_REST_STATE_POST_INIT;
@@ -556,6 +622,7 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
   handle->proc_cls = proc_cls;
   handle->proc = proc;
   handle->state = ID_REST_STATE_INIT;
+  handle->conndata_handle = conndata_handle;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting...\n");
   handle->identity_handle = GNUNET_IDENTITY_connect (cfg,
