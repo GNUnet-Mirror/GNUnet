@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-03-07 12:06+0100\n"
+"POT-Creation-Date: 2015-03-14 18:00+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -1301,138 +1301,143 @@ msgstr "# các byte đã giải mã"
 msgid "# key exchanges initiated"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:763
+#: src/core/gnunet-service-core_kx.c:765
 msgid "# key exchanges stopped"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:864
+#: src/core/gnunet-service-core_kx.c:795
+#, fuzzy
+msgid "# PING messages transmitted"
+msgstr "# các thông báo PING được tạo"
+
+#: src/core/gnunet-service-core_kx.c:870
 msgid "# old ephemeral keys ignored"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:871
+#: src/core/gnunet-service-core_kx.c:877
 #, fuzzy
 msgid "# ephemeral keys received"
 msgstr "# các thông báo phát hiện dht được nhận"
 
-#: src/core/gnunet-service-core_kx.c:910
+#: src/core/gnunet-service-core_kx.c:916
 #, c-format
 msgid ""
 "Ephemeral key message from peer `%s' rejected as its validity range does not "
 "match our system time (%llu not in [%llu,%llu]).\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:921
+#: src/core/gnunet-service-core_kx.c:927
 #, fuzzy
 msgid "# EPHEMERAL_KEY messages received"
 msgstr "# các thông báo được chắp liền"
 
-#: src/core/gnunet-service-core_kx.c:1020
+#: src/core/gnunet-service-core_kx.c:1029
 #: src/transport/gnunet-service-transport_validation.c:1053
 #, fuzzy
 msgid "# PING messages received"
 msgstr "# các thông báo PING được tạo"
 
-#: src/core/gnunet-service-core_kx.c:1028
+#: src/core/gnunet-service-core_kx.c:1038
 #, fuzzy
 msgid "# PING messages dropped (out of order)"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/core/gnunet-service-core_kx.c:1056
+#: src/core/gnunet-service-core_kx.c:1067
 #, c-format
 msgid ""
 "Received PING from `%s' for different identity: I am `%s', PONG identity: `"
 "%s'\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1082
+#: src/core/gnunet-service-core_kx.c:1093
 #, fuzzy
 msgid "# PONG messages created"
 msgstr "# các thông báo PING được tạo"
 
-#: src/core/gnunet-service-core_kx.c:1111
+#: src/core/gnunet-service-core_kx.c:1122
 #, fuzzy
 msgid "# sessions terminated by timeout"
 msgstr "# các byte loại đi bởi TCP (đi ra)"
 
-#: src/core/gnunet-service-core_kx.c:1124
+#: src/core/gnunet-service-core_kx.c:1135
 #, fuzzy
 msgid "# keepalive messages sent"
 msgstr "# các thông báo PING nhập thô được gửi"
 
-#: src/core/gnunet-service-core_kx.c:1195
+#: src/core/gnunet-service-core_kx.c:1206
 #: src/transport/gnunet-service-transport_validation.c:1370
 #, fuzzy
 msgid "# PONG messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/core/gnunet-service-core_kx.c:1201
+#: src/core/gnunet-service-core_kx.c:1213
 #, fuzzy
 msgid "# PONG messages dropped (connection down)"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/core/gnunet-service-core_kx.c:1206
+#: src/core/gnunet-service-core_kx.c:1218
 #, fuzzy
 msgid "# PONG messages dropped (out of order)"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/core/gnunet-service-core_kx.c:1236
+#: src/core/gnunet-service-core_kx.c:1254
 #, fuzzy
 msgid "# PONG messages decrypted"
 msgstr "# các thông báo PING được tạo"
 
-#: src/core/gnunet-service-core_kx.c:1271
+#: src/core/gnunet-service-core_kx.c:1292
 #, fuzzy
 msgid "# session keys confirmed via PONG"
 msgstr "# Các quảng cáo đồng đẳng được xác nhận qua PONG"
 
-#: src/core/gnunet-service-core_kx.c:1282
+#: src/core/gnunet-service-core_kx.c:1303
 #, fuzzy
 msgid "# timeouts prevented via PONG"
 msgstr "# các byte đã nhận qua TCP"
 
-#: src/core/gnunet-service-core_kx.c:1289
+#: src/core/gnunet-service-core_kx.c:1310
 #, fuzzy
 msgid "# rekey operations confirmed via PONG"
 msgstr "# Các quảng cáo đồng đẳng được xác nhận qua PONG"
 
-#: src/core/gnunet-service-core_kx.c:1431
+#: src/core/gnunet-service-core_kx.c:1466
 #, fuzzy
 msgid "# DATA message dropped (out of order)"
 msgstr "# các byte loại bỏ bởi UDP (đi ra)"
 
-#: src/core/gnunet-service-core_kx.c:1438
+#: src/core/gnunet-service-core_kx.c:1474
 #, c-format
 msgid ""
 "Session to peer `%s' went down due to key expiration (should not happen)\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1441
+#: src/core/gnunet-service-core_kx.c:1477
 #, fuzzy
 msgid "# sessions terminated by key expiration"
 msgstr "# các byte loại đi bởi TCP (đi ra)"
 
-#: src/core/gnunet-service-core_kx.c:1487
-#: src/core/gnunet-service-core_kx.c:1512
+#: src/core/gnunet-service-core_kx.c:1535
+#: src/core/gnunet-service-core_kx.c:1561
 #, fuzzy
 msgid "# bytes dropped (duplicates)"
 msgstr "# các byte loại bỏ bởi UDP (đi ra)"
 
-#: src/core/gnunet-service-core_kx.c:1499
+#: src/core/gnunet-service-core_kx.c:1548
 #, fuzzy
 msgid "# bytes dropped (out of sequence)"
 msgstr "# các byte loại bỏ bởi UDP (đi ra)"
 
-#: src/core/gnunet-service-core_kx.c:1541
+#: src/core/gnunet-service-core_kx.c:1590
 #, fuzzy
 msgid "# bytes dropped (ancient message)"
 msgstr "# các byte loại bỏ bởi UDP (đi ra)"
 
-#: src/core/gnunet-service-core_kx.c:1549
+#: src/core/gnunet-service-core_kx.c:1598
 #, fuzzy
 msgid "# bytes of payload decrypted"
 msgstr "# các byte đã giải mã"
 
-#: src/core/gnunet-service-core_kx.c:1584
+#: src/core/gnunet-service-core_kx.c:1632
 #, fuzzy
 msgid "# PAYLOAD dropped (out of order)"
 msgstr "# các byte loại bỏ bởi UDP (đi ra)"
@@ -1457,14 +1462,14 @@ msgid "Unsupported message of type %u (%u bytes) received from peer `%s'\n"
 msgstr ""
 
 #: src/core/gnunet-service-core_sessions.c:245
-#: src/core/gnunet-service-core_sessions.c:328
+#: src/core/gnunet-service-core_sessions.c:331
 #: src/dht/gnunet-service-dht_neighbours.c:661
 #: src/dht/gnunet-service-dht_neighbours.c:726
 #: src/fs/gnunet-service-fs_cp.c:645 src/fs/gnunet-service-fs_cp.c:1627
 #: src/topology/gnunet-daemon-topology.c:734
 #: src/topology/gnunet-daemon-topology.c:835
-#: src/transport/gnunet-service-transport_neighbours.c:754
-#: src/transport/gnunet-service-transport_neighbours.c:762
+#: src/transport/gnunet-service-transport_neighbours.c:755
+#: src/transport/gnunet-service-transport_neighbours.c:763
 #, fuzzy
 msgid "# peers connected"
 msgstr "# của các đồng đẳng đã kết nối"
@@ -1474,17 +1479,17 @@ msgstr "# của các đồng đẳng đã kết nối"
 msgid "# type map refreshes sent"
 msgstr "# tổng số yêu cầu lỗ hổng được gửi"
 
-#: src/core/gnunet-service-core_sessions.c:394
+#: src/core/gnunet-service-core_sessions.c:397
 #, fuzzy
 msgid "# outdated typemap confirmations received"
 msgstr "Lỗi lưu cấu hình."
 
-#: src/core/gnunet-service-core_sessions.c:405
+#: src/core/gnunet-service-core_sessions.c:408
 #, fuzzy
 msgid "# valid typemap confirmations received"
 msgstr "Lỗi lưu cấu hình."
 
-#: src/core/gnunet-service-core_sessions.c:543
+#: src/core/gnunet-service-core_sessions.c:546
 msgid "# messages discarded (expired prior to transmission)"
 msgstr ""
 
@@ -1681,7 +1686,7 @@ msgstr ""
 msgid "# GET ZERO ANONYMITY requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1439
+#: src/datastore/datastore_api.c:1447
 #, fuzzy
 msgid "# GET requests executed"
 msgstr "# các yêu cầu dht được định tuyến"
@@ -2169,49 +2174,49 @@ msgstr ""
 msgid "Could not pass reply to client, message too big!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:68
+#: src/dht/gnunet-service-dht_datacache.c:69
 #: src/dht/gnunet-service-xdht_datacache.c:71
 #, fuzzy, c-format
 msgid "%s request received, but have no datacache!\n"
 msgstr "# các byte kiểu %d được nhận"
 
-#: src/dht/gnunet-service-dht_datacache.c:78
+#: src/dht/gnunet-service-dht_datacache.c:79
 #: src/dht/gnunet-service-xdht_datacache.c:82
 msgid "# ITEMS stored in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:173
+#: src/dht/gnunet-service-dht_datacache.c:176
 #: src/dht/gnunet-service-xdht_datacache.c:230
 msgid "# Good RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:184
+#: src/dht/gnunet-service-dht_datacache.c:193
 #: src/dht/gnunet-service-xdht_datacache.c:253
 msgid "# Duplicate RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:190
+#: src/dht/gnunet-service-dht_datacache.c:199
 #: src/dht/gnunet-service-xdht_datacache.c:259
 msgid "# Invalid RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:196
+#: src/dht/gnunet-service-dht_datacache.c:205
 #: src/dht/gnunet-service-xdht_datacache.c:265
 msgid "# Irrelevant RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:208
+#: src/dht/gnunet-service-dht_datacache.c:217
 #: src/dht/gnunet-service-xdht_datacache.c:277
 msgid "# Unsupported RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:211
+#: src/dht/gnunet-service-dht_datacache.c:221
 #: src/dht/gnunet-service-xdht_datacache.c:280
 #, c-format
 msgid "Unsupported block type (%u) in local response!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:242
+#: src/dht/gnunet-service-dht_datacache.c:254
 #: src/dht/gnunet-service-xdht_datacache.c:318
 #, fuzzy
 msgid "# GET requests given to datacache"
@@ -2860,127 +2865,127 @@ msgstr ""
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:270
+#: src/fragmentation/defragmentation.c:271
 msgid "# acknowledgements sent for fragment"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:456
+#: src/fragmentation/defragmentation.c:463
 #: src/transport/plugin_transport_wlan.c:1515
 #, fuzzy
 msgid "# fragments received"
 msgstr "# các mảnh bị loại bỏ"
 
-#: src/fragmentation/defragmentation.c:521
+#: src/fragmentation/defragmentation.c:533
 #, fuzzy
 msgid "# duplicate fragments received"
 msgstr "# các kết quả dht được nhận"
 
-#: src/fragmentation/defragmentation.c:534
+#: src/fragmentation/defragmentation.c:549
 msgid "# messages defragmented"
 msgstr "# các thông báo được chắp liền"
 
-#: src/fragmentation/fragmentation.c:208
+#: src/fragmentation/fragmentation.c:234
 #, fuzzy
 msgid "# fragments transmitted"
 msgstr "# Các tự quảng cáo được truyền"
 
-#: src/fragmentation/fragmentation.c:211
+#: src/fragmentation/fragmentation.c:237
 #, fuzzy
 msgid "# fragments retransmitted"
 msgstr "# Các tự quảng cáo được truyền"
 
-#: src/fragmentation/fragmentation.c:237
+#: src/fragmentation/fragmentation.c:263
 #, fuzzy
 msgid "# fragments wrap arounds"
 msgstr "# Các tự quảng cáo được truyền"
 
-#: src/fragmentation/fragmentation.c:281
+#: src/fragmentation/fragmentation.c:307
 msgid "# messages fragmented"
 msgstr "# các thông báo bị tế phân"
 
-#: src/fragmentation/fragmentation.c:284
+#: src/fragmentation/fragmentation.c:310
 msgid "# total size of fragmented messages"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:405
+#: src/fragmentation/fragmentation.c:431
 #, fuzzy
 msgid "# fragment acknowledgements received"
 msgstr "# Các quảng cáo đồng đẳng được nhận"
 
-#: src/fragmentation/fragmentation.c:411
+#: src/fragmentation/fragmentation.c:437
 msgid "# bits removed from fragmentation ACKs"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:435
+#: src/fragmentation/fragmentation.c:461
 #, fuzzy
 msgid "# fragmentation transmissions completed"
 msgstr "# các sự truyền PONG bị lỗi"
 
-#: src/fs/fs_api.c:484
+#: src/fs/fs_api.c:491
 #, fuzzy, c-format
 msgid "Could not open file `%s': %s"
 msgstr "Lỗi mở tập tin theo dõi « %s »: %s\n"
 
-#: src/fs/fs_api.c:495
+#: src/fs/fs_api.c:502
 #, fuzzy, c-format
 msgid "Could not read file `%s': %s"
 msgstr "Lỗi mở tập tin theo dõi « %s »: %s\n"
 
-#: src/fs/fs_api.c:503
+#: src/fs/fs_api.c:510
 #, c-format
 msgid "Short read reading from file `%s'!"
 msgstr ""
 
-#: src/fs/fs_api.c:1111
+#: src/fs/fs_api.c:1118
 #, fuzzy, c-format
 msgid "Failed to resume publishing information `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:1631
+#: src/fs/fs_api.c:1638
 #, c-format
 msgid "Failure while resuming publishing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:1645
+#: src/fs/fs_api.c:1652
 #, fuzzy, c-format
 msgid "Failed to resume publishing operation `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2303
+#: src/fs/fs_api.c:2310
 #, c-format
 msgid "Failure while resuming unindexing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2313
+#: src/fs/fs_api.c:2320
 #, fuzzy, c-format
 msgid "Failed to resume unindexing operation `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2441 src/fs/fs_api.c:2689
+#: src/fs/fs_api.c:2448 src/fs/fs_api.c:2696
 #, fuzzy, c-format
 msgid "Failed to resume sub-download `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2459
+#: src/fs/fs_api.c:2466
 #, fuzzy, c-format
 msgid "Failed to resume sub-search `%s': %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/fs/fs_api.c:2474 src/fs/fs_api.c:2493 src/fs/fs_api.c:2985
+#: src/fs/fs_api.c:2481 src/fs/fs_api.c:2500 src/fs/fs_api.c:2992
 #, c-format
 msgid "Failure while resuming search operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2679
+#: src/fs/fs_api.c:2686
 #, c-format
 msgid "Failed to resume sub-download `%s': could not open file `%s'\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2928
+#: src/fs/fs_api.c:2935
 msgid "Could not resume running search, will resume as paused search\n"
 msgstr ""
 
-#: src/fs/fs_api.c:3023
+#: src/fs/fs_api.c:3030
 #, c-format
 msgid "Failure while resuming download operation `%s': %s\n"
 msgstr ""
@@ -3977,7 +3982,7 @@ msgstr ""
 msgid "Indexed file `%s' changed at offset %llu\n"
 msgstr "Đánh chỉ mục dữ liệu của tập tin « %s » bị lỗi tại vị tri %llu.\n"
 
-#: src/fs/gnunet-service-fs_lc.c:201 src/fs/gnunet-service-fs_lc.c:371
+#: src/fs/gnunet-service-fs_lc.c:201 src/fs/gnunet-service-fs_lc.c:376
 #, fuzzy
 msgid "# client searches active"
 msgstr "# các yêu cầu khách lỗ hổng được nhận"
@@ -3992,7 +3997,7 @@ msgstr "# các đáp ứng lỗ hổng được gửi cho trình/máy khách"
 msgid "# client searches received"
 msgstr "# các yêu cầu khách lỗ hổng được nhận"
 
-#: src/fs/gnunet-service-fs_lc.c:365
+#: src/fs/gnunet-service-fs_lc.c:370
 msgid "# client searches updated (merged content seen list)"
 msgstr ""
 
@@ -4092,57 +4097,57 @@ msgstr "# các byte đã nhận qua HTTP"
 msgid "Datastore lookup already took %s!\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1299
+#: src/fs/gnunet-service-fs_pr.c:1301
 #, c-format
 msgid "On-demand lookup already took %s!\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1351
+#: src/fs/gnunet-service-fs_pr.c:1353
 msgid "# Datastore lookups concluded (no results)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1366
+#: src/fs/gnunet-service-fs_pr.c:1368
 msgid "# Datastore lookups concluded (seen all)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1375
+#: src/fs/gnunet-service-fs_pr.c:1377
 msgid "# Datastore lookups aborted (more than MAX_RESULTS)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1390
+#: src/fs/gnunet-service-fs_pr.c:1392
 msgid "# requested DBLOCK or IBLOCK not found"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1404
+#: src/fs/gnunet-service-fs_pr.c:1406
 msgid "# on-demand blocks matched requests"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1417
+#: src/fs/gnunet-service-fs_pr.c:1419
 msgid "# on-demand lookups performed successfully"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1422
+#: src/fs/gnunet-service-fs_pr.c:1424
 msgid "# on-demand lookups failed"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1449 src/fs/gnunet-service-fs_pr.c:1489
-#: src/fs/gnunet-service-fs_pr.c:1657
+#: src/fs/gnunet-service-fs_pr.c:1451 src/fs/gnunet-service-fs_pr.c:1491
+#: src/fs/gnunet-service-fs_pr.c:1660
 msgid "# Datastore lookups concluded (error queueing)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1508
+#: src/fs/gnunet-service-fs_pr.c:1510
 msgid "# Datastore lookups concluded (found last result)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1520
+#: src/fs/gnunet-service-fs_pr.c:1522
 msgid "# Datastore lookups concluded (load too high)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1633
+#: src/fs/gnunet-service-fs_pr.c:1636
 msgid "# Datastore lookups initiated"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1722
+#: src/fs/gnunet-service-fs_pr.c:1725
 #, fuzzy
 msgid "# GAP PUT messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
@@ -5660,7 +5665,7 @@ msgid "Measure quality and performance of the NSE service."
 msgstr "Không thể truy cập đến dịch vụ"
 
 #: src/nse/gnunet-service-nse.c:1537
-#: src/revocation/gnunet-service-revocation.c:798 src/util/gnunet-scrypt.c:260
+#: src/revocation/gnunet-service-revocation.c:815 src/util/gnunet-scrypt.c:260
 #, fuzzy
 msgid "Value is too large.\n"
 msgstr "Giá trị không nằm trong phạm vi được phép."
@@ -6313,17 +6318,37 @@ msgstr ""
 msgid "test if the public key KEY has been revoked"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:433
+#: src/revocation/gnunet-service-revocation.c:427
+#, fuzzy
+msgid "# unsupported revocations received via set union"
+msgstr "# các yêu cầu danh sách máy được nhận"
+
+#: src/revocation/gnunet-service-revocation.c:436
+#, fuzzy
+msgid "# revocation messages received via set union"
+msgstr "# các thông báo PONG đã mật mã được nhận"
+
+#: src/revocation/gnunet-service-revocation.c:441
 #, c-format
 msgid "Error computing revocation set union with %s\n"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:483
-#: src/revocation/gnunet-service-revocation.c:730
+#: src/revocation/gnunet-service-revocation.c:445
+#, fuzzy
+msgid "# revocation set unions failed"
+msgstr "# các khoá phiên chạy được chấp nhận"
+
+#: src/revocation/gnunet-service-revocation.c:454
+#, fuzzy
+msgid "# revocation set unions completed"
+msgstr "# các sự truyền PONG bị lỗi"
+
+#: src/revocation/gnunet-service-revocation.c:493
+#: src/revocation/gnunet-service-revocation.c:747
 msgid "SET service crashed, terminating revocation service\n"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:822
+#: src/revocation/gnunet-service-revocation.c:839
 #, fuzzy
 msgid "Could not open revocation database file!"
 msgstr "« %s »: Không thể kết nối.\n"
@@ -7299,229 +7324,229 @@ msgstr "# các thông báo PONG đã mật mã được nhận"
 msgid "# refreshed my HELLO"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:839
+#: src/transport/gnunet-service-transport_neighbours.c:840
 #, fuzzy
 msgid "# session creation failed"
 msgstr "# các khoá phiên chạy được chấp nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1167
+#: src/transport/gnunet-service-transport_neighbours.c:1168
 #, fuzzy
 msgid "# DISCONNECT messages sent"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1303
-#: src/transport/gnunet-service-transport_neighbours.c:1760
+#: src/transport/gnunet-service-transport_neighbours.c:1304
+#: src/transport/gnunet-service-transport_neighbours.c:1761
 #, fuzzy
 msgid "# bytes in message queue for other peers"
 msgstr "# các byte thông báo gửi đi bị loại bỏ"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1308
+#: src/transport/gnunet-service-transport_neighbours.c:1309
 #, fuzzy
 msgid "# messages transmitted to other peers"
 msgstr "# các byte kiểu %d được gửi "
 
-#: src/transport/gnunet-service-transport_neighbours.c:1314
+#: src/transport/gnunet-service-transport_neighbours.c:1315
 #, fuzzy
 msgid "# transmission failures for messages to other peers"
 msgstr "# các byte thông báo gửi đi bị loại bỏ"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1374
+#: src/transport/gnunet-service-transport_neighbours.c:1375
 msgid "# messages timed out while in transport queue"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1450
+#: src/transport/gnunet-service-transport_neighbours.c:1451
 msgid "# KEEPALIVES sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1486
+#: src/transport/gnunet-service-transport_neighbours.c:1487
 #, fuzzy
 msgid "# KEEPALIVE messages discarded (peer unknown)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1494
+#: src/transport/gnunet-service-transport_neighbours.c:1495
 #, fuzzy
 msgid "# KEEPALIVE messages discarded (no session)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1504
+#: src/transport/gnunet-service-transport_neighbours.c:1505
 msgid "# KEEPALIVES received in good order"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1549
+#: src/transport/gnunet-service-transport_neighbours.c:1550
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSEs discarded (not connected)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1558
+#: src/transport/gnunet-service-transport_neighbours.c:1559
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSEs discarded (not expected)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1566
+#: src/transport/gnunet-service-transport_neighbours.c:1567
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSEs discarded (address changed)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1575
+#: src/transport/gnunet-service-transport_neighbours.c:1576
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSEs discarded (no nonce)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1580
+#: src/transport/gnunet-service-transport_neighbours.c:1581
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSEs discarded (bad nonce)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1586
+#: src/transport/gnunet-service-transport_neighbours.c:1587
 #, fuzzy
 msgid "# KEEPALIVE_RESPONSEs received (OK)"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1657
+#: src/transport/gnunet-service-transport_neighbours.c:1658
 #, fuzzy
 msgid "# messages discarded due to lack of neighbour record"
 msgstr "# các thông báo được chắp liền"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1691
+#: src/transport/gnunet-service-transport_neighbours.c:1692
 #, fuzzy
 msgid "# bandwidth quota violations by other peers"
 msgstr "theo dõi gnunetd sử dụng dải thông"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1706
+#: src/transport/gnunet-service-transport_neighbours.c:1707
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1826
+#: src/transport/gnunet-service-transport_neighbours.c:1827
 #, fuzzy, c-format
 msgid "Failed to send SYN message to peer `%s'\n"
 msgstr "Lỗi đọc danh sách bạn bè từ « %s »\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1846
+#: src/transport/gnunet-service-transport_neighbours.c:1847
 #, fuzzy
 msgid "# Failed attempts to switch addresses (failed to send SYN CONT)"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1885
+#: src/transport/gnunet-service-transport_neighbours.c:1886
 #, fuzzy
 msgid "# SYN messages sent"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1902
+#: src/transport/gnunet-service-transport_neighbours.c:1903
 #, fuzzy, c-format
 msgid "Failed to transmit SYN message to %s\n"
 msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1932
+#: src/transport/gnunet-service-transport_neighbours.c:1933
 #, fuzzy
 msgid "# Failed attempts to switch addresses (failed to send SYN)"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1997
+#: src/transport/gnunet-service-transport_neighbours.c:1998
 #, fuzzy, c-format
 msgid "Failed to send SYN_ACK message to peer `%s' using address `%s'\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2051
+#: src/transport/gnunet-service-transport_neighbours.c:2052
 #, fuzzy
 msgid "# SYN_ACK messages sent"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2068
+#: src/transport/gnunet-service-transport_neighbours.c:2069
 #, fuzzy, c-format
 msgid "Failed to transmit SYN_ACK message to %s\n"
 msgstr "Lỗi sơ khởi dịch vụ « %s ».\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2223
+#: src/transport/gnunet-service-transport_neighbours.c:2225
 #, fuzzy, c-format
 msgid "Blacklisting disapproved to connect to peer `%s'\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2350
+#: src/transport/gnunet-service-transport_neighbours.c:2352
 #, fuzzy
 msgid "# SYN messages received"
 msgstr "# các thông báo PING được tạo"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2355
+#: src/transport/gnunet-service-transport_neighbours.c:2357
 #, c-format
 msgid "SYN request from peer `%s' ignored due impending shutdown\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2715
+#: src/transport/gnunet-service-transport_neighbours.c:2726
 msgid "# Attempts to switch addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3201
+#: src/transport/gnunet-service-transport_neighbours.c:3212
 #, fuzzy
 msgid "# SYN_ACK messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3209
+#: src/transport/gnunet-service-transport_neighbours.c:3220
 #, fuzzy
 msgid "# unexpected SYN_ACK messages (no peer)"
 msgstr "gửi ĐẾM thông báo"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3227
-#: src/transport/gnunet-service-transport_neighbours.c:3251
+#: src/transport/gnunet-service-transport_neighbours.c:3238
+#: src/transport/gnunet-service-transport_neighbours.c:3262
 #, fuzzy
 msgid "# unexpected SYN_ACK messages (not ready)"
 msgstr "gửi ĐẾM thông báo"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3263
+#: src/transport/gnunet-service-transport_neighbours.c:3274
 #, fuzzy
 msgid "# unexpected SYN_ACK messages (waiting on ATS)"
 msgstr "gửi ĐẾM thông báo"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3288
+#: src/transport/gnunet-service-transport_neighbours.c:3299
 msgid "# Successful attempts to switch addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3301
+#: src/transport/gnunet-service-transport_neighbours.c:3312
 #, fuzzy
 msgid "# unexpected SYN_ACK messages (disconnecting)"
 msgstr "gửi ĐẾM thông báo"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3495
+#: src/transport/gnunet-service-transport_neighbours.c:3506
 #, fuzzy
 msgid "# ACK messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3530
+#: src/transport/gnunet-service-transport_neighbours.c:3541
 #, fuzzy
 msgid "# unexpected ACK messages"
 msgstr "# các thông báo PONG đã mật mã được gửi"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3582
+#: src/transport/gnunet-service-transport_neighbours.c:3595
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3597
+#: src/transport/gnunet-service-transport_neighbours.c:3624
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3644
+#: src/transport/gnunet-service-transport_neighbours.c:3672
 #, fuzzy
 msgid "# quota messages ignored (malformed)"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3651
+#: src/transport/gnunet-service-transport_neighbours.c:3679
 #, fuzzy
 msgid "# QUOTA messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3686
+#: src/transport/gnunet-service-transport_neighbours.c:3720
 msgid "# disconnect messages ignored (malformed)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3693
+#: src/transport/gnunet-service-transport_neighbours.c:3727
 #, fuzzy
 msgid "# DISCONNECT messages received"
 msgstr "# các thông báo PONG đã mật mã được nhận"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3704
+#: src/transport/gnunet-service-transport_neighbours.c:3738
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3833
+#: src/transport/gnunet-service-transport_neighbours.c:3867
 #, fuzzy
 msgid "# disconnected from peer upon explicit request"
 msgstr "# các yêu cầu lỗ hổng bị bỏ do trọng tải"
@@ -8070,7 +8095,7 @@ msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_server.c:2825
-#: src/transport/plugin_transport_udp.c:3332
+#: src/transport/plugin_transport_udp.c:3336
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
@@ -8304,50 +8329,50 @@ msgstr ""
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3078
+#: src/transport/plugin_transport_udp.c:3082
 #, c-format
 msgid ""
 "UDP could not transmit message to `%s': Network seems down, please check "
 "your network configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3092
+#: src/transport/plugin_transport_udp.c:3096
 msgid ""
 "UDP could not transmit IPv6 message! Please check your network configuration "
 "and disable IPv6 if your connection does not have a global IPv6 address\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3408
-#: src/transport/plugin_transport_udp.c:3507
+#: src/transport/plugin_transport_udp.c:3412
+#: src/transport/plugin_transport_udp.c:3511
 #, fuzzy, c-format
 msgid "Failed to bind UDP socket to %s: %s\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/transport/plugin_transport_udp.c:3426
+#: src/transport/plugin_transport_udp.c:3430
 msgid "Disabling IPv4 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3517
+#: src/transport/plugin_transport_udp.c:3521
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
 msgstr "Lỗi mở tập tin ghi sự kiện « %s »: %s\n"
 
-#: src/transport/plugin_transport_udp.c:3588
-#: src/transport/plugin_transport_udp.c:3602
+#: src/transport/plugin_transport_udp.c:3592
+#: src/transport/plugin_transport_udp.c:3606
 msgid "must be in [0,65535]"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3634
+#: src/transport/plugin_transport_udp.c:3638
 #, fuzzy
 msgid "must be valid IPv4 address"
 msgstr "« %s » không sẵn sàng.\n"
 
-#: src/transport/plugin_transport_udp.c:3661
+#: src/transport/plugin_transport_udp.c:3665
 #, fuzzy
 msgid "must be valid IPv6 address"
 msgstr "« %s » không sẵn sàng.\n"
 
-#: src/transport/plugin_transport_udp.c:3727
+#: src/transport/plugin_transport_udp.c:3731
 #, fuzzy
 msgid "Failed to create UDP network sockets\n"
 msgstr "Không thể tạo miền tên.\n"
@@ -8668,7 +8693,7 @@ msgstr "Lỗi thẩm tra chữ ký RSA tại %s:%d: %s\n"
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt không có phiên bản mong đợi (yêu cầu phiên bản %s).\n"
 
-#: src/util/crypto_rsa.c:787
+#: src/util/crypto_rsa.c:809
 #, c-format
 msgid "RSA signature verification failed at %s:%d: %s\n"
 msgstr "Lỗi thẩm tra chữ ký RSA tại %s:%d: %s\n"
@@ -8962,7 +8987,7 @@ msgstr "Gặp lỗi khi tạo người dùng"
 msgid "Failed to parse inbound message from helper `%s'\n"
 msgstr "Lỗi đọc danh sách bạn bè từ « %s »\n"
 
-#: src/util/helper.c:618
+#: src/util/helper.c:620
 #, fuzzy, c-format
 msgid "Error writing to `%s': %s\n"
 msgstr "Gặp lỗi khi tạo người dùng"
@@ -9731,10 +9756,6 @@ msgstr "« %s » thất bại ở tập tin « %s » tại %s:%d với lỗi: %s
 #, fuzzy
 #~ msgid "# Bluetooth DATA messages discarded due to CRC32 error"
 #~ msgstr "# các thông báo được chắp liền"
-
-#, fuzzy
-#~ msgid "# DATA messages received via Bluetooth"
-#~ msgstr "# các thông báo PONG đã mật mã được nhận"
 
 #, fuzzy
 #~ msgid "# Bluetooth DATA messages processed"

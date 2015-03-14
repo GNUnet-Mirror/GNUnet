@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-03-07 12:06+0100\n"
+"POT-Creation-Date: 2015-03-14 18:00+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -1282,118 +1282,123 @@ msgstr ""
 msgid "# key exchanges initiated"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:763
+#: src/core/gnunet-service-core_kx.c:765
 msgid "# key exchanges stopped"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:864
+#: src/core/gnunet-service-core_kx.c:795
+#, fuzzy
+msgid "# PING messages transmitted"
+msgstr "消息尺寸"
+
+#: src/core/gnunet-service-core_kx.c:870
 msgid "# old ephemeral keys ignored"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:871
+#: src/core/gnunet-service-core_kx.c:877
 msgid "# ephemeral keys received"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:910
+#: src/core/gnunet-service-core_kx.c:916
 #, c-format
 msgid ""
 "Ephemeral key message from peer `%s' rejected as its validity range does not "
 "match our system time (%llu not in [%llu,%llu]).\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:921
+#: src/core/gnunet-service-core_kx.c:927
 msgid "# EPHEMERAL_KEY messages received"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1020
+#: src/core/gnunet-service-core_kx.c:1029
 #: src/transport/gnunet-service-transport_validation.c:1053
 msgid "# PING messages received"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1028
+#: src/core/gnunet-service-core_kx.c:1038
 msgid "# PING messages dropped (out of order)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1056
+#: src/core/gnunet-service-core_kx.c:1067
 #, c-format
 msgid ""
 "Received PING from `%s' for different identity: I am `%s', PONG identity: `"
 "%s'\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1082
+#: src/core/gnunet-service-core_kx.c:1093
 msgid "# PONG messages created"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1111
+#: src/core/gnunet-service-core_kx.c:1122
 msgid "# sessions terminated by timeout"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1124
+#: src/core/gnunet-service-core_kx.c:1135
 msgid "# keepalive messages sent"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1195
+#: src/core/gnunet-service-core_kx.c:1206
 #: src/transport/gnunet-service-transport_validation.c:1370
 msgid "# PONG messages received"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1201
+#: src/core/gnunet-service-core_kx.c:1213
 msgid "# PONG messages dropped (connection down)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1206
+#: src/core/gnunet-service-core_kx.c:1218
 msgid "# PONG messages dropped (out of order)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1236
+#: src/core/gnunet-service-core_kx.c:1254
 msgid "# PONG messages decrypted"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1271
+#: src/core/gnunet-service-core_kx.c:1292
 msgid "# session keys confirmed via PONG"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1282
+#: src/core/gnunet-service-core_kx.c:1303
 msgid "# timeouts prevented via PONG"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1289
+#: src/core/gnunet-service-core_kx.c:1310
 msgid "# rekey operations confirmed via PONG"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1431
+#: src/core/gnunet-service-core_kx.c:1466
 msgid "# DATA message dropped (out of order)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1438
+#: src/core/gnunet-service-core_kx.c:1474
 #, c-format
 msgid ""
 "Session to peer `%s' went down due to key expiration (should not happen)\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1441
+#: src/core/gnunet-service-core_kx.c:1477
 msgid "# sessions terminated by key expiration"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1487
-#: src/core/gnunet-service-core_kx.c:1512
+#: src/core/gnunet-service-core_kx.c:1535
+#: src/core/gnunet-service-core_kx.c:1561
 msgid "# bytes dropped (duplicates)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1499
+#: src/core/gnunet-service-core_kx.c:1548
 msgid "# bytes dropped (out of sequence)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1541
+#: src/core/gnunet-service-core_kx.c:1590
 msgid "# bytes dropped (ancient message)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1549
+#: src/core/gnunet-service-core_kx.c:1598
 msgid "# bytes of payload decrypted"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1584
+#: src/core/gnunet-service-core_kx.c:1632
 msgid "# PAYLOAD dropped (out of order)"
 msgstr ""
 
@@ -1416,14 +1421,14 @@ msgid "Unsupported message of type %u (%u bytes) received from peer `%s'\n"
 msgstr ""
 
 #: src/core/gnunet-service-core_sessions.c:245
-#: src/core/gnunet-service-core_sessions.c:328
+#: src/core/gnunet-service-core_sessions.c:331
 #: src/dht/gnunet-service-dht_neighbours.c:661
 #: src/dht/gnunet-service-dht_neighbours.c:726
 #: src/fs/gnunet-service-fs_cp.c:645 src/fs/gnunet-service-fs_cp.c:1627
 #: src/topology/gnunet-daemon-topology.c:734
 #: src/topology/gnunet-daemon-topology.c:835
-#: src/transport/gnunet-service-transport_neighbours.c:754
-#: src/transport/gnunet-service-transport_neighbours.c:762
+#: src/transport/gnunet-service-transport_neighbours.c:755
+#: src/transport/gnunet-service-transport_neighbours.c:763
 msgid "# peers connected"
 msgstr ""
 
@@ -1431,17 +1436,17 @@ msgstr ""
 msgid "# type map refreshes sent"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:394
+#: src/core/gnunet-service-core_sessions.c:397
 #, fuzzy
 msgid "# outdated typemap confirmations received"
 msgstr "保存配置失败。"
 
-#: src/core/gnunet-service-core_sessions.c:405
+#: src/core/gnunet-service-core_sessions.c:408
 #, fuzzy
 msgid "# valid typemap confirmations received"
 msgstr "保存配置失败。"
 
-#: src/core/gnunet-service-core_sessions.c:543
+#: src/core/gnunet-service-core_sessions.c:546
 msgid "# messages discarded (expired prior to transmission)"
 msgstr ""
 
@@ -1619,7 +1624,7 @@ msgstr ""
 msgid "# GET ZERO ANONYMITY requests executed"
 msgstr ""
 
-#: src/datastore/datastore_api.c:1439
+#: src/datastore/datastore_api.c:1447
 msgid "# GET requests executed"
 msgstr ""
 
@@ -2091,49 +2096,49 @@ msgstr ""
 msgid "Could not pass reply to client, message too big!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:68
+#: src/dht/gnunet-service-dht_datacache.c:69
 #: src/dht/gnunet-service-xdht_datacache.c:71
 #, c-format
 msgid "%s request received, but have no datacache!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:78
+#: src/dht/gnunet-service-dht_datacache.c:79
 #: src/dht/gnunet-service-xdht_datacache.c:82
 msgid "# ITEMS stored in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:173
+#: src/dht/gnunet-service-dht_datacache.c:176
 #: src/dht/gnunet-service-xdht_datacache.c:230
 msgid "# Good RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:184
+#: src/dht/gnunet-service-dht_datacache.c:193
 #: src/dht/gnunet-service-xdht_datacache.c:253
 msgid "# Duplicate RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:190
+#: src/dht/gnunet-service-dht_datacache.c:199
 #: src/dht/gnunet-service-xdht_datacache.c:259
 msgid "# Invalid RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:196
+#: src/dht/gnunet-service-dht_datacache.c:205
 #: src/dht/gnunet-service-xdht_datacache.c:265
 msgid "# Irrelevant RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:208
+#: src/dht/gnunet-service-dht_datacache.c:217
 #: src/dht/gnunet-service-xdht_datacache.c:277
 msgid "# Unsupported RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:211
+#: src/dht/gnunet-service-dht_datacache.c:221
 #: src/dht/gnunet-service-xdht_datacache.c:280
 #, c-format
 msgid "Unsupported block type (%u) in local response!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:242
+#: src/dht/gnunet-service-dht_datacache.c:254
 #: src/dht/gnunet-service-xdht_datacache.c:318
 msgid "# GET requests given to datacache"
 msgstr ""
@@ -2742,120 +2747,120 @@ msgstr ""
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:270
+#: src/fragmentation/defragmentation.c:271
 msgid "# acknowledgements sent for fragment"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:456
+#: src/fragmentation/defragmentation.c:463
 #: src/transport/plugin_transport_wlan.c:1515
 msgid "# fragments received"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:521
+#: src/fragmentation/defragmentation.c:533
 msgid "# duplicate fragments received"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:534
+#: src/fragmentation/defragmentation.c:549
 msgid "# messages defragmented"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:208
+#: src/fragmentation/fragmentation.c:234
 msgid "# fragments transmitted"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:211
+#: src/fragmentation/fragmentation.c:237
 msgid "# fragments retransmitted"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:237
+#: src/fragmentation/fragmentation.c:263
 msgid "# fragments wrap arounds"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:281
+#: src/fragmentation/fragmentation.c:307
 msgid "# messages fragmented"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:284
+#: src/fragmentation/fragmentation.c:310
 msgid "# total size of fragmented messages"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:405
+#: src/fragmentation/fragmentation.c:431
 msgid "# fragment acknowledgements received"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:411
+#: src/fragmentation/fragmentation.c:437
 msgid "# bits removed from fragmentation ACKs"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:435
+#: src/fragmentation/fragmentation.c:461
 msgid "# fragmentation transmissions completed"
 msgstr ""
 
-#: src/fs/fs_api.c:484
+#: src/fs/fs_api.c:491
 #, fuzzy, c-format
 msgid "Could not open file `%s': %s"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:495
+#: src/fs/fs_api.c:502
 #, fuzzy, c-format
 msgid "Could not read file `%s': %s"
 msgstr "无法解析“%s”(%s)：%s\n"
 
-#: src/fs/fs_api.c:503
+#: src/fs/fs_api.c:510
 #, c-format
 msgid "Short read reading from file `%s'!"
 msgstr ""
 
-#: src/fs/fs_api.c:1111
+#: src/fs/fs_api.c:1118
 #, fuzzy, c-format
 msgid "Failed to resume publishing information `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:1631
+#: src/fs/fs_api.c:1638
 #, c-format
 msgid "Failure while resuming publishing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:1645
+#: src/fs/fs_api.c:1652
 #, fuzzy, c-format
 msgid "Failed to resume publishing operation `%s': %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_api.c:2303
+#: src/fs/fs_api.c:2310
 #, c-format
 msgid "Failure while resuming unindexing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2313
+#: src/fs/fs_api.c:2320
 #, fuzzy, c-format
 msgid "Failed to resume unindexing operation `%s': %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_api.c:2441 src/fs/fs_api.c:2689
+#: src/fs/fs_api.c:2448 src/fs/fs_api.c:2696
 #, fuzzy, c-format
 msgid "Failed to resume sub-download `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:2459
+#: src/fs/fs_api.c:2466
 #, fuzzy, c-format
 msgid "Failed to resume sub-search `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:2474 src/fs/fs_api.c:2493 src/fs/fs_api.c:2985
+#: src/fs/fs_api.c:2481 src/fs/fs_api.c:2500 src/fs/fs_api.c:2992
 #, c-format
 msgid "Failure while resuming search operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2679
+#: src/fs/fs_api.c:2686
 #, fuzzy, c-format
 msgid "Failed to resume sub-download `%s': could not open file `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_api.c:2928
+#: src/fs/fs_api.c:2935
 msgid "Could not resume running search, will resume as paused search\n"
 msgstr ""
 
-#: src/fs/fs_api.c:3023
+#: src/fs/fs_api.c:3030
 #, c-format
 msgid "Failure while resuming download operation `%s': %s\n"
 msgstr ""
@@ -3804,7 +3809,7 @@ msgstr ""
 msgid "Indexed file `%s' changed at offset %llu\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_lc.c:201 src/fs/gnunet-service-fs_lc.c:371
+#: src/fs/gnunet-service-fs_lc.c:201 src/fs/gnunet-service-fs_lc.c:376
 msgid "# client searches active"
 msgstr ""
 
@@ -3816,7 +3821,7 @@ msgstr ""
 msgid "# client searches received"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_lc.c:365
+#: src/fs/gnunet-service-fs_lc.c:370
 msgid "# client searches updated (merged content seen list)"
 msgstr ""
 
@@ -3903,57 +3908,57 @@ msgstr ""
 msgid "Datastore lookup already took %s!\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1299
+#: src/fs/gnunet-service-fs_pr.c:1301
 #, c-format
 msgid "On-demand lookup already took %s!\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1351
+#: src/fs/gnunet-service-fs_pr.c:1353
 msgid "# Datastore lookups concluded (no results)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1366
+#: src/fs/gnunet-service-fs_pr.c:1368
 msgid "# Datastore lookups concluded (seen all)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1375
+#: src/fs/gnunet-service-fs_pr.c:1377
 msgid "# Datastore lookups aborted (more than MAX_RESULTS)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1390
+#: src/fs/gnunet-service-fs_pr.c:1392
 msgid "# requested DBLOCK or IBLOCK not found"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1404
+#: src/fs/gnunet-service-fs_pr.c:1406
 msgid "# on-demand blocks matched requests"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1417
+#: src/fs/gnunet-service-fs_pr.c:1419
 msgid "# on-demand lookups performed successfully"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1422
+#: src/fs/gnunet-service-fs_pr.c:1424
 msgid "# on-demand lookups failed"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1449 src/fs/gnunet-service-fs_pr.c:1489
-#: src/fs/gnunet-service-fs_pr.c:1657
+#: src/fs/gnunet-service-fs_pr.c:1451 src/fs/gnunet-service-fs_pr.c:1491
+#: src/fs/gnunet-service-fs_pr.c:1660
 msgid "# Datastore lookups concluded (error queueing)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1508
+#: src/fs/gnunet-service-fs_pr.c:1510
 msgid "# Datastore lookups concluded (found last result)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1520
+#: src/fs/gnunet-service-fs_pr.c:1522
 msgid "# Datastore lookups concluded (load too high)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1633
+#: src/fs/gnunet-service-fs_pr.c:1636
 msgid "# Datastore lookups initiated"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_pr.c:1722
+#: src/fs/gnunet-service-fs_pr.c:1725
 msgid "# GAP PUT messages received"
 msgstr ""
 
@@ -5434,7 +5439,7 @@ msgid "Measure quality and performance of the NSE service."
 msgstr "无法访问该服务"
 
 #: src/nse/gnunet-service-nse.c:1537
-#: src/revocation/gnunet-service-revocation.c:798 src/util/gnunet-scrypt.c:260
+#: src/revocation/gnunet-service-revocation.c:815 src/util/gnunet-scrypt.c:260
 #, fuzzy
 msgid "Value is too large.\n"
 msgstr "值不在合法范围内。"
@@ -6068,17 +6073,36 @@ msgstr ""
 msgid "test if the public key KEY has been revoked"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:433
+#: src/revocation/gnunet-service-revocation.c:427
+msgid "# unsupported revocations received via set union"
+msgstr ""
+
+#: src/revocation/gnunet-service-revocation.c:436
+msgid "# revocation messages received via set union"
+msgstr ""
+
+#: src/revocation/gnunet-service-revocation.c:441
 #, c-format
 msgid "Error computing revocation set union with %s\n"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:483
-#: src/revocation/gnunet-service-revocation.c:730
+#: src/revocation/gnunet-service-revocation.c:445
+#, fuzzy
+msgid "# revocation set unions failed"
+msgstr ""
+"\n"
+"按任意键继续\n"
+
+#: src/revocation/gnunet-service-revocation.c:454
+msgid "# revocation set unions completed"
+msgstr ""
+
+#: src/revocation/gnunet-service-revocation.c:493
+#: src/revocation/gnunet-service-revocation.c:747
 msgid "SET service crashed, terminating revocation service\n"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:822
+#: src/revocation/gnunet-service-revocation.c:839
 #, fuzzy
 msgid "Could not open revocation database file!"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -7035,202 +7059,202 @@ msgstr ""
 msgid "# refreshed my HELLO"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:839
+#: src/transport/gnunet-service-transport_neighbours.c:840
 msgid "# session creation failed"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1167
+#: src/transport/gnunet-service-transport_neighbours.c:1168
 msgid "# DISCONNECT messages sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1303
-#: src/transport/gnunet-service-transport_neighbours.c:1760
+#: src/transport/gnunet-service-transport_neighbours.c:1304
+#: src/transport/gnunet-service-transport_neighbours.c:1761
 msgid "# bytes in message queue for other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1308
+#: src/transport/gnunet-service-transport_neighbours.c:1309
 msgid "# messages transmitted to other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1314
+#: src/transport/gnunet-service-transport_neighbours.c:1315
 msgid "# transmission failures for messages to other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1374
+#: src/transport/gnunet-service-transport_neighbours.c:1375
 msgid "# messages timed out while in transport queue"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1450
+#: src/transport/gnunet-service-transport_neighbours.c:1451
 msgid "# KEEPALIVES sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1486
+#: src/transport/gnunet-service-transport_neighbours.c:1487
 msgid "# KEEPALIVE messages discarded (peer unknown)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1494
+#: src/transport/gnunet-service-transport_neighbours.c:1495
 msgid "# KEEPALIVE messages discarded (no session)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1504
+#: src/transport/gnunet-service-transport_neighbours.c:1505
 msgid "# KEEPALIVES received in good order"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1549
+#: src/transport/gnunet-service-transport_neighbours.c:1550
 msgid "# KEEPALIVE_RESPONSEs discarded (not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1558
+#: src/transport/gnunet-service-transport_neighbours.c:1559
 msgid "# KEEPALIVE_RESPONSEs discarded (not expected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1566
+#: src/transport/gnunet-service-transport_neighbours.c:1567
 msgid "# KEEPALIVE_RESPONSEs discarded (address changed)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1575
+#: src/transport/gnunet-service-transport_neighbours.c:1576
 msgid "# KEEPALIVE_RESPONSEs discarded (no nonce)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1580
+#: src/transport/gnunet-service-transport_neighbours.c:1581
 msgid "# KEEPALIVE_RESPONSEs discarded (bad nonce)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1586
+#: src/transport/gnunet-service-transport_neighbours.c:1587
 msgid "# KEEPALIVE_RESPONSEs received (OK)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1657
+#: src/transport/gnunet-service-transport_neighbours.c:1658
 msgid "# messages discarded due to lack of neighbour record"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1691
+#: src/transport/gnunet-service-transport_neighbours.c:1692
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1706
+#: src/transport/gnunet-service-transport_neighbours.c:1707
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1826
+#: src/transport/gnunet-service-transport_neighbours.c:1827
 #, fuzzy, c-format
 msgid "Failed to send SYN message to peer `%s'\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1846
+#: src/transport/gnunet-service-transport_neighbours.c:1847
 #, fuzzy
 msgid "# Failed attempts to switch addresses (failed to send SYN CONT)"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1885
+#: src/transport/gnunet-service-transport_neighbours.c:1886
 #, fuzzy
 msgid "# SYN messages sent"
 msgstr "消息尺寸"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1902
+#: src/transport/gnunet-service-transport_neighbours.c:1903
 #, fuzzy, c-format
 msgid "Failed to transmit SYN message to %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1932
+#: src/transport/gnunet-service-transport_neighbours.c:1933
 #, fuzzy
 msgid "# Failed attempts to switch addresses (failed to send SYN)"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1997
+#: src/transport/gnunet-service-transport_neighbours.c:1998
 #, fuzzy, c-format
 msgid "Failed to send SYN_ACK message to peer `%s' using address `%s'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2051
+#: src/transport/gnunet-service-transport_neighbours.c:2052
 msgid "# SYN_ACK messages sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2068
+#: src/transport/gnunet-service-transport_neighbours.c:2069
 #, fuzzy, c-format
 msgid "Failed to transmit SYN_ACK message to %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2223
+#: src/transport/gnunet-service-transport_neighbours.c:2225
 #, fuzzy, c-format
 msgid "Blacklisting disapproved to connect to peer `%s'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2350
+#: src/transport/gnunet-service-transport_neighbours.c:2352
 msgid "# SYN messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2355
+#: src/transport/gnunet-service-transport_neighbours.c:2357
 #, c-format
 msgid "SYN request from peer `%s' ignored due impending shutdown\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2715
+#: src/transport/gnunet-service-transport_neighbours.c:2726
 msgid "# Attempts to switch addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3201
+#: src/transport/gnunet-service-transport_neighbours.c:3212
 msgid "# SYN_ACK messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3209
+#: src/transport/gnunet-service-transport_neighbours.c:3220
 msgid "# unexpected SYN_ACK messages (no peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3227
-#: src/transport/gnunet-service-transport_neighbours.c:3251
+#: src/transport/gnunet-service-transport_neighbours.c:3238
+#: src/transport/gnunet-service-transport_neighbours.c:3262
 msgid "# unexpected SYN_ACK messages (not ready)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3263
+#: src/transport/gnunet-service-transport_neighbours.c:3274
 msgid "# unexpected SYN_ACK messages (waiting on ATS)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3288
+#: src/transport/gnunet-service-transport_neighbours.c:3299
 msgid "# Successful attempts to switch addresses"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3301
+#: src/transport/gnunet-service-transport_neighbours.c:3312
 msgid "# unexpected SYN_ACK messages (disconnecting)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3495
+#: src/transport/gnunet-service-transport_neighbours.c:3506
 msgid "# ACK messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3530
+#: src/transport/gnunet-service-transport_neighbours.c:3541
 msgid "# unexpected ACK messages"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3582
+#: src/transport/gnunet-service-transport_neighbours.c:3595
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3597
+#: src/transport/gnunet-service-transport_neighbours.c:3624
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3644
+#: src/transport/gnunet-service-transport_neighbours.c:3672
 msgid "# quota messages ignored (malformed)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3651
+#: src/transport/gnunet-service-transport_neighbours.c:3679
 msgid "# QUOTA messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3686
+#: src/transport/gnunet-service-transport_neighbours.c:3720
 msgid "# disconnect messages ignored (malformed)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3693
+#: src/transport/gnunet-service-transport_neighbours.c:3727
 msgid "# DISCONNECT messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3704
+#: src/transport/gnunet-service-transport_neighbours.c:3738
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3833
+#: src/transport/gnunet-service-transport_neighbours.c:3867
 msgid "# disconnected from peer upon explicit request"
 msgstr ""
 
@@ -7771,7 +7795,7 @@ msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_server.c:2825
-#: src/transport/plugin_transport_udp.c:3332
+#: src/transport/plugin_transport_udp.c:3336
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
@@ -8002,50 +8026,50 @@ msgstr ""
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3078
+#: src/transport/plugin_transport_udp.c:3082
 #, c-format
 msgid ""
 "UDP could not transmit message to `%s': Network seems down, please check "
 "your network configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3092
+#: src/transport/plugin_transport_udp.c:3096
 msgid ""
 "UDP could not transmit IPv6 message! Please check your network configuration "
 "and disable IPv6 if your connection does not have a global IPv6 address\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3408
-#: src/transport/plugin_transport_udp.c:3507
+#: src/transport/plugin_transport_udp.c:3412
+#: src/transport/plugin_transport_udp.c:3511
 #, fuzzy, c-format
 msgid "Failed to bind UDP socket to %s: %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/plugin_transport_udp.c:3426
+#: src/transport/plugin_transport_udp.c:3430
 msgid "Disabling IPv4 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3517
+#: src/transport/plugin_transport_udp.c:3521
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/plugin_transport_udp.c:3588
-#: src/transport/plugin_transport_udp.c:3602
+#: src/transport/plugin_transport_udp.c:3592
+#: src/transport/plugin_transport_udp.c:3606
 msgid "must be in [0,65535]"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3634
+#: src/transport/plugin_transport_udp.c:3638
 #, fuzzy
 msgid "must be valid IPv4 address"
 msgstr "“%s”不可用。\n"
 
-#: src/transport/plugin_transport_udp.c:3661
+#: src/transport/plugin_transport_udp.c:3665
 #, fuzzy
 msgid "must be valid IPv6 address"
 msgstr "“%s”不可用。\n"
 
-#: src/transport/plugin_transport_udp.c:3727
+#: src/transport/plugin_transport_udp.c:3731
 #, fuzzy
 msgid "Failed to create UDP network sockets\n"
 msgstr "发送消息失败。\n"
@@ -8352,7 +8376,7 @@ msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt 的版本不符合预期(要求版本 %s)。\n"
 
-#: src/util/crypto_rsa.c:787
+#: src/util/crypto_rsa.c:809
 #, fuzzy, c-format
 msgid "RSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
@@ -8643,7 +8667,7 @@ msgstr "创建用户出错"
 msgid "Failed to parse inbound message from helper `%s'\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/util/helper.c:618
+#: src/util/helper.c:620
 #, fuzzy, c-format
 msgid "Error writing to `%s': %s\n"
 msgstr "创建用户出错"

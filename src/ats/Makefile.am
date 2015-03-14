@@ -99,11 +99,14 @@ gnunet_service_ats_LDADD = \
 if HAVE_TESTING
 TESTING_TESTS = \
  test_ats_api_proportional \
- test_ats_reservation_api_proportional \
+ test_ats_reservation_api_proportional
+if HAVE_WACHS
+TESTING_TESTS += \
  test_ats_api_ril
 if HAVE_LIBGLPK
 TESTING_TESTS += \
  test_ats_api_mlp
+endif
 endif
 endif
 
