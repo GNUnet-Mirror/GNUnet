@@ -166,7 +166,7 @@ free_asd (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (p2asd,
                                                        key,
                                                        asd));
-  GNUNET_free (asd->address);
+  GNUNET_free_non_null (asd->address);
   GNUNET_free (asd);
   return GNUNET_OK;
 }
@@ -553,8 +553,9 @@ reservation_cb (void *cls,
     if (amount != cmd->details.reserve_bandwidth.amount)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpectedly failed to reserve %d bytes with delay %s!\n",
+                  "Unexpectedly failed to reserve %d/%d bytes with delay %s!\n",
                   (int) amount,
+                  (int) cmd->details.reserve_bandwidth.amount,
                   GNUNET_STRINGS_relative_time_to_string (res_delay,
                                                           GNUNET_YES));
       GNUNET_break (0);
@@ -935,7 +936,8 @@ address_suggest_cb (void *cls,
   asd->address = NULL;
   if (NULL != address)
     asd->address = GNUNET_HELLO_address_copy (address);
-  run_interpreter ();
+  if (NULL == interpreter_task)
+    run_interpreter ();
 }
 
 
