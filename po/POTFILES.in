@@ -178,6 +178,7 @@ src/gns/nss/nss_gns.c
 src/gns/nss/nss_gns_query.c
 src/gns/plugin_block_gns.c
 src/gns/plugin_gnsrecord_gns.c
+src/gns/plugin_rest_gns.c
 src/gnsrecord/gnsrecord.c
 src/gnsrecord/gnsrecord_crypto.c
 src/gnsrecord/gnsrecord_misc.c
@@ -197,6 +198,7 @@ src/identity/gnunet-identity.c
 src/identity/gnunet-service-identity.c
 src/identity/identity_api.c
 src/identity/identity_api_lookup.c
+src/identity/plugin_rest_identity.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
@@ -257,6 +259,7 @@ src/regex/regex_internal_dht.c
 src/regex/regex_test_graph.c
 src/regex/regex_test_lib.c
 src/regex/regex_test_random.c
+src/rest/gnunet-rest-server.c
 src/revocation/gnunet-revocation.c
 src/revocation/gnunet-service-revocation.c
 src/revocation/revocation_api.c

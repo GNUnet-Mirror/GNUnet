@@ -708,8 +708,9 @@ GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
  * @param cls closure
  * @param res resulting hash, NULL on error
  */
-typedef void (*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
-                                                     const struct GNUNET_HashCode *res);
+typedef void
+(*GNUNET_CRYPTO_HashCompletedCallback) (void *cls,
+                                        const struct GNUNET_HashCode *res);
 
 
 /**

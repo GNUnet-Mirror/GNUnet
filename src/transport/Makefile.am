@@ -489,8 +489,11 @@ check_PROGRAMS = \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
  $(WLAN_QUOTA_TEST) \
- $(BT_QUOTA_TEST) \
- test_transport_api_slow_ats
+ $(BT_QUOTA_TEST)
+if HAVE_GETOPT_BINARY
+check_PROGRAMS += \
+test_transport_api_slow_ats
+endif
 endif
 
 if ENABLE_TEST_RUN
@@ -549,7 +552,6 @@ TESTS = \
  $(UNIX_QUOTA_TEST) \
  $(HTTP_QUOTA_TEST) \
  $(HTTPS_QUOTA_TEST) \
- test_transport_api_slow_ats \
  test_transport_api_timeout_tcp \
  test_transport_api_timeout_udp \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
@@ -561,6 +563,10 @@ TESTS = \
  test_transport_address_switch_udp \
  $(HTTP_SWITCH) \
  $(HTTPS_SWITCH)
+if HAVE_GETOPT_BINARY
+TESTS += \
+test_transport_api_slow_ats
+endif
 endif
 
 test_transport_testing_startstop_SOURCES = \

@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2014 Christian Grothoff (and other contributing authors)
+# (C) 2001--2015 Christian Grothoff (and other contributing authors)
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -201,6 +201,10 @@ AC_SEARCH_LIBS([gethostbyname], [nsl ws2_32])
 AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(m, log)
 AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
+
+AC_CHECK_PROG(VAR_GETOPT_BINARY, getopt, true, false)
+AM_CONDITIONAL(HAVE_GETOPT_BINARY, $VAR_GETOPT_BINARY)
+
 
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
