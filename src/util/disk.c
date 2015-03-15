@@ -868,7 +868,9 @@ GNUNET_DISK_file_read (const struct GNUNET_DISK_FileHandle *h,
     {
       if (GetLastError () != ERROR_IO_PENDING)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Error reading from pipe: %u\n", GetLastError ());
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Error reading from pipe: %u\n",
+             GetLastError ());
         SetErrnoFromWinError (GetLastError ());
         return GNUNET_SYSERR;
       }
@@ -983,6 +985,7 @@ GNUNET_DISK_fn_read (const char *fn,
 {
   struct GNUNET_DISK_FileHandle *fh;
   ssize_t ret;
+  int eno;
 
   fh = GNUNET_DISK_file_open (fn,
                               GNUNET_DISK_OPEN_READ,
@@ -990,8 +993,9 @@ GNUNET_DISK_fn_read (const char *fn,
   if (NULL == fh)
     return GNUNET_SYSERR;
   ret = GNUNET_DISK_file_read (fh, result, len);
+  eno = errno;
   GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
-
+  errno = eno;
   return ret;
 }
 
