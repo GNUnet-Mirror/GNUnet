@@ -991,7 +991,8 @@ address_information_cb (void *cls,
   aid->bandwidth_out = bandwidth_out;
   aid->bandwidth_in = bandwidth_in;
   aid->properties = *prop;
-  run_interpreter ();
+  if (NULL == interpreter_task)
+    run_interpreter ();
 }
 
 
