@@ -64,11 +64,6 @@
 static struct GNUNET_SCHEDULER_Task * httpd_task;
 
 /**
- * is this an ssl daemon? //TODO
- */
-static int is_ssl;
-
-/**
  * The port the service is running on (default 7776)
  */
 static unsigned long port = GNUNET_REST_SERVICE_PORT;
@@ -172,12 +167,6 @@ plugin_callback (void *cls,
                  int status)
 {
   struct MhdConnectionHandle *handle = cls;
-  struct MHD_Response *resp = MHD_create_response_from_buffer (len,
-                                                               (void*)data,
-                                                               MHD_RESPMEM_MUST_COPY);
-  (void) MHD_add_response_header (resp,
-				  MHD_HTTP_HEADER_CONTENT_TYPE,
-				  "application/json");
   handle->status = status;
   handle->response = resp;
   run_mhd_now(); 
@@ -336,7 +325,7 @@ create_response (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
-    /* FIXME: this is a bit dangerous... */
+    /* FIXME: this is a bit dangerous... only for testing. */
     MHD_add_response_header (con_handle->response,
 			     "Access-Control-Allow-Origin",
 			     "*");
