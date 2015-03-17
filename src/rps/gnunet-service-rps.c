@@ -1400,6 +1400,10 @@ handle_peer_act_malicious (void *cls,
     mal_peers = GNUNET_new_array (num_mal_peers,
                                   struct GNUNET_PeerIdentity);
     memcpy (mal_peers, peers, num_mal_peers);
+
+    /* Substitute do_round () with do_mal_round () */
+    GNUNET_SCHEDULER_cancel (do_round_task);
+    do_round_task = GNUNET_SCHEDULER_add_now (&do_mal_round, NULL);
   }
   else if (2 == mal_type)
   { /* Try to partition the network */
@@ -1408,6 +1412,23 @@ handle_peer_act_malicious (void *cls,
                                   struct GNUNET_PeerIdentity);
     memcpy (mal_peers, peers, num_mal_peers);
     attacked_peer = peers[num_mal_peers];
+
+    /* Substitute do_round () with do_mal_round () */
+    GNUNET_SCHEDULER_cancel (do_round_task);
+    do_round_task = GNUNET_SCHEDULER_add_now (&do_mal_round, NULL);
+  }
+  else if (0 == mal_type)
+  { /* Stop acting malicious */
+    num_mal_peers = 0;
+    GNUNET_free (mal_peers);
+
+    /* Substitute do_mal_round () with do_round () */
+    GNUNET_SCHEDULER_cancel (do_round_task);
+    do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
+  }
+  else
+  {
+    GNUNET_break (0);
   }
 
   return GNUNET_OK;
