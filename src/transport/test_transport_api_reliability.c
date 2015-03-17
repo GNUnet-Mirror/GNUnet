@@ -31,6 +31,12 @@
 #include "gauger.h"
 #include "transport-testing.h"
 
+
+/**
+ * Allow making the problem "bigger".
+ */
+#define FACTOR 10
+
 /**
  * Total number of messages to send
  *
@@ -38,7 +44,7 @@
  * 'MAX_PENDING' in 'gnunet-service-transport_clients.c', otherwise
  * messages may be dropped even for a reliable transport.
  */
-#define TOTAL_MSGS (1024 * 3)
+#define TOTAL_MSGS (1024 * 3 * FACTOR)
 
 /**
  * Message type of test messages
@@ -48,12 +54,12 @@
 /**
  * Testcase timeout
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90 * FACTOR)
 
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60 * FACTOR)
 
 
 /**

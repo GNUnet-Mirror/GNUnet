@@ -2986,13 +2986,12 @@ remove_timeout_messages_and_select (struct Plugin *plugin,
     if (GNUNET_TIME_UNIT_ZERO.rel_value_us == remaining.rel_value_us)
     {
       /* Message timed out */
-      udpw->qc (udpw->qc_cls,
-                udpw,
-                GNUNET_SYSERR);
-      /* Remove message */
       removed = GNUNET_YES;
       dequeue (plugin,
                udpw);
+      udpw->qc (udpw->qc_cls,
+                udpw,
+                GNUNET_SYSERR);
       GNUNET_free (udpw);
 
       if (sock == plugin->sockv4)
@@ -3166,11 +3165,11 @@ udp_select_send (struct Plugin *plugin,
     else
     {
       GNUNET_break (0);
+      dequeue (plugin,
+               udpw);
       udpw->qc (udpw->qc_cls,
                 udpw,
                 GNUNET_SYSERR);
-      dequeue (plugin,
-               udpw);
       notify_session_monitor (plugin,
                               udpw->session,
                               GNUNET_TRANSPORT_SS_UPDATE);
@@ -3182,6 +3181,8 @@ udp_select_send (struct Plugin *plugin,
                                          udpw->msg_size,
                                          a,
                                          slen);
+    dequeue (plugin,
+             udpw);
     if (GNUNET_SYSERR == sent)
     {
       /* Failure */
@@ -3226,8 +3227,6 @@ udp_select_send (struct Plugin *plugin,
                 udpw,
                 GNUNET_OK);
     }
-    dequeue (plugin,
-             udpw);
     notify_session_monitor (plugin,
                             udpw->session,
                             GNUNET_TRANSPORT_SS_UPDATE);
