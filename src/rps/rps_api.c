@@ -155,6 +155,12 @@ handle_reply (void *cls,
 mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   //TODO LOG
+  LOG (GNUNET_ERROR_TYPE_WARNING, "Some problem with the message queue. error: %i\n\
+       1: READ,\n\
+       2: WRITE,\n\
+       4: TIMEOUT\n",
+       error);
+
 }
 
 /**

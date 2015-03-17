@@ -629,6 +629,12 @@ peer_is_live (struct PeerContext *peer_ctx)
     GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
   }
 
+  if (NULL != peer_ctx->is_live_task)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
+    peer_ctx->is_live_task = NULL;
+  }
+
   return 0;
 }
 
@@ -645,7 +651,10 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
 
   if (NULL != buf
       && 0 != size)
+  {
+    peer_ctx->is_live_task = NULL;
     peer_is_live (peer_ctx);
+  }
 
   //if (NULL != peer_ctx->is_live_task)
   //{
@@ -655,7 +664,6 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
   //  GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
   //  peer_ctx->is_live_task = NULL;
   //}
-  peer_ctx->is_live_task = NULL;
 
   return 0;
 }
@@ -670,13 +678,13 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 {
   struct PeerContext *peer_ctx;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to establish channel to peer %s\n",
-       GNUNET_i2s (peer));
-
   peer_ctx = get_peer_ctx (peer_map, peer);
   if (NULL == peer_ctx->send_channel)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Trying to establish channel to peer %s\n",
+         GNUNET_i2s (peer));
+
     peer_ctx->send_channel =
       GNUNET_CADET_channel_create (cadet_handle,
                                    NULL,
