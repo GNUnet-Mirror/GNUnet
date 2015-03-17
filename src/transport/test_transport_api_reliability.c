@@ -31,11 +31,10 @@
 #include "gauger.h"
 #include "transport-testing.h"
 
-
 /**
  * Allow making the problem "bigger".
  */
-#define FACTOR 10
+#define FACTOR 1
 
 /**
  * Total number of messages to send
