@@ -27,9 +27,9 @@
 #include <nspapi.h>
 #include <ws2spi.h>
 #include <nspapi.h>
+#include <initguid.h>
 #include "gnunet_w32nsp_lib.h"
 #include <stdio.h>
-#include <initguid.h>
 
 typedef int (WSPAPI *LPNSPSTARTUP) (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines);
 
