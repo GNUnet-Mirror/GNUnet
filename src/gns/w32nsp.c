@@ -71,7 +71,7 @@
 #endif
 #endif
 #include "w32resolver.h"
-#define INITGUID
+#include <initguid.h>
 #include "gnunet_w32nsp_lib.h"
 #undef INITGUID
 

@@ -23,7 +23,6 @@
  * @author Christian Grothoff
  * @author LRN
  */
-#define INITGUID
 #include "platform.h"
 #include <gnunet_util_lib.h>
 #include <gnunet_identity_service.h>
@@ -34,6 +33,7 @@
 #include "w32resolver.h"
 #include <nspapi.h>
 #include <unistr.h>
+#include <initguid.h>
 
 #define DEFINE_DNS_GUID(a,x) DEFINE_GUID(a, 0x00090035, 0x0000, x, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46)
 DEFINE_DNS_GUID(SVCID_DNS_TYPE_A, 0x0001);

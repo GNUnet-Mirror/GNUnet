@@ -23,12 +23,12 @@
  * @author LRN
  */
 
-#define INITGUID
 #include <ws2spi.h>
 #include <windows.h>
 #include <nspapi.h>
 #include "gnunet_w32nsp_lib.h"
 #include <stdio.h>
+#include <initguid.h>
 
 int
 main (int argc, char **argv)

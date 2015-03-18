@@ -22,7 +22,6 @@
  * @brief W32 integration for GNS
  * @author LRN
  */
-#define INITGUID
 #include <ws2tcpip.h>
 #include <windows.h>
 #include <nspapi.h>
@@ -30,6 +29,7 @@
 #include <nspapi.h>
 #include "gnunet_w32nsp_lib.h"
 #include <stdio.h>
+#include <initguid.h>
 
 typedef int (WSPAPI *LPNSPSTARTUP) (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines);
 
