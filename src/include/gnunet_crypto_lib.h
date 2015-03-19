@@ -1055,6 +1055,20 @@ GNUNET_CRYPTO_ecdsa_public_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPublicKey *
 
 /**
  * @ingroup crypto
+ * Convert ECDSA private key to ECDHE private key.
+ * Please be very careful when using this function, as mixing
+ * cryptographic primitives is not always healthy.
+ *
+ * @param ecdsa ecdsa private key
+ * @param ecdhe[OUT] ecdhe private key
+ */
+void
+GNUNET_CRYPTO_ecdsa_private_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa,
+                                     struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe);
+
+
+/**
+ * @ingroup crypto
  * Extract the public key for the given private key.
  *
  * @param priv the private key

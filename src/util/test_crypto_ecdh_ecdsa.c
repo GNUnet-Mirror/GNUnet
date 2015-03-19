@@ -40,10 +40,8 @@ test_pk()
 
   /* Generate, cast keys */
   priv1 = GNUNET_CRYPTO_ecdsa_key_create ();
-  memcpy (&priv2,
-          priv1,
-          sizeof (priv2));
-
+  GNUNET_CRYPTO_ecdsa_private_to_ecdhe (priv1,
+                                        &priv2);
   /* Extract public keys */
   GNUNET_CRYPTO_ecdsa_key_get_public (priv1, &pub1);
   GNUNET_CRYPTO_ecdhe_key_get_public (&priv2, &pub2);
@@ -71,48 +69,42 @@ test_ecdh()
   struct GNUNET_CRYPTO_EcdhePublicKey id1c;
   struct GNUNET_CRYPTO_EcdhePublicKey id2c;
 
-  struct GNUNET_CRYPTO_EcdhePrivateKey *priv1;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *priv2;
+  struct GNUNET_CRYPTO_EcdhePrivateKey priv1;
+  struct GNUNET_CRYPTO_EcdhePrivateKey priv2;
   struct GNUNET_CRYPTO_EcdhePublicKey pub2;
   struct GNUNET_HashCode dh[3];
 
   /* Generate, cast keys */
   priv_dsa1 = GNUNET_CRYPTO_ecdsa_key_create ();
   priv_dsa2 = GNUNET_CRYPTO_ecdsa_key_create ();
-  priv1 = (struct GNUNET_CRYPTO_EcdhePrivateKey *) priv_dsa1;
-  priv2 = (struct GNUNET_CRYPTO_EcdhePrivateKey *) priv_dsa2;
+  GNUNET_CRYPTO_ecdsa_private_to_ecdhe (priv_dsa1,
+                                        &priv1);
 
+  GNUNET_CRYPTO_ecdsa_private_to_ecdhe (priv_dsa2,
+                                        &priv2);
   /* Extract public keys */
   GNUNET_CRYPTO_ecdsa_key_get_public (priv_dsa1, &id1);
   GNUNET_CRYPTO_ecdsa_key_get_public (priv_dsa2, &id2);
-  GNUNET_CRYPTO_ecdhe_key_get_public (priv2, &pub2);
+  GNUNET_CRYPTO_ecdhe_key_get_public (&priv2, &pub2);
 
   /* Do ECDH */
   GNUNET_CRYPTO_ecdsa_public_to_ecdhe (&id2,
                                        &id2c);
   GNUNET_CRYPTO_ecdsa_public_to_ecdhe (&id1,
                                        &id1c);
-  GNUNET_CRYPTO_ecc_ecdh (priv1,
+  GNUNET_CRYPTO_ecc_ecdh (&priv1,
                           &id2c,
                           &dh[0]);
-  GNUNET_CRYPTO_ecc_ecdh (priv2,
+  GNUNET_CRYPTO_ecc_ecdh (&priv2,
                           &id1c,
                           &dh[1]);
-  GNUNET_CRYPTO_ecc_ecdh (priv1, &pub2, &dh[2]);
+  GNUNET_CRYPTO_ecc_ecdh (&priv1, &pub2, &dh[2]);
 
   /* Check that both DH results are equal. */
   GNUNET_assert (0 == memcmp (&dh[0], &dh[1],
 			      sizeof (struct GNUNET_HashCode)));
-
-  /* FIXME: Maybe it should be the same as with ECDHE. */
-  // GNUNET_assert (0 == memcmp (&dh[1], &dh[2],
-  //                            sizeof (struct GNUNET_HashCode)));
-  // GNUNET_assert (0 == memcmp (&id1, &pub1,
-  //                            sizeof (struct GNUNET_CRYPTO_EcdhePublicKey)));
-
-  /* Free */
-  GNUNET_free (priv1);
-  GNUNET_free (priv2);
+  GNUNET_free (priv_dsa1);
+  GNUNET_free (priv_dsa2);
   return 0;
 }
 
