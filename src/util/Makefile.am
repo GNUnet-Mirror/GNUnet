@@ -388,9 +388,9 @@ test_crypto_ecdhe_LDADD = \
  libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
 
-test_crypto_ecdh_eddsa_SOURCES = \
- test_crypto_ecdh_eddsa.c
-test_crypto_ecdh_eddsa_LDADD = \
+test_crypto_ecdh_ecdsa_SOURCES = \
+ test_crypto_ecdh_ecdsa.c
+test_crypto_ecdh_ecdsa_LDADD = \
  libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
 
