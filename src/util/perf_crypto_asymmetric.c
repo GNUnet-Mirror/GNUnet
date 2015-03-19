@@ -65,7 +65,8 @@ main (int argc, char *argv[])
   for (i = 0; i < l; i++)
   {
     sig[i].purp.purpose = 0;
-    sig[i].purp.size = htonl (sizeof (struct TestSig));
+    sig[i].purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose)
+                              + sizeof (struct GNUNET_HashCode));
     GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
                                 &sig[i].h, sizeof (&sig[0].h));
   }
