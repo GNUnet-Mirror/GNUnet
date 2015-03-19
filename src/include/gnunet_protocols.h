@@ -521,7 +521,8 @@ extern "C"
 
 /**
  * P2P response with content or active migration of content.  Also
- * used between the service and clients (in response to START_SEARCH).
+ * used between the service and clients (in response to
+ * #GNUNET_MESSAGE_TYPE_FS_START_SEARCH).
  */
 #define GNUNET_MESSAGE_TYPE_FS_PUT 138
 
@@ -544,7 +545,6 @@ extern "C"
 /*******************************************************************************
  * DHT message types
  ******************************************************************************/
-
 /**
  * Client wants to store item in DHT.
  */
