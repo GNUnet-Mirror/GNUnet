@@ -572,10 +572,9 @@ GNUNET_CONFIGURATION_iterate_section_values (const struct
  * @param iter_cls closure for @a iter
  */
 void
-GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle
-                                       *cfg,
-                                       GNUNET_CONFIGURATION_Section_Iterator
-                                       iter, void *iter_cls)
+GNUNET_CONFIGURATION_iterate_sections (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                       GNUNET_CONFIGURATION_Section_Iterator iter,
+                                       void *iter_cls)
 {
   struct ConfigSection *spos;
   struct ConfigSection *next;

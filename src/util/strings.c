@@ -895,7 +895,7 @@ GNUNET_STRINGS_data_to_string (const void *data,
     out[wpos++] = encTable__[(bits >> (vbit - 5)) & 31];
     vbit -= 5;
   }
-  GNUNET_assert (vbit == 0);
+  GNUNET_assert (0 == vbit);
   if (wpos < out_size)
     out[wpos] = '\0';
   return &out[wpos];

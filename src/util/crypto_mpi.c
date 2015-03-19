@@ -77,6 +77,7 @@ GNUNET_CRYPTO_mpi_print_unsigned (void *buf,
                                   gcry_mpi_t val)
 {
   size_t rsize;
+  int rc;
 
   if (gcry_mpi_get_flag (val, GCRYMPI_FLAG_OPAQUE))
   {
@@ -98,9 +99,17 @@ GNUNET_CRYPTO_mpi_print_unsigned (void *buf,
     /* Store regular MPIs as unsigned integers right aligned into
        the buffer.  */
     rsize = size;
-    GNUNET_assert (0 ==
-                   gcry_mpi_print (GCRYMPI_FMT_USG, buf, rsize, &rsize,
-                                   val));
+    if (0 !=
+        (rc = gcry_mpi_print (GCRYMPI_FMT_USG,
+                              buf,
+                              rsize, &rsize,
+                              val)))
+    {
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+                "gcry_mpi_print",
+                rc);
+      GNUNET_assert (0);
+    }
     adjust (buf, rsize, size);
   }
 }
@@ -126,7 +135,9 @@ GNUNET_CRYPTO_mpi_scan_unsigned (gcry_mpi_t *result,
 				GCRYMPI_FMT_USG,
 				data, size, &size)))
   {
-    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+              "gcry_mpi_scan",
+              rc);
     GNUNET_assert (0);
   }
 }

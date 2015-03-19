@@ -227,7 +227,7 @@ check_PROGRAMS = \
  test_crypto_ecdsa \
  test_crypto_eddsa \
  test_crypto_ecdhe \
- test_crypto_ecdh_eddsa \
+ test_crypto_ecdh_ecdsa \
  test_crypto_hash \
  test_crypto_hash_context \
  test_crypto_hkdf \

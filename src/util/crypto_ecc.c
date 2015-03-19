@@ -61,7 +61,9 @@
  * @return 0 on success
  */
 static int
-key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
+key_from_sexp (gcry_mpi_t * array,
+               gcry_sexp_t sexp,
+               const char *topname,
                const char *elems)
 {
   gcry_sexp_t list;
@@ -229,7 +231,7 @@ GNUNET_CRYPTO_ecdsa_key_get_public (const struct GNUNET_CRYPTO_EcdsaPrivateKey *
   GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, sexp, NULL));
   gcry_sexp_release (sexp);
   q = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
-  GNUNET_assert (q);
+  GNUNET_assert (NULL != q);
   GNUNET_CRYPTO_mpi_print_unsigned (pub->q_y, sizeof (pub->q_y), q);
   gcry_mpi_release (q);
   gcry_ctx_release (ctx);
@@ -1313,7 +1315,7 @@ GNUNET_CRYPTO_eddsa_verify (uint32_t purpose,
   }
   data = data_to_eddsa_value (validate);
   if (0 != (rc = gcry_sexp_build (&pub_sexpr, NULL,
-                                  "(public-key(ecc(curve " CURVE ")(q %b)))",
+                                  "(public-key(ecc(curve " CURVE ")(flags eddsa)(q %b)))",
                                   (int)sizeof (pub->q_y), pub->q_y)))
   {
     gcry_sexp_release (data);
@@ -1506,7 +1508,7 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
      compressed thus we first store it in the context and then get it
      back as a (decompresssed) point.  */
   q_y = gcry_mpi_set_opaque_copy (NULL, pub->q_y, 8*sizeof (pub->q_y));
-  GNUNET_assert (q_y);
+  GNUNET_assert (NULL != q_y);
   GNUNET_assert (0 == gcry_mpi_ec_set_mpi ("q", q_y, ctx));
   gcry_mpi_release (q_y);
   q = gcry_mpi_ec_get_point ("q", ctx, 0);
@@ -1530,9 +1532,32 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
   gcry_mpi_point_release (v);
   q_y = gcry_mpi_ec_get_mpi ("q@eddsa", ctx, 0);
   GNUNET_assert (q_y);
-  GNUNET_CRYPTO_mpi_print_unsigned (result->q_y, sizeof result->q_y, q_y);
+  GNUNET_CRYPTO_mpi_print_unsigned (result->q_y,
+                                    sizeof (result->q_y),
+                                    q_y);
   gcry_mpi_release (q_y);
   gcry_ctx_release (ctx);
+}
+
+
+/**
+ * @ingroup crypto
+ * Convert ECDSA public key to ECDHE public key.
+ * Please be very careful when using this function, as mixing
+ * cryptographic primitives is not always healthy.
+ *
+ * @param ecdsa ecdsa public key
+ * @param ecdhe[OUT] ecdhe public key
+ */
+void
+GNUNET_CRYPTO_ecdsa_public_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa,
+                                     struct GNUNET_CRYPTO_EcdhePublicKey *ecdhe)
+{
+  GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) ==
+                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  memcpy (ecdhe,
+          ecdsa,
+          sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
 }
 
 
