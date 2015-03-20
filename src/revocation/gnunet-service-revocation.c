@@ -523,6 +523,10 @@ handle_core_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
+  GNUNET_STATISTICS_update (stats,
+                            "# peers connected",
+                            1,
+                            GNUNET_NO);
   peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
                                                   peer);
   if (NULL != peer_entry)
@@ -558,10 +562,6 @@ handle_core_connect (void *cls,
                                     &transmit_task_cb,
                                     peer_entry);
   }
-  GNUNET_STATISTICS_update (stats,
-                            "# peers connected",
-                            1,
-                            GNUNET_NO);
 }
 
 
