@@ -103,7 +103,12 @@ struct Neighbour
   /**
    * ID of task used for re-trying plaintext scheduling.
    */
-  struct GNUNET_SCHEDULER_Task * retry_plaintext_task;
+  struct GNUNET_SCHEDULER_Task *retry_plaintext_task;
+
+  /**
+   * How many messages are in the queue for this neighbour?
+   */
+  unsigned int queue_size;
 
   /**
    * #GNUNET_YES if this peer currently has excess bandwidth.
@@ -155,9 +160,13 @@ free_neighbour (struct Neighbour *n)
               GNUNET_i2s (&n->peer));
   while (NULL != (m = n->message_head))
   {
-    GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
+    GNUNET_CONTAINER_DLL_remove (n->message_head,
+                                 n->message_tail,
+                                 m);
+    n->queue_size--;
     GNUNET_free (m);
   }
+  GNUNET_assert (0 == n->queue_size);
   if (NULL != n->th)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (n->th);
@@ -172,7 +181,7 @@ free_neighbour (struct Neighbour *n)
     GSC_KX_stop (n->kxinfo);
     n->kxinfo = NULL;
   }
-  if (n->retry_plaintext_task != NULL)
+  if (NULL != n->retry_plaintext_task)
   {
     GNUNET_SCHEDULER_cancel (n->retry_plaintext_task);
     n->retry_plaintext_task = NULL;
@@ -223,7 +232,10 @@ transmit_ready (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
+  GNUNET_CONTAINER_DLL_remove (n->message_head,
+                               n->message_tail,
+                               m);
+  n->queue_size--;
   if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -297,6 +309,7 @@ process_queue (struct Neighbour *n)
   GNUNET_CONTAINER_DLL_remove (n->message_head,
                                n->message_tail,
                                m);
+  n->queue_size--;
   GNUNET_free (m);
   process_queue (n);
 }
@@ -463,6 +476,7 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
   GNUNET_CONTAINER_DLL_insert_tail (n->message_head,
                                     n->message_tail,
                                     me);
+  n->queue_size++;
   process_queue (n);
 }
 
@@ -492,6 +506,28 @@ handle_transport_notify_excess_bw (void *cls,
   n->has_excess_bandwidth = GNUNET_YES;
   GSC_SESSIONS_solicit (pid);
 }
+
+
+/**
+ * Check how many messages are queued for the given neighbour.
+ *
+ * @param target neighbour to check
+ * @return number of items in the message queue
+ */
+unsigned int
+GSC_NEIGHBOURS_get_queue_size (const struct GNUNET_PeerIdentity *target)
+{
+  struct Neighbour *n;
+
+  n = find_neighbour (target);
+  if (NULL == n)
+  {
+    GNUNET_break (0);
+    return UINT_MAX;
+  }
+  return n->queue_size;
+}
+
 
 
 /**

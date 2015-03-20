@@ -57,6 +57,16 @@ GSC_NEIGHBOURS_check_excess_bandwidth (const struct GNUNET_PeerIdentity *target)
 
 
 /**
+ * Check how many messages are queued for the given neighbour.
+ *
+ * @param target neighbour to check
+ * @return number of items in the message queue
+ */
+unsigned int
+GSC_NEIGHBOURS_get_queue_size (const struct GNUNET_PeerIdentity *target);
+
+
+/**
  * Initialize neighbours subsystem.
  */
 int

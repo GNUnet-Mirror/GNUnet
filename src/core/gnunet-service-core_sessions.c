@@ -35,6 +35,13 @@
 
 
 /**
+ * How many encrypted messages do we queue at most?
+ * Needed to bound memory consumption.
+ */
+#define MAX_ENCRYPTED_MESSAGE_QUEUE_SIZE 4
+
+
+/**
  * Message ready for encryption.  This struct is followed by the
  * actual content of the message.
  */
@@ -639,6 +646,9 @@ try_transmission (struct Session *session)
   min_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
   /* if the peer has excess bandwidth, background traffic is allowed,
      otherwise not */
+  if (MAX_ENCRYPTED_MESSAGE_QUEUE_SIZE >=
+      GSC_NEIGHBOURS_check_excess_bandwidth (&session->peer))
+    return; /* queue already too long */
   excess = GSC_NEIGHBOURS_check_excess_bandwidth (&session->peer);
   if (GNUNET_YES == excess)
     maxp = GNUNET_CORE_PRIO_BACKGROUND;
