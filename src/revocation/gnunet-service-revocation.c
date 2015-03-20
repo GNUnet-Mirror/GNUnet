@@ -512,14 +512,27 @@ handle_core_connect (void *cls,
   struct GNUNET_HashCode my_hash;
   struct GNUNET_HashCode peer_hash;
 
-  if (0 == memcmp(peer,
-                  &my_identity,
-                  sizeof (my_identity)))
-      return;
+  if (0 == memcmp (peer,
+                   &my_identity,
+                   sizeof (my_identity)))
+  {
+    GNUNET_break (0);
+    return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
+  peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
+                                                  peer);
+  if (NULL != peer_entry)
+  {
+    /* This can happen if "core"'s notification is a tad late
+       and CADET+SET were faster and already produced a
+       #handle_revocation_union_request() for us to deal
+       with.  This should be rare, but isn't impossible. */
+    return;
+  }
   peer_entry = GNUNET_new (struct PeerEntry);
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
@@ -568,7 +581,10 @@ handle_core_disconnect (void *cls,
   if (0 == memcmp (peer,
                    &my_identity,
                    sizeof (my_identity)))
+  {
+    GNUNET_break (0);
     return;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer `%s' disconnected from us\n",
@@ -728,7 +744,8 @@ handle_revocation_union_request (void *cls,
     peer_entry = GNUNET_new (struct PeerEntry);
     peer_entry->id = *other_peer;
     GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (peers, other_peer,
+                   GNUNET_CONTAINER_multipeermap_put (peers,
+                                                      other_peer,
                                                       peer_entry,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
