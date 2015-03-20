@@ -516,7 +516,6 @@ handle_core_connect (void *cls,
                    &my_identity,
                    sizeof (my_identity)))
   {
-    GNUNET_break (0);
     return;
   }
 
@@ -582,7 +581,6 @@ handle_core_disconnect (void *cls,
                    &my_identity,
                    sizeof (my_identity)))
   {
-    GNUNET_break (0);
     return;
   }
 
