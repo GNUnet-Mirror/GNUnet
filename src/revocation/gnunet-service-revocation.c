@@ -520,9 +520,6 @@ handle_core_connect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
-  peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
-                                                  peer);
-  GNUNET_assert (NULL == peer_entry);
   peer_entry = GNUNET_new (struct PeerEntry);
   peer_entry->id = *peer;
   GNUNET_assert (GNUNET_OK ==
