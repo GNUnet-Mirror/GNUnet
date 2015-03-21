@@ -113,6 +113,19 @@ typedef void (*PluginEstimateSize) (void *cls, unsigned long long *estimate);
 
 
 /**
+ * Put continuation.
+ *
+ * @param cls closure
+ * @param key key for the item stored
+ * @param size size of the item stored
+ * @param status GNUNET_OK or GNUNET_SYSERROR
+ * @param msg error message on error
+ */
+typedef void (*PluginPutCont) (void *cls, const struct GNUNET_HashCode *key,
+                               uint32_t size, int status, char *msg);
+
+
+/**
  * Store an item in the datastore.  If the item is already present,
  * the priorities and replication levels are summed up and the higher
  * expiration time and lower anonymity level is used.
@@ -126,22 +139,23 @@ typedef void (*PluginEstimateSize) (void *cls, unsigned long long *estimate);
  * @param anonymity anonymity-level for the content
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
- * @param msg set to an error message (on failure)
- * @return #GNUNET_OK on success,
- *         #GNUNET_SYSERR on failure
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure
  */
-typedef int (*PluginPut) (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                          const void *data, enum GNUNET_BLOCK_Type type,
-                          uint32_t priority, uint32_t anonymity,
-                          uint32_t replication,
-                          struct GNUNET_TIME_Absolute expiration, char **msg);
+typedef void (*PluginPut) (void *cls, const struct GNUNET_HashCode * key,
+                           uint32_t size,
+                           const void *data, enum GNUNET_BLOCK_Type type,
+                           uint32_t priority, uint32_t anonymity,
+                           uint32_t replication,
+                           struct GNUNET_TIME_Absolute expiration,
+                           PluginPutCont cont, void *cont_cls);
 
 
 /**
  * An processor over a set of keys stored in the datastore.
  *
  * @param cls closure
- * @param key key in the data store
+ * @param key key in the data store, if NULL iteration is finished
  * @param count how many values are stored under this key in the datastore
  */
 typedef void (*PluginKeyProcessor) (void *cls,
@@ -174,8 +188,6 @@ typedef void (*PluginGetKeys) (void *cls,
  *        there may be!
  * @param type entries of which type are relevant?
  *     Use 0 for any type.
- * @param min find the smallest key that is larger than the given min,
- *            NULL for no minimum (return smallest key)
  * @param proc function to call on the matching value;
  *        proc should be called with NULL if there is no result
  * @param proc_cls closure for @a proc
@@ -201,6 +213,14 @@ typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
                                  void *proc_cls);
 
 
+/**
+ * Update continuation.
+ *
+ * @param cls closure
+ * @param status GNUNET_OK or GNUNET_SYSERROR
+ * @param msg error message on error
+ */
+typedef void (*PluginUpdateCont) (void *cls, int status, char *msg);
 
 
 /**
@@ -220,11 +240,12 @@ typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
- * @param msg set to an error message (on error)
- * @return #GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cons_cls continuation closure
  */
-typedef int (*PluginUpdate) (void *cls, uint64_t uid, int delta,
-                             struct GNUNET_TIME_Absolute expire, char **msg);
+typedef void (*PluginUpdate) (void *cls, uint64_t uid, int delta,
+                              struct GNUNET_TIME_Absolute expire,
+                              PluginUpdateCont cont, void *cont_cls);
 
 
 /**

@@ -279,15 +279,16 @@ postgres_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param anonymity anonymity-level for the content
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
- * @param msg set to error message
- * @return #GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure
  */
-static int
+static void
 postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                      const void *data, enum GNUNET_BLOCK_Type type,
                      uint32_t priority, uint32_t anonymity,
                      uint32_t replication,
-                     struct GNUNET_TIME_Absolute expiration, char **msg)
+                     struct GNUNET_TIME_Absolute expiration, PluginPutCont cont,
+                     void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode vhash;
@@ -326,12 +327,15 @@ postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t siz
                       paramFormats, 1);
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "put"))
-    return GNUNET_SYSERR;
+  {
+    cont (cont_cls, key, size, GNUNET_SYSERR, _("Postgress exec failure"));
+    return;
+  }
   PQclear (ret);
   plugin->env->duc (plugin->env->cls, size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "datastore-postgres",
                    "Stored %u bytes in database\n", (unsigned int) size);
-  return GNUNET_OK;
+  cont (cont_cls, key, size, GNUNET_OK, NULL);
 }
 
 
@@ -753,12 +757,13 @@ postgres_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
- * @param msg set to error message
- * @return GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cons_cls continuation closure
  */
-static int
+static void
 postgres_plugin_update (void *cls, uint64_t uid, int delta,
-                        struct GNUNET_TIME_Absolute expire, char **msg)
+                        struct GNUNET_TIME_Absolute expire,
+                        PluginUpdateCont cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
   PGresult *ret;
@@ -783,9 +788,12 @@ postgres_plugin_update (void *cls, uint64_t uid, int delta,
                       paramFormats, 1);
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "PQexecPrepared", "update"))
-    return GNUNET_SYSERR;
+  {
+    cont (cont_cls, GNUNET_SYSERR, NULL);
+    return;
+  }
   PQclear (ret);
-  return GNUNET_OK;
+  cont (cont_cls, GNUNET_OK, NULL);
 }
 
 
@@ -819,6 +827,7 @@ postgres_plugin_get_keys (void *cls,
     }
   }
   PQclear (res);
+  proc (proc_cls, NULL, 0);
 }
 
 

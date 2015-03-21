@@ -99,15 +99,60 @@ disk_utilization_change_cb (void *cls, int delta)
 
 
 static void
-putValue (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
+test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+static void
+put_continuation (void *cls, const struct GNUNET_HashCode *key,
+                  uint32_t size, int status, char *msg)
+{
+  struct CpsRunContext *crc = cls;
+
+  if (GNUNET_OK != status)
+  {
+    FPRINTF (stderr, "ERROR: `%s'\n", msg);
+  }
+  else
+  {
+    stored_bytes += size;
+    stored_ops++;
+    stored_entries++;
+  }
+  GNUNET_SCHEDULER_add_now (&test, crc);
+}
+
+static void
+do_put (struct CpsRunContext *crc)
 {
   char value[65536];
   size_t size;
   static struct GNUNET_HashCode key;
-  static int ic;
-  char *msg;
+  static int i;
   unsigned int prio;
 
+  if (0 == i)
+    crc->start = GNUNET_TIME_absolute_get ();
+  if (PUT_10 == i)
+  {
+    i = 0;
+    crc->end = GNUNET_TIME_absolute_get ();
+    {
+      printf ("%s took %s for %llu items\n", "Storing an item",
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (crc->start,
+											   crc->end),
+						      GNUNET_YES),
+              PUT_10);
+      if (PUT_10 > 0)
+        GAUGER (category, "Storing an item",
+                (crc->end.abs_value_us - crc->start.abs_value_us) / 1000LL / PUT_10,
+                "ms/item");
+    }
+    crc->i++;
+    crc->start = GNUNET_TIME_absolute_get ();
+    crc->phase++;
+    GNUNET_SCHEDULER_add_now (&test, crc);
+    return;
+  }
   /* most content is 32k */
   size = 32 * 1024;
   if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 16) == 0)   /* but some of it is less! */
@@ -120,32 +165,21 @@ putValue (struct GNUNET_DATASTORE_PluginFunctions *api, int i, int k)
   memset (value, i, size);
   if (i > 255)
     memset (value, i - 255, size / 2);
-  value[0] = k;
+  value[0] = crc->i;
   memcpy (&value[4], &i, sizeof (i));
-  msg = NULL;
   prio = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
-  if (GNUNET_OK != api->put (api->cls, &key, size, value, 1 + i % 4 /* type */ ,
-                             prio, i % 4 /* anonymity */ ,
-                             0 /* replication */ ,
-                             GNUNET_TIME_relative_to_absolute
-                             (GNUNET_TIME_relative_multiply
-                              (GNUNET_TIME_UNIT_MILLISECONDS,
-                               60 * 60 * 60 * 1000 +
-                               GNUNET_CRYPTO_random_u32
-                               (GNUNET_CRYPTO_QUALITY_WEAK, 1000))), &msg))
-  {
-    FPRINTF (stderr, "ERROR: `%s'\n", msg);
-    GNUNET_free_non_null (msg);
-    return;
-  }
-  ic++;
-  stored_bytes += size;
-  stored_ops++;
-  stored_entries++;
+  crc->api->put (crc->api->cls, &key, size, value, 1 + i % 4 /* type */ ,
+                 prio, i % 4 /* anonymity */ ,
+                 0 /* replication */ ,
+                 GNUNET_TIME_relative_to_absolute
+                 (GNUNET_TIME_relative_multiply
+                   (GNUNET_TIME_UNIT_MILLISECONDS,
+                    60 * 60 * 60 * 1000 +
+                    GNUNET_CRYPTO_random_u32
+                      (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
+                 put_continuation, crc);
+  i++;
 }
-
-static void
-test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static int
@@ -342,7 +376,6 @@ static void
 test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CpsRunContext *crc = cls;
-  int j;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -361,25 +394,7 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                         &cleaning_task, crc);
     break;
   case RP_PUT:
-    crc->start = GNUNET_TIME_absolute_get ();
-    for (j = 0; j < PUT_10; j++)
-      putValue (crc->api, j, crc->i);
-    crc->end = GNUNET_TIME_absolute_get ();
-    {
-      printf ("%s took %s for %llu items\n", "Storing an item",
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (crc->start,
-											   crc->end),
-						      GNUNET_YES),
-              PUT_10);
-      if (PUT_10 > 0)
-        GAUGER (category, "Storing an item",
-                (crc->end.abs_value_us - crc->start.abs_value_us) / 1000LL / PUT_10,
-                "ms/item");
-    }
-    crc->i++;
-    crc->start = GNUNET_TIME_absolute_get ();
-    crc->phase++;
-    GNUNET_SCHEDULER_add_now (&test, crc);
+    do_put (crc);
     break;
   case RP_REP_GET:
     crc->api->get_replication (crc->api->cls, &replication_get, crc);

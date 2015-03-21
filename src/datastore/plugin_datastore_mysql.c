@@ -280,14 +280,15 @@ mysql_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param anonymity anonymity-level for the content
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
- * @param msg set to error message
- * @return GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure
  */
-static int
+static void
 mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                   const void *data, enum GNUNET_BLOCK_Type type,
                   uint32_t priority, uint32_t anonymity, uint32_t replication,
-                  struct GNUNET_TIME_Absolute expiration, char **msg)
+                  struct GNUNET_TIME_Absolute expiration, PluginPutCont cont,
+                  void *cont_cls)
 {
   struct Plugin *plugin = cls;
   unsigned int irepl = replication;
@@ -305,7 +306,8 @@ mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
   if (size > MAX_DATUM_SIZE)
   {
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    cont (cont_cls, key, size, GNUNET_SYSERR, _("Data too large"));
+    return;
   }
   hashSize = sizeof (struct GNUNET_HashCode);
   hashSize2 = sizeof (struct GNUNET_HashCode);
@@ -322,13 +324,16 @@ mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
                               MYSQL_TYPE_BLOB, key, hashSize, &hashSize,
                               MYSQL_TYPE_BLOB, &vhash, hashSize2, &hashSize2,
                               MYSQL_TYPE_BLOB, data, lsize, &lsize, -1))
-    return GNUNET_SYSERR;
+  {
+    cont (cont_cls, key, size, GNUNET_SYSERR, _("MySQL statement run failure"));
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Inserted value `%s' with size %u into gn090 table\n",
               GNUNET_h2s (key), (unsigned int) size);
   if (size > 0)
     plugin->env->duc (plugin->env->cls, size);
-  return GNUNET_OK;
+  cont (cont_cls, key, size, GNUNET_OK, NULL);
 }
 
 
@@ -352,12 +357,13 @@ mysql_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
- * @param msg set to error message
- * @return GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cons_cls continuation closure
  */
-static int
+static void
 mysql_plugin_update (void *cls, uint64_t uid, int delta,
-                     struct GNUNET_TIME_Absolute expire, char **msg)
+                     struct GNUNET_TIME_Absolute expire,
+                     PluginUpdateCont cont, void *cont_cls)
 {
   struct Plugin *plugin = cls;
   unsigned long long vkey = uid;
@@ -379,7 +385,7 @@ mysql_plugin_update (void *cls, uint64_t uid, int delta,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Failed to update value %llu\n",
                 vkey);
   }
-  return ret;
+  cont (cont_cls, ret, NULL);
 }
 
 
@@ -778,6 +784,7 @@ mysql_plugin_get_keys (void *cls,
   if (statement == NULL)
   {
     GNUNET_MYSQL_statements_invalidate (plugin->mc);
+    proc (proc_cls, NULL, 0);
     return;
   }
   if (mysql_stmt_prepare (statement, query, strlen (query)))
@@ -785,6 +792,7 @@ mysql_plugin_get_keys (void *cls,
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "mysql",
                      _("Failed to prepare statement `%s'\n"), query);
     GNUNET_MYSQL_statements_invalidate (plugin->mc);
+    proc (proc_cls, NULL, 0);
     return;
   }
   GNUNET_assert (proc != NULL);
@@ -795,6 +803,7 @@ mysql_plugin_get_keys (void *cls,
                 "mysql_stmt_execute", query, __FILE__, __LINE__,
                 mysql_stmt_error (statement));
     GNUNET_MYSQL_statements_invalidate (plugin->mc);
+    proc (proc_cls, NULL, 0);
     return;
   }
   memset (cbind, 0, sizeof (cbind));
@@ -810,6 +819,7 @@ mysql_plugin_get_keys (void *cls,
                 "mysql_stmt_bind_result", __FILE__, __LINE__,
                 mysql_stmt_error (statement));
     GNUNET_MYSQL_statements_invalidate (plugin->mc);
+    proc (proc_cls, NULL, 0);
     return;
   }
   while (0 == (ret = mysql_stmt_fetch (statement)))
@@ -817,6 +827,7 @@ mysql_plugin_get_keys (void *cls,
     if (sizeof (struct GNUNET_HashCode) == length)
       proc (proc_cls, &key, 1);
   }
+  proc (proc_cls, NULL, 0);
   if (ret != MYSQL_NO_DATA)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

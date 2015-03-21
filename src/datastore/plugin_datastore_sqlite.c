@@ -470,10 +470,10 @@ delete_by_rowid (struct Plugin *plugin,
  * @param anonymity anonymity-level for the content
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
- * @param msg set to an error message
- * @return #GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure
  */
-static int
+static void
 sqlite_plugin_put (void *cls,
                    const struct GNUNET_HashCode *key,
                    uint32_t size,
@@ -483,7 +483,8 @@ sqlite_plugin_put (void *cls,
                    uint32_t anonymity,
                    uint32_t replication,
                    struct GNUNET_TIME_Absolute expiration,
-                   char **msg)
+                   PluginPutCont cont,
+                   void *cont_cls)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -491,9 +492,13 @@ sqlite_plugin_put (void *cls,
   sqlite3_stmt *stmt;
   struct GNUNET_HashCode vhash;
   uint64_t rvalue;
+  char *msg = NULL;
 
   if (size > MAX_ITEM_SIZE)
-    return GNUNET_SYSERR;
+  {
+    cont (cont_cls, key, size, GNUNET_SYSERR, _("Data too large"));
+    return;
+  }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite",
                    "Storing in database block with type %u/key `%s'/priority %u/expiration in %s (%s).\n",
                    type,
@@ -519,13 +524,15 @@ sqlite_plugin_put (void *cls,
                           SQLITE_TRANSIENT)) ||
       (SQLITE_OK != sqlite3_bind_blob (stmt, 9, data, size, SQLITE_TRANSIENT)))
   {
-    LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
     if (SQLITE_OK != sqlite3_reset (stmt))
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
-    return GNUNET_SYSERR;
+    cont (cont_cls, key, size, GNUNET_SYSERR, msg);
+    GNUNET_free_non_null(msg);
+    return;
   }
   n = sqlite3_step (stmt);
   switch (n)
@@ -539,12 +546,12 @@ sqlite_plugin_put (void *cls,
     break;
   case SQLITE_BUSY:
     GNUNET_break (0);
-    LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
     ret = GNUNET_SYSERR;
     break;
   default:
-    LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
     if (SQLITE_OK != sqlite3_reset (stmt))
       LOG_SQLITE (plugin, NULL,
@@ -552,12 +559,15 @@ sqlite_plugin_put (void *cls,
                   "sqlite3_reset");
     database_shutdown (plugin);
     database_setup (plugin->env->cfg, plugin);
-    return GNUNET_SYSERR;
+    cont (cont_cls, key, size, GNUNET_SYSERR, msg);
+    GNUNET_free_non_null(msg);
+    return;
   }
   if (SQLITE_OK != sqlite3_reset (stmt))
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
-  return ret;
+  cont (cont_cls, key, size, ret, msg);
+  GNUNET_free_non_null(msg);
 }
 
 
@@ -581,31 +591,34 @@ sqlite_plugin_put (void *cls,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
- * @param msg set to an error message
- * @return #GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cons_cls continuation closure
  */
-static int
+static void
 sqlite_plugin_update (void *cls,
                       uint64_t uid,
                       int delta,
                       struct GNUNET_TIME_Absolute expire,
-                      char **msg)
+                      PluginUpdateCont cont,
+                      void *cont_cls)
 {
   struct Plugin *plugin = cls;
   int n;
+  char *msg = NULL;
 
   if ((SQLITE_OK != sqlite3_bind_int (plugin->updPrio, 1, delta)) ||
       (SQLITE_OK != sqlite3_bind_int64 (plugin->updPrio, 2, expire.abs_value_us))
       || (SQLITE_OK != sqlite3_bind_int64 (plugin->updPrio, 3, uid)))
   {
-    LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_XXXX");
     if (SQLITE_OK != sqlite3_reset (plugin->updPrio))
       LOG_SQLITE (plugin, NULL,
                   GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_reset");
-    return GNUNET_SYSERR;
-
+    cont (cont_cls, GNUNET_SYSERR, msg);
+    GNUNET_free_non_null(msg);
+    return;
   }
   n = sqlite3_step (plugin->updPrio);
   if (SQLITE_OK != sqlite3_reset (plugin->updPrio))
@@ -615,15 +628,21 @@ sqlite_plugin_update (void *cls,
   {
   case SQLITE_DONE:
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "sqlite", "Block updated\n");
-    return GNUNET_OK;
+    cont (cont_cls, GNUNET_OK, NULL);
+    return;
   case SQLITE_BUSY:
-    LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, &msg,
+                GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
-    return GNUNET_NO;
+    cont (cont_cls, GNUNET_NO, msg);
+    GNUNET_free_non_null(msg);
+    return;
   default:
-    LOG_SQLITE (plugin, msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, &msg, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
-    return GNUNET_SYSERR;
+    cont (cont_cls, GNUNET_SYSERR, msg);
+    GNUNET_free_non_null(msg);
+    return;
   }
 }
 
@@ -1098,6 +1117,7 @@ sqlite_plugin_get_keys (void *cls,
   {
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 		"sqlite_prepare");
+    proc (proc_cls, NULL, 0);
     return;
   }
   while (SQLITE_ROW == (ret = sqlite3_step (stmt)))
@@ -1111,6 +1131,7 @@ sqlite_plugin_get_keys (void *cls,
   if (SQLITE_DONE != ret)
     LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
   sqlite3_finalize (stmt);
+  proc (proc_cls, NULL, 0);
 }
 
 

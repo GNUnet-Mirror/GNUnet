@@ -206,10 +206,10 @@ heap_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param anonymity anonymity-level for the content
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
- * @param msg set to error message
- * @return GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cont_cls continuation closure
  */
-static int
+static void
 heap_plugin_put (void *cls,
 		 const struct GNUNET_HashCode * key,
 		 uint32_t size,
@@ -217,7 +217,9 @@ heap_plugin_put (void *cls,
 		 enum GNUNET_BLOCK_Type type,
 		 uint32_t priority, uint32_t anonymity,
 		 uint32_t replication,
-		 struct GNUNET_TIME_Absolute expiration, char **msg)
+		 struct GNUNET_TIME_Absolute expiration,
+		 PluginPutCont cont,
+		 void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *value;
@@ -267,7 +269,7 @@ heap_plugin_put (void *cls,
 				     value,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   plugin->size += size;
-  return GNUNET_OK;
+  cont (cont_cls, key, size, GNUNET_OK, NULL);
 }
 
 
@@ -615,14 +617,16 @@ heap_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
  * @param expire new expiration time should be the
  *     MAX of any existing expiration time and
  *     this value
- * @param msg set to error message
- * @return GNUNET_OK on success
+ * @param cont continuation called with success or failure status
+ * @param cons_cls continuation closure
  */
-static int
+static void
 heap_plugin_update (void *cls,
 		    uint64_t uid,
 		    int delta,
-		    struct GNUNET_TIME_Absolute expire, char **msg)
+		    struct GNUNET_TIME_Absolute expire,
+		    PluginUpdateCont cont,
+		    void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct Value *value;
@@ -640,7 +644,7 @@ heap_plugin_update (void *cls,
     value->priority = 0;
   else
     value->priority += delta;
-  return GNUNET_OK;
+  cont (cont_cls, GNUNET_OK, NULL);
 }
 
 
@@ -778,6 +782,7 @@ heap_get_keys (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate (plugin->keyvalue,
 					 &return_value,
 					 &gac);
+  proc (proc_cls, NULL, 0);
 }
 
 

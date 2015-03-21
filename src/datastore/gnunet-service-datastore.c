@@ -829,38 +829,24 @@ struct PutContext
 };
 
 
-/**
- * Actually put the data message.
- *
- * @param client sender of the message
- * @param dm message with the data to store
- */
 static void
-execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)
+put_continuation (void *cls, const struct GNUNET_HashCode *key, uint32_t size,
+                  int status, char *msg)
 {
-  uint32_t size;
-  char *msg;
-  int ret;
+  struct GNUNET_SERVER_Client *client = cls;
 
-  size = ntohl (dm->size);
-  msg = NULL;
-  ret =
-      plugin->api->put (plugin->api->cls, &dm->key, size, &dm[1],
-                        ntohl (dm->type), ntohl (dm->priority),
-                        ntohl (dm->anonymity), ntohl (dm->replication),
-                        GNUNET_TIME_absolute_ntoh (dm->expiration), &msg);
-  if (GNUNET_OK == ret)
+  if (GNUNET_OK == status)
   {
     GNUNET_STATISTICS_update (stats,
                               gettext_noop ("# bytes stored"), size,
                               GNUNET_YES);
-    GNUNET_CONTAINER_bloomfilter_add (filter, &dm->key);
+    GNUNET_CONTAINER_bloomfilter_add (filter, key);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Successfully stored %u bytes of type %u under key `%s'\n",
-                size, ntohl (dm->type), GNUNET_h2s (&dm->key));
+                "Successfully stored %u bytes under key `%s'\n",
+                size, GNUNET_h2s (key));
   }
-  transmit_status (client, ret, msg);
-  GNUNET_free_non_null (msg);
+  transmit_status (client, status, msg);
+  GNUNET_SERVER_client_drop (client);
   if (quota - reserved - cache_size < payload)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -870,6 +856,33 @@ execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)
                 (unsigned long long) payload);
     manage_space (size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
   }
+}
+
+/**
+ * Actually put the data message.
+ *
+ * @param client sender of the message
+ * @param dm message with the data to store
+ */
+static void
+execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)
+{
+  GNUNET_SERVER_client_keep (client);
+  plugin->api->put (plugin->api->cls, &dm->key, ntohl (dm->size), &dm[1],
+                    ntohl (dm->type), ntohl (dm->priority),
+                    ntohl (dm->anonymity), ntohl (dm->replication),
+                    GNUNET_TIME_absolute_ntoh (dm->expiration),
+                    &put_continuation, client);
+}
+
+
+static void
+check_present_continuation (void *cls, int status, char *msg)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+
+  transmit_status (client, GNUNET_NO, NULL);
+  GNUNET_SERVER_client_drop (client);
 }
 
 
@@ -921,9 +934,13 @@ check_present (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
          expiration.abs_value_us))
       plugin->api->update (plugin->api->cls, uid,
                            (int32_t) ntohl (dm->priority),
-                           GNUNET_TIME_absolute_ntoh (dm->expiration), NULL);
-    transmit_status (pc->client, GNUNET_NO, NULL);
-    GNUNET_SERVER_client_drop (pc->client);
+                           GNUNET_TIME_absolute_ntoh (dm->expiration),
+                           check_present_continuation, pc->client);
+    else
+    {
+      transmit_status (pc->client, GNUNET_NO, NULL);
+      GNUNET_SERVER_client_drop (pc->client);
+    }
     GNUNET_free (pc);
   }
   else
@@ -1051,6 +1068,16 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+static void
+update_continuation (void *cls, int status, char *msg)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+
+  transmit_status (client, status, msg);
+  GNUNET_SERVER_client_drop (client);
+}
+
+
 /**
  * Handle UPDATE-message.
  *
@@ -1063,21 +1090,17 @@ handle_update (void *cls, struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct UpdateMessage *msg;
-  int ret;
-  char *emsg;
 
   GNUNET_STATISTICS_update (stats, gettext_noop ("# UPDATE requests received"),
                             1, GNUNET_NO);
   msg = (const struct UpdateMessage *) message;
-  emsg = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s' request for %llu\n",
               "UPDATE", (unsigned long long) GNUNET_ntohll (msg->uid));
-  ret =
-      plugin->api->update (plugin->api->cls, GNUNET_ntohll (msg->uid),
-                           (int32_t) ntohl (msg->priority),
-                           GNUNET_TIME_absolute_ntoh (msg->expiration), &emsg);
-  transmit_status (client, ret, emsg);
-  GNUNET_free_non_null (emsg);
+  GNUNET_SERVER_client_keep (client);
+  plugin->api->update (plugin->api->cls, GNUNET_ntohll (msg->uid),
+                       (int32_t) ntohl (msg->priority),
+                       GNUNET_TIME_absolute_ntoh (msg->expiration),
+                       update_continuation, client);
 }
 
 
@@ -1336,6 +1359,29 @@ unload_plugin (struct DatastorePlugin *plug)
 }
 
 
+static const struct GNUNET_SERVER_MessageHandler handlers[] = {
+  {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE,
+   sizeof (struct ReserveMessage)},
+  {&handle_release_reserve, NULL,
+   GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE,
+   sizeof (struct ReleaseReserveMessage)},
+  {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0},
+  {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE,
+   sizeof (struct UpdateMessage)},
+  {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0},
+  {&handle_get_replication, NULL,
+   GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
+   sizeof (struct GNUNET_MessageHeader)},
+  {&handle_get_zero_anonymity, NULL,
+   GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY,
+   sizeof (struct GetZeroAnonymityMessage)},
+  {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0},
+  {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP,
+   sizeof (struct GNUNET_MessageHeader)},
+  {NULL, NULL, 0, 0}
+};
+
+
 /**
  * Adds a given @a key to the bloomfilter in @a cls @a count times.
  *
@@ -1349,6 +1395,19 @@ add_key_to_bloomfilter (void *cls,
 			unsigned int count)
 {
   struct GNUNET_CONTAINER_BloomFilter *bf = cls;
+
+  if (NULL == key)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("Bloomfilter construction complete.\n"));
+    GNUNET_SERVER_add_handlers (server, handlers);
+    GNUNET_SERVER_resume (server);
+    expired_kill_task
+      = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                            &delete_expired,
+                                            NULL);
+    return;
+  }
 
   while (0 < count--)
     GNUNET_CONTAINER_bloomfilter_add (bf, key);
@@ -1365,27 +1424,6 @@ add_key_to_bloomfilter (void *cls,
 static void
 process_stat_done (void *cls, int success)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_reserve, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_RESERVE,
-     sizeof (struct ReserveMessage)},
-    {&handle_release_reserve, NULL,
-     GNUNET_MESSAGE_TYPE_DATASTORE_RELEASE_RESERVE,
-     sizeof (struct ReleaseReserveMessage)},
-    {&handle_put, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_PUT, 0},
-    {&handle_update, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_UPDATE,
-     sizeof (struct UpdateMessage)},
-    {&handle_get, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_GET, 0},
-    {&handle_get_replication, NULL,
-     GNUNET_MESSAGE_TYPE_DATASTORE_GET_REPLICATION,
-     sizeof (struct GNUNET_MessageHeader)},
-    {&handle_get_zero_anonymity, NULL,
-     GNUNET_MESSAGE_TYPE_DATASTORE_GET_ZERO_ANONYMITY,
-     sizeof (struct GetZeroAnonymityMessage)},
-    {&handle_remove, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_REMOVE, 0},
-    {&handle_drop, NULL, GNUNET_MESSAGE_TYPE_DATASTORE_DROP,
-     sizeof (struct GNUNET_MessageHeader)},
-    {NULL, NULL, 0, 0}
-  };
 
   stat_get = NULL;
   plugin = load_plugin ();
@@ -1411,9 +1449,12 @@ process_stat_done (void *cls, int success)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Rebuilding bloomfilter.  Please be patient.\n"));
     if (NULL != plugin->api->get_keys)
+    {
       plugin->api->get_keys (plugin->api->cls,
                              &add_key_to_bloomfilter,
                              filter);
+      return;
+    }
     else
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Plugin does not support get_keys function. Please fix!\n"));
