@@ -498,7 +498,8 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received client transmission request. queueing\n");
   GNUNET_CONTAINER_DLL_insert (session->active_client_request_head,
-                               session->active_client_request_tail, car);
+                               session->active_client_request_tail,
+                               car);
   try_transmission (session);
 }
 
@@ -646,9 +647,13 @@ try_transmission (struct Session *session)
   min_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
   /* if the peer has excess bandwidth, background traffic is allowed,
      otherwise not */
-  if (MAX_ENCRYPTED_MESSAGE_QUEUE_SIZE >=
-      GSC_NEIGHBOURS_check_excess_bandwidth (&session->peer))
+  if (MAX_ENCRYPTED_MESSAGE_QUEUE_SIZE <=
+      GSC_NEIGHBOURS_get_queue_size (&session->peer))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Transmission queue already very long, waiting...\n");
     return; /* queue already too long */
+  }
   excess = GSC_NEIGHBOURS_check_excess_bandwidth (&session->peer);
   if (GNUNET_YES == excess)
     maxp = GNUNET_CORE_PRIO_BACKGROUND;

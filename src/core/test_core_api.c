@@ -58,7 +58,8 @@ static int ok;
 
 
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message)
+process_hello (void *cls,
+               const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
 
@@ -73,7 +74,8 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
 
 
 static void
-terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (ok == 6);
   GNUNET_CORE_disconnect (p1.ch);
@@ -98,10 +100,12 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task_error (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "ENDING ANGRILY %u\n", ok);
+	      "ENDING ANGRILY %u\n",
+              ok);
   GNUNET_break (0);
   if (NULL != p1.ch)
   {
@@ -143,7 +147,7 @@ transmit_ready (void *cls, size_t size, void *buf)
   GNUNET_assert (ok == 4);
   OKPP;
   GNUNET_assert (p == &p1);
-  GNUNET_assert (buf != NULL);
+  GNUNET_assert (NULL != buf);
   m = (struct GNUNET_MessageHeader *) buf;
   m->type = htons (MTYPE);
   m->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -152,7 +156,8 @@ transmit_ready (void *cls, size_t size, void *buf)
 
 
 static void
-connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_notify (void *cls,
+                const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *pc = cls;
 
@@ -224,12 +229,13 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 }
 
 
-
 static int
-process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
+process_mtype (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving message from `%4s'.\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Receiving message from `%4s'.\n",
               GNUNET_i2s (peer));
   GNUNET_assert (ok == 5);
   OKPP;
@@ -246,7 +252,8 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 
 
 static void
-connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_task (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -254,7 +261,8 @@ connect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   con_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &connect_task,
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                    &connect_task,
                                     NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking transport (1) to connect to peer `%4s'\n",
@@ -269,7 +277,8 @@ init_notify (void *cls,
 {
   struct PeerContext *p = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core connection to `%4s' established\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core connection to `%4s' established\n",
               GNUNET_i2s (my_identity));
   p->id = *my_identity;
   if (cls == &p1)
@@ -293,7 +302,8 @@ init_notify (void *cls,
 
 
 static void
-setup_peer (struct PeerContext *p, const char *cfgname)
+setup_peer (struct PeerContext *p,
+            const char *cfgname)
 {
   char *binary;
 
@@ -314,7 +324,9 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   GNUNET_assert (ok == 1);
@@ -326,9 +338,13 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     (GNUNET_TIME_UNIT_SECONDS, 300),
                                     &terminate_task_error, NULL);
   p1.ch =
-      GNUNET_CORE_connect (p1.cfg, &p1, &init_notify, &connect_notify,
-                           &disconnect_notify, &inbound_notify, GNUNET_YES,
-                           &outbound_notify, GNUNET_YES, handlers);
+      GNUNET_CORE_connect (p1.cfg, &p1,
+                           &init_notify,
+                           &connect_notify,
+                           &disconnect_notify,
+                           &inbound_notify, GNUNET_YES,
+                           &outbound_notify, GNUNET_YES,
+                           handlers);
 }
 
 

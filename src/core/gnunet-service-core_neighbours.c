@@ -529,7 +529,6 @@ GSC_NEIGHBOURS_get_queue_size (const struct GNUNET_PeerIdentity *target)
 }
 
 
-
 /**
  * Check if the given neighbour has excess bandwidth available.
  *
