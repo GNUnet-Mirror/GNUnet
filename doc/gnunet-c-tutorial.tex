@@ -270,17 +270,7 @@ SERVERS = # prevent bootstrapping
 \subsection{Start a peer}
 Each GNUnet instance (called peer) has an identity (\textit{peer ID}) based on a
 cryptographic public private key pair. The peer ID is the printable hash of the
-public key. So before starting the peer, you may want to just generate the peer's private
-key using the command
-\lstset{language=bash}
-\begin{lstlisting}
-$ gnunet-peerinfo -c ~/peer1.conf -s
-\end{lstlisting}
-You should see an output containing the peer ID similar to:
-\lstset{language=bash}
-\begin{lstlisting}
-I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
-\end{lstlisting}
+public key.
 
 GNUnet services are controlled by a master service the so called \textit{Automatic Restart Manager} (ARM).
 ARM starts, stops and even restarts services automatically or on demand when a client connects.
@@ -289,6 +279,20 @@ GNUnet can then be started with \lstinline|gnunet-arm -s| and stopped with
 \lstinline|gnunet-arm -e|.  An additional service not automatically started
 can be started using \lstinline|gnunet-arm -i <service name>| and stopped
 using \lstinline|gnunet-arm -k <servicename>|.
+
+Once you have started your peer, you can use many other GNUnet commands
+to interact with it.  For example, you can run:
+\lstset{language=bash}
+\begin{lstlisting}
+$ gnunet-peerinfo -s
+\end{lstlisting}
+to obtain the public key of your peer.
+You should see an output containing the peer ID similar to:
+\lstset{language=bash}
+\begin{lstlisting}
+I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
+\end{lstlisting}
+
 
 \subsection{Monitor a peer}
 In this section, we will monitor the behaviour of our peer's DHT service with respect to a
