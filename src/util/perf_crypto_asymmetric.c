@@ -27,17 +27,21 @@
 #include "gnunet_util_lib.h"
 #include <gauger.h>
 
-struct GNUNET_TIME_Absolute start;
-const int l = 50;
+static struct GNUNET_TIME_Absolute start;
 
-struct TestSig {
+#define l 50
+
+struct TestSig
+{
   struct GNUNET_CRYPTO_EccSignaturePurpose purp;
   struct GNUNET_HashCode h;
   struct GNUNET_CRYPTO_EddsaSignature sig;
 };
 
+
 static void
-log_duration (const char *system, const char *description)
+log_duration (const char *system,
+              const char *description)
 {
   struct GNUNET_TIME_Relative t;
   char s[64];
@@ -45,11 +49,14 @@ log_duration (const char *system, const char *description)
   sprintf (s, "%6s %15s", system, description);
   t = GNUNET_TIME_absolute_get_duration (start);
   t = GNUNET_TIME_relative_divide (t, l);
-  FPRINTF (stdout, "%s: %10s\n", s,
-           GNUNET_STRINGS_relative_time_to_string(t, GNUNET_NO));
-
+  FPRINTF (stdout,
+           "%s: %10s\n",
+           s,
+           GNUNET_STRINGS_relative_time_to_string (t,
+                                                   GNUNET_NO));
   GAUGER ("UTIL", s, t.rel_value_us, "us");
 }
+
 
 int
 main (int argc, char *argv[])
@@ -103,7 +110,7 @@ main (int argc, char *argv[])
   log_duration ("ECDH", "get public");
 
   start = GNUNET_TIME_absolute_get();
-  for (i = 0; i < l; i+=2)
+  for (i = 0; i < l - 1; i+=2)
   {
     GNUNET_CRYPTO_ecc_ecdh (ecdhe[i], &dhpub[i+1], &sig[i].h);
     GNUNET_CRYPTO_ecc_ecdh (ecdhe[i+1], &dhpub[i], &sig[i+i].h);
