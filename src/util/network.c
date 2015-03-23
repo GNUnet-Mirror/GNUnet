@@ -1765,7 +1765,7 @@ check_handles_status (struct GNUNET_NETWORK_FDSet *fds,
                       int except,
                       HANDLE set_for_sure)
 {
-  struct GNUNET_DISK_FileHandle *fh;
+  const struct GNUNET_DISK_FileHandle *fh;
   unsigned int roff;
   unsigned int woff;
 
@@ -1813,7 +1813,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                               struct GNUNET_NETWORK_FDSet *efds,
                               const struct GNUNET_TIME_Relative timeout)
 {
-  struct GNUNET_DISK_FileHandle *fh;
+  const struct GNUNET_DISK_FileHandle *fh;
   int nfds;
   int handles;
   unsigned int i;
