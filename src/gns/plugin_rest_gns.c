@@ -88,7 +88,7 @@ struct LookupHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;    
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * The root of the received JSON or NULL
@@ -149,11 +149,13 @@ struct LookupHandle
 
 };
 
+
 /**
- * Cleanup lookup handle
- * @praram handle Handle to clean up
+ * Cleanup lookup handle.
+ *
+ * @param handle Handle to clean up
  */
-void
+static void
 cleanup_handle (struct LookupHandle *handle)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -218,6 +220,7 @@ create_json_response (const char *data)
   return resp;
 }
 
+
 /**
  * Task run on shutdown.  Cleans up everything.
  *
@@ -233,6 +236,7 @@ do_error (void *cls,
   handle->proc (handle->proc_cls, resp, GNUNET_SYSERR);
   cleanup_handle (handle);
 }
+
 
 /**
  * Create json representation of a GNSRECORD
@@ -525,7 +529,7 @@ parse_url (const char *url, struct LookupHandle *handle)
   }
   handle->type = GNUNET_GNSRECORD_typename_to_number (type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got type: %s\n", type);   
+              "Got type: %s\n", type);
   return GNUNET_OK;
 }
 
