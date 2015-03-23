@@ -281,8 +281,11 @@ cleanup_task (void *cls GNUNET_UNUSED,
 {
   unsigned int i;
 
-  GNUNET_HELPER_stop (hijacker, GNUNET_NO);
-  hijacker = NULL;
+  if (NULL != hijacker)
+  {
+    GNUNET_HELPER_stop (hijacker, GNUNET_NO);
+    hijacker = NULL;
+  }
   for (i=0;i<7;i++)
     GNUNET_free_non_null (helper_argv[i]);
   for (i=0;i<=UINT16_MAX;i++)
@@ -1041,37 +1044,49 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   char *binary;
 
   cfg = cfg_;
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
-  if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary (binary, GNUNET_YES, NULL)) // TODO: once we have a windows-testcase, add test parameters here
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		_("`%s' must be installed SUID, refusing to run\n"),
-		binary);
-    global_ret = 1;
-    GNUNET_free (binary);
-    return;
-  }
-  GNUNET_free (binary);
   stats = GNUNET_STATISTICS_create ("dns", cfg);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleanup_task,
                                 cls);
   dns_exit = NULL;
   if ( ( (GNUNET_OK !=
-	  GNUNET_CONFIGURATION_get_value_string (cfg, "dns",
+	  GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                 "dns",
 						 "DNS_EXIT",
 						 &dns_exit)) ||
 	 ( (1 != inet_pton (AF_INET, dns_exit, &dns_exit4)) &&
 	   (1 != inet_pton (AF_INET6, dns_exit, &dns_exit6)) ) ) )
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR, "dns", "DNS_EXIT",
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "dns",
+                               "DNS_EXIT",
 			       _("need a valid IPv4 or IPv6 address\n"));
     GNUNET_free_non_null (dns_exit);
     dns_exit = NULL;
   }
   dnsstub = GNUNET_DNSSTUB_start (dns_exit);
   GNUNET_free_non_null (dns_exit);
+  GNUNET_SERVER_add_handlers (server,
+                              handlers);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &client_disconnect,
+                                   NULL);
+  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
+  if (GNUNET_YES !=
+      GNUNET_OS_check_helper_binary (binary,
+                                     GNUNET_YES,
+                                     NULL)) // TODO: once we have a windows-testcase, add test parameters here
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		_("`%s' must be installed SUID, will not run DNS interceptor\n"),
+		binary);
+    global_ret = 1;
+    GNUNET_free (binary);
+    return;
+  }
+  GNUNET_free (binary);
+
   helper_argv[0] = GNUNET_strdup ("gnunet-dns");
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_get_value_string (cfg, "dns", "IFNAME", &ifc_name))
@@ -1129,8 +1144,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 				  helper_argv,
 				  &process_helper_messages,
 				  NULL, NULL);
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
 }
 
 

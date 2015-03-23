@@ -35,14 +35,14 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_DNS_Register
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT
+    * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_INIT
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * NBO encoding of 'enum GNUNET_DNS_Flags' for the client.
+   * NBO encoding of `enum GNUNET_DNS_Flags` for the client.
    */
-  uint32_t flags;
+  uint32_t flags GNUNET_PACKED;
 };
 
 
@@ -52,7 +52,7 @@ struct GNUNET_DNS_Register
 struct GNUNET_DNS_Request
 {
   /**
-    * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST
+    * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -77,7 +77,7 @@ struct GNUNET_DNS_Request
 struct GNUNET_DNS_Response
 {
   /**
-   * Header of type GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE
+   * Header of type #GNUNET_MESSAGE_TYPE_DNS_CLIENT_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
