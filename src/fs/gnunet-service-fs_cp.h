@@ -33,7 +33,7 @@
 /**
  * Maximum number of outgoing messages we queue per peer.
  *
- * Performance measurements for 2 peer setup for 10 MB file
+ * Performance measurements for 2 peer setup for 50 MB file
  * (using perf_gnunet_service_fs_p2p):
  *
  *  24: 2-3 MB/s # ~ 24 MB RAM
