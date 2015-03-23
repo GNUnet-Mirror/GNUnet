@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file fs/gnunet-service-fs_cp.c
  * @brief API to handle 'connected peers'
@@ -286,19 +285,19 @@ struct GSF_ConnectedPeer
   uint32_t disk_respect;
 
   /**
-   * Which offset in "last_p2p_replies" will be updated next?
+   * Which offset in @e last_p2p_replies will be updated next?
    * (we go round-robin).
    */
   unsigned int last_p2p_replies_woff;
 
   /**
-   * Which offset in "last_client_replies" will be updated next?
+   * Which offset in @e last_client_replies will be updated next?
    * (we go round-robin).
    */
   unsigned int last_client_replies_woff;
 
   /**
-   * Current offset into 'last_request_times' ring buffer.
+   * Current offset into @e last_request_times ring buffer.
    */
   unsigned int last_request_times_off;
 
@@ -327,7 +326,7 @@ struct GSF_ConnectedPeer
 
 
 /**
- * Map from peer identities to 'struct GSF_ConnectPeer' entries.
+ * Map from peer identities to `struct GSF_ConnectPeer` entries.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *cp_map;
 
@@ -352,7 +351,8 @@ GSF_update_peer_latency_ (const struct GNUNET_PeerIdentity *id,
   cp = GSF_peer_get_ (id);
   if (NULL == cp)
     return; /* we're not yet connected at the core level, ignore */
-  GNUNET_LOAD_value_set_decline (cp->ppd.transmission_delay, latency);
+  GNUNET_LOAD_value_set_decline (cp->ppd.transmission_delay,
+                                 latency);
 }
 
 
@@ -428,7 +428,8 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
     cp->inc_preference = 0;
   }
 
-  if ((GNUNET_YES == pth->is_query) && (GNUNET_YES != pth->was_reserved))
+  if ( (GNUNET_YES == pth->is_query) &&
+       (GNUNET_YES != pth->was_reserved) )
   {
     /* query, need reservation */
     if (GNUNET_YES != cp->did_reserve)
@@ -436,9 +437,11 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
     cp->did_reserve = GNUNET_NO;
     /* reservation already done! */
     pth->was_reserved = GNUNET_YES;
-    cp->rc =
-        GNUNET_ATS_reserve_bandwidth (GSF_ats, &target, DBLOCK_SIZE,
-                                      &ats_reserve_callback, cp);
+    cp->rc = GNUNET_ATS_reserve_bandwidth (GSF_ats,
+                                           &target,
+                                           DBLOCK_SIZE,
+                                           &ats_reserve_callback,
+                                           cp);
     return;
   }
   GNUNET_assert (NULL == cp->cth);
@@ -447,8 +450,7 @@ schedule_transmission (struct GSF_PeerTransmitHandle *pth)
     GNUNET_CORE_notify_transmit_ready (GSF_core,
                                        GNUNET_YES,
                                        GNUNET_CORE_PRIO_BACKGROUND,
-				       GNUNET_TIME_absolute_get_remaining
-				       (pth->timeout),
+				       GNUNET_TIME_absolute_get_remaining (pth->timeout),
                                        &target,
                                        pth->size,
 				       &peer_transmit_ready_cb, cp);
@@ -495,7 +497,7 @@ peer_transmit_ready_cb (void *cls,
   {
     cp->ppd.last_request_times[(cp->last_request_times_off++) %
                                MAX_QUEUE_PER_PEER] =
-        GNUNET_TIME_absolute_get ();
+      GNUNET_TIME_absolute_get ();
     GNUNET_assert (0 < cp->ppd.pending_queries--);
   }
   else if (GNUNET_NO == pth->is_query)
@@ -566,21 +568,28 @@ ats_reserve_callback (void *cls,
   if (0 == amount)
   {
     cp->rc_delay_task =
-        GNUNET_SCHEDULER_add_delayed (res_delay, &retry_reservation, cp);
+        GNUNET_SCHEDULER_add_delayed (res_delay,
+                                      &retry_reservation,
+                                      cp);
     return;
   }
   cp->did_reserve = GNUNET_YES;
   pth = cp->pth_head;
-  if ((NULL != pth) && (NULL == cp->cth) && (0 == cp->cth_in_progress))
+  if ( (NULL != pth) &&
+       (NULL == cp->cth) &&
+       (0 == cp->cth_in_progress) )
   {
     /* reservation success, try transmission now! */
     cp->cth_in_progress++;
     cp->cth =
-        GNUNET_CORE_notify_transmit_ready (GSF_core, GNUNET_YES,
+        GNUNET_CORE_notify_transmit_ready (GSF_core,
+                                           GNUNET_YES,
                                            GNUNET_CORE_PRIO_BACKGROUND,
-                                           GNUNET_TIME_absolute_get_remaining
-                                           (pth->timeout), peer, pth->size,
-                                           &peer_transmit_ready_cb, cp);
+                                           GNUNET_TIME_absolute_get_remaining (pth->timeout),
+                                           peer,
+                                           pth->size,
+                                           &peer_transmit_ready_cb,
+                                           cp);
     GNUNET_assert (NULL != cp->cth);
     GNUNET_assert (0 < cp->cth_in_progress--);
   }
@@ -764,14 +773,16 @@ copy_reply (void *cls,
     size = ntohs (pm->header.size);
     memcpy (buf, pm, size);
     GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop
-                              ("# replies transmitted to other peers"), 1,
+                              gettext_noop ("# replies transmitted to other peers"),
+                              1,
                               GNUNET_NO);
   }
   else
   {
     size = 0;
-    GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# replies dropped"), 1,
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# replies dropped"),
+                              1,
                               GNUNET_NO);
   }
   GNUNET_free (pm);
@@ -1268,7 +1279,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                               GNUNET_NO);
     return NULL;
   }
-  if (cp->ppd.pending_replies + cp->delay_queue_size > 128)
+  if (cp->ppd.pending_replies + cp->delay_queue_size > MAX_QUEUE_PER_PEER)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Peer `%s' has too many replies queued already. Dropping query.\n",
@@ -1334,8 +1345,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   ttl -= ttl_decrement;
 
   /* test if the request already exists */
-  peerreq = GNUNET_CONTAINER_multihashmap_get (cp->request_map, &gm->query);
-  if (peerreq != NULL)
+  peerreq = GNUNET_CONTAINER_multihashmap_get (cp->request_map,
+                                               &gm->query);
+  if (NULL != peerreq)
   {
     pr = peerreq->pr;
     prd = GSF_pending_request_get_data_ (pr);
@@ -1363,13 +1375,21 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 
   peerreq = GNUNET_new (struct PeerRequest);
   peerreq->cp = cp;
-  pr = GSF_pending_request_create_ (options, type, &gm->query,
+  pr = GSF_pending_request_create_ (options,
+                                    type,
+                                    &gm->query,
                                     target,
-                                    (bfsize >
-                                     0) ? (const char *) &opt[bits] : NULL,
-                                    bfsize, ntohl (gm->filter_mutator),
-                                    1 /* anonymity */ ,
-                                    (uint32_t) priority, ttl, spid, GNUNET_PEER_intern (other), NULL, 0,        /* replies_seen */
+                                    (bfsize > 0)
+                                    ? (const char *) &opt[bits]
+                                    : NULL,
+                                    bfsize,
+                                    ntohl (gm->filter_mutator),
+                                    1 /* anonymity */,
+                                    (uint32_t) priority,
+                                    ttl,
+                                    spid,
+                                    GNUNET_PEER_intern (other),
+                                    NULL, 0,        /* replies_seen */
                                     &handle_p2p_reply, peerreq);
   GNUNET_assert (NULL != pr);
   peerreq->pr = pr;
@@ -1881,12 +1901,13 @@ GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
  * @param tc task context, not used
  */
 static void
-cron_flush_respect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cron_flush_respect (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
   if (NULL == cp_map)
     return;
-  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &flush_respect, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map,
+                                         &flush_respect, NULL);
   if (NULL == tc)
     return;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1935,7 +1956,8 @@ void
 GSF_connected_peer_done_ ()
 {
   cron_flush_respect (NULL, NULL);
-  GNUNET_CONTAINER_multipeermap_iterate (cp_map, &clean_peer, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map,
+                                         &clean_peer, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (cp_map);
   cp_map = NULL;
   GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);

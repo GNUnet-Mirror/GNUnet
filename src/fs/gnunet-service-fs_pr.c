@@ -41,7 +41,7 @@
 
 /**
  * Maximum size of the datastore queue for P2P operations.  Needs to
- * be large enough to queue MAX_QUEUE_PER_PEER operations for roughly
+ * be large enough to queue #MAX_QUEUE_PER_PEER operations for roughly
  * the number of active (connected) peers.
  */
 #define MAX_DATASTORE_QUEUE (16 * MAX_QUEUE_PER_PEER)
