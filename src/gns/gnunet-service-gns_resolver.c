@@ -1710,6 +1710,11 @@ handle_gns_resolution_result (void *cls,
       case GNUNET_GNSRECORD_TYPE_GNS2DNS:
         {
           /* delegation to DNS */
+          if (GNUNET_GNSRECORD_TYPE_GNS2DNS == rh->record_type)
+          {
+            rd_off++;
+            break; /* do not follow to DNS, we wanted the GNS2DNS record! */
+          }
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Found GNS2DNS record, delegating to DNS!\n");
           goto do_recurse;

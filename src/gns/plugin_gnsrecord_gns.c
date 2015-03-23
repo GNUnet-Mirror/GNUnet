@@ -341,8 +341,9 @@ gns_typename_to_number (void *cls,
   unsigned int i;
 
   i=0;
-  while ( (gns_name_map[i].name != NULL) &&
-	  (0 != strcasecmp (gns_typename, gns_name_map[i].name)) )
+  while ( (NULL != gns_name_map[i].name) &&
+	  (0 != strcasecmp (gns_typename,
+                            gns_name_map[i].name)) )
     i++;
   return gns_name_map[i].number;
 }
@@ -362,7 +363,7 @@ gns_number_to_typename (void *cls,
   unsigned int i;
 
   i=0;
-  while ( (gns_name_map[i].name != NULL) &&
+  while ( (NULL != gns_name_map[i].name) &&
 	  (type != gns_name_map[i].number) )
     i++;
   return gns_name_map[i].name;
