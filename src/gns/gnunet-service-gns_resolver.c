@@ -891,7 +891,7 @@ dns_result_parser (void *cls,
       else if (i < p->num_answers + p->num_authority_records)
 	rec = &p->authority_records[i - p->num_answers];
       else
-	rec = &p->authority_records[i - p->num_answers - p->num_authority_records];
+	rec = &p->additional_records[i - p->num_answers - p->num_authority_records];
       /* As we copied the full DNS name to 'rh->ac_tail->label', this
 	 should be the correct check to see if this record is actually
 	 a record for our label... */
