@@ -192,7 +192,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                   &pubkey))
   {
     fprintf (stderr,
-             _("Invalid public key for reverse lookup `%s'\n"),
+             _("Invalid public key for zone `%s'\n"),
              pkey);
     GNUNET_SCHEDULER_shutdown ();
     return;
