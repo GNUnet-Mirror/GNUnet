@@ -300,18 +300,19 @@ int
 EnumNICs2 (INTERFACE_INFO **ifs4, int *ifs4_len, SOCKET_ADDRESS_LIST **ifs6)
 {
   int result = 0;
-  SOCKET s4 = INVALID_SOCKET, s6 = INVALID_SOCKET;
-  DWORD dwret1 = 0, dwret2;
-  DWORD err1, err2;
-  int ifs4len = 0, ifs6len = 0;
+  SOCKET s4;
+  SOCKET s6;
+  int ifs4len = 0;
+  int ifs6len = 0;
   INTERFACE_INFO *interfaces4 = NULL;
   SOCKET_ADDRESS_LIST *interfaces6 = NULL;
+
   SetLastError (0);
   s4 = socket (AF_INET, SOCK_STREAM, IPPROTO_TCP);
-  err1 = GetLastError ();
+  (void) GetLastError ();
   SetLastError (0);
   s6 = socket (AF_INET6, SOCK_STREAM, IPPROTO_TCP);
-  err2 = GetLastError ();
+  (void) GetLastError ();
   if (s6 != INVALID_SOCKET)
   {
     ifs6len = EnumNICs_IPv6_get_ifs_count (s6);
@@ -352,8 +353,9 @@ error:
   return GNUNET_SYSERR;
 }
 
+
 /**
- * Returns GNUNET_OK on OK, GNUNET_SYSERR on error
+ * @returns #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 EnumNICs3 (struct EnumNICs3_results **results, int *results_count)
@@ -697,6 +699,7 @@ int InstallAsService(char *servicename, char *application, char *username)
   return 0;
 }
 
+
 /**
  * @brief Uninstall Windows service
  * @param servicename name of the service to delete
@@ -706,7 +709,8 @@ int InstallAsService(char *servicename, char *application, char *username)
  *          3 if the service cannot be accessed
  *          4 if the service cannot be deleted
  */
-int UninstallService(char *servicename)
+int
+UninstallService(char *servicename)
 {
   SC_HANDLE hManager, hService;
 
@@ -740,7 +744,8 @@ closeSCM:
  * @see http://support.microsoft.com/?scid=kb;en-us;132958
  * @date 12-Jul-95
  */
-void _InitLsaString(PLSA_UNICODE_STRING LsaString, LPWSTR String)
+void
+_InitLsaString(PLSA_UNICODE_STRING LsaString, LPWSTR String)
 {
   DWORD StringLength;
 
@@ -764,7 +769,8 @@ void _InitLsaString(PLSA_UNICODE_STRING LsaString, LPWSTR String)
  * @see http://support.microsoft.com/?scid=kb;en-us;132958
  * @date 12-Jul-95
  */
-NTSTATUS _OpenPolicy(LPWSTR ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyHandle)
+NTSTATUS
+_OpenPolicy(LPWSTR ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyHandle)
 {
   LSA_OBJECT_ATTRIBUTES ObjectAttributes;
   LSA_UNICODE_STRING ServerString;
@@ -797,7 +803,8 @@ NTSTATUS _OpenPolicy(LPWSTR ServerName, DWORD DesiredAccess, PLSA_HANDLE PolicyH
  * @remarks Call GetLastError() to obtain extended error information.
  * @see http://support.microsoft.com/?scid=kb;en-us;132958
  */
-BOOL _GetAccountSid(LPCTSTR SystemName, LPCTSTR AccountName, PSID * Sid)
+BOOL
+_GetAccountSid(LPCTSTR SystemName, LPCTSTR AccountName, PSID * Sid)
 {
   LPTSTR ReferencedDomain = NULL;
   DWORD cbSid = 128;  							/* initial allocation attempt */
@@ -864,10 +871,11 @@ end:
  * @see http://support.microsoft.com/?scid=kb;en-us;132958
  * @date 12-Jul-95
  */
-NTSTATUS _SetPrivilegeOnAccount(LSA_HANDLE PolicyHandle,/* open policy handle */
-                               PSID AccountSid,   			/* SID to grant privilege to */
-                               LPWSTR PrivilegeName,  	/* privilege to grant (Unicode) */
-                               BOOL bEnable  						/* enable or disable */
+NTSTATUS
+_SetPrivilegeOnAccount(LSA_HANDLE PolicyHandle,/* open policy handle */
+                       PSID AccountSid,   			/* SID to grant privilege to */
+                       LPWSTR PrivilegeName,  	/* privilege to grant (Unicode) */
+                       BOOL bEnable  						/* enable or disable */
   )
 {
   LSA_UNICODE_STRING PrivilegeString;
@@ -904,13 +912,14 @@ NTSTATUS _SetPrivilegeOnAccount(LSA_HANDLE PolicyHandle,/* open policy handle */
  * @param pszName the name of the account
  * @param pszDesc description of the account
  */
-int CreateServiceAccount(const char *pszName, const char *pszDesc)
+int
+CreateServiceAccount(const char *pszName,
+                     const char *pszDesc)
 {
   USER_INFO_1 ui;
   USER_INFO_1008 ui2;
   NET_API_STATUS nStatus;
   wchar_t wszName[MAX_NAME_LENGTH], wszDesc[MAX_NAME_LENGTH];
-  DWORD dwErr;
   LSA_HANDLE hPolicy;
   PSID pSID;
 
