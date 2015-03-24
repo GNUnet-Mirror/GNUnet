@@ -57,7 +57,6 @@ struct PluginList
  */
 static int initialized;
 
-
 /**
  * Libtool search path before we started.
  */
@@ -89,12 +88,12 @@ plugin_init ()
     return;
   }
   opath = lt_dlgetsearchpath ();
-  if (opath != NULL)
+  if (NULL != opath)
     old_dlsearchpath = GNUNET_strdup (opath);
   path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
-  if (path != NULL)
+  if (NULL != path)
   {
-    if (opath != NULL)
+    if (NULL != opath)
     {
       GNUNET_asprintf (&cpath, "%s:%s", opath, path);
       lt_dlsetsearchpath (cpath);
@@ -117,7 +116,7 @@ static void
 plugin_fini ()
 {
   lt_dlsetsearchpath (old_dlsearchpath);
-  if (old_dlsearchpath != NULL)
+  if (NULL != old_dlsearchpath)
   {
     GNUNET_free (old_dlsearchpath);
     old_dlsearchpath = NULL;
@@ -134,12 +133,16 @@ plugin_fini ()
  * @return NULL if the symbol was not found
  */
 static GNUNET_PLUGIN_Callback
-resolve_function (struct PluginList *plug, const char *name)
+resolve_function (struct PluginList *plug,
+                  const char *name)
 {
   char *initName;
   void *mptr;
 
-  GNUNET_asprintf (&initName, "_%s_%s", plug->name, name);
+  GNUNET_asprintf (&initName,
+                   "_%s_%s",
+                   plug->name,
+                   name);
   mptr = lt_dlsym (plug->handle, &initName[1]);
   if (NULL == mptr)
     mptr = lt_dlsym (plug->handle, initName);

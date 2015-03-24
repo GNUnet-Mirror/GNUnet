@@ -1178,6 +1178,10 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename);
 struct GNUNET_CRYPTO_EddsaPrivateKey *
 GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename);
 
+
+/**
+ * Forward declaration to simplify #include-structure.
+ */
 struct GNUNET_CONFIGURATION_Handle;
 
 
@@ -1679,7 +1683,7 @@ GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey)
  */
 size_t
 GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                               char **buffer);
+                                       char **buffer);
 
 
 /**
@@ -1692,7 +1696,7 @@ GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKe
  */
 struct GNUNET_CRYPTO_rsa_BlindingKey *
 GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
-                               size_t len);
+                                       size_t len);
 
 
 /**
@@ -1706,9 +1710,9 @@ GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
  */
 size_t
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
-                 struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                 struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
-                 char **buffer);
+                         struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                         struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                         char **buffer);
 
 
 /**
@@ -1721,8 +1725,8 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
  */
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
-                const void *msg,
-                size_t msg_len);
+                        const void *msg,
+                        size_t msg_len);
 
 
 /**

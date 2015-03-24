@@ -1482,7 +1482,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   ve->expecting_pong = GNUNET_NO;
   ve->valid_until = GNUNET_TIME_relative_to_absolute (HELLO_ADDRESS_EXPIRATION);
   ve->pong_sig_cache = pong->signature;
- 	ve->pong_sig_valid_until = GNUNET_TIME_absolute_ntoh (pong->expiration);
+  ve->pong_sig_valid_until = GNUNET_TIME_absolute_ntoh (pong->expiration);
   ve->latency = GNUNET_TIME_absolute_get_duration (ve->send_time);
   {
     if (GNUNET_YES == ve->known_to_ats)
