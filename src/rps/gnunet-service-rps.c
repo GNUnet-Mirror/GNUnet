@@ -397,8 +397,14 @@ struct AttackedPeer
 /**
  * If type is 2 this is the DLL of attacked peers
  */
-//static struct AttackedPeer *att_peers_head = NULL;
-//static struct AttackedPeer *att_peers_tail = NULL;
+static struct AttackedPeer *att_peers_head = NULL;
+static struct AttackedPeer *att_peers_tail = NULL;
+
+/**
+ * This index is used to point to an attacked peer to
+ * implement the round-robin-ish way to select attacked peers.
+ */
+static struct AttackedPeer *att_peer_index = NULL;
 
 /**
  * Number of attacked peers
@@ -1622,8 +1628,12 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     num_pushes = min (min (push_limit, /* FIXME: attacked peer */ num_mal_peers), GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
     for (i = 0 ; i < num_pushes ; i++)
     { /* Send PUSHes to attacked peers */
-      //GNUNET_CONTAINER_multihashmap_iterator_create
-      //send_push ();
+      if (att_peers_tail == att_peer_index)
+        att_peer_index = att_peers_head;
+      else
+        att_peer_index = att_peer_index->next;
+
+      send_push (att_peer_index->peer_id);
 
       // TODO send pulls
       // send_pull_request
