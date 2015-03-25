@@ -734,6 +734,9 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
   struct PeerContext *peer_ctx;
 
   peer_ctx = get_peer_ctx (peer_map, peer);
+
+  GNUNET_assert (NULL == peer_ctx->is_live_task);
+
   if (NULL == peer_ctx->send_channel)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -771,6 +774,8 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
   struct PeerContext *peer_ctx;
 
   peer_ctx = get_peer_ctx (peer_map, peer_id);
+
+  GNUNET_assert (NULL == peer_ctx->is_live_task);
 
   if (NULL == peer_ctx->mq)
   {
@@ -1797,8 +1802,8 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from pull list\n",
          GNUNET_i2s (&pull_list[i]));
-    RPS_sampler_update (prot_sampler,   &push_list[i]);
-    RPS_sampler_update (client_sampler, &push_list[i]);
+    RPS_sampler_update (prot_sampler,   &pull_list[i]);
+    RPS_sampler_update (client_sampler, &pull_list[i]);
     // TODO set in_flag?
   }
 
