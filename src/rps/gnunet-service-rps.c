@@ -615,6 +615,13 @@ peer_is_live (struct PeerContext *peer_ctx)
 {
   struct GNUNET_PeerIdentity *peer;
 
+  /* Cancle is_live_task if still scheduled */
+  if (NULL != peer_ctx->is_live_task)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
+    peer_ctx->is_live_task = NULL;
+  }
+
   peer = &peer_ctx->peer_id;
   set_peer_flag (peer_ctx, VALID);
 
@@ -627,12 +634,6 @@ peer_is_live (struct PeerContext *peer_ctx)
     for (i = 0 ; i < peer_ctx->num_outstanding_ops ; i++)
       peer_ctx->outstanding_ops[i].op (peer_ctx->outstanding_ops[i].op_cls, peer);
     GNUNET_array_grow (peer_ctx->outstanding_ops, peer_ctx->num_outstanding_ops, 0);
-  }
-
-  if (NULL != peer_ctx->is_live_task)
-  {
-    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-    peer_ctx->is_live_task = NULL;
   }
 
   return 0;
@@ -1792,7 +1793,11 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
                          0);
 
     if (NULL != peer_ctx->mq)
+    {
       GNUNET_MQ_destroy (peer_ctx->mq);
+      peer_ctx->mq = NULL;
+    }
+
 
     if (NULL != peer_ctx->is_live_task)
     {
