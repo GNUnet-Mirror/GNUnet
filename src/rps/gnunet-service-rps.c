@@ -670,7 +670,7 @@ peer_is_live (struct PeerContext *peer_ctx)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %s is live\n", GNUNET_i2s (peer));
 
-  if (0 != peer_ctx->num_outstanding_ops)
+  if (0 < peer_ctx->num_outstanding_ops)
   { /* Call outstanding operations */
     unsigned int i;
 
@@ -693,11 +693,22 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
 {
   struct PeerContext *peer_ctx = (struct PeerContext *) cls;
 
+  peer_ctx->is_live_task = NULL;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Set ->is_live_task = NULL for peer %s\n",
+       GNUNET_i2s (&peer_ctx->peer_id));
+
   if (NULL != buf
       && 0 != size)
   {
-    peer_ctx->is_live_task = NULL;
     peer_is_live (peer_ctx);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Problems establishing a connection to peer %s in order to check liveliness\n",
+         GNUNET_i2s (&peer_ctx->peer_id));
+    // TODO reschedule? cleanup?
   }
 
   //if (NULL != peer_ctx->is_live_task)
@@ -785,14 +796,21 @@ check_peer_live (struct PeerContext *peer_ctx)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Get informed about peer %s getting live\n",
        GNUNET_i2s (&peer_ctx->peer_id));
-  peer_ctx->is_live_task =
-      GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
-                                          GNUNET_NO,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                          sizeof (struct GNUNET_MessageHeader),
-                                          cadet_ntfy_tmt_rdy_cb,
-                                          peer_ctx);
-  // FIXME check whether this is NULL
+  if (NULL == peer_ctx->is_live_task)
+  {
+    peer_ctx->is_live_task =
+        GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
+                                            GNUNET_NO,
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                            sizeof (struct GNUNET_MessageHeader),
+                                            cadet_ntfy_tmt_rdy_cb,
+                                            peer_ctx);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Already waiting for notification\n");
+  }
 }
 
 
@@ -904,7 +922,7 @@ insert_in_sampler_scheduled (const struct PeerContext *peer_ctx)
 {
   unsigned int i;
 
-  for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
+  for (i = 0 ; i < peer_ctx->num_outstanding_ops ; i++)
     if (insert_in_sampler== peer_ctx->outstanding_ops[i].op)
       return GNUNET_YES;
   return GNUNET_NO;
@@ -2068,8 +2086,6 @@ cleanup_channel (void *cls,
       (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
        // Guess simply casting isn't the nicest way...
        // FIXME wait for cadet to change this function
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Cleaning up channel to peer %s\n",
-       GNUNET_i2s (peer));
 
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
@@ -2080,15 +2096,24 @@ cleanup_channel (void *cls,
 
     if (channel == peer_ctx->send_channel)
     { /* Peer probably went down */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Peer %s destroyed send channel - probably went down, cleaning up\n",
+           GNUNET_i2s (peer));
       rem_from_list (&gossip_list, &gossip_list_size, peer);
       rem_from_list (&pending_pull_reply_list, &pending_pull_reply_list_size, peer);
 
+      peer_ctx->send_channel = NULL;
       /* Somwewhat {ab,re}use the iterator function */
       /* Cast to void is ok, because it's used as void in peer_remove_cb */
       (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
     }
-    else /* Other peer doesn't want to send us messages anymore */
+    else if (channel == peer_ctx->recv_channel)
+    { /* Other peer doesn't want to send us messages anymore */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Peer %s destroyed recv channel - cleaning up channel\n",
+           GNUNET_i2s (peer));
       peer_ctx->recv_channel = NULL;
+    }
   }
 }
 
