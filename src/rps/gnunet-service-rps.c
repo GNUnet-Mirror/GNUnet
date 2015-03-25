@@ -356,7 +356,7 @@ uint32_t pending_pull_reply_list_size;
 uint32_t num_hist_update_tasks;
 
 
-#if ENABLE_MALICIOUS
+#ifdef ENABLE_MALICIOUS
 /**
  * Type of malicious peer
  *
@@ -1332,7 +1332,9 @@ handle_peer_pull_reply (void *cls,
 }
 
 
-#if ENABLE_MALICIOUS
+
+
+#ifdef ENABLE_MALICIOUS
 /**
  * Turn RPS service to act malicious.
  *
@@ -2013,6 +2015,11 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "STARTING SERVICE (rps) for peer [%s]\n",
               GNUNET_i2s (&own_identity));
+  #ifdef ENABLE_MALICIOUS
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Malicious execution compiled in.\n");
+  #endif /* ENABLE_MALICIOUS */
+
 
 
   /* Get time interval from the configuration */

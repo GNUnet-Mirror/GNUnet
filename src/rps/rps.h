@@ -24,7 +24,6 @@
  */
 
 #include "gnunet_rps_service.h"
-//#define ENABLE_MALICIOUS 1
 
 /**
  * Mesh port used by RPS.
@@ -124,7 +123,7 @@ struct GNUNET_RPS_CS_SeedMessage
   /* Followed by num_peers * GNUNET_PeerIdentity */
 };
 
-#if ENABLE_MALICIOUS
+#ifdef ENABLE_MALICIOUS
 /**
  * Message from client to service to turn service malicious.
  */
