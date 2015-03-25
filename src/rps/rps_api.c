@@ -241,7 +241,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
                      uint32_t n,
                      const struct GNUNET_PeerIdentity *ids)
 {
-  uint32_t size_needed;
+  size_t size_needed;
   uint32_t num_peers_max;
   const struct GNUNET_PeerIdentity *tmp_peer_pointer;
   struct GNUNET_MQ_Envelope *ev;
@@ -313,7 +313,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t num_peers,
                           const struct GNUNET_PeerIdentity *ids)
 {
-  uint32_t size_needed;
+  size_t size_needed;
   uint32_t num_peers_max;
   const struct GNUNET_PeerIdentity *tmp_peer_pointer;
   struct GNUNET_MQ_Envelope *ev;
