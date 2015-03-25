@@ -369,17 +369,56 @@ uint32_t mal_type = 0;
 /**
  * Other malicious peers
  */
-static struct GNUNET_PeerIdentity *mal_peers;
+static struct GNUNET_PeerIdentity *mal_peers = NULL;
 
 /**
  * Number of other malicious peers
  */
-static uint32_t num_mal_peers;
+static uint32_t num_mal_peers = 0;
+
 
 /**
- * If type is 2 this is the attacked peer
+ * If type is 2 This struct is used to store the attacked peers in a DLL
+ */
+struct AttackedPeer
+{
+  /**
+   * DLL
+   */
+  struct AttackedPeer *next;
+  struct AttackedPeer *prev;
+
+  /**
+   * PeerID
+   */
+  struct GNUNET_PeerIdentity *peer_id;
+};
+
+/**
+ * If type is 2 this is the DLL of attacked peers
+ */
+//static struct AttackedPeer *att_peers_head = NULL;
+//static struct AttackedPeer *att_peers_tail = NULL;
+
+/**
+ * Number of attacked peers
+ */
+//static uint32_t num_attacked_peers = 0;
+
+
+/**
+ * If type is 1 this is the attacked peer
  */
 static struct GNUNET_PeerIdentity attacked_peer;
+
+/**
+ * The limit of PUSHes we can send in one round.
+ * This is an assumption of the Brahms protocol and either implemented
+ * via proof of work
+ * or
+ * assumend to be the bandwidth limitation.
+ */
+static uint32_t push_limit = 10000;
 #endif /* ENABLE_MALICIOUS */
 
 
@@ -411,6 +450,10 @@ static struct GNUNET_PeerIdentity attacked_peer;
  */
 #define unset_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags &= (~mask))
 
+/**
+ * Compute the minimum of two ints
+ */
+#define min(x, y) ((x < y) ? x : y)
 
 /**
  * Clean the send channel of a peer
@@ -1336,6 +1379,96 @@ handle_peer_pull_reply (void *cls,
 }
 
 
+/**
+ * Compute a random delay.
+ * A uniformly distributed value between mean + spread and mean - spread.
+ *
+ * For example for mean 4 min and spread 2 the minimum is (4 min - (1/2 * 4 min))
+ * It would return a random value between 2 and 6 min.
+ *
+ * @param mean the mean
+ * @param spread the inverse amount of deviation from the mean
+ */
+static struct GNUNET_TIME_Relative
+compute_rand_delay (struct GNUNET_TIME_Relative mean, unsigned int spread)
+{
+  struct GNUNET_TIME_Relative half_interval;
+  struct GNUNET_TIME_Relative ret;
+  unsigned int rand_delay;
+  unsigned int max_rand_delay;
+
+  if (0 == spread)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Not accepting spread of 0\n");
+    GNUNET_break (0);
+  }
+
+  /* Compute random time value between spread * mean and spread * mean */
+  half_interval = GNUNET_TIME_relative_divide (mean, spread);
+
+  max_rand_delay = GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us / mean.rel_value_us * (2/spread);
+  /**
+   * Compute random value between (0 and 1) * round_interval
+   * via multiplying round_interval with a 'fraction' (0 to value)/value
+   */
+  rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, max_rand_delay);
+  ret = GNUNET_TIME_relative_multiply (mean,  rand_delay);
+  ret = GNUNET_TIME_relative_divide   (ret, max_rand_delay);
+  ret = GNUNET_TIME_relative_add      (ret, half_interval);
+
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == ret.rel_value_us)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Returning FOREVER_REL\n");
+
+  return ret;
+}
+
+
+/**
+ * Send single pull request
+ *
+ * @param peer_id the peer to send the pull request to.
+ */
+static void
+send_pull_request (struct GNUNET_PeerIdentity *peer_id)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_MQ_Handle *mq;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending PULL request to peer %s of gossiped list.\n",
+       GNUNET_i2s (peer_id));
+
+  GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, *peer_id);
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
+  mq = get_mq (peer_map, peer_id);
+  GNUNET_MQ_send (mq, ev);
+}
+
+
+/**
+ * Send single push
+ *
+ * @param peer_id the peer to send the push to.
+ */
+static void
+send_push (struct GNUNET_PeerIdentity *peer_id)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_MQ_Handle *mq;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending PUSH to peer %s of gossiped list.\n",
+       GNUNET_i2s (peer_id));
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
+  mq = get_mq (peer_map, peer_id);
+  GNUNET_MQ_send (mq, ev);
+}
+
+
 static void
 do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
@@ -1359,6 +1492,8 @@ handle_client_act_malicious (void *cls,
 {
   struct GNUNET_RPS_CS_ActMaliciousMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
+  uint32_t num_mal_peers_sent;
+  uint32_t num_mal_peers_old;
 
   /* Check for protocol violation */
   if (sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage) > ntohs (msg->size))
@@ -1381,10 +1516,7 @@ handle_client_act_malicious (void *cls,
 
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  num_mal_peers = ntohl (in_msg->num_peers);
   mal_type = ntohl (in_msg->type);
-  num_attacked_peers = 0;
-  attacked_peers = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Now acting malicious type %" PRIu32 "\n",
@@ -1392,10 +1524,15 @@ handle_client_act_malicious (void *cls,
 
   if (1 == mal_type)
   { /* Try to maximise representation */
-    num_mal_peers = ntohl (in_msg->num_peers);
-    mal_peers = GNUNET_new_array (num_mal_peers,
-                                  struct GNUNET_PeerIdentity);
-    memcpy (mal_peers, peers, num_mal_peers * sizeof (struct GNUNET_PeerIdentity));
+    /* Add other malicious peers to those we already know */
+    num_mal_peers_sent = ntohl (in_msg->num_peers);
+    num_mal_peers_old = num_mal_peers;
+    GNUNET_array_grow (mal_peers,
+                       num_mal_peers,
+                       num_mal_peers + num_mal_peers_sent);
+    memcpy (&mal_peers[num_mal_peers_old],
+            peers,
+            num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
 
     /* Substitute do_round () with do_mal_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
@@ -1403,13 +1540,24 @@ handle_client_act_malicious (void *cls,
   }
   else if (2 == mal_type)
   { /* Try to partition the network */
-    num_mal_peers = ntohl (in_msg->num_peers) - 1;
-    mal_peers = GNUNET_new_array (num_mal_peers,
-                                  struct GNUNET_PeerIdentity);
-    memcpy (mal_peers, peers, num_mal_peers);
+    /* Add other malicious peers to those we already know */
+    num_mal_peers_sent = ntohl (in_msg->num_peers) - 1;
+    num_mal_peers_old = num_mal_peers;
+    GNUNET_array_grow (mal_peers,
+                       num_mal_peers,
+                       num_mal_peers + num_mal_peers_sent);
+    memcpy (&mal_peers[num_mal_peers_old],
+            peers,
+            num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
 
-    GNUNET_array_grow (attacked_peers, num_attacked_peers, 1);
-    memcpy (attacked_peers, &peers[num_mal_peers], 1 * sizeof (struct GNUNET_PeerIdentity));
+    /* Store the one attacked peer */
+    memcpy (&attacked_peer,
+            &peers[num_mal_peers_sent],
+            sizeof (struct GNUNET_PeerIdentity));
+
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Attacked peer is %s\n",
+         GNUNET_i2s (&attacked_peer));
 
     /* Substitute do_round () with do_mal_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
@@ -1428,7 +1576,6 @@ handle_client_act_malicious (void *cls,
   {
     GNUNET_break (0);
   }
-
 }
 
 
@@ -1442,8 +1589,6 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   uint32_t num_pushes;
   uint32_t i;
-  unsigned int rand_delay;
-  struct GNUNET_TIME_Relative half_round_interval;
   struct GNUNET_TIME_Relative time_next_round;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously.\n");
@@ -1453,31 +1598,27 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   { /* Try to maximise representation */
     num_pushes = min (min (push_limit, /* FIXME: attacked peer */ num_mal_peers), GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
     for (i = 0 ; i < num_pushes ; i++)
-    { /* Send PUSH to attacked peer */
+    { /* Send PUSHes to attacked peers */
       //GNUNET_CONTAINER_multihashmap_iterator_create
+      //send_push ();
+
+      // TODO send pulls
+      // send_pull_request
     }
   }
   else if (2 == mal_type)
-  { /* Try to partition the network */
-    /* Send as many pushes to attacked peer as possible */
+  { /**
+     * Try to partition the network
+     * Send as many pushes to attacked peer as possible
+     */
+      send_push (&attacked_peer);
   }
 
-  /* Compute random time value between .5 * round_interval and 1.5 *round_interval */
-  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
-  do
-  {
-  /*
-   * Compute random value between (0 and 1) * round_interval
-   * via multiplying round_interval with a 'fraction' (0 to value)/value
-   */
-  rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT_MAX/10);
-  time_next_round = GNUNET_TIME_relative_multiply (round_interval,  rand_delay);
-  time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
-  time_next_round = GNUNET_TIME_relative_add      (time_next_round, half_round_interval);
-  } while (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == time_next_round.rel_value_us);
-
   /* Schedule next round */
-  do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_mal_round, NULL);
+  time_next_round = compute_rand_delay (round_interval, 2);
+
+  //do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_mal_round, NULL);
+  do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round, &do_mal_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
 #endif /* ENABLE_MALICIOUS */
@@ -1496,10 +1637,8 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t i;
   unsigned int *permut;
   unsigned int n_peers; /* Number of peers we send pushes/pulls to */
-  struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_PeerIdentity peer;
   struct GNUNET_PeerIdentity *tmp_peer;
-  struct GNUNET_MQ_Handle *mq;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing gossip list:\n");
@@ -1527,13 +1666,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       peer = gossip_list[permut[i]];
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer)) // TODO
       { // FIXME if this fails schedule/loop this for later
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Sending PUSH to peer %s of gossiped list.\n",
-             GNUNET_i2s (&peer));
-
-        ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-        mq = get_mq (peer_map, &peer);
-        GNUNET_MQ_send (mq, ev);
+        send_push (&peer);
       }
     }
     GNUNET_free (permut);
@@ -1555,17 +1688,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       peer = *tmp_peer;
       GNUNET_free (tmp_peer);
 
-      GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, peer);
-
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer))
-      { // FIXME if this fails schedule/loop this for later
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Sending PULL request to peer %s of gossiped list.\n",
-             GNUNET_i2s (&peer));
-
-        ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-        mq = get_mq (peer_map, &peer);
-        GNUNET_MQ_send (mq, ev);
+      {
+        send_pull_request (&peer);
       }
     }
   }
@@ -1665,26 +1790,12 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_array_grow (pull_list, pull_list_size, 0);
 
   struct GNUNET_TIME_Relative time_next_round;
-  struct GNUNET_TIME_Relative half_round_interval;
-  unsigned int rand_delay;
 
-
-  /* Compute random time value between .5 * round_interval and 1.5 *round_interval */
-  half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
-  do
-  {
-  /*
-   * Compute random value between (0 and 1) * round_interval
-   * via multiplying round_interval with a 'fraction' (0 to value)/value
-   */
-  rand_delay = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT_MAX/10);
-  time_next_round = GNUNET_TIME_relative_multiply (round_interval,  rand_delay);
-  time_next_round = GNUNET_TIME_relative_divide   (time_next_round, UINT_MAX/10);
-  time_next_round = GNUNET_TIME_relative_add      (time_next_round, half_round_interval);
-  } while (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == time_next_round.rel_value_us);
+  time_next_round = compute_rand_delay (round_interval, 2);
 
   /* Schedule next round */
-  do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
+  //do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
+  do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round, &do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
 
@@ -1872,6 +1983,10 @@ shutdown_task (void *cls,
   GNUNET_array_grow (gossip_list, gossip_list_size, 0);
   GNUNET_array_grow (push_list, push_list_size, 0);
   GNUNET_array_grow (pull_list, pull_list_size, 0);
+  #ifdef ENABLE_MALICIOUS
+  GNUNET_array_grow (mal_peers, num_mal_peers, 0);
+  // TODO empty attacked_peers DLL
+  #endif /* ENABLE_MALICIOUS */
 }
 
 
@@ -1924,8 +2039,6 @@ handle_inbound_channel (void *cls,
   //  peer_ctx->recv_channel = channel;
   //}
   peer_ctx->recv_channel = channel;
-
-  peer_ctx->mq = NULL;
 
   (void) GNUNET_CONTAINER_multipeermap_put (peer_map, &peer, peer_ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
