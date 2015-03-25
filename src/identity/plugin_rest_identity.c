@@ -285,12 +285,15 @@ get_ego_for_subsys (void *cls,
  * @param handle the RequestHandle
  */
 void
-ego_info_response (struct RequestHandle *handle)
+ego_info_response (struct RestConnectionDataHandle *con,
+                   const char *url,
+                   void *cls)
 {
   const char *egoname;
   char *keystring;
   char *result_str;
   char *subsys_val;
+  struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
   struct MHD_Response *resp;
@@ -414,9 +417,12 @@ create_finished (void *cls, const char *emsg)
 }
 
 static void
-ego_create_cont (struct RequestHandle *handle)
+ego_create_cont (struct RestConnectionDataHandle *con,
+                 const char *url,
+                 void *cls)
 {
   const char* egoname;
+  struct RequestHandle *handle = cls;
   char term_data[handle->data_size+1];
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
@@ -500,10 +506,13 @@ ego_create_cont (struct RequestHandle *handle)
 }
 
 void 
-subsys_set_cont (struct RequestHandle *handle)
+subsys_set_cont (struct RestConnectionDataHandle *con,
+                 const char *url,
+                 void *cls)
 {
   const char *egoname;
   const char *subsys;
+  struct RequestHandle *handle = cls;
   char term_data[handle->data_size+1];
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
@@ -604,11 +613,14 @@ subsys_set_cont (struct RequestHandle *handle)
 }
 
 void 
-ego_delete_cont (struct RequestHandle *handle)
+ego_delete_cont (struct RestConnectionDataHandle *con_handle,
+                 const char* url,
+                 void *cls)
 {
   const char *egoname;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
   int ego_exists = GNUNET_NO;
 
   if (strlen (API_NAMESPACE) >= strlen (handle->url))
@@ -645,15 +657,15 @@ ego_delete_cont (struct RequestHandle *handle)
 void
 init_cont (struct RequestHandle *handle)
 {
-  if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_GET))
-    ego_info_response (handle);
-  else if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_POST))
-    ego_create_cont (handle);
-  else if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_PUT))
-    subsys_set_cont (handle);
-  else if (0 == strcasecmp (handle->method, MHD_HTTP_METHOD_DELETE))
-    ego_delete_cont (handle);
-  else
+  static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
+    {MHD_HTTP_METHOD_GET, API_NAMESPACE, &ego_info_response},
+    {MHD_HTTP_METHOD_POST, API_NAMESPACE, &ego_create_cont},
+    {MHD_HTTP_METHOD_PUT, API_NAMESPACE, &subsys_set_cont},
+    {MHD_HTTP_METHOD_DELETE, API_NAMESPACE, &ego_delete_cont},
+    GNUNET_REST_HANDLER_END
+  };
+
+  if (GNUNET_NO == GNUNET_REST_handle_request (handle->conndata_handle, handlers, handle))
     GNUNET_SCHEDULER_add_now (&do_error, handle);
 }
 

@@ -27,6 +27,7 @@
 #define GNUNET_REST_PLUGIN_H
 
 #include "gnunet_util_lib.h"
+#include "gnunet_rest_lib.h"
 #include "microhttpd.h"
 
 #ifdef __cplusplus
@@ -37,27 +38,6 @@ extern "C"
 #endif
 #endif
 
-
-/**
- * Iterator called on obtained result for a REST result.
- *
- * @param cls closure
- * @param resp the response
- * @param status status code (HTTP)
- */
-typedef void (*GNUNET_REST_ResultProcessor) (void *cls,
-                                             struct MHD_Response *resp,
-                                             int status);
-
-struct RestConnectionDataHandle
-{
-  struct GNUNET_CONTAINER_MultiHashMap *url_param_map;
-  const char *method;
-  const char *url;
-  const char *data;
-  size_t data_size;
-
-};
 
 /**
  * @brief struct returned by the initialization function of the plugin

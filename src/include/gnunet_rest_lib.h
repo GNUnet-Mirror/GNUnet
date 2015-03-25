@@ -36,6 +36,52 @@
 
 #define GNUNET_REST_JSONAPI_KEY_TYPE "type"
 
+#define GNUNET_REST_HANDLER_END {NULL, NULL, NULL}
+
+struct RestConnectionDataHandle
+{
+  struct GNUNET_CONTAINER_MultiHashMap *url_param_map;
+  const char *method;
+  const char *url;
+  const char *data;
+  size_t data_size;
+
+};
+
+struct GNUNET_REST_RestConnectionHandler
+{
+  /**
+   * Http method to handle
+   */
+  const char *method;
+
+  /**
+   * Namespace to handle
+   */
+  const char *namespace;
+
+  /**
+   * callback handler
+   */
+  void (*proc) (struct RestConnectionDataHandle *handle,
+                const char *url,
+                void *cls);
+
+};
+
+
+/**
+ * Iterator called on obtained result for a REST result.
+ *
+ * @param cls closure
+ * @param resp the response
+ * @param status status code (HTTP)
+ */
+typedef void (*GNUNET_REST_ResultProcessor) (void *cls,
+                                             struct MHD_Response *resp,
+                                             int status);
+
+
 /**
  * Resource structs for JSON API
  */
@@ -152,5 +198,9 @@ GNUNET_REST_namespace_match (const char *url, const char *namespace);
 GNUNET_REST_create_json_response (const char *data);
 
 
+int
+GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
+                            const struct GNUNET_REST_RestConnectionHandler *handlers,
+                            void *cls);
 
 #endif

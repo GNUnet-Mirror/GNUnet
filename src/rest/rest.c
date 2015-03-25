@@ -68,6 +68,7 @@ struct JsonApiResponse
   int res_count;
 };
 
+
 /**
  * JSON API
  */
@@ -294,6 +295,41 @@ GNUNET_REST_create_json_response (const char *data)
   MHD_add_response_header (resp,MHD_HTTP_HEADER_CONTENT_TYPE,"application/json");
   return resp;
 
+}
+
+int
+GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
+                            const struct GNUNET_REST_RestConnectionHandler *handlers,
+                            void *cls)
+{
+  int count;
+  int i;
+  char *url;
+
+  count = 0;
+
+  while (NULL != handlers[count].method)
+    count++;
+
+  GNUNET_asprintf (&url, "%s", conn->url);
+  if (url[strlen (url)-1] == '/')
+    url[strlen (url)-1] = '\0';
+
+  for (i = 0; i < count; i++)
+  {
+    if (0 != strcasecmp (conn->method, handlers[count].method))
+      break;
+    if (strlen (url) < strlen (handlers[count].namespace))
+      break;
+    if (GNUNET_NO == GNUNET_REST_namespace_match (url, handlers[count].namespace))
+      break;
+    //Match
+    handlers[count].proc (conn, (const char*)url, cls);
+    GNUNET_free (url);
+    return GNUNET_YES;
+  }
+  GNUNET_free (url);
+  return GNUNET_NO;
 }
 
 /* end of rest.c */
