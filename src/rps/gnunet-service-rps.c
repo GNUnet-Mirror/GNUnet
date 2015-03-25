@@ -1035,7 +1035,7 @@ void client_respond (void *cls,
   GNUNET_free (ids);
 
   cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct client_ctx);
-  if ( NULL == cli_ctx ) {
+  if (NULL == cli_ctx) {
     cli_ctx = GNUNET_new (struct client_ctx);
     cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
     GNUNET_SERVER_client_set_user_context (client, cli_ctx);
@@ -1096,8 +1096,8 @@ handle_client_request (void *cls,
  */
   static void
 handle_client_seed (void *cls,
-            struct GNUNET_SERVER_Client *client,
-            const struct GNUNET_MessageHeader *message)
+                    struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_RPS_CS_SeedMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
@@ -1204,8 +1204,9 @@ handle_peer_pull_request (void *cls,
   struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
 
 
-  peer = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel,
-                                                                       GNUNET_CADET_OPTION_PEER);
+  peer = (struct GNUNET_PeerIdentity *)
+    GNUNET_CADET_channel_get_info (channel,
+                                   GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
 
   /* Compute actual size */
@@ -1215,6 +1216,7 @@ handle_peer_pull_request (void *cls,
   if (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < send_size)
     /* Compute number of peers to send
      * If too long, simply truncate */
+  // TODO select random ones via permutation
     send_size =
       (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE -
        sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
@@ -1300,6 +1302,7 @@ handle_peer_pull_reply (void *cls,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+
 
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];

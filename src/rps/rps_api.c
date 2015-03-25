@@ -333,7 +333,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   /* The actual size the message occupies */
   size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
     num_peers * sizeof (struct GNUNET_PeerIdentity);
-  /* The number of peers that fits in one message together with
+  /* The number of peers that fit in one message together with
    * the respective header */
   num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
       sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
@@ -365,7 +365,6 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   memcpy (&msg[1], tmp_peer_pointer, num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (h->mq, ev);
-
 }
 #endif /* ENABLE_MALICIOUS */
 
