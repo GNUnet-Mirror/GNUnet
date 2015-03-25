@@ -37,6 +37,7 @@ extern "C"
 #endif
 #endif
 
+
 /**
  * Iterator called on obtained result for a REST result.
  *

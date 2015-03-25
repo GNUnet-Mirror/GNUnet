@@ -20,6 +20,9 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+lib_LTLIBRARIES = \
+	libgnunetrest.la
+
 libexec_PROGRAMS = \
  gnunet-rest-server
 
@@ -29,3 +32,12 @@ gnunet_rest_server_SOURCES = \
 gnunet_rest_server_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) -lmicrohttpd
+
+libgnunetrest_la_SOURCES = \
+  rest.c
+libgnunetrest_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
+  $(GN_LIBINTL) -lmicrohttpd -ljansson
+libgnunetrest_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
