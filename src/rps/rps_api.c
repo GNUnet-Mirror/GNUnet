@@ -322,7 +322,8 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   unsigned int i;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client turns malicious with %" PRIX32 " other peers:\n",
+       "Client turns malicious (type %" PRIu32 ") with %" PRIX32 " other peers:\n",
+       type,
        num_peers);
   for (i = 0 ; i < num_peers ; i++)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -342,6 +343,9 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
 
   while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Too many peers to send at once, sending %" PRIu32 " (all we can so far)\n",
+         num_peers_max);
     ev = GNUNET_MQ_msg_extra (msg,
                               num_peers_max * sizeof (struct GNUNET_PeerIdentity),
                               GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
