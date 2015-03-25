@@ -391,7 +391,7 @@ struct AttackedPeer
   /**
    * PeerID
    */
-  struct GNUNET_PeerIdentity *peer_id;
+  struct GNUNET_PeerIdentity peer_id;
 };
 
 /**
@@ -1247,12 +1247,33 @@ handle_peer_push (void *cls,
   // FIXME wait for cadet to change this function
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
 
+  #ifdef ENABLE_MALICIOUS
+  struct AttackedPeer *tmp_att_peer;
+
+  tmp_att_peer = GNUNET_new (struct AttackedPeer);
+  memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
+  if (1 == mal_type)
+  { /* Try to maximise representation */
+    // TODO Check whether we already have that peer
+    GNUNET_CONTAINER_DLL_insert (att_peers_head, att_peers_tail, tmp_att_peer);
+    return GNUNET_OK;
+  }
+
+
+  else if (2 == mal_type)
+  { /* We attack one single well-known peer - simply ignore */
+    return GNUNET_OK;
+  }
+
+  #endif /* ENABLE_MALICIOUS */
+
   /* Add the sending peer to the push_list */
   if (GNUNET_NO == in_arr (push_list, push_list_size, peer))
     GNUNET_array_append (push_list, push_list_size, *peer);
 
   return GNUNET_OK;
 }
+
 
 /**
  * Handle PULL REQUEST request message from another peer.
@@ -1653,7 +1674,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       else
         att_peer_index = att_peer_index->next;
 
-      send_push (att_peer_index->peer_id);
+      send_push (&att_peer_index->peer_id);
     }
 
 
@@ -1677,7 +1698,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       else
         att_peer_index = tmp_att_peer->next;
 
-      send_pull_request (tmp_att_peer->peer_id);
+      send_pull_request (&tmp_att_peer->peer_id);
     }
   }
 
