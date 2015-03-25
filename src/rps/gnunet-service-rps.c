@@ -1620,47 +1620,77 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t i;
   struct GNUNET_TIME_Relative time_next_round;
   struct AttackedPeer *tmp_att_peer;
+  struct AttackedPeer *att_stop_peer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously.\n");
 
   /* Do malicious actions */
   if (1 == mal_type)
   { /* Try to maximise representation */
+
+    /* The maximum of pushes we're going to send this round */
     num_pushes = min (min (push_limit,
                            num_attacked_peers),
                        GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
 
+
     /* Send PUSHes to attacked peers */
+
+    /* If we see this peer again while iterating over peers
+     * we can stop iterating, as peers will ignore multiple
+     * pushes from one peer in one round */
+    if (att_peers_head == att_peer_index)
+      att_stop_peer = att_peers_tail;
+    else
+      att_peers_tail = att_peer_index->prev;
+
     for (i = 0 ; i < num_pushes ; i++)
     {
       if (att_peers_tail == att_peer_index)
         att_peer_index = att_peers_head;
+      else if (att_stop_peer == att_peer_index)
+        break;
       else
         att_peer_index = att_peer_index->next;
 
       send_push (att_peer_index->peer_id);
     }
 
+
     /* Send PULLs to some peers to learn about additional peers to attack */
+
+    /* If we see this peer again while iterating over peers
+     * we can stop iterating, as peers will ignore multiple
+     * pushes from one peer in one round */
     tmp_att_peer = att_peer_index;
+    if (att_peers_head == att_peer_index)
+      att_stop_peer = att_peers_tail;
+    else
+      att_peers_tail = att_peer_index->prev;
+
     for (i = 0 ; i < num_pushes * alpha ; i++)
     {
       if (att_peers_tail == tmp_att_peer)
         tmp_att_peer = att_peers_head;
+      else if (att_stop_peer == att_peer_index)
+        break;
       else
         att_peer_index = tmp_att_peer->next;
 
       send_pull_request (tmp_att_peer->peer_id);
     }
-
   }
+
+
   else if (2 == mal_type)
   { /**
      * Try to partition the network
-     * Send as many pushes to attacked peer as possible
+     * Send as many pushes to the attacked peer as possible
+     * That is one push per round as it will ignore more.
      */
       send_push (&attacked_peer);
   }
+
 
   /* Schedule next round */
   time_next_round = compute_rand_delay (round_interval, 2);
