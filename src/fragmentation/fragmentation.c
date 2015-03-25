@@ -231,10 +231,14 @@ transmit_next (void *cls,
           fsize - sizeof (struct FragmentHeader));
   if (NULL != fc->tracker)
     GNUNET_BANDWIDTH_tracker_consume (fc->tracker, fsize);
-  GNUNET_STATISTICS_update (fc->stats, _("# fragments transmitted"), 1,
+  GNUNET_STATISTICS_update (fc->stats,
+                            _("# fragments transmitted"),
+                            1,
                             GNUNET_NO);
   if (0 != fc->last_round.abs_value_us)
-    GNUNET_STATISTICS_update (fc->stats, _("# fragments retransmitted"), 1,
+    GNUNET_STATISTICS_update (fc->stats,
+                              _("# fragments retransmitted"),
+                              1,
                               GNUNET_NO);
 
   /* select next message to calculate delay */
@@ -245,7 +249,8 @@ transmit_next (void *cls,
   else
     fsize = fc->mtu;
   if (NULL != fc->tracker)
-    delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker, fsize);
+    delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
+                                                fsize);
   else
     delay = GNUNET_TIME_UNIT_ZERO;
   delay = GNUNET_TIME_relative_max (delay,
@@ -260,7 +265,9 @@ transmit_next (void *cls,
     delay = GNUNET_TIME_relative_max (MIN_ACK_DELAY, delay);
     fc->wack = GNUNET_YES;
     fc->last_round = GNUNET_TIME_absolute_get ();
-    GNUNET_STATISTICS_update (fc->stats, _("# fragments wrap arounds"), 1,
+    GNUNET_STATISTICS_update (fc->stats,
+                              _("# fragments wrap arounds"),
+                              1,
                               GNUNET_NO);
   }
   fc->proc_busy = GNUNET_YES;
@@ -304,10 +311,14 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   size_t size;
   uint64_t bits;
 
-  GNUNET_STATISTICS_update (stats, _("# messages fragmented"), 1, GNUNET_NO);
+  GNUNET_STATISTICS_update (stats,
+                            _("# messages fragmented"),
+                            1,
+                            GNUNET_NO);
   GNUNET_assert (mtu >= 1024 + sizeof (struct FragmentHeader));
   size = ntohs (msg->size);
-  GNUNET_STATISTICS_update (stats, _("# total size of fragmented messages"),
+  GNUNET_STATISTICS_update (stats,
+                            _("# total size of fragmented messages"),
                             size, GNUNET_NO);
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   fc = GNUNET_malloc (sizeof (struct GNUNET_FRAGMENT_Context) + size);
@@ -395,7 +406,6 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     ndelay = GNUNET_TIME_absolute_get_duration (fc->last_round);
     fc->ack_delay.rel_value_us =
         (ndelay.rel_value_us / fc->num_transmissions + 3 * fc->ack_delay.rel_value_us) / 4;
-    fc->num_transmissions = 0;
     /* calculate ratio msg sent vs. msg acked */
     ack_cnt = 0;
     snd_cnt = 0;
@@ -417,18 +427,22 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     else if (snd_cnt > ack_cnt)
     {
       /* some loss, slow down proportionally */
-      fprintf (stderr, "Prop loss\n");
       fc->msg_delay.rel_value_us = ((fc->msg_delay.rel_value_us * ack_cnt) / snd_cnt);
     }
-    else if (100 < fc->msg_delay.rel_value_us)
+    else if (snd_cnt == ack_cnt)
     {
-      fc->msg_delay.rel_value_us -= 100; /* try a bit faster */
+      fc->msg_delay.rel_value_us =
+        (ndelay.rel_value_us / fc->num_transmissions + 3 * fc->msg_delay.rel_value_us) / 5;
     }
+    fc->num_transmissions = 0;
     fc->msg_delay = GNUNET_TIME_relative_min (fc->msg_delay,
+					      GNUNET_TIME_UNIT_SECONDS);
+    fc->ack_delay = GNUNET_TIME_relative_min (fc->ack_delay,
 					      GNUNET_TIME_UNIT_SECONDS);
   }
   GNUNET_STATISTICS_update (fc->stats,
-                            _("# fragment acknowledgements received"), 1,
+                            _("# fragment acknowledgements received"),
+                            1,
                             GNUNET_NO);
   if (abits != (fc->acks & abits))
   {
@@ -458,9 +472,10 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
 
   /* all done */
   GNUNET_STATISTICS_update (fc->stats,
-                            _("# fragmentation transmissions completed"), 1,
+                            _("# fragmentation transmissions completed"),
+                            1,
                             GNUNET_NO);
-  if (fc->task != NULL)
+  if (NULL != fc->task)
   {
     GNUNET_SCHEDULER_cancel (fc->task);
     fc->task = NULL;

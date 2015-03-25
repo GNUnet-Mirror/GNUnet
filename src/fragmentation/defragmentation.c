@@ -109,13 +109,13 @@ struct MessageContext
 
   /**
    * For the current ACK round, which is the first relevant
-   * offset in 'frag_times'?
+   * offset in @e frag_times?
    */
   unsigned int frag_times_start_offset;
 
   /**
    * Which offset whould we write the next frag value into
-   * in the 'frag_times' array? All smaller entries are valid.
+   * in the @e frag_times array? All smaller entries are valid.
    */
   unsigned int frag_times_write_offset;
 
@@ -123,6 +123,11 @@ struct MessageContext
    * Total size of the message that we are assembling.
    */
   uint16_t total_size;
+
+  /**
+   * Was the last fragment we got a duplicate?
+   */
+  int16_t last_duplicate;
 
 };
 
@@ -185,6 +190,7 @@ struct GNUNET_DEFRAGMENT_Context
    * Maximum message size for each fragment.
    */
   uint16_t mtu;
+
 };
 
 
@@ -271,6 +277,7 @@ send_ack (void *cls,
                             _("# acknowledgements sent for fragment"),
                             1,
                             GNUNET_NO);
+  mc->last_duplicate = GNUNET_NO; /* clear flag */
   dc->ackp (dc->cls,
             mc->fragment_id,
             &fa.header);
@@ -535,11 +542,13 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
                               GNUNET_NO);
   }
 
-  /* count number of missing fragments */
+  /* count number of missing fragments after the current one */
   bc = 0;
-  for (b = 0; b < 64; b++)
+  for (b = bit; b < 64; b++)
     if (0 != (mc->bits & (1LL << b)))
       bc++;
+    else
+      bc = 0;
 
   /* notify about complete message */
   if ( (GNUNET_NO == duplicate) &&
@@ -560,23 +569,23 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
   delay = GNUNET_TIME_relative_multiply (dc->latency,
                                          bc + 1);
   if ( (last + fid == num_fragments) ||
-       ( (0 == mc->bits) &&
-         (GNUNET_YES != duplicate)) )
+       (0 == mc->bits) ||
+       (GNUNET_YES == duplicate) )
   {
     /* message complete or duplicate or last missing fragment in
        linear sequence; ACK now! */
     delay = GNUNET_TIME_UNIT_ZERO;
   }
-  if (GNUNET_YES == duplicate)
-    delay = GNUNET_TIME_relative_multiply (delay,
-                                           2);
   if (NULL != mc->ack_task)
     GNUNET_SCHEDULER_cancel (mc->ack_task);
   mc->ack_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                &send_ack,
                                                mc);
   if (GNUNET_YES == duplicate)
+  {
+    mc->last_duplicate = GNUNET_YES;
     return GNUNET_NO;
+  }
   return GNUNET_YES;
 }
 
