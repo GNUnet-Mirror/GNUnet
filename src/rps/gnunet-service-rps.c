@@ -1335,6 +1335,11 @@ handle_peer_pull_reply (void *cls,
 }
 
 
+static void
+do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+static void
+do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 #ifdef ENABLE_MALICIOUS
@@ -1346,22 +1351,18 @@ handle_peer_pull_reply (void *cls,
  * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
-  static int
-handle_peer_act_malicious (void *cls,
-                           struct GNUNET_CADET_Channel *channel,
-                           void **channel_ctx,
-                           const struct GNUNET_MessageHeader *msg)
+  static void
+handle_client_act_malicious (void *cls,
+                             struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_RPS_CS_ActMaliciousMessage *in_msg;
-  struct GNUNET_PeerIdentity *sender;
-  struct PeerContext *sender_ctx;
   struct GNUNET_PeerIdentity *peers;
 
   /* Check for protocol violation */
   if (sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage) > ntohs (msg->size))
   {
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
   }
 
   in_msg = (struct GNUNET_RPS_CS_ActMaliciousMessage *) msg;
@@ -1374,19 +1375,6 @@ handle_peer_act_malicious (void *cls,
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_CS_ActMaliciousMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
     GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-
-  sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
-      (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
-       // Guess simply casting isn't the nicest way...
-       // FIXME wait for cadet to change this function
-  sender_ctx = get_peer_ctx (peer_map, sender);
-
-  if (GNUNET_YES == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
   }
 
 
@@ -1394,9 +1382,11 @@ handle_peer_act_malicious (void *cls,
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   num_mal_peers = ntohl (in_msg->num_peers);
   mal_type = ntohl (in_msg->type);
+  num_attacked_peers = 0;
+  attacked_peers = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Now acting malicious type %" PRIX32 "\n",
+       "Now acting malicious type %" PRIu32 "\n",
        mal_type);
 
   if (1 == mal_type)
@@ -1404,7 +1394,7 @@ handle_peer_act_malicious (void *cls,
     num_mal_peers = ntohl (in_msg->num_peers);
     mal_peers = GNUNET_new_array (num_mal_peers,
                                   struct GNUNET_PeerIdentity);
-    memcpy (mal_peers, peers, num_mal_peers);
+    memcpy (mal_peers, peers, num_mal_peers * sizeof (struct GNUNET_PeerIdentity));
 
     /* Substitute do_round () with do_mal_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
@@ -1416,7 +1406,9 @@ handle_peer_act_malicious (void *cls,
     mal_peers = GNUNET_new_array (num_mal_peers,
                                   struct GNUNET_PeerIdentity);
     memcpy (mal_peers, peers, num_mal_peers);
-    attacked_peer = peers[num_mal_peers];
+
+    GNUNET_array_grow (attacked_peers, num_attacked_peers, 1);
+    memcpy (attacked_peers, &peers[num_mal_peers], 1 * sizeof (struct GNUNET_PeerIdentity));
 
     /* Substitute do_round () with do_mal_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
@@ -1436,7 +1428,6 @@ handle_peer_act_malicious (void *cls,
     GNUNET_break (0);
   }
 
-  return GNUNET_OK;
 }
 
 
@@ -1448,9 +1439,27 @@ handle_peer_act_malicious (void *cls,
 static void
 do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  uint32_t num_pushes;
+  uint32_t i;
+  unsigned int rand_delay;
+  struct GNUNET_TIME_Relative half_round_interval;
+  struct GNUNET_TIME_Relative time_next_round;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously.\n");
 
-  /* Do stuff */
+  /* Do malicious actions */
+  if (1 == mal_type)
+  { /* Try to maximise representation */
+    num_pushes = min (min (push_limit, /* FIXME: attacked peer */ num_mal_peers), GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
+    for (i = 0 ; i < num_pushes ; i++)
+    { /* Send PUSH to attacked peer */
+      //GNUNET_CONTAINER_multihashmap_iterator_create
+    }
+  }
+  else if (2 == mal_type)
+  { /* Try to partition the network */
+    /* Send as many pushes to attacked peer as possible */
+  }
 
   /* Compute random time value between .5 * round_interval and 1.5 *round_interval */
   half_round_interval = GNUNET_TIME_relative_divide (round_interval, 2);
@@ -1973,9 +1982,12 @@ cleanup_channel (void *cls,
 rps_start (struct GNUNET_SERVER_Handle *server)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {&handle_client_request, NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
+    {&handle_client_request,     NULL, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST,
       sizeof (struct GNUNET_RPS_CS_RequestMessage)},
-    {&handle_client_seed,    NULL, GNUNET_MESSAGE_TYPE_RPS_CS_SEED, 0},
+    {&handle_client_seed,        NULL, GNUNET_MESSAGE_TYPE_RPS_CS_SEED, 0},
+    #ifdef ENABLE_MALICIOUS
+    {&handle_client_act_malicious, NULL, GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS , 0},
+    #endif /* ENABLE_MALICIOUS */
     {NULL, NULL, 0, 0}
   };
 
@@ -2069,9 +2081,6 @@ run (void *cls,
     {&handle_peer_pull_request, GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST,
       sizeof (struct GNUNET_MessageHeader)},
     {&handle_peer_pull_reply  , GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY  , 0},
-    #if ENABLE_MALICIOUS
-    {&handle_peer_act_malicious, GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS , 0},
-    #endif /* ENABLE_MALICIOUS */
     {NULL, 0, 0}
   };
 
