@@ -372,6 +372,12 @@ uint32_t mal_type = 0;
 static struct GNUNET_PeerIdentity *mal_peers = NULL;
 
 /**
+ * Hashmap of malicious peers used as set.
+ * Used to more efficiently check whether we know that peer.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *mal_peer_set = NULL;
+
+/**
  * Number of other malicious peers
  */
 static uint32_t num_mal_peers = 0;
@@ -405,6 +411,12 @@ static struct AttackedPeer *att_peers_tail = NULL;
  * implement the round-robin-ish way to select attacked peers.
  */
 static struct AttackedPeer *att_peer_index = NULL;
+
+/**
+ * Hashmap of attacked peers used as set.
+ * Used to more efficiently check whether we know that peer.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *att_peer_set = NULL;
 
 /**
  * Number of attacked peers
@@ -1032,6 +1044,82 @@ est_request_rate()
 }
 
 
+/**
+ * Add all peers in @a peer_array to @peer_map used as set.
+ *
+ * @param peer_array array containing the peers
+ * @param num_peers number of peers in @peer_array
+ * @param peer_map the peermap to use as set
+ */
+static void
+add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
+                       unsigned int num_peers,
+                       struct GNUNET_CONTAINER_MultiPeerMap *peer_map)
+{
+  unsigned int i;
+  if (NULL == peer_map)
+    peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers,
+                                                     GNUNET_NO);
+  for (i = 0 ; i < num_peers ; i++)
+  {
+    GNUNET_CONTAINER_multipeermap_put (peer_map,
+                                       &peer_array[i],
+                                       NULL,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+}
+
+
+/**
+ * Send a PULL REPLY to @a peer_id
+ *
+ * @param peer_id the peer to send the reply to.
+ * @param peer_ids the peers to send to @a peer_id
+ * @param num_peer_ids the number of peers to send to @a peer_id
+ */
+static void
+send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
+                 const struct GNUNET_PeerIdentity *peer_ids,
+                 unsigned int num_peer_ids)
+{
+  uint32_t send_size;
+  struct GNUNET_MQ_Handle *mq;
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
+
+  /* Compute actual size */
+  send_size = sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) +
+              num_peer_ids * sizeof (struct GNUNET_PeerIdentity);
+
+  if (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < send_size)
+    /* Compute number of peers to send
+     * If too long, simply truncate */
+    // TODO select random ones via permutation
+    //      or even better: do good protocol design
+    send_size =
+      (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE -
+       sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
+       sizeof (struct GNUNET_PeerIdentity);
+  else
+    send_size = num_peer_ids;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "PULL REQUEST from peer %s received, going to send %u peers\n",
+      GNUNET_i2s (peer_id), send_size);
+
+  mq = get_mq (peer_map, peer_id);
+
+  ev = GNUNET_MQ_msg_extra (out_msg,
+                            send_size * sizeof (struct GNUNET_PeerIdentity),
+                            GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
+  out_msg->num_peers = htonl (send_size);
+  memcpy (&out_msg[1], peer_ids,
+         send_size * sizeof (struct GNUNET_PeerIdentity));
+
+  GNUNET_MQ_send (mq, ev);
+}
+
+
 /***********************************************************************
  * /Util functions
 ***********************************************************************/
@@ -1243,8 +1331,10 @@ handle_peer_push (void *cls,
 
   // (check the proof of work)
 
-  peer = (const struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
+  peer = (const struct GNUNET_PeerIdentity *)
+    GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
 
   #ifdef ENABLE_MALICIOUS
@@ -1254,8 +1344,16 @@ handle_peer_push (void *cls,
   memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
   if (1 == mal_type)
   { /* Try to maximise representation */
-    // TODO Check whether we already have that peer
-    GNUNET_CONTAINER_DLL_insert (att_peers_head, att_peers_tail, tmp_att_peer);
+    if (NULL == att_peer_set)
+      att_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
+                                                             peer))
+    {
+      GNUNET_CONTAINER_DLL_insert (att_peers_head,
+                                   att_peers_tail,
+                                   tmp_att_peer);
+      add_peer_array_to_set (peer, 1, att_peer_set);
+    }
     return GNUNET_OK;
   }
 
@@ -1292,47 +1390,30 @@ handle_peer_pull_request (void *cls,
     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PeerIdentity *peer;
-  uint32_t send_size;
-  struct GNUNET_MQ_Handle *mq;
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_RPS_P2P_PullReplyMessage *out_msg;
-
 
   peer = (struct GNUNET_PeerIdentity *)
     GNUNET_CADET_channel_get_info (channel,
                                    GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
 
-  /* Compute actual size */
-  send_size = sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) +
-              gossip_list_size * sizeof (struct GNUNET_PeerIdentity);
+  #ifdef ENABLE_MALICIOUS
+  if (1 == mal_type)
+  { /* Try to maximise representation */
+    send_pull_reply (peer, mal_peers, num_mal_peers);
+    return GNUNET_OK;
+  }
 
-  if (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE < send_size)
-    /* Compute number of peers to send
-     * If too long, simply truncate */
-  // TODO select random ones via permutation
-    send_size =
-      (GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE -
-       sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
-       sizeof (struct GNUNET_PeerIdentity);
-  else
-    send_size = gossip_list_size;
+  else if (2 == mal_type)
+  { /* Try to partition network */
+    if (GNUNET_YES == GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
+    {
+      send_pull_reply (peer, mal_peers, num_mal_peers);
+    }
+    return GNUNET_OK;
+  }
+  #endif /* ENABLE_MALICIOUS */
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "PULL REQUEST from peer %s received, going to send %u peers\n",
-      GNUNET_i2s (peer), send_size);
-
-  mq = get_mq (peer_map, peer);
-
-  ev = GNUNET_MQ_msg_extra (out_msg,
-                           send_size * sizeof (struct GNUNET_PeerIdentity),
-                           GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REPLY);
-  //out_msg->num_peers = htonl (gossip_list_size);
-  out_msg->num_peers = htonl (send_size);
-  memcpy (&out_msg[1], gossip_list,
-         send_size * sizeof (struct GNUNET_PeerIdentity));
-
-  GNUNET_MQ_send (mq, ev);
+  send_pull_reply (peer, gossip_list, gossip_list_size);
 
   return GNUNET_OK;
 }
@@ -1575,6 +1656,7 @@ handle_client_act_malicious (void *cls,
   if (1 == mal_type)
   { /* Try to maximise representation */
     /* Add other malicious peers to those we already know */
+
     num_mal_peers_sent = ntohl (in_msg->num_peers);
     num_mal_peers_old = num_mal_peers;
     GNUNET_array_grow (mal_peers,
@@ -1584,10 +1666,16 @@ handle_client_act_malicious (void *cls,
             peers,
             num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
 
+    /* Add all mal peers to mal_peer_set */
+    add_peer_array_to_set (&mal_peers[num_mal_peers_old],
+                           num_mal_peers_sent,
+                           mal_peer_set);
+
     /* Substitute do_round () with do_mal_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
     do_round_task = GNUNET_SCHEDULER_add_now (&do_mal_round, NULL);
   }
+
   else if (2 == mal_type)
   { /* Try to partition the network */
     /* Add other malicious peers to those we already know */
@@ -1599,6 +1687,11 @@ handle_client_act_malicious (void *cls,
     memcpy (&mal_peers[num_mal_peers_old],
             peers,
             num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
+
+    /* Add all mal peers to mal_peer_set */
+    add_peer_array_to_set (&mal_peers[num_mal_peers_old],
+                           num_mal_peers_sent,
+                           mal_peer_set);
 
     /* Store the one attacked peer */
     memcpy (&attacked_peer,
@@ -1641,7 +1734,6 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t i;
   struct GNUNET_TIME_Relative time_next_round;
   struct AttackedPeer *tmp_att_peer;
-  struct AttackedPeer *att_stop_peer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously.\n");
 
@@ -1654,47 +1746,22 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                            num_attacked_peers),
                        GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
 
-
     /* Send PUSHes to attacked peers */
-
-    /* If we see this peer again while iterating over peers
-     * we can stop iterating, as peers will ignore multiple
-     * pushes from one peer in one round */
-    if (att_peers_head == att_peer_index)
-      att_stop_peer = att_peers_tail;
-    else
-      att_peers_tail = att_peer_index->prev;
-
     for (i = 0 ; i < num_pushes ; i++)
     {
       if (att_peers_tail == att_peer_index)
         att_peer_index = att_peers_head;
-      else if (att_stop_peer == att_peer_index)
-        break;
       else
         att_peer_index = att_peer_index->next;
 
       send_push (&att_peer_index->peer_id);
     }
 
-
     /* Send PULLs to some peers to learn about additional peers to attack */
-
-    /* If we see this peer again while iterating over peers
-     * we can stop iterating, as peers will ignore multiple
-     * pushes from one peer in one round */
-    tmp_att_peer = att_peer_index;
-    if (att_peers_head == att_peer_index)
-      att_stop_peer = att_peers_tail;
-    else
-      att_peers_tail = att_peer_index->prev;
-
     for (i = 0 ; i < num_pushes * alpha ; i++)
     {
       if (att_peers_tail == tmp_att_peer)
         tmp_att_peer = att_peers_head;
-      else if (att_stop_peer == att_peer_index)
-        break;
       else
         att_peer_index = tmp_att_peer->next;
 
@@ -2084,6 +2151,10 @@ shutdown_task (void *cls,
   GNUNET_array_grow (pull_list, pull_list_size, 0);
   #ifdef ENABLE_MALICIOUS
   GNUNET_array_grow (mal_peers, num_mal_peers, 0);
+  if (NULL != mal_peer_set)
+    GNUNET_CONTAINER_multipeermap_destroy (mal_peer_set);
+  if (NULL != att_peer_set)
+    GNUNET_CONTAINER_multipeermap_destroy (att_peer_set);
   // TODO empty attacked_peers DLL
   #endif /* ENABLE_MALICIOUS */
 }
