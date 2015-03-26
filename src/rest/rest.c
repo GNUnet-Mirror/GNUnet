@@ -91,6 +91,8 @@ GNUNET_REST_jsonapi_resource_new (const char *type, const char *id)
     return NULL;
 
   res = GNUNET_new (struct JsonApiResource);
+  res->prev = NULL;
+  res->next = NULL;
   
   res->res_obj = json_object ();
 
@@ -236,6 +238,8 @@ add_json_resource (struct JsonApiObject *obj,
     return;
 
   res = GNUNET_new (struct JsonApiResource);
+  res->next = NULL;
+  res->prev = NULL;
   res->res_obj = json_deep_copy (res_json);
   GNUNET_REST_jsonapi_object_resource_add (obj, res);
 }
@@ -303,11 +307,18 @@ void
 GNUNET_REST_jsonapi_object_delete (struct JsonApiObject *resp)
 {
   struct JsonApiResource *res;
+  struct JsonApiResource *res_next;
   
   for (res = resp->res_list_head; 
-       res != NULL;
-       res = res->next)
+       res != NULL;)
+  {
+    GNUNET_CONTAINER_DLL_remove (resp->res_list_head,
+                                 resp->res_list_tail,
+                                 res);
+    res_next = res->next;
     GNUNET_REST_jsonapi_resource_delete (res);
+    res = res_next;
+  }
   GNUNET_free (resp);
 }
 
@@ -420,7 +431,7 @@ GNUNET_REST_jsonapi_data_serialize (const struct JsonApiObject *resp,
     }
     json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, res_arr);
   }
-  *result = json_dumps (root_json, JSON_COMPACT);
+  *result = json_dumps (root_json, JSON_INDENT(2));
   return GNUNET_OK;
 }
 
@@ -454,14 +465,17 @@ GNUNET_REST_namespace_match (const char *url, const char *namespace)
  * @param data JSON result
  * @retun MHD response
  */
- struct MHD_Response*
+struct MHD_Response*
 GNUNET_REST_create_json_response (const char *data)
 {
   struct MHD_Response *resp;
   size_t len;
 
   if (NULL == data)
+  {
     len = 0;
+    data = "";
+  }
   else
     len = strlen (data);
   resp = MHD_create_response_from_buffer (len,
@@ -482,24 +496,22 @@ GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
   char *url;
 
   count = 0;
-
   while (NULL != handlers[count].method)
     count++;
 
   GNUNET_asprintf (&url, "%s", conn->url);
   if (url[strlen (url)-1] == '/')
     url[strlen (url)-1] = '\0';
-
   for (i = 0; i < count; i++)
   {
-    if (0 != strcasecmp (conn->method, handlers[count].method))
+    if (0 != strcasecmp (conn->method, handlers[i].method))
       break;
-    if (strlen (url) < strlen (handlers[count].namespace))
+    if (strlen (url) < strlen (handlers[i].namespace))
       break;
-    if (GNUNET_NO == GNUNET_REST_namespace_match (url, handlers[count].namespace))
+    if (GNUNET_NO == GNUNET_REST_namespace_match (url, handlers[i].namespace))
       break;
     //Match
-    handlers[count].proc (conn, (const char*)url, cls);
+    handlers[i].proc (conn, (const char*)url, cls);
     GNUNET_free (url);
     return GNUNET_YES;
   }

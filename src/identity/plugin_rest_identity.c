@@ -31,9 +31,7 @@
 #include "microhttpd.h"
 #include <jansson.h>
 
-#define API_NAMESPACE "/identity"
-
-#define EGO_NAMESPACE "/identity/egos"
+#define GNUNET_REST_API_NS_IDENTITY "/identity"
 
 #define ID_REST_STATE_INIT 0
 
@@ -183,8 +181,6 @@ cleanup_handle (struct RequestHandle *handle)
   struct EgoEntry *ego_tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
-  if (NULL != handle->json_root)
-    json_decref (handle->json_root);
   if (NULL != handle->name)
     GNUNET_free (handle->name);
   if (NULL != handle->timeout_task)
@@ -301,16 +297,14 @@ ego_info_response (struct RestConnectionDataHandle *con,
   struct JsonApiObject *json_object;
   struct JsonApiResource *json_resource;
   json_t *key_str;
-
-  if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url, EGO_NAMESPACE))
+  if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url, GNUNET_REST_API_NS_IDENTITY))
   {
     resp = GNUNET_REST_create_json_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
     cleanup_handle (handle);
-    GNUNET_break (0);
     return;
   }
-  if ( (strlen (EGO_NAMESPACE) == strlen (handle->url) )) {
+  if ( (strlen (GNUNET_REST_API_NS_IDENTITY) == strlen (handle->url) )) {
     GNUNET_CRYPTO_hash (URL_PARAM_SUBSYS, strlen (URL_PARAM_SUBSYS), &key);
     if ( GNUNET_YES ==
          GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
@@ -331,13 +325,12 @@ ego_info_response (struct RestConnectionDataHandle *con,
     }
   }
   json_object = GNUNET_REST_jsonapi_object_new ();
-  egoname = &handle->url[strlen (EGO_NAMESPACE)+1];
+  egoname = &handle->url[strlen (GNUNET_REST_API_NS_IDENTITY)+1];
 
-  if (strlen (EGO_NAMESPACE) == strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_IDENTITY) == strlen (handle->url))
   {
     egoname = NULL;
   }
-
   //Return all egos
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
@@ -355,7 +348,12 @@ ego_info_response (struct RestConnectionDataHandle *con,
     GNUNET_free (keystring);
     GNUNET_REST_jsonapi_object_resource_add (json_object, json_resource);
   }
-
+  if (0 == GNUNET_REST_jsonapi_object_resource_count (json_object))
+  {
+    GNUNET_REST_jsonapi_object_delete (json_object);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
   GNUNET_REST_jsonapi_data_serialize (json_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
@@ -430,7 +428,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   char term_data[handle->data_size+1];
   const char* egoname;
 
-  if (strlen (API_NAMESPACE) != strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_IDENTITY) != strlen (handle->url))
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -513,13 +511,13 @@ subsys_set_cont (struct RestConnectionDataHandle *con,
   int ego_exists = GNUNET_NO;
   json_t *subsys_json;
   
-  if (strlen (API_NAMESPACE) > strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_IDENTITY) > strlen (handle->url))
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
-  egoname = &handle->url[strlen(EGO_NAMESPACE)+1];
+  egoname = &handle->url[strlen(GNUNET_REST_API_NS_IDENTITY)+1];
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
        ego_entry = ego_entry->next)
@@ -605,13 +603,13 @@ ego_delete_cont (struct RestConnectionDataHandle *con_handle,
   struct RequestHandle *handle = cls;
   int ego_exists = GNUNET_NO;
 
-  if (strlen (API_NAMESPACE) >= strlen (handle->url))
+  if (strlen (GNUNET_REST_API_NS_IDENTITY) >= strlen (handle->url))
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
 
-  egoname = &handle->url[strlen(API_NAMESPACE)+1];
+  egoname = &handle->url[strlen(GNUNET_REST_API_NS_IDENTITY)+1];
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
        ego_entry = ego_entry->next)
@@ -640,10 +638,10 @@ void
 init_cont (struct RequestHandle *handle)
 {
   static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
-    {MHD_HTTP_METHOD_GET, API_NAMESPACE, &ego_info_response},
-    {MHD_HTTP_METHOD_POST, API_NAMESPACE, &ego_create_cont},
-    {MHD_HTTP_METHOD_PUT, API_NAMESPACE, &subsys_set_cont},
-    {MHD_HTTP_METHOD_DELETE, API_NAMESPACE, &ego_delete_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY, &ego_info_response},
+    {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY, &ego_create_cont},
+    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_IDENTITY, &subsys_set_cont},
+    {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_IDENTITY, &ego_delete_cont},
     GNUNET_REST_HANDLER_END
   };
 
@@ -775,7 +773,7 @@ libgnunet_plugin_rest_identity_init (void *cls)
   plugin.cfg = cfg;
   api = GNUNET_new (struct GNUNET_REST_Plugin);
   api->cls = &plugin;
-  api->name = API_NAMESPACE;
+  api->name = GNUNET_REST_API_NS_IDENTITY;
   api->process_request = &rest_identity_process_request;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Identity REST API initialized\n"));

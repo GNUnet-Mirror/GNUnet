@@ -292,7 +292,7 @@ create_response (void *cls,
     }
     if (NULL == con_handle->plugin)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Queueing response with MHD\n");
       GNUNET_free (con_handle);
       return MHD_queue_response (con,
@@ -356,15 +356,6 @@ mhd_completed_cb (void *cls,
                   void **con_cls,
                   enum MHD_RequestTerminationCode toe)
 {
-  struct MhdConnectionHandle *con_handle;
-
-  con_handle = *con_cls;
-  if (NULL != con_handle)
-  {
-    MHD_destroy_response (con_handle->response);
-    GNUNET_free (con_handle);
-    *con_cls = NULL;
-  }
   if (MHD_REQUEST_TERMINATED_COMPLETED_OK != toe)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "MHD encountered error handling request: %d\n",
