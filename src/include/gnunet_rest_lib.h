@@ -90,7 +90,7 @@ struct JsonApiResource;
 /**
  * Responses for JSON API
  */
-struct JsonApiResponse;
+struct JsonApiObject;
 
 /**
  * Create a JSON API resource
@@ -124,7 +124,42 @@ int
 GNUNET_REST_jsonapi_resource_add_attr (const struct JsonApiResource *resource,
                                        const char* key,
                                        json_t *json);
+/**
+ * Read a JSON API attribute
+ *
+ * @param res the JSON resource
+ * @param key the key for the attribute
+ * @return the json attr
+ */
+json_t*
+GNUNET_REST_jsonapi_resource_read_attr (const struct JsonApiResource *resource,
+                                       const char* key);
 
+
+/**
+ * Check a JSON API resource id
+ *
+ * @param res the JSON resource
+ * @param id the expected id
+ * @return GNUNET_YES if id matches
+ */
+int
+GNUNET_REST_jsonapi_resource_check_id (const struct JsonApiResource *resource,
+                                       const char* id);
+
+
+/**
+ * Check a JSON API resource type
+ *
+ * @param res the JSON resource
+ * @param type the expected type
+ * @return GNUNET_YES if id matches
+ */
+int
+GNUNET_REST_jsonapi_resource_check_type (const struct JsonApiResource *resource,
+                                         const char* type);
+
+  
 /**
  * Create a JSON API primary data
  *
@@ -132,9 +167,20 @@ GNUNET_REST_jsonapi_resource_add_attr (const struct JsonApiResource *resource,
  * @param id the JSON API resource id
  * @return a new JSON API resource or NULL on error.
  */
-struct JsonApiResponse*
-GNUNET_REST_jsonapi_response_new ();
+struct JsonApiObject*
+GNUNET_REST_jsonapi_object_new ();
 
+
+/**
+ * Create a JSON API primary data from a string
+ *
+ * @param data the string of the JSON API data
+ * @return a new JSON API resource or NULL on error.
+ */
+struct JsonApiObject*
+GNUNET_REST_jsonapi_object_parse (const char* data);
+
+  
 /**
  * Delete a JSON API primary data
  *
@@ -143,7 +189,7 @@ GNUNET_REST_jsonapi_response_new ();
  * @return a new JSON API resource or NULL on error.
  */
 void
-GNUNET_REST_jsonapi_response_delete (struct JsonApiResponse *resp);
+GNUNET_REST_jsonapi_object_delete (struct JsonApiObject *resp);
 
 /**
  * Add a JSON API resource to primary data
@@ -153,8 +199,27 @@ GNUNET_REST_jsonapi_response_delete (struct JsonApiResponse *resp);
  * @return the new number of resources
  */
 void
-GNUNET_REST_jsonapi_response_resource_add (struct JsonApiResponse *resp,
+GNUNET_REST_jsonapi_object_resource_add (struct JsonApiObject *resp,
                                            struct JsonApiResource *res);
+/**
+ * Get a JSON API object resource count
+ *
+ * @param resp the JSON API object
+ * @return the number of resources
+ */
+int
+GNUNET_REST_jsonapi_object_resource_count (struct JsonApiObject *resp);
+
+/**
+ * Get a JSON API object resource #num
+ *
+ * @param resp the JSON API object
+ * @param num the number of the resource
+ * @return the resource
+ */
+struct JsonApiResource*
+GNUNET_REST_jsonapi_object_get_resource (struct JsonApiObject *resp, int num);
+
 
 /**
  * Add a JSON API resource to primary data
@@ -164,7 +229,7 @@ GNUNET_REST_jsonapi_response_resource_add (struct JsonApiResponse *resp,
  * @return the new number of resources
  */
 void
-GNUNET_REST_jsonapi_data_resource_remove (struct JsonApiResponse *resp,
+GNUNET_REST_jsonapi_data_resource_remove (struct JsonApiObject *resp,
                                           struct JsonApiResource *res);
 
 /**
@@ -175,7 +240,7 @@ GNUNET_REST_jsonapi_data_resource_remove (struct JsonApiResponse *resp,
  * @return GNUNET_SYSERR on error else GNUNET_OK
  */
 int
-GNUNET_REST_jsonapi_data_serialize (const struct JsonApiResponse *resp,
+GNUNET_REST_jsonapi_data_serialize (const struct JsonApiObject *resp,
                                     char **result);
 
 /**

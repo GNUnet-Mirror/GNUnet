@@ -45,6 +45,8 @@
 
 #define GNUNET_REST_JSONAPI_IDENTITY_KEY "key"
 
+#define GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM "subsystem"
+
 /**
  * @brief struct returned by the initialization function of the plugin
  */
@@ -236,16 +238,16 @@ get_ego_for_subsys (void *cls,
                     const char *name)
 {
   struct RequestHandle *handle = cls;
+  struct JsonApiObject *json_object;
+  struct JsonApiResource *json_resource;
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
+  json_t *key_json;
   char *result_str;
   char *keystring;
-  json_t *ego_json;
-  json_t *root_json;
 
-  root_json = json_object ();
-
-  //Return all egos
+  json_object = GNUNET_REST_jsonapi_object_new ();
+  
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
        ego_entry = ego_entry->next)
@@ -254,26 +256,25 @@ get_ego_for_subsys (void *cls,
       continue;
     if (NULL == name)
       continue;
-    ego_json = json_object ();
+    json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_EGO, ego_entry->identifier);
     keystring = GNUNET_CRYPTO_ecdsa_public_key_to_string (&ego_entry->pk);
-    json_object_set_new (ego_json, "id", json_string (ego_entry->identifier));
-    json_object_set_new (ego_json, "type", json_string (GNUNET_REST_JSONAPI_IDENTITY_EGO));
-    json_object_set_new (ego_json, "key", json_string (keystring));
+    key_json = json_string (keystring);
+    GNUNET_REST_jsonapi_resource_add_attr (json_resource, GNUNET_REST_JSONAPI_IDENTITY_KEY, key_json);
+    json_decref (key_json);
     GNUNET_free (keystring);
+    GNUNET_REST_jsonapi_object_resource_add (json_object, json_resource);
     break;
   }
-  if (NULL == ego_json)
+  if (0 == GNUNET_REST_jsonapi_object_resource_count (json_object))
   {
-    json_decref (root_json);
+    GNUNET_REST_jsonapi_object_delete (json_object);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, ego_json);
-  result_str = json_dumps (root_json, JSON_COMPACT);
+  GNUNET_REST_jsonapi_data_serialize (json_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  json_decref (ego_json);
-  json_decref (root_json);
   resp = GNUNET_REST_create_json_response (result_str);
+  GNUNET_REST_jsonapi_object_delete (json_object);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
@@ -297,7 +298,7 @@ ego_info_response (struct RestConnectionDataHandle *con,
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
   struct MHD_Response *resp;
-  struct JsonApiResponse *json_response;
+  struct JsonApiObject *json_object;
   struct JsonApiResource *json_resource;
   json_t *key_str;
 
@@ -309,7 +310,6 @@ ego_info_response (struct RestConnectionDataHandle *con,
     GNUNET_break (0);
     return;
   }
-  json_response = GNUNET_REST_jsonapi_response_new ();
   if ( (strlen (EGO_NAMESPACE) == strlen (handle->url) )) {
     GNUNET_CRYPTO_hash (URL_PARAM_SUBSYS, strlen (URL_PARAM_SUBSYS), &key);
     if ( GNUNET_YES ==
@@ -330,7 +330,7 @@ ego_info_response (struct RestConnectionDataHandle *con,
       }
     }
   }
-  json_response = GNUNET_REST_jsonapi_response_new ();
+  json_object = GNUNET_REST_jsonapi_object_new ();
   egoname = &handle->url[strlen (EGO_NAMESPACE)+1];
 
   if (strlen (EGO_NAMESPACE) == strlen (handle->url))
@@ -353,13 +353,13 @@ ego_info_response (struct RestConnectionDataHandle *con,
                                            key_str);
     json_decref (key_str);
     GNUNET_free (keystring);
-    GNUNET_REST_jsonapi_response_resource_add (json_response, json_resource);
+    GNUNET_REST_jsonapi_object_resource_add (json_object, json_resource);
   }
 
-  GNUNET_REST_jsonapi_data_serialize (json_response, &result_str);
-
+  GNUNET_REST_jsonapi_data_serialize (json_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
+  GNUNET_REST_jsonapi_object_delete (json_object);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
@@ -421,16 +421,14 @@ ego_create_cont (struct RestConnectionDataHandle *con,
                  const char *url,
                  void *cls)
 {
-  const char* egoname;
   struct RequestHandle *handle = cls;
-  char term_data[handle->data_size+1];
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
-  json_t *root_json;
-  json_t *data_json;
-  json_t *type_json;
+  struct JsonApiObject *json_obj;
+  struct JsonApiResource *json_res;
   json_t *egoname_json;
-  json_error_t error;
+  char term_data[handle->data_size+1];
+  const char* egoname;
 
   if (strlen (API_NAMESPACE) != strlen (handle->url))
   {
@@ -442,43 +440,39 @@ ego_create_cont (struct RestConnectionDataHandle *con,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  root_json = json_loads (term_data, 0, &error);
+  json_obj = GNUNET_REST_jsonapi_object_parse (term_data);
 
-  if ((NULL == root_json) || !json_is_object (root_json))
+  if (NULL == json_obj)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  data_json = json_object_get (root_json, GNUNET_REST_JSONAPI_KEY_DATA);
-  if ((NULL == data_json) || !json_is_object (data_json))
+  if (1 != GNUNET_REST_jsonapi_object_resource_count (json_obj))
   {
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  type_json = json_object_get (data_json, "type");
-  if (!json_is_string (type_json) ||
-      (0 != strcmp (GNUNET_REST_JSONAPI_IDENTITY_EGO, json_string_value (type_json))))
+
+  json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0);
+  if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
-    json_decref (data_json);
-    json_decref (root_json);
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     resp = GNUNET_REST_create_json_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
     cleanup_handle (handle);
     return;
   }
-  json_decref (type_json);
-  egoname_json = json_object_get (data_json, "id");
+  
+  egoname_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_KEY_ID);
   if (!json_is_string (egoname_json))
   {
-    json_decref (data_json);
-    json_decref (root_json);
+    GNUNET_REST_jsonapi_object_delete (json_obj); 
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
   egoname = json_string_value (egoname_json);
   for (ego_entry = handle->ego_head;
        NULL != ego_entry;
@@ -487,8 +481,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
     if (0 == strcasecmp (egoname, ego_entry->identifier))
     {
       json_decref (egoname_json);
-      json_decref (data_json);
-      json_decref (root_json);
+      GNUNET_REST_jsonapi_object_delete (json_obj);
       resp = GNUNET_REST_create_json_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
       cleanup_handle (handle);
@@ -497,8 +490,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   }
   GNUNET_asprintf (&handle->name, "%s", egoname);
   json_decref (egoname_json);
-  json_decref (data_json);
-  json_decref (root_json);
+  GNUNET_REST_jsonapi_object_delete (json_obj);
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
                                        &create_finished,
@@ -510,6 +502,8 @@ subsys_set_cont (struct RestConnectionDataHandle *con,
                  const char *url,
                  void *cls)
 {
+  struct JsonApiObject *json_obj;
+  struct JsonApiResource *json_res;
   const char *egoname;
   const char *subsys;
   struct RequestHandle *handle = cls;
@@ -517,13 +511,8 @@ subsys_set_cont (struct RestConnectionDataHandle *con,
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
   int ego_exists = GNUNET_NO;
-  json_t *root_json;
-  json_t *data_json;
-  json_t *type_json;
-  json_t *id_json;
   json_t *subsys_json;
-  json_error_t error;
-
+  
   if (strlen (API_NAMESPACE) > strlen (handle->url))
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -557,54 +546,47 @@ subsys_set_cont (struct RestConnectionDataHandle *con,
 
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
-  root_json = json_loads (term_data, 0, &error);
+  json_obj = GNUNET_REST_jsonapi_object_parse (term_data);
 
-  if ((NULL == root_json) || !json_is_object (root_json))
+  if (NULL == json_obj)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  data_json = json_object_get (root_json, "data");
-  if (!json_is_object (data_json))
+  if (1 != GNUNET_REST_jsonapi_object_resource_count (json_obj))
   {
-    json_decref (root_json);
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  id_json = json_object_get (data_json, "id");
-  if (!json_is_string (id_json) ||
-      (0 != strcmp (egoname, json_string_value (id_json))))
-  {
-    json_decref (root_json);
-    json_decref (data_json);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
-  }
-  json_decref (id_json);
 
-  type_json = json_object_get (data_json, "type");
-  if (!json_is_string (type_json) ||
-      (0 != strcmp (GNUNET_REST_JSONAPI_IDENTITY_EGO, json_string_value (type_json))))
+  json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0);
+  if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_id (json_res, egoname))
   {
-    json_decref (root_json);
-    json_decref (data_json);
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  json_decref (type_json);
+  
+  if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_id (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
+  {
+    GNUNET_REST_jsonapi_object_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
 
-  subsys_json = json_object_get (data_json, "subsystem");
+  subsys_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM);
   if (!json_is_string (subsys_json))
   {
-    json_decref (root_json);
-    json_decref (data_json);
+    json_decref (subsys_json);
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   subsys = json_string_value (subsys_json);
   GNUNET_asprintf (&handle->subsys, "%s", subsys);
   json_decref (subsys_json);
-  json_decref (root_json);
+  GNUNET_REST_jsonapi_object_delete (json_obj);
   handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
                                     handle->subsys,
                                     ego_entry->ego,
