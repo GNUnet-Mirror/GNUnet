@@ -59,7 +59,8 @@ gnunet_service_rps_LDADD = \
 if HAVE_TESTING
 check_PROGRAMS = \
  test_rps_multipeer \
- test_rps_malicious_1
+ test_rps_malicious_1 \
+ test_rps_malicious_2
 endif
 
 ld_rps_test_lib = \
@@ -79,8 +80,12 @@ test_rps_multipeer_SOURCES = \
 test_rps_multipeer_LDADD = $(ld_rps_test_lib)
 
 test_rps_malicious_1_SOURCES = \
-	test_rps_malicious_1.c
+	test_rps_malicious.c
 test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
+
+test_rps_malicious_2_SOURCES = \
+	test_rps_malicious.c
+test_rps_malicious_2_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf

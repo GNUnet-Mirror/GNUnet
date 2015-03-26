@@ -311,7 +311,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
 GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t type,
                           uint32_t num_peers,
-                          const struct GNUNET_PeerIdentity *ids)
+                          const struct GNUNET_PeerIdentity *peer_ids)
 {
   size_t size_needed;
   uint32_t num_peers_max;
@@ -329,9 +329,9 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "%u. peer: %s\n",
          i,
-         GNUNET_i2s (&ids[i]));
+         GNUNET_i2s (&peer_ids[i]));
 
-  /* The actual size the message occupies */
+  /* The actual size the message would occupy */
   size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
     num_peers * sizeof (struct GNUNET_PeerIdentity);
   /* The number of peers that fit in one message together with
@@ -339,7 +339,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE -
       sizeof (struct GNUNET_RPS_CS_SeedMessage)) /
     sizeof (struct GNUNET_PeerIdentity);
-  tmp_peer_pointer = ids;
+  tmp_peer_pointer = peer_ids;
 
   while (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
   {
@@ -351,14 +351,19 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                               GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
     msg->type = htonl (type);
     msg->num_peers = htonl (num_peers_max);
-    memcpy (&msg[1], tmp_peer_pointer, num_peers_max * sizeof (struct GNUNET_PeerIdentity));
+    if (2 == type)
+      msg->attacked_peer = peer_ids[num_peers];
+    memcpy (&msg[1],
+            tmp_peer_pointer,
+            num_peers_max * sizeof (struct GNUNET_PeerIdentity));
+
     GNUNET_MQ_send (h->mq, ev);
 
     num_peers -= num_peers_max;
     size_needed = sizeof (struct GNUNET_RPS_CS_SeedMessage) +
                   num_peers * sizeof (struct GNUNET_PeerIdentity);
     /* Set pointer to beginning of next block of num_peers_max peers */
-    tmp_peer_pointer = &ids[num_peers_max];
+    tmp_peer_pointer = &peer_ids[num_peers_max];
   }
 
   ev = GNUNET_MQ_msg_extra (msg,
@@ -366,6 +371,8 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                             GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
   msg->type = htonl (type);
   msg->num_peers = htonl (num_peers);
+  if (2 == type)
+    msg->attacked_peer = peer_ids[num_peers];
   memcpy (&msg[1], tmp_peer_pointer, num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (h->mq, ev);

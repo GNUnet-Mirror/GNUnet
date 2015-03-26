@@ -1056,7 +1056,7 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
 {
   unsigned int i;
   if (NULL == peer_map)
-    peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers,
+    peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers + 1,
                                                      GNUNET_NO);
   for (i = 0 ; i < num_peers ; i++)
   {
@@ -1672,6 +1672,7 @@ handle_client_act_malicious (void *cls,
 
 
   /* Do actual logic */
+  // FIXME ingore own id
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   mal_type = ntohl (in_msg->type);
 
@@ -1721,7 +1722,7 @@ handle_client_act_malicious (void *cls,
 
     /* Store the one attacked peer */
     memcpy (&attacked_peer,
-            &peers[num_mal_peers_sent],
+            &in_msg->attacked_peer,
             sizeof (struct GNUNET_PeerIdentity));
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,

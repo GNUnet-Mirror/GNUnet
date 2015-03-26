@@ -135,6 +135,12 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
   struct GNUNET_MessageHeader header;
 
   /**
+   * If the type is 2 this is the attacked peer,
+   * empty otherwise.
+   */
+  struct GNUNET_PeerIdentity attacked_peer;
+
+  /**
    * Type of malicious behaviour.
    *
    * 0 No malicious bahaviour at all
