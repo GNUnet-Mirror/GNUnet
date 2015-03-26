@@ -44,8 +44,6 @@
 
 // (TODO api -- possibility of getting weak random peer immideately)
 
-// TODO malicious peer
-
 // TODO connect to friends
 
 // TODO store peers somewhere
@@ -2149,6 +2147,7 @@ static void
 shutdown_task (void *cls,
 	             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
   if (NULL != do_round_task)
@@ -2178,12 +2177,17 @@ shutdown_task (void *cls,
   GNUNET_array_grow (push_list, push_list_size, 0);
   GNUNET_array_grow (pull_list, pull_list_size, 0);
   #ifdef ENABLE_MALICIOUS
+  struct AttackedPeer *tmp_att_peer;
   GNUNET_array_grow (mal_peers, num_mal_peers, 0);
   if (NULL != mal_peer_set)
     GNUNET_CONTAINER_multipeermap_destroy (mal_peer_set);
   if (NULL != att_peer_set)
     GNUNET_CONTAINER_multipeermap_destroy (att_peer_set);
-  // TODO empty attacked_peers DLL
+  while (NULL != att_peers_head)
+  {
+    tmp_att_peer = att_peers_head;
+    GNUNET_CONTAINER_DLL_remove (att_peers_head, att_peers_tail, tmp_att_peer);
+  }
   #endif /* ENABLE_MALICIOUS */
 }
 
