@@ -37,8 +37,6 @@
 
 #define ID_REST_STATE_POST_INIT 1
 
-#define URL_PARAM_SUBSYS "service"
-
 #define GNUNET_REST_JSONAPI_IDENTITY_EGO "ego"
 
 #define GNUNET_REST_JSONAPI_IDENTITY_KEY "key"
@@ -307,7 +305,7 @@ ego_info_response (struct RestConnectionDataHandle *con,
     return;
   }
   if ( (strlen (GNUNET_REST_API_NS_IDENTITY) == strlen (handle->url) )) {
-    GNUNET_CRYPTO_hash (URL_PARAM_SUBSYS, strlen (URL_PARAM_SUBSYS), &key);
+    GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM, strlen (GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM), &key);
     if ( GNUNET_YES ==
          GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                  &key) )
