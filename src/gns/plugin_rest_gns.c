@@ -34,10 +34,11 @@
 #include <gnunet_rest_lib.h>
 #include <jansson.h>
 
-#define API_NAMESPACE "/gns"
+#define API_NAMESPACE "/resolver"
 
+#define GNUNET_REST_JSONAPI_GNS_RECORD_TYPE "record_type"
 
-#define GNUNET_REST_JSONAPI_GNS_RECORD_TYPE "type"
+#define GNUNET_REST_JSONAPI_GNS_TYPEINFO "gns_name"
 
 #define GNUNET_REST_JSONAPI_GNS_RECORD "records"
 
@@ -215,7 +216,7 @@ do_error (void *cls,
 {
   struct LookupHandle *handle = cls;
   struct MHD_Response *resp = GNUNET_REST_create_json_response (NULL);
-  handle->proc (handle->proc_cls, resp, GNUNET_SYSERR);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
   cleanup_handle (handle);
 }
 
@@ -291,7 +292,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
 
   result_array = json_array();
   json_object = GNUNET_REST_jsonapi_object_new ();
-  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_GNS_RECORD, handle->name);
+  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_GNS_TYPEINFO, handle->name);
   handle->lookup_request = NULL;
   for (i=0; i<rd_count; i++)
   {
@@ -521,6 +522,8 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
   struct GNUNET_HashCode key;
 
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
+  handle->proc_cls = proc_cls;
+  handle->proc = proc;
   //parse name and type from url
   if (GNUNET_OK != parse_url (conndata_handle->url, handle))
   {
@@ -528,8 +531,6 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  handle->proc_cls = proc_cls;
-  handle->proc = proc;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connecting...\n");
   handle->gns = GNUNET_GNS_connect (cfg);
