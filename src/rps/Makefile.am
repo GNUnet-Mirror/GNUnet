@@ -76,15 +76,15 @@ TESTS = $(check_PROGRAMS)
 endif
 
 test_rps_multipeer_SOURCES = \
- test_rps_multipeer.c
+ test_rps.c
 test_rps_multipeer_LDADD = $(ld_rps_test_lib)
 
 test_rps_malicious_1_SOURCES = \
-	test_rps_malicious.c
+	test_rps.c
 test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
 
 test_rps_malicious_2_SOURCES = \
-	test_rps_malicious.c
+	test_rps.c
 test_rps_malicious_2_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \

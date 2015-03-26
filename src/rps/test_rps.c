@@ -27,7 +27,8 @@
 #include "platform.h"
 #include "gnunet_testbed_service.h"
 #include "gnunet_rps_service.h"
-#include <time.h>
+
+#include <inttypes.h>
 
 
 /**
@@ -46,12 +47,22 @@
  */
 static double portion = .1;
 
+/**
+ * Type of malicious peer to test
+ */
+static unsigned int mal_type = 0;
+
 
 /**
  * Information we track for each peer.
  */
 struct RPSPeer
 {
+  /**
+   * Index of the peer.
+   */
+  unsigned int index;
+
   /**
    * Handle for RPS connect operation.
    */
@@ -61,6 +72,11 @@ struct RPSPeer
    * Handle to RPS service.
    */
   struct GNUNET_RPS_Handle *rps_handle;
+
+  /**
+   * ID of the peer.
+   */
+  struct GNUNET_PeerIdentity *peer_id;
 };
 
 
@@ -162,7 +178,7 @@ info_cb (void *cb_cls,
          const struct GNUNET_TESTBED_PeerInformation *pinfo,
          const char *emsg)
 {
-  unsigned int *i = (unsigned int *) cb_cls;
+  unsigned int i = *((unsigned int *) cb_cls);
 
   if (NULL == pinfo || NULL != emsg)
   {
@@ -170,9 +186,11 @@ info_cb (void *cb_cls,
     return;
   }
 
-  rps_peer_ids[*i] = *(pinfo->result.id);
-
   GNUNET_free (cb_cls);
+
+  rps_peer_ids[i] = *(pinfo->result.id);
+  rps_peers[i].peer_id = &rps_peer_ids[i];
+
 }
 
 
@@ -191,31 +209,50 @@ rps_connect_complete_cb (void *cls,
 			 void *ca_result,
 			 const char *emsg)
 {
-  struct RPSPeer *peer = cls;
+  struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
   struct GNUNET_RPS_Request_Handle *req_handle;
+  uint32_t num_mal_peers;
 
-  peer->rps_handle = rps;
+  rps_peer->rps_handle = rps;
 
-  GNUNET_assert (op == peer->op);
+  GNUNET_assert (op == rps_peer->op);
   if (NULL != emsg)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Failed to connect to RPS service: %s\n",
-		  emsg);
-      ok = 1;
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to connect to RPS service: %s\n",
+                emsg);
+    ok = 1;
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
+
+  #ifdef ENABLE_MALICIOUS
+  if (1 == mal_type
+      || 1 == mal_type)
+  {
+    GNUNET_assert (1 >= portion
+                   && 0 <  portion);
+    num_mal_peers = round (portion * NUM_PEERS);
+
+    if (rps_peer->index >= num_mal_peers)
+    { /* It's useless to ask a malicious peer about a random sample -
+         it's not sampling */
+      req_handle = GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
+      GNUNET_free (req_handle);
+    }
+    return;
+  }
+  #endif /* ENABLE_MALICIOUS */
 
   req_handle = GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
   GNUNET_free (req_handle);
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                request_peers, peer);
+                                request_peers, rps_peer);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                seed_peers, peer);
+                                seed_peers, rps_peer);
   // TODO test seeding > GNUNET_SERVER_MAX_MESSAGE_SIZE peers
 }
 
@@ -232,9 +269,34 @@ rps_connect_complete_cb (void *cls,
  */
 static void *
 rps_connect_adapter (void *cls,
-		     const struct GNUNET_CONFIGURATION_Handle *cfg)
+		                 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  return GNUNET_RPS_connect (cfg);
+  struct GNUNET_RPS_Handle *h;
+  #ifdef ENABLE_MALICIOUS
+  uint32_t num_mal_peers;
+  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+  #endif /* ENABLE_MALICIOUS */
+
+  h = GNUNET_RPS_connect (cfg);
+
+  #ifdef ENABLE_MALICIOUS
+  GNUNET_assert (1 >= portion
+                 && 0 <  portion);
+  num_mal_peers = round (portion * NUM_PEERS);
+
+  if (rps_peer->index < num_mal_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u. peer [%s] of %" PRIu32 " malicious peers turning malicious\n",
+                rps_peer->index,
+                GNUNET_i2s (rps_peer->peer_id),
+                num_mal_peers);
+
+    GNUNET_RPS_act_malicious (h, mal_type, num_mal_peers, rps_peer_ids);
+  }
+  #endif /* ENABLE_MALICIOUS */
+
+  return h;
 }
 
 
@@ -247,7 +309,7 @@ rps_connect_adapter (void *cls,
  */
 static void
 rps_disconnect_adapter (void *cls,
-			void *op_result)
+			                  void *op_result)
 {
   struct GNUNET_RPS_Handle *h = op_result;
   GNUNET_RPS_disconnect (h);
@@ -277,27 +339,32 @@ run (void *cls,
   unsigned int i;
   unsigned int *tmp_i;
 
-  for ( i = 0 ; i < NUM_PEERS ; i++ )
+  for (i = 0 ; i < NUM_PEERS ; i++)
   {
     tmp_i = GNUNET_new (unsigned int);
     *tmp_i = i;
 
     (void) GNUNET_TESTBED_peer_get_information (peers[i],
                                                 GNUNET_TESTBED_PIT_IDENTITY,
-                                                &info_cb, tmp_i);
+                                                &info_cb,
+                                                tmp_i);
   }
 
+
   GNUNET_assert (NUM_PEERS == num_peers);
-  for (i=0;i<num_peers;i++)
-    //rps_peers[i].peer_index = i;
-    rps_peers[i].op = GNUNET_TESTBED_service_connect (&rps_peers[i],
-						      peers[i],
-						      "rps",
-						      &rps_connect_complete_cb,
-						      &rps_peers[i],
-						      &rps_connect_adapter,
-						      &rps_disconnect_adapter,
-						      &rps_peers[i]);
+  for (i = 0 ; i < num_peers ; i++)
+  {
+    rps_peers[i].index = i;
+    rps_peers[i].op =
+      GNUNET_TESTBED_service_connect (&rps_peers[i],
+						                          peers[i],
+						                          "rps",
+						                          &rps_connect_complete_cb,
+						                          &rps_peers[i],
+						                          &rps_connect_adapter,
+						                          &rps_disconnect_adapter,
+						                          &rps_peers[i]);
+  }
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
 }
 
@@ -312,6 +379,22 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  if (strstr (argv[0], "malicious_1") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Malicious type 1\n");
+                mal_type = 1;
+  }
+  else if (strstr (argv[0], "malicious_2") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Malicious type 2\n");
+                mal_type = 2;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Type unknown using type 0 - no malicious behaviour\n");
+                mal_type = 0;
+  }
+
   ok = 1;
   (void) GNUNET_TESTBED_test_run ("test-rps-multipeer",
                                   "test_rps.conf",

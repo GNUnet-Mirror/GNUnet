@@ -1169,7 +1169,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
 void client_respond (void *cls,
     struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler returned %" PRIX32 " peers\n", num_peers);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler returned %" PRIu32 " peers\n", num_peers);
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   struct GNUNET_SERVER_Client *client;
@@ -1236,7 +1236,7 @@ handle_client_request (void *cls,
   for (i = 0 ; i < num_peers ; i++)
     est_request_rate();
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested %" PRIX32 " random peer(s).\n", num_peers);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested %" PRIu32 " random peer(s).\n", num_peers);
 
   RPS_sampler_get_n_rand_peers (client_sampler, client_respond,
                                 client, num_peers, GNUNET_YES);
@@ -1293,7 +1293,7 @@ handle_client_seed (void *cls,
   for (i = 0 ; i < num_peers ; i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Updating samplers with seed %" PRIX32 ": %s\n",
+         "Updating samplers with seed %" PRIu32 ": %s\n",
          i,
          GNUNET_i2s (&peers[i]));
 
@@ -1479,11 +1479,12 @@ handle_peer_pull_reply (void *cls,
     return GNUNET_OK;
   }
 
-#ifdef ENABLE_MALICIOUS
+
+  #ifdef ENABLE_MALICIOUS
   // We shouldn't even receive pull replies as we're not sending
   if (2 == mal_type)
     return GNUNET_OK;
-#endif /* ENABLE_MALICIOUS */
+  #endif /* ENABLE_MALICIOUS */
 
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
@@ -1497,7 +1498,9 @@ handle_peer_pull_reply (void *cls,
       if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
                                                                &peers[i])
           && GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (mal_peer_set,
-                                                                  &peers[i]))
+                                                                  &peers[i])
+          && GNUNET_NO == GNUNET_CRYPTO_cmp_peer_identity (&peers[i],
+                                                           &own_identity))
       {
         tmp_att_peer = GNUNET_new (struct AttackedPeer);
         tmp_att_peer->peer_id = peers[i];
@@ -1736,7 +1739,8 @@ handle_client_act_malicious (void *cls,
   else if (0 == mal_type)
   { /* Stop acting malicious */
     num_mal_peers = 0;
-    GNUNET_free (mal_peers);
+    if (NULL != mal_peers)
+      GNUNET_free (mal_peers);
 
     /* Substitute do_mal_round () with do_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
