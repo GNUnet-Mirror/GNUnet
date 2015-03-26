@@ -188,7 +188,7 @@ int
 GNUNET_REST_jsonapi_resource_check_id (const struct JsonApiResource *resource,
                                        const char* id)
 {
-  return check_resource_attr_str (resource, id, GNUNET_REST_JSONAPI_KEY_ID);  
+  return check_resource_attr_str (resource, GNUNET_REST_JSONAPI_KEY_ID, id);  
 }
 
 
@@ -203,7 +203,7 @@ int
 GNUNET_REST_jsonapi_resource_check_type (const struct JsonApiResource *resource,
                                          const char* type)
 {
-  return check_resource_attr_str (resource, type, GNUNET_REST_JSONAPI_KEY_TYPE);  
+  return check_resource_attr_str (resource, GNUNET_REST_JSONAPI_KEY_TYPE, type);  
 }
 
 
@@ -233,10 +233,8 @@ add_json_resource (struct JsonApiObject *obj,
 
   id_json = json_object_get (res_json, GNUNET_REST_JSONAPI_KEY_ID);
   type_json = json_object_get (res_json, GNUNET_REST_JSONAPI_KEY_TYPE);
-
   if (!json_is_string (id_json) || !json_is_string (type_json))
     return;
-
   res = GNUNET_new (struct JsonApiResource);
   res->next = NULL;
   res->prev = NULL;
@@ -259,7 +257,6 @@ GNUNET_REST_jsonapi_object_parse (const char* data)
   json_error_t error;
   int res_count = 0;
   int i;
-  
   if (NULL == data)
     return NULL;
   root_json = json_loads (data, 0, &error);
@@ -287,7 +284,7 @@ GNUNET_REST_jsonapi_object_parse (const char* data)
       add_json_resource (result, json_array_get (data_json, i));
   }
   json_decref (root_json);
-  if (0 == res_count)
+  if (0 == result->res_count)
   {
     GNUNET_free (result);
     result = NULL;
@@ -366,8 +363,8 @@ GNUNET_REST_jsonapi_object_get_resource (struct JsonApiObject *resp, int num)
   struct JsonApiResource *res;
   int i;
 
-  if ((0 < resp->res_count) &&
-      (num < resp->res_count))
+  if ((0 == resp->res_count) ||
+      (num >= resp->res_count))
     return NULL;
   res = resp->res_list_head;
   for (i = 0; i < num; i++)
@@ -505,11 +502,11 @@ GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
   for (i = 0; i < count; i++)
   {
     if (0 != strcasecmp (conn->method, handlers[i].method))
-      break;
+      continue;
     if (strlen (url) < strlen (handlers[i].namespace))
-      break;
+      continue;
     if (GNUNET_NO == GNUNET_REST_namespace_match (url, handlers[i].namespace))
-      break;
+      continue;
     //Match
     handlers[i].proc (conn, (const char*)url, cls);
     GNUNET_free (url);

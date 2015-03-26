@@ -43,6 +43,8 @@
 
 #define GNUNET_REST_JSONAPI_IDENTITY_KEY "key"
 
+#define GNUNET_REST_JSONAPI_IDENTITY_NEWNAME "newname"
+
 #define GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM "subsystem"
 
 /**
@@ -381,11 +383,11 @@ do_finished (void *cls, const char *emsg)
 }
 
 static void
-set_finished (void *cls, const char *emsg)
+edit_finished (void *cls, const char *emsg)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-
+  
   handle->op = NULL;
   if (NULL != emsg)
   {
@@ -427,7 +429,6 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   json_t *egoname_json;
   char term_data[handle->data_size+1];
   const char* egoname;
-
   if (strlen (GNUNET_REST_API_NS_IDENTITY) != strlen (handle->url))
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -441,19 +442,20 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
   json_obj = GNUNET_REST_jsonapi_object_parse (term_data);
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "2\n");
   if (NULL == json_obj)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "2.1\n");
   if (1 != GNUNET_REST_jsonapi_object_resource_count (json_obj))
   {
     GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
+GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "3\n");
   json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0);
   if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
@@ -463,7 +465,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
     cleanup_handle (handle);
     return;
   }
-  
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "4\n");
   egoname_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_KEY_ID);
   if (!json_is_string (egoname_json))
   {
@@ -496,7 +498,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
 }
 
 void 
-subsys_set_cont (struct RestConnectionDataHandle *con,
+ego_edit_cont (struct RestConnectionDataHandle *con,
                  const char *url,
                  void *cls)
 {
@@ -504,12 +506,14 @@ subsys_set_cont (struct RestConnectionDataHandle *con,
   struct JsonApiResource *json_res;
   const char *egoname;
   const char *subsys;
+  const char *newname;
   struct RequestHandle *handle = cls;
   char term_data[handle->data_size+1];
   struct EgoEntry *ego_entry;
   struct MHD_Response *resp;
   int ego_exists = GNUNET_NO;
   json_t *subsys_json;
+  json_t *name_json;
   
   if (strlen (GNUNET_REST_API_NS_IDENTITY) > strlen (handle->url))
   {
@@ -557,39 +561,55 @@ subsys_set_cont (struct RestConnectionDataHandle *con,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-
-  json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0);
-  if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_id (json_res, egoname))
+  json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0); 
+  if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
     GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  
-  if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_id (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
+    //This is a rename
+  name_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_IDENTITY_NEWNAME);
+  if (NULL != name_json)
   {
-    GNUNET_REST_jsonapi_object_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
+    newname = NULL;
+    if (json_is_string (name_json))
+    {
+      newname = json_string_value (name_json);
+      handle->op = GNUNET_IDENTITY_rename (handle->identity_handle,
+                                      egoname,
+                                      newname,
+                                      &edit_finished,
+                                      handle);
+      GNUNET_REST_jsonapi_object_delete (json_obj);
+      json_decref (name_json);
+      return;
+    }
+    json_decref (name_json);
   }
 
   subsys_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM);
-  if (!json_is_string (subsys_json))
+  if (NULL != subsys_json)
   {
+    subsys = NULL;
+    if (json_is_string (subsys_json))
+    {
+      subsys = json_string_value (subsys_json);
+      GNUNET_asprintf (&handle->subsys, "%s", subsys);
+      GNUNET_REST_jsonapi_object_delete (json_obj);
+      handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
+                                        handle->subsys,
+                                        ego_entry->ego,
+                                        &edit_finished,
+                                        handle);
+      json_decref (subsys_json);
+      return;
+    }
     json_decref (subsys_json);
-    GNUNET_REST_jsonapi_object_delete (json_obj);
-    GNUNET_SCHEDULER_add_now (&do_error, handle);
-    return;
   }
-  subsys = json_string_value (subsys_json);
-  GNUNET_asprintf (&handle->subsys, "%s", subsys);
-  json_decref (subsys_json);
   GNUNET_REST_jsonapi_object_delete (json_obj);
-  handle->op = GNUNET_IDENTITY_set (handle->identity_handle,
-                                    handle->subsys,
-                                    ego_entry->ego,
-                                    &set_finished,
-                                    handle);
+  GNUNET_SCHEDULER_add_now (&do_error, handle);
+  
 }
 
 void 
@@ -640,7 +660,7 @@ init_cont (struct RequestHandle *handle)
   static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY, &ego_info_response},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY, &ego_create_cont},
-    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_IDENTITY, &subsys_set_cont},
+    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_IDENTITY, &ego_edit_cont},
     {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_IDENTITY, &ego_delete_cont},
     GNUNET_REST_HANDLER_END
   };
