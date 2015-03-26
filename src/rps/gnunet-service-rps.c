@@ -1445,6 +1445,9 @@ handle_peer_pull_reply (void *cls,
   struct PeerContext *sender_ctx;
   struct PeerOutstandingOp out_op;
   uint32_t i;
+#ifdef ENABLE_MALICIOUS
+  struct AttackedPeer *tmp_att_peer;
+#endif /* ENABLE_MALICIOUS */
 
   /* Check for protocol violation */
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
@@ -1478,11 +1481,36 @@ handle_peer_pull_reply (void *cls,
     return GNUNET_OK;
   }
 
+#ifdef ENABLE_MALICIOUS
+  // We shouldn't even receive pull replies as we're not sending
+  if (2 == mal_type)
+    return GNUNET_OK;
+#endif /* ENABLE_MALICIOUS */
 
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
+
   for (i = 0 ; i < ntohl (in_msg->num_peers) ; i++)
   {
+  #ifdef ENABLE_MALICIOUS
+    if (1 == mal_type)
+    {
+      // TODO check if we sent a request and this was the first reply
+      if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
+                                                               &peers[i])
+          && GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (mal_peer_set,
+                                                                  &peers[i]))
+      {
+        tmp_att_peer = GNUNET_new (struct AttackedPeer);
+        tmp_att_peer->peer_id = peers[i];
+        GNUNET_CONTAINER_DLL_insert (att_peers_head,
+                                     att_peers_tail,
+                                     tmp_att_peer);
+        add_peer_array_to_set (&peers[i], 1, att_peer_set);
+      }
+      continue;
+    }
+  #endif /* ENABLE_MALICIOUS */
     peer_ctx = get_peer_ctx (peer_map, &peers[i]);
     if (GNUNET_YES == get_peer_flag (peer_ctx, VALID)
         || NULL != peer_ctx->send_channel
