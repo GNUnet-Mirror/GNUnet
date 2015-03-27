@@ -74,7 +74,7 @@ struct GNUNET_RPS_CS_RequestMessage
   /**
    * Identifyer of the message.
    */
-  uint64_t n GNUNET_PACKED;
+  uint32_t id GNUNET_PACKED;
 
   /**
    * Number of random peer requested
@@ -95,7 +95,7 @@ struct GNUNET_RPS_CS_ReplyMessage
   /**
    * Identifyer of the message.
    */
-  uint64_t n GNUNET_PACKED;
+  uint32_t id GNUNET_PACKED;
 
   /**
    * Number of random peer replied
