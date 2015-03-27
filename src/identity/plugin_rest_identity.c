@@ -658,7 +658,7 @@ init_cont (struct RequestHandle *handle)
   static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY, &ego_info_response},
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY, &ego_create_cont},
-    {MHD_HTTP_METHOD_PATCH, GNUNET_REST_API_NS_IDENTITY, &ego_edit_cont},
+    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_IDENTITY, &ego_edit_cont},
     {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_IDENTITY, &ego_delete_cont},
     GNUNET_REST_HANDLER_END
   };
