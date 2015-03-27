@@ -354,6 +354,24 @@ uint32_t pending_pull_reply_list_size;
 uint32_t num_hist_update_tasks;
 
 
+/**
+ * Closure used to pass the client and the id to the callback
+ * that replies to a client's request
+ */
+struct ReplyCls
+{
+  /**
+   * The identifier of the request
+   */
+  uint32_t id;
+
+  /**
+   * The client handle to send the reply to
+   */
+  struct GNUNET_SERVER_Client *client;
+};
+
+
 #ifdef ENABLE_MALICIOUS
 /**
  * Type of malicious peer
@@ -1167,16 +1185,17 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
  * Sends those to the requesting client.
  */
 void client_respond (void *cls,
-    struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
+    struct GNUNET_PeerIdentity *peer_ids, uint32_t num_peers)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler returned %" PRIu32 " peers\n", num_peers);
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
-  struct GNUNET_SERVER_Client *client;
+  struct ReplyCls *reply_cls = (struct ReplyCls *) cls;
   uint32_t size_needed;
   struct client_ctx *cli_ctx;
 
-  client = (struct GNUNET_SERVER_Client *) cls;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "sampler returned %" PRIu32 " peers\n",
+       num_peers);
 
   size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
                 num_peers * sizeof (struct GNUNET_PeerIdentity);
@@ -1187,18 +1206,21 @@ void client_respond (void *cls,
                             num_peers * sizeof (struct GNUNET_PeerIdentity),
                             GNUNET_MESSAGE_TYPE_RPS_CS_REPLY);
   out_msg->num_peers = htonl (num_peers);
+  out_msg->id = htonl (reply_cls->id);
 
   memcpy (&out_msg[1],
-      ids,
-      num_peers * sizeof (struct GNUNET_PeerIdentity));
-  GNUNET_free (ids);
+          peer_ids,
+          num_peers * sizeof (struct GNUNET_PeerIdentity));
+  GNUNET_free (peer_ids);
 
-  cli_ctx = GNUNET_SERVER_client_get_user_context (client, struct client_ctx);
+  cli_ctx = GNUNET_SERVER_client_get_user_context (reply_cls->client, struct client_ctx);
   if (NULL == cli_ctx) {
     cli_ctx = GNUNET_new (struct client_ctx);
-    cli_ctx->mq = GNUNET_MQ_queue_for_server_client (client);
-    GNUNET_SERVER_client_set_user_context (client, cli_ctx);
+    cli_ctx->mq = GNUNET_MQ_queue_for_server_client (reply_cls->client);
+    GNUNET_SERVER_client_set_user_context (reply_cls->client, cli_ctx);
   }
+
+  GNUNET_free (reply_cls);
 
   GNUNET_MQ_send (cli_ctx->mq, ev);
 }
@@ -1219,6 +1241,7 @@ handle_client_request (void *cls,
   struct GNUNET_RPS_CS_RequestMessage *msg;
   uint32_t num_peers;
   uint32_t size_needed;
+  struct ReplyCls *reply_cls;
   uint32_t i;
 
   msg = (struct GNUNET_RPS_CS_RequestMessage *) message;
@@ -1236,10 +1259,19 @@ handle_client_request (void *cls,
   for (i = 0 ; i < num_peers ; i++)
     est_request_rate();
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client requested %" PRIu32 " random peer(s).\n", num_peers);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Client requested %" PRIu32 " random peer(s).\n",
+       num_peers);
 
-  RPS_sampler_get_n_rand_peers (client_sampler, client_respond,
-                                client, num_peers, GNUNET_YES);
+  reply_cls = GNUNET_new (struct ReplyCls);
+  reply_cls->id = ntohl (msg->id);
+  reply_cls->client = client;
+
+  RPS_sampler_get_n_rand_peers (client_sampler,
+                                client_respond,
+                                reply_cls,
+                                num_peers,
+                                GNUNET_YES);
 
   GNUNET_SERVER_receive_done (client,
 			      GNUNET_OK);
@@ -1287,8 +1319,6 @@ handle_client_seed (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Client seeded peers:\n");
   print_peer_list (peers, num_peers);
-
-  // TODO check for validity of ids
 
   for (i = 0 ; i < num_peers ; i++)
   {
