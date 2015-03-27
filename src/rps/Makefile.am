@@ -58,9 +58,10 @@ gnunet_service_rps_LDADD = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_rps_multipeer \
  test_rps_malicious_1 \
- test_rps_malicious_2
+ test_rps_malicious_2 \
+ test_rps_seed_request \
+ test_rps_single_req
 endif
 
 ld_rps_test_lib = \

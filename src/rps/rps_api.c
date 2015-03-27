@@ -62,12 +62,12 @@ struct GNUNET_RPS_Request_Handle
   /**
    * The client issuing the request.
    */
-  struct GNUNET_RPS_Handle *h;
+  struct GNUNET_RPS_Handle *rps_handle;
 
   /**
-   * The nuber of the request.
+   * The id of the request.
    */
-  uint64_t n;
+  uint32_t id;
 
   /**
    * The callback to be called when we receive an answer.
@@ -133,12 +133,15 @@ handle_reply (void *cls,
 
   /* Give the peers back */
   msg = (struct GNUNET_RPS_CS_ReplyMessage *) message;
-  peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  rh = &req_handlers[msg->n];
-  rh->ready_cb((rh)->ready_cb_cls, msg->num_peers, peers); // FIXME? ntohl ()
 
-  /* Disconnect */
-  //GNUNET_CLIENT_disconnect(pack->service_conn);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Service replied with %" PRIu32 " peers for id %" PRIu32 "\n",
+       ntohl (msg->num_peers),
+       ntohl (msg->id));
+
+  peers = (struct GNUNET_PeerIdentity *) &msg[1];
+  rh = &req_handlers[ntohl (msg->id)];
+  rh->ready_cb((rh)->ready_cb_cls, ntohl (msg->num_peers), peers);
 }
 
 
@@ -196,14 +199,15 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 /**
  * Request n random peers.
  *
- * @param h handle to the rps service
- * @param n number of peers we want to receive
+ * @param rps_handle handle to the rps service
+ * @param num_req_peers number of peers we want to receive
  * @param ready_cb the callback called when the peers are available
  * @param cls closure given to the callback
  * @return a handle to cancel this request
  */
   struct GNUNET_RPS_Request_Handle *
-GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
+GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
+                          uint32_t num_req_peers,
                           GNUNET_RPS_NotifyReadyCB ready_cb,
                           void *cls)
 {
@@ -213,18 +217,23 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *h, uint32_t n,
 
   // assert func != NULL
   rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
-  rh->h = h;
-  rh->n = req_handlers_size; // TODO ntoh
+  rh->rps_handle = rps_handle;
+  rh->id = req_handlers_size; // TODO ntoh
   rh->ready_cb = ready_cb;
   rh->ready_cb_cls = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requesting %" PRIu32 " peers with id %" PRIu32 "\n",
+       num_req_peers,
+       rh->id);
 
   GNUNET_array_append (req_handlers, req_handlers_size, *rh);
   //memcpy(&req_handlers[req_handlers_size-1], rh, sizeof(struct GNUNET_RPS_Request_Handle));
 
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
-  msg->num_peers = htonl (n);
-  msg->n = rh->n;
-  GNUNET_MQ_send (h->mq, ev);
+  msg->num_peers = htonl (num_req_peers);
+  msg->id = htonl (rh->id);
+  GNUNET_MQ_send (rps_handle->mq, ev);
   return rh;
 }
 
@@ -250,7 +259,7 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
   unsigned int i;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client wants to seed %" PRIX32 " peers:\n",
+       "Client wants to seed %" PRIu32 " peers:\n",
        n);
   for (i = 0 ; i < n ; i++)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -322,7 +331,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   unsigned int i;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Client turns malicious (type %" PRIu32 ") with %" PRIX32 " other peers:\n",
+       "Client turns malicious (type %" PRIu32 ") with %" PRIu32 " other peers:\n",
        type,
        num_peers);
   for (i = 0 ; i < num_peers ; i++)
