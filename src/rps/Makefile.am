@@ -75,10 +75,6 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_PROGRAMS)
 endif
 
-test_rps_multipeer_SOURCES = \
- test_rps.c
-test_rps_multipeer_LDADD = $(ld_rps_test_lib)
-
 test_rps_malicious_1_SOURCES = \
 	test_rps.c
 test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
@@ -86,6 +82,14 @@ test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
 test_rps_malicious_2_SOURCES = \
 	test_rps.c
 test_rps_malicious_2_LDADD = $(ld_rps_test_lib)
+
+test_rps_single_req_SOURCES = \
+ test_rps.c
+test_rps_single_req_LDADD = $(ld_rps_test_lib)
+
+test_rps_seed_request_SOURCES = \
+ test_rps.c
+test_rps_seed_request_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf
