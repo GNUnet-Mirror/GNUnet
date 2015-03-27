@@ -1136,6 +1136,56 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
 }
 
 
+/**
+ * This function is called on new peer_ids from 'external' sources
+ * (client seed, cadet get_peers(), ...)
+ *
+ * @param peer_id the new peer_id
+ */
+static void
+new_peer_id (const struct GNUNET_PeerIdentity *peer_id)
+{
+  struct PeerOutstandingOp out_op;
+  struct PeerContext *peer_ctx;
+
+  if (NULL != peer_id
+      && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer_id))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Got new peer %s (at %p) from some external source (gossip_list_size: %u)\n",
+        GNUNET_i2s (peer_id), peer_id, gossip_list_size);
+
+    peer_ctx = get_peer_ctx (peer_map, peer_id);
+    if (GNUNET_YES != get_peer_flag (peer_ctx, VALID))
+    {
+      if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
+      {
+        out_op.op = insert_in_sampler;
+        out_op.op_cls = NULL;
+        GNUNET_array_append (peer_ctx->outstanding_ops,
+                             peer_ctx->num_outstanding_ops,
+                             out_op);
+      }
+
+      if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
+      {
+        out_op.op = insert_in_gossip_list;
+        out_op.op_cls = NULL;
+        GNUNET_array_append (peer_ctx->outstanding_ops,
+                             peer_ctx->num_outstanding_ops,
+                             out_op);
+      }
+
+      /* Trigger livelyness test on peer */
+      check_peer_live (peer_ctx);
+    }
+    // else...?
+
+    // send push/pull to each of those peers?
+  }
+}
+
+
 /***********************************************************************
  * /Util functions
 ***********************************************************************/
@@ -1327,11 +1377,13 @@ handle_client_seed (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-    RPS_sampler_update (prot_sampler,   &peers[i]);
-    RPS_sampler_update (client_sampler, &peers[i]);
+    new_peer_id (&peers[i]);
+
+    //RPS_sampler_update (prot_sampler,   &peers[i]);
+    //RPS_sampler_update (client_sampler, &peers[i]);
   }
 
-  //GNUNET_free (peers);
+  ////GNUNET_free (peers);
 
   GNUNET_SERVER_receive_done (client,
 			                        GNUNET_OK);
@@ -2045,44 +2097,7 @@ init_peer_cb (void *cls,
               unsigned int best_path) // "How long is the best path?
                                       // (0 = unknown, 1 = ourselves, 2 = neighbor)"
 {
-  struct PeerOutstandingOp out_op;
-  struct PeerContext *peer_ctx;
-
-  if (NULL != peer
-      && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Got peer %s (at %p) from CADET (gossip_list_size: %u)\n",
-        GNUNET_i2s (peer), peer, gossip_list_size);
-
-    // maybe create a function for that
-    peer_ctx = get_peer_ctx (peer_map, peer);
-    if (GNUNET_YES != get_peer_flag (peer_ctx, VALID))
-    {
-      if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
-      {
-        out_op.op = insert_in_sampler;
-        out_op.op_cls = NULL;
-        GNUNET_array_append (peer_ctx->outstanding_ops,
-                             peer_ctx->num_outstanding_ops,
-                             out_op);
-      }
-
-      if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
-      {
-        out_op.op = insert_in_gossip_list;
-        out_op.op_cls = NULL;
-        GNUNET_array_append (peer_ctx->outstanding_ops,
-                             peer_ctx->num_outstanding_ops,
-                             out_op);
-      }
-
-      /* Trigger livelyness test on peer */
-      check_peer_live (peer_ctx);
-    }
-
-    // send push/pull to each of those peers?
-  }
+  new_peer_id (peer);
 }
 
 
