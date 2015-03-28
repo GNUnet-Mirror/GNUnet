@@ -314,7 +314,6 @@ RPS_sampler_elem_create (void)
   s = GNUNET_new (struct RPS_SamplerElement);
 
   RPS_sampler_elem_reinit (s);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "initialised with empty PeerID\n");
 
   return s;
 }
@@ -424,16 +423,10 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
   { /* Growing */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Growing sampler %d -> %d\n", old_size, new_size);
     GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, new_size);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "sampler->sampler_elements now points to %p\n",
-        sampler->sampler_elements);
 
     for ( i = old_size ; i < new_size ; i++ )
     { /* Add new sampler elements */
       sampler->sampler_elements[i] = RPS_sampler_elem_create ();
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "Added %" PRIX32 ". sampler, now pointing to %p, contains %s\n",
-          i, &sampler->sampler_elements[i], GNUNET_i2s (&sampler->sampler_elements[i]->peer_id));
     }
   }
   else
@@ -443,7 +436,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
   }
 
   GNUNET_assert (sampler->sampler_size == new_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished growing/shrinking.\n"); // remove
 }
 
 

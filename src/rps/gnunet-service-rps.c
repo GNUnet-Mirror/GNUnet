@@ -1516,8 +1516,6 @@ handle_peer_pull_reply (void *cls,
                         void **channel_ctx,
                         const struct GNUNET_MessageHeader *msg)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received\n");
-
   struct GNUNET_RPS_P2P_PullReplyMessage *in_msg;
   struct GNUNET_PeerIdentity *peers;
   struct PeerContext *peer_ctx;
@@ -1571,8 +1569,16 @@ handle_peer_pull_reply (void *cls,
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "PULL REPLY received, got following peers:\n");
+
   for (i = 0 ; i < ntohl (in_msg->num_peers) ; i++)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%u. %s\n",
+         i,
+         GNUNET_i2s (&peers[i]));
+
   #ifdef ENABLE_MALICIOUS
     if (1 == mal_type)
     {
@@ -2041,6 +2047,13 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   // TODO independent of that also get some peers from CADET_get_peers()?
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received %u pushes and %u pulls last round (alpha (%.2f) * gossip_list_size (%u) = %.2f)\n",
+       push_list_size,
+       pull_list_size,
+       alpha,
+       gossip_list_size,
+       alpha * gossip_list_size);
 
   /* Update samplers */
   for ( i = 0 ; i < push_list_size ; i++ )
@@ -2370,9 +2383,9 @@ rps_start (struct GNUNET_SERVER_Handle *server)
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server,
-				   &handle_client_disconnect,
-				   NULL);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Ready to receive requests from clients\n");
+                                   &handle_client_disconnect,
+                                   NULL);
+  LOG (GNUNET_ERROR_TYPE_INFO, "Ready to receive requests from clients\n");
 
 
   do_round_task = GNUNET_SCHEDULER_add_now (&do_round, NULL);
@@ -2408,7 +2421,7 @@ run (void *cls,
               "STARTING SERVICE (rps) for peer [%s]\n",
               GNUNET_i2s (&own_identity));
   #ifdef ENABLE_MALICIOUS
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Malicious execution compiled in.\n");
   #endif /* ENABLE_MALICIOUS */
 
