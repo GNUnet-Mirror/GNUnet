@@ -1150,8 +1150,10 @@ new_peer_id (const struct GNUNET_PeerIdentity *peer_id)
       && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer_id))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Got new peer %s (at %p) from some external source (gossip_list_size: %u)\n",
-        GNUNET_i2s (peer_id), peer_id, gossip_list_size);
+        "Got peer_id %s (at %p, gossip_list_size: %u)\n",
+        GNUNET_i2s (peer_id),
+        peer_id,
+        gossip_list_size);
 
     peer_ctx = get_peer_ctx (peer_map, peer_id);
     if (GNUNET_YES != get_peer_flag (peer_ctx, VALID))
@@ -1942,7 +1944,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                            (unsigned int) gossip_list_size);
     n_peers = ceil (alpha * gossip_list_size);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Going to send pushes to %u ceil (%f * %u) peers.\n",
+         "Going to send pushes to %u (ceil (%f * %u)) peers.\n",
          n_peers, alpha, gossip_list_size);
     for (i = 0 ; i < n_peers ; i++)
     {
@@ -1960,7 +1962,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   //permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
   n_peers = ceil (beta * gossip_list_size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Going to send pulls to %u ceil (%f * %u) peers.\n",
+       "Going to send pulls to %u (ceil (%f * %u)) peers.\n",
        n_peers, beta, gossip_list_size);
   for (i = 0 ; i < n_peers ; i++)
   {
@@ -2458,8 +2460,6 @@ run (void *cls,
 
   /* connect to NSE */
   nse = GNUNET_NSE_connect (cfg, nse_callback, NULL);
-  // TODO check whether that was successful
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to NSE\n");
 
 
   alpha = 0.45;
@@ -2485,7 +2485,6 @@ run (void *cls,
                                        &cleanup_channel,
                                        cadet_handlers,
                                        ports);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to CADET\n");
 
 
   /* Initialise sampler */
