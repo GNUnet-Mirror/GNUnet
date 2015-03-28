@@ -75,7 +75,7 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list, unsigned
 /**
  * Struct used to store the context of a connected client.
  */
-struct client_ctx
+struct ClientContext
 {
   /**
    * The message queue to communicate with the client.
@@ -1241,7 +1241,7 @@ void client_respond (void *cls,
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   struct ReplyCls *reply_cls = (struct ReplyCls *) cls;
   uint32_t size_needed;
-  struct client_ctx *cli_ctx;
+  struct ClientContext *cli_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "sampler returned %" PRIu32 " peers\n",
@@ -1263,9 +1263,9 @@ void client_respond (void *cls,
           num_peers * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_free (peer_ids);
 
-  cli_ctx = GNUNET_SERVER_client_get_user_context (reply_cls->client, struct client_ctx);
+  cli_ctx = GNUNET_SERVER_client_get_user_context (reply_cls->client, struct ClientContext);
   if (NULL == cli_ctx) {
-    cli_ctx = GNUNET_new (struct client_ctx);
+    cli_ctx = GNUNET_new (struct ClientContext);
     cli_ctx->mq = GNUNET_MQ_queue_for_server_client (reply_cls->client);
     GNUNET_SERVER_client_set_user_context (reply_cls->client, cli_ctx);
   }
