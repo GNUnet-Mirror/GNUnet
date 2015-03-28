@@ -309,7 +309,7 @@ rps_connect_complete_cb (void *cls,
 
   #ifdef ENABLE_MALICIOUS
   if (1 == mal_type
-      || 1 == mal_type)
+      || 2 == mal_type)
   {
     GNUNET_assert (1 >= portion
                    && 0 <  portion);
@@ -318,9 +318,11 @@ rps_connect_complete_cb (void *cls,
     if (rps_peer->index >= num_mal_peers)
     { /* It's useless to ask a malicious peer about a random sample -
          it's not sampling */
-      (void) GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+                                    seed_peers, rps_peer);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                    request_peers, rps_peer);
     }
-    return;
   }
   #endif /* ENABLE_MALICIOUS */
 
@@ -352,10 +354,10 @@ rps_connect_complete_cb (void *cls,
   }
   else if (SEED_REQUEST == test_type)
   {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
-                                seed_peers, rps_peer);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15),
-                                request_peers, rps_peer);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+                                  seed_peers, rps_peer);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15),
+                                  request_peers, rps_peer);
   }
   else if (REQUEST_CANCEL == test_type)
   {
@@ -545,14 +547,14 @@ main (int argc, char *argv[])
   unsigned int num_mal_peers;
   if (1 == mal_type)
   {
-    num_mal_peers = NUM_PEERS * portion;
+    num_mal_peers = round (NUM_PEERS * portion);
     ok = evaluate (&rps_peers[num_mal_peers],
                    NUM_PEERS - (num_mal_peers),
                    1);
   }
   else if (2 == mal_type)
   {
-    num_mal_peers = NUM_PEERS * portion;
+    num_mal_peers = round (NUM_PEERS * portion);
     ok = evaluate (&rps_peers[num_mal_peers],
                    NUM_PEERS - (num_mal_peers),
                    1);

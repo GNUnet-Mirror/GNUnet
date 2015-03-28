@@ -1826,9 +1826,7 @@ handle_client_act_malicious (void *cls,
   }
   else if (0 == mal_type)
   { /* Stop acting malicious */
-    num_mal_peers = 0;
-    if (NULL != mal_peers)
-      GNUNET_free (mal_peers);
+    GNUNET_array_grow (mal_peers, num_mal_peers, 0);
 
     /* Substitute do_mal_round () with do_round () */
     GNUNET_SCHEDULER_cancel (do_round_task);
@@ -1838,6 +1836,8 @@ handle_client_act_malicious (void *cls,
   {
     GNUNET_break (0);
   }
+
+  GNUNET_SERVER_receive_done (client,	GNUNET_OK);
 }
 
 
@@ -1983,9 +1983,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* Update gossip list */
 
-  if ( push_list_size <= alpha * gossip_list_size &&
-       push_list_size != 0 &&
-       pull_list_size != 0 )
+  if (push_list_size <= alpha * gossip_list_size
+      && push_list_size > 0
+      && pull_list_size > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list.\n");
 
