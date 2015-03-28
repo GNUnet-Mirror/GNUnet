@@ -769,8 +769,6 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 
   peer_ctx = get_peer_ctx (peer_map, peer);
 
-  GNUNET_assert (NULL == peer_ctx->is_live_task);
-
   if (NULL == peer_ctx->send_channel)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2110,7 +2108,13 @@ init_peer_cb (void *cls,
               unsigned int best_path) // "How long is the best path?
                                       // (0 = unknown, 1 = ourselves, 2 = neighbor)"
 {
-  new_peer_id (peer);
+  if (NULL != peer)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Got peer_id %s from cadet\n",
+         GNUNET_i2s (peer));
+    new_peer_id (peer);
+  }
 }
 
 
