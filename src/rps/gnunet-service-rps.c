@@ -1059,7 +1059,7 @@ est_request_rate()
 
 
 /**
- * Add all peers in @a peer_array to @peer_map used as set.
+ * Add all peers in @a peer_array to @a peer_map used as set.
  *
  * @param peer_array array containing the peers
  * @param num_peers number of peers in @peer_array
