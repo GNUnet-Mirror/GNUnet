@@ -211,7 +211,7 @@ int
 GNUNET_REST_jsonapi_object_resource_count (struct JsonApiObject *resp);
 
 /**
- * Get a JSON API object resource #num
+ * Get a JSON API object resource num
  *
  * @param resp the JSON API object
  * @param num the number of the resource

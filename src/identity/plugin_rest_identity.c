@@ -172,7 +172,7 @@ struct RequestHandle
 
 /**
  * Cleanup lookup handle
- * @praram handle Handle to clean up
+ * @param handle Handle to clean up
  */
 void
 cleanup_handle (struct RequestHandle *handle)
