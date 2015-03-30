@@ -207,7 +207,8 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
+GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h,
+                         uint64_t uid,
                          uint32_t priority,
                          struct GNUNET_TIME_Absolute expiration,
                          unsigned int queue_priority,
@@ -239,8 +240,10 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
  */
 struct GNUNET_DATASTORE_QueueEntry *
 GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
-                         const struct GNUNET_HashCode * key, size_t size,
-                         const void *data, unsigned int queue_priority,
+                         const struct GNUNET_HashCode *key,
+                         size_t size,
+                         const void *data,
+                         unsigned int queue_priority,
                          unsigned int max_queue_size,
                          struct GNUNET_TIME_Relative timeout,
                          GNUNET_DATASTORE_ContinuationWithStatus cont,
@@ -261,14 +264,16 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
  */
-typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
-                                                 const struct GNUNET_HashCode *key,
-                                                 size_t size, const void *data,
-                                                 enum GNUNET_BLOCK_Type type,
-                                                 uint32_t priority,
-                                                 uint32_t anonymity,
-                                                 struct GNUNET_TIME_Absolute expiration,
-                                                 uint64_t uid);
+typedef void
+(*GNUNET_DATASTORE_DatumProcessor) (void *cls,
+                                    const struct GNUNET_HashCode *key,
+                                    size_t size,
+                                    const void *data,
+                                    enum GNUNET_BLOCK_Type type,
+                                    uint32_t priority,
+                                    uint32_t anonymity,
+                                    struct GNUNET_TIME_Absolute expiration,
+                                    uint64_t uid);
 
 
 /**
@@ -293,13 +298,15 @@ typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
  *         cancel
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h, uint64_t offset,
+GNUNET_DATASTORE_get_key (struct GNUNET_DATASTORE_Handle *h,
+                          uint64_t offset,
                           const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           unsigned int queue_priority,
                           unsigned int max_queue_size,
                           struct GNUNET_TIME_Relative timeout,
-                          GNUNET_DATASTORE_DatumProcessor proc, void *proc_cls);
+                          GNUNET_DATASTORE_DatumProcessor proc,
+                          void *proc_cls);
 
 
 /**
@@ -352,7 +359,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
  * @param proc function to call on a random value; it
  *        will be called once with a value (if available)
  *        and always once with a value of NULL.
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel
  */

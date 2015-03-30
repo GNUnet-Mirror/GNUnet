@@ -275,8 +275,8 @@ GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap
  *   key-value pairs with value NULL
  */
 void *
-GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap
-                                   *map, const struct GNUNET_HashCode *key)
+GNUNET_CONTAINER_multihashmap_get (const struct GNUNET_CONTAINER_MultiHashMap *map,
+                                   const struct GNUNET_HashCode *key)
 {
   union MapEntry me;
 
@@ -446,8 +446,8 @@ GNUNET_CONTAINER_multihashmap_remove (struct GNUNET_CONTAINER_MultiHashMap *map,
  * @return number of values removed
  */
 int
-GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
-                                          *map, const struct GNUNET_HashCode *key)
+GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap *map,
+                                          const struct GNUNET_HashCode *key)
 {
   union MapEntry me;
   unsigned int i;
@@ -518,6 +518,49 @@ GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap
       }
     }
   }
+  return ret;
+}
+
+
+/**
+ * Callback used to remove all entries from the map.
+ *
+ * @param cls the `struct GNUNET_CONTAINER_MultiHashMap`
+ * @param key the key
+ * @param value the value
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+remove_all (void *cls,
+            const struct GNUNET_HashCode *key,
+            void *value)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *map = cls;
+
+  GNUNET_CONTAINER_multihashmap_remove (map,
+                                        key,
+                                        value);
+  return GNUNET_OK;
+}
+
+
+/**
+ * @ingroup hashmap
+ * Remove all entries from the map.
+ * Note that the values would not be "freed".
+ *
+ * @param map the map
+ * @return number of values removed
+ */
+unsigned int
+GNUNET_CONTAINER_multihashmap_clear (struct GNUNET_CONTAINER_MultiHashMap *map)
+{
+  unsigned int ret;
+
+  ret = map->size;
+  GNUNET_CONTAINER_multihashmap_iterate (map,
+                                         &remove_all,
+                                         map);
   return ret;
 }
 

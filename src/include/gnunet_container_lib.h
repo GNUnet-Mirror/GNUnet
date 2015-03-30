@@ -699,6 +699,18 @@ GNUNET_CONTAINER_multihashmap_remove_all (struct GNUNET_CONTAINER_MultiHashMap *
 
 /**
  * @ingroup hashmap
+ * Remove all entries from the map.
+ * Note that the values would not be "freed".
+ *
+ * @param map the map
+ * @return number of values removed
+ */
+unsigned int
+GNUNET_CONTAINER_multihashmap_clear (struct GNUNET_CONTAINER_MultiHashMap *map);
+
+
+/**
+ * @ingroup hashmap
  * Check if the map contains any value under the given
  * key (including values that are NULL).
  *
@@ -757,8 +769,7 @@ GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
  * @return the number of key value pairs
  */
 unsigned int
-GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap
-                                    *map);
+GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap *map);
 
 
 /**
@@ -772,8 +783,7 @@ GNUNET_CONTAINER_multihashmap_size (const struct GNUNET_CONTAINER_MultiHashMap
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap_iterate (const struct
-                                       GNUNET_CONTAINER_MultiHashMap *map,
+GNUNET_CONTAINER_multihashmap_iterate (const struct GNUNET_CONTAINER_MultiHashMap *map,
                                        GNUNET_CONTAINER_HashMapIterator it,
                                        void *it_cls);
 
