@@ -1473,11 +1473,6 @@ struct GNUNET_FS_UnindexContext
   struct GNUNET_HashCode uquery;
 
   /**
-   * First content UID, 0 for none.
-   */
-  uint64_t first_uid;
-
-  /**
    * Error message, NULL on success.
    */
   char *emsg;
@@ -1486,6 +1481,11 @@ struct GNUNET_FS_UnindexContext
    * Context for hashing of the file.
    */
   struct GNUNET_CRYPTO_FileHashContext *fhc;
+
+  /**
+   * Which values have we seen already?
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *seen_dh;
 
   /**
    * Overall size of the file.
