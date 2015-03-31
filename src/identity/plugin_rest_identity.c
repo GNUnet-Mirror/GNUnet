@@ -440,20 +440,17 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   term_data[handle->data_size] = '\0';
   memcpy (term_data, handle->data, handle->data_size);
   json_obj = GNUNET_REST_jsonapi_object_parse (term_data);
-GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "2\n");
   if (NULL == json_obj)
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "2.1\n");
   if (1 != GNUNET_REST_jsonapi_object_resource_count (json_obj))
   {
     GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "3\n");
   json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0);
   if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
@@ -463,7 +460,6 @@ GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "3\n");
     cleanup_handle (handle);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "4\n");
   egoname_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_KEY_ID);
   if (!json_is_string (egoname_json))
   {
