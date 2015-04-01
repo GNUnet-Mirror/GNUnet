@@ -474,7 +474,6 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   {
     if (0 == strcasecmp (egoname, ego_entry->identifier))
     {
-      json_decref (egoname_json);
       GNUNET_REST_jsonapi_object_delete (json_obj);
       resp = GNUNET_REST_create_json_response (NULL);
       handle->proc (handle->proc_cls, resp, MHD_HTTP_CONFLICT);
@@ -483,7 +482,6 @@ ego_create_cont (struct RestConnectionDataHandle *con,
     }
   }
   GNUNET_asprintf (&handle->name, "%s", egoname);
-  json_decref (egoname_json);
   GNUNET_REST_jsonapi_object_delete (json_obj);
   handle->op = GNUNET_IDENTITY_create (handle->identity_handle,
                                        handle->name,
@@ -576,10 +574,8 @@ ego_edit_cont (struct RestConnectionDataHandle *con,
                                       &edit_finished,
                                       handle);
       GNUNET_REST_jsonapi_object_delete (json_obj);
-      json_decref (name_json);
       return;
     }
-    json_decref (name_json);
   }
 
   subsys_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_IDENTITY_SUBSYSTEM);
@@ -596,10 +592,8 @@ ego_edit_cont (struct RestConnectionDataHandle *con,
                                         ego_entry->ego,
                                         &edit_finished,
                                         handle);
-      json_decref (subsys_json);
       return;
     }
-    json_decref (subsys_json);
   }
   GNUNET_REST_jsonapi_object_delete (json_obj);
   GNUNET_SCHEDULER_add_now (&do_error, handle);

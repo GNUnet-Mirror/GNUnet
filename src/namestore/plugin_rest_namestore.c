@@ -751,7 +751,6 @@ namestore_create_cont (struct RestConnectionDataHandle *con,
   if (GNUNET_SYSERR == json_to_gnsrecord (records_json, &handle->rd, &handle->rd_count))
   {
     GNUNET_REST_jsonapi_object_delete (json_obj);
-    json_decref (records_json);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
