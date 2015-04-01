@@ -98,6 +98,22 @@ libexec_PROGRAMS += \
  gnunet-namestore-fcfsd
 endif
 
+if HAVE_REST
+REST_PLUGIN = libgnunet_plugin_rest_namestore.la
+endif
+
+libgnunet_plugin_rest_namestore_la_SOURCES = \
+  plugin_rest_namestore.c
+libgnunet_plugin_rest_namestore_la_LIBADD = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_namestore_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 gnunet_namestore_SOURCES = \
  gnunet-namestore.c
 gnunet_namestore_LDADD = \
@@ -133,7 +149,8 @@ gnunet_service_namestore_LDADD = \
 
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
-  $(POSTGRES_PLUGIN)
+  $(POSTGRES_PLUGIN) \
+	$(REST_PLUGIN)
 
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
   plugin_namestore_sqlite.c

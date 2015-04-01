@@ -170,10 +170,8 @@ check_resource_attr_str (const struct JsonApiResource *resource,
   if (!json_is_string (value) ||
       (0 != strcmp (attr, json_string_value(value))))
   {
-    json_decref (value);
     return GNUNET_NO;
   }
-  json_decref (value);
   return GNUNET_YES;
 }
 
