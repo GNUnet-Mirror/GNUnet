@@ -379,6 +379,7 @@ struct ReplyCls
  * 0 Don't act malicious at all - Default
  * 1 Try to maximise representation
  * 2 Try to partition the network
+ * 3 Combined attack
  */
 uint32_t mal_type = 0;
 
@@ -1422,7 +1423,8 @@ handle_peer_push (void *cls,
 
   tmp_att_peer = GNUNET_new (struct AttackedPeer);
   memcpy (&tmp_att_peer->peer_id, peer, sizeof (struct GNUNET_PeerIdentity));
-  if (1 == mal_type)
+  if (1 == mal_type
+      || 3 == mal_type)
   { /* Try to maximise representation */
     if (NULL == att_peer_set)
       att_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
@@ -1477,7 +1479,8 @@ handle_peer_pull_request (void *cls,
   // FIXME wait for cadet to change this function
 
   #ifdef ENABLE_MALICIOUS
-  if (1 == mal_type)
+  if (1 == mal_type
+      || 3 == mal_type)
   { /* Try to maximise representation */
     send_pull_reply (peer, mal_peers, num_mal_peers);
     return GNUNET_OK;
@@ -1579,9 +1582,10 @@ handle_peer_pull_reply (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-  #ifdef ENABLE_MALICIOUS
-    if (1 == mal_type)
-    {
+    #ifdef ENABLE_MALICIOUS
+    if (1 == mal_type
+        || 3 == mal_type)
+    { /* Add attacked peer to local list */
       // TODO check if we sent a request and this was the first reply
       if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
                                                                &peers[i])
@@ -1599,7 +1603,7 @@ handle_peer_pull_reply (void *cls,
       }
       continue;
     }
-  #endif /* ENABLE_MALICIOUS */
+    #endif /* ENABLE_MALICIOUS */
     peer_ctx = get_peer_ctx (peer_map, &peers[i]);
     if (GNUNET_YES == get_peer_flag (peer_ctx, VALID)
         || NULL != peer_ctx->send_channel
@@ -1793,7 +1797,8 @@ handle_client_act_malicious (void *cls,
     do_round_task = GNUNET_SCHEDULER_add_now (&do_mal_round, NULL);
   }
 
-  else if (2 == mal_type)
+  else if (2 == mal_type
+           || 3 == mal_type)
   { /* Try to partition the network */
     /* Add other malicious peers to those we already know */
     num_mal_peers_sent = ntohl (in_msg->num_peers) - 1;
@@ -1897,6 +1902,39 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       send_push (&attacked_peer);
   }
 
+
+  if (3 == mal_type)
+  { /* Combined attack */
+
+    /* The maximum of pushes we're going to send this round */
+    num_pushes = min (min (push_limit,
+                           num_attacked_peers),
+                       GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE) - 1;
+
+    /* Send PUSHes to attacked peers */
+    send_push (&attacked_peer);
+
+    for (i = 0 ; i < num_pushes ; i++)
+    {
+      if (att_peers_tail == att_peer_index)
+        att_peer_index = att_peers_head;
+      else
+        att_peer_index = att_peer_index->next;
+
+      send_push (&att_peer_index->peer_id);
+    }
+
+    /* Send PULLs to some peers to learn about additional peers to attack */
+    for (i = 0 ; i < num_pushes * alpha ; i++)
+    {
+      if (att_peers_tail == tmp_att_peer)
+        tmp_att_peer = att_peers_head;
+      else
+        att_peer_index = tmp_att_peer->next;
+
+      send_pull_request (&tmp_att_peer->peer_id);
+    }
+  }
 
   /* Schedule next round */
   time_next_round = compute_rand_delay (round_interval, 2);
