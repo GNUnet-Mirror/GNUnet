@@ -40,25 +40,7 @@
 /**
  * How long do we run the test?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 40)
-
-
-/**
- * Different tests to run
- */
-#define SINGLE_REQUEST 1
-#define DELAYED_REQUESTS 2
-#define SEED 3
-#define SEED_BIG 4
-#define SINGLE_PEER_SEED 5
-#define SEED_REQUEST 6
-#define REQUEST_CANCEL 7
-//TODO start big mal
-
-/**
- * What test are we running?
- */
-unsigned int test_type = 0;
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 /**
@@ -100,7 +82,7 @@ struct RPSPeer
   /**
    * A request handle to check for an request
    */
-  struct GNUNET_RPS_Request_Handle *req_handle;
+  //struct GNUNET_RPS_Request_Handle *req_handle;
 
   /**
    * Received PeerIDs
@@ -128,6 +110,45 @@ static struct GNUNET_PeerIdentity rps_peer_ids[NUM_PEERS];
  * Return value from 'main'.
  */
 static int ok;
+
+
+/**
+ * Called directly after connecting to the service
+ */
+typedef void (*PreTest) (void *cls, struct GNUNET_RPS_Handle *h);
+
+/**
+ * Called from within #rps_connect_complete_cb ()
+ * Executes functions to test the api/service
+ */
+typedef void (*MainTest) (struct RPSPeer *rps_peer);
+
+/**
+ * Function called after disconnect to evaluate test success
+ */
+typedef int (*EvaluationCallback) (void);
+
+
+/**
+ * Structure to define a single test
+ */
+struct SingleTestRun
+{
+  /**
+   * Called directly after connecting to the service
+   */
+  PreTest pre_test;
+
+  /**
+   * Function to execute the functions to be tested
+   */
+  MainTest main_test;
+
+  /**
+   * Function to evaluate the test results
+   */
+  EvaluationCallback eval_cb;
+} cur_test_run;
 
 
 /**
@@ -173,14 +194,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback to call when network size estimate is updated.
+ * Callback to call on receipt of a reply
  *
  * @param cls closure
- * @param timestamp server timestamp
- * @param estimate the value of the current network size estimate
- * @param std_dev standard deviation (rounded down to nearest integer)
- *                of the size estimation values seen
- *
+ * @param n number of peers
+ * @param recv_peers the received peers
  */
 static void
 handle_reply (void *cls, uint64_t n, const struct GNUNET_PeerIdentity *recv_peers)
@@ -206,7 +224,7 @@ handle_reply (void *cls, uint64_t n, const struct GNUNET_PeerIdentity *recv_peer
 
 
 /**
- * (Randomly) request random peers.
+ * Request random peers.
  */
   void
 request_peers (void *cls,
@@ -289,8 +307,6 @@ rps_connect_complete_cb (void *cls,
 {
   struct RPSPeer *rps_peer = cls;
   struct GNUNET_RPS_Handle *rps = ca_result;
-  //struct GNUNET_RPS_Request_Handle *req_handle;
-  uint32_t num_mal_peers;
 
   rps_peer->rps_handle = rps;
 
@@ -307,62 +323,7 @@ rps_connect_complete_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Started client successfully\n");
 
-  #ifdef ENABLE_MALICIOUS
-  if (1 == mal_type
-      || 2 == mal_type)
-  {
-    GNUNET_assert (1 >= portion
-                   && 0 <  portion);
-    num_mal_peers = round (portion * NUM_PEERS);
-
-    if (rps_peer->index >= num_mal_peers)
-    { /* It's useless to ask a malicious peer about a random sample -
-         it's not sampling */
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
-                                    seed_peers, rps_peer);
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                    request_peers, rps_peer);
-    }
-  }
-  #endif /* ENABLE_MALICIOUS */
-
-  if (SINGLE_REQUEST == test_type)
-  {
-    //(void) GNUNET_RPS_request_peers (rps, 1, handle_reply, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-                                request_peers, rps_peer);
-  }
-  else if (DELAYED_REQUESTS == test_type)
-  {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-                                request_peers, rps_peer);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                request_peers, rps_peer);
-  }
-  else if (SEED == test_type)
-  {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                seed_peers, rps_peer);
-  }
-  else if (SEED_BIG == test_type)
-  {
-  // TODO test seeding > GNUNET_SERVER_MAX_MESSAGE_SIZE peers
-  }
-  else if (SINGLE_PEER_SEED == test_type)
-  {
-  // TODO
-  }
-  else if (SEED_REQUEST == test_type)
-  {
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
-                                  seed_peers, rps_peer);
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15),
-                                  request_peers, rps_peer);
-  }
-  else if (REQUEST_CANCEL == test_type)
-  {
-  // TODO
-  }
+  cur_test_run.main_test (rps_peer);
 }
 
 
@@ -381,29 +342,11 @@ rps_connect_adapter (void *cls,
 		                 const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
-  #ifdef ENABLE_MALICIOUS
-  uint32_t num_mal_peers;
-  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
-  #endif /* ENABLE_MALICIOUS */
 
   h = GNUNET_RPS_connect (cfg);
 
-  #ifdef ENABLE_MALICIOUS
-  GNUNET_assert (1 >= portion
-                 && 0 <  portion);
-  num_mal_peers = round (portion * NUM_PEERS);
-
-  if (rps_peer->index < num_mal_peers)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%u. peer [%s] of %" PRIu32 " malicious peers turning malicious\n",
-                rps_peer->index,
-                GNUNET_i2s (rps_peer->peer_id),
-                num_mal_peers);
-
-    GNUNET_RPS_act_malicious (h, mal_type, num_mal_peers, rps_peer_ids);
-  }
-  #endif /* ENABLE_MALICIOUS */
+  if (NULL != cur_test_run.pre_test)
+    cur_test_run.pre_test (cls, h);
 
   return h;
 }
@@ -423,6 +366,159 @@ rps_disconnect_adapter (void *cls,
   struct GNUNET_RPS_Handle *h = op_result;
   GNUNET_RPS_disconnect (h);
 }
+
+
+/***********************************************************************
+ * Definition of tests
+***********************************************************************/
+
+static int
+default_eval_cb (void)
+{
+  return evaluate (rps_peers, NUM_PEERS, 1);
+}
+/***********************************
+ * MALICIOUS
+***********************************/
+static void
+mal_pre (void *cls, struct GNUNET_RPS_Handle *h)
+{
+  #ifdef ENABLE_MALICIOUS
+  uint32_t num_mal_peers;
+  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+
+  GNUNET_assert (1 >= portion
+                 && 0 <  portion);
+  num_mal_peers = round (portion * NUM_PEERS);
+
+  if (rps_peer->index < num_mal_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u. peer [%s] of %" PRIu32 " malicious peers turning malicious\n",
+                rps_peer->index,
+                GNUNET_i2s (rps_peer->peer_id),
+                num_mal_peers);
+
+    GNUNET_RPS_act_malicious (h, mal_type, num_mal_peers, rps_peer_ids);
+  }
+  #endif /* ENABLE_MALICIOUS */
+}
+
+static void
+mal_cb (struct RPSPeer *rps_peer)
+{
+  uint32_t num_mal_peers;
+
+  #ifdef ENABLE_MALICIOUS
+  GNUNET_assert (1 >= portion
+                 && 0 <  portion);
+  num_mal_peers = round (portion * NUM_PEERS);
+
+  if (rps_peer->index >= num_mal_peers)
+  { /* It's useless to ask a malicious peer about a random sample -
+       it's not sampling */
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+                                  seed_peers, rps_peer);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                  request_peers, rps_peer);
+  }
+  #endif /* ENABLE_MALICIOUS */
+}
+
+static int
+mal_eval (void)
+{
+  unsigned int num_mal_peers;
+
+  num_mal_peers = round (NUM_PEERS * portion);
+  return evaluate (&rps_peers[num_mal_peers],
+                   NUM_PEERS - (num_mal_peers),
+                   1);
+}
+
+
+/***********************************
+ * SINGLE_REQUEST
+***********************************/
+static void
+single_req_cb (struct RPSPeer *rps_peer)
+{
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+                                request_peers, rps_peer);
+}
+
+/***********************************
+ * DELAYED_REQUESTS
+***********************************/
+static void
+delay_req_cb (struct RPSPeer *rps_peer)
+{
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+                                request_peers, rps_peer);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                request_peers, rps_peer);
+}
+
+/***********************************
+ * SEED
+***********************************/
+static void
+seed_cb (struct RPSPeer *rps_peer)
+{
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                seed_peers, rps_peer);
+}
+
+static int
+seed_eval (void)
+{
+  return 1;
+}
+
+/***********************************
+ * SEED_BIG
+***********************************/
+static void
+seed_big_cb (struct RPSPeer *rps_peer)
+{
+  // TODO test seeding > GNUNET_SERVER_MAX_MESSAGE_SIZE peers
+}
+
+/***********************************
+ * SINGLE_PEER_SEED
+***********************************/
+static void
+single_peer_seed_cb (struct RPSPeer *rps_peer)
+{
+  // TODO
+}
+
+/***********************************
+ * SEED_REQUEST
+***********************************/
+static void
+seed_req_cb (struct RPSPeer *rps_peer)
+{
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+                                seed_peers, rps_peer);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15),
+                                request_peers, rps_peer);
+}
+
+//TODO start big mal
+
+/***********************************
+ * REQUEST_CANCEL
+***********************************/
+static void
+req_cancel_cb (struct RPSPeer *rps_peer)
+{
+  // TODO
+}
+
+/***********************************************************************
+ * /Definition of tests
+***********************************************************************/
 
 
 /**
@@ -459,10 +555,6 @@ run (void *cls,
                                                 tmp_i);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Type %i\n",
-              test_type);
-
   GNUNET_assert (NUM_PEERS == num_peers);
   for (i = 0 ; i < num_peers ; i++)
   {
@@ -491,50 +583,67 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (strstr (argv[0], "malicious_1") != NULL)
+  cur_test_run.pre_test = NULL;
+  cur_test_run.eval_cb = default_eval_cb;
+
+  if (strstr (argv[0], "malicious") != NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 1\n");
-    mal_type = 1;
+    cur_test_run.pre_test = mal_pre;
+    cur_test_run.main_test = mal_cb;
+    cur_test_run.eval_cb = mal_eval;
+
+    if (strstr (argv[0], "_1") != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 1\n");
+      mal_type = 1;
+    }
+    else if (strstr (argv[0], "_2") != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 2\n");
+      mal_type = 2;
+    }
+    else if (strstr (argv[0], "_3") != NULL)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 3\n");
+      mal_type = 3;
+    }
   }
-  else if (strstr (argv[0], "malicious_2") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 2\n");
-    mal_type = 2;
-  }
+
   else if (strstr (argv[0], "_single_req") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test single request\n");
-    test_type = SINGLE_REQUEST;
+    cur_test_run.main_test = single_req_cb;
   }
   else if (strstr (argv[0], "_delayed_reqs") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test delayed requests\n");
-    test_type = DELAYED_REQUESTS;
+    cur_test_run.main_test = delay_req_cb;
   }
   else if (strstr (argv[0], "_seed_big") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding (num_peers > GNUNET_SERVER_MAX_MESSAGE_SIZE)\n");
-    test_type = SEED_BIG;
+    cur_test_run.main_test = seed_big_cb;
   }
   else if (strstr (argv[0], "_single_peer_seed") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on a single peer\n");
-    test_type = SINGLE_PEER_SEED;
+    cur_test_run.main_test = single_peer_seed_cb;
   }
   else if (strstr (argv[0], "_seed_request") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on multiple peers\n");
-    test_type = SEED_REQUEST;
+    cur_test_run.main_test = seed_req_cb;
   }
   else if (strstr (argv[0], "_seed") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding\n");
-    test_type = SEED;
+    cur_test_run.main_test = seed_cb;
+    cur_test_run.eval_cb = seed_eval;
   }
   else if (strstr (argv[0], "_req_cancel") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test cancelling a request\n");
-    test_type = REQUEST_CANCEL;
+    cur_test_run.main_test = req_cancel_cb;
   }
 
   ok = 1;
@@ -544,31 +653,7 @@ main (int argc, char *argv[])
                                   0, NULL, NULL,
                                   &run, NULL);
 
-  unsigned int num_mal_peers;
-  if (1 == mal_type)
-  {
-    num_mal_peers = round (NUM_PEERS * portion);
-    ok = evaluate (&rps_peers[num_mal_peers],
-                   NUM_PEERS - (num_mal_peers),
-                   1);
-  }
-  else if (2 == mal_type)
-  {
-    num_mal_peers = round (NUM_PEERS * portion);
-    ok = evaluate (&rps_peers[num_mal_peers],
-                   NUM_PEERS - (num_mal_peers),
-                   1);
-  }
-  else if (SINGLE_REQUEST == test_type)
-  {
-    ok = evaluate (rps_peers, NUM_PEERS, 1);
-  }
-  else if (SEED_REQUEST == test_type)
-  {
-    ok = evaluate (rps_peers, NUM_PEERS, 1);
-  }
-
-  return ok;
+  return cur_test_run.eval_cb();
 }
 
 /* end of test_rps_multipeer.c */
