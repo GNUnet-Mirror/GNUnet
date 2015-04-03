@@ -42,13 +42,13 @@
 
 // TODO align message structs
 
-// (TODO api -- possibility of getting weak random peer immideately)
-
 // TODO connect to friends
 
-// TODO store peers somewhere
+// TODO store peers somewhere persistent
 
-// TODO ignore list?
+// TODO blacklist? (-> mal peer detection on top of brahms)
+
+// TODO API request_cancel
 
 // hist_size_init, hist_size_max
 
@@ -1763,7 +1763,6 @@ handle_client_act_malicious (void *cls,
 
 
   /* Do actual logic */
-  // FIXME ingore own id
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   mal_type = ntohl (in_msg->type);
 
