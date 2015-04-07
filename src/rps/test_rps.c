@@ -53,6 +53,54 @@ static double portion = .1;
  */
 static unsigned int mal_type = 0;
 
+/**
+ * Handles to all of the running peers
+ */
+static struct GNUNET_TESTBED_Peer **testbed_peers;
+
+
+/**
+ * Operation map entry
+ */
+struct OpListEntry
+{
+  /**
+   * DLL next ptr
+   */
+  struct OpListEntry *next;
+
+  /**
+   * DLL prev ptr
+   */
+  struct OpListEntry *prev;
+
+  /**
+   * The testbed operation
+   */
+  struct GNUNET_TESTBED_Operation *op;
+
+  /**
+   * Depending on whether we start or stop NSE service at the peer set this to 1
+   * or -1
+   */
+  int delta;
+
+  /**
+   * Index of the regarding peer
+   */
+  unsigned int index;
+};
+
+/**
+ * OpList DLL head
+ */
+static struct OpListEntry *oplist_head;
+
+/**
+ * OpList DLL tail
+ */
+static struct OpListEntry *oplist_tail;
+
 
 /**
  * Information we track for each peer.
@@ -85,6 +133,11 @@ struct RPSPeer
   //struct GNUNET_RPS_Request_Handle *req_handle;
 
   /**
+   * Peer on- or offline?
+   */
+  int online;
+
+  /**
    * Received PeerIDs
    */
   struct GNUNET_PeerIdentity *rec_ids;
@@ -107,9 +160,20 @@ static struct RPSPeer rps_peers[NUM_PEERS];
 static struct GNUNET_PeerIdentity rps_peer_ids[NUM_PEERS];
 
 /**
+ * Number of online peers.
+ */
+static unsigned int num_peers_online;
+
+/**
  * Return value from 'main'.
  */
 static int ok;
+
+
+/**
+ * Identifier for the churn task that runs periodically
+ */
+static struct GNUNET_SCHEDULER_Task *churn_task;
 
 
 /**
@@ -122,6 +186,11 @@ typedef void (*PreTest) (void *cls, struct GNUNET_RPS_Handle *h);
  * Executes functions to test the api/service
  */
 typedef void (*MainTest) (struct RPSPeer *rps_peer);
+
+/**
+ * Called directly before disconnecting from the service
+ */
+typedef void (*PostTest) (void *cls, struct GNUNET_RPS_Handle *h);
 
 /**
  * Function called after disconnect to evaluate test success
@@ -143,6 +212,11 @@ struct SingleTestRun
    * Function to execute the functions to be tested
    */
   MainTest main_test;
+
+  /**
+   * Called directly before disconnecting from the service
+   */
+  PostTest post_test;
 
   /**
    * Function to evaluate the test results
@@ -176,6 +250,63 @@ evaluate (struct RPSPeer *loc_rps_peers,
     tmp_ok &= (1 == loc_rps_peers[i].num_rec_ids);
   }
   return tmp_ok? 0 : 1;
+}
+
+
+/**
+ * Creates an oplist entry and adds it to the oplist DLL
+ */
+static struct OpListEntry *
+make_oplist_entry ()
+{
+  struct OpListEntry *entry;
+
+  entry = GNUNET_new (struct OpListEntry);
+  GNUNET_CONTAINER_DLL_insert_tail (oplist_head, oplist_tail, entry);
+  return entry;
+}
+
+
+/**
+ * Callback to be called when NSE service is started or stopped at peers
+ *
+ * @param cls NULL
+ * @param op the operation handle
+ * @param emsg NULL on success; otherwise an error description
+ */
+static void
+churn_cb (void *cls,
+                   struct GNUNET_TESTBED_Operation *op,
+                   const char *emsg)
+{
+  struct OpListEntry *entry = cls;
+
+  GNUNET_TESTBED_operation_done (entry->op);
+  if (NULL != emsg)
+  {
+    //LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start/stop NSE at a peer\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_assert (0 != entry->delta);
+
+  num_peers_online += entry->delta;
+
+  if (0 < entry->delta)
+  { /* Peer hopefully just went online */
+    GNUNET_break (GNUNET_NO == rps_peers[entry->index].online);
+    rps_peers[entry->index].online = GNUNET_YES;
+  }
+  else if (0 > entry->delta)
+  { /* Peer hopefully just went offline */
+    GNUNET_break (GNUNET_YES == rps_peers[entry->index].online);
+    rps_peers[entry->index].online = GNUNET_NO;
+  }
+
+  GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
+  GNUNET_free (entry);
+  //if (num_peers_in_round[current_round] == peers_running)
+  //  run_round ();
 }
 
 
@@ -309,6 +440,8 @@ rps_connect_complete_cb (void *cls,
   struct GNUNET_RPS_Handle *rps = ca_result;
 
   rps_peer->rps_handle = rps;
+  rps_peer->online = GNUNET_YES;
+  num_peers_online++;
 
   GNUNET_assert (op == rps_peer->op);
   if (NULL != emsg)
@@ -516,6 +649,93 @@ req_cancel_cb (struct RPSPeer *rps_peer)
   // TODO
 }
 
+/***********************************
+ * PROFILER
+***********************************/
+static void
+churn (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct OpListEntry *entry;
+  unsigned int i;
+  unsigned int j;
+  double portion_online;
+  unsigned int *permut;
+  double prob_go_offline;
+  double portion_go_online;
+  double portion_go_offline;
+  uint32_t prob;
+
+  portion_online = num_peers_online / NUM_PEERS;
+  portion_go_online = ((1 - portion_online) * .5 * .66);
+  portion_go_offline = (portion_online + portion_go_online) - .75;
+  prob_go_offline = portion_go_offline / (portion_online * .5);
+
+  permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK,
+                                         (unsigned int) NUM_PEERS);
+
+  for (i = 0 ; i < .5 * NUM_PEERS ; i++)
+  {
+    j = permut[i];
+
+    if (GNUNET_YES == rps_peers[j].online)
+    {
+       prob = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                        UINT32_MAX);
+      if (prob < prob_go_offline * UINT32_MAX)
+      {
+        entry = make_oplist_entry ();
+        entry->delta = 1;
+        entry->index = j;
+        entry->op =  GNUNET_TESTBED_peer_manage_service (NULL,
+                                                         testbed_peers[j],
+                                                         "rps",
+                                                         &churn_cb,
+                                                         entry,
+                                                         1);
+      }
+   }
+
+    else if (GNUNET_NO == rps_peers[j].online)
+    {
+      prob = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                       UINT32_MAX);
+      if (prob < .66 * UINT32_MAX)
+      {
+        entry = make_oplist_entry ();
+        entry->delta = -1;
+        entry->index = j;
+        entry->op =  GNUNET_TESTBED_peer_manage_service (NULL,
+                                                         testbed_peers[j],
+                                                         "rps",
+                                                         &churn_cb,
+                                                         entry,
+                                                         0);
+      }
+    }
+  }
+
+  churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                            10),
+                                             churn, NULL);
+}
+
+static void
+profiler_pre (void *cls, struct GNUNET_RPS_Handle *h)
+{
+  churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                            10),
+                                             churn, NULL);
+  mal_pre (cls, h);
+}
+
+static void
+profiler_cb (struct RPSPeer *rps_peer)
+{
+  // We're not requesting peers
+  // TODO maybe seed
+}
+
+
 /***********************************************************************
  * /Definition of tests
 ***********************************************************************/
@@ -543,6 +763,9 @@ run (void *cls,
 {
   unsigned int i;
   unsigned int *tmp_i;
+
+  testbed_peers = peers;
+  num_peers_online = 0;
 
   for (i = 0 ; i < NUM_PEERS ; i++)
   {
@@ -585,6 +808,7 @@ main (int argc, char *argv[])
 {
   cur_test_run.pre_test = NULL;
   cur_test_run.eval_cb = default_eval_cb;
+  churn_task = NULL;
 
   if (strstr (argv[0], "malicious") != NULL)
   {
@@ -645,6 +869,16 @@ main (int argc, char *argv[])
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test cancelling a request\n");
     cur_test_run.main_test = req_cancel_cb;
   }
+  else if (strstr (argv[0], "profiler") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
+    mal_type = 3;
+    cur_test_run.pre_test = profiler_pre;
+    cur_test_run.main_test = profiler_cb;
+    churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                                              10),
+                                               churn, NULL);
+  }
 
   ok = 1;
   (void) GNUNET_TESTBED_test_run ("test-rps-multipeer",
@@ -652,6 +886,9 @@ main (int argc, char *argv[])
                                   NUM_PEERS,
                                   0, NULL, NULL,
                                   &run, NULL);
+
+  if (NULL != churn_task)
+    GNUNET_SCHEDULER_cancel (churn_task);
 
   return cur_test_run.eval_cb();
 }

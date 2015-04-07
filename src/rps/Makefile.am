@@ -40,6 +40,11 @@ libgnunetrps_la_LDFLAGS = \
 libexec_PROGRAMS = \
  gnunet-service-rps
 
+if HAVE_TESTING
+check_PROGRAMS = \
+ gnunet-nse-profiler
+endif
+
 
 gnunet_service_rps_SOURCES = \
  gnunet-service-rps_sampler.h gnunet-service-rps_sampler.c \
@@ -56,10 +61,12 @@ gnunet_service_rps_LDADD = \
   -lm -lgcrypt \
   $(GN_LIBINTL)
 
+
 if HAVE_TESTING
 check_PROGRAMS = \
  test_rps_malicious_1 \
  test_rps_malicious_2 \
+ test_rps_malicious_3 \
  test_rps_seed_request \
  test_rps_single_req
 endif
@@ -84,6 +91,10 @@ test_rps_malicious_2_SOURCES = \
 	test_rps.c
 test_rps_malicious_2_LDADD = $(ld_rps_test_lib)
 
+test_rps_malicious_3_SOURCES = \
+	test_rps.c
+test_rps_malicious_3_LDADD = $(ld_rps_test_lib)
+
 test_rps_single_req_SOURCES = \
  test_rps.c
 test_rps_single_req_LDADD = $(ld_rps_test_lib)
@@ -91,6 +102,10 @@ test_rps_single_req_LDADD = $(ld_rps_test_lib)
 test_rps_seed_request_SOURCES = \
  test_rps.c
 test_rps_seed_request_LDADD = $(ld_rps_test_lib)
+
+gnunet_nse_profiler_SOURCES = \
+ test_rps.c
+gnunet_nse_profiler_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf
