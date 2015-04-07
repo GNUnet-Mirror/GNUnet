@@ -436,6 +436,8 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
           GNUNET_i2s (other));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
           GNUNET_i2s (&s_elem->peer_id));
+      s_elem->peer_id = *other;
+      s_elem->peer_id_hash = other_hash;
 
       s_elem->num_change++;
     }
