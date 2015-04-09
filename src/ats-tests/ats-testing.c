@@ -552,7 +552,6 @@ ats_performance_info_cb (void *cls,
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
-  int c_a;
   int log;
   char *peer_id;
 

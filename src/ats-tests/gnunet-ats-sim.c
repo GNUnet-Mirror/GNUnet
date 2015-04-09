@@ -164,7 +164,7 @@ static void
 log_request__cb (void *cls, const struct GNUNET_HELLO_Address *address,
     int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+    const struct GNUNET_ATS_Properties *ats)
 {
 
   if (NULL != l)
