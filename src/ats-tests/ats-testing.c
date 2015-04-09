@@ -555,6 +555,13 @@ ats_performance_info_cb (void *cls,
   int log;
   char *peer_id;
 
+  if (NULL == address)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer %u: ATS Service disconnected!\n",
+        me->no);
+    return;
+  }
+
   p = find_partner (me, &address->peer);
   if (NULL == p)
   {
