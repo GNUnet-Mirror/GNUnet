@@ -320,11 +320,10 @@ static void
 log_request_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+    const struct GNUNET_ATS_Properties *ats)
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
-  int c_a;
   char *peer_id;
 
   p = find_partner (me, &address->peer);
@@ -342,15 +341,11 @@ log_request_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   p->bandwidth_in = ntohl (bandwidth_in.value__);
   p->bandwidth_out = ntohl (bandwidth_out.value__);
 
-  for (c_a = 0; c_a < ats_count; c_a++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information: %s %s %u\n",
-        (GNUNET_YES == p->me->master) ? "Master" : "Slave",
-        p->me->no,
-        GNUNET_i2s (&p->dest->id),
-        GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
-        ntohl(ats[c_a].value));
-  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information for peers `%s'\n",
+      (GNUNET_YES == p->me->master) ? "Master" : "Slave",
+          p->me->no,
+          GNUNET_i2s (&p->dest->id));
+
   GNUNET_free(peer_id);
   if (NULL != l)
     GNUNET_ATS_TEST_logging_now (l);
@@ -374,17 +369,27 @@ main (int argc, char *argv[])
 
   result = 0;
 
-  /* figure out testname */
+  /* Determine testname
+   * perf_ats_<solver>_<transport>_<preference>[.exe]*/
+
+  /* Find test prefix, store in temp */
   tmp = strstr (argv[0], TESTNAME_PREFIX);
   if (NULL == tmp)
   {
     fprintf (stderr, "Unable to parse test name `%s'\n", argv[0]);
     return GNUNET_SYSERR;
   }
+
+  /* Set tmp to end of test name prefix */
   tmp += strlen (TESTNAME_PREFIX);
+
+  /* Determine solver name */
   solver = GNUNET_strdup (tmp);
+  /* Remove .exe prefix */
   if (NULL != (dotexe = strstr (solver, ".exe")) && dotexe[4] == '\0')
     dotexe[0] = '\0';
+
+  /* Determine first '_' after solver */
   tmp_sep = strchr (solver, '_');
   if (NULL == tmp_sep)
   {
