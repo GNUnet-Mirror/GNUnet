@@ -2416,7 +2416,7 @@ udp_plugin_get_session (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *s;
-  enum GNUNET_ATS_Network_Type network_type;
+  enum GNUNET_ATS_Network_Type network_type = GNUNET_ATS_NET_UNSPECIFIED;
   const struct IPv4UdpAddress *udp_v4;
   const struct IPv6UdpAddress *udp_v6;
 
