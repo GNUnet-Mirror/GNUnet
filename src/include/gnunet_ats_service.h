@@ -605,6 +605,11 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc);
 
 
 /**
+ * Number of preference types supported by ATS
+ */
+#define GNUNET_ATS_PreferenceCount 3
+
+/**
  * ATS preference types as array initializer
  */
 #define GNUNET_ATS_PreferenceType {GNUNET_ATS_PREFERENCE_END, GNUNET_ATS_PREFERENCE_BANDWIDTH, GNUNET_ATS_PREFERENCE_LATENCY}
