@@ -1789,7 +1789,7 @@ check_handles_status (struct GNUNET_NETWORK_FDSet *fds,
     }
     else
     {
-      if (WAIT_OBJECT_0 == WaitForSingleObject (fh, 0))
+      if (WAIT_OBJECT_0 == WaitForSingleObject (fh->h, 0))
         fds->handles[woff++] = fh;
     }
   }
