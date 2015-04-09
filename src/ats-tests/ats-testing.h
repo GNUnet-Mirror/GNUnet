@@ -283,7 +283,15 @@ struct BenchmarkPartner
    */
   struct GNUNET_TRANSPORT_TransmitHandle *tth;
 
+
+  /**
+   * Handle for traffic generator
+   */
   struct TrafficGenerator *tg;
+
+  /**
+   * Handle for preference generator
+   */
   struct PreferenceGenerator *pg;
 
   /**
@@ -317,29 +325,21 @@ struct BenchmarkPartner
   unsigned int bytes_received;
 
   /* Current ATS properties */
+  struct GNUNET_ATS_Properties props;
 
-  uint32_t ats_distance;
-
-  uint32_t ats_delay;
-
+  /* Bandwidth assigned inbound */
   uint32_t bandwidth_in;
 
+  /* Bandwidth assigned outbound */
   uint32_t bandwidth_out;
 
-  uint32_t ats_utilization_up;
-
-  uint32_t ats_utilization_down;
-
-  uint32_t ats_network_type;
-
-  uint32_t ats_cost_wan;
-
-  uint32_t ats_cost_lan;
-
-  uint32_t ats_cost_wlan;
-
+  /* Current preference values for bandwidth */
   double pref_bandwidth;
+
+  /* Current preference values for delay */
   double pref_delay;
+
+
 };
 
 /**

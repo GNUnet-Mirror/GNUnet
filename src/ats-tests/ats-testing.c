@@ -548,8 +548,7 @@ ats_performance_info_cb (void *cls,
                          int address_active,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                         const struct GNUNET_ATS_Information *ats,
-                         uint32_t ats_count)
+                         const struct GNUNET_ATS_Properties *ats_prop)
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
@@ -574,55 +573,23 @@ ats_performance_info_cb (void *cls,
   p->bandwidth_in = ntohl (bandwidth_in.value__);
   p->bandwidth_out = ntohl (bandwidth_out.value__);
 
-  for (c_a = 0; c_a < ats_count; c_a++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information: %s %s %u\n",
-        (GNUNET_YES == p->me->master) ? "Master" : "Slave",
-        p->me->no,
-        GNUNET_i2s (&p->dest->id),
-        GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
-        ntohl(ats[c_a].value));
-    switch (ntohl (ats[c_a].type ))
-    {
-      case GNUNET_ATS_ARRAY_TERMINATOR:
-        break;
-      case GNUNET_ATS_UTILIZATION_OUT:
-        if (p->ats_utilization_up != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_utilization_up = ntohl (ats[c_a].value);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information: %s\n",
+      (GNUNET_YES == p->me->master) ? "Master" : "Slave",
+      p->me->no,
+      GNUNET_i2s (&p->dest->id));
 
-         break;
-       case GNUNET_ATS_UTILIZATION_IN:
-         if (p->ats_utilization_down != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_utilization_down = ntohl (ats[c_a].value);
-         break;
-       case GNUNET_ATS_NETWORK_TYPE:
-         if (p->ats_network_type != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_network_type = ntohl (ats[c_a].value);
-         break;
-       case GNUNET_ATS_QUALITY_NET_DELAY:
-         if (p->ats_delay != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_delay = ntohl (ats[c_a].value);
-         break;
-       case GNUNET_ATS_QUALITY_NET_DISTANCE:
-         if (p->ats_distance != ntohl (ats[c_a].value))
-             log = GNUNET_YES;
-         p->ats_distance = ntohl (ats[c_a].value);
-         GNUNET_break (0);
-         break;
-       default:
-         break;
-     }
-   }
+  p->props.utilization_out = ats_prop->utilization_out;
+  p->props.utilization_in = ats_prop->utilization_in;
+  p->props.scope = ats_prop->scope;
+  p->props.delay = ats_prop->delay;
+  p->props.distance = ats_prop->distance;
+
   if (GNUNET_YES == log)
     top->ats_perf_cb (cls, address,
                       address_active,
                       bandwidth_out,
                       bandwidth_in,
-                      ats, ats_count);
+                      ats_prop);
   GNUNET_free(peer_id);
 }
 
@@ -634,8 +601,7 @@ ats_perf_connect_adapter (void *cls,
   struct BenchmarkPeer *me = cls;
 
   me->ats_perf_handle = GNUNET_ATS_performance_init (cfg,
-                                                     &ats_performance_info_cb,
-                                                     me);
+      &ats_performance_info_cb, me);
   if (NULL == me->ats_perf_handle)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Failed to create ATS performance handle \n");
@@ -797,6 +763,13 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
     {
       top->sps[c_s].partners[c_m].me = &top->sps[c_s];
       top->sps[c_s].partners[c_m].dest = &top->mps[c_m];
+
+      /* Initialize properties */
+      top->sps[c_s].partners[c_m].props.delay = GNUNET_TIME_UNIT_ZERO;
+      top->sps[c_s].partners[c_m].props.distance = 0;
+      top->sps[c_s].partners[c_m].props.scope = GNUNET_ATS_NET_UNSPECIFIED;
+      top->sps[c_s].partners[c_m].props.utilization_in = 0;
+      top->sps[c_s].partners[c_m].props.utilization_out = 0;
     }
     /* Get configuration */
     top->sps[c_s].peer_id_op = GNUNET_TESTBED_peer_get_information (top->sps[c_s].peer,

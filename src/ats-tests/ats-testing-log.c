@@ -121,25 +121,19 @@ struct PartnerLoggingTimestep
 
   /* Current ATS properties */
 
-  uint32_t ats_distance;
+  unsigned int ats_distance;
 
-  uint32_t ats_delay;
+  struct GNUNET_TIME_Relative ats_delay;
 
   uint32_t bandwidth_in;
 
   uint32_t bandwidth_out;
 
-  uint32_t ats_utilization_up;
+  uint32_t ats_utilization_out;
 
-  uint32_t ats_utilization_down;
+  uint32_t ats_utilization_in;
 
-  uint32_t ats_network_type;
-
-  uint32_t ats_cost_wan;
-
-  uint32_t ats_cost_lan;
-
-  uint32_t ats_cost_wlan;
+  enum GNUNET_ATS_Network_Type ats_network_type;
 
   double pref_bandwidth;
   double pref_delay;
@@ -541,7 +535,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
 
         /* Assembling slave string */
         GNUNET_asprintf(&data,
-            "%llu;%llu;%u;%u;%u;%u;%u;%u;%.3f;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%.3f;%.3f\n",
+            "%llu;%llu;%u;%u;%u;%u;%u;%u;%.3f;%u;%u;%u;%u;%u;%u;%u;%.3f;%.3f\n",
             (long long unsigned int) cur_lt->timestamp.abs_value_us,
             (long long unsigned int) GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,
                 cur_lt->timestamp).rel_value_us / 1000,
@@ -554,20 +548,17 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
             (double) plt->app_rtt / 1000,
             plt->bandwidth_in,
             plt->bandwidth_out,
-            plt->ats_cost_lan,
-            plt->ats_cost_wan,
-            plt->ats_cost_wlan,
             plt->ats_delay,
             plt->ats_distance,
             plt->ats_network_type,
-            plt->ats_utilization_up,
-            plt->ats_utilization_down,
+            plt->ats_utilization_out,
+            plt->ats_utilization_in,
             plt->pref_bandwidth,
             plt->pref_delay);
 
         if (l->verbose)
           fprintf (stderr,
-              "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u delay %u bw_in %u bw_out %u \n",
+              "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u delay %llu bw_in %u bw_out %u \n",
               plt->slave->no,
               plt->total_messages_sent,
               plt->total_bytes_sent,
@@ -576,7 +567,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
               plt->total_bytes_received,
               plt->throughput_recv,
               plt->app_rtt,
-              plt->ats_delay,
+              (long long unsigned int) plt->ats_delay.rel_value_us,
               plt->bandwidth_in,
               plt->bandwidth_out);
 
@@ -737,14 +728,11 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
       slt->total_messages_received = p->messages_received;
       slt->total_app_rtt = p->total_app_rtt;
       /* ats performance information */
-      slt->ats_cost_lan = p->ats_cost_lan;
-      slt->ats_cost_wan = p->ats_cost_wan;
-      slt->ats_cost_wlan = p->ats_cost_wlan;
-      slt->ats_delay = p->ats_delay;
-      slt->ats_distance = p->ats_distance;
-      slt->ats_network_type = p->ats_network_type;
-      slt->ats_utilization_down = p->ats_utilization_down;
-      slt->ats_utilization_up = p->ats_utilization_up;
+      slt->ats_delay = p->props.delay;
+      slt->ats_distance = p->props.distance;
+      slt->ats_network_type = p->props.scope;
+      slt->ats_utilization_in = p->props.utilization_out;
+      slt->ats_utilization_out = p->props.utilization_out;
       slt->bandwidth_in = p->bandwidth_in;
       slt->bandwidth_out = p->bandwidth_out;
       slt->pref_bandwidth = p->pref_bandwidth;
