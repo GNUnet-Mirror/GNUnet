@@ -432,8 +432,10 @@ main (int argc, char *argv[])
 
   if (0 != strcmp (pref_str, "NONE"))
   {
-    for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
+    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
     {
+      if (c == GNUNET_ATS_PREFERENCE_END)
+        continue;
       if (0 == strcmp (pref_str, prefs[c]))
       {
         pref_val = c;
