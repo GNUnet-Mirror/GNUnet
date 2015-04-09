@@ -1705,7 +1705,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
  * @return #GNUNET_YES if the pipe is ready for reading
  */
 static int
-pipe_read_ready (struct GNUNET_DISK_FileHandle *fh)
+pipe_read_ready (const struct GNUNET_DISK_FileHandle *fh)
 {
   DWORD error;
   BOOL bret;
@@ -1737,7 +1737,7 @@ pipe_read_ready (struct GNUNET_DISK_FileHandle *fh)
  * @return #GNUNET_YES if the pipe is having an IO exception.
  */
 static int
-pipe_except_ready (struct GNUNET_DISK_FileHandle *fh)
+pipe_except_ready (const struct GNUNET_DISK_FileHandle *fh)
 {
   DWORD dwBytes;
 
