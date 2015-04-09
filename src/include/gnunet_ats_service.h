@@ -612,7 +612,7 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc);
 /**
  * ATS preference types as array initializer
  */
-#define GNUNET_ATS_PreferenceType {GNUNET_ATS_PREFERENCE_END, GNUNET_ATS_PREFERENCE_BANDWIDTH, GNUNET_ATS_PREFERENCE_LATENCY}
+#define GNUNET_ATS_PreferenceType {GNUNET_ATS_PREFERENCE_BANDWIDTH, GNUNET_ATS_PREFERENCE_LATENCY, GNUNET_ATS_PREFERENCE_END}
 
 /**
  * ATS preference types as string array initializer
