@@ -40,13 +40,13 @@ struct TestSig
 
 
 static void
-log_duration (const char *system,
+log_duration (const char *cryptosystem,
               const char *description)
 {
   struct GNUNET_TIME_Relative t;
   char s[64];
 
-  sprintf (s, "%6s %15s", system, description);
+  sprintf (s, "%6s %15s", cryptosystem, description);
   t = GNUNET_TIME_absolute_get_duration (start);
   t = GNUNET_TIME_relative_divide (t, l);
   FPRINTF (stdout,
