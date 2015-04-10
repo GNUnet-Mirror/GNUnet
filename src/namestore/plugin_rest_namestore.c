@@ -220,7 +220,7 @@ struct RequestHandle
  * Cleanup lookup handle
  * @param handle Handle to clean up
  */
-void
+static void
 cleanup_handle (struct RequestHandle *handle)
 {
   struct RecordEntry *record_entry;
@@ -274,7 +274,7 @@ cleanup_handle (struct RequestHandle *handle)
  *
  * @param rd the GNSRECORD_Data
  */
-json_t *
+static json_t *
 gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *typename;
@@ -351,7 +351,7 @@ cleanup_handle_delayed (void *cls,
  *
  * @param handle the RequestHandle
  */
-void
+static void
 namestore_list_response (void *cls,
                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
                          const char *rname,
@@ -967,7 +967,7 @@ testservice_id_task (void *cls, int result)
  * @param proc_cls closure for callback function
  * @return GNUNET_OK if request accepted
  */
-void
+static void
 rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
                               GNUNET_REST_ResultProcessor proc,
                               void *proc_cls)

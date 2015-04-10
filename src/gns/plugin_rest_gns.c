@@ -226,7 +226,7 @@ do_error (void *cls,
  *
  * @param rd the GNSRECORD_Data
  */
-json_t *
+static json_t *
 gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
 {
   const char *typename;
@@ -480,7 +480,7 @@ identity_master_cb (void *cls,
  * @param handle lookup handle to populate
  * @return GNUNET_SYSERR on error
  */
-int
+static int
 parse_url (const char *url, struct LookupHandle *handle)
 {
   char *name;
@@ -513,7 +513,7 @@ parse_url (const char *url, struct LookupHandle *handle)
  * @param proc_cls closure for callback function
  * @return GNUNET_OK if request accepted
  */
-void
+static void
 rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
                          GNUNET_REST_ResultProcessor proc,
                          void *proc_cls)

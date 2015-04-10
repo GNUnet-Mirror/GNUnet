@@ -83,6 +83,7 @@ struct EgoEntry
   struct GNUNET_IDENTITY_Ego *ego;
 };
 
+
 struct RequestHandle
 {
   /**
@@ -174,7 +175,7 @@ struct RequestHandle
  * Cleanup lookup handle
  * @param handle Handle to clean up
  */
-void
+static void
 cleanup_handle (struct RequestHandle *handle)
 {
   struct EgoEntry *ego_entry;
@@ -227,7 +228,7 @@ do_error (void *cls,
  * @param ctx the context
  * @param name the id of the ego
  */
-void
+static void
 get_ego_for_subsys (void *cls,
                     struct GNUNET_IDENTITY_Ego *ego,
                     void **ctx,
@@ -281,7 +282,7 @@ get_ego_for_subsys (void *cls,
  *
  * @param handle the RequestHandle
  */
-void
+static void
 ego_info_response (struct RestConnectionDataHandle *con,
                    const char *url,
                    void *cls)
@@ -425,8 +426,9 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   struct JsonApiObject *json_obj;
   struct JsonApiResource *json_res;
   json_t *egoname_json;
-  char term_data[handle->data_size+1];
   const char* egoname;
+  char term_data[handle->data_size+1];
+
   if (strlen (GNUNET_REST_API_NS_IDENTITY) != strlen (handle->url))
   {
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -489,23 +491,31 @@ ego_create_cont (struct RestConnectionDataHandle *con,
                                        handle);
 }
 
-void 
+
+/**
+ * Handle ego edit request
+ *
+ * @param con rest connection handle
+ * @param url the url that is requested
+ * @param cls the RequestHandle
+ */
+static void 
 ego_edit_cont (struct RestConnectionDataHandle *con,
                  const char *url,
                  void *cls)
 {
   struct JsonApiObject *json_obj;
   struct JsonApiResource *json_res;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  struct MHD_Response *resp;
+  json_t *subsys_json;
+  json_t *name_json;
   const char *egoname;
   const char *subsys;
   const char *newname;
-  struct RequestHandle *handle = cls;
   char term_data[handle->data_size+1];
-  struct EgoEntry *ego_entry;
-  struct MHD_Response *resp;
   int ego_exists = GNUNET_NO;
-  json_t *subsys_json;
-  json_t *name_json;
   
   if (strlen (GNUNET_REST_API_NS_IDENTITY) > strlen (handle->url))
   {
@@ -642,7 +652,13 @@ ego_delete_cont (struct RestConnectionDataHandle *con_handle,
 
 }
 
-void
+
+/**
+ * Handle rest request
+ *
+ * @param handle the request handle
+ */
+static void
 init_cont (struct RequestHandle *handle)
 {
   static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
@@ -726,7 +742,7 @@ list_ego (void *cls,
  * @param proc_cls closure for callback function
  * @return GNUNET_OK if request accepted
  */
-void
+static void
 rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
                               GNUNET_REST_ResultProcessor proc,
                               void *proc_cls)
