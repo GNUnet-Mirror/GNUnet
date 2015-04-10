@@ -27,11 +27,6 @@ if HAVE_EXPERIMENTAL
   $(SENSORDASHBOARD)
 endif
 
-if HAVE_WACHS
-  WACHS_DIR = \
-    ats-tests
-endif
-
 if BUILD_PULSE_HELPERS
 CONVERSATION_DIR = conversation
 else
@@ -76,6 +71,7 @@ SUBDIRS = \
   peerinfo-tool \
   core \
   $(TESTBED) \
+  ats-tests \
   nse \
   dht \
   hostlist \
@@ -98,5 +94,4 @@ SUBDIRS = \
   exit \
   pt \
   integration-tests \
-  $(EXP_DIR) \
-  $(WACHS_DIR)
+  $(EXP_DIR)
