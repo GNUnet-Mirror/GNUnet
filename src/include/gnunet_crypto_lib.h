@@ -1665,6 +1665,18 @@ GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len);
 
 
 /**
+ * Compare the values of two blinding keys.
+ * 
+ * @param b1 one key
+ * @param b2 the other key
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
+				    struct GNUNET_CRYPTO_rsa_BlindingKey *b2);
+
+
+/**
  * Destroy a blinding key
  *
  * @param bkey the blinding key to destroy
@@ -1790,8 +1802,8 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
  */
 int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
-                  const struct GNUNET_CRYPTO_rsa_Signature *sig,
-                  const struct GNUNET_CRYPTO_rsa_PublicKey *public_key);
+			  const struct GNUNET_CRYPTO_rsa_Signature *sig,
+			  const struct GNUNET_CRYPTO_rsa_PublicKey *public_key);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

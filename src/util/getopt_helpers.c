@@ -36,21 +36,26 @@
  * @param scls additional closure (points to version string)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_NO (do not continue, not an error)
+ * @return #GNUNET_NO (do not continue, not an error)
  */
 int
-GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
-                              *ctx, void *scls, const char *option,
+GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+			      void *scls,
+			      const char *option,
                               const char *value)
 {
   const char *version = scls;
 
-  printf ("%s v%s\n", ctx->binaryName, version);
+  printf ("%s v%s\n",
+	  ctx->binaryName,
+	  version);
   return GNUNET_NO;
 }
 
 
-
+/**
+ * At what offset does the help text start?
+ */
 #define BORDER 29
 
 /**
@@ -60,11 +65,12 @@ GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (points to about text)
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_NO (do not continue, not an error)
+ * @return #GNUNET_NO (do not continue, not an error)
  */
 int
-GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext
-                            *ctx, void *scls, const char *option,
+GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+			    void *scls,
+			    const char *option,
                             const char *value)
 {
   const char *about = scls;
@@ -166,7 +172,7 @@ OUTER:
  * @param scls additional closure (will point to the 'int')
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 int
 GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
@@ -192,7 +198,7 @@ GNUNET_GETOPT_increment_value (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls additional closure (will point to the 'int')
  * @param option name of the option
  * @param value not used (NULL)
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 int
 GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -217,7 +223,7 @@ GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  *             which will be allocated)
  * @param option name of the option
  * @param value actual value of the option (a string)
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 int
 GNUNET_GETOPT_set_string (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -255,7 +261,7 @@ GNUNET_GETOPT_set_filename (struct GNUNET_GETOPT_CommandLineProcessorContext *ct
  * @param scls additional closure (will point to the 'unsigned long long')
  * @param option name of the option
  * @param value actual value of the option as a string.
- * @return GNUNET_OK if parsing the value worked
+ * @return #GNUNET_OK if parsing the value worked
  */
 int
 GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -283,7 +289,7 @@ GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
  * @param option name of the option
  * @param value actual value of the option as a string.
- * @return GNUNET_OK if parsing the value worked
+ * @return #GNUNET_OK if parsing the value worked
  */
 int
 GNUNET_GETOPT_set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
@@ -313,7 +319,7 @@ GNUNET_GETOPT_set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContex
  * @param scls additional closure (will point to the 'unsigned int')
  * @param option name of the option
  * @param value actual value of the option as a string.
- * @return GNUNET_OK if parsing the value worked
+ * @return #GNUNET_OK if parsing the value worked
  */
 int
 GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,

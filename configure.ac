@@ -1242,7 +1242,7 @@ AC_ARG_ENABLE([malicious],
    [malicious=0
     enable_malicious=no])
 AC_MSG_RESULT($enable_malicious)
-AM_CONDITIONAL([ENABLE_MALICIOUS], [1=$malicious])
+AM_CONDITIONAL([ENABLE_MALICIOUS], [test 1=$malicious])
 AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
                    [enable compilation of malicious code])
 
@@ -1639,7 +1639,7 @@ then
 fi
 
 # conversation
-if test "x$conversation_backend" == "xnone"
+if test "x$conversation_backend" = "xnone"
 then
   if test "x$pulse" != "x1"
   then

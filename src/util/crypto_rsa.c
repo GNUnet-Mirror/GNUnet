@@ -406,6 +406,22 @@ GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len)
 
 
 /**
+ * Compare the values of two blinding keys.
+ * 
+ * @param b1 one key
+ * @param b2 the other key
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
+				    struct GNUNET_CRYPTO_rsa_BlindingKey *b2)
+{
+  return gcry_mpi_cmp (b1->r,
+		       b2->r);
+}
+
+
+/**
  * Destroy a blinding key
  *
  * @param bkey the blinding key to destroy
