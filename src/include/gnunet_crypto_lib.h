@@ -1582,7 +1582,7 @@ GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_rsa_PrivateKey *key);
  */
 size_t
 GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
-                              char **buffer);
+				      char **buffer);
 
 
 /**
@@ -1595,7 +1595,7 @@ GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey 
  */
 struct GNUNET_CRYPTO_rsa_PrivateKey *
 GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
-                              size_t len);
+				      size_t len);
 
 
 /**
@@ -1638,7 +1638,7 @@ GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_rsa_PublicKey *key);
  */
 size_t
 GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
-                             char **buffer);
+				     char **buffer);
 
 
 /**
@@ -1651,7 +1651,7 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *k
  */
 struct GNUNET_CRYPTO_rsa_PublicKey *
 GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
-                             size_t len);
+				     size_t len);
 
 
 /**
@@ -1759,7 +1759,7 @@ GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig);
  */
 size_t
 GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *sig,
-                            char **buffer);
+				    char **buffer);
 
 
 /**
@@ -1772,7 +1772,7 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *si
  */
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
-                            size_t len);
+				    size_t len);
 
 
 /**
@@ -1787,8 +1787,8 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
  */
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
-                   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                   struct GNUNET_CRYPTO_rsa_PublicKey *pkey);
+			   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+			   struct GNUNET_CRYPTO_rsa_PublicKey *pkey);
 
 
 /**
