@@ -364,7 +364,7 @@ main (int argc, char *argv[])
   char *conf_name;
   char *comm_name;
   char *dotexe;
-  char *prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceTypeString;
+  char *prefs[] = GNUNET_ATS_PreferenceTypeString;
   int c;
 
   result = 0;
@@ -432,10 +432,8 @@ main (int argc, char *argv[])
 
   if (0 != strcmp (pref_str, "NONE"))
   {
-    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    for (c = 0; c < GNUNET_ATS_PREFERENCE_END; c++)
     {
-      if (c == GNUNET_ATS_PREFERENCE_END)
-        continue;
       if (0 == strcmp (pref_str, prefs[c]))
       {
         pref_val = c;
