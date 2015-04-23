@@ -113,7 +113,7 @@ main (int argc, char *argv[])
   for (i = 0; i < l - 1; i+=2)
   {
     GNUNET_CRYPTO_ecc_ecdh (ecdhe[i], &dhpub[i+1], &sig[i].h);
-    GNUNET_CRYPTO_ecc_ecdh (ecdhe[i+1], &dhpub[i], &sig[i+i].h);
+    GNUNET_CRYPTO_ecc_ecdh (ecdhe[i+1], &dhpub[i], &sig[i+1].h);
   }
   log_duration ("ECDH", "do DH");
 
