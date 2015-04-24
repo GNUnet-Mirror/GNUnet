@@ -143,7 +143,7 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param cls closure
  * @param tc context information (why was this task triggered now)
  */
-void
+static void
 service_shutdown_cancel (void *cls,
 			 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
