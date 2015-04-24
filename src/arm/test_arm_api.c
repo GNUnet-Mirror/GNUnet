@@ -185,22 +185,7 @@ static void
 task (void *cls, char *const *args, const char *cfgfile,
       const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  char *armconfig;
   cfg = c;
-  if (NULL != cfgfile)
-  {
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                                 "arm", "CONFIG",
-                                                 &armconfig))
-    {
-      GNUNET_CONFIGURATION_set_value_string ((struct GNUNET_CONFIGURATION_Handle
-                                              *) cfg, "arm", "CONFIG",
-                                             cfgfile);
-    }
-    else
-      GNUNET_free (armconfig);
-  }
   arm = GNUNET_ARM_connect (cfg, &arm_conn, NULL);
   if (NULL == arm)
     return;

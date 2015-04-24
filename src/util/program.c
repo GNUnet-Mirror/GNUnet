@@ -279,6 +279,22 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     clock_offset = skew_offset - skew_variance;
     GNUNET_TIME_set_offset (clock_offset);
   }
+  /* ARM needs to know which configuration file to use when starting
+     services.  If we got a command-line option *and* if nothing is
+     specified in the configuration, remember the command-line option
+     in "cfg".  This is typically really only having an effect if we
+     are running code in src/arm/, as obviously the rest of the code
+     has little business with ARM-specific options. */
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_have_value (cfg,
+                                       "arm",
+                                       "CONFIG"))
+  {
+    GNUNET_CONFIGURATION_set_value_string (cfg,
+                                           "arm", "CONFIG",
+                                           cc.cfgfile);
+  }
+
   /* run */
   cc.args = &argv[ret];
   if (GNUNET_NO == run_without_scheduler)

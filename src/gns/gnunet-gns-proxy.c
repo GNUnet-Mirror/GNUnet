@@ -522,7 +522,7 @@ struct Socks5Request
    * HTTP request headers for the curl request.
    */
   struct curl_slist *headers;
-  
+
   /**
    * DNS->IP mappings resolved through GNS
    */
@@ -1032,7 +1032,7 @@ curl_check_hdr (void *buffer, size_t size, size_t nmemb, void *cls)
       GNUNET_free (cors_hdr);
     }
     /* force connection to be closed after each request, as we
-       do not support HTTP pipelining */
+       do not support HTTP pipelining (yet, FIXME!) */
     GNUNET_break (MHD_YES ==
 		  MHD_add_response_header (s5r->response,
 					   MHD_HTTP_HEADER_CONNECTION,
