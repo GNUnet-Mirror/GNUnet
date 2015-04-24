@@ -190,8 +190,9 @@ task (void *cls, char *const *args, const char *cfgfile,
   if (NULL != cfgfile)
   {
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg, "arm", "CONFIG",
-					       &armconfig))
+        GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                                 "arm", "CONFIG",
+                                                 &armconfig))
     {
       GNUNET_CONFIGURATION_set_value_string ((struct GNUNET_CONFIGURATION_Handle
                                               *) cfg, "arm", "CONFIG",

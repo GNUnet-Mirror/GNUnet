@@ -91,7 +91,7 @@ struct GNUNET_ARM_Handle
   /**
    * ID of the reconnect task (if any).
    */
-  struct GNUNET_SCHEDULER_Task * reconnect_task;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
 
   /**
    * Current delay we use for re-trying to connect to core.
@@ -109,7 +109,7 @@ struct GNUNET_ARM_Handle
   unsigned char currently_down;
 
   /**
-   * GNUNET_YES if we're running a service test.
+   * #GNUNET_YES if we're running a service test.
    */
   unsigned char service_test_is_active;
 };
@@ -154,7 +154,7 @@ struct ARMControlMessage
   GNUNET_ARM_ServiceListCallback list_cont;
 
   /**
-   * Closure for 'result_cont' or 'list_cont'.
+   * Closure for @e result_cont' or @e list_cont'.
    */
   void *cont_cls;
 
@@ -184,7 +184,7 @@ struct ARMControlMessage
  * Connect to arm.
  *
  * @param h arm handle
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 reconnect_arm (struct GNUNET_ARM_Handle *h);
@@ -748,7 +748,7 @@ control_message_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
  * it is not, start the ARM process.
  *
  * @param cls the context for the request that we will report on (struct ARMControlMessage *)
- * @param result GNUNET_YES if ARM is running
+ * @param result #GNUNET_YES if ARM is running
  */
 static void
 arm_service_report (void *cls,
@@ -802,10 +802,15 @@ arm_service_report (void *cls,
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (
       cm->h->cfg, "arm", "OPTIONS", &lopostfix))
     lopostfix = GNUNET_strdup ("");
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (
-      cm->h->cfg, "arm", "BINARY", &cbinary))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cm->h->cfg,
+                                             "arm",
+                                             "BINARY",
+                                             &cbinary))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING, "arm", "BINARY");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+                               "arm",
+                               "BINARY");
     if (cm->result_cont)
       cm->result_cont (cm->cont_cls,
 		       GNUNET_ARM_REQUEST_SENT_OK, "arm",
@@ -815,20 +820,28 @@ arm_service_report (void *cls,
     GNUNET_free (lopostfix);
     return;
   }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (
-      cm->h->cfg, "arm", "CONFIG", &config))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cm->h->cfg,
+                                               "arm", "CONFIG",
+                                               &config))
     config = NULL;
   binary = GNUNET_OS_get_libexec_binary_path (cbinary);
   GNUNET_asprintf (&quotedbinary,
 		   "\"%s\"",
 		   binary);
   GNUNET_free (cbinary);
-  if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (
-          cm->h->cfg, "TESTING", "WEAKRANDOM")) &&
-      (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno (
-          cm->h->cfg, "TESTING", "WEAKRANDOM")) &&
-      (GNUNET_NO == GNUNET_CONFIGURATION_have_value (
-          cm->h->cfg, "TESTING", "HOSTFILE")))
+  if ( (GNUNET_YES ==
+        GNUNET_CONFIGURATION_have_value (cm->h->cfg,
+                                         "TESTING",
+                                         "WEAKRANDOM")) &&
+       (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno (cm->h->cfg,
+                                              "TESTING",
+                                              "WEAKRANDOM")) &&
+       (GNUNET_NO ==
+        GNUNET_CONFIGURATION_have_value (cm->h->cfg,
+                                         "TESTING",
+                                         "HOSTFILE")))
   {
     /* Means we are ONLY running locally */
     /* we're clearly running a test, don't daemonize */
@@ -839,7 +852,7 @@ arm_service_report (void *cls,
                                         lopostfix, NULL);
     else
       proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, quotedbinary, "-c", config,
+                                        NULL, loprefix, quotedbinary, "-c", config,
                                         /* no daemonization! */
                                         lopostfix, NULL);
   }
@@ -863,14 +876,16 @@ arm_service_report (void *cls,
   if (NULL == proc)
   {
     if (cm->result_cont)
-      cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, "arm",
-          GNUNET_ARM_RESULT_START_FAILED);
+      cm->result_cont (cm->cont_cls,
+                       GNUNET_ARM_REQUEST_SENT_OK, "arm",
+                       GNUNET_ARM_RESULT_START_FAILED);
     GNUNET_free (cm);
     return;
   }
   if (cm->result_cont)
-    cm->result_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, "arm",
-        GNUNET_ARM_RESULT_STARTING);
+    cm->result_cont (cm->cont_cls,
+                     GNUNET_ARM_REQUEST_SENT_OK, "arm",
+                     GNUNET_ARM_RESULT_STARTING);
   GNUNET_OS_process_destroy (proc);
   h = cm->h;
   GNUNET_free (cm);
@@ -968,9 +983,13 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
      */
     if (GNUNET_NO == h->currently_down)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "ARM is already running\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "ARM is already running\n");
       if (NULL != cont)
-        cont (cont_cls, GNUNET_ARM_REQUEST_SENT_OK, "arm", GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
+        cont (cont_cls,
+              GNUNET_ARM_REQUEST_SENT_OK,
+              "arm",
+              GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
     }
     else if (GNUNET_NO == h->service_test_is_active)
     {
@@ -1002,7 +1021,10 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
       cm->std_inheritance = std_inheritance;
       memcpy (&cm[1], service_name, slen);
       h->service_test_is_active = GNUNET_YES;
-      GNUNET_CLIENT_service_test ("arm", h->cfg, timeout, &arm_service_report,
+      GNUNET_CLIENT_service_test ("arm",
+                                  h->cfg,
+                                  timeout,
+                                  &arm_service_report,
 				  cm);
     }
     else
@@ -1010,7 +1032,8 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
       /* Service test is already running - tell user to chill out and try
        * again later.
        */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Service test is already in progress, we're busy\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Service test is already in progress, we're busy\n");
       if (NULL != cont)
         cont (cont_cls, GNUNET_ARM_REQUEST_BUSY, NULL, 0);
     }
@@ -1026,7 +1049,7 @@ GNUNET_ARM_request_service_start (struct GNUNET_ARM_Handle *h,
  * Stopping arm itself will not invalidate its handle, and
  * ARM API will try to restore connection to the ARM service,
  * even if ARM connection was lost because you asked for ARM to be stopped.
- * Call GNUNET_ARM_disconnect_and_free () to free the handle and prevent
+ * Call #GNUNET_ARM_disconnect_and_free() to free the handle and prevent
  * further connection attempts.
  *
  * @param h handle to ARM
