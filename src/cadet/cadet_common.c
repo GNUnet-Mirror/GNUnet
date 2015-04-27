@@ -103,7 +103,7 @@ GC_h2s (const struct GNUNET_CADET_Hash *id)
 const char *
 GC_m2s (uint16_t m)
 {
-  static char buf[2][32];
+  static char buf[2][16];
   static int idx;
   const char *t;
 
@@ -120,21 +120,21 @@ GC_m2s (uint16_t m)
        * Request the creation of a path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-      t = "CONNECTION_CREATE";
+      t = "CONN_CREATE";
       break;
 
       /**
        * Request the modification of an existing path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      t = "CONNECTION_ACK";
+      t = "CONN_ACK";
       break;
 
       /**
        * Notify that a connection of a path is no longer valid
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      t = "CONNECTION_BROKEN";
+      t = "CONN_BROKEN";
       break;
 
       /**
@@ -190,7 +190,7 @@ GC_m2s (uint16_t m)
        * Request the destuction of a path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-      t = "CONNECTION_DESTROY";
+      t = "CONN_DESTROY";
       break;
 
       /**
@@ -225,28 +225,28 @@ GC_m2s (uint16_t m)
        * Ask the cadet service to create a new tunnel
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-      t = "CHANNEL_CREATE";
+      t = "CHAN_CREATE";
       break;
 
       /**
        * Ask the cadet service to destroy a tunnel
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      t = "CHANNEL_DESTROY";
+      t = "CHAN_DESTROY";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      t = "CHANNEL_ACK";
+      t = "CHAN_ACK";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      t = "CHANNEL_NACK";
+      t = "CHAN_NACK";
       break;
 
       /**
@@ -281,56 +281,56 @@ GC_m2s (uint16_t m)
        * Local monitoring of channels.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS:
-      t = "LOCAL_INFO_CHANNELS";
+      t = "INFO_CHANS";
       break;
 
       /**
        * Local monitoring of a channel.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL:
-      t = "LOCAL_INFO_CHANNEL";
+      t = "INFO_CHAN";
       break;
 
       /**
        * Local monitoring of service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS:
-      t = "LOCAL_INFO_TUNNELS";
+      t = "INFO_TUNS";
       break;
 
       /**
        * Local monitoring of service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL:
-      t = "LOCAL_INFO_TUNNEL";
+      t = "INFO_TUN";
       break;
 
       /**
        * Local information about all connections of service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS:
-      t = "LOCAL_INFO_CONNECTIONS";
+      t = "INFO_CONNS";
       break;
 
       /**
        * Local information of service about a specific connection.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION:
-      t = "LOCAL_INFO_CONNECTION";
+      t = "INFO_CONN";
       break;
 
       /**
        * Local information about all peers known to the service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS:
-      t = "LOCAL_INFO_PEERS";
+      t = "INFO_PEERS";
       break;
 
       /**
        * Local information of service about a specific peer.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER:
-      t = "LOCAL_INFO_PEER";
+      t = "INFO_PEER";
       break;
 
       /**
@@ -348,10 +348,10 @@ GC_m2s (uint16_t m)
       break;
 
     default:
-      SPRINTF(buf[idx], "%u (UNKNOWN TYPE)", m);
+      SPRINTF(buf[idx], "%u (UNKNOWN)", m);
       return buf[idx];
   }
-  SPRINTF(buf[idx], "{%18s}", t);
+  SPRINTF(buf[idx], "{%13s}", t);
   return buf[idx];
 }
 #else
