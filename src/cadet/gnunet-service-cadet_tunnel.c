@@ -918,29 +918,47 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
 
 
 /**
- * Generate a new key with a HMAC mechanism from the existing chain key.
+ * Perform a HMAC.
  *
- * @param ax Axolotl context.
- * @param key[out] Derived key.
+ * @param key Key to use.
+ * @param hash[out] Resulting HMAC.
  * @param source Source key material (data to HMAC).
  * @param len Length of @a source.
  */
-void
-t_ax_hmac_hash (struct CadetTunnelAxolotl *ax,
-                struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+static void
+t_ax_hmac_hash (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+                struct GNUNET_HashCode *hash,
                 void *source, unsigned int len)
 {
-  static const char ctx[] = "axolotl key derivation";
+  static const char ctx[] = "axolotl HMAC-HASH";
   struct GNUNET_CRYPTO_AuthKey auth_key;
-  struct  GNUNET_HashCode hash;
 
-  GNUNET_CRYPTO_hmac_derive_key (&auth_key, &ax->CKs,
+  GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
                                  ctx, sizeof (ctx),
                                  NULL);
-  GNUNET_CRYPTO_hmac (&auth_key, source, len, &hash);
-  GNUNET_CRYPTO_kdf (key, sizeof (*key),
-                     ctx, sizeof (ctx),
-                     &hash, sizeof (hash));
+  GNUNET_CRYPTO_hmac (&auth_key, source, len, hash);
+}
+
+
+/**
+ * Derive a key from a HMAC-HASH.
+ *
+ * @param key Key to use for the HMAC.
+ * @param out Key to generate.
+ * @param source Source key material (data to HMAC).
+ * @param len Length of @a source.
+ */
+static void
+t_hmac_derive_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+                   struct GNUNET_CRYPTO_SymmetricSessionKey *out,
+                   void *source, unsigned int len)
+{
+  static const char ctx[] = "axolotl derive key";
+  struct GNUNET_HashCode h;
+
+  t_ax_hmac_hash (key, &h, source, len);
+  GNUNET_CRYPTO_kdf (out, sizeof (*out), ctx, sizeof (ctx),
+                     &h, sizeof (h), NULL);
 }
 
 
@@ -971,7 +989,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
     /* Advance ratchet */
   }
 
-  t_ax_hmac_hash (ax, &MK, "0", 1);
+  t_hmac_derive_key (&ax->CKs, &MK, "0", 1);
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
 
   #if DUMP_KEYS_TO_STDERR
@@ -981,7 +999,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &MK, &iv, dst);
 
-  t_ax_hmac_hash (ax, &ax->CKs, "1", 1);
+  t_hmac_derive_key (&ax->CKs, &ax->CKs, "1", 1);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
 
