@@ -34,6 +34,7 @@
 
 /**
  * Handle the put request from the client.
+ *
  * @param key Key for the content
  * @param block_type Type of the block
  * @param options Routing options
@@ -54,6 +55,7 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
  * Handle the get request from the client file. If I am destination do
  * datacache put and return. Else find the target friend and forward message
  * to it.
+ *
  * @param key Key for the content
  * @param block_type Type of the block
  * @param options Routing options
@@ -68,6 +70,7 @@ GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
 
 /**
  * Send the get result to requesting client.
+ *
  * @param key Key of the requested data.
  * @param type Block type
  * @param target_peer Next peer to forward the message to.
