@@ -2311,6 +2311,10 @@ handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
   c = connection_get (cid);
   fwd = check_message (&msg->header, expected_size, cid, c, peer, 0);
 
+  /* If something went wrong, discard message. */
+  if (GNUNET_SYSERR == fwd)
+    return GNUNET_OK;
+
   /* Is this message for us? */
   if (GCC_is_terminal (c, fwd))
   {
