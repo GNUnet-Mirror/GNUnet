@@ -416,9 +416,14 @@ static struct GNUNET_SCHEDULER_Task *trail_timeout_task;
 static struct GNUNET_PeerIdentity my_identity;
 
 /**
- * Peer map of all the friends of a peer
+ * Peer map of all the fingers of a peer
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *friend_peermap;
+static struct GNUNET_CONTAINER_MultiPeerMap *fingers_peermap;
+
+/**
+ * Peer map of all the successors of a peer
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *successors_peermap;
 
 /**
  * Tail map, mapping tail identifiers to `struct Trail`s
@@ -596,7 +601,8 @@ core_init (void *cls,
 
 
 /**
- * Handle a `struct FingerSetupMessage`.
+ * Handle a `struct FingerSetupMessage` from a GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP
+ * message.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
@@ -616,7 +622,8 @@ handle_dht_p2p_finger_setup (void *cls,
 }
 
 /**
- * Handle a `struct FingerSetupResponseMessage`.
+ * Handle a `struct FingerSetupResponseMessage` from a GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP_RESPONSE
+ * message.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
@@ -630,7 +637,7 @@ handle_dht_p2p_finger_setup_response (void *cls,
 {
   const struct FingerSetupResponseMessage *fsrm;
 
-  fsm = (const struct  *) message;
+  fsm = (const struct FingerSetupResponseMessage *) message;
 
   return GNUNET_OK;
 }
@@ -651,7 +658,7 @@ handle_dht_p2p_finger_destroy (void *cls,
 {
   const struct FingerDestroyMessage *fdm;
 
-  fsm = (const struct  *) message;
+  fdm = (const struct FingerDestroyMessage *) message;
 
   return GNUNET_OK;
 }
@@ -671,18 +678,19 @@ handle_dht_p2p_finger_route (void *cls,
 {
   const struct FingerRouteMessage *frm;
 
-  fsm = (const struct  *) message;
+  frm = (const struct FingerRouteMessage *) message;
   /* FIXME: check the size of the message */
 
   return GNUNET_OK;
 }
 
 /**
- * Handle a `struct FingerRouteMessage`.
+ * Handle a `struct FingerSetupMessage` from a GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND
+ * message.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
- * @param message the finger route message
+ * @param message the finger setup message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
@@ -692,7 +700,97 @@ handle_dht_p2p_neighbour_find (void *cls,
 {
   const struct FingerSetupMessage *fsm;
 
-  fsm = (const struct  *) message;
+  fsm = (const struct FingerSetupMessage *) message;
+
+  return GNUNET_OK;
+}
+
+/**
+ * Handle a `struct FingerSetupResponseMessage` from a GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND
+ * message.
+ *
+ * @param cls closure (NULL)
+ * @param peer sender identity
+ * @param message the finger setup response message
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_neighbour_found (void *cls,
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_MessageHeader *message)
+{
+  const struct FingerSetupResponseMessage *fsrm;
+
+  fsrm = (const struct FingerSetupResponseMessage *) message;
+
+  return GNUNET_OK;
+}
+
+/**
+ * Handle a `struct PeerGetMessage`.
+ *
+ * @param cls closure (NULL)
+ * @param peer sender identity
+ * @param message the peer get message
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_peer_get (void *cls,
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_MessageHeader *message)
+{
+  const struct PeerGetMessage *pgm;
+
+  pgm = (const struct PeerGetMessage *) message;
+
+   /*
+    * steps :
+    *   1 extract the result
+    *   2 create a peerGetResult struct
+    *   3 send it using the good trail
+    *
+    * What do i do when i don't have the key/value?
+    */
+
+  return GNUNET_OK;
+}
+
+/**
+ * Handle a `struct PeerGetResultMessage`.
+ *
+ * @param cls closure (NULL)
+ * @param peer sender identity
+ * @param message the peer get result message
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_peer_get_result (void *cls,
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_MessageHeader *message)
+{
+  const struct PeerGetResultMessage *pgrm;
+
+  pgrm = (const struct PeerGetResultMessage *) message;
+
+  return GNUNET_OK;
+}
+
+/**
+ * Handle a `struct PeerPutMessage`.
+ *
+ * @param cls closure (NULL)
+ * @param peer sender identity
+ * @param message the peer put message
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_peer_put (void *cls,
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_MessageHeader *message)
+{
+  const struct PeerGetResultMessage *pgrm;
+
+  pgrm = (const struct PeerGetResultMessage *) message;
 
   return GNUNET_OK;
 }
@@ -720,9 +818,18 @@ GDS_NEIGHBOURS_init (void)
     { &handle_dht_p2p_neighbour_find,
       GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND,
       sizeof (struct FingerSetupMessage) },
-	{ &handle_dht_p2p_neighbour_find,
+    { &handle_dht_p2p_neighbour_found,
       GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FOUND,
-      sizeof (struct FingerSetupMessage) },
+      sizeof (struct FingerSetupResponseMessage) },
+    { &handle_dht_p2p_peer_get,
+      GNUNET_MESSAGE_TYPE_WDHT_GET,
+      sizeof (struct PeerGetMessage) },
+    { &handle_dht_p2p_peer_get_result,
+      GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT,
+      0},
+    { &handle_dht_p2p_peer_put,
+      GNUNET_MESSAGE_TYPE_WDHT_PUT,
+      0},
     {NULL, 0, 0}
   };
 
@@ -738,7 +845,9 @@ GDS_NEIGHBOURS_init (void)
   if (NULL == core_api)
     return GNUNET_SYSERR;
 
-  friend_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
+  fingers_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
+  successors_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
+
   return GNUNET_OK;
 }
 

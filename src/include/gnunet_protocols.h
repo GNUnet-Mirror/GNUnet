@@ -2644,47 +2644,47 @@ extern "C"
  ******************************************************************************/
 
 /**
- *
+ * This message contains the query for initialization of a finger
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP 910
 
 /**
- *
+ * This message contains the response to the query for intialization of a finger
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP_RESPONSE 911
 
 /**
- *
+ * This message contains a notification for the death of a finger
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_FINGER_DESTROY 912
 
 /**
- *
+ * This message are used to route a query to a peer
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_FINGER_ROUTE 913
 
 /**
- *
+ * This message contains the query to find a successor
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND 914
 
 /**
- *
+ * Message which contains the response to a new successor found
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FOUND 915
 
 /**
- *
+ * Message which contains the get query
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_GET 916
 
 /**
- *
+ * Message which contains the put query
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_PUT 917
 
 /**
- *
+ * Message which contains the get result.
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT 918
 
