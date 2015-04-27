@@ -122,10 +122,25 @@ struct GNUNET_CADET_AX_KX
   struct GNUNET_MessageHeader header;
 
   /**
-   * Ephemeral public ECC key (always for NIST P-521) encoded in a format
-   * suitable for network transmission as created using 'gcry_sexp_sprint'.
+   * Sender's ephemeral public ECC key (always for NIST P-521) encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
+  /**
+   * Sender's next ephemeral public ECC key (always for NIST P-521) encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey ratchet_key;
+
+  /**
+   * Receiver's ephemeral public ECC key (always for NIST P-521) encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey peers_key;
 
 };
 
