@@ -4133,6 +4133,11 @@ GCT_send_ax_kx (struct CadetTunnel *t)
   struct GNUNET_CADET_AX_KX msg;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "===> AX_KX for %s\n", GCT_2s (t));
+  if (NULL != t->ephm_h)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
+    return;
+  }
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
