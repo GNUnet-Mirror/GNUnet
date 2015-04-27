@@ -987,6 +987,26 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   if (GNUNET_YES == ax->ratchet_flag)
   {
     /* Advance ratchet */
+    struct GNUNET_CRYPTO_SymmetricSessionKey keys[3];
+    struct GNUNET_HashCode dh;
+    struct GNUNET_HashCode hmac;
+    static const char ctx[] = "axolotl ratchet";
+
+    ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create ();
+    ax->HKs = ax->NHKs;
+
+    /* RK, NHKs, CKs = KDF( HMAC-HASH(RK, DH(DHRs, DHRr)) ) */
+    GNUNET_CRYPTO_ecc_ecdh (&ax->DHRs, &ax->DHRr, &dh);
+    t_ax_hmac_hash (&ax->RK, &hmac, &dh, sizeof (dh));
+    GNUNET_CRYPTO_kdf (keys, sizeof (keys), ctx, sizeof (ctx),
+                       &hmac, sizeof (hmac), NULL);
+    ax->RK = keys[0];
+    ax->NHKs = keys[1];
+    ax->CKs = keys[2];
+
+    ax->PNs = ax->Ns;
+    ax->Ns = 0;
+    ax->ratchet_flag = GNUNET_NO;
   }
 
   t_hmac_derive_key (&ax->CKs, &MK, "0", 1);
