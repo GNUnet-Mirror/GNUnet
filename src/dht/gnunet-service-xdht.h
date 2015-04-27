@@ -47,14 +47,4 @@ extern struct GNUNET_BLOCK_Context *GDS_block_context;
  */
 extern struct GNUNET_STATISTICS_Handle *GDS_stats;
 
-/**
- * Our HELLO
- */
-extern struct GNUNET_MessageHeader *GDS_my_hello;
-
-/**
- * Handle to the transport service, for getting our hello
- */
-extern struct GNUNET_TRANSPORT_Handle *GDS_transport_handle;
-
 #endif

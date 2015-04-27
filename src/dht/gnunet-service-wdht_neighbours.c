@@ -369,6 +369,11 @@ struct Trail
    */
   struct GNUNET_TIME_Absolute expiration_time;
 
+  /**
+   * Location of this trail in the heap.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
 };
 
 
