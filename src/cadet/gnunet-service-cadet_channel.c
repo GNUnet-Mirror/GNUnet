@@ -1060,15 +1060,18 @@ channel_rel_free_sent (struct CadetChannelReliability *rel,
     /* Did we run out of copies? (previously freed, it's ok) */
     if (NULL == copy)
     {
-     LOG (GNUNET_ERROR_TYPE_DEBUG, "run out of copies...\n");
-     return;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "run out of copies...\n");
+      return;
     }
 
     /* Did we overshoot the target? (previously freed, it's ok) */
     if (GC_is_pid_bigger (copy->mid, target))
     {
-     LOG (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
-     continue;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
+      i += copy->mid - target - 1;   /* MID: 90, t = 85, i += 4 (i++ later) */
+      mask = (0x1LL << (i + 1)) - 1; /* Mask = i-th bit and all before */
+      bitfield &= ~mask;
+      continue;
     }
 
     /* Now copy->mid == target, free it */
