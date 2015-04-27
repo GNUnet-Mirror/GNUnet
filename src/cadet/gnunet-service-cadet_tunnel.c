@@ -1362,7 +1362,7 @@ store_ax_keys (struct CadetTunnel *t,
     t_hmac_derive_key (CKr, &key->MK, "0", 1);
     #if DUMP_KEYS_TO_STDERR
     LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
-         GNUNET_h2s ((struct GNUNET_HashCode *) &key->MK));
+         i, GNUNET_h2s ((struct GNUNET_HashCode *) &key->MK));
     LOG (GNUNET_ERROR_TYPE_INFO, "    for CKr: %s\n",
          GNUNET_h2s ((struct GNUNET_HashCode *) &t->ax->CKr));
     #endif
