@@ -2699,6 +2699,7 @@ handle_ephemeral (struct CadetTunnel *t,
       return;
     }
     rekey_tunnel (t, NULL);
+    GNUNET_STATISTICS_update (stats, "# otr-downgrades", -1, GNUNET_NO);
   }
 
   /**
