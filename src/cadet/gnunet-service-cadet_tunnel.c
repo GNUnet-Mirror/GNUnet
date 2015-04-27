@@ -1628,15 +1628,6 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      if (CADET_Axolotl == t->enc_type)
-      {
-        ax_msg->cid = *GCC_get_id (c);
-      }
-      else
-      {
-        otr_msg->cid = *GCC_get_id (c);
-        otr_msg->ttl = htonl (default_ttl);
-      }
       break;
     default:
       GNUNET_break (0);
@@ -1661,7 +1652,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq = existing_q;
     tq->tqd = NULL;
   }
-  tq->cq = GCC_send_prebuilt_message (&otr_msg->header, type, mid, c, fwd, force,
+  tq->cq = GCC_send_prebuilt_message (msg, type, mid, c, fwd, force,
                                       &tun_message_sent, tq);
   GNUNET_assert (NULL != tq->cq);
   tq->cont = cont;

@@ -1040,9 +1040,15 @@ fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
   {
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       *pid = GCC_get_pid (queue->c, queue->fwd);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", *pid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  otr payload ID %u\n", *pid);
       msg_size = send_core_data_raw (queue->cls, size, buf);
       ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (*pid);
+      break;
+    case GNUNET_MESSAGE_TYPE_CADET_AX:
+      *pid = GCC_get_pid (queue->c, queue->fwd);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  ax payload ID %u\n", *pid);
+      msg_size = send_core_data_raw (queue->cls, size, buf);
+      ((struct GNUNET_CADET_AX *) buf)->pid = htonl (*pid);
       break;
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
