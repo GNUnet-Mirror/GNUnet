@@ -31,9 +31,9 @@
 
 
 /**
- * How namy messages to send
+ * How many messages to send
  */
-#define TOTAL_PACKETS 20000
+#define TOTAL_PACKETS 200
 
 /**
  * How long until we give up on connecting the peers?
