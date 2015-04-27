@@ -996,7 +996,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
     ax->HKs = ax->NHKs;
 
     /* RK, NHKs, CKs = KDF( HMAC-HASH(RK, DH(DHRs, DHRr)) ) */
-    GNUNET_CRYPTO_ecc_ecdh (&ax->DHRs, &ax->DHRr, &dh);
+    GNUNET_CRYPTO_ecc_ecdh (ax->DHRs, &ax->DHRr, &dh);
     t_ax_hmac_hash (&ax->RK, &hmac, &dh, sizeof (dh));
     GNUNET_CRYPTO_kdf (keys, sizeof (keys), ctx, sizeof (ctx),
                        &hmac, sizeof (hmac), NULL);
