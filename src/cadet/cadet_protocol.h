@@ -122,6 +122,11 @@ struct GNUNET_CADET_AX_KX
   struct GNUNET_MessageHeader header;
 
   /**
+   * Should the peer reply with its KX details?
+   */
+  uint32_t force_reply;
+
+  /**
    * An EdDSA signature of the permanent ECDH key with the Peer's ID key.
    */
   struct GNUNET_CRYPTO_EddsaSignature signature;

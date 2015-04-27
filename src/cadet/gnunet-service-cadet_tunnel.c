@@ -2008,6 +2008,29 @@ send_queued_data (struct CadetTunnel *t)
 
 
 /**
+ * @brief Resend the AX KX until we complete the handshake.
+ *
+ * @param cls Closure (tunnel).
+ * @param tc Task context.
+ */
+static void
+ax_kx_resend (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CadetTunnel *t = cls;
+
+  t->rekey_task = NULL;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  if (CADET_TUNNEL_KEY_OK == t->estate)
+    return;
+
+  GCT_send_ax_kx (t, GNUNET_YES);
+}
+
+
+/**
  * Callback called when a queued message is sent.
  *
  * @param cls Closure.
@@ -2018,14 +2041,30 @@ send_queued_data (struct CadetTunnel *t)
  */
 static void
 ephm_sent (void *cls,
-         struct CadetConnection *c,
-         struct CadetConnectionQueue *q,
-         uint16_t type, int fwd, size_t size)
+           struct CadetConnection *c,
+           struct CadetConnectionQueue *q,
+           uint16_t type, int fwd, size_t size)
 {
   struct CadetTunnel *t = cls;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "ephemeral sent %s\n", GC_m2s (type));
+
   t->ephm_h = NULL;
+
+  if (CADET_TUNNEL_KEY_OK == t->estate)
+    return;
+
+  if (CADET_Axolotl == t->enc_type && CADET_TUNNEL_KEY_OK != t->estate)
+  {
+    if (NULL != t->rekey_task)
+    {
+      GNUNET_break (0);
+      GNUNET_SCHEDULER_cancel (t->rekey_task);
+    }
+    t->rekey_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                  &ax_kx_resend, t);
+  }
 }
+
 
 /**
  * Callback called when a queued message is sent.
@@ -2047,6 +2086,7 @@ pong_sent (void *cls,
 
   t->pong_h = NULL;
 }
+
 
 /**
  * Sends key exchange message on a tunnel, choosing the best connection.
@@ -2663,6 +2703,17 @@ destroy_ax (struct CadetTunnel *t)
 
   GNUNET_free (t->ax);
   t->ax = NULL;
+
+  if (NULL != t->rekey_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->rekey_task);
+    t->rekey_task = NULL;
+  }
+  if (NULL != t->ephm_h)
+  {
+    GCC_cancel (t->ephm_h);
+    t->ephm_h = NULL;
+  }
 }
 
 
@@ -2845,6 +2896,12 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     GNUNET_break_op (0);
     return;
   }
+
+  if (GNUNET_YES == ntohl (msg->force_reply))
+    GCT_send_ax_kx (t, GNUNET_NO);
+
+  if (CADET_TUNNEL_KEY_OK == t->estate)
+    return;
 
   LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", am_I_alice ? "YES" : "NO");
 
@@ -3228,7 +3285,7 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
     else if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered kx\n");
-      GCT_send_ax_kx (t);
+      GCT_send_ax_kx (t, GNUNET_NO);
     }
     else
     {
@@ -4126,9 +4183,10 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * Send an Axolotl KX message.
  *
  * @param t Tunnel on which to send it.
+ * @param force_reply Force the other peer to reply with a KX message.
  */
 void
-GCT_send_ax_kx (struct CadetTunnel *t)
+GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
 {
   struct GNUNET_CADET_AX_KX msg;
 
@@ -4141,6 +4199,7 @@ GCT_send_ax_kx (struct CadetTunnel *t)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
+  msg.force_reply = htonl (force_reply);
   msg.permanent_key = ax_identity.permanent_key;
   msg.purpose = ax_identity.purpose;
   msg.signature = ax_identity.signature;

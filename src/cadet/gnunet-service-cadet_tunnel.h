@@ -446,9 +446,10 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * Send an Axolotl KX message.
  *
  * @param t Tunnel on which to send it.
+ * @param force_reply Force the other peer to reply with a KX message.
  */
 void
-GCT_send_ax_kx (struct CadetTunnel *t);
+GCT_send_ax_kx (struct CadetTunnel *t, int force_reply);
 
 /**
  * Sends an already built and encrypted message on a tunnel, choosing the best
