@@ -1824,12 +1824,8 @@ queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GCT_2s (t));
 
-  if (GNUNET_YES == is_ready (t))
-  {
-    GNUNET_break (0);
-    return NULL;
-  }
-
+  GNUNET_assert (GNUNET_NO == is_ready (t));
+  
   tqd = GNUNET_malloc (sizeof (struct CadetTunnelDelayed) + size);
 
   tqd->t = t;
