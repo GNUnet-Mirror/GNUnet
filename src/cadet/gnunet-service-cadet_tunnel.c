@@ -1024,8 +1024,6 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
 
   #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  txt: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) src));
   LOG (GNUNET_ERROR_TYPE_INFO, "  CKs: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKs));
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC with key %s\n",
@@ -1081,9 +1079,6 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   t_hmac_derive_key (&ax->CKr, &ax->CKr, "1", 1);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_decrypt end\n");
-  LOG (GNUNET_ERROR_TYPE_INFO, "  txt: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) dst));
-
 
   return out_size;
 }
