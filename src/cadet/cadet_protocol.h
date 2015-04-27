@@ -134,14 +134,6 @@ struct GNUNET_CADET_AX_KX
    * using 'gcry_sexp_sprint'.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ratchet_key;
-
-  /**
-   * Receiver's ephemeral public ECC key (always for NIST P-521) encoded in a
-   * format suitable for network transmission, as created
-   * using 'gcry_sexp_sprint'.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey peers_key;
-
 };
 
 
