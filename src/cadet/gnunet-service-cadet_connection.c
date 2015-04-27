@@ -3108,6 +3108,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   {
     struct GNUNET_CADET_Encrypted *emsg;
     struct GNUNET_CADET_KX        *kmsg;
+    struct GNUNET_CADET_AX_KX     *axkxmsg;
     struct GNUNET_CADET_ACK       *amsg;
     struct GNUNET_CADET_Poll      *pmsg;
     struct GNUNET_CADET_ConnectionDestroy *dmsg;
@@ -3146,6 +3147,11 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_CADET_KX:
       kmsg = (struct GNUNET_CADET_KX *) data;
       kmsg->cid = c->id;
+      break;
+
+    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
+      axkxmsg = (struct GNUNET_CADET_AX_KX *) data;
+      axkxmsg->cid = c->id;
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_ACK:
