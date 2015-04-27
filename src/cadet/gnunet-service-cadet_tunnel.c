@@ -2088,6 +2088,11 @@ handle_ch_destroy (struct CadetTunnel *t,
 }
 
 
+/**
+ * Create a new Axolotl ephemeral (ratchet) key.
+ *
+ * @param t Tunnel.
+ */
 static void
 new_ephemeral (struct CadetTunnel *t)
 {
@@ -2096,6 +2101,11 @@ new_ephemeral (struct CadetTunnel *t)
 }
 
 
+/**
+ * Free Axolotl data.
+ *
+ * @param t Tunnel.
+ */
 static void
 destroy_ax (struct CadetTunnel *t)
 {
