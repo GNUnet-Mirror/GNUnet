@@ -148,7 +148,7 @@ enum CadetTunnelEncryption
   /**
    * Fallback OTR-style encryption.
    */
-  CADET_Fallback
+  CADET_OTR
 };
 
 struct CadetTunnelSkippedKey
@@ -1882,6 +1882,9 @@ rekey_iterator (void *cls,
   if (GNUNET_YES == GCT_is_loopback (t))
     return GNUNET_YES;
 
+  if (CADET_OTR != t->enc_type)
+    return GNUNET_YES;
+
   r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
@@ -2271,7 +2274,7 @@ handle_ephemeral (struct CadetTunnel *t,
   if (NULL != t->ax)
   {
     destroy_ax (t);
-    t->enc_type = CADET_Fallback;
+    t->enc_type = CADET_OTR;
     if (NULL != t->rekey_task)
       GNUNET_SCHEDULER_cancel (t->rekey_task);
     create_kx_ctx (t);
@@ -2394,7 +2397,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   if (NULL == t->ax)
   {
     /* Something is wrong if ax is NULL. Whose fault it is? */
-    GNUNET_break_op (CADET_Fallback == t->enc_type);
+    GNUNET_break_op (CADET_OTR == t->enc_type);
     GNUNET_break (CADET_Axolotl == t->enc_type);
     return;
   }
