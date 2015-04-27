@@ -1074,7 +1074,7 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
        GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
   #endif
 
-  GNUNET_assert (size > sizeof (struct GNUNET_MessageHeader));
+  GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   out_size = GNUNET_CRYPTO_symmetric_decrypt (src, size, &MK, &iv, dst);
   GNUNET_assert (out_size == size);
 
