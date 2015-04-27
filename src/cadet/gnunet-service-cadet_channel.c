@@ -96,18 +96,18 @@ struct CadetReliableMessage
     /**
      * Double linked list, FIFO style
      */
-  struct CadetReliableMessage    *next;
-  struct CadetReliableMessage    *prev;
+  struct CadetReliableMessage   *next;
+  struct CadetReliableMessage   *prev;
 
     /**
      * Type of message (payload, channel management).
      */
-  int16_t type;
+  int16_t                       type;
 
     /**
      * Tunnel Reliability queue this message is in.
      */
-  struct CadetChannelReliability  *rel;
+  struct CadetChannelReliability *rel;
 
     /**
      * ID of the message (ACK needed to free)
@@ -117,7 +117,7 @@ struct CadetReliableMessage
   /**
    * Tunnel Queue.
    */
-  struct CadetChannelQueue       *chq;
+  struct CadetChannelQueue      *chq;
 
     /**
      * When was this message issued (to calculate ACK delay)
@@ -1733,6 +1733,7 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   struct GNUNET_CADET_Data *payload;
   uint16_t p2p_size = sizeof(struct GNUNET_CADET_Data) + size;
   unsigned char cbuf[p2p_size];
+  unsigned char buffer;
 
   /* Is the client in the channel? */
   if ( !( (fwd &&
@@ -1767,17 +1768,12 @@ GCCH_handle_local_data (struct CadetChannel *ch,
   GCCH_send_prebuilt_message (&payload->header, ch, fwd, NULL);
 
   if (is_loopback (ch))
-  {
-    if (GCCH_get_buffer (ch, fwd) > 0)
-      GCCH_allow_client (ch, fwd);
+    buffer = GCCH_get_buffer (ch, fwd);
+  else
+    buffer = GCT_get_connections_buffer (ch->t);
 
-    return GNUNET_OK;
-  }
-
-  if (GCT_get_connections_buffer (ch->t) > 0)
-  {
+  if (0 < buffer)
     GCCH_allow_client (ch, fwd);
-  }
 
   return GNUNET_OK;
 }
