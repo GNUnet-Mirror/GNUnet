@@ -676,7 +676,8 @@ get_priority (struct CadetPeerQueue *q)
   }
 
   /* Bulky payload has lower priority, control traffic has higher. */
-  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == q->type)
+  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == q->type
+      || GNUNET_MESSAGE_TYPE_CADET_AX == q->type)
     return low;
   else
     return high;
@@ -1568,6 +1569,8 @@ GCP_connection_pop (struct CadetPeer *peer,
 
       case GNUNET_MESSAGE_TYPE_CADET_KX:
       case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+      case GNUNET_MESSAGE_TYPE_CADET_AX:
+      case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
         msg = (struct GNUNET_MessageHeader *) q->cls;
         dest = GCP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
         if (GNUNET_YES == dest)

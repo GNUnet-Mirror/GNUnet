@@ -601,7 +601,8 @@ conn_message_sent (void *cls,
     }
     GNUNET_free (q);
   }
-  else if (type == GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED)
+  else if (type == GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED
+           || type == GNUNET_MESSAGE_TYPE_CADET_AX)
   {
     /* If NULL == q and ENCRYPTED == type, message must have been ch_mngmnt */
     forced = GNUNET_YES;
@@ -640,6 +641,7 @@ conn_message_sent (void *cls,
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_AX:
       if (GNUNET_YES == sent)
       {
         GNUNET_assert (NULL != q);
@@ -3209,7 +3211,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
          fc->queue_n, fc->queue_max);
-    if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
+    if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type
+        || GNUNET_MESSAGE_TYPE_CADET_AX == type)
     {
       fc->queue_n--;
     }
