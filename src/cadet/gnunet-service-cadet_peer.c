@@ -1269,6 +1269,7 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       case GNUNET_MESSAGE_TYPE_CADET_KX:
       case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+      case GNUNET_MESSAGE_TYPE_CADET_AX:
       case GNUNET_MESSAGE_TYPE_CADET_ACK:
       case GNUNET_MESSAGE_TYPE_CADET_POLL:
         GNUNET_free_non_null (queue->cls);
