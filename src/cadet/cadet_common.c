@@ -250,10 +250,17 @@ GC_m2s (uint16_t m)
       break;
 
       /**
-       * Encrypted payload.
+       * OTR encrypted payload.
        */
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      t = "ENCRYPTED";
+      t = "OTR";
+      break;
+
+      /**
+       * Axolotl encrypted payload.
+       */
+    case GNUNET_MESSAGE_TYPE_CADET_AX:
+      t = "AX";
       break;
 
       /**

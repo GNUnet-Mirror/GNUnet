@@ -3982,7 +3982,7 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHRr));
 
   LOG2 (level, "TTT  Nr\t %u\tNs\t%u\n", ax->Nr, ax->Ns);
-  LOG2 (level, "TTT  PNs\t%u\tSkipped\t%u\n", ax->PNs, ax->skipped);
+  LOG2 (level, "TTT  PNs\t %u\tSkipped\t%u\n", ax->PNs, ax->skipped);
   LOG2 (level, "TTT  Ratchet\t%u\n", ax->ratchet_flag);
 
   for (iter = ax->skipped_head; NULL != iter; iter = iter->next)
