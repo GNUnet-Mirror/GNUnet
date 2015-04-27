@@ -456,12 +456,7 @@ const static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 /**
  * Own Axolotl private key (derived from @a my_private_key).
  */
-struct GNUNET_CRYPTO_EcdhePrivateKey *ax_identity;
-
-/**
- * Own Axolotl public key.
- */
-static struct GNUNET_CRYPTO_EcdhePrivateKey *ax_key;
+const struct GNUNET_CRYPTO_EcdhePrivateKey *ax_identity;
 
 /**
  * Own OTR ephemeral private key.
@@ -2305,7 +2300,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   struct GNUNET_HashCode key_material[3];
   struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
   const struct GNUNET_CRYPTO_EcdhePublicKey *DHIr;
-  struct GNUNET_CRYPTO_EcdhePrivateKey *DHIs;
+  const struct GNUNET_CRYPTO_EcdhePrivateKey *DHIs;
   const char salt[] = "CADET Axolotl salt";
 
   if (NULL == t->ax)
@@ -2545,6 +2540,8 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   }
 
   my_private_key = key;
+  ax_identity = get_private_ecdhe_from_eddsa (key);
+
   kx_msg.header.size = htons (sizeof (kx_msg));
   kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL);
   kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_KX);
@@ -2553,8 +2550,6 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
 
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
-
-  ax_key = GNUNET_CRYPTO_ecdhe_key_create();
 }
 
 
@@ -2571,8 +2566,6 @@ GCT_shutdown (void)
   }
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &destroy_iterator, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (tunnels);
-
-  GNUNET_free (ax_key);
 }
 
 
