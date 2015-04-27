@@ -3059,7 +3059,7 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
       GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DEFAULT_TTL",
                                              &default_ttl))
   {
-    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_DEBUG,
                                "CADET", "DEFAULT_TTL", "USING DEFAULT");
     default_ttl = 64;
   }
