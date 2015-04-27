@@ -2380,6 +2380,8 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   const struct GNUNET_PeerIdentity *pid;
   int is_alice;
 
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== AX_KX on %s\n", GCT_2s (t));
+
   if (NULL == t->ax)
   {
     /* Something is wrong if ax is NULL. Whose fault it is? */
@@ -2398,6 +2400,8 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     GNUNET_break_op (0);
     return;
   }
+
+  LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", is_alice ? "YES" : "NO");
 
   ax = t->ax;
   ax->DHRr = msg->ratchet_key;
@@ -2432,6 +2436,15 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   priv = ax->kx_0;                                              /* A0 or B0 */
   pub = &msg->ephemeral_key;                                    /* B0 or A0 */
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[2]);
+
+  #if DUMP_KEYS_TO_STDERR
+  {
+    unsigned int i;
+    for (i = 0; i < 3; i++)
+      LOG (GNUNET_ERROR_TYPE_INFO, "km[%u]: %s\n",
+           i, GNUNET_h2s (&key_material[i]));
+  }
+  #endif
 
   /* KDF */
   GNUNET_CRYPTO_kdf (keys, sizeof (keys),
@@ -2740,6 +2753,10 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered kx\n");
       GCT_send_ax_kx (t);
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "estate %s\n", estate2s (t->estate));
     }
   }
   t->cstate = cstate;
