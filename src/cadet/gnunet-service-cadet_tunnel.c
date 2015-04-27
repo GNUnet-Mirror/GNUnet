@@ -1856,7 +1856,7 @@ rekey_iterator (void *cls,
  * @param tc TaskContext.
  */
 static void
-rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+global_otr_rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Absolute time;
   long n;
@@ -1875,7 +1875,7 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   time = GNUNET_TIME_absolute_add (time, GNUNET_TIME_UNIT_MINUTES);
   kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
   GNUNET_CRYPTO_ecdhe_key_get_public (my_ephemeral_key, &kx_msg.ephemeral_key);
-  LOG (GNUNET_ERROR_TYPE_INFO, "GLOBAL RE-KEY, NEW EPHM: %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "GLOBAL OTR RE-KEY, NEW EPHM: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
 
   GNUNET_assert (GNUNET_OK ==
@@ -1886,7 +1886,8 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   n = (long) GNUNET_CONTAINER_multipeermap_size (tunnels);
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &rekey_iterator, (void *) n);
 
-  rekey_task = GNUNET_SCHEDULER_add_delayed (rekey_period, &rekey, NULL);
+  rekey_task = GNUNET_SCHEDULER_add_delayed (rekey_period,
+                                             &global_otr_rekey, NULL);
 }
 
 
@@ -2661,7 +2662,7 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_KX);
   kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
   kx_msg.origin_identity = my_full_id;
-  rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
+  rekey_task = GNUNET_SCHEDULER_add_now (&global_otr_rekey, NULL);
 
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
 }
@@ -3645,7 +3646,7 @@ GCT_send_ax_kx (struct CadetTunnel *t)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
-  t->ephm_h = send_kx (t, &msg);
+  t->ephm_h = send_kx (t, &msg.header);
 }
 
 
