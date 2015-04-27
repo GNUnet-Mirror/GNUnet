@@ -2368,7 +2368,6 @@ get_public_ecdhe_from_id (const struct GNUNET_PeerIdentity *id)
 static void
 handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 {
-  struct GNUNET_CRYPTO_EcdhePublicKey eph;
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_HashCode key_material[3];
   struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
@@ -2399,13 +2398,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 
   ax = t->ax;
   ax->DHRr = msg->ratchet_key;
-
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &eph);
-  if (0 != memcmp (&eph, &msg->peers_key, sizeof (eph)))
-  {
-    send_ax_kx ();
-    return;
-  }
 
   /* ECDH A B0 */
   if (GNUNET_YES == is_alice)
