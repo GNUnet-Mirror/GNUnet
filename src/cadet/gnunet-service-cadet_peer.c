@@ -107,12 +107,12 @@ struct CadetPeerQueue
     /**
      * Function to call on sending.
      */
-  GCP_sent callback;
+  GCP_sent cont;
 
     /**
      * Closure for callback.
      */
-  void *callback_cls;
+  void *cont_cls;
 };
 
 /**
@@ -1289,17 +1289,16 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
     peer->queue_n--;
   }
 
-  if (NULL != queue->callback)
+  if (NULL != queue->cont)
   {
     struct GNUNET_TIME_Relative wait_time;
 
     wait_time = GNUNET_TIME_absolute_get_duration (queue->start_waiting);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback, time elapsed %s\n",
          GNUNET_STRINGS_relative_time_to_string (wait_time, GNUNET_NO));
-    connection_destroyed = queue->callback (queue->callback_cls,
-                                            queue->c, sent, queue->type, pid,
-                                            queue->fwd, queue->size,
-                                            wait_time);
+    connection_destroyed = queue->cont (queue->cont_cls,
+                                        queue->c, sent, queue->type, pid,
+                                        queue->fwd, queue->size, wait_time);
   }
   else
   {
@@ -1386,8 +1385,8 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
   q->peer = peer;
   q->c = c;
   q->fwd = fwd;
-  q->callback = cont;
-  q->callback_cls = cont_cls;
+  q->cont = cont;
+  q->cont_cls = cont_cls;
   if (100 > priority)
   {
     GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, q);
@@ -1548,9 +1547,9 @@ GCP_connection_pop (struct CadetPeer *peer,
     next = q->next;
     if (q->c != c)
       continue;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " - queued: %s (%s %u), callback: %p\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " - queued: %s (%s %u), cont: %p\n",
          GC_m2s (q->type), GC_m2s (q->payload_type), q->payload_id,
-         q->callback);
+         q->cont);
     switch (q->type)
     {
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
