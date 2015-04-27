@@ -43,6 +43,10 @@
 #define DUMP_KEYS_TO_STDERR GNUNET_NO
 #endif
 
+#define AX_HEADER_SIZE (sizeof (uint32_t) * 2\
+                        + sizeof (struct GNUNET_CRYPTO_EcdhePublicKey))
+
+
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
@@ -963,7 +967,7 @@ t_hmac_derive_key (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
 
 
 /**
- * Encrypt data with the tunnel key.
+ * Encrypt data with the axolotl tunnel key.
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the encrypted data.
@@ -1013,7 +1017,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
 
   #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  ENC with key %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC with key %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
   #endif
 
@@ -1024,6 +1028,38 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
 
   return out_size;
+}
+
+
+/**
+ * Encrypt header with the axolotl header key.
+ *
+ * @param t Tunnel whose key to use.
+ * @param msg Message whose header to encrypt.
+ */
+static void
+t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_AX *msg)
+{
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct CadetTunnelAxolotl *ax;
+  size_t out_size;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_h_encrypt start\n");
+
+  ax = t->ax;
+  GNUNET_CRYPTO_symmetric_derive_iv (&iv, &ax->HKs, NULL, 0, NULL);
+
+  #if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC_H with key %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKs));
+  #endif
+
+  out_size = GNUNET_CRYPTO_symmetric_encrypt (&msg->Ns, AX_HEADER_SIZE,
+                                              &ax->HKs, &iv, &msg->Ns);
+
+  GNUNET_assert (AX_HEADER_SIZE == out_size);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
 }
 
 
@@ -1180,6 +1216,8 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
 
   /*  */
   /*  */
+
+  GNUNET_break (0);
 
   return 0;
 }
@@ -1499,10 +1537,14 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                        int force, GCT_sent cont, void *cont_cls,
                        struct CadetTunnelQueue *existing_q)
 {
+  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_CADET_Encrypted *otr_msg;
+  struct GNUNET_CADET_AX *ax_msg;
   struct CadetTunnelQueue *tq;
-  struct GNUNET_CADET_Encrypted *msg;
   size_t size = ntohs (message->size);
-  char cbuf[sizeof (struct GNUNET_CADET_Encrypted) + size];
+  const uint16_t max_overhead = sizeof (struct GNUNET_CADET_Encrypted)
+                                + sizeof (struct GNUNET_CADET_AX);
+  char cbuf[max_overhead + size];
   size_t esize;
   uint32_t mid;
   uint32_t iv;
@@ -1531,18 +1573,31 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
 
-  iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  msg = (struct GNUNET_CADET_Encrypted *) cbuf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
-  msg->iv = iv;
-
   if (CADET_Axolotl == t->enc_type)
-    esize = t_ax_encrypt (t, &msg[1], message, size);
+  {
+    ax_msg = (struct GNUNET_CADET_AX *) cbuf;
+    msg = &ax_msg->header;
+    msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
+    msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_AX);
+    esize = t_ax_encrypt (t, &ax_msg[1], message, size);
+    ax_msg->Ns = htonl (t->ax->Ns++);
+    ax_msg->PNs = htonl (t->ax->PNs);
+    GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &ax_msg->DHRs);
+    t_h_encrypt (t, ax_msg);
+    t_hmac (&ax_msg->Ns, AX_HEADER_SIZE, 0, &t->ax->HKs, &ax_msg->hmac);
+  }
   else
-    esize = t_encrypt (t, &msg[1], message, size, iv, GNUNET_NO);
+  {
+    otr_msg = (struct GNUNET_CADET_Encrypted *) cbuf;
+    msg = &otr_msg->header;
+    iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+    otr_msg->iv = iv;
+    esize = t_encrypt (t, &otr_msg[1], message, size, iv, GNUNET_NO);
+    t_hmac (&otr_msg[1], size, iv, select_key (t), &otr_msg->hmac);
+    msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
+    msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
+  }
   GNUNET_assert (esize == size);
-  t_hmac (&msg[1], size, iv, select_key (t), &msg->hmac);
-  msg->header.size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
 
   if (NULL == c)
     c = tunnel_get_connection (t);
@@ -1573,8 +1628,15 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      msg->cid = *GCC_get_id (c);
-      msg->ttl = htonl (default_ttl);
+      if (CADET_Axolotl == t->enc_type)
+      {
+        ax_msg->cid = *GCC_get_id (c);
+      }
+      else
+      {
+        otr_msg->cid = *GCC_get_id (c);
+        otr_msg->ttl = htonl (default_ttl);
+      }
       break;
     default:
       GNUNET_break (0);
@@ -1586,8 +1648,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (NULL == cont)
   {
-    GNUNET_break (NULL == GCC_send_prebuilt_message (&msg->header, type, mid, c,
-                                                     fwd, force, NULL, NULL));
+    GNUNET_break (NULL == GCC_send_prebuilt_message (msg, type,
+                                                     mid, c, fwd, force, NULL, NULL));
     return NULL;
   }
   if (NULL == existing_q)
@@ -1599,7 +1661,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq = existing_q;
     tq->tqd = NULL;
   }
-  tq->cq = GCC_send_prebuilt_message (&msg->header, type, mid, c, fwd, force,
+  tq->cq = GCC_send_prebuilt_message (&otr_msg->header, type, mid, c, fwd, force,
                                       &tun_message_sent, tq);
   GNUNET_assert (NULL != tq->cq);
   tq->cont = cont;

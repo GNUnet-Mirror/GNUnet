@@ -303,20 +303,31 @@ struct GNUNET_CADET_AX
   uint32_t pid GNUNET_PACKED;
 
   /**
-   * Number of hops to live.
+   * Reserved field for 64b alignment.
    */
-  uint32_t ttl GNUNET_PACKED;
-
-  /**
-   * Initialization Vector for payload encryption.
-   */
-  uint32_t iv GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * MAC of the encrypted message, used to verify message integrity.
-   * Everything after this value  will be encrypted and authenticated.
+   * Everything after this value  will be encrypted with the header key
+   * and authenticated.
    */
   struct GNUNET_CADET_Hash hmac;
+
+  /**
+   * Number of messages sent with the current ratchet key.
+   */
+  uint32_t Ns;
+
+  /**
+   * Number of messages sent with the previous ratchet key.
+   */
+  uint32_t PNs;
+
+  /**
+   * Current ratchet key.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey DHRs;
 
   /**
    * Encrypted content follows.
