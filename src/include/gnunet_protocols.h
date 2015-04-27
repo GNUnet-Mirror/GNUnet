@@ -896,6 +896,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED              280
 
 /**
+ * Axolotl key exchange.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_AX_KX                  281
+
+/**
+ * Axolotl encrypted data.
+ */
+#define GNUNET_MESSAGE_TYPE_CADET_AX                     282
+
+/**
  * Payload client <-> service
  */
 #define GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA             285

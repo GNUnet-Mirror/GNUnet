@@ -2113,13 +2113,12 @@ handle_decrypted (struct CadetTunnel *t,
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
-
 /**
- * Decrypt and demultiplex by message type. Call appropriate handler
- * for every message.
+ * Decrypt old format and demultiplex by message type. Call appropriate handler
+ * for a message towards a channel of a local tunnel.
  *
  * @param t Tunnel this message came on.
- * @param msg Encrypted message.
+ * @param msg Message header.
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
@@ -2156,6 +2155,21 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     handle_decrypted (t, msgh, GNUNET_SYSERR);
     off += msize;
   }
+}
+
+
+/**
+ * Decrypt axolotl and demultiplex by message type. Call appropriate handler
+ * for a message towards a channel of a local tunnel.
+ *
+ * @param t Tunnel this message came on.
+ * @param msg Message header.
+ */
+void
+GCT_handle_ax (struct CadetTunnel *t,
+               const struct GNUNET_CADET_AX *msg)
+{
+  //FIXME ax
 }
 
 

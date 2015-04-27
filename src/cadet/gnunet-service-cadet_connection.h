@@ -165,6 +165,20 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message);
 
 /**
+ * Core handler for key exchange traffic (ephemeral key, ping, pong).
+ *
+ * @param cls Closure (unused).
+ * @param message Message received.
+ * @param peer Peer who sent the message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+GCC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
+               const struct GNUNET_MessageHeader *message);
+
+/**
  * Core handler for encrypted cadet network traffic (channel mgmt, data).
  *
  * @param cls Closure (unused).
@@ -179,18 +193,30 @@ GCC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for key exchange traffic (ephemeral key, ping, pong).
+ * Core handler for axolotl key exchange traffic.
  *
  * @param cls Closure (unused).
  * @param message Message received.
- * @param peer Peer who sent the message.
+ * @param peer Neighbor who sent the message.
  *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return GNUNET_OK, to keep the connection open.
  */
 int
-GCC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
-               const struct GNUNET_MessageHeader *message);
+GCC_handle_ax_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
+                  const struct GNUNET_MessageHeader *message);
+
+/**
+ * Core handler for axolotl encrypted cadet network traffic.
+ *
+ * @param cls Closure (unused).
+ * @param message Message received.
+ * @param peer Neighbor who sent the message.
+ *
+ * @return GNUNET_OK, to keep the connection open.
+ */
+int
+GCC_handle_ax (void *cls, const struct GNUNET_PeerIdentity *peer,
+               struct GNUNET_MessageHeader *message);
 
 /**
  * Core handler for cadet network traffic point-to-point acks.

@@ -238,6 +238,48 @@ struct GNUNET_CADET_Encrypted
 
 
 /**
+ * Axolotl tunnel message.
+ */
+struct GNUNET_CADET_AX
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_CADET_AXOLOTL_DATA
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the connection.
+   */
+  struct GNUNET_CADET_Hash cid;
+
+  /**
+   * ID of the packet (hop by hop).
+   */
+  uint32_t pid GNUNET_PACKED;
+
+  /**
+   * Number of hops to live.
+   */
+  uint32_t ttl GNUNET_PACKED;
+
+  /**
+   * Initialization Vector for payload encryption.
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * MAC of the encrypted message, used to verify message integrity.
+   * Everything after this value  will be encrypted and authenticated.
+   */
+  struct GNUNET_CADET_Hash hmac;
+
+  /**
+   * Encrypted content follows.
+   */
+};
+
+
+/**
  * Message to create a Channel.
  */
 struct GNUNET_CADET_ChannelCreate
