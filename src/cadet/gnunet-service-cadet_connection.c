@@ -2297,14 +2297,17 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
 
   /* Message not for us: forward to next hop */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  ttl = ntohl (msg->ttl);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
-  if (ttl == 0)
+  if (NULL != otr_msg) /* only otr has ttl */
   {
-    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    GCC_send_ack (c, fwd, GNUNET_NO);
-    return GNUNET_OK;
+    ttl = ntohl (otr_msg->ttl);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   ttl: %u\n", ttl);
+    if (ttl == 0)
+    {
+      GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
+      LOG (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
+      GCC_send_ack (c, fwd, GNUNET_NO);
+      return GNUNET_OK;
+    }
   }
 
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
