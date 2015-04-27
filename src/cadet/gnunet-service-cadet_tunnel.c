@@ -132,7 +132,7 @@ struct CadetTunnelKXCtx
    * Task for delayed destruction of the Key eXchange context, to allow delayed
    * messages with the old key to be decrypted successfully.
    */
-  struct GNUNET_SCHEDULER_Task * finish_task;
+  struct GNUNET_SCHEDULER_Task *finish_task;
 };
 
 /**
@@ -416,6 +416,28 @@ struct CadetTunnelQueue
 };
 
 
+/**
+ * Cached Axolotl key with signature.
+ */
+struct CadetAxolotlSignedKey
+{
+  /**
+   * Information about what is being signed (@a permanent_key).
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Permanent public ECDH key.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey permanent_key;
+
+  /**
+   * An EdDSA signature of the permanent ECDH key with the Peer's ID key.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+} GNUNET_PACKED;
+
+
 /******************************************************************************/
 /*******************************   GLOBALS  ***********************************/
 /******************************************************************************/
@@ -453,33 +475,41 @@ static struct GNUNET_CONTAINER_MultiPeerMap *tunnels;
  */
 static unsigned long long default_ttl;
 
-/**
- * Own private key.
- */
-const static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
- * Own Axolotl private key (derived from @a my_private_key).
+ * Own Peer ID private key.
  */
-const struct GNUNET_CRYPTO_EcdhePrivateKey *ax_identity;
+const static struct GNUNET_CRYPTO_EddsaPrivateKey *id_key;
+
+/********************************  AXOLOTL ************************************/
+
+static struct GNUNET_CRYPTO_EcdhePrivateKey *ax_key;
 
 /**
- * Own OTR ephemeral private key.
+ * Own Axolotl permanent public key (cache).
  */
-static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
+static struct CadetAxolotlSignedKey ax_identity;
+
+/********************************    OTR   ***********************************/
+
 
 /**
- * Cached message used to perform a key exchange.
+ * Own global OTR ephemeral private key.
  */
-static struct GNUNET_CADET_KX_Ephemeral kx_msg;
+static struct GNUNET_CRYPTO_EcdhePrivateKey *otr_ephemeral_key;
 
 /**
- * Task to generate a new ephemeral key.
+ * Cached message used to perform a OTR key exchange.
  */
-static struct GNUNET_SCHEDULER_Task * rekey_task;
+static struct GNUNET_CADET_KX_Ephemeral otr_kx_msg;
 
 /**
- * Rekey period.
+ * Task to generate a new OTR ephemeral key.
+ */
+static struct GNUNET_SCHEDULER_Task *rekey_task;
+
+/**
+ * OTR Rekey period.
  */
 static struct GNUNET_TIME_Relative rekey_period;
 
@@ -602,7 +632,7 @@ is_key_null (struct GNUNET_CRYPTO_SymmetricSessionKey *key)
  *
  * @return Size of the part of the ephemeral key message that must be signed.
  */
-size_t
+static size_t
 ephemeral_purpose_size (void)
 {
   return sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
@@ -614,11 +644,24 @@ ephemeral_purpose_size (void)
 
 
 /**
+ * Ephemeral key message purpose size.
+ *
+ * @return Size of the part of the ephemeral key message that must be signed.
+ */
+static size_t
+ax_purpose_size (void)
+{
+  return sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+         sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
+}
+
+
+/**
  * Size of the encrypted part of a ping message.
  *
  * @return Size of the encrypted part of a ping message.
  */
-size_t
+static size_t
 ping_encryption_size (void)
 {
   return sizeof (uint32_t);
@@ -1095,7 +1138,7 @@ derive_key_material (struct GNUNET_HashCode *key_material,
                      const struct GNUNET_CRYPTO_EcdhePublicKey *ephemeral_key)
 {
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_ecdh (my_ephemeral_key,
+      GNUNET_CRYPTO_ecc_ecdh (otr_ephemeral_key,
                               ephemeral_key,
                               key_material))
   {
@@ -1145,7 +1188,7 @@ create_keys (struct CadetTunnel *t)
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
+       GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
@@ -1698,14 +1741,14 @@ send_ephemeral (struct CadetTunnel *t)
     return;
   }
 
-  kx_msg.sender_status = htonl (t->estate);
-  kx_msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  kx_msg.nonce = t->kx_ctx->challenge;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce c %u\n", kx_msg.nonce);
-  t_encrypt (t, &kx_msg.nonce, &kx_msg.nonce,
-             ping_encryption_size(), kx_msg.iv, GNUNET_YES);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce e %u\n", kx_msg.nonce);
-  t->ephm_h = send_kx (t, &kx_msg.header);
+  otr_kx_msg.sender_status = htonl (t->estate);
+  otr_kx_msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  otr_kx_msg.nonce = t->kx_ctx->challenge;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce c %u\n", otr_kx_msg.nonce);
+  t_encrypt (t, &otr_kx_msg.nonce, &otr_kx_msg.nonce,
+             ping_encryption_size(), otr_kx_msg.iv, GNUNET_YES);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  send nonce e %u\n", otr_kx_msg.nonce);
+  t->ephm_h = send_kx (t, &otr_kx_msg.header);
 }
 
 
@@ -1866,22 +1909,22 @@ global_otr_rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
-  GNUNET_free_non_null (my_ephemeral_key);
-  my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
+  GNUNET_free_non_null (otr_ephemeral_key);
+  otr_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
 
   time = GNUNET_TIME_absolute_get ();
-  kx_msg.creation_time = GNUNET_TIME_absolute_hton (time);
+  otr_kx_msg.creation_time = GNUNET_TIME_absolute_hton (time);
   time = GNUNET_TIME_absolute_add (time, rekey_period);
   time = GNUNET_TIME_absolute_add (time, GNUNET_TIME_UNIT_MINUTES);
-  kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
-  GNUNET_CRYPTO_ecdhe_key_get_public (my_ephemeral_key, &kx_msg.ephemeral_key);
+  otr_kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
+  GNUNET_CRYPTO_ecdhe_key_get_public (otr_ephemeral_key, &otr_kx_msg.ephemeral_key);
   LOG (GNUNET_ERROR_TYPE_INFO, "GLOBAL OTR RE-KEY, NEW EPHM: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
+       GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
 
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (my_private_key,
-                                           &kx_msg.purpose,
-                                           &kx_msg.signature));
+                 GNUNET_CRYPTO_eddsa_sign (id_key,
+                                           &otr_kx_msg.purpose,
+                                           &otr_kx_msg.signature));
 
   n = (long) GNUNET_CONTAINER_multipeermap_size (tunnels);
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &rekey_iterator, (void *) n);
@@ -2329,40 +2372,6 @@ handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
 
 
 /**
- * WARNING! DANGER! Do not use this if you don't know what you are doing!
- * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
- *
- * Transform a private EdDSA key (peer's key) into a key usable by DH.
- *
- * @param k Private EdDSA key to transform.
- *
- * @return Private key for EC Diffie-Hellman.
- */
-static const struct GNUNET_CRYPTO_EcdhePrivateKey *
-get_private_ecdhe_from_eddsa (const struct GNUNET_CRYPTO_EddsaPrivateKey *k)
-{
-  return (const struct GNUNET_CRYPTO_EcdhePrivateKey *) k;
-}
-
-
-/**
- * WARNING! DANGER! Do not use this if you don't know what you are doing!
- * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
- *
- * Transform a public EdDSA key (peer's key) into a key usable by DH.
- *
- * @param k Public EdDSA key to transform (peer's ID).
- *
- * @return Public key for EC Diffie-Hellman.
- */
-static const struct GNUNET_CRYPTO_EcdhePublicKey *
-get_public_ecdhe_from_id (const struct GNUNET_PeerIdentity *id)
-{
-  return (const struct GNUNET_CRYPTO_EcdhePublicKey *) id;
-}
-
-
-/**
  * Handle Axolotl handshake.
  *
  * @param t Tunnel this message came on.
@@ -2378,7 +2387,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   const struct GNUNET_CRYPTO_EcdhePrivateKey *priv;
   const char salt[] = "CADET Axolotl salt";
   const struct GNUNET_PeerIdentity *pid;
-  int is_alice;
+  int am_I_alice;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== AX_KX on %s\n", GCT_2s (t));
 
@@ -2390,44 +2399,51 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     return;
   }
 
+  if (GNUNET_OK != GCP_check_key (t->peer, &msg->permanent_key,
+                                  &msg->purpose, &msg->signature))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
   pid = GCT_get_destination (t);
   if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
-    is_alice = GNUNET_YES;
+    am_I_alice = GNUNET_YES;
   else if (0 < GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
-    is_alice = GNUNET_NO;
+    am_I_alice = GNUNET_NO;
   else
   {
     GNUNET_break_op (0);
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", is_alice ? "YES" : "NO");
+  LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", am_I_alice ? "YES" : "NO");
 
   ax = t->ax;
   ax->DHRr = msg->ratchet_key;
 
   /* ECDH A B0 */
-  if (GNUNET_YES == is_alice)
+  if (GNUNET_YES == am_I_alice)
   {
-    priv = get_private_ecdhe_from_eddsa (my_private_key);       /* A */
+    priv = ax_key;                                              /* A */
     pub = &msg->ephemeral_key;                                  /* B0 */
   }
   else
   {
     priv = ax->kx_0;                                            /* B0 */
-    pub = get_public_ecdhe_from_id (pid);                       /* A */
+    pub = &msg->permanent_key;                                  /* A */
   }
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[0]);
 
   /* ECDH A0 B */
-  if (GNUNET_YES == is_alice)
+  if (GNUNET_YES == am_I_alice)
   {
     priv = ax->kx_0;                                            /* A0 */
-    pub = get_public_ecdhe_from_id (pid);                       /* B */
+    pub = &msg->permanent_key;                                  /* B */
   }
   else
   {
-    priv = get_private_ecdhe_from_eddsa (my_private_key);       /* B */
+    priv = ax_key;                                              /* B */
     pub = &msg->ephemeral_key;                                  /* A0 */
   }
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[1]);
@@ -2449,10 +2465,10 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   /* KDF */
   GNUNET_CRYPTO_kdf (keys, sizeof (keys),
                      salt, sizeof (salt),
-                     key_material, sizeof (key_material), NULL);
+                     &key_material, sizeof (key_material), NULL);
 
   ax->RK = keys[0];
-  if (GNUNET_YES == is_alice)
+  if (GNUNET_YES == am_I_alice)
   {
     ax->HKr = keys[1];
     ax->NHKs = keys[2];
@@ -2632,7 +2648,6 @@ GCT_handle_kx (struct CadetTunnel *t,
   }
 }
 
-
 /**
  * Initialize the tunnel subsystem.
  *
@@ -2668,14 +2683,23 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
     rekey_period = GNUNET_TIME_UNIT_DAYS;
   }
 
-  my_private_key = key;
+  id_key = key;
 
-  kx_msg.header.size = htons (sizeof (kx_msg));
-  kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL);
-  kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_KX);
-  kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
-  kx_msg.origin_identity = my_full_id;
+  otr_kx_msg.header.size = htons (sizeof (otr_kx_msg));
+  otr_kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL);
+  otr_kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_KX);
+  otr_kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
+  otr_kx_msg.origin_identity = my_full_id;
   rekey_task = GNUNET_SCHEDULER_add_now (&global_otr_rekey, NULL);
+
+  ax_key = GNUNET_CRYPTO_ecdhe_key_create ();
+  GNUNET_CRYPTO_ecdhe_key_get_public (ax_key, &ax_identity.permanent_key);
+  ax_identity.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_AXKX);
+  ax_identity.purpose.size = htonl (ax_purpose_size ());
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_eddsa_sign (id_key,
+                                           &ax_identity.purpose,
+                                           &ax_identity.signature));
 
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
 }
@@ -2694,6 +2718,7 @@ GCT_shutdown (void)
   }
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &destroy_iterator, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (tunnels);
+  GNUNET_free (ax_key);
 }
 
 
@@ -3660,6 +3685,9 @@ GCT_send_ax_kx (struct CadetTunnel *t)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
+  msg.permanent_key = ax_identity.permanent_key;
+  msg.purpose = ax_identity.purpose;
+  msg.signature = ax_identity.signature;
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
@@ -3822,7 +3850,7 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
         t->kx_ctx, t->rekey_task, t->kx_ctx ? t->kx_ctx->finish_task : 0);
 #if DUMP_KEYS_TO_STDERR
   LOG2 (level, "TTT  my EPHM\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
+        GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
   LOG2 (level, "TTT  peers EPHM:\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
   LOG2 (level, "TTT  ENC key:\t %s\n",
