@@ -1026,7 +1026,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  CKs: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKs));
-  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC with key %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC with key %u: %s\n", ax->Ns,
        GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
   #endif
 
@@ -1068,7 +1068,7 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  CKr: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKr));
-  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with key %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with key %u: %s\n", ax->Nr,
        GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
   #endif
 
@@ -1346,8 +1346,10 @@ store_ax_keys (struct CadetTunnel *t,
 {
   struct CadetTunnelSkippedKey *key;
   unsigned int i;
+  int gap;
 
-  if (Np - Nr > MAX_KEY_GAP)
+  gap = Np - Nr;
+  if (MAX_KEY_GAP < gap || 0 > gap)
   {
     /* Avoid DoS (forcing peer to do 2*33 chain HMAC operations) */
     /* TODO: start new key exchange on return */
@@ -1452,10 +1454,10 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
     PNp = ntohl (dstmsg->PNs);
   }
 
-  if (Np > ax->Nr + 1)
+  if (Np > ax->Nr)
     store_ax_keys (t, &ax->HKr, ax->Nr, Np, &ax->CKr);
 
-  ax->Nr = Np;
+  ax->Nr = Np + 1;
 
   osize = t_ax_decrypt (t, dst, &src[1], esize);
   if (osize != esize)
