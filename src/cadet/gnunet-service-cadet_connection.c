@@ -2118,7 +2118,7 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 static int
 check_message (const struct GNUNET_MessageHeader *message,
                size_t minimum_size,
-               struct GNUNET_CADET_Hash* cid,
+               const struct GNUNET_CADET_Hash* cid,
                struct CadetConnection *c,
                const struct GNUNET_PeerIdentity *neighbor,
                uint32_t pid)
@@ -2230,7 +2230,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_CADET_Encrypted *msg;
-  struct GNUNET_CADET_Hash* cid;
+  const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
   size_t expected_size;
   uint32_t pid;
