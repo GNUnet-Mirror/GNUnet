@@ -2875,7 +2875,7 @@ GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c)
   GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, aux);
 
   if (CADET_TUNNEL_SEARCHING == t->cstate)
-    GCT_change_estate (t, CADET_TUNNEL_WAITING);
+    GCT_change_cstate (t, CADET_TUNNEL_WAITING);
 
   if (NULL != t->trim_connections_task)
     t->trim_connections_task = GNUNET_SCHEDULER_add_now (&trim_connections, t);
