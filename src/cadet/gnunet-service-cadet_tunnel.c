@@ -849,6 +849,14 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
 }
 
 
+/**
+ * Generate a new key with a HMAC mechanism from the existing chain key.
+ *
+ * @param ax Axolotl context.
+ * @param key[out] Derived key.
+ * @param source Source key material (data to HMAC).
+ * @param len Length of @a source.
+ */
 void
 t_ax_hmac_hash (struct CadetTunnelAxolotl *ax,
                 struct GNUNET_CRYPTO_SymmetricSessionKey *key,
@@ -866,6 +874,7 @@ t_ax_hmac_hash (struct CadetTunnelAxolotl *ax,
                      ctx, sizeof (ctx),
                      &hash, sizeof (hash));
 }
+
 
 /**
  * Encrypt daforce_newest_keyta with the tunnel key.
@@ -897,16 +906,16 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   t_ax_hmac_hash (ax, &MK, "0", 1);
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
 
-
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  ENC with key %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
   #endif
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
+
   out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &MK, &iv, dst);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt end\n");
 
   t_ax_hmac_hash (ax, &ax->CKs, "1", 1);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt end\n");
 
   return out_size;
 }
