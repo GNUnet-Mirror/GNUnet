@@ -166,6 +166,13 @@ GC_m2s (uint16_t m)
       break;
 
       /**
+       * Axolotl key exchange message.
+       */
+    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
+      t = "AX_KX";
+      break;
+
+      /**
        * New ephemeral key.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
