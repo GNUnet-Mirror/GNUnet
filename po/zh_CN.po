@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-03-14 18:00+0100\n"
+"POT-Creation-Date: 2015-04-27 13:05+0200\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -496,16 +496,16 @@ msgstr ""
 msgid "Could not connect master [%u] and slave [%u]\n"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/ats-tests/ats-testing.c:490 src/ats-tests/ats-testing.c:662
+#: src/ats-tests/ats-testing.c:490 src/ats-tests/ats-testing.c:634
 #, fuzzy
 msgid "Initialization failed, shutdown\n"
 msgstr "插件机构初始化失败：%s！\n"
 
-#: src/ats-tests/ats-testing-log.c:846
+#: src/ats-tests/ats-testing-log.c:834
 msgid "Stop logging\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing-log.c:897
+#: src/ats-tests/ats-testing-log.c:885
 #, fuzzy, c-format
 msgid "Start logging `%s'\n"
 msgstr "未知的命令“%s”。\n"
@@ -553,6 +553,7 @@ msgid "Quota for network `%11s' (in/out): %10s / %10s\n"
 msgstr ""
 
 #: src/ats-tool/gnunet-ats.c:708 src/namestore/gnunet-namestore.c:700
+#: src/namestore/plugin_rest_namestore.c:812
 #: src/transport/gnunet-transport.c:1890
 #: src/transport/gnunet-transport-profiler.c:531
 #, fuzzy, c-format
@@ -1402,29 +1403,29 @@ msgstr ""
 msgid "# PAYLOAD dropped (out of order)"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:168
+#: src/core/gnunet-service-core_neighbours.c:177
 msgid "# sessions terminated by transport disconnect"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:184
-#: src/core/gnunet-service-core_neighbours.c:342
+#: src/core/gnunet-service-core_neighbours.c:193
+#: src/core/gnunet-service-core_neighbours.c:355
 msgid "# neighbour entries allocated"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:252
+#: src/core/gnunet-service-core_neighbours.c:264
 msgid "# encrypted bytes given to transport"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:425
+#: src/core/gnunet-service-core_neighbours.c:438
 #, c-format
 msgid "Unsupported message of type %u (%u bytes) received from peer `%s'\n"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:245
-#: src/core/gnunet-service-core_sessions.c:331
+#: src/core/gnunet-service-core_sessions.c:252
+#: src/core/gnunet-service-core_sessions.c:338
 #: src/dht/gnunet-service-dht_neighbours.c:661
 #: src/dht/gnunet-service-dht_neighbours.c:726
-#: src/fs/gnunet-service-fs_cp.c:645 src/fs/gnunet-service-fs_cp.c:1627
+#: src/fs/gnunet-service-fs_cp.c:654 src/fs/gnunet-service-fs_cp.c:1647
 #: src/topology/gnunet-daemon-topology.c:734
 #: src/topology/gnunet-daemon-topology.c:835
 #: src/transport/gnunet-service-transport_neighbours.c:755
@@ -1432,21 +1433,21 @@ msgstr ""
 msgid "# peers connected"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:278
+#: src/core/gnunet-service-core_sessions.c:285
 msgid "# type map refreshes sent"
 msgstr ""
 
-#: src/core/gnunet-service-core_sessions.c:397
+#: src/core/gnunet-service-core_sessions.c:404
 #, fuzzy
 msgid "# outdated typemap confirmations received"
 msgstr "保存配置失败。"
 
-#: src/core/gnunet-service-core_sessions.c:408
+#: src/core/gnunet-service-core_sessions.c:415
 #, fuzzy
 msgid "# valid typemap confirmations received"
 msgstr "保存配置失败。"
 
-#: src/core/gnunet-service-core_sessions.c:546
+#: src/core/gnunet-service-core_sessions.c:554
 msgid "# messages discarded (expired prior to transmission)"
 msgstr ""
 
@@ -1460,7 +1461,7 @@ msgid "# updates to my type map"
 msgstr ""
 
 #: src/datacache/datacache.c:115 src/datacache/datacache.c:266
-#: src/datastore/gnunet-service-datastore.c:855
+#: src/datastore/gnunet-service-datastore.c:841
 msgid "# bytes stored"
 msgstr ""
 
@@ -1469,8 +1470,8 @@ msgid "# items stored"
 msgstr ""
 
 #: src/datacache/datacache.c:143 src/datacache/datacache.c:150
-#: src/datastore/gnunet-service-datastore.c:1557
-#: src/datastore/gnunet-service-datastore.c:1568
+#: src/datastore/gnunet-service-datastore.c:1598
+#: src/datastore/gnunet-service-datastore.c:1609
 #, c-format
 msgid "No `%s' specified for `%s' in configuration!\n"
 msgstr ""
@@ -1504,8 +1505,8 @@ msgstr ""
 
 #: src/datacache/plugin_datacache_sqlite.c:69
 #: src/datacache/plugin_datacache_sqlite.c:72
-#: src/datastore/plugin_datastore_mysql.c:809
-#: src/datastore/plugin_datastore_mysql.c:823
+#: src/datastore/plugin_datastore_mysql.c:818
+#: src/datastore/plugin_datastore_mysql.c:834
 #: src/datastore/plugin_datastore_sqlite.c:57 src/mysql/mysql.c:41
 #: src/mysql/mysql.c:48 src/mysql/mysql.c:522 src/mysql/mysql.c:531
 #: src/mysql/mysql.c:591 src/mysql/mysql.c:607
@@ -1697,8 +1698,8 @@ msgstr ""
 
 #: src/datastore/gnunet-service-datastore.c:712
 #: src/datastore/gnunet-service-datastore.c:767
-#: src/datastore/gnunet-service-datastore.c:982
-#: src/datastore/gnunet-service-datastore.c:1529
+#: src/datastore/gnunet-service-datastore.c:999
+#: src/datastore/gnunet-service-datastore.c:1570
 msgid "# reserved"
 msgstr ""
 
@@ -1706,130 +1707,145 @@ msgstr ""
 msgid "Could not find matching reservation"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:867
+#: src/datastore/gnunet-service-datastore.c:853
 #, c-format
 msgid "Need %llu bytes more space (%llu allowed, using %llu)\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1029
+#: src/datastore/gnunet-service-datastore.c:1046
 msgid "# GET requests received"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1041
+#: src/datastore/gnunet-service-datastore.c:1058
 msgid "# requests filtered by bloomfilter"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1069
+#: src/datastore/gnunet-service-datastore.c:1094
 msgid "# UPDATE requests received"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1099
+#: src/datastore/gnunet-service-datastore.c:1122
 msgid "# GET REPLICATION requests received"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1132
+#: src/datastore/gnunet-service-datastore.c:1155
 msgid "# GET ZERO ANONYMITY requests received"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1157
+#: src/datastore/gnunet-service-datastore.c:1180
 msgid "Content not found"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1165
+#: src/datastore/gnunet-service-datastore.c:1188
 msgid "# bytes removed (explicit request)"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1197
+#: src/datastore/gnunet-service-datastore.c:1220
 msgid "# REMOVE requests received"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1241
+#: src/datastore/gnunet-service-datastore.c:1264
 #, c-format
 msgid ""
 "Datastore payload must have been inaccurate (%lld < %lld). Recomputing it.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1246
+#: src/datastore/gnunet-service-datastore.c:1269
 #, c-format
 msgid "New payload: %lld\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1299
+#: src/datastore/gnunet-service-datastore.c:1322
 #, c-format
 msgid "Loading `%s' datastore plugin\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1310
+#: src/datastore/gnunet-service-datastore.c:1333
 #, fuzzy, c-format
 msgid "Failed to load datastore plugin for `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/datastore/gnunet-service-datastore.c:1412
-msgid "Rebuilding bloomfilter.  Please be patient.\n"
-msgstr ""
-
-#: src/datastore/gnunet-service-datastore.c:1419
-msgid "Plugin does not support get_keys function. Please fix!\n"
-msgstr ""
-
-#: src/datastore/gnunet-service-datastore.c:1422
+#: src/datastore/gnunet-service-datastore.c:1402
+#: src/datastore/gnunet-service-datastore.c:1463
 msgid "Bloomfilter construction complete.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1562
+#: src/datastore/gnunet-service-datastore.c:1450
+msgid "Rebuilding bloomfilter.  Please be patient.\n"
+msgstr ""
+
+#: src/datastore/gnunet-service-datastore.c:1460
+msgid "Plugin does not support get_keys function. Please fix!\n"
+msgstr ""
+
+#: src/datastore/gnunet-service-datastore.c:1603
 #, c-format
 msgid "# bytes used in file-sharing datastore `%s'"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1573
+#: src/datastore/gnunet-service-datastore.c:1614
 msgid "# quota"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1575
+#: src/datastore/gnunet-service-datastore.c:1616
 msgid "# cache size"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1588
+#: src/datastore/gnunet-service-datastore.c:1629
 #, c-format
 msgid "Could not use specified filename `%s' for bloomfilter.\n"
 msgstr ""
 
-#: src/datastore/gnunet-service-datastore.c:1606
-#: src/datastore/gnunet-service-datastore.c:1622
+#: src/datastore/gnunet-service-datastore.c:1647
+#: src/datastore/gnunet-service-datastore.c:1663
 #, fuzzy, c-format
 msgid "Failed to remove bogus bloomfilter file `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/datastore/gnunet-service-datastore.c:1652
+#: src/datastore/gnunet-service-datastore.c:1693
 #, fuzzy
 msgid "Failed to initialize bloomfilter.\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/datastore/plugin_datastore_heap.c:821
+#: src/datastore/plugin_datastore_heap.c:826
 #, fuzzy
 msgid "Heap database running\n"
 msgstr "sqlite 数据仓库"
 
-#: src/datastore/plugin_datastore_mysql.c:786
+#: src/datastore/plugin_datastore_mysql.c:309
+#: src/datastore/plugin_datastore_sqlite.c:499
+#, fuzzy
+msgid "Data too large"
+msgstr "迭代次数"
+
+#: src/datastore/plugin_datastore_mysql.c:328
+msgid "MySQL statement run failure"
+msgstr ""
+
+#: src/datastore/plugin_datastore_mysql.c:793
 #, fuzzy, c-format
 msgid "Failed to prepare statement `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/datastore/plugin_datastore_mysql.c:794
+#: src/datastore/plugin_datastore_mysql.c:802
 #, fuzzy, c-format
 msgid "`%s' for `%s' failed at %s:%d with error: %s\n"
 msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
 
-#: src/datastore/plugin_datastore_mysql.c:1025
+#: src/datastore/plugin_datastore_mysql.c:1036
 msgid "Mysql database running\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_postgres.c:837
+#: src/datastore/plugin_datastore_postgres.c:331
+msgid "Postgress exec failure"
+msgstr ""
+
+#: src/datastore/plugin_datastore_postgres.c:846
 #, fuzzy
 msgid "Failed to drop table from database.\n"
 msgstr "发送消息失败。\n"
 
-#: src/datastore/plugin_datastore_postgres.c:873
+#: src/datastore/plugin_datastore_postgres.c:882
 #: src/namecache/plugin_namecache_postgres.c:414
 #: src/namestore/plugin_namestore_postgres.c:569
 msgid "Postgres database running\n"
@@ -1852,30 +1868,30 @@ msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
 msgid "Unable to initialize SQLite: %s.\n"
 msgstr "无法初始化 SQLite：%s。\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:661
+#: src/datastore/plugin_datastore_sqlite.c:680
 #, fuzzy
 msgid "Invalid data in database.  Trying to fix (by deletion).\n"
 msgstr "%s 中有无效数据。请尝试修复(删除之)。\n"
 
-#: src/datastore/plugin_datastore_sqlite.c:1156
+#: src/datastore/plugin_datastore_sqlite.c:1177
 msgid "sqlite version to old to determine size, assuming zero\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1176
+#: src/datastore/plugin_datastore_sqlite.c:1197
 #, c-format
 msgid ""
 "Using sqlite page utilization to estimate payload (%llu pages of size %llu "
 "bytes)\n"
 msgstr ""
 
-#: src/datastore/plugin_datastore_sqlite.c:1216
+#: src/datastore/plugin_datastore_sqlite.c:1237
 #: src/namecache/plugin_namecache_sqlite.c:580
 #: src/namestore/plugin_namestore_sqlite.c:716
 #, fuzzy
 msgid "Sqlite database running\n"
 msgstr "sqlite 数据仓库"
 
-#: src/datastore/plugin_datastore_template.c:259
+#: src/datastore/plugin_datastore_template.c:260
 msgid "Template database running\n"
 msgstr ""
 
@@ -2476,52 +2492,52 @@ msgstr ""
 msgid "Change DNS replies to point elsewhere."
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:456
+#: src/dns/gnunet-service-dns.c:459
 msgid "# DNS requests answered via TUN interface"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:603
+#: src/dns/gnunet-service-dns.c:606
 msgid "# DNS exit failed (failed to open socket)"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:714
+#: src/dns/gnunet-service-dns.c:717
 msgid "# External DNS response discarded (no matching request)"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:792
+#: src/dns/gnunet-service-dns.c:795
 msgid "# Client response discarded (no matching request)"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:907
+#: src/dns/gnunet-service-dns.c:910
 msgid "Received malformed IPv4-UDP packet on TUN interface.\n"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:923
+#: src/dns/gnunet-service-dns.c:926
 msgid "Received malformed IPv6-UDP packet on TUN interface.\n"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:932
+#: src/dns/gnunet-service-dns.c:935
 #, c-format
 msgid "Got non-IP packet with %u bytes and protocol %u from TUN\n"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:942
+#: src/dns/gnunet-service-dns.c:945
 msgid "# Non-DNS UDP packet received via TUN interface"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:1009
+#: src/dns/gnunet-service-dns.c:1012
 msgid "# DNS requests received via TUN interface"
 msgstr ""
 
-#: src/dns/gnunet-service-dns.c:1049
-#, c-format
-msgid "`%s' must be installed SUID, refusing to run\n"
-msgstr ""
-
-#: src/dns/gnunet-service-dns.c:1069 src/exit/gnunet-daemon-exit.c:3594
+#: src/dns/gnunet-service-dns.c:1064 src/exit/gnunet-daemon-exit.c:3594
 #, fuzzy
 msgid "need a valid IPv4 or IPv6 address\n"
 msgstr "无效的进程优先级“%s”\n"
+
+#: src/dns/gnunet-service-dns.c:1082
+#, c-format
+msgid "`%s' must be installed SUID, will not run DNS interceptor\n"
+msgstr ""
 
 #: src/dv/gnunet-dv.c:169
 msgid "verbose output"
@@ -2747,52 +2763,52 @@ msgstr ""
 msgid "Daemon to run to provide an IP exit node for the VPN"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:271
+#: src/fragmentation/defragmentation.c:277
 msgid "# acknowledgements sent for fragment"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:463
+#: src/fragmentation/defragmentation.c:470
 #: src/transport/plugin_transport_wlan.c:1515
 msgid "# fragments received"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:533
+#: src/fragmentation/defragmentation.c:540
 msgid "# duplicate fragments received"
 msgstr ""
 
-#: src/fragmentation/defragmentation.c:549
+#: src/fragmentation/defragmentation.c:558
 msgid "# messages defragmented"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:234
+#: src/fragmentation/fragmentation.c:235
 msgid "# fragments transmitted"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:237
+#: src/fragmentation/fragmentation.c:240
 msgid "# fragments retransmitted"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:263
+#: src/fragmentation/fragmentation.c:269
 msgid "# fragments wrap arounds"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:307
+#: src/fragmentation/fragmentation.c:315
 msgid "# messages fragmented"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:310
+#: src/fragmentation/fragmentation.c:321
 msgid "# total size of fragmented messages"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:431
+#: src/fragmentation/fragmentation.c:444
 msgid "# fragment acknowledgements received"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:437
+#: src/fragmentation/fragmentation.c:451
 msgid "# bits removed from fragmentation ACKs"
 msgstr ""
 
-#: src/fragmentation/fragmentation.c:461
+#: src/fragmentation/fragmentation.c:475
 msgid "# fragmentation transmissions completed"
 msgstr ""
 
@@ -3055,58 +3071,58 @@ msgstr "运行 %s失败：%s %d\n"
 msgid "Got result with unknown block type `%d', ignoring"
 msgstr ""
 
-#: src/fs/fs_unindex.c:59
+#: src/fs/fs_unindex.c:63
 msgid "Failed to find given position in file"
 msgstr ""
 
-#: src/fs/fs_unindex.c:64
+#: src/fs/fs_unindex.c:68
 #, fuzzy
 msgid "Failed to read file"
 msgstr "发送消息失败。\n"
 
-#: src/fs/fs_unindex.c:234
+#: src/fs/fs_unindex.c:245
 msgid "Unexpected time for a response from `fs' service."
 msgstr ""
 
-#: src/fs/fs_unindex.c:242
+#: src/fs/fs_unindex.c:253
 msgid "Timeout waiting for `fs' service."
 msgstr ""
 
-#: src/fs/fs_unindex.c:250
+#: src/fs/fs_unindex.c:261
 #, fuzzy
 msgid "Invalid response from `fs' service."
 msgstr "“%s”的参数无效。\n"
 
-#: src/fs/fs_unindex.c:291
+#: src/fs/fs_unindex.c:304
 msgid "Failed to connect to FS service for unindexing."
 msgstr ""
 
-#: src/fs/fs_unindex.c:347 src/fs/fs_unindex.c:359
+#: src/fs/fs_unindex.c:360 src/fs/fs_unindex.c:372
 #, fuzzy
 msgid "Failed to get KSKs from directory scan."
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_unindex.c:355
+#: src/fs/fs_unindex.c:368
 #, fuzzy, c-format
 msgid "Internal error scanning `%s'.\n"
 msgstr "未知错误。\n"
 
-#: src/fs/fs_unindex.c:414
+#: src/fs/fs_unindex.c:427
 #, fuzzy, c-format
 msgid "Failed to remove UBlock: %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_unindex.c:562 src/fs/fs_unindex.c:626
+#: src/fs/fs_unindex.c:590 src/fs/fs_unindex.c:656
 #, fuzzy
 msgid "Failed to connect to `datastore' service."
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/fs/fs_unindex.c:639
+#: src/fs/fs_unindex.c:669
 #, fuzzy
 msgid "Failed to open file for unindexing."
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_unindex.c:673
+#: src/fs/fs_unindex.c:708
 msgid "Failed to compute hash of file."
 msgstr ""
 
@@ -3678,88 +3694,88 @@ msgstr ""
 "\n"
 "按任意键继续\n"
 
-#: src/fs/gnunet-service-fs_cp.c:726
+#: src/fs/gnunet-service-fs_cp.c:735
 msgid "# migration stop messages received"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:730
+#: src/fs/gnunet-service-fs_cp.c:739
 #, c-format
 msgid "Migration of content to peer `%s' blocked for %s\n"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:768
+#: src/fs/gnunet-service-fs_cp.c:776
 msgid "# replies transmitted to other peers"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:774
+#: src/fs/gnunet-service-fs_cp.c:784
 msgid "# replies dropped"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:799 src/fs/gnunet-service-fs_cp.c:1384
+#: src/fs/gnunet-service-fs_cp.c:810 src/fs/gnunet-service-fs_cp.c:1404
 msgid "# P2P searches active"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:904
+#: src/fs/gnunet-service-fs_cp.c:915
 msgid "# artificial delays introduced (ms)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:960
+#: src/fs/gnunet-service-fs_cp.c:971
 msgid "# replies dropped due to type mismatch"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:968
+#: src/fs/gnunet-service-fs_cp.c:979
 msgid "# replies received for other peers"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:982
+#: src/fs/gnunet-service-fs_cp.c:993
 msgid "# replies dropped due to insufficient cover traffic"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1030
+#: src/fs/gnunet-service-fs_cp.c:1041
 msgid "# P2P searches destroyed due to ultimate reply"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1098
+#: src/fs/gnunet-service-fs_cp.c:1109
 msgid "# requests done for free (low load)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1123
+#: src/fs/gnunet-service-fs_cp.c:1134
 msgid "# request dropped, priority insufficient"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1133
+#: src/fs/gnunet-service-fs_cp.c:1144
 msgid "# requests done for a price (normal load)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1210
+#: src/fs/gnunet-service-fs_cp.c:1221
 msgid "# GET requests received (from other peers)"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1245
+#: src/fs/gnunet-service-fs_cp.c:1256
 msgid "# requests dropped due to initiator not being connected"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1266
+#: src/fs/gnunet-service-fs_cp.c:1277
 msgid "# requests dropped due to missing reverse route"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1277
+#: src/fs/gnunet-service-fs_cp.c:1288
 msgid "# requests dropped due to full reply queue"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1329
+#: src/fs/gnunet-service-fs_cp.c:1340
 msgid "# requests dropped due TTL underflow"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1353
+#: src/fs/gnunet-service-fs_cp.c:1365
 msgid "# requests dropped due to higher-TTL request"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1382
+#: src/fs/gnunet-service-fs_cp.c:1402
 msgid "# P2P query messages received and processed"
 msgstr ""
 
-#: src/fs/gnunet-service-fs_cp.c:1821
+#: src/fs/gnunet-service-fs_cp.c:1841
 msgid "# migration stop messages sent"
 msgstr ""
 
@@ -4082,7 +4098,7 @@ msgstr ""
 msgid "GNUnet DNS-to-GNS proxy (a DNS server)"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:215
+#: src/gns/gnunet-gns.c:215 src/gns/plugin_rest_gns.c:334
 #, c-format
 msgid "Invalid typename specified, assuming `ANY'\n"
 msgstr ""
@@ -4098,6 +4114,7 @@ msgid "Ego for `%s' not found, cannot perform lookup.\n"
 msgstr ""
 
 #: src/gns/gnunet-gns.c:353 src/gns/gnunet-gns-helper-service-w32.c:798
+#: src/gns/plugin_rest_gns.c:459
 #, c-format
 msgid ""
 "Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-"
@@ -4235,7 +4252,7 @@ msgstr "无法保存配置文件“%s”："
 msgid "Failed to start HTTPS server for `%s'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns-proxy.c:2225
+#: src/gns/gnunet-gns-proxy.c:2225 src/rest/gnunet-rest-server.c:529
 #, fuzzy
 msgid "Failed to pass client to MHD\n"
 msgstr "初始化“%s”服务失败。\n"
@@ -4339,21 +4356,21 @@ msgstr ""
 msgid "GNS lookup resulted in DNS name that is too long (`%s')\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:1886
+#: src/gns/gnunet-service-gns_resolver.c:1891
 msgid "GNS lookup recursion failed (no delegation record found)\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:1910
+#: src/gns/gnunet-service-gns_resolver.c:1915
 #, fuzzy, c-format
 msgid "Failed to cache GNS resolution: %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/gns/gnunet-service-gns_resolver.c:2192
+#: src/gns/gnunet-service-gns_resolver.c:2197
 #, c-format
 msgid "Zone %s was revoked, resolution fails\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:2341
+#: src/gns/gnunet-service-gns_resolver.c:2346
 #, c-format
 msgid "Hostname `%s' is not well-formed, resolution fails\n"
 msgstr ""
@@ -4382,6 +4399,14 @@ msgstr "解析配置文件“%s”失败\n"
 #, fuzzy, c-format
 msgid "Unable to parse BOX record string `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
+
+#: src/gns/plugin_rest_gns.c:422
+msgid "Ego for not found, cannot perform lookup.\n"
+msgstr ""
+
+#: src/gns/plugin_rest_gns.c:652
+msgid "GNS REST API initialized\n"
+msgstr ""
 
 #: src/gnsrecord/plugin_gnsrecord_dns.c:291
 #, fuzzy, c-format
@@ -4899,6 +4924,10 @@ msgstr "解析配置文件“%s”失败\n"
 msgid "Failed to create directory `%s' for storing egos\n"
 msgstr "解析配置文件“%s”失败\n"
 
+#: src/identity/plugin_rest_identity.c:803
+msgid "Identity REST API initialized\n"
+msgstr ""
+
 #: src/mysql/mysql.c:174
 #, c-format
 msgid "Trying to use file `%s' for MySQL configuration.\n"
@@ -4924,9 +4953,9 @@ msgstr ""
 msgid "You must specify which zone should be accessed\n"
 msgstr "您必须指定一个昵称\n"
 
-#: src/namecache/gnunet-namecache.c:195 src/namestore/gnunet-namestore.c:844
+#: src/namecache/gnunet-namecache.c:195
 #, fuzzy, c-format
-msgid "Invalid public key for reverse lookup `%s'\n"
+msgid "Invalid public key for zone `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
 #: src/namecache/gnunet-namecache.c:203
@@ -4963,11 +4992,13 @@ msgid "Adding record failed: %s\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:332
+#: src/namestore/plugin_rest_namestore.c:505
 #, c-format
 msgid "Deleting record failed, record does not exist%s%s\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:339
+#: src/namestore/plugin_rest_namestore.c:514
 #, c-format
 msgid "Deleting record failed%s%s\n"
 msgstr ""
@@ -4985,6 +5016,7 @@ msgid "Records already exist under `%s', cannot add `%s' record.\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:628
+#: src/namestore/plugin_rest_namestore.c:538
 #, c-format
 msgid "There are no records under label `%s' that could be deleted.\n"
 msgstr ""
@@ -5002,6 +5034,7 @@ msgstr ""
 
 #: src/namestore/gnunet-namestore.c:719
 #: src/namestore/gnunet-namestore-fcfsd.c:984
+#: src/namestore/plugin_rest_namestore.c:821
 #, fuzzy
 msgid "Failed to connect to namestore\n"
 msgstr "初始化“%s”服务失败。\n"
@@ -5019,11 +5052,14 @@ msgid "add"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:745
+#: src/namestore/plugin_rest_namestore.c:608
 #, fuzzy, c-format
 msgid "Unsupported type `%s'\n"
 msgstr "未知的命令“%s”。\n"
 
 #: src/namestore/gnunet-namestore.c:765
+#: src/namestore/plugin_rest_namestore.c:626
+#: src/namestore/plugin_rest_namestore.c:666
 #, c-format
 msgid "Value `%s' invalid for record type `%s'\n"
 msgstr ""
@@ -5037,6 +5073,11 @@ msgstr "IP 格式无效：“%s”\n"
 msgid "del"
 msgstr ""
 
+#: src/namestore/gnunet-namestore.c:844
+#, fuzzy, c-format
+msgid "Invalid public key for reverse lookup `%s'\n"
+msgstr "“%s”的参数无效。\n"
+
 #: src/namestore/gnunet-namestore.c:868
 #: src/peerinfo-tool/gnunet-peerinfo.c:817
 #, fuzzy, c-format
@@ -5049,21 +5090,25 @@ msgid "Invalid nick `%s'\n"
 msgstr "无效条目。\n"
 
 #: src/namestore/gnunet-namestore.c:943
+#: src/namestore/plugin_rest_namestore.c:851
 #, c-format
 msgid "Ego `%s' not known to identity service\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:970
+#: src/namestore/plugin_rest_namestore.c:878
 #, c-format
 msgid "No default ego configured in identity service\n"
 msgstr ""
 
 #: src/namestore/gnunet-namestore.c:1006
+#: src/namestore/plugin_rest_namestore.c:917
 #, fuzzy, c-format
 msgid "Identity service is not running\n"
 msgstr "服务已删除。\n"
 
 #: src/namestore/gnunet-namestore.c:1018
+#: src/namestore/plugin_rest_namestore.c:946
 #, fuzzy, c-format
 msgid "Cannot connect to identity service\n"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -5193,6 +5238,10 @@ msgstr "发送消息失败。\n"
 
 #: src/namestore/namestore_api.c:275
 msgid "Namestore failed to store record\n"
+msgstr ""
+
+#: src/namestore/plugin_rest_namestore.c:1023
+msgid "Namestore REST API initialized\n"
 msgstr ""
 
 #: src/nat/gnunet-nat-server.c:279
@@ -5439,7 +5488,7 @@ msgid "Measure quality and performance of the NSE service."
 msgstr "无法访问该服务"
 
 #: src/nse/gnunet-service-nse.c:1537
-#: src/revocation/gnunet-service-revocation.c:815 src/util/gnunet-scrypt.c:260
+#: src/revocation/gnunet-service-revocation.c:827 src/util/gnunet-scrypt.c:260
 #, fuzzy
 msgid "Value is too large.\n"
 msgstr "值不在合法范围内。"
@@ -5970,6 +6019,15 @@ msgstr ""
 msgid "Regex `%s' is too long!\n"
 msgstr "服务已删除。\n"
 
+#: src/rest/gnunet-rest-server.c:766
+msgid "listen on specified port (default: 7776)"
+msgstr ""
+
+#: src/rest/gnunet-rest-server.c:783
+#, fuzzy
+msgid "GNUnet REST server"
+msgstr "GNUnet 错误日志"
+
 #: src/revocation/gnunet-revocation.c:126
 #, c-format
 msgid "Key `%s' is valid\n"
@@ -6098,11 +6156,11 @@ msgid "# revocation set unions completed"
 msgstr ""
 
 #: src/revocation/gnunet-service-revocation.c:493
-#: src/revocation/gnunet-service-revocation.c:747
+#: src/revocation/gnunet-service-revocation.c:759
 msgid "SET service crashed, terminating revocation service\n"
 msgstr ""
 
-#: src/revocation/gnunet-service-revocation.c:839
+#: src/revocation/gnunet-service-revocation.c:851
 #, fuzzy
 msgid "Could not open revocation database file!"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -7795,7 +7853,7 @@ msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_server.c:2825
-#: src/transport/plugin_transport_udp.c:3336
+#: src/transport/plugin_transport_udp.c:3335
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
@@ -8026,50 +8084,50 @@ msgstr ""
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3082
+#: src/transport/plugin_transport_udp.c:3081
 #, c-format
 msgid ""
 "UDP could not transmit message to `%s': Network seems down, please check "
 "your network configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3096
+#: src/transport/plugin_transport_udp.c:3095
 msgid ""
 "UDP could not transmit IPv6 message! Please check your network configuration "
 "and disable IPv6 if your connection does not have a global IPv6 address\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3412
-#: src/transport/plugin_transport_udp.c:3511
+#: src/transport/plugin_transport_udp.c:3411
+#: src/transport/plugin_transport_udp.c:3510
 #, fuzzy, c-format
 msgid "Failed to bind UDP socket to %s: %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/plugin_transport_udp.c:3430
+#: src/transport/plugin_transport_udp.c:3429
 msgid "Disabling IPv4 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3521
+#: src/transport/plugin_transport_udp.c:3520
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/plugin_transport_udp.c:3592
-#: src/transport/plugin_transport_udp.c:3606
+#: src/transport/plugin_transport_udp.c:3591
+#: src/transport/plugin_transport_udp.c:3605
 msgid "must be in [0,65535]"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3638
+#: src/transport/plugin_transport_udp.c:3637
 #, fuzzy
 msgid "must be valid IPv4 address"
 msgstr "“%s”不可用。\n"
 
-#: src/transport/plugin_transport_udp.c:3665
+#: src/transport/plugin_transport_udp.c:3664
 #, fuzzy
 msgid "must be valid IPv6 address"
 msgstr "“%s”不可用。\n"
 
-#: src/transport/plugin_transport_udp.c:3731
+#: src/transport/plugin_transport_udp.c:3730
 #, fuzzy
 msgid "Failed to create UDP network sockets\n"
 msgstr "发送消息失败。\n"
@@ -8280,24 +8338,24 @@ msgstr "配置不满足配置规范文件“%s”的约束！\n"
 msgid "Syntax error while deserializing in line %u\n"
 msgstr "配置文件“%s”第 %d 行有语法错误。\n"
 
-#: src/util/configuration.c:1026
+#: src/util/configuration.c:1025
 #, c-format
 msgid ""
 "Configuration value '%s' for '%s' in section '%s' is not in set of legal "
 "choices\n"
 msgstr ""
 
-#: src/util/configuration.c:1145
+#: src/util/configuration.c:1144
 #, c-format
 msgid "Recursive expansion suspected, aborting $-expansion for term `%s'\n"
 msgstr ""
 
-#: src/util/configuration.c:1177
+#: src/util/configuration.c:1176
 #, fuzzy, c-format
 msgid "Missing closing `%s' in option `%s'\n"
 msgstr "配置文件“%s”已写入。\n"
 
-#: src/util/configuration.c:1251
+#: src/util/configuration.c:1250
 #, c-format
 msgid ""
 "Failed to expand `%s' in `%s' as it is neither found in [PATHS] nor defined "
@@ -8321,52 +8379,52 @@ msgid ""
 "%llu)\n"
 msgstr ""
 
-#: src/util/crypto_ecc.c:731 src/util/crypto_ecc.c:769
-#: src/util/crypto_ecc.c:887 src/util/crypto_ecc.c:925
+#: src/util/crypto_ecc.c:733 src/util/crypto_ecc.c:771
+#: src/util/crypto_ecc.c:889 src/util/crypto_ecc.c:927
 #, fuzzy, c-format
 msgid "Could not acquire lock on file `%s': %s...\n"
 msgstr "无法解析“%s”(%s)：%s\n"
 
-#: src/util/crypto_ecc.c:736 src/util/crypto_ecc.c:892
+#: src/util/crypto_ecc.c:738 src/util/crypto_ecc.c:894
 #, fuzzy
 msgid "Creating a new private key.  This may take a while.\n"
 msgstr "正在启动数据仓库转换(可能需要一段时间)。\n"
 
-#: src/util/crypto_ecc.c:773 src/util/crypto_ecc.c:929
+#: src/util/crypto_ecc.c:775 src/util/crypto_ecc.c:931
 msgid "This may be ok if someone is currently generating a private key.\n"
 msgstr ""
 
-#: src/util/crypto_ecc.c:803 src/util/crypto_ecc.c:959
+#: src/util/crypto_ecc.c:805 src/util/crypto_ecc.c:961
 #, c-format
 msgid ""
 "When trying to read key file `%s' I found %u bytes but I need at least %u.\n"
 msgstr ""
 
-#: src/util/crypto_ecc.c:807 src/util/crypto_ecc.c:963
+#: src/util/crypto_ecc.c:809 src/util/crypto_ecc.c:965
 msgid "This may be ok if someone is currently generating a key.\n"
 msgstr ""
 
-#: src/util/crypto_ecc.c:1045
+#: src/util/crypto_ecc.c:1047
 #, fuzzy
 msgid "Could not load peer's private key\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/util/crypto_ecc.c:1149
+#: src/util/crypto_ecc.c:1151
 #, fuzzy, c-format
 msgid "ECC signing failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_ecc.c:1199
+#: src/util/crypto_ecc.c:1201
 #, fuzzy, c-format
 msgid "EdDSA signing failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_ecc.c:1273
+#: src/util/crypto_ecc.c:1275
 #, fuzzy, c-format
 msgid "ECDSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_ecc.c:1330
+#: src/util/crypto_ecc.c:1332
 #, fuzzy, c-format
 msgid "EdDSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
@@ -8376,17 +8434,17 @@ msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt 的版本不符合预期(要求版本 %s)。\n"
 
-#: src/util/crypto_rsa.c:809
+#: src/util/crypto_rsa.c:825
 #, fuzzy, c-format
 msgid "RSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/disk.c:1218
+#: src/util/disk.c:1222
 #, c-format
 msgid "Expected `%s' to be a directory!\n"
 msgstr "“%s”应为目录！\n"
 
-#: src/util/disk.c:1580 src/util/service.c:1328
+#: src/util/disk.c:1584 src/util/service.c:1328
 #, c-format
 msgid "Cannot obtain information about user `%s': %s\n"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
@@ -8451,18 +8509,18 @@ msgstr "%s：选项“-W %s” 不允许有参数\n"
 msgid "Use %s to get a list of options.\n"
 msgstr "请使用 --help 获取选项列表。\n"
 
-#: src/util/getopt_helpers.c:84
+#: src/util/getopt_helpers.c:90
 #, c-format
 msgid ""
 "Arguments mandatory for long options are also mandatory for short options.\n"
 msgstr "长选项的必选参数对短选项也是必选的。\n"
 
-#: src/util/getopt_helpers.c:268 src/util/getopt_helpers.c:326
+#: src/util/getopt_helpers.c:274 src/util/getopt_helpers.c:332
 #, c-format
 msgid "You must pass a number to the `%s' option.\n"
 msgstr "您必须向“%s”选项传递一个数字。\n"
 
-#: src/util/getopt_helpers.c:298
+#: src/util/getopt_helpers.c:304
 #, fuzzy, c-format
 msgid "You must pass relative time to the `%s' option.\n"
 msgstr "您必须向“%s”选项传递一个数字。\n"
@@ -8705,22 +8763,22 @@ msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 msgid "GetExitCodeProcess failed for binary %s (%d).\n"
 msgstr ""
 
-#: src/util/plugin.c:87
+#: src/util/plugin.c:86
 #, c-format
 msgid "Initialization of plugin mechanism failed: %s!\n"
 msgstr "插件机构初始化失败：%s！\n"
 
-#: src/util/plugin.c:148
+#: src/util/plugin.c:151
 #, c-format
 msgid "`%s' failed to resolve method '%s' with error: %s\n"
 msgstr ""
 
-#: src/util/plugin.c:223
+#: src/util/plugin.c:226
 #, c-format
 msgid "`%s' failed for library `%s' with error: %s\n"
 msgstr ""
 
-#: src/util/plugin.c:382
+#: src/util/plugin.c:385
 #, fuzzy
 msgid "Could not determine plugin installation path.\n"
 msgstr "无法确定用户界面定义文件。"
