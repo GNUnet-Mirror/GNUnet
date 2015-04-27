@@ -220,6 +220,11 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_SymmetricSessionKey CKr;
 
   /**
+   * ECDH for key exchange (A0 / B0)
+   */
+  struct GNUNET_CRYPTO_EcdhePrivateKey *kx_0;
+
+  /**
    * ECDH Ratchet key (send)
    */
   struct GNUNET_CRYPTO_EcdhePrivateKey *DHRs;
@@ -2193,8 +2198,9 @@ destroy_ax (struct CadetTunnel *t)
   if (NULL == t->ax)
     return;
 
-  if (NULL != t->ax->DHRs)
-    GNUNET_free (t->ax->DHRs);
+  GNUNET_free_non_null (t->ax->DHRs);
+  GNUNET_free_non_null (t->ax->kx_0);
+
   GNUNET_free (t->ax);
   t->ax = NULL;
 }
@@ -2416,15 +2422,15 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   }
   else
   {
-    priv = ax->DHRs;                                            /* B0 */
-    pub = get_public_ecdhe_from_id (pid);                        /* A */
+    priv = ax->kx_0;                                            /* B0 */
+    pub = get_public_ecdhe_from_id (pid);                       /* A */
   }
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[0]);
 
   /* ECDH A0 B */
   if (GNUNET_YES == is_alice)
   {
-    priv = ax->DHRs;                                            /* A0 */
+    priv = ax->kx_0;                                            /* A0 */
     pub = get_public_ecdhe_from_id (pid);                       /* B */
   }
   else
@@ -2435,7 +2441,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[1]);
 
   /* ECDH A0 B0*/
-  priv = ax->DHRs;                                              /* A0 or B0 */
+  priv = ax->kx_0;                                              /* A0 or B0 */
   pub = &msg->ephemeral_key;                                    /* B0 or A0 */
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[2]);
 
@@ -2714,6 +2720,7 @@ GCT_new (struct CadetPeer *destination)
   }
   t->ax = GNUNET_new (struct CadetTunnelAxolotl);
   new_ephemeral (t);
+  t->ax->kx_0 = GNUNET_CRYPTO_ecdhe_key_create ();
   return t;
 }
 
