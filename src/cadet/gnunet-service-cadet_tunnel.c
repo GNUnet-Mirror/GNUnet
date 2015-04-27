@@ -1582,7 +1582,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   {
     ax_msg = (struct GNUNET_CADET_AX *) cbuf;
     msg = &ax_msg->header;
-    msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
+    msg->size = htons (sizeof (struct GNUNET_CADET_AX) + size);
     msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_AX);
     esize = t_ax_encrypt (t, &ax_msg[1], message, size);
     ax_msg->Ns = htonl (t->ax->Ns++);

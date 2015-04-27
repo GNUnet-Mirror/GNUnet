@@ -2132,6 +2132,8 @@ check_message (const struct GNUNET_MessageHeader *message,
   if (ntohs (message->size) < minimum_size)
   {
     GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Size %u < %u\n",
+         ntohs (message->size), minimum_size);
     return GNUNET_SYSERR;
   }
 
