@@ -176,6 +176,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT 25
 
+/**
+ * Axolotl key exchange in CADET
+ */
+#define GNUNET_SIGNATURE_PURPOSE_CADET_AXKX 26
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
