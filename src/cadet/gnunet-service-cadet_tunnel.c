@@ -281,9 +281,28 @@ struct CadetTunnelAxolotl
   uint32_t PNs;
 
   /**
-   * True (#GNUNET_YES) if the party will send a new ratchet key in next msg.
+   * True (#GNUNET_YES) if we have to send a new ratchet key in next msg.
    */
   int ratchet_flag;
+
+  /**
+   * Number of messages recieved since our last ratchet advance.
+   * - If this counter = 0, we cannot send a new ratchet key in next msg.
+   * - If this counter > 0, we can (but don't yet have to) send a new key.
+   */
+  unsigned int ratchet_allowed;
+
+  /**
+   * Number of messages recieved since our last ratchet advance.
+   * - If this counter = 0, we cannot send a new ratchet key in next msg.
+   * - If this counter > 0, we can (but don't yet have to) send a new key.
+   */
+  unsigned int ratchet_counter;
+
+  /**
+   * When does this ratchet expire and a new one is triggered.
+   */
+  struct GNUNET_TIME_Absolute ratchet_expiration;
 };
 
 /**
@@ -506,11 +525,11 @@ static struct GNUNET_CONTAINER_MultiPeerMap *tunnels;
  */
 static unsigned long long default_ttl;
 
-
 /**
  * Own Peer ID private key.
  */
 const static struct GNUNET_CRYPTO_EddsaPrivateKey *id_key;
+
 
 /********************************  AXOLOTL ************************************/
 
@@ -521,8 +540,18 @@ static struct GNUNET_CRYPTO_EcdhePrivateKey *ax_key;
  */
 static struct CadetAxolotlSignedKey ax_identity;
 
-/********************************    OTR   ***********************************/
+/**
+ * How many messages are needed to trigger a ratchet advance.
+ */
+static unsigned long long ratchet_messages;
 
+/**
+ * How long until we trigger a ratched advance.
+ */
+static struct GNUNET_TIME_Relative ratchet_time;
+
+
+/********************************    OTR   ***********************************/
 
 /**
  * Own global OTR ephemeral private key.
@@ -995,6 +1024,14 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   ax = t->ax;
 
+  ax->ratchet_counter++;
+  if (GNUNET_YES == ax->ratchet_allowed
+      && (ratchet_messages <= ax->ratchet_counter
+          || 0 == GNUNET_TIME_absolute_get_remaining (ax->ratchet_expiration).rel_value_us))
+  {
+    ax->ratchet_flag = GNUNET_YES;
+  }
+
   if (GNUNET_YES == ax->ratchet_flag)
   {
     /* Advance ratchet */
@@ -1018,6 +1055,10 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
     ax->PNs = ax->Ns;
     ax->Ns = 0;
     ax->ratchet_flag = GNUNET_NO;
+    ax->ratchet_allowed = GNUNET_NO;
+    ax->ratchet_counter = 0;
+    ax->ratchet_expiration =
+      GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), ratchet_time);
   }
 
   t_hmac_derive_key (&ax->CKs, &MK, "0", 1);
@@ -1445,7 +1486,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
     ax->CKr = keys[2];
     ax->DHRr = *DHRp;
     ax->Nr = 0;
-    ax->ratchet_flag = GNUNET_YES;
+    ax->ratchet_allowed = GNUNET_YES;
   }
   else
   {
@@ -2871,6 +2912,10 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     ax->NHKs = keys[3];
     ax->CKs = keys[4];
     ax->ratchet_flag = GNUNET_NO;
+    ax->ratchet_allowed = GNUNET_NO;
+    ax->ratchet_counter = 0;
+    ax->ratchet_expiration =
+      GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), ratchet_time);
   }
   GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
 }
@@ -3070,6 +3115,23 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     rekey_period = GNUNET_TIME_UNIT_DAYS;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "RATCHET_MESSAGES",
+                                             &ratchet_messages))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET", "RATCHET_MESSAGES", "USING DEFAULT");
+    ratchet_messages = 64;
+  }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (c, "CADET", "RATCHET_TIME",
+                                           &ratchet_time))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
+                               "CADET", "RATCHET_TIME", "USING DEFAULT");
+    ratchet_time = GNUNET_TIME_UNIT_HOURS;
+  }
+
 
   id_key = key;
 
