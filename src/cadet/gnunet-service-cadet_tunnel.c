@@ -2684,14 +2684,15 @@ void
 GCT_handle_encrypted (struct CadetTunnel *t,
                       const struct GNUNET_MessageHeader *msg)
 {
-  size_t size = ntohs (msg->size);
+  uint16_t size = ntohs (msg->size);
+  char cbuf [size];
   size_t payload_size;
   int decrypted_size;
-  char cbuf [size];
-  uint16_t type = ntohs (msg->type);
+  uint16_t type;
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
 
+  type = ntohs (msg->type);
   if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
   {
     const struct GNUNET_CADET_Encrypted *emsg;

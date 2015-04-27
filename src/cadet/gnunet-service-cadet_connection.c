@@ -2235,7 +2235,8 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   const struct GNUNET_CADET_Encrypted *msg;
   const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
-  size_t expected_size;
+  size_t minumum_size;
+  size_t overhead;
   uint32_t pid;
   uint32_t ttl;
   int fwd;
@@ -2244,11 +2245,14 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   cid = &msg->cid;
   log_message (message, peer, cid);
 
-  expected_size = sizeof (struct GNUNET_CADET_Encrypted)
-                  + sizeof (struct GNUNET_MessageHeader);
+  if (GNUNET_MESSAGE_TYPE_CADET_AX == ntohs (message->type))
+    overhead = sizeof (struct GNUNET_CADET_AX);
+  else
+    overhead = sizeof (struct GNUNET_CADET_Encrypted);
+  minumum_size = sizeof (struct GNUNET_MessageHeader) + overhead;
   c = connection_get (cid);
   pid = ntohl (msg->pid);
-  fwd = check_message (message, expected_size, cid, c, peer, pid);
+  fwd = check_message (message, minumum_size, cid, c, peer, pid);
 
   /* If something went wrong, discard message. */
   if (GNUNET_SYSERR == fwd)
