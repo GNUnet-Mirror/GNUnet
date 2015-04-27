@@ -162,28 +162,91 @@ struct CadetTunnelSkippedKey
   struct GNUNET_CRYPTO_SymmetricSessionKey MK;
 };
 
+/**
+ * Axolotl data, according to https://github.com/trevp/axolotl/wiki
+ */
 struct CadetTunnelAxolotl
 {
-  struct CadetTunnelSkippedKey *head;
-  struct CadetTunnelSkippedKey *tail;
+  /**
+   * A (double linked) list of stored message keys and associated header keys
+   * for "skipped" messages, i.e. messages that have not bee*n
+   * received despite the reception of more recent messages, (head)/
+   */
+  struct CadetTunnelSkippedKey *skipped_head;
 
+  /**
+   * Skipped messages' keys DLL, tail.
+   */
+  struct CadetTunnelSkippedKey *skipped_tail;
+
+  /**
+   * Elements in @a skipped_head <-> @a skipped_tail.
+   */
   uint skipped;
 
+  /**
+   * 32-byte root key which gets updated by DH ratchet
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey RK;
+
+  /**
+   * 32-byte header key (send)
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey HKs;
+
+  /**
+   * 32-byte header key (recv)
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey HKr;
+
+  /**
+   * 32-byte next header key (send)
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey NHKs;
+
+  /**
+   * 32-byte next header key (recv)
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey NHKr;
+
+  /**
+   * 32-byte chain keys (used for forward-secrecy updating, send)
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey CKs;
+
+  /**
+   * 32-byte chain keys (used for forward-secrecy updating, recv)
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey CKr;
 
-  struct GNUNET_CRYPTO_EcdhePublicKey DHRs;
+  /**
+   * ECDH Ratchet key (send)
+   */
+  struct GNUNET_CRYPTO_EcdhePrivateKey *DHRs;
+
+  /**
+   * ECDH Ratchet key (recv)
+   */
   struct GNUNET_CRYPTO_EcdhePublicKey DHRr;
 
+  /**
+   * Message number (reset to 0 with each new ratchet, send)
+   */
   uint32_t Ns;
+
+  /**
+   * Message numbers (reset to 0 with each new ratchet, recv)
+   */
   uint32_t Nr;
+
+  /**
+   * Previous message numbers (# of msgs sent under prev ratchet)
+   */
   uint32_t PNs;
 
+  /**
+   * True (#GNUNET_YES) if the party will send a new ratchet key in next msg.
+   */
   int ratchet_flag;
 };
 
@@ -391,7 +454,7 @@ static unsigned long long default_ttl;
 const static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
- * Own ephemeral private key.
+ * Own OTR ephemeral private key.
  */
 static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
 
