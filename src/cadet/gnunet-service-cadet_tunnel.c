@@ -2390,7 +2390,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   pid = GCT_get_destination (t);
   if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
     is_alice = GNUNET_YES;
-  else if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
+  else if (0 < GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
     is_alice = GNUNET_NO;
   else
   {
