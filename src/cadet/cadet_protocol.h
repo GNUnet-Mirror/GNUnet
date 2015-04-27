@@ -122,14 +122,31 @@ struct GNUNET_CADET_AX_KX
   struct GNUNET_MessageHeader header;
 
   /**
-   * Sender's ephemeral public ECC key (always for NIST P-521) encoded in a
+   * An EdDSA signature of the permanent ECDH key with the Peer's ID key.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Information about what is being signed (@a permanent_key).
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Sender's permanent_key public ECC key encoded in a
+   * format suitable for network transmission, as created
+   * using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey permanent_key;
+
+  /**
+   * Sender's ephemeral public ECC key encoded in a
    * format suitable for network transmission, as created
    * using 'gcry_sexp_sprint'.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
   /**
-   * Sender's next ephemeral public ECC key (always for NIST P-521) encoded in a
+   * Sender's next ephemeral public ECC key encoded in a
    * format suitable for network transmission, as created
    * using 'gcry_sexp_sprint'.
    */
