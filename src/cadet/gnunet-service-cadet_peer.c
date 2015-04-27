@@ -2419,6 +2419,21 @@ GCP_check_key (struct CadetPeer *peer,
 
 
 /**
+ * Get the Identity ECDH key of the peer.
+ *
+ * @param peer Peer whose key to get.
+ *
+ * @return Peer's permanent ECDH key (might be all 0: unknown).
+ *
+ */
+struct GNUNET_CRYPTO_EcdhePublicKey *
+GCP_get_ecdh_key (struct CadetPeer *peer)
+{
+  return &peer->ax_key;
+}
+
+
+/**
  * Notify a peer that a link between two other peers is broken. If any path
  * used that link, eliminate it.
  *
