@@ -3049,6 +3049,10 @@ GCT_destroy (struct CadetTunnel *t)
       GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
     GNUNET_free (t->kx_ctx);
   }
+
+  if (NULL != t->ax)
+    destroy_ax (t);
+
   GNUNET_free (t);
 }
 
