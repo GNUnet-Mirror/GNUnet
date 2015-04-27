@@ -2167,37 +2167,40 @@ check_message (const struct GNUNET_MessageHeader *message,
     }
   }
 
-  /* Check PID */
-  fc = fwd ? &c->bck_fc : &c->fwd_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
-       pid, fc->last_pid_recv + 1, fc->last_ack_sent);
-  if (GC_is_pid_bigger (pid, fc->last_ack_sent))
+  /* Check PID for payload messages */
+  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == ntohs (message->type))
   {
-    GNUNET_break_op (0);
-    GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Received PID %u, (prev %u), ACK %u\n",
-         pid, fc->last_pid_recv, fc->last_ack_sent);
-    return GNUNET_SYSERR;
-  }
-  if (GC_is_pid_bigger (pid, fc->last_pid_recv))
-  {
-    unsigned int delta;
-
-    delta = pid - fc->last_pid_recv;
-    fc->last_pid_recv = pid;
-    fc->recv_bitmap <<= delta;
-    fc->recv_bitmap |= 1;
-  }
-  else
-  {
-    GNUNET_STATISTICS_update (stats, "# out of order PID", 1, GNUNET_NO);
-    if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv, pid, fc->recv_bitmap))
+    fc = fwd ? &c->bck_fc : &c->fwd_fc;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
+        pid, fc->last_pid_recv + 1, fc->last_ack_sent);
+    if (GC_is_pid_bigger (pid, fc->last_ack_sent))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "PID %u not expected (%u+), dropping!\n",
-           pid, fc->last_pid_recv - 31);
+      GNUNET_break_op (0);
+      GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Received PID %u, (prev %u), ACK %u\n",
+          pid, fc->last_pid_recv, fc->last_ack_sent);
       return GNUNET_SYSERR;
     }
-    fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
+    if (GC_is_pid_bigger (pid, fc->last_pid_recv))
+    {
+      unsigned int delta;
+
+      delta = pid - fc->last_pid_recv;
+      fc->last_pid_recv = pid;
+      fc->recv_bitmap <<= delta;
+      fc->recv_bitmap |= 1;
+    }
+    else
+    {
+      GNUNET_STATISTICS_update (stats, "# out of order PID", 1, GNUNET_NO);
+      if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv, pid, fc->recv_bitmap))
+      {
+        LOG (GNUNET_ERROR_TYPE_WARNING, "PID %u unexpected (%u+), dropping!\n",
+             pid, fc->last_pid_recv - 31);
+        return GNUNET_SYSERR;
+      }
+      fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
+    }
   }
 
   /* Count as connection confirmation. */
