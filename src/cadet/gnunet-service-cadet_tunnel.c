@@ -2058,8 +2058,7 @@ handle_ephemeral (struct CadetTunnel *t,
  * @param msg Key eXchange Pong message.
  */
 static void
-handle_pong (struct CadetTunnel *t,
-             const struct GNUNET_CADET_KX_Pong *msg)
+handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
 {
   uint32_t challenge;
 
@@ -2245,15 +2244,15 @@ GCT_handle_kx (struct CadetTunnel *t,
   uint16_t type;
 
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received\n", type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received: %s\n", GC_m2s (type));
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
-      handle_ephemeral (t, (struct GNUNET_CADET_KX_Ephemeral *) message);
+      handle_ephemeral (t, (const struct GNUNET_CADET_KX_Ephemeral *) message);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
-      handle_pong (t, (struct GNUNET_CADET_KX_Pong *) message);
+      handle_pong (t, (const struct GNUNET_CADET_KX_Pong *) message);
       break;
 
     default:
