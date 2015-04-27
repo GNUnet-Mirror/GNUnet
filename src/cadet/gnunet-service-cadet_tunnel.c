@@ -1853,6 +1853,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     t_hmac (&otr_msg[1], size, iv, select_key (t), &otr_msg->hmac);
     msg->size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
     msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
+    otr_msg->ttl = htonl (default_ttl);
   }
   GNUNET_assert (esize == size);
 
