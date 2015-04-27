@@ -2105,63 +2105,55 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Generic handler for cadet network encrypted traffic.
+ * Check the message against internal state and test if it goes FWD or BCK.
  *
- * @param peer Peer identity this notification is about.
- * @param msg Encrypted message.
+ * Updates the PID, state and timeout values for the connection.
  *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @param message Message to check. It must belong to an existing connection.
+ * @param minimum_size The message cannot be smaller than this value.
+ * @param c Connection this message should belong. If NULL, check fails.
+ * @param neighbor Neighbor that sent the message.
  */
 static int
-handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
-                       const struct GNUNET_CADET_Encrypted *msg)
+check_message (const struct GNUNET_MessageHeader *message,
+               size_t minimum_size,
+               struct CadetConnection *c,
+               const struct GNUNET_PeerIdentity *neighbor,
+               uint32_t pid)
 {
-  struct CadetConnection *c;
-  struct CadetPeer *neighbor;
+  GNUNET_PEER_Id neighbor_id;
   struct CadetFlowControl *fc;
-  GNUNET_PEER_Id peer_id;
-  uint32_t pid;
-  uint32_t ttl;
-  size_t size;
+  struct CadetPeer *hop;
   int fwd;
 
-  log_message (&msg->header, peer, &msg->cid);
-
   /* Check size */
-  size = ntohs (msg->header.size);
-  if (size <
-      sizeof (struct GNUNET_CADET_Encrypted) +
-      sizeof (struct GNUNET_MessageHeader))
+  if (ntohs (message->size) < minimum_size)
   {
     GNUNET_break_op (0);
-    return GNUNET_OK;
+    return GNUNET_SYSERR;
   }
 
   /* Check connection */
-  c = connection_get (&msg->cid);
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "enc on unknown connection %s\n",
-         GNUNET_h2s (GC_h2hc (&msg->cid)));
-    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "enc_ax on unknown connection %s\n",
+         GNUNET_h2s (GC_h2hc (&c->id)));
+    send_broken_unknown (&c->id, &my_full_id, NULL, neighbor);
     return GNUNET_OK;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection %s\n", GCC_2s (c));
-
   /* Check if origin is as expected */
-  neighbor = get_prev_hop (c);
-  peer_id = GNUNET_PEER_search (peer);
-  if (peer_id == GCP_get_short_id (neighbor))
+  neighbor_id = GNUNET_PEER_search (neighbor);
+  hop = get_prev_hop (c);
+  if (neighbor_id == GCP_get_short_id (hop))
   {
     fwd = GNUNET_YES;
   }
   else
   {
-    neighbor = get_next_hop (c);
-    if (peer_id == GCP_get_short_id (neighbor))
+    hop = get_next_hop (c);
+    if (neighbor_id == GCP_get_short_id (hop))
     {
       fwd = GNUNET_NO;
     }
@@ -2169,22 +2161,21 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
     {
       /* Unexpected peer sending traffic on a connection. */
       GNUNET_break_op (0);
-      return GNUNET_OK;
+      return GNUNET_SYSERR;
     }
   }
 
   /* Check PID */
   fc = fwd ? &c->bck_fc : &c->fwd_fc;
-  pid = ntohl (msg->pid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
        pid, fc->last_pid_recv + 1, fc->last_ack_sent);
   if (GC_is_pid_bigger (pid, fc->last_ack_sent))
   {
-    GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
     GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING, "Received PID %u, (prev %u), ACK %u\n",
          pid, fc->last_pid_recv, fc->last_ack_sent);
-    return GNUNET_OK;
+    return GNUNET_SYSERR;
   }
   if (GC_is_pid_bigger (pid, fc->last_pid_recv))
   {
@@ -2201,8 +2192,8 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
     if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv, pid, fc->recv_bitmap))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "PID %u not expected (%u+), dropping!\n",
-          pid, fc->last_pid_recv - 31);
-      return GNUNET_OK;
+           pid, fc->last_pid_recv - 31);
+      return GNUNET_SYSERR;
     }
     fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
   }
@@ -2210,10 +2201,46 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
     connection_change_state (c, CADET_CONNECTION_READY);
   connection_reset_timeout (c, fwd);
 
+  return fwd;
+}
+
+
+/**
+ * Generic handler for cadet network encrypted traffic.
+ *
+ * @param peer Peer identity this notification is about.
+ * @param msg Encrypted message.
+ *
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+static int
+handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
+                        const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_CADET_Encrypted *msg;
+  struct CadetConnection *c;
+  size_t expected_size;
+  uint32_t pid;
+  uint32_t ttl;
+  int fwd;
+
+  msg = (struct GNUNET_CADET_Encrypted *) message;
+  log_message (message, peer, &msg->cid);
+
+  expected_size = sizeof (struct GNUNET_CADET_Encrypted)
+                  + sizeof (struct GNUNET_MessageHeader);
+  c = connection_get (&msg->cid);
+  pid = ntohl (msg->pid);
+  fwd = check_message (message, expected_size, c, peer, pid);
+
+  /* If something went wrong, discard message. */
+  if (GNUNET_SYSERR == fwd)
+    return GNUNET_OK;
+
   /* Is this message for us? */
   if (GCC_is_terminal (c, fwd))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
     GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
 
     if (NULL == c->t)
@@ -2221,7 +2248,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (GNUNET_NO != c->destroy);
       return GNUNET_OK;
     }
-    GCT_handle_encrypted (c->t, &msg->header);
+    GCT_handle_encrypted (c->t, message);
     GCC_send_ack (c, fwd, GNUNET_NO);
     return GNUNET_OK;
   }
@@ -2379,109 +2406,7 @@ int
 GCC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message)
 {
-  return handle_cadet_encrypted (peer,
-                                (struct GNUNET_CADET_Encrypted *)message);
-}
-
-
-/**
- * Check the message against internal state and test if it goes FWD or BCK.
- *
- * Updates the PID, state and timeout values for the connection.
- *
- * @param message Message to check. It must belong to an existing connection.
- * @param minimum_size The message cannot be smaller than this value.
- * @param c Connection this message should belong. If NULL, check fails.
- * @param neighbor Neighbor that sent the message.
- */
-static int
-check_message (const struct GNUNET_MessageHeader *message,
-               size_t minimum_size,
-               struct CadetConnection *c,
-               const struct GNUNET_PeerIdentity *neighbor,
-               uint32_t pid)
-{
-  GNUNET_PEER_Id neighbor_id;
-  struct CadetFlowControl *fc;
-  struct CadetPeer *hop;
-  int fwd;
-
-  /* Check size */
-  if (ntohs (message->size) < minimum_size)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-
-  /* Check connection */
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "enc_ax on unknown connection %s\n",
-         GNUNET_h2s (GC_h2hc (&c->id)));
-    send_broken_unknown (&c->id, &my_full_id, NULL, neighbor);
-    return GNUNET_OK;
-  }
-
-  /* Check if origin is as expected */
-  neighbor_id = GNUNET_PEER_search (neighbor);
-  hop = get_prev_hop (c);
-  if (neighbor_id == GCP_get_short_id (hop))
-  {
-    fwd = GNUNET_YES;
-  }
-  else
-  {
-    hop = get_next_hop (c);
-    if (neighbor_id == GCP_get_short_id (hop))
-    {
-      fwd = GNUNET_NO;
-    }
-    else
-    {
-      /* Unexpected peer sending traffic on a connection. */
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-  }
-
-  /* Check PID */
-  fc = fwd ? &c->bck_fc : &c->fwd_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u - %u)\n",
-       pid, fc->last_pid_recv + 1, fc->last_ack_sent);
-  if (GC_is_pid_bigger (pid, fc->last_ack_sent))
-  {
-    GNUNET_break_op (0);
-    GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Received PID %u, (prev %u), ACK %u\n",
-         pid, fc->last_pid_recv, fc->last_ack_sent);
-    return GNUNET_SYSERR;
-  }
-  if (GC_is_pid_bigger (pid, fc->last_pid_recv))
-  {
-    unsigned int delta;
-
-    delta = pid - fc->last_pid_recv;
-    fc->last_pid_recv = pid;
-    fc->recv_bitmap <<= delta;
-    fc->recv_bitmap |= 1;
-  }
-  else
-  {
-    GNUNET_STATISTICS_update (stats, "# out of order PID", 1, GNUNET_NO);
-    if (GNUNET_NO == is_ooo_ok (fc->last_pid_recv, pid, fc->recv_bitmap))
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "PID %u not expected (%u+), dropping!\n",
-           pid, fc->last_pid_recv - 31);
-      return GNUNET_SYSERR;
-    }
-    fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
-  }
-  if (CADET_CONNECTION_SENT == c->state || CADET_CONNECTION_ACK == c->state)
-    connection_change_state (c, CADET_CONNECTION_READY);
-  connection_reset_timeout (c, fwd);
-
-  return fwd;
+  return handle_cadet_encrypted (peer, message);
 }
 
 
@@ -2498,7 +2423,7 @@ int
 GCC_handle_ax_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
                   const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_CADET_AX *msg;
+  const struct GNUNET_CADET_AX *msg;
   struct CadetConnection *c;
   size_t expected_size;
   uint32_t pid;
@@ -2568,8 +2493,7 @@ int
 GCC_handle_ax (void *cls, const struct GNUNET_PeerIdentity *peer,
                struct GNUNET_MessageHeader *message)
 {
-  return handle_cadet_encrypted (peer,
-                                 (struct GNUNET_CADET_Encrypted *)message);
+  return handle_cadet_encrypted (peer, message);
 }
 
 
