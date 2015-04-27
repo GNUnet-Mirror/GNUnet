@@ -211,22 +211,6 @@ struct CadetTunnelAxolotl
   unsigned int skipped;
 
   /**
-   * A (double linked) list of staged message keys and associated header keys
-   * for "skipped" messages, before they are commited to the real skipped list.
-   */
-  struct CadetTunnelSkippedKey *staged_head;
-
-  /**
-   * Skipped messages' keys DLL, tail.
-   */
-  struct CadetTunnelSkippedKey *staged_tail;
-
-  /**
-   * Elements in @a staged_head <-> @a staged_head.
-   */
-  unsigned int staged;
-
-  /**
    * 32-byte root key which gets updated by DH ratchet.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey RK;
@@ -1360,7 +1344,7 @@ try_old_ax_keys (struct CadetTunnel *t, struct GNUNET_CADET_AX *dst,
  * @param CKr[in/out] Chain key, gets ratcheted forward to the new state.
  */
 static void
-stage_ax_keys (struct CadetTunnel *t,
+store_ax_keys (struct CadetTunnel *t,
                const struct GNUNET_CRYPTO_SymmetricSessionKey *HKr,
                uint32_t Nr, uint32_t Np,
                struct GNUNET_CRYPTO_SymmetricSessionKey *CKr)
@@ -1391,25 +1375,6 @@ stage_ax_keys (struct CadetTunnel *t,
     GNUNET_CONTAINER_DLL_insert (t->ax->skipped_head, t->ax->skipped_tail, key);
     t->ax->skipped++;
   }
-
-  for (;t->ax->skipped > MAX_SKIPPED_KEYS; t->ax->skipped--)
-  {
-    key = t->ax->skipped_tail;
-    GNUNET_CONTAINER_DLL_remove (t->ax->skipped_head, t->ax->skipped_tail, key);
-    GNUNET_free (key);
-  }
-}
-
-
-/**
- * Commit staged keys.
- *
- * @param t Tunnel whose keys to commit.
- */
-static void
-commit_ax_keys (struct CadetTunnel *t)
-{
-  GNUNET_break (0);
 }
 
 
@@ -1469,7 +1434,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
     Np = ntohl (dstmsg->Ns);
     PNp = ntohl (dstmsg->PNs);
     DHRp = &dstmsg->DHRs;
-    stage_ax_keys (t, &HK, ax->Nr, PNp, &ax->CKr);
+    store_ax_keys (t, &HK, ax->Nr, PNp, &ax->CKr);
 
     /* RKp, NHKp, CKp = KDF (HMAC-HASH (RK, DH (DHRp, DHRs))) */
     GNUNET_CRYPTO_ecc_ecdh (ax->DHRs, DHRp, &dh);
@@ -1493,8 +1458,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
   }
 
   if (Np > ax->Nr + 1)
-    stage_ax_keys (t, &ax->HKr, ax->Nr, Np, &ax->CKr);
-  commit_ax_keys (t);
+    store_ax_keys (t, &ax->HKr, ax->Nr, Np, &ax->CKr);
 
   ax->Nr = Np;
 
