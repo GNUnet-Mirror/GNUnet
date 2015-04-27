@@ -454,6 +454,16 @@ static unsigned long long default_ttl;
 const static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 /**
+ * Own Axolotl private key (derived from @a my_private_key).
+ */
+struct GNUNET_CRYPTO_EcdhePrivateKey *ax_identity;
+
+/**
+ * Own Axolotl public key.
+ */
+static struct GNUNET_CRYPTO_EcdhePrivateKey *ax_key;
+
+/**
  * Own OTR ephemeral private key.
  */
 static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
@@ -472,6 +482,7 @@ static struct GNUNET_SCHEDULER_Task * rekey_task;
  * Rekey period.
  */
 static struct GNUNET_TIME_Relative rekey_period;
+
 
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
@@ -2082,6 +2093,28 @@ handle_ch_destroy (struct CadetTunnel *t,
 }
 
 
+static void
+new_ephemeral (struct CadetTunnel *t)
+{
+  GNUNET_free_non_null (t->ax->DHRs);
+  t->ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create();
+}
+
+
+static void
+destroy_ax (struct CadetTunnel *t)
+{
+  if (NULL == t->ax)
+    return;
+
+  if (NULL != t->ax->DHRs)
+    GNUNET_free (t->ax->DHRs);
+  GNUNET_free (t->ax);
+  t->ax = NULL;
+}
+
+
+
 /**
  * The peer's ephemeral key has changed: update the symmetrical keys.
  *
@@ -2103,8 +2136,7 @@ handle_ephemeral (struct CadetTunnel *t,
   /* If we get a proper OTR-style ephemeral, fallback to old crypto. */
   if (NULL != t->ax)
   {
-    GNUNET_free (t->ax);
-    t->ax = NULL;
+    destroy_ax (t);
     t->enc_type = CADET_Fallback;
   }
 
@@ -2201,8 +2233,66 @@ handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
 }
 
 
+static void
+send_ax_kx ()
+{
+  //FIXME
+}
+
+
 /**
- * .
+ * WARNING! DANGER! Do not use this if you don't know what you are doing!
+ * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
+ *
+ * Transform a private EdDSA key (peer's key) into a key usable by DH.
+ *
+ * @param k Private EdDSA key to transform.
+ *
+ * @return Private key for EC Diffie-Hellman.
+ */
+static const struct GNUNET_CRYPTO_EcdhePrivateKey *
+get_private_ecdhe_from_eddsa (const struct GNUNET_CRYPTO_EddsaPrivateKey *k)
+{
+  return (const struct GNUNET_CRYPTO_EcdhePrivateKey *) k;
+}
+
+
+/**
+ * WARNING! DANGER! Do not use this if you don't know what you are doing!
+ * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
+ *
+ * Transform a public EdDSA key (peer's key) into a key usable by DH.
+ *
+ * @param k Public EdDSA key to transform (peer's ID).
+ *
+ * @return Public key for EC Diffie-Hellman.
+ */
+static const struct GNUNET_CRYPTO_EcdhePublicKey *
+get_public_ecdhe_from_eddsa (const struct GNUNET_CRYPTO_EddsaPublicKey *k)
+{
+  return (const struct GNUNET_CRYPTO_EcdhePublicKey *) k;
+}
+
+
+/**
+ * WARNING! DANGER! Do not use this if you don't know what you are doing!
+ * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
+ *
+ * Transform a public EdDSA key (peer's key) into a key usable by DH.
+ *
+ * @param k Public EdDSA key to transform (peer's ID).
+ *
+ * @return Public key for EC Diffie-Hellman.
+ */
+static const struct GNUNET_CRYPTO_EcdhePublicKey *
+get_public_ecdhe_from_id (const struct GNUNET_PeerIdentity *id)
+{
+  return (const struct GNUNET_CRYPTO_EcdhePublicKey *) id;
+}
+
+
+/**
+ * Handle Axolotl handshake.
  *
  * @param t Tunnel this message came on.
  * @param msg Key eXchange Pong message.
@@ -2210,11 +2300,50 @@ handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
 static void
 handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 {
+  struct GNUNET_CRYPTO_EcdhePublicKey eph;
+  struct CadetTunnelAxolotl *ax;
+  struct GNUNET_HashCode key_material[3];
+  struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
+  const struct GNUNET_CRYPTO_EcdhePublicKey *DHIr;
+  struct GNUNET_CRYPTO_EcdhePrivateKey *DHIs;
+  const char salt[] = "CADET Axolotl salt";
 
   if (NULL == t->ax)
   {
-    t->ax = GNUNET_new (struct CadetTunnelAxolotl);
+    /* Something is wrong if ax is NULL. Whose fault it is? */
+    GNUNET_break_op (CADET_Fallback == t->enc_type);
+    GNUNET_break (CADET_Axolotl == t->enc_type);
+    return;
   }
+
+  ax = t->ax;
+  ax->DHRr = msg->ratchet_key;
+
+  GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &eph);
+  if (0 != memcmp (&eph, &msg->peers_key, sizeof (eph)))
+  {
+    send_ax_kx ();
+    return;
+  }
+
+  DHIr = get_public_ecdhe_from_id (GCT_get_destination (t));
+  DHIs = ax_identity;
+
+  /* ECDH */
+  GNUNET_CRYPTO_ecc_ecdh (DHIs,
+                          &msg->ephemeral_key,
+                          &key_material[0]);
+  GNUNET_CRYPTO_ecc_ecdh (ax->DHRs,
+                          DHIr,
+                          &key_material[1]);
+  GNUNET_CRYPTO_ecc_ecdh (ax->DHRs,
+                          &msg->ephemeral_key,
+                          &key_material[2]);
+
+  /* KDF */
+  GNUNET_CRYPTO_kdf (keys, sizeof (keys),
+                     salt, sizeof (salt),
+                     key_material, sizeof (key_material), NULL);
 }
 
 
@@ -2256,25 +2385,19 @@ handle_decrypted (struct CadetTunnel *t,
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-      handle_ch_create (t,
-                        (struct GNUNET_CADET_ChannelCreate *) msgh);
+      handle_ch_create (t, (struct GNUNET_CADET_ChannelCreate *) msgh);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      handle_ch_nack (t,
-                      (struct GNUNET_CADET_ChannelManage *) msgh);
+      handle_ch_nack (t, (struct GNUNET_CADET_ChannelManage *) msgh);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      handle_ch_ack (t,
-                     (struct GNUNET_CADET_ChannelManage *) msgh,
-                     fwd);
+      handle_ch_ack (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      handle_ch_destroy (t,
-                         (struct GNUNET_CADET_ChannelManage *) msgh,
-                         fwd);
+      handle_ch_destroy (t, (struct GNUNET_CADET_ChannelManage *) msgh, fwd);
       break;
 
     default:
@@ -2430,6 +2553,8 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
 
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
+
+  ax_key = GNUNET_CRYPTO_ecdhe_key_create();
 }
 
 
@@ -2446,6 +2571,8 @@ GCT_shutdown (void)
   }
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &destroy_iterator, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (tunnels);
+
+  GNUNET_free (ax_key);
 }
 
 
@@ -2471,6 +2598,7 @@ GCT_new (struct CadetPeer *destination)
     GNUNET_free (t);
     return NULL;
   }
+  t->ax = GNUNET_new (struct CadetTunnelAxolotl);
   return t;
 }
 
