@@ -111,13 +111,7 @@ GDS_NEIGHBOURS_send_trail_teardown (const struct GNUNET_HashCode *trail_id,
                                     unsigned int trail_direction,
                                     const struct GNUNET_PeerIdentity *peer);
 
-/**
- * Return friend corresponding to peer.
- * @param peer
- * @return  Friend
- */
-struct FriendInfo *
-GDS_NEIGHBOURS_get_friend (struct GNUNET_PeerIdentity peer);
+
 /**
  * Initialize neighbours subsystem.
  *

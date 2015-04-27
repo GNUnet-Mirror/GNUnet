@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2011, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,27 +19,18 @@
 */
 
 /**
- * @file dht/gnunet-service-xdht_neighbours.h
+ * @file dht/gnunet-service-wdht_neighbours.h
  * @brief GNUnet DHT routing code
  * @author Supriti Singh
  */
 
-#ifndef GNUNET_SERVICE_XDHT_NEIGHBOURS_H
-#define GNUNET_SERVICE_XDHT_NEIGHBOURS_H
+#ifndef GNUNET_SERVICE_WDHT_NEIGHBOURS_H
+#define GNUNET_SERVICE_WDHT_NEIGHBOURS_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
 #include "gnunet_dht_service.h"
 
-
-#if ENABLE_MALICIOUS
-/**
- * Set the ENABLE_MALICIOUS value to malicious.
- * @param malicious
- */
-int
-GDS_NEIGHBOURS_act_malicious (unsigned int malicious);
-#endif
 
 /**
  * Handle the put request from the client.
@@ -69,10 +60,11 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
  * @param desired_replication_level Desired replication count
  */
 void
-GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
-                          enum GNUNET_BLOCK_Type block_type,
-                          enum GNUNET_DHT_RouteOption options,
-                          uint32_t desired_replication_level);
+GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
+                           enum GNUNET_BLOCK_Type block_type,
+                           enum GNUNET_DHT_RouteOption options,
+                           uint32_t desired_replication_level);
+
 
 /**
  * Send the get result to requesting client.
@@ -100,24 +92,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
                                 struct GNUNET_TIME_Absolute expiration,
                                 const void *data, size_t data_size);
 
-/**
- * Construct a trail teardown message and forward it to target friend.
- * @param trail_id Unique identifier of the trail.
- * @param trail_direction Direction of trail.
- * @param target_friend Friend to get this message.
- */
-void
-GDS_NEIGHBOURS_send_trail_teardown (const struct GNUNET_HashCode *trail_id,
-                                    unsigned int trail_direction,
-                                    const struct GNUNET_PeerIdentity *peer);
 
-/**
- * Return friend corresponding to peer.
- * @param peer
- * @return  Friend
- */
-struct FriendInfo *
-GDS_NEIGHBOURS_get_friend (struct GNUNET_PeerIdentity peer);
 /**
  * Initialize neighbours subsystem.
  *

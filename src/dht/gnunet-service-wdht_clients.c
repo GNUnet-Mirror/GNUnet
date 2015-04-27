@@ -19,7 +19,7 @@
 */
 
 /**
- * @file dht/gnunet-service-dht_clients.c
+ * @file dht/gnunet-service-wdht_clients.c
  * @brief GNUnet DHT service's client management code
  * @author Christian Grothoff
  * @author Nathan Evans
@@ -473,8 +473,8 @@ remove_client_records (void *cls, const struct GNUNET_HashCode * key, void *valu
  * @param cls the 'struct ForwardReplyContext'
  * @param key current key
  * @param value value in the hash map, a ClientQueryRecord
- * @return GNUNET_YES (we should continue to iterate),
- *         if the result is mal-formed, GNUNET_NO
+ * @return #GNUNET_YES (we should continue to iterate),
+ *         if the result is mal-formed, #GNUNET_NO
  */
 static int
 forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -777,7 +777,7 @@ GDS_CLIENTS_process_put (uint32_t options,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
                          struct GNUNET_TIME_Absolute exp,
-                         const struct GNUNET_HashCode * key,
+                         const struct GNUNET_HashCode *key,
                          const void *data,
                          size_t size)
 {
@@ -1161,7 +1161,7 @@ struct RemoveByUniqueIdContext
  * @param cls unique ID and client to search for in source routes
  * @param key current key code
  * @param value value in the hash map, a ClientQueryRecord
- * @return GNUNET_YES (we should continue to iterate)
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 remove_by_unique_id (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -1289,45 +1289,8 @@ handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
     }
     r = r->next;
   }
-
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
-
-
-#if ENABLE_MALICIOUS
-/**
- * Handler for act malicious message.
- *
- * @param cls closure for the service
- * @param client the client we received this message from
- * @param message the actual message received
- *
- */
-static void
-handle_dht_act_malicious (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message)
-{
-  const struct GNUNET_DHT_ActMaliciousMessage *msg;
-  struct PendingMessage *pm;
-  struct GNUNET_DHT_ClientActMaliciousConfirmationMessage *conf;
-  unsigned int malicious_action;
-
-  msg = (const struct GNUNET_DHT_ActMaliciousMessage *)message;
-  malicious_action = msg->action;
-
-  if(GNUNET_OK == GDS_NEIGHBOURS_act_malicious (malicious_action))
-  {
-    pm = GNUNET_malloc (sizeof (struct PendingMessage) +
-		      sizeof (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage));
-    conf = (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage *) &pm[1];
-    conf->header.size = htons (sizeof (struct GNUNET_DHT_ClientActMaliciousConfirmationMessage));
-    conf->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK);
-    pm->msg = &conf->header;
-    add_pending_message (find_active_client (client), pm);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  }
-}
-#endif
 
 
 /**
@@ -1405,11 +1368,6 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      sizeof (struct GNUNET_DHT_MonitorStartStopMessage)},
     {&handle_dht_local_get_result_seen, NULL,
      GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN, 0},
-    #if ENABLE_MALICIOUS
-    {&handle_dht_act_malicious, NULL,
-     GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS,
-     sizeof (struct GNUNET_DHT_ActMaliciousMessage)},
-    #endif
     {NULL, NULL, 0, 0}
   };
   forward_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
@@ -1446,4 +1404,4 @@ GDS_CLIENTS_done ()
   }
 }
 
-/* end of gnunet-service-dht_clients.c */
+/* end of gnunet-service-wdht_clients.c */
