@@ -151,14 +151,34 @@ enum CadetTunnelEncryption
   CADET_OTR
 };
 
+/**
+ * Struct to old keys for skipped messages while advancing the Axolotl ratchet.
+ */
 struct CadetTunnelSkippedKey
 {
+  /**
+   * DLL next.
+   */
   struct CadetTunnelSkippedKey *next;
+
+  /**
+   * DLL prev.
+   */
   struct CadetTunnelSkippedKey *prev;
 
+  /**
+   * When was this key stored (for timeout).
+   */
   struct GNUNET_TIME_Absolute timestamp;
 
+  /**
+   * Header key.
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey HK;
+
+  /**
+   * Message key.
+   */
   struct GNUNET_CRYPTO_SymmetricSessionKey MK;
 };
 
