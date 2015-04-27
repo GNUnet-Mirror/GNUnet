@@ -2230,6 +2230,10 @@ handle_ephemeral (struct CadetTunnel *t,
   {
     destroy_ax (t);
     t->enc_type = CADET_Fallback;
+    if (NULL != t->rekey_task)
+      GNUNET_SCHEDULER_cancel (t->rekey_task);
+    create_kx_ctx (t);
+    rekey_tunnel (t, NULL);
   }
 
   /**
@@ -2735,11 +2739,8 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
     }
     else if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered rekey\n");
-      if (NULL != t->rekey_task)
-        GNUNET_SCHEDULER_cancel (t->rekey_task);
-      create_kx_ctx (t);
-      rekey_tunnel (t, NULL);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered kx\n");
+      GCT_send_ax_kx (t);
     }
   }
   t->cstate = cstate;
