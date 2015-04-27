@@ -2140,7 +2140,7 @@ check_message (const struct GNUNET_MessageHeader *message,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "enc_ax on unknown connection %s\n",
          GNUNET_h2s (GC_h2hc (&c->id)));
     send_broken_unknown (&c->id, &my_full_id, NULL, neighbor);
-    return GNUNET_OK;
+    return GNUNET_SYSERR;
   }
 
   /* Check if origin is as expected */
