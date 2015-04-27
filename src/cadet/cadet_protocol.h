@@ -72,6 +72,7 @@ struct GNUNET_CADET_ConnectionCreate
   /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
+
 /**
  * Message for ack'ing a connection
  */
@@ -106,6 +107,26 @@ struct GNUNET_CADET_KX
   struct GNUNET_CADET_Hash cid;
 
   /* Specific KX message follows. */
+};
+
+
+
+/**
+ * Message for encapsulation of a Key eXchange message in a connection.
+ */
+struct GNUNET_CADET_AX_KX
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_CADET_AX_KX.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Ephemeral public ECC key (always for NIST P-521) encoded in a format
+   * suitable for network transmission as created using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
 };
 
 

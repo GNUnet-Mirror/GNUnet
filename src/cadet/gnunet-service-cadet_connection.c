@@ -2296,71 +2296,20 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
  */
 static int
 handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_CADET_KX *msg)
+                 const struct GNUNET_CADET_KX *msg)
 {
+  const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
-  struct CadetPeer *neighbor;
-  GNUNET_PEER_Id peer_id;
-  size_t size;
+  size_t expected_size;
   int fwd;
 
-  log_message (&msg->header, peer, &msg->cid);
+  cid = &msg->cid;
+  log_message (&msg->header, peer, cid);
 
-  /* Check size */
-  size = ntohs (msg->header.size);
-  if (size <
-      sizeof (struct GNUNET_CADET_KX) +
-      sizeof (struct GNUNET_MessageHeader))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
-  }
-
-  /* Check connection */
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "kx on unknown connection %s\n",
-         GNUNET_h2s (GC_h2hc (&msg->cid)));
-    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
-    return GNUNET_OK;
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " on connection %s\n", GCC_2s (c));
-
-  /* Check if origin is as expected */
-  neighbor = get_prev_hop (c);
-  peer_id = GNUNET_PEER_search (peer);
-  if (peer_id == GCP_get_short_id (neighbor))
-  {
-    fwd = GNUNET_YES;
-  }
-  else
-  {
-    neighbor = get_next_hop (c);
-    if (peer_id == GCP_get_short_id (neighbor))
-    {
-      fwd = GNUNET_NO;
-    }
-    else
-    {
-      /* Unexpected peer sending traffic on a connection. */
-      GNUNET_break_op (0);
-      return GNUNET_OK;
-    }
-  }
-
-  /* Count as connection confirmation. */
-  if (CADET_CONNECTION_SENT == c->state || CADET_CONNECTION_ACK == c->state)
-  {
-    connection_change_state (c, CADET_CONNECTION_READY);
-    if (NULL != c->t)
-    {
-      if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
-        GCT_change_cstate (c->t, CADET_TUNNEL_READY);
-    }
-  }
-  connection_reset_timeout (c, fwd);
+  expected_size = sizeof (struct GNUNET_CADET_KX)
+                  + sizeof (struct GNUNET_MessageHeader);
+  c = connection_get (cid);
+  fwd = check_message (&msg->header, expected_size, cid, c, peer, 0);
 
   /* Is this message for us? */
   if (GCC_is_terminal (c, fwd))
@@ -2417,93 +2366,6 @@ GCC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
 int
 GCC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message)
-{
-  return handle_cadet_encrypted (peer, message);
-}
-
-
-/**
- * Core handler for axolotl key exchange traffic.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Neighbor who sent the message.
- *
- * @return GNUNET_OK, to keep the connection open.
- */
-int
-GCC_handle_ax_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
-                  const struct GNUNET_MessageHeader *message)
-{
-  const struct GNUNET_CADET_AX *msg;
-  struct CadetConnection *c;
-  size_t expected_size;
-  uint32_t pid;
-  uint32_t ttl;
-  int fwd;
-
-  msg = (struct GNUNET_CADET_AX *) message;
-  log_message (message, peer, &msg->cid);
-
-  expected_size = sizeof (struct GNUNET_CADET_AX)
-                  + sizeof (struct GNUNET_MessageHeader);
-  c = connection_get (&msg->cid);
-  pid = ntohl (msg->pid);
-  fwd = check_message (message, expected_size, c, peer, pid);
-
-  /* If something went wrong, discard message. */
-  if (GNUNET_SYSERR == fwd)
-    return GNUNET_OK;
-
-  /* Is this message for us? */
-  if (GCC_is_terminal (c, fwd))
-  {
-    GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
-
-    if (NULL == c->t)
-    {
-      GNUNET_break (GNUNET_NO != c->destroy);
-      return GNUNET_OK;
-    }
-    GCT_handle_encrypted (c->t, message);
-    GCC_send_ack (c, fwd, GNUNET_NO);
-    return GNUNET_OK;
-  }
-
-  /* Message not for us: forward to next hop */
-  ttl = ntohl (msg->ttl);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " forwarding, ttl: %u\n", ttl);
-  if (ttl == 0)
-  {
-    GNUNET_STATISTICS_update (stats, "# TTL drops", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, " TTL is 0, DROPPING!\n");
-    GCC_send_ack (c, fwd, GNUNET_NO);
-    return GNUNET_OK;
-  }
-
-  GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
-                                                    GNUNET_NO, NULL, NULL));
-
-
-
-  return GNUNET_OK;
-}
-
-
-
-/**
- * Core handler for axolotl encrypted cadet network traffic.
- *
- * @param cls Closure (unused).
- * @param message Message received.
- * @param peer Neighbor who sent the message.
- *
- * @return GNUNET_OK, to keep the connection open.
- */
-int
-GCC_handle_ax (void *cls, const struct GNUNET_PeerIdentity *peer,
-               struct GNUNET_MessageHeader *message)
 {
   return handle_cadet_encrypted (peer, message);
 }

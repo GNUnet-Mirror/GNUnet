@@ -483,9 +483,7 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
   {&GCC_handle_poll, GNUNET_MESSAGE_TYPE_CADET_POLL,
     sizeof (struct GNUNET_CADET_Poll)},
   {&GCC_handle_kx, GNUNET_MESSAGE_TYPE_CADET_KX, 0},
-  {&GCC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0},
-  {&GCC_handle_ax_kx, GNUNET_MESSAGE_TYPE_CADET_AX_KX, 0},  {NULL, 0, 0},
-  {&GCC_handle_ax, GNUNET_MESSAGE_TYPE_CADET_AX, 0}
+  {&GCC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0}
 };
 
 

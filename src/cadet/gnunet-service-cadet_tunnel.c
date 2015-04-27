@@ -135,6 +135,21 @@ struct CadetTunnelKXCtx
   struct GNUNET_SCHEDULER_Task * finish_task;
 };
 
+/**
+ * Encryption systems possible.
+ */
+enum CadetTunnelEncryption
+{
+  /**
+   * Default Axolotl system.
+   */
+  CADET_Axolotl,
+
+  /**
+   * Fallback OTR-style encryption.
+   */
+  CADET_Fallback
+};
 
 struct CadetTunnelSkippedKey
 {
@@ -177,14 +192,24 @@ struct CadetTunnelAxolotl
  */
 struct CadetTunnel
 {
-    /**
-     * Endpoint of the tunnel.
-     */
+  /**
+   * Endpoint of the tunnel.
+   */
   struct CadetPeer *peer;
 
-    /**
-     * State of the tunnel connectivity.
-     */
+  /**
+   * Type of encryption used in the tunnel.
+   */
+  enum CadetTunnelEncryption enc_type;
+
+  /**
+   * Axolotl info.
+   */
+  struct CadetTunnelAxolotl *ax;
+
+  /**
+   * State of the tunnel connectivity.
+   */
   enum CadetTunnelCState cstate;
 
   /**
@@ -899,6 +924,13 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
                            void *dst, const void *src, size_t size,
                            const struct GNUNET_CADET_Hash *msg_hmac)
 {
+  struct CadetTunnelAxolotl *ax;
+
+  ax = t->ax;
+
+  if (NULL == ax)
+    return -1;
+
   return 0;
 }
 
@@ -2005,6 +2037,14 @@ handle_ephemeral (struct CadetTunnel *t,
     return;
   }
 
+  /* If we get a proper OTR-style ephemeral, fallback to old crypto. */
+  if (NULL != t->ax)
+  {
+    GNUNET_free (t->ax);
+    t->ax = NULL;
+    t->enc_type = CADET_Fallback;
+  }
+
   /**
    * If the key is different from what we know, derive the new E/D keys.
    * Else destroy the rekey ctx (duplicate EPHM after successful KX).
@@ -2095,6 +2135,23 @@ handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
    */
   destroy_kx_ctx (t);
   GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
+}
+
+
+/**
+ * .
+ *
+ * @param t Tunnel this message came on.
+ * @param msg Key eXchange Pong message.
+ */
+static void
+handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
+{
+
+  if (NULL == t->ax)
+  {
+    t->ax = GNUNET_new (struct CadetTunnelAxolotl);
+  }
 }
 
 
@@ -2255,9 +2312,13 @@ GCT_handle_kx (struct CadetTunnel *t,
       handle_pong (t, (const struct GNUNET_CADET_KX_Pong *) message);
       break;
 
+    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
+      handle_kx_ax (t, (const struct GNUNET_CADET_AX_KX *) message);
+      break;
+
     default:
       GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message not known (%u)\n", type);
+      LOG (GNUNET_ERROR_TYPE_WARNING, "kx message %s unknown\n", GC_m2s (type));
   }
 }
 
