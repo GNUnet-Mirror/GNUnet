@@ -2221,7 +2221,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (GNUNET_NO != c->destroy);
       return GNUNET_OK;
     }
-    GCT_handle_encrypted (c->t, msg);
+    GCT_handle_encrypted (c->t, &msg->header);
     GCC_send_ack (c, fwd, GNUNET_NO);
     return GNUNET_OK;
   }
@@ -2528,7 +2528,7 @@ GCC_handle_ax_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break (GNUNET_NO != c->destroy);
       return GNUNET_OK;
     }
-    GCT_handle_ax (c->t, msg); //FIXME ax
+    GCT_handle_encrypted (c->t, message);
     GCC_send_ack (c, fwd, GNUNET_NO);
     return GNUNET_OK;
   }

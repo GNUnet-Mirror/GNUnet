@@ -270,7 +270,7 @@ struct CadetChannel *
 GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid);
 
 /**
- * Decrypt old format and demultiplex by message type. Call appropriate handler
+ * Decrypt and demultiplex by message type. Call appropriate handler
  * for a message towards a channel of a local tunnel.
  *
  * @param t Tunnel this message came on.
@@ -278,18 +278,7 @@ GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid);
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_CADET_Encrypted *msg);
-
-/**
- * Decrypt axolotl and demultiplex by message type. Call appropriate handler
- * for a message towards a channel of a local tunnel.
- *
- * @param t Tunnel this message came on.
- * @param msg Message header.
- */
-void
-GCT_handle_ax (struct CadetTunnel *t,
-               const struct GNUNET_CADET_AX *msg);
+                      const struct GNUNET_MessageHeader *msg);
 
 
 /**

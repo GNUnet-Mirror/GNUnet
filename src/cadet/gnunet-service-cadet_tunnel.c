@@ -845,6 +845,26 @@ t_decrypt_and_validate (struct CadetTunnel *t,
   return -1;
 }
 
+/**
+ * Decrypt and verify data with the appropriate tunnel key and verify that the
+ * data has not been altered since it was sent by the remote peer.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the plaintext.
+ * @param src Source of the encrypted data. Can overlap with @c dst.
+ * @param size Size of the encrypted data.
+ * @param msg_hmac HMAC of the message, cannot be NULL.
+ *
+ * @return Size of the decrypted data, -1 if an error was encountered.
+ */
+static int
+t_ax_decrypt_and_validate (struct CadetTunnel *t,
+                           void *dst, const void *src, size_t size,
+                           const struct GNUNET_CADET_Hash *msg_hmac)
+{
+  return 0;
+}
+
 
 /**
  * Create key material by doing ECDH on the local and remote ephemeral keys.
@@ -2122,17 +2142,34 @@ handle_decrypted (struct CadetTunnel *t,
  */
 void
 GCT_handle_encrypted (struct CadetTunnel *t,
-                      const struct GNUNET_CADET_Encrypted *msg)
+                      const struct GNUNET_MessageHeader *msg)
 {
-  size_t size = ntohs (msg->header.size);
-  size_t payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
+  size_t size = ntohs (msg->size);
+  size_t payload_size;
   int decrypted_size;
-  char cbuf [payload_size];
+  char cbuf [size];
+  uint16_t type = ntohs (msg->type);
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
 
-  decrypted_size = t_decrypt_and_validate (t, cbuf, &msg[1], payload_size,
-                                           msg->iv, &msg->hmac);
+  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
+  {
+    const struct GNUNET_CADET_Encrypted *emsg;
+
+    emsg = (struct GNUNET_CADET_Encrypted *) msg;
+    payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
+    decrypted_size = t_decrypt_and_validate (t, cbuf, &emsg[1], payload_size,
+                                             emsg->iv, &emsg->hmac);
+  }
+  else if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
+  {
+    const struct GNUNET_CADET_AX *emsg;
+
+    emsg = (struct GNUNET_CADET_AX *) msg;
+    payload_size = size - sizeof (struct GNUNET_CADET_AX);
+    decrypted_size = t_ax_decrypt_and_validate (t, cbuf, &emsg[1],
+                                                payload_size, &emsg->hmac);
+  }
 
   if (-1 == decrypted_size)
   {
@@ -2155,21 +2192,6 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     handle_decrypted (t, msgh, GNUNET_SYSERR);
     off += msize;
   }
-}
-
-
-/**
- * Decrypt axolotl and demultiplex by message type. Call appropriate handler
- * for a message towards a channel of a local tunnel.
- *
- * @param t Tunnel this message came on.
- * @param msg Message header.
- */
-void
-GCT_handle_ax (struct CadetTunnel *t,
-               const struct GNUNET_CADET_AX *msg)
-{
-  //FIXME ax
 }
 
 
