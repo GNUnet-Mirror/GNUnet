@@ -877,7 +877,7 @@ t_ax_hmac_hash (struct CadetTunnelAxolotl *ax,
 
 
 /**
- * Encrypt daforce_newest_keyta with the tunnel key.
+ * Encrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the encrypted data.
