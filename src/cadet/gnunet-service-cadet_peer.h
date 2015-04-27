@@ -390,6 +390,25 @@ void
 GCP_try_connect (struct CadetPeer *peer);
 
 /**
+ * Check if the given ECDH key is correct for the peer.
+ *
+ * This function caches the results if the key has been previoulsy checked,
+ * otherwise checks that the key is signed with the peer's ID (EdDSA key).
+ *
+ * TODO: save the cached public key to permanent storage / peerinfo.
+ *
+ * @param peer Peer whose key to check.
+ * @param key ECDH key to check.
+ * @param purpose Purpose of the signature (followed by the key).
+ * @param sig Signature with the peer's EdDSA key (PeerID).
+ */
+int
+GCP_check_key (struct CadetPeer *peer,
+               const struct GNUNET_CRYPTO_EcdhePublicKey *key,
+               const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
+               const struct GNUNET_CRYPTO_EddsaSignature *sig);
+
+/**
  * Notify a peer that a link between two other peers is broken. If any path
  * used that link, eliminate it.
  *
