@@ -1570,7 +1570,7 @@ ephm_sent (void *cls,
          uint16_t type, int fwd, size_t size)
 {
   struct CadetTunnel *t = cls;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "ephm_sent %s\n", GC_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "ephemeral sent %s\n", GC_m2s (type));
   t->ephm_h = NULL;
 }
 
@@ -1621,7 +1621,6 @@ send_kx (struct CadetTunnel *t,
   /* Avoid loopback. */
   if (GCT_is_loopback (t))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     GNUNET_break (0);
     return NULL;
   }
@@ -1635,7 +1634,7 @@ send_kx (struct CadetTunnel *t,
   /* Must have a connection, or be looking for one. */
   if (NULL == t->connection_head)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s while no connection\n", GC_m2s (type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s with no connection\n", GC_m2s (type));
     if (CADET_TUNNEL_SEARCHING != t->cstate)
     {
       GNUNET_break (0);
@@ -1651,8 +1650,7 @@ send_kx (struct CadetTunnel *t,
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    if (NULL == t->destroy_task
-        && CADET_TUNNEL_READY == t->cstate)
+    if (NULL == t->destroy_task && CADET_TUNNEL_READY == t->cstate)
     {
       GNUNET_break (0);
       GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
@@ -1662,20 +1660,20 @@ send_kx (struct CadetTunnel *t,
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
+    case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
       GNUNET_assert (NULL == t->ephm_h);
       cont = &ephm_sent;
-      memcpy (&msg[1], message, size);
       break;
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
       GNUNET_assert (NULL == t->pong_h);
       cont = &pong_sent;
-      memcpy (&msg[1], message, size);
       break;
 
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GC_m2s (type));
       GNUNET_assert (0);
   }
+  memcpy (&msg[1], message, size);
 
   fwd = GCC_is_origin (c, GNUNET_YES);
 
@@ -3639,7 +3637,6 @@ void
 GCT_send_ax_kx (struct CadetTunnel *t)
 {
   struct GNUNET_CADET_AX_KX msg;
-  struct CadetConnection *c;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "===> AX_KX for %s\n", GCT_2s (t));
 
@@ -3648,11 +3645,7 @@ GCT_send_ax_kx (struct CadetTunnel *t)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
-  c = tunnel_get_connection (t);
-  /* TODO: save queue */
-  GCC_send_prebuilt_message (&msg.header, GNUNET_MESSAGE_TYPE_CADET_AX_KX, 0,
-                             c, GCC_is_origin (c, GNUNET_YES), GNUNET_NO,
-                             NULL, NULL);
+  t->ephm_h = send_kx (t, &msg);
 }
 
 

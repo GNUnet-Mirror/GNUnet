@@ -120,11 +120,6 @@ struct GNUNET_CADET_AX_KX
    * Type: GNUNET_MESSAGE_TYPE_CADET_AX_KX.
    */
   struct GNUNET_MessageHeader header;
-  
-  /**
-   * ID of the connection.
-   */
-  struct GNUNET_CADET_Hash cid;
 
   /**
    * Sender's ephemeral public ECC key (always for NIST P-521) encoded in a
