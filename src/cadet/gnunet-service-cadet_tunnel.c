@@ -187,14 +187,14 @@ struct CadetTunnelSkippedKey
 };
 
 /**
- * Axolotl data, according to https://github.com/trevp/axolotl/wiki
+ * Axolotl data, according to @url https://github.com/trevp/axolotl/wiki .
  */
 struct CadetTunnelAxolotl
 {
   /**
    * A (double linked) list of stored message keys and associated header keys
    * for "skipped" messages, i.e. messages that have not bee*n
-   * received despite the reception of more recent messages, (head)/
+   * received despite the reception of more recent messages, (head).
    */
   struct CadetTunnelSkippedKey *skipped_head;
 
@@ -209,12 +209,12 @@ struct CadetTunnelAxolotl
   uint skipped;
 
   /**
-   * 32-byte root key which gets updated by DH ratchet
+   * 32-byte root key which gets updated by DH ratchet.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey RK;
 
   /**
-   * 32-byte header key (send)
+   * 32-byte header key (send).
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey HKs;
 
@@ -224,37 +224,42 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_SymmetricSessionKey HKr;
 
   /**
-   * 32-byte next header key (send)
+   * 32-byte next header key (send).
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey NHKs;
 
   /**
-   * 32-byte next header key (recv)
+   * 32-byte next header key (recv).
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey NHKr;
 
   /**
-   * 32-byte chain keys (used for forward-secrecy updating, send)
+   * 32-byte chain keys (used for forward-secrecy updating, send).
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey CKs;
 
   /**
-   * 32-byte chain keys (used for forward-secrecy updating, recv)
+   * 32-byte chain keys (used for forward-secrecy updating, recv).
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey CKr;
 
   /**
-   * ECDH for key exchange (A0 / B0)
+   * ECDH for key exchange (A0 / B0).
    */
   struct GNUNET_CRYPTO_EcdhePrivateKey *kx_0;
 
   /**
-   * ECDH Ratchet key (send)
+   * ECDH Identity key (recv).
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey DHIr;
+
+  /**
+   * ECDH Ratchet key (send).
    */
   struct GNUNET_CRYPTO_EcdhePrivateKey *DHRs;
 
   /**
-   * ECDH Ratchet key (recv)
+   * ECDH Ratchet key (recv).
    */
   struct GNUNET_CRYPTO_EcdhePublicKey DHRr;
 
@@ -2535,6 +2540,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 
   ax = t->ax;
   ax->DHRr = msg->ratchet_key;
+  ax->DHIr = msg->permanent_key;
 
   /* ECDH A B0 */
   if (GNUNET_YES == am_I_alice)
@@ -2545,7 +2551,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   else
   {
     priv = ax->kx_0;                                            /* B0 */
-    pub = &msg->permanent_key;                                  /* A */
+    pub = &ax->DHIr;                                            /* A */
   }
   GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[0]);
 
@@ -2553,7 +2559,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   if (GNUNET_YES == am_I_alice)
   {
     priv = ax->kx_0;                                            /* A0 */
-    pub = &msg->permanent_key;                                  /* B */
+    pub = &ax->DHIr;                                            /* B */
   }
   else
   {
