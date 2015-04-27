@@ -40,7 +40,6 @@
 #include "gnunet-service-wdht_clients.h"
 #include "gnunet-service-wdht_datacache.h"
 #include "gnunet-service-wdht_neighbours.h"
-#include "gnunet-service-wdht_routing.h"
 #include <fenv.h>
 #include "dht.h"
 

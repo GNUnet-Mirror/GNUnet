@@ -85,6 +85,7 @@ gnunet_service_dht_xvine_SOURCES = \
  gnunet-service-xdht_nse.c gnunet-service-xdht_nse.h \
  gnunet-service-xdht_neighbours.c gnunet-service-xdht_neighbours.h \
  gnunet-service-xdht_routing.c gnunet-service-xdht_routing.h
+
 gnunet_service_dht_xvine_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -103,8 +104,7 @@ gnunet_service_dht_whanau_SOURCES = \
  gnunet-service-wdht_clients.c gnunet-service-wdht_clients.h \
  gnunet-service-wdht_datacache.c gnunet-service-wdht_datacache.h \
  gnunet-service-wdht_nse.c gnunet-service-wdht_nse.h \
- gnunet-service-wdht_neighbours.c gnunet-service-wdht_neighbours.h \
- gnunet-service-wdht_routing.c gnunet-service-wdht_routing.h
+ gnunet-service-wdht_neighbours.c gnunet-service-wdht_neighbours.h
 gnunet_service_dht_whanau_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/core/libgnunetcore.la \

@@ -35,7 +35,6 @@
 #include "gnunet-service-xdht.h"
 #include "gnunet-service-xdht_clients.h"
 #include "gnunet-service-xdht_datacache.h"
-#include "gnunet-service-xdht_hello.h"
 #include "gnunet-service-xdht_neighbours.h"
 #include "gnunet-service-xdht_nse.h"
 #include "gnunet-service-xdht_routing.h"

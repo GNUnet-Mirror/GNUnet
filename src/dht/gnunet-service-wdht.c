@@ -35,10 +35,8 @@
 #include "gnunet-service-wdht.h"
 #include "gnunet-service-wdht_clients.h"
 #include "gnunet-service-wdht_datacache.h"
-#include "gnunet-service-wdht_hello.h"
 #include "gnunet-service-wdht_neighbours.h"
 #include "gnunet-service-wdht_nse.h"
-#include "gnunet-service-wdht_routing.h"
 
 
 
@@ -69,7 +67,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GDS_NEIGHBOURS_done ();
   GDS_DATACACHE_done ();
-  GDS_ROUTING_done ();
   GDS_NSE_done ();
   if (GDS_block_context != NULL)
   {
@@ -100,7 +97,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_cfg = c;
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
   GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
-  GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
   GDS_CLIENTS_init (server);
