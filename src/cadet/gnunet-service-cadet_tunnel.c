@@ -2292,15 +2292,28 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_HashCode key_material[3];
   struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
-  const struct GNUNET_CRYPTO_EcdhePublicKey *DHIr;
-  const struct GNUNET_CRYPTO_EcdhePrivateKey *DHIs;
+  const struct GNUNET_CRYPTO_EcdhePublicKey *pub;
+  const struct GNUNET_CRYPTO_EcdhePrivateKey *priv;
   const char salt[] = "CADET Axolotl salt";
+  const struct GNUNET_PeerIdentity *pid;
+  int is_alice;
 
   if (NULL == t->ax)
   {
     /* Something is wrong if ax is NULL. Whose fault it is? */
     GNUNET_break_op (CADET_Fallback == t->enc_type);
     GNUNET_break (CADET_Axolotl == t->enc_type);
+    return;
+  }
+
+  pid = GCT_get_destination (t);
+  if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
+    is_alice = GNUNET_YES;
+  else if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
+    is_alice = GNUNET_NO;
+  else
+  {
+    GNUNET_break_op (0);
     return;
   }
 
@@ -2314,24 +2327,59 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     return;
   }
 
-  DHIr = get_public_ecdhe_from_id (GCT_get_destination (t));
-  DHIs = ax_identity;
+  /* ECDH A B0 */
+  if (GNUNET_YES == is_alice)
+  {
+    priv = get_private_ecdhe_from_eddsa (my_private_key);       /* A */
+    pub = &msg->ephemeral_key;                                  /* B0 */
+  }
+  else
+  {
+    priv = ax->DHRs;                                            /* B0 */
+    pub = get_public_ecdhe_from_id (pid);                        /* A */
+  }
+  GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[0]);
 
-  /* ECDH */
-  GNUNET_CRYPTO_ecc_ecdh (DHIs,
-                          &msg->ephemeral_key,
-                          &key_material[0]);
-  GNUNET_CRYPTO_ecc_ecdh (ax->DHRs,
-                          DHIr,
-                          &key_material[1]);
-  GNUNET_CRYPTO_ecc_ecdh (ax->DHRs,
-                          &msg->ephemeral_key,
-                          &key_material[2]);
+  /* ECDH A0 B */
+  if (GNUNET_YES == is_alice)
+  {
+    priv = ax->DHRs;                                            /* A0 */
+    pub = get_public_ecdhe_from_id (pid);                       /* B */
+  }
+  else
+  {
+    priv = get_private_ecdhe_from_eddsa (my_private_key);       /* B */
+    pub = &msg->ephemeral_key;                                  /* A0 */
+  }
+  GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[1]);
+
+  /* ECDH A0 B0*/
+  priv = ax->DHRs;                                              /* A0 or B0 */
+  pub = &msg->ephemeral_key;                                    /* B0 or A0 */
+  GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[2]);
 
   /* KDF */
   GNUNET_CRYPTO_kdf (keys, sizeof (keys),
                      salt, sizeof (salt),
                      key_material, sizeof (key_material), NULL);
+
+  ax->RK = keys[0];
+  if (GNUNET_YES == is_alice)
+  {
+    ax->HKr = keys[1];
+    ax->NHKs = keys[2];
+    ax->NHKr = keys[3];
+    ax->CKr = keys[4];
+    ax->ratchet_flag = GNUNET_YES;
+  }
+  else
+  {
+    ax->HKs = keys[1];
+    ax->NHKr = keys[2];
+    ax->NHKs = keys[3];
+    ax->CKs = keys[4];
+    ax->ratchet_flag = GNUNET_NO;
+  }
 }
 
 
@@ -2533,7 +2581,6 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   }
 
   my_private_key = key;
-  ax_identity = get_private_ecdhe_from_eddsa (key);
 
   kx_msg.header.size = htons (sizeof (kx_msg));
   kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL);
