@@ -2197,8 +2197,17 @@ check_message (const struct GNUNET_MessageHeader *message,
     }
     fc->recv_bitmap |= get_recv_bitmask (fc->last_pid_recv, pid);
   }
+
+  /* Count as connection confirmation. */
   if (CADET_CONNECTION_SENT == c->state || CADET_CONNECTION_ACK == c->state)
+  {
     connection_change_state (c, CADET_CONNECTION_READY);
+    if (NULL != c->t)
+    {
+      if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
+        GCT_change_cstate (c->t, CADET_TUNNEL_READY);
+    }
+  }
   connection_reset_timeout (c, fwd);
 
   return fwd;
