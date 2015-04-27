@@ -1369,27 +1369,65 @@ try_old_ax_keys (struct CadetTunnel *t, struct GNUNET_CADET_AX *dst,
 
 
 /**
+ * Delete a key from the list of skipped keys.
+ *
+ * @param t Tunnel to delete from.
+ * @param HKr Header Key to use.
+ */
+static void
+store_skipped_key (struct CadetTunnel *t,
+                   const struct GNUNET_CRYPTO_SymmetricSessionKey *HKr)
+{
+  struct CadetTunnelSkippedKey *key;
+
+  key = GNUNET_new (struct CadetTunnelSkippedKey);
+  key->timestamp = GNUNET_TIME_absolute_get ();
+  t_hmac_derive_key (&t->ax->CKr, &key->MK, "0", 1);
+  #if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
+       t->ax->Nr, GNUNET_h2s ((struct GNUNET_HashCode *) &key->MK));
+  LOG (GNUNET_ERROR_TYPE_INFO, "    for CKr: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->ax->CKr));
+  #endif
+  t_hmac_derive_key (&t->ax->CKr, &t->ax->CKr, "1", 1);
+  GNUNET_CONTAINER_DLL_insert (t->ax->skipped_head, t->ax->skipped_tail, key);
+  t->ax->Nr++;
+  t->ax->skipped++;
+}
+
+
+/**
+ * Delete a key from the list of skipped keys.
+ *
+ * @param t Tunnel to delete from.
+ * @param key Key to delete.
+ */
+static void
+delete_skipped_key (struct CadetTunnel *t, struct CadetTunnelSkippedKey *key)
+{
+  GNUNET_CONTAINER_DLL_remove (t->ax->skipped_head, t->ax->skipped_tail, key);
+  GNUNET_free (key);
+  t->ax->skipped--;
+}
+
+
+/**
  * Stage skipped AX keys and calculate the message key.
  *
  * Stores each HK and MK for skipped messages.
  *
  * @param t Tunnel where to stage the keys.
  * @param HKr Header key.
- * @param Nr Current message number.
  * @param Np Received meesage number.
- * @param CKr[in/out] Chain key, gets ratcheted forward to the new state.
  */
 static void
 store_ax_keys (struct CadetTunnel *t,
                const struct GNUNET_CRYPTO_SymmetricSessionKey *HKr,
-               uint32_t Nr, uint32_t Np,
-               struct GNUNET_CRYPTO_SymmetricSessionKey *CKr)
+               uint32_t Np)
 {
-  struct CadetTunnelSkippedKey *key;
-  unsigned int i;
   int gap;
 
-  gap = Np - Nr;
+  gap = Np - t->ax->Nr;
   if (MAX_KEY_GAP < gap || 0 > gap)
   {
     /* Avoid DoS (forcing peer to do 2*33 chain HMAC operations) */
@@ -1398,21 +1436,11 @@ store_ax_keys (struct CadetTunnel *t,
     return;
   }
 
-  for (i = Nr; i < Np; i++)
-  {
-    key = GNUNET_new (struct CadetTunnelSkippedKey);
-    key->timestamp = GNUNET_TIME_absolute_get ();
-    t_hmac_derive_key (CKr, &key->MK, "0", 1);
-    #if DUMP_KEYS_TO_STDERR
-    LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
-         i, GNUNET_h2s ((struct GNUNET_HashCode *) &key->MK));
-    LOG (GNUNET_ERROR_TYPE_INFO, "    for CKr: %s\n",
-         GNUNET_h2s ((struct GNUNET_HashCode *) &t->ax->CKr));
-    #endif
-    t_hmac_derive_key (CKr, CKr, "1", 1);
-    GNUNET_CONTAINER_DLL_insert (t->ax->skipped_head, t->ax->skipped_tail, key);
-    t->ax->skipped++;
-  }
+  while (t->ax->Nr < Np)
+    store_skipped_key (t, HKr);
+
+  while (t->ax->skipped > MAX_SKIPPED_KEYS)
+    delete_skipped_key (t, t->ax->skipped_tail);
 }
 
 
@@ -1472,7 +1500,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
     Np = ntohl (dstmsg->Ns);
     PNp = ntohl (dstmsg->PNs);
     DHRp = &dstmsg->DHRs;
-    store_ax_keys (t, &HK, ax->Nr, PNp, &ax->CKr);
+    store_ax_keys (t, &HK, PNp);
 
     /* RKp, NHKp, CKp = KDF (HMAC-HASH (RK, DH (DHRp, DHRs))) */
     GNUNET_CRYPTO_ecc_ecdh (ax->DHRs, DHRp, &dh);
@@ -1497,7 +1525,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
   }
 
   if (Np > ax->Nr)
-    store_ax_keys (t, &ax->HKr, ax->Nr, Np, &ax->CKr);
+    store_ax_keys (t, &ax->HKr, Np);
 
   ax->Nr = Np + 1;
 
