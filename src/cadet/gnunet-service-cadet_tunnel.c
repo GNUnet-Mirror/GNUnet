@@ -3946,6 +3946,54 @@ GCT_2s (const struct CadetTunnel *t)
 /*****************************    INFO/DEBUG    *******************************/
 /******************************************************************************/
 
+static void
+ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
+{
+  struct GNUNET_CRYPTO_EcdhePublicKey pub;
+  struct CadetTunnelSkippedKey *iter;
+
+
+  LOG2 (level, "TTT  RK\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->RK));
+
+  LOG2 (level, "TTT  HKs\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKs));
+  LOG2 (level, "TTT  HKr\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKr));
+  LOG2 (level, "TTT  NHKs\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->NHKs));
+  LOG2 (level, "TTT  NHKr\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->NHKr));
+
+  LOG2 (level, "TTT  CKs\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKs));
+  LOG2 (level, "TTT  CKr\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKr));
+
+  GNUNET_CRYPTO_ecdhe_key_get_public (ax_key, &pub);
+  LOG2 (level, "TTT  DHIs\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &pub));
+  LOG2 (level, "TTT  DHIr\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHIr));
+  GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &pub);
+  LOG2 (level, "TTT  DHRs\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &pub));
+  LOG2 (level, "TTT  DHRr\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHRr));
+
+  LOG2 (level, "TTT  Nr\t %u\tNs\t%u\n", ax->Nr, ax->Ns);
+  LOG2 (level, "TTT  PNs\t%u\tSkipped\t%u\n", ax->PNs, ax->skipped);
+  LOG2 (level, "TTT  Ratchet\t%u\n", ax->ratchet_flag);
+
+  for (iter = ax->skipped_head; NULL != iter; iter = iter->next)
+  {
+    LOG2 (level, "TTT    HK\t %s\n",
+          GNUNET_h2s ((struct GNUNET_HashCode *) &iter->HK));
+    LOG2 (level, "TTT    MK\t %s\n",
+          GNUNET_h2s ((struct GNUNET_HashCode *) &iter->MK));
+  }
+}
+
 /**
  * Log all possible info about the tunnel state.
  *
@@ -3971,20 +4019,27 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT  kx_ctx %p, rekey_task %u, finish task %u\n",
         t->kx_ctx, t->rekey_task, t->kx_ctx ? t->kx_ctx->finish_task : 0);
 #if DUMP_KEYS_TO_STDERR
-  LOG2 (level, "TTT  my EPHM\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
-  LOG2 (level, "TTT  peers EPHM:\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
-  LOG2 (level, "TTT  ENC key:\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
-  LOG2 (level, "TTT  DEC key:\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
-  if (t->kx_ctx)
+  if (CADET_Axolotl == t->enc_type)
   {
-    LOG2 (level, "TTT  OLD ENC key:\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &t->kx_ctx->e_key_old));
-    LOG2 (level, "TTT  OLD DEC key:\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &t->kx_ctx->d_key_old));
+    ax_debug (t->ax, level);
+  }
+  else
+  {
+    LOG2 (level, "TTT  my EPHM\t %s\n",
+          GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
+    LOG2 (level, "TTT  peers EPHM:\t %s\n",
+          GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+    LOG2 (level, "TTT  ENC key:\t %s\n",
+          GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
+    LOG2 (level, "TTT  DEC key:\t %s\n",
+          GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+    if (t->kx_ctx)
+    {
+      LOG2 (level, "TTT  OLD ENC key:\t %s\n",
+            GNUNET_h2s ((struct GNUNET_HashCode *) &t->kx_ctx->e_key_old));
+      LOG2 (level, "TTT  OLD DEC key:\t %s\n",
+            GNUNET_h2s ((struct GNUNET_HashCode *) &t->kx_ctx->d_key_old));
+    }
   }
 #endif
   LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
