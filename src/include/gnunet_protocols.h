@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2014 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2001--2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -2637,6 +2637,57 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_CLIENT_ACT_MALICIOUS_OK  894
 
 #endif
+
+
+/*******************************************************************************
+ * Whanau DHT messages
+ ******************************************************************************/
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP 910
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP_RESPONSE 911
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_FINGER_DESTROY 912
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_FINGER_ROUTE 913
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND 914
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FOUND 915
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_GET 916
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_PUT 917
+
+/**
+ *
+ */
+#define GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT 918
+
 
 /*******************************************************************************
  * RPS messages
