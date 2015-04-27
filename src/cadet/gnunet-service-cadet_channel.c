@@ -1070,7 +1070,7 @@ channel_rel_free_sent (struct CadetChannelReliability *rel,
       LOG (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
       i += copy->mid - target - 1;   /* MID: 90, t = 85, i += 4 (i++ later) */
       mask = (0x1LL << (i + 1)) - 1; /* Mask = i-th bit and all before */
-      bitfield &= ~mask;
+      bitfield &= ~mask;             /* Clear all bits up to MID - 1 */
       continue;
     }
 
