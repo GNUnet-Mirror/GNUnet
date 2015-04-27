@@ -2244,7 +2244,8 @@ static int
 handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_CADET_Encrypted *msg;
+  const struct GNUNET_CADET_Encrypted *otr_msg;
+  const struct GNUNET_CADET_AX *ax_msg;
   const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
   size_t minumum_size;
@@ -2253,17 +2254,26 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   uint32_t ttl;
   int fwd;
 
-  msg = (struct GNUNET_CADET_Encrypted *) message;
-  cid = &msg->cid;
+  if (GNUNET_MESSAGE_TYPE_CADET_AX == ntohs (message->type))
+  {
+    overhead = sizeof (struct GNUNET_CADET_AX);
+    ax_msg = (const struct GNUNET_CADET_AX *) message;
+    cid = &ax_msg->cid;
+    pid = ntohl (ax_msg->pid);
+    otr_msg = NULL;
+  }
+  else
+  {
+    overhead = sizeof (struct GNUNET_CADET_Encrypted);
+    otr_msg = (const struct GNUNET_CADET_Encrypted *) message;
+    cid = &otr_msg->cid;
+    pid = ntohl (otr_msg->pid);
+  }
+
   log_message (message, peer, cid);
 
-  if (GNUNET_MESSAGE_TYPE_CADET_AX == ntohs (message->type))
-    overhead = sizeof (struct GNUNET_CADET_AX);
-  else
-    overhead = sizeof (struct GNUNET_CADET_Encrypted);
   minumum_size = sizeof (struct GNUNET_MessageHeader) + overhead;
   c = connection_get (cid);
-  pid = ntohl (msg->pid);
   fwd = check_message (message, minumum_size, cid, c, peer, pid);
 
   /* If something went wrong, discard message. */
@@ -2298,7 +2308,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
                                                     GNUNET_NO, NULL, NULL));
 
   return GNUNET_OK;
