@@ -2273,23 +2273,6 @@ get_private_ecdhe_from_eddsa (const struct GNUNET_CRYPTO_EddsaPrivateKey *k)
  * @return Public key for EC Diffie-Hellman.
  */
 static const struct GNUNET_CRYPTO_EcdhePublicKey *
-get_public_ecdhe_from_eddsa (const struct GNUNET_CRYPTO_EddsaPublicKey *k)
-{
-  return (const struct GNUNET_CRYPTO_EcdhePublicKey *) k;
-}
-
-
-/**
- * WARNING! DANGER! Do not use this if you don't know what you are doing!
- * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
- *
- * Transform a public EdDSA key (peer's key) into a key usable by DH.
- *
- * @param k Public EdDSA key to transform (peer's ID).
- *
- * @return Public key for EC Diffie-Hellman.
- */
-static const struct GNUNET_CRYPTO_EcdhePublicKey *
 get_public_ecdhe_from_id (const struct GNUNET_PeerIdentity *id)
 {
   return (const struct GNUNET_CRYPTO_EcdhePublicKey *) id;
