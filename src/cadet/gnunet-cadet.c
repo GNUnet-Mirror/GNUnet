@@ -508,6 +508,23 @@ peer_callback (void *cls,
                unsigned int n_paths,
                struct GNUNET_PeerIdentity *paths)
 {
+  unsigned int i;
+  struct GNUNET_PeerIdentity *p;
+
+  FPRINTF (stdout, "%s [TUNNEL: %s, NEIGHBOR: %s, PATHS: %u]\n",
+           GNUNET_i2s_full (peer),
+           tunnel ? "Y" : "N", neighbor ? "Y" : "N", n_paths);
+  p = paths;
+  for (i = 0; i < n_paths && NULL != p; i++)
+  {
+    FPRINTF (stdout, "%s ", GNUNET_i2s_full (p));
+    if (0 == memcmp (p, peer, sizeof (*p)))
+    {
+      FPRINTF (stdout, "\n");
+    }
+    p++;
+  }
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
