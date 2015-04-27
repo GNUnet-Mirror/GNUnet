@@ -2507,6 +2507,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     ax->CKs = keys[4];
     ax->ratchet_flag = GNUNET_NO;
   }
+  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
 }
 
 
@@ -3715,6 +3716,7 @@ GCT_send_ax_kx (struct CadetTunnel *t)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
   t->ephm_h = send_kx (t, &msg.header);
+  GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
 }
 
 
