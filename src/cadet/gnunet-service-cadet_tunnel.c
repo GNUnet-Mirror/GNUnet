@@ -849,6 +849,69 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
 }
 
 
+void
+t_ax_hmac_hash (struct CadetTunnelAxolotl *ax,
+                struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+                void *source, unsigned int len)
+{
+  static const char ctx[] = "axolotl key derivation";
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+  struct  GNUNET_HashCode hash;
+
+  GNUNET_CRYPTO_hmac_derive_key (&auth_key, &ax->CKs,
+                                 ctx, sizeof (ctx),
+                                 NULL);
+  GNUNET_CRYPTO_hmac (&auth_key, source, len, &hash);
+  GNUNET_CRYPTO_kdf (key, sizeof (*key),
+                     ctx, sizeof (ctx),
+                     &hash, sizeof (hash));
+}
+
+/**
+ * Encrypt daforce_newest_keyta with the tunnel key.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the encrypted data.
+ * @param src Source of the plaintext. Can overlap with @c dst.
+ * @param size Size of the plaintext.
+ *
+ * @return Size of the encrypted data.
+ */
+static int
+t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
+{
+  struct GNUNET_CRYPTO_SymmetricSessionKey MK;
+  struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct CadetTunnelAxolotl *ax;
+  size_t out_size;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_encrypt start\n");
+
+  ax = t->ax;
+
+  if (GNUNET_YES == ax->ratchet_flag)
+  {
+    /* Advance ratchet */
+  }
+
+  t_ax_hmac_hash (ax, &MK, "0", 1);
+  GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
+
+
+  #if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_INFO, "  ENC with key %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
+  #endif
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
+  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &MK, &iv, dst);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt end\n");
+
+  t_ax_hmac_hash (ax, &ax->CKs, "1", 1);
+
+  return out_size;
+}
+
+
 /**
  * Decrypt and verify data with the appropriate tunnel key.
  *
@@ -999,6 +1062,9 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t,
 
   if (NULL == ax)
     return -1;
+
+  /*  */
+  /*  */
 
   return 0;
 }
@@ -1322,6 +1388,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   struct GNUNET_CADET_Encrypted *msg;
   size_t size = ntohs (message->size);
   char cbuf[sizeof (struct GNUNET_CADET_Encrypted) + size];
+  size_t esize;
   uint32_t mid;
   uint32_t iv;
   uint16_t type;
@@ -1353,7 +1420,12 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg = (struct GNUNET_CADET_Encrypted *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
   msg->iv = iv;
-  GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv, GNUNET_NO) == size);
+
+  if (CADET_Axolotl == t->enc_type)
+    esize = t_ax_encrypt (t, &msg[1], message, size);
+  else
+    esize = t_encrypt (t, &msg[1], message, size, iv, GNUNET_NO);
+  GNUNET_assert (esize == size);
   t_hmac (&msg[1], size, iv, select_key (t), &msg->hmac);
   msg->header.size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
 
