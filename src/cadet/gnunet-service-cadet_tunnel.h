@@ -443,6 +443,14 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            int force, GCT_sent cont, void *cont_cls);
 
 /**
+ * Send an Axolotl KX message.
+ *
+ * @param t Tunnel on which to send it.
+ */
+void
+GCT_send_ax_kx (struct CadetTunnel *t);
+
+/**
  * Sends an already built and encrypted message on a tunnel, choosing the best
  * connection. Useful for re-queueing messages queued on a destroyed connection.
  *

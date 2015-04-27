@@ -2325,13 +2325,6 @@ handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
 }
 
 
-static void
-send_ax_kx ()
-{
-  //FIXME
-}
-
-
 /**
  * WARNING! DANGER! Do not use this if you don't know what you are doing!
  * Ask Christian Grothoff, Werner Koch, Dan Bernstein and $GOD!
@@ -3642,6 +3635,33 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 {
   return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
 }
+
+
+/**
+ * Send an Axolotl KX message.
+ *
+ * @param t Tunnel on which to send it.
+ */
+void
+GCT_send_ax_kx (struct CadetTunnel *t)
+{
+  struct GNUNET_CADET_AX_KX msg;
+  struct CadetConnection *c;
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> AX_KX for %s\n", GCT_2s (t));
+
+  msg.header.size = sizeof (msg);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
+  GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
+  GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
+
+  c = tunnel_get_connection (t);
+  /* TODO: save queue */
+  GCC_send_prebuilt_message (&msg.header, GNUNET_MESSAGE_TYPE_CADET_AX_KX, 0,
+                             c, GCC_is_origin (c, GNUNET_YES), GNUNET_NO,
+                             NULL, NULL);
+}
+
 
 /**
  * Sends an already built and encrypted message on a tunnel, choosing the best
