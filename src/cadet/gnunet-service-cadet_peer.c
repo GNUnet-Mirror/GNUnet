@@ -1342,7 +1342,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
   else
     error_level = GNUNET_ERROR_TYPE_INFO;
   LOG (error_level,
-       "que %s (%s %9u) on connection %s (%p) %s towards %s (size %u)\n",
+       "que %s (%s %4u) on connection %s (%p) %s towards %s (size %u)\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id,
        GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
