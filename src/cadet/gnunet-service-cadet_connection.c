@@ -679,7 +679,12 @@ conn_message_sent (void *cls,
       fc->ack_msg = NULL;
       break;
 
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      break;
+
     default:
+      LOG (GNUNET_ERROR_TYPE_ERROR, "%s unknown\n", GC_m2s (type));
+      GNUNET_break (0);
       break;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  message sent!\n");
