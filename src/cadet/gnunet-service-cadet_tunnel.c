@@ -4207,7 +4207,8 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
   t->ephm_h = send_kx (t, &msg.header);
-  GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
+  if (CADET_TUNNEL_KEY_OK != t->estate)
+    GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
 }
 
 
