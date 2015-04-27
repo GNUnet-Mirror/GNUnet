@@ -2585,6 +2585,7 @@ GCT_new (struct CadetPeer *destination)
     return NULL;
   }
   t->ax = GNUNET_new (struct CadetTunnelAxolotl);
+  new_ephemeral (t);
   return t;
 }
 
