@@ -2111,12 +2111,14 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  *
  * @param message Message to check. It must belong to an existing connection.
  * @param minimum_size The message cannot be smaller than this value.
+ * @param cid Connection ID (even if @a c is NULL, the ID is still needed).
  * @param c Connection this message should belong. If NULL, check fails.
  * @param neighbor Neighbor that sent the message.
  */
 static int
 check_message (const struct GNUNET_MessageHeader *message,
                size_t minimum_size,
+               struct GNUNET_CADET_Hash* cid,
                struct CadetConnection *c,
                const struct GNUNET_PeerIdentity *neighbor,
                uint32_t pid)
@@ -2137,9 +2139,9 @@ check_message (const struct GNUNET_MessageHeader *message,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "enc_ax on unknown connection %s\n",
-         GNUNET_h2s (GC_h2hc (&c->id)));
-    send_broken_unknown (&c->id, &my_full_id, NULL, neighbor);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s on unknown connection %s\n",
+         GC_m2s (ntohs (message->type)), GNUNET_h2s (GC_h2hc (cid)));
+    send_broken_unknown (cid, &my_full_id, NULL, neighbor);
     return GNUNET_SYSERR;
   }
 
@@ -2228,6 +2230,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
                         const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_CADET_Encrypted *msg;
+  struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
   size_t expected_size;
   uint32_t pid;
@@ -2235,13 +2238,14 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   int fwd;
 
   msg = (struct GNUNET_CADET_Encrypted *) message;
-  log_message (message, peer, &msg->cid);
+  cid = &msg->cid;
+  log_message (message, peer, cid);
 
   expected_size = sizeof (struct GNUNET_CADET_Encrypted)
                   + sizeof (struct GNUNET_MessageHeader);
-  c = connection_get (&msg->cid);
+  c = connection_get (cid);
   pid = ntohl (msg->pid);
-  fwd = check_message (message, expected_size, c, peer, pid);
+  fwd = check_message (message, expected_size, cid, c, peer, pid);
 
   /* If something went wrong, discard message. */
   if (GNUNET_SYSERR == fwd)
@@ -2396,8 +2400,7 @@ int
 GCC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
-  return handle_cadet_kx (peer,
-                          (struct GNUNET_CADET_KX *) message);
+  return handle_cadet_kx (peer, (struct GNUNET_CADET_KX *) message);
 }
 
 
