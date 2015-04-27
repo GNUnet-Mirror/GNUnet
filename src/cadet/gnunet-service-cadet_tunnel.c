@@ -135,6 +135,43 @@ struct CadetTunnelKXCtx
   struct GNUNET_SCHEDULER_Task * finish_task;
 };
 
+
+struct CadetTunnelSkippedKey
+{
+  struct CadetTunnelSkippedKey *next;
+  struct CadetTunnelSkippedKey *prev;
+
+  struct GNUNET_TIME_Absolute timestamp;
+
+  struct GNUNET_CRYPTO_SymmetricSessionKey HK;
+  struct GNUNET_CRYPTO_SymmetricSessionKey MK;
+};
+
+struct CadetTunnelAxolotl
+{
+  struct CadetTunnelSkippedKey *head;
+  struct CadetTunnelSkippedKey *tail;
+
+  uint skipped;
+
+  struct GNUNET_CRYPTO_SymmetricSessionKey RK;
+  struct GNUNET_CRYPTO_SymmetricSessionKey HKs;
+  struct GNUNET_CRYPTO_SymmetricSessionKey HKr;
+  struct GNUNET_CRYPTO_SymmetricSessionKey NHKs;
+  struct GNUNET_CRYPTO_SymmetricSessionKey NHKr;
+  struct GNUNET_CRYPTO_SymmetricSessionKey CKs;
+  struct GNUNET_CRYPTO_SymmetricSessionKey CKr;
+
+  struct GNUNET_CRYPTO_EcdhePublicKey DHRs;
+  struct GNUNET_CRYPTO_EcdhePublicKey DHRr;
+
+  uint32_t Ns;
+  uint32_t Nr;
+  uint32_t PNs;
+
+  int ratchet_flag;
+};
+
 /**
  * Struct containing all information regarding a tunnel to a peer.
  */
