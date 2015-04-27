@@ -1672,7 +1672,7 @@ send_kx (struct CadetTunnel *t,
       GNUNET_assert (0);
   }
 
-  fwd = GCC_is_origin (t->connection_head->c, GNUNET_YES);
+  fwd = GCC_is_origin (c, GNUNET_YES);
 
   return GCC_send_prebuilt_message (&msg->header, type, 0, c,
                                     fwd, GNUNET_YES,
