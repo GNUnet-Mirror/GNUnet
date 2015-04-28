@@ -839,6 +839,79 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
 
 
 /**
+ * @ingroup hashmap
+ * Call @a it on a random value from the map, or not at all
+ * if the map is empty.
+ *
+ * @param map the map
+ * @param it function to call on a random entry
+ * @param it_cls extra argument to @a it
+ * @return the number of key value pairs processed, zero or one.
+ */
+unsigned int
+GNUNET_CONTAINER_multihashmap_get_random (const struct GNUNET_CONTAINER_MultiHashMap *map,
+                                          GNUNET_CONTAINER_HashMapIterator it,
+                                          void *it_cls)
+{
+  unsigned int off;
+  unsigned int idx;
+  union MapEntry me;
+
+  if (0 == map->size)
+    return 0;
+  if (NULL == it)
+    return 1;
+  off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                  map->size);
+  for (idx = 0; idx < map->map_length; idx++)
+  {
+    me = map->map[idx];
+    if (map->use_small_entries)
+    {
+      struct SmallMapEntry *sme;
+      struct SmallMapEntry *nxt;
+
+      nxt = me.sme;
+      while (NULL != (sme = nxt))
+      {
+        nxt = sme->next;
+        if (0 == off)
+        {
+          if (GNUNET_OK != it (it_cls,
+                               sme->key,
+                               sme->value))
+            return GNUNET_SYSERR;
+          return 1;
+        }
+        off--;
+      }
+    }
+    else
+    {
+      struct BigMapEntry *bme;
+      struct BigMapEntry *nxt;
+
+      nxt = me.bme;
+      while (NULL != (bme = nxt))
+      {
+        nxt = bme->next;
+        if (0 == off)
+        {
+          if (GNUNET_OK != it (it_cls,
+                               &bme->key, bme->value))
+            return GNUNET_SYSERR;
+          return 1;
+        }
+        off--;
+      }
+    }
+  }
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
+}
+
+
+/**
  * Create an iterator for a multihashmap.
  * The iterator can be used to retrieve all the elements in the multihashmap
  * one by one, without having to handle all elements at once (in contrast to

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2012, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -87,7 +87,7 @@ struct Value
   size_t size;
 
   /**
-   * Number of entries in 'path_info'.
+   * Number of entries in @e path_info.
    */
   unsigned int path_info_len;
 
@@ -103,7 +103,7 @@ struct Value
 
 
 /**
- * Closure for 'put_cb'.
+ * Closure for #put_cb().
  */
 struct PutContext
 {
@@ -128,7 +128,7 @@ struct PutContext
   const struct GNUNET_PeerIdentity *path_info;
 
   /**
-   * Number of bytes in 'data'.
+   * Number of bytes in @e data.
    */
   size_t size;
 
@@ -138,12 +138,12 @@ struct PutContext
   enum GNUNET_BLOCK_Type type;
 
   /**
-   * Number of entries in 'path_info'.
+   * Number of entries in @e path_info.
    */
   unsigned int path_info_len;
 
   /**
-   * Value to set to GNUNET_YES if an equivalent block was found.
+   * Value to set to #GNUNET_YES if an equivalent block was found.
    */
   int found;
 };
@@ -153,7 +153,7 @@ struct PutContext
  * Function called during PUT to detect if an equivalent block
  * already exists.
  *
- * @param cls the 'struct PutContext'
+ * @param cls the `struct PutContext`
  * @param key the key for the value(s)
  * @param value an existing value
  * @return #GNUNET_YES if not found (to continue to iterate)
@@ -200,17 +200,20 @@ put_cb (void *cls,
  *
  * @param cls closure (our `struct Plugin`)
  * @param key key to store data under
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
  * @param path_info_len number of entries in @a path_info
  * @param path_info a path through the network
-   * @return 0 if duplicate, -1 on error, number of bytes used otherwise
+ * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
 static ssize_t
-heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
-		 const char *data, enum GNUNET_BLOCK_Type type,
+heap_plugin_put (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 size_t size,
+		 const char *data,
+                 enum GNUNET_BLOCK_Type type,
 		 struct GNUNET_TIME_Absolute discard_time,
 		 unsigned int path_info_len,
 		 const struct GNUNET_PeerIdentity *path_info)
@@ -229,7 +232,7 @@ heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
   put_ctx.type = type;
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->map,
 					      key,
-					      put_cb,
+					      &put_cb,
 					      &put_ctx);
   if (GNUNET_YES == put_ctx.found)
     return 0;
@@ -256,7 +259,7 @@ heap_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 /**
- * Closure for 'get_cb'.
+ * Closure for #get_cb().
  */
 struct GetContext
 {
@@ -266,7 +269,7 @@ struct GetContext
   GNUNET_DATACACHE_Iterator iter;
 
   /**
-   * Closure for 'iter'.
+   * Closure for @e iter.
    */
   void *iter_cls;
 
@@ -287,10 +290,10 @@ struct GetContext
  * Function called during GET to find matching blocks.
  * Only matches by type.
  *
- * @param cls the 'struct GetContext'
+ * @param cls the `struct GetContext`
  * @param key the key for the value(s)
  * @param value an existing value
- * @return GNUNET_YES to continue to iterate
+ * @return #GNUNET_YES to continue to iterate
  */
 static int
 get_cb (void *cls,
@@ -310,7 +313,7 @@ get_cb (void *cls,
 			 val->size,
 			 (const char *) &val[1],
 			 val->type,
-		       val->discard_time,
+                         val->discard_time,
 			 val->path_info_len,
 			 val->path_info);
   else
@@ -324,17 +327,19 @@ get_cb (void *cls,
  * Iterate over the results for a particular key
  * in the datastore.
  *
- * @param cls closure (our "struct Plugin")
+ * @param cls closure (our `struct Plugin`)
  * @param key
  * @param type entries of which type are relevant?
  * @param iter maybe NULL (to just count)
- * @param iter_cls closure for iter
+ * @param iter_cls closure for @a iter
  * @return the number of results found
  */
 static unsigned int
-heap_plugin_get (void *cls, const struct GNUNET_HashCode * key,
-                   enum GNUNET_BLOCK_Type type, GNUNET_DATACACHE_Iterator iter,
-                   void *iter_cls)
+heap_plugin_get (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 enum GNUNET_BLOCK_Type type,
+                 GNUNET_DATACACHE_Iterator iter,
+                 void *iter_cls)
 {
   struct Plugin *plugin = cls;
   struct GetContext get_ctx;
@@ -345,7 +350,7 @@ heap_plugin_get (void *cls, const struct GNUNET_HashCode * key,
   get_ctx.cnt = 0;
   GNUNET_CONTAINER_multihashmap_get_multiple (plugin->map,
 					      key,
-					      get_cb,
+					      &get_cb,
 					      &get_ctx);
   return get_ctx.cnt;
 }
@@ -355,7 +360,7 @@ heap_plugin_get (void *cls, const struct GNUNET_HashCode * key,
  * Delete the entry with the lowest expiration value
  * from the datacache right now.
  *
- * @param cls closure (our "struct Plugin")
+ * @param cls closure (our `struct Plugin`)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
@@ -377,6 +382,33 @@ heap_plugin_del (void *cls)
   GNUNET_free_non_null (val->path_info);
   GNUNET_free (val);
   return GNUNET_OK;
+}
+
+
+/**
+ * Return a random value from the datastore.
+ *
+ * @param cls closure (our `struct Plugin`)
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found
+ */
+static unsigned int
+heap_plugin_get_random (void *cls,
+                        GNUNET_DATACACHE_Iterator iter,
+                        void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  struct GetContext get_ctx;
+
+  get_ctx.type = GNUNET_BLOCK_TYPE_ANY;
+  get_ctx.iter = iter;
+  get_ctx.iter_cls = iter_cls;
+  get_ctx.cnt = 0;
+  GNUNET_CONTAINER_multihashmap_get_random (plugin->map,
+                                            &get_cb,
+                                            &get_ctx);
+  return get_ctx.cnt;
 }
 
 
@@ -403,7 +435,9 @@ libgnunet_plugin_datacache_heap_init (void *cls)
   api->get = &heap_plugin_get;
   api->put = &heap_plugin_put;
   api->del = &heap_plugin_del;
-  LOG (GNUNET_ERROR_TYPE_INFO, _("Heap datacache running\n"));
+  api->get_random = &heap_plugin_get_random;
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _("Heap datacache running\n"));
   return api;
 }
 

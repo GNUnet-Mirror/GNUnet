@@ -854,6 +854,22 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct GNUNET_CONTAINER_MultiH
                                             void *it_cls);
 
 
+/**
+ * @ingroup hashmap
+ * Call @a it on a random value from the map, or not at all
+ * if the map is empty.
+ *
+ * @param map the map
+ * @param it function to call on a random entry
+ * @param it_cls extra argument to @a it
+ * @return the number of key value pairs processed, zero or one.
+ */
+unsigned int
+GNUNET_CONTAINER_multihashmap_get_random (const struct GNUNET_CONTAINER_MultiHashMap *map,
+                                          GNUNET_CONTAINER_HashMapIterator it,
+                                          void *it_cls);
+
+
 /* ***************** Version of Multihashmap for peer identities ****************** */
 
 /**

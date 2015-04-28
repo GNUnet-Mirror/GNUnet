@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2006, 2009 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2006, 2009, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -75,21 +75,23 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h);
  *
  * @param cls closure
  * @param key key for the content
- * @param size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
  * @param exp when will the content expire?
- * @param path_info_len number of entries in 'path_info'
+ * @param path_info_len number of entries in @a path_info
  * @param path_info a path through the network
- * @return GNUNET_OK to continue iterating, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue iterating, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
-                                          const struct GNUNET_HashCode *key,
-                                          size_t size, const char *data,
-                                          enum GNUNET_BLOCK_Type type,
-                                          struct GNUNET_TIME_Absolute exp,
-					  unsigned int path_info_len,
-					  const struct GNUNET_PeerIdentity *path_info);
+typedef int
+(*GNUNET_DATACACHE_Iterator) (void *cls,
+                              const struct GNUNET_HashCode *key,
+                              size_t data_size,
+                              const char *data,
+                              enum GNUNET_BLOCK_Type type,
+                              struct GNUNET_TIME_Absolute exp,
+                              unsigned int path_info_len,
+                              const struct GNUNET_PeerIdentity *path_info);
 
 
 /**
@@ -97,18 +99,20 @@ typedef int (*GNUNET_DATACACHE_Iterator) (void *cls,
  *
  * @param h handle to the datacache
  * @param key key to store data under
- * @param size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @param path_info_len number of entries in 'path_info'
+ * @param path_info_len number of entries in @a path_info
  * @param path_info a path through the network
- * @return GNUNET_OK on success, GNUNET_SYSERR on error, GNUNET_NO if duplicate
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error, #GNUNET_NO if duplicate
  */
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
-                      const struct GNUNET_HashCode * key, size_t size,
-                      const char *data, enum GNUNET_BLOCK_Type type,
+                      const struct GNUNET_HashCode *key,
+                      size_t data_size,
+                      const char *data,
+                      enum GNUNET_BLOCK_Type type,
                       struct GNUNET_TIME_Absolute discard_time,
 		      unsigned int path_info_len,
 		      const struct GNUNET_PeerIdentity *path_info);
@@ -122,13 +126,30 @@ GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
  * @param key what to look up
  * @param type entries of which type are relevant?
  * @param iter maybe NULL (to just count)
- * @param iter_cls closure for iter
+ * @param iter_cls closure for @a iter
  * @return the number of results found
  */
 unsigned int
 GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
-                      const struct GNUNET_HashCode * key, enum GNUNET_BLOCK_Type type,
+                      const struct GNUNET_HashCode *key,
+                      enum GNUNET_BLOCK_Type type,
                       GNUNET_DATACACHE_Iterator iter, void *iter_cls);
+
+
+/**
+ * Obtain a random element from the datacache.
+ *
+ * @param h handle to the datacache
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found (zero or 1)
+ */
+unsigned int
+GNUNET_DATACACHE_get_random (struct GNUNET_DATACACHE_Handle *h,
+                             GNUNET_DATACACHE_Iterator iter,
+                             void *iter_cls);
+
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

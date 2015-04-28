@@ -45,9 +45,10 @@ extern "C"
  * @param key key of the content that was deleted
  * @param size number of bytes that were made available
  */
-typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback) (void *cls,
-                                                       const struct GNUNET_HashCode *
-                                                       key, size_t size);
+typedef void
+(*GNUNET_DATACACHE_DeleteNotifyCallback) (void *cls,
+                                          const struct GNUNET_HashCode *key,
+                                          size_t size);
 
 
 /**
@@ -57,7 +58,6 @@ typedef void (*GNUNET_DATACACHE_DeleteNotifyCallback) (void *cls,
  */
 struct GNUNET_DATACACHE_PluginEnvironment
 {
-
 
   /**
    * Configuration to use.
@@ -103,45 +103,61 @@ struct GNUNET_DATACACHE_PluginFunctions
    * Store an item in the datastore.
    *
    * @param cls closure (internal context for the plugin)
-   * @param size number of bytes in data
+   * @param key key to store the value under
+   * @param size number of bytes in @a data
    * @param data data to store
    * @param type type of the value
    * @param discard_time when to discard the value in any case
-   * @param path_info_len number of entries in 'path_info'
+   * @param path_info_len number of entries in @a path_info
    * @param path_info a path through the network
    * @return 0 if duplicate, -1 on error, number of bytes used otherwise
    */
-  ssize_t (*put) (void *cls, const struct GNUNET_HashCode * key, size_t size,
-		  const char *data, enum GNUNET_BLOCK_Type type,
+  ssize_t (*put) (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  size_t size,
+		  const char *data,
+                  enum GNUNET_BLOCK_Type type,
 		  struct GNUNET_TIME_Absolute discard_time,
 		  unsigned int path_info_len,
 		  const struct GNUNET_PeerIdentity *path_info);
-
 
   /**
    * Iterate over the results for a particular key
    * in the datastore.
    *
    * @param cls closure (internal context for the plugin)
-   * @param key
+   * @param key key to look for
    * @param type entries of which type are relevant?
    * @param iter maybe NULL (to just count)
-   * @param iter_cls closure for iter
+   * @param iter_cls closure for @a iter
    * @return the number of results found
    */
-  unsigned int (*get) (void *cls, const struct GNUNET_HashCode * key,
+  unsigned int (*get) (void *cls,
+                       const struct GNUNET_HashCode * key,
                        enum GNUNET_BLOCK_Type type,
-                       GNUNET_DATACACHE_Iterator iter, void *iter_cls);
-
+                       GNUNET_DATACACHE_Iterator iter,
+                       void *iter_cls);
 
   /**
    * Delete the entry with the lowest expiration value
    * from the datacache right now.
    *
    * @param cls closure (internal context for the plugin)
-   * @return GNUNET_OK on success, GNUNET_SYSERR on error
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
    */
   int (*del) (void *cls);
+
+  /**
+   * Return a random value from the datastore.
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param iter maybe NULL (to just count)
+   * @param iter_cls closure for @a iter
+   * @return the number of results found (zero or one)
+   */
+  unsigned int (*get_random) (void *cls,
+                              GNUNET_DATACACHE_Iterator iter,
+                              void *iter_cls);
 
 
 };
