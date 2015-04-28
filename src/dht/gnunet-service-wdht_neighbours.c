@@ -51,6 +51,16 @@
  */
 #define FOO_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
 
+/**
+ * The number of layered ID to use.
+ */
+#define NUMBER_LAYERED_ID 8
+
+/**
+ * Contains all the layered ID.
+ */
+struct GNUNET_PeerIdentity layered_id[NUMBER_LAYERED_ID];
+
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -618,6 +628,14 @@ handle_dht_p2p_finger_setup (void *cls,
 
   fsm = (const struct FingerSetupMessage *) message;
 
+  /*
+   * Steps :
+   *  1 check if the hops_taken is < to log(honest node)
+   *  1.a.1 if true : increments the hops_taken
+   *  1.a.2 send the same structure
+   *  1.b if false : drop the message
+   */
+
   return GNUNET_OK;
 }
 
@@ -638,6 +656,13 @@ handle_dht_p2p_finger_setup_response (void *cls,
   const struct FingerSetupResponseMessage *fsrm;
 
   fsm = (const struct FingerSetupResponseMessage *) message;
+
+  /*
+   * Steps :
+   *  1 check if we are the correct layer
+   *  1.a if true : add the return value in the db structure
+   *  1.b if true : do nothing
+   */
 
   return GNUNET_OK;
 }
@@ -660,6 +685,15 @@ handle_dht_p2p_finger_destroy (void *cls,
 
   fdm = (const struct FingerDestroyMessage *) message;
 
+  /*
+   * Steps :
+   *  1 check if message comme from a trail
+   *  1.a.1 if true: send the destroy message to the rest trail
+   *  1.a.2 clean the trail structure
+   *  1.a.3 did i have to remove the trail and ID from the db structure?
+   *  1.b if false: do nothing
+   */
+
   return GNUNET_OK;
 }
 
@@ -680,6 +714,12 @@ handle_dht_p2p_finger_route (void *cls,
 
   frm = (const struct FingerRouteMessage *) message;
   /* FIXME: check the size of the message */
+
+  /*
+   * steps :
+   *  1 find the good trail
+   *  2 send the finger route message
+   */
 
   return GNUNET_OK;
 }
@@ -743,10 +783,10 @@ handle_dht_p2p_peer_get (void *cls,
 
   pgm = (const struct PeerGetMessage *) message;
 
-   /*
+     /*
     * steps :
     *   1 extract the result
-    *   2 create a peerGetResult struct
+    *   2 save the peer
     *   3 send it using the good trail
     *
     * What do i do when i don't have the key/value?
@@ -772,6 +812,15 @@ handle_dht_p2p_peer_get_result (void *cls,
 
   pgrm = (const struct PeerGetResultMessage *) message;
 
+  /*
+   * steps :
+   *   1 extract the result
+   *   2 create a peerGetResult struct
+   *   3 send it using the good trail
+   *
+   * What do i do when i don't have the key/value?
+   */
+
   return GNUNET_OK;
 }
 
@@ -792,6 +841,12 @@ handle_dht_p2p_peer_put (void *cls,
 
   pgrm = (const struct PeerGetResultMessage *) message;
 
+  /*
+   * steps :
+   * 1 check the size of the message
+   * 2 use the API to add the value in the "database". Check on the xdht file, how to do it.
+   * 3 Did i a have to return a notification or did i have to return GNUNET_[OK|SYSERR]?
+   */
   return GNUNET_OK;
 }
 
