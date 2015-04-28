@@ -407,9 +407,8 @@ struct FriendInfo
 
   /**
    * Core handle for sending messages to this friend.
-   * FIXME: use MQ?
    */
-  struct GNUNET_CORE_TransmitHandle *th;
+  struct GNUNET_MQ_Handle *mq;
 
 };
 
@@ -419,6 +418,11 @@ struct FriendInfo
  * Task to timeout trails that have expired.
  */
 static struct GNUNET_SCHEDULER_Task *trail_timeout_task;
+
+/**
+ * Task to perform random walks.
+ */
+static struct GNUNET_SCHEDULER_Task *random_walk_task;
 
 /**
  * Identity of this peer.
@@ -554,6 +558,40 @@ handle_core_disconnect (void *cls,
                                                        peer,
                                                        remove_friend));
   /* FIXME: do stuff */
+  GNUNET_MQ_destroy (remove_friend->mq);
+  GNUNET_free (remove_friend);
+  if (0 ==
+      GNUNET_CONTAINER_multipeermap_size (friend_peermap))
+  {
+    GNUNET_SCHEDULER_cancel (random_walk_task);
+    random_walk_task = NULL;
+  }
+}
+
+
+/**
+ * Initiate a random walk.
+ *
+ * @param cls NULL
+ * @param tc unused
+ */
+static void
+do_random_walk (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct FriendInfo *friend;
+  struct GNUNET_MQ_Envelope *env;
+  struct FingerSetupMessage *fsm;
+
+  friend = NULL; // FIXME: pick at random...
+  env = GNUNET_MQ_msg (fsm,
+                       GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP);
+  fsm->hops_task = htons (0);
+  fsm->layer = htons (0); // FIXME: not always 0...
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
+                                    &fsm->finger_id);
+  GNUNET_MQ_send (friend->mq,
+                  env);
 }
 
 
@@ -586,13 +624,21 @@ handle_core_connect (void *cls,
 
   friend = GNUNET_new (struct FriendInfo);
   friend->id = *peer_identity;
-
+  friend->mq = GNUNET_CORE_mq_create (core_api,
+                                      peer_identity);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (friend_peermap,
                                                     peer_identity,
                                                     friend,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   /* do work? */
+
+  if (NULL == random_walk_task)
+  {
+    /* start random walks! */
+    random_walk_task = GNUNET_SCHEDULER_add_now (&do_random_walk,
+                                                 NULL);
+  }
 }
 
 
@@ -824,6 +870,7 @@ handle_dht_p2p_peer_get_result (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Handle a `struct PeerPutMessage`.
  *
@@ -849,6 +896,7 @@ handle_dht_p2p_peer_put (void *cls,
    */
   return GNUNET_OK;
 }
+
 
 /**
  * Initialize neighbours subsystem.
