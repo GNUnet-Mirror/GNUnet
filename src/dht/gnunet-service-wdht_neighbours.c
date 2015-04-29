@@ -17,13 +17,11 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file dht/gnunet-service-wdht_neighbours.c
  * @brief GNUnet DHT service's finger and friend table management code
  * @author Supriti Singh
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
@@ -65,75 +63,117 @@
 #define NUMBER_RANDOM_WALK 20
 
 
-/**
- * Contains all the layered ID.
- */
-struct GNUNET_PeerIdentity layered_id[NUMBER_LAYERED_ID];
-
 /******************* The db structure and related functions *******************/
-/**
- * The number of cell store in the db structure.
- */
-int number_cell;
 
 /**
- * If sorted_db array are sorted 1. Otherwise 0.
+ * Entry in friend_peermap.
  */
-/* FIXME: not sure about this one */
-int is_sorted;
+struct FriendInfo;
 
-struct db_cell{
-    /**
-     * The identity of the.
-     */
-    GNUNET_PeerIdentity *peer_id;
-    /**
-     * The trail to use to reach the peer.
-     */
-    struct Trail *trail;
-    /**
-     * 1 if a response are received. Otherwise 0.
-     */
-    int valid;
+
+/**
+ * Information we keep per trail.
+ */
+struct Trail
+{
+
+  /**
+   * MDLL entry in the list of all trails with the same predecessor.
+   */
+  struct Trail *prev_succ;
+
+  /**
+   * MDLL entry in the list of all trails with the same predecessor.
+   */
+  struct Trail *next_succ;
+
+  /**
+   * MDLL entry in the list of all trails with the same predecessor.
+   */
+  struct Trail *prev_pred;
+
+  /**
+   * MDLL entry in the list of all trails with the same predecessor.
+   */
+  struct Trail *next_pred;
+
+  /**
+   * Our predecessor in the trail, NULL if we are initiator (?).
+   */
+  struct FriendInfo *pred;
+
+  /**
+   * Our successor in the trail, NULL if we are the last peer.
+   */
+  struct FriendInfo *succ;
+
+  /**
+   * Identifier of the trail with the predecessor.
+   */
+  struct GNUNET_HashCode pred_id;
+
+  /**
+   * Identifier of the trail with the successor.
+   */
+  struct GNUNET_HashCode succ_id;
+
+  /**
+   * When does this trail expire.
+   */
+  struct GNUNET_TIME_Absolute expiration_time;
+
+  /**
+   * Location of this trail in the heap.
+   */
+  struct GNUNET_CONTAINER_HeapNode *hn;
+
 };
 
-struct db_cell *unsorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
-
-struct db_cell *sorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
 
 /**
- * Initialize the db structure with default values.
+ *  Entry in friend_peermap.
  */
-static void
-init_db_structure (){
-    int i;
-    for(i = 0; i < NUMBER_RANDOM_WALK; i++){
-        unsorted_db[i] = NULL;
-        sorted_db[i] = unsorted_db[i];
-    }
-}
+struct FriendInfo
+{
+  /**
+   * Friend Identity
+   */
+  struct GNUNET_PeerIdentity id;
 
-/**
- * Destroy the db_structure. Basically, free every db_cell.
- */
-static void
-destroy_db_structure (){
-    int i;
-    for(i = 0; i < NUMBER_RANDOM_WALK; i++){
-        GNUNET_free_non_null(unsorted_db[i]);
-    }
-}
+  struct Trail *pred_head;
 
-/**
- * Add a new db_cell in the db structure.
- */
-static int
-add_new_cell(const struct *bd_cell){
-  unsorted_db[number_cell] = bd_cell;
-  sorted_db[number_cell] = db_cell;
-  /* FIXME: add some code to sort by friend id */
-  return 0;
-}
+  struct Trail *pred_tail;
+
+  struct Trail *succ_head;
+
+  struct Trail *succ_tail;
+
+  /**
+   * Core handle for sending messages to this friend.
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+};
+
+
+struct db_cell
+{
+  /**
+   * The identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer_id;
+
+  /**
+   * The trail to use to reach the peer.
+   */
+  struct Trail *trail;
+
+  /**
+   * #GNUNET_YES if a response has been received. Otherwise #GNUNET_NO.
+   */
+  int valid;
+};
+
 
 /***********************  end of the db structure part  ***********************/
 
@@ -399,96 +439,30 @@ struct PeerGetResultMessage
 GNUNET_NETWORK_STRUCT_END
 
 /**
- * Entry in friend_peermap.
+ * The number of cells stored in the db structure.
  */
-struct FriendInfo;
-
+static unsigned int number_cell;
 
 /**
- * Information we keep per trail.
+ * If sorted_db array is sorted #GNUNET_YES. Otherwise #GNUNET_NO.
  */
-struct Trail
-{
-
-  /**
-   * MDLL entry in the list of all trails with the same predecessor.
-   */
-  struct Tail *prev_succ;
-
-  /**
-   * MDLL entry in the list of all trails with the same predecessor.
-   */
-  struct Tail *next_succ;
-
-  /**
-   * MDLL entry in the list of all trails with the same predecessor.
-   */
-  struct Tail *prev_pred;
-
-  /**
-   * MDLL entry in the list of all trails with the same predecessor.
-   */
-  struct Tail *next_pred;
-
-  /**
-   * Our predecessor in the trail, NULL if we are initiator (?).
-   */
-  struct FriendInfo *pred;
-
-  /**
-   * Our successor in the trail, NULL if we are the last peer.
-   */
-  struct FriendInfo *succ;
-
-  /**
-   * Identifier of the trail with the predecessor.
-   */
-  struct GNUNET_HashCode pred_id;
-
-  /**
-   * Identifier of the trail with the successor.
-   */
-  struct GNUNET_HashCode succ_id;
-
-  /**
-   * When does this trail expire.
-   */
-  struct GNUNET_TIME_Absolute expiration_time;
-
-  /**
-   * Location of this trail in the heap.
-   */
-  struct GNUNET_CONTAINER_HeapNode *hn;
-
-};
-
+static int is_sorted;
 
 /**
- *  Entry in friend_peermap.
+ * Contains all the layered IDs of this peer.
  */
-struct FriendInfo
-{
-  /**
-   * Friend Identity
-   */
-  struct GNUNET_PeerIdentity id;
+struct GNUNET_PeerIdentity layered_id[NUMBER_LAYERED_ID];
 
-  struct Tail *pred_head;
+/**
+ * Unsorted database, here we manage the entries.
+ */
+static struct db_cell *unsorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
 
-  struct Tail *pred_tail;
-
-  struct Tail *succ_head;
-
-  struct Tail *succ_tail;
-
-  /**
-   * Core handle for sending messages to this friend.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-};
-
-
+/**
+ * Sorted database by peer identity, needs to be re-sorted if
+ * #is_sorted is #GNUNET_NO.
+ */
+static struct db_cell **sorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
 
 /**
  * Task to timeout trails that have expired.
@@ -518,17 +492,60 @@ static struct GNUNET_CONTAINER_MultiPeerMap *successors_peermap;
 /**
  * Tail map, mapping tail identifiers to `struct Trail`s
  */
-static struct GNUNET_CONTAINER_MultiHashMap *tail_map;
+static struct GNUNET_CONTAINER_MultiHashMap *trail_map;
 
 /**
  * Tail heap, organizing trails by expiration time.
  */
-static struct GNUNET_CONTAINER_Heap *tail_heap;
+static struct GNUNET_CONTAINER_Heap *trail_heap;
 
 /**
  * Handle to CORE.
  */
 static struct GNUNET_CORE_Handle *core_api;
+
+
+/**
+ * Initialize the db structure with default values.
+ */
+static void
+init_db_structure ()
+{
+  unsigned int i;
+
+  for (i = 0; i < NUMBER_RANDOM_WALK; i++)
+  {
+    unsorted_db[i] = NULL;
+    sorted_db[i] = &unsorted_db[i];
+  }
+}
+
+
+/**
+ * Destroy the db_structure. Basically, free every db_cell.
+ */
+static void
+destroy_db_structure ()
+{
+  unsigned int i;
+
+  for (i = 0; i < NUMBER_RANDOM_WALK; i++)
+  {
+    // what about 'unsorted_db[i]->trail?
+    GNUNET_free_non_null (unsorted_db[i]);
+  }
+}
+
+
+/**
+ * Add a new db_cell in the db structure.
+ */
+static void
+add_new_cell (struct db_cell *bd_cell)
+{
+  unsorted_db[number_cell] = bd_cell;
+  is_sorted = GNUNET_NO;
+}
 
 
 /**
@@ -622,7 +639,7 @@ handle_core_disconnect (void *cls,
     return;
 
   if (NULL == (remove_friend =
-               GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+               GNUNET_CONTAINER_multipeermap_get (fingers_peermap,
                                                   peer)))
   {
     GNUNET_break (0);
@@ -630,14 +647,14 @@ handle_core_disconnect (void *cls,
   }
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (friend_peermap,
+                 GNUNET_CONTAINER_multipeermap_remove (fingers_peermap,
                                                        peer,
                                                        remove_friend));
   /* FIXME: do stuff */
   GNUNET_MQ_destroy (remove_friend->mq);
   GNUNET_free (remove_friend);
   if (0 ==
-      GNUNET_CONTAINER_multipeermap_size (friend_peermap))
+      GNUNET_CONTAINER_multipeermap_size (fingers_peermap))
   {
     GNUNET_SCHEDULER_cancel (random_walk_task);
     random_walk_task = NULL;
@@ -663,18 +680,21 @@ do_random_walk (void *cls,
 
   friend = NULL; // FIXME: pick at random...
 
-  friend_cell = GNUNET_malloc(sizeof(struct db_cell));
-  friend_cell->peer_identity = friend->id;
+  friend_cell = GNUNET_new (struct db_cell);
+  friend_cell->peer_id = friend->id;
 
-  trail = GNUNET_new(struct Trail);
+  trail = GNUNET_new (struct Trail);
 
   /* We create the random walk so, no predecessor */
   trail->succ = friend;
 
-  GNUNET_CONTAINER_MDLL_insert_tail(succ, trail->prev, trail->next,friend)
+  GNUNET_CONTAINER_MDLL_insert (succ,
+                                friend->succ_head,
+                                friend->succ_tail,
+                                trail);
   env = GNUNET_MQ_msg (fsm,
                        GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP);
-  fsm->hops_task = htons (0);
+  fsm->hops_taken = htons (0);
   fsm->layer = htons (0); // FIXME: not always 0...
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
                                     &fsm->finger_id);
@@ -703,7 +723,7 @@ handle_core_connect (void *cls,
 
   /* If peer already exists in our friend_peermap, then exit. */
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_contains (friend_peermap,
+      GNUNET_CONTAINER_multipeermap_contains (fingers_peermap,
                                               peer_identity))
   {
     GNUNET_break (0);
@@ -715,7 +735,7 @@ handle_core_connect (void *cls,
   friend->mq = GNUNET_CORE_mq_create (core_api,
                                       peer_identity);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (friend_peermap,
+                 GNUNET_CONTAINER_multipeermap_put (fingers_peermap,
                                                     peer_identity,
                                                     friend,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
@@ -788,7 +808,7 @@ handle_dht_p2p_finger_setup_response (void *cls,
 {
   const struct FingerSetupResponseMessage *fsrm;
 
-  fsm = (const struct FingerSetupResponseMessage *) message;
+  fsrm = (const struct FingerSetupResponseMessage *) message;
 
   /*
    * Steps :
@@ -796,13 +816,6 @@ handle_dht_p2p_finger_setup_response (void *cls,
    *  1.a if true : add the returned value (finger) in the db structure
    *  1.b if true : do nothing
    */
-  if(NUMBER_LAYERED_ID >= fsm->layer){
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "The layer id is too big. %d received, an id below %d is expected",
-               fsm->layer, NUMBER_LAYERED_ID);
-    return GNUNET_SYSERR
-  }
-
   /* FIXME: add the value in db structure 1.a */
 
   return GNUNET_OK;
@@ -1068,12 +1081,12 @@ GDS_NEIGHBOURS_done (void)
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
 
-  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (friend_peermap));
+  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (fingers_peermap));
   GNUNET_CONTAINER_multipeermap_destroy (fingers_peermap);
   GNUNET_CONTAINER_multipeermap_destroy (successors_peermap);
   destroy_db_structure();
 
-  friend_peermap = NULL;
+  fingers_peermap = NULL;
 }
 
 

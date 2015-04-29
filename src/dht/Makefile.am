@@ -48,8 +48,8 @@ libgnunet_plugin_block_dht_la_LDFLAGS = \
 
 libexec_PROGRAMS = \
  gnunet-service-dht \
- gnunet-service-dht-xvine 
-# gnunet-service-dht-whanau
+ gnunet-service-dht-xvine \
+ gnunet-service-dht-whanau
 
 noinst_PROGRAMS = \
  gnunet-dht-monitor \
