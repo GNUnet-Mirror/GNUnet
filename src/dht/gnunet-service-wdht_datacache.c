@@ -368,6 +368,62 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
 
 
 /**
+ * Function called with a random element from the datacache.
+ * Stores the key in the closure.
+ *
+ * @param cls a `struct GNUNET_HashCode *`, where to store the @a key
+ * @param key key for the content
+ * @param data_size number of bytes in @a data
+ * @param data content stored
+ * @param type type of the content
+ * @param exp when will the content expire?
+ * @param path_info_len number of entries in @a path_info
+ * @param path_info a path through the network
+ * @return #GNUNET_OK to continue iterating, #GNUNET_SYSERR to abort
+ */
+static int
+datacache_random_iterator (void *cls,
+                           const struct GNUNET_HashCode *key,
+                           size_t data_size,
+                           const char *data,
+                           enum GNUNET_BLOCK_Type type,
+                           struct GNUNET_TIME_Absolute exp,
+                           unsigned int path_info_len,
+                           const struct GNUNET_PeerIdentity *path_info)
+{
+  struct GNUNET_HashCode *dest = cls;
+
+  *dest = *key;
+  return GNUNET_OK; /* should actually not matter which we return */
+}
+
+
+/**
+ * Obtain a random key from the datacache.
+ * Used by Whanau for load-balancing.
+ *
+ * @param[out] key where to store the key of a random element,
+ *             randomized by PRNG if datacache is empty
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the datacache is empty
+ */
+int
+GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key)
+{
+  if (0 ==
+      GNUNET_DATACACHE_get_random (datacache,
+                                   &datacache_random_iterator,
+                                   key))
+  {
+    /* randomize key in this case */
+    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
+                                      key);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Initialize datacache subsystem.
  */
 void

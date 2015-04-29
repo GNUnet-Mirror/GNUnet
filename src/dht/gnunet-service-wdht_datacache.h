@@ -36,15 +36,15 @@
  *
  * @param expiration when will the reply expire
  * @param key the query this reply is for
- * @param put_path_length number of peers in 'put_path'
+ * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
  * @param type type of the reply
- * @param data_size number of bytes in 'data'
+ * @param data_size number of bytes in @a data
  * @param data application payload data
  */
 void
 GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-                          const struct GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode *key,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
                           enum GNUNET_BLOCK_Type type, size_t data_size,
@@ -57,14 +57,15 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * @param key the query
  * @param type requested data type
  * @param xquery extended query
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_bf where the reply bf is (to be) stored, possibly updated!, can be NULL
- * @param reply_bf_mutator mutation value for reply_bf
+ * @param reply_bf_mutator mutation value for @a reply_bf
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
-                          enum GNUNET_BLOCK_Type type, const void *xquery,
+GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
+                          enum GNUNET_BLOCK_Type type,
+                          const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,
                           uint32_t reply_bf_mutator,
@@ -72,6 +73,18 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           struct GNUNET_PeerIdentity *get_path,
                           struct GNUNET_PeerIdentity *next_hop,
                           struct GNUNET_PeerIdentity *source_peer);
+
+
+/**
+ * Obtain a random key from the datacache.
+ * Used by Whanau for load-balancing.
+ *
+ * @param[out] key where to store the key of a random element,
+ *             randomized by PRNG if datacache is empty
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the datacache is empty
+ */
+int
+GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key);
 
 
 /**
