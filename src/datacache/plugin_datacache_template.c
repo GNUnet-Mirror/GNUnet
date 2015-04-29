@@ -115,9 +115,9 @@ template_plugin_del (void *cls)
  * @return the number of results found (zero or one)
  */
 static unsigned int
-template_get_random (void *cls,
-                     GNUNET_DATACACHE_Iterator iter,
-                     void *iter_cls)
+template_plugin_get_random (void *cls,
+                            GNUNET_DATACACHE_Iterator iter,
+                            void *iter_cls)
 {
   GNUNET_break (0);
   return 0;

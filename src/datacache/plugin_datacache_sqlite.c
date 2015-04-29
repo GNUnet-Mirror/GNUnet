@@ -412,9 +412,97 @@ sqlite_plugin_del (void *cls)
 
 
 /**
+ * Obtain a random key-value pair from the datacache.
+ *
+ * @param cls closure (our `struct Plugin`)
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found, zero (datacache empty) or one
+ */
+static unsigned int
+sqlite_plugin_get_random (void *cls,
+                          GNUNET_DATACACHE_Iterator iter,
+                          void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt;
+  struct GNUNET_TIME_Absolute exp;
+  unsigned int size;
+  const char *dat;
+  unsigned int off;
+  unsigned int psize;
+  unsigned int type;
+  char scratch[256];
+  int64_t ntime;
+  const struct GNUNET_PeerIdentity *path;
+  const struct GNUNET_HashCode *key;
+
+  if (0 == plugin->num_items)
+    return 0;
+  off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                  plugin->num_items);
+  GNUNET_snprintf (scratch,
+                   sizeof (scratch),
+                   "SELECT value,expire,path,key,type FROM ds090 ORDER BY key LIMIT 1 OFFSET %u",
+                   off);
+  if (SQLITE_OK !=
+      sq_prepare (plugin->dbh, scratch, &stmt))
+  {
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sq_prepare");
+    return 0;
+  }
+  if (SQLITE_ROW != sqlite3_step (stmt))
+  {
+    GNUNET_break (0);
+    sqlite3_finalize (stmt);
+    return 0;
+  }
+  size = sqlite3_column_bytes (stmt, 0);
+  dat = sqlite3_column_blob (stmt, 0);
+  exp.abs_value_us = sqlite3_column_int64 (stmt, 1);
+  psize = sqlite3_column_bytes (stmt, 2);
+  if (0 != psize % sizeof (struct GNUNET_PeerIdentity))
+  {
+    GNUNET_break (0);
+    psize = 0;
+  }
+  psize /= sizeof (struct GNUNET_PeerIdentity);
+  if (0 != psize)
+    path = sqlite3_column_blob (stmt, 2);
+  else
+    path = NULL;
+
+  GNUNET_assert (sizeof (struct GNUNET_HashCode) ==
+                 sqlite3_column_bytes (stmt, 3));
+  key = sqlite3_column_blob (stmt, 3);
+  type = sqlite3_column_int (stmt, 4);
+
+  ntime = (int64_t) exp.abs_value_us;
+  if (ntime == INT64_MAX)
+    exp = GNUNET_TIME_UNIT_FOREVER_ABS;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found %u-byte result with key %s when processing GET-RANDOM\n",
+       (unsigned int) size,
+       GNUNET_h2s (key));
+  (void) iter (iter_cls,
+               key,
+               size,
+               dat,
+               type,
+               exp,
+               psize,
+               path);
+  sqlite3_finalize (stmt);
+  return 1;
+}
+
+
+/**
  * Entry point for the plugin.
  *
- * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironmnet`)
+ * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironment`)
  * @return the plugin's closure (our `struct Plugin`)
  */
 void *
@@ -484,7 +572,9 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
   api->get = &sqlite_plugin_get;
   api->put = &sqlite_plugin_put;
   api->del = &sqlite_plugin_del;
-  LOG (GNUNET_ERROR_TYPE_INFO, _("Sqlite datacache running\n"));
+  api->get_random = &sqlite_plugin_get_random;
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Sqlite datacache running\n");
   return api;
 }
 
