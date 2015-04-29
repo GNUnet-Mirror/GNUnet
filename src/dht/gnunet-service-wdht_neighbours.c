@@ -38,6 +38,7 @@
 #include "gnunet-service-wdht_clients.h"
 #include "gnunet-service-wdht_datacache.h"
 #include "gnunet-service-wdht_neighbours.h"
+#include "gnunet-service-wdht_nse.h"
 #include <fenv.h>
 #include <stdlib.h>
 #include <string.h>
@@ -47,9 +48,14 @@
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
- * FIXME
+ * Trail timeout. After what time do trails always die?
  */
-#define FOO_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
+#define TRAIL_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 42)
+
+/**
+ * Random walk delay. How often do we walk the overlay?
+ */
+#define RANDOM_WALK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 42)
 
 /**
  * The number of layered ID to use.
@@ -66,7 +72,7 @@
 /******************* The db structure and related functions *******************/
 
 /**
- * Entry in friend_peermap.
+ * Entry in #friends_peermap.
  */
 struct FriendInfo;
 
@@ -127,11 +133,17 @@ struct Trail
    */
   struct GNUNET_CONTAINER_HeapNode *hn;
 
+  /**
+   * If this peer started the to create a Finger (and thus @e pred is
+   * NULL), this is the Finger we are trying to intialize.
+   */
+  struct Finger **finger;
+
 };
 
 
 /**
- *  Entry in friend_peermap.
+ *  Entry in #friends_peermap.
  */
 struct FriendInfo
 {
@@ -156,22 +168,56 @@ struct FriendInfo
 };
 
 
-struct db_cell
-{
-  /**
-   * The identity of the peer.
-   */
-  struct GNUNET_PeerIdentity peer_id;
+struct FingerTable;
 
-  /**
-   * The trail to use to reach the peer.
-   */
+
+struct Finger
+{
   struct Trail *trail;
+
+  struct FingerTable *ft;
+
+  struct GNUNET_HashCode destination;
 
   /**
    * #GNUNET_YES if a response has been received. Otherwise #GNUNET_NO.
    */
   int valid;
+};
+
+
+struct FingerTable
+{
+  /**
+   * Array of our fingers, unsorted.
+   */
+  struct Finger **fingers;
+
+  /**
+   * Array of sorted fingers (sorted by destination, valid fingers first).
+   */
+  struct Finger **sorted_fingers;
+
+  /**
+   * Size of the finger array.
+   */
+  unsigned int finger_array_size;
+
+  /**
+   * Number of valid entries in @e sorted_fingers (contiguous from offset 0)
+   */
+  unsigned int number_valid_fingers;
+
+  /**
+   * Which offset in @e fingers will we redo next.
+   */
+  unsigned int walk_offset;
+
+  /**
+   * Is the finger array sorted?
+   */
+  int is_sorted;
+
 };
 
 
@@ -183,10 +229,10 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Setup a finger using the underlay topology ("social network").
  */
-struct FingerSetupMessage
+struct RandomWalkMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK
    */
   struct GNUNET_MessageHeader header;
 
@@ -203,20 +249,19 @@ struct FingerSetupMessage
 
   /**
    * Unique (random) identifier this peer will use to
-   * identify the finger (in future messages).
+   * identify the trail (in future messages).
    */
-  struct GNUNET_HashCode finger_id;
+  struct GNUNET_HashCode trail_id;
 
 };
 
-
 /**
- * Response to a `struct FingerSetupMessage`.
+ * Response to a `struct RandomWalkMessage`.
  */
-struct FingerSetupResponseMessage
+struct RandomWalkResponseMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP_RESPONSE
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
@@ -226,10 +271,10 @@ struct FingerSetupResponseMessage
   uint32_t reserved GNUNET_PACKED;
 
   /**
-   * Unique (random) identifier this peer will use to
-   * identify the finger (in future messages).
+   * Unique (random) identifier from the
+   * `struct RandomWalkMessage`.
    */
-  struct GNUNET_HashCode finger_id;
+  struct GNUNET_HashCode trail_id;
 
   /**
    * Random location in the respective layer where the
@@ -239,14 +284,13 @@ struct FingerSetupResponseMessage
 
 };
 
-
 /**
- * Response to an event that causes a finger to die.
+ * Response to an event that causes a trail to die.
  */
-struct FingerDestroyMessage
+struct TrailDestroyMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_FINGER_DESTROY
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY
    */
   struct GNUNET_MessageHeader header;
 
@@ -259,18 +303,18 @@ struct FingerDestroyMessage
    * Unique (random) identifier this peer will use to
    * identify the finger (in future messages).
    */
-  struct GNUNET_HashCode finger_id;
+  struct GNUNET_HashCode trail_id;
 
 };
 
 
 /**
- * Send a message along a finger.
+ * Send a message along a trail.
  */
-struct FingerRouteMessage
+struct FindSuccessorMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_FINGER_ROUTE
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_FIND_SUCCESSOR
    */
   struct GNUNET_MessageHeader header;
 
@@ -283,9 +327,39 @@ struct FingerRouteMessage
    * Unique (random) identifier this peer will use to
    * identify the finger (in future messages).
    */
-  struct GNUNET_HashCode finger_id;
+  struct GNUNET_HashCode trail_id;
 
-  /* followed by payload to send along the finger */
+  /**
+   * Key for which we would like close values returned.
+   * identify the finger (in future messages).
+   */
+  struct GNUNET_HashCode key;
+
+};
+
+
+/**
+ * Send a message along a trail.
+ */
+struct TrailRouteMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Zero, for alignment.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Unique (random) identifier this peer will use to
+   * identify the finger (in future messages).
+   */
+  struct GNUNET_HashCode trail_id;
+
+  /* followed by payload to send along the trail */
 };
 
 
@@ -438,31 +512,11 @@ struct PeerGetResultMessage
 
 GNUNET_NETWORK_STRUCT_END
 
-/**
- * The number of cells stored in the db structure.
- */
-static unsigned int number_cell;
-
-/**
- * If sorted_db array is sorted #GNUNET_YES. Otherwise #GNUNET_NO.
- */
-static int is_sorted;
 
 /**
  * Contains all the layered IDs of this peer.
  */
 struct GNUNET_PeerIdentity layered_id[NUMBER_LAYERED_ID];
-
-/**
- * Unsorted database, here we manage the entries.
- */
-static struct db_cell *unsorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
-
-/**
- * Sorted database by peer identity, needs to be re-sorted if
- * #is_sorted is #GNUNET_NO.
- */
-static struct db_cell **sorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
 
 /**
  * Task to timeout trails that have expired.
@@ -480,14 +534,14 @@ static struct GNUNET_SCHEDULER_Task *random_walk_task;
 static struct GNUNET_PeerIdentity my_identity;
 
 /**
- * Peer map of all the fingers of a peer
+ * Peer map of all the friends of a peer
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *fingers_peermap;
+static struct GNUNET_CONTAINER_MultiPeerMap *friends_peermap;
 
 /**
- * Peer map of all the successors of a peer
+ * Fingers per layer.
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *successors_peermap;
+static struct FingerTable fingers[NUMBER_LAYERED_ID];
 
 /**
  * Tail map, mapping tail identifiers to `struct Trail`s
@@ -503,49 +557,6 @@ static struct GNUNET_CONTAINER_Heap *trail_heap;
  * Handle to CORE.
  */
 static struct GNUNET_CORE_Handle *core_api;
-
-
-/**
- * Initialize the db structure with default values.
- */
-static void
-init_db_structure ()
-{
-  unsigned int i;
-
-  for (i = 0; i < NUMBER_RANDOM_WALK; i++)
-  {
-    unsorted_db[i] = NULL;
-    sorted_db[i] = &unsorted_db[i];
-  }
-}
-
-
-/**
- * Destroy the db_structure. Basically, free every db_cell.
- */
-static void
-destroy_db_structure ()
-{
-  unsigned int i;
-
-  for (i = 0; i < NUMBER_RANDOM_WALK; i++)
-  {
-    // what about 'unsorted_db[i]->trail?
-    GNUNET_free_non_null (unsorted_db[i]);
-  }
-}
-
-
-/**
- * Add a new db_cell in the db structure.
- */
-static void
-add_new_cell (struct db_cell *bd_cell)
-{
-  unsorted_db[number_cell] = bd_cell;
-  is_sorted = GNUNET_NO;
-}
 
 
 /**
@@ -567,6 +578,12 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
                            struct GNUNET_TIME_Absolute expiration_time,
                            const void *data, size_t data_size)
 {
+  GDS_DATACACHE_handle_put (expiration_time,
+                            key,
+                            0, NULL,
+                            block_type,
+                            data_size,
+                            data);
 }
 
 
@@ -586,8 +603,25 @@ GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
                            enum GNUNET_DHT_RouteOption options,
                            uint32_t desired_replication_level)
 {
+  // find closest finger(s) on all layers
+  // use TrailRoute with PeerGetMessage embedded to contact peer
 }
 
+
+/**
+ * Delete a trail, it died (timeout, link failure, etc.).
+ *
+ * @param trail trail to delete from all data structures
+ * @param inform_pred should we notify the predecessor?
+ * @param inform_succ should we inform the successor?
+ */
+static void
+delete_trail (struct Trail *trail,
+              int inform_pred,
+              int inform_succ)
+{
+  // ... FIXME
+}
 
 
 /**
@@ -617,6 +651,8 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
                                 struct GNUNET_TIME_Absolute expiration,
                                 const void *data, size_t data_size)
 {
+  // TRICKY: need to introduce some context to remember trail from
+  // the lookup...
 }
 
 
@@ -631,6 +667,7 @@ handle_core_disconnect (void *cls,
                         const struct GNUNET_PeerIdentity *peer)
 {
   struct FriendInfo *remove_friend;
+  struct Trail *t;
 
   /* If disconnected to own identity, then return. */
   if (0 == memcmp (&my_identity,
@@ -639,7 +676,7 @@ handle_core_disconnect (void *cls,
     return;
 
   if (NULL == (remove_friend =
-               GNUNET_CONTAINER_multipeermap_get (fingers_peermap,
+               GNUNET_CONTAINER_multipeermap_get (friends_peermap,
                                                   peer)))
   {
     GNUNET_break (0);
@@ -647,18 +684,37 @@ handle_core_disconnect (void *cls,
   }
 
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (fingers_peermap,
+                 GNUNET_CONTAINER_multipeermap_remove (friends_peermap,
                                                        peer,
                                                        remove_friend));
-  /* FIXME: do stuff */
+  while (NULL != (t = remove_friend->succ_head))
+    delete_trail (t,
+                  GNUNET_YES,
+                  GNUNET_NO);
+  while (NULL != (t = remove_friend->pred_head))
+    delete_trail (t,
+                  GNUNET_NO,
+                  GNUNET_YES);
   GNUNET_MQ_destroy (remove_friend->mq);
   GNUNET_free (remove_friend);
   if (0 ==
-      GNUNET_CONTAINER_multipeermap_size (fingers_peermap))
+      GNUNET_CONTAINER_multipeermap_size (friends_peermap))
   {
     GNUNET_SCHEDULER_cancel (random_walk_task);
     random_walk_task = NULL;
   }
+}
+
+
+/**
+ * Pick random friend from friends for random walk.
+ */
+static struct FriendInfo *
+pick_random_friend ()
+{
+  // TODO: need to extend peermap API to return random entry...
+  // (Note: same extension exists for hashmap API).
+  return NULL; // FIXME...
 }
 
 
@@ -672,34 +728,71 @@ static void
 do_random_walk (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  static unsigned int walk_layer;
   struct FriendInfo *friend;
   struct GNUNET_MQ_Envelope *env;
-  struct FingerSetupMessage *fsm;
-  struct db_cell *friend_cell;
+  struct RandomWalkMessage *rwm;
+  struct FingerTable *ft;
+  struct Finger *finger;
   struct Trail *trail;
 
-  friend = NULL; // FIXME: pick at random...
-
-  friend_cell = GNUNET_new (struct db_cell);
-  friend_cell->peer_id = friend->id;
+  random_walk_task = NULL;
+  friend = pick_random_friend ();
 
   trail = GNUNET_new (struct Trail);
-
   /* We create the random walk so, no predecessor */
   trail->succ = friend;
-
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
+                                    &trail->succ_id);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (trail_map,
+                                         &trail->succ_id,
+                                         trail,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break (0);
+    GNUNET_free (trail);
+    return;
+  }
   GNUNET_CONTAINER_MDLL_insert (succ,
                                 friend->succ_head,
                                 friend->succ_tail,
                                 trail);
-  env = GNUNET_MQ_msg (fsm,
-                       GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP);
-  fsm->hops_taken = htons (0);
-  fsm->layer = htons (0); // FIXME: not always 0...
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
-                                    &fsm->finger_id);
+  env = GNUNET_MQ_msg (rwm,
+                       GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK);
+  rwm->hops_taken = htonl (0);
+  rwm->trail_id = trail->succ_id;
   GNUNET_MQ_send (friend->mq,
                   env);
+  /* clean up 'old' entry (implicitly via trail cleanup) */
+  ft = &fingers[walk_layer];
+
+  if ( (NULL != ft->fingers) &&
+       (NULL != (finger = ft->fingers[ft->walk_offset])) )
+    delete_trail (finger->trail,
+                  GNUNET_NO,
+                  GNUNET_YES);
+  if (ft->finger_array_size < 42)
+  {
+    // FIXME: must have finger array of the right size here,
+    // FIXME: growing / shrinking are tricy -- with pointers
+    // from Trails!!!
+  }
+
+  GNUNET_assert (NULL == ft->fingers[ft->walk_offset]);
+
+  finger = GNUNET_new (struct Finger);
+  finger->trail = trail;
+  trail->finger = &ft->fingers[ft->walk_offset];
+  finger->ft = ft;
+  ft->fingers[ft->walk_offset] = finger;
+  ft->is_sorted = GNUNET_NO;
+  ft->walk_offset = (ft->walk_offset + 1) % ft->finger_array_size;
+
+  walk_layer = (walk_layer + 1) % NUMBER_LAYERED_ID;
+  random_walk_task = GNUNET_SCHEDULER_add_delayed (RANDOM_WALK_DELAY,
+                                                   &do_random_walk,
+                                                   NULL);
 }
 
 
@@ -723,7 +816,7 @@ handle_core_connect (void *cls,
 
   /* If peer already exists in our friend_peermap, then exit. */
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_contains (fingers_peermap,
+      GNUNET_CONTAINER_multipeermap_contains (friends_peermap,
                                               peer_identity))
   {
     GNUNET_break (0);
@@ -735,16 +828,15 @@ handle_core_connect (void *cls,
   friend->mq = GNUNET_CORE_mq_create (core_api,
                                       peer_identity);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (fingers_peermap,
+                 GNUNET_CONTAINER_multipeermap_put (friends_peermap,
                                                     peer_identity,
                                                     friend,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  /* do work? */
-
   if (NULL == random_walk_task)
   {
-      random_walk_task = GNUNET_SCHEDULER_add_now (&do_random_walk,
-                                                   NULL);
+    /* random walk needs to be started -- we have a first connection */
+    random_walk_task = GNUNET_SCHEDULER_add_now (&do_random_walk,
+                                                 NULL);
   }
 }
 
@@ -764,8 +856,8 @@ core_init (void *cls,
 
 
 /**
- * Handle a `struct FingerSetupMessage` from a GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP
- * message.
+ * Handle a `struct RandomWalkMessage` from a
+ * #GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK message.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
@@ -773,27 +865,120 @@ core_init (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-handle_dht_p2p_finger_setup (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+handle_dht_p2p_random_walk (void *cls,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_MessageHeader *message)
 {
-  const struct FingerSetupMessage *fsm;
+  const struct RandomWalkMessage *m;
+  struct Trail *t;
+  struct FriendInfo *pred;
 
-  fsm = (const struct FingerSetupMessage *) message;
+  m = (const struct RandomWalkMessage *) message;
+  pred = GNUNET_CONTAINER_multipeermap_get (friends_peermap,
+                                            peer);
+  t = GNUNET_new (struct Trail);
+  t->pred_id = m->trail_id;
+  t->pred = pred;
+  t->expiration_time = GNUNET_TIME_relative_to_absolute (TRAIL_TIMEOUT);
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multihashmap_put (trail_map,
+                                         &t->pred_id,
+                                         t,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break_op (0);
+    GNUNET_free (t);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_CONTAINER_MDLL_insert (pred,
+                                pred->pred_head,
+                                pred->pred_tail,
+                                t);
+  if (ntohl (m->hops_taken) > GDS_NSE_get ())
+  {
+    /* We are the last hop, generate response */
+    struct GNUNET_MQ_Envelope *env;
+    struct RandomWalkResponseMessage *rwrm;
+    uint16_t layer;
 
-  /*
-   * Steps :
-   *  1 check if the hops_taken is < to log(honest node)
-   *  1.a.1 if true : increments the hops_taken
-   *  1.a.2 send the same structure
-   *  1.b if false : drop the message
-   */
+    env = GNUNET_MQ_msg (rwrm,
+                         GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE);
+    rwrm->reserved = htonl (0);
+    rwrm->trail_id = m->trail_id;
+    layer = ntohs (m->layer);
+    if (0 == layer)
+      (void) GDS_DATACACHE_get_random_key (&rwrm->location);
+    else
+    {
+      struct FingerTable *ft;
 
+      if (layer > NUMBER_LAYERED_ID)
+      {
+        GNUNET_break_op (0);
+        // FIXME: clean up 't'...
+        return GNUNET_SYSERR;
+      }
+      ft = &fingers[layer-1];
+      if (0 == ft->number_valid_fingers)
+      {
+        GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
+                                          &rwrm->location);
+      }
+      else
+      {
+        struct Finger *f;
+
+        f = ft->fingers[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                  ft->number_valid_fingers)];
+        rwrm->location = f->destination;
+      }
+    }
+    GNUNET_MQ_send (pred->mq,
+                    env);
+  }
+  else
+  {
+    struct GNUNET_MQ_Envelope *env;
+    struct RandomWalkMessage *rwm;
+    struct FriendInfo *succ;
+
+    /* extend the trail by another random hop */
+    succ = pick_random_friend ();
+    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE,
+                                      &t->succ_id);
+    t->succ = succ;
+    if (GNUNET_OK !=
+        GNUNET_CONTAINER_multihashmap_put (trail_map,
+                                           &t->succ_id,
+                                           t,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_break (0);
+      GNUNET_CONTAINER_MDLL_remove (pred,
+                                    pred->pred_head,
+                                    pred->pred_tail,
+                                    t);
+      GNUNET_free (t);
+      return GNUNET_OK;
+    }
+    GNUNET_CONTAINER_MDLL_insert (succ,
+                                  succ->succ_head,
+                                  succ->succ_tail,
+                                  t);
+    env = GNUNET_MQ_msg (rwm,
+                         GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK);
+    rwm->hops_taken = htons (1 + ntohs (m->hops_taken));
+    rwm->layer = m->layer;
+    rwm->trail_id = t->succ_id;
+    GNUNET_MQ_send (succ->mq,
+                    env);
+  }
   return GNUNET_OK;
 }
 
+
 /**
- * Handle a `struct FingerSetupResponseMessage` from a GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP_RESPONSE
+ * Handle a `struct RandomWalkResponseMessage` from a GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE
  * message.
  *
  * @param cls closure (NULL)
@@ -802,14 +987,14 @@ handle_dht_p2p_finger_setup (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-handle_dht_p2p_finger_setup_response (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+handle_dht_p2p_random_walk_response (void *cls,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const struct GNUNET_MessageHeader *message)
 {
-  const struct FingerSetupResponseMessage *fsrm;
+  const struct RandomWalkResponseMessage *rwrm;
 
-  fsrm = (const struct FingerSetupResponseMessage *) message;
-
+  rwrm = (const struct RandomWalkResponseMessage *) message;
+  // 1) lookup trail => find Finger entry => fill in 'destination' and mark valid, move to end of sorted array, mark unsorted, update links from 'trails'
   /*
    * Steps :
    *  1 check if we are the correct layer
@@ -823,7 +1008,7 @@ handle_dht_p2p_finger_setup_response (void *cls,
 
 
 /**
- * Handle a `struct FingerDestroyMessage`.
+ * Handle a `struct TrailDestroyMessage`.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
@@ -831,17 +1016,17 @@ handle_dht_p2p_finger_setup_response (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-handle_dht_p2p_finger_destroy (void *cls,
+handle_dht_p2p_trail_destroy (void *cls,
                              const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message)
 {
-  const struct FingerDestroyMessage *fdm;
+  const struct TrailDestroyMessage *tdm;
 
-  fdm = (const struct FingerDestroyMessage *) message;
+  tdm = (const struct TrailDestroyMessage *) message;
 
   /*
    * Steps :
-   *  1 check if message comme from a trail
+   *  1 check if message comme from a trail (that we still remember...)
    *  1.a.1 if true: send the destroy message to the rest trail
    *  1.a.2 clean the trail structure
    *  1.a.3 did i have to remove the trail and ID from the db structure?
@@ -851,37 +1036,37 @@ handle_dht_p2p_finger_destroy (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
- * Handle a `struct FingerRouteMessage`.
+ * Handle a `struct TrailRouteMessage`.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
- * @param message the finger route message
+ * @param message the finger destroy message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-handle_dht_p2p_finger_route (void *cls,
+handle_dht_p2p_trail_route (void *cls,
                              const struct GNUNET_PeerIdentity *peer,
                              const struct GNUNET_MessageHeader *message)
 {
-  const struct FingerRouteMessage *frm;
+  const struct TrailRouteMessage *trm;
 
-  frm = (const struct FingerRouteMessage *) message;
-  /* FIXME: check the size of the message */
+  trm = (const struct TrailRouteMessage *) message;
 
   /*
-   * steps :
-   *  1 find the good trail
-   *  2 check the message inside
-   *  2.a if the message is a finger setup message : increments ce hops_takeb
-   *  3 send the finger route message
+   * Steps :
+   *  1 check if message comme from a trail
+   *  1.a.1 if trail not finished with us, continue to forward
+   *  1.a.2 otherwise handle body message embedded in trail
    */
 
   return GNUNET_OK;
 }
 
+
 /**
- * Handle a `struct FingerSetupMessage` from a GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND
+ * Handle a `struct FindSuccessorMessage` from a #GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND
  * message.
  *
  * @param cls closure (NULL)
@@ -890,37 +1075,20 @@ handle_dht_p2p_finger_route (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-handle_dht_p2p_neighbour_find (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+handle_dht_p2p_successor_find (void *cls,
+                               const struct GNUNET_PeerIdentity *peer,
+                               const struct GNUNET_MessageHeader *message)
 {
-  const struct FingerSetupMessage *fsm;
+  const struct FindSuccessorMessage *fsm;
 
-  fsm = (const struct FingerSetupMessage *) message;
+  fsm = (const struct FindSuccessorMessage *) message;
+  // locate trail (for sending reply), if not exists, fail nicely.
+  // otherwise, go to datacache and return 'top k' elements closest to 'key'
+  // as "PUT" messages via the trail (need to extend DB API!)
 
   return GNUNET_OK;
 }
 
-/**
- * Handle a `struct FingerSetupResponseMessage` from a GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND
- * message.
- *
- * @param cls closure (NULL)
- * @param peer sender identity
- * @param message the finger setup response message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-static int
-handle_dht_p2p_neighbour_found (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
-{
-  const struct FingerSetupResponseMessage *fsrm;
-
-  fsrm = (const struct FingerSetupResponseMessage *) message;
-
-  return GNUNET_OK;
-}
 
 /**
  * Handle a `struct PeerGetMessage`.
@@ -932,13 +1100,14 @@ handle_dht_p2p_neighbour_found (void *cls,
  */
 static int
 handle_dht_p2p_peer_get (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+                         const struct GNUNET_PeerIdentity *peer,
+                         const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetMessage *pgm;
 
+  // FIXME: note: never called like this, message embedded with trail route!
   pgm = (const struct PeerGetMessage *) message;
-
+  // -> lookup in datacache (figure out way to remember trail!)
      /*
     * steps :
     *   1 extract the result
@@ -950,6 +1119,7 @@ handle_dht_p2p_peer_get (void *cls,
 
   return GNUNET_OK;
 }
+
 
 /**
  * Handle a `struct PeerGetResultMessage`.
@@ -967,15 +1137,7 @@ handle_dht_p2p_peer_get_result (void *cls,
   const struct PeerGetResultMessage *pgrm;
 
   pgrm = (const struct PeerGetResultMessage *) message;
-
-  /*
-   * steps :
-   *   1 extract the result
-   *   2 create a peerGetResult struct
-   *   3 send it using the good trail
-   *
-   * What do i do when i don't have the key/value?
-   */
+  // pretty much: parse, & pass to client (there is some call for that...)
 
   return GNUNET_OK;
 }
@@ -997,7 +1159,7 @@ handle_dht_p2p_peer_put (void *cls,
   const struct PeerGetResultMessage *pgrm;
 
   pgrm = (const struct PeerGetResultMessage *) message;
-
+  // parse & store in datacache, this is in response to us asking for successors.
   /*
    * steps :
    * 1 check the size of the message
@@ -1016,24 +1178,21 @@ int
 GDS_NEIGHBOURS_init (void)
 {
   static const struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    { &handle_dht_p2p_finger_setup,
-      GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP,
-      sizeof (struct FingerSetupMessage) },
-    { &handle_dht_p2p_finger_setup_response,
-      GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP_RESPONSE,
-      sizeof (struct FingerSetupResponseMessage) },
-    { &handle_dht_p2p_finger_destroy,
-      GNUNET_MESSAGE_TYPE_WDHT_FINGER_DESTROY,
-      sizeof (struct FingerDestroyMessage) },
-    { &handle_dht_p2p_finger_route,
-      GNUNET_MESSAGE_TYPE_WDHT_FINGER_ROUTE,
+    { &handle_dht_p2p_random_walk,
+      GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK,
+      sizeof (struct RandomWalkMessage) },
+    { &handle_dht_p2p_random_walk_response,
+      GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE,
+      sizeof (struct RandomWalkResponseMessage) },
+    { &handle_dht_p2p_trail_destroy,
+      GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY,
+      sizeof (struct TrailDestroyMessage) },
+    { &handle_dht_p2p_trail_route,
+      GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE,
       0},
-    { &handle_dht_p2p_neighbour_find,
-      GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FIND,
-      sizeof (struct FingerSetupMessage) },
-    { &handle_dht_p2p_neighbour_found,
-      GNUNET_MESSAGE_TYPE_WDHT_NEIGHBOUR_FOUND,
-      sizeof (struct FingerSetupResponseMessage) },
+    { &handle_dht_p2p_successor_find,
+      GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND,
+      sizeof (struct FindSuccessorMessage) },
     { &handle_dht_p2p_peer_get,
       GNUNET_MESSAGE_TYPE_WDHT_GET,
       sizeof (struct PeerGetMessage) },
@@ -1057,15 +1216,9 @@ GDS_NEIGHBOURS_init (void)
 
   if (NULL == core_api)
     return GNUNET_SYSERR;
-
-  fingers_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
-  successors_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
-
-  init_db_structure();
-
-
-
-
+  friends_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
+  trail_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
+  trail_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   return GNUNET_OK;
 }
 
@@ -1080,13 +1233,14 @@ GDS_NEIGHBOURS_done (void)
     return;
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
-
-  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (fingers_peermap));
-  GNUNET_CONTAINER_multipeermap_destroy (fingers_peermap);
-  GNUNET_CONTAINER_multipeermap_destroy (successors_peermap);
-  destroy_db_structure();
-
-  fingers_peermap = NULL;
+  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (friends_peermap));
+  GNUNET_CONTAINER_multipeermap_destroy (friends_peermap);
+  friends_peermap = NULL;
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (trail_map));
+  GNUNET_CONTAINER_multihashmap_destroy (trail_map);
+  trail_map = NULL;
+  GNUNET_CONTAINER_heap_destroy (trail_heap);
+  trail_heap = NULL;
 }
 
 
