@@ -188,8 +188,9 @@ struct CadetTunnelSkippedKey
   struct GNUNET_CRYPTO_SymmetricSessionKey MK;
 };
 
+
 /**
- * Axolotl data, according to @url https://github.com/trevp/axolotl/wiki .
+ * Axolotl data, according to https://github.com/trevp/axolotl/wiki .
  */
 struct CadetTunnelAxolotl
 {
@@ -1825,7 +1826,7 @@ queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GCT_2s (t));
 
   GNUNET_assert (GNUNET_NO == is_ready (t));
-  
+
   tqd = GNUNET_malloc (sizeof (struct CadetTunnelDelayed) + size);
 
   tqd->t = t;

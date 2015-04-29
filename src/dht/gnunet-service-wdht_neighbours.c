@@ -179,7 +179,7 @@ struct FingerRouteMessage
 struct PeerPutMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_P2P_PUT
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -231,7 +231,7 @@ struct PeerPutMessage
 struct PeerGetMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_P2P_GET
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_GET
    */
   struct GNUNET_MessageHeader header;
 
@@ -277,7 +277,7 @@ struct PeerGetMessage
 struct PeerGetResultMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_P2P_GET_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
