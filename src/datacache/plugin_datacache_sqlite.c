@@ -67,22 +67,37 @@ struct Plugin
 
 
 /**
- * Log an error message at log-level 'level' that indicates
- * a failure of the command 'cmd' on file 'filename'
- * with the message given by strerror(errno).
+ * Log an error message at log-level @a level that indicates
+ * a failure of the command @a cmd with the error from the database @a db
+ *
+ * @param db database handle
+ * @param level log level
+ * @param cmd failed command
  */
 #define LOG_SQLITE(db, level, cmd) do { LOG (level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, sqlite3_errmsg(db)); } while(0)
 
 
+/**
+ * Execute SQL statement.
+ *
+ * @param db database handle
+ * @param cmd SQL command to execute
+ */
 #define SQLITE3_EXEC(db, cmd) do { emsg = NULL; if (SQLITE_OK != sqlite3_exec(db, cmd, NULL, NULL, &emsg)) { LOG (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, _("`%s' failed at %s:%d with error: %s\n"), "sqlite3_exec", __FILE__, __LINE__, emsg); sqlite3_free(emsg); } } while(0)
 
 
 /**
  * @brief Prepare a SQL statement
+ *
+ * @param dbh database handle
+ * @param zsql SQL statement text
+ * @param[out] ppStmt set to the prepared statement
+ * @return 0 on success
  */
 static int
-sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded */
-            sqlite3_stmt ** ppStmt)
+sq_prepare (sqlite3 *dbh,
+            const char *zSql,    /* SQL statement, UTF-8 encoded */
+            sqlite3_stmt **ppStmt)
 {                               /* OUT: Statement handle */
   char *dummy;
 
@@ -94,9 +109,9 @@ sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded 
 /**
  * Store an item in the datastore.
  *
- * @param cls closure (our "struct Plugin")
+ * @param cls closure (our `struct Plugin`)
  * @param key key to store data under
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
@@ -107,7 +122,8 @@ sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded 
 static ssize_t
 sqlite_plugin_put (void *cls,
 		   const struct GNUNET_HashCode *key,
-		   size_t size, const char *data,
+		   size_t size,
+                   const char *data,
 		   enum GNUNET_BLOCK_Type type,
                    struct GNUNET_TIME_Absolute discard_time,
 		   unsigned int path_info_len,
@@ -118,8 +134,9 @@ sqlite_plugin_put (void *cls,
   int64_t dval;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Processing `%s' of %u bytes with key `%4s' and expiration %s\n",
-       "PUT", (unsigned int) size, GNUNET_h2s (key),
+       "Processing PUT of %u bytes with key `%4s' and expiration %s\n",
+       (unsigned int) size,
+       GNUNET_h2s (key),
        GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (discard_time), GNUNET_YES));
   dval = (int64_t) discard_time.abs_value_us;
   if (dval < 0)
@@ -129,7 +146,8 @@ sqlite_plugin_put (void *cls,
        "INSERT INTO ds090 (type, expire, key, value, path) VALUES (?, ?, ?, ?, ?)",
        &stmt) != SQLITE_OK)
   {
-    LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sq_prepare");
     return -1;
   }
@@ -147,21 +165,24 @@ sqlite_plugin_put (void *cls,
 				       path_info_len * sizeof (struct GNUNET_PeerIdentity),
 				       SQLITE_TRANSIENT)))
   {
-    LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_xxx");
     sqlite3_finalize (stmt);
     return -1;
   }
   if (SQLITE_DONE != sqlite3_step (stmt))
   {
-    LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_step");
     sqlite3_finalize (stmt);
     return -1;
   }
   plugin->num_items++;
   if (SQLITE_OK != sqlite3_finalize (stmt))
-    LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_finalize");
   return size + OVERHEAD;
 }
@@ -171,16 +192,18 @@ sqlite_plugin_put (void *cls,
  * Iterate over the results for a particular key
  * in the datastore.
  *
- * @param cls closure (our "struct Plugin")
+ * @param cls closure (our `struct Plugin`)
  * @param key
  * @param type entries of which type are relevant?
  * @param iter maybe NULL (to just count)
- * @param iter_cls closure for iter
+ * @param iter_cls closure for @a iter
  * @return the number of results found
  */
 static unsigned int
-sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
-                   enum GNUNET_BLOCK_Type type, GNUNET_DATACACHE_Iterator iter,
+sqlite_plugin_get (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   enum GNUNET_BLOCK_Type type,
+                   GNUNET_DATACACHE_Iterator iter,
                    void *iter_cls)
 {
   struct Plugin *plugin = cls;
@@ -198,14 +221,16 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
   const struct GNUNET_PeerIdentity *path;
 
   now = GNUNET_TIME_absolute_get ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s' for key `%4s'\n", "GET",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Processing GET for key `%4s'\n",
        GNUNET_h2s (key));
   if (sq_prepare
       (plugin->dbh,
        "SELECT count(*) FROM ds090 WHERE key=? AND type=? AND expire >= ?",
        &stmt) != SQLITE_OK)
   {
-    LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sq_prepare");
     return 0;
   }
@@ -217,7 +242,8 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
       (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
       (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value_us)))
   {
-    LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind_xxx");
     sqlite3_finalize (stmt);
     return 0;
@@ -229,7 +255,7 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                 "sqlite_step");
     sqlite3_finalize (stmt);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "No content found when processing `%s' for key `%4s'\n", "GET",
+         "No content found when processing GET for key `%4s'\n",
          GNUNET_h2s (key));
     return 0;
   }
@@ -239,7 +265,7 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
   {
     if (0 == total)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "No content found when processing `%s' for key `%4s'\n", "GET",
+           "No content found when processing GET for key `%4s'\n",
            GNUNET_h2s (key));
     return total;
   }
@@ -254,17 +280,21 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
                      off);
     if (sq_prepare (plugin->dbh, scratch, &stmt) != SQLITE_OK)
     {
-      LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+      LOG_SQLITE (plugin->dbh,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sq_prepare");
       return cnt;
     }
     if ((SQLITE_OK !=
-         sqlite3_bind_blob (stmt, 1, key, sizeof (struct GNUNET_HashCode),
+         sqlite3_bind_blob (stmt, 1,
+                            key,
+                            sizeof (struct GNUNET_HashCode),
                             SQLITE_TRANSIENT)) ||
         (SQLITE_OK != sqlite3_bind_int (stmt, 2, type)) ||
         (SQLITE_OK != sqlite3_bind_int64 (stmt, 3, now.abs_value_us)))
     {
-      LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+      LOG_SQLITE (plugin->dbh,
+                  GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                   "sqlite3_bind_xxx");
       sqlite3_finalize (stmt);
       return cnt;
@@ -290,8 +320,9 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
       exp = GNUNET_TIME_UNIT_FOREVER_ABS;
     cnt++;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Found %u-byte result when processing `%s' for key `%4s'\n",
-         (unsigned int) size, "GET", GNUNET_h2s (key));
+         "Found %u-byte result when processing GET for key `%4s'\n",
+         (unsigned int) size,
+         GNUNET_h2s (key));
     if (GNUNET_OK != iter (iter_cls, key, size, dat, type, exp, psize, path))
     {
       sqlite3_finalize (stmt);
@@ -307,8 +338,8 @@ sqlite_plugin_get (void *cls, const struct GNUNET_HashCode * key,
  * Delete the entry with the lowest expiration value
  * from the datacache right now.
  *
- * @param cls closure (our "struct Plugin")
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param cls closure (our `struct Plugin`)
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 sqlite_plugin_del (void *cls)
@@ -383,8 +414,8 @@ sqlite_plugin_del (void *cls)
 /**
  * Entry point for the plugin.
  *
- * @param cls closure (the "struct GNUNET_DATACACHE_PluginEnvironmnet")
- * @return the plugin's closure (our "struct Plugin")
+ * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironmnet`)
+ * @return the plugin's closure (our `struct Plugin`)
  */
 void *
 libgnunet_plugin_datacache_sqlite_init (void *cls)
@@ -461,7 +492,7 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
 /**
  * Exit point from the plugin.
  *
- * @param cls closure (our "struct Plugin")
+ * @param cls closure (our `struct Plugin`)
  * @return NULL
  */
 void *
