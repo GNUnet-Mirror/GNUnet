@@ -36,11 +36,13 @@
 #include "gnunet_transport_service.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-xdht.h"
+#include "gnunet-service-wdht.h"
 #include "gnunet-service-wdht_clients.h"
 #include "gnunet-service-wdht_datacache.h"
 #include "gnunet-service-wdht_neighbours.h"
 #include <fenv.h>
+#include <stdlib.h>
+#include <string.h>
 #include "dht.h"
 
 #define DEBUG(...)                                           \
@@ -57,9 +59,83 @@
 #define NUMBER_LAYERED_ID 8
 
 /**
+ * The number of random walk to launch at the beginning of the initialization
+ */
+/* FIXME: find a better value */
+#define NUMBER_RANDOM_WALK 20
+
+
+/**
  * Contains all the layered ID.
  */
 struct GNUNET_PeerIdentity layered_id[NUMBER_LAYERED_ID];
+
+/******************* The db structure and related functions *******************/
+/**
+ * The number of cell store in the db structure.
+ */
+int number_cell;
+
+/**
+ * If sorted_db array are sorted 1. Otherwise 0.
+ */
+/* FIXME: not sure about this one */
+int is_sorted;
+
+struct db_cell{
+    /**
+     * The identity of the.
+     */
+    GNUNET_PeerIdentity *peer_id;
+    /**
+     * The trail to use to reach the peer.
+     */
+    struct Trail *trail;
+    /**
+     * 1 if a response are received. Otherwise 0.
+     */
+    int valid;
+};
+
+struct db_cell *unsorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
+
+struct db_cell *sorted_db[NUMBER_RANDOM_WALK * NUMBER_LAYERED_ID];
+
+/**
+ * Initialize the db structure with default values.
+ */
+static void
+init_db_structure (){
+    int i;
+    for(i = 0; i < NUMBER_RANDOM_WALK; i++){
+        unsorted_db[i] = NULL;
+        sorted_db[i] = unsorted_db[i];
+    }
+}
+
+/**
+ * Destroy the db_structure. Basically, free every db_cell.
+ */
+static void
+destroy_db_structure (){
+    int i;
+    for(i = 0; i < NUMBER_RANDOM_WALK; i++){
+        GNUNET_free_non_null(unsorted_db[i]);
+    }
+}
+
+/**
+ * Add a new db_cell in the db structure.
+ */
+static int
+add_new_cell(const struct *bd_cell){
+  unsorted_db[number_cell] = bd_cell;
+  sorted_db[number_cell] = db_cell;
+  /* FIXME: add some code to sort by friend id */
+  return 0;
+}
+
+/***********************  end of the db structure part  ***********************/
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -582,8 +658,20 @@ do_random_walk (void *cls,
   struct FriendInfo *friend;
   struct GNUNET_MQ_Envelope *env;
   struct FingerSetupMessage *fsm;
+  struct db_cell *friend_cell;
+  struct Trail *trail;
 
   friend = NULL; // FIXME: pick at random...
+
+  friend_cell = GNUNET_malloc(sizeof(struct db_cell));
+  friend_cell->peer_identity = friend->id;
+
+  trail = GNUNET_new(struct Trail);
+
+  /* We create the random walk so, no predecessor */
+  trail->succ = friend;
+
+  GNUNET_CONTAINER_MDLL_insert_tail(succ, trail->prev, trail->next,friend)
   env = GNUNET_MQ_msg (fsm,
                        GNUNET_MESSAGE_TYPE_WDHT_FINGER_SETUP);
   fsm->hops_task = htons (0);
@@ -635,9 +723,8 @@ handle_core_connect (void *cls,
 
   if (NULL == random_walk_task)
   {
-    /* start random walks! */
-    random_walk_task = GNUNET_SCHEDULER_add_now (&do_random_walk,
-                                                 NULL);
+      random_walk_task = GNUNET_SCHEDULER_add_now (&do_random_walk,
+                                                   NULL);
   }
 }
 
@@ -706,9 +793,17 @@ handle_dht_p2p_finger_setup_response (void *cls,
   /*
    * Steps :
    *  1 check if we are the correct layer
-   *  1.a if true : add the return value in the db structure
+   *  1.a if true : add the returned value (finger) in the db structure
    *  1.b if true : do nothing
    */
+  if(NUMBER_LAYERED_ID >= fsm->layer){
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "The layer id is too big. %d received, an id below %d is expected",
+               fsm->layer, NUMBER_LAYERED_ID);
+    return GNUNET_SYSERR
+  }
+
+  /* FIXME: add the value in db structure 1.a */
 
   return GNUNET_OK;
 }
@@ -764,7 +859,9 @@ handle_dht_p2p_finger_route (void *cls,
   /*
    * steps :
    *  1 find the good trail
-   *  2 send the finger route message
+   *  2 check the message inside
+   *  2.a if the message is a finger setup message : increments ce hops_takeb
+   *  3 send the finger route message
    */
 
   return GNUNET_OK;
@@ -951,6 +1048,11 @@ GDS_NEIGHBOURS_init (void)
   fingers_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
   successors_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
 
+  init_db_structure();
+
+
+
+
   return GNUNET_OK;
 }
 
@@ -967,7 +1069,10 @@ GDS_NEIGHBOURS_done (void)
   core_api = NULL;
 
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (friend_peermap));
-  GNUNET_CONTAINER_multipeermap_destroy (friend_peermap);
+  GNUNET_CONTAINER_multipeermap_destroy (fingers_peermap);
+  GNUNET_CONTAINER_multipeermap_destroy (successors_peermap);
+  destroy_db_structure();
+
   friend_peermap = NULL;
 }
 
