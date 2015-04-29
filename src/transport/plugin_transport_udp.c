@@ -2005,7 +2005,7 @@ read_process_ack (struct Plugin *plugin,
   }
   if (NULL == s->frag_ctx)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+    LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
          "Fragmentation context of address %s for ACK (%s) not found\n",
          udp_address_to_string (plugin,
                                 address->address,
