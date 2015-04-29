@@ -50,6 +50,10 @@ struct Plugin
    */
   PGconn *dbh;
 
+  /**
+   * Number of key-value pairs in the database.
+   */
+  unsigned int num_items;
 };
 
 
@@ -200,6 +204,7 @@ postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, size_t size,
       GNUNET_POSTGRES_check_result (plugin->dbh, ret,
 				    PGRES_COMMAND_OK, "PQexecPrepared", "put"))
     return -1;
+  plugin->num_items++;
   PQclear (ret);
   return size + OVERHEAD;
 }
@@ -355,6 +360,7 @@ postgres_plugin_del (void *cls)
   PQclear (res);
   if (GNUNET_OK != GNUNET_POSTGRES_delete_by_rowid (plugin->dbh, "delrow", oid))
     return GNUNET_SYSERR;
+  plugin->num_items--;
   plugin->env->delete_notify (plugin->env->cls, &key, size + OVERHEAD);
   return GNUNET_OK;
 }
