@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file dht/gnunet-service-dht_datacache.c
  * @brief GNUnet DHT service's datacache integration
@@ -78,11 +77,20 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
-  r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
-                            put_path_length, put_path);
+  r = GNUNET_DATACACHE_put (datacache,
+                            key,
+                            data_size,
+                            data,
+                            type,
+                            expiration,
+                            put_path_length,
+                            put_path);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "DATACACHE PUT for key %s [%u] completed (%d) after %u hops\n",
-       GNUNET_h2s (key), data_size, r, put_path_length);
+       GNUNET_h2s (key),
+       data_size,
+       r,
+       put_path_length);
 }
 
 
@@ -112,7 +120,7 @@ struct GetRequestContext
   size_t xquery_size;
 
   /**
-   * Mutator value for the reply_bf, see gnunet_block_lib.h
+   * Mutator value for the @e reply_bf, see gnunet_block_lib.h
    */
   uint32_t reply_bf_mutator;
 
@@ -126,7 +134,7 @@ struct GetRequestContext
 /**
  * Iterator for local get request results,
  *
- * @param cls closure for iterator, a DatacacheGetContext
+ * @param cls closure for iterator, a `struct GetRequestContext`
  * @param exp when does this value expire?
  * @param key the key this data is stored under
  * @param size the size of the data identified by key

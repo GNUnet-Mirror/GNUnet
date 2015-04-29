@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2011, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -19,7 +19,7 @@
 */
 
 /**
- * @file dht/gnunet-service-dht_datacache.c
+ * @file dht/gnunet-service-wdht_datacache.c
  * @brief GNUnet DHT service's datacache integration
  * @author Christian Grothoff
  * @author Nathan Evans
@@ -48,18 +48,19 @@ static struct GNUNET_DATACACHE_Handle *datacache;
  *
  * @param expiration when will the reply expire
  * @param key the query this reply is for
- * @param put_path_length number of peers in 'put_path'
+ * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
  * @param type type of the reply
- * @param data_size number of bytes in 'data'
+ * @param data_size number of bytes in @a data
  * @param data application payload data
  */
 void
 GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
-                          const struct GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode *key,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
-                          enum GNUNET_BLOCK_Type type, size_t data_size,
+                          enum GNUNET_BLOCK_Type type,
+                          size_t data_size,
                           const void *data)
 {
   int r;
@@ -67,7 +68,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   if (NULL == datacache)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("%s request received, but have no datacache!\n"), "PUT");
+                _("PUT request received, but have no datacache!\n"));
     return;
   }
   if (data_size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -77,18 +78,26 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   }
 
   /* Put size is actual data size plus struct overhead plus path length (if any) */
-  GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# ITEMS stored in datacache"), 1,
-                            GNUNET_NO);
-
-  struct GNUNET_PeerIdentity peer = GDS_NEIGHBOURS_get_my_id();
-  DEBUG("DATACACHE_PUT KEY = %s, peer = %s\n",GNUNET_h2s(key),GNUNET_i2s(&peer));
-  r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
-                            put_path_length, put_path);
+  r = GNUNET_DATACACHE_put (datacache,
+                            key,
+                            data_size,
+                            data,
+                            type,
+                            expiration,
+                            put_path_length,
+                            put_path);
+  if (GNUNET_OK == r)
+    GNUNET_STATISTICS_update (GDS_stats,
+                              gettext_noop ("# ITEMS stored in datacache"), 1,
+                              GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "DATACACHE PUT for key %s [%u] completed (%d) after %u hops\n",
-       GNUNET_h2s (key), data_size, r, put_path_length);
+       GNUNET_h2s (key),
+       data_size,
+       r,
+       put_path_length);
 }
+
 
 /**
  * List of peers in the get path.
@@ -133,17 +142,17 @@ struct GetRequestContext
   struct GNUNET_HashCode key;
 
   /**
-   * Number of bytes in xquery.
+   * Number of bytes in @e xquery.
    */
   size_t xquery_size;
 
   /**
-   * Mutator value for the reply_bf, see gnunet_block_lib.h
+   * Mutator value for the @e reply_bf, see gnunet_block_lib.h
    */
   uint32_t reply_bf_mutator;
 
   /**
-   * Total number of peers in get path.
+   * Total number of peers in @e head.
    */
   unsigned int get_path_length;
 
@@ -290,16 +299,17 @@ datacache_get_iterator (void *cls,
  * @param key the query
  * @param type requested data type
  * @param xquery extended query
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_bf where the reply bf is (to be) stored, possibly updated, can be NULL
- * @param reply_bf_mutator mutation value for reply_bf
+ * @param reply_bf_mutator mutation value for @a reply_bf
+ * @param get_path_length Total number of peers in @a get_path
+ * @param get_path Peers query has traversed during GET
  * @return evaluation result for the local replies
- * @get_path_length Total number of peers in get path
- * @get_path Peers in get path.
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
-                          enum GNUNET_BLOCK_Type type, const void *xquery,
+GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
+                          enum GNUNET_BLOCK_Type type,
+                          const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,
                           uint32_t reply_bf_mutator,
@@ -324,15 +334,13 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.reply_bf_mutator = reply_bf_mutator;
   ctx.get_path_length = get_path_length;
 
-  if (next_hop != NULL)
-  {
-    memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
-  }
+  if (NULL != next_hop)
+    ctx.next_hop = *next_hop;
   unsigned int i = 0;
 
   ctx.head = NULL;
   ctx.tail = NULL;
-  if (get_path != NULL)
+  if (NULL != get_path)
   {
     while (i < get_path_length)
     {
@@ -346,9 +354,15 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
     }
   }
 
-  r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
+  r = GNUNET_DATACACHE_get (datacache,
+                            key,
+                            type,
+                            &datacache_get_iterator,
                             &ctx);
-  DEBUG ("DATACACHE_GET for key %s completed (%d). %u results found.\n",GNUNET_h2s (key), ctx.eval, r);
+  DEBUG ("DATACACHE_GET for key %s completed (%d). %u results found.\n",
+         GNUNET_h2s (key),
+         ctx.eval,
+         r);
   return ctx.eval;
 }
 
@@ -369,7 +383,7 @@ GDS_DATACACHE_init ()
 void
 GDS_DATACACHE_done ()
 {
-  if (datacache != NULL)
+  if (NULL != datacache)
   {
     GNUNET_DATACACHE_destroy (datacache);
     datacache = NULL;
@@ -377,4 +391,4 @@ GDS_DATACACHE_done ()
 }
 
 
-/* end of gnunet-service-dht_datacache.c */
+/* end of gnunet-service-wdht_datacache.c */
