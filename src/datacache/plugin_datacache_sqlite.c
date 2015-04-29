@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2006, 2009 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2006, 2009, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -58,6 +58,11 @@ struct Plugin
    * Filename used for the DB.
    */
   char *fn;
+
+  /**
+   * Number of key-value pairs in the database.
+   */
+  unsigned int num_items;
 };
 
 
@@ -95,7 +100,7 @@ sq_prepare (sqlite3 * dbh, const char *zSql,    /* SQL statement, UTF-8 encoded 
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @param path_info_len number of entries in 'path_info'
+ * @param path_info_len number of entries in @a path_info
  * @param path_info array of peers that have processed the request
  * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
@@ -154,6 +159,7 @@ sqlite_plugin_put (void *cls,
     sqlite3_finalize (stmt);
     return -1;
   }
+  plugin->num_items++;
   if (SQLITE_OK != sqlite3_finalize (stmt))
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_finalize");
@@ -365,6 +371,7 @@ sqlite_plugin_del (void *cls)
     (void) sqlite3_finalize (dstmt);
     return GNUNET_SYSERR;
   }
+  plugin->num_items--;
   plugin->env->delete_notify (plugin->env->cls, &hc, dsize + OVERHEAD);
   if (SQLITE_OK != sqlite3_finalize (dstmt))
     LOG_SQLITE (plugin->dbh, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
