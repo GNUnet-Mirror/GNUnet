@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2006, 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2006, 2009, 2010, 2012, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -156,6 +156,11 @@ init_connection (struct Plugin *plugin)
                                 "getm",
                                 "SELECT length(value),oid,key FROM gn090dc "
                                 "ORDER BY discard_time ASC LIMIT 1", 0)) ||
+      (GNUNET_OK !=
+       GNUNET_POSTGRES_prepare (plugin->dbh,
+                                "get_random",
+                                "SELECT discard_time,type,value,path,key FROM gn090dc "
+                                "ORDER BY key ASC LIMIT 1 OFFSET $1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
                                 "delrow",
@@ -405,6 +410,103 @@ postgres_plugin_del (void *cls)
 
 
 /**
+ * Obtain a random key-value pair from the datacache.
+ *
+ * @param cls closure (our `struct Plugin`)
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found, zero (datacache empty) or one
+ */
+static unsigned int
+postgres_plugin_get_random (void *cls,
+                            GNUNET_DATACACHE_Iterator iter,
+                            void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  unsigned int off;
+  uint32_t off_be;
+  struct GNUNET_TIME_Absolute expiration_time;
+  uint32_t size;
+  unsigned int path_len;
+  const struct GNUNET_PeerIdentity *path;
+  const struct GNUNET_HashCode *key;
+  unsigned int type;
+  PGresult *res;
+  const char *paramValues[] = {
+    (const char *) &off_be,
+  };
+  int paramLengths[] = {
+    sizeof (off_be),
+  };
+  const int paramFormats[] = { 1 };
+
+  if (0 == plugin->num_items)
+    return 0;
+  if (NULL == iter)
+    return 1;
+  off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                  plugin->num_items);
+  off_be = htonl (off);
+  res =
+    PQexecPrepared (plugin->dbh, "get_random",
+                    1, paramValues, paramLengths, paramFormats,
+                    1);
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    res,
+                                    PGRES_TUPLES_OK,
+                                    "PQexecPrepared",
+				    "get_random"))
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  if (0 == PQntuples (res))
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  if ( (5 != PQnfields (res)) ||
+       (sizeof (uint64_t) != PQfsize (res, 0)) ||
+       (sizeof (uint32_t) != PQfsize (res, 1)) ||
+       (sizeof (struct GNUNET_HashCode) != PQfsize (res, 4)) )
+  {
+    GNUNET_break (0);
+    PQclear (res);
+    return 0;
+  }
+  expiration_time.abs_value_us =
+    GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, 0, 0));
+  type = ntohl (*(uint32_t *) PQgetvalue (res, 0, 1));
+  size = PQgetlength (res, 0, 2);
+  path_len = PQgetlength (res, 0, 3);
+  if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    path_len = 0;
+  }
+  path_len %= sizeof (struct GNUNET_PeerIdentity);
+  path = (const struct GNUNET_PeerIdentity *) PQgetvalue (res, 0, 3);
+  key = (const struct GNUNET_HashCode *) PQgetvalue (res, 0, 4);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found random value with key %s of size %u bytes and type %u in database\n",
+       GNUNET_h2s (key),
+       (unsigned int) size,
+       (unsigned int) type);
+  (void) iter (iter_cls,
+               key,
+               size,
+               PQgetvalue (res, 0, 2),
+               (enum GNUNET_BLOCK_Type) type,
+               expiration_time,
+               path_len,
+               path);
+  PQclear (res);
+  return 1;
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironmnet`)
@@ -431,6 +533,7 @@ libgnunet_plugin_datacache_postgres_init (void *cls)
   api->get = &postgres_plugin_get;
   api->put = &postgres_plugin_put;
   api->del = &postgres_plugin_del;
+  api->get_random = &postgres_plugin_get_random;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Postgres datacache running\n");
   return api;
