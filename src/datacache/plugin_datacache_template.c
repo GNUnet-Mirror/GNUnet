@@ -124,6 +124,32 @@ template_plugin_get_random (void *cls,
 }
 
 
+
+/**
+ * Iterate over the results that are "close" to a particular key in
+ * the datacache.  "close" is defined as numerically larger than @a
+ * key (when interpreted as a circular address space), with small
+ * distance.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param key area of the keyspace to look into
+ * @param num_results number of results that should be returned to @a iter
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found
+ */
+static unsigned int
+template_plugin_get_closest (void *cls,
+                             const struct GNUNET_HashCode *key,
+                             unsigned int num_results,
+                             GNUNET_DATACACHE_Iterator iter,
+                             void *iter_cls)
+{
+  GNUNET_break (0);
+  return 0;
+}
+
+
 /**
  * Entry point for the plugin.
  *
@@ -145,6 +171,7 @@ libgnunet_plugin_datacache_template_init (void *cls)
   api->put = &template_plugin_put;
   api->del = &template_plugin_del;
   api->get_random = &template_plugin_get_random;
+  api->get_closest = &template_plugin_get_closest;
   GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
                    "template",
                    "Template datacache running\n");
