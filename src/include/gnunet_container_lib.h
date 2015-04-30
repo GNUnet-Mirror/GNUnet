@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2001-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -857,7 +857,8 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct GNUNET_CONTAINER_MultiH
 /**
  * @ingroup hashmap
  * Call @a it on a random value from the map, or not at all
- * if the map is empty.
+ * if the map is empty.  Note that this function has linear
+ * complexity (in the size of the map).
  *
  * @param map the map
  * @param it function to call on a random entry
@@ -1114,6 +1115,22 @@ GNUNET_CONTAINER_multipeermap_get_multiple (const struct GNUNET_CONTAINER_MultiP
                                             GNUNET_CONTAINER_PeerMapIterator it,
                                             void *it_cls);
 
+
+/**
+ * @ingroup hashmap
+ * Call @a it on a random value from the map, or not at all
+ * if the map is empty.  Note that this function has linear
+ * complexity (in the size of the map).
+ *
+ * @param map the map
+ * @param it function to call on a random entry
+ * @param it_cls extra argument to @a it
+ * @return the number of key value pairs processed, zero or one.
+ */
+unsigned int
+GNUNET_CONTAINER_multipeermap_get_random (const struct GNUNET_CONTAINER_MultiPeerMap *map,
+                                          GNUNET_CONTAINER_PeerMapIterator it,
+                                          void *it_cls);
 
 
 /* Version of multihashmap with 32 bit keys */

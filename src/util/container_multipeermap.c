@@ -482,7 +482,7 @@ GNUNET_CONTAINER_multipeermap_remove_all (struct GNUNET_CONTAINER_MultiPeerMap
 	  sme = map->map[i].sme;
 	else
 	  sme = p->next;
-	ret++;	
+	ret++;
       }
       else
       {
@@ -645,7 +645,7 @@ grow (struct GNUNET_CONTAINER_MultiPeerMap *map)
       struct BigMapEntry *bme;
 
       while (NULL != (bme = old_map[i].bme))
-      {	
+      {
 	old_map[i].bme = bme->next;
 	idx = idx_of (map, &bme->key);
 	bme->next = new_map[idx].bme;
@@ -794,6 +794,80 @@ GNUNET_CONTAINER_multipeermap_get_multiple (const struct GNUNET_CONTAINER_MultiP
     }
   }
   return count;
+}
+
+
+/**
+ * @ingroup hashmap
+ * Call @a it on a random value from the map, or not at all
+ * if the map is empty.  Note that this function has linear
+ * complexity (in the size of the map).
+ *
+ * @param map the map
+ * @param it function to call on a random entry
+ * @param it_cls extra argument to @a it
+ * @return the number of key value pairs processed, zero or one.
+ */
+unsigned int
+GNUNET_CONTAINER_multipeermap_get_random (const struct GNUNET_CONTAINER_MultiPeerMap *map,
+                                          GNUNET_CONTAINER_PeerMapIterator it,
+                                          void *it_cls)
+{
+  unsigned int off;
+  unsigned int idx;
+  union MapEntry me;
+
+  if (0 == map->size)
+    return 0;
+  if (NULL == it)
+    return 1;
+  off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                  map->size);
+  for (idx = 0; idx < map->map_length; idx++)
+  {
+    me = map->map[idx];
+    if (map->use_small_entries)
+    {
+      struct SmallMapEntry *sme;
+      struct SmallMapEntry *nxt;
+
+      nxt = me.sme;
+      while (NULL != (sme = nxt))
+      {
+        nxt = sme->next;
+        if (0 == off)
+        {
+          if (GNUNET_OK != it (it_cls,
+                               sme->key,
+                               sme->value))
+            return GNUNET_SYSERR;
+          return 1;
+        }
+        off--;
+      }
+    }
+    else
+    {
+      struct BigMapEntry *bme;
+      struct BigMapEntry *nxt;
+
+      nxt = me.bme;
+      while (NULL != (bme = nxt))
+      {
+        nxt = bme->next;
+        if (0 == off)
+        {
+          if (GNUNET_OK != it (it_cls,
+                               &bme->key, bme->value))
+            return GNUNET_SYSERR;
+          return 1;
+        }
+        off--;
+      }
+    }
+  }
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
 }
 
 

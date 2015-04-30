@@ -841,7 +841,8 @@ GNUNET_CONTAINER_multihashmap_get_multiple (const struct
 /**
  * @ingroup hashmap
  * Call @a it on a random value from the map, or not at all
- * if the map is empty.
+ * if the map is empty. Note that this function has linear
+ * complexity (in the size of the map).
  *
  * @param map the map
  * @param it function to call on a random entry
