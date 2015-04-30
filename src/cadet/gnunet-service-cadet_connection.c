@@ -1650,7 +1650,7 @@ does_connection_exist (struct CadetConnection *conn)
     {
       /* The other peer confirmed this connection,
        * they should not try to duplicate it. */
-      GNUNET_break_op (0);
+      GNUNET_break_op (0); /* FIXME */
       return GNUNET_YES;
     }
 
@@ -2558,7 +2558,7 @@ GCC_send_ack (struct CadetConnection *c, int fwd, int force)
 {
   unsigned int buffer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMC send %s ACK on %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCC send %s ACK on %s\n",
        GC_f2s (fwd), GCC_2s (c));
 
   if (NULL == c)
@@ -3276,7 +3276,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 void
 GCC_cancel (struct CadetConnectionQueue *q)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  GMC cancel message\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  GCC cancel message\n");
 
   /* queue destroy calls message_sent, which calls q->cont and frees q */
   GCP_queue_destroy (q->q, GNUNET_YES, GNUNET_NO, 0);
