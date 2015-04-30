@@ -1777,11 +1777,11 @@ GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode
  * @return #GNUNET_YES if we should continue to iterate,
  *         #GNUNET_NO if not.
  */
-typedef int (*GNUNET_CONTAINER_HeapIterator) (void *cls,
-                                              struct GNUNET_CONTAINER_HeapNode *
-                                              node, void *element,
-                                              GNUNET_CONTAINER_HeapCostType
-                                              cost);
+typedef int
+(*GNUNET_CONTAINER_HeapIterator) (void *cls,
+                                  struct GNUNET_CONTAINER_HeapNode *node,
+                                  void *element,
+                                  GNUNET_CONTAINER_HeapCostType cost);
 
 
 /**
@@ -1823,7 +1823,8 @@ GNUNET_CONTAINER_heap_walk_get_next (struct GNUNET_CONTAINER_Heap *heap);
  * @return node for the new element
  */
 struct GNUNET_CONTAINER_HeapNode *
-GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap, void *element,
+GNUNET_CONTAINER_heap_insert (struct GNUNET_CONTAINER_Heap *heap,
+                              void *element,
                               GNUNET_CONTAINER_HeapCostType cost);
 
 
