@@ -728,6 +728,8 @@ delete_trail (struct Trail *trail,
  * @param expiration When will this result expire?
  * @param data Payload to store
  * @param data_size Size of the @a data
+ *
+ * FIXME: also pass options, so we know to record paths or not...
  */
 void
 GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
@@ -1162,87 +1164,14 @@ handle_dht_p2p_trail_destroy (void *cls,
   trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
                                              &tdm->trail_id);
   delete_trail (trail,
-                0 != memcmp (peer,
-                             &trail->pred_id,
-                             sizeof (struct GNUNET_PeerIdentity)),
-                0 != memcmp (peer,
-                             &trail->succ_id,
-                             sizeof (struct GNUNET_PeerIdentity)));
-  return GNUNET_OK;
-}
-
-
-/**
- * Handler for a message we received along some trail.
- *
- * @param cls closure
- * @param trail_id trail identifier
- * @param message the message we got
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-typedef int
-(*TrailHandlerCallback)(void *cls,
-                        const struct GNUNET_HashCode *trail_id,
-                        const struct GNUNET_MessageHandler *message);
-
-
-/**
- * Definition of a handler for a message received along some trail.
- */
-struct TrailHandler
-{
-  /**
-   * NULL for end-of-list.
-   */
-  TrailHandlerCallback callback;
-
-  /**
-   * Closure for @e callback.
-   */
-  void *cls;
-
-  /**
-   * Message type this handler addresses.
-   */
-  uint16_t message_type;
-
-  /**
-   * Use 0 for variable-size.
-   */
-  uint16_t message_size;
-};
-
-
-/**
- * Handle a `struct TrailRouteMessage`.
- *
- * @param cls closure (NULL)
- * @param peer sender identity
- * @param message the finger destroy message
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-static int
-handle_dht_p2p_trail_route (void *cls,
-                            const struct GNUNET_PeerIdentity *peer,
-                            const struct GNUNET_MessageHeader *message)
-{
-  const struct TrailRouteMessage *trm;
-  const void *payload;
-  size_t msize;
-  unsigned int start_payload;
-
-  /* msize = ntohs (message->size); */
-  /* if (msize < sizeof (struct TrailRouteMessage)) */
-  /* { */
-  /*   GNUNET_break_op (0); */
-  /*   return GNUNET_YES; */
-  /* } */
-
-  /* trm = (const struct TrailRouteMessage *) message; */
-  /* /\* Retreive payload *\/ */
-  /* start_payload = sizeof (struct PeerGetResultMessage); */
-  /* payload = message[start_payload]; */
-
+                ( (NULL != trail->succ) &&
+                  (0 == memcmp (peer,
+                                &trail->succ->id,
+                                sizeof (struct GNUNET_PeerIdentity))) ),
+                ( (NULL != trail->pred) &&
+                  (0 == memcmp (peer,
+                                &trail->pred->id,
+                                sizeof (struct GNUNET_PeerIdentity))) ));
   return GNUNET_OK;
 }
 
@@ -1381,6 +1310,228 @@ handle_dht_p2p_peer_put (void *cls,
                            data,
                            data_size);
 #endif
+  return GNUNET_OK;
+}
+
+
+
+
+/**
+ * Handler for a message we received along some trail.
+ *
+ * @param cls closure
+ * @param trail_id trail identifier
+ * @param message the message we got
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+typedef int
+(*TrailHandlerCallback)(void *cls,
+                        const struct GNUNET_HashCode *trail_id,
+                        const struct GNUNET_MessageHeader *message);
+
+
+/**
+ * Definition of a handler for a message received along some trail.
+ */
+struct TrailHandler
+{
+  /**
+   * NULL for end-of-list.
+   */
+  TrailHandlerCallback callback;
+
+  /**
+   * Closure for @e callback.
+   */
+  void *cls;
+
+  /**
+   * Message type this handler addresses.
+   */
+  uint16_t message_type;
+
+  /**
+   * Use 0 for variable-size.
+   */
+  uint16_t message_size;
+};
+
+
+/**
+ * Blah.
+ */
+static void
+forward_message_on_trail (struct FriendInfo *next_target,
+                          const struct GNUNET_HashCode *trail_id,
+                          int have_path,
+                          const struct GNUNET_PeerIdentity *predecessor,
+                          const struct GNUNET_PeerIdentity *path,
+                          uint16_t path_length,
+                          const struct GNUNET_MessageHeader *payload)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct TrailRouteMessage *trm;
+  struct GNUNET_PeerIdentity *new_path;
+  unsigned int plen;
+  uint16_t payload_len;
+
+  payload_len = ntohs (payload->size);
+  if (have_path)
+  {
+    plen = path_length + 1;
+    if (plen >= (GNUNET_SERVER_MAX_MESSAGE_SIZE
+                 - payload_len
+                 - sizeof (struct TrailRouteMessage))
+        / sizeof (struct GNUNET_PeerIdentity))
+    {
+      /* Should really not have paths this long... */
+      GNUNET_break_op (0);
+      plen = 0;
+      have_path = 0;
+    }
+  }
+  else
+  {
+    GNUNET_break_op (0 == path_length);
+    path_length = 0;
+    plen = 0;
+  }
+  env = GNUNET_MQ_msg_extra (trm,
+                             payload_len +
+                             plen * sizeof (struct GNUNET_PeerIdentity),
+                             GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE);
+  trm->record_path = htons (have_path);
+  trm->path_length = htons (plen);
+  trm->trail_id = *trail_id;
+  new_path = (struct GNUNET_PeerIdentity *) &trm[1];
+  if (have_path)
+  {
+    memcpy (new_path,
+            path,
+            path_length * sizeof (struct GNUNET_PeerIdentity));
+    new_path[path_length] = *predecessor;
+  }
+  memcpy (&new_path[plen],
+          payload,
+          payload_len);
+  GNUNET_MQ_send (next_target->mq,
+                  env);
+}
+
+
+/**
+ * Handle a `struct TrailRouteMessage`.
+ *
+ * @param cls closure (NULL)
+ * @param peer sender identity
+ * @param message the finger destroy message
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+handle_dht_p2p_trail_route (void *cls,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_MessageHeader *message)
+{
+  static const struct TrailHandler handlers[] = {
+    { &handle_dht_p2p_successor_find, NULL,
+      GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND,
+      sizeof (struct FindSuccessorMessage) },
+    { NULL, NULL, 0, 0 }
+  };
+  unsigned int i;
+  const struct TrailRouteMessage *trm;
+  const struct GNUNET_PeerIdentity *path;
+  uint16_t path_length;
+  const struct GNUNET_MessageHeader *payload;
+  const struct TrailHandler *th;
+  struct Trail *trail;
+  size_t msize;
+
+  /* Parse and check message is well-formed */
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct TrailRouteMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }
+  trm = (const struct TrailRouteMessage *) message;
+  path_length = ntohs (trm->path_length);
+  if (msize < sizeof (struct TrailRouteMessage) +
+      path_length * sizeof (struct GNUNET_PeerIdentity) +
+      sizeof (struct GNUNET_MessageHeader) )
+  {
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }
+  path = (const struct GNUNET_PeerIdentity *) &trm[1];
+  payload = (const struct GNUNET_MessageHeader *) &path[path_length];
+  if (msize != (ntohs (payload->size) +
+                sizeof (struct TrailRouteMessage) +
+                path_length * sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }
+
+  /* Is this message for us? */
+  trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
+                                             &trm->trail_id);
+  if ( (NULL != trail->pred) &&
+       (0 == memcmp (peer,
+                     &trail->pred->id,
+                     sizeof (struct GNUNET_PeerIdentity))) )
+  {
+    /* forward to 'successor' */
+    if (NULL != trail->succ)
+    {
+      forward_message_on_trail (trail->succ,
+                                &trail->succ_id,
+                                ntohs (trm->record_path),
+                                peer,
+                                path,
+                                path_length,
+                                payload);
+      return GNUNET_OK;
+    }
+  }
+  else
+  {
+    /* forward to 'predecessor' */
+    GNUNET_break_op ( (NULL != trail->succ) &&
+                      (0 == memcmp (peer,
+                                    &trail->succ->id,
+                                    sizeof (struct GNUNET_PeerIdentity))) );
+    if (NULL != trail->pred)
+    {
+      forward_message_on_trail (trail->pred,
+                                &trail->pred_id,
+                                ntohs (trm->record_path),
+                                peer,
+                                path,
+                                path_length,
+                                payload);
+      return GNUNET_OK;
+    }
+  }
+
+  /* Message is for us, dispatch to handler */
+  th = NULL;
+  for (i=0; NULL != handlers[i].callback; i++)
+  {
+    th = &handlers[i];
+    if (ntohs (payload->type) == th->message_type)
+    {
+      if ( (0 == th->message_size) ||
+           (ntohs (payload->size) == th->message_size) )
+        th->callback (th->cls,
+                      &trm->trail_id,
+                      payload);
+      else
+        GNUNET_break_op (0);
+      break;
+    }
+  }
+  GNUNET_break_op (NULL != th);
   return GNUNET_OK;
 }
 

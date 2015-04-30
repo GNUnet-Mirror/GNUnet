@@ -67,6 +67,8 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * @param reply_bf where the reply bf is (to be) stored, possibly updated!, can be NULL
  * @param reply_bf_mutator mutation value for @a reply_bf
  * @return evaluation result for the local replies
+ *
+ * FIXME: also pass options, so we know to record paths or not...
  */
 enum GNUNET_BLOCK_EvaluationResult
 GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *trail_id,
