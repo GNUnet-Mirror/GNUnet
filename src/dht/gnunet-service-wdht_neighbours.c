@@ -620,7 +620,129 @@ delete_trail (struct Trail *trail,
               int inform_pred,
               int inform_succ)
 {
-  // ... FIXME
+  struct FriendInfo *friend;
+  struct GNUNET_MQ_Envelope *env;
+  struct TrailDestroyMessage *tdm;
+  struct Trail *current;
+
+  tdm = GNUNET_new(struct TrailDestroyMessage);
+  current = trail;
+
+  if (inform_pred)
+  {
+    struct Trail *previous_pred;
+    struct Trail *next_pred;
+    tdm->trail_id = current->pred_id;
+    friend = current->pred;
+
+    while( NULL != current)
+    {
+      if (NULL != friend)
+      {
+        env = GNUNET_MQ_msg (tdm,
+                             GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
+        GNUNET_MQ_send (friend->mq,
+                        env);
+      }
+
+      next_pred = current->next_pred;
+      previous_pred = current->prev_pred;
+
+      /* Freeing current trail memory */
+      GNUNET_free(current);
+
+      /* Destroying the next successor list */
+      while(NULL != previous_pred)
+      {
+        struct Trail *tmp;
+        if (NULL != friend)
+        {
+          env = GNUNET_MQ_msg (tdm,
+                               GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
+          GNUNET_MQ_send (friend->mq,
+                          env);
+        }
+
+        tmp = next_pred;
+        next_pred = next_pred->next_pred;
+        GNUNET_free(tmp);
+      }
+
+      /* Destroying the next predecessor list */
+      while(NULL != next_pred)
+      {
+        struct Trail *tmp;
+        if (NULL != friend)
+        {
+          env = GNUNET_MQ_msg (tdm,
+                               GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
+          GNUNET_MQ_send (friend->mq,
+                          env);
+        }
+
+        tmp = next_pred;
+        next_pred = next_pred->next_pred;
+        GNUNET_free(tmp);
+      }
+    }
+  }
+
+  if (inform_succ)
+  {
+    struct Trail *previous_succ;
+    struct Trail *next_succ;
+    tdm->trail_id = current->succ_id;
+    friend = current->succ;
+
+    while( NULL != current)
+    {
+      if (NULL != friend)
+      {
+        env = GNUNET_MQ_msg (tdm,
+                             GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
+        GNUNET_MQ_send (friend->mq,
+                        env);
+      }
+
+      next_succ = current->next_succ;
+      previous_succ = current->prev_succ;
+
+      /* Freeing current trail memory */
+      GNUNET_free(current);
+
+      /* Destroying the next successor list */
+      while(NULL != previous_succ)
+      {
+        struct Trail *tmp;
+        if (NULL != friend)
+        {
+          env = GNUNET_MQ_msg (tdm,
+                               GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
+          GNUNET_MQ_send (friend->mq,
+                          env);
+        }
+        tmp = next_succ;
+        previous_succ = previous_succ->prev_succ;
+        GNUNET_free(tmp);
+      }
+
+      /* Destroying the next successor list */
+      while(NULL != next_succ)
+      {
+        struct Trail *tmp;
+        if (NULL != friend)
+        {
+          env = GNUNET_MQ_msg (tdm,
+                               GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
+          GNUNET_MQ_send (friend->mq,
+                          env);
+        }
+        tmp = next_succ;
+        next_succ = next_succ->next_pred;
+        GNUNET_free(tmp);
+      }
+    }
+  }
 }
 
 
@@ -654,7 +776,6 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
   // TRICKY: need to introduce some context to remember trail from
   // the lookup...
 }
-
 
 /**
  * Method called whenever a peer disconnects.
