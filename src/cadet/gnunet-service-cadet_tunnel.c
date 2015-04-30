@@ -4048,6 +4048,9 @@ GCT_unchoke_channels (struct CadetTunnel *t)
   if (NULL != t->channel_head)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " head ch: %p\n", t->channel_head->ch);
 
+  if (NULL != t->tq_head)
+    send_queued_data (t);
+
   /* Get buffer space */
   buffer = GCT_get_connections_buffer (t);
   if (0 == buffer)
