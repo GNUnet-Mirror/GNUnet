@@ -133,7 +133,8 @@ unsigned int
 GNUNET_DATACACHE_get (struct GNUNET_DATACACHE_Handle *h,
                       const struct GNUNET_HashCode *key,
                       enum GNUNET_BLOCK_Type type,
-                      GNUNET_DATACACHE_Iterator iter, void *iter_cls);
+                      GNUNET_DATACACHE_Iterator iter,
+                      void *iter_cls);
 
 
 /**
@@ -150,6 +151,25 @@ GNUNET_DATACACHE_get_random (struct GNUNET_DATACACHE_Handle *h,
                              void *iter_cls);
 
 
+/**
+ * Iterate over the results that are "close" to a particular key in
+ * the datacache.  "close" is defined as numerically larger than @a
+ * key (when interpreted as a circular address space), with small
+ * distance.
+ *
+ * @param h handle to the datacache
+ * @param key area of the keyspace to look into
+ * @param num_results number of results that should be returned to @a iter
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found
+ */
+unsigned int
+GNUNET_DATACACHE_get_closest (struct GNUNET_DATACACHE_Handle *h,
+                              const struct GNUNET_HashCode *key,
+                              unsigned int num_results,
+                              GNUNET_DATACACHE_Iterator iter,
+                              void *iter_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

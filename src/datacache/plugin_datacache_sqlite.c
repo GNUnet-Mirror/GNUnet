@@ -522,6 +522,120 @@ sqlite_plugin_get_random (void *cls,
 
 
 /**
+ * Iterate over the results that are "close" to a particular key in
+ * the datacache.  "close" is defined as numerically larger than @a
+ * key (when interpreted as a circular address space), with small
+ * distance.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param key area of the keyspace to look into
+ * @param num_results number of results that should be returned to @a iter
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found
+ */
+static unsigned int
+sqlite_plugin_get_closest (void *cls,
+                           const struct GNUNET_HashCode *key,
+                           unsigned int num_results,
+                           GNUNET_DATACACHE_Iterator iter,
+                           void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt;
+  struct GNUNET_TIME_Absolute now;
+  struct GNUNET_TIME_Absolute exp;
+  unsigned int size;
+  const char *dat;
+  unsigned int cnt;
+  unsigned int psize;
+  unsigned int type;
+  int64_t ntime;
+  const struct GNUNET_PeerIdentity *path;
+
+  now = GNUNET_TIME_absolute_get ();
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Processing GET_CLOSEST for key `%4s'\n",
+       GNUNET_h2s (key));
+  if (SQLITE_OK !=
+      sq_prepare (plugin->dbh,
+                  "SELECT value,expire,path,type,key FROM ds090 WHERE key>=? AND expire >= ? ORDER BY KEY ASC LIMIT ?",
+                  &stmt))
+  {
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sq_prepare");
+    return 0;
+  }
+  ntime = (int64_t) now.abs_value_us;
+  GNUNET_assert (ntime >= 0);
+  if ((SQLITE_OK !=
+       sqlite3_bind_blob (stmt,
+                          1,
+                          key,
+                          sizeof (struct GNUNET_HashCode),
+                          SQLITE_TRANSIENT)) ||
+      (SQLITE_OK != sqlite3_bind_int64 (stmt, 2, now.abs_value_us)) ||
+      (SQLITE_OK != sqlite3_bind_int (stmt, 3, num_results)) )
+  {
+    LOG_SQLITE (plugin->dbh,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind_xxx");
+    sqlite3_finalize (stmt);
+    return 0;
+  }
+  cnt = 0;
+  while (SQLITE_ROW == sqlite3_step (stmt))
+  {
+    if (sizeof (struct GNUNET_HashCode) !=
+        sqlite3_column_bytes (stmt, 4))
+    {
+      GNUNET_break (0);
+      break;
+    }
+    size = sqlite3_column_bytes (stmt, 0);
+    dat = sqlite3_column_blob (stmt, 0);
+    exp.abs_value_us = sqlite3_column_int64 (stmt, 1);
+    psize = sqlite3_column_bytes (stmt, 2);
+    type = sqlite3_column_int (stmt, 3);
+    key = sqlite3_column_blob (stmt, 4);
+    if (0 != psize % sizeof (struct GNUNET_PeerIdentity))
+    {
+      GNUNET_break (0);
+      psize = 0;
+    }
+    psize /= sizeof (struct GNUNET_PeerIdentity);
+    if (0 != psize)
+      path = sqlite3_column_blob (stmt, 2);
+    else
+      path = NULL;
+    ntime = (int64_t) exp.abs_value_us;
+    if (ntime == INT64_MAX)
+      exp = GNUNET_TIME_UNIT_FOREVER_ABS;
+    cnt++;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Found %u-byte result at %s when processing GET_CLOSE\n",
+         (unsigned int) size,
+         GNUNET_h2s (key));
+    if (GNUNET_OK != iter (iter_cls,
+                           key,
+                           size,
+                           dat,
+                           type,
+                           exp,
+                           psize,
+                           path))
+    {
+      sqlite3_finalize (stmt);
+      break;
+    }
+  }
+  sqlite3_finalize (stmt);
+  return cnt;
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironment`)
@@ -595,6 +709,7 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
   api->put = &sqlite_plugin_put;
   api->del = &sqlite_plugin_del;
   api->get_random = &sqlite_plugin_get_random;
+  api->get_closest = &sqlite_plugin_get_closest;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Sqlite datacache running\n");
   return api;

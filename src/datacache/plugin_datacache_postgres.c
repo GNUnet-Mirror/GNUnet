@@ -163,6 +163,11 @@ init_connection (struct Plugin *plugin)
                                 "ORDER BY key ASC LIMIT 1 OFFSET $1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
+                                "get_closest",
+                                "SELECT discard_time,type,value,path,key FROM gn090dc "
+                                "WHERE key>=$1 ORDER BY key ASC LIMIT $2", 1)) ||
+      (GNUNET_OK !=
+       GNUNET_POSTGRES_prepare (plugin->dbh,
                                 "delrow",
                                 "DELETE FROM gn090dc WHERE oid=$1", 1)) ||
       (GNUNET_OK !=
@@ -259,11 +264,11 @@ postgres_plugin_get (void *cls,
 
   const char *paramValues[] = {
     (const char *) key,
-    (const char *) &btype,
+    (const char *) &btype
   };
   int paramLengths[] = {
     sizeof (struct GNUNET_HashCode),
-    sizeof (btype),
+    sizeof (btype)
   };
   const int paramFormats[] = { 1, 1 };
   struct GNUNET_TIME_Absolute expiration_time;
@@ -433,10 +438,10 @@ postgres_plugin_get_random (void *cls,
   unsigned int type;
   PGresult *res;
   const char *paramValues[] = {
-    (const char *) &off_be,
+    (const char *) &off_be
   };
   int paramLengths[] = {
-    sizeof (off_be),
+    sizeof (off_be)
   };
   const int paramFormats[] = { 1 };
 
@@ -507,6 +512,129 @@ postgres_plugin_get_random (void *cls,
 
 
 /**
+ * Iterate over the results that are "close" to a particular key in
+ * the datacache.  "close" is defined as numerically larger than @a
+ * key (when interpreted as a circular address space), with small
+ * distance.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param key area of the keyspace to look into
+ * @param num_results number of results that should be returned to @a iter
+ * @param iter maybe NULL (to just count)
+ * @param iter_cls closure for @a iter
+ * @return the number of results found
+ */
+static unsigned int
+postgres_plugin_get_closest (void *cls,
+                             const struct GNUNET_HashCode *key,
+                             unsigned int num_results,
+                             GNUNET_DATACACHE_Iterator iter,
+                             void *iter_cls)
+{
+  struct Plugin *plugin = cls;
+  uint32_t nbo_limit = htonl (num_results);
+  const char *paramValues[] = {
+    (const char *) key,
+    (const char *) &nbo_limit,
+  };
+  int paramLengths[] = {
+    sizeof (struct GNUNET_HashCode),
+    sizeof (nbo_limit)
+
+  };
+  const int paramFormats[] = { 1, 1 };
+  struct GNUNET_TIME_Absolute expiration_time;
+  uint32_t size;
+  unsigned int type;
+  unsigned int cnt;
+  unsigned int i;
+  unsigned int path_len;
+  const struct GNUNET_PeerIdentity *path;
+  PGresult *res;
+
+  res =
+      PQexecPrepared (plugin->dbh,
+                      "get_closest",
+                      2,
+                      paramValues,
+                      paramLengths,
+                      paramFormats,
+                      1);
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+                                    res,
+                                    PGRES_TUPLES_OK,
+                                    "PQexecPrepared",
+				    "get_closest"))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Ending iteration (postgres error)\n");
+    return 0;
+  }
+
+  if (0 == (cnt = PQntuples (res)))
+  {
+    /* no result */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Ending iteration (no more results)\n");
+    PQclear (res);
+    return 0;
+  }
+  if (NULL == iter)
+  {
+    PQclear (res);
+    return cnt;
+  }
+  if ( (5 != PQnfields (res)) ||
+       (sizeof (uint64_t) != PQfsize (res, 0)) ||
+       (sizeof (uint32_t) != PQfsize (res, 1)) ||
+       (sizeof (struct GNUNET_HashCode) != PQfsize (res, 4)) )
+  {
+    GNUNET_break (0);
+    PQclear (res);
+    return 0;
+  }
+  for (i = 0; i < cnt; i++)
+  {
+    expiration_time.abs_value_us =
+        GNUNET_ntohll (*(uint64_t *) PQgetvalue (res, i, 0));
+    type = ntohl (*(uint32_t *) PQgetvalue (res, i, 1));
+    size = PQgetlength (res, i, 2);
+    path_len = PQgetlength (res, i, 3);
+    if (0 != (path_len % sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break (0);
+      path_len = 0;
+    }
+    path_len %= sizeof (struct GNUNET_PeerIdentity);
+    path = (const struct GNUNET_PeerIdentity *) PQgetvalue (res, i, 3);
+    key = (const struct GNUNET_HashCode *) PQgetvalue (res, i, 4);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 "Found result of size %u bytes and type %u in database\n",
+	 (unsigned int) size,
+         (unsigned int) type);
+    if (GNUNET_SYSERR ==
+        iter (iter_cls,
+              key,
+              size,
+              PQgetvalue (res, i, 2),
+              (enum GNUNET_BLOCK_Type) type,
+	      expiration_time,
+	      path_len,
+	      path))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+	   "Ending iteration (client error)\n");
+      PQclear (res);
+      return cnt;
+    }
+  }
+  PQclear (res);
+  return cnt;
+}
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironmnet`)
@@ -534,6 +662,7 @@ libgnunet_plugin_datacache_postgres_init (void *cls)
   api->put = &postgres_plugin_put;
   api->del = &postgres_plugin_del;
   api->get_random = &postgres_plugin_get_random;
+  api->get_closest = &postgres_plugin_get_closest;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Postgres datacache running\n");
   return api;
