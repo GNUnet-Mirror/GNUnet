@@ -3956,7 +3956,7 @@ GCT_get_connections_buffer (struct CadetTunnel *t)
 
   if (GNUNET_NO == is_ready (t))
   {
-    if (count_queued_data (t) > 3)
+    if (count_queued_data (t) >= 3)
       return 0;
     else
       return 1;
