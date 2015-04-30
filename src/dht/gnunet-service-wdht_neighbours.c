@@ -1156,17 +1156,19 @@ handle_dht_p2p_trail_destroy (void *cls,
                              const struct GNUNET_MessageHeader *message)
 {
   const struct TrailDestroyMessage *tdm;
+  struct Trail *trail;
 
   tdm = (const struct TrailDestroyMessage *) message;
 
-  /*
-   * Steps :
-   *  1 check if message comme from a trail (that we still remember...)
-   *  1.a.1 if true: send the destroy message to the rest trail
-   *  1.a.2 clean the trail structure
-   *  1.a.3 did i have to remove the trail and ID from the db structure?
-   *  1.b if false: do nothing
-   */
+  /* Retreive the trail from the trail_map */
+  trail = GNUNET_CONTAINER_multihashmap_get(trail_map, tdm->trail_id);
+
+  if(peer == trail->pred_id){
+    delete(trail, GNUNET_NO, GNUNET_YES);
+  }
+  else{
+    delete(trail, GNUNET_YES, GNUNET_NO);
+  }
 
   return GNUNET_OK;
 }
@@ -1227,15 +1229,22 @@ handle_dht_p2p_trail_route (void *cls,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct TrailRouteMessage *trm;
+  const void *payload;
+  size_t msize;
+  unsigned int start_payload;
 
-  trm = (const struct TrailRouteMessage *) message;
+  /* msize = ntohs (message->size); */
+  /* if (msize < sizeof (struct TrailRouteMessage)) */
+  /* { */
+  /*   GNUNET_break_op (0); */
+  /*   return GNUNET_YES; */
+  /* } */
 
-  /*
-   * Steps :
-   *  1 check if message comme from a trail
-   *  1.a.1 if trail not finished with us, continue to forward
-   *  1.a.2 otherwise handle body message embedded in trail
-   */
+  /* trm = (const struct TrailRouteMessage *) message; */
+  /* /\* Retreive payload *\/ */
+  /* start_payload = sizeof (struct PeerGetResultMessage); */
+  /* payload = message[start_payload]; */
+
   return GNUNET_OK;
 }
 
