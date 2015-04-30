@@ -54,6 +54,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
 /**
  * Handle a GET request we've received from another peer.
  *
+ * @param trail_id trail where the reply needs to be send to
  * @param key the query
  * @param type requested data type
  * @param xquery extended query
@@ -63,16 +64,13 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
+GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *trail_id,
+                          const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-                          uint32_t reply_bf_mutator,
-                          uint32_t get_path_length,
-                          struct GNUNET_PeerIdentity *get_path,
-                          struct GNUNET_PeerIdentity *next_hop,
-                          struct GNUNET_PeerIdentity *source_peer);
+                          uint32_t reply_bf_mutator);
 
 
 /**
@@ -91,10 +89,12 @@ GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key);
  * Handle a request for data close to a key that we have received from
  * another peer.
  *
+ * @param trail_id trail where the reply needs to be send to
  * @param key the location at which the peer is looking for data that is close
  */
 void
-GDS_DATACACHE_get_successors (const struct GNUNET_HashCode *key);
+GDS_DATACACHE_get_successors (const struct GNUNET_HashCode *trail_id,
+                              const struct GNUNET_HashCode *key);
 
 
 /**

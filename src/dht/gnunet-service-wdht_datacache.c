@@ -106,28 +106,6 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
 
 
 /**
- * List of peers in the get path.
- */
-struct GetPath
-{
-  /**
-   * Pointer to next item in the list
-   */
-  struct GetPath *next;
-
-  /**
-   * Pointer to previous item in the list
-   */
-  struct GetPath *prev;
-
-  /**
-   *  An element in the get path.
-   */
-  struct GNUNET_PeerIdentity peer;
-};
-
-
-/**
  * Context containing information about a GET request.
  */
 struct GetRequestContext
@@ -148,6 +126,11 @@ struct GetRequestContext
   struct GNUNET_HashCode key;
 
   /**
+   * The trail this request was for
+   */
+  const struct GNUNET_HashCode *trail_id;
+
+  /**
    * Number of bytes in @e xquery.
    */
   size_t xquery_size;
@@ -158,36 +141,10 @@ struct GetRequestContext
   uint32_t reply_bf_mutator;
 
   /**
-   * Total number of peers in @e head.
-   */
-  unsigned int get_path_length;
-
-  /**
    * Return value to give back.
    */
   enum GNUNET_BLOCK_EvaluationResult eval;
 
-  /**
-   * Peeer which has the data for the key.
-   */
-  struct GNUNET_PeerIdentity source_peer;
-
-  /**
-   * Next hop to forward the get result to.
-   */
-  struct GNUNET_PeerIdentity next_hop;
-
-  /**
-   * Head of get path.
-   */
-  struct GetPath *head;
-
-  /**
-   * Tail of get path.
-   */
-  struct GetPath *tail;
-
-  /* get_path */
 };
 
 
@@ -243,23 +200,14 @@ datacache_get_iterator (void *cls,
                               gettext_noop
                               ("# Good RESULTS found in datacache"), 1,
                               GNUNET_NO);
-    struct GNUNET_PeerIdentity *get_path;
-    get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity) *
-                              ctx->get_path_length);
-    struct GetPath *iterator;
-    iterator = ctx->head;
-    int i = 0;
-    while (i < ctx->get_path_length)
-    {
-      get_path[i] = iterator->peer;
-      i++;
-      iterator = iterator->next;
-    }
-    GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
-                                    put_path_length, put_path, ctx->get_path_length,
-                                    get_path, exp, data, size );
-    GNUNET_free_non_null (get_path);
-
+    GDS_NEIGHBOURS_send_get_result (ctx->trail_id,
+                                    key,
+                                    type,
+                                    put_path_length,
+                                    put_path,
+                                    exp,
+                                    data,
+                                    size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GDS_stats,
@@ -302,64 +250,39 @@ datacache_get_iterator (void *cls,
 /**
  * Handle a GET request we've received from another peer.
  *
+ * @param trail_id trail identifying where to send the result to, NULL for us
  * @param key the query
  * @param type requested data type
  * @param xquery extended query
  * @param xquery_size number of bytes in @a xquery
  * @param reply_bf where the reply bf is (to be) stored, possibly updated, can be NULL
  * @param reply_bf_mutator mutation value for @a reply_bf
- * @param get_path_length Total number of peers in @a get_path
- * @param get_path Peers query has traversed during GET
  * @return evaluation result for the local replies
  */
 enum GNUNET_BLOCK_EvaluationResult
-GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *key,
+GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *trail_id,
+                          const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-                          uint32_t reply_bf_mutator,
-                          uint32_t get_path_length,
-                          struct GNUNET_PeerIdentity *get_path,
-                          struct GNUNET_PeerIdentity *next_hop,
-                          struct GNUNET_PeerIdentity *source_peer)
+                          uint32_t reply_bf_mutator)
 {
   struct GetRequestContext ctx;
   unsigned int r;
 
-  if (datacache == NULL)
+  if (NULL == datacache)
     return GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# GET requests given to datacache"),
                             1, GNUNET_NO);
   ctx.eval = GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
+  ctx.trail_id = trail_id;
   ctx.key = *key;
   ctx.xquery = xquery;
   ctx.xquery_size = xquery_size;
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
-  ctx.get_path_length = get_path_length;
-
-  if (NULL != next_hop)
-    ctx.next_hop = *next_hop;
-  unsigned int i = 0;
-
-  ctx.head = NULL;
-  ctx.tail = NULL;
-  if (NULL != get_path)
-  {
-    while (i < get_path_length)
-    {
-      struct GetPath *element;
-      element = GNUNET_new (struct GetPath);
-      element->next = NULL;
-      element->prev = NULL;
-      element->peer = get_path[i];
-      GNUNET_CONTAINER_DLL_insert_tail (ctx.head, ctx.tail, element);
-      i++;
-    }
-  }
-
   r = GNUNET_DATACACHE_get (datacache,
                             key,
                             type,
@@ -428,21 +351,59 @@ GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key)
   return GNUNET_OK;
 }
 
+/**
+ * Iterator for local get request results,
+ *
+ * @param cls closure with the `struct GNUNET_HashCode *` with the trail ID
+ * @param key the key this data is stored under
+ * @param size the size of the data identified by key
+ * @param data the actual data
+ * @param type the type of the data
+ * @param exp when does this value expire?
+ * @param put_path_length number of peers in @a put_path
+ * @param put_path path the reply took on put
+ * @return #GNUNET_OK to continue iteration, anything else
+ * to stop iteration.
+ */
+static int
+datacache_get_successors_iterator (void *cls,
+                                   const struct GNUNET_HashCode *key,
+                                   size_t size,
+                                   const char *data,
+                                   enum GNUNET_BLOCK_Type type,
+                                   struct GNUNET_TIME_Absolute exp,
+                                   unsigned int put_path_length,
+                                   const struct GNUNET_PeerIdentity *put_path)
+{
+  const struct GNUNET_HashCode *trail_id = cls;
+
+  GDS_NEIGHBOURS_send_get_result (trail_id,
+                                  key,
+                                  type,
+                                  put_path_length, put_path,
+                                  exp,
+                                  data,
+                                  size);
+  return GNUNET_OK;
+}
+
 
 /**
  * Handle a request for data close to a key that we have received from
  * another peer.
  *
+ * @param trail_id trail where the reply needs to be send to
  * @param key the location at which the peer is looking for data that is close
  */
 void
-GDS_DATACACHE_get_successors (const struct GNUNET_HashCode *key)
+GDS_DATACACHE_get_successors (const struct GNUNET_HashCode *trail_id,
+                              const struct GNUNET_HashCode *key)
 {
-  GNUNET_DATACACHE_get_closest (datacache,
-                                key,
-                                NUM_CLOSEST,
-                                NULL /* FIXME */,
-                                NULL);
+  (void) GNUNET_DATACACHE_get_closest (datacache,
+                                       key,
+                                       NUM_CLOSEST,
+                                       &datacache_get_successors_iterator,
+                                       (void *) trail_id);
 }
 
 

@@ -625,14 +625,14 @@ delete_trail (struct Trail *trail,
   struct TrailDestroyMessage *tdm;
   struct Finger *finger;
 
-  friend = current->pred;
+  friend = trail->pred;
   if (NULL != friend)
   {
     if (GNUNET_YES == inform_pred)
     {
       env = GNUNET_MQ_msg (tdm,
                            GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
-      tdm->trail_id = current->pred_id;
+      tdm->trail_id = trail->pred_id;
       GNUNET_MQ_send (friend->mq,
                       env);
     }
@@ -641,14 +641,14 @@ delete_trail (struct Trail *trail,
                                   friend->pred_tail,
                                   trail);
   }
-  friend = current->succ;
+  friend = trail->succ;
   if (NULL != friend)
   {
     if (GNUNET_YES == inform_succ)
     {
       env = GNUNET_MQ_msg (tdm,
                            GNUNET_MESSAGE_TYPE_WDHT_TRAIL_DESTROY);
-      tdm->trail_id = current->pred_id;
+      tdm->trail_id = trail->pred_id;
       GNUNET_MQ_send (friend->mq,
                       env);
     }
@@ -672,33 +672,29 @@ delete_trail (struct Trail *trail,
 /**
  * Send the get result to requesting client.
  *
+ * @param trail_id trail identifying where to send the result to, NULL for us
  * @param key Key of the requested data.
  * @param type Block type
- * @param target_peer Next peer to forward the message to.
- * @param source_peer Peer which has the data for the key.
  * @param put_path_length Number of peers in @a put_path
  * @param put_path Path taken to put the data at its stored location.
- * @param get_path_length Number of peers in @a get_path
- * @param get_path Path taken to reach to the location of the key.
  * @param expiration When will this result expire?
  * @param data Payload to store
  * @param data_size Size of the @a data
  */
 void
-GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
+GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
+                                const struct GNUNET_HashCode *key,
                                 enum GNUNET_BLOCK_Type type,
-                                const struct GNUNET_PeerIdentity *target_peer,
-                                const struct GNUNET_PeerIdentity *source_peer,
                                 unsigned int put_path_length,
                                 const struct GNUNET_PeerIdentity *put_path,
-                                unsigned int get_path_length,
-                                const struct GNUNET_PeerIdentity *get_path,
                                 struct GNUNET_TIME_Absolute expiration,
-                                const void *data, size_t data_size)
+                                const void *data,
+                                size_t data_size)
 {
   // TRICKY: need to introduce some context to remember trail from
   // the lookup...
 }
+
 
 /**
  * Method called whenever a peer disconnects.
