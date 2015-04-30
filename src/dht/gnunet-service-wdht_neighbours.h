@@ -72,13 +72,13 @@ GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
  * Send the get result to requesting client.
  *
  * @param trail_id trail identifying where to send the result to, NULL for us
- * @param key Key of the requested data.
- * @param type Block type
- * @param put_path_length Number of peers in @a put_path
- * @param put_path Path taken to put the data at its stored location.
- * @param expiration When will this result expire?
- * @param data Payload to store
- * @param data_size Size of the @a data
+ * @param key key of the requested data.
+ * @param type block type
+ * @param put_path_length number of peers in @a put_path
+ * @param put_path path taken to put the data at its stored location.
+ * @param expiration when will this result expire?
+ * @param data payload to store
+ * @param data_size size of the @a data
  */
 void
 GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,

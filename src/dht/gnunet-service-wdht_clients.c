@@ -165,7 +165,7 @@ struct ClientQueryRecord
   size_t xquery_size;
 
   /**
-   * Number of entries in 'seen_replies'.
+   * Number of entries in @e seen_replies.
    */
   unsigned int seen_replies_count;
 
@@ -281,7 +281,7 @@ process_pending_messages (struct ClientList *client);
 
 
 /**
- * Callback called as a result of issuing a GNUNET_SERVER_notify_transmit_ready
+ * Callback called as a result of issuing a #GNUNET_SERVER_notify_transmit_ready()
  * request.  A ClientList is passed as closure, take the head of the list
  * and copy it into buf, which has the result of sending the message to the
  * client.
@@ -375,7 +375,7 @@ add_pending_message (struct ClientList *client,
 
 
 /**
- * Closure for 'forward_reply'
+ * Closure for #forward_reply()
  */
 struct ForwardReplyContext
 {
@@ -401,7 +401,7 @@ struct ForwardReplyContext
   size_t data_size;
 
   /**
-   * Do we need to copy 'pm' because it was already used?
+   * Do we need to copy @e pm because it was already used?
    */
   int do_copy;
 
@@ -470,14 +470,16 @@ remove_client_records (void *cls, const struct GNUNET_HashCode * key, void *valu
  * each of the matching clients.  With some tricky recycling
  * of the buffer.
  *
- * @param cls the 'struct ForwardReplyContext'
+ * @param cls the `struct ForwardReplyContext`
  * @param key current key
  * @param value value in the hash map, a ClientQueryRecord
  * @return #GNUNET_YES (we should continue to iterate),
  *         if the result is mal-formed, #GNUNET_NO
  */
 static int
-forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
+forward_reply (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
 {
   struct ForwardReplyContext *frc = cls;
   struct ClientQueryRecord *record = value;
@@ -682,6 +684,7 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   }
 }
 
+
 /**
  * Check if some client is monitoring GET messages and notify
  * them in that case.
@@ -701,7 +704,7 @@ GDS_CLIENTS_process_get (uint32_t options,
                          uint32_t desired_replication_level,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
-                         const struct GNUNET_HashCode * key)
+                         const struct GNUNET_HashCode *key)
 {
   struct ClientMonitorRecord *m;
   struct ClientList **cl;
@@ -758,16 +761,16 @@ GDS_CLIENTS_process_get (uint32_t options,
  * Check if some client is monitoring PUT messages and notify
  * them in that case.
  *
- * @param options Options, for instance RecordRoute, DemultiplexEverywhere.
- * @param type The type of data in the request.
- * @param hop_count Hop count so far.
- * @param path_length number of entries in path (or 0 if not recorded).
+ * @param options options, for instance RecordRoute, DemultiplexEverywhere.
+ * @param type type of data in the request.
+ * @param hop_count hop count so far.
+ * @param path_length number of entries in @a path (or 0 if not recorded).
  * @param path peers on the PUT path (or NULL if not recorded).
- * @param desired_replication_level Desired replication level.
- * @param exp Expiration time of the data.
- * @param key Key under which data is to be stored.
- * @param data Pointer to the data carried.
- * @param size Number of bytes in data.
+ * @param desired_replication_level desired replication level.
+ * @param exp expiration time of the data.
+ * @param key key under which @a data is to be stored.
+ * @param data pointer to the data carried.
+ * @param size number of bytes in @a data.
  */
 void
 GDS_CLIENTS_process_put (uint32_t options,
@@ -913,7 +916,8 @@ transmit_next_request_task (void *cls,
  * @param message the actual message received
  */
 static void
-handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_put (void *cls,
+                      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ClientPutMessage *put_msg;
@@ -974,7 +978,8 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message received
  */
 static void
-handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_get (void *cls,
+                      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ClientGetMessage *get;
@@ -1041,7 +1046,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Closure for 'find_by_unique_id'.
+ * Closure for #find_by_unique_id().
  */
 struct FindByUniqueIdContext
 {
@@ -1050,6 +1055,9 @@ struct FindByUniqueIdContext
    */
   struct ClientQueryRecord *cqr;
 
+  /**
+   * Which ID are we looking for?
+   */
   uint64_t unique_id;
 };
 
@@ -1061,8 +1069,8 @@ struct FindByUniqueIdContext
  *
  * @param cls the search context
  * @param key query for the lookup (not used)
- * @param value the 'struct ClientQueryRecord'
- * @return GNUNET_YES to continue iteration (result not yet found)
+ * @param value the `struct ClientQueryRecord`
+ * @return #GNUNET_YES to continue iteration (result not yet found)
  */
 static int
 find_by_unique_id (void *cls,
@@ -1087,7 +1095,8 @@ find_by_unique_id (void *cls,
  * @param message the actual message received
  */
 static void
-handle_dht_local_get_result_seen (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_get_result_seen (void *cls,
+                                  struct GNUNET_SERVER_Client *client,
 				  const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ClientGetResultSeenMessage *seen;
@@ -1138,7 +1147,7 @@ handle_dht_local_get_result_seen (void *cls, struct GNUNET_SERVER_Client *client
 
 
 /**
- * Closure for 'remove_by_unique_id'.
+ * Closure for #remove_by_unique_id().
  */
 struct RemoveByUniqueIdContext
 {
@@ -1164,7 +1173,9 @@ struct RemoveByUniqueIdContext
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-remove_by_unique_id (void *cls, const struct GNUNET_HashCode * key, void *value)
+remove_by_unique_id (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     void *value)
 {
   const struct RemoveByUniqueIdContext *ctx = cls;
   struct ClientQueryRecord *record = value;
@@ -1188,7 +1199,8 @@ remove_by_unique_id (void *cls, const struct GNUNET_HashCode * key, void *value)
  *
  */
 static void
-handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_get_stop (void *cls,
+                           struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_DHT_ClientGetStopMessage *dht_stop_msg =
@@ -1219,7 +1231,8 @@ handle_dht_local_get_stop (void *cls, struct GNUNET_SERVER_Client *client,
  *
  */
 static void
-handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_monitor (void *cls,
+                          struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   struct ClientMonitorRecord *r;
@@ -1251,10 +1264,10 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
  * @param cls closure for the service
  * @param client the client we received this message from
  * @param message the actual message received
- *
  */
 static void
-handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
+handle_dht_local_monitor_stop (void *cls,
+                               struct GNUNET_SERVER_Client *client,
                                const struct GNUNET_MessageHeader *message)
 {
   struct ClientMonitorRecord *r;
@@ -1341,7 +1354,6 @@ handle_client_disconnect (void *cls,
                                          pos);
   GNUNET_free (pos);
 }
-
 
 
 /**

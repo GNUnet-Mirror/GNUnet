@@ -152,12 +152,24 @@ struct FriendInfo
    */
   struct GNUNET_PeerIdentity id;
 
+  /**
+   *
+   */
   struct Trail *pred_head;
 
+  /**
+   *
+   */
   struct Trail *pred_tail;
 
+  /**
+   *
+   */
   struct Trail *succ_head;
 
+  /**
+   *
+   */
   struct Trail *succ_tail;
 
   /**
@@ -168,15 +180,30 @@ struct FriendInfo
 };
 
 
+/**
+ *
+ */
 struct FingerTable;
 
 
+/**
+ *
+ */
 struct Finger
 {
+  /**
+   *
+   */
   struct Trail *trail;
 
+  /**
+   *
+   */
   struct FingerTable *ft;
 
+  /**
+   *
+   */
   struct GNUNET_HashCode destination;
 
   /**
@@ -349,9 +376,14 @@ struct TrailRouteMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Zero, for alignment.
+   * #GNUNET_YES if the path should be recorded, #GNUNET_NO if not; in NBO.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint16_t record_path GNUNET_PACKED;
+
+  /**
+   * Length of the recorded trail, 0 if @e record_path is #GNUNET_NO; in NBO.
+   */
+  uint16_t path_length GNUNET_PACKED;
 
   /**
    * Unique (random) identifier this peer will use to
@@ -359,7 +391,13 @@ struct TrailRouteMessage
    */
   struct GNUNET_HashCode trail_id;
 
-  /* followed by payload to send along the trail */
+  /**
+   * Path the message has taken so far (excluding sender).
+   */
+  /* struct GNUNET_PeerIdentity path[path_length]; */
+
+  /* followed by payload (another `struct GNUNET_MessageHeader`) to
+     send along the trail */
 };
 
 
@@ -576,14 +614,24 @@ GDS_NEIGHBOURS_handle_put (const struct GNUNET_HashCode *key,
                            enum GNUNET_DHT_RouteOption options,
                            uint32_t desired_replication_level,
                            struct GNUNET_TIME_Absolute expiration_time,
-                           const void *data, size_t data_size)
+                           const void *data,
+                           size_t data_size)
 {
   GDS_DATACACHE_handle_put (expiration_time,
                             key,
                             0, NULL,
+                            0, NULL,
                             block_type,
                             data_size,
                             data);
+  GDS_CLIENTS_process_put (options,
+                           block_type,
+                           0, 0,
+                           0, NULL,
+                           expiration_time,
+                           key,
+                           data,
+                           data_size);
 }
 
 
@@ -1078,6 +1126,47 @@ handle_dht_p2p_trail_destroy (void *cls,
 
 
 /**
+ * Handler for a message we received along some trail.
+ *
+ * @param cls closure
+ * @param trail_id trail identifier
+ * @param message the message we got
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+typedef int
+(*TrailHandlerCallback)(void *cls,
+                        const struct GNUNET_HashCode *trail_id,
+                        const struct GNUNET_MessageHandler *message);
+
+
+/**
+ * Definition of a handler for a message received along some trail.
+ */
+struct TrailHandler
+{
+  /**
+   * NULL for end-of-list.
+   */
+  TrailHandlerCallback callback;
+
+  /**
+   * Closure for @e callback.
+   */
+  void *cls;
+
+  /**
+   * Message type this handler addresses.
+   */
+  uint16_t message_type;
+
+  /**
+   * Use 0 for variable-size.
+   */
+  uint16_t message_size;
+};
+
+
+/**
  * Handle a `struct TrailRouteMessage`.
  *
  * @param cls closure (NULL)
@@ -1087,8 +1176,8 @@ handle_dht_p2p_trail_destroy (void *cls,
  */
 static int
 handle_dht_p2p_trail_route (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_MessageHeader *message)
 {
   const struct TrailRouteMessage *trm;
 
@@ -1100,7 +1189,6 @@ handle_dht_p2p_trail_route (void *cls,
    *  1.a.1 if trail not finished with us, continue to forward
    *  1.a.2 otherwise handle body message embedded in trail
    */
-
   return GNUNET_OK;
 }
 
@@ -1110,13 +1198,13 @@ handle_dht_p2p_trail_route (void *cls,
  * message.
  *
  * @param cls closure (NULL)
- * @param peer sender identity
+ * @param trail_id path to the originator
  * @param message the finger setup message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_successor_find (void *cls,
-                               const struct GNUNET_PeerIdentity *peer,
+                               const struct GNUNET_HashCode *trail_id,
                                const struct GNUNET_MessageHeader *message)
 {
   const struct FindSuccessorMessage *fsm;
@@ -1125,7 +1213,10 @@ handle_dht_p2p_successor_find (void *cls,
   // locate trail (for sending reply), if not exists, fail nicely.
   // otherwise, go to datacache and return 'top k' elements closest to 'key'
   // as "PUT" messages via the trail (need to extend DB API!)
-
+#if 0
+  GDS_DATACACHE_get_successors (trail_id,
+                                key);
+#endif
   return GNUNET_OK;
 }
 
@@ -1134,13 +1225,13 @@ handle_dht_p2p_successor_find (void *cls,
  * Handle a `struct PeerGetMessage`.
  *
  * @param cls closure (NULL)
- * @param peer sender identity
+ * @param trail_id path to the originator
  * @param message the peer get message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_peer_get (void *cls,
-                         const struct GNUNET_PeerIdentity *peer,
+                         const struct GNUNET_HashCode *trail_id,
                          const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetMessage *pgm;
@@ -1165,20 +1256,34 @@ handle_dht_p2p_peer_get (void *cls,
  * Handle a `struct PeerGetResultMessage`.
  *
  * @param cls closure (NULL)
- * @param peer sender identity
+ * @param trail_id path to the originator
  * @param message the peer get result message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_peer_get_result (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+                                const struct GNUNET_HashCode *trail_id,
+                                const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetResultMessage *pgrm;
 
   pgrm = (const struct PeerGetResultMessage *) message;
   // pretty much: parse, & pass to client (there is some call for that...)
 
+#if 0
+  GDS_CLIENTS_process_get (options,
+                           type,
+                           0, 0,
+                           path_length, path,
+                           key);
+  (void) GDS_DATACACHE_handle_get (trail_id,
+                                   key,
+                                   type,
+                                   xquery,
+                                   xquery_size,
+                                   &reply_bf,
+                                   reply_bf_mutator);
+#endif
   return GNUNET_OK;
 }
 
@@ -1187,14 +1292,14 @@ handle_dht_p2p_peer_get_result (void *cls,
  * Handle a `struct PeerPutMessage`.
  *
  * @param cls closure (NULL)
- * @param peer sender identity
+ * @param trail_id path to the originator
  * @param message the peer put message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_peer_put (void *cls,
-                             const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message)
+                         const struct GNUNET_HashCode *trail_id,
+                         const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetResultMessage *pgrm;
 
@@ -1206,6 +1311,22 @@ handle_dht_p2p_peer_put (void *cls,
    * 2 use the API to add the value in the "database". Check on the xdht file, how to do it.
    * 3 Did i a have to return a notification or did i have to return GNUNET_[OK|SYSERR]?
    */
+#if 0
+  GDS_DATACACHE_handle_put (expiration_time,
+                            key,
+                            path_length, path,
+                            block_type,
+                            data_size,
+                            data);
+  GDS_CLIENTS_process_put (options,
+                           block_type,
+                           0, 0,
+                           path_length, path,
+                           expiration_time,
+                           key,
+                           data,
+                           data_size);
+#endif
   return GNUNET_OK;
 }
 
@@ -1229,18 +1350,6 @@ GDS_NEIGHBOURS_init (void)
       sizeof (struct TrailDestroyMessage) },
     { &handle_dht_p2p_trail_route,
       GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE,
-      0},
-    { &handle_dht_p2p_successor_find,
-      GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND,
-      sizeof (struct FindSuccessorMessage) },
-    { &handle_dht_p2p_peer_get,
-      GNUNET_MESSAGE_TYPE_WDHT_GET,
-      sizeof (struct PeerGetMessage) },
-    { &handle_dht_p2p_peer_get_result,
-      GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT,
-      0},
-    { &handle_dht_p2p_peer_put,
-      GNUNET_MESSAGE_TYPE_WDHT_PUT,
       0},
     {NULL, 0, 0}
   };

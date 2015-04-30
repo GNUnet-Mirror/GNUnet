@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2011, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -38,6 +38,8 @@
  * @param key the query this reply is for
  * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
+ * @param get_path_length number of peers in @a get_path
+ * @param get_path path the reply took on get
  * @param type type of the reply
  * @param data_size number of bytes in @a data
  * @param data application payload data
@@ -47,7 +49,10 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           const struct GNUNET_HashCode *key,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
-                          enum GNUNET_BLOCK_Type type, size_t data_size,
+                          unsigned int get_path_length,
+                          const struct GNUNET_PeerIdentity *get_path,
+                          enum GNUNET_BLOCK_Type type,
+                          size_t data_size,
                           const void *data);
 
 

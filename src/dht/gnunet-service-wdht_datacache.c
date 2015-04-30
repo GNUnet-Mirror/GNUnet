@@ -56,6 +56,8 @@ static struct GNUNET_DATACACHE_Handle *datacache;
  * @param key the query this reply is for
  * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
+ * @param get_path_length number of peers in @a get_path
+ * @param get_path path the reply took on get
  * @param type type of the reply
  * @param data_size number of bytes in @a data
  * @param data application payload data
@@ -65,11 +67,14 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           const struct GNUNET_HashCode *key,
                           unsigned int put_path_length,
                           const struct GNUNET_PeerIdentity *put_path,
+                          unsigned int get_path_length,
+                          const struct GNUNET_PeerIdentity *get_path,
                           enum GNUNET_BLOCK_Type type,
                           size_t data_size,
                           const void *data)
 {
   int r;
+  struct GNUNET_PeerIdentity path[get_path_length + put_path_length];
 
   if (NULL == datacache)
   {
@@ -82,7 +87,12 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
     GNUNET_break (0);
     return;
   }
-
+  memcpy (path,
+          put_path,
+          put_path_length * sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&path[put_path_length],
+          get_path,
+          get_path_length * sizeof (struct GNUNET_PeerIdentity));
   /* Put size is actual data size plus struct overhead plus path length (if any) */
   r = GNUNET_DATACACHE_put (datacache,
                             key,
@@ -90,8 +100,8 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                             data,
                             type,
                             expiration,
-                            put_path_length,
-                            put_path);
+                            get_path_length + put_path_length,
+                            path);
   if (GNUNET_OK == r)
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop ("# ITEMS stored in datacache"), 1,
@@ -101,7 +111,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
        GNUNET_h2s (key),
        data_size,
        r,
-       put_path_length);
+       put_path_length + get_path_length);
 }
 
 
