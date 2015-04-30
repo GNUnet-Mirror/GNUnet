@@ -1159,17 +1159,15 @@ handle_dht_p2p_trail_destroy (void *cls,
   struct Trail *trail;
 
   tdm = (const struct TrailDestroyMessage *) message;
-
-  /* Retreive the trail from the trail_map */
-  trail = GNUNET_CONTAINER_multihashmap_get(trail_map, tdm->trail_id);
-
-  if(peer == trail->pred_id){
-    delete(trail, GNUNET_NO, GNUNET_YES);
-  }
-  else{
-    delete(trail, GNUNET_YES, GNUNET_NO);
-  }
-
+  trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
+                                             &tdm->trail_id);
+  delete_trail (trail,
+                0 != memcmp (peer,
+                             &trail->pred_id,
+                             sizeof (struct GNUNET_PeerIdentity)),
+                0 != memcmp (peer,
+                             &trail->succ_id,
+                             sizeof (struct GNUNET_PeerIdentity)));
   return GNUNET_OK;
 }
 
