@@ -717,8 +717,6 @@ delete_trail (struct Trail *trail,
 }
 
 
-
-
 /**
  * Blah.
  */
@@ -805,8 +803,19 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
                                 const void *data,
                                 size_t data_size)
 {
-  /* basically: call 'forward_message_on_trail';
-     NOTE: ignore 'next_target/have_path' for now... */
+  struct GNUNET_MessageHeader *payload;
+
+  payload = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader) + data_size);
+  payload->size = data_size;
+  payload->type = GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT;
+
+  forward_message_on_trail (NULL /* FIXME: put something right */,
+                            trail_id,
+                            0/* FIXME: put something right */,
+                            &my_identity,
+                            put_path,
+                            put_path_length,
+                            payload);
 }
 
 
@@ -866,9 +875,10 @@ handle_core_disconnect (void *cls,
 static struct FriendInfo *
 pick_random_friend ()
 {
-  /* FIXME: implement (easy..., use:
-     GNUNET_CONTAINER_multipeermap_get_random ()... */
-  return NULL; // FIXME...
+  /* FIXME: in my opinion, if have to pick a random friend from the friend_map
+     but i can't find a function to get a random friend from a mutlipeer_map */
+  /* return GNUNET_CONTAINER_multipeermap_get_random (friends_peermap); */
+  return NULL;
 }
 
 
