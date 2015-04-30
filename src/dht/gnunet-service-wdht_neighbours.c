@@ -807,6 +807,37 @@ pick_random_friend ()
 
 
 /**
+ * One of our trails might have timed out, check and
+ * possibly initiate cleanup.
+ *
+ * @param cls NULL
+ * @param tc unused
+ */
+static void
+trail_timeout_callback (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Trail *trail;
+  struct GNUNET_TIME_Relative left;
+
+  trail_timeout_task = NULL;
+  while (NULL != (trail = GNUNET_CONTAINER_heap_peek (trail_heap)))
+  {
+    left = GNUNET_TIME_absolute_get_remaining (trail->expiration_time);
+    if (0 != left.rel_value_us)
+      break;
+    delete_trail (trail,
+                  GNUNET_YES,
+                  GNUNET_YES);
+  }
+  if (NULL != trail)
+    trail_timeout_task = GNUNET_SCHEDULER_add_delayed (left,
+                                                       &trail_timeout_callback,
+                                                       NULL);
+}
+
+
+/**
  * Initiate a random walk.
  *
  * @param cls NULL
@@ -846,6 +877,14 @@ do_random_walk (void *cls,
                                 friend->succ_head,
                                 friend->succ_tail,
                                 trail);
+  trail->expiration_time = GNUNET_TIME_relative_to_absolute (TRAIL_TIMEOUT);
+  trail->hn = GNUNET_CONTAINER_heap_insert (trail_heap,
+                                            trail,
+                                            trail->expiration_time.abs_value_us);
+  if (NULL == trail_timeout_task)
+    trail_timeout_task = GNUNET_SCHEDULER_add_delayed (TRAIL_TIMEOUT,
+                                                       &trail_timeout_callback,
+                                                       NULL);
   env = GNUNET_MQ_msg (rwm,
                        GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK);
   rwm->hops_taken = htonl (0);
@@ -967,7 +1006,6 @@ handle_dht_p2p_random_walk (void *cls,
   t = GNUNET_new (struct Trail);
   t->pred_id = m->trail_id;
   t->pred = pred;
-  t->expiration_time = GNUNET_TIME_relative_to_absolute (TRAIL_TIMEOUT);
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multihashmap_put (trail_map,
                                          &t->pred_id,
@@ -982,6 +1020,15 @@ handle_dht_p2p_random_walk (void *cls,
                                 pred->pred_head,
                                 pred->pred_tail,
                                 t);
+  t->expiration_time = GNUNET_TIME_relative_to_absolute (TRAIL_TIMEOUT);
+  t->hn = GNUNET_CONTAINER_heap_insert (trail_heap,
+                                        t,
+                                        t->expiration_time.abs_value_us);
+  if (NULL == trail_timeout_task)
+    trail_timeout_task = GNUNET_SCHEDULER_add_delayed (TRAIL_TIMEOUT,
+                                                       &trail_timeout_callback,
+                                                       NULL);
+
   if (ntohl (m->hops_taken) > GDS_NSE_get ())
   {
     /* We are the last hop, generate response */
@@ -1390,6 +1437,11 @@ GDS_NEIGHBOURS_done (void)
   trail_map = NULL;
   GNUNET_CONTAINER_heap_destroy (trail_heap);
   trail_heap = NULL;
+  if (NULL != trail_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (trail_timeout_task);
+    trail_timeout_task = NULL;
+  }
 }
 
 
