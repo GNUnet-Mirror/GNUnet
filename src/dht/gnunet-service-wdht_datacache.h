@@ -88,6 +88,16 @@ GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key);
 
 
 /**
+ * Handle a request for data close to a key that we have received from
+ * another peer.
+ *
+ * @param key the location at which the peer is looking for data that is close
+ */
+void
+GDS_DATACACHE_get_successors (const struct GNUNET_HashCode *key);
+
+
+/**
  * Initialize datacache subsystem.
  */
 void
