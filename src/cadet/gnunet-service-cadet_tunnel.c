@@ -657,7 +657,6 @@ is_ready (struct CadetTunnel *t)
 {
   int ready;
 
-  GCT_debug (t, GNUNET_ERROR_TYPE_DEBUG);
   ready = CADET_TUNNEL_READY == t->cstate
           && (CADET_TUNNEL_KEY_OK == t->estate
               || CADET_TUNNEL_KEY_REKEY == t->estate);
