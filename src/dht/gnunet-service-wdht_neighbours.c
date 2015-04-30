@@ -717,6 +717,70 @@ delete_trail (struct Trail *trail,
 }
 
 
+
+
+/**
+ * Blah.
+ */
+static void
+forward_message_on_trail (struct FriendInfo *next_target,
+                          const struct GNUNET_HashCode *trail_id,
+                          int have_path,
+                          const struct GNUNET_PeerIdentity *predecessor,
+                          const struct GNUNET_PeerIdentity *path,
+                          uint16_t path_length,
+                          const struct GNUNET_MessageHeader *payload)
+{
+  struct GNUNET_MQ_Envelope *env;
+  struct TrailRouteMessage *trm;
+  struct GNUNET_PeerIdentity *new_path;
+  unsigned int plen;
+  uint16_t payload_len;
+
+  payload_len = ntohs (payload->size);
+  if (have_path)
+  {
+    plen = path_length + 1;
+    if (plen >= (GNUNET_SERVER_MAX_MESSAGE_SIZE
+                 - payload_len
+                 - sizeof (struct TrailRouteMessage))
+        / sizeof (struct GNUNET_PeerIdentity))
+    {
+      /* Should really not have paths this long... */
+      GNUNET_break_op (0);
+      plen = 0;
+      have_path = 0;
+    }
+  }
+  else
+  {
+    GNUNET_break_op (0 == path_length);
+    path_length = 0;
+    plen = 0;
+  }
+  env = GNUNET_MQ_msg_extra (trm,
+                             payload_len +
+                             plen * sizeof (struct GNUNET_PeerIdentity),
+                             GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE);
+  trm->record_path = htons (have_path);
+  trm->path_length = htons (plen);
+  trm->trail_id = *trail_id;
+  new_path = (struct GNUNET_PeerIdentity *) &trm[1];
+  if (have_path)
+  {
+    memcpy (new_path,
+            path,
+            path_length * sizeof (struct GNUNET_PeerIdentity));
+    new_path[path_length] = *predecessor;
+  }
+  memcpy (&new_path[plen],
+          payload,
+          payload_len);
+  GNUNET_MQ_send (next_target->mq,
+                  env);
+}
+
+
 /**
  * Send the get result to requesting client.
  *
@@ -741,8 +805,8 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
                                 const void *data,
                                 size_t data_size)
 {
-  // TRICKY: need to introduce some context to remember trail from
-  // the lookup...
+  /* basically: call 'forward_message_on_trail';
+     NOTE: ignore 'next_target/have_path' for now... */
 }
 
 
@@ -802,8 +866,8 @@ handle_core_disconnect (void *cls,
 static struct FriendInfo *
 pick_random_friend ()
 {
-  // TODO: need to extend peermap API to return random entry...
-  // (Note: same extension exists for hashmap API).
+  /* FIXME: implement (easy..., use:
+     GNUNET_CONTAINER_multipeermap_get_random ()... */
   return NULL; // FIXME...
 }
 
@@ -904,7 +968,7 @@ do_random_walk (void *cls,
   if (ft->finger_array_size < 42)
   {
     // FIXME: must have finger array of the right size here,
-    // FIXME: growing / shrinking are tricy -- with pointers
+    // FIXME: growing / shrinking are tricky -- with pointers
     // from Trails!!!
   }
 
@@ -1355,68 +1419,6 @@ struct TrailHandler
    */
   uint16_t message_size;
 };
-
-
-/**
- * Blah.
- */
-static void
-forward_message_on_trail (struct FriendInfo *next_target,
-                          const struct GNUNET_HashCode *trail_id,
-                          int have_path,
-                          const struct GNUNET_PeerIdentity *predecessor,
-                          const struct GNUNET_PeerIdentity *path,
-                          uint16_t path_length,
-                          const struct GNUNET_MessageHeader *payload)
-{
-  struct GNUNET_MQ_Envelope *env;
-  struct TrailRouteMessage *trm;
-  struct GNUNET_PeerIdentity *new_path;
-  unsigned int plen;
-  uint16_t payload_len;
-
-  payload_len = ntohs (payload->size);
-  if (have_path)
-  {
-    plen = path_length + 1;
-    if (plen >= (GNUNET_SERVER_MAX_MESSAGE_SIZE
-                 - payload_len
-                 - sizeof (struct TrailRouteMessage))
-        / sizeof (struct GNUNET_PeerIdentity))
-    {
-      /* Should really not have paths this long... */
-      GNUNET_break_op (0);
-      plen = 0;
-      have_path = 0;
-    }
-  }
-  else
-  {
-    GNUNET_break_op (0 == path_length);
-    path_length = 0;
-    plen = 0;
-  }
-  env = GNUNET_MQ_msg_extra (trm,
-                             payload_len +
-                             plen * sizeof (struct GNUNET_PeerIdentity),
-                             GNUNET_MESSAGE_TYPE_WDHT_TRAIL_ROUTE);
-  trm->record_path = htons (have_path);
-  trm->path_length = htons (plen);
-  trm->trail_id = *trail_id;
-  new_path = (struct GNUNET_PeerIdentity *) &trm[1];
-  if (have_path)
-  {
-    memcpy (new_path,
-            path,
-            path_length * sizeof (struct GNUNET_PeerIdentity));
-    new_path[path_length] = *predecessor;
-  }
-  memcpy (&new_path[plen],
-          payload,
-          payload_len);
-  GNUNET_MQ_send (next_target->mq,
-                  env);
-}
 
 
 /**
