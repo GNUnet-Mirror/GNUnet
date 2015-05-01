@@ -642,6 +642,7 @@ GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
 {
   // find closest finger(s) on all layers
   // use TrailRoute with PeerGetMessage embedded to contact peer
+  // NOTE: actually more complicated, see paper!
 }
 
 
@@ -708,7 +709,15 @@ delete_trail (struct Trail *trail,
 
 
 /**
- * Blah.
+ * Forward the given payload message along the trail.
+ *
+ * @param next_target which direction along the trail should we forward
+ * @param trail_id which trail should we forward along
+ * @param have_path do we track the forwarding path?
+ * @param predecessor which peer do we tack on to the path?
+ * @param path path the message has taken so far along the trail
+ * @param path_length number of entries in @a path
+ * @param payload payload of the message
  */
 static void
 forward_message_on_trail (struct FriendInfo *next_target,
