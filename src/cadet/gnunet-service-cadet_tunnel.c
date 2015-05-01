@@ -3088,23 +3088,30 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   unsigned int off;
 
   type = ntohs (msg->type);
-  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
+  switch (type)
   {
-    const struct GNUNET_CADET_Encrypted *emsg;
+  case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+    {
+      const struct GNUNET_CADET_Encrypted *emsg;
 
-    emsg = (struct GNUNET_CADET_Encrypted *) msg;
-    payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
-    decrypted_size = t_decrypt_and_validate (t, cbuf, &emsg[1], payload_size,
-                                             emsg->iv, &emsg->hmac);
+      emsg = (struct GNUNET_CADET_Encrypted *) msg;
+      payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
+      decrypted_size = t_decrypt_and_validate (t, cbuf, &emsg[1], payload_size,
+                                               emsg->iv, &emsg->hmac);
+    }
+    break;
+  case GNUNET_MESSAGE_TYPE_CADET_AX:
+    {
+      const struct GNUNET_CADET_AX *emsg;
+
+      emsg = (struct GNUNET_CADET_AX *) msg;
+      decrypted_size = t_ax_decrypt_and_validate (t, cbuf, emsg, size);
+    }
+    break;
+  default:
+    GNUNET_break_op (0);
+    return;
   }
-  else if (GNUNET_MESSAGE_TYPE_CADET_AX == type)
-  {
-    const struct GNUNET_CADET_AX *emsg;
-
-    emsg = (struct GNUNET_CADET_AX *) msg;
-    decrypted_size = t_ax_decrypt_and_validate (t, cbuf, emsg, size);
-  }
-
   if (-1 == decrypted_size)
   {
     GNUNET_break_op (0);
