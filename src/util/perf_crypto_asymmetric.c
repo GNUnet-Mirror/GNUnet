@@ -75,7 +75,8 @@ main (int argc, char *argv[])
     sig[i].purp.size = htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose)
                               + sizeof (struct GNUNET_HashCode));
     GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
-                                &sig[i].h, sizeof (&sig[0].h));
+                                &sig[i].h,
+                                sizeof (sig[i].h));
   }
   log_duration ("", "Init");
 
