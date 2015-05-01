@@ -805,13 +805,13 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
 {
   struct GNUNET_MessageHeader *payload;
 
-  payload = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader) + data_size);
+  payload = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + data_size);
   payload->size = data_size;
   payload->type = GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT;
 
   forward_message_on_trail (NULL /* FIXME: put something right */,
                             trail_id,
-                            0/* FIXME: put something right */,
+                            0 /* FIXME: put something right */,
                             &my_identity,
                             put_path,
                             put_path_length,
@@ -875,9 +875,23 @@ handle_core_disconnect (void *cls,
 static struct FriendInfo *
 pick_random_friend ()
 {
-  /* FIXME: in my opinion, if have to pick a random friend from the friend_map
-     but i can't find a function to get a random friend from a mutlipeer_map */
-  /* return GNUNET_CONTAINER_multipeermap_get_random (friends_peermap); */
+  GNUNET_CONTAINER_PeerMapIterator *it;
+  if (0 != GNUNET_CONTAINER_multipeermap_get_random (friends_peermap,
+                                                     *it,
+                                                     NULL) ){
+    static struct FriendInfo **friend;
+    struct GNUNET_PeerIdentity *key;
+
+    /* FIXME: i am not sure of this one */
+    key = NULL;
+
+    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (it,
+                                                                  key,
+                                                                  (void *) friend))
+    {
+      return *friend;
+    }
+  }
   return NULL;
 }
 
@@ -1205,7 +1219,8 @@ handle_dht_p2p_random_walk_response (void *cls,
   const struct RandomWalkResponseMessage *rwrm;
 
   rwrm = (const struct RandomWalkResponseMessage *) message;
-  // 1) lookup trail => find Finger entry => fill in 'destination' and mark valid, move to end of sorted array, mark unsorted, update links from 'trails'
+  // 1) lookup trail => find Finger entry => fill in 'destination' and mark valid, move to end of sorted array,
+  //mark unsorted, update links from 'trails'
   /*
    * Steps :
    *  1 check if we are the correct layer
