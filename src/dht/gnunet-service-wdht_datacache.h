@@ -29,6 +29,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
+#include "gnunet_dht_service.h"
 
 /**
  * Handle a datum we've received from another peer.  Cache if
@@ -60,6 +61,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  * Handle a GET request we've received from another peer.
  *
  * @param trail_id trail where the reply needs to be send to
+ * @param options routing options (to be passed along)
  * @param key the query
  * @param type requested data type
  * @param xquery extended query
@@ -72,6 +74,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
  */
 enum GNUNET_BLOCK_EvaluationResult
 GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *trail_id,
+                          enum GNUNET_DHT_RouteOption options,
                           const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           const void *xquery,

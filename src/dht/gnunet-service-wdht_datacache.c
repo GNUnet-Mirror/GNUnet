@@ -155,6 +155,11 @@ struct GetRequestContext
    */
   enum GNUNET_BLOCK_EvaluationResult eval;
 
+  /**
+   * Routing options of the GET.
+   */
+  enum GNUNET_DHT_RouteOption options;
+
 };
 
 
@@ -211,6 +216,7 @@ datacache_get_iterator (void *cls,
                               ("# Good RESULTS found in datacache"), 1,
                               GNUNET_NO);
     GDS_NEIGHBOURS_send_get_result (ctx->trail_id,
+                                    ctx->options,
                                     key,
                                     type,
                                     put_path_length,
@@ -261,6 +267,7 @@ datacache_get_iterator (void *cls,
  * Handle a GET request we've received from another peer.
  *
  * @param trail_id trail identifying where to send the result to, NULL for us
+ * @param options routing options (to be passed along)
  * @param key the query
  * @param type requested data type
  * @param xquery extended query
@@ -271,6 +278,7 @@ datacache_get_iterator (void *cls,
  */
 enum GNUNET_BLOCK_EvaluationResult
 GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *trail_id,
+                          enum GNUNET_DHT_RouteOption options,
                           const struct GNUNET_HashCode *key,
                           enum GNUNET_BLOCK_Type type,
                           const void *xquery,
@@ -288,6 +296,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode *trail_id,
                             1, GNUNET_NO);
   ctx.eval = GNUNET_BLOCK_EVALUATION_REQUEST_VALID;
   ctx.trail_id = trail_id;
+  ctx.options = options;
   ctx.key = *key;
   ctx.xquery = xquery;
   ctx.xquery_size = xquery_size;
@@ -361,6 +370,7 @@ GDS_DATACACHE_get_random_key (struct GNUNET_HashCode *key)
   return GNUNET_OK;
 }
 
+
 /**
  * Iterator for local get request results,
  *
@@ -387,7 +397,12 @@ datacache_get_successors_iterator (void *cls,
 {
   const struct GNUNET_HashCode *trail_id = cls;
 
+  /* NOTE: The datacache currently does not store the RO from
+     the original 'put', so we don't know the 'correct' option
+     at this point anymore.  Thus, we conservatively assume
+     that recording is desired (for now). */
   GDS_NEIGHBOURS_send_get_result (trail_id,
+                                  GNUNET_DHT_RO_RECORD_ROUTE,
                                   key,
                                   type,
                                   put_path_length, put_path,

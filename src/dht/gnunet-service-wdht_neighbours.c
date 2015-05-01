@@ -783,6 +783,7 @@ forward_message_on_trail (struct FriendInfo *next_target,
  * Send the get result to requesting client.
  *
  * @param trail_id trail identifying where to send the result to, NULL for us
+ * @param options routing options (from GET request)
  * @param key Key of the requested data.
  * @param type Block type
  * @param put_path_length Number of peers in @a put_path
@@ -790,11 +791,10 @@ forward_message_on_trail (struct FriendInfo *next_target,
  * @param expiration When will this result expire?
  * @param data Payload to store
  * @param data_size Size of the @a data
- *
- * FIXME: also pass options, so we know to record paths or not...
  */
 void
 GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
+                                enum GNUNET_DHT_RouteOption options,
                                 const struct GNUNET_HashCode *key,
                                 enum GNUNET_BLOCK_Type type,
                                 unsigned int put_path_length,
@@ -804,12 +804,33 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
                                 size_t data_size)
 {
   struct GNUNET_MessageHeader *payload;
+  struct Trail *trail;
 
-  payload = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + data_size);
+  trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
+                                             trail_id);
+  if (NULL == trail)
+  {
+    /* TODO: inform statistics */
+    return;
+  }
+  if (NULL == trail->pred)
+  {
+    /* result is for *us* (local client) */
+    GDS_CLIENTS_handle_reply (expiration,
+                              key,
+                              0, NULL,
+                              put_path_length, put_path,
+                              type,
+                              data_size,
+                              data);
+    return;
+  }
+
+  payload = GNUNET_malloc(sizeof(struct GNUNET_MessageHeader) + data_size);
   payload->size = data_size;
   payload->type = GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT;
 
-  forward_message_on_trail (NULL /* FIXME: put something right */,
+  forward_message_on_trail (trail->pred,
                             trail_id,
                             0 /* FIXME: put something right */,
                             &my_identity,
@@ -870,29 +891,43 @@ handle_core_disconnect (void *cls,
 
 
 /**
+ * Function called with a random friend to be returned.
+ *
+ * @param cls a `struct FriendInfo **` with where to store the result
+ * @param peer the peer identity of the friend (ignored)
+ * @param value the `struct FriendInfo *` that was selected at random
+ * @return #GNUNET_OK (all good)
+ */
+static int
+pick_random_helper (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    void *value)
+{
+  struct FriendInfo **fi = cls;
+  struct FriendInfo *v = value;
+
+  *fi = v;
+  return GNUNET_OK;
+}
+
+
+/**
  * Pick random friend from friends for random walk.
+ *
+ * @return NULL if we have no friends
  */
 static struct FriendInfo *
 pick_random_friend ()
 {
-  GNUNET_CONTAINER_PeerMapIterator *it;
-  if (0 != GNUNET_CONTAINER_multipeermap_get_random (friends_peermap,
-                                                     *it,
-                                                     NULL) ){
-    static struct FriendInfo **friend;
-    struct GNUNET_PeerIdentity *key;
+  struct FriendInfo *ret;
 
-    /* FIXME: i am not sure of this one */
-    key = NULL;
-
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (it,
-                                                                  key,
-                                                                  (void *) friend))
-    {
-      return *friend;
-    }
-  }
-  return NULL;
+  ret = NULL;
+  if (0 ==
+      GNUNET_CONTAINER_multipeermap_get_random (friends_peermap,
+                                                &pick_random_helper,
+                                                &ret))
+    return NULL;
+  return ret;
 }
 
 

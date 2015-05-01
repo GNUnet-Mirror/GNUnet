@@ -72,6 +72,7 @@ GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
  * Send the get result to requesting client.
  *
  * @param trail_id trail identifying where to send the result to, NULL for us
+ * @param options routing options (from GET request)
  * @param key key of the requested data.
  * @param type block type
  * @param put_path_length number of peers in @a put_path
@@ -82,6 +83,7 @@ GDS_NEIGHBOURS_handle_get (const struct GNUNET_HashCode *key,
  */
 void
 GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
+                                enum GNUNET_DHT_RouteOption options,
                                 const struct GNUNET_HashCode *key,
                                 enum GNUNET_BLOCK_Type type,
                                 unsigned int put_path_length,
