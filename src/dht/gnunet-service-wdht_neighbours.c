@@ -822,9 +822,9 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
                             trail_id,
                             0 /* FIXME: put something right */,
                             &my_identity,
-                            put_path,
-                            put_path_length,
+                            NULL, 0,
                             payload);
+  GNUNET_free (payload);
 }
 
 
