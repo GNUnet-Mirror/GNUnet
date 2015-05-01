@@ -21,6 +21,11 @@
  * @file dht/gnunet-service-wdht_neighbours.c
  * @brief GNUnet DHT service's finger and friend table management code
  * @author Supriti Singh
+ * @author Christian Grothoff
+ * @author Arthur Dewarumez
+ *
+ * TODO:
+ * - initiate finding of successors
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -350,12 +355,6 @@ struct FindSuccessorMessage
    * Zero, for alignment.
    */
   uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Unique (random) identifier this peer will use to
-   * identify the finger (in future messages).
-   */
-  struct GNUNET_HashCode trail_id;
 
   /**
    * Key for which we would like close values returned.
@@ -1252,8 +1251,7 @@ handle_dht_p2p_random_walk (void *cls,
 
 
 /**
- * Handle a `struct RandomWalkResponseMessage` from a GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE
- * message.
+ * Handle a `struct RandomWalkResponseMessage`.
  *
  * @param cls closure (NULL)
  * @param peer sender identity
@@ -1266,8 +1264,55 @@ handle_dht_p2p_random_walk_response (void *cls,
                                      const struct GNUNET_MessageHeader *message)
 {
   const struct RandomWalkResponseMessage *rwrm;
+  struct Trail *trail;
+  struct FriendInfo *pred;
+  struct FingerTable *ft;
+  struct Finger *finger;
 
   rwrm = (const struct RandomWalkResponseMessage *) message;
+  trail = GNUNET_CONTAINER_multihashmap_get (trail_map,
+                                             &rwrm->trail_id);
+  if (NULL == trail)
+  {
+    /* TODO: log/statistics: we didn't find the trail (can happen) */
+    return GNUNET_OK;
+  }
+  if (NULL != (pred = trail->pred))
+  {
+    /* We are not the first hop, keep forwarding */
+    struct GNUNET_MQ_Envelope *env;
+    struct RandomWalkResponseMessage *rwrm2;
+
+    env = GNUNET_MQ_msg (rwrm2,
+                         GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE);
+    rwrm2->reserved = htonl (0);
+    rwrm2->location = rwrm->location;
+    rwrm2->trail_id = trail->pred_id;
+    GNUNET_MQ_send (pred->mq,
+                    env);
+    return GNUNET_OK;
+  }
+  /* We are the first hop, complete finger */
+  if (NULL == (ft = trail->ft))
+  {
+    /* Eh, why did we create the trail if we have no FT? */
+    GNUNET_break (0);
+    delete_trail (trail,
+                  GNUNET_NO,
+                  GNUNET_YES);
+    return GNUNET_OK;
+  }
+  if (NULL == (finger = ft->fingers[trail->finger_off]))
+  {
+    /* Eh, finger got deleted, but why not the trail as well? */
+    GNUNET_break (0);
+    delete_trail (trail,
+                  GNUNET_NO,
+                  GNUNET_YES);
+    return GNUNET_OK;
+  }
+
+
   // 1) lookup trail => find Finger entry => fill in 'destination' and mark valid, move to end of sorted array,
   //mark unsorted, update links from 'trails'
   /*
@@ -1334,14 +1379,12 @@ handle_dht_p2p_successor_find (void *cls,
 {
   const struct FindSuccessorMessage *fsm;
 
+  /* We do not expect to track trails for the forward-direction
+     of successor finding... */
+  GNUNET_break_op (0 == trail_path_length);
   fsm = (const struct FindSuccessorMessage *) message;
-  // locate trail (for sending reply), if not exists, fail nicely.
-  // otherwise, go to datacache and return 'top k' elements closest to 'key'
-  // as "PUT" messages via the trail (need to extend DB API!)
-#if 0
   GDS_DATACACHE_get_successors (trail_id,
-                                key);
-#endif
+                                &fsm->key);
   return GNUNET_OK;
 }
 
@@ -1451,14 +1494,14 @@ handle_dht_p2p_peer_put (void *cls,
 #if 0
   GDS_DATACACHE_handle_put (expiration_time,
                             key,
-                            path_length, path,
+                            combined_path_length, combined_path,
                             block_type,
                             data_size,
                             data);
   GDS_CLIENTS_process_put (options,
                            block_type,
                            0, 0,
-                           path_length, path,
+                           combined_path_length, combined_path,
                            expiration_time,
                            key,
                            data,
@@ -1466,8 +1509,6 @@ handle_dht_p2p_peer_put (void *cls,
 #endif
   return GNUNET_OK;
 }
-
-
 
 
 /**
@@ -1534,7 +1575,7 @@ handle_dht_p2p_trail_route (void *cls,
       sizeof (struct FindSuccessorMessage) },
     { &handle_dht_p2p_peer_get, NULL,
       GNUNET_MESSAGE_TYPE_WDHT_GET,
-      sizeof (struct FindSuccessorMessage) },
+      0 },
     { &handle_dht_p2p_peer_get_result, NULL,
       GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT,
       0 },
@@ -1645,6 +1686,7 @@ handle_dht_p2p_trail_route (void *cls,
 
 /**
  * Initialize neighbours subsystem.
+ *
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
