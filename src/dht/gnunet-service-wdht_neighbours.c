@@ -510,7 +510,7 @@ struct PeerGetResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * The type for the data.
+   * The type for the data in NBO.
    */
   uint32_t type GNUNET_PACKED;
 
@@ -521,19 +521,9 @@ struct PeerGetResultMessage
   uint32_t put_path_length GNUNET_PACKED;
 
   /**
-   * Length of the GET path that follows (if tracked).
-   */
-  uint32_t get_path_length GNUNET_PACKED;
-
-  /**
-   * Peer which queried for get and should get the result.
-   */
-  struct GNUNET_PeerIdentity querying_peer;
-
-  /**
    * When does the content expire?
    */
-  struct GNUNET_TIME_Absolute expiration_time;
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**
    * The key of the corresponding GET request.
@@ -541,8 +531,6 @@ struct PeerGetResultMessage
   struct GNUNET_HashCode key;
 
   /* put path (if tracked) */
-
-  /* get path (if tracked) */
 
   /* Payload */
 

@@ -285,7 +285,7 @@ struct PeerGetResultMessage
   /**
    * When does the content expire?
    */
-  struct GNUNET_TIME_Absolute expiration_time;
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**
    * The key of the corresponding GET request.
@@ -2182,11 +2182,11 @@ find_local_best_known_next_hop (uint64_t destination_finger_value,
 void
 GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
                          enum GNUNET_BLOCK_Type block_type,
-			                   enum GNUNET_DHT_RouteOption options,
-			                   uint32_t desired_replication_level,
-			                   struct GNUNET_PeerIdentity best_known_dest,
-			                   struct GNUNET_HashCode intermediate_trail_id,
-			                   struct GNUNET_PeerIdentity *target_peer,
+                         enum GNUNET_DHT_RouteOption options,
+                         uint32_t desired_replication_level,
+                         struct GNUNET_PeerIdentity best_known_dest,
+                         struct GNUNET_HashCode intermediate_trail_id,
+                         struct GNUNET_PeerIdentity *target_peer,
                          uint32_t hop_count,
                          uint32_t put_path_length,
                          struct GNUNET_PeerIdentity *put_path,
@@ -2558,7 +2558,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
   get_result->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT);
   get_result->key = *key;
   get_result->querying_peer = *source_peer;
-  get_result->expiration_time = expiration;
+  get_result->expiration_time = GNUNET_TIME_absolute_hton (expiration);
   get_result->get_path_length = htonl (get_path_length);
   get_result->put_path_length = htonl (put_path_length);
   paths = (struct GNUNET_PeerIdentity *)&get_result[1];
@@ -4098,7 +4098,8 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &(get_path[0]))))
   {
-    GDS_CLIENTS_handle_reply (get_result->expiration_time, &(get_result->key),
+    GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (get_result->expiration_time),
+                              &(get_result->key),
                               getlen, get_path, putlen,
                               put_path, get_result->type, payload_size, payload);
     return GNUNET_YES;
@@ -4121,7 +4122,8 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     GDS_NEIGHBOURS_send_get_result (&(get_result->key), get_result->type,
                                     &get_path[current_path_index - 1],
                                     &(get_result->querying_peer), putlen, put_path,
-                                    getlen, get_path, get_result->expiration_time,
+                                    getlen, get_path,
+                                    GNUNET_TIME_absolute_ntoh (get_result->expiration_time),
                                     payload, payload_size);
     return GNUNET_YES;
   }
