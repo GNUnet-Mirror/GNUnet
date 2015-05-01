@@ -831,7 +831,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *trail_id,
 
   forward_message_on_trail (trail->pred,
                             trail_id,
-                            0 /* FIXME: put something right */,
+                            0 != (options & GNUNET_DHT_RO_RECORD_ROUTE),
                             &my_identity,
                             NULL, 0,
                             payload);
