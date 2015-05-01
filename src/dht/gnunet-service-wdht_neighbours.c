@@ -76,12 +76,31 @@
  */
 struct FriendInfo;
 
+/**
+ *
+ */
+struct FingerTable;
 
 /**
  * Information we keep per trail.
  */
 struct Trail
 {
+
+  /**
+   * Identifier of the trail with the predecessor.
+   */
+  struct GNUNET_HashCode pred_id;
+
+  /**
+   * Identifier of the trail with the successor.
+   */
+  struct GNUNET_HashCode succ_id;
+
+  /**
+   * When does this trail expire.
+   */
+  struct GNUNET_TIME_Absolute expiration_time;
 
   /**
    * MDLL entry in the list of all trails with the same predecessor.
@@ -114,30 +133,23 @@ struct Trail
   struct FriendInfo *succ;
 
   /**
-   * Identifier of the trail with the predecessor.
-   */
-  struct GNUNET_HashCode pred_id;
-
-  /**
-   * Identifier of the trail with the successor.
-   */
-  struct GNUNET_HashCode succ_id;
-
-  /**
-   * When does this trail expire.
-   */
-  struct GNUNET_TIME_Absolute expiration_time;
-
-  /**
    * Location of this trail in the heap.
    */
   struct GNUNET_CONTAINER_HeapNode *hn;
 
   /**
    * If this peer started the to create a Finger (and thus @e pred is
-   * NULL), this is the Finger we are trying to intialize.
+   * NULL), this is the finger table of the finger we are trying to
+   * intialize.
    */
-  struct Finger **finger;
+  struct FingerTable *ft;
+
+  /**
+   * If this peer started the trail to create a Finger (and thus @e
+   * pred is NULL), this is the offset of the finger we are trying to
+   * intialize in the unsorted array.
+   */
+  unsigned int finger_off;
 
 };
 
@@ -183,12 +195,6 @@ struct FriendInfo
 /**
  *
  */
-struct FingerTable;
-
-
-/**
- *
- */
 struct Finger
 {
   /**
@@ -221,17 +227,12 @@ struct FingerTable
   struct Finger **fingers;
 
   /**
-   * Array of sorted fingers (sorted by destination, valid fingers first).
-   */
-  struct Finger **sorted_fingers;
-
-  /**
    * Size of the finger array.
    */
   unsigned int finger_array_size;
 
   /**
-   * Number of valid entries in @e sorted_fingers (contiguous from offset 0)
+   * Number of valid entries in @e fingers
    */
   unsigned int number_valid_fingers;
 
@@ -695,10 +696,11 @@ delete_trail (struct Trail *trail,
   }
   GNUNET_break (trail ==
                 GNUNET_CONTAINER_heap_remove_node (trail->hn));
-  finger = *trail->finger;
+  finger = trail->ft->fingers[trail->finger_off];
   if (NULL != finger)
   {
-    *trail->finger = NULL;
+    trail->ft->fingers[trail->finger_off] = NULL;
+    trail->ft->number_valid_fingers--;
     GNUNET_free (finger);
   }
   GNUNET_free (trail);
@@ -951,6 +953,19 @@ trail_timeout_callback (void *cls,
 
 
 /**
+ * Compute how big our finger arrays should be (at least).
+ *
+ * @return size of the finger array, never 0
+ */
+static unsigned int
+get_desired_finger_array_size ()
+{
+  /* FIXME: This is just a stub... */
+  return 64;
+}
+
+
+/**
  * Initiate a random walk.
  *
  * @param cls NULL
@@ -967,6 +982,7 @@ do_random_walk (void *cls,
   struct FingerTable *ft;
   struct Finger *finger;
   struct Trail *trail;
+  unsigned int nsize;
 
   random_walk_task = NULL;
   friend = pick_random_friend ();
@@ -1012,21 +1028,19 @@ do_random_walk (void *cls,
     delete_trail (finger->trail,
                   GNUNET_NO,
                   GNUNET_YES);
-  if (ft->finger_array_size < 42)
-  {
-    // FIXME: must have finger array of the right size here,
-    // FIXME: growing / shrinking are tricky -- with pointers
-    // from Trails!!!
-  }
-
+  if (ft->finger_array_size < (nsize = get_desired_finger_array_size()) )
+    GNUNET_array_grow (ft->fingers,
+                       ft->finger_array_size,
+                       nsize);
   GNUNET_assert (NULL == ft->fingers[ft->walk_offset]);
-
+  trail->ft = ft;
+  trail->finger_off = ft->walk_offset;
   finger = GNUNET_new (struct Finger);
   finger->trail = trail;
-  trail->finger = &ft->fingers[ft->walk_offset];
   finger->ft = ft;
   ft->fingers[ft->walk_offset] = finger;
   ft->is_sorted = GNUNET_NO;
+  ft->number_valid_fingers++;
   ft->walk_offset = (ft->walk_offset + 1) % ft->finger_array_size;
 
   walk_layer = (walk_layer + 1) % NUMBER_LAYERED_ID;
@@ -1112,8 +1126,15 @@ handle_dht_p2p_random_walk (void *cls,
   const struct RandomWalkMessage *m;
   struct Trail *t;
   struct FriendInfo *pred;
+  uint16_t layer;
 
   m = (const struct RandomWalkMessage *) message;
+  layer = ntohs (m->layer);
+  if (layer > NUMBER_LAYERED_ID)
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   pred = GNUNET_CONTAINER_multipeermap_get (friends_peermap,
                                             peer);
   t = GNUNET_new (struct Trail);
@@ -1147,25 +1168,17 @@ handle_dht_p2p_random_walk (void *cls,
     /* We are the last hop, generate response */
     struct GNUNET_MQ_Envelope *env;
     struct RandomWalkResponseMessage *rwrm;
-    uint16_t layer;
 
     env = GNUNET_MQ_msg (rwrm,
                          GNUNET_MESSAGE_TYPE_WDHT_RANDOM_WALK_RESPONSE);
     rwrm->reserved = htonl (0);
     rwrm->trail_id = m->trail_id;
-    layer = ntohs (m->layer);
     if (0 == layer)
       (void) GDS_DATACACHE_get_random_key (&rwrm->location);
     else
     {
       struct FingerTable *ft;
 
-      if (layer > NUMBER_LAYERED_ID)
-      {
-        GNUNET_break_op (0);
-        // FIXME: clean up 't'...
-        return GNUNET_SYSERR;
-      }
       ft = &fingers[layer-1];
       if (0 == ft->number_valid_fingers)
       {
@@ -1175,9 +1188,13 @@ handle_dht_p2p_random_walk (void *cls,
       else
       {
         struct Finger *f;
+        unsigned int off;
+        unsigned int i;
 
-        f = ft->fingers[GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                                  ft->number_valid_fingers)];
+        off = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                        ft->number_valid_fingers);
+        for (i=0; (NULL == (f = ft->fingers[i])) || (off > 0); i++)
+          if (NULL != f) off--;
         rwrm->location = f->destination;
       }
     }
@@ -1486,6 +1503,15 @@ handle_dht_p2p_trail_route (void *cls,
     { &handle_dht_p2p_successor_find, NULL,
       GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND,
       sizeof (struct FindSuccessorMessage) },
+    { &handle_dht_p2p_peer_get, NULL,
+      GNUNET_MESSAGE_TYPE_WDHT_GET,
+      sizeof (struct FindSuccessorMessage) },
+    { &handle_dht_p2p_peer_get_result, NULL,
+      GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT,
+      0 },
+    { &handle_dht_p2p_peer_put, NULL,
+      GNUNET_MESSAGE_TYPE_WDHT_PUT,
+      0 },
     { NULL, NULL, 0, 0 }
   };
   unsigned int i;

@@ -2685,12 +2685,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_WDHT_GET 915
 
 /**
- * Message which contains the put query
+ * Message which contains the "put", a response to
+ * #GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND.
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_PUT 916
 
 /**
- * Message which contains the get result.
+ * Message which contains the get result, a response
+ * to #GNUNET_MESSAGE_TYPE_WDHT_GET.
  */
 #define GNUNET_MESSAGE_TYPE_WDHT_GET_RESULT 917
 
