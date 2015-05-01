@@ -1320,12 +1320,16 @@ handle_dht_p2p_trail_destroy (void *cls,
  *
  * @param cls closure (NULL)
  * @param trail_id path to the originator
+ * @param trail_path path the message took on the trail, if available
+ * @param trail_path_length number of entries on the @a trail_path
  * @param message the finger setup message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_successor_find (void *cls,
                                const struct GNUNET_HashCode *trail_id,
+                               const struct GNUNET_PeerIdentity *trail_path,
+                               unsigned int trail_path_length,
                                const struct GNUNET_MessageHeader *message)
 {
   const struct FindSuccessorMessage *fsm;
@@ -1347,12 +1351,16 @@ handle_dht_p2p_successor_find (void *cls,
  *
  * @param cls closure (NULL)
  * @param trail_id path to the originator
+ * @param trail_path path the message took on the trail, if available
+ * @param trail_path_length number of entries on the @a trail_path
  * @param message the peer get message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_peer_get (void *cls,
                          const struct GNUNET_HashCode *trail_id,
+                         const struct GNUNET_PeerIdentity *trail_path,
+                         unsigned int trail_path_length,
                          const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetMessage *pgm;
@@ -1378,12 +1386,16 @@ handle_dht_p2p_peer_get (void *cls,
  *
  * @param cls closure (NULL)
  * @param trail_id path to the originator
+ * @param trail_path path the message took on the trail, if available
+ * @param trail_path_length number of entries on the @a trail_path
  * @param message the peer get result message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_peer_get_result (void *cls,
                                 const struct GNUNET_HashCode *trail_id,
+                                const struct GNUNET_PeerIdentity *trail_path,
+                                unsigned int trail_path_length,
                                 const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetResultMessage *pgrm;
@@ -1414,12 +1426,16 @@ handle_dht_p2p_peer_get_result (void *cls,
  *
  * @param cls closure (NULL)
  * @param trail_id path to the originator
+ * @param trail_path path the message took on the trail, if available
+ * @param trail_path_length number of entries on the @a trail_path
  * @param message the peer put message
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 handle_dht_p2p_peer_put (void *cls,
                          const struct GNUNET_HashCode *trail_id,
+                         const struct GNUNET_PeerIdentity *trail_path,
+                         unsigned int trail_path_length,
                          const struct GNUNET_MessageHeader *message)
 {
   const struct PeerGetResultMessage *pgrm;
@@ -1459,12 +1475,16 @@ handle_dht_p2p_peer_put (void *cls,
  *
  * @param cls closure
  * @param trail_id trail identifier
+ * @param trail_path path the message took on the trail, if available
+ * @param trail_path_length number of entries on the @a trail_path
  * @param message the message we got
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 typedef int
 (*TrailHandlerCallback)(void *cls,
                         const struct GNUNET_HashCode *trail_id,
+                        const struct GNUNET_PeerIdentity *trail_path,
+                        unsigned int trail_path_length,
                         const struct GNUNET_MessageHeader *message);
 
 
@@ -1610,6 +1630,8 @@ handle_dht_p2p_trail_route (void *cls,
            (ntohs (payload->size) == th->message_size) )
         th->callback (th->cls,
                       &trm->trail_id,
+                      path,
+                      path_length,
                       payload);
       else
         GNUNET_break_op (0);
