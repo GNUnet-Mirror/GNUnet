@@ -3255,8 +3255,9 @@ udp_plugin_select_v4 (void *cls,
   plugin->select_task_v4 = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+  if (NULL == plugin->sockv4)
+    return;
   if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
-      (NULL != plugin->sockv4) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                    plugin->sockv4)))
     udp_select_read (plugin,
@@ -3284,12 +3285,14 @@ udp_plugin_select_v6 (void *cls,
   plugin->select_task_v6 = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+  if (NULL == plugin->sockv6)
+    return;
   if ( (0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
-       (NULL != plugin->sockv6) &&
        (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                     plugin->sockv6)) )
     udp_select_read (plugin,
                      plugin->sockv6);
+
   udp_select_send (plugin,
                    plugin->sockv6);
   schedule_select_v6 (plugin);
