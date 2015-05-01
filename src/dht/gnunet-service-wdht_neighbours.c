@@ -342,7 +342,7 @@ struct TrailDestroyMessage
 struct FindSuccessorMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_WDHT_FIND_SUCCESSOR
+   * Type: #GNUNET_MESSAGE_TYPE_WDHT_SUCCESSOR_FIND
    */
   struct GNUNET_MessageHeader header;
 
