@@ -209,7 +209,7 @@ schedule_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls
  *        struct GNUNET_CLIENT_MANAGER_Connection
- * @param size
+ * @param buf_size
  *        Number of bytes available in @a buf.
  * @param buf
  *        Where to copy the message.

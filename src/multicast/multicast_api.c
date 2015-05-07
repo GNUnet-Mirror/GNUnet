@@ -144,7 +144,7 @@ struct GNUNET_MULTICAST_Member
 /**
  * Handle that identifies a join request.
  *
- * Used to match calls to #GNUNET_MULTICAST_JoinCallback to the
+ * Used to match calls to #GNUNET_MULTICAST_JoinRequestCallback to the
  * corresponding calls to #GNUNET_MULTICAST_join_decision().
  */
 struct GNUNET_MULTICAST_JoinHandle

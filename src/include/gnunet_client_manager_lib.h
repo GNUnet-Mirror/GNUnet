@@ -214,6 +214,8 @@ GNUNET_CLIENT_MANAGER_get_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
  *
  * @param mgr
  *        Client manager connection.
+ * @param ctx
+ *        User context.
  * @param size
  *        Number of bytes in user context struct (for verification only).
  */
@@ -228,10 +230,8 @@ GNUNET_CLIENT_MANAGER_set_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
  *
  * @param mgr
  *        Client manager connection.
- * @param ctx
- *        User context.
- * @param size
- *        Number of bytes in user context struct (for verification only).
+ * @param type
+ *        Type of context (for size verification).
  */
 #define GNUNET_CLIENT_MANAGER_get_user_context(mgr, type)               \
   (type *) GNUNET_CLIENT_MANAGER_get_user_context_ (mgr, sizeof (type))
