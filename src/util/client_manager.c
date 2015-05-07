@@ -33,6 +33,28 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "util-client-mgr", __VA_ARGS__)
 
 
+struct OperationListItem
+{
+  struct OperationListItem *prev;
+  struct OperationListItem *next;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id;
+
+  /**
+   * Continuation to invoke with the result of an operation.
+   */
+  GNUNET_ResultCallback result_cb;
+
+  /**
+   * Closure for @a result_cb.
+   */
+  void *cls;
+};
+
+
 /**
  * List of arrays of message handlers.
  */
@@ -92,6 +114,21 @@ struct GNUNET_CLIENT_MANAGER_Connection
    * Message handlers.
    */
   const struct GNUNET_CLIENT_MANAGER_MessageHandler *handlers;
+
+  /**
+   * First operation in the linked list.
+   */
+  struct OperationListItem *op_head;
+
+  /**
+   * Last operation in the linked list.
+   */
+  struct OperationListItem *op_tail;
+
+  /**
+   * Last operation ID used.
+   */
+  uint64_t last_op_id;
 
   /**
    * Disconnect callback.
@@ -558,4 +595,205 @@ GNUNET_CLIENT_MANAGER_set_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
   }
   mgr->user_ctx_size = size;
   mgr->user_ctx = ctx;
+}
+
+
+/**
+ * Get a unique operation ID to distinguish between asynchronous requests.
+ *
+ * @param mgr
+ *        Client manager connection.
+ *
+ * @return Operation ID to use.
+ */
+uint64_t
+GNUNET_CLIENT_MANAGER_op_get_next_id (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
+{
+  return ++mgr->last_op_id;
+}
+
+
+/**
+ * Find operation by ID.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID to look up.
+ *
+ * @return Operation, or NULL if not found.
+ */
+static struct OperationListItem *
+op_find (struct GNUNET_CLIENT_MANAGER_Connection *mgr, uint64_t op_id)
+{
+  struct OperationListItem *op = mgr->op_head;
+  while (NULL != op)
+  {
+    if (op->op_id == op_id)
+      return op;
+    op = op->next;
+  }
+  return NULL;
+}
+
+
+/**
+ * Find operation by ID.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID to look up.
+ * @param[out] result_cb
+ *        If an operation was found, its result callback is returned here.
+ * @param[out] cls
+ *        If an operation was found, its closure is returned here.
+ *
+ * @return #GNUNET_YES if an operation was found,
+ *         #GNUNET_NO  if not found.
+ */
+int
+GNUNET_CLIENT_MANAGER_op_find (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                               uint64_t op_id,
+                               GNUNET_ResultCallback *result_cb,
+                               void **cls)
+{
+  struct OperationListItem *op = op_find (mgr, op_id);
+  if (NULL != op)
+  {
+    *result_cb = op->result_cb;
+    *cls = op->cls;
+    return GNUNET_YES;
+  }
+  return GNUNET_NO;
+}
+
+
+/**
+ * Add a new operation.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param result_cb
+ *        Function to call with the result of the operation.
+ * @param cls
+ *        Closure for @a result_cb.
+ *
+ * @return ID of the new operation.
+ */
+uint64_t
+GNUNET_CLIENT_MANAGER_op_add (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                              GNUNET_ResultCallback result_cb,
+                              void *cls)
+{
+  if (NULL == result_cb)
+    return 0;
+
+  struct OperationListItem *op = GNUNET_malloc (sizeof (*op));
+  op->op_id = GNUNET_CLIENT_MANAGER_op_get_next_id (mgr);
+  op->result_cb = result_cb;
+  op->cls = cls;
+  GNUNET_CONTAINER_DLL_insert_tail (mgr->op_head, mgr->op_tail, op);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Added operation #%" PRIu64 "\n", mgr, op->op_id);
+  return op->op_id;
+}
+
+
+/**
+ * Remove an operation, and call its result callback (unless it was cancelled).
+ *
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID.
+ * @param result_code
+ *        Result of the operation.
+ * @param data
+ *        Data result of the operation.
+ * @param data_size
+ *        Size of @a data.
+ * @param cancel
+ *        Is the operation cancelled?
+ *        #GNUNET_NO  Not cancelled, result callback is called.
+ *        #GNUNET_YES Cancelled, result callback is not called.
+ *
+ * @return #GNUNET_YES if the operation was found and removed,
+ *         #GNUNET_NO  if the operation was not found.
+ */
+static int
+op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+           uint64_t op_id, int64_t result_code,
+           const void *data, uint16_t data_size, uint8_t cancel)
+{
+  if (0 == op_id)
+    return GNUNET_NO;
+
+  struct OperationListItem *op = op_find (mgr, op_id);
+  if (NULL == op)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Could not find operation #%" PRIu64 "\n", op_id);
+    return GNUNET_NO;
+  }
+
+  GNUNET_CONTAINER_DLL_remove (mgr->op_head, mgr->op_tail, op);
+
+  if (GNUNET_YES != cancel && NULL != op->result_cb)
+    op->result_cb (op->cls, result_code, data, data_size);
+
+  GNUNET_free (op);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Call the result callback of an operation and remove it.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID.
+ * @param result_code
+ *        Result of the operation.
+ * @param data
+ *        Data result of the operation.
+ * @param data_size
+ *        Size of @a data.
+ *
+ * @return #GNUNET_YES if the operation was found and removed,
+ *         #GNUNET_NO  if the operation was not found.
+ */
+int
+GNUNET_CLIENT_MANAGER_op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                                 uint64_t op_id, int64_t result_code,
+                                 const void *data, uint16_t data_size)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Received result for operation #%" PRIu64 ": %" PRId64 " (size: %u)\n",
+       mgr, op_id, result_code, data_size);
+  return op_result (mgr, op_id, result_code, data, data_size, GNUNET_NO);
+}
+
+
+/**
+ * Cancel an operation.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID.
+ *
+ * @return #GNUNET_YES if the operation was found and removed,
+ *         #GNUNET_NO  if the operation was not found.
+ */
+int
+GNUNET_CLIENT_MANAGER_op_cancel (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                                 uint64_t op_id)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Cancelling operation #%" PRIu64  "\n", mgr, op_id);
+  return op_result (mgr, op_id, 0, NULL, 0, GNUNET_YES);
 }

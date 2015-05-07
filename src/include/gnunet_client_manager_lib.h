@@ -249,6 +249,97 @@ GNUNET_CLIENT_MANAGER_set_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
   GNUNET_CLIENT_MANAGER_set_user_context_ (mgr, ctx, sizeof (*ctx))
 
 
+/**
+ * Get a unique operation ID to distinguish between asynchronous requests.
+ *
+ * @param mgr
+ *        Client manager connection.
+ *
+ * @return Operation ID to use.
+ */
+uint64_t
+GNUNET_CLIENT_MANAGER_op_get_next_id (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
+
+
+/**
+ * Find operation by ID.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID to look up.
+ * @param[out] result_cb
+ *        If an operation was found, its result callback is returned here.
+ * @param[out] cls
+ *        If an operation was found, its closure is returned here.
+ *
+ * @return #GNUNET_YES if an operation was found,
+ *         #GNUNET_NO  if not found.
+ */
+int
+GNUNET_CLIENT_MANAGER_op_find (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                               uint64_t op_id,
+                               GNUNET_ResultCallback *result_cb,
+                               void **cls);
+
+
+/**
+ * Add a new operation.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param result_cb
+ *        Function to call with the result of the operation.
+ * @param cls
+ *        Closure for @a result_cb.
+ *
+ * @return ID of the new operation.
+ */
+uint64_t
+GNUNET_CLIENT_MANAGER_op_add (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                              GNUNET_ResultCallback result_cb,
+                              void *cls);
+
+
+/**
+ * Call the result callback and remove the operation.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID.
+ * @param result_code
+ *        Result of the operation.
+ * @param data
+ *        Data result of the operation.
+ * @param data_size
+ *        Size of @a data.
+ *
+ * @return #GNUNET_YES if the operation was found and removed,
+ *         #GNUNET_NO  if the operation was not found.
+ */
+int
+GNUNET_CLIENT_MANAGER_op_result (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                                 uint64_t op_id, int64_t result_code,
+                                 const void *data, uint16_t data_size);
+
+
+/**
+ * Cancel an operation.
+ *
+ * @param mgr
+ *        Client manager connection.
+ * @param op_id
+ *        Operation ID.
+ *
+ * @return #GNUNET_YES if the operation was found and removed,
+ *         #GNUNET_NO  if the operation was not found.
+ */
+int
+GNUNET_CLIENT_MANAGER_op_cancel (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
+                                 uint64_t op_id);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

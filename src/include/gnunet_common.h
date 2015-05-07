@@ -248,6 +248,29 @@ struct GNUNET_MessageHeader
 
 };
 
+
+/**
+ * Answer from service to client about last operation.
+ */
+struct GNUNET_OperationResultMessage
+{
+  struct GNUNET_MessageHeader header;
+
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+  /**
+   * Status code for the operation.
+   */
+  uint64_t result_code GNUNET_PACKED;
+
+  /* Followed by data. */
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 /**
@@ -271,6 +294,23 @@ typedef int
  */
 typedef void
 (*GNUNET_ContinuationCallback) (void *cls);
+
+
+/**
+ * Function called with the result of an asynchronous operation.
+ *
+ * @param cls
+ *        Closure.
+ * @param result_code
+ *        Result code for the operation.
+ * @param data
+ *        Data result for the operation.
+ * @param data_size
+ *        Size of @a data.
+ */
+typedef void
+(*GNUNET_ResultCallback) (void *cls, int64_t result_code,
+                          const void *data, uint16_t data_size);
 
 
 /* ****************************** logging ***************************** */
