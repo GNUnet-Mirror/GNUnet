@@ -36,6 +36,7 @@ print $sdedit "\n";
 
 mkfifo $ipc, 0600 or die "$ipc: $!\n" unless -e $ipc;
 open IPC, '<', $ipc or die "$ipc: $!\n";
+$| = 1;
 while (<IPC>)
 {
     print;

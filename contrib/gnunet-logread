@@ -70,7 +70,7 @@ while (<>)
             my $msg = exists $msgtypes{$type} ? $msgtypes{$type} : $type;
             my $ofh = select IPC;
             print IPC "$time\t$from -> $to\t$msg ($size)\n";
-            $|++;
+            $| = 1;
             select $ofh;
         }
         if (($time, $level, $msg) =
