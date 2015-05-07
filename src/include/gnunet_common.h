@@ -655,36 +655,124 @@ GNUNET_error_type_to_string (enum GNUNET_ErrorType kind);
 /* ************************* endianess conversion ****************** */
 
 /**
- * Convert unsigned 64-bit integer to host-byte-order.
- * @param n the value in network byte order
- * @return the same value in host byte order
- */
-uint64_t
-GNUNET_ntohll (uint64_t n);
-
-/**
- * Convert unsigned 64-bit integer to network-byte-order.
- * @param n the value in host byte order
- * @return the same value in network byte order
+ * Convert unsigned 64-bit integer to network byte order.
+ *
+ * @param n
+ *        The value in host byte order.
+ *
+ * @return The same value in network byte order.
  */
 uint64_t
 GNUNET_htonll (uint64_t n);
 
+
 /**
- * Convert double to network-byte-order.
- * @param d the value in network byte order
- * @return the same value in host byte order
+ * Convert unsigned 64-bit integer to host byte order.
+ *
+ * @param n
+ *        The value in network byte order.
+ *
+ * @return The same value in host byte order.
+ */
+uint64_t
+GNUNET_ntohll (uint64_t n);
+
+
+/**
+ * Convert double to network byte order.
+ *
+ * @param d
+ *        The value in network byte order.
+ *
+ * @return The same value in host byte order.
  */
 double
 GNUNET_hton_double (double d);
 
+
 /**
- * Convert double to host-byte-order
- * @param d the value in network byte order
- * @return the same value in host byte order
+ * Convert double to host byte order
+ *
+ * @param d
+ *        The value in network byte order.
+ *
+ * @return The same value in host byte order.
  */
 double
 GNUNET_ntoh_double (double d);
+
+
+/**
+ * Convert signed 64-bit integer to network byte order.
+ *
+ * @param n
+ *        The value in host byte order.
+ *
+ * @return The same value in network byte order.
+ */
+uint64_t
+GNUNET_htonll_signed (int64_t n);
+
+
+/**
+ * Convert signed 64-bit integer to host byte order.
+ *
+ * @param n
+ *        The value in network byte order.
+ *
+ * @return The same value in host byte order.
+ */
+int64_t
+GNUNET_ntohll_signed (uint64_t n);
+
+
+/**
+ * Convert signed 32-bit integer to network byte order.
+ *
+ * @param n
+ *        The value in host byte order.
+ *
+ * @return The same value in network byte order.
+ */
+uint32_t
+GNUNET_htonl_signed (int32_t n);
+
+
+/**
+ * Convert signed 32-bit integer to host byte order.
+ *
+ * @param n
+ *        The value in network byte order.
+ *
+ * @return The same value in host byte order.
+ */
+int32_t
+GNUNET_ntohl_signed (uint32_t n);
+
+
+/**
+ * Convert signed 16-bit integer to network byte order.
+ *
+ * @param n
+ *        The value in host byte order.
+ *
+ * @return The same value in network byte order.
+ */
+uint16_t
+GNUNET_htons_signed (int16_t n);
+
+
+/**
+ * Convert signed 16-bit integer to host byte order.
+ *
+ * @param n
+ *        The value in network byte order.
+ *
+ * @return The same value in host byte order.
+ */
+int16_t
+GNUNET_ntohs_signed (uint16_t n);
+
 
 /* ************************* allocation functions ****************** */
 
