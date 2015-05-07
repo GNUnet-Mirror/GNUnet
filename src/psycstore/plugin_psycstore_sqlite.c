@@ -376,6 +376,7 @@ database_setup (struct Plugin *plugin)
             "CREATE INDEX IF NOT EXISTS idx_membership_channel_id_slave_id "
             "ON membership (channel_id, slave_id);");
 
+  /** @todo messages table: add method_name column */
   sql_exec (plugin->dbh,
             "CREATE TABLE IF NOT EXISTS messages (\n"
             "  channel_id INTEGER NOT NULL REFERENCES channels(id),\n"
@@ -468,6 +469,7 @@ database_setup (struct Plugin *plugin)
                "      AND ? <= fragment_id AND fragment_id <= ?;",
                &plugin->select_fragments);
 
+  /** @todo select_messages: add method_prefix filter */
   sql_prepare (plugin->dbh,
                "SELECT hop_counter, signature, purpose, fragment_id,\n"
                "       fragment_offset, message_id, group_generation,\n"
@@ -489,6 +491,7 @@ database_setup (struct Plugin *plugin)
                "ORDER BY fragment_id;",
                &plugin->select_latest_fragments);
 
+  /** @todo select_latest_messages: add method_prefix filter */
   sql_prepare (plugin->dbh,
                "SELECT hop_counter, signature, purpose, fragment_id,\n"
                "       fragment_offset, message_id, group_generation,\n"
@@ -499,6 +502,7 @@ database_setup (struct Plugin *plugin)
                "      (SELECT message_id\n"
                "       FROM messages\n"
                "       WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "       GROUP BY message_id\n"
                "       ORDER BY message_id\n"
                "       DESC LIMIT ?)\n"
                "ORDER BY fragment_id;",

@@ -115,16 +115,24 @@ GNUNET_PSYC_transmit_destroy (struct GNUNET_PSYC_TransmitHandle *tmit);
 /**
  * Transmit a message.
  *
- * @param tmit         Transmission handle.
- * @param method_name  Which method should be invoked.
- * @param env          Environment for the message.
- *   Should stay available until the first call to notify_data.
- *   Can be NULL if there are no modifiers or @a notify_mod is provided instead.
- * @param notify_mod   Function to call to obtain modifiers.
- *   Can be NULL if there are no modifiers or @a env is provided instead.
- * @param notify_data  Function to call to obtain fragments of the data.
- * @param notify_cls   Closure for @a notify_mod and @a notify_data.
- * @param flags        Flags for the message being transmitted.
+ * @param tmit
+ *        Transmission handle.
+ * @param method_name
+ *        Which method should be invoked.
+ * @param env
+ *        Environment for the message.
+ *        Should stay available until the first call to notify_data.
+ *        Can be NULL if there are no modifiers or @a notify_mod is
+ *        provided instead.
+ * @param notify_mod
+ *        Function to call to obtain modifiers.
+ *        Can be NULL if there are no modifiers or @a env is provided instead.
+ * @param notify_data
+ *        Function to call to obtain fragments of the data.
+ * @param notify_cls
+ *        Closure for @a notify_mod and @a notify_data.
+ * @param flags
+ *        Flags for the message being transmitted.
  *
  * @return #GNUNET_OK if the transmission was started.
  *         #GNUNET_SYSERR if another transmission is already going on.

@@ -2222,7 +2222,7 @@ extern "C"
 
 /* 700 */
 
-/** C->S: client requests channel history from PSYCstore. */
+/** C->S: request channel history replay from PSYCstore. */
 #define GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY 701
 
 /** S->C: result for a channel history request */

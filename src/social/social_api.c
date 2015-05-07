@@ -47,6 +47,7 @@ static struct GNUNET_GNS_Handle *gns;
 static struct GNUNET_NAMESTORE_Handle *namestore;
 static struct GNUNET_PeerIdentity this_peer;
 
+
 /**
  * Handle for a place where social interactions happen.
  */
@@ -239,18 +240,6 @@ struct GNUNET_SOCIAL_Announcement
 };
 
 
-struct GNUNET_SOCIAL_WatchHandle
-{
-
-};
-
-
-struct GNUNET_SOCIAL_LookHandle
-{
-
-};
-
-
 /**
  * A talk request.
  */
@@ -260,12 +249,70 @@ struct GNUNET_SOCIAL_TalkRequest
 };
 
 
+struct GNUNET_SOCIAL_WatchHandle
+{
+
+};
+
+
 /**
  * A history lesson.
  */
-struct GNUNET_SOCIAL_HistoryLesson
+struct GNUNET_SOCIAL_HistoryRequest
 {
+  /**
+   * Place.
+   */
+  struct GNUNET_SOCIAL_Place *plc;
 
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id;
+
+  /**
+   * Message handler.
+   */
+  struct GNUNET_PSYC_ReceiveHandle *recv;
+
+  /**
+   * Function to call when the operation finished.
+   */
+  GNUNET_ResultCallback result_cb;
+
+  /**
+   * Closure for @a result_cb.
+   */
+  void *cls;
+};
+
+
+struct GNUNET_SOCIAL_LookHandle
+{
+  /**
+   * Place.
+   */
+  struct GNUNET_SOCIAL_Place *plc;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id;
+
+  /**
+   * State variable result callback.
+   */
+  GNUNET_PSYC_StateVarCallback var_cb;
+
+  /**
+   * Function to call when the operation finished.
+   */
+  GNUNET_ResultCallback result_cb;
+
+  /**
+   * Closure for @a result_cb.
+   */
+  void *cls;
 };
 
 
@@ -418,7 +465,7 @@ slicer_message (void *cls, uint64_t message_id, uint64_t fragment_offset,
     GNUNET_assert (message_id == slicer->message_id);
   }
 
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Slicer received message of type %u and size %u, "
        "with ID %" PRIu64 " and method %s\n",
        ptype, ntohs (msg->size), message_id, slicer->method_name);
@@ -594,6 +641,165 @@ place_send_connect_msg (struct GNUNET_SOCIAL_Place *plc)
 
 
 static void
+place_recv_result (void *cls,
+                   struct GNUNET_CLIENT_MANAGER_Connection *client,
+                   const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SOCIAL_Place *
+    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
+
+  const struct GNUNET_OperationResultMessage *
+    res = (const struct GNUNET_OperationResultMessage *) msg;
+
+  uint16_t size = ntohs (msg->size);
+  if (size < sizeof (*res))
+  { /* Error, message too small. */
+    GNUNET_break (0);
+    return;
+  }
+
+  uint16_t data_size = size - sizeof (*res);
+  const char *data = (0 < data_size) ? (const char *) &res[1] : NULL;
+  GNUNET_CLIENT_MANAGER_op_result (plc->client, GNUNET_ntohll (res->op_id),
+                                   GNUNET_ntohll_signed (res->result_code),
+                                   data, data_size);
+}
+
+
+static void
+op_recv_history_result (void *cls, int64_t result,
+                        const void *err_msg, uint16_t err_msg_size)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received history replay result: %" PRId64 ".\n", result);
+
+  struct GNUNET_SOCIAL_HistoryRequest *hist = cls;
+
+  if (NULL != hist->result_cb)
+    hist->result_cb (hist->cls, result, err_msg, err_msg_size);
+
+  GNUNET_PSYC_receive_destroy (hist->recv);
+  GNUNET_free (hist);
+}
+
+
+static void
+op_recv_state_result (void *cls, int64_t result,
+                      const void *err_msg, uint16_t err_msg_size)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received state request result: %" PRId64 ".\n", result);
+
+  struct GNUNET_SOCIAL_LookHandle *look = cls;
+
+  if (NULL != look->result_cb)
+    look->result_cb (look->cls, result, err_msg, err_msg_size);
+
+  GNUNET_free (look);
+}
+
+
+static void
+place_recv_history_result (void *cls,
+                           struct GNUNET_CLIENT_MANAGER_Connection *client,
+                           const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SOCIAL_Place *
+    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
+
+  const struct GNUNET_OperationResultMessage *
+    res = (const struct GNUNET_OperationResultMessage *) msg;
+  struct GNUNET_PSYC_MessageHeader *
+    pmsg = (struct GNUNET_PSYC_MessageHeader *) &res[1];
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Received historic fragment for message #%" PRIu64 ".\n",
+       plc, GNUNET_ntohll (pmsg->message_id));
+
+  GNUNET_ResultCallback result_cb = NULL;
+  struct GNUNET_SOCIAL_HistoryRequest *hist = NULL;
+
+  if (GNUNET_YES != GNUNET_CLIENT_MANAGER_op_find (plc->client,
+                                                   GNUNET_ntohll (res->op_id),
+                                                   &result_cb, (void *) &hist))
+  { /* Operation not found. */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "%p Replay operation not found for historic fragment of message #%"
+         PRIu64 ".\n",
+         plc, GNUNET_ntohll (pmsg->message_id));
+    return;
+  }
+
+  uint16_t size = ntohs (msg->size);
+  if (size < sizeof (*res) + sizeof (*pmsg))
+  { /* Error, message too small. */
+    GNUNET_break (0);
+    return;
+  }
+
+  GNUNET_PSYC_receive_message (hist->recv,
+                               (const struct GNUNET_PSYC_MessageHeader *) pmsg);
+}
+
+
+static void
+place_recv_state_result (void *cls,
+                         struct GNUNET_CLIENT_MANAGER_Connection *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_SOCIAL_Place *
+    plc = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*plc));
+
+  const struct GNUNET_OperationResultMessage *
+    res = (const struct GNUNET_OperationResultMessage *) msg;
+
+#if FIXME
+  GNUNET_ResultCallback result_cb = NULL;
+  struct GNUNET_PSYC_StateRequest *sr = NULL;
+
+  if (GNUNET_YES != GNUNET_CLIENT_MANAGER_op_find (plc->client,
+                                                   GNUNET_ntohll (res->op_id),
+                                                   &result_cb, (void *) &sr))
+  { /* Operation not found. */
+    return;
+  }
+
+  const struct GNUNET_MessageHeader *
+    modc = (struct GNUNET_MessageHeader *) &res[1];
+  uint16_t modc_size = ntohs (modc->size);
+  if (ntohs (msg->size) - sizeof (*msg) != modc_size)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  switch (ntohs (modc->type))
+  {
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+  {
+    const struct GNUNET_PSYC_MessageModifier *
+      mod = (const struct GNUNET_PSYC_MessageModifier *) modc;
+
+    const char *name = (const char *) &mod[1];
+    uint16_t name_size = ntohs (mod->name_size);
+    if ('\0' != name[name_size - 1])
+    {
+      GNUNET_break (0);
+      return;
+    }
+    sr->var_cb (sr->cls, name, name + name_size, ntohs (mod->value_size));
+    break;
+  }
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
+    sr->var_cb (sr->cls, NULL, (const char *) &modc[1],
+                modc_size - sizeof (*modc));
+    break;
+  }
+#endif
+}
+
+
+static void
 place_recv_message_ack (void *cls,
                         struct GNUNET_CLIENT_MANAGER_Connection *client,
                         const struct GNUNET_MessageHeader *msg)
@@ -752,6 +958,18 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler host_handlers[] =
     GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK,
     sizeof (struct GNUNET_MessageHeader), GNUNET_NO },
 
+  { &place_recv_history_result, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
+
+  { &place_recv_state_result, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
+
+  { &place_recv_result, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
+
   { &place_recv_disconnect, NULL, 0, 0, GNUNET_NO },
 
   { NULL, NULL, 0, 0, GNUNET_NO }
@@ -779,6 +997,18 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler guest_handlers[] =
   { &guest_recv_join_decision, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
     sizeof (struct GNUNET_PSYC_JoinDecisionMessage), GNUNET_YES },
+
+  { &place_recv_history_result, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT,
+    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
+
+  { &place_recv_state_result, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT,
+    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
+
+  { &place_recv_result, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE,
+    sizeof (struct GNUNET_OperationResultMessage), GNUNET_YES },
 
   { &place_recv_disconnect, NULL, 0, 0, GNUNET_NO },
 
@@ -1546,67 +1776,13 @@ GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *gst)
 
 
 /**
- * A history lesson.
- */
-struct GNUNET_SOCIAL_HistoryLesson;
-
-/**
- * Learn about the history of a place.
- *
- * Sends messages through the slicer function of the place where
- * start_message_id <= message_id <= end_message_id.
- * The messages will have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
- *
- * To get the latest message, use 0 for both the start and end message ID.
- *
- * @param place Place we want to learn more about.
- * @param start_message_id First historic message we are interested in.
- * @param end_message_id Last historic message we are interested in (inclusive).
- * @param slicer Slicer to use to process history.  Can be the same as the
- *               slicer of the place, as the HISTORIC flag allows distinguishing
- *               old messages from fresh ones.
- * @param finish_cb Function called after the last message in the history lesson
- *              is passed through the @a slicer. NULL if not needed.
- * @param finish_cb_cls Closure for @a finish_cb.
- * @return Handle to abort history lesson, never NULL (multiple lessons
- *         at the same time are allowed).
- */
-struct GNUNET_SOCIAL_HistoryLesson *
-GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
-                                 uint64_t start_message_id,
-                                 uint64_t end_message_id,
-                                 const struct GNUNET_SOCIAL_Slicer *slicer,
-                                 void (*finish_cb)(void *),
-                                 void *finish_cb_cls)
-{
-  return NULL;
-}
-
-
-/**
- * Stop processing messages from the history lesson.
- *
- * Must not be called after the finish callback of the history lesson is called.
- *
- * @param hist History lesson to cancel.
- */
-void
-GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist)
-{
-
-}
-
-
-struct GNUNET_SOCIAL_WatchHandle;
-
-/**
  * Watch a place for changed objects.
  *
  * @param place
  *        Place to watch.
  * @param object_filter
  *        Object prefix to match.
- * @param state_var_cb
+ * @param var_cb
  *        Function to call when an object/state var changes.
  * @param cls
  *        Closure for callback.
@@ -1616,7 +1792,7 @@ struct GNUNET_SOCIAL_WatchHandle;
 struct GNUNET_SOCIAL_WatchHandle *
 GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
                            const char *object_filter,
-                           GNUNET_PSYC_StateVarCallback state_var_cb,
+                           GNUNET_PSYC_StateVarCallback var_cb,
                            void *cls)
 {
   return NULL;
@@ -1635,44 +1811,166 @@ GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh)
 }
 
 
-struct GNUNET_SOCIAL_LookHandle;
+static struct GNUNET_SOCIAL_HistoryRequest *
+place_history_replay (struct GNUNET_SOCIAL_Place *plc,
+                      uint64_t start_message_id,
+                      uint64_t end_message_id,
+                      uint64_t message_limit,
+                      const char *method_prefix,
+                      uint32_t flags,
+                      struct GNUNET_SOCIAL_Slicer *slicer,
+                      GNUNET_ResultCallback result_cb,
+                      void *cls)
+{
+  struct GNUNET_PSYC_HistoryRequestMessage *req;
+  struct GNUNET_SOCIAL_HistoryRequest *hist = GNUNET_malloc (sizeof (*hist));
+  hist->plc = plc;
+  hist->recv = GNUNET_PSYC_receive_create (NULL, &slicer_message, slicer);
+  hist->result_cb = result_cb;
+  hist->cls = cls;
+  hist->op_id = GNUNET_CLIENT_MANAGER_op_add (plc->client,
+                                              &op_recv_history_result, hist);
+
+  GNUNET_assert (NULL != method_prefix);
+  uint16_t method_size = strnlen (method_prefix,
+                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  - sizeof (*req)) + 1;
+  GNUNET_assert ('\0' == method_prefix[method_size - 1]);
+  req = GNUNET_malloc (sizeof (*req) + method_size);
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY);
+  req->header.size = htons (sizeof (*req) + method_size);
+  req->start_message_id = GNUNET_htonll (start_message_id);
+  req->end_message_id = GNUNET_htonll (end_message_id);
+  req->message_limit = GNUNET_htonll (message_limit);
+  req->flags = htonl (flags);
+  req->op_id = GNUNET_htonll (hist->op_id);
+  memcpy (&req[1], method_prefix, method_size);
+
+  GNUNET_CLIENT_MANAGER_transmit (plc->client, &req->header);
+  return hist;
+}
 
 
 /**
- * Look at objects in the place with a matching name prefix.
+ * Learn about the history of a place.
+ *
+ * Messages are returned through the @a slicer function
+ * and have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
  *
  * @param place
- *        The place to look its objects at.
- * @param name_prefix
- *        Look at objects with names beginning with this value.
- * @param state_var_cb
- *        Function to call for each object found.
- * @param cls
- *        Closure for callback function.
- *
- * @return Handle that can be used to stop looking at objects.
+ *        Place we want to learn more about.
+ * @param start_message_id
+ *        First historic message we are interested in.
+ * @param end_message_id
+ *        Last historic message we are interested in (inclusive).
+ * @param method_prefix
+ *        Only retrieve messages with this method prefix.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_HistoryReplayFlags
+ * @param slicer
+ *        Slicer to use for retrieved messages.
+ *        Can be the same as the slicer of the place.
+ * @param result_cb
+ *        Function called after all messages retrieved.
+ *        NULL if not needed.
+ * @param cls Closure for @a result_cb.
  */
-struct GNUNET_SOCIAL_LookHandle *
-GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
-                          const char *name_prefix,
-                          GNUNET_PSYC_StateVarCallback state_var_cb,
-                          void *cls)
+struct GNUNET_SOCIAL_HistoryRequest *
+GNUNET_SOCIAL_place_history_replay (struct GNUNET_SOCIAL_Place *plc,
+                                    uint64_t start_message_id,
+                                    uint64_t end_message_id,
+                                    const char *method_prefix,
+                                    uint32_t flags,
+                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    GNUNET_ResultCallback result_cb,
+                                    void *cls)
 {
-  return NULL;
+  return place_history_replay (plc, start_message_id, end_message_id, 0,
+                               method_prefix, flags, slicer, result_cb, cls);
 }
 
 
 /**
- * Stop looking at objects.
+ * Learn about the history of a place.
  *
- * @param lh Look handle to stop.
+ * Sends messages through the slicer function of the place where
+ * start_message_id <= message_id <= end_message_id.
+ * The messages will have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
+ *
+ * To get the latest message, use 0 for both the start and end message ID.
+ *
+ * @param place
+ *        Place we want to learn more about.
+ * @param message_limit
+ *        Maximum number of historic messages we are interested in.
+ * @param method_prefix
+ *        Only retrieve messages with this method prefix.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_HistoryReplayFlags
+ * @param result_cb
+ *        Function called after all messages retrieved.
+ *        NULL if not needed.
+ * @param cls Closure for @a result_cb.
  */
-void
-GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh)
+struct GNUNET_SOCIAL_HistoryRequest *
+GNUNET_SOCIAL_place_history_replay_latest (struct GNUNET_SOCIAL_Place *plc,
+                                           uint64_t message_limit,
+                                           const char *method_prefix,
+                                           uint32_t flags,
+                                           struct GNUNET_SOCIAL_Slicer *slicer,
+                                           GNUNET_ResultCallback result_cb,
+                                           void *cls)
 {
-
+  return place_history_replay (plc, 0, 0, message_limit, method_prefix, flags,
+                               slicer, result_cb, cls);
 }
 
+
+/**
+ * Cancel learning about the history of a place.
+ *
+ * @param hist
+ *        History lesson to cancel.
+ */
+void
+GNUNET_SOCIAL_place_history_replay_cancel (struct GNUNET_SOCIAL_HistoryRequest *hist)
+{
+  GNUNET_PSYC_receive_destroy (hist->recv);
+  GNUNET_CLIENT_MANAGER_op_cancel (hist->plc->client, hist->op_id);
+  GNUNET_free (hist);
+}
+
+
+/**
+ * Request matching state variables.
+ */
+static struct GNUNET_SOCIAL_LookHandle *
+place_state_get (struct GNUNET_SOCIAL_Place *plc,
+                 uint16_t type, const char *name,
+                 GNUNET_PSYC_StateVarCallback var_cb,
+                 GNUNET_ResultCallback result_cb, void *cls)
+{
+  struct GNUNET_PSYC_StateRequestMessage *req;
+  struct GNUNET_SOCIAL_LookHandle *look = GNUNET_malloc (sizeof (*look));
+  look->plc = plc;
+  look->var_cb = var_cb;
+  look->result_cb = result_cb;
+  look->cls = cls;
+  look->op_id = GNUNET_CLIENT_MANAGER_op_add (plc->client,
+                                              &op_recv_state_result, look);
+
+  GNUNET_assert (NULL != name);
+  size_t name_size = strnlen (name, GNUNET_SERVER_MAX_MESSAGE_SIZE
+                              - sizeof (*req)) + 1;
+  req = GNUNET_malloc (sizeof (*req) + name_size);
+  req->header.type = htons (type);
+  req->header.size = htons (sizeof (*req) + name_size);
+  req->op_id = GNUNET_htonll (look->op_id);
+  memcpy (&req[1], name, name_size);
+
+  GNUNET_CLIENT_MANAGER_transmit (plc->client, &req->header);
+  return look;
+}
 
 
 /**
@@ -1681,17 +1979,64 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh)
  * The best matching object is returned (its name might be less specific than
  * what was requested).
  *
- * @param place The place to look the object at.
- * @param full_name Full name of the object.
- * @param value_size Set to the size of the returned value.
+ * @param place
+ *        The place to look the object at.
+ * @param full_name
+ *        Full name of the object.
+ * @param value_size
+ *        Set to the size of the returned value.
+ *
  * @return NULL if there is no such object at this place.
  */
-const void *
-GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
+struct GNUNET_SOCIAL_LookHandle *
+GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *plc,
                              const char *full_name,
-                             size_t *value_size)
+                             GNUNET_PSYC_StateVarCallback var_cb,
+                             GNUNET_ResultCallback result_cb,
+                             void *cls)
 {
-  return NULL;
+  return place_state_get (plc, GNUNET_MESSAGE_TYPE_PSYC_STATE_GET,
+                          full_name, var_cb, result_cb, cls);
+}
+
+
+/**
+ * Look for objects in the place with a matching name prefix.
+ *
+ * @param place
+ *        The place to look its objects at.
+ * @param name_prefix
+ *        Look at objects with names beginning with this value.
+ * @param var_cb
+ *        Function to call for each object found.
+ * @param cls
+ *        Closure for callback function.
+ *
+ * @return Handle that can be used to stop looking at objects.
+ */
+struct GNUNET_SOCIAL_LookHandle *
+GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *plc,
+                              const char *name_prefix,
+                              GNUNET_PSYC_StateVarCallback var_cb,
+                              GNUNET_ResultCallback result_cb,
+                              void *cls)
+{
+  return place_state_get (plc, GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX,
+                          name_prefix, var_cb, result_cb, cls);
+}
+
+
+/**
+ * Cancel a state request operation.
+ *
+ * @param sr
+ *        Handle for the operation to cancel.
+ */
+void
+GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *look)
+{
+  GNUNET_CLIENT_MANAGER_op_cancel (look->plc->client, look->op_id);
+  GNUNET_free (look);
 }
 
 

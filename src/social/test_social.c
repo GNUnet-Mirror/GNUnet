@@ -75,6 +75,9 @@ struct GNUNET_SOCIAL_Slicer *guest_slicer;
 struct GNUNET_SOCIAL_Host *hst;
 struct GNUNET_SOCIAL_Guest *gst;
 
+struct GNUNET_SOCIAL_Place *hst_plc;
+struct GNUNET_SOCIAL_Place *gst_plc;
+
 struct GuestEnterMessage
 {
   struct GNUNET_PSYC_Message *msg;
@@ -99,6 +102,8 @@ struct TransmitClosure
 uint8_t join_req_count;
 struct GNUNET_PSYC_Message *join_resp;
 
+uint32_t counter;
+
 enum
 {
   TEST_NONE = 0,
@@ -106,11 +111,15 @@ enum
   TEST_GUEST_RECV_ENTRY_DCSN_REFUSE = 2,
   TEST_HOST_ANSWER_DOOR_ADMIT       = 3,
   TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  = 4,
-  TEST_HOST_ANNOUNCE     = 5,
-  TEST_HOST_ANNOUNCE_END = 6,
-  TEST_GUEST_TALK        = 7,
-  TEST_GUEST_LEAVE       = 8,
-  TEST_HOST_LEAVE        = 9,
+  TEST_HOST_ANNOUNCE   	            = 5,
+  TEST_HOST_ANNOUNCE_END            = 6,
+  TEST_HOST_ANNOUNCE2  	            = 7,
+  TEST_HOST_ANNOUNCE2_END           = 8,
+  TEST_GUEST_TALK                   = 9,
+  TEST_GUEST_HISTORY_REPLAY        = 10,
+  TEST_GUEST_HISTORY_REPLAY_LATEST = 11,
+  TEST_GUEST_LEAVE                 = 12,
+  TEST_HOST_LEAVE                  = 13,
 } test;
 
 
@@ -148,11 +157,13 @@ cleanup ()
   {
     GNUNET_SOCIAL_guest_leave (gst, GNUNET_NO, NULL, NULL);
     gst = NULL;
+    gst_plc = NULL;
   }
   if (NULL != hst)
   {
     GNUNET_SOCIAL_host_leave (hst, GNUNET_NO, NULL, NULL);
     hst = NULL;
+    hst_plc = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -273,6 +284,7 @@ host_left ()
   GNUNET_SOCIAL_slicer_destroy (host_slicer);
   host_slicer = NULL;
   hst = NULL;
+  hst_plc = NULL;
 
   end ();
 }
@@ -316,6 +328,7 @@ guest_left (void *cls)
   GNUNET_SOCIAL_slicer_destroy (guest_slicer);
   guest_slicer = NULL;
   gst = NULL;
+  gst_plc = NULL;
 
   GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
 }
@@ -331,6 +344,69 @@ guest_leave()
 
 
 static void
+schedule_guest_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  guest_leave ();
+}
+
+
+static void
+guest_recv_history_replay_latest_result (void *cls, int64_t result,
+                                         const void *data, uint16_t data_size)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Guest received latest history replay result: %" PRId64 "\n"
+              "%.*s\n",
+              test, result, data_size, data);
+  GNUNET_assert (2 == counter); /* message count */
+  GNUNET_assert (7 == result); /* fragment count */
+
+  GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
+}
+
+
+static void
+guest_history_replay_latest ()
+{
+  test = TEST_GUEST_HISTORY_REPLAY_LATEST;
+  counter = 0;
+  GNUNET_SOCIAL_place_history_replay_latest (gst_plc, 3, "",
+                                             GNUNET_PSYC_HISTORY_REPLAY_LOCAL,
+                                             guest_slicer,
+                                             &guest_recv_history_replay_latest_result,
+                                             NULL);
+}
+
+
+static void
+guest_recv_history_replay_result (void *cls, int64_t result,
+                                  const void *data, uint16_t data_size)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Guest received history replay result: %" PRId64 "\n"
+              "%.*s\n",
+              test, result, data_size, data);
+  GNUNET_assert (2 == counter); /* message count */
+  GNUNET_assert (7 == result); /* fragment count */
+
+  guest_history_replay_latest ();
+}
+
+
+static void
+guest_history_replay ()
+{
+  test = TEST_GUEST_HISTORY_REPLAY;
+  counter = 0;
+  GNUNET_SOCIAL_place_history_replay (gst_plc, 1, 3, "",
+                                      GNUNET_PSYC_HISTORY_REPLAY_LOCAL,
+                                      guest_slicer,
+                                      &guest_recv_history_replay_result,
+                                      NULL);
+}
+
+
+static void
 guest_recv_method (void *cls,
                   const struct GNUNET_PSYC_MessageMethod *meth,
                   uint64_t message_id,
@@ -340,8 +416,8 @@ guest_recv_method (void *cls,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received method for message ID %" PRIu64 ":\n"
-              "%s\n",
-              test, message_id, method_name);
+              "%s (flags: %x)\n",
+              test, message_id, method_name, flags);
   /* FIXME: check message */
 }
 
@@ -395,7 +471,20 @@ guest_recv_eom (void *cls,
     break;
 
   case TEST_HOST_ANNOUNCE_END:
+    host_announce2 ();
+    break;
+
+  case TEST_HOST_ANNOUNCE2:
+    test = TEST_HOST_ANNOUNCE2_END;
+    break;
+
+  case TEST_HOST_ANNOUNCE2_END:
     guest_talk ();
+    break;
+
+  case TEST_GUEST_HISTORY_REPLAY:
+  case TEST_GUEST_HISTORY_REPLAY_LATEST:
+    counter++;
     break;
 
   default:
@@ -466,15 +555,22 @@ host_recv_eom (void *cls,
   {
   case TEST_HOST_ANNOUNCE:
     test = TEST_HOST_ANNOUNCE_END;
-    //host_announce2 ();
     break;
 
   case TEST_HOST_ANNOUNCE_END:
+    host_announce2 ();
+    break;
+
+  case TEST_HOST_ANNOUNCE2:
+    test = TEST_HOST_ANNOUNCE2_END;
+    break;
+
+  case TEST_HOST_ANNOUNCE2_END:
     guest_talk ();
     break;
 
   case TEST_GUEST_TALK:
-    guest_leave ();
+    guest_history_replay ();
     break;
 
   default:
@@ -535,7 +631,7 @@ host_announce ()
 static void
 host_announce2 ()
 {
-  test = TEST_HOST_ANNOUNCE;
+  test = TEST_HOST_ANNOUNCE2;
 
   tmit = (struct TransmitClosure) {};
   tmit.env = GNUNET_ENV_environment_create ();
@@ -667,6 +763,7 @@ guest_enter ()
                                    &this_peer, 0, NULL, emsg->msg,
                                    guest_slicer, &guest_recv_local_enter,
                                    &guest_recv_entry_decision, NULL);
+  gst_plc = GNUNET_SOCIAL_guest_get_place (gst);
 }
 
 
@@ -727,6 +824,7 @@ id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
                                   GNUNET_PSYC_CHANNEL_PRIVATE, host_slicer,
                                   &host_entered, &host_answer_door,
                                   &host_farewell, NULL);
+  hst_plc = GNUNET_SOCIAL_host_get_place (hst);
 }
 
 

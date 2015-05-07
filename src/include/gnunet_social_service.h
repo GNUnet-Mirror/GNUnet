@@ -749,9 +749,45 @@ GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *guest);
 
 
 /**
- * A history lesson.
+ * A history request.
  */
-struct GNUNET_SOCIAL_HistoryLesson;
+struct GNUNET_SOCIAL_HistoryRequest;
+
+
+/**
+ * Learn about the history of a place.
+ *
+ * Messages are returned through the @a slicer function
+ * and have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
+ *
+ * @param place
+ *        Place we want to learn more about.
+ * @param start_message_id
+ *        First historic message we are interested in.
+ * @param end_message_id
+ *        Last historic message we are interested in (inclusive).
+ * @param method_prefix
+ *        Only retrieve messages with this method prefix.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_HistoryReplayFlags
+ * @param slicer
+ *        Slicer to use for retrieved messages.
+ *        Can be the same as the slicer of the place.
+ * @param result_cb
+ *        Function called after all messages retrieved.
+ *        NULL if not needed.
+ * @param cls Closure for @a result_cb.
+ */
+struct GNUNET_SOCIAL_HistoryRequest *
+GNUNET_SOCIAL_place_history_replay (struct GNUNET_SOCIAL_Place *plc,
+                                    uint64_t start_message_id,
+                                    uint64_t end_message_id,
+                                    const char *method_prefix,
+                                    uint32_t flags,
+                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    GNUNET_ResultCallback result_cb,
+                                    void *cls);
+
 
 /**
  * Learn about the history of a place.
@@ -762,36 +798,32 @@ struct GNUNET_SOCIAL_HistoryLesson;
  *
  * To get the latest message, use 0 for both the start and end message ID.
  *
- * @param place Place we want to learn more about.
- * @param start_message_id First historic message we are interested in.
- * @param end_message_id Last historic message we are interested in (inclusive).
- * @param slicer Slicer to use to process history.  Can be the same as the
- *               slicer of the place, as the HISTORIC flag allows distinguishing
- *               old messages from fresh ones.
- * @param finish_cb Function called after the last message in the history lesson
- *              is passed through the @a slicer. NULL if not needed.
- * @param finish_cb_cls Closure for @a finish_cb.
- * @return Handle to abort history lesson, never NULL (multiple lessons
- *         at the same time are allowed).
+ * @param place
+ *        Place we want to learn more about.
+ * @param message_limit
+ *        Maximum number of historic messages we are interested in.
+ * @param result_cb
+ *        Function called after all messages retrieved.
+ *        NULL if not needed.
+ * @param cls Closure for @a result_cb.
  */
-struct GNUNET_SOCIAL_HistoryLesson *
-GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
-                                 uint64_t start_message_id,
-                                 uint64_t end_message_id,
-                                 const struct GNUNET_SOCIAL_Slicer *slicer,
-                                 void (*finish_cb)(void *),
-                                 void *finish_cb_cls);
-
+struct GNUNET_SOCIAL_HistoryRequest *
+GNUNET_SOCIAL_place_history_replay_latest (struct GNUNET_SOCIAL_Place *plc,
+                                           uint64_t message_limit,
+                                           const char *method_prefix,
+                                           uint32_t flags,
+                                           struct GNUNET_SOCIAL_Slicer *slicer,
+                                           GNUNET_ResultCallback result_cb,
+                                           void *cls);
 
 /**
- * Stop processing messages from the history lesson.
+ * Cancel learning about the history of a place.
  *
- * Must not be called after the finish callback of the history lesson is called.
- *
- * @param hist History lesson to cancel.
+ * @param hist
+ *        History lesson to cancel.
  */
 void
-GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist);
+GNUNET_SOCIAL_place_history_replay_cancel (struct GNUNET_SOCIAL_HistoryRequest *hist);
 
 
 struct GNUNET_SOCIAL_WatchHandle;
@@ -803,7 +835,7 @@ struct GNUNET_SOCIAL_WatchHandle;
  *        Place to watch.
  * @param object_filter
  *        Object prefix to match.
- * @param state_var_cb
+ * @param var_cb
  *        Function to call when an object/state var changes.
  * @param cls
  *        Closure for callback.
@@ -813,7 +845,7 @@ struct GNUNET_SOCIAL_WatchHandle;
 struct GNUNET_SOCIAL_WatchHandle *
 GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
                            const char *object_filter,
-                           GNUNET_PSYC_StateVarCallback state_var_cb,
+                           GNUNET_PSYC_StateVarCallback var_cb,
                            void *cls);
 
 
@@ -830,13 +862,35 @@ struct GNUNET_SOCIAL_LookHandle;
 
 
 /**
- * Look at objects in the place with a matching name prefix.
+ * Look at a particular object in the place.
+ *
+ * The best matching object is returned (its name might be less specific than
+ * what was requested).
+ *
+ * @param place
+ *        The place to look the object at.
+ * @param full_name
+ *        Full name of the object.
+ * @param value_size
+ *        Set to the size of the returned value.
+ *
+ * @return NULL if there is no such object at this place.
+ */
+struct GNUNET_SOCIAL_LookHandle *
+GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *plc,
+                             const char *full_name,
+                             GNUNET_PSYC_StateVarCallback var_cb,
+                             GNUNET_ResultCallback result_cb,
+                             void *cls);
+
+/**
+ * Look for objects in the place with a matching name prefix.
  *
  * @param place
  *        The place to look its objects at.
  * @param name_prefix
  *        Look at objects with names beginning with this value.
- * @param state_var_cb
+ * @param var_cb
  *        Function to call for each object found.
  * @param cls
  *        Closure for callback function.
@@ -844,10 +898,11 @@ struct GNUNET_SOCIAL_LookHandle;
  * @return Handle that can be used to stop looking at objects.
  */
 struct GNUNET_SOCIAL_LookHandle *
-GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
-                          const char *name_prefix,
-                          GNUNET_PSYC_StateVarCallback state_var_cb,
-                          void *cls);
+GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *plc,
+                              const char *name_prefix,
+                              GNUNET_PSYC_StateVarCallback var_cb,
+                              GNUNET_ResultCallback result_cb,
+                              void *cls);
 
 
 /**
@@ -857,24 +912,6 @@ GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
  */
 void
 GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
-
-
-
-/**
- * Look at a particular object in the place.
- *
- * The best matching object is returned (its name might be less specific than
- * what was requested).
- *
- * @param place The place to look the object at.
- * @param full_name Full name of the object.
- * @param value_size Set to the size of the returned value.
- * @return NULL if there is no such object at this place.
- */
-const void *
-GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
-                             const char *full_name,
-                             size_t *value_size);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -326,9 +326,13 @@ GNUNET_PSYC_transmit_destroy (struct GNUNET_PSYC_TransmitHandle *tmit)
  * The message part is added to the current message buffer.
  * When this buffer is full, it is added to the transmission queue.
  *
- * @param tmit  Transmission handle.
- * @param msg  Message part, or NULL.
- * @param end  End of message? #GNUNET_YES or #GNUNET_NO.
+ * @param tmit
+ *        Transmission handle.
+ * @param msg
+ *        Message part, or NULL.
+ * @param end
+ *        End of message?
+ *        #GNUNET_YES or #GNUNET_NO.
  */
 static void
 transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
@@ -632,16 +636,24 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 /**
  * Transmit a message.
  *
- * @param tmit         Transmission handle.
- * @param method_name  Which method should be invoked.
- * @param env          Environment for the message.
- *   Should stay available until the first call to notify_data.
- *   Can be NULL if there are no modifiers or @a notify_mod is provided instead.
- * @param notify_mod   Function to call to obtain modifiers.
- *   Can be NULL if there are no modifiers or @a env is provided instead.
- * @param notify_data  Function to call to obtain fragments of the data.
- * @param notify_cls   Closure for @a notify_mod and @a notify_data.
- * @param flags        Flags for the message being transmitted.
+ * @param tmit
+ *        Transmission handle.
+ * @param method_name
+ *        Which method should be invoked.
+ * @param env
+ *        Environment for the message.
+ *        Should stay available until the first call to notify_data.
+ *        Can be NULL if there are no modifiers or @a notify_mod is
+ *        provided instead.
+ * @param notify_mod
+ *        Function to call to obtain modifiers.
+ *        Can be NULL if there are no modifiers or @a env is provided instead.
+ * @param notify_data
+ *        Function to call to obtain fragments of the data.
+ * @param notify_cls
+ *        Closure for @a notify_mod and @a notify_data.
+ * @param flags
+ *        Flags for the message being transmitted.
  *
  * @return #GNUNET_OK if the transmission was started.
  *         #GNUNET_SYSERR if another transmission is already going on.

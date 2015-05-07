@@ -376,6 +376,106 @@ struct GNUNET_PSYC_JoinDecisionMessage
   /* Followed by struct GNUNET_MessageHeader join_response */
 };
 
+
+enum GNUNET_PSYC_HistoryReplayFlags
+{
+  /**
+   * Replay locally available messages.
+   */
+  GNUNET_PSYC_HISTORY_REPLAY_LOCAL  = 0,
+
+  /**
+   * Replay messages from remote peers if not found locally.
+   */
+  GNUNET_PSYC_HISTORY_REPLAY_REMOTE = 1,
+};
+
+
+struct GNUNET_PSYC_HistoryRequestMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_HISTORY_REPLAY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * @see enum GNUNET_PSYC_HistoryReplayFlags
+   */
+  uint32_t flags GNUNET_PACKED;
+
+  /**
+   * ID for this operation.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+  uint64_t start_message_id GNUNET_PACKED;
+
+  uint64_t end_message_id GNUNET_PACKED;
+
+  uint64_t message_limit GNUNET_PACKED;
+
+  /* Followed by NUL-terminated method name prefix. */
+};
+
+
+struct GNUNET_PSYC_StateRequestMessage
+{
+  /**
+   * Types:
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_GET
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_GET_PREFIX
+   */
+  struct GNUNET_MessageHeader header;
+
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * ID for this operation.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+  /* Followed by NUL-terminated name. */
+};
+
+
+/**** service -> library ****/
+
+
+/**
+ * Answer from service to client about last operation.
+ */
+struct GNUNET_PSYC_OperationResultMessage
+{
+  /**
+   * Types:
+   * - GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+  /**
+   * Status code for the operation.
+   */
+  uint64_t result_code GNUNET_PACKED;
+
+  /* Followed by:
+   * - on error: NUL-terminated error message
+   * - on success: one of the following message types
+   *
+   *   For a STATE_RESULT, one of:
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END
+   */
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -907,23 +1007,6 @@ struct GNUNET_PSYC_Channel;
 
 
 /**
- * Function called with the result of an asynchronous operation.
- *
- * @param cls
- *        Closure.
- * @param result
- *        Result of the operation.
- *        Usually one of #GNUNET_OK, #GNUNET_YES, #GNUNET_NO, or #GNUNET_SYSERR.
- * @param err_msg
- *        Error message.
- */
-typedef void
-(*GNUNET_PSYC_ResultCallback) (void *cls,
-                               int64_t result,
-                               const char *err_msg);
-
-
-/**
  * Convert a channel @a master to a @e channel handle to access the @e channel
  * APIs.
  *
@@ -960,17 +1043,28 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  * correctly; not doing so correctly will result in either denying other slaves
  * access or offering access to channel data to non-members.
  *
- * @param channel Channel handle.
- * @param slave_key Identity of channel slave to add.
- * @param announced_at ID of the message that announced the membership change.
- * @param effective_since Addition of slave is in effect since this message ID.
+ * @param channel
+ *        Channel handle.
+ * @param slave_key
+ *        Identity of channel slave to add.
+ * @param announced_at
+ *        ID of the message that announced the membership change.
+ * @param effective_since
+ *        Addition of slave is in effect since this message ID.
+ * @param result_cb
+ *        Function to call with the result of the operation.
+ *        The @e result_code argument is #GNUNET_OK on success, or
+ *        #GNUNET_SYSERR on error.  In case of an error, the @e data argument
+ *        can contain an optional error message.
+ * @param cls
+ *        Closure for @a result_cb.
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
                                const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                uint64_t announced_at,
                                uint64_t effective_since,
-                               GNUNET_PSYC_ResultCallback result_cb,
+                               GNUNET_ResultCallback result_cb,
                                void *cls);
 
 
@@ -991,17 +1085,109 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
  * denying members access or offering access to channel data to
  * non-members.
  *
- * @param channel Channel handle.
- * @param slave_key Identity of channel slave to remove.
- * @param announced_at ID of the message that announced the membership change.
+ * @param channel
+ *        Channel handle.
+ * @param slave_key
+ *        Identity of channel slave to remove.
+ * @param announced_at
+ *        ID of the message that announced the membership change.
+ * @param result_cb
+ *        Function to call with the result of the operation.
+ *        The @e result_code argument is #GNUNET_OK on success, or
+ *        #GNUNET_SYSERR on error.  In case of an error, the @e data argument
+ *        can contain an optional error message.
+ * @param cls
+ *        Closure for @a result_cb.
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
                                   const struct GNUNET_CRYPTO_EcdsaPublicKey
                                   *slave_key,
                                   uint64_t announced_at,
-                                  GNUNET_PSYC_ResultCallback result_cb,
+                                  GNUNET_ResultCallback result_cb,
                                   void *cls);
+
+
+/**
+ * History request handle.
+ */
+struct GNUNET_PSYC_HistoryRequest;
+
+
+/**
+ * Request to replay a part of the message history of the channel.
+ *
+ * Historic messages (but NOT the state at the time) will be replayed (given to
+ * the normal method handlers) if available and if access is permitted.
+ *
+ * @param channel
+ *        Which channel should be replayed?
+ * @param start_message_id
+ *        Earliest interesting point in history.
+ * @param end_message_id
+ *        Last (inclusive) interesting point in history.
+ * @param method_prefix
+ *        Retrieve only messages with a matching method prefix.
+ * @param flags
+ *        OR'ed enum GNUNET_PSYC_HistoryReplayFlags
+ * @param result_cb
+ *        Function to call when the requested history has been fully replayed.
+ *        Once this function has been called, the client must not call
+ *        GNUNET_PSYC_channel_history_replay_cancel() anymore.
+ * @param cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle to cancel history replay operation.
+ */
+struct GNUNET_PSYC_HistoryRequest *
+GNUNET_PSYC_channel_history_replay (struct GNUNET_PSYC_Channel *channel,
+                                    uint64_t start_message_id,
+                                    uint64_t end_message_id,
+                                    const char *method_prefix,
+                                    uint32_t flags,
+                                    GNUNET_PSYC_MessageCallback message_cb,
+                                    GNUNET_PSYC_MessagePartCallback message_part_cb,
+                                    GNUNET_ResultCallback result_cb,
+                                    void *cls);
+
+
+/**
+ * Request to replay the latest messages from the message history of the channel.
+ *
+ * Historic messages (but NOT the state at the time) will be replayed (given to
+ * the normal method handlers) if available and if access is permitted.
+ *
+ * @param channel
+ *        Which channel should be replayed?
+ * @param message_limit
+ *        Maximum number of messages to replay.
+ * @param flags
+ *        OR'ed enum GNUNET_PSYC_HistoryReplayFlags
+ * @param finish_cb
+ *        Function to call when the requested history has been fully replayed
+ *        (counting message IDs might not suffice, as some messages might be
+ *        secret and thus the listener would not know the story is finished
+ *        without being told explicitly)o once this function has been called, the
+ *        client must not call GNUNET_PSYC_channel_history_replay_cancel() anymore.
+ * @param cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle to cancel history replay operation.
+ */
+struct GNUNET_PSYC_HistoryRequest *
+GNUNET_PSYC_channel_history_replay_latest (struct GNUNET_PSYC_Channel *channel,
+                                           uint64_t message_limit,
+                                           const char *method_prefix,
+                                           uint32_t flags,
+                                           GNUNET_PSYC_MessageCallback message_cb,
+                                           GNUNET_PSYC_MessagePartCallback message_part_cb,
+                                           GNUNET_ResultCallback result_cb,
+                                           void *cls);
+
+
+void
+GNUNET_PSYC_channel_history_replay_cancel (struct GNUNET_PSYC_Channel *channel,
+                                           struct GNUNET_PSYC_HistoryRequest *hr);
 
 
 /**
@@ -1021,62 +1207,9 @@ typedef void
 
 
 /**
- * Request to replay a part of the message history of the channel.
- *
- * Historic messages (but NOT the state at the time) will be replayed (given to
- * the normal method handlers) if available and if access is permitted.
- *
- * @param channel
- *        Which channel should be replayed?
- * @param start_message_id
- *        Earliest interesting point in history.
- * @param end_message_id
- *        Last (inclusive) interesting point in history.
- * @param finish_cb
- *        Function to call when the requested history has been fully replayed
- *        (counting message IDs might not suffice, as some messages might be
- *        secret and thus the listener would not know the story is finished
- *        without being told explicitly)o once this function has been called, the
- *        client must not call GNUNET_PSYC_channel_history_replay_cancel() anymore.
- * @param cls
- *        Closure for the callbacks.
- *
- * @return Handle to cancel history replay operation.
+ * State request handle.
  */
-void
-GNUNET_PSYC_channel_history_replay (struct GNUNET_PSYC_Channel *channel,
-                                    uint64_t start_message_id,
-                                    uint64_t end_message_id,
-                                    GNUNET_PSYC_ResultCallback finish_cb,
-                                    void *cls);
-
-
-/**
- * Request to replay the latest messages from the message history of the channel.
- *
- * Historic messages (but NOT the state at the time) will be replayed (given to
- * the normal method handlers) if available and if access is permitted.
- *
- * @param channel
- *        Which channel should be replayed?
- * @param message_limit
- *        Maximum number of messages to replay.
- * @param finish_cb
- *        Function to call when the requested history has been fully replayed
- *        (counting message IDs might not suffice, as some messages might be
- *        secret and thus the listener would not know the story is finished
- *        without being told explicitly)o once this function has been called, the
- *        client must not call GNUNET_PSYC_channel_history_replay_cancel() anymore.
- * @param cls
- *        Closure for the callbacks.
- *
- * @return Handle to cancel history replay operation.
- */
-void
-GNUNET_PSYC_channel_history_replay_latest (struct GNUNET_PSYC_Channel *channel,
-                                           uint64_t message_limit,
-                                           GNUNET_PSYC_ResultCallback finish_cb,
-                                           void *cls);
+struct GNUNET_PSYC_StateRequest;
 
 
 /**
@@ -1100,11 +1233,11 @@ GNUNET_PSYC_channel_history_replay_latest (struct GNUNET_PSYC_Channel *channel,
  * @param cls
  *        Closure for the callbacks.
  */
-void
+struct GNUNET_PSYC_StateRequest *
 GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
                                const char *full_name,
                                GNUNET_PSYC_StateVarCallback var_cb,
-                               GNUNET_PSYC_ResultCallback result_cb,
+                               GNUNET_ResultCallback result_cb,
                                void *cls);
 
 
@@ -1131,12 +1264,22 @@ GNUNET_PSYC_channel_state_get (struct GNUNET_PSYC_Channel *channel,
  * @param cls
  *        Closure for the callbacks.
  */
-void
+struct GNUNET_PSYC_StateRequest *
 GNUNET_PSYC_channel_state_get_prefix (struct GNUNET_PSYC_Channel *channel,
                                       const char *name_prefix,
                                       GNUNET_PSYC_StateVarCallback var_cb,
-                                      GNUNET_PSYC_ResultCallback result_cb,
+                                      GNUNET_ResultCallback result_cb,
                                       void *cls);
+
+/**
+ * Cancel a state request operation.
+ *
+ * @param sr
+ *        Handle for the operation to cancel.
+ */
+void
+GNUNET_PSYC_channel_state_get_cancel (struct GNUNET_PSYC_StateRequest *sr);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

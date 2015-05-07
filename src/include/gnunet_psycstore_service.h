@@ -107,15 +107,20 @@ struct GNUNET_PSYCSTORE_OperationHandle;
 /**
  * Function called with the result of an asynchronous operation.
  *
+ * @param cls
+ *        Closure.
  * @param result
- *        #GNUNET_YES on success or if the peer was a member,
- *        #GNUNET_NO if the peer was not a member,
- *        #GNUNET_SYSERR on error,
+ *        Result of the operation.
+ * @param err_msg
+ *        Error message, or NULL if there's no error.
+ * @param err_msg_size
+ *        Size of @a err_msg
  */
 typedef void
 (*GNUNET_PSYCSTORE_ResultCallback) (void *cls,
                                     int64_t result,
-                                    const char *err_msg);
+                                    const char *err_msg,
+                                    uint16_t err_msg_size);
 
 
 /**
@@ -318,15 +323,15 @@ GNUNET_PSYCSTORE_fragment_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
  * @param channel_key
  *        The channel we are interested in.
  * @param slave_key
- *        The slave requesting the message.  If not NULL, a membership test is
- *        performed first and the message is only returned if the slave has
- *        access to it.
+ *        The slave requesting the message.
+ *        If not NULL, a membership test is performed first
+ *        and the message is only returned if the slave has access to it.
  * @param first_message_id
  *        First message ID to retrieve.
- *        Use 0 to get the latest message.
  * @param last_message_id
  *        Last consecutive message ID to retrieve.
- *        Use 0 to get the latest message.
+ * @param method_prefix
+ *        Retrieve only messages with a matching method prefix.
  * @param fragment_cb
  *        Callback to call with the retrieved fragments.
  * @param result_cb
@@ -342,6 +347,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                               uint64_t first_message_id,
                               uint64_t last_message_id,
+                              const char *method_prefix,
                               GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                               GNUNET_PSYCSTORE_ResultCallback result_cb,
                               void *cls);
@@ -355,14 +361,16 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param channel_key
  *        The channel we are interested in.
  * @param slave_key
- *        The slave requesting the message.  If not NULL, a membership test is
- *        performed first and the message is only returned if the slave has
- *        access to it.
+ *        The slave requesting the message.
+ *        If not NULL, a membership test is performed first
+ *        and the message is only returned if the slave has access to it.
  * @param message_limit
  *        Maximum number of messages to retrieve.
+ * @param method_prefix
+ *        Retrieve only messages with a matching method prefix.
  * @param fragment_cb
  *        Callback to call with the retrieved fragments.
- * @param rcb
+ * @param result_cb
  *        Callback to call with the result of the operation.
  * @param cls
  *        Closure for the callbacks.
@@ -374,6 +382,7 @@ GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
                                      const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                      const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                      uint64_t message_limit,
+                                     const char *method_prefix,
                                      GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                                      GNUNET_PSYCSTORE_ResultCallback rcb,
                                      void *cls);

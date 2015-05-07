@@ -154,7 +154,8 @@ end ()
 
 
 void
-state_reset_result (void *cls, int64_t result, const char *err_msg)
+state_reset_result (void *cls, int64_t result,
+                    const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_reset_result:\t%d\n", result);
@@ -195,7 +196,8 @@ state_result (void *cls, const char *name, const void *value, size_t value_size)
 
 
 void
-state_get_prefix_result (void *cls, int64_t result, const char *err_msg)
+state_get_prefix_result (void *cls, int64_t result,
+                         const char *err_msg, uint16_t err_msg_size)
 {
   struct StateClosure *scls = cls;
   op = NULL;
@@ -208,7 +210,8 @@ state_get_prefix_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-state_get_result (void *cls, int64_t result, const char *err_msg)
+state_get_result (void *cls, int64_t result,
+                  const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_get_result:\t%d\n", result);
@@ -260,7 +263,8 @@ counters_result (void *cls, int status, uint64_t max_fragment_id,
 
 
 void
-state_modify_result (void *cls, int64_t result, const char *err_msg)
+state_modify_result (void *cls, int64_t result,
+                     const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_modify_result:\t%d\n", result);
@@ -272,7 +276,8 @@ state_modify_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-state_sync_result (void *cls, int64_t result, const char *err_msg)
+state_sync_result (void *cls, int64_t result,
+                   const char *err_msg, uint16_t err_msg_size)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
@@ -328,7 +333,8 @@ fragment_result (void *cls,
 
 
 void
-message_get_latest_result (void *cls, int64_t result, const char *err_msg)
+message_get_latest_result (void *cls, int64_t result,
+                           const char *err_msg, uint16_t err_msg_size)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
@@ -355,7 +361,8 @@ message_get_latest_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-message_get_result (void *cls, int64_t result, const char *err_msg)
+message_get_result (void *cls, int64_t result,
+                    const char *err_msg, uint16_t err_msg_size)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
@@ -365,13 +372,14 @@ message_get_result (void *cls, int64_t result, const char *err_msg)
   fcls->n = 0;
   fcls->n_expected = 3;
   op = GNUNET_PSYCSTORE_message_get_latest (h, &channel_pub_key, &slave_pub_key,
-                                            1, &fragment_result,
+                                            1, "", &fragment_result,
                                             &message_get_latest_result, fcls);
 }
 
 
 void
-message_get_fragment_result (void *cls, int64_t result, const char *err_msg)
+message_get_fragment_result (void *cls, int64_t result,
+                             const char *err_msg, uint16_t err_msg_size)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
@@ -382,14 +390,15 @@ message_get_fragment_result (void *cls, int64_t result, const char *err_msg)
   fcls->n_expected = 3;
   uint64_t message_id = GNUNET_ntohll (fcls->msg[0]->message_id);
   op = GNUNET_PSYCSTORE_message_get (h, &channel_pub_key, &slave_pub_key,
-                                     message_id, message_id,
+                                     message_id, message_id, "",
                                      &fragment_result,
                                      &message_get_result, fcls);
 }
 
 
 void
-fragment_get_latest_result (void *cls, int64_t result, const char *err_msg)
+fragment_get_latest_result (void *cls, int64_t result,
+                            const char *err_msg, uint16_t err_msg_size)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
@@ -407,7 +416,8 @@ fragment_get_latest_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-fragment_get_result (void *cls, int64_t result, const char *err_msg)
+fragment_get_result (void *cls, int64_t result,
+                     const char *err_msg, uint16_t err_msg_size)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
@@ -424,7 +434,8 @@ fragment_get_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-fragment_store_result (void *cls, int64_t result, const char *err_msg)
+fragment_store_result (void *cls, int64_t result,
+                       const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_store:\t%d\n", result);
@@ -495,7 +506,8 @@ fragment_store ()
 
 
 void
-membership_test_result (void *cls, int64_t result, const char *err_msg)
+membership_test_result (void *cls, int64_t result,
+                        const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_test:\t%d\n", result);
@@ -506,7 +518,8 @@ membership_test_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-membership_store_result (void *cls, int64_t result, const char *err_msg)
+membership_store_result (void *cls, int64_t result,
+                         const char *err_msg, uint16_t err_msg_size)
 {
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_store:\t%d\n", result);
@@ -516,6 +529,7 @@ membership_store_result (void *cls, int64_t result, const char *err_msg)
                                          INT64_MAX - 10, 2,
                                          &membership_test_result, NULL);
 }
+
 
 /**
  * Main function of the test, run from scheduler.

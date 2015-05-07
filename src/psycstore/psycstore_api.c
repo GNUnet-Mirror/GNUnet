@@ -283,7 +283,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
     if (size == sizeof (struct OperationResult))
-      str = NULL;
+      str = "";
 
     op = find_op_by_id (h, GNUNET_ntohll (opres->op_id));
     if (NULL == op)
@@ -321,7 +321,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         }
       }
       if (NULL != op->res_cb)
-        op->res_cb (op->cls, result_code, str);
+        op->res_cb (op->cls, result_code, str, size - sizeof (*opres));
       GNUNET_free (op);
     }
     break;
@@ -965,18 +965,19 @@ GNUNET_PSYCSTORE_fragment_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
  * @param channel_key
  *        The channel we are interested in.
  * @param slave_key
- *        The slave requesting the message.  If not NULL, a membership test is
- *        performed first and the message is only returned if the slave has
- *        access to it.
+ *        The slave requesting the message.
+ *        If not NULL, a membership test is performed first
+ *        and the message is only returned if the slave has access to it.
  * @param first_message_id
  *        First message ID to retrieve.
- *        Use 0 to get the latest message.
  * @param last_message_id
  *        Last consecutive message ID to retrieve.
- *        Use 0 to get the latest message.
+ * @param method_prefix
+ *        Retrieve only messages with a matching method prefix.
+ * @todo Implement method_prefix query.
  * @param fragment_cb
  *        Callback to call with the retrieved fragments.
- * @param rcb
+ * @param result_cb
  *        Callback to call with the result of the operation.
  * @param cls
  *        Closure for the callbacks.
@@ -989,11 +990,18 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                               uint64_t first_message_id,
                               uint64_t last_message_id,
+                              const char *method_prefix,
                               GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                               GNUNET_PSYCSTORE_ResultCallback rcb,
                               void *cls)
 {
   struct MessageGetRequest *req;
+  if (NULL == method_prefix)
+    method_prefix = "";
+  uint16_t method_size = strnlen (method_prefix,
+                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  - sizeof (*req)) + 1;
+
   struct GNUNET_PSYCSTORE_OperationHandle *
     op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
@@ -1004,7 +1012,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
   req = (struct MessageGetRequest *) &op[1];
   op->msg = (struct GNUNET_MessageHeader *) req;
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET);
-  req->header.size = htons (sizeof (*req));
+  req->header.size = htons (sizeof (*req) + method_size);
   req->channel_key = *channel_key;
   req->first_message_id = GNUNET_htonll (first_message_id);
   req->last_message_id = GNUNET_htonll (last_message_id);
@@ -1013,6 +1021,8 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
     req->slave_key = *slave_key;
     req->do_membership_test = GNUNET_YES;
   }
+  memcpy (&req[1], method_prefix, method_size);
+  ((char *) &req[1])[method_size - 1] = '\0';
 
   op->op_id = get_next_op_id (h);
   req->op_id = GNUNET_htonll (op->op_id);
@@ -1032,14 +1042,17 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  * @param channel_key
  *        The channel we are interested in.
  * @param slave_key
- *        The slave requesting the message.  If not NULL, a membership test is
- *        performed first and the message is only returned if the slave has
- *        access to it.
+ *        The slave requesting the message.
+ *        If not NULL, a membership test is performed first
+ *        and the message is only returned if the slave has access to it.
  * @param message_limit
  *        Maximum number of messages to retrieve.
+ * @param method_prefix
+ *        Retrieve only messages with a matching method prefix.
+ * @todo Implement method_prefix query.
  * @param fragment_cb
  *        Callback to call with the retrieved fragments.
- * @param rcb
+ * @param result_cb
  *        Callback to call with the result of the operation.
  * @param cls
  *        Closure for the callbacks.
@@ -1051,13 +1064,22 @@ GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
                                      const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                      const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                      uint64_t message_limit,
+                                     const char *method_prefix,
                                      GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                                      GNUNET_PSYCSTORE_ResultCallback rcb,
                                      void *cls)
 {
   struct MessageGetRequest *req;
+
+  if (NULL == method_prefix)
+    method_prefix = "";
+  uint16_t method_size = strnlen (method_prefix,
+                                  GNUNET_SERVER_MAX_MESSAGE_SIZE
+                                  - sizeof (*req)) + 1;
+  GNUNET_assert ('\0' == method_prefix[method_size - 1]);
+
   struct GNUNET_PSYCSTORE_OperationHandle *
-    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req) + method_size);
   op->h = h;
   op->data_cb = (DataCallback) fragment_cb;
   op->res_cb = rcb;
@@ -1066,7 +1088,7 @@ GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
   req = (struct MessageGetRequest *) &op[1];
   op->msg = (struct GNUNET_MessageHeader *) req;
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET);
-  req->header.size = htons (sizeof (*req));
+  req->header.size = htons (sizeof (*req) + method_size);
   req->channel_key = *channel_key;
   req->message_limit = GNUNET_ntohll (message_limit);
   if (NULL != slave_key)
@@ -1077,6 +1099,7 @@ GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
 
   op->op_id = get_next_op_id (h);
   req->op_id = GNUNET_htonll (op->op_id);
+  memcpy (&req[1], method_prefix, method_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);

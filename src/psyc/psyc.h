@@ -171,42 +171,6 @@ struct StateRequest
 /**** service -> library ****/
 
 
-/**
- * Answer from service to client about last operation.
- */
-struct OperationResult
-{
-  /**
-   * Types:
-   * - GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE
-   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STORY_RESULT
-   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_RESULT
-   */
-  struct GNUNET_MessageHeader header;
-
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Operation ID.
-   */
-  uint64_t op_id GNUNET_PACKED;
-
-  /**
-   * Status code for the operation.
-   */
-  uint64_t result_code GNUNET_PACKED;
-
-  /* Followed by:
-   * - on error: NUL-terminated error message
-   * - on success: one of the following message types
-   *
-   *   For a STATE_RESULT, one of:
-   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
-   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT
-   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END
-   */
-};
-
 GNUNET_NETWORK_STRUCT_END
 
 #endif

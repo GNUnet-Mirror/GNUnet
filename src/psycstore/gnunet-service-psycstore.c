@@ -109,7 +109,7 @@ send_result_code (struct GNUNET_SERVER_Client *client, uint64_t op_id,
 
   if (NULL != err_msg)
     err_size = strnlen (err_msg,
-                        GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*res)) + 1;
+                        GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*res) - 1) + 1;
   res = GNUNET_malloc (sizeof (struct OperationResult) + err_size);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE);
   res->header.size = htons (sizeof (struct OperationResult) + err_size);
@@ -222,7 +222,7 @@ send_state_var (void *cls, const char *name,
   struct StateResult *res;
   size_t name_size = strlen (name) + 1;
 
-  /* FIXME: split up value into 64k chunks */
+  /** @todo FIXME: split up value into 64k chunks */
 
   res = GNUNET_malloc (sizeof (struct StateResult) + name_size + value_size);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_STATE);
@@ -333,7 +333,7 @@ handle_fragment_get (void *cls,
                             first_fragment_id, last_fragment_id,
                             &ret_frags, &send_fragment, &sc);
   else
-    ret = db->fragment_get_latest (db->cls, &req->channel_key, limit, 
+    ret = db->fragment_get_latest (db->cls, &req->channel_key, limit,
                                    &ret_frags, &send_fragment, &sc);
 
   switch (ret)
@@ -373,6 +373,20 @@ handle_message_get (void *cls,
 {
   const struct MessageGetRequest *
     req = (const struct MessageGetRequest *) msg;
+  uint16_t size = ntohs (msg->size);
+  const char *method_prefix = (const char *) &req[1];
+
+  if (size < sizeof (*req) + 1
+      || '\0' != method_prefix[size - sizeof (*req) - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Message get: invalid method prefix. size: %u < %u?\n",
+                size, sizeof (*req) + 1);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
   struct SendClosure
     sc = { .op_id = req->op_id, .client = client,
            .channel_key = req->channel_key, .slave_key = req->slave_key,
@@ -384,6 +398,7 @@ handle_message_get (void *cls,
   uint64_t last_message_id = GNUNET_ntohll (req->last_message_id);
   uint64_t limit = GNUNET_ntohll (req->message_limit);
 
+  /** @todo method_prefix */
   if (0 == limit)
     ret = db->message_get (db->cls, &req->channel_key,
                            first_message_id, last_message_id,
@@ -478,7 +493,7 @@ handle_counters_get (void *cls,
 }
 
 
-/* FIXME: stop processing further state modify messages after an error */
+/** @todo FIXME: stop processing further state modify messages after an error */
 static void
 handle_state_modify (void *cls,
                      struct GNUNET_SERVER_Client *client,
@@ -551,7 +566,7 @@ handle_state_modify (void *cls,
 }
 
 
-/* FIXME: stop processing further state sync messages after an error */
+/** @todo FIXME: stop processing further state sync messages after an error */
 static void
 handle_state_sync (void *cls,
                    struct GNUNET_SERVER_Client *client,
@@ -761,8 +776,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       sizeof (struct FragmentGetRequest) },
 
     { &handle_message_get, NULL,
-      GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET,
-      sizeof (struct MessageGetRequest) },
+      GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET, 0 },
 
     { &handle_message_get_fragment, NULL,
       GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET_FRAGMENT,
