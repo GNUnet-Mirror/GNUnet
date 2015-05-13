@@ -1041,34 +1041,6 @@ GNUNET_CRYPTO_eddsa_key_get_public (const struct GNUNET_CRYPTO_EddsaPrivateKey *
 
 /**
  * @ingroup crypto
- * Convert ECDSA public key to ECDHE public key.
- * Please be very careful when using this function, as mixing
- * cryptographic primitives is not always healthy.
- *
- * @param ecdsa ecdsa public key
- * @param ecdhe[OUT] ecdhe public key
- */
-void
-GNUNET_CRYPTO_ecdsa_public_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa,
-                                     struct GNUNET_CRYPTO_EcdhePublicKey *ecdhe);
-
-
-/**
- * @ingroup crypto
- * Convert ECDSA private key to ECDHE private key.
- * Please be very careful when using this function, as mixing
- * cryptographic primitives is not always healthy.
- *
- * @param ecdsa ecdsa private key
- * @param ecdhe[OUT] ecdhe private key
- */
-void
-GNUNET_CRYPTO_ecdsa_private_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa,
-                                     struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe);
-
-
-/**
- * @ingroup crypto
  * Extract the public key for the given private key.
  *
  * @param priv the private key
@@ -1247,6 +1219,7 @@ GNUNET_CRYPTO_eddsa_key_clear (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
 void
 GNUNET_CRYPTO_ecdsa_key_clear (struct GNUNET_CRYPTO_EcdsaPrivateKey *pk);
 
+
 /**
  * @ingroup crypto
  * Clear memory that was used to store a private key.
@@ -1321,6 +1294,38 @@ int
 GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                         const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                         struct GNUNET_HashCode *key_material);
+
+
+/**
+ * @ingroup crypto
+ * Derive key material from a ECDH public key and a private EdDSA key.
+ * Dual to #GNUNET_CRRYPTO_ecdh_eddsa.
+ *
+ * @param priv private key from EdDSA to use for the ECDH (x)
+ * @param pub public key to use for the ECDH (yG)
+ * @param key_material where to write the key material H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                          struct GNUNET_HashCode *key_material);
+
+
+/**
+ * @ingroup crypto
+ * Derive key material from a EdDSA public key and a private ECDH key.
+ * Dual to #GNUNET_CRRYPTO_eddsa_ecdh.
+ *
+ * @param priv private key to use for the ECDH (y)
+ * @param pub public key from EdDSA to use for the ECDH (X=h(x)G)
+ * @param key_material where to write the key material H(yX)=H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
+                          struct GNUNET_HashCode *key_material);
 
 
 /**
@@ -1666,7 +1671,7 @@ GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len);
 
 /**
  * Compare the values of two blinding keys.
- * 
+ *
  * @param b1 one key
  * @param b2 the other key
  * @return 0 if the two are equal

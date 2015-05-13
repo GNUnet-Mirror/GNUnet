@@ -62,6 +62,7 @@ extern "C"
  */
 #define GNUNET_UTIL_VERSION 0x000A0100
 
+
 /**
  * Named constants for return values.  The following invariants hold:
  * `GNUNET_NO == 0` (to allow `if (GNUNET_NO)`) `GNUNET_OK !=

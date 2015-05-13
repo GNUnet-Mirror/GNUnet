@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012, 2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2012, 2013, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1398,7 +1398,9 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
                                  result_x));
-  GNUNET_CRYPTO_hash (xbuf, rsize, key_material);
+  GNUNET_CRYPTO_hash (xbuf,
+                      rsize,
+                      key_material);
   gcry_mpi_release (result_x);
   return GNUNET_OK;
 }
@@ -1542,46 +1544,41 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
 
 /**
  * @ingroup crypto
- * Convert ECDSA public key to ECDHE public key.
- * Please be very careful when using this function, as mixing
- * cryptographic primitives is not always healthy.
+ * Derive key material from a ECDH public key and a private EdDSA key.
+ * Dual to #GNUNET_CRRYPTO_ecdh_eddsa.
  *
- * @param ecdsa ecdsa public key
- * @param ecdhe[OUT] ecdhe public key
+ * @param priv private key from EdDSA to use for the ECDH (x)
+ * @param pub public key to use for the ECDH (yG)
+ * @param key_material where to write the key material H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
-void
-GNUNET_CRYPTO_ecdsa_public_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPublicKey *ecdsa,
-                                     struct GNUNET_CRYPTO_EcdhePublicKey *ecdhe)
+int
+GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                          struct GNUNET_HashCode *key_material)
 {
-  GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) ==
-                 sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  memcpy (ecdhe,
-          ecdsa,
-          sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+  return GNUNET_SYSERR;
 }
-
 
 
 /**
  * @ingroup crypto
- * Convert ECDSA private key to ECDHE private key.
- * Please be very careful when using this function, as mixing
- * cryptographic primitives is not always healthy.
+ * Derive key material from a EdDSA public key and a private ECDH key.
+ * Dual to #GNUNET_CRRYPTO_eddsa_ecdh.
  *
- * @param ecdsa ecdsa private key
- * @param ecdhe[OUT] ecdhe private key
+ * @param priv private key to use for the ECDH (y)
+ * @param pub public key from EdDSA to use for the ECDH (X=h(x)G)
+ * @param key_material where to write the key material H(yX)=H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
  */
-void
-GNUNET_CRYPTO_ecdsa_private_to_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ecdsa,
-                                     struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe)
+int
+GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
+                          struct GNUNET_HashCode *key_material)
 {
-  GNUNET_assert (sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey) ==
-                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-  memcpy (ecdhe,
-          ecdsa,
-          sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
-
+  return GNUNET_SYSERR;
 }
+
 
 
 /* end of crypto_ecc.c */
