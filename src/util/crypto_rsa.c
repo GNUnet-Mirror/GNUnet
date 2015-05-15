@@ -422,6 +422,72 @@ GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
 
 
 /**
+ * Compare the values of two signatures.
+ *
+ * @param s1 one signature
+ * @param s2 the other signature
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_rsa_Signature *s1,
+				 struct GNUNET_CRYPTO_rsa_Signature *s2)
+{
+  char *b1;
+  char *b2;
+  size_t z1;
+  size_t z2;
+  int ret;
+  
+  z1 = GNUNET_CRYPTO_rsa_signature_encode (s1,
+					   &b1);
+  z2 = GNUNET_CRYPTO_rsa_signature_encode (s2,
+					   &b2);
+  if (z1 != z2)
+    ret = 1;
+  else
+    ret = memcmp (b1,
+		  b2,
+		  z1);
+  GNUNET_free (b1);
+  GNUNET_free (b2);
+  return ret;
+}
+
+
+/**
+ * Compare the values of two public keys.
+ *
+ * @param p1 one public key
+ * @param p2 the other public key
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
+				  struct GNUNET_CRYPTO_rsa_PublicKey *p2)
+{
+  char *b1;
+  char *b2;
+  size_t z1;
+  size_t z2;
+  int ret;
+  
+  z1 = GNUNET_CRYPTO_rsa_public_key_encode (p1,
+					    &b1);
+  z2 = GNUNET_CRYPTO_rsa_public_key_encode (p2,
+					    &b2);
+  if (z1 != z2)
+    ret = 1;
+  else
+    ret = memcmp (b1,
+		  b2,
+		  z1);
+  GNUNET_free (b1);
+  GNUNET_free (b2);
+  return ret;
+}
+
+
+/**
  * Destroy a blinding key
  *
  * @param bkey the blinding key to destroy
@@ -618,8 +684,8 @@ data_to_sexp (const void *ptr, size_t size)
  */
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
-                const void *msg,
-                size_t msg_len)
+			const void *msg,
+			size_t msg_len)
 {
   struct GNUNET_CRYPTO_rsa_Signature *sig;
   gcry_sexp_t result;
@@ -664,7 +730,7 @@ GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig)
  */
 size_t
 GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *sig,
-                            char **buffer)
+				    char **buffer)
 {
   size_t n;
   char *b;

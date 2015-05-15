@@ -1682,6 +1682,30 @@ GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
 
 
 /**
+ * Compare the values of two signatures.
+ *
+ * @param s1 one signature
+ * @param s2 the other signature
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_rsa_Signature *s1,
+				 struct GNUNET_CRYPTO_rsa_Signature *s2);
+
+
+/**
+ * Compare the values of two public keys.
+ *
+ * @param p1 one public key
+ * @param p2 the other public key
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
+				  struct GNUNET_CRYPTO_rsa_PublicKey *p2);
+
+
+/**
  * Destroy a blinding key
  *
  * @param bkey the blinding key to destroy
