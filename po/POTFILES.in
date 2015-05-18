@@ -98,6 +98,11 @@ src/dht/gnunet-service-dht_hello.c
 src/dht/gnunet-service-dht_neighbours.c
 src/dht/gnunet-service-dht_nse.c
 src/dht/gnunet-service-dht_routing.c
+src/dht/gnunet-service-wdht.c
+src/dht/gnunet-service-wdht_clients.c
+src/dht/gnunet-service-wdht_datacache.c
+src/dht/gnunet-service-wdht_neighbours.c
+src/dht/gnunet-service-wdht_nse.c
 src/dht/gnunet-service-xdht.c
 src/dht/gnunet-service-xdht_clients.c
 src/dht/gnunet-service-xdht_datacache.c

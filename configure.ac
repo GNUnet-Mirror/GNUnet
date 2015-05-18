@@ -893,7 +893,7 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # check for gettext
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.16.1])
+AM_GNU_GETTEXT_VERSION([0.19.3])
 
 # check for iconv
 AM_ICONV
