@@ -687,6 +687,11 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   {
     /* Already existing, nothing todo, but this should not happen */
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Diagnostics: %s:%s - %p\n",
+                GNUNET_i2s (&address->peer),
+                address->transport_name,
+                session);
     return NULL;
   }
   s = find_empty_session_slot (sh);

@@ -96,4 +96,3 @@ finally:
     shutil.rmtree (os.path.join (os.getenv ("TEMP"), "gnunet-test-peerinfo"), True)
   else:
     shutil.rmtree ("/tmp/gnunet-test-peerinfo", True)
-
