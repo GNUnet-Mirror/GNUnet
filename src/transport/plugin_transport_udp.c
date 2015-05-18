@@ -1901,7 +1901,7 @@ udp_plugin_send (void *cls,
                               GNUNET_NO);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, unfragmented bytes payload queued total",
-                              udpw->payload_size,
+                              msgbuf_size,
                               GNUNET_NO);
   }
   else
