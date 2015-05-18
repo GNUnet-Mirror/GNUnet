@@ -310,6 +310,9 @@ find_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
          (GNUNET_NO == sh->session_array[i]->in_destroy) &&
          ( (session == sh->session_array[i]->session) ||
            (NULL == sh->session_array[i]->session) ) &&
+         (0 == memcmp (&address->peer,
+                       &sh->session_array[i]->address->peer,
+                       sizeof (struct GNUNET_PeerIdentity))) &&
          (0 == GNUNET_HELLO_address_cmp (address,
                                          sh->session_array[i]->address)) )
       return i;
