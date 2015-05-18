@@ -92,12 +92,19 @@ main (int argc, char *argv[])
 
   start = GNUNET_TIME_absolute_get();
   for (i = 0; i < l; i++)
-    GNUNET_CRYPTO_eddsa_sign (eddsa[i], &sig[i].purp, &sig[i].sig);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_sign (eddsa[i],
+                                             &sig[i].purp,
+                                             &sig[i].sig));
   log_duration ("EdDSA", "sign HashCode");
 
   start = GNUNET_TIME_absolute_get();
   for (i = 0; i < l; i++)
-    GNUNET_CRYPTO_eddsa_verify (0, &sig[i].purp, &sig[i].sig, &dspub[i]);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_verify (0,
+                                               &sig[i].purp,
+                                               &sig[i].sig,
+                                               &dspub[i]));
   log_duration ("EdDSA", "verify HashCode");
 
   start = GNUNET_TIME_absolute_get();
