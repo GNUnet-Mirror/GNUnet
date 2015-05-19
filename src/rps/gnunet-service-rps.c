@@ -2196,47 +2196,57 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   struct GNUNET_CADET_Channel *recv;
   struct GNUNET_CADET_Channel *send;
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, value))
+  peer_ctx = (struct PeerContext *) value;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Going to clean peer %s\n",
+       GNUNET_i2s (&peer_ctx->peer_id));
+
+  /* If operations are still scheduled for this peer cancel those */
+  if (0 != peer_ctx->num_outstanding_ops)
+    GNUNET_array_grow (peer_ctx->outstanding_ops,
+                       peer_ctx->num_outstanding_ops,
+                       0);
+
+  /* If we are still waiting for notification whether this peer is live 
+   * cancel the according task */
+  if (NULL != peer_ctx->is_live_task)
   {
-    peer_ctx = (struct PeerContext *) value;
-
-    if (0 != peer_ctx->num_outstanding_ops)
-      GNUNET_array_grow (peer_ctx->outstanding_ops,
-                         peer_ctx->num_outstanding_ops,
-                         0);
-
-    if (NULL != peer_ctx->mq)
-    {
-      GNUNET_MQ_destroy (peer_ctx->mq);
-      peer_ctx->mq = NULL;
-    }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Trying to cancle is_live_task for peer %s\n",
+       GNUNET_i2s (key));
+    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
+    peer_ctx->is_live_task = NULL;
+  }
 
 
-    if (NULL != peer_ctx->is_live_task)
-    {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Trying to cancle is_live_task for peer %s\n",
-         GNUNET_i2s (key));
-      GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-      peer_ctx->is_live_task = NULL;
-    }
+  recv = peer_ctx->recv_channel;
+  peer_ctx->recv_channel = NULL;
+  if (NULL != recv
+      && channel != recv)
+  {
+    GNUNET_CADET_channel_destroy (recv);
+  }
 
-    send = peer_ctx->send_channel;
-    peer_ctx->send_channel = NULL;
-    if (NULL != send
-        && channel != send)
-    {
-      GNUNET_CADET_channel_destroy (send);
-    }
+  /* If there is still a mq destroy it */
+  if (NULL != peer_ctx->mq)
+  {
+    GNUNET_MQ_destroy (peer_ctx->mq);
+    peer_ctx->mq = NULL;
+  }
 
-    recv = peer_ctx->send_channel;
-    peer_ctx->recv_channel = NULL;
-    if (NULL != recv
-        && channel != recv)
-    {
-      GNUNET_CADET_channel_destroy (recv);
-    }
-
+  /* Remove the send_channel
+   * The peer map entry should be removed
+   * from the callback #cleanup_channel */
+  send = peer_ctx->send_channel;
+  peer_ctx->send_channel = NULL;
+  if (NULL != send
+      && channel != send)
+  {
+    GNUNET_CADET_channel_destroy (send);
+  }
+  else
+  { /* If there is no channel we have to remove it now */
     if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
       LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
     else
@@ -2275,7 +2285,6 @@ shutdown_task (void *cls,
   }
 
   GNUNET_NSE_disconnect (nse);
-  GNUNET_CADET_disconnect (cadet_handle);
   RPS_sampler_destroy (prot_sampler);
   RPS_sampler_destroy (client_sampler);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2283,6 +2292,7 @@ shutdown_task (void *cls,
        GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+  GNUNET_CADET_disconnect (cadet_handle);
   GNUNET_array_grow (gossip_list, gossip_list_size, 0);
   GNUNET_array_grow (push_list, push_list_size, 0);
   GNUNET_array_grow (pull_list, pull_list_size, 0);
@@ -2381,17 +2391,17 @@ cleanup_channel (void *cls,
        // Guess simply casting isn't the nicest way...
        // FIXME wait for cadet to change this function
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
-  {
+  //if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  //{
     peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
 
     if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
       return;
 
     if (channel == peer_ctx->send_channel)
-    { /* Peer probably went down */
+    { /* Peer went down or we killd the channel */
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Peer %s destroyed send channel - probably went down, cleaning up\n",
+           "send channel (%s) was destroyed - cleaning up\n",
            GNUNET_i2s (peer));
       rem_from_list (&gossip_list, &gossip_list_size, peer);
       rem_from_list (&pending_pull_reply_list, &pending_pull_reply_list_size, peer);
@@ -2400,6 +2410,11 @@ cleanup_channel (void *cls,
       /* Somwewhat {ab,re}use the iterator function */
       /* Cast to void is ok, because it's used as void in peer_remove_cb */
       (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+
+      //if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
+      //  LOG (GNUNET_ERROR_TYPE_WARNING, "Removing peer from peer_map failed\n");
+      //else
+      //  GNUNET_free (peer_ctx);
     }
     else if (channel == peer_ctx->recv_channel)
     { /* Other peer doesn't want to send us messages anymore */
@@ -2408,7 +2423,7 @@ cleanup_channel (void *cls,
            GNUNET_i2s (peer));
       peer_ctx->recv_channel = NULL;
     }
-  }
+  //}
 }
 
 
