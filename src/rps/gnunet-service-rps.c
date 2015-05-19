@@ -2048,27 +2048,28 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_array_grow (gossip_list, gossip_list_size, second_border);
 
     for (i = 0 ; i < first_border ; i++)
-    { // TODO use RPS_sampler_get_n_rand_peers
-      /* Update gossip list with peers received through PUSHes */
+    {/* Update gossip list with peers received through PUSHes */
       r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                       push_list_size);
+                                          push_list_size);
       gossip_list[i] = push_list[r_index];
       // TODO change the peer_flags accordingly
     }
 
     for (i = first_border ; i < second_border ; i++)
-    {
-      /* Update gossip list with peers received through PULLs */
+    {/* Update gossip list with peers received through PULLs */
       r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                       pull_list_size);
+                                          pull_list_size);
       gossip_list[i] = pull_list[r_index];
       // TODO change the peer_flags accordingly
     }
 
     for (i = second_border ; i < sampler_size_est_need ; i++)
-    {
-      /* Update gossip list with peers from history */
-      RPS_sampler_get_n_rand_peers (prot_sampler, hist_update, NULL, 1, GNUNET_NO);
+    {/* Update gossip list with peers from history */
+      RPS_sampler_get_n_rand_peers (prot_sampler,
+                                    hist_update,
+                                    NULL,
+                                    1,
+                                    GNUNET_NO);
       num_hist_update_tasks++;
       // TODO change the peer_flags accordingly
     }

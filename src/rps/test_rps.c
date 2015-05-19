@@ -318,7 +318,10 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
-  for (i=0;i<NUM_PEERS;i++)
+  if (NULL != churn_task)
+    GNUNET_SCHEDULER_cancel (churn_task);
+
+  for (i = 0 ; i < num_peers ; i++)
     GNUNET_TESTBED_operation_done (rps_peers[i].op);
   GNUNET_SCHEDULER_shutdown ();
 }

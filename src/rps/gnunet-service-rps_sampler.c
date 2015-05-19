@@ -644,7 +644,7 @@ sampler_empty (struct RPS_Sampler *sampler)
  */
 struct RPS_Sampler *
 RPS_sampler_init (size_t init_size,
-    struct GNUNET_TIME_Relative max_round_interval)
+                  struct GNUNET_TIME_Relative max_round_interval)
 {
   struct RPS_Sampler *sampler;
   //uint32_t i;
