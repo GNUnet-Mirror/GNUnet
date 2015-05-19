@@ -360,7 +360,8 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                               GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
     msg->type = htonl (type);
     msg->num_peers = htonl (num_peers_max);
-    if (2 == type)
+    if (2 == type
+        || 3 == type)
       msg->attacked_peer = peer_ids[num_peers];
     memcpy (&msg[1],
             tmp_peer_pointer,
@@ -380,7 +381,8 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                             GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
   msg->type = htonl (type);
   msg->num_peers = htonl (num_peers);
-  if (2 == type)
+  if (2 == type
+      || 3 == type)
     msg->attacked_peer = peer_ids[num_peers];
   memcpy (&msg[1], tmp_peer_pointer, num_peers * sizeof (struct GNUNET_PeerIdentity));
 
