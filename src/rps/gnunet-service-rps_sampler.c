@@ -929,7 +929,7 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
   #endif /* TO_FILE */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Scheduling requests for %" PRIX32 " peers\n", num_peers);
+      "Scheduling requests for %" PRIu32 " peers\n", num_peers);
 
   for (i = 0 ; i < num_peers ; i++)
   {
