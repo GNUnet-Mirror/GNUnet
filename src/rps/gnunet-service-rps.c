@@ -1864,6 +1864,10 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                          num_attacked_peers),
                              GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Going to send %" PRIu32 " pushes\n",
+         num_pushes);
+
     /* Send PUSHes to attacked peers */
     for (i = 0 ; i < num_pushes ; i++)
     {
@@ -1905,6 +1909,10 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit - 1,
                                          num_attacked_peers),
                              GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
+
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Going to send %" PRIu32 " pushes\n",
+         num_pushes);
 
     /* Send PUSHes to attacked peers */
     send_push (&attacked_peer);
