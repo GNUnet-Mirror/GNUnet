@@ -494,7 +494,7 @@ GNUNET_CRYPTO_ecdhe_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags)))")))
+                                  "(flags eddsa)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -1586,7 +1586,7 @@ eddsa_d_to_a (gcry_mpi_t d)
   gcry_mpi_t a;
 
   b = 256 / 8; /* number of bytes in `d` */
-  
+
   /* Note that we clear DIGEST so we can use it as input to left pad
      the key with zeroes for hashing.  */
   memset (hvec, 0, sizeof hvec);
@@ -1658,7 +1658,7 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   /* NOW, because this is EdDSA, HASH 'd' first! */
   a = eddsa_d_to_a (d);
   gcry_mpi_release (d);
-    
+
   /* then call the 'multiply' function, to compute the product */
   result = gcry_mpi_point_new (0);
   gcry_mpi_ec_mul (result, a, q, ctx);
