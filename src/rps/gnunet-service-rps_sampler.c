@@ -102,6 +102,13 @@ struct RPS_SamplerElement
    * How many times this sampler changed the peer_id.
    */
   uint32_t num_change;
+
+  /**
+   * The file name this sampler element should log to
+   */
+  #ifdef TO_FILE
+  char *file_name;
+  #endif /* TO_FILE */
 };
 
 
@@ -362,6 +369,42 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el)
                              &(sampler_el->auth_key.key),
                              GNUNET_CRYPTO_HASH_LENGTH);
 
+  #ifdef TO_FILE
+  /* Create a file(-name) to store internals to */
+  int size;
+  char *end;
+  char *buf;
+  char name_buf[512];
+  size_t keylen = (sizeof (struct GNUNET_CRYPTO_AuthKey)) * 8;
+
+  if (keylen % 5 > 0)
+    keylen += 5 - keylen % 5;
+  keylen /= 5;
+  buf = GNUNET_malloc (keylen + 1);
+
+  end = GNUNET_STRINGS_data_to_string (&(sampler_el->auth_key.key),
+                                       sizeof (struct GNUNET_CRYPTO_AuthKey),
+                                       buf,
+                                       keylen);
+
+  if (NULL == end)
+  {
+    GNUNET_free (buf);
+    GNUNET_break (0);
+  }
+  else
+  {
+    *end = '\0';
+  }
+
+  size = GNUNET_snprintf (name_buf, sizeof (name_buf), "sampler_el-%s-", buf);
+  if (0 > size)
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create name_buf\n");
+
+  if (NULL == (sampler_el->file_name = GNUNET_DISK_mktemp (name_buf)))
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
+  #endif /* TO_FILE */
+
   sampler_el->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
 
   sampler_el->birth = GNUNET_TIME_absolute_get ();
@@ -405,6 +448,12 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
   struct GNUNET_HashCode other_hash;
 
   s_elem->num_peers++;
+
+  #ifdef TO_FILE
+  to_file (s_elem->file_name,
+           "Got id %s",
+           GNUNET_i2s_full (other));
+  #endif /* TO_FILE */
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
   {
@@ -450,6 +499,11 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
     }
   }
   s_elem->is_empty = NOT_EMPTY;
+  #ifdef TO_FILE
+  to_file (s_elem->file_name,
+           "Now holding %s",
+           GNUNET_i2s_full (&s_elem->peer_id));
+  #endif /* TO_FILE */
 }
 
 
@@ -492,9 +546,17 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          new_size);
     #ifdef TO_FILE
     to_file (sampler->file_name,
-         "Shrinking sampler %d -> %d\n",
+         "Shrinking sampler %d -> %d",
          old_size,
          new_size);
+
+    for (i = new_size ; i < old_size ; i++)
+    {
+      to_file (sampler->file_name,
+               "-%" PRIu32 ": %s",
+               i,
+               sampler->sampler_elements[i]->file_name);
+    }
     #endif /* TO_FILE */
     GNUNET_array_grow (sampler->sampler_elements,
         sampler->sampler_size,
@@ -512,7 +574,7 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          new_size);
     #ifdef TO_FILE
     to_file (sampler->file_name,
-         "Growing sampler %d -> %d\n",
+         "Growing sampler %d -> %d",
          old_size,
          new_size);
     #endif /* TO_FILE */
@@ -525,10 +587,9 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
       sampler->sampler_elements[i] = RPS_sampler_elem_create ();
       #ifdef TO_FILE
       to_file (sampler->file_name,
-               "%" PRIu32 ": Initialised empty sampler element\n",
-               i);
-               //"New sampler with key %s\n",
-               //GNUNET_h2s_full (sampler->sampler_elements[i]->auth_key));
+               "+%" PRIu32 ": %s",
+               i,
+               sampler->sampler_elements[i]->file_name);
       #endif /* TO_FILE */
     }
   }
@@ -626,17 +687,17 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
 {
   uint32_t i;
 
+  #ifdef TO_FILE
+  to_file (sampler->file_name,
+           "Got %s",
+           GNUNET_i2s_full (id));
+  #endif /* TO_FILE */
+
   for (i = 0 ; i < sampler->sampler_size ; i++)
   {
     RPS_sampler_elem_next (sampler->sampler_elements[i],
                            sampler,
                            id);
-    #ifdef TO_FILE
-    to_file (sampler->file_name,
-             "%" PRIu32 ": Now contains %s\n",
-             i,
-             GNUNET_i2s_full (&sampler->sampler_elements[i]->peer_id));
-    #endif /* TO_FILE */
   }
 }
 
@@ -849,7 +910,18 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
   if (GNUNET_NO == for_client)
   {
     to_file (sampler->file_name,
-             "This sampler is probably for Brahms itself\n");
+             "This sampler is probably for Brahms itself");
+  }
+  else if (GNUNET_YES == for_client)
+  {
+    to_file (sampler->file_name,
+             "This sampler is probably for the client");
+  }
+  else
+  {
+    to_file (sampler->file_name,
+             "This shouldn't happen: for_client is %i",
+             for_client);
   }
   #endif /* TO_FILE */
 
