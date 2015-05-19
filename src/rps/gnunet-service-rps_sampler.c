@@ -659,6 +659,9 @@ RPS_sampler_init (size_t init_size,
   if (NULL == (sampler->file_name = GNUNET_DISK_mktemp ("sampler-")))
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Could not create file\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Initialised sampler %s\n",
+       sampler->file_name);
   #endif /* TO_FILE */
 
   sampler->sampler_size = 0;
