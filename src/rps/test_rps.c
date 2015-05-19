@@ -299,15 +299,40 @@ churn_cb (void *cls,
 
   num_peers_online += entry->delta;
 
-  if (0 < entry->delta)
-  { /* Peer hopefully just went online */
-    GNUNET_break (GNUNET_NO == rps_peers[entry->index].online);
-    rps_peers[entry->index].online = GNUNET_YES;
-  }
-  else if (0 > entry->delta)
+  if (0 > entry->delta)
   { /* Peer hopefully just went offline */
-    GNUNET_break (GNUNET_YES == rps_peers[entry->index].online);
+    if (GNUNET_YES != rps_peers[entry->index].online)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "peer %s was expected to go offline but is still marked as online\n",
+                  GNUNET_i2s (rps_peers[entry->index].peer_id));
+      GNUNET_break (0);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "peer %s probably went offline as expected\n",
+                  GNUNET_i2s (rps_peers[entry->index].peer_id));
+    }
     rps_peers[entry->index].online = GNUNET_NO;
+  }
+
+  else if (0 < entry->delta)
+  { /* Peer hopefully just went online */
+    if (GNUNET_NO != rps_peers[entry->index].online)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "peer %s was expected to go online but is still marked as offline\n",
+                  GNUNET_i2s (rps_peers[entry->index].peer_id));
+      GNUNET_break (0);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "peer %s probably went online as expected\n",
+                  GNUNET_i2s (rps_peers[entry->index].peer_id));
+    }
+    rps_peers[entry->index].online = GNUNET_YES;
   }
 
   GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
@@ -676,67 +701,112 @@ churn (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   double portion_go_offline;
   uint32_t prob;
 
-  portion_online = num_peers_online / NUM_PEERS;
+  /* Compute the probability for an online peer to go offline
+   * this round */
+  portion_online = num_peers_online * 1.0 / num_peers;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Portion online: %f\n",
+              portion_online);
   portion_go_online = ((1 - portion_online) * .5 * .66);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Portion that should go online: %f\n",
+              portion_go_online);
   portion_go_offline = (portion_online + portion_go_online) - .75;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Portion that probably goes offline: %f\n",
+              portion_go_offline);
   prob_go_offline = portion_go_offline / (portion_online * .5);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Probability of a selected online peer to go offline: %f\n",
+              prob_go_offline);
 
   permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK,
-                                         (unsigned int) NUM_PEERS);
+                                         (unsigned int) num_peers);
 
-  for (i = 0 ; i < .5 * NUM_PEERS ; i++)
+  /* Go over 50% randomly chosen peers */
+  for (i = 0 ; i < .5 * num_peers ; i++)
   {
     j = permut[i];
 
+    /* If online, shut down with certain probability */
     if (GNUNET_YES == rps_peers[j].online)
-    {
-       prob = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                        UINT32_MAX);
-      if (prob < prob_go_offline * UINT32_MAX)
-      {
-        entry = make_oplist_entry ();
-        entry->delta = 1;
-        entry->index = j;
-        entry->op =  GNUNET_TESTBED_peer_manage_service (NULL,
-                                                         testbed_peers[j],
-                                                         "rps",
-                                                         &churn_cb,
-                                                         entry,
-                                                         1);
-      }
-   }
-
-    else if (GNUNET_NO == rps_peers[j].online)
     {
       prob = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                        UINT32_MAX);
-      if (prob < .66 * UINT32_MAX)
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%u. selected peer (%u: %s) is online.\n",
+                  i,
+                  j,
+                  GNUNET_i2s (rps_peers[j].peer_id));
+      if (prob < prob_go_offline * UINT32_MAX)
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "%s goes offline\n",
+                    GNUNET_i2s (rps_peers[j].peer_id));
+
         entry = make_oplist_entry ();
         entry->delta = -1;
         entry->index = j;
-        entry->op =  GNUNET_TESTBED_peer_manage_service (NULL,
-                                                         testbed_peers[j],
-                                                         "rps",
-                                                         &churn_cb,
-                                                         entry,
-                                                         0);
+        entry->op = GNUNET_TESTBED_peer_manage_service (NULL,
+                                                        testbed_peers[j],
+                                                        "rps",
+                                                        &churn_cb,
+                                                        entry,
+                                                        0);
       }
-    }
+   }
+
+   /* If offline, restart with certain probability */
+   else if (GNUNET_NO == rps_peers[j].online)
+   {
+     prob = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                      UINT32_MAX);
+     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                 "%u. selected peer (%u: %s) is offline.\n",
+                 i,
+                 j,
+                 GNUNET_i2s (rps_peers[j].peer_id));
+     if (prob < .66 * UINT32_MAX)
+     {
+       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                   "%s goes online\n",
+                   GNUNET_i2s (rps_peers[j].peer_id));
+
+       entry = make_oplist_entry ();
+       entry->delta = 1;
+       entry->index = j;
+       entry->op = GNUNET_TESTBED_peer_manage_service (NULL,
+                                                       testbed_peers[j],
+                                                       "rps",
+                                                       &churn_cb,
+                                                       entry,
+                                                       1);
+     }
+   }
   }
 
-  churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                                            10),
-                                             churn, NULL);
+  churn_task = GNUNET_SCHEDULER_add_delayed (
+        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+        churn,
+        NULL);
 }
+
 
 static void
 profiler_pre (void *cls, struct GNUNET_RPS_Handle *h)
 {
-  churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                                            10),
-                                             churn, NULL);
+  //churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+  //                                                                          10),
+  //                                           churn, NULL);
   mal_pre (cls, h);
+
+  if (NULL == churn_task)
+  {
+    churn_task = GNUNET_SCHEDULER_add_delayed (
+          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+          churn,
+          NULL);
+  }
 }
 
 static void
