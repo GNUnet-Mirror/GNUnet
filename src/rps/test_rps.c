@@ -438,7 +438,7 @@ info_cb (void *cb_cls,
          const struct GNUNET_TESTBED_PeerInformation *pinfo,
          const char *emsg)
 {
-  unsigned int i = *((unsigned int *) cb_cls);
+  struct OpListEntry *entry = (struct OpListEntry *) cb_cls;
 
   if (NULL == pinfo || NULL != emsg)
   {
@@ -446,13 +446,20 @@ info_cb (void *cb_cls,
     return;
   }
 
-  GNUNET_free (cb_cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u is %s\n",
+              entry->index,
+              GNUNET_i2s (pinfo->result.id));
 
-  rps_peer_ids[i] = *(pinfo->result.id);
-  rps_peers[i].peer_id = &rps_peer_ids[i];
-  rps_peers[i].rec_ids = NULL;
-  rps_peers[i].num_rec_ids = 0;
+  rps_peer_ids[entry->index] = *(pinfo->result.id);
+  rps_peers[entry->index].peer_id = &rps_peer_ids[entry->index];
+  rps_peers[entry->index].rec_ids = NULL;
+  rps_peers[entry->index].num_rec_ids = 0;
 
+  GNUNET_TESTBED_operation_done (entry->op);
+
+  GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
+  GNUNET_free (entry);
 }
 
 
@@ -827,7 +834,7 @@ profiler_cb (struct RPSPeer *rps_peer)
  *
  * @param cls closure
  * @param h the run handle
- * @param num_peers number of peers in 'peers'
+ * @param n_peers number of peers in 'peers'
  * @param peers handle to peers run in the testbed
  * @param links_succeeded the number of overlay link connection attempts that
  *          succeeded
@@ -837,30 +844,39 @@ profiler_cb (struct RPSPeer *rps_peer)
 static void
 run (void *cls,
      struct GNUNET_TESTBED_RunHandle *h,
-     unsigned int num_peers,
+     unsigned int n_peers,
      struct GNUNET_TESTBED_Peer **peers,
      unsigned int links_succeeded,
      unsigned int links_failed)
 {
   unsigned int i;
-  unsigned int *tmp_i;
+  struct OpListEntry *entry;
 
   testbed_peers = peers;
   num_peers_online = 0;
 
-  for (i = 0 ; i < NUM_PEERS ; i++)
+  for (i = 0 ; i < num_peers ; i++)
   {
-    tmp_i = GNUNET_new (unsigned int);
-    *tmp_i = i;
-
-    (void) GNUNET_TESTBED_peer_get_information (peers[i],
-                                                GNUNET_TESTBED_PIT_IDENTITY,
-                                                &info_cb,
-                                                tmp_i);
+    entry = make_oplist_entry ();
+    entry->index = i;
+    entry->op = GNUNET_TESTBED_peer_get_information (peers[i],
+                                                     GNUNET_TESTBED_PIT_IDENTITY,
+                                                     &info_cb,
+                                                     entry);
   }
 
-  GNUNET_assert (NUM_PEERS == num_peers);
-  for (i = 0 ; i < num_peers ; i++)
+
+  // This seems not to work
+  //if (NULL != strstr (cur_test_run.name, "profiler"))
+  //{
+  //  churn_task = GNUNET_SCHEDULER_add_delayed (
+  //      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+  //      churn,
+  //      NULL);
+  //}
+
+  GNUNET_assert (num_peers == n_peers);
+  for (i = 0 ; i < n_peers ; i++)
   {
     rps_peers[i].index = i;
     rps_peers[i].op =
