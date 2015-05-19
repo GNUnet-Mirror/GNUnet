@@ -282,15 +282,16 @@ make_oplist_entry ()
  */
 static void
 churn_cb (void *cls,
-                   struct GNUNET_TESTBED_Operation *op,
-                   const char *emsg)
+          struct GNUNET_TESTBED_Operation *op,
+          const char *emsg)
 {
+  // FIXME
   struct OpListEntry *entry = cls;
 
   GNUNET_TESTBED_operation_done (entry->op);
   if (NULL != emsg)
   {
-    //LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to start/stop NSE at a peer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to start/stop RPS at a peer\n");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
