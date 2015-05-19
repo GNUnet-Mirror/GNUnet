@@ -41,8 +41,8 @@ libexec_PROGRAMS = \
  gnunet-service-rps
 
 if HAVE_TESTING
-check_PROGRAMS = \
- gnunet-nse-profiler
+noinst_PROGRAMS = \
+ gnunet-rps-profiler
 endif
 
 
@@ -103,9 +103,9 @@ test_rps_seed_request_SOURCES = \
  test_rps.c
 test_rps_seed_request_LDADD = $(ld_rps_test_lib)
 
-gnunet_nse_profiler_SOURCES = \
+gnunet_rps_profiler_SOURCES = \
  test_rps.c
-gnunet_nse_profiler_LDADD = $(ld_rps_test_lib)
+gnunet_rps_profiler_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf
