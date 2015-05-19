@@ -486,11 +486,6 @@ static uint32_t push_limit = 10000;
 #define unset_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags &= (~mask))
 
 /**
- * Compute the minimum of two ints
- */
-#define min(x, y) ((x < y) ? x : y)
-
-/**
  * Clean the send channel of a peer
  */
 void
@@ -1865,9 +1860,9 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   { /* Try to maximise representation */
 
     /* The maximum of pushes we're going to send this round */
-    num_pushes = min (min (push_limit,
-                           num_attacked_peers),
-                       GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
+    num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit,
+                                         num_attacked_peers),
+                             GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
 
     /* Send PUSHes to attacked peers */
     for (i = 0 ; i < num_pushes ; i++)
@@ -1907,9 +1902,9 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   { /* Combined attack */
 
     /* The maximum of pushes we're going to send this round */
-    num_pushes = min (min (push_limit,
-                           num_attacked_peers),
-                       GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE) - 1;
+    num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit - 1,
+                                         num_attacked_peers),
+                             GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE);
 
     /* Send PUSHes to attacked peers */
     send_push (&attacked_peer);
