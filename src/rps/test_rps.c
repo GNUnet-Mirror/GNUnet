@@ -908,9 +908,13 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  cur_test_run.name = "test-rps-default";
   cur_test_run.pre_test = NULL;
   cur_test_run.eval_cb = default_eval_cb;
   churn_task = NULL;
+
+  num_peers = 5;
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
 
   if (strstr (argv[0], "malicious") != NULL)
   {
@@ -921,16 +925,19 @@ main (int argc, char *argv[])
     if (strstr (argv[0], "_1") != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 1\n");
+      cur_test_run.name = "test-rps-malicious_1";
       mal_type = 1;
     }
     else if (strstr (argv[0], "_2") != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 2\n");
+      cur_test_run.name = "test-rps-malicious_2";
       mal_type = 2;
     }
     else if (strstr (argv[0], "_3") != NULL)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test malicious peer type 3\n");
+      cur_test_run.name = "test-rps-malicious_3";
       mal_type = 3;
     }
   }
@@ -938,59 +945,76 @@ main (int argc, char *argv[])
   else if (strstr (argv[0], "_single_req") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test single request\n");
+    cur_test_run.name = "test-rps-single-req";
     cur_test_run.main_test = single_req_cb;
   }
+
   else if (strstr (argv[0], "_delayed_reqs") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test delayed requests\n");
+    cur_test_run.name = "test-rps-delayed-reqs";
     cur_test_run.main_test = delay_req_cb;
   }
+
   else if (strstr (argv[0], "_seed_big") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding (num_peers > GNUNET_SERVER_MAX_MESSAGE_SIZE)\n");
+    cur_test_run.name = "test-rps-seed-big";
     cur_test_run.main_test = seed_big_cb;
   }
+
   else if (strstr (argv[0], "_single_peer_seed") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on a single peer\n");
+    cur_test_run.name = "test-rps-single-peer-seed";
     cur_test_run.main_test = single_peer_seed_cb;
   }
+
   else if (strstr (argv[0], "_seed_request") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding and requesting on multiple peers\n");
+    cur_test_run.name = "test-rps-seed-request";
     cur_test_run.main_test = seed_req_cb;
   }
+
   else if (strstr (argv[0], "_seed") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding\n");
+    cur_test_run.name = "test-rps-seed";
     cur_test_run.main_test = seed_cb;
-    cur_test_run.eval_cb = seed_eval;
+    cur_test_run.eval_cb = no_eval;
   }
+
   else if (strstr (argv[0], "_req_cancel") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test cancelling a request\n");
+    cur_test_run.name = "test-rps-req-cancel";
     cur_test_run.main_test = req_cancel_cb;
   }
+
   else if (strstr (argv[0], "profiler") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "This is the profiler\n");
+    cur_test_run.name = "test-rps-profiler";
     mal_type = 3;
     cur_test_run.pre_test = profiler_pre;
     cur_test_run.main_test = profiler_cb;
-    churn_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                                              10),
-                                               churn, NULL);
+    cur_test_run.eval_cb = no_eval;
+
+    num_peers = 5;
+    //timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
   }
 
+  rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
+  rps_peer_ids = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
+
   ok = 1;
-  (void) GNUNET_TESTBED_test_run ("test-rps-multipeer",
+  //(void) GNUNET_TESTBED_test_run ("test-rps-multipeer",
+  (void) GNUNET_TESTBED_test_run (cur_test_run.name,
                                   "test_rps.conf",
-                                  NUM_PEERS,
+                                  num_peers,
                                   0, NULL, NULL,
                                   &run, NULL);
-
-  if (NULL != churn_task)
-    GNUNET_SCHEDULER_cancel (churn_task);
 
   return cur_test_run.eval_cb();
 }
