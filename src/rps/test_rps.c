@@ -35,12 +35,13 @@
 /**
  * How many peers do we start?
  */
-#define NUM_PEERS 5
+uint32_t num_peers;
 
 /**
  * How long do we run the test?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+//#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+static struct GNUNET_TIME_Relative timeout;
 
 
 /**
@@ -152,12 +153,12 @@ struct RPSPeer
 /**
  * Information for all the peers.
  */
-static struct RPSPeer rps_peers[NUM_PEERS];
+static struct RPSPeer *rps_peers;
 
 /**
  * IDs of the peers.
  */
-static struct GNUNET_PeerIdentity rps_peer_ids[NUM_PEERS];
+static struct GNUNET_PeerIdentity *rps_peer_ids;
 
 /**
  * Number of online peers.
@@ -203,6 +204,11 @@ typedef int (*EvaluationCallback) (void);
  */
 struct SingleTestRun
 {
+  /**
+   * Name of the test
+   */
+  char *name;
+
   /**
    * Called directly after connecting to the service
    */
@@ -385,7 +391,7 @@ seed_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   // TODO if malicious don't seed mal peers
-  amount = round (.5 * NUM_PEERS);
+  amount = round (.5 * num_peers);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Seeding peers:\n");
   for (i = 0 ; i < amount ; i++)
@@ -511,8 +517,15 @@ rps_disconnect_adapter (void *cls,
 static int
 default_eval_cb (void)
 {
-  return evaluate (rps_peers, NUM_PEERS, 1);
+  return evaluate (rps_peers, num_peers, 1);
 }
+
+static int
+no_eval (void)
+{
+  return 1;
+}
+
 /***********************************
  * MALICIOUS
 ***********************************/
@@ -525,7 +538,7 @@ mal_pre (void *cls, struct GNUNET_RPS_Handle *h)
 
   GNUNET_assert (1 >= portion
                  && 0 <  portion);
-  num_mal_peers = round (portion * NUM_PEERS);
+  num_mal_peers = round (portion * num_peers);
 
   if (rps_peer->index < num_mal_peers)
   {
@@ -548,7 +561,7 @@ mal_cb (struct RPSPeer *rps_peer)
   #ifdef ENABLE_MALICIOUS
   GNUNET_assert (1 >= portion
                  && 0 <  portion);
-  num_mal_peers = round (portion * NUM_PEERS);
+  num_mal_peers = round (portion * num_peers);
 
   if (rps_peer->index >= num_mal_peers)
   { /* It's useless to ask a malicious peer about a random sample -
@@ -566,9 +579,9 @@ mal_eval (void)
 {
   unsigned int num_mal_peers;
 
-  num_mal_peers = round (NUM_PEERS * portion);
+  num_mal_peers = round (num_peers * portion);
   return evaluate (&rps_peers[num_mal_peers],
-                   NUM_PEERS - (num_mal_peers),
+                   num_peers - (num_mal_peers),
                    1);
 }
 
@@ -603,12 +616,6 @@ seed_cb (struct RPSPeer *rps_peer)
 {
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
                                 seed_peers, rps_peer);
-}
-
-static int
-seed_eval (void)
-{
-  return 1;
 }
 
 /***********************************
@@ -795,7 +802,12 @@ run (void *cls,
 						                          &rps_disconnect_adapter,
 						                          &rps_peers[i]);
   }
-  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
+
+  if (NULL != churn_task)
+    GNUNET_SCHEDULER_cancel (churn_task);
+
+  //GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
+  GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
 }
 
 
