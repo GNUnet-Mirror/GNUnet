@@ -1880,6 +1880,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
     /* Send PULLs to some peers to learn about additional peers to attack */
+    tmp_att_peer = att_peer_index;
     for (i = 0 ; i < num_pushes * alpha ; i++)
     {
       if (att_peers_tail == tmp_att_peer)
