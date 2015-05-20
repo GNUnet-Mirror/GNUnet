@@ -1434,7 +1434,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   {
     /* We have a cached and valid signature for this peer,
      * try to compare instead of verify */
-    if (0 == memcmp (&ve->pong_sig_cache, &pong->signature, sizeof (struct GNUNET_CRYPTO_EddsaSignature)))
+    if (0 == memcmp (&ve->pong_sig_cache,
+                     &pong->signature,
+                     sizeof (struct GNUNET_CRYPTO_EddsaSignature)))
     {
       /* signatures are identical, we can skip verification */
       sig_res = GNUNET_OK;
@@ -1451,7 +1453,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   {
     /* Do expensive verification */
     sig_res = GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_TRANSPORT_PONG_OWN,
-                                          &pong->purpose, &pong->signature,
+                                          &pong->purpose,
+                                          &pong->signature,
                                           &ve->address->peer.public_key);
     if (sig_res == GNUNET_SYSERR)
     {
