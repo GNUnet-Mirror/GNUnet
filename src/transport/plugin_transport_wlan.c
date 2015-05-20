@@ -1481,7 +1481,7 @@ process_data (void *cls,
                                              PLUGIN_NAME,
                                              &mas->endpoint->wlan_addr,
                                              sizeof (mas->endpoint->wlan_addr),
-                                             GNUNET_HELLO_ADDRESS_INFO_NONE);
+                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
     mas->session = lookup_session (mas->endpoint,
                                    &tmpsource);
     if (NULL == mas->session)
@@ -1609,7 +1609,7 @@ process_data (void *cls,
                                                PLUGIN_NAME,
                                                &mas->endpoint->wlan_addr,
                                                sizeof (struct WlanAddress),
-                                               GNUNET_HELLO_ADDRESS_INFO_NONE);
+                                               GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       plugin->env->session_start (plugin->env->cls,
                                   address,
                                   mas->session,
