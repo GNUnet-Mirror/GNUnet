@@ -391,15 +391,21 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
   struct GNUNET_PEERSTORE_StoreContext *sc;
   struct GNUNET_MQ_Envelope *ev;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Reconnecting...\n");
   for (ic = h->iterate_head; NULL != ic; ic = next)
   {
     next = ic->next;
-    icb = ic->callback;
-    icb_cls = ic->callback_cls;
-    GNUNET_PEERSTORE_iterate_cancel (ic);
-    if (NULL != icb)
-      icb (icb_cls, NULL, _("Iteration canceled due to reconnection."));
+    if (GNUNET_YES == ic->iterating)
+    {
+      icb = ic->callback;
+      icb_cls = ic->callback_cls;
+      GNUNET_PEERSTORE_iterate_cancel (ic);
+      if (NULL != icb)
+        icb (icb_cls,
+             NULL,
+             "Iteration canceled due to reconnection");
+    }
   }
   if (NULL != h->mq)
   {
@@ -530,12 +536,11 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @param sync_first send any pending STORE requests before disconnecting
  */
 void
-GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first)
+GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h,
+                             int sync_first)
 {
   struct GNUNET_PEERSTORE_IterateContext *ic;
-  struct GNUNET_PEERSTORE_IterateContext *ic_iter;
   struct GNUNET_PEERSTORE_StoreContext *sc;
-  struct GNUNET_PEERSTORE_StoreContext *sc_iter;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting.\n");
   if (NULL != h->watches)
@@ -544,12 +549,9 @@ GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first)
     GNUNET_CONTAINER_multihashmap_destroy (h->watches);
     h->watches = NULL;
   }
-  ic_iter = h->iterate_head;
-  while (NULL != ic_iter)
+  while (NULL != (ic = h->iterate_head))
   {
     GNUNET_break (0);
-    ic = ic_iter;
-    ic_iter = ic_iter->next;
     GNUNET_PEERSTORE_iterate_cancel (ic);
   }
   if (NULL != h->store_head)
@@ -561,13 +563,8 @@ GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first)
       h->disconnecting = GNUNET_YES;
       return;
     }
-    sc_iter = h->store_head;
-    while (NULL != sc_iter)
-    {
-      sc = sc_iter;
-      sc_iter = sc_iter->next;
+    while (NULL != (sc = h->store_head))
       GNUNET_PEERSTORE_store_cancel (sc);
-    }
   }
   do_disconnect (h);
 }
@@ -736,7 +733,9 @@ GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
   }
   if (GNUNET_NO == ic->iterating)
   {
-    GNUNET_CONTAINER_DLL_remove (ic->h->iterate_head, ic->h->iterate_tail, ic);
+    GNUNET_CONTAINER_DLL_remove (ic->h->iterate_head,
+                                 ic->h->iterate_tail,
+                                 ic);
     GNUNET_free (ic->sub_system);
     if (NULL != ic->key)
       GNUNET_free (ic->key);
