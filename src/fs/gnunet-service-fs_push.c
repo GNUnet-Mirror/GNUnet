@@ -611,6 +611,7 @@ GSF_push_start_ (struct GSF_ConnectedPeer *peer)
       break;
   if (NULL != mrp)
   {
+    /* same peer added twice, must not happen */
     GNUNET_break (0);
     return;
   }

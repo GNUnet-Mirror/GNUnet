@@ -741,7 +741,8 @@ GSF_handle_p2p_migration_stop_ (void *cls,
               GNUNET_i2s (other),
 	      GNUNET_STRINGS_relative_time_to_string (bt, GNUNET_YES));
   cp->ppd.migration_blocked_until = GNUNET_TIME_relative_to_absolute (bt);
-  if (NULL == cp->mig_revive_task)
+  if ( (NULL == cp->mig_revive_task) &&
+       (NULL == cp->respect_iterate_req) )
   {
     GSF_push_stop_ (cp);
     cp->mig_revive_task =
