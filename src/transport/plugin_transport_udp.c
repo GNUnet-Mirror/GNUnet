@@ -2511,7 +2511,7 @@ process_udp_message (struct Plugin *plugin,
                                            PLUGIN_NAME,
                                            udp_addr,
                                            udp_addr_len,
-                                           GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+                                           GNUNET_HELLO_ADDRESS_INFO_NONE);
   if (NULL ==
       (s = udp_plugin_lookup_session (plugin,
                                       address)))
