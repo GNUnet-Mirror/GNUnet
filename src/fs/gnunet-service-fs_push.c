@@ -606,6 +606,15 @@ GSF_push_start_ (struct GSF_ConnectedPeer *peer)
 
   if (GNUNET_YES != enabled)
     return;
+  for (mrp = peer_head; NULL != mrp; mrp = mrp->next)
+    if (mrp->peer == peer)
+      break;
+  if (NULL != mrp)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding peer %s to list for pushing\n",
               GNUNET_i2s (GSF_connected_peer_get_identity2_(peer)));

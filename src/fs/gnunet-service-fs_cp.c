@@ -611,6 +611,7 @@ peer_respect_cb (void *cls,
 {
   struct GSF_ConnectedPeer *cp = cls;
 
+  GNUNET_assert (NULL != cp->respect_iterate_req);
   cp->respect_iterate_req = NULL;
   if ((NULL != record) && (sizeof (cp->disk_respect) == record->value_size))
     cp->disk_respect = cp->ppd.respect = *((uint32_t *)record->value);
