@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
 
-#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define GET_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Flag for reverse lookup.

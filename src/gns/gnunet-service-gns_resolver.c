@@ -51,7 +51,7 @@
 /**
  * Default timeout for DNS lookups.
  */
-#define DNS_LOOKUP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DNS_LOOKUP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
 /**
  * Default timeout for VPN redirections.

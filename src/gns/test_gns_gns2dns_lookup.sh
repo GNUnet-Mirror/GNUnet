@@ -50,7 +50,7 @@ gnunet-namestore -p -z testego -a -n $TEST_RESOLVER_LABEL -t A -V $TEST_IP_GNS2D
 # map 'homepage.gnu' to 'gnunet.org' in DNS
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME -t GNS2DNS -V $TEST_RECORD_GNS2DNS -e never -c test_gns_lookup.conf
 
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
 
 # lookup 'www.gnunet.org', IPv4
 RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_DOMAIN -t A -c test_gns_lookup.conf`

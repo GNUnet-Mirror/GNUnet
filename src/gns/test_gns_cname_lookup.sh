@@ -34,7 +34,7 @@ TEST_RECORD_CNAME_DNS="gnunet.org"
 TEST_RECORD_NAME_SERVER="server"
 TEST_RECORD_NAME_PLUS="www"
 TEST_RECORD_NAME_DNS="www3"
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout &> /dev/null && DO_TIMEOUT="timeout 15"
 
 gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C testego -c test_gns_lookup.conf
