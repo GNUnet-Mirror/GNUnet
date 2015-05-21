@@ -671,7 +671,7 @@ interpreter (void *cls,
         if (NULL == asd)
           return;
         if (GNUNET_NO == asd->active)
-          return;
+          return; /* last suggestion was to disconnect, wait longer */
         done = GNUNET_YES;
         if (NULL != cmd->details.await_address_suggestion.add_label)
         {
@@ -703,9 +703,10 @@ interpreter (void *cls,
                    &pid);
         asd = find_address_suggestion (&pid);
         if (NULL == asd)
-          return;
-        if (GNUNET_NO == asd->active)
-          return;
+          return; /* odd, no suggestion at all yet!? */
+        if (GNUNET_YES == asd->active)
+          return; /* last suggestion was to activate, wait longer */
+        /* last suggestion was to deactivate, condition satisfied! */
         off++;
         break;
       }

@@ -46,7 +46,7 @@ static struct Command test_commands[] = {
       }
     }
   },
-  /* adding same address again should fail */
+  /* 1: adding same address again should fail */
   {
     .code = CMD_ADD_ADDRESS,
     .label = "add-address-0-0:FAIL",
@@ -60,7 +60,7 @@ static struct Command test_commands[] = {
       .expect_fail = 1
     }
   },
-  /* some solver still require explicit start */
+  /* 2: some solver still require explicit start */
   {
     .code = CMD_REQUEST_CONNECTION_START,
     .label = "request-0",
@@ -68,21 +68,21 @@ static struct Command test_commands[] = {
       .pid = 0
     }
   },
-  /* check we got an address */
+  /* 3: check we got an address */
   {
     .code = CMD_AWAIT_ADDRESS_SUGGESTION,
     .details.await_address_suggestion = {
       .add_label = "add-address-0-0"
     }
   },
-  /* check monitor also got the address */
+  /* 4: check monitor also got the address */
   {
     .code = CMD_AWAIT_ADDRESS_INFORMATION,
     .details.await_address_information = {
       .add_label = "add-address-0-0"
     }
   },
-  /* test session API */
+  /* 5: test session API */
   {
     .code = CMD_ADD_SESSION,
     .label = "add-session-0-0-1",
@@ -97,7 +97,7 @@ static struct Command test_commands[] = {
       .add_session_label = "add-session-0-0-1",
     }
   },
-  /* test preference API */
+  /* 7: test preference API */
   {
     .code = CMD_CHANGE_PREFERENCE,
     .details.change_preference = {
@@ -113,7 +113,7 @@ static struct Command test_commands[] = {
       /* FIXME: preference details */
     }
   },
-  /* test sanity check address listing */
+  /* 9: test sanity check address listing */
   {
     .code = CMD_LIST_ADDRESSES,
     .details.list_addresses = {
@@ -125,28 +125,28 @@ static struct Command test_commands[] = {
       .max_active_calls = 1
     }
   },
-  /* remove address testing */
+  /* 10: remove address testing */
   {
     .code = CMD_DEL_ADDRESS,
     .details.del_address = {
       .add_label = "add-address-0-0"
     }
   },
-  /* check we got disconnected */
+  /* 11: check we got disconnected */
   {
     .code = CMD_AWAIT_DISCONNECT_SUGGESTION,
     .details.await_disconnect_suggestion = {
       .pid = 0
     }
   },
-  /* just for symmetry, also stop asking for the connection */
+  /* 12: just for symmetry, also stop asking for the connection */
   {
     .code = CMD_REQUEST_CONNECTION_STOP,
     .details.request_connection_stop = {
       .connect_label = "request-0",
     }
   },
-  /* add address again */
+  /* 13: add address again */
   {
     .code = CMD_ADD_ADDRESS,
     .label = "add-address-0-0:1",
@@ -159,7 +159,7 @@ static struct Command test_commands[] = {
       }
     }
   },
-  /* some solver still require explicit start */
+  /* 14: some solver still require explicit start */
   {
     .code = CMD_REQUEST_CONNECTION_START,
     .label = "request-0",
@@ -167,14 +167,14 @@ static struct Command test_commands[] = {
       .pid = 0
     }
   },
-  /* check we got an address */
+  /* 15: check we got an address */
   {
     .code = CMD_AWAIT_ADDRESS_SUGGESTION,
     .details.await_address_suggestion = {
       .add_label = "add-address-0-0:1"
     }
   },
-  /* add alternative address */
+  /* 16: add alternative address */
   {
     .code = CMD_ADD_ADDRESS,
     .label = "add-address-0-1",
@@ -187,35 +187,35 @@ static struct Command test_commands[] = {
       }
     }
   },
-  /* remove original address */
+  /* 17: remove original address */
   {
     .code = CMD_DEL_ADDRESS,
     .details.del_address = {
       .add_label = "add-address-0-0:1"
     }
   },
-  /* check we switched to alternative address */
+  /* 18: check we switched to alternative address */
   {
     .code = CMD_AWAIT_ADDRESS_SUGGESTION,
     .details.await_address_suggestion = {
       .add_label = "add-address-0-1"
     }
   },
-  /* remove alternative address */
+  /* 19: remove alternative address */
   {
     .code = CMD_DEL_ADDRESS,
     .details.del_address = {
       .add_label = "add-address-0-1"
     }
   },
-  /* check we got disconnected */
+  /* 20: check we got disconnected */
   {
     .code = CMD_AWAIT_DISCONNECT_SUGGESTION,
     .details.await_disconnect_suggestion = {
       .pid = 0
     }
   },
-  /* just for symmetry, also stop asking for the connection */
+  /* 21: just for symmetry, also stop asking for the connection */
   {
     .code = CMD_REQUEST_CONNECTION_STOP,
     .details.request_connection_stop = {
