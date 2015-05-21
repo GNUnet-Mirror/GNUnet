@@ -674,7 +674,7 @@ process_requests ()
                                       NULL);
     return;
   }
-  if (GNUNET_YES == rh->was_transmitted)
+  if (GNUNET_NO != rh->was_transmitted)
     return;                     /* waiting for reply */
   msg = (struct GNUNET_RESOLVER_GetMessage *) buf;
   msg->header.size =
