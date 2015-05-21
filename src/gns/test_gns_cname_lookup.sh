@@ -41,9 +41,9 @@ gnunet-identity -C testego -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -a -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
-RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.gnu -t A -c test_gns_lookup.conf`
-RES_CNAME_RAW=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.gnu -t CNAME -c test_gns_lookup.conf`
-RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www3.gnu -t A -c test_gns_lookup.conf`
+RES_CNAME=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_DOMAIN_PLUS -t A -c test_gns_lookup.conf`
+RES_CNAME_RAW=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_DOMAIN_PLUS -t CNAME -c test_gns_lookup.conf`
+RES_CNAME_DNS=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_DOMAIN_DNS -t A -c test_gns_lookup.conf`
 TESTEGOZONE=`gnunet-identity -c test_gns_lookup.conf -d | awk '{print $3}'`
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_DNS -t CNAME -V $TEST_RECORD_CNAME_DNS -e never -c test_gns_lookup.conf
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RECORD_CNAME_PLUS -e never -c test_gns_lookup.conf
@@ -56,7 +56,7 @@ if [ "$RES_CNAME_RAW" == "server.$TESTEGOZONE.zkey" ]
 then
   echo "PASS: CNAME resulution from GNS"
 else
-  echo "FAIL: CNAME resolution from GNS, got $RES_CNAME_RAW."
+  echo "FAIL: CNAME resolution from GNS, got $RES_CNAME_RAW, expected server.$TESTEGOZONE.zkey."
   exit 1
 fi
 
@@ -64,7 +64,7 @@ if [ "$RES_CNAME" == "$TEST_IP_PLUS" ]
 then
   echo "PASS: IP resulution from GNS"
 else
-  echo "FAIL: IP resolution from GNS, got $RES_CNAME."
+  echo "FAIL: IP resolution from GNS, got $RES_CNAME, expected $TEST_IP_PLUS."
   exit 1
 fi
 
@@ -73,6 +73,6 @@ then
   echo "PASS: IP resulution from DNS"
   exit 0
 else
-  echo "FAIL: IP resulution from DNS, got $RES_IP."
+  echo "FAIL: IP resulution from DNS, got $RES_IP, expected $TEST_IP_DNS."
   exit 1
 fi
