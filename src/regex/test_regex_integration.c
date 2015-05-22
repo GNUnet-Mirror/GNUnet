@@ -25,6 +25,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#include "gnunet_applications.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_tun_lib.h"
 #include "gnunet_testing_lib.h"
@@ -75,7 +76,6 @@ end (void *cls,
 static void
 end_badly ()
 {
-  die_task = NULL;
   FPRINTF (stderr, "%s",  "Testcase failed (timeout).\n");
   end (NULL, NULL);
   ok = 1;
@@ -125,9 +125,13 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   char rxstr4[GNUNET_TUN_IPV4_REGEXLEN];
-  char rxstr6[GNUNET_TUN_IPV4_REGEXLEN];
+  char rxstr6[GNUNET_TUN_IPV6_REGEXLEN];
+  char *p4r;
+  char *p6r;
   char *p4;
   char *p6;
+  char *ss4;
+  char *ss6;
   struct in_addr i4;
   struct in6_addr i6;
 
@@ -148,8 +152,26 @@ run (void *cls,
   GNUNET_TUN_ipv6toregexsearch (&i6,
                                 8686,
                                 rxstr6);
-  p4 = GNUNET_TUN_ipv4policy2regex ("0.0.0.0/0:!25;");
-  p6 = GNUNET_TUN_ipv6policy2regex ("::/0:!25;");
+  GNUNET_asprintf (&ss4,
+                   "%s%s",
+                   GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                   rxstr4);
+  GNUNET_asprintf (&ss6,
+                   "%s%s",
+                   GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                   rxstr6);
+  p4r = GNUNET_TUN_ipv4policy2regex ("0.0.0.0/0:!25;");
+  p6r = GNUNET_TUN_ipv6policy2regex ("::/0:!25;");
+  GNUNET_asprintf (&p4,
+                   "%s%s",
+                   GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                   p4r);
+  GNUNET_asprintf (&p6,
+                   "%s%s",
+                   GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
+                   p6r);
+  GNUNET_free (p4r);
+  GNUNET_free (p6r);
   a4 = GNUNET_REGEX_announce (cfg,
                               p4,
                               GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -164,11 +186,13 @@ run (void *cls,
   GNUNET_free (p6);
 
   s4 = GNUNET_REGEX_search (cfg,
-                            rxstr4,
+                            ss4,
                             &found_cb, "4");
   s6 = GNUNET_REGEX_search (cfg,
-                            rxstr6,
+                            ss6,
                             &found_cb, "6");
+  GNUNET_free (ss4);
+  GNUNET_free (ss6);
 }
 
 
