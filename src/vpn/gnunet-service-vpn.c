@@ -748,7 +748,7 @@ handle_regex_result (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Exit %s found for destination %s!\n",
               GNUNET_i2s (id),
-              print_channel_destination (&ts->destination),
+              print_channel_destination (&ts->destination));
   switch (ts->af)
   {
   case AF_INET:
