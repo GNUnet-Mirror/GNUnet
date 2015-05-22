@@ -25,6 +25,11 @@
 #include "platform.h"
 #include "gnunet_tun_lib.h"
 
+/**
+ * 'wildcard', matches all possible values (for HEX encoding).
+ */
+#define DOT "(0|1|2|3|4|5|6|7|8|9|A|B|C|D|E|F)"
+
 
 static int
 test_iptoregex (const char *ipv4,
@@ -144,31 +149,31 @@ main (int argc, char *argv[])
                     "6-0031-E1E173F951BE00000000000000000000");
   error +=
     test_policy4toregex ("192.1.2.0/24:80;",
-                         "4-0050-C00102..");
+                         "4-0050-C00102" DOT DOT);
   error +=
     test_policy4toregex ("192.1.0.0/16;",
-                         "4-....-C001....");
+                         "4-" DOT DOT DOT DOT "-C001" DOT DOT DOT DOT);
   error +=
     test_policy4toregex ("192.1.0.0/16:80-81;",
-                         "4-(0050|0051)-C001....");
+                         "4-(0050|0051)-C001" DOT DOT DOT DOT);
   error +=
     test_policy4toregex ("192.1.0.0/8:!3-65535;",
-                         "4-000(0|1|2)-C0......");
+                         "4-000(0|1|2)-C0" DOT DOT DOT DOT DOT DOT);
   error +=
     test_policy4toregex ("192.1.0.0/8:!25-56;",
-                         "4-(0(0(0.|1(0|1|2|3|4|5|6|7|8)|3(9|A|B|C|D|E|F)|(4|5|6|7|8|9|A|B|C|D|E|F).)|(1|2|3|4|5|6|7|8|9|A|B|C|D|E|F)..)|(1|2|3|4|5|6|7|8|9|A|B|C|D|E|F)...)-C0......");
+                         "4-(0(0(0"DOT"|1(0|1|2|3|4|5|6|7|8)|3(9|A|B|C|D|E|F)|(4|5|6|7|8|9|A|B|C|D|E|F)"DOT")|(1|2|3|4|5|6|7|8|9|A|B|C|D|E|F)"DOT DOT")|(1|2|3|4|5|6|7|8|9|A|B|C|D|E|F)"DOT DOT DOT")-C0"DOT DOT DOT DOT DOT DOT);
   error +=
     test_policy6toregex ("E1E1::1;",
-                         "6-....-E1E10000000000000000000000000001");
+                         "6-"DOT DOT DOT DOT"-E1E10000000000000000000000000001");
   error +=
     test_policy6toregex ("E1E1:ABCD::1/120;",
-                         "6-....-E1E1ABCD0000000000000000000000..");
+                         "6-"DOT DOT DOT DOT"-E1E1ABCD0000000000000000000000" DOT DOT);
   error +=
     test_policy6toregex ("E1E1:ABCD::ABCD/126;",
-                         "6-....-E1E1ABCD00000000000000000000ABC(C|D|E|F)");
+                         "6-"DOT DOT DOT DOT"-E1E1ABCD00000000000000000000ABC(C|D|E|F)");
   error +=
     test_policy6toregex ("E1E1:ABCD::ABCD/127;",
-                         "6-....-E1E1ABCD00000000000000000000ABC(C|D)");
+                         "6-"DOT DOT DOT DOT"-E1E1ABCD00000000000000000000ABC(C|D)");
   error +=
     test_policy6toregex ("E1E1:ABCD::ABCD/128:80;",
                          "6-0050-E1E1ABCD00000000000000000000ABCD");

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012, 2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2012, 2013, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,6 +26,11 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_tun_lib.h"
+
+/**
+ * 'wildcard', matches all possible values (for HEX encoding).
+ */
+#define DOT "(0|1|2|3|4|5|6|7|8|9|A|B|C|D|E|F)"
 
 
 /**
@@ -92,7 +97,7 @@ nibble_to_regex (uint8_t value,
   switch (mask)
   {
   case 0:
-    return GNUNET_strdup ("."); /* wildcard */
+    return GNUNET_strdup (DOT);
   case 8:
     GNUNET_asprintf (&ret,
                      "(%X|%X|%X|%X|%X|%X|%X|%X)",
@@ -236,7 +241,7 @@ compute_policy (unsigned int start,
   char middlehp[33+2]; /* 16 * 2 + 0-terminator + () */
   char middlelp[33+2]; /* 16 * 2 + 0-terminator + () */
   char afterp[36+2]; /* 16 * 2 + 3 dots + 0-terminator + () */
-  char dots[4];
+  char dots[5 * strlen (DOT)];
   char buf[3];
   char *middle;
   char *ret;
@@ -311,7 +316,7 @@ compute_policy (unsigned int start,
     strcpy (afterp, after);
   dots[0] = '\0';
   for (xstep=step/16;xstep>0;xstep/=16)
-    strcat (dots, ".");
+    strcat (dots, DOT);
   if (step >= 16)
   {
     if (strlen (middlel) > 0)
@@ -516,7 +521,7 @@ port_to_regex (const struct GNUNET_STRINGS_PortPolicy *pp)
        ( (1 == pp->start_port) &&
          (0xFFFF == pp->end_port) &&
          (GNUNET_NO == pp->negate_portrange)) )
-    return GNUNET_strdup ("....");
+    return GNUNET_strdup (DOT DOT DOT DOT);
   if ( (pp->start_port == pp->end_port) &&
        (GNUNET_NO == pp->negate_portrange))
   {
@@ -685,7 +690,7 @@ ipv6_to_regex (const struct GNUNET_STRINGS_IPv6NetworkPolicy *v6)
  * Convert an exit policy to a regular expression.  The exit policy
  * specifies a set of subnets this peer is willing to serve as an
  * exit for; the resulting regular expression will match the
- * IPv4 address strings as returned by 'GNUNET_TUN_ipv4toregexsearch'.
+ * IPv4 address strings as returned by #GNUNET_TUN_ipv4toregexsearch().
  *
  * @param policy exit policy specification
  * @return regular expression, NULL on error
