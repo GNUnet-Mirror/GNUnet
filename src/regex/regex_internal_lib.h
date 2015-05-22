@@ -61,11 +61,12 @@ struct REGEX_INTERNAL_Automaton;
  * @param max_path_len limit the path compression length to the
  *        given value. If set to 1, no path compression is applied. Set to 0 for
  *        maximal possible path compression (generally not desireable).
- * @return DFA, needs to be freed using REGEX_INTERNAL_automaton_destroy.
+ * @return DFA, needs to be freed using #REGEX_INTERNAL_automaton_destroy().
  */
 struct REGEX_INTERNAL_Automaton *
-REGEX_INTERNAL_construct_dfa (const char *regex, const size_t len,
-                            unsigned int max_path_len);
+REGEX_INTERNAL_construct_dfa (const char *regex,
+                              const size_t len,
+                              unsigned int max_path_len);
 
 
 /**
@@ -88,23 +89,23 @@ REGEX_INTERNAL_automaton_destroy (struct REGEX_INTERNAL_Automaton *a);
  */
 int
 REGEX_INTERNAL_eval (struct REGEX_INTERNAL_Automaton *a,
-                   const char *string);
+                     const char *string);
 
 
 /**
- * Get the first key for the given 'input_string'. This hashes
- * the first x bits of the 'input_string'.
+ * Get the first key for the given @a input_string. This hashes
+ * the first x bits of the @a input_string.
  *
  * @param input_string string.
- * @param string_len length of the 'input_string'.
+ * @param string_len length of the @a input_string.
  * @param key pointer to where to write the hash code.
- *
- * @return number of bits of 'input_string' that have been consumed
+ * @return number of bits of @a input_string that have been consumed
  *         to construct the key
  */
 size_t
-REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
-                            struct GNUNET_HashCode * key);
+REGEX_INTERNAL_get_first_key (const char *input_string,
+                              size_t string_len,
+                              struct GNUNET_HashCode * key);
 
 
 /**
@@ -113,16 +114,17 @@ REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
  * @param cls closure.
  * @param key hash for current state.
  * @param proof proof for current state
- * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param accepting #GNUNET_YES if this is an accepting state, #GNUNET_NO if not.
  * @param num_edges number of edges leaving current state.
  * @param edges edges leaving current state.
  */
-typedef void (*REGEX_INTERNAL_KeyIterator)(void *cls,
-                                         const struct GNUNET_HashCode *key,
-                                         const char *proof,
-                                         int accepting,
-                                         unsigned int num_edges,
-                                         const struct REGEX_BLOCK_Edge *edges);
+typedef void
+(*REGEX_INTERNAL_KeyIterator)(void *cls,
+                              const struct GNUNET_HashCode *key,
+                              const char *proof,
+                              int accepting,
+                              unsigned int num_edges,
+                              const struct REGEX_BLOCK_Edge *edges);
 
 
 /**
@@ -135,13 +137,13 @@ typedef void (*REGEX_INTERNAL_KeyIterator)(void *cls,
  */
 void
 REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
-                                REGEX_INTERNAL_KeyIterator iterator,
-                                void *iterator_cls);
+                                  REGEX_INTERNAL_KeyIterator iterator,
+                                  void *iterator_cls);
 
 
 /**
  * Iterate over all edges of automaton 'a' that are reachable from a state with
- * a proof of at least GNUNET_REGEX_INITIAL_BYTES characters.
+ * a proof of at least #GNUNET_REGEX_INITIAL_BYTES characters.
  *
  * Call the iterator for each such edge.
  *
@@ -169,16 +171,15 @@ struct REGEX_INTERNAL_Search;
 
 /**
  * Announce a regular expression: put all states of the automaton in the DHT.
- * Does not free resources, must call REGEX_INTERNAL_announce_cancel for that.
+ * Does not free resources, must call #REGEX_INTERNAL_announce_cancel() for that.
  *
  * @param dht An existing and valid DHT service handle. CANNOT be NULL.
  * @param priv our private key, must remain valid until the announcement is cancelled
  * @param regex Regular expression to announce.
  * @param compression How many characters per edge can we squeeze?
  * @param stats Optional statistics handle to report usage. Can be NULL.
- *
  * @return Handle to reuse o free cached resources.
- *         Must be freed by calling REGEX_INTERNAL_announce_cancel.
+ *         Must be freed by calling #REGEX_INTERNAL_announce_cancel().
  */
 struct REGEX_INTERNAL_Announcement *
 REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
@@ -192,7 +193,7 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
  * Announce again a regular expression previously announced.
  * Does use caching to speed up process.
  *
- * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
+ * @param h Handle returned by a previous #REGEX_INTERNAL_announce() call.
  */
 void
 REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h);
@@ -202,7 +203,7 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h);
  * Clear all cached data used by a regex announce.
  * Does not close DHT connection.
  *
- * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
+ * @param h Handle returned by a previous #REGEX_INTERNAL_announce() call.
  */
 void
 REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h);
@@ -211,24 +212,25 @@ REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h);
 /**
  * Search callback function.
  *
- * @param cls Closure provided in REGEX_INTERNAL_search.
+ * @param cls Closure provided in #REGEX_INTERNAL_search().
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
- * @param get_path_length Lenght of get_path.
+ * @param get_path_length Length of @a get_path.
  * @param put_path Path of the put request.
- * @param put_path_length Length of the put_path.
+ * @param put_path_length Length of the @a put_path.
  */
-typedef void (*REGEX_INTERNAL_Found)(void *cls,
-                                   const struct GNUNET_PeerIdentity *id,
-                                   const struct GNUNET_PeerIdentity *get_path,
-                                   unsigned int get_path_length,
-                                   const struct GNUNET_PeerIdentity *put_path,
-                                   unsigned int put_path_length);
+typedef void
+(*REGEX_INTERNAL_Found)(void *cls,
+                        const struct GNUNET_PeerIdentity *id,
+                        const struct GNUNET_PeerIdentity *get_path,
+                        unsigned int get_path_length,
+                        const struct GNUNET_PeerIdentity *put_path,
+                        unsigned int put_path_length);
 
 
 /**
  * Search for a peer offering a regex matching certain string in the DHT.
- * The search runs until REGEX_INTERNAL_search_cancel is called, even if results
+ * The search runs until #REGEX_INTERNAL_search_cancel() is called, even if results
  * are returned.
  *
  * @param dht An existing and valid DHT service handle.
@@ -236,22 +238,21 @@ typedef void (*REGEX_INTERNAL_Found)(void *cls,
  * @param callback Callback for found peers.
  * @param callback_cls Closure for @c callback.
  * @param stats Optional statistics handle to report usage. Can be NULL.
- *
  * @return Handle to stop search and free resources.
- *         Must be freed by calling REGEX_INTERNAL_search_cancel.
+ *         Must be freed by calling #REGEX_INTERNAL_search_cancel().
  */
 struct REGEX_INTERNAL_Search *
 REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
-                     const char *string,
-                     REGEX_INTERNAL_Found callback,
-                     void *callback_cls,
-                     struct GNUNET_STATISTICS_Handle *stats);
+                       const char *string,
+                       REGEX_INTERNAL_Found callback,
+                       void *callback_cls,
+                       struct GNUNET_STATISTICS_Handle *stats);
 
 /**
- * Stop search and free all data used by a REGEX_INTERNAL_search call.
+ * Stop search and free all data used by a #REGEX_INTERNAL_search() call.
  * Does not close DHT connection.
  *
- * @param h Handle returned by a previous REGEX_INTERNAL_search call.
+ * @param h Handle returned by a previous #REGEX_INTERNAL_search() call.
  */
 void
 REGEX_INTERNAL_search_cancel (struct REGEX_INTERNAL_Search *h);

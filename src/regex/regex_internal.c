@@ -31,7 +31,7 @@
 
 
 /**
- * Set this to GNUNET_YES to enable state naming. Used to debug NFA->DFA
+ * Set this to #GNUNET_YES to enable state naming. Used to debug NFA->DFA
  * creation. Disabled by default for better performance.
  */
 #define REGEX_DEBUG_DFA GNUNET_NO
@@ -59,7 +59,7 @@ struct REGEX_INTERNAL_StateSet_MDLL
 
 
 /**
- * Append state to the given StateSet '
+ * Append state to the given StateSet.
  *
  * @param set set to be modified
  * @param state state to be appended
@@ -95,7 +95,7 @@ nullstrcmp (const char *str1, const char *str2)
 
 
 /**
- * Adds a transition from one state to another on 'label'. Does not add
+ * Adds a transition from one state to another on @a label. Does not add
  * duplicate states.
  *
  * @param ctx context
@@ -105,7 +105,8 @@ nullstrcmp (const char *str1, const char *str2)
  */
 static void
 state_add_transition (struct REGEX_INTERNAL_Context *ctx,
-                      struct REGEX_INTERNAL_State *from_state, const char *label,
+                      struct REGEX_INTERNAL_State *from_state,
+                      const char *label,
                       struct REGEX_INTERNAL_State *to_state)
 {
   struct REGEX_INTERNAL_Transition *t;
@@ -113,7 +114,8 @@ state_add_transition (struct REGEX_INTERNAL_Context *ctx,
 
   if (NULL == from_state)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not create Transition.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not create Transition.\n");
     return;
   }
 
@@ -196,16 +198,17 @@ state_compare (const void *a, const void *b)
 
 
 /**
- * Get all edges leaving state 's'.
+ * Get all edges leaving state @a s.
  *
  * @param s state.
- * @param edges all edges leaving 's', expected to be allocated and have enough
- *        space for s->transitions_count elements.
+ * @param edges all edges leaving @a s, expected to be allocated and have enough
+ *        space for `s->transitions_count` elements.
  *
  * @return number of edges.
  */
 static unsigned int
-state_get_edges (struct REGEX_INTERNAL_State *s, struct REGEX_BLOCK_Edge *edges)
+state_get_edges (struct REGEX_INTERNAL_State *s,
+                 struct REGEX_BLOCK_Edge *edges)
 {
   struct REGEX_INTERNAL_Transition *t;
   unsigned int count;
@@ -293,7 +296,7 @@ automaton_fragment_clear (struct REGEX_INTERNAL_Automaton *a)
 
 
 /**
- * Frees the memory used by State 's'
+ * Frees the memory used by State @a s
  *
  * @param s state that should be destroyed
  */
@@ -498,17 +501,17 @@ automaton_state_traverse (struct REGEX_INTERNAL_State *s, int *marks,
  * @param start start state, pass a->start or NULL to traverse the whole automaton.
  * @param check function that is checked before advancing on each transition
  *              in the DFS.
- * @param check_cls closure for check.
+ * @param check_cls closure for @a check.
  * @param action action to be performed on each state.
- * @param action_cls closure for action
+ * @param action_cls closure for @a action
  */
 void
 REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
-                                 struct REGEX_INTERNAL_State *start,
-                                 REGEX_INTERNAL_traverse_check check,
-                                 void *check_cls,
-                                 REGEX_INTERNAL_traverse_action action,
-                                 void *action_cls)
+                                   struct REGEX_INTERNAL_State *start,
+                                   REGEX_INTERNAL_traverse_check check,
+                                   void *check_cls,
+                                   REGEX_INTERNAL_traverse_action action,
+                                   void *action_cls)
 {
   unsigned int count;
   struct REGEX_INTERNAL_State *s;
@@ -532,8 +535,9 @@ REGEX_INTERNAL_automaton_traverse (const struct REGEX_INTERNAL_Automaton *a,
   else
     s = start;
 
-  automaton_state_traverse (s, marks, &count, check, check_cls, action,
-                            action_cls);
+  automaton_state_traverse (s, marks, &count,
+                            check, check_cls,
+                            action, action_cls);
 }
 
 
@@ -559,7 +563,7 @@ struct StringBuffer
   size_t slen;
 
   /**
-   * Number of bytes allocated for 'sbuf'
+   * Number of bytes allocated for @e sbuf
    */
   unsigned int blen;
 
@@ -570,7 +574,7 @@ struct StringBuffer
 
   /**
    * If this entry is part of the last/current generation array,
-   * this flag is GNUNET_YES if the last and current generation are
+   * this flag is #GNUNET_YES if the last and current generation are
    * identical (and thus copying is unnecessary if the value didn't
    * change).  This is used in an optimization that improves
    * performance by about 1% --- if we use int16_t here.  With just
@@ -604,7 +608,7 @@ sb_nullstrcmp (const struct StringBuffer *s1,
     return -1;
   return memcmp (s1->sbuf, s2->sbuf, s1->slen);
 }
-	
+
 
 /**
  * Compare two strings for equality.
@@ -622,7 +626,7 @@ sb_strcmp (const struct StringBuffer *s1,
     return -1;
   return memcmp (s1->sbuf, s2->sbuf, s1->slen);
 }
-	
+
 
 /**
  * Reallocate the buffer of 'ret' to fit 'nlen' characters;
@@ -669,7 +673,7 @@ sb_append (struct StringBuffer *ret,
 	  sarg->slen);
   ret->slen += sarg->slen;
 }
-	
+
 
 /**
  * Append a C string.
@@ -693,7 +697,7 @@ sb_append_cstr (struct StringBuffer *ret,
 	  cstr_len);
   ret->slen += cstr_len;
 }
-	
+
 
 /**
  * Wrap a string buffer, that is, set ret to the format string
@@ -854,7 +858,7 @@ sb_free (struct StringBuffer *sb)
 static void
 sb_strdup (struct StringBuffer *out,
 	   const struct StringBuffer *in)
-	
+
 {
   out->null_flag = in->null_flag;
   if (GNUNET_YES == out->null_flag)
@@ -900,12 +904,12 @@ sb_strdup_cstr (struct StringBuffer *out,
 
 
 /**
- * Check if the given string 'str' needs parentheses around it when
+ * Check if the given string @a str needs parentheses around it when
  * using it to generate a regex.
  *
  * @param str string
  *
- * @return GNUNET_YES if parentheses are needed, GNUNET_NO otherwise
+ * @return #GNUNET_YES if parentheses are needed, #GNUNET_NO otherwise
  */
 static int
 needs_parentheses (const struct StringBuffer *str)
@@ -949,9 +953,9 @@ needs_parentheses (const struct StringBuffer *str)
 
 
 /**
- * Remove parentheses surrounding string 'str'.
+ * Remove parentheses surrounding string @a str.
  * Example: "(a)" becomes "a", "(a|b)|(a|c)" stays the same.
- * You need to GNUNET_free the returned string.
+ * You need to #GNUNET_free() the returned string.
  *
  * @param str string, modified to contain a
  * @return string without surrounding parentheses, string 'str' if no preceding
@@ -1799,8 +1803,10 @@ dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
   for (i = 0; i < nfa_states->off; i++)
   {
     cstate = nfa_states->states[i];
-    GNUNET_snprintf (pos, pos - s->name + len,
-		     "%i,", cstate->id);
+    GNUNET_snprintf (pos,
+                     pos - s->name + len,
+		     "%i,",
+                     cstate->id);
     pos += strlen (pos);
 
     /* Add a transition for each distinct label to NULL state */
@@ -1867,16 +1873,18 @@ dfa_move (struct REGEX_INTERNAL_State **s, const char *str)
 
 
 /**
- * Set the given state 'marked' to GNUNET_YES. Used by the
- * 'dfa_remove_unreachable_states' function to detect unreachable states in the
+ * Set the given state 'marked' to #GNUNET_YES. Used by the
+ * #dfa_remove_unreachable_states() function to detect unreachable states in the
  * automaton.
  *
  * @param cls closure, not used.
  * @param count count, not used.
- * @param s state where the marked attribute will be set to GNUNET_YES.
+ * @param s state where the marked attribute will be set to #GNUNET_YES.
  */
 static void
-mark_states (void *cls, const unsigned int count, struct REGEX_INTERNAL_State *s)
+mark_states (void *cls,
+             const unsigned int count,
+             struct REGEX_INTERNAL_State *s)
 {
   s->marked = GNUNET_YES;
 }
@@ -1958,7 +1966,7 @@ dfa_remove_dead_states (struct REGEX_INTERNAL_Automaton *a)
  *
  * @param ctx context
  * @param a DFA automaton
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 dfa_merge_nondistinguishable_states (struct REGEX_INTERNAL_Context *ctx,
@@ -3115,10 +3123,11 @@ REGEX_INTERNAL_automaton_destroy (struct REGEX_INTERNAL_Automaton *a)
  * @param a automaton, type must be DFA
  * @param string string that should be evaluated
  *
- * @return 0 if string matches, non 0 otherwise
+ * @return 0 if string matches, non-0 otherwise
  */
 static int
-evaluate_dfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
+evaluate_dfa (struct REGEX_INTERNAL_Automaton *a,
+              const char *string)
 {
   const char *strp;
   struct REGEX_INTERNAL_State *s;
@@ -3157,11 +3166,11 @@ evaluate_dfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
  *
  * @param a automaton, type must be NFA
  * @param string string that should be evaluated
- *
- * @return 0 if string matches, non 0 otherwise
+ * @return 0 if string matches, non-0 otherwise
  */
 static int
-evaluate_nfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
+evaluate_nfa (struct REGEX_INTERNAL_Automaton *a,
+              const char *string)
 {
   const char *strp;
   char str[2];
@@ -3215,15 +3224,15 @@ evaluate_nfa (struct REGEX_INTERNAL_Automaton *a, const char *string)
 
 
 /**
- * Evaluates the given 'string' against the given compiled regex
+ * Evaluates the given @a string against the given compiled regex @a a
  *
  * @param a automaton
  * @param string string to check
- *
- * @return 0 if string matches, non 0 otherwise
+ * @return 0 if string matches, non-0 otherwise
  */
 int
-REGEX_INTERNAL_eval (struct REGEX_INTERNAL_Automaton *a, const char *string)
+REGEX_INTERNAL_eval (struct REGEX_INTERNAL_Automaton *a,
+                     const char *string)
 {
   int result;
 
@@ -3292,19 +3301,19 @@ REGEX_INTERNAL_get_transition_count (struct REGEX_INTERNAL_Automaton *a)
 
 
 /**
- * Get the first key for the given 'input_string'. This hashes the first x bits
- * of the 'input_string'.
+ * Get the first key for the given @a input_string. This hashes the first x bits
+ * of the @a input_string.
  *
  * @param input_string string.
- * @param string_len length of the 'input_string'.
+ * @param string_len length of the @a input_string.
  * @param key pointer to where to write the hash code.
- *
- * @return number of bits of 'input_string' that have been consumed
+ * @return number of bits of @a input_string that have been consumed
  *         to construct the key
  */
 size_t
-REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
-                            struct GNUNET_HashCode * key)
+REGEX_INTERNAL_get_first_key (const char *input_string,
+                              size_t string_len,
+                              struct GNUNET_HashCode *key)
 {
   size_t size;
 
@@ -3330,12 +3339,15 @@ REGEX_INTERNAL_get_first_key (const char *input_string, size_t string_len,
  * @param consumed_string string consumed by traversing the graph till this state.
  * @param state current state of the automaton.
  * @param iterator iterator function called for each edge.
- * @param iterator_cls closure for the iterator function.
+ * @param iterator_cls closure for the @a iterator function.
  */
 static void
-iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
-                      char *consumed_string, struct REGEX_INTERNAL_State *state,
-                      REGEX_INTERNAL_KeyIterator iterator, void *iterator_cls)
+iterate_initial_edge (unsigned int min_len,
+                      unsigned int max_len,
+                      char *consumed_string,
+                      struct REGEX_INTERNAL_State *state,
+                      REGEX_INTERNAL_KeyIterator iterator,
+                      void *iterator_cls)
 {
   char *temp;
   struct REGEX_INTERNAL_Transition *t;
@@ -3351,21 +3363,36 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   else
     cur_len = 0;
 
-  if ((cur_len >= min_len || GNUNET_YES == state->accepting) && cur_len > 0 &&
-      NULL != consumed_string)
+  if ( ( (cur_len >= min_len) ||
+         (GNUNET_YES == state->accepting) ) &&
+       (cur_len > 0) &&
+       (NULL != consumed_string) )
   {
     if (cur_len <= max_len)
     {
-      if (state->proof != NULL && 0 != strcmp (consumed_string, state->proof))
+      if ( (NULL != state->proof) &&
+           (0 != strcmp (consumed_string,
+                         state->proof)) )
       {
         (void) state_get_edges (state, edges);
-        GNUNET_CRYPTO_hash (consumed_string, strlen (consumed_string), &hash);
-        iterator (iterator_cls, &hash, consumed_string, state->accepting,
+        GNUNET_CRYPTO_hash (consumed_string,
+                            strlen (consumed_string),
+                            &hash);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Start state for string `%s' is %s\n",
+                    consumed_string,
+                    GNUNET_h2s (&hash));
+        iterator (iterator_cls,
+                  &hash,
+                  consumed_string,
+                  state->accepting,
                   num_edges, edges);
       }
 
-      if (GNUNET_YES == state->accepting && cur_len > 1 &&
-          state->transition_count < 1 && cur_len < max_len)
+      if ( (GNUNET_YES == state->accepting) &&
+           (cur_len > 1) &&
+           (state->transition_count < 1) &&
+           (cur_len < max_len) )
       {
         /* Special case for regex consisting of just a string that is shorter than
          * max_len */
@@ -3373,8 +3400,18 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
         edge[0].destination = state->hash;
         temp = GNUNET_strdup (consumed_string);
         temp[cur_len - 1] = '\0';
-        GNUNET_CRYPTO_hash (temp, cur_len - 1, &hash_new);
-        iterator (iterator_cls, &hash_new, temp, GNUNET_NO, 1, edge);
+        GNUNET_CRYPTO_hash (temp,
+                            cur_len - 1,
+                            &hash_new);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Start state for short string `%s' is %s\n",
+                    temp,
+                    GNUNET_h2s (&hash_new));
+        iterator (iterator_cls,
+                  &hash_new,
+                  temp,
+                  GNUNET_NO, 1,
+                  edge);
         GNUNET_free (temp);
       }
     }
@@ -3386,7 +3423,17 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
       temp = GNUNET_strdup (consumed_string);
       temp[max_len] = '\0';
       GNUNET_CRYPTO_hash (temp, max_len, &hash);
-      iterator (iterator_cls, &hash, temp, GNUNET_NO, 1, edge);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Start state at split edge `%s'-`%s` is %s\n",
+                  temp,
+                  edge[0].label,
+                  GNUNET_h2s (&hash_new));
+      iterator (iterator_cls,
+                &hash,
+                temp,
+                GNUNET_NO,
+                1,
+                edge);
       GNUNET_free (temp);
     }
   }
@@ -3395,12 +3442,27 @@ iterate_initial_edge (const unsigned int min_len, const unsigned int max_len,
   {
     for (t = state->transitions_head; NULL != t; t = t->next)
     {
+      if (NULL != strchr (t->label,
+                          (int) '.'))
+      {
+        /* Wildcards not allowed during starting states */
+        GNUNET_break (0);
+        continue;
+      }
       if (NULL != consumed_string)
-        GNUNET_asprintf (&temp, "%s%s", consumed_string, t->label);
+        GNUNET_asprintf (&temp,
+                         "%s%s",
+                         consumed_string,
+                         t->label);
       else
-        GNUNET_asprintf (&temp, "%s", t->label);
-
-      iterate_initial_edge (min_len, max_len, temp, t->to_state, iterator,
+        GNUNET_asprintf (&temp,
+                         "%s",
+                         t->label);
+      iterate_initial_edge (min_len,
+                            max_len,
+                            temp,
+                            t->to_state,
+                            iterator,
                             iterator_cls);
       GNUNET_free (temp);
     }
@@ -3423,6 +3485,14 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
 {
   struct REGEX_INTERNAL_State *s;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Iterating over starting edges\n");
+  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
+                        GNUNET_REGEX_INITIAL_BYTES,
+                        NULL, a->start,
+                        iterator, iterator_cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Iterating over DFA edges\n");
   for (s = a->states_head; NULL != s; s = s->next)
   {
     struct REGEX_BLOCK_Edge edges[s->transition_count];
@@ -3431,17 +3501,19 @@ REGEX_INTERNAL_iterate_all_edges (struct REGEX_INTERNAL_Automaton *a,
     num_edges = state_get_edges (s, edges);
     if ( ( (NULL != s->proof) &&
            (0 < strlen (s->proof)) ) || s->accepting)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Creating DFA edges at `%s' under key %s\n",
+                  s->proof,
+                  GNUNET_h2s (&s->hash));
       iterator (iterator_cls, &s->hash, s->proof,
                 s->accepting,
                 num_edges, edges);
+    }
     s->marked = GNUNET_NO;
   }
-
-  iterate_initial_edge (GNUNET_REGEX_INITIAL_BYTES,
-                        GNUNET_REGEX_INITIAL_BYTES,
-                        NULL, a->start,
-                        iterator, iterator_cls);
 }
+
 
 /**
  * Struct to hold all the relevant state information in the HashMap.

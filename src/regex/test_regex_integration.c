@@ -85,7 +85,7 @@ end_badly ()
 /**
  * Search callback function, invoked for every result that was found.
  *
- * @param cls Closure provided in GNUNET_REGEX_search.
+ * @param cls Closure provided in #GNUNET_REGEX_search().
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
  * @param get_path_length Length of @a get_path.
@@ -103,9 +103,9 @@ found_cb (void *cls,
   const char *str = cls;
   static int found;
 
-  fprintf (stderr,
-           "IPv%s-exit found\n",
-           str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "IPv%s-exit found\n",
+              str);
   if (0 == strcmp (str, "4"))
     found |= 4;
   if (0 == strcmp (str, "6"))

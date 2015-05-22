@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2012 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2012, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -34,8 +34,19 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind,"regex-dht",__VA_ARGS__)
 
+/**
+ * DHT replication level to use.
+ */
 #define DHT_REPLICATION 5
+
+/**
+ * DHT record lifetime to use.
+ */
 #define DHT_TTL         GNUNET_TIME_UNIT_HOURS
+
+/**
+ * DHT options to set.
+ */
 #define DHT_OPT         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE
 
 
@@ -57,7 +68,7 @@ struct REGEX_INTERNAL_Announcement
   /**
    * Automaton representation of the regex (expensive to build).
    */
-  struct REGEX_INTERNAL_Automaton* dfa;
+  struct REGEX_INTERNAL_Automaton *dfa;
 
   /**
    * Our private key.
@@ -77,7 +88,7 @@ struct REGEX_INTERNAL_Announcement
  * @param cls closure.
  * @param key hash for current state.
  * @param proof proof for current state.
- * @param accepting GNUNET_YES if this is an accepting state, GNUNET_NO if not.
+ * @param accepting #GNUNET_YES if this is an accepting state, #GNUNET_NO if not.
  * @param num_edges number of edges leaving current state.
  * @param edges edges leaving current state.
  */
@@ -95,17 +106,17 @@ regex_iterator (void *cls,
   unsigned int i;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "DHT PUT for state %s with proof `%s' and %u edges\n",
+       "DHT PUT for state %s with proof `%s' and %u edges:\n",
        GNUNET_h2s (key),
        proof,
        num_edges);
   for (i = 0; i < num_edges; i++)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-         "  edge %s towards %s (%s)\n",
+         "Edge %u `%s' towards %s\n",
+         i,
          edges[i].label,
-         GNUNET_h2s (&edges[i].destination),
-         proof);
+         GNUNET_h2s (&edges[i].destination));
   }
   if (GNUNET_YES == accepting)
   {
@@ -156,9 +167,11 @@ regex_iterator (void *cls,
                   GNUNET_TIME_relative_to_absolute (DHT_TTL),
                   DHT_TTL,
                   NULL, NULL);
-  GNUNET_STATISTICS_update (h->stats, "# regex blocks stored",
+  GNUNET_STATISTICS_update (h->stats,
+                            "# regex blocks stored",
                             1, GNUNET_NO);
-  GNUNET_STATISTICS_update (h->stats, "# regex block bytes stored",
+  GNUNET_STATISTICS_update (h->stats,
+                            "# regex block bytes stored",
                             size, GNUNET_NO);
   GNUNET_free (block);
 }
@@ -166,16 +179,15 @@ regex_iterator (void *cls,
 
 /**
  * Announce a regular expression: put all states of the automaton in the DHT.
- * Does not free resources, must call REGEX_INTERNAL_announce_cancel for that.
+ * Does not free resources, must call #REGEX_INTERNAL_announce_cancel() for that.
  *
  * @param dht An existing and valid DHT service handle. CANNOT be NULL.
  * @param priv our private key, must remain valid until the announcement is cancelled
  * @param regex Regular expression to announce.
  * @param compression How many characters per edge can we squeeze?
  * @param stats Optional statistics handle to report usage. Can be NULL.
- *
  * @return Handle to reuse o free cached resources.
- *         Must be freed by calling REGEX_INTERNAL_announce_cancel.
+ *         Must be freed by calling #REGEX_INTERNAL_announce_cancel().
  */
 struct REGEX_INTERNAL_Announcement *
 REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
@@ -202,7 +214,7 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
  * Announce again a regular expression previously announced.
  * Does use caching to speed up process.
  *
- * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
+ * @param h Handle returned by a previous #REGEX_INTERNAL_announce call().
  */
 void
 REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
@@ -211,7 +223,9 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
   LOG (GNUNET_ERROR_TYPE_INFO,
        "REGEX_INTERNAL_reannounce: %s\n",
        h->regex);
-  REGEX_INTERNAL_iterate_reachable_edges (h->dfa, &regex_iterator, h);
+  REGEX_INTERNAL_iterate_reachable_edges (h->dfa,
+                                          &regex_iterator,
+                                          h);
 }
 
 
@@ -219,7 +233,7 @@ REGEX_INTERNAL_reannounce (struct REGEX_INTERNAL_Announcement *h)
  * Clear all cached data used by a regex announce.
  * Does not close DHT connection.
  *
- * @param h Handle returned by a previous REGEX_INTERNAL_announce call.
+ * @param h Handle returned by a previous #REGEX_INTERNAL_announce() call.
  */
 void
 REGEX_INTERNAL_announce_cancel (struct REGEX_INTERNAL_Announcement *h)
