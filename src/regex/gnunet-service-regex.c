@@ -332,13 +332,16 @@ handle_search (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Starting to search for `%s'\n",
+	      string);
   ce = GNUNET_new (struct ClientEntry);
   ce->client = client;
   ce->sh = REGEX_INTERNAL_search (dht,
-				string,
-				&handle_search_result,
-				ce,
-				stats);
+                                  string,
+                                  &handle_search_result,
+                                  ce,
+                                  stats);
   if (NULL == ce->sh)
   {
     GNUNET_break (0);
