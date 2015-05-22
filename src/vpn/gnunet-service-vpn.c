@@ -693,6 +693,36 @@ send_to_channel (struct ChannelMessageQueueEntry *tnq,
 
 
 /**
+ * Output destination of a channel for diagnostics.
+ *
+ * @param de destination to process
+ * @return diagnostic string describing destination
+ */
+static const char *
+print_channel_destination (const struct DestinationEntry *de)
+{
+  static char dest[256];
+
+  if (de->is_service)
+  {
+    GNUNET_snprintf (dest,
+                     sizeof (dest),
+                     "HS: %s-%s\n",
+                     GNUNET_i2s (&de->details.service_destination.target),
+                     GNUNET_h2s (&de->details.service_destination.service_descriptor));
+  }
+  else
+  {
+    inet_ntop (de->details.exit_destination.af,
+               &de->details.exit_destination.ip,
+               dest,
+               sizeof (dest));
+  }
+  return dest;
+}
+
+
+/**
  * Regex has found a potential exit peer for us; consider using it.
  *
  * @param cls the 'struct ChannelState'
@@ -715,6 +745,9 @@ handle_regex_result (void *cls,
 
   GNUNET_REGEX_search_cancel (ts->search);
   ts->search = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Exit search for destination %s complete!\n",
+              print_channel_destination (&ts->destination),
   switch (ts->af)
   {
   case AF_INET:
@@ -816,7 +849,8 @@ create_channel_to_destination (struct DestinationChannel *dt,
       GNUNET_TUN_ipv6toregexsearch (&dt->destination->details.exit_destination.ip.v6,
 				    dt->destination_port,
                                     address);
-      GNUNET_asprintf (&policy, "%s%s",
+      GNUNET_asprintf (&policy,
+                       "%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                        address);
       break;
@@ -854,36 +888,6 @@ expire_channel (struct ChannelState *except)
   if (except == ts)
     return; /* can't do this */
   free_channel_state (ts);
-}
-
-
-/**
- * Output destination of a channel for diagnostics.
- *
- * @param de destination to process
- * @return diagnostic string describing destination
- */
-static const char *
-print_channel_destination (const struct DestinationEntry *de)
-{
-  static char dest[256];
-
-  if (de->is_service)
-  {
-    GNUNET_snprintf (dest,
-                     sizeof (dest),
-                     "HS: %s-%s\n",
-                     GNUNET_i2s (&de->details.service_destination.target),
-                     GNUNET_h2s (&de->details.service_destination.service_descriptor));
-  }
-  else
-  {
-    inet_ntop (de->details.exit_destination.af,
-               &de->details.exit_destination.ip,
-               dest,
-               sizeof (dest));
-  }
-  return dest;
 }
 
 
