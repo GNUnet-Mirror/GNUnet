@@ -3094,7 +3094,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     {
       const struct GNUNET_CADET_Encrypted *emsg;
 
-      emsg = (struct GNUNET_CADET_Encrypted *) msg;
+      emsg = (const struct GNUNET_CADET_Encrypted *) msg;
       payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
       decrypted_size = t_decrypt_and_validate (t, cbuf, &emsg[1], payload_size,
                                                emsg->iv, &emsg->hmac);
@@ -3104,7 +3104,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     {
       const struct GNUNET_CADET_AX *emsg;
 
-      emsg = (struct GNUNET_CADET_AX *) msg;
+      emsg = (const struct GNUNET_CADET_AX *) msg;
       decrypted_size = t_ax_decrypt_and_validate (t, cbuf, emsg, size);
     }
     break;
@@ -3118,12 +3118,15 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     return;
   }
 
+  /* FIXME: this is bad, as the structs returned from
+     this loop may be unaligned, see util's MST for
+     how to do this right. */
   off = 0;
   while (off < decrypted_size)
   {
     uint16_t msize;
 
-    msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
+    msgh = (const struct GNUNET_MessageHeader *) &cbuf[off];
     msize = ntohs (msgh->size);
     if (msize < sizeof (struct GNUNET_MessageHeader))
     {
