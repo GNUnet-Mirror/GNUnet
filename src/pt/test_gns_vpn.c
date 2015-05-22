@@ -399,7 +399,7 @@ run (void *cls,
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   GNUNET_asprintf (&rd_string,
                    "6 %s %s",
-                   (char*) &peername,
+                   peername,
                    "www.gnu.");
   GNUNET_free (peername);
   GNUNET_assert (GNUNET_OK ==
