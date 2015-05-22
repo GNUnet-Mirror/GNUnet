@@ -492,9 +492,14 @@ GNUNET_CRYPTO_ecdhe_key_create ()
   gcry_mpi_t d;
   int rc;
 
+  /* NOTE: For libgcrypt >= 1.7, we do not need the 'eddsa' flag here,
+     but should also be harmless. For libgcrypt < 1.7, using 'eddsa'
+     disables an expensive key testing routine. We do not want to run
+     the expensive check for ECDHE, as we generate TONS of keys to
+     use for a very short time. */
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags eddsa)))")))
+                                  "(flags eddsa no-keytest)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
