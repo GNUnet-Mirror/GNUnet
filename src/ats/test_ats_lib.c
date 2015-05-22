@@ -755,9 +755,11 @@ interpreter (void *cls,
         else
           cmp = &update->details.update_address.properties;
         if ( (NULL != aid) &&
-             (0 == memcmp (cmp,
-                           &aid->properties,
-                           sizeof (struct GNUNET_ATS_Properties))) )
+             (cmp->delay.rel_value_us == aid->properties.delay.rel_value_us) &&
+             (cmp->delay.utilization_out == aid->properties.utilization_out) &&
+             (cmp->delay.utilization_in == aid->properties.utilization_in) &&
+             (cmp->delay.distance == aid->properties.distance) &&
+             (cmp->delay.scope == aid->properties.scope) )
         {
           off++;
           break;
