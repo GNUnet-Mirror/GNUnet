@@ -324,7 +324,7 @@ struct ChannelState
 
 
 /**
- * Return value from 'main'.
+ * Return value from #main().
  */
 static int global_ret;
 
@@ -445,12 +445,12 @@ get_destination_key_from_ip (int af,
  */
 static void
 get_channel_key_from_ips (int af,
-			 uint8_t protocol,
-			 const void *source_ip,
-			 uint16_t source_port,
-			 const void *destination_ip,
-			 uint16_t destination_port,
-			 struct GNUNET_HashCode *key)
+                          uint8_t protocol,
+                          const void *source_ip,
+                          uint16_t source_port,
+                          const void *destination_ip,
+                          uint16_t destination_port,
+                          struct GNUNET_HashCode *key)
 {
   char *off;
 
@@ -744,7 +744,7 @@ handle_regex_result (void *cls,
  */
 static struct ChannelState *
 create_channel_to_destination (struct DestinationChannel *dt,
-			      int client_af)
+                               int client_af)
 {
   struct ChannelState *ts;
   unsigned int apptype;
@@ -774,10 +774,10 @@ create_channel_to_destination (struct DestinationChannel *dt,
   if (dt->destination->is_service)
   {
     ts->channel = GNUNET_CADET_channel_create (cadet_handle,
-					    ts,
-					    &dt->destination->details.service_destination.target,
-					    apptype,
-					    GNUNET_CADET_OPTION_DEFAULT);
+                                               ts,
+                                               &dt->destination->details.service_destination.target,
+                                               apptype,
+                                               GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == ts->channel)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -803,7 +803,8 @@ create_channel_to_destination (struct DestinationChannel *dt,
       GNUNET_TUN_ipv4toregexsearch (&dt->destination->details.exit_destination.ip.v4,
 				    dt->destination_port,
 				    address);
-      GNUNET_asprintf (&policy, "%s%s",
+      GNUNET_asprintf (&policy,
+                       "%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
                        address);
       break;
@@ -853,6 +854,36 @@ expire_channel (struct ChannelState *except)
   if (except == ts)
     return; /* can't do this */
   free_channel_state (ts);
+}
+
+
+/**
+ * Output destination of a channel for diagnostics.
+ *
+ * @param de destination to process
+ * @return diagnostic string describing destination
+ */
+static const char *
+print_channel_destination (const struct DestinationEntry *de)
+{
+  static char dest[256];
+
+  if (de->is_service)
+  {
+    GNUNET_snprintf (dest,
+                     sizeof (dest),
+                     "HS: %s-%s\n",
+                     GNUNET_i2s (&de->details.service_destination.target),
+                     GNUNET_h2s (&de->details.service_destination.service_descriptor));
+  }
+  else
+  {
+    inet_ntop (de->details.exit_destination.af,
+               &de->details.exit_destination.ip,
+               dest,
+               sizeof (dest));
+  }
+  return dest;
 }
 
 
@@ -1098,7 +1129,11 @@ route_packet (struct DestinationEntry *destination,
   if (NULL == ts->channel)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Packet dropped, channel not yet ready\n");
+                "Packet dropped, channel to %s not yet ready (%s)\n",
+                print_channel_destination (&ts->destination),
+                (NULL == ts->search)
+                ? "EXIT search failed"
+                : "EXIT search active");
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Packets dropped (channel not yet online)"),
 			      1,
