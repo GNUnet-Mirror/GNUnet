@@ -363,14 +363,14 @@ run (void *cls,
 {
   enum MHD_FLAG flags;
   struct GNUNET_PeerIdentity id;
-  struct GNUNET_CRYPTO_HashAsciiEncoded peername;
+  char *peername;
   struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key;
   struct GNUNET_GNSRECORD_Data rd;
   char *rd_string;
   char *zone_keyfile;
 
   GNUNET_TESTING_peer_get_identity (peer, &id);
-  GNUNET_CRYPTO_hash_to_enc ((struct GNUNET_HashCode*)&id, &peername);
+  peername = GNUNET_strdup (GNUNET_i2s_full (&id));
 
   namestore = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_assert (NULL != namestore);
@@ -391,6 +391,7 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed to get key from cfg\n");
+    GNUNET_free (peername);
     return;
   }
 
@@ -400,10 +401,12 @@ run (void *cls,
                    "6 %s %s",
                    (char*) &peername,
                    "www.gnu.");
-  GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
-                                                               rd_string,
-                                                               (void**)&rd.data,
-                                                               &rd.data_size));
+  GNUNET_free (peername);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
+                                                   rd_string,
+                                                   (void**) &rd.data,
+                                                   &rd.data_size));
   rd.record_type = GNUNET_GNSRECORD_TYPE_VPN;
 
   GNUNET_NAMESTORE_records_store (namestore,
@@ -597,4 +600,3 @@ main (int argc, char *const *argv)
 }
 
 /* end of test_gns_vpn.c */
-

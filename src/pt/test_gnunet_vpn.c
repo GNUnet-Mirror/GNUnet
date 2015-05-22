@@ -406,7 +406,8 @@ main (int argc, char *const *argv)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "access",
                               "/dev/net/tun");
-    fprintf (stderr, "WARNING: System unable to run test, skipping.\n");
+    fprintf (stderr,
+             "WARNING: System unable to run test, skipping.\n");
     return 0;
   }
 #endif
@@ -430,7 +431,8 @@ main (int argc, char *const *argv)
   type = strstr (bin, "-");
   if (NULL == type)
   {
-    fprintf (stderr, "invalid binary name\n");
+    fprintf (stderr,
+             "invalid binary name\n");
     return 1;
   }
   type++;
