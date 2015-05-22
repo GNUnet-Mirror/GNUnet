@@ -728,10 +728,10 @@ handle_regex_result (void *cls,
     return;
   }
   ts->channel = GNUNET_CADET_channel_create (cadet_handle,
-                                          ts,
-                                          id,
-                                          apptype,
-                                          GNUNET_CADET_OPTION_DEFAULT);
+                                             ts,
+                                             id,
+                                             apptype,
+                                             GNUNET_CADET_OPTION_DEFAULT);
 }
 
 
@@ -1095,7 +1095,14 @@ route_packet (struct DestinationEntry *destination,
 				       ts->heap_node,
 				       GNUNET_TIME_absolute_get ().abs_value_us);
   }
-  GNUNET_assert (NULL != ts->channel);
+  if (NULL == ts->channel)
+  {
+    GNUNET_STATISTICS_update (stats,
+			      gettext_noop ("# Packets dropped (channel not yet online)"),
+			      1,
+                              GNUNET_NO);
+    return;
+  }
 
   /* send via channel */
   switch (protocol)
@@ -2753,7 +2760,7 @@ service_redirect_to_service (void *cls,
 			       de->dt_tail,
 			       dt);
   ts = create_channel_to_destination (dt,
-				     result_af);
+                                      result_af);
   switch (result_af)
   {
   case AF_INET:

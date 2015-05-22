@@ -111,7 +111,9 @@ init_tun (char *dev)
 
   if (-1 == ioctl (fd, TUNSETIFF, (void *) &ifr))
   {
-    fprintf (stderr, "Error with ioctl on `%s': %s\n", "/dev/net/tun",
+    fprintf (stderr,
+             "Error with ioctl on `%s': %s\n",
+             "/dev/net/tun",
              strerror (errno));
     (void) close (fd);
     return -1;
@@ -143,14 +145,17 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
   sa6.sin6_family = AF_INET6;
   if (1 != inet_pton (AF_INET6, address, sa6.sin6_addr.s6_addr))
   {
-    fprintf (stderr, "Failed to parse address `%s': %s\n", address,
-             strerror (errno));
+    fprintf (stderr,
+             "Failed to parse IPv6 address `%s'\n",
+             address);
     exit (1);
   }
 
   if (-1 == (fd = socket (PF_INET6, SOCK_DGRAM, 0)))
   {
-    fprintf (stderr, "Error creating socket: %s\n", strerror (errno));
+    fprintf (stderr,
+             "Error creating socket: %s\n",
+             strerror (errno));
     exit (1);
   }
 
@@ -236,14 +241,17 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (1 != inet_pton (AF_INET, address, &addr->sin_addr.s_addr))
   {
-    fprintf (stderr, "Failed to parse address `%s': %s\n", address,
-             strerror (errno));
+    fprintf (stderr,
+             "Failed to parse IPv4 address `%s'\n",
+             address);
     exit (1);
   }
 
   if (-1 == (fd = socket (PF_INET, SOCK_DGRAM, 0)))
   {
-    fprintf (stderr, "Error creating socket: %s\n", strerror (errno));
+    fprintf (stderr,
+             "Error creating socket: %s\n",
+             strerror (errno));
     exit (1);
   }
 
@@ -254,7 +262,10 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (-1 == ioctl (fd, SIOCSIFADDR, &ifr))
   {
-    fprintf (stderr, "ioctl failed at %d: %s\n", __LINE__, strerror (errno));
+    fprintf (stderr,
+             "ioctl failed at %d: %s\n",
+             __LINE__,
+             strerror (errno));
     (void) close (fd);
     exit (1);
   }
@@ -265,8 +276,9 @@ set_address4 (const char *dev, const char *address, const char *mask)
   addr = (struct sockaddr_in *) &(ifr.ifr_netmask);
   if (1 != inet_pton (AF_INET, mask, &addr->sin_addr.s_addr))
   {
-    fprintf (stderr, "Failed to parse address `%s': %s\n", mask,
-             strerror (errno));
+    fprintf (stderr,
+             "Failed to parse IPv4 address mask `%s'\n",
+             mask);
     (void) close (fd);
     exit (1);
   }
@@ -276,7 +288,9 @@ set_address4 (const char *dev, const char *address, const char *mask)
    */
   if (-1 == ioctl (fd, SIOCSIFNETMASK, &ifr))
   {
-    fprintf (stderr, "ioctl failed at line %d: %s\n", __LINE__,
+    fprintf (stderr,
+             "ioctl failed at line %d: %s\n",
+             __LINE__,
              strerror (errno));
     (void) close (fd);
     exit (1);
