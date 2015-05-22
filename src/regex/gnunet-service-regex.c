@@ -106,33 +106,14 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
 
 
 /**
- * Task run during shutdown.
- *
- * @param cls unused
- * @param tc unused
- */
-static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_DHT_disconnect (dht);
-  dht = NULL;
-  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
-  stats = NULL;
-  GNUNET_SERVER_notification_context_destroy (nc);
-  nc = NULL;
-  GNUNET_free (my_private_key);
-  my_private_key = NULL;
-}
-
-
-/**
  * A client disconnected.  Remove all of its data structure entries.
  *
  * @param cls closure, NULL
  * @param client identification of the client
  */
 static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+handle_client_disconnect (void *cls,
+                          struct GNUNET_SERVER_Client *client)
 {
   struct ClientEntry *ce;
   struct ClientEntry *nx;
@@ -158,10 +139,38 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 	REGEX_INTERNAL_search_cancel (ce->sh);
 	ce->sh = NULL;
       }
-      GNUNET_CONTAINER_DLL_remove (client_head, client_tail, ce);
+      GNUNET_CONTAINER_DLL_remove (client_head,
+                                   client_tail,
+                                   ce);
       GNUNET_free (ce);
     }
   }
+}
+
+
+/**
+ * Task run during shutdown.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+static void
+cleanup_task (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct ClientEntry *ce;
+
+  while (NULL != (ce = client_head))
+    handle_client_disconnect (NULL,
+                              ce->client);
+  GNUNET_DHT_disconnect (dht);
+  dht = NULL;
+  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  stats = NULL;
+  GNUNET_SERVER_notification_context_destroy (nc);
+  nc = NULL;
+  GNUNET_free (my_private_key);
+  my_private_key = NULL;
 }
 
 
@@ -250,9 +259,9 @@ handle_announce (void *cls,
  * @param cls the struct ClientEntry of the client searching
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
- * @param get_path_length Lenght of get_path.
+ * @param get_path_length Lenght of @a get_path.
  * @param put_path Path of the put request.
- * @param put_path_length Length of the put_path.
+ * @param put_path_length Length of the @a put_path.
  */
 static void
 handle_search_result (void *cls,
@@ -376,12 +385,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleanup_task,
                                 NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   stats = GNUNET_STATISTICS_create ("regex", cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &handle_client_disconnect,
+                                   NULL);
 }
 
 
