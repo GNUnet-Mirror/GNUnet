@@ -756,10 +756,10 @@ interpreter (void *cls,
           cmp = &update->details.update_address.properties;
         if ( (NULL != aid) &&
              (cmp->delay.rel_value_us == aid->properties.delay.rel_value_us) &&
-             (cmp->delay.utilization_out == aid->properties.utilization_out) &&
-             (cmp->delay.utilization_in == aid->properties.utilization_in) &&
-             (cmp->delay.distance == aid->properties.distance) &&
-             (cmp->delay.scope == aid->properties.scope) )
+             (cmp->utilization_out == aid->properties.utilization_out) &&
+             (cmp->utilization_in == aid->properties.utilization_in) &&
+             (cmp->distance == aid->properties.distance) &&
+             (cmp->scope == aid->properties.scope) )
         {
           off++;
           break;
