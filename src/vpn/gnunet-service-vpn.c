@@ -725,7 +725,7 @@ print_channel_destination (const struct DestinationEntry *de)
 /**
  * Regex has found a potential exit peer for us; consider using it.
  *
- * @param cls the 'struct ChannelState'
+ * @param cls the `struct ChannelState`
  * @param id Peer providing a regex that matches the string.
  * @param get_path Path of the get request.
  * @param get_path_length Lenght of @a get_path.
@@ -746,7 +746,8 @@ handle_regex_result (void *cls,
   GNUNET_REGEX_search_cancel (ts->search);
   ts->search = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Exit search for destination %s complete!\n",
+              "Exit %s found for destination %s!\n",
+              GNUNET_i2s (id),
               print_channel_destination (&ts->destination),
   switch (ts->af)
   {
