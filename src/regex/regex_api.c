@@ -30,6 +30,8 @@
 #include "gnunet_regex_service.h"
 #include "regex_ipc.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "regex-api",__VA_ARGS__)
+
 /**
  * Handle to store cached data about a regex announce.
  */
@@ -104,16 +106,14 @@ handle_a_reconnect (void *cls,
 
 
 /**
- * Announce the given peer under the given regular expression.  Does
- * not free resources, must call #GNUNET_REGEX_announce_cancel for
- * that.
+ * Announce the given peer under the given regular expression.
  *
  * @param cfg configuration to use
  * @param regex Regular expression to announce.
  * @param refresh_delay after what delay should the announcement be repeated?
  * @param compression How many characters per edge can we squeeze?
  * @return Handle to reuse o free cached resources.
- *         Must be freed by calling #GNUNET_REGEX_announce_cancel.
+ *         Must be freed by calling #GNUNET_REGEX_announce_cancel().
  */
 struct GNUNET_REGEX_Announcement *
 GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -133,6 +133,9 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_break (0);
     return NULL;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting REGEX announcement %s\n",
+       regex);
   a = GNUNET_malloc (sizeof (struct GNUNET_REGEX_Announcement) + slen);
   a->cfg = cfg;
   a->client = GNUNET_CLIENT_connect ("regex", cfg);
@@ -233,7 +236,7 @@ retry_search (struct GNUNET_REGEX_Search *s)
  * We got a response or disconnect after asking regex
  * to do the search.  Handle it.
  *
- * @param cls the 'struct GNUNET_REGEX_Search' to retry
+ * @param cls the `struct GNUNET_REGEX_Search` to handle reply for
  * @param msg NULL on disconnect, otherwise presumably a response
  */
 static void
@@ -269,6 +272,9 @@ handle_search_response (void *cls,
 			     &handle_search_response, s,
 			     GNUNET_TIME_UNIT_FOREVER_REL);
       pid = &result->id;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got regex result %s\n",
+           GNUNET_i2s (pid));
       s->callback (s->callback_cls,
 		   pid,
 		   &pid[1], gpl,
@@ -285,7 +291,7 @@ handle_search_response (void *cls,
 
 /**
  * Search for a peer offering a regex matching certain string in the DHT.
- * The search runs until GNUNET_REGEX_search_cancel is called, even if results
+ * The search runs until #GNUNET_REGEX_search_cancel() is called, even if results
  * are returned.
  *
  * @param cfg configuration to use
@@ -293,7 +299,7 @@ handle_search_response (void *cls,
  * @param callback Callback for found peers.
  * @param callback_cls Closure for @c callback.
  * @return Handle to stop search and free resources.
- *         Must be freed by calling GNUNET_REGEX_search_cancel.
+ *         Must be freed by calling #GNUNET_REGEX_search_cancel().
  */
 struct GNUNET_REGEX_Search *
 GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -304,6 +310,9 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_REGEX_Search *s;
   size_t slen;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Starting regex search for %s\n",
+       string);
   slen = strlen (string) + 1;
   s = GNUNET_new (struct GNUNET_REGEX_Search);
   s->cfg = cfg;
@@ -325,9 +334,9 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Stop search and free all data used by a GNUNET_REGEX_search call.
+ * Stop search and free all data used by a #GNUNET_REGEX_search() call.
  *
- * @param s Handle returned by a previous GNUNET_REGEX_search call.
+ * @param s Handle returned by a previous #GNUNET_REGEX_search() call.
  */
 void
 GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s)
