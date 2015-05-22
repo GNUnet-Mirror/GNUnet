@@ -3769,9 +3769,10 @@ run (void *cls,
     GNUNET_free_non_null (policy);
     if (NULL != regex)
     {
-      (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
+      (void) GNUNET_asprintf (&prefixed_regex,
+                              "%s%s",
 			      GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
-			      "4", regex);
+                              regex);
       regex4 = GNUNET_REGEX_announce (cfg,
 				      prefixed_regex,
 				      REGEX_REFRESH_FREQUENCY,
@@ -3795,9 +3796,10 @@ run (void *cls,
     GNUNET_free_non_null (policy);
     if (NULL != regex)
     {
-      (void) GNUNET_asprintf (&prefixed_regex, "%s%s%s",
+      (void) GNUNET_asprintf (&prefixed_regex,
+                              "%s%s",
 			      GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,
-			      "6", regex);
+			      regex);
       regex6 = GNUNET_REGEX_announce (cfg,
 				      prefixed_regex,
 				      REGEX_REFRESH_FREQUENCY,
