@@ -217,6 +217,7 @@ bandwidth_changed_cb (void *cls,
 				      address->addr_len,
 				      address->active,
 				      &address->properties,
+                                      address->local_address_info,
 				      GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
 				      GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
 

@@ -37,7 +37,6 @@
 struct GNUNET_CONTAINER_MultiPeerMap *GSA_addresses;
 
 
-
 /**
  * Update statistic on number of addresses.
  */
@@ -71,6 +70,7 @@ free_address (struct ATS_Address *addr)
                                       addr->addr_len,
                                       GNUNET_NO,
                                       NULL,
+                                      addr->local_address_info,
                                       GNUNET_BANDWIDTH_ZERO,
                                       GNUNET_BANDWIDTH_ZERO);
   GNUNET_free (addr->plugin);
@@ -257,6 +257,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
 				      new_address->addr_len,
 				      new_address->active,
 				      &new_address->properties,
+                                      new_address->local_address_info,
 				      GNUNET_BANDWIDTH_value_init (new_address->assigned_bw_out),
 				      GNUNET_BANDWIDTH_value_init (new_address->assigned_bw_in));
 }
@@ -304,6 +305,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
                                       aa->addr_len,
                                       aa->active,
                                       prop,
+                                      aa->local_address_info,
                                       GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
                                       GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
 
@@ -448,6 +450,7 @@ peerinfo_it (void *cls,
               addr->addr_len,
               addr->active,
               &addr->properties,
+              addr->local_address_info,
               GNUNET_BANDWIDTH_value_init (addr->assigned_bw_out),
               GNUNET_BANDWIDTH_value_init (addr->assigned_bw_in));
   return GNUNET_OK;
@@ -494,6 +497,7 @@ GAS_addresses_get_peer_info (const struct GNUNET_PeerIdentity *peer,
          NULL, NULL, NULL, 0,
          GNUNET_NO,
          NULL,
+         GNUNET_HELLO_ADDRESS_INFO_NONE,
          GNUNET_BANDWIDTH_ZERO,
          GNUNET_BANDWIDTH_ZERO);
 }
@@ -534,6 +538,7 @@ struct AddressIteration
  * @param plugin_addr_len length of @a plugin_addr
  * @param active #GNUNET_YES if this address is actively used
  * @param prop performance information
+ * @param local_address_info flags for the address
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
@@ -545,6 +550,7 @@ transmit_req_addr (struct AddressIteration *ai,
                    size_t plugin_addr_len,
                    int active,
                    const struct GNUNET_ATS_Properties *prop,
+                   enum GNUNET_HELLO_AddressInfo local_address_info,
                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 
@@ -585,6 +591,7 @@ transmit_req_addr (struct AddressIteration *ai,
     memset (&msg->properties,
             0,
             sizeof (struct GNUNET_ATS_Properties));
+  msg->address_local_info = htonl ((uint32_t) local_address_info);
   addrp = (char *) &msg[1];
   if (NULL != plugin_addr)
     memcpy (addrp, plugin_addr, plugin_addr_len);
@@ -616,6 +623,7 @@ transmit_req_addr (struct AddressIteration *ai,
  * @param plugin_addr_len length of @a plugin_addr
  * @param active is address actively used
  * @param prop performance information
+ * @param local_address_info additional local info for the address
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
@@ -627,6 +635,7 @@ req_addr_peerinfo_it (void *cls,
                       size_t plugin_addr_len,
                       int active,
                       const struct GNUNET_ATS_Properties *prop,
+                      enum GNUNET_HELLO_AddressInfo local_address_info,
                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
@@ -658,6 +667,7 @@ req_addr_peerinfo_it (void *cls,
                      plugin_addr, plugin_addr_len,
                      active,
                      prop,
+                     local_address_info,
                      bandwidth_out,
                      bandwidth_in);
 }
@@ -712,6 +722,7 @@ GAS_handle_request_address_list (void *cls,
                      NULL, NULL, NULL,
                      0, GNUNET_NO,
                      NULL,
+                     GNUNET_HELLO_ADDRESS_INFO_NONE,
                      GNUNET_BANDWIDTH_ZERO,
                      GNUNET_BANDWIDTH_ZERO);
   GNUNET_SERVER_receive_done (client,

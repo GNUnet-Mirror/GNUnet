@@ -22,6 +22,9 @@
  * @brief ats service, interaction with 'performance' API
  * @author Matthias Wachs
  * @author Christian Grothoff
+ *
+ * TODO:
+ * - simplify functions by passing a `struct GNUNET_HELLO_Address`
  */
 #include "platform.h"
 #include "gnunet-service-ats.h"
@@ -55,6 +58,7 @@ static struct GNUNET_SERVER_NotificationContext *nc_pic;
  *        #GNUNET_NO if the address is not actively used;
  *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param prop performance data for the address
+ * @param local_address_info information about the local flags for the address
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
@@ -66,6 +70,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
                size_t plugin_addr_len,
                int active,
                const struct GNUNET_ATS_Properties *prop,
+               enum GNUNET_HELLO_AddressInfo local_address_info,
                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
@@ -98,6 +103,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
     memset (&msg->properties,
             0,
             sizeof (struct GNUNET_ATS_Properties));
+  msg->address_local_info = htonl (local_address_info);
   addrp = (char *) &msg[1];
   memcpy (addrp, plugin_addr, plugin_addr_len);
   strcpy (&addrp[plugin_addr_len], plugin_name);
@@ -138,6 +144,7 @@ notify_client (struct GNUNET_SERVER_Client *client,
  *        #GNUNET_NO if the address is not actively used;
  *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param prop performance data for the address
+ * @param local_address_info information about the local flags for the address
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
@@ -148,6 +155,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     size_t plugin_addr_len,
                                     int active,
                                     const struct GNUNET_ATS_Properties *prop,
+                                    enum GNUNET_HELLO_AddressInfo local_address_info,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
@@ -158,6 +166,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                  plugin_addr_len,
                  active,
                  prop,
+                 local_address_info,
                  bandwidth_out,
                  bandwidth_in);
   GNUNET_STATISTICS_update (GSA_stats,
@@ -177,6 +186,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
  * @param plugin_addr_len length of @a plugin_addr
  * @param active is address actively used
  * @param prop performance information
+ * @param local_address_info information about the local flags for the address
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
@@ -188,6 +198,7 @@ peerinfo_it (void *cls,
              size_t plugin_addr_len,
              int active,
              const struct GNUNET_ATS_Properties *prop,
+             enum GNUNET_HELLO_AddressInfo local_address_info,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
@@ -208,6 +219,7 @@ peerinfo_it (void *cls,
                  plugin_addr_len,
                  active,
                  prop,
+                 local_address_info,
                  bandwidth_out,
                  bandwidth_in);
 }

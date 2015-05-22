@@ -106,6 +106,12 @@ struct GNUNET_ATS_Properties
 {
 
   /**
+   * Delay.  Time between when the time packet is sent and the packet
+   * arrives.  FOREVER if we did not measure yet.
+   */
+  struct GNUNET_TIME_Relative delay;
+
+  /**
    * Actual traffic on this connection from this peer to the other peer.
    * Includes transport overhead.
    *
@@ -122,22 +128,16 @@ struct GNUNET_ATS_Properties
   uint32_t utilization_in;
 
   /**
-   * Which network scope does the respective address belong to?
-   * This property does not change.
-   */
-  enum GNUNET_ATS_Network_Type scope;
-
-  /**
    * Distance on network layer (required for distance-vector routing)
    * in hops.  Zero for direct connections (i.e. plain TCP/UDP).
    */
   unsigned int distance;
 
   /**
-   * Delay.  Time between when the time packet is sent and the packet
-   * arrives.  FOREVER if we did not measure yet.
+   * Which network scope does the respective address belong to?
+   * This property does not change.
    */
-  struct GNUNET_TIME_Relative delay;
+  enum GNUNET_ATS_Network_Type scope;
 
 };
 

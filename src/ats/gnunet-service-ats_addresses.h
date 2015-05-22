@@ -301,9 +301,8 @@ struct ATS_Address
 
   /**
    * Field to store local flags.
-   * FIXME: `enum GNUNET_HELLO_AddressInfo`?
    */
-  uint32_t local_address_info;
+  enum GNUNET_HELLO_AddressInfo local_address_info;
 
   /**
    * ATS performance information for this address, size of the @e atsi array.
@@ -443,6 +442,7 @@ GAS_addresses_destroy_all (void);
  * @param plugin_addr_len length of @a plugin_addr
  * @param address_active is address actively used
  * @param atsi ats performance information
+ * @param local_address_info flags for the address
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
@@ -454,6 +454,7 @@ typedef void
                                  size_t plugin_addr_len,
                                  const int address_active,
                                  const struct GNUNET_ATS_Properties *prop,
+                                 enum GNUNET_HELLO_AddressInfo local_address_info,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 

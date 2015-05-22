@@ -328,6 +328,12 @@ struct PeerInformationMessage
    */
   struct GNUNET_ATS_PropertiesNBO properties;
 
+  /**
+   * Local-only information of the address, see
+   * `enum GNUNET_HELLO_AddressInfo`.
+   */
+  uint32_t address_local_info GNUNET_PACKED;
+
   /* followed by:
    * - char address[address_length]
    * - char plugin_name[plugin_name_length] (including '\0'-termination).

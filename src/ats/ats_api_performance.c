@@ -409,6 +409,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_ATS_properties_ntoh (&prop,
                                 &pi->properties);
     address.peer = pi->peer;
+    address.local_info = (enum GNUNET_HELLO_AddressInfo) ntohl (pi->address_local_info);
     address.address = plugin_address;
     address.address_length = plugin_address_length;
     address.transport_name = plugin_name;
