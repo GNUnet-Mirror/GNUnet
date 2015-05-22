@@ -1,6 +1,6 @@
 [regex]
 AUTOSTART = @AUTOSTART@
-@UNIXONLY@ PORT = 2107
+PORT = 2107
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-regex.sock
 HOSTNAME = localhost
 BINARY = gnunet-service-regex
