@@ -1097,6 +1097,8 @@ route_packet (struct DestinationEntry *destination,
   }
   if (NULL == ts->channel)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Packet dropped, channel not yet ready\n");
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# Packets dropped (channel not yet online)"),
 			      1,
