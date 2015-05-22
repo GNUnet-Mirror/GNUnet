@@ -375,8 +375,8 @@ run (void *cls,
   namestore = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_assert (NULL != namestore);
   flags = MHD_USE_DEBUG;
-  //if (GNUNET_YES == use_v6)
-  //  flags |= MHD_USE_IPv6;
+  if (GNUNET_YES == use_v6)
+    flags |= MHD_USE_IPv6;
   mhd = MHD_start_daemon (flags,
 			  PORT,
 			  NULL, NULL,
