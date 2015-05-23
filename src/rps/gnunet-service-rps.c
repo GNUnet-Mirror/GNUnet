@@ -1281,8 +1281,8 @@ void client_respond (void *cls,
  */
 static void
 handle_client_request (void *cls,
-            struct GNUNET_SERVER_Client *client,
-            const struct GNUNET_MessageHeader *message)
+                       struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_RPS_CS_RequestMessage *msg;
   uint32_t num_peers;
@@ -1316,8 +1316,7 @@ handle_client_request (void *cls,
   RPS_sampler_get_n_rand_peers (client_sampler,
                                 client_respond,
                                 reply_cls,
-                                num_peers,
-                                GNUNET_YES);
+                                num_peers);
 
   GNUNET_SERVER_receive_done (client,
 			      GNUNET_OK);
@@ -2069,8 +2068,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       RPS_sampler_get_n_rand_peers (prot_sampler,
                                     hist_update,
                                     NULL,
-                                    1,
-                                    GNUNET_NO);
+                                    1);
       num_hist_update_tasks++;
       // TODO change the peer_flags accordingly
     }
@@ -2551,8 +2549,8 @@ run (void *cls,
   half_round_interval = GNUNET_TIME_relative_multiply (round_interval, .5);
   max_round_interval = GNUNET_TIME_relative_add (round_interval, half_round_interval);
 
-  prot_sampler =   RPS_sampler_init (sampler_size_est_need, max_round_interval);
-  client_sampler = RPS_sampler_init (sampler_size_est_need, max_round_interval);
+  prot_sampler =   RPS_sampler_init     (sampler_size_est_need, max_round_interval);
+  client_sampler = RPS_sampler_mod_init (sampler_size_est_need, max_round_interval);
 
   /* Initialise push and pull maps */
   push_list = NULL;

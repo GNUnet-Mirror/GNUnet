@@ -71,18 +71,24 @@ RPS_sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size);
  * Initialise a tuple of samplers.
  *
  * @param init_size the size the sampler is initialised with
- * @param id with which all newly created sampler elements are initialised
- * @param ins_cb the callback that will be called on every PeerID that is
- *               newly inserted into a sampler element
- * @param ins_cls the closure given to #ins_cb
- * @param rem_cb the callback that will be called on every PeerID that is
- *               removed from a sampler element
- * @param rem_cls the closure given to #rem_cb
+ * @param max_round_interval maximum time a round takes
  * @return a handle to a sampler that consists of sampler elements.
  */
 struct RPS_Sampler *
 RPS_sampler_init (size_t init_size,
     struct GNUNET_TIME_Relative max_round_interval);
+
+
+/**
+ * Initialise a modified tuple of sampler elements.
+ *
+ * @param init_size the size the sampler is initialised with
+ * @param max_round_interval maximum time a round takes
+ * @return a handle to a sampler that consists of sampler elements.
+ */
+struct RPS_Sampler *
+RPS_sampler_mod_init (size_t init_size,
+                      struct GNUNET_TIME_Relative max_round_interval);
 
 
 /**
@@ -127,7 +133,7 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
     void
 RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                               RPS_sampler_n_rand_peers_ready_cb cb,
-                              void *cls, uint32_t num_peers, int for_client);
+                              void *cls, uint32_t num_peers);
 
 
 /**

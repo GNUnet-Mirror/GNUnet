@@ -111,6 +111,35 @@ struct RPS_SamplerElement
   #endif /* TO_FILE */
 };
 
+/**
+ * Type of function used to differentiate between modified and not modified
+ * Sampler.
+ */
+typedef void
+(*RPS_get_peers_type) (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Get one random peer out of the sampled peers.
+ *
+ * We might want to reinitialise this sampler after giving the
+ * corrsponding peer to the client.
+ * Only used internally
+ */
+static void
+sampler_get_rand_peer2 (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+/**
+ * Get one random peer out of the sampled peers.
+ *
+ * We might want to reinitialise this sampler after giving the
+ * corrsponding peer to the client.
+ */
+static void
+sampler_get_rand_peer (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Sampler with its own array of SamplerElements
@@ -129,11 +158,17 @@ struct RPS_Sampler
   struct RPS_SamplerElement **sampler_elements;
 
   /**
-   * Max time a round takes
+   * Maximum time a round takes
    *
    * Used in the context of RPS
    */
   struct GNUNET_TIME_Relative max_round_interval;
+
+  /**
+   * Stores the function to return peers. Which one it is depends on whether
+   * the Sampler is the modified one or not.
+   */
+  RPS_get_peers_type get_peers;
 
   #ifdef TO_FILE
   /**
@@ -182,7 +217,7 @@ struct NRandPeersReadyCls
  */
 typedef void
 (*RPS_sampler_rand_peer_ready_cont) (void *cls,
-        const struct GNUNET_PeerIdentity *id);
+                                     const struct GNUNET_PeerIdentity *id);
 
 /**
  * Closure for #sampler_get_rand_peer()
@@ -634,12 +669,7 @@ sampler_empty (struct RPS_Sampler *sampler)
  * Initialise a tuple of sampler elements.
  *
  * @param init_size the size the sampler is initialised with
- * @param ins_cb the callback that will be called on every PeerID that is
- *               newly inserted into a sampler element
- * @param ins_cls the closure given to #ins_cb
- * @param rem_cb the callback that will be called on every PeerID that is
- *               removed from a sampler element
- * @param rem_cls the closure given to #rem_cb
+ * @param max_round_interval maximum time a round takes
  * @return a handle to a sampler that consists of sampler elements.
  */
 struct RPS_Sampler *
@@ -647,7 +677,6 @@ RPS_sampler_init (size_t init_size,
                   struct GNUNET_TIME_Relative max_round_interval)
 {
   struct RPS_Sampler *sampler;
-  //uint32_t i;
 
   /* Initialise context around extended sampler */
   min_size = 10; // TODO make input to _samplers_init()
@@ -667,6 +696,7 @@ RPS_sampler_init (size_t init_size,
   sampler->sampler_size = 0;
   sampler->sampler_elements = NULL;
   sampler->max_round_interval = max_round_interval;
+  sampler->get_peers = sampler_get_rand_peer;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
   //GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, min_size);
   RPS_sampler_resize (sampler, init_size);
@@ -674,6 +704,33 @@ RPS_sampler_init (size_t init_size,
   client_get_index = 0;
 
   //GNUNET_assert (init_size == sampler->sampler_size);
+  return sampler;
+}
+
+/**
+ * Initialise a modified tuple of sampler elements.
+ *
+ * @param init_size the size the sampler is initialised with
+ * @param max_round_interval maximum time a round takes
+ * @return a handle to a sampler that consists of sampler elements.
+ */
+struct RPS_Sampler *
+RPS_sampler_mod_init (size_t init_size,
+                      struct GNUNET_TIME_Relative max_round_interval)
+{
+  struct RPS_Sampler *sampler;
+
+  sampler = RPS_sampler_init (init_size, max_round_interval);
+  sampler->get_peers = sampler_get_rand_peer2;
+
+  #ifdef TO_FILE
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Initialised modified sampler %s\n",
+       sampler->file_name);
+  to_file (sampler->file_name,
+           "This is a modified sampler");
+  #endif /* TO_FILE */
+
   return sampler;
 }
 
@@ -738,7 +795,8 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
  * Only used internally
  */
 static void
-sampler_get_rand_peer2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+sampler_get_rand_peer2 (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPeerCls *gpc = cls;
   uint32_t r_index;
@@ -779,7 +837,8 @@ sampler_get_rand_peer2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
  * corrsponding peer to the client.
  */
 static void
-sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+sampler_get_rand_peer (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPeerCls *gpc = cls;
   struct GNUNET_PeerIdentity tmp_id;
@@ -893,7 +952,7 @@ sampler_get_rand_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   void
 RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                               RPS_sampler_n_rand_peers_ready_cb cb,
-                              void *cls, uint32_t num_peers, int for_client)
+                              void *cls, uint32_t num_peers)
 {
   GNUNET_assert (0 != sampler->sampler_size);
 
@@ -909,25 +968,6 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
   cb_cls->callback = cb;
   cb_cls->cls = cls;
 
-  #ifdef TO_FILE
-  if (GNUNET_NO == for_client)
-  {
-    to_file (sampler->file_name,
-             "This sampler is probably for Brahms itself");
-  }
-  else if (GNUNET_YES == for_client)
-  {
-    to_file (sampler->file_name,
-             "This sampler is probably for the client");
-  }
-  else
-  {
-    to_file (sampler->file_name,
-             "This shouldn't happen: for_client is %i",
-             for_client);
-  }
-  #endif /* TO_FILE */
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Scheduling requests for %" PRIu32 " peers\n", num_peers);
 
@@ -940,12 +980,7 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
     gpc->id = &cb_cls->ids[i];
 
     // maybe add a little delay
-    if (GNUNET_YES == for_client)
-      gpc->get_peer_task = GNUNET_SCHEDULER_add_now (&sampler_get_rand_peer, gpc);
-    else if (GNUNET_NO == for_client)
-      gpc->get_peer_task = GNUNET_SCHEDULER_add_now (&sampler_get_rand_peer2, gpc);
-    else
-      GNUNET_assert (0);
+    gpc->get_peer_task = GNUNET_SCHEDULER_add_now (sampler->get_peers, gpc);
 
     GNUNET_CONTAINER_DLL_insert (gpc_head, gpc_tail, gpc);
   }
