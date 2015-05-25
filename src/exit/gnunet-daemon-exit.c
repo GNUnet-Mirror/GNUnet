@@ -1930,11 +1930,10 @@ receive_tcp_service (void *cls,
  *
  * @param cls closure, NULL
  * @param channel connection to the other end
- * @param channel_ctx pointer to our 'struct ChannelState *'
+ * @param channel_ctx pointer to our `struct ChannelState *`
  * @param message the actual message
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
@@ -2061,7 +2060,8 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channe
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
+receive_tcp_data (void *cls GNUNET_UNUSED,
+                  struct GNUNET_CADET_Channel *channel,
 		  void **channel_ctx GNUNET_UNUSED,
 		  const struct GNUNET_MessageHeader *message)
 {
@@ -2089,6 +2089,7 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
     GNUNET_STATISTICS_update (stats,
 			      gettext_noop ("# TCP DATA requests dropped (no session)"),
 			      1, GNUNET_NO);
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   if (data->tcp_header.off * 4 < sizeof (struct GNUNET_TUN_TcpHeader))
@@ -3008,7 +3009,7 @@ receive_udp_service (void *cls,
 
 
 /**
- * Callback from GNUNET_CADET for new channels.
+ * Callback from CADET for new channels.
  *
  * @param cls closure
  * @param channel new handle to the channel
@@ -3019,9 +3020,10 @@ receive_udp_service (void *cls,
  */
 static void *
 new_channel (void *cls,
-            struct GNUNET_CADET_Channel *channel,
-            const struct GNUNET_PeerIdentity *initiator,
-            uint32_t port, enum GNUNET_CADET_ChannelOption options)
+             struct GNUNET_CADET_Channel *channel,
+             const struct GNUNET_PeerIdentity *initiator,
+             uint32_t port,
+             enum GNUNET_CADET_ChannelOption options)
 {
   struct ChannelState *s = GNUNET_new (struct ChannelState);
 
