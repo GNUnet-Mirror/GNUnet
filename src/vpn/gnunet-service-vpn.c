@@ -743,12 +743,12 @@ handle_regex_result (void *cls,
   struct ChannelState *ts = cls;
   unsigned int apptype;
 
-  GNUNET_REGEX_search_cancel (ts->search);
-  ts->search = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Exit %s found for destination %s!\n",
               GNUNET_i2s (id),
               print_channel_destination (&ts->destination));
+  GNUNET_REGEX_search_cancel (ts->search);
+  ts->search = NULL;
   switch (ts->af)
   {
   case AF_INET:
@@ -761,6 +761,10 @@ handle_regex_result (void *cls,
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Creating tunnel to %s for destination %s!\n",
+              GNUNET_i2s (id),
+              print_channel_destination (&ts->destination));
   ts->channel = GNUNET_CADET_channel_create (cadet_handle,
                                              ts,
                                              id,
@@ -2830,8 +2834,8 @@ service_redirect_to_service (void *cls,
  */
 static void
 channel_cleaner (void *cls,
-		const struct GNUNET_CADET_Channel *channel,
-		void *channel_ctx)
+                 const struct GNUNET_CADET_Channel *channel,
+                 void *channel_ctx)
 {
   struct ChannelState *ts = channel_ctx;
 
