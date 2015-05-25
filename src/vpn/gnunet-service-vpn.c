@@ -892,6 +892,9 @@ expire_channel (struct ChannelState *except)
   GNUNET_assert (NULL != ts);
   if (except == ts)
     return; /* can't do this */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Tearing down expired channel to %s\n",
+              print_channel_destination (&except->destination));
   free_channel_state (ts);
 }
 
@@ -2495,7 +2498,8 @@ free_destination_entry (struct DestinationEntry *de)
   struct DestinationChannel *dt;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Cleaning up destination entry\n");
+	      "Cleaning up destination entry `%s'\n",
+              print_channel_destination (de));
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active destinations"),
 			    -1, GNUNET_NO);
@@ -2840,6 +2844,9 @@ channel_cleaner (void *cls,
   struct ChannelState *ts = channel_ctx;
 
   ts->channel = NULL; /* we must not call GNUNET_CADET_channel_destroy() anymore */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "CADET notified us about death of channel to `%s'\n",
+              print_channel_destination (&ts->destination));
   free_channel_state (ts);
 }
 
@@ -2874,11 +2881,14 @@ cleanup_destination (void *cls,
  */
 static int
 cleanup_channel (void *cls,
-		const struct GNUNET_HashCode *key,
-		void *value)
+                 const struct GNUNET_HashCode *key,
+                 void *value)
 {
   struct ChannelState *ts = value;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Tearing down channel to `%s' during cleanup\n",
+              print_channel_destination (&ts->destination));
   free_channel_state (ts);
   return GNUNET_OK;
 }

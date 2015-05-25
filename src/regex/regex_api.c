@@ -279,9 +279,6 @@ handle_search_response (void *cls,
 		   pid,
 		   &pid[1], gpl,
 		   &pid[1 + gpl], ppl);
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Returned from regex CB\n",
-           GNUNET_i2s (pid));
       return;
     }
   }
