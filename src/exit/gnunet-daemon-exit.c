@@ -563,7 +563,8 @@ process_dns_result (void *cls,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
+receive_dns_request (void *cls GNUNET_UNUSED,
+                     struct GNUNET_CADET_Channel *channel,
                      void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
@@ -575,7 +576,10 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *chann
   struct GNUNET_TUN_DnsHeader *dout;
 
   if (NULL == dnsstub)
+  {
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
+  }
   if (GNUNET_NO == ts->is_dns)
   {
     GNUNET_break_op (0);
@@ -607,6 +611,7 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *chann
 						  NULL);
   if (NULL == ts->specifics.dns.rs)
     return GNUNET_SYSERR;
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -864,7 +869,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
  */
 static void
 send_packet_to_cadet_channel (struct ChannelState *s,
-			    struct ChannelMessageQueue *tnq)
+                              struct ChannelMessageQueue *tnq)
 {
   struct GNUNET_CADET_Channel *cadet_channel;
 
@@ -873,11 +878,11 @@ send_packet_to_cadet_channel (struct ChannelState *s,
   GNUNET_CONTAINER_DLL_insert_tail (s->specifics.tcp_udp.head, s->specifics.tcp_udp.tail, tnq);
   if (NULL == s->th)
     s->th = GNUNET_CADET_notify_transmit_ready (cadet_channel,
-                                               GNUNET_NO /* cork */,
-					       GNUNET_TIME_UNIT_FOREVER_REL,
-					       tnq->len,
-					       &send_to_peer_notify_callback,
-					       s);
+                                                GNUNET_NO /* cork */,
+                                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                                tnq->len,
+                                                &send_to_peer_notify_callback,
+                                                s);
 }
 
 
@@ -1242,7 +1247,8 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
  * @param message message received from helper
  */
 static int
-message_token (void *cls GNUNET_UNUSED, void *client GNUNET_UNUSED,
+message_token (void *cls GNUNET_UNUSED,
+               void *client GNUNET_UNUSED,
                const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_TUN_Layer2PacketHeader *pkt_tun;
@@ -1921,6 +1927,7 @@ receive_tcp_service (void *cls,
 			   &state->specifics.tcp_udp.ri.local_address,
 			   &start->tcp_header,
 			   &start[1], pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
@@ -2045,6 +2052,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED,
 			   &state->specifics.tcp_udp.ri.local_address,
 			   &start->tcp_header,
 			   payload, pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
@@ -2055,7 +2063,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED,
  *
  * @param cls closure, NULL
  * @param channel connection to the other end
- * @param channel_ctx pointer to our 'struct ChannelState *'
+ * @param channel_ctx pointer to our `struct ChannelState *`
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
@@ -2126,6 +2134,7 @@ receive_tcp_data (void *cls GNUNET_UNUSED,
 			   &state->specifics.tcp_udp.ri.local_address,
 			   &data->tcp_header,
 			   &data[1], pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
@@ -2480,6 +2489,7 @@ receive_icmp_remote (void *cls,
 			    &state->specifics.tcp_udp.ri.local_address,
 			    &msg->icmp_header,
 			    payload, pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
@@ -2727,6 +2737,7 @@ receive_icmp_service (void *cls,
 			    &state->specifics.tcp_udp.ri.local_address,
 			    &icmp,
 			    payload, pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
@@ -2929,6 +2940,7 @@ receive_udp_remote (void *cls,
   send_udp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
 			   &state->specifics.tcp_udp.ri.local_address,
 			   payload, pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
@@ -3005,6 +3017,7 @@ receive_udp_service (void *cls,
   send_udp_packet_via_tun (&state->specifics.tcp_udp.ri.remote_address,
 			   &state->specifics.tcp_udp.ri.local_address,
 			   &msg[1], pkt_len);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_YES;
 }
 
