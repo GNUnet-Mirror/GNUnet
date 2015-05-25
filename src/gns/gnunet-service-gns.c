@@ -917,7 +917,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                     &dns_root))
     {
       GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-				 "gns", "DNS_ROOT",
+				 "gns",
+                                 "DNS_ROOT",
 				 _("valid public key required"));
       GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
       GNUNET_free (dns_root_name);

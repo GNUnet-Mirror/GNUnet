@@ -226,7 +226,8 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
  *
  * @param system system to use to coordinate resource usage
  * @param cfg template configuration to update
- * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on error - the configuration will
  *           be incomplete and should not be used there upon
  */
 int
@@ -271,7 +272,8 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
  * Start the peer.
  *
  * @param peer peer to start
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (i.e. peer already running)
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on error (i.e. peer already running)
  */
 int
 GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer);
@@ -283,7 +285,8 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer);
  * GNUNET_TESTING_peer_stop_async().
  *
  * @param peer peer to stop
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (i.e. peer not running)
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on error (i.e. peer not running)
  */
 int
 GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer);
@@ -304,7 +307,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer);
  * Sends SIGTERM to the peer's main process
  *
  * @param peer the handle to the peer
- * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ * @return #GNUNET_OK if successful; #GNUNET_SYSERR if the main process is NULL
  *           or upon any error while sending SIGTERM
  */
 int
@@ -315,7 +318,7 @@ GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer);
  * Waits for a peer to terminate. The peer's main process will also be destroyed.
  *
  * @param peer the handle to the peer
- * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ * @return #GNUNET_OK if successful; #GNUNET_SYSERR if the main process is NULL
  *           or upon any error while waiting
  */
 int
@@ -327,13 +330,13 @@ GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer);
  *
  * @param cls the closure given to GNUNET_TESTING_peer_stop_async()
  * @param peer the respective peer whose status is being reported
- * @param success GNUNET_YES if the peer is stopped; GNUNET_SYSERR upon any
+ * @param success #GNUNET_YES if the peer is stopped; #GNUNET_SYSERR upon any
  *          error
  */
-typedef void (*GNUNET_TESTING_PeerStopCallback) (void *cls,
-                                                 struct GNUNET_TESTING_Peer *
-                                                 peer,
-                                                 int success);
+typedef void
+(*GNUNET_TESTING_PeerStopCallback) (void *cls,
+                                    struct GNUNET_TESTING_Peer *peer,
+                                    int success);
 
 
 /**
@@ -368,15 +371,16 @@ GNUNET_TESTING_peer_stop_async_cancel (struct GNUNET_TESTING_Peer *peer);
 
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
- * is run using 'GNUNET_TESTING_peer_run'.
+ * is run using #GNUNET_TESTING_peer_run().
  *
  * @param cls closure
  * @param cfg configuration of the peer that was started
  * @param peer identity of the peer that was created
  */
-typedef void (*GNUNET_TESTING_TestMain) (void *cls,
-                                         const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                         struct GNUNET_TESTING_Peer *peer);
+typedef void
+(*GNUNET_TESTING_TestMain) (void *cls,
+                            const struct GNUNET_CONFIGURATION_Handle *cfg,
+                            struct GNUNET_TESTING_Peer *peer);
 
 
 /**
@@ -420,7 +424,7 @@ GNUNET_TESTING_peer_run (const char *testdir,
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
  * @param tm main function of the testcase
- * @param tm_cls closure for 'tm'
+ * @param tm_cls closure for @a tm
  * @return 0 on success, 1 on error
  */
 int

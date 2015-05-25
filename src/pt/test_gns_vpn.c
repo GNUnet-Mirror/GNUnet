@@ -26,6 +26,7 @@
 #include "platform.h"
 #include <curl/curl.h>
 #include <microhttpd.h>
+#include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
@@ -45,15 +46,21 @@ static struct GNUNET_NAMESTORE_Handle *namestore;
 
 static struct MHD_Daemon *mhd;
 
-static struct GNUNET_SCHEDULER_Task * mhd_task_id;
+static struct GNUNET_SCHEDULER_Task *mhd_task_id;
 
-static struct GNUNET_SCHEDULER_Task * curl_task_id;
+static struct GNUNET_SCHEDULER_Task *curl_task_id;
+
+static struct GNUNET_IDENTITY_Handle *identity;
+
+static struct GNUNET_NAMESTORE_QueueEntry *qe;
 
 static CURL *curl;
 
 static CURLM *multi;
 
 static char *url;
+
+static struct GNUNET_PeerIdentity id;
 
 /**
  * IP address of the ultimate destination.
@@ -129,7 +136,8 @@ mhd_ahc (void *cls,
 
 
 static void
-do_shutdown ()
+do_shutdown (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *c)
 {
   if (mhd_task_id != NULL)
   {
@@ -145,6 +153,16 @@ do_shutdown ()
   {
     MHD_stop_daemon (mhd);
     mhd = NULL;
+  }
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
+  if (NULL != qe)
+  {
+    GNUNET_NAMESTORE_cancel (qe);
+    qe = NULL;
   }
   GNUNET_free_non_null (url);
   url = NULL;
@@ -217,7 +235,7 @@ curl_main ()
       global_ret = 3;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download complete, shutting down!\n");
-    do_shutdown ();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_assert (CURLM_OK == curl_multi_fdset (multi, &rs, &ws, &es, &max));
@@ -253,13 +271,15 @@ start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   curl_easy_setopt (curl, CURLOPT_WRITEDATA, &cbc);
   curl_easy_setopt (curl, CURLOPT_FAILONERROR, 1);
   curl_easy_setopt (curl, CURLOPT_TIMEOUT, 150L);
-  curl_easy_setopt (curl, CURLOPT_CONNECTTIMEOUT, 15L);
+  curl_easy_setopt (curl, CURLOPT_CONNECTTIMEOUT, 150L);
   curl_easy_setopt (curl, CURLOPT_NOSIGNAL, 1);
 
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Beginning HTTP download from `%s'\n", url);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Beginning HTTP download from `%s'\n",
+              url);
   curl_main ();
 }
 
@@ -292,11 +312,15 @@ commence_testing (void *cls, int32_t success, const char *emsg)
   if ((emsg != NULL) && (GNUNET_YES != success))
   {
     fprintf (stderr,
-	     "NS failed to create record %s\n", emsg);
+	     "NS failed to create record %s\n",
+             emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10), &start_curl, NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                (GNUNET_TIME_UNIT_SECONDS, 10),
+                                &start_curl,
+                                NULL);
 }
 
 
@@ -356,70 +380,6 @@ mhd_main ()
 }
 
 
-static void
-run (void *cls,
-     const struct GNUNET_CONFIGURATION_Handle *cfg,
-     struct GNUNET_TESTING_Peer *peer)
-{
-  enum MHD_FLAG flags;
-  struct GNUNET_PeerIdentity id;
-  char *peername;
-  struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key;
-  struct GNUNET_GNSRECORD_Data rd;
-  char *rd_string;
-  char *zone_keyfile;
-
-  GNUNET_TESTING_peer_get_identity (peer, &id);
-  peername = GNUNET_strdup (GNUNET_i2s_full (&id));
-
-  namestore = GNUNET_NAMESTORE_connect (cfg);
-  GNUNET_assert (NULL != namestore);
-  flags = MHD_USE_DEBUG;
-  if (GNUNET_YES == use_v6)
-    flags |= MHD_USE_IPv6;
-  mhd = MHD_start_daemon (flags,
-			  PORT,
-			  NULL, NULL,
-			  &mhd_ahc, NULL,
-			  MHD_OPTION_END);
-  GNUNET_assert (NULL != mhd);
-  mhd_main ();
-
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "gns",
-                                                            "ZONEKEY",
-                                                            &zone_keyfile))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to get key from cfg\n");
-    GNUNET_free (peername);
-    return;
-  }
-
-  zone_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (zone_keyfile);
-  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-  GNUNET_asprintf (&rd_string,
-                   "6 %s %s",
-                   peername,
-                   "www.gnu.");
-  GNUNET_free (peername);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
-                                                   rd_string,
-                                                   (void**) &rd.data,
-                                                   &rd.data_size));
-  rd.record_type = GNUNET_GNSRECORD_TYPE_VPN;
-
-  GNUNET_NAMESTORE_records_store (namestore,
-				  zone_key,
-				  "www",
-				  1, &rd,
-				  &commence_testing,
-				  NULL);
-  GNUNET_free ((void**)rd.data);
-  GNUNET_free (rd_string);
-  GNUNET_free (zone_keyfile);
-  GNUNET_free (zone_key);
-}
 
 
 /**
@@ -504,6 +464,194 @@ fork_and_exec (const char *file,
   /* child process completed and returned success, we're happy */
   return 0;
 }
+
+
+
+/**
+ * Method called to inform about the egos of this peer.
+ *
+ * When used with #GNUNET_IDENTITY_connect, this function is
+ * initially called for all egos and then again whenever a
+ * ego's name changes or if it is deleted.  At the end of
+ * the initial pass over all egos, the function is once called
+ * with 'NULL' for @a ego. That does NOT mean that the callback won't
+ * be invoked in the future or that there was an error.
+ *
+ * When used with #GNUNET_IDENTITY_create or #GNUNET_IDENTITY_get,
+ * this function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate an error (i.e. name is taken or no default
+ * value is known).  If @a ego is non-NULL and if '*ctx'
+ * is set in those callbacks, the value WILL be passed to a subsequent
+ * call to the identity callback of #GNUNET_IDENTITY_connect (if
+ * that one was not NULL).
+ *
+ * When an identity is renamed, this function is called with the
+ * (known) @a ego but the NEW @a name.
+ *
+ * When an identity is deleted, this function is called with the
+ * (known) ego and "NULL" for the @a name.  In this case,
+ * the @a ego is henceforth invalid (and the @a ctx should also be
+ * cleaned up).
+ *
+ * @param cls closure
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_cb (void *cls,
+             struct GNUNET_IDENTITY_Ego *ego,
+             void **ctx,
+             const char *name)
+{
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key;
+  struct GNUNET_GNSRECORD_Data rd;
+  char *rd_string;
+  char *peername;
+
+  if (NULL == name)
+    return;
+  if (NULL == ego)
+  {
+    if (NULL == qe)
+    {
+      fprintf (stderr,
+               "Failed to find master-zone ego\n");
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+    return;
+  }
+  GNUNET_assert (NULL != name);
+  if (0 != strcmp (name,
+                   "master-zone"))
+  {
+    fprintf (stderr,
+             "Unexpected name %s\n",
+             name);
+    return;
+  }
+  /* FIXME: we somehow need to get this zone-key into
+     the 'DNS_ROOT' option of the 'gns' service.  This
+     is currently why the test fails... */
+  zone_key = GNUNET_IDENTITY_ego_get_private_key (ego);
+  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+  peername = GNUNET_strdup (GNUNET_i2s_full (&id));
+  GNUNET_asprintf (&rd_string,
+                   "6 %s %s",
+                   peername,
+                   "www.gnu.");
+  GNUNET_free (peername);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
+                                                   rd_string,
+                                                   (void**) &rd.data,
+                                                   &rd.data_size));
+  rd.record_type = GNUNET_GNSRECORD_TYPE_VPN;
+
+  qe = GNUNET_NAMESTORE_records_store (namestore,
+                                       zone_key,
+                                       "www",
+                                       1, &rd,
+                                       &commence_testing,
+                                       NULL);
+  GNUNET_free ((void**)rd.data);
+  GNUNET_free (rd_string);
+}
+
+
+static void
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
+{
+  enum MHD_FLAG flags;
+
+  char *bin;
+  char *bin_identity;
+  char *config;
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "arm",
+                                             "CONFIG",
+                                             &config))
+  {
+    fprintf (stderr,
+             "Failed to locate configuration file. Skipping test.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  char *const identity_args[] =
+  {
+    "gnunet-identity",
+    "-C", "master-zone",
+    "-c", config,
+    NULL
+  };
+  char *const identity2_args[] =
+  {
+    "gnunet-identity",
+    "-e", "master-zone",
+    "-s", "gns-master",
+    "-c", config,
+    NULL
+  };
+  GNUNET_TESTING_peer_get_identity (peer, &id);
+  GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                &do_shutdown,
+                                NULL);
+  bin = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_BINDIR);
+  GNUNET_asprintf (&bin_identity,
+                   "%s/%s",
+                   bin,
+                   "gnunet-identity");
+  GNUNET_free (bin);
+  if (0 != fork_and_exec (bin_identity, identity_args))
+  {
+    fprintf (stderr,
+             "Failed to run `gnunet-identity -C. Skipping test.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (bin_identity);
+    GNUNET_free (config);
+    return;
+  }
+  if (0 != fork_and_exec (bin_identity, identity2_args))
+  {
+    fprintf (stderr,
+             "Failed to run `gnunet-identity -e. Skipping test.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (bin_identity);
+    GNUNET_free (config);
+    return;
+  }
+  GNUNET_free (bin_identity);
+  GNUNET_free (config);
+
+  namestore = GNUNET_NAMESTORE_connect (cfg);
+  GNUNET_assert (NULL != namestore);
+  flags = MHD_USE_DEBUG;
+  if (GNUNET_YES == use_v6)
+    flags |= MHD_USE_IPv6;
+  mhd = MHD_start_daemon (flags,
+			  PORT,
+			  NULL, NULL,
+			  &mhd_ahc, NULL,
+			  MHD_OPTION_END);
+  GNUNET_assert (NULL != mhd);
+  mhd_main ();
+
+  identity = GNUNET_IDENTITY_connect (cfg,
+                                      &identity_cb,
+                                      NULL);
+}
+
 
 int
 main (int argc, char *const *argv)
@@ -591,6 +739,8 @@ main (int argc, char *const *argv)
     fprintf (stderr, "failed to initialize curl\n");
     return 2;
   }
+
+
   if (0 != GNUNET_TESTING_peer_run ("test-gnunet-vpn",
 				    "test_gns_vpn.conf",
 				    &run, NULL))

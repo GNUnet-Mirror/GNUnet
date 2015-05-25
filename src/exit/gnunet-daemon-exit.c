@@ -3394,7 +3394,8 @@ add_services (int proto,
  * @param section name of section in config, equal to hostname
  */
 static void
-read_service_conf (void *cls, const char *section)
+read_service_conf (void *cls,
+                   const char *section)
 {
   char *cpy;
 
@@ -3402,7 +3403,9 @@ read_service_conf (void *cls, const char *section)
       (0 != strcmp (".gnunet.", section + (strlen (section) - 8))))
     return;
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "UDP_REDIRECTS",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             section,
+                                             "UDP_REDIRECTS",
 					     &cpy))
   {
     add_services (IPPROTO_UDP, cpy, section);

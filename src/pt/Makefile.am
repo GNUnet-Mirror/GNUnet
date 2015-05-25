@@ -96,6 +96,7 @@ test_gns_vpn_SOURCES = \
  test_gns_vpn.c
 test_gns_vpn_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+ $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
@@ -137,5 +138,3 @@ test_gnunet_vpn_6_to_4_LDADD = -lmicrohttpd $(LIB_GNURL) \
  $(top_builddir)/src/util/libgnunetutil.la
 test_gnunet_vpn_6_to_4_CPPFLAGS = \
  $(CPP_GNURL) $(AM_CPPFLAGS)
-
-
