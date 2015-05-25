@@ -266,6 +266,12 @@ struct ChannelState
   int af;
 
   /**
+   * Is this channel new (#GNUNET_NO), or did we exchange messages with the
+   * other side already (#GNUNET_YES)?
+   */
+  int is_established;
+
+  /**
    * Length of the doubly linked 'tmq_head/tmq_tail' list.
    */
   unsigned int tmq_length;
@@ -924,7 +930,6 @@ route_packet (struct DestinationEntry *destination,
   struct ChannelMessageQueueEntry *tnq;
   size_t alen;
   size_t mlen;
-  int is_new;
   const struct GNUNET_TUN_UdpHeader *udp;
   const struct GNUNET_TUN_TcpHeader *tcp;
   const struct GNUNET_TUN_IcmpHeader *icmp;
@@ -1093,7 +1098,6 @@ route_packet (struct DestinationEntry *destination,
   {
     /* need to either use the existing channel from the destination (if still
        available) or create a fresh one */
-    is_new = GNUNET_YES;
     if (NULL == dt->ts)
       ts = create_channel_to_destination (dt, af);
     else
@@ -1133,7 +1137,6 @@ route_packet (struct DestinationEntry *destination,
   }
   else
   {
-    is_new = GNUNET_NO;
     GNUNET_CONTAINER_heap_update_cost (channel_heap,
 				       ts->heap_node,
 				       GNUNET_TIME_absolute_get ().abs_value_us);
@@ -1227,7 +1230,7 @@ route_packet (struct DestinationEntry *destination,
     }
     break;
   case IPPROTO_TCP:
-    if (is_new)
+    if (GNUNET_NO == ts->is_established)
     {
       if (destination->is_service)
       {
@@ -1559,6 +1562,7 @@ route_packet (struct DestinationEntry *destination,
     GNUNET_assert (0);
     break;
   }
+  ts->is_established = GNUNET_YES;
   send_to_channel (tnq, ts);
 }
 
@@ -3123,16 +3127,18 @@ run (void *cls,
 
   cadet_handle =
     GNUNET_CADET_connect (cfg_, NULL,
-			 NULL,
-			 &channel_cleaner,
-			 cadet_handlers,
-			 NULL);
+                          NULL,
+                          &channel_cleaner,
+                          cadet_handlers,
+                          NULL);
   helper_handle = GNUNET_HELPER_start (GNUNET_NO,
 				       "gnunet-helper-vpn", vpn_argv,
 				       &message_token, NULL, NULL);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, service_handlers);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleanup,
+                                NULL);
 }
 
 

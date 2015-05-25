@@ -1936,7 +1936,8 @@ receive_tcp_service (void *cls,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
+receive_tcp_remote (void *cls GNUNET_UNUSED,
+                    struct GNUNET_CADET_Channel *channel,
                     void **channel_ctx GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message)
 {
