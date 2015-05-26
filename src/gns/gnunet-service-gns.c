@@ -880,9 +880,9 @@ monitor_sync_event (void *cls)
  */
 static void
 identity_intercept_cb (void *cls,
-		    struct GNUNET_IDENTITY_Ego *ego,
-		    void **ctx,
-		    const char *name)
+                       struct GNUNET_IDENTITY_Ego *ego,
+                       void **ctx,
+                       const char *name)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_CRYPTO_EcdsaPublicKey dns_root;
@@ -897,8 +897,6 @@ identity_intercept_cb (void *cls,
   }
   GNUNET_IDENTITY_ego_get_public_key (ego,
 				      &dns_root);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "DNS hijacking enabled. Connecting to DNS service.\n");
   if (GNUNET_SYSERR ==
       GNS_interceptor_init (&dns_root, cfg))
   {
@@ -990,6 +988,8 @@ run (void *cls,
   }
   else
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Looking for gns-intercept ego\n");
     identity_op = GNUNET_IDENTITY_get (identity_handle,
                                        "gns-intercept",
                                        &identity_intercept_cb,
