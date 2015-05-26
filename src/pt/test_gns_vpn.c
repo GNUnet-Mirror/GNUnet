@@ -320,8 +320,9 @@ commence_testing (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  /* wait a little bit before downloading, as we just created the record */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 10),
+                                (GNUNET_TIME_UNIT_SECONDS, 5),
                                 &start_curl,
                                 NULL);
 }
@@ -545,7 +546,7 @@ identity_cb (void *cls,
   GNUNET_asprintf (&rd_string,
                    "6 %s %s",
                    peername,
-                   "www.gnu.");
+                   "www");
   GNUNET_free (peername);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
@@ -574,6 +575,7 @@ run (void *cls,
 
   char *bin;
   char *bin_identity;
+  char *bin_gns;
   char *config;
 
   if (GNUNET_OK !=
@@ -611,6 +613,13 @@ run (void *cls,
     "-c", config,
     NULL
   };
+  char *const gns_args[] =
+  {
+    "gnunet-gns",
+    "-u", "www.gns",
+    "-c", config,
+    NULL
+  };
   GNUNET_TESTING_peer_get_identity (peer, &id);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                 &do_shutdown,
@@ -620,7 +629,6 @@ run (void *cls,
                    "%s/%s",
                    bin,
                    "gnunet-identity");
-  GNUNET_free (bin);
   if (0 != fork_and_exec (bin_identity, identity_args))
   {
     fprintf (stderr,
@@ -628,6 +636,7 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_identity);
     GNUNET_free (config);
+    GNUNET_free (bin);
     return;
   }
   if (0 != fork_and_exec (bin_identity, identity2_args))
@@ -637,6 +646,7 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_identity);
     GNUNET_free (config);
+    GNUNET_free (bin);
     return;
   }
   if (0 != fork_and_exec (bin_identity, identity3_args))
@@ -646,16 +656,35 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     GNUNET_free (bin_identity);
     GNUNET_free (config);
+    GNUNET_free (bin);
     return;
   }
   GNUNET_free (bin_identity);
+
+  /* do lookup just to launch GNS service */
+  GNUNET_asprintf (&bin_gns,
+                   "%s/%s",
+                   bin,
+                   "gnunet-gns");
+  if (0 != fork_and_exec (bin_gns, gns_args))
+  {
+    fprintf (stderr,
+             "Failed to run `gnunet-gns -u. Skipping test.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (bin_gns);
+    GNUNET_free (config);
+    GNUNET_free (bin);
+    return;
+  }
   GNUNET_free (config);
+  GNUNET_free (bin);
+
 
   namestore = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_assert (NULL != namestore);
   flags = MHD_USE_DEBUG;
   if (GNUNET_YES == use_v6)
-    flags |= MHD_USE_IPv6;
+    flags |= MHD_USE_DUAL_STACK;
   mhd = MHD_start_daemon (flags,
 			  PORT,
 			  NULL, NULL,
@@ -677,6 +706,9 @@ main (int argc, char *const *argv)
   char *bin_vpn;
   char *bin_exit;
   char *bin_dns;
+  char *srv_dns;
+  struct stat s;
+  gid_t my_gid;
   char *const iptables_args[] =
   {
     "iptables", "-t", "mangle", "-L", "-v", NULL
@@ -714,6 +746,7 @@ main (int argc, char *const *argv)
   bin_vpn = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
   bin_exit = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-exit");
   bin_dns = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-dns");
+  srv_dns = GNUNET_OS_get_libexec_binary_path ("gnunet-service-dns");
   if ( (0 != geteuid ()) &&
        ( (GNUNET_YES !=
 	  GNUNET_OS_check_helper_binary (bin_vpn, GNUNET_YES, "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0")) || //ipv4 only please!
@@ -729,11 +762,42 @@ main (int argc, char *const *argv)
     GNUNET_free (bin_vpn);
     GNUNET_free (bin_exit);
     GNUNET_free (bin_dns);
+    GNUNET_free (srv_dns);
     return 0;
   }
   GNUNET_free (bin_vpn);
   GNUNET_free (bin_exit);
+  my_gid = getgid ();
+  if ( (0 != stat (bin_dns, &s)) ||
+       (my_gid == s.st_gid) ||
+       ( (0 == (S_ISUID & s.st_mode)) && (0 != getuid()) ) )
+  {
+    fprintf (stderr,
+	     "WARNING: %s has wrong permissions (%d, %d, %d), refusing to run test (as it would have to fail).\n",
+             bin_dns,
+             (0 != stat (bin_dns, &s)),
+             (my_gid == s.st_gid),
+             (0 == (S_ISUID & s.st_mode)) || (0 != getuid()) );
+    GNUNET_free (bin_dns);
+    GNUNET_free (srv_dns);
+    return 0;
+  }
+  if ( (0 != stat (srv_dns, &s)) ||
+       (my_gid == s.st_gid) ||
+       (0 == (S_ISGID & s.st_mode)) )
+  {
+    fprintf (stderr,
+	     "WARNING: %s has wrong permissions (%d, %d, %d), refusing to run test (as it would have to fail).\n",
+             srv_dns,
+             (0 != stat (bin_dns, &s)),
+             (my_gid == s.st_gid),
+             (0 == (S_ISGID & s.st_mode)) );
+    GNUNET_free (bin_dns);
+    GNUNET_free (srv_dns);
+    return 0;
+  }
   GNUNET_free (bin_dns);
+  GNUNET_free (srv_dns);
 
   dest_ip = "169.254.86.1";
   dest_af = AF_INET;
