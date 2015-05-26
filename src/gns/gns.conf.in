@@ -25,8 +25,6 @@ ZONE_PUBLISH_TIME_WINDOW = 4 h
 
 # PREFIX = valgrind --leak-check=full --track-origins=yes
 
-# Setting this option enables hijacking DNS queries using iptables.
-# DNS_ROOT = KEY
 
 [gns-proxy]
 BINARY = gnunet-gns-proxy

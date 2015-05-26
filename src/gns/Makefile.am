@@ -103,7 +103,7 @@ libgnunet_plugin_rest_gns_la_LIBADD = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd 
+  $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_gns_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
@@ -198,6 +198,7 @@ gnunet_service_gns_SOURCES = \
 gnunet_service_gns_LDADD = \
   -lm \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/revocation/libgnunetrevocation.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -261,4 +262,3 @@ if HAVE_SQLITE
  TESTS = $(check_SCRIPTS)
 endif
 endif
-

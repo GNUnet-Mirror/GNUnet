@@ -30,6 +30,7 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
+#include "gnunet_identity_service.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
 #include "gns.h"
@@ -149,6 +150,17 @@ static struct GNUNET_NAMESTORE_Handle *namestore_handle;
 static struct GNUNET_NAMECACHE_Handle *namecache_handle;
 
 /**
+ * Our handle to the identity service
+ */
+static struct GNUNET_IDENTITY_Handle *identity_handle;
+
+/**
+ * Our handle to the identity operation to find the master zone
+ * for intercepted queries.
+ */
+static struct GNUNET_IDENTITY_Operation *identity_op;
+
+/**
  * Handle to iterate over our authoritative zone in namestore
  */
 static struct GNUNET_NAMESTORE_ZoneIterator *namestore_iter;
@@ -266,6 +278,16 @@ shutdown_task (void *cls,
   }
 
   GNS_interceptor_done ();
+  if (NULL != identity_op)
+  {
+    GNUNET_IDENTITY_cancel (identity_op);
+    identity_op = NULL;
+  }
+  if (NULL != identity_handle)
+  {
+    GNUNET_IDENTITY_disconnect (identity_handle);
+    identity_handle = NULL;
+  }
   GNS_resolver_done ();
   GNS_shorten_done ();
   while (NULL != (ma = ma_head))
@@ -836,6 +858,54 @@ monitor_sync_event (void *cls)
 
 
 /**
+ * Method called to inform about the ego to be used for the master zone
+ * for DNS interceptions.
+ *
+ * This function is only called ONCE, and 'NULL' being passed in
+ * @a ego does indicate that interception is not configured.
+ * If @a ego is non-NULL, we should start to intercept DNS queries
+ * and resolve ".gnu" queries using the given ego as the master zone.
+ *
+ * @param cls closure, our `const struct GNUNET_CONFIGURATION_Handle *c`
+ * @param ego ego handle
+ * @param ctx context for application to store data for this ego
+ *                 (during the lifetime of this process, initially NULL)
+ * @param name name assigned by the user for this ego,
+ *                   NULL if the user just deleted the ego and it
+ *                   must thus no longer be used
+ */
+static void
+identity_intercept_cb (void *cls,
+		    struct GNUNET_IDENTITY_Ego *ego,
+		    void **ctx,
+		    const char *name)
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  struct GNUNET_CRYPTO_EcdsaPublicKey dns_root;
+
+  identity_op = NULL;
+  if (NULL == ego)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		_("No ego configured for `%s`\n"),
+		"gns-intercept");
+    return;
+  }
+  GNUNET_IDENTITY_ego_get_public_key (ego,
+				      &dns_root);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "DNS hijacking enabled. Connecting to DNS service.\n");
+  if (GNUNET_SYSERR ==
+      GNS_interceptor_init (&dns_root, cfg))
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+    return;
+  }
+}
+
+
+/**
  * Process GNS requests.
  *
  * @param cls closure
@@ -843,16 +913,15 @@ monitor_sync_event (void *cls)
  * @param c configuration to use
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
+run (void *cls,
+     struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     { &handle_lookup, NULL, GNUNET_MESSAGE_TYPE_GNS_LOOKUP, 0},
     {NULL, NULL, 0, 0}
   };
-  struct GNUNET_CRYPTO_EcdsaPublicKey dns_root;
   unsigned long long max_parallel_bg_queries = 0;
-  char *dns_root_name;
 
   v6_enabled = GNUNET_NETWORK_test_pf (PF_INET6);
   v4_enabled = GNUNET_NETWORK_test_pf (PF_INET);
@@ -907,33 +976,20 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
 
-  if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (c, "gns", "DNS_ROOT",
-					     &dns_root_name))
+  identity_handle = GNUNET_IDENTITY_connect (c,
+                                             NULL,
+                                             NULL);
+  if (NULL == identity_handle)
   {
-    if (GNUNET_OK !=
-	GNUNET_CRYPTO_ecdsa_public_key_from_string (dns_root_name,
-                                                    strlen (dns_root_name),
-                                                    &dns_root))
-    {
-      GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-				 "gns",
-                                 "DNS_ROOT",
-				 _("valid public key required"));
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-      GNUNET_free (dns_root_name);
-      return;
-    }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"DNS hijacking with root `%s' enabled. Connecting to DNS service.\n",
-		dns_root_name);
-    GNUNET_free (dns_root_name);
-    if (GNUNET_SYSERR ==
-	GNS_interceptor_init (&dns_root, c))
-    {
-      GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-      return;
-    }
+		"Could not connect to identity service!\n");
+  }
+  else
+  {
+    identity_op = GNUNET_IDENTITY_get (identity_handle,
+                                       "gns-intercept",
+                                       &identity_intercept_cb,
+                                       (void *) c);
   }
   GNS_resolver_init (namecache_handle,
                      dht_handle,

@@ -265,6 +265,7 @@ zone_iterator (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (list_it);
 }
 
+
 /**
  * Get master-zone, short-zone and private-zone keys.
  *
@@ -435,7 +436,12 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
       "gnunet-identity",
-      "gnunet-identity", "-e", "short-zone", "-s", "gns-proxy", NULL))
+      "gnunet-identity", "-e", "master-zone", "-s", "gns-proxy", NULL))
+    return;
+
+  if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
+      "gnunet-identity",
+      "gnunet-identity", "-e", "master-zone", "-s", "gns-intercept", NULL))
     return;
 
   if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
