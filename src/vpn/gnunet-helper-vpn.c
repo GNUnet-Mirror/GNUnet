@@ -360,7 +360,7 @@ run (int fd_tun)
   /* write refers to reading from stdin, writing to fd_tun */
   int write_open = 1;
 
-  while ((1 == read_open) && (1 == write_open))
+  while ((1 == read_open) || (1 == write_open))
   {
     FD_ZERO (&fds_w);
     FD_ZERO (&fds_r);
@@ -412,7 +412,9 @@ run (int fd_tun)
                   MAX_SIZE - sizeof (struct GNUNET_MessageHeader));
         if (-1 == buftun_size)
         {
-          fprintf (stderr, "read-error: %s\n", strerror (errno));
+          fprintf (stderr,
+                   "read-error: %s\n",
+                   strerror (errno));
           shutdown (fd_tun, SHUT_RD);
           shutdown (1, SHUT_WR);
           read_open = 0;
@@ -445,7 +447,9 @@ run (int fd_tun)
 #if !DEBUG
 	  if (errno != EPIPE)
 #endif
-	    fprintf (stderr, "write-error to stdout: %s\n", strerror (errno));
+	    fprintf (stderr,
+                     "write-error to stdout: %s\n",
+                     strerror (errno));
           shutdown (fd_tun, SHUT_RD);
           shutdown (1, SHUT_WR);
           read_open = 0;
@@ -468,7 +472,9 @@ run (int fd_tun)
         bufin_size = read (0, bufin + bufin_rpos, MAX_SIZE - bufin_rpos);
         if (-1 == bufin_size)
         {
-          fprintf (stderr, "read-error: %s\n", strerror (errno));
+          fprintf (stderr,
+                   "read-error: %s\n",
+                   strerror (errno));
           shutdown (0, SHUT_RD);
           shutdown (fd_tun, SHUT_WR);
           write_open = 0;

@@ -503,7 +503,9 @@ run (int fd_tun)
                   MAX_SIZE - sizeof (struct GNUNET_MessageHeader));
         if (-1 == buftun_size)
         {
-          fprintf (stderr, "read-error: %s\n", strerror (errno));
+          fprintf (stderr,
+                   "read-error: %s\n",
+                   strerror (errno));
           shutdown (fd_tun, SHUT_RD);
           shutdown (1, SHUT_WR);
           read_open = 0;
@@ -538,7 +540,9 @@ run (int fd_tun)
 #if !DEBUG
 	  if (errno != EPIPE)
 #endif
-	    fprintf (stderr, "write-error to stdout: %s\n", strerror (errno));
+	    fprintf (stderr,
+                     "write-error to stdout: %s\n",
+                     strerror (errno));
           shutdown (fd_tun, SHUT_RD);
           shutdown (1, SHUT_WR);
           read_open = 0;

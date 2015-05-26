@@ -270,9 +270,16 @@ allocation_cb (void *cls, int af, const void *address)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_asprintf (&url, "http://%s:%u/hello_world",
-                   inet_ntop (af, address, ips, sizeof (ips)),
-                   (unsigned int) PORT);
+  if (AF_INET6 == af)
+    GNUNET_asprintf (&url,
+                     "http://[%s]:%u/hello_world",
+                     inet_ntop (af, address, ips, sizeof (ips)),
+                     (unsigned int) PORT);
+  else
+    GNUNET_asprintf (&url,
+                     "http://%s:%u/hello_world",
+                     inet_ntop (af, address, ips, sizeof (ips)),
+                     (unsigned int) PORT);
   curl = curl_easy_init ();
   curl_easy_setopt (curl, CURLOPT_URL, url);
   curl_easy_setopt (curl, CURLOPT_WRITEFUNCTION, &copy_buffer);
@@ -281,11 +288,13 @@ allocation_cb (void *cls, int af, const void *address)
   curl_easy_setopt (curl, CURLOPT_TIMEOUT, 150L);
   curl_easy_setopt (curl, CURLOPT_CONNECTTIMEOUT, 15L);
   curl_easy_setopt (curl, CURLOPT_NOSIGNAL, 1);
+  curl_easy_setopt (curl, CURLOPT_VERBOSE, 1);
 
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
   GNUNET_assert (CURLM_OK == curl_multi_add_handle (multi, curl));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Beginning HTTP download from `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Beginning HTTP download from `%s'\n",
               url);
   curl_main ();
 }
