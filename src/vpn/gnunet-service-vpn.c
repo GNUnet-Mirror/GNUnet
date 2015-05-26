@@ -713,7 +713,7 @@ print_channel_destination (const struct DestinationEntry *de)
   {
     GNUNET_snprintf (dest,
                      sizeof (dest),
-                     "HS: %s-%s\n",
+                     "HS: %s-%s",
                      GNUNET_i2s (&de->details.service_destination.target),
                      GNUNET_h2s (&de->details.service_destination.service_descriptor));
   }
@@ -830,7 +830,8 @@ create_channel_to_destination (struct DestinationChannel *dt,
       return NULL;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Creating channel to peer %s offering service %s\n",
+		"Creating channel %p to peer %s offering service %s\n",
+                ts->channel,
 		GNUNET_i2s (&dt->destination->details.service_destination.target),
 		GNUNET_h2s (&dt->destination->details.service_destination.service_descriptor));
   }
@@ -958,12 +959,12 @@ route_packet (struct DestinationEntry *destination,
       source_port = ntohs (udp->source_port);
       destination_port = ntohs (udp->destination_port);
       get_channel_key_from_ips (af,
-			       IPPROTO_UDP,
-			       source_ip,
-			       source_port,
-			       destination_ip,
-			       destination_port,
-			       &key);
+                                IPPROTO_UDP,
+                                source_ip,
+                                source_port,
+                                destination_ip,
+                                destination_port,
+                                &key);
     }
     break;
   case IPPROTO_TCP:
@@ -985,12 +986,12 @@ route_packet (struct DestinationEntry *destination,
       source_port = ntohs (tcp->source_port);
       destination_port = ntohs (tcp->destination_port);
       get_channel_key_from_ips (af,
-			       IPPROTO_TCP,
-			       source_ip,
-			       source_port,
-			       destination_ip,
-			       destination_port,
-			       &key);
+                                IPPROTO_TCP,
+                                source_ip,
+                                source_port,
+                                destination_ip,
+                                destination_port,
+                                &key);
     }
     break;
   case IPPROTO_ICMP:
@@ -1013,12 +1014,12 @@ route_packet (struct DestinationEntry *destination,
       source_port = 0;
       destination_port = 0;
       get_channel_key_from_ips (af,
-			       protocol,
-			       source_ip,
-			       0,
-			       destination_ip,
-			       0,
-			       &key);
+                                protocol,
+                                source_ip,
+                                0,
+                                destination_ip,
+                                0,
+                                &key);
     }
     break;
   default:
@@ -1048,7 +1049,7 @@ route_packet (struct DestinationEntry *destination,
       char xbuf[INET6_ADDRSTRLEN];
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Routing %s packet from %s:%u -> %s:%u to destination %s:%u\n",
+		  "Routing %s packet from [%s]:%u -> [%s]:%u to destination [%s]:%u\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
 		  inet_ntop (af, source_ip, sbuf, sizeof (sbuf)),
 		  source_port,
@@ -1070,7 +1071,7 @@ route_packet (struct DestinationEntry *destination,
       char dbuf[INET6_ADDRSTRLEN];
 
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Routing %s packet from %s:%u -> %s:%u to service %s at peer %s\n",
+		  "Routing %s packet from [%s]:%u -> [%s]:%u to service %s at peer %s\n",
 		  (protocol == IPPROTO_TCP) ? "TCP" : "UDP",
 		  inet_ntop (af, source_ip, sbuf, sizeof (sbuf)),
 		  source_port,
@@ -1096,6 +1097,9 @@ route_packet (struct DestinationEntry *destination,
 					  &key);
   if (NULL == ts)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Creating new channel for key %s\n",
+                GNUNET_h2s (&key));
     /* need to either use the existing channel from the destination (if still
        available) or create a fresh one */
     if (NULL == dt->ts)
@@ -2128,7 +2132,7 @@ receive_udp_back (void *cls,
     char dbuf[INET6_ADDRSTRLEN];
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received UDP reply from cadet, sending %u bytes from %s:%u -> %s:%u via TUN\n",
+		"Received UDP reply from cadet, sending %u bytes from [%s]:%u -> [%s]:%u via TUN\n",
 		(unsigned int) mlen,
 		inet_ntop (ts->af, &ts->destination_ip, sbuf, sizeof (sbuf)),
 		ts->destination_port,
@@ -2279,7 +2283,7 @@ receive_tcp_back (void *cls,
     char dbuf[INET6_ADDRSTRLEN];
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received TCP reply from cadet, sending %u bytes from %s:%u -> %s:%u via TUN\n",
+		"Received TCP reply from cadet, sending %u bytes from [%s]:%u -> [%s]:%u via TUN\n",
 		(unsigned int) mlen,
 		inet_ntop (ts->af, &ts->destination_ip, sbuf, sizeof (sbuf)),
 		ts->destination_port,
@@ -2753,7 +2757,6 @@ service_redirect_to_service (void *cls,
   void *addr;
   struct DestinationEntry *de;
   struct GNUNET_HashCode key;
-  struct ChannelState *ts;
   struct DestinationChannel *dt;
 
   /*  parse request */
@@ -2816,19 +2819,6 @@ service_redirect_to_service (void *cls,
   GNUNET_CONTAINER_DLL_insert (de->dt_head,
 			       de->dt_tail,
 			       dt);
-  ts = create_channel_to_destination (dt,
-                                      result_af);
-  switch (result_af)
-  {
-  case AF_INET:
-    ts->destination_ip.v4 = v4;
-    break;
-  case AF_INET6:
-    ts->destination_ip.v6 = v6;
-    break;
-  default:
-    GNUNET_assert (0);
-  }
   /* we're done */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -2948,7 +2938,8 @@ cleanup (void *cls,
   }
   if (NULL != helper_handle)
   {
-    GNUNET_HELPER_stop (helper_handle, GNUNET_NO);
+    GNUNET_HELPER_kill (helper_handle, GNUNET_NO);
+    GNUNET_HELPER_wait (helper_handle);
     helper_handle = NULL;
   }
   if (NULL != nc)
