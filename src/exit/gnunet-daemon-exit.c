@@ -2038,7 +2038,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED,
   {
     char buf[INET6_ADDRSTRLEN];
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Received data from %s for starting TCP stream to %s:%u\n",
+		"Received payload from %s for existing TCP stream to %s:%u\n",
 		GNUNET_i2s (&state->peer),
 		inet_ntop (af,
 			   &state->specifics.tcp_udp.ri.remote_address.address,
@@ -3412,7 +3412,9 @@ read_service_conf (void *cls,
     GNUNET_free (cpy);
   }
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, section, "TCP_REDIRECTS",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             section,
+                                             "TCP_REDIRECTS",
 					     &cpy))
   {
     add_services (IPPROTO_TCP, cpy, section);
