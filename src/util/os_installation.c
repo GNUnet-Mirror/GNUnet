@@ -720,7 +720,9 @@ GNUNET_OS_get_libexec_binary_path (const char *progname)
  *         #GNUNET_SYSERR on error (no such binary or not executable)
  */
 int
-GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char *params)
+GNUNET_OS_check_helper_binary (const char *binary,
+                               int check_suid,
+                               const char *params)
 {
   struct stat statbuf;
   char *p;

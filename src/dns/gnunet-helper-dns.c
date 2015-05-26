@@ -240,7 +240,7 @@ fork_and_exec (const char *file,
 
 
 /**
- * Creates a tun-interface called dev;
+ * Creates a tun-interface called @a dev;
  *
  * @param dev is asumed to point to a char[IFNAMSIZ]
  *        if *dev == '\\0', uses the name supplied by the kernel;
@@ -291,7 +291,7 @@ init_tun (char *dev)
 
 
 /**
- * @brief Sets the IPv6-Address given in address on the interface dev
+ * @brief Sets the IPv6-Address given in @a address on the interface @a dev
  *
  * @param dev the interface to configure
  * @param address the IPv6-Address
@@ -388,7 +388,7 @@ set_address6 (const char *dev, const char *address, unsigned long prefix_len)
 
 
 /**
- * @brief Sets the IPv4-Address given in address on the interface dev
+ * @brief Sets the IPv4-Address given in @a address on the interface @a dev
  *
  * @param dev the interface to configure
  * @param address the IPv4-Address
@@ -1008,7 +1008,7 @@ main (int argc, char *const*argv)
   /* now undo updating of routing tables; normal exit or clean-up-on-error case */
  cleanup_route_4:
   {
-    char *const route_clean_args[] = 			
+    char *const route_clean_args[] =
       {
 	"ip", "route", "del", "default", "dev", dev,
 	"table", DNS_TABLE, NULL
@@ -1023,7 +1023,7 @@ main (int argc, char *const*argv)
 	"ip", "rule", "del", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
       };
     if (0 != fork_and_exec (sbin_ip, forward_clean_args))
-      r += 2;	
+      r += 2;
   }
  cleanup_mark_2:
   {
@@ -1034,7 +1034,7 @@ main (int argc, char *const*argv)
       };
     if (0 != fork_and_exec (sbin_iptables, mark_clean_args))
       r += 4;
-  }	
+  }
  cleanup_mangle_1:
   {
     char *const mangle_clean_args[] =

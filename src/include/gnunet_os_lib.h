@@ -515,7 +515,9 @@ GNUNET_OS_install_parent_control_handler (void *cls,
  *         #GNUNET_SYSERR on error (no such binary or not executable)
  */
 int
-GNUNET_OS_check_helper_binary (const char *binary, int check_suid, const char * params);
+GNUNET_OS_check_helper_binary (const char *binary,
+                               int check_suid,
+                               const char *params);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
