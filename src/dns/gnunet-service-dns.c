@@ -1172,7 +1172,7 @@ main (int argc, char *const *argv)
   }
   else if (sgid != rgid)
   {
-    if (-1 ==  setregid (sgid, sgid))
+    if (-1 == setregid (sgid, sgid))
       fprintf (stderr, "setregid failed: %s\n", strerror (errno));
   }
 #endif
