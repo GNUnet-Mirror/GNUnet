@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     Copyright (C) 2007, 2009, 2011, 2012 Christian Grothoff
+     Copyright (C) 2007, 2009, 2011, 2012, 2015 Christian Grothoff
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -38,7 +38,7 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 /**
- * Return value for 'main'.
+ * Return value for #main().
  */
 static int global_ret;
 
