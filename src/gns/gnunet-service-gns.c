@@ -268,7 +268,11 @@ shutdown_task (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Shutting down!\n");
-  GNUNET_SERVER_notification_context_destroy (nc);
+  if (NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (nc);
+    nc = NULL;
+  }
   while (NULL != (clh = clh_head))
   {
     GNUNET_SERVER_client_set_user_context (clh->client, NULL);
