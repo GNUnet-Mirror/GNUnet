@@ -451,7 +451,7 @@ run (int fd_tun)
   /* write refers to reading from stdin, writing to fd_tun */
   int write_open = 1;
 
-  while ((1 == read_open) || (1 == write_open))
+  while ((1 == read_open) && (1 == write_open))
   {
     FD_ZERO (&fds_w);
     FD_ZERO (&fds_r);
