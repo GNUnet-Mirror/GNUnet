@@ -305,8 +305,11 @@ disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *                specified target peer; NULL on error
  */
 static void
-commence_testing (void *cls, int32_t success, const char *emsg)
+commence_testing (void *cls,
+                  int32_t success,
+                  const char *emsg)
 {
+  qe = NULL;
   GNUNET_SCHEDULER_add_now (&disco_ns, NULL);
 
   if ((emsg != NULL) && (GNUNET_YES != success))
