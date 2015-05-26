@@ -457,7 +457,8 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   res = GSN_database->lookup_records (GSN_database->cls, zone,
                                       GNUNET_GNS_MASTERZONE_STR,
                                       &lookup_nick_it, &nick);
-  if ((NULL == nick) || (GNUNET_OK != res))
+  if ( (GNUNET_OK != res) ||
+       (NULL == nick) )
   {
     GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
@@ -1714,4 +1715,3 @@ main (int argc, char *const *argv)
 }
 
 /* end of gnunet-service-namestore.c */
-
