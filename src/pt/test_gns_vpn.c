@@ -536,9 +536,6 @@ identity_cb (void *cls,
              name);
     return;
   }
-  /* FIXME: we somehow need to get this zone-key into
-     the 'DNS_ROOT' option of the 'gns' service.  This
-     is currently why the test fails... */
   zone_key = GNUNET_IDENTITY_ego_get_private_key (ego);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
   peername = GNUNET_strdup (GNUNET_i2s_full (&id));
@@ -603,6 +600,14 @@ run (void *cls,
     "-c", config,
     NULL
   };
+  char *const identity3_args[] =
+  {
+    "gnunet-identity",
+    "-e", "master-zone",
+    "-s", "gns-intercept",
+    "-c", config,
+    NULL
+  };
   GNUNET_TESTING_peer_get_identity (peer, &id);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT,
                                 &do_shutdown,
@@ -623,6 +628,15 @@ run (void *cls,
     return;
   }
   if (0 != fork_and_exec (bin_identity, identity2_args))
+  {
+    fprintf (stderr,
+             "Failed to run `gnunet-identity -e. Skipping test.\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (bin_identity);
+    GNUNET_free (config);
+    return;
+  }
+  if (0 != fork_and_exec (bin_identity, identity3_args))
   {
     fprintf (stderr,
              "Failed to run `gnunet-identity -e. Skipping test.\n");
