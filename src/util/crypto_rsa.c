@@ -222,7 +222,6 @@ GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
                               size_t len)
 {
   struct GNUNET_CRYPTO_rsa_PrivateKey *key;
-
   key = GNUNET_new (struct GNUNET_CRYPTO_rsa_PrivateKey);
   if (0 !=
       gcry_sexp_new (&key->sexp,
@@ -230,11 +229,18 @@ GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
                      len,
                      0))
   {
-    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Decoded private key is not valid\n");
     GNUNET_free (key);
     return NULL;
   }
-  /* FIXME: verify that this is an RSA private key */
+  if (0 != gcry_pk_testkey (key->sexp))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Decoded private key is not valid\n");
+    GNUNET_CRYPTO_rsa_private_key_free (key);
+    return NULL;
+  }
   return key;
 }
 

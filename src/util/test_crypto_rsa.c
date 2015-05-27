@@ -54,6 +54,15 @@ main (int argc,
   char *enc;
   enc = NULL;
   size = GNUNET_CRYPTO_rsa_private_key_encode (priv, &enc);
+  /* Decoding */
+  GNUNET_CRYPTO_rsa_private_key_free (priv);
+  priv = NULL;
+  priv = GNUNET_CRYPTO_rsa_private_key_decode (enc, size);
+  GNUNET_assert (NULL != priv);
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
+                              enc, size);
+  GNUNET_assert (NULL == GNUNET_CRYPTO_rsa_private_key_decode (enc, size));
+  (void) fprintf (stderr, "The above warning is expected.\n");
   GNUNET_free (enc);
 
   /* try ordinary sig first */
