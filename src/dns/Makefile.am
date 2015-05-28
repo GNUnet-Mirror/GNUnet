@@ -124,4 +124,3 @@ test_hexcoder_SOURCES = \
 test_hexcoder_LDADD = \
  libgnunetdnsparser.la \
  $(top_builddir)/src/util/libgnunetutil.la
-
