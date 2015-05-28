@@ -84,11 +84,6 @@ struct DestinationChannel
   struct DestinationEntry *destination;
 
   /**
-   * Pre-allocated channel for this destination, or NULL for none.
-   */
-  struct ChannelState *ts;
-
-  /**
    * Destination port this channel state is used for.
    */
   uint16_t destination_port;
@@ -245,12 +240,6 @@ struct ChannelState
    * Tail of list of messages scheduled for transmission.
    */
   struct ChannelMessageQueueEntry *tmq_tail;
-
-  /**
-   * Destination entry that has a pointer to this channel state;
-   * NULL if this channel state is in the channel map.
-   */
-  struct DestinationChannel *destination_container;
 
   /**
    * Destination to which this channel leads.  Note that
@@ -552,6 +541,17 @@ free_channel_state (struct ChannelState *ts)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Cleaning up channel state\n");
+  if (NULL != ts->th)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (ts->th);
+    ts->th = NULL;
+  }
+  if (NULL != (channel = ts->channel))
+  {
+    ts->channel = NULL;
+    GNUNET_CADET_channel_destroy (channel);
+    return;
+  }
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Active channels"),
 			    -1, GNUNET_NO);
@@ -564,17 +564,7 @@ free_channel_state (struct ChannelState *ts)
     GNUNET_free (tnq);
   }
   GNUNET_assert (0 == ts->tmq_length);
-  if (NULL != ts->th)
-  {
-    GNUNET_CADET_notify_transmit_ready_cancel (ts->th);
-    ts->th = NULL;
-  }
   GNUNET_assert (NULL == ts->destination.heap_node);
-  if (NULL != (channel = ts->channel))
-  {
-    ts->channel = NULL;
-    GNUNET_CADET_channel_destroy (channel);
-  }
   if (NULL != ts->search)
   {
     GNUNET_REGEX_search_cancel (ts->search);
@@ -595,12 +585,6 @@ free_channel_state (struct ChannelState *ts)
 		   GNUNET_CONTAINER_multihashmap_remove (channel_map,
 							 &key,
 							 ts));
-  }
-  if (NULL != ts->destination_container)
-  {
-    GNUNET_assert (ts == ts->destination_container->ts);
-    ts->destination_container->ts = NULL;
-    ts->destination_container = NULL;
   }
   GNUNET_free (ts);
 }
@@ -796,7 +780,6 @@ create_channel_to_destination (struct DestinationChannel *dt,
   GNUNET_STATISTICS_update (stats,
 			    gettext_noop ("# Cadet channels created"),
 			    1, GNUNET_NO);
-  GNUNET_assert (NULL == dt->ts);
   switch (client_af)
   {
   case AF_INET:
@@ -813,8 +796,6 @@ create_channel_to_destination (struct DestinationChannel *dt,
   ts->af = client_af;
   ts->destination = *dt->destination;
   ts->destination.heap_node = NULL; /* copy is NOT in destination heap */
-  dt->ts = ts;
-  ts->destination_container = dt; /* we are referenced from dt */
   if (dt->destination->is_service)
   {
     ts->channel = GNUNET_CADET_channel_create (cadet_handle,
@@ -1102,14 +1083,9 @@ route_packet (struct DestinationEntry *destination,
                 GNUNET_h2s (&key));
     /* need to either use the existing channel from the destination (if still
        available) or create a fresh one */
-    if (NULL == dt->ts)
-      ts = create_channel_to_destination (dt, af);
-    else
-      ts = dt->ts;
+    ts = create_channel_to_destination (dt, af);
     if (NULL == ts)
       return;
-    dt->ts = NULL;
-    ts->destination_container = NULL; /* no longer 'contained' */
     /* now bind existing "unbound" channel to our IP/port tuple */
     ts->protocol = protocol;
     ts->af = af;
@@ -2519,11 +2495,6 @@ free_destination_entry (struct DestinationEntry *de)
     GNUNET_CONTAINER_DLL_remove (de->dt_head,
 				 de->dt_tail,
 				 dt);
-    if (NULL != dt->ts)
-    {
-      free_channel_state (dt->ts);
-      GNUNET_assert (NULL == dt->ts);
-    }
     GNUNET_free (dt);
   }
   if (NULL != de->heap_node)

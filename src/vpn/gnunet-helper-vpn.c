@@ -50,7 +50,7 @@
  * Should we print (interesting|debug) messages that can happen during
  * normal operation?
  */
-#define DEBUG GNUNET_NO
+#define DEBUG GNUNET_YES
 
 /**
  * Maximum size of a GNUnet message (GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -364,7 +364,7 @@ run (int fd_tun)
      tests fail. With '||' the tests pass, but this process
      keeps running --- but only for the 'GNS' test ---
      even though the stdout is closed :-(. Very confusing. */
-  while ((1 == read_open) || (1 == write_open))
+  while ((1 == read_open) && (1 == write_open))
   {
     FD_ZERO (&fds_w);
     FD_ZERO (&fds_r);
@@ -547,6 +547,7 @@ PROCESS_BUFFER:
       }
     }
   }
+  fprintf (stderr, "Existing select() loop\n");
 }
 
 
@@ -568,6 +569,8 @@ main (int argc, char **argv)
   int fd_tun;
   int global_ret;
 
+  fprintf (stderr,
+           "VPN helper running!\n");
   if (6 != argc)
   {
     fprintf (stderr, "Fatal: must supply 5 arguments!\n");
