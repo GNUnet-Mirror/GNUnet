@@ -547,7 +547,8 @@ AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
 
-# should experimental code be compiled (code that may not yet compile)?
+# should the build process be restricted to the code required
+# for GNU Taler wallets?
 AC_MSG_CHECKING(whether to compile GNU Taler Wallet library ONLY)
 AC_ARG_ENABLE([taler-wallet],
    [AS_HELP_STRING([--taler-wallet], [only compile for Taler wallet])],

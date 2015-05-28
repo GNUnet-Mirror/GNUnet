@@ -15,7 +15,7 @@ EXTRA_DIST = \
 
 if TALER_ONLY
 gnunetinclude_HEADERS = \
-  gnunet_util_taler_wallet.h
+  gnunet_util_taler_wallet_lib.h
 else
 
 gnunetinclude_HEADERS = \
