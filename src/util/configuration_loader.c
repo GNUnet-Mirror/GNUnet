@@ -24,6 +24,12 @@
  * @author Christian Grothoff
  */
 
+#include "platform.h"
+#include "gnunet_util_lib.h"
+
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 /**
  * Load configuration (starts with defaults, then loads
  * system-specific configuration).
@@ -45,8 +51,10 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
   baseconfig = NULL;
   GNUNET_asprintf (&baseconfig, "%s%s", ipath, "config.d");
   GNUNET_free (ipath);
+
   if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (baseconfig, &parse_configuration_file, cfg))
+      GNUNET_CONFIGURATION_load_from (cfg,
+                                      baseconfig))
   {
     GNUNET_free (baseconfig);
     return GNUNET_SYSERR;       /* no configuration at all found */

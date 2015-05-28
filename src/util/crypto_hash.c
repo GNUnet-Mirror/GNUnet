@@ -18,13 +18,11 @@
      Boston, MA 02111-1307, USA.
 
 */
-
 /**
  * @file util/crypto_hash.c
  * @brief SHA-512 #GNUNET_CRYPTO_hash() related functions
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include <gcrypt.h>

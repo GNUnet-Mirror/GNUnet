@@ -27,6 +27,19 @@
 #include <gcrypt.h>
 #include "gnunet_util_lib.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+
+/**
+ * Log an error message at log-level 'level' that indicates
+ * a failure of the command 'cmd' with the message given
+ * by gcry_strerror(rc).
+ */
+#define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
+
 
 /**
  * Wait for a short time (we're trying to lock a file or want

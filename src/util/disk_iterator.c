@@ -23,6 +23,15 @@
  * @author Christian Grothoff
  * @author Nils Durner
  */
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "disk.h"
+
+#define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
+
+#define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "util", syscall)
+
+#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
 
 /**

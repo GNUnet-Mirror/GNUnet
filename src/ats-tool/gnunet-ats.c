@@ -285,11 +285,11 @@ end (void *cls,
   addresses = NULL;
 
   if (0 < pending)
-    FPRINTF (stderr,
+    FPRINTF (stdout,
              _("%u address resolutions had a timeout\n"),
              pending);
   if (opt_list_used || opt_list_all)
-    FPRINTF (stderr,
+    FPRINTF (stdout,
              _("ATS returned stat_results for %u addresses\n"),
              stat_results);
   ret = 0;
@@ -362,7 +362,7 @@ transport_addr_to_str_cb (void *cls,
     return;
   }
 
-  FPRINTF (stderr,
+  FPRINTF (stdout,
            _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
            GNUNET_i2s (&pr->address->peer),
            pr->address->transport_name,
@@ -479,7 +479,7 @@ ats_perf_mon_cb (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (addresses,
                                                        &address->peer,
                                                        actx.res));
-    FPRINTF (stderr,
+    FPRINTF (stdout,
              _("Removed address of peer `%s' with plugin `%s'\n"),
              GNUNET_i2s (&address->peer),
              actx.res->address->transport_name);
@@ -672,7 +672,7 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
     GNUNET_free(entry_in);
 
-    FPRINTF (stderr,
+    FPRINTF (stdout,
              _("Quota for network `%11s' (in/out): %10s / %10s\n"),
              GNUNET_ATS_print_network_type (c),
              quota_in_str,

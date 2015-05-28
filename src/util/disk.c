@@ -17,14 +17,12 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file util/disk.c
  * @brief disk IO convenience methods
  * @author Christian Grothoff
  * @author Nils Durner
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "disk.h"
@@ -609,7 +607,7 @@ GNUNET_DISK_mktemp (const char *t)
  * with the same name).
  *
  * @param fil filename to test
- * @param is_readable GNUNET_YES to additionally check if @a fil is readable;
+ * @param is_readable #GNUNET_YES to additionally check if @a fil is readable;
  *          #GNUNET_NO to disable this check
  * @return #GNUNET_YES if yes, #GNUNET_NO if not; #GNUNET_SYSERR if it
  *           does not exist or stat'ed
