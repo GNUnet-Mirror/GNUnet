@@ -33,6 +33,7 @@ main (int argc,
   unsigned char rnd_blk[RND_BLK_SIZE];
   struct GNUNET_CRYPTO_rsa_PrivateKey *priv;
   struct GNUNET_CRYPTO_rsa_PublicKey *pub;
+  struct GNUNET_CRYPTO_rsa_PublicKey *pub_copy;
   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
   struct GNUNET_CRYPTO_rsa_Signature *sig;
   struct GNUNET_CRYPTO_rsa_Signature *bsig;
@@ -69,8 +70,10 @@ main (int argc,
   sig = GNUNET_CRYPTO_rsa_sign (priv,
                         &hash,
                         sizeof (hash));
+  pub_copy = GNUNET_CRYPTO_rsa_public_key_dup (pub);
+  GNUNET_assert (NULL != pub_copy);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));
+                 GNUNET_CRYPTO_rsa_verify (&hash, sig, pub_copy));
   /* corrupt our hash and see if the signature is still valid */
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &hash,
                               sizeof (struct GNUNET_HashCode));
@@ -101,6 +104,7 @@ main (int argc,
   GNUNET_CRYPTO_rsa_signature_free (sig);
   GNUNET_CRYPTO_rsa_private_key_free (priv);
   GNUNET_CRYPTO_rsa_public_key_free (pub);
+  GNUNET_CRYPTO_rsa_public_key_free (pub_copy);
   GNUNET_CRYPTO_rsa_blinding_key_free (bkey);
   return 0;
 }

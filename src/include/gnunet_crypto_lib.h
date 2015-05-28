@@ -1660,6 +1660,16 @@ GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
 
 
 /**
+ * Duplicate the given public key
+ *
+ * @param key the public key to duplicate
+ * @return the duplicate key; NULL upon error
+ */
+struct GNUNET_CRYPTO_rsa_PublicKey *
+GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_rsa_PublicKey *key);
+
+
+/**
  * Create a blinding key
  *
  * @param len length of the key in bits (i.e. 2048)

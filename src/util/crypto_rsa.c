@@ -801,6 +801,31 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
 
 
 /**
+ * Duplicate the given public key
+ *
+ * @param key the public key to duplicate
+ * @return the duplicate key; NULL upon error
+ */
+struct GNUNET_CRYPTO_rsa_PublicKey *
+GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
+{
+  struct GNUNET_CRYPTO_rsa_PublicKey *dup;
+  gcry_sexp_t dup_sexp;
+  size_t erroff;
+
+  /* check if we really are exporting a public key */
+  dup_sexp = gcry_sexp_find_token (key->sexp, "public-key", 0);
+  GNUNET_assert (NULL != dup_sexp);
+  gcry_sexp_release (dup_sexp);
+  /* copy the sexp */
+  GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", key->sexp));
+  dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_PublicKey);
+  dup->sexp = dup_sexp;
+  return dup;
+}
+
+
+/**
  * Unblind a blind-signed signature.  The signature should have been generated
  * with #GNUNET_CRYPTO_rsa_sign() using a hash that was blinded with
  * #GNUNET_CRYPTO_rsa_blind().
