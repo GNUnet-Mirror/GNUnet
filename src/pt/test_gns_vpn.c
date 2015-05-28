@@ -322,7 +322,7 @@ commence_testing (void *cls,
   }
   /* wait a little bit before downloading, as we just created the record */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 5),
+                                (GNUNET_TIME_UNIT_SECONDS, 1),
                                 &start_curl,
                                 NULL);
 }

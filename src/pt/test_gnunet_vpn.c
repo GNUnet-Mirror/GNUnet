@@ -167,19 +167,8 @@ do_shutdown ()
  * Function to run the HTTP client.
  */
 static void
-curl_main (void);
-
-
-static void
-curl_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  curl_task_id = NULL;
-  curl_main ();
-}
-
-
-static void
-curl_main ()
+curl_main (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   fd_set rs;
   fd_set ws;
@@ -192,6 +181,7 @@ curl_main ()
   int running;
   struct CURLMsg *msg;
 
+  curl_task_id = NULL;
   max = 0;
   FD_ZERO (&rs);
   FD_ZERO (&ws);
@@ -241,7 +231,7 @@ curl_main ()
   GNUNET_NETWORK_fdset_copy_native (&nws, &ws, max + 1);
   curl_task_id =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT, delay,
-                                   &nrs, &nws, &curl_task, NULL);
+                                   &nrs, &nws, &curl_main, NULL);
 }
 
 
@@ -296,7 +286,9 @@ allocation_cb (void *cls, int af, const void *address)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Beginning HTTP download from `%s'\n",
               url);
-  curl_main ();
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &curl_main,
+                                NULL);
 }
 
 
