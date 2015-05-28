@@ -278,7 +278,7 @@ allocation_cb (void *cls, int af, const void *address)
   curl_easy_setopt (curl, CURLOPT_TIMEOUT, 150L);
   curl_easy_setopt (curl, CURLOPT_CONNECTTIMEOUT, 15L);
   curl_easy_setopt (curl, CURLOPT_NOSIGNAL, 1);
-  curl_easy_setopt (curl, CURLOPT_VERBOSE, 1);
+  curl_easy_setopt (curl, CURLOPT_VERBOSE, 0);
 
   multi = curl_multi_init ();
   GNUNET_assert (multi != NULL);
