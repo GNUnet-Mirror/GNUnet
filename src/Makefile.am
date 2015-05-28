@@ -47,6 +47,12 @@ if HAVE_REST
  REST_DIR = rest
 endif
 
+if TALER_ONLY
+SUBDIRS = \
+ include \
+ util
+else
+
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
@@ -95,3 +101,5 @@ SUBDIRS = \
   pt \
   integration-tests \
   $(EXP_DIR)
+
+endif

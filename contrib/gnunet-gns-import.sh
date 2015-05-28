@@ -47,12 +47,29 @@ gnunet-identity -C private-zone $options
 # Additionally, we create the FS SKS zone
 gnunet-identity -C sks-zone $options
 
-# Integrate those with the respective subsystems.
+#### Integrate those with the respective subsystems ####
+
+# Zone for shortening by gns-proxy,
+# (remove this entry to disable shortening)
 gnunet-identity -e short-zone -s gns-short $options
+
+# Default zone for 'gnunet-gns' lookups
 gnunet-identity -e master-zone -s gns-master $options
+
+# Default zone for 'gnunet-namestore' operations
 gnunet-identity -e master-zone -s namestore $options
+
+# Use master-zone for GNS proxy lookups
 gnunet-identity -e master-zone -s gns-proxy $options
+
+# Use master-zone for intercepted DNS queries
+# (remove this entry to disable DNS interception by GNS service)
+gnunet-identity -e master-zone -s gns-intercept $options
+
+# 'gns-private' is not yet used (!)
 gnunet-identity -e private-zone -s gns-private $options
+
+# 'fs-sks' default ego for gnunet-fs-gtk namespace operations
 gnunet-identity -e sks-zone -s fs-sks $options
 
 # Get the public keys as strings (so we can create PKEY records)

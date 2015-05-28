@@ -13,6 +13,11 @@ EXTRA_DIST = \
   block_dns.h \
   block_regex.h
 
+if TALER_ONLY
+gnunetinclude_HEADERS = \
+  gnunet_util_taler_wallet.h
+else
+
 gnunetinclude_HEADERS = \
   platform.h plibc.h $(WINPROC) gettext.h \
   gnunet_applications.h \
@@ -105,3 +110,5 @@ gnunetinclude_HEADERS = \
   gnunet_tun_lib.h \
   gnunet_util_lib.h \
   gnunet_vpn_service.h
+
+endif

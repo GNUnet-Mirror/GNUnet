@@ -1694,47 +1694,4 @@ GNUNET_CONFIGURATION_load_from (struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 
-/**
- * Load configuration (starts with defaults, then loads
- * system-specific configuration).
- *
- * @param cfg configuration to update
- * @param filename name of the configuration file, NULL to load defaults
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
- */
-int
-GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const char *filename)
-{
-  char *baseconfig;
-  char *ipath;
-
-  ipath = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  if (NULL == ipath)
-    return GNUNET_SYSERR;
-  baseconfig = NULL;
-  GNUNET_asprintf (&baseconfig, "%s%s", ipath, "config.d");
-  GNUNET_free (ipath);
-  if (GNUNET_SYSERR ==
-      GNUNET_DISK_directory_scan (baseconfig, &parse_configuration_file, cfg))
-  {
-    GNUNET_free (baseconfig);
-    return GNUNET_SYSERR;       /* no configuration at all found */
-  }
-  GNUNET_free (baseconfig);
-  if ((NULL != filename) &&
-      (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, filename)))
-  {
-    /* specified configuration not found */
-    return GNUNET_SYSERR;
-  }
-  if (((GNUNET_YES !=
-        GNUNET_CONFIGURATION_have_value (cfg, "PATHS", "DEFAULTCONFIG"))) &&
-      (filename != NULL))
-    GNUNET_CONFIGURATION_set_value_string (cfg, "PATHS", "DEFAULTCONFIG",
-                                           filename);
-  return GNUNET_OK;
-}
-
-
 /* end of configuration.c */

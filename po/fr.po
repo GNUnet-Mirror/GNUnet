@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.10.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-04-27 13:05+0200\n"
+"POT-Creation-Date: 2015-05-19 11:25+0200\n"
 "PO-Revision-Date: 2015-03-24 01:41+0100\n"
 "Last-Translator: Stéphane  Aulery <lkppo@free.fr>\n"
 "Language-Team: French <traduc@traduc.org>\n"
@@ -630,53 +630,53 @@ msgstr ""
 msgid "Invalid target `%s'\n"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:626
+#: src/cadet/gnunet-cadet.c:643
 #, c-format
 msgid "Invalid peer ID `%s'\n"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:669
+#: src/cadet/gnunet-cadet.c:686
 #, c-format
 msgid "Invalid tunnel owner `%s'\n"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:735
+#: src/cadet/gnunet-cadet.c:752
 msgid "You must NOT give a TARGETwhen using 'request all' options\n"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:832
+#: src/cadet/gnunet-cadet.c:849
 msgid "provide information about a particular connection"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:835
+#: src/cadet/gnunet-cadet.c:852
 msgid "activate echo mode"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:838
+#: src/cadet/gnunet-cadet.c:855
 msgid "dump debug information to STDERR"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:844
+#: src/cadet/gnunet-cadet.c:861
 msgid "port to listen to (default; 0)"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:847
+#: src/cadet/gnunet-cadet.c:864
 msgid "provide information about a patricular peer"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:850
+#: src/cadet/gnunet-cadet.c:867
 msgid "provide information about all peers"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:853
+#: src/cadet/gnunet-cadet.c:870
 msgid "provide information about a particular tunnel"
 msgstr ""
 
-#: src/cadet/gnunet-cadet.c:856
+#: src/cadet/gnunet-cadet.c:873
 msgid "provide information about all tunnels"
 msgstr ""
 
-#: src/cadet/gnunet-service-cadet_peer.c:507
+#: src/cadet/gnunet-service-cadet_peer.c:514
 msgid "Wrong CORE service\n"
 msgstr ""
 
@@ -1420,50 +1420,47 @@ msgstr ""
 msgid "# updates to my type map"
 msgstr ""
 
-#: src/datacache/datacache.c:115 src/datacache/datacache.c:266
+#: src/datacache/datacache.c:119 src/datacache/datacache.c:294
 #: src/datastore/gnunet-service-datastore.c:841
 msgid "# bytes stored"
 msgstr ""
 
-#: src/datacache/datacache.c:117 src/datacache/datacache.c:268
+#: src/datacache/datacache.c:123 src/datacache/datacache.c:298
 msgid "# items stored"
 msgstr ""
 
-#: src/datacache/datacache.c:143 src/datacache/datacache.c:150
-#: src/datastore/gnunet-service-datastore.c:1598
-#: src/datastore/gnunet-service-datastore.c:1609
-#, c-format
-msgid "No `%s' specified for `%s' in configuration!\n"
-msgstr ""
-
-#: src/datacache/datacache.c:184
+#: src/datacache/datacache.c:202
 #, c-format
 msgid "Loading `%s' datacache plugin\n"
 msgstr ""
 
-#: src/datacache/datacache.c:192
+#: src/datacache/datacache.c:213
 #, c-format
 msgid "Failed to load datacache plugin for `%s'\n"
 msgstr ""
 
-#: src/datacache/datacache.c:295
+#: src/datacache/datacache.c:329
 msgid "# requests received"
 msgstr ""
 
-#: src/datacache/datacache.c:304
+#: src/datacache/datacache.c:339
 msgid "# requests filtered by bloom filter"
 msgstr ""
 
-#: src/datacache/plugin_datacache_heap.c:406
+#: src/datacache/datacache.c:367
+msgid "# requests for random value received"
+msgstr ""
+
+#: src/datacache/datacache.c:399
+msgid "# proximity search requests received"
+msgstr ""
+
+#: src/datacache/plugin_datacache_heap.c:466
 msgid "Heap datacache running\n"
 msgstr ""
 
-#: src/datacache/plugin_datacache_postgres.c:391
-msgid "Postgres datacache running\n"
-msgstr ""
-
-#: src/datacache/plugin_datacache_sqlite.c:69
-#: src/datacache/plugin_datacache_sqlite.c:72
+#: src/datacache/plugin_datacache_sqlite.c:77
+#: src/datacache/plugin_datacache_sqlite.c:86
 #: src/datastore/plugin_datastore_mysql.c:818
 #: src/datastore/plugin_datastore_mysql.c:834
 #: src/datastore/plugin_datastore_sqlite.c:57 src/mysql/mysql.c:41
@@ -1478,30 +1475,17 @@ msgstr ""
 #: src/testbed/gnunet-daemon-latency-logger.c:52
 #: src/testbed/gnunet-daemon-testbed-underlay.c:55
 #: src/testbed/testbed_api_hosts.c:69 src/util/crypto_ecc.c:51
-#: src/util/crypto_mpi.c:39 src/include/gnunet_common.h:626
-#: src/include/gnunet_common.h:635 src/scalarproduct/scalarproduct.h:35
+#: src/util/crypto_mpi.c:39 src/include/gnunet_common.h:667
+#: src/include/gnunet_common.h:676 src/scalarproduct/scalarproduct.h:35
 #, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
 msgstr ""
 
-#: src/datacache/plugin_datacache_sqlite.c:449
-msgid "Sqlite datacache running\n"
-msgstr ""
-
-#: src/datacache/plugin_datacache_sqlite.c:483
+#: src/datacache/plugin_datacache_sqlite.c:749
 #: src/datastore/plugin_datastore_sqlite.c:401
 #: src/namecache/plugin_namecache_sqlite.c:292
 #: src/namestore/plugin_namestore_sqlite.c:324
 msgid "Tried to close sqlite without finalizing all prepared statements.\n"
-msgstr ""
-
-#: src/datacache/plugin_datacache_sqlite.c:490
-#, c-format
-msgid "Failed to close statement %p: %d\n"
-msgstr ""
-
-#: src/datacache/plugin_datacache_template.c:125
-msgid "Template datacache running\n"
 msgstr ""
 
 #: src/datastore/datastore_api.c:310
@@ -1734,6 +1718,12 @@ msgstr ""
 
 #: src/datastore/gnunet-service-datastore.c:1460
 msgid "Plugin does not support get_keys function. Please fix!\n"
+msgstr ""
+
+#: src/datastore/gnunet-service-datastore.c:1598
+#: src/datastore/gnunet-service-datastore.c:1609
+#, c-format
+msgid "No `%s' specified for `%s' in configuration!\n"
 msgstr ""
 
 #: src/datastore/gnunet-service-datastore.c:1603
@@ -2003,107 +1993,125 @@ msgstr ""
 msgid "Issue a PUT request to the GNUnet DHT insert DATA under KEY."
 msgstr ""
 
-#: src/dht/gnunet-service-dht.c:172 src/dht/gnunet-service-xdht.c:193
+#: src/dht/gnunet-service-dht.c:172
 msgid "Failed to connect to transport service!\n"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:417
+#: src/dht/gnunet-service-wdht_clients.c:852
 #: src/dht/gnunet-service-xdht_clients.c:849
 msgid "# GET requests from clients injected"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:513
+#: src/dht/gnunet-service-wdht_clients.c:937
 #: src/dht/gnunet-service-xdht_clients.c:933
 msgid "# PUT requests received from clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:597
+#: src/dht/gnunet-service-wdht_clients.c:1003
 #: src/dht/gnunet-service-xdht_clients.c:998
 msgid "# GET requests received from clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:798
+#: src/dht/gnunet-service-wdht_clients.c:1212
 #: src/dht/gnunet-service-xdht_clients.c:1200
 msgid "# GET STOP requests received from clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1040
+#: src/dht/gnunet-service-wdht_clients.c:505
 #: src/dht/gnunet-service-xdht_clients.c:503
 msgid "# Key match, type mismatches in REPLY to CLIENT"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1053
+#: src/dht/gnunet-service-wdht_clients.c:519
 #: src/dht/gnunet-service-xdht_clients.c:517
 msgid "# Duplicate REPLIES to CLIENT request dropped"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1098
+#: src/dht/gnunet-service-wdht_clients.c:561
 #: src/dht/gnunet-service-xdht_clients.c:559
 #, c-format
 msgid "Unsupported block type (%u) in request!\n"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1121
+#: src/dht/gnunet-service-wdht_clients.c:584
 #: src/dht/gnunet-service-xdht_clients.c:582
 msgid "# RESULTS queued for clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1175
 #: src/dht/gnunet-service-dht_clients.c:1218
+#: src/dht/gnunet-service-wdht_clients.c:638
+#: src/dht/gnunet-service-wdht_clients.c:681
 #: src/dht/gnunet-service-xdht_clients.c:636
 #: src/dht/gnunet-service-xdht_clients.c:679
 msgid "# REPLIES ignored for CLIENTS (no match)"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1185
+#: src/dht/gnunet-service-wdht_clients.c:648
 #: src/dht/gnunet-service-xdht_clients.c:646
 msgid "Could not pass reply to client, message too big!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:69
-#: src/dht/gnunet-service-xdht_datacache.c:71
+#: src/dht/gnunet-service-dht_datacache.c:68
 #, c-format
 msgid "%s request received, but have no datacache!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:79
-#: src/dht/gnunet-service-xdht_datacache.c:82
+#: src/dht/gnunet-service-dht_datacache.c:78
+#: src/dht/gnunet-service-wdht_datacache.c:107
+#: src/dht/gnunet-service-xdht_datacache.c:91
 msgid "# ITEMS stored in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:176
-#: src/dht/gnunet-service-xdht_datacache.c:230
+#: src/dht/gnunet-service-dht_datacache.c:184
+#: src/dht/gnunet-service-wdht_datacache.c:216
+#: src/dht/gnunet-service-xdht_datacache.c:238
 msgid "# Good RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:193
-#: src/dht/gnunet-service-xdht_datacache.c:253
+#: src/dht/gnunet-service-dht_datacache.c:201
+#: src/dht/gnunet-service-wdht_datacache.c:231
+#: src/dht/gnunet-service-xdht_datacache.c:267
 msgid "# Duplicate RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:199
-#: src/dht/gnunet-service-xdht_datacache.c:259
+#: src/dht/gnunet-service-dht_datacache.c:207
+#: src/dht/gnunet-service-wdht_datacache.c:237
+#: src/dht/gnunet-service-xdht_datacache.c:273
 msgid "# Invalid RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:205
-#: src/dht/gnunet-service-xdht_datacache.c:265
+#: src/dht/gnunet-service-dht_datacache.c:213
+#: src/dht/gnunet-service-wdht_datacache.c:243
+#: src/dht/gnunet-service-xdht_datacache.c:279
 msgid "# Irrelevant RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:217
-#: src/dht/gnunet-service-xdht_datacache.c:277
+#: src/dht/gnunet-service-dht_datacache.c:225
+#: src/dht/gnunet-service-wdht_datacache.c:255
+#: src/dht/gnunet-service-xdht_datacache.c:291
 msgid "# Unsupported RESULTS found in datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:221
-#: src/dht/gnunet-service-xdht_datacache.c:280
+#: src/dht/gnunet-service-dht_datacache.c:229
+#: src/dht/gnunet-service-wdht_datacache.c:258
+#: src/dht/gnunet-service-xdht_datacache.c:294
 #, c-format
 msgid "Unsupported block type (%u) in local response!\n"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_datacache.c:254
-#: src/dht/gnunet-service-xdht_datacache.c:318
+#: src/dht/gnunet-service-dht_datacache.c:262
+#: src/dht/gnunet-service-wdht_datacache.c:295
+#: src/dht/gnunet-service-xdht_datacache.c:334
 msgid "# GET requests given to datacache"
 msgstr ""
 
@@ -2121,7 +2129,7 @@ msgid "# FIND PEER messages initiated"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_neighbours.c:763
-#: src/dht/gnunet-service-xdht_neighbours.c:6060
+#: src/dht/gnunet-service-xdht_neighbours.c:6062
 msgid "# Queued messages discarded (peer disconnected)"
 msgstr ""
 
@@ -2228,7 +2236,8 @@ msgstr ""
 msgid "# P2P RESULT bytes received"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_nse.c:59 src/dht/gnunet-service-xdht_nse.c:59
+#: src/dht/gnunet-service-dht_nse.c:59 src/dht/gnunet-service-wdht_nse.c:59
+#: src/dht/gnunet-service-xdht_nse.c:59
 msgid "# Network size estimates received"
 msgstr ""
 
@@ -2262,6 +2271,10 @@ msgstr ""
 
 #: src/dht/gnunet-service-dht_routing.c:424
 msgid "# DHT requests combined"
+msgstr ""
+
+#: src/dht/gnunet-service-wdht_datacache.c:82
+msgid "PUT request received, but have no datacache!\n"
 msgstr ""
 
 #: src/dht/gnunet-service-xdht_neighbours.c:1832
@@ -2327,15 +2340,15 @@ msgstr ""
 #: src/dht/gnunet-service-xdht_neighbours.c:3700
 #: src/dht/gnunet-service-xdht_neighbours.c:3938
 #: src/dht/gnunet-service-xdht_neighbours.c:4090
-#: src/dht/gnunet-service-xdht_neighbours.c:4240
-#: src/dht/gnunet-service-xdht_neighbours.c:4421
-#: src/dht/gnunet-service-xdht_neighbours.c:4934
-#: src/dht/gnunet-service-xdht_neighbours.c:5327
-#: src/dht/gnunet-service-xdht_neighbours.c:5420
-#: src/dht/gnunet-service-xdht_neighbours.c:5510
-#: src/dht/gnunet-service-xdht_neighbours.c:5614
-#: src/dht/gnunet-service-xdht_neighbours.c:5758
-#: src/dht/gnunet-service-xdht_neighbours.c:5847
+#: src/dht/gnunet-service-xdht_neighbours.c:4242
+#: src/dht/gnunet-service-xdht_neighbours.c:4423
+#: src/dht/gnunet-service-xdht_neighbours.c:4936
+#: src/dht/gnunet-service-xdht_neighbours.c:5329
+#: src/dht/gnunet-service-xdht_neighbours.c:5422
+#: src/dht/gnunet-service-xdht_neighbours.c:5512
+#: src/dht/gnunet-service-xdht_neighbours.c:5616
+#: src/dht/gnunet-service-xdht_neighbours.c:5760
+#: src/dht/gnunet-service-xdht_neighbours.c:5849
 msgid "# Bytes received from other peers"
 msgstr ""
 
@@ -5675,56 +5688,56 @@ msgstr ""
 msgid "Failed to get fragment!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:402
+#: src/psycstore/gnunet-service-psycstore.c:417
 msgid "Failed to get message!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:433
+#: src/psycstore/gnunet-service-psycstore.c:448
 msgid "Failed to get message fragment!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:461
+#: src/psycstore/gnunet-service-psycstore.c:476
 msgid "Failed to get master counters!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:497
-#: src/psycstore/gnunet-service-psycstore.c:570
+#: src/psycstore/gnunet-service-psycstore.c:512
+#: src/psycstore/gnunet-service-psycstore.c:585
 msgid "Tried to set invalid state variable name!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:513
+#: src/psycstore/gnunet-service-psycstore.c:528
 msgid "Failed to begin modifying state!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:536
+#: src/psycstore/gnunet-service-psycstore.c:551
 #, c-format
 msgid "Unknown operator: %c\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:546
+#: src/psycstore/gnunet-service-psycstore.c:561
 msgid "Failed to end modifying state!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:584
+#: src/psycstore/gnunet-service-psycstore.c:599
 msgid "Failed to begin synchronizing state!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:600
+#: src/psycstore/gnunet-service-psycstore.c:615
 msgid "Failed to end synchronizing state!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:620
-#: src/psycstore/gnunet-service-psycstore.c:639
+#: src/psycstore/gnunet-service-psycstore.c:635
+#: src/psycstore/gnunet-service-psycstore.c:654
 msgid "Failed to reset state!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:662
-#: src/psycstore/gnunet-service-psycstore.c:713
+#: src/psycstore/gnunet-service-psycstore.c:677
+#: src/psycstore/gnunet-service-psycstore.c:728
 msgid "Tried to get invalid state variable name!\n"
 msgstr ""
 
-#: src/psycstore/gnunet-service-psycstore.c:689
-#: src/psycstore/gnunet-service-psycstore.c:728
+#: src/psycstore/gnunet-service-psycstore.c:704
+#: src/psycstore/gnunet-service-psycstore.c:743
 msgid "Failed to get state variable!\n"
 msgstr ""
 
@@ -5733,7 +5746,7 @@ msgstr ""
 msgid "`%s' failed at %s:%d with error: %s (%d)\n"
 msgstr ""
 
-#: src/psycstore/plugin_psycstore_sqlite.c:1932
+#: src/psycstore/plugin_psycstore_sqlite.c:1936
 msgid "SQLite database running\n"
 msgstr ""
 
@@ -7637,7 +7650,7 @@ msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_server.c:2825
-#: src/transport/plugin_transport_udp.c:3335
+#: src/transport/plugin_transport_udp.c:3338
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
@@ -7870,34 +7883,34 @@ msgid ""
 "and disable IPv6 if your connection does not have a global IPv6 address\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3411
-#: src/transport/plugin_transport_udp.c:3510
+#: src/transport/plugin_transport_udp.c:3414
+#: src/transport/plugin_transport_udp.c:3513
 #, c-format
 msgid "Failed to bind UDP socket to %s: %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3429
+#: src/transport/plugin_transport_udp.c:3432
 msgid "Disabling IPv4 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3520
+#: src/transport/plugin_transport_udp.c:3523
 msgid "Failed to open UDP sockets\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3591
-#: src/transport/plugin_transport_udp.c:3605
+#: src/transport/plugin_transport_udp.c:3594
+#: src/transport/plugin_transport_udp.c:3608
 msgid "must be in [0,65535]"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3637
+#: src/transport/plugin_transport_udp.c:3640
 msgid "must be valid IPv4 address"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3664
+#: src/transport/plugin_transport_udp.c:3667
 msgid "must be valid IPv6 address"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:3730
+#: src/transport/plugin_transport_udp.c:3733
 msgid "Failed to create UDP network sockets\n"
 msgstr ""
 
@@ -8198,7 +8211,7 @@ msgstr ""
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr ""
 
-#: src/util/crypto_rsa.c:825
+#: src/util/crypto_rsa.c:891
 #, c-format
 msgid "RSA signature verification failed at %s:%d: %s\n"
 msgstr ""
@@ -8978,18 +8991,18 @@ msgstr ""
 msgid "Setup tunnels via VPN."
 msgstr ""
 
-#: src/include/gnunet_common.h:590 src/include/gnunet_common.h:597
-#: src/include/gnunet_common.h:605
+#: src/include/gnunet_common.h:631 src/include/gnunet_common.h:638
+#: src/include/gnunet_common.h:646
 #, c-format
 msgid "Assertion failed at %s:%d.\n"
 msgstr ""
 
-#: src/include/gnunet_common.h:617
+#: src/include/gnunet_common.h:658
 #, c-format
 msgid "External protocol violation detected at %s:%d.\n"
 msgstr ""
 
-#: src/include/gnunet_common.h:644 src/include/gnunet_common.h:653
+#: src/include/gnunet_common.h:685 src/include/gnunet_common.h:694
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr ""

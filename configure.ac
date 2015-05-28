@@ -546,6 +546,21 @@ fi
 AC_CHECK_LIB([kvm],[kvm_open])
 AC_CHECK_LIB([kstat],[kstat_open])
 
+
+# should experimental code be compiled (code that may not yet compile)?
+AC_MSG_CHECKING(whether to compile GNU Taler Wallet library ONLY)
+AC_ARG_ENABLE([taler-wallet],
+   [AS_HELP_STRING([--taler-wallet], [only compile for Taler wallet])],
+   [taler_only=${enableval}],
+   [taler_only=no])
+AC_MSG_RESULT($taler_only)
+AM_CONDITIONAL([TALER_ONLY], [test "x$taler_only" = "xyes"])
+
+if test "$taler_only" != yes
+then
+
+
+
 # test for libextractor
 extractor=0
 AC_MSG_CHECKING(for libextractor)
@@ -580,6 +595,7 @@ then
 fi
 # restore LIBS
 LIBS=$SAVE_LIBS
+
 
 # Check for libltdl header (#2999)
 ltdl=0
@@ -617,6 +633,8 @@ else
 fi
 # restore LIBS
 LIBS=$SAVE_LIBS
+
+fi
 
 # test for libunistring
 gl_LIBUNISTRING

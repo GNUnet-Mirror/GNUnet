@@ -46,12 +46,6 @@ gnunet_helper_w32_console_SOURCES = \
 gnunet_helper_w32_console_LDADD = \
   libgnunetutil.la
 
-noinst_PROGRAMS = \
- gnunet-config-diff \
- $(W32CAT) \
- test_common_logging_dummy
-
-
 gnunet_config_diff_SOURCES = \
  gnunet-config-diff.c
 gnunet_config_diff_LDADD = \
@@ -62,8 +56,6 @@ test_common_logging_dummy_SOURCES = \
 test_common_logging_dummy_LDADD = \
  libgnunetutil.la
 
-lib_LTLIBRARIES = libgnunetutil.la
-
 libgnunetutil_la_SOURCES = \
   bandwidth.c \
   bio.c \
@@ -73,6 +65,7 @@ libgnunetutil_la_SOURCES = \
   common_endian.c \
   common_logging.c \
   configuration.c \
+  configuration_loader.c \
   connection.c \
   container_bloomfilter.c \
   container_heap.c \
@@ -83,7 +76,9 @@ libgnunetutil_la_SOURCES = \
   crypto_symmetric.c \
   crypto_crc.c \
   crypto_ecc.c \
+  crypto_ecc_setup.c \
   crypto_hash.c \
+  crypto_hash_file.c \
   crypto_hkdf.c \
   crypto_kdf.c \
   crypto_mpi.c \
@@ -91,6 +86,7 @@ libgnunetutil_la_SOURCES = \
   crypto_random.c \
   crypto_rsa.c \
   disk.c \
+  disk_iterator.c \
   disk.h \
   getopt.c \
   getopt_helpers.c \
@@ -127,11 +123,46 @@ libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 13:0:0
 
+
+libgnunetutil_taler_wallet_la_SOURCES = \
+  common_allocation.c \
+  common_endian.c \
+  common_logging.c \
+  configuration.c \
+  container_heap.c \
+  container_multihashmap.c \
+  container_multihashmap32.c \
+  crypto_symmetric.c \
+  crypto_crc.c \
+  crypto_ecc.c \
+  crypto_hash.c \
+  crypto_hkdf.c \
+  crypto_kdf.c \
+  crypto_mpi.c \
+  crypto_random.c \
+  crypto_rsa.c \
+  disk.c \
+  disk.h \
+  strings.c \
+  time.c
+
+libgnunetutil_taler_wallet_la_LIBADD = \
+  $(LIBGCRYPT_LIBS) \
+  -lunistring
+
+libgnunetutil_taler_wallet_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS) \
+  -version-info 0:0:0
+
 if HAVE_TESTING
   GNUNET_ECC = gnunet-ecc
   GNUNET_SCRYPT = gnunet-scrypt
 endif
 
+if TALER_ONLY
+lib_LTLIBRARIES = libgnunetutil_taler_wallet.la
+else
+lib_LTLIBRARIES = libgnunetutil.la
 
 libexec_PROGRAMS = \
  gnunet-service-resolver \
@@ -146,6 +177,20 @@ bin_PROGRAMS = \
  $(GNUNET_ECC) \
  $(GNUNET_SCRYPT) \
  gnunet-uri
+
+noinst_PROGRAMS = \
+ gnunet-config-diff \
+ $(W32CAT) \
+ test_common_logging_dummy
+
+
+if ENABLE_TEST_RUN
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
+TESTS = $(check_PROGRAMS)
+endif
+
+endif
+
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
@@ -266,10 +311,6 @@ check_PROGRAMS = \
  test_os_start_process \
  test_common_logging_runtime_loglevels
 
-if ENABLE_TEST_RUN
-AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
-TESTS = $(check_PROGRAMS)
-endif
 
 # Declare .nc (NO-CONCURRENCY) as a test extension so that we can impart
 # sequential execution order for them
