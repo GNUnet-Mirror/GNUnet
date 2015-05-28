@@ -551,7 +551,7 @@ AC_CHECK_LIB([kstat],[kstat_open])
 # for GNU Taler wallets?
 AC_MSG_CHECKING(whether to compile GNU Taler Wallet library ONLY)
 AC_ARG_ENABLE([taler-wallet],
-   [AS_HELP_STRING([--taler-wallet], [only compile for Taler wallet])],
+   [AS_HELP_STRING([--enable-taler-wallet], [only compile for Taler wallet])],
    [taler_only=${enableval}],
    [taler_only=no])
 AC_MSG_RESULT($taler_only)
