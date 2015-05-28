@@ -543,7 +543,7 @@ PROCESS_BUFFER:
       }
     }
   }
-  fprintf (stderr, "Existing select() loop\n");
+  fprintf (stderr, "Exiting select() loop\n");
 }
 
 
