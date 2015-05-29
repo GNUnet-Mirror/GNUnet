@@ -70,7 +70,7 @@ struct GNUNET_CLIENT_TransmitHandle
    * If we are re-trying and are delaying to do so,
    * handle to the scheduled task managing the delay.
    */
-  struct GNUNET_SCHEDULER_Task * reconnect_task;
+  struct GNUNET_SCHEDULER_Task *reconnect_task;
 
   /**
    * Timeout for the operation overall.
@@ -1108,6 +1108,7 @@ client_delayed_retry (void *cls,
          "Transmission failed %u times, trying again in %s.\n",
          MAX_ATTEMPTS - th->attempts_left,
          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+    GNUNET_assert (NULL == th->th);
     GNUNET_assert (NULL == th->reconnect_task);
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
@@ -1191,6 +1192,7 @@ client_notify (void *cls,
          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     client->th = th;
     GNUNET_assert (NULL == th->reconnect_task);
+    GNUNET_assert (NULL == th->th);
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
     return 0;
@@ -1259,6 +1261,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
   client->th = th;
   if (NULL == client->connection)
   {
+    GNUNET_assert (NULL == th->th);
     GNUNET_assert (NULL == th->reconnect_task);
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (client->back_off,

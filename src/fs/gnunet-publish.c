@@ -293,15 +293,29 @@ progress_cb (void *cls,
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
     GNUNET_break (NULL == pc);
     return NULL;
+  case GNUNET_FS_STATUS_UNINDEX_START:
+    FPRINTF (stderr,
+             "%s",
+             _("Starting cleanup after abort\n"));
+    return NULL;
   case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
     return NULL;
   case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
     FPRINTF (stderr,
              "%s",
-             _("Cleanup after abort complete.\n"));
+             _("Cleanup after abort completed.\n"));
+    GNUNET_FS_unindex_stop (info->value.unindex.uc);
+    return NULL;
+  case GNUNET_FS_STATUS_UNINDEX_ERROR:
+    FPRINTF (stderr,
+             "%s",
+             _("Cleanup after abort failed.\n"));
+    GNUNET_FS_unindex_stop (info->value.unindex.uc);
     return NULL;
   default:
-    FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);
+    FPRINTF (stderr,
+             _("Unexpected status: %d\n"),
+             info->status);
     return NULL;
   }
   return "";                    /* non-null */
@@ -316,7 +330,7 @@ progress_cb (void *cls,
  * @param plugin_name name of the plugin that generated the meta data
  * @param type type of the meta data
  * @param format format of data
- * @param data_mime_type mime type of data
+ * @param data_mime_type mime type of @a data
  * @param data value of the meta data
  * @param data_size number of bytes in @a data
  * @return always 0

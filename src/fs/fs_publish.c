@@ -112,7 +112,8 @@ publish_cleanup (struct GNUNET_FS_PublishContext *pc)
  * @param msg error message (or NULL)
  */
 static void
-ds_put_cont (void *cls, int success,
+ds_put_cont (void *cls,
+             int success,
 	     struct GNUNET_TIME_Absolute min_expiration,
 	     const char *msg)
 {
@@ -130,14 +131,19 @@ ds_put_cont (void *cls, int success,
     pi.value.publish.specifics.error.message = pc->fi_pos->emsg;
     pc->fi_pos->client_info =
         GNUNET_FS_publish_make_status_ (&pi, pc, pc->fi_pos, 0);
-    if ((pc->fi_pos->is_directory != GNUNET_YES) &&
-        (pc->fi_pos->filename != NULL) &&
-        (pc->fi_pos->data.file.do_index == GNUNET_YES))
+    if ((GNUNET_YES != pc->fi_pos->is_directory) &&
+        (NULL != pc->fi_pos->filename) &&
+        (GNUNET_YES == pc->any_done) &&
+        (GNUNET_YES == pc->fi_pos->data.file.do_index))
     {
       /* run unindex to clean up */
-      GNUNET_FS_unindex_start (pc->h, pc->fi_pos->filename, NULL);
+      GNUNET_FS_unindex_start (pc->h,
+                               pc->fi_pos->filename,
+                               NULL);
     }
+    return;
   }
+  pc->any_done = GNUNET_YES;
   GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
       GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_BACKGROUND,
@@ -506,26 +512,40 @@ block_proc (void *cls,
     odb.file_id = p->data.file.file_id;
     GNUNET_assert (pc->qre == NULL);
     pc->qre =
-        GNUNET_DATASTORE_put (pc->dsh, (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
-                              &chk->query, sizeof (struct OnDemandBlock), &odb,
+        GNUNET_DATASTORE_put (pc->dsh,
+                              (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
+                              &chk->query,
+                              sizeof (struct OnDemandBlock),
+                              &odb,
                               GNUNET_BLOCK_TYPE_FS_ONDEMAND,
-                              p->bo.content_priority, p->bo.anonymity_level,
-                              p->bo.replication_level, p->bo.expiration_time,
-                              -2, 1, GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+                              p->bo.content_priority,
+                              p->bo.anonymity_level,
+                              p->bo.replication_level,
+                              p->bo.expiration_time,
+                              -2, 1,
+                              GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                               &ds_put_cont, pc);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Publishing block `%s' for offset %llu with size %u\n",
-              GNUNET_h2s (&chk->query), (unsigned long long) offset,
+              GNUNET_h2s (&chk->query),
+              (unsigned long long) offset,
               (unsigned int) block_size);
   GNUNET_assert (pc->qre == NULL);
   pc->qre =
       GNUNET_DATASTORE_put (pc->dsh, (p->is_directory == GNUNET_YES) ? 0 : pc->rid,
-                            &chk->query, block_size, block, type,
-                            p->bo.content_priority, p->bo.anonymity_level,
-                            p->bo.replication_level, p->bo.expiration_time, -2,
-                            1, GNUNET_CONSTANTS_SERVICE_TIMEOUT, &ds_put_cont,
+                            &chk->query,
+                            block_size,
+                            block,
+                            type,
+                            p->bo.content_priority,
+                            p->bo.anonymity_level,
+                            p->bo.replication_level,
+                            p->bo.expiration_time,
+                            -2, 1,
+                            GNUNET_CONSTANTS_SERVICE_TIMEOUT,
+                            &ds_put_cont,
                             pc);
 }
 

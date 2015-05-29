@@ -1325,6 +1325,12 @@ struct GNUNET_FS_PublishContext
   int rid;
 
   /**
+   * Set to #GNUNET_YES if we were able to publish any block.
+   * (and thus unindexing on error might make sense).
+   */
+  int any_done;
+
+  /**
    * Set to #GNUNET_YES if all processing has completed.
    */
   int all_done;

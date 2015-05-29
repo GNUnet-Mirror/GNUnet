@@ -492,6 +492,7 @@ open_dev_null (int target_fd,
  *        (when they are non-NULL).
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param pipe_stderr pipe to use for stderr for child process (or NULL)
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
  * @param filename name of the binary
