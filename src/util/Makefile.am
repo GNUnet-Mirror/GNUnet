@@ -128,7 +128,6 @@ libgnunetutil_taler_wallet_la_SOURCES = \
   common_allocation.c \
   common_endian.c \
   common_logging.c \
-  configuration.c \
   container_heap.c \
   container_multihashmap.c \
   container_multihashmap32.c \
@@ -141,8 +140,6 @@ libgnunetutil_taler_wallet_la_SOURCES = \
   crypto_mpi.c \
   crypto_random.c \
   crypto_rsa.c \
-  disk.c \
-  disk.h \
   strings.c \
   time.c
 

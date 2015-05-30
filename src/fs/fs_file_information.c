@@ -24,7 +24,9 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_EXTRACTOR_H
 #include <extractor.h>
+#endif
 #include "gnunet_fs_service.h"
 #include "fs_api.h"
 #include "fs_tree.h"

@@ -82,9 +82,15 @@ item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
     return 0;
   if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
     return 0;
+#if HAVE_LIBEXTRACTOR
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
                     EXTRACTOR_metatype_to_string (type)), data);
+#else
+  printf ("\t%20d: %s\n",
+          type,
+          data);
+#endif
   return 0;
 }
 

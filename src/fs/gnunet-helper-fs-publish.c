@@ -82,10 +82,12 @@ struct ScanTreeNode
 };
 
 
+#if HAVE_LIBEXTRACTOR
 /**
  * List of libextractor plugins to use for extracting.
  */
 static struct EXTRACTOR_PluginList *plugins;
+#endif
 
 /**
  * File descriptor we use for IPC with the parent.
@@ -93,6 +95,7 @@ static struct EXTRACTOR_PluginList *plugins;
 static int output_stream;
 
 
+#if HAVE_LIBEXTRACTOR
 /**
  * Add meta data that libextractor finds to our meta data
  * container.
@@ -111,9 +114,13 @@ static int output_stream;
  * @return always 0 to continue extracting
  */
 static int
-add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
-           enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
-           const char *data, size_t data_len)
+add_to_md (void *cls,
+           const char *plugin_name,
+           enum EXTRACTOR_MetaType type,
+           enum EXTRACTOR_MetaFormat format,
+           const char *data_mime_type,
+           const char *data,
+           size_t data_len)
 {
   struct GNUNET_CONTAINER_MetaData *md = cls;
 
@@ -134,6 +141,7 @@ add_to_md (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
   }
   return 0;
 }
+#endif
 
 
 /**
@@ -151,7 +159,7 @@ free_tree (struct ScanTreeNode *tree)
   if (NULL != tree->parent)
     GNUNET_CONTAINER_DLL_remove (tree->parent->children_head,
 				 tree->parent->children_tail,
-				 tree);				
+				 tree);
   GNUNET_free (tree->filename);
   GNUNET_free (tree);
 }
@@ -383,7 +391,13 @@ extract_files (struct ScanTreeNode *item)
 
   /* this is the expensive operation, *afterwards* we'll check for aborts */
   meta = GNUNET_CONTAINER_meta_data_create ();
-  EXTRACTOR_extract (plugins, item->filename, NULL, 0, &add_to_md, meta);
+#if HAVE_LIBEXTRACTOR
+  EXTRACTOR_extract (plugins,
+                     item->filename,
+                     NULL, 0,
+                     &add_to_md,
+                     meta);
+#endif
   slen = strlen (item->filename) + 1;
   size = GNUNET_CONTAINER_meta_data_get_serialized_size (meta);
   if (-1 == size)
@@ -525,10 +539,12 @@ main (int argc,
   if ( (NULL == ex) ||
        (0 != strcmp (ex, "-")) )
   {
+#if HAVE_LIBEXTRACTOR
     plugins = EXTRACTOR_plugin_add_defaults (EXTRACTOR_OPTION_DEFAULT_POLICY);
     if (NULL != ex)
       plugins = EXTRACTOR_plugin_add_config (plugins, ex,
 					     EXTRACTOR_OPTION_DEFAULT_POLICY);
+#endif
   }
 
   /* scan tree to find out how much work there is to be done */
@@ -536,7 +552,9 @@ main (int argc,
 				    &root))
   {
     (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
+#if HAVE_LIBEXTRACTOR
     EXTRACTOR_plugin_remove_all (plugins);
+#endif
 #if WINDOWS
     GNUNET_free ((void*) argv);
 #endif
@@ -547,7 +565,9 @@ main (int argc,
   if (GNUNET_OK !=
       write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_COUNTING_DONE, NULL, 0))
   {
+#if HAVE_LIBEXTRACTOR
     EXTRACTOR_plugin_remove_all (plugins);
+#endif
 #if WINDOWS
     GNUNET_free ((void*) argv);
 #endif
@@ -560,7 +580,9 @@ main (int argc,
     {
       (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_ERROR, NULL, 0);
       free_tree (root);
+#if HAVE_LIBEXTRACTOR
       EXTRACTOR_plugin_remove_all (plugins);
+#endif
 #if WINDOWS
       GNUNET_free ((void*) argv);
 #endif
@@ -570,7 +592,9 @@ main (int argc,
   }
   /* enable "clean" shutdown by telling parent that we are done */
   (void) write_message (GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_FINISHED, NULL, 0);
+#if HAVE_LIBEXTRACTOR
   EXTRACTOR_plugin_remove_all (plugins);
+#endif
 #if WINDOWS
   GNUNET_free ((void*) argv);
 #endif
@@ -578,4 +602,3 @@ main (int argc,
 }
 
 /* end of gnunet-helper-fs-publish.c */
-

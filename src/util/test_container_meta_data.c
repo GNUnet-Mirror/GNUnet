@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#if HAVE_EXTRACTOR_H
+
 #define ABORT(m) { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (m != NULL) GNUNET_CONTAINER_meta_data_destroy(m); return 1; }
 
 static int
@@ -342,5 +344,17 @@ main (int argc, char *argv[])
     return 1;
   return 0;
 }
+
+#else
+
+int
+main (int argc, char *argv[])
+{
+  fprintf (stderr,
+           "GNU libextractor not found, skipping test.\n");
+  return 0;
+}
+
+#endif
 
 /* end of test_container_meta_data.c */

@@ -43,7 +43,6 @@ extern "C"
 
 #include "gnunet_crypto_lib.h"
 #include "gnunet_container_lib.h"
-#include "gnunet_disk_lib.h"
 #include "gnunet_strings_lib.h"
 
 #if 0                           /* keep Emacsens' auto-indent happy */

@@ -28,14 +28,13 @@ packages.  Hence please make sure to use  the versions listed below.
 
 These are the direct dependencies for running GNUnet:
 
-- libextractor  >= 0.6.1
-- libmicrohttpd >= 0.9.33
+- libmicrohttpd >= 0.9.40
 - libgcrypt     >= 1.6
 - libgnurl      >= 7.35.0 (available from https://gnunet.org/gnurl)
 - libunistring  >= 0.9.2
 - gnutls        >= 3.2.12
 - libidn        >= 1.0
-- libglpk       >= 4.45
+- libextractor  >= 0.6.1 (highly recommended)
 - openssl       >= 1.0 (binary, used to generate X.509 certificate)
 - libltdl       >= 2.2 (part of GNU libtool)
 - sqlite        >= 3.8 (default database, required)
@@ -46,6 +45,7 @@ These are the direct dependencies for running GNUnet:
 - libogg        >= 1.3.0 (optional for experimental conversation tool)
 - python-zbar   >= 0.10 (optional for gnunet-qr)
 - TeX Live      >= 2012 (optional for gnunet-bcd)
+- libglpk       >= 4.45 (optional for experimental code)
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59

@@ -118,17 +118,20 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param scls must be of type "struct GNUNET_MetaData **"
  * @param option name of the option (typically 'k')
  * @param value command line argument given
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
-                               *ctx, void *scls, const char *option,
+GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                               void *scls,
+                               const char *option,
                                const char *value)
 {
   struct GNUNET_CONTAINER_MetaData **mm = scls;
+#if HAVE_EXTRACTOR_H
   enum EXTRACTOR_MetaType type;
   const char *typename;
   const char *typename_i18n;
+#endif
   struct GNUNET_CONTAINER_MetaData *meta;
   char *tmp;
 
@@ -144,7 +147,7 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
    */
   /*tmp = GNUNET_STRINGS_to_utf8 (value, strlen (value), locale_charset ());*/
   tmp = GNUNET_strdup (value);
-
+#if HAVE_EXTRACTOR_H
   type = EXTRACTOR_metatype_get_max ();
   while (type > 0)
   {
@@ -181,7 +184,9 @@ GNUNET_FS_getopt_set_metadata (struct GNUNET_GETOPT_CommandLineProcessorContext
       break;
     }
   }
-  if (tmp != NULL)
+#endif
+
+  if (NULL != tmp)
   {
     GNUNET_CONTAINER_meta_data_insert (meta, "<gnunet>",
                                        EXTRACTOR_METATYPE_UNKNOWN,

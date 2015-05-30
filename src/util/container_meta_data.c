@@ -26,7 +26,9 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#if HAVE_EXTRACTOR_H
 #include <extractor.h>
+#endif
 #include <zlib.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -432,7 +434,8 @@ GNUNET_CONTAINER_meta_data_add_publication_date (struct
   struct GNUNET_TIME_Absolute t;
 
   t = GNUNET_TIME_absolute_get ();
-  GNUNET_CONTAINER_meta_data_delete (md, EXTRACTOR_METATYPE_PUBLICATION_DATE,
+  GNUNET_CONTAINER_meta_data_delete (md,
+                                     EXTRACTOR_METATYPE_PUBLICATION_DATE,
                                      NULL, 0);
   dat = GNUNET_STRINGS_absolute_time_to_string (t);
   GNUNET_CONTAINER_meta_data_insert (md, "<gnunet>",
@@ -481,8 +484,8 @@ GNUNET_CONTAINER_meta_data_iterate (const struct GNUNET_CONTAINER_MetaData *md,
  * @return NULL if no entry was found
  */
 char *
-GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData
-                                        *md, enum EXTRACTOR_MetaType type)
+GNUNET_CONTAINER_meta_data_get_by_type (const struct GNUNET_CONTAINER_MetaData *md,
+                                        enum EXTRACTOR_MetaType type)
 {
   struct MetaItem *pos;
 

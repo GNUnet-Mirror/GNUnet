@@ -28,6 +28,7 @@
 #ifndef GNUNET_CONFIGURATION_LIB_H
 #define GNUNET_CONFIGURATION_LIB_H
 
+#include "gnunet_time_lib.h"
 
 #ifdef __cplusplus
 extern "C"

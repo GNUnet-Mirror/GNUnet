@@ -26,7 +26,8 @@
 #ifndef GNUNET_DISK_H_
 #define GNUNET_DISK_H_
 
-#include "gnunet_util_lib.h"
+#include "gnunet_crypto_lib.h"
+#include "gnunet_disk_lib.h"
 
 /**
  * Retrieve OS file handle

@@ -24,7 +24,8 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include "gnunet_util_lib.h"
+#include "gnunet_crypto_lib.h"
+#include "gnunet_strings_lib.h"
 #include <regex.h>
 
 
@@ -328,7 +329,6 @@ setup_log_file (const struct tm *tm)
 {
   static char last_fn[PATH_MAX + 1];
   char fn[PATH_MAX + 1];
-  int dirwarn;
   int altlog_fd;
   int dup_return;
   FILE *altlog;
@@ -352,7 +352,6 @@ setup_log_file (const struct tm *tm)
     return GNUNET_OK; /* no change */
   log_rotate (last_fn);
   strcpy (last_fn, fn);
-  dirwarn = (GNUNET_OK != GNUNET_DISK_directory_create_for_file (fn));
 #if WINDOWS
   altlog_fd = OPEN (fn, O_APPEND |
                         O_BINARY |
@@ -386,15 +385,12 @@ setup_log_file (const struct tm *tm)
   if (-1 == altlog_fd)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
-    if (dirwarn)
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("Failed to create or access directory for log file `%s'\n"),
-                  fn);
     return GNUNET_SYSERR;
   }
   GNUNET_stderr = altlog;
   return GNUNET_OK;
 }
+
 
 /**
  * Utility function - adds a parsed definition to logdefs array.

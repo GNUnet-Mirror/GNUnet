@@ -17,15 +17,15 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file fs/test_fs_directory.c
  * @brief Test for fs_directory.c
  * @author Christian Grothoff
  */
-
 #include "platform.h"
+#if HAVE_EXTRACTOR_H
 #include <extractor.h>
+#endif
 #include "gnunet_util_lib.h"
 #include "gnunet_fs_service.h"
 #include "fs_api.h"
@@ -99,7 +99,11 @@ testDirectory (unsigned int i)
     {
       GNUNET_snprintf (txt, sizeof (txt), "%u -- %u\n", p, q);
       GNUNET_CONTAINER_meta_data_insert (mds[p], "<test>",
+#if HAVE_EXTRACTOR_H
                                          q % EXTRACTOR_metatype_get_max (),
+#else
+                                         q % 128,
+#endif
                                          EXTRACTOR_METAFORMAT_UTF8,
                                          "text/plain", txt, strlen (txt) + 1);
     }

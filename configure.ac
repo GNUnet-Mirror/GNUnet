@@ -557,11 +557,6 @@ AC_ARG_ENABLE([taler-wallet],
 AC_MSG_RESULT($taler_only)
 AM_CONDITIONAL([TALER_ONLY], [test "x$taler_only" = "xyes"])
 
-if test "$taler_only" != yes
-then
-
-
-
 # test for libextractor
 extractor=0
 AC_MSG_CHECKING(for libextractor)
@@ -590,13 +585,21 @@ AC_ARG_WITH(extractor,
     AC_CHECK_HEADERS(extractor.h,
      AC_CHECK_LIB([extractor], [EXTRACTOR_plugin_add_defaults],
       extractor=1))])
-if test "$extractor" != 1
-then
- AC_MSG_ERROR([GNUnet requires libextractor])
-fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
+if test "$extractor" != 1
+then
+ AM_CONDITIONAL(HAVE_LIBEXTRACTOR, false)
+ AC_DEFINE([HAVE_LIBEXTRACTOR],[0],[Lacking libextractor])
+else
+ AM_CONDITIONAL(HAVE_LIBEXTRACTOR, true)
+ AC_DEFINE([HAVE_LIBEXTRACTOR],[1],[Have libextractor])
+fi
+
+
+if test "$taler_only" != yes
+then
 
 # Check for libltdl header (#2999)
 ltdl=0
@@ -1674,6 +1677,10 @@ then
   fi
 fi
 
+if test "$extractor" != 1
+then
+ AC_MSG_WARN([NOTICE: libextractor not found, but various file-sharing functions require it])
+fi
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
 

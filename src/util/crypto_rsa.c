@@ -22,7 +22,7 @@
  */
 #include "platform.h"
 #include <gcrypt.h>
-#include "gnunet_util_lib.h"
+#include "gnunet_crypto_lib.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
@@ -413,7 +413,7 @@ GNUNET_CRYPTO_rsa_blinding_key_create (unsigned int len)
 
 /**
  * Compare the values of two blinding keys.
- * 
+ *
  * @param b1 one key
  * @param b2 the other key
  * @return 0 if the two are equal
@@ -443,7 +443,7 @@ GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_rsa_Signature *s1,
   size_t z1;
   size_t z2;
   int ret;
-  
+
   z1 = GNUNET_CRYPTO_rsa_signature_encode (s1,
 					   &b1);
   z2 = GNUNET_CRYPTO_rsa_signature_encode (s2,
@@ -476,7 +476,7 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
   size_t z1;
   size_t z2;
   int ret;
-  
+
   z1 = GNUNET_CRYPTO_rsa_public_key_encode (p1,
 					    &b1);
   z2 = GNUNET_CRYPTO_rsa_public_key_encode (p2,

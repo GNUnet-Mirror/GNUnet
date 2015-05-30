@@ -17,11 +17,8 @@ if TALER_ONLY
 gnunetinclude_HEADERS = \
   platform.h plibc.h $(WINPROC) gettext.h \
   gnunet_common.h \
-  gnunet_configuration_lib.h \
   gnunet_container_lib.h \
   gnunet_crypto_lib.h \
-  gnunet_disk_lib.h \
-  gnunet_scheduler_lib.h \
   gnunet_strings_lib.h \
   gnunet_time_lib.h \
   gnunet_util_taler_wallet_lib.h

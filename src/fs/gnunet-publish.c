@@ -348,7 +348,11 @@ meta_printer (void *cls,
     return 0;
   if (EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME == type)
     return 0;
+#if HAVE_LIBEXTRACTOR
   FPRINTF (stdout, "\t%s - %s\n", EXTRACTOR_metatype_to_string (type), data);
+#else
+  FPRINTF (stdout, "\t%d - %s\n", type, data);
+#endif
   return 0;
 }
 

@@ -51,7 +51,12 @@ libgnunetfs_la_SOURCES = \
 libgnunetfs_la_LIBADD = \
   $(top_builddir)/src/datastore/libgnunetdatastore.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) $(XLIB) $(LIBGCRYPT_LIBS) -lunistring -lextractor
+  $(GN_LIBINTL) $(XLIB) $(LIBGCRYPT_LIBS) -lunistring
+
+if HAVE_LIBEXTRACTOR
+libgnunetfs_la_LIBADD += \
+  -lextractor
+endif
 
 libgnunetfs_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
@@ -92,8 +97,12 @@ gnunet_directory_SOURCES = \
 gnunet_directory_LDADD = \
   libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lextractor \
   $(GN_LIBINTL)
+
+if HAVE_LIBEXTRACTOR
+gnunet_directory_LDADD += \
+  -lextractor
+endif
 
 gnunet_fs_profiler_SOURCES = \
  gnunet-fs-profiler.c
@@ -107,8 +116,12 @@ gnunet_fs_SOURCES = \
 gnunet_fs_LDADD = \
   libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lextractor \
   $(GN_LIBINTL)
+
+if HAVE_LIBEXTRACTOR
+gnunet_fs_LDADD += \
+  -lextractor
+endif
 
 gnunet_download_SOURCES =  \
  gnunet-download.c
@@ -123,30 +136,47 @@ gnunet_publish_LDADD =  \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  libgnunetfs.la \
  $(top_builddir)/src/util/libgnunetutil.la \
- -lextractor \
  $(GN_LIBINTL)
+
+if HAVE_LIBEXTRACTOR
+gnunet_publish_LDADD += \
+  -lextractor
+endif
 
 gnunet_auto_share_SOURCES =  \
  gnunet-auto-share.c
 gnunet_auto_share_LDADD =  \
  $(top_builddir)/src/util/libgnunetutil.la \
- -lextractor \
  $(GN_LIBINTL)
+
+if HAVE_LIBEXTRACTOR
+gnunet_auto_share_LDADD += \
+  -lextractor
+endif
 
 gnunet_helper_fs_publish_SOURCES =  \
  gnunet-helper-fs-publish.c
 gnunet_helper_fs_publish_LDADD =  \
  $(top_builddir)/src/util/libgnunetutil.la \
- -lextractor \
  $(GN_LIBINTL)
+
+if HAVE_LIBEXTRACTOR
+gnunet_helper_fs_publish_LDADD += \
+  -lextractor
+endif
 
 gnunet_search_SOURCES = \
  gnunet-search.c
 gnunet_search_LDADD = \
   libgnunetfs.la \
   $(top_builddir)/src/util/libgnunetutil.la \
- -lextractor \
   $(GN_LIBINTL)
+
+if HAVE_LIBEXTRACTOR
+gnunet_search_LDADD += \
+  -lextractor
+endif
+
 
 gnunet_daemon_fsprofiler_SOURCES =  \
  gnunet-daemon-fsprofiler.c
@@ -243,9 +273,13 @@ test_plugin_block_fs_LDADD = \
 
 if HAVE_PYTHON
 check_SCRIPTS = \
- test_gnunet_fs_psd.py \
  test_gnunet_fs_rec.py \
  test_gnunet_fs_idx.py
+
+if HAVE_LIBEXTRACTOR
+check_SCRIPTS += \
+ test_gnunet_fs_psd.py
+endif
 endif
 
 if ENABLE_MONKEY
@@ -289,9 +323,14 @@ endif
 test_fs_directory_SOURCES = \
  test_fs_directory.c
 test_fs_directory_LDADD = \
-  -lextractor \
   libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la
+
+if HAVE_LIBEXTRACTOR
+test_fs_directory_LDADD += \
+  -lextractor
+endif
+
 
 test_fs_download_SOURCES = \
  test_fs_download.c
@@ -324,9 +363,14 @@ test_fs_download_persistence_LDADD = \
 test_fs_file_information_SOURCES = \
  test_fs_file_information.c
 test_fs_file_information_LDADD = \
-  -lextractor \
   libgnunetfs.la  \
   $(top_builddir)/src/util/libgnunetutil.la
+
+if HAVE_LIBEXTRACTOR
+test_fs_file_information_LDADD += \
+  -lextractor
+endif
+
 
 test_fs_getopt_SOURCES = \
  test_fs_getopt.c

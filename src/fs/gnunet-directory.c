@@ -36,13 +36,17 @@ static int ret;
  * @param format format of data
  * @param data_mime_type mime type of data
  * @param data value of the meta data
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @return always 0 (to continue iterating)
  */
 static int
-item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
-              enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
-              const char *data, size_t data_size)
+item_printer (void *cls,
+              const char *plugin_name,
+              enum EXTRACTOR_MetaType type,
+              enum EXTRACTOR_MetaFormat format,
+              const char *data_mime_type,
+              const char *data,
+              size_t data_size)
 {
   if (type == EXTRACTOR_METATYPE_GNUNET_FULL_DATA)
   {
@@ -55,9 +59,16 @@ item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
     return 0;
   if (type == EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME)
     return 0;
+#if HAVE_LIBEXTRACTOR
   printf ("\t%20s: %s\n",
           dgettext (LIBEXTRACTOR_GETTEXT_DOMAIN,
-                    EXTRACTOR_metatype_to_string (type)), data);
+                    EXTRACTOR_metatype_to_string (type)),
+    data);
+#else
+  printf ("\t%20d: %s\n",
+          type,
+          data);
+#endif
   return 0;
 }
 

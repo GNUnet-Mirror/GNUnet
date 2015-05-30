@@ -26,7 +26,7 @@
  */
 #include "platform.h"
 #include <gcrypt.h>
-#include "gnunet_util_lib.h"
+#include "gnunet_crypto_lib.h"
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
