@@ -312,6 +312,8 @@ progress_cb (void *cls,
              _("Cleanup after abort failed.\n"));
     GNUNET_FS_unindex_stop (info->value.unindex.uc);
     return NULL;
+  case GNUNET_FS_STATUS_UNINDEX_STOPPED:
+    return NULL;
   default:
     FPRINTF (stderr,
              _("Unexpected status: %d\n"),
