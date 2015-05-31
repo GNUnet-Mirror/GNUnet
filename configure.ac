@@ -859,9 +859,12 @@ AC_ARG_WITH(microhttpd,
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
                 int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
-               ])], [
-               AC_MSG_RESULT(ok)
-               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=0)]),
+               ])],
+               [AC_MSG_RESULT(ok)
+                lmhd=1],
+               [AC_MSG_RESULT(failed)],
+               [AC_MSG_RESULT(cross-compiling, assuming OK)
+                lmhd=1])]),
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
@@ -878,9 +881,12 @@ AC_ARG_WITH(microhttpd,
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
                 int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
-               ])], [
-               AC_MSG_RESULT(ok)
-               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=0)]),
+               ])],
+               [AC_MSG_RESULT(ok)
+                lmhd=1],
+               [AC_MSG_RESULT(failed)],
+               [AC_MSG_RESULT(cross-compiling, assuming OK)
+                lmhd=1])]),
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
@@ -896,9 +902,12 @@ AC_ARG_WITH(microhttpd,
                 #include "$native_srcdir/src/include/platform.h"
 		#include <microhttpd.h>
                 int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
-               ])], [
-               AC_MSG_RESULT(ok)
-               lmhd=1],[AC_MSG_RESULT(failed)],lmhd=0)]),
+               ])],
+               [AC_MSG_RESULT(ok)
+                lmhd=1],
+               [AC_MSG_RESULT(failed)],
+               [AC_MSG_RESULT(cross-compiling, assuming OK)
+                lmhd=1])]),
 	[],[#include "$native_srcdir/src/include/platform.h"
             #include <microhttpd.h>]),,
        [#include "$native_srcdir/src/include/platform.h"])])
