@@ -676,6 +676,7 @@ run (void *cls,
     GNUNET_free (bin);
     return;
   }
+  GNUNET_free (bin_gns);
   GNUNET_free (config);
   GNUNET_free (bin);
 
