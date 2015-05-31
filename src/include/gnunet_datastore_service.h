@@ -72,10 +72,11 @@ GNUNET_DATASTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
  * associated resources).
  *
  * @param h handle to the datastore
- * @param drop set to GNUNET_YES to delete all data in datastore (!)
+ * @param drop set to #GNUNET_YES to delete all data in datastore (!)
  */
 void
-GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop);
+GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
+                             int drop);
 
 
 /**

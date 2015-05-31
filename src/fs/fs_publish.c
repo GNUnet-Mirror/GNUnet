@@ -143,6 +143,8 @@ ds_put_cont (void *cls,
     }
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "SOME DONE!\n");
   pc->any_done = GNUNET_YES;
   GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
@@ -196,11 +198,15 @@ signal_publish_error (struct GNUNET_FS_FileInformation *p,
   pi.value.publish.eta = GNUNET_TIME_UNIT_FOREVER_REL;
   pi.value.publish.specifics.error.message = emsg;
   p->client_info = GNUNET_FS_publish_make_status_ (&pi, pc, p, 0);
-  if ((p->is_directory != GNUNET_YES) && (p->filename != NULL) &&
+  if ((p->is_directory != GNUNET_YES) &&
+      (NULL != p->filename) &&
+      (GNUNET_YES == pc->any_done) &&
       (p->data.file.do_index == GNUNET_YES))
   {
     /* run unindex to clean up */
-    GNUNET_FS_unindex_start (pc->h, p->filename, NULL);
+    GNUNET_FS_unindex_start (pc->h,
+                             p->filename,
+                             NULL);
   }
 
 }
@@ -1278,18 +1284,21 @@ GNUNET_FS_publish_signal_suspend_ (void *cls)
  * @param msg error message on error, otherwise NULL
  */
 static void
-finish_reserve (void *cls, int success,
+finish_reserve (void *cls,
+                int success,
 		struct GNUNET_TIME_Absolute min_expiration,
 		const char *msg)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
 
   pc->qre = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Reservation complete (%d)!\n", success);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Reservation complete (%d)!\n",
+              success);
   if ((msg != NULL) || (success <= 0))
   {
     GNUNET_asprintf (&pc->fi->emsg,
-		     _("Insufficient space for publishing: %s"),
+		     _("Datastore failure: %s"),
                      msg);
     signal_publish_error (pc->fi, pc, pc->fi->emsg);
     return;
