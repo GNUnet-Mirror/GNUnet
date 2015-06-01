@@ -365,7 +365,8 @@ AC_RUN_IFELSE(
    then
      AC_MSG_FAILURE([libgcrypt header version does not match library version])
    fi
-  ])
+  ],
+  [AC_MSG_RESULT([cross compiling, test skipped])])
 AC_LANG_POP(C)
 fi	# $build = $target
 
@@ -812,13 +813,14 @@ AC_ARG_ENABLE(mysql-version-check, [  --disable-mysql-version-check  do not chec
 if test "$mysql" = "true" -a "x$enable_mysql_version_check" = "xyes"
 then
   AC_MSG_CHECKING(mysql version)
-  AC_RUN_IFELSE([AC_LANG_PROGRAM(
+  AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
     [[$CYGWIN_MYSQL_MAGIC
       #include <mysql/mysql.h>]],
-    [[if (MYSQL_VERSION_ID < 40100)
-        return(-1);
-      else
-        return(0);
+    [[
+      #if (MYSQL_VERSION_ID < 40100)
+      #error needs at least version >= 4.1
+      #endif
+      int main () { return 0; }
     ]])
     ],mysql=true,mysql=false)
   if test "$mysql" = "false"
@@ -900,16 +902,16 @@ AC_ARG_WITH(microhttpd,
       AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
         AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
           [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
-              AC_RUN_IFELSE([AC_LANG_SOURCE([
+              AC_COMPILE_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
 		#include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
+                #if (MHD_VERSION < 0x0093200)
+                #error needs at least version 0.9.32
+                #endif
                ])],
                [AC_MSG_RESULT(ok)
                 lmhd=1],
-               [AC_MSG_RESULT(failed)],
-               [AC_MSG_RESULT(cross-compiling, assuming OK)
-                lmhd=1])]),
+               [AC_MSG_RESULT(failed)])]),
 	[],[#include "$native_srcdir/src/include/platform.h"
             #include <microhttpd.h>]),,
        [#include "$native_srcdir/src/include/platform.h"])])
