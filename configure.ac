@@ -855,16 +855,17 @@ AC_ARG_WITH(microhttpd,
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
               [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
-              AC_RUN_IFELSE([AC_LANG_SOURCE([
+              AC_COMPILE_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
+                #if (MHD_VERSION < 0x0093200)
+                #error needs at least version 0.9.32
+                #endif
+                int main () { return 0; }
                ])],
                [AC_MSG_RESULT(ok)
                 lmhd=1],
-               [AC_MSG_RESULT(failed)],
-               [AC_MSG_RESULT(cross-compiling, assuming OK)
-                lmhd=1])]),
+               [AC_MSG_RESULT(failed)])]),
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
@@ -877,16 +878,17 @@ AC_ARG_WITH(microhttpd,
             AC_CHECK_LIB([microhttpd], [MHD_get_fdset2],
               EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
               [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
-               AC_RUN_IFELSE([AC_LANG_SOURCE([
+               AC_COMPILE_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
+                #if (MHD_VERSION < 0x0093200)
+                #error needs at least version 0.9.32
+                #endif
+                int main () { return 0; }
                ])],
                [AC_MSG_RESULT(ok)
                 lmhd=1],
-               [AC_MSG_RESULT(failed)],
-               [AC_MSG_RESULT(cross-compiling, assuming OK)
-                lmhd=1])]),
+               [AC_MSG_RESULT(failed)])]),
 	    [],[#include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>]),,
             [#include "$native_srcdir/src/include/platform.h"])
