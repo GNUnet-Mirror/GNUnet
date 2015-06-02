@@ -47,9 +47,13 @@ libgnunet_plugin_block_dht_la_LDFLAGS = \
 
 
 libexec_PROGRAMS = \
- gnunet-service-dht \
+ gnunet-service-dht
+
+if HAVE_EXPERIMENTAL
+libexec_PROGRAMS += \
  gnunet-service-dht-xvine \
  gnunet-service-dht-whanau
+endif
 
 noinst_PROGRAMS = \
  gnunet-dht-monitor \

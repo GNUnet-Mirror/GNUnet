@@ -9,27 +9,30 @@ dist_pkgcfg_DATA = \
   template.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
-bin_PROGRAMS = \
- gnunet-template 
+# Note: In a real installation,
+# bin_PROGRAMS should be used for gnunet-template
+# libexec_PROGRAMS should be used for gnunet-service-template
 
-libexec_PROGRAMS = \
+noinst_PROGRAMS = \
+ gnunet-template \
  gnunet-service-template
 
+
 gnunet_template_SOURCES = \
- gnunet-template.c         
+ gnunet-template.c
 gnunet_template_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 gnunet_service_template_SOURCES = \
- gnunet-service-template.c         
+ gnunet-service-template.c
 gnunet_service_template_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -46,5 +49,4 @@ endif
 test_template_api_SOURCES = \
  test_template_api.c
 test_template_api_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la  
-
+  $(top_builddir)/src/util/libgnunetutil.la

@@ -22,10 +22,11 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
  gnunet-service-consensus
 
-# FIXME: add option "configure --with-evil"?
 if HAVE_EXPERIMENTAL
+if ENABLE_MALICIOUS
 libexec_PROGRAMS += \
  gnunet-service-evil-consensus
+endif
 endif
 
 lib_LTLIBRARIES = \
@@ -83,4 +84,3 @@ test_consensus_api_LDADD = \
 
 EXTRA_DIST = \
   test_consensus.conf
-

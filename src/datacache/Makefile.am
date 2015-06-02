@@ -28,11 +28,11 @@ lib_LTLIBRARIES = \
   libgnunetdatacache.la
 
 libgnunetdatacache_la_SOURCES = \
-  datacache.c 
+  datacache.c
 libgnunetdatacache_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL) 
+  $(GN_LIBINTL)
 libgnunetdatacache_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 0:1:0
@@ -41,8 +41,12 @@ libgnunetdatacache_la_LDFLAGS = \
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(POSTGRES_PLUGIN) \
-  libgnunet_plugin_datacache_heap.la \
-  libgnunet_plugin_datacache_template.la 
+  libgnunet_plugin_datacache_heap.la
+
+# Real plugins should of course go into
+# plugin_LTLIBRARIES
+noinst_LTLIBRARIES = \
+  libgnunet_plugin_datacache_template.la
 
 
 libgnunet_plugin_datacache_sqlite_la_SOURCES = \
@@ -120,7 +124,7 @@ endif
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  $(HEAP_TESTS) \
- $(POSTGRES_TESTS) 
+ $(POSTGRES_TESTS)
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
@@ -132,63 +136,63 @@ test_datacache_sqlite_SOURCES = \
 test_datacache_sqlite_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_datacache_quota_sqlite_SOURCES = \
  test_datacache_quota.c
 test_datacache_quota_sqlite_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 perf_datacache_sqlite_SOURCES = \
  perf_datacache.c
 perf_datacache_sqlite_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_datacache_heap_SOURCES = \
  test_datacache.c
 test_datacache_heap_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_datacache_quota_heap_SOURCES = \
  test_datacache_quota.c
 test_datacache_quota_heap_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 perf_datacache_heap_SOURCES = \
  perf_datacache.c
 perf_datacache_heap_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_datacache_postgres_SOURCES = \
  test_datacache.c
 test_datacache_postgres_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 test_datacache_quota_postgres_SOURCES = \
  test_datacache_quota.c
 test_datacache_quota_postgres_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 perf_datacache_postgres_SOURCES = \
  perf_datacache.c
 perf_datacache_postgres_LDADD = \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunetdatacache.la \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
  test_datacache_data_sqlite.conf \

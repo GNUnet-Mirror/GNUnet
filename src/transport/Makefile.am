@@ -278,7 +278,11 @@ plugin_LTLIBRARIES = \
   $(HTTP_SERVER_PLUGIN_LA) \
   $(HTTPS_SERVER_PLUGIN_LA) \
   $(WLAN_PLUGIN_LA) \
-  $(BT_PLUGIN_LA) \
+  $(BT_PLUGIN_LA)
+
+# Note: real plugins of course need to be added
+# to the plugin_LTLIBRARIES above
+noinst_LTLIBRARIES = \
   libgnunet_plugin_transport_template.la
 
 libgnunet_plugin_transport_tcp_la_SOURCES = \

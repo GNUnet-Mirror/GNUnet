@@ -14,9 +14,12 @@ endif
 lib_LTLIBRARIES = libgnunetblock.la
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_block_template.la \
-  libgnunet_plugin_block_test.la 
+  libgnunet_plugin_block_test.la
 
+# Real plugins should of course go into
+# plugin_LTLIBRARIES
+noinst_LTLIBRARIES = \
+  libgnunet_plugin_block_template.la
 
 libgnunet_plugin_block_template_la_SOURCES = \
   plugin_block_template.c
@@ -38,11 +41,11 @@ libgnunet_plugin_block_test_la_LDFLAGS = \
 
 
 libgnunetblock_la_SOURCES = \
-  block.c 
+  block.c
 libgnunetblock_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblock_la_DEPENDENCIES = \
- $(top_builddir)/src/util/libgnunetutil.la  
+ $(top_builddir)/src/util/libgnunetutil.la
 libgnunetblock_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
