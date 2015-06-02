@@ -53,7 +53,7 @@ else:
   shutil.rmtree ("/tmp/gnunet-test-peerinfo", True)
 
 # create hostkey via testing lib
-hkk = subprocess.Popen ([gnunettesting, '-n 1', '-k', '/tmp/gnunet-test-peerinfo/.hostkey'])
+hkk = subprocess.Popen ([gnunettesting, '-n', '1', '-c', 'test_gnunet_peerinfo_data.conf', '-k', '/tmp/gnunet-test-peerinfo/.hostkey'])
 hkk.communicate ()
 
 arm = subprocess.Popen ([gnunetarm, '-sq', '-c', 'test_gnunet_peerinfo_data.conf'])
