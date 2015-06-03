@@ -56,7 +56,7 @@ class pexpect (object):
           print ("Failed to find `{1}' in {0}, which is `{2}' ({3})".format (s, r, stream, len (stream)))
           sys.exit (2)
       raise ValueError ("Argument `r' should be an instance of re.RegexObject or a special string, but is `{0}'".format (r))
-    m = r.search (stream, flags)
+    m = r.search (stream.decode(), flags)
     if not m:
       print ("Failed to find `{1}' in {0}, which is is `{2}'".format (s, r.pattern, stream))
       sys.exit (2)
