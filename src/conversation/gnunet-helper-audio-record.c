@@ -114,7 +114,7 @@
  * OPUS_SIGNAL_VOICE - Bias thresholds towards choosing LPC or Hybrid modes.
  * OPUS_SIGNAL_MUSIC - Bias thresholds towards choosing MDCT modes.
  */
-#define CONV_OPUS_SIGNAL OPUS_AUTO
+#define CONV_OPUS_SIGNAL OPUS_SIGNAL_VOICE
 
 /**
  * Coding mode.
@@ -656,7 +656,7 @@ opus_init ()
   opus_encoder_ctl (enc,
 		    OPUS_SET_INBAND_FEC (CONV_OPUS_INBAND_FEC));
   opus_encoder_ctl (enc,
-		    OPUS_SET_SIGNAL (OPUS_SIGNAL_VOICE));
+		    OPUS_SET_SIGNAL (CONV_OPUS_SIGNAL));
 }
 
 static void
