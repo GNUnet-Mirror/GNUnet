@@ -409,7 +409,12 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
     return TRANSPORT_SESSION_INBOUND_STRING; /* Addresse with length 0 are inbound, address->address itself may be NULL */
   api = GST_plugins_printer_find (address->transport_name);
   if (NULL == api)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Failed to find transport plugin `%s'\n",
+                address->transport_name);
     return "<plugin unknown>";
+  }
   if (0 == address->address_length)
   {
     GNUNET_snprintf (unable_to_show,
