@@ -127,23 +127,6 @@ struct GNUNET_CADET_AX_KX
   uint32_t force_reply;
 
   /**
-   * An EdDSA signature of the permanent ECDH key with the Peer's ID key.
-   */
-  struct GNUNET_CRYPTO_EddsaSignature signature;
-
-  /**
-   * Information about what is being signed (@a permanent_key).
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
-   * Sender's permanent_key public ECC key encoded in a
-   * format suitable for network transmission, as created
-   * using 'gcry_sexp_sprint'.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey permanent_key;
-
-  /**
    * Sender's ephemeral public ECC key encoded in a
    * format suitable for network transmission, as created
    * using 'gcry_sexp_sprint'.

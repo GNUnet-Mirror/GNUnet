@@ -252,11 +252,6 @@ struct CadetTunnelAxolotl
   struct GNUNET_CRYPTO_EcdhePrivateKey *kx_0;
 
   /**
-   * ECDH Identity key (recv).
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey DHIr;
-
-  /**
    * ECDH Ratchet key (send).
    */
   struct GNUNET_CRYPTO_EcdhePrivateKey *DHRs;
@@ -467,28 +462,6 @@ struct CadetTunnelQueue
 };
 
 
-/**
- * Cached Axolotl key with signature.
- */
-struct CadetAxolotlSignedKey
-{
-  /**
-   * Information about what is being signed (@a permanent_key).
-   */
-  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
-
-  /**
-   * Permanent public ECDH key.
-   */
-  struct GNUNET_CRYPTO_EcdhePublicKey permanent_key;
-
-  /**
-   * An EdDSA signature of the permanent ECDH key with the Peer's ID key.
-   */
-  struct GNUNET_CRYPTO_EddsaSignature signature;
-} GNUNET_PACKED;
-
-
 /******************************************************************************/
 /*******************************   GLOBALS  ***********************************/
 /******************************************************************************/
@@ -533,13 +506,6 @@ const static struct GNUNET_CRYPTO_EddsaPrivateKey *id_key;
 
 
 /********************************  AXOLOTL ************************************/
-
-static struct GNUNET_CRYPTO_EcdhePrivateKey *ax_key;
-
-/**
- * Own Axolotl permanent public key (cache).
- */
-static struct CadetAxolotlSignedKey ax_identity;
 
 /**
  * How many messages are needed to trigger a ratchet advance.
@@ -700,19 +666,6 @@ ephemeral_purpose_size (void)
          sizeof (struct GNUNET_TIME_AbsoluteNBO) +
          sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
          sizeof (struct GNUNET_PeerIdentity);
-}
-
-
-/**
- * Ephemeral key message purpose size.
- *
- * @return Size of the part of the ephemeral key message that must be signed.
- */
-static size_t
-ax_purpose_size (void)
-{
-  return sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-         sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
 }
 
 
@@ -2887,8 +2840,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_HashCode key_material[3];
   struct GNUNET_CRYPTO_SymmetricSessionKey keys[5];
-  const struct GNUNET_CRYPTO_EcdhePublicKey *pub;
-  const struct GNUNET_CRYPTO_EcdhePrivateKey *priv;
   const char salt[] = "CADET Axolotl salt";
   const struct GNUNET_PeerIdentity *pid;
   int am_I_alice;
@@ -2900,13 +2851,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     /* Something is wrong if ax is NULL. Whose fault it is? */
     GNUNET_break_op (CADET_OTR == t->enc_type);
     GNUNET_break (CADET_Axolotl == t->enc_type);
-    return;
-  }
-
-  if (GNUNET_OK != GCP_check_key (t->peer, &msg->permanent_key,
-                                  &msg->purpose, &msg->signature))
-  {
-    GNUNET_break_op (0);
     return;
   }
 
@@ -2931,38 +2875,43 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 
   ax = t->ax;
   ax->DHRr = msg->ratchet_key;
-  ax->DHIr = msg->permanent_key;
 
   /* ECDH A B0 */
   if (GNUNET_YES == am_I_alice)
   {
-    priv = ax_key;                                              /* A */
-    pub = &msg->ephemeral_key;                                  /* B0 */
+    GNUNET_CRYPTO_eddsa_ecdh (id_key,              /* A */
+                              &msg->ephemeral_key,  /* B0 */
+                              &key_material[0]);
   }
   else
   {
-    priv = ax->kx_0;                                            /* B0 */
-    pub = &ax->DHIr;                                            /* A */
+    GNUNET_CRYPTO_ecdh_eddsa (ax->kx_0,            /* B0 */
+                              &pid->public_key,    /* A */
+                              &key_material[0]);
   }
-  GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[0]);
 
   /* ECDH A0 B */
   if (GNUNET_YES == am_I_alice)
   {
-    priv = ax->kx_0;                                            /* A0 */
-    pub = &ax->DHIr;                                            /* B */
+    GNUNET_CRYPTO_ecdh_eddsa (ax->kx_0,            /* A0 */
+                              &pid->public_key,    /* B */
+                              &key_material[1]);
   }
   else
   {
-    priv = ax_key;                                              /* B */
-    pub = &msg->ephemeral_key;                                  /* A0 */
-  }
-  GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[1]);
+    GNUNET_CRYPTO_eddsa_ecdh (id_key,              /* A */
+                              &msg->ephemeral_key,  /* B0 */
+                              &key_material[1]);
 
-  /* ECDH A0 B0*/
-  priv = ax->kx_0;                                              /* A0 or B0 */
-  pub = &msg->ephemeral_key;                                    /* B0 or A0 */
-  GNUNET_CRYPTO_ecc_ecdh (priv, pub, &key_material[2]);
+
+  }
+
+  /* ECDH A0 B0 */
+  /* (This is the triple-DH, we could probably safely skip this,
+     as A0/B0 are already in the key material.) */
+  GNUNET_CRYPTO_ecc_ecdh (ax->kx_0,             /* A0 or B0 */
+                          &msg->ephemeral_key,  /* B0 or A0 */
+                          &key_material[2]);
 
   #if DUMP_KEYS_TO_STDERR
   {
@@ -3084,7 +3033,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   size_t payload_size;
   int decrypted_size;
   uint16_t type;
-  struct GNUNET_MessageHeader *msgh;
+  const struct GNUNET_MessageHeader *msgh;
   unsigned int off;
 
   type = ntohs (msg->type);
@@ -3233,16 +3182,6 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
   otr_kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
   otr_kx_msg.origin_identity = my_full_id;
   rekey_task = GNUNET_SCHEDULER_add_now (&global_otr_rekey, NULL);
-
-  ax_key = GNUNET_CRYPTO_ecdhe_key_create ();
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax_key, &ax_identity.permanent_key);
-  ax_identity.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_AXKX);
-  ax_identity.purpose.size = htonl (ax_purpose_size ());
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_eddsa_sign (id_key,
-                                           &ax_identity.purpose,
-                                           &ax_identity.signature));
-
   tunnels = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
 }
 
@@ -3260,7 +3199,6 @@ GCT_shutdown (void)
   }
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, &destroy_iterator, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (tunnels);
-  GNUNET_free (ax_key);
 }
 
 
@@ -4237,9 +4175,6 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
   msg.force_reply = htonl (force_reply);
-  msg.permanent_key = ax_identity.permanent_key;
-  msg.purpose = ax_identity.purpose;
-  msg.signature = ax_identity.signature;
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
@@ -4402,11 +4337,6 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT  CKr\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKr));
 
-  GNUNET_CRYPTO_ecdhe_key_get_public (ax_key, &pub);
-  LOG2 (level, "TTT  DHIs\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &pub));
-  LOG2 (level, "TTT  DHIr\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHIr));
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &pub);
   LOG2 (level, "TTT  DHRs\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &pub));

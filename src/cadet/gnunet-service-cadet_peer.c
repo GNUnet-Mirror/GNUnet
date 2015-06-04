@@ -120,34 +120,29 @@ struct CadetPeerQueue
  */
 struct CadetPeer
 {
-    /**
-     * ID of the peer
-     */
+  /**
+   * ID of the peer
+   */
   GNUNET_PEER_Id id;
 
-    /**
-     * Axolotl permanent public key.
-     */
-  struct GNUNET_CRYPTO_EcdhePublicKey ax_key;
-
-    /**
-     * Last time we heard from this peer
-     */
+  /**
+   * Last time we heard from this peer
+   */
   struct GNUNET_TIME_Absolute last_contact;
 
-    /**
-     * Paths to reach the peer, ordered by ascending hop count
-     */
+  /**
+   * Paths to reach the peer, ordered by ascending hop count
+   */
   struct CadetPeerPath *path_head;
 
-    /**
-     * Paths to reach the peer, ordered by ascending hop count
-     */
+  /**
+   * Paths to reach the peer, ordered by ascending hop count
+   */
   struct CadetPeerPath *path_tail;
 
-    /**
-     * Handle to stop the DHT search for paths to this peer
-     */
+  /**
+   * Handle to stop the DHT search for paths to this peer
+   */
   struct GCD_search_handle *search_h;
 
   /**
@@ -2379,61 +2374,6 @@ GCP_try_connect (struct CadetPeer *peer)
 
   mh = GNUNET_HELLO_get_header (hello);
   GNUNET_TRANSPORT_offer_hello (transport_handle, mh, try_connect, peer);
-}
-
-
-/**
- * Check if the given ECDH key is correct for the peer.
- *
- * This function caches the results if the key has been previoulsy checked,
- * otherwise checks that the key is signed with the peer's ID (EdDSA key).
- *
- * TODO: save the cached public key to permanent storage / peerinfo.
- *
- * @param peer Peer whose key to check.
- * @param key ECDH key to check.
- * @param purpose Purpose of the signature (followed by the key).
- * @param sig Signature with the peer's EdDSA key (PeerID).
- */
-int
-GCP_check_key (struct CadetPeer *peer,
-               const struct GNUNET_CRYPTO_EcdhePublicKey *key,
-               const struct GNUNET_CRYPTO_EccSignaturePurpose *purpose,
-               const struct GNUNET_CRYPTO_EddsaSignature *sig)
-{
-  struct GNUNET_CRYPTO_EddsaPublicKey *pub;
-  int verified;
-
-  /* Is it the same as the cached key? */
-  if (0 == memcmp (&peer->ax_key, key, sizeof (*key)))
-    return GNUNET_OK;
-
-  /* New key, verify. */
-  pub = (struct GNUNET_CRYPTO_EddsaPublicKey *) GCP_get_id (peer);
-  verified = GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_CADET_AXKX,
-                                         purpose, sig, pub);
-
-  if (GNUNET_OK != verified)
-    return GNUNET_SYSERR;
-
-  /* Cache key for later. */
-  peer->ax_key = *key;
-  return GNUNET_OK;
-}
-
-
-/**
- * Get the Identity ECDH key of the peer.
- *
- * @param peer Peer whose key to get.
- *
- * @return Peer's permanent ECDH key (might be all 0: unknown).
- *
- */
-struct GNUNET_CRYPTO_EcdhePublicKey *
-GCP_get_ecdh_key (struct CadetPeer *peer)
-{
-  return &peer->ax_key;
 }
 
 
