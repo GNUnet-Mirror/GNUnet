@@ -97,7 +97,14 @@ enum PeerFlags
   /**
    * We set this bit when we can be sure the other peer is/was live.
    */
-  VALID                = 0x10
+  VALID                = 0x10,
+
+  /**
+   * We set this bit when we are going to destroy the channel to this peer.
+   * When cleanup_channel is called, we know that we wanted to destroy it.
+   * Otherwise the channel to the other peer was destroyed.
+   */
+  TO_DESTROY           = 0x20,
 };
 
 
@@ -2278,6 +2285,7 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   if (NULL != send
       && channel != send)
   {
+    set_peer_flag (peer_ctx, TO_DESTROY);
     GNUNET_CADET_channel_destroy (send);
   }
   else
@@ -2433,13 +2441,22 @@ cleanup_channel (void *cls,
     if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
       return;
 
+
     if (channel == peer_ctx->send_channel)
-    { /* Peer went down or we killd the channel */
+    { /* Something (but us) killd the channel */
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "send channel (%s) was destroyed - cleaning up\n",
            GNUNET_i2s (peer));
-      rem_from_list (&gossip_list, &gossip_list_size, peer);
-      rem_from_list (&pending_pull_reply_list, &pending_pull_reply_list_size, peer);
+
+      rem_from_list (&gossip_list,
+                     &gossip_list_size,
+                     peer);
+      rem_from_list (&pending_pull_reply_list,
+                     &pending_pull_reply_list_size,
+                     peer);
+      to_file (file_name_view_log,
+               "-%s\t(cleanup channel, other peer)",
+               GNUNET_i2s_full (peer));
 
       peer_ctx->send_channel = NULL;
       /* Somwewhat {ab,re}use the iterator function */
@@ -2457,6 +2474,33 @@ cleanup_channel (void *cls,
            "Peer %s destroyed recv channel - cleaning up channel\n",
            GNUNET_i2s (peer));
       peer_ctx->recv_channel = NULL;
+    }
+    else if (NULL == peer_ctx->send_channel &&
+             get_peer_flag (peer_ctx, TO_DESTROY))
+    { /* We closed the channel to that peer */
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "send channel (%s) was destroyed by us - cleaning up\n",
+           GNUNET_i2s (peer));
+
+      rem_from_list (&gossip_list,
+                     &gossip_list_size,
+                     peer);
+      rem_from_list (&pending_pull_reply_list,
+                     &pending_pull_reply_list_size,
+                     peer);
+      to_file (file_name_view_log,
+               "-%s\t(cleanup channel, ourself)",
+               GNUNET_i2s_full (peer));
+
+      /* Somwewhat {ab,re}use the iterator function */
+      /* Cast to void is ok, because it's used as void in peer_remove_cb */
+      (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "unknown channel (%s) was destroyed\n",
+           GNUNET_i2s (peer));
     }
   //}
 }
@@ -2569,7 +2613,7 @@ run (void *cls,
          size,
          out_size);
   }
-                          
+
 
   /* connect to NSE */
   nse = GNUNET_NSE_connect (cfg, nse_callback, NULL);
