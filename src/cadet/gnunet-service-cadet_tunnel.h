@@ -107,7 +107,7 @@ enum CadetTunnelEState
    * we still have a valid session key and therefore we *can* still send
    * traffic on the tunnel.
    */
-  CADET_TUNNEL_KEY_REKEY,
+  CADET_TUNNEL_KEY_REKEY
 };
 
 /**

@@ -53,7 +53,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_CADET_ConnectionCreate
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
+     * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
      *
      * Size: sizeof (struct GNUNET_CADET_ConnectionCreate) +
      *       path_length * sizeof (struct GNUNET_PeerIdentity)
@@ -79,7 +79,7 @@ struct GNUNET_CADET_ConnectionCreate
 struct GNUNET_CADET_ConnectionACK
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
+     * Type: #GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
      */
   struct GNUNET_MessageHeader header;
 
@@ -97,7 +97,7 @@ struct GNUNET_CADET_ConnectionACK
 struct GNUNET_CADET_KX
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_CADET_KX.
+     * Type: #GNUNET_MESSAGE_TYPE_CADET_KX.
      */
   struct GNUNET_MessageHeader header;
 
@@ -110,6 +110,22 @@ struct GNUNET_CADET_KX
 };
 
 
+/**
+ * Flags to be used in GNUNET_CADET_AX_KX.
+ */
+enum GNUNET_CADET_AX_KX_Flags {
+
+  /**
+   * Should the peer reply with its KX details?
+   */
+  GNUNET_CADET_AX_KX_FLAG_NONE = 0,
+
+  /**
+   * The peer should reply with its KX details?
+   */
+  GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY = 1
+};
+
 
 /**
  * Message for encapsulation of a Key eXchange message in a connection.
@@ -117,14 +133,15 @@ struct GNUNET_CADET_KX
 struct GNUNET_CADET_AX_KX
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CADET_AX_KX.
+   * Type: #GNUNET_MESSAGE_TYPE_CADET_AX_KX.
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Should the peer reply with its KX details?
+   * Flags for the key exchange in NBO, based on
+   * `enum GNUNET_CADET_AX_KX_Flags`.
    */
-  uint32_t force_reply;
+  uint32_t flags GNUNET_PACKED;
 
   /**
    * Sender's ephemeral public ECC key encoded in a

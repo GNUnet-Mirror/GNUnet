@@ -2865,7 +2865,8 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     return;
   }
 
-  if (GNUNET_YES == ntohl (msg->force_reply))
+  if (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY ==
+      (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
     GCT_send_ax_kx (t, GNUNET_NO);
 
   if (CADET_TUNNEL_KEY_OK == t->estate)
@@ -4164,6 +4165,7 @@ void
 GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
 {
   struct GNUNET_CADET_AX_KX msg;
+  enum GNUNET_CADET_AX_KX_Flags flags;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "===> AX_KX for %s\n", GCT_2s (t));
   if (NULL != t->ephm_h)
@@ -4174,7 +4176,10 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_AX_KX);
-  msg.force_reply = htonl (force_reply);
+  flags = GNUNET_CADET_AX_KX_FLAG_NONE;
+  if (force_reply)
+    flags |= GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY;
+  msg.flags = htonl (flags);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->kx_0, &msg.ephemeral_key);
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
