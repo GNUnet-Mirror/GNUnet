@@ -112,6 +112,59 @@ struct RPS_SamplerElement
 };
 
 /**
+ * Callback that is called from _get_rand_peer() when the PeerID is ready.
+ *
+ * @param cls the closure given alongside this function.
+ * @param id the PeerID that was returned
+ */
+typedef void
+(*RPS_sampler_rand_peer_ready_cont) (void *cls,
+                                     const struct GNUNET_PeerIdentity *id);
+
+
+/**
+ * Closure for #sampler_get_rand_peer()
+ */
+struct GetPeerCls
+{
+  /**
+   * DLL
+   */
+  struct GetPeerCls *next;
+
+  /**
+   * DLL
+   */
+  struct GetPeerCls *prev;
+
+  /**
+   * The sampler this function operates on.
+   */
+  struct RPS_Sampler *sampler;
+
+  /**
+   * The task for this function.
+   */
+  struct GNUNET_SCHEDULER_Task *get_peer_task;
+
+  /**
+   * The callback
+   */
+  RPS_sampler_rand_peer_ready_cont cont;
+
+  /**
+   * The closure to the callback @e cont
+   */
+  void *cont_cls;
+
+  /**
+   * The address of the id to be stored at
+   */
+  struct GNUNET_PeerIdentity *id;
+};
+
+
+/**
  * Type of function used to differentiate between modified and not modified
  * Sampler.
  */
@@ -170,6 +223,16 @@ struct RPS_Sampler
    */
   RPS_get_peers_type get_peers;
 
+  /**
+   * Head for the DLL to store the closures to pending requests.
+   */
+  struct GetPeerCls *gpc_head;
+
+  /**
+   * Tail for the DLL to store the closures to pending requests.
+   */
+  struct GetPeerCls *gpc_tail;
+
   #ifdef TO_FILE
   /**
    * File name to log to
@@ -208,58 +271,6 @@ struct NRandPeersReadyCls
    */
   void *cls;
 };
-
-/**
- * Callback that is called from _get_rand_peer() when the PeerID is ready.
- *
- * @param cls the closure given alongside this function.
- * @param id the PeerID that was returned
- */
-typedef void
-(*RPS_sampler_rand_peer_ready_cont) (void *cls,
-                                     const struct GNUNET_PeerIdentity *id);
-
-/**
- * Closure for #sampler_get_rand_peer()
- */
-struct GetPeerCls
-{
-  /**
-   * DLL
-   */
-  struct GetPeerCls *next;
-
-  /**
-   * DLL
-   */
-  struct GetPeerCls *prev;
-
-  /**
-   * The sampler this function operates on.
-   */
-  struct RPS_Sampler *sampler;
-
-  /**
-   * The task for this function.
-   */
-  struct GNUNET_SCHEDULER_Task *get_peer_task;
-
-  /**
-   * The callback
-   */
-  RPS_sampler_rand_peer_ready_cont cont;
-
-  /**
-   * The closure to the callback @e cont
-   */
-  void *cont_cls;
-
-  /**
-   * The address of the id to be stored at
-   */
-  struct GNUNET_PeerIdentity *id;
-};
-
 
 ///**
 // * Global sampler variable.
@@ -697,6 +708,8 @@ RPS_sampler_init (size_t init_size,
   sampler->sampler_elements = NULL;
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_get_rand_peer;
+  sampler->gpc_head = NULL;
+  sampler->gpc_tail = NULL;
   //sampler->sampler_elements = GNUNET_new_array(init_size, struct GNUNET_PeerIdentity);
   //GNUNET_array_grow (sampler->sampler_elements, sampler->sampler_size, min_size);
   RPS_sampler_resize (sampler, init_size);
@@ -802,7 +815,6 @@ sampler_get_rand_peer2 (void *cls,
   uint32_t r_index;
 
   gpc->get_peer_task = NULL;
-  GNUNET_CONTAINER_DLL_remove (gpc_head, gpc_tail, gpc);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -813,19 +825,27 @@ sampler_get_rand_peer2 (void *cls,
   r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
       gpc->sampler->sampler_size);
 
-  if ( EMPTY == gpc->sampler->sampler_elements[r_index]->is_empty )
+  if (EMPTY == gpc->sampler->sampler_elements[r_index]->is_empty)
   {
-    gpc->get_peer_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
-                                                                   GNUNET_TIME_UNIT_SECONDS,
-                                                                   .1),
-                                                       &sampler_get_rand_peer2,
-                                                       cls);
+    //LOG (GNUNET_ERROR_TYPE_DEBUG,
+    //     "Not returning randomly selected, empty PeerID. - Rescheduling.\n");
+
+    gpc->get_peer_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
+                                        GNUNET_TIME_UNIT_SECONDS, 0.1),
+                                    &sampler_get_rand_peer2,
+                                    cls);
     return;
   }
 
   *gpc->id = gpc->sampler->sampler_elements[r_index]->peer_id;
 
   gpc->cont (gpc->cont_cls, gpc->id);
+
+  GNUNET_CONTAINER_DLL_remove (gpc->sampler->gpc_head,
+                               gpc->sampler->gpc_tail,
+                               gpc);
+
   GNUNET_free (gpc);
 }
 
@@ -929,7 +949,9 @@ sampler_get_rand_peer (void *cls,
 
   s_elem->last_client_request = GNUNET_TIME_absolute_get ();
 
-  GNUNET_CONTAINER_DLL_remove (gpc_head, gpc_tail, gpc);
+  GNUNET_CONTAINER_DLL_remove (gpc->sampler->gpc_head,
+                               gpc->sampler->gpc_tail,
+                               gpc);
   gpc->cont (gpc->cont_cls, gpc->id);
   GNUNET_free (gpc);
 }
@@ -982,7 +1004,9 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
     // maybe add a little delay
     gpc->get_peer_task = GNUNET_SCHEDULER_add_now (sampler->get_peers, gpc);
 
-    GNUNET_CONTAINER_DLL_insert (gpc_head, gpc_tail, gpc);
+    GNUNET_CONTAINER_DLL_insert (sampler->gpc_head,
+                                 sampler->gpc_tail,
+                                 gpc);
   }
 }
 
@@ -1021,9 +1045,11 @@ RPS_sampler_destroy (struct RPS_Sampler *sampler)
 {
   struct GetPeerCls *i;
 
-  for (i = gpc_head; NULL != i; i = gpc_head)
+  for (i = sampler->gpc_head; NULL != i; i = sampler->gpc_head)
   {
-    GNUNET_CONTAINER_DLL_remove (gpc_head, gpc_tail, i);
+    GNUNET_CONTAINER_DLL_remove (sampler->gpc_head,
+                                 sampler->gpc_tail,
+                                 i);
     GNUNET_SCHEDULER_cancel (i->get_peer_task);
     GNUNET_free (i);
   }
