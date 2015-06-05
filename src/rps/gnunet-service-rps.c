@@ -28,6 +28,7 @@
 #include "gnunet_cadet_service.h"
 #include "gnunet_nse_service.h"
 #include "rps.h"
+#include "rps-test_util.h"
 
 #include "gnunet-service-rps_sampler.h"
 
@@ -217,6 +218,11 @@ static struct GNUNET_PeerIdentity *gossip_list;
  */
 //static unsigned int gossip_list_size;
 static uint32_t gossip_list_size;
+
+/**
+ * Name to log view (gossip_list) to
+ */
+static char *file_name_view_log;
 
 
 /**
@@ -673,7 +679,12 @@ hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
   GNUNET_assert (1 == num_peers);
 
   if (gossip_list_size < sampler_size_est_need)
+  {
     GNUNET_array_append (gossip_list, gossip_list_size, *ids);
+    to_file (file_name_view_log,
+             "+%s\t(hist)",
+             GNUNET_i2s_full (ids));
+  }
 
   if (0 < num_hist_update_tasks)
     num_hist_update_tasks--;
@@ -913,7 +924,12 @@ insert_in_pull_list_scheduled (const struct PeerContext *peer_ctx)
 insert_in_gossip_list (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_NO == in_arr (gossip_list, gossip_list_size, peer))
+  {
     GNUNET_array_append (gossip_list, gossip_list_size, *peer);
+    to_file (file_name_view_log,
+             "+%s\t(ins in gossip list)",
+             GNUNET_i2s_full (peer));
+  }
 
   (void) get_channel (peer_map, peer);
 }
@@ -1968,8 +1984,13 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing gossip list:\n");
   for (i = 0 ; i < gossip_list_size ; i++)
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "\t%s\n", GNUNET_i2s (&gossip_list[i]));
+    to_file (file_name_view_log,
+             "=%s\t(do round)",
+             GNUNET_i2s_full (&gossip_list[i]));
+  }
   // TODO log lists, ...
 
   /* Would it make sense to have one shuffeled gossip list and then
@@ -2022,6 +2043,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
   /* Update gossip list */
+  /* TODO see how many peers are in push-/pull- list! */
 
   if (push_list_size <= alpha * gossip_list_size
       && push_list_size > 0
@@ -2047,11 +2069,17 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     GNUNET_array_grow (gossip_list, gossip_list_size, second_border);
 
+    to_file (file_name_view_log,
+             "--- emptied ---");
+
     for (i = 0 ; i < first_border ; i++)
     {/* Update gossip list with peers received through PUSHes */
       r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                           push_list_size);
       gossip_list[i] = push_list[r_index];
+      to_file (file_name_view_log,
+               "+%s't(push list)",
+               GNUNET_i2s_full (&gossip_list[i]));
       // TODO change the peer_flags accordingly
     }
 
@@ -2060,6 +2088,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                           pull_list_size);
       gossip_list[i] = pull_list[r_index];
+      to_file (file_name_view_log,
+               "+%s\t(pull list)",
+               GNUNET_i2s_full (&gossip_list[i]));
       // TODO change the peer_flags accordingly
     }
 
@@ -2077,7 +2108,12 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       rem_from_list (&peers_to_clean, &peers_to_clean_size, &gossip_list[i]);
 
     for (i = 0 ; i < peers_to_clean_size ; i++)
+    {
       peer_clean (&peers_to_clean[i]);
+      /* to_file (file_name_view_log,
+               "-%s",
+               GNUNET_i2s_full (&peers_to_clean[i])); */
+    }
 
     GNUNET_free (peers_to_clean);
   }
@@ -2470,6 +2506,9 @@ run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  int size;
+  int out_size;
+
   // TODO check what this does -- copied from gnunet-boss
   // - seems to work as expected
   GNUNET_log_setup ("rps", GNUNET_error_type_to_string (GNUNET_ERROR_TYPE_DEBUG), NULL);
@@ -2511,7 +2550,26 @@ run (void *cls,
 
 
   gossip_list = NULL;
+  gossip_list_size = 0;
 
+  /* file_name_view_log */
+  GNUNET_DISK_directory_create ("/tmp/rps/");
+
+  size = (14 + strlen (GNUNET_i2s_full (&own_identity)) + 1) * sizeof (char);
+  file_name_view_log = GNUNET_malloc (size);
+  out_size = GNUNET_snprintf (file_name_view_log,
+                              size,
+                              "/tmp/rps/view-%s",
+                              GNUNET_i2s_full (&own_identity));
+  if (size < out_size ||
+      0 > out_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Failed to write string to buffer (size: %i, out_size: %i)\n",
+         size,
+         out_size);
+  }
+                          
 
   /* connect to NSE */
   nse = GNUNET_NSE_connect (cfg, nse_callback, NULL);
