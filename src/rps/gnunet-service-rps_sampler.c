@@ -123,7 +123,7 @@ typedef void
 
 
 /**
- * Closure for #sampler_get_rand_peer()
+ * Closure for #sampler_mod_get_rand_peer() and #sampler_get_rand_peer
  */
 struct GetPeerCls
 {
@@ -180,7 +180,7 @@ typedef void
  * Only used internally
  */
 static void
-sampler_get_rand_peer2 (void *cls,
+sampler_get_rand_peer (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
@@ -190,7 +190,7 @@ sampler_get_rand_peer2 (void *cls,
  * corrsponding peer to the client.
  */
 static void
-sampler_get_rand_peer (void *cls,
+sampler_mod_get_rand_peer (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
@@ -734,7 +734,7 @@ RPS_sampler_mod_init (size_t init_size,
   struct RPS_Sampler *sampler;
 
   sampler = RPS_sampler_init (init_size, max_round_interval);
-  sampler->get_peers = sampler_get_rand_peer2;
+  sampler->get_peers = sampler_mod_get_rand_peer;
 
   #ifdef TO_FILE
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -808,7 +808,7 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
  * Only used internally
  */
 static void
-sampler_get_rand_peer2 (void *cls,
+sampler_get_rand_peer (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPeerCls *gpc = cls;
@@ -833,7 +833,7 @@ sampler_get_rand_peer2 (void *cls,
     gpc->get_peer_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
                                         GNUNET_TIME_UNIT_SECONDS, 0.1),
-                                    &sampler_get_rand_peer2,
+                                    &sampler_get_rand_peer,
                                     cls);
     return;
   }
@@ -857,7 +857,7 @@ sampler_get_rand_peer2 (void *cls,
  * corrsponding peer to the client.
  */
 static void
-sampler_get_rand_peer (void *cls,
+sampler_mod_get_rand_peer (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPeerCls *gpc = cls;
@@ -893,7 +893,7 @@ sampler_get_rand_peer (void *cls,
       GNUNET_assert (NULL == gpc->get_peer_task);
       gpc->get_peer_task =
         GNUNET_SCHEDULER_add_delayed (gpc->sampler->max_round_interval,
-                                      &sampler_get_rand_peer,
+                                      &sampler_mod_get_rand_peer,
                                       cls);
       return;
     }
@@ -940,7 +940,7 @@ sampler_get_rand_peer (void *cls,
       GNUNET_assert (NULL == gpc->get_peer_task);
       gpc->get_peer_task =
         GNUNET_SCHEDULER_add_delayed (gpc->sampler->max_round_interval,
-                                      &sampler_get_rand_peer,
+                                      &sampler_mod_get_rand_peer,
                                       cls);
       return;
     }
