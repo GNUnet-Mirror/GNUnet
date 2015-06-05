@@ -52,7 +52,10 @@ to_file_ (char *file_name, char *line)
                                           GNUNET_DISK_OPEN_APPEND |
                                           GNUNET_DISK_OPEN_WRITE |
                                           GNUNET_DISK_OPEN_CREATE,
-                                          GNUNET_DISK_PERM_USER_WRITE)))
+                                          GNUNET_DISK_PERM_USER_READ |
+                                          GNUNET_DISK_PERM_USER_WRITE |
+                                          GNUNET_DISK_PERM_GROUP_READ |
+                                          GNUNET_DISK_PERM_OTHER_READ)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Not able to open file %s\n",
