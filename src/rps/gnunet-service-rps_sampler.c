@@ -209,9 +209,28 @@ struct RPS_Sampler
   //size_t size;
 
   /**
-   * All Samplers in one array.
+   * All sampler elements in one array.
    */
   struct RPS_SamplerElement **sampler_elements;
+
+  /**
+   * Number of sampler elements trash can holds.
+   */
+  unsigned int trash_can_size;
+
+  /**
+   * Trash can for old sampler elements.
+   * We need this to evaluate the sampler.
+   * TODO remove after evaluation
+   *      and undo changes in
+   *      sampler_resize
+   *      sampler_empty
+   *      sampler_init
+   *      sampler_remove?
+   *      sampler_reinitialise_by_value
+   *      sampler_update
+   */
+  struct RPS_SamplerElement **trash_can;
 
   /**
    * Maximum time a round takes
@@ -394,7 +413,7 @@ RPS_sampler_elem_create (void)
  */
 static void
 RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
-                       struct RPS_Sampler *sampler,
+                       struct RPS_Sampler *sampler, /* TODO remove? */
                        const struct GNUNET_PeerIdentity *other)
 {
   struct GNUNET_HashCode other_hash;
@@ -487,7 +506,6 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
 
   if (old_size > new_size)
   { /* Shrinking */
-    /* Temporary store those to properly call the removeCB on those later */
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Shrinking sampler %d -> %d\n",
@@ -499,20 +517,27 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          old_size,
          new_size);
 
+    /* TODO Temporary store those to properly call the removeCB on those later? */
+    GNUNET_array_grow (sampler->trash_can,
+                       sampler->trash_can_size,
+                       old_size - new_size);
     for (i = new_size ; i < old_size ; i++)
     {
       to_file (sampler->file_name,
                "-%" PRIu32 ": %s",
                i,
                sampler->sampler_elements[i]->file_name);
+      to_file (sampler->sampler_elements[i]->file_name,
+               "--- non-active");
+      sampler->trash_can[i - new_size] = sampler->sampler_elements[i];
     }
 
     GNUNET_array_grow (sampler->sampler_elements,
-        sampler->sampler_size,
-        new_size);
+                       sampler->sampler_size,
+                       new_size);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "sampler->sampler_elements now points to %p\n",
-        sampler->sampler_elements);
+         "sampler->sampler_elements now points to %p\n",
+         sampler->sampler_elements);
 
   }
   else if (old_size < new_size)
@@ -575,6 +600,9 @@ static void
 sampler_empty (struct RPS_Sampler *sampler)
 {
   sampler_resize (sampler, 0);
+  GNUNET_array_grow (sampler->trash_can,
+                     sampler->trash_can_size,
+                     0);
 }
 
 
@@ -607,6 +635,8 @@ RPS_sampler_init (size_t init_size,
 
   sampler->sampler_size = 0;
   sampler->sampler_elements = NULL;
+  sampler->trash_can_size = 0;
+  sampler->trash_can = NULL;
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_get_rand_peer;
   sampler->gpc_head = NULL;
@@ -669,6 +699,13 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
                            sampler,
                            id);
   }
+
+  for (i = 0 ; i < sampler->trash_can_size ; i++)
+  {
+    RPS_sampler_elem_next (sampler->trash_can[i],
+                           sampler,
+                           id);
+  }
 }
 
 
@@ -685,12 +722,20 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
                                    const struct GNUNET_PeerIdentity *id)
 {
   uint32_t i;
+  struct RPS_SamplerElement *trash_entry;
 
   for ( i = 0 ; i < sampler->sampler_size ; i++ )
   {
     if ( 0 == GNUNET_CRYPTO_cmp_peer_identity(id, &(sampler->sampler_elements[i]->peer_id)) )
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Reinitialising sampler\n");
+      trash_entry = GNUNET_new (struct RPS_SamplerElement);
+      *trash_entry = *(sampler->sampler_elements[i]);
+      GNUNET_array_append (sampler->trash_can,
+                           sampler->trash_can_size,
+                           trash_entry);
+      to_file (trash_entry->file_name,
+               "--- non-active");
       RPS_sampler_elem_reinit (sampler->sampler_elements[i]);
     }
   }
