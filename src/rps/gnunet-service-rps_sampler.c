@@ -32,7 +32,10 @@
 #include <math.h>
 #include <inttypes.h>
 
+#include "rps-test_util.h"
+
 #define LOG(kind, ...) GNUNET_log_from(kind,"rps-sampler",__VA_ARGS__)
+
 
 // multiple 'clients'?
 
@@ -299,76 +302,6 @@ static size_t max_size;
 static uint32_t client_get_index;
 
 
-#ifdef TO_FILE
-/**
- * This function is used to facilitate writing important information to disk
- */
-#define to_file(file_name, ...) do {char tmp_buf[512];\
-  int size;\
-  size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
-  if (0 > size)\
-    LOG (GNUNET_ERROR_TYPE_WARNING,\
-         "Failed to create tmp_buf\n");\
-  else\
-    to_file_(file_name,tmp_buf);\
-} while (0);
-
-static void
-to_file_ (char *file_name, char *line)
-{
-  struct GNUNET_DISK_FileHandle *f;
-  char output_buffer[512];
-  //size_t size;
-  int size;
-  size_t size2;
-
-
-  if (NULL == (f = GNUNET_DISK_file_open (file_name,
-                                          GNUNET_DISK_OPEN_APPEND |
-                                          GNUNET_DISK_OPEN_WRITE |
-                                          GNUNET_DISK_OPEN_CREATE,
-                                          GNUNET_DISK_PERM_USER_WRITE)))
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Not able to open file %s\n",
-         file_name);
-    return;
-  }
-  size = GNUNET_snprintf (output_buffer,
-                          sizeof (output_buffer),
-                          "%llu %s\n",
-                          GNUNET_TIME_absolute_get ().abs_value_us,
-                          line);
-  if (0 > size)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Failed to write string to buffer (size: %i)\n",
-         size);
-    return;
-  }
-
-  size2 = GNUNET_DISK_file_write (f, output_buffer, size);
-  if (size != size2)
-  {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unable to write to file! (Size: %u, size2: %u)\n",
-         size,
-         size2);
-    return;
-  }
-
-  if (GNUNET_YES != GNUNET_DISK_file_close (f))
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Unable to close file\n");
-}
-#endif /* TO_FILE */
-
-
-/** FIXME document */
-static struct GetPeerCls *gpc_head;
-static struct GetPeerCls *gpc_tail;
-
-
 /**
  * Callback to _get_rand_peer() used by _get_n_rand_peers().
  *
@@ -417,38 +350,11 @@ RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el)
 
   #ifdef TO_FILE
   /* Create a file(-name) to store internals to */
-  int size;
-  char *end;
-  char *buf;
-  char name_buf[512];
-  size_t keylen = (sizeof (struct GNUNET_CRYPTO_AuthKey)) * 8;
+  char *name_buf;
+  name_buf = auth_key_to_string (sampler_el->auth_key);
 
-  if (keylen % 5 > 0)
-    keylen += 5 - keylen % 5;
-  keylen /= 5;
-  buf = GNUNET_malloc (keylen + 1);
-
-  end = GNUNET_STRINGS_data_to_string (&(sampler_el->auth_key.key),
-                                       sizeof (struct GNUNET_CRYPTO_AuthKey),
-                                       buf,
-                                       keylen);
-
-  if (NULL == end)
-  {
-    GNUNET_free (buf);
-    GNUNET_break (0);
-  }
-  else
-  {
-    *end = '\0';
-  }
-
-  size = GNUNET_snprintf (name_buf, sizeof (name_buf), "sampler_el-%s-", buf);
-  if (0 > size)
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create name_buf\n");
-
-  if (NULL == (sampler_el->file_name = GNUNET_DISK_mktemp (name_buf)))
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
+  sampler_el->file_name = create_file (name_buf);
+  GNUNET_free (name_buf);
   #endif /* TO_FILE */
 
   sampler_el->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -495,11 +401,9 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
 
   s_elem->num_peers++;
 
-  #ifdef TO_FILE
   to_file (s_elem->file_name,
            "Got id %s",
            GNUNET_i2s_full (other));
-  #endif /* TO_FILE */
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
   {
@@ -545,11 +449,10 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
     }
   }
   s_elem->is_empty = NOT_EMPTY;
-  #ifdef TO_FILE
+
   to_file (s_elem->file_name,
            "Now holding %s",
            GNUNET_i2s_full (&s_elem->peer_id));
-  #endif /* TO_FILE */
 }
 
 
@@ -590,7 +493,7 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          "Shrinking sampler %d -> %d\n",
          old_size,
          new_size);
-    #ifdef TO_FILE
+
     to_file (sampler->file_name,
          "Shrinking sampler %d -> %d",
          old_size,
@@ -603,7 +506,7 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
                i,
                sampler->sampler_elements[i]->file_name);
     }
-    #endif /* TO_FILE */
+
     GNUNET_array_grow (sampler->sampler_elements,
         sampler->sampler_size,
         new_size);
@@ -618,12 +521,12 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          "Growing sampler %d -> %d\n",
          old_size,
          new_size);
-    #ifdef TO_FILE
+
     to_file (sampler->file_name,
          "Growing sampler %d -> %d",
          old_size,
          new_size);
-    #endif /* TO_FILE */
+
     GNUNET_array_grow (sampler->sampler_elements,
         sampler->sampler_size,
         new_size);
@@ -631,12 +534,11 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
     for (i = old_size ; i < new_size ; i++)
     { /* Add new sampler elements */
       sampler->sampler_elements[i] = RPS_sampler_elem_create ();
-      #ifdef TO_FILE
+
       to_file (sampler->file_name,
                "+%" PRIu32 ": %s",
                i,
                sampler->sampler_elements[i]->file_name);
-      #endif /* TO_FILE */
     }
   }
   else
@@ -696,9 +598,8 @@ RPS_sampler_init (size_t init_size,
   sampler = GNUNET_new (struct RPS_Sampler);
 
   #ifdef TO_FILE
-  if (NULL == (sampler->file_name = GNUNET_DISK_mktemp ("sampler-")))
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Could not create file\n");
+  sampler->file_name = create_file ("sampler-");
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initialised sampler %s\n",
        sampler->file_name);
@@ -736,13 +637,11 @@ RPS_sampler_mod_init (size_t init_size,
   sampler = RPS_sampler_init (init_size, max_round_interval);
   sampler->get_peers = sampler_mod_get_rand_peer;
 
-  #ifdef TO_FILE
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initialised modified sampler %s\n",
        sampler->file_name);
   to_file (sampler->file_name,
            "This is a modified sampler");
-  #endif /* TO_FILE */
 
   return sampler;
 }
@@ -760,11 +659,9 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
 {
   uint32_t i;
 
-  #ifdef TO_FILE
   to_file (sampler->file_name,
            "Got %s",
            GNUNET_i2s_full (id));
-  #endif /* TO_FILE */
 
   for (i = 0 ; i < sampler->sampler_size ; i++)
   {
@@ -830,6 +727,10 @@ sampler_get_rand_peer (void *cls,
     //LOG (GNUNET_ERROR_TYPE_DEBUG,
     //     "Not returning randomly selected, empty PeerID. - Rescheduling.\n");
 
+    /* FIXME no active wait - get notified, when new id arrives?
+     * Might also be a freshly emptied one. Others might still contain ids.
+     * Counter?
+     */
     gpc->get_peer_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
                                         GNUNET_TIME_UNIT_SECONDS, 0.1),
