@@ -858,8 +858,8 @@ sampler_mod_get_rand_peer (void *cls,
     else
       client_get_index++;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "incremented index to %" PRIX32 ".\n",
-         client_get_index);
+    /* LOG (GNUNET_ERROR_TYPE_DEBUG, "incremented index to %" PRIX32 ".\n",
+         client_get_index); */
   } while (EMPTY == gpc->sampler->sampler_elements[client_get_index]->is_empty);
 
   s_elem = gpc->sampler->sampler_elements[client_get_index];
