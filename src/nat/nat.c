@@ -1337,8 +1337,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (NULL != h->address_callback)
   {
-    list_interfaces (h,
-                     NULL);
+    h->ifc_task = GNUNET_SCHEDULER_add_now (&list_interfaces,
+                                            h);
     if (GNUNET_YES == h->use_hostname)
       h->hostname_task = GNUNET_SCHEDULER_add_now (&resolve_hostname,
                                                    h);
