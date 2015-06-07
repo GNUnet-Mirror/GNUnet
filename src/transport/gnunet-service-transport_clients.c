@@ -1009,6 +1009,9 @@ clients_handle_address_to_string (void *cls,
   papi = GST_plugins_printer_find (plugin_name);
   if (NULL == papi)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to find plugin `%s'\n",
+                plugin_name);
     atsm.header.size = ntohs (sizeof (struct AddressToStringResultMessage));
     atsm.header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     atsm.res = htonl (GNUNET_SYSERR);
@@ -1028,6 +1031,10 @@ clients_handle_address_to_string (void *cls,
   actx->tc = tc;
   GNUNET_CONTAINER_DLL_insert (a2s_head, a2s_tail, actx);
   GNUNET_SERVER_disable_receive_done_warning (client);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Pretty-printing address of %u bytes using plugin `%s'\n",
+              address_len,
+              plugin_name);
   papi->address_pretty_printer (papi->cls,
                                 plugin_name,
                                 address, address_len,

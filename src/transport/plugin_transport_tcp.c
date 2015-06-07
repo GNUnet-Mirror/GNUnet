@@ -1887,6 +1887,9 @@ append_port (void *cls,
   struct Plugin *plugin = ppc->plugin;
   char *ret;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "append_port called with hostname `%s'\n",
+              hostname);
   if (NULL == hostname)
   {
     /* Final call, done */
@@ -1982,6 +1985,9 @@ tcp_plugin_address_pretty_printer (void *cls,
   else
   {
     /* invalid address */
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Unexpected address length: %u bytes\n"),
+         (unsigned int) addrlen);
     asc (asc_cls, NULL, GNUNET_SYSERR);
     asc (asc_cls, NULL, GNUNET_OK);
     return;
@@ -1996,6 +2002,8 @@ tcp_plugin_address_pretty_printer (void *cls,
   ppc->asc_cls = asc_cls;
   ppc->port = port;
   ppc->options = options;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting DNS reverse lookup\n");
   ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb,
                                                        sbs,
                                                        ! numeric,

@@ -410,7 +410,7 @@ GST_plugins_a2s (const struct GNUNET_HELLO_Address *address)
   api = GST_plugins_printer_find (address->transport_name);
   if (NULL == api)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to find transport plugin `%s'\n",
                 address->transport_name);
     return "<plugin unknown>";

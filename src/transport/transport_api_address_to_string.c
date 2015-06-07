@@ -73,6 +73,8 @@ address_response_processor (void *cls,
 
   if (NULL == msg)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Disconnected from transport, address resolution failed\n");
     alucb->cb (alucb->cb_cls,
                NULL,
                GNUNET_SYSERR);
@@ -99,6 +101,8 @@ address_response_processor (void *cls,
   {
     /* expect more replies; as this is not the last
        call, we must pass the empty string for the address */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Address resolution failed\n");
     alucb->cb (alucb->cb_cls,
                "",
                GNUNET_NO);
@@ -190,11 +194,15 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle *cf
   }
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (NULL == client)
+  {
+    GNUNET_break (0);
     return NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Client %p tries to resolve for peer `%s'address len %u \n",
+              "Client %p tries to resolve for peer `%s' address plugin %s len %u\n",
               client,
               GNUNET_i2s (&address->peer),
+              address->transport_name,
               address->address_length);
 
   msg = GNUNET_malloc (len);
