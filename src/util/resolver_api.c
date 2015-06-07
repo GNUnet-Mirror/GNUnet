@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2014 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -78,13 +78,13 @@ static struct GNUNET_TIME_Relative backoff;
 /**
  * Task for reconnecting.
  */
-static struct GNUNET_SCHEDULER_Task * r_task;
+static struct GNUNET_SCHEDULER_Task *r_task;
 
 /**
  * Task ID of shutdown task; only present while we have a
  * connection to the resolver service.
  */
-static struct GNUNET_SCHEDULER_Task * s_task;
+static struct GNUNET_SCHEDULER_Task *s_task;
 
 
 /**
@@ -401,13 +401,27 @@ handle_response (void *cls,
   size = ntohs (msg->size);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received empty response from DNS service\n");
     /* message contains not data, just header; end of replies */
     /* check if request was canceled */
     if (GNUNET_SYSERR != rh->was_transmitted)
     {
+      /* no reverse lookup was successful, return IP as string */
       if (NULL != rh->name_callback)
+      {
+        if (GNUNET_NO == rh->received_response)
+        {
+          nret = no_resolve (rh->af,
+                             &rh[1],
+                             rh->data_len);
+          rh->name_callback (rh->cls, nret);
+          GNUNET_free (nret);
+        }
+        /* finally, make termination call */
         rh->name_callback (rh->cls,
                            NULL);
+      }
       if (NULL != rh->addr_callback)
         rh->addr_callback (rh->cls,
                            NULL,
@@ -495,6 +509,8 @@ handle_response (void *cls,
       reconnect ();
       return;
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received IP from DNS service\n");
     if (GNUNET_SYSERR != rh->was_transmitted)
       rh->addr_callback (rh->cls,
                          sa,
@@ -810,7 +826,8 @@ handle_lookup_timeout (void *cls,
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (const char *hostname, int af,
+GNUNET_RESOLVER_ip_get (const char *hostname,
+                        int af,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_RESOLVER_AddressCallback callback,
                         void *callback_cls)
@@ -938,10 +955,12 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
   switch (sa->sa_family)
   {
   case AF_INET:
+    GNUNET_assert (salen == sizeof (struct sockaddr_in));
     ip_len = sizeof (struct in_addr);
     ip = &((const struct sockaddr_in*)sa)->sin_addr;
     break;
   case AF_INET6:
+    GNUNET_assert (salen == sizeof (struct sockaddr_in6));
     ip_len = sizeof (struct in6_addr);
     ip = &((const struct sockaddr_in6*)sa)->sin6_addr;
     break;

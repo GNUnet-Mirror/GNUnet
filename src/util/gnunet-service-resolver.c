@@ -101,6 +101,7 @@ getnameinfo_resolve (struct IPCache *cache)
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
   size_t salen;
+  int ret;
 
   switch (cache->af)
   {
@@ -131,12 +132,18 @@ getnameinfo_resolve (struct IPCache *cache)
   }
 
   if (0 ==
-      getnameinfo (sa, salen,
-                   hostname, sizeof (hostname),
-                   NULL,
-                   0, 0))
+      (ret = getnameinfo (sa, salen,
+                          hostname, sizeof (hostname),
+                          NULL,
+                          0, 0)))
   {
     cache->addr = GNUNET_strdup (hostname);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "getnameinfo failed: %s\n",
+                gai_strerror (ret));
   }
 }
 #endif
@@ -159,6 +166,12 @@ gethostbyaddr_resolve (struct IPCache *cache)
   if (NULL != ent)
   {
     cache->addr = GNUNET_strdup (ent->h_name);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "gethostbyaddr failed: %s\n",
+                hstrerror (h_errno));
   }
 }
 #endif
@@ -269,6 +282,9 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_transmit_context_append_data (tc, pos->addr,
                                                 strlen (pos->addr) + 1,
                                                 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Reverse lookup failed\n");
   GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
                                               GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
@@ -307,7 +323,8 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
 
   if (0 != (s = getaddrinfo (hostname, NULL, &hints, &result)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Could not resolve `%s' (%s): %s\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Could not resolve `%s' (%s): %s\n"),
                 hostname,
                 (af ==
                  AF_INET) ? "IPv4" : ((af == AF_INET6) ? "IPv6" : "any"),
@@ -354,7 +371,8 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
 #if HAVE_GETHOSTBYNAME2
 static int
 gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
-                        const char *hostname, int af)
+                        const char *hostname,
+                        int af)
 {
   struct hostent *hp;
   int ret1;
@@ -417,10 +435,11 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   struct hostent *hp;
 
   hp = GETHOSTBYNAME (hostname);
-  if (hp == NULL)
+  if (NULL == hp)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Could not find IP of host `%s': %s\n"), hostname,
+                _("Could not find IP of host `%s': %s\n"),
+                hostname,
                 hstrerror (h_errno));
     return GNUNET_SYSERR;
   }
@@ -497,14 +516,15 @@ handle_get (void *cls,
   if (msize < sizeof (struct GNUNET_RESOLVER_GetMessage))
   {
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   msg = (const struct GNUNET_RESOLVER_GetMessage *) message;
   size = msize - sizeof (struct GNUNET_RESOLVER_GetMessage);
   direction = ntohl (msg->direction);
   af = ntohl (msg->af);
-  if (direction == GNUNET_NO)
+  if (GNUNET_NO == direction)
   {
     /* IP from hostname */
     const char *hostname;
@@ -513,10 +533,12 @@ handle_get (void *cls,
     if (hostname[size - 1] != '\0')
     {
       GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_SYSERR);
       return;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Resolver asked to look up `%s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Resolver asked to look up `%s'.\n",
                 hostname);
     get_ip_from_hostname (client, hostname, af);
     return;
@@ -528,7 +550,8 @@ handle_get (void *cls,
     if (size != sizeof (struct in_addr))
     {
       GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_SYSERR);
       return;
     }
     break;
@@ -536,13 +559,15 @@ handle_get (void *cls,
     if (size != sizeof (struct in6_addr))
     {
       GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+      GNUNET_SERVER_receive_done (client,
+                                  GNUNET_SYSERR);
       return;
     }
     break;
   default:
     GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_SYSERR);
     return;
   }
   {
@@ -590,7 +615,9 @@ main (int argc, char *const *argv)
 
   ret =
       (GNUNET_OK ==
-       GNUNET_SERVICE_run (argc, argv, "resolver", GNUNET_SERVICE_OPTION_NONE,
+       GNUNET_SERVICE_run (argc, argv,
+                           "resolver",
+                           GNUNET_SERVICE_OPTION_NONE,
                            &run, NULL)) ? 0 : 1;
   while (NULL != (pos = cache_head))
   {
