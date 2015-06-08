@@ -4344,7 +4344,7 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
 
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &pub);
   LOG2 (level, "TTT  DHRs\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &pub));
+        GNUNET_i2s (&pub));
   LOG2 (level, "TTT  DHRr\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHRr));
 
