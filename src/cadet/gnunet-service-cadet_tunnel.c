@@ -763,7 +763,7 @@ get_connection_allowed (const struct CadetTConnection *tc)
  * @param t Tunnel on which the message came.
  * @param msg The ephemeral key message.
  *
- * @return GNUNET_OK if message is fine, GNUNET_SYSERR otherwise.
+ * @return #GNUNET_OK if message is fine, #GNUNET_SYSERR otherwise.
  */
 int
 check_ephemeral (struct CadetTunnel *t,
