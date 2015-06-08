@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001-2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2001-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,7 +17,6 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file cadet/gnunet-service-cadet_connection.c
  * @brief GNUnet CADET service connection handling
@@ -623,9 +622,11 @@ conn_message_sent (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   c->pending_messages--;
-  if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
+  if ( (GNUNET_YES == c->destroy) &&
+       (0 == c->pending_messages) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "!  destroying connection!\n");
     GCC_destroy (c);
     return GNUNET_YES;
   }
@@ -729,8 +730,8 @@ get_prev_hop (const struct CadetConnection *c)
 
   if (NULL == c->path)
     return NULL;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " get prev hop %s [%u/%u]\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " get prev hop %s [%u/%u]\n",
        GCC_2s (c), c->own_pos, c->path->length);
   if (0 == c->own_pos || c->path->length < 2)
     id = c->path->peers[0];
@@ -1376,7 +1377,8 @@ connection_fwd_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Connection %s FWD timed out. Destroying.\n",
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Connection %s FWD timed out. Destroying.\n",
        GCC_2s (c));
   GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
 
@@ -1510,21 +1512,25 @@ register_neighbors (struct CadetConnection *c)
        GCC_2s (c), prev_peer);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "prev peer %p %s\n", prev_peer, GCP_2s (prev_peer));
 
-  if (GNUNET_NO == GCP_is_neighbor (next_peer)
-      || GNUNET_NO == GCP_is_neighbor (prev_peer))
+  if ( (GNUNET_NO == GCP_is_neighbor (next_peer)) ||
+       (GNUNET_NO == GCP_is_neighbor (prev_peer)) )
   {
     if (GCC_is_origin (c, GNUNET_YES))
       GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
     GNUNET_STATISTICS_update (stats, "# bad paths", 1, GNUNET_NO);
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, neighbor?: %d\n",
-         GCP_2s (prev_peer), GCP_is_neighbor (prev_peer));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next: %s, neighbor?: %d\n",
-         GCP_2s (next_peer), GCP_is_neighbor (next_peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  register neighbors failed\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  prev: %s, neighbor?: %d\n",
+         GCP_2s (prev_peer),
+         GCP_is_neighbor (prev_peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  next: %s, neighbor?: %d\n",
+         GCP_2s (next_peer),
+         GCP_is_neighbor (next_peer));
     return GNUNET_SYSERR;
   }
-
   GCP_add_connection (next_peer, c);
   GCP_add_connection (prev_peer, c);
 
@@ -1543,18 +1549,9 @@ unregister_neighbors (struct CadetConnection *c)
   struct CadetPeer *peer;
 
   peer = get_next_hop (c);
-  if (GNUNET_OK != GCP_remove_connection (peer, c))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
-    if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
-  }
-
+  GCP_remove_connection (peer, c);
   peer = get_prev_hop (c);
-  if (GNUNET_OK != GCP_remove_connection (peer, c))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
-    if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
-  }
+  GCP_remove_connection (peer, c);
 }
 
 
@@ -1634,7 +1631,8 @@ does_connection_exist (struct CadetConnection *conn)
   if (NULL == t)
     return GNUNET_NO;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking for duplicates\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Checking for duplicates\n");
 
   GCT_iterate_connections (t, &check_path, conn);
 
@@ -1985,8 +1983,8 @@ GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param id Peer identity of sending neighbor.
  * @param message Message.
  *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
 GCC_handle_broken (void* cls,
@@ -2058,19 +2056,19 @@ GCC_handle_broken (void* cls,
  * @param cls Closure (unused).
  * @param peer Peer identity of sending neighbor.
  * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_destroy (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_CADET_ConnectionDestroy *msg;
+  const struct GNUNET_CADET_ConnectionDestroy *msg;
   struct CadetConnection *c;
   int fwd;
 
-  msg = (struct GNUNET_CADET_ConnectionDestroy *) message;
+  msg = (const struct GNUNET_CADET_ConnectionDestroy *) message;
   log_message (message, peer, &msg->cid);
   c = connection_get (&msg->cid);
   if (NULL == c)
@@ -2081,7 +2079,8 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
      */
     GNUNET_STATISTICS_update (stats, "# control on unknown connection",
                               1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection unknown: already destroyed?\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  connection unknown: already destroyed?\n");
     return GNUNET_OK;
   }
   fwd = is_fwd (c, peer);
@@ -2651,9 +2650,9 @@ GCC_init (const struct GNUNET_CONFIGURATION_Handle *c)
  *
  * @param cls Closure (unused).
  * @param key Current key code (CID, unused).
- * @param value Value in the hash map (connection)
+ * @param value Value in the hash map (`struct CadetConnection`)
  *
- * @return #GNUNET_YES, because we should continue to iterate,
+ * @return #GNUNET_YES, because we should continue to iterate
  */
 static int
 shutdown_iterator (void *cls,
@@ -2662,6 +2661,7 @@ shutdown_iterator (void *cls,
 {
   struct CadetConnection *c = value;
 
+  c->state = CADET_CONNECTION_DESTROYED;
   GCC_destroy (c);
   return GNUNET_YES;
 }
@@ -2673,7 +2673,9 @@ shutdown_iterator (void *cls,
 void
 GCC_shutdown (void)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (connections, &shutdown_iterator, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (connections,
+                                         &shutdown_iterator,
+                                         NULL);
   GNUNET_CONTAINER_multihashmap_destroy (connections);
   connections = NULL;
 }
@@ -2745,11 +2747,16 @@ GCC_destroy (struct CadetConnection *c)
     return;            /* -> message_sent -> GCC_destroy. Don't loop. */
   c->destroy = 2;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s\n", GCC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " fc's f: %p, b: %p\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "destroying connection %s\n",
+       GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " fc's f: %p, b: %p\n",
        &c->fwd_fc, &c->bck_fc);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " fc tasks f: %u, b: %u\n",
-       c->fwd_fc.poll_task, c->bck_fc.poll_task);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " fc tasks f: %u, b: %u\n",
+       c->fwd_fc.poll_task,
+       c->bck_fc.poll_task);
 
   /* Cancel all traffic */
   if (NULL != c->path)
@@ -2763,19 +2770,22 @@ GCC_destroy (struct CadetConnection *c)
   if (NULL != c->fwd_fc.poll_msg)
   {
     GCC_cancel (c->fwd_fc.poll_msg);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL msg FWD canceled\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         " *** POLL msg FWD canceled\n");
   }
   if (NULL != c->bck_fc.poll_msg)
   {
     GCC_cancel (c->bck_fc.poll_msg);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL msg BCK canceled\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         " *** POLL msg BCK canceled\n");
   }
 
   /* Delete from tunnel */
   if (NULL != c->t)
     GCT_remove_connection (c->t, c);
 
-  if (GNUNET_NO == GCC_is_origin (c, GNUNET_YES) && NULL != c->path)
+  if ( (GNUNET_NO == GCC_is_origin (c, GNUNET_YES)) &&
+       (NULL != c->path) )
     path_destroy (c->path);
   if (NULL != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
@@ -2794,11 +2804,15 @@ GCC_destroy (struct CadetConnection *c)
 
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (connections,
-                                                      GCC_get_h (c), c));
-
-  GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
+                                                      GCC_get_h (c),
+                                                      c));
+  GNUNET_STATISTICS_update (stats,
+                            "# connections",
+                            -1,
+                            GNUNET_NO);
   GNUNET_free (c);
 }
+
 
 /**
  * Get the connection ID.
@@ -2983,9 +2997,9 @@ GCC_notify_broken (struct CadetConnection *c,
   int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " notify broken on %s due to %s disconnect\n",
-       GCC_2s (c), GCP_2s (peer));
-
+       "Notify broken on %s due to %s disconnect\n",
+       GCC_2s (c),
+       GCP_2s (peer));
   hop = get_prev_hop (c);
   if (NULL == hop)
   {
@@ -2993,7 +3007,6 @@ GCC_notify_broken (struct CadetConnection *c,
     GNUNET_break (0);
     return;
   }
-
   fwd = (peer == hop);
   if (GNUNET_YES == GCC_is_terminal (c, fwd))
   {
@@ -3014,8 +3027,6 @@ GCC_notify_broken (struct CadetConnection *c,
    * Cancel all queues, if no message is left, connection will be destroyed.
    */
   connection_cancel_queues (c, !fwd);
-
-  return;
 }
 
 
@@ -3486,4 +3497,3 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
 
   LOG2 (level, "CCC DEBUG CONNECTION END\n");
 }
-

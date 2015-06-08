@@ -49,34 +49,34 @@
  */
 struct CadetPeerQueue
 {
-    /**
-      * DLL next
-      */
+  /**
+   * DLL next
+   */
   struct CadetPeerQueue *next;
 
-    /**
-      * DLL previous
-      */
+  /**
+   * DLL previous
+   */
   struct CadetPeerQueue *prev;
 
-    /**
-     * Peer this transmission is directed to.
-     */
+  /**
+   * Peer this transmission is directed to.
+   */
   struct CadetPeer *peer;
 
-    /**
-     * Connection this message belongs to.
-     */
+  /**
+   * Connection this message belongs to.
+   */
   struct CadetConnection *c;
 
-    /**
-     * Is FWD in c?
-     */
+  /**
+   * Is FWD in c?
+   */
   int fwd;
 
-    /**
-     * Pointer to info stucture used as cls.
-     */
+  /**
+   * Pointer to info stucture used as cls.
+   */
   void *cls;
 
   /**
@@ -95,25 +95,26 @@ struct CadetPeerQueue
   uint32_t payload_id;
 
   /**
-     * Size of the message
-     */
+   * Size of the message
+   */
   size_t size;
 
-    /**
-     * Set when this message starts waiting for CORE.
-     */
+  /**
+   * Set when this message starts waiting for CORE.
+   */
   struct GNUNET_TIME_Absolute start_waiting;
 
-    /**
-     * Function to call on sending.
-     */
+  /**
+   * Function to call on sending.
+   */
   GCP_sent cont;
 
-    /**
-     * Closure for callback.
-     */
+  /**
+   * Closure for callback.
+   */
   void *cont_cls;
 };
+
 
 /**
  * Struct containing all information regarding a given peer
@@ -150,19 +151,19 @@ struct CadetPeer
    */
   struct GNUNET_SCHEDULER_Task *search_delayed;
 
-    /**
-     * Tunnel to this peer, if any.
-     */
+  /**
+   * Tunnel to this peer, if any.
+   */
   struct CadetTunnel *tunnel;
 
-    /**
-     * Connections that go through this peer, indexed by tid;
-     */
+  /**
+   * Connections that go through this peer, indexed by tid;
+   */
   struct GNUNET_CONTAINER_MultiHashMap *connections;
 
-    /**
-     * Handle for queued transmissions
-     */
+  /**
+   * Handle for queued transmissions
+   */
   struct GNUNET_CORE_TransmitHandle *core_transmit;
 
   /**
@@ -212,7 +213,7 @@ extern struct GNUNET_PeerIdentity my_full_id;
 extern GNUNET_PEER_Id myid;
 
 /**
- * Peers known, indexed by PeerIdentity (CadetPeer).
+ * Peers known, indexed by PeerIdentity, values of type `struct CadetPeer`.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
@@ -347,10 +348,12 @@ notify_broken (void *cls,
   struct CadetPeer *peer = cls;
   struct CadetConnection *c = value;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  notifying %s due to %s\n",
-       GCC_2s (c), GCP_2s (peer));
-  GCC_notify_broken (c, peer);
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying %s due to %s\n",
+       GCC_2s (c),
+       GCP_2s (peer));
+  GCC_notify_broken (c,
+                     peer);
   return GNUNET_YES;
 }
 
@@ -434,26 +437,33 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer peer identity this notification is about
  */
 static void
-core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+core_disconnect (void *cls,
+                 const struct GNUNET_PeerIdentity *peer)
 {
   struct CadetPeer *p;
   struct CadetPeerPath *direct_path;
   char own_id[16];
 
   strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
-  p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
+  p = GNUNET_CONTAINER_multipeermap_get (peers,
+                                         peer);
   if (NULL == p)
   {
     GNUNET_break (0);
     return;
   }
   if (myid == p->id)
-    LOG (GNUNET_ERROR_TYPE_INFO, "DISCONNECTED %s (self)\n", own_id);
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "DISCONNECTED %s (self)\n",
+         own_id);
   else
-    LOG (GNUNET_ERROR_TYPE_INFO, "DISCONNECTED %s <= %s\n",
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "DISCONNECTED %s <= %s\n",
          own_id, GNUNET_i2s (peer));
   direct_path = pop_direct_path (p);
-  GNUNET_CONTAINER_multihashmap_iterate (p->connections, &notify_broken, p);
+  GNUNET_CONTAINER_multihashmap_iterate (p->connections,
+                                         &notify_broken,
+                                         p);
   GNUNET_CONTAINER_multihashmap_destroy (p->connections);
   p->connections = NULL;
   if (NULL != p->core_transmit)
@@ -756,10 +766,14 @@ peer_destroy (struct CadetPeer *peer)
   GNUNET_PEER_resolve (peer->id, &id);
   GNUNET_PEER_change_rc (peer->id, -1);
 
-  LOG (GNUNET_ERROR_TYPE_WARNING, "destroying peer %s\n", GNUNET_i2s (&id));
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "destroying peer %s\n",
+       GNUNET_i2s (&id));
 
   if (GNUNET_YES !=
-    GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
+    GNUNET_CONTAINER_multipeermap_remove (peers,
+                                          &id,
+                                          peer))
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING, " not in peermap!!\n");
@@ -1634,7 +1648,8 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
 void
 GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "GCP_init\n");
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "CADET", "MAX_PEERS",
@@ -1704,19 +1719,22 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCP_shutdown (void)
 {
-  GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_tunnel, NULL);
-
-  if (core_handle != NULL)
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
+                                         &shutdown_tunnel,
+                                         NULL);
+  if (NULL != core_handle)
   {
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
-  if (transport_handle != NULL)
+  if (NULL != transport_handle)
   {
     GNUNET_TRANSPORT_disconnect (transport_handle);
     transport_handle = NULL;
   }
   GNUNET_PEER_change_rc (myid, -1);
+  GNUNET_CONTAINER_multipeermap_destroy (peers);
+  peers = NULL;
 }
 
 
@@ -1741,9 +1759,11 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id)
     {
       peer_delete_oldest ();
     }
-        GNUNET_CONTAINER_multipeermap_put (peers, peer_id, peer,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-        peer->id = GNUNET_PEER_intern (peer_id);
+    GNUNET_CONTAINER_multipeermap_put (peers,
+                                       peer_id,
+                                       peer,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    peer->id = GNUNET_PEER_intern (peer_id);
   }
   peer->last_contact = GNUNET_TIME_absolute_get ();
 
@@ -1921,38 +1941,30 @@ GCP_add_tunnel (struct CadetPeer *peer)
  *
  * @param peer Peer to add connection to.
  * @param c Connection to add.
- *
- * @return GNUNET_OK on success.
  */
-int
+void
 GCP_add_connection (struct CadetPeer *peer,
                     struct CadetConnection *c)
 {
-  int result;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding connection %s\n", GCC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "to peer %s\n", GCP_2s (peer));
-
-  if (NULL == peer->connections)
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Peer %s is not a neighbor!\n",
-         GCP_2s (peer));
-    return GNUNET_SYSERR;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "peer %s ok, has %u connections.\n",
-       GCP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
-  result = GNUNET_CONTAINER_multihashmap_put (peer->connections,
-                                              GCC_get_h (c),
-                                              c,
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+       "adding connection %s\n",
+       GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "to peer %s\n",
+       GCP_2s (peer));
+  GNUNET_assert (NULL != peer->connections);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "peer %s has %u connections.\n",
+       GCP_2s (peer),
+       GNUNET_CONTAINER_multihashmap_size (peer->connections));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap_put (peer->connections,
+                                                    GCC_get_h (c),
+                                                    c,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        " now has %u connections.\n",
        GNUNET_CONTAINER_multihashmap_size (peer->connections));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "result %u\n", result);
-
-  return result;
 }
 
 
@@ -2121,8 +2133,11 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
   GNUNET_assert (myid == path->peers[0]);
   GNUNET_assert (peer->id == path->peers[path->length - 1]);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Removing path %p (%u) from %s\n",
-       path, path->length, GCP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Removing path %p (%u) from %s\n",
+       path,
+       path->length,
+       GCP_2s (peer));
 
   for (iter = peer->path_head; NULL != iter; iter = next)
   {
@@ -2143,30 +2158,28 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
  *
  * @param peer Peer to remove connection from.
  * @param c Connection to remove.
- *
- * @return GNUNET_OK on success.
  */
-int
+void
 GCP_remove_connection (struct CadetPeer *peer,
                        const struct CadetConnection *c)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "removing connection %s\n", GCC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "from peer %s\n", GCP_2s (peer));
-
-  if (NULL == peer || NULL == peer->connections)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Peer %s is not a neighbor!\n",
-         GCP_2s (peer));
-    return GNUNET_SYSERR;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "peer %s ok, has %u connections.\n",
-       GCP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
+       "removing connection %s\n",
+       GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "from peer %s\n",
+       GCP_2s (peer));
 
-  return GNUNET_CONTAINER_multihashmap_remove (peer->connections,
-                                               GCC_get_h (c),
-                                               c);
+  GNUNET_assert ( (NULL != peer) &&
+                  (NULL != peer->connections) );
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap_remove (peer->connections,
+                                                       GCC_get_h (c),
+                                                       c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "peer %s ok, has %u connections left.\n",
+       GCP_2s (peer),
+       GNUNET_CONTAINER_multihashmap_size (peer->connections));
 }
 
 /**
@@ -2454,9 +2467,12 @@ GCP_count_paths (const struct CadetPeer *peer)
  * @param cls Closure for @c iter.
  */
 void
-GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
+                 void *cls)
 {
-  GNUNET_CONTAINER_multipeermap_iterate (peers, iter, cls);
+  GNUNET_CONTAINER_multipeermap_iterate (peers,
+                                         iter,
+                                         cls);
 }
 
 

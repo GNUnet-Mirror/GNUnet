@@ -215,6 +215,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
 void
 GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t);
 
+
 /**
  * Check whether there is a direct (core level)  connection to peer.
  *
@@ -224,6 +225,7 @@ GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t);
  */
 int
 GCP_is_neighbor (const struct CadetPeer *peer);
+
 
 /**
  * Create and initialize a new tunnel towards a peer, in case it has none.
@@ -235,6 +237,7 @@ GCP_is_neighbor (const struct CadetPeer *peer);
 void
 GCP_add_tunnel (struct CadetPeer *peer);
 
+
 /**
  * Add a connection to a neighboring peer.
  *
@@ -244,11 +247,11 @@ GCP_add_tunnel (struct CadetPeer *peer);
  *
  * @param peer Peer to add connection to.
  * @param c Connection to add.
- *
- * @return GNUNET_OK on success.
  */
-int
-GCP_add_connection (struct CadetPeer *peer, struct CadetConnection *c);
+void
+GCP_add_connection (struct CadetPeer *peer,
+                    struct CadetConnection *c);
+
 
 /**
  * Add the path to the peer and update the path used to reach it in case this
@@ -263,7 +266,10 @@ GCP_add_connection (struct CadetPeer *peer, struct CadetConnection *c);
  *         NULL on error.
  */
 struct CadetPeerPath *
-GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *p, int trusted);
+GCP_add_path (struct CadetPeer *peer,
+              struct CadetPeerPath *p,
+              int trusted);
+
 
 /**
  * Add the path to the origin peer and update the path used to reach it in case
@@ -293,6 +299,7 @@ GCP_add_path_to_origin (struct CadetPeer *peer,
 void
 GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
 
+
 /**
  * Remove any path to the peer that has the extact same peers as the one given.
  *
@@ -300,18 +307,20 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
  * @param path Path to remove. Is always destroyed .
  */
 void
-GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path);
+GCP_remove_path (struct CadetPeer *peer,
+                 struct CadetPeerPath *path);
+
 
 /**
  * Remove a connection from a neighboring peer.
  *
  * @param peer Peer to remove connection from.
  * @param c Connection to remove.
- *
- * @return GNUNET_OK on success.
  */
-int
-GCP_remove_connection (struct CadetPeer *peer, const struct CadetConnection *c);
+void
+GCP_remove_connection (struct CadetPeer *peer,
+                       const struct CadetConnection *c);
+
 
 /**
  * Start the DHT search for new paths towards the peer: we don't have
@@ -322,6 +331,7 @@ GCP_remove_connection (struct CadetPeer *peer, const struct CadetConnection *c);
 void
 GCP_start_search (struct CadetPeer *peer);
 
+
 /**
  * Stop the DHT search for new paths towards the peer: we already have
  * enough good connections.
@@ -330,6 +340,7 @@ GCP_start_search (struct CadetPeer *peer);
  */
 void
 GCP_stop_search (struct CadetPeer *peer);
+
 
 /**
  * Get the Full ID of a peer.
@@ -341,6 +352,7 @@ GCP_stop_search (struct CadetPeer *peer);
 const struct GNUNET_PeerIdentity *
 GCP_get_id (const struct CadetPeer *peer);
 
+
 /**
  * Get the Short ID of a peer.
  *
@@ -350,6 +362,7 @@ GCP_get_id (const struct CadetPeer *peer);
  */
 GNUNET_PEER_Id
 GCP_get_short_id (const struct CadetPeer *peer);
+
 
 /**
  * Get the tunnel towards a peer.
@@ -361,6 +374,7 @@ GCP_get_short_id (const struct CadetPeer *peer);
 struct CadetTunnel *
 GCP_get_tunnel (const struct CadetPeer *peer);
 
+
 /**
  * Set the hello message.
  *
@@ -368,7 +382,9 @@ GCP_get_tunnel (const struct CadetPeer *peer);
  * @param hello Hello message.
  */
 void
-GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello);
+GCP_set_hello (struct CadetPeer *peer,
+               const struct GNUNET_HELLO_Message *hello);
+
 
 /**
  * Get the hello message.
@@ -389,6 +405,7 @@ GCP_get_hello (struct CadetPeer *peer);
 void
 GCP_try_connect (struct CadetPeer *peer);
 
+
 /**
  * Notify a peer that a link between two other peers is broken. If any path
  * used that link, eliminate it.
@@ -402,6 +419,7 @@ GCP_notify_broken_link (struct CadetPeer *peer,
                         struct GNUNET_PeerIdentity *peer1,
                         struct GNUNET_PeerIdentity *peer2);
 
+
 /**
  * Count the number of known paths toward the peer.
  *
@@ -412,6 +430,7 @@ GCP_notify_broken_link (struct CadetPeer *peer,
 unsigned int
 GCP_count_paths (const struct CadetPeer *peer);
 
+
 /**
  * Iterate all known peers.
  *
@@ -420,6 +439,7 @@ GCP_count_paths (const struct CadetPeer *peer);
  */
 void
 GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
+
 
 /**
  * Get the static string for a peer ID.
@@ -431,13 +451,15 @@ GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
 const char *
 GCP_2s (const struct CadetPeer *peer);
 
+
 /**
  * Log all kinds of info about a peer.
  *
  * @param peer Peer.
  */
 void
-GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level);
+GCP_debug (const struct CadetPeer *p,
+           enum GNUNET_ErrorType level);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
