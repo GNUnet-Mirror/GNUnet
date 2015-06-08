@@ -22,12 +22,9 @@
  * @brief GNUnet CADET service connection handling
  * @author Bartlomiej Polot
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
-
 #include "gnunet_statistics_service.h"
-
 #include "cadet_path.h"
 #include "cadet_protocol.h"
 #include "cadet.h"
@@ -101,7 +98,7 @@ struct CadetFlowControl
   /**
    * Task to poll the peer in case of a lost ACK causes stall.
    */
-  struct GNUNET_SCHEDULER_Task * poll_task;
+  struct GNUNET_SCHEDULER_Task *poll_task;
 
   /**
    * How frequently to poll for ACKs.
@@ -177,32 +174,22 @@ struct CadetConnection
   struct GNUNET_CADET_Hash id;
 
   /**
-   * State of the connection.
-   */
-  enum CadetConnectionState state;
-
-  /**
    * Path being used for the tunnel. At the origin of the connection
    * it's a pointer to the destination's path pool, otherwise just a copy.
    */
   struct CadetPeerPath *path;
 
   /**
-   * Position of the local peer in the path.
-   */
-  unsigned int own_pos;
-
-  /**
    * Task to keep the used paths alive at the owner,
    * time tunnel out on all the other peers.
    */
-  struct GNUNET_SCHEDULER_Task * fwd_maintenance_task;
+  struct GNUNET_SCHEDULER_Task *fwd_maintenance_task;
 
   /**
    * Task to keep the used paths alive at the destination,
    * time tunnel out on all the other peers.
    */
-  struct GNUNET_SCHEDULER_Task * bck_maintenance_task;
+  struct GNUNET_SCHEDULER_Task *bck_maintenance_task;
 
   /**
    * Queue handle for maintainance traffic. One handle for FWD and BCK since
@@ -211,9 +198,14 @@ struct CadetConnection
   struct CadetPeerQueue *maintenance_q;
 
   /**
-   * Counter to do exponential backoff when creating a connection (max 64).
+   * State of the connection.
    */
-  unsigned short create_retry;
+  enum CadetConnectionState state;
+
+  /**
+   * Position of the local peer in the path.
+   */
+  unsigned int own_pos;
 
   /**
    * Pending message count.
@@ -224,7 +216,13 @@ struct CadetConnection
    * Destroy flag: if true, destroy on last message.
    */
   int destroy;
+
+  /**
+   * Counter to do exponential backoff when creating a connection (max 64).
+   */
+  unsigned short create_retry;
 };
+
 
 /**
  * Handle for messages queued but not yet sent.
@@ -237,19 +235,19 @@ struct CadetConnectionQueue
   struct CadetPeerQueue *q;
 
   /**
-   * Was this a forced message? (Do not account for it)
-   */
-  int forced;
-
-  /**
    * Continuation to call once sent.
    */
   GCC_sent cont;
 
   /**
-   * Closure for @c cont.
+   * Closure for @e cont.
    */
   void *cont_cls;
+
+  /**
+   * Was this a forced message? (Do not account for it)
+   */
+  int forced;
 };
 
 /******************************************************************************/

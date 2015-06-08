@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2013, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,19 +17,18 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
-
+/**
+ * @file cadet/gnunet-service-cadet_peer.c
+ * @brief GNUnet CADET service connection handling
+ * @author Bartlomiej Polot
+ */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-
 #include "gnunet_signatures.h"
-
 #include "gnunet_transport_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
-
 #include "cadet_protocol.h"
-
 #include "gnunet-service-cadet_peer.h"
 #include "gnunet-service-cadet_dht.h"
 #include "gnunet-service-cadet_connection.h"
@@ -385,6 +384,7 @@ pop_direct_path (struct CadetPeer *peer)
 /***************************** CORE CALLBACKS *********************************/
 /******************************************************************************/
 
+
 /**
  * Method called whenever a given peer connects.
  *
@@ -392,41 +392,48 @@ pop_direct_path (struct CadetPeer *peer)
  * @param peer peer identity this notification is about
  */
 static void
-core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+core_connect (void *cls,
+              const struct GNUNET_PeerIdentity *peer)
 {
   struct CadetPeer *mp;
   struct CadetPeerPath *path;
   char own_id[16];
 
-  strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
+  GNUNET_snprintf (own_id,
+                   sizeof (own_id),
+                   "%s",
+                   GNUNET_i2s (&my_full_id));
   mp = GCP_get (peer);
   if (myid == mp->id)
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "CONNECTED %s (self)\n", own_id);
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "CONNECTED %s (self)\n",
+         own_id);
     path = path_new (1);
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "CONNECTED %s <= %s\n",
-         own_id, GNUNET_i2s (peer));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "CONNECTED %s <= %s\n",
+         own_id,
+         GNUNET_i2s (peer));
     path = path_new (2);
     path->peers[1] = mp->id;
     GNUNET_PEER_change_rc (mp->id, 1);
-    GNUNET_STATISTICS_update (stats, "# peers", 1, GNUNET_NO);
   }
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
   GCP_add_path (mp, path, GNUNET_YES);
-
+  GNUNET_STATISTICS_update (stats,
+                            "# peers",
+                            1,
+                            GNUNET_NO);
+  GNUNET_assert (NULL == mp->connections);
   mp->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
 
-  if (NULL != GCP_get_tunnel (mp) &&
-      0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer))
-  {
+  if ( (NULL != GCP_get_tunnel (mp)) &&
+       (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
     GCP_connect (mp);
-  }
-
-  return;
 }
 
 
@@ -467,15 +474,16 @@ core_disconnect (void *cls,
   GNUNET_CONTAINER_multihashmap_destroy (p->connections);
   p->connections = NULL;
   if (NULL != p->core_transmit)
-    {
-      GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
-      p->core_transmit = NULL;
-      p->tmt_time.abs_value_us = 0;
-    }
-  GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
-
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
+    p->core_transmit = NULL;
+    p->tmt_time.abs_value_us = 0;
+  }
+  GNUNET_STATISTICS_update (stats,
+                            "# peers",
+                            -1,
+                            GNUNET_NO);
   path_destroy (direct_path);
-  return;
 }
 
 
@@ -534,7 +542,6 @@ core_init (void *cls,
       GNUNET_assert (0);
   }
   GML_start ();
-  return;
 }
 
 
@@ -717,9 +724,8 @@ shutdown_tunnel (void *cls,
  * Check if peer is searching for a path (either active or delayed search).
  *
  * @param peer Peer to check
- *
- * @return GNUNET_YES if there is a search active.
- *         GNUNET_NO otherwise.
+ * @return #GNUNET_YES if there is a search active.
+ *         #GNUNET_NO otherwise.
  */
 static int
 is_searching (const struct CadetPeer *peer)
@@ -753,8 +759,7 @@ delayed_search (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Destroy the peer_info and free any allocated resources linked to it
  *
  * @param peer The peer_info to destroy.
- *
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 peer_destroy (struct CadetPeer *peer)
@@ -797,7 +802,6 @@ peer_destroy (struct CadetPeer *peer)
  * Returns if peer is used (has a tunnel or is neighbor).
  *
  * @param peer Peer to check.
- *
  * @return #GNUNET_YES if peer is in use.
  */
 static int
@@ -895,7 +899,6 @@ peer_delete_oldest (void)
  * considering the tunnel properties.
  *
  * @param peer The destination peer.
- *
  * @return Best current known path towards the peer, if any.
  */
 static struct CadetPeerPath *
@@ -932,7 +935,6 @@ peer_get_best_path (const struct CadetPeer *peer)
  * - For payload traffic, check the connection flow control.
  *
  * @param q Queue element to inspect.
- *
  * @return #GNUNET_YES if it is sendable, #GNUNET_NO otherwise.
  */
 static int
@@ -1013,7 +1015,6 @@ search_handler (void *cls, const struct CadetPeerPath *path)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GCP_connect (peer);
   }
-  return;
 }
 
 

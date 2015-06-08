@@ -2694,7 +2694,6 @@ destroy_ax (struct CadetTunnel *t)
 }
 
 
-
 /**
  * The peer's ephemeral key has changed: update the symmetrical keys.
  *
@@ -2788,7 +2787,8 @@ handle_ephemeral (struct CadetTunnel *t,
  * @param msg Key eXchange Pong message.
  */
 static void
-handle_pong (struct CadetTunnel *t, const struct GNUNET_CADET_KX_Pong *msg)
+handle_pong (struct CadetTunnel *t,
+             const struct GNUNET_CADET_KX_Pong *msg)
 {
   uint32_t challenge;
 
