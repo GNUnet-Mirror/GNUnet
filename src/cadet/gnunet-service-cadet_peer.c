@@ -2170,8 +2170,9 @@ GCP_remove_connection (struct CadetPeer *peer,
        "from peer %s\n",
        GCP_2s (peer));
 
-  GNUNET_assert ( (NULL != peer) &&
-                  (NULL != peer->connections) );
+  if ( (NULL == peer) ||
+       (NULL == peer->connections) )
+    return;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_remove (peer->connections,
                                                        GCC_get_h (c),
