@@ -198,6 +198,16 @@ struct CadetConnection
   struct CadetPeerQueue *maintenance_q;
 
   /**
+   * Should equal #get_next_hop(this).
+   */
+  struct CadetPeer *next_peer;
+
+  /**
+   * Should equal #get_prev_hop(this).
+   */
+  struct CadetPeer *prev_peer;
+
+  /**
    * State of the connection.
    */
   enum CadetConnectionState state;
@@ -1431,7 +1441,7 @@ connection_bck_timeout (void *cls,
   if (GCC_is_origin (c, GNUNET_YES) && 0 < c->fwd_fc.queue_n)
   {
     send_broken_unknown (&c->id, &my_full_id, NULL,
-                         GCP_get_id( get_next_hop (c)));
+                         GCP_get_id (get_next_hop (c)));
     resend_messages_and_destroy (c, GNUNET_YES);
     return;
   }
@@ -1493,25 +1503,33 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
 static int
 register_neighbors (struct CadetConnection *c)
 {
-  struct CadetPeer *next_peer;
-  struct CadetPeer *prev_peer;
+  c->next_peer = get_next_hop (c);
+  c->prev_peer = get_prev_hop (c);
 
-  next_peer = get_next_hop (c);
-  prev_peer = get_prev_hop (c);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "register neighbors for connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "register neighbors for connection %s\n",
        GCC_2s (c));
   path_debug (c->path);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "own pos %u\n", c->own_pos);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to next peer %p\n",
-       GCC_2s (c), next_peer);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "next peer %p %s\n", next_peer, GCP_2s (next_peer));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to prev peer %p\n",
-       GCC_2s (c), prev_peer);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "prev peer %p %s\n", prev_peer, GCP_2s (prev_peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "own pos %u\n", c->own_pos);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "putting connection %s to next peer %p\n",
+       GCC_2s (c),
+       c->next_peer);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "next peer %p %s\n",
+       c->next_peer,
+       GCP_2s (c->next_peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "putting connection %s to prev peer %p\n",
+       GCC_2s (c),
+       c->prev_peer);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "prev peer %p %s\n",
+       c->prev_peer,
+       GCP_2s (c->prev_peer));
 
-  if ( (GNUNET_NO == GCP_is_neighbor (next_peer)) ||
-       (GNUNET_NO == GCP_is_neighbor (prev_peer)) )
+  if ( (GNUNET_NO == GCP_is_neighbor (c->next_peer)) ||
+       (GNUNET_NO == GCP_is_neighbor (c->prev_peer)) )
   {
     if (GCC_is_origin (c, GNUNET_YES))
       GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
@@ -1521,16 +1539,16 @@ register_neighbors (struct CadetConnection *c)
          "  register neighbors failed\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  prev: %s, neighbor?: %d\n",
-         GCP_2s (prev_peer),
-         GCP_is_neighbor (prev_peer));
+         GCP_2s (c->prev_peer),
+         GCP_is_neighbor (c->prev_peer));
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  next: %s, neighbor?: %d\n",
-         GCP_2s (next_peer),
-         GCP_is_neighbor (next_peer));
+         GCP_2s (c->next_peer),
+         GCP_is_neighbor (c->next_peer));
     return GNUNET_SYSERR;
   }
-  GCP_add_connection (next_peer, c);
-  GCP_add_connection (prev_peer, c);
+  GCP_add_connection (c->next_peer, c);
+  GCP_add_connection (c->prev_peer, c);
 
   return GNUNET_OK;
 }
@@ -1547,8 +1565,10 @@ unregister_neighbors (struct CadetConnection *c)
   struct CadetPeer *peer;
 
   peer = get_next_hop (c);
+  GNUNET_assert (c->next_peer == peer);
   GCP_remove_connection (peer, c);
   peer = get_prev_hop (c);
+  GNUNET_assert (c->prev_peer == peer);
   GCP_remove_connection (peer, c);
 }
 
@@ -2162,6 +2182,7 @@ check_message (const struct GNUNET_MessageHeader *message,
   else
   {
     hop = get_next_hop (c);
+    GNUNET_break (hop == c->next_peer);
     if (neighbor_id == GCP_get_short_id (hop))
     {
       fwd = GNUNET_NO;
