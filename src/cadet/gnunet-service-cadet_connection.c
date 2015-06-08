@@ -1505,7 +1505,7 @@ register_neighbors (struct CadetConnection *c)
 {
   c->next_peer = get_next_hop (c);
   c->prev_peer = get_prev_hop (c);
-
+  GNUNET_break (c->next_peer != c->prev_peer);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "register neighbors for connection %s\n",
        GCC_2s (c));
