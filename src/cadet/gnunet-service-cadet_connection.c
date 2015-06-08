@@ -2736,7 +2736,7 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
   c->own_pos = own_pos;
   c->path = p;
   p->c = c;
-
+  GNUNET_assert (NULL != p);
   if (GNUNET_OK != register_neighbors (c))
   {
     if (0 == own_pos)
@@ -2782,8 +2782,8 @@ GCC_destroy (struct CadetConnection *c)
   {
     connection_cancel_queues (c, GNUNET_YES);
     connection_cancel_queues (c, GNUNET_NO);
-    unregister_neighbors (c);
   }
+  unregister_neighbors (c);
 
   /* Cancel maintainance task (keepalive/timeout) */
   if (NULL != c->fwd_fc.poll_msg)
