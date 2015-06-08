@@ -1962,7 +1962,7 @@ GCP_add_connection (struct CadetPeer *peer,
                  GNUNET_CONTAINER_multihashmap_put (peer->connections,
                                                     GCC_get_h (c),
                                                     c,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        " now has %u connections.\n",
        GNUNET_CONTAINER_multihashmap_size (peer->connections));
