@@ -491,26 +491,6 @@ else
 fi
 
 
-# libidn
-AC_MSG_CHECKING([if Libidn can be used])
-AC_ARG_WITH(libidn, AC_HELP_STRING([--with-libidn=[DIR]],
-                                    [Support IDN (needs GNU Libidn)]),
-libidn=$withval, libidn=yes)
-if test "$libidn" != "no"; then
-  if test "$libidn" != "yes"; then
-     LDFLAGS="${LDFLAGS} -L$libidn/lib"
-     CPPFLAGS="${CPPFLAGS} -I$libidn/include"
-  fi
-fi
-libidn=no
-AC_CHECK_HEADER(idna.h,
-  AC_CHECK_LIB(idn, stringprep_check_version,
-    [libidn=yes LIBS="${LIBS} -lidn"], []), [])
-if test "$libidn" != "yes"; then
-  AC_MSG_FAILURE([GNUnet requires libidn.
-libidn-1.13 should be sufficient, newer versions work too.])
-fi
-AC_MSG_RESULT($libidn)
 
 # restore LIBS
 LIBS=$SAVE_LIBS
@@ -639,7 +619,69 @@ fi
 # restore LIBS
 LIBS=$SAVE_LIBS
 
+
+# libidn
+AC_MSG_CHECKING([if Libidn can be used])
+AC_ARG_WITH(libidn, AC_HELP_STRING([--with-libidn=[DIR]],
+                                    [Support IDN (needs GNU Libidn)]),
+libidn=$withval, libidn=yes)
+if test "$libidn" != "no"; then
+  if test "$libidn" != "yes"; then
+     LDFLAGS="${LDFLAGS} -L$libidn/lib"
+     CPPFLAGS="${CPPFLAGS} -I$libidn/include"
+  fi
 fi
+libidn=no
+AC_CHECK_HEADER(idna.h,
+  AC_CHECK_LIB(idn, stringprep_check_version,
+    [libidn=yes LIBS="${LIBS} -lidn"], []), [])
+if test "$libidn" != "yes"; then
+  AC_MSG_FAILURE([GNUnet requires libidn.
+libidn-1.13 should be sufficient, newer versions work too.])
+fi
+AC_MSG_RESULT($libidn)
+
+
+# test for zlib
+SAVE_LDFLAGS=$LDFLAGS
+SAVE_CPPFLAGS=$CPPFLAGS
+AC_ARG_WITH(zlib,
+	    [  --with-zlib[[=DIR]]       use libz in DIR],
+	    [AS_IF([test "$withval" = "no"],
+		   [AC_MSG_ERROR([GNUnet requires zlib])],
+		   [test "$withval" != "yes"],
+		   [
+		     Z_DIR=$withval
+		     CPPFLAGS="${CPPFLAGS} -I$withval/include"
+		     LDFLAGS="${LDFLAGS} -L$withval/lib"
+		   ])
+	    ])
+AC_CHECK_HEADER(zlib.h,
+		[],
+	       	[AC_MSG_ERROR([GNUnet requires zlib])])
+AC_CHECK_LIB(z, compress2,
+	     [
+	      AC_DEFINE([HAVE_ZLIB], [], [Have compression library])
+	      if test "x${Z_DIR}" != "x"; then
+		      Z_CFLAGS="-I${Z_DIR}/include"
+		      Z_LIBS="-L${Z_DIR}/lib -lz"
+	      else
+		      Z_LIBS="-lz"
+	      fi],
+	      [AC_MSG_ERROR([GNUnet requires zlib])])
+AC_SUBST(Z_CFLAGS)
+AC_SUBST(Z_LIBS)
+
+
+
+# restore LIBS
+LIBS=$SAVE_LIBS
+
+
+fi
+
+# check for iconv
+AM_ICONV
 
 # test for libunistring
 gl_LIBUNISTRING
@@ -721,36 +763,6 @@ if test "$found_postgresql" = "yes"; then
   postgres=true
 fi
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
-
-# test for zlib
-SAVE_LDFLAGS=$LDFLAGS
-SAVE_CPPFLAGS=$CPPFLAGS
-AC_ARG_WITH(zlib,
-	    [  --with-zlib[[=DIR]]       use libz in DIR],
-	    [AS_IF([test "$withval" = "no"],
-		   [AC_MSG_ERROR([GNUnet requires zlib])],
-		   [test "$withval" != "yes"],
-		   [
-		     Z_DIR=$withval
-		     CPPFLAGS="${CPPFLAGS} -I$withval/include"
-		     LDFLAGS="${LDFLAGS} -L$withval/lib"
-		   ])
-	    ])
-AC_CHECK_HEADER(zlib.h,
-		[],
-	       	[AC_MSG_ERROR([GNUnet requires zlib])])
-AC_CHECK_LIB(z, compress2,
-	     [
-	      AC_DEFINE([HAVE_ZLIB], [], [Have compression library])
-	      if test "x${Z_DIR}" != "x"; then
-		      Z_CFLAGS="-I${Z_DIR}/include"
-		      Z_LIBS="-L${Z_DIR}/lib -lz"
-	      else
-		      Z_LIBS="-lz"
-	      fi],
-	      [AC_MSG_ERROR([GNUnet requires zlib])])
-AC_SUBST(Z_CFLAGS)
-AC_SUBST(Z_LIBS)
 
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
@@ -929,9 +941,6 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 # check for gettext
 AM_GNU_GETTEXT([external])
 AM_GNU_GETTEXT_VERSION([0.19.3])
-
-# check for iconv
-AM_ICONV
 
 # Checks for standard typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T

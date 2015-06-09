@@ -156,9 +156,17 @@ struct CadetPeer
   struct CadetTunnel *tunnel;
 
   /**
-   * Connections that go through this peer, indexed by tid;
+   * Connections that go through this peer where we
+   * are the predecessor; indexed by tid; do NOT
+   * try to combine with @e connections_succ (#3794).
    */
-  struct GNUNET_CONTAINER_MultiHashMap *connections;
+  struct GNUNET_CONTAINER_MultiHashMap *connections_pred;
+
+  /**
+   * Connections that go through this peer where we are
+   * the successor; indexed by tid;
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *connections_succ;
 
   /**
    * Handle for queued transmissions
@@ -314,10 +322,11 @@ GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
 
   LOG2 (level, "PPP core transmit handle %p\n", p->core_transmit);
   LOG2 (level, "PPP DHT GET handle %p\n", p->search_h);
-  if (NULL != p->connections)
-    conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
-  else
-    conns = 0;
+  conns = 0;
+  if (NULL != p->connections_pred)
+    conns = GNUNET_CONTAINER_multihashmap_size (p->connections_pred);
+  if (NULL != p->connections_succ)
+    conns += GNUNET_CONTAINER_multihashmap_size (p->connections_succ);
   LOG2 (level, "PPP # connections over link to peer: %u\n", conns);
   queue_debug (p, level);
   LOG2 (level, "PPP DEBUG END\n");
@@ -428,8 +437,10 @@ core_connect (void *cls,
                             "# peers",
                             1,
                             GNUNET_NO);
-  GNUNET_assert (NULL == mp->connections);
-  mp->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
+  GNUNET_assert (NULL == mp->connections_pred);
+  GNUNET_assert (NULL == mp->connections_succ);
+  mp->connections_pred = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
+  mp->connections_succ = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
 
   if ( (NULL != GCP_get_tunnel (mp)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
@@ -468,11 +479,16 @@ core_disconnect (void *cls,
          "DISCONNECTED %s <= %s\n",
          own_id, GNUNET_i2s (peer));
   direct_path = pop_direct_path (p);
-  GNUNET_CONTAINER_multihashmap_iterate (p->connections,
+  GNUNET_CONTAINER_multihashmap_iterate (p->connections_succ,
                                          &notify_broken,
                                          p);
-  GNUNET_CONTAINER_multihashmap_destroy (p->connections);
-  p->connections = NULL;
+  GNUNET_CONTAINER_multihashmap_iterate (p->connections_pred,
+                                         &notify_broken,
+                                         p);
+  GNUNET_CONTAINER_multihashmap_destroy (p->connections_succ);
+  p->connections_succ = NULL;
+  GNUNET_CONTAINER_multihashmap_destroy (p->connections_pred);
+  p->connections_pred = NULL;
   if (NULL != p->core_transmit)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
@@ -1366,7 +1382,8 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
 
   if (error_level == GNUNET_ERROR_TYPE_ERROR)
     GNUNET_assert (0);
-  if (NULL == peer->connections)
+  if ( (NULL == peer->connections_pred) ||
+       (NULL == peer->connections_succ) )
   {
     /* We are not connected to this peer, ignore request. */
     LOG (GNUNET_ERROR_TYPE_WARNING, "%s not a neighbor\n", GCP_2s (peer));
@@ -1849,11 +1866,11 @@ GCP_connect (struct CadetPeer *peer)
          * not yet known to be connected.
          *
          * This happens quite often during testing when running cadet
-         * under valgrind: core connect notifications come very late and the
-         * DHT result has already come and created a valid path.
-         * In this case, the peer->connections hashmap will be NULL and
-         * tunnel_use_path will not be able to create a connection from that
-         * path.
+         * under valgrind: core connect notifications come very late
+         * and the DHT result has already come and created a valid
+         * path.  In this case, the peer->connections_{pred,succ}
+         * hashmaps will be NULL and tunnel_use_path will not be able
+         * to create a connection from that path.
          *
          * Re-running the DHT GET should give core time to callback.
          *
@@ -1902,7 +1919,8 @@ GCP_is_neighbor (const struct CadetPeer *peer)
 {
   struct CadetPeerPath *path;
 
-  if (NULL == peer->connections)
+  if ( (NULL == peer->connections_pred) ||
+       (NULL == peer->connections_succ) )
     return GNUNET_NO;
 
   for (path = peer->path_head; NULL != path; path = path->next)
@@ -1942,10 +1960,12 @@ GCP_add_tunnel (struct CadetPeer *peer)
  *
  * @param peer Peer to add connection to.
  * @param c Connection to add.
+ * @param pred #GNUNET_YES if we are predecessor, #GNUNET_NO if we are successor
  */
 void
 GCP_add_connection (struct CadetPeer *peer,
-                    struct CadetConnection *c)
+                    struct CadetConnection *c,
+                    int pred)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "adding connection %s\n",
@@ -1953,19 +1973,20 @@ GCP_add_connection (struct CadetPeer *peer,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "to peer %s\n",
        GCP_2s (peer));
-  GNUNET_assert (NULL != peer->connections);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "peer %s has %u connections.\n",
-       GCP_2s (peer),
-       GNUNET_CONTAINER_multihashmap_size (peer->connections));
+  GNUNET_assert (NULL != peer->connections_pred);
+  GNUNET_assert (NULL != peer->connections_succ);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multihashmap_put (peer->connections,
+                 GNUNET_CONTAINER_multihashmap_put ((GNUNET_YES == pred)
+                                                    ? peer->connections_pred
+                                                    : peer->connections_succ,
                                                     GCC_get_h (c),
                                                     c,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " now has %u connections.\n",
-       GNUNET_CONTAINER_multihashmap_size (peer->connections));
+       "Peer %s is now predecessor on %u connections and successor on %u connections.\n",
+       GCP_2s (peer),
+       GNUNET_CONTAINER_multihashmap_size (peer->connections_pred),
+       GNUNET_CONTAINER_multihashmap_size (peer->connections_succ));
 }
 
 
@@ -2159,10 +2180,12 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
  *
  * @param peer Peer to remove connection from.
  * @param c Connection to remove.
+ * @param pred #GNUNET_YES if we were predecessor, #GNUNET_NO if we were successor
  */
 void
 GCP_remove_connection (struct CadetPeer *peer,
-                       const struct CadetConnection *c)
+                       const struct CadetConnection *c,
+                       int pred)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "removing connection %s\n",
@@ -2170,18 +2193,22 @@ GCP_remove_connection (struct CadetPeer *peer,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "from peer %s\n",
        GCP_2s (peer));
-
   if ( (NULL == peer) ||
-       (NULL == peer->connections) )
+       (NULL == peer->connections_pred) ||
+       (NULL == peer->connections_succ) )
     return;
-  (void) GNUNET_CONTAINER_multihashmap_remove (peer->connections,
+  (void) GNUNET_CONTAINER_multihashmap_remove ((GNUNET_YES == pred)
+                                               ? peer->connections_pred
+                                               : peer->connections_succ,
                                                GCC_get_h (c),
                                                c);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "peer %s ok, has %u connections left.\n",
+       "Peer %s remains predecessor for %u and successor for %u connections.\n",
        GCP_2s (peer),
-       GNUNET_CONTAINER_multihashmap_size (peer->connections));
+       GNUNET_CONTAINER_multihashmap_size (peer->connections_pred),
+       GNUNET_CONTAINER_multihashmap_size (peer->connections_succ));
 }
+
 
 /**
  * Start the DHT search for new paths towards the peer: we don't have

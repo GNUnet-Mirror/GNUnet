@@ -247,10 +247,12 @@ GCP_add_tunnel (struct CadetPeer *peer);
  *
  * @param peer Peer to add connection to.
  * @param c Connection to add.
+ * @param pred #GNUNET_YES if we are predecessor, #GNUNET_NO if we are successor
  */
 void
 GCP_add_connection (struct CadetPeer *peer,
-                    struct CadetConnection *c);
+                    struct CadetConnection *c,
+                    int pred);
 
 
 /**
@@ -316,10 +318,12 @@ GCP_remove_path (struct CadetPeer *peer,
  *
  * @param peer Peer to remove connection from.
  * @param c Connection to remove.
+ * @param pred #GNUNET_YES if we were predecessor, #GNUNET_NO if we were successor
  */
 void
 GCP_remove_connection (struct CadetPeer *peer,
-                       const struct CadetConnection *c);
+                       const struct CadetConnection *c,
+                       int pred);
 
 
 /**

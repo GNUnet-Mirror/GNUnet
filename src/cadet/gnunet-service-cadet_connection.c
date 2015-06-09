@@ -1547,8 +1547,8 @@ register_neighbors (struct CadetConnection *c)
          GCP_is_neighbor (c->next_peer));
     return GNUNET_SYSERR;
   }
-  GCP_add_connection (c->next_peer, c);
-  GCP_add_connection (c->prev_peer, c);
+  GCP_add_connection (c->next_peer, c, GNUNET_NO);
+  GCP_add_connection (c->prev_peer, c, GNUNET_YES);
 
   return GNUNET_OK;
 }
@@ -1566,10 +1566,10 @@ unregister_neighbors (struct CadetConnection *c)
 
   peer = get_next_hop (c);
   GNUNET_assert (c->next_peer == peer);
-  GCP_remove_connection (peer, c);
+  GCP_remove_connection (peer, c, GNUNET_NO);
   peer = get_prev_hop (c);
   GNUNET_assert (c->prev_peer == peer);
-  GCP_remove_connection (peer, c);
+  GCP_remove_connection (peer, c, GNUNET_YES);
 }
 
 
@@ -1583,7 +1583,8 @@ unregister_neighbors (struct CadetConnection *c)
  * @param peer Peer.
  */
 static void
-add_to_peer (struct CadetConnection *c, struct CadetPeer *peer)
+add_to_peer (struct CadetConnection *c,
+             struct CadetPeer *peer)
 {
   GCP_add_tunnel (peer);
   c->t = GCP_get_tunnel (peer);
