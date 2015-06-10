@@ -634,7 +634,7 @@ send_client_buffered_data (struct CadetChannel *ch,
       send_client_data (ch, msg, fwd);
       rel->n_recv--;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %u (%p), %u left\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " free copy recv MID %u (%p), %u left\n",
            copy->mid, copy, rel->n_recv);
       GNUNET_free (copy);
       GCCH_send_data_ack (ch, fwd);
@@ -1105,7 +1105,7 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
   struct GNUNET_TIME_Relative time;
 
   rel = copy->rel;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TIME Freeing %u\n", copy->mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Freeing %u\n", copy->mid);
   if (update_time)
   {
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
@@ -1117,16 +1117,16 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
       rel->expected_delay.rel_value_us += time.rel_value_us;
       rel->expected_delay.rel_value_us /= 8;
     }
-    LOG (GNUNET_ERROR_TYPE_INFO, "TIME  message   %12s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  message time %12s\n",
          GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
-    LOG (GNUNET_ERROR_TYPE_INFO, "TIME  new delay %12s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  new delay    %12s\n",
          GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                  GNUNET_NO));
     rel->retry_timer = rel->expected_delay;
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "TIME batch free, ignoring timing\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "batch free, ignoring timing\n");
   }
   rel->ch->pending_messages--;
   if (NULL != copy->chq)
@@ -1135,7 +1135,8 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
     /* copy->q is set to NULL by ch_message_sent */
   }
   GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE SEND %p\n", copy);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " free send copy MID %u at %p\n",
+       copy->mid, copy);
   GNUNET_free (copy);
 
   if (GNUNET_NO != rel->ch->destroy && 0 == rel->ch->pending_messages)
