@@ -1671,9 +1671,8 @@ does_connection_exist (struct CadetConnection *conn)
     GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
     if (CADET_CONNECTION_READY == c->state)
     {
-      /* The other peer confirmed this connection,
-       * they should not try to duplicate it. */
-      GNUNET_break_op (0); /* FIXME */
+      /* The other peer confirmed a live connection with this path,
+       * why is it trying to duplicate it. */
       return GNUNET_YES;
     }
 
@@ -1853,6 +1852,7 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       // Keep both and postpone disambiguation?
       // Keep the one created by peer with higher ID?
       // For now: reject new connection until current confirmed dead
+      GNUNET_break_op (0);
       send_broken_unknown (cid, &my_full_id, NULL, peer);
 
       return GNUNET_OK;
