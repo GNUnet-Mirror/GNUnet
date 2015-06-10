@@ -44,6 +44,7 @@
 #endif
 
 #define MIN_TUNNEL_BUFFER       8
+#define MAX_TUNNEL_BUFFER       64
 #define MAX_SKIPPED_KEYS        64
 #define MAX_KEY_GAP             256
 #define AX_HEADER_SIZE (sizeof (uint32_t) * 2\
@@ -3889,6 +3890,12 @@ GCT_get_channels_buffer (struct CadetTunnel *t)
   }
   if (MIN_TUNNEL_BUFFER > buffer)
     return MIN_TUNNEL_BUFFER;
+
+  if (MAX_TUNNEL_BUFFER < buffer)
+  {
+    GNUNET_break (0);
+    return MAX_TUNNEL_BUFFER;
+  }
   return buffer;
 }
 
