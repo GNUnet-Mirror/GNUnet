@@ -2824,12 +2824,12 @@ GCC_destroy (struct CadetConnection *c)
   if (NULL != c->fwd_fc.poll_task)
   {
     GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL FWD canceled\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL task FWD canceled\n");
   }
   if (NULL != c->bck_fc.poll_task)
   {
     GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL BCK canceled\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL task BCK canceled\n");
   }
 
   GNUNET_break (GNUNET_YES ==
@@ -3248,7 +3248,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_CADET_POLL:
       pmsg = (struct GNUNET_CADET_Poll *) data;
       pmsg->cid = c->id;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL %u\n", ntohl (pmsg->pid));
       droppable = GNUNET_NO;
       break;
 
@@ -3420,7 +3420,7 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
        GC_f2s (fwd));
   if (NULL != fc->poll_task || NULL != fc->poll_msg)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not needed (%p, %p)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  POLL not needed (%p, %p)\n",
          fc->poll_task, fc->poll_msg);
     return;
   }
@@ -3516,7 +3516,7 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
   LOG2 (level, "CCC   last ACK sent: %5u, recv: %5u\n",
         c->fwd_fc.last_ack_sent, c->fwd_fc.last_ack_recv);
   LOG2 (level, "CCC   recv PID bitmap: %X\n", c->fwd_fc.recv_bitmap);
-  LOG2 (level, "CCC   POLL: task %d, msg  %p, msg_ack %p)\n",
+  LOG2 (level, "CCC   poll: task %d, msg  %p, msg_ack %p)\n",
         c->fwd_fc.poll_task, c->fwd_fc.poll_msg, c->fwd_fc.ack_msg);
 
   LOG2 (level, "CCC  BCK flow control:\n");
@@ -3526,7 +3526,7 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
   LOG2 (level, "CCC   last ACK sent: %5u, recv: %5u\n",
         c->bck_fc.last_ack_sent, c->bck_fc.last_ack_recv);
   LOG2 (level, "CCC   recv PID bitmap: %X\n", c->bck_fc.recv_bitmap);
-  LOG2 (level, "CCC   POLL: task %d, msg  %p, msg_ack %p)\n",
+  LOG2 (level, "CCC   poll: task %d, msg  %p, msg_ack %p)\n",
         c->bck_fc.poll_task, c->bck_fc.poll_msg, c->bck_fc.ack_msg);
 
   LOG2 (level, "CCC DEBUG CONNECTION END\n");
