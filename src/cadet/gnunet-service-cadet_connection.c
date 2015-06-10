@@ -656,7 +656,9 @@ conn_message_sent (void *cls,
       if (GNUNET_YES == sent)
       {
         GNUNET_assert (NULL != q);
-        fc->last_pid_sent = pid; // FIXME
+        fc->last_pid_sent = pid;
+        if (GC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
+          GCC_start_poll (c, fwd);
         GCC_send_ack (c, fwd, GNUNET_NO);
         connection_reset_timeout (c, fwd);
       }
@@ -3226,10 +3228,6 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       else
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  not droppable, Q_N stays the same\n");
-      }
-      if (GC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
-      {
-        GCC_start_poll (c, fwd);
       }
       break;
 
