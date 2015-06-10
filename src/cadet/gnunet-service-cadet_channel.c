@@ -2367,7 +2367,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  new chq: %p\n", chq);
         chq->copy->chq = chq;
         chq->tq = GCT_send_prebuilt_message (message, ch->t, NULL,
-                                             GNUNET_YES,
+                                             GNUNET_NO,
                                              &ch_message_sent, chq);
         /* q itself is stored in copy */
         GNUNET_assert (NULL != chq->tq || GNUNET_NO != ch->destroy);
