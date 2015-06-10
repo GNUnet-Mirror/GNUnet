@@ -1787,7 +1787,7 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
 /**
  * Free memory occupied by signature.
  *
- * @param sig memory to freee
+ * @param sig memory to free
  */
 void
 GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig);

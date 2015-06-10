@@ -50,11 +50,6 @@ AC_SYS_LARGEFILE
 AC_FUNC_FSEEKO
 
 
-if test "$enable_shared" = "no"
-then
- AC_MSG_ERROR([GNUnet only works with shared libraries. Sorry.])
-fi
-
 CFLAGS="-Wall $CFLAGS"
 # use '-fno-strict-aliasing', but only if the compiler can take it
 if gcc -fno-strict-aliasing -S -o /dev/null -xc /dev/null >/dev/null 2>&1;
@@ -671,6 +666,11 @@ AC_CHECK_LIB(z, compress2,
 	      [AC_MSG_ERROR([GNUnet requires zlib])])
 AC_SUBST(Z_CFLAGS)
 AC_SUBST(Z_LIBS)
+
+if test "$enable_shared" = "no"
+then
+ AC_MSG_ERROR([GNUnet only works with shared libraries. Sorry.])
+fi
 
 
 
