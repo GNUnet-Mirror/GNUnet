@@ -328,7 +328,7 @@ connection_debug (struct CadetConnection *c)
 {
   if (NULL == c)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CONNECTION ***\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "DEBUG NULL CONNECTION\n");
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s:%X\n",
@@ -594,6 +594,8 @@ conn_message_sent (void *cls,
   int forced;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
+
+  GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s pid %u\n",
@@ -1223,8 +1225,7 @@ connection_cancel_queues (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
   struct CadetPeer *peer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " *** Cancel %s queues for connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Cancel %s queues for connection %s\n",
        GC_f2s (fwd), GCC_2s (c));
   if (NULL == c)
   {
@@ -1237,7 +1238,7 @@ connection_cancel_queues (struct CadetConnection *c, int fwd)
   {
     GNUNET_SCHEDULER_cancel (fc->poll_task);
     fc->poll_task = NULL;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Cancel POLL in ccq for fc %p\n", fc);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cancel POLL in ccq for fc %p\n", fc);
   }
   peer = get_hop (c, fwd);
   GCP_queue_cancel (peer, c);
@@ -1275,10 +1276,11 @@ poll_sent (void *cls,
 
   if (2 == c->destroy)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL canceled on shutdown\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL canceled on shutdown\n");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL sent for , scheduling new one!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL sent for %s, scheduling new one!\n",
+       GCC_2s (c));
   fc->poll_msg = NULL;
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -1300,6 +1302,7 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetFlowControl *fc = cls;
   struct GNUNET_CADET_Poll msg;
   struct CadetConnection *c;
+  int fwd;
 
   fc->poll_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1308,13 +1311,14 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   c = fc->c;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Polling connection %s %s\n",
-       GCC_2s (c), fc == &c->fwd_fc ? "FWD" : "BCK");
+  fwd = fc == &c->fwd_fc;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Polling connection %s %s\n",
+       GCC_2s (c),  GC_f2s (fwd));
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_POLL);
   msg.header.size = htons (sizeof (msg));
   msg.pid = htonl (fc->last_pid_sent);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** last pid sent: %u!\n", fc->last_pid_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " last pid sent: %u\n", fc->last_pid_sent);
   fc->poll_msg =
       GCC_send_prebuilt_message (&msg.header, 0, fc->last_pid_sent, c,
                                  fc == &c->fwd_fc, GNUNET_YES, &poll_sent, fc);
@@ -2791,13 +2795,13 @@ GCC_destroy (struct CadetConnection *c)
   {
     GCC_cancel (c->fwd_fc.poll_msg);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         " *** POLL msg FWD canceled\n");
+	 " POLL msg FWD canceled\n");
   }
   if (NULL != c->bck_fc.poll_msg)
   {
     GCC_cancel (c->bck_fc.poll_msg);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         " *** POLL msg BCK canceled\n");
+	 " POLL msg BCK canceled\n");
   }
 
   /* Delete from tunnel */
@@ -2814,12 +2818,12 @@ GCC_destroy (struct CadetConnection *c)
   if (NULL != c->fwd_fc.poll_task)
   {
     GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL FWD canceled\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL FWD canceled\n");
   }
   if (NULL != c->bck_fc.poll_task)
   {
     GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL BCK canceled\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL BCK canceled\n");
   }
 
   GNUNET_break (GNUNET_YES ==
@@ -2919,6 +2923,10 @@ GCC_get_buffer (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Get %s buffer on %s: %u - %u\n",
+       GC_f2s (fwd), GCC_2s (c), fc->queue_max, fc->queue_n);
+  GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
 
   return (fc->queue_max - fc->queue_n);
 }
@@ -3402,15 +3410,15 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL %s requested\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL %s requested\n",
        GC_f2s (fwd));
   if (NULL != fc->poll_task || NULL != fc->poll_msg)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   not needed (%u, %p)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not needed (%p, %p)\n",
          fc->poll_task, fc->poll_msg);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL started on request\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL started on request\n");
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &connection_poll,
                                                 fc);
