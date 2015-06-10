@@ -414,6 +414,7 @@ add_buffered_data (const struct GNUNET_CADET_Data *msg,
     if (prev->mid == mid)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " already there!\n");
+      rel->n_recv--;
       return;
     }
     else if (GC_is_pid_bigger (prev->mid, mid))
@@ -807,7 +808,7 @@ ch_message_sent (void *cls,
   struct CadetReliableMessage *copy = chq->copy;
   struct CadetChannelReliability *rel;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "channel message sent callback %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "channel_message_sent callback %s\n",
        GC_m2s (chq->type));
 
   switch (chq->type)
