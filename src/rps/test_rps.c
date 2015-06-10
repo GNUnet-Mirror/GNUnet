@@ -189,6 +189,13 @@ typedef void (*PreTest) (void *cls, struct GNUNET_RPS_Handle *h);
 typedef void (*MainTest) (struct RPSPeer *rps_peer);
 
 /**
+ * Callback called once the requested random peers are available
+ */
+typedef void (*ReplyHandle) (void *cls,
+                             uint64_t n,
+                             const struct GNUNET_PeerIdentity *recv_peers);
+
+/**
  * Called directly before disconnecting from the service
  */
 typedef void (*PostTest) (void *cls, struct GNUNET_RPS_Handle *h);
@@ -220,6 +227,11 @@ struct SingleTestRun
   MainTest main_test;
 
   /**
+   * Callback called once the requested peers are available
+   */
+  ReplyHandle reply_handle;
+
+  /**
    * Called directly before disconnecting from the service
    */
   PostTest post_test;
@@ -228,8 +240,108 @@ struct SingleTestRun
    * Function to evaluate the test results
    */
   EvaluationCallback eval_cb;
+
+  /**
+   * Request interval
+   */
+  uint32_t request_interval;
+
+  /**
+   * Number of Requests to make.
+   */
+  uint32_t num_requests;
 } cur_test_run;
 
+
+/**
+ * Append arguments to file
+ */
+static void
+to_file_ (char *file_name, char *line)
+{
+  struct GNUNET_DISK_FileHandle *f;
+  /* char output_buffer[512]; */
+  size_t size;
+  /* int size; */
+  size_t size2;
+
+  if (NULL == (f = GNUNET_DISK_file_open (file_name,
+                                          GNUNET_DISK_OPEN_APPEND |
+                                          GNUNET_DISK_OPEN_WRITE |
+                                          GNUNET_DISK_OPEN_CREATE,
+                                          GNUNET_DISK_PERM_USER_READ |
+                                          GNUNET_DISK_PERM_USER_WRITE |
+                                          GNUNET_DISK_PERM_GROUP_READ |
+                                          GNUNET_DISK_PERM_OTHER_READ)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Not able to open file %s\n",
+                file_name);
+    return;
+  }
+  /* size = GNUNET_snprintf (output_buffer,
+                          sizeof (output_buffer),
+                          "%llu %s\n",
+                          GNUNET_TIME_absolute_get ().abs_value_us,
+                          line);
+  if (0 > size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed to write string to buffer (size: %i)\n",
+                size);
+    return;
+  } */
+
+  size = strlen (line) * sizeof (char);
+
+  size2 = GNUNET_DISK_file_write (f, line, size);
+  if (size != size2)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Unable to write to file! (Size: %u, size2: %u)\n",
+                size,
+                size2);
+    return;
+  }
+
+  if (GNUNET_YES != GNUNET_DISK_file_close (f))
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Unable to close file\n");
+}
+
+/**
+ * This function is used to facilitate writing important information to disk
+ */
+#define to_file(file_name, ...) do {\
+  char tmp_buf[512];\
+    int size;\
+    size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
+    if (0 > size)\
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
+                     "Failed to create tmp_buf\n");\
+    else\
+      to_file_(file_name,tmp_buf);\
+  } while (0);
+
+/**
+ * Write the ids and their according index in the given array to a file 
+ * Unused
+ */
+/* static void
+ids_to_file (char *file_name,
+             struct GNUNET_PeerIdentity *peer_ids,
+             unsigned int num_peer_ids)
+{
+  unsigned int i;
+
+  for (i=0 ; i < num_peer_ids ; i++)
+  {
+    to_file (file_name,
+             "%u\t%s",
+             i,
+             GNUNET_i2s_full (&peer_ids[i]));
+  }
+} */
 
 /**
  * Test the success of a single test
@@ -360,53 +472,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Callback to call on receipt of a reply
- *
- * @param cls closure
- * @param n number of peers
- * @param recv_peers the received peers
- */
-static void
-handle_reply (void *cls, uint64_t n, const struct GNUNET_PeerIdentity *recv_peers)
-{
-  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
-  unsigned int i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "[%s] got %" PRIu64 " peers:\n",
-              GNUNET_i2s (rps_peer->peer_id),
-              n);
-  
-  for (i = 0 ; i < n ; i++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%u: %s\n",
-                i,
-                GNUNET_i2s (&recv_peers[i]));
-
-    GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]);
-  }
-}
-
-
-/**
- * Request random peers.
- */
-  void
-request_peers (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Requesting one peer\n");
-
-  (void) GNUNET_RPS_request_peers (rps_peer->rps_handle, 1, handle_reply, rps_peer);
-  //rps_peer->req_handle = GNUNET_RPS_request_peers (rps_peer->rps_handle, 1, handle_reply, rps_peer);
-}
-
-
-/**
  * Seed peers.
  */
   void
@@ -455,6 +520,11 @@ info_cb (void *cb_cls,
   rps_peers[entry->index].peer_id = &rps_peer_ids[entry->index];
   rps_peers[entry->index].rec_ids = NULL;
   rps_peers[entry->index].num_rec_ids = 0;
+
+  to_file ("/tmp/rps/peer_ids",
+           "%u\t%s\n",
+           entry->index,
+           GNUNET_i2s_full (&rps_peer_ids[entry->index]));
 
   GNUNET_TESTBED_operation_done (entry->op);
 
@@ -547,6 +617,7 @@ rps_disconnect_adapter (void *cls,
  * Definition of tests
 ***********************************************************************/
 
+// TODO check whether tests can be stopped earlier
 static int
 default_eval_cb (void)
 {
@@ -558,6 +629,57 @@ no_eval (void)
 {
   return 1;
 }
+
+/**
+ * Callback to call on receipt of a reply
+ *
+ * @param cls closure
+ * @param n number of peers
+ * @param recv_peers the received peers
+ */
+static void
+default_reply_handle (void *cls,
+                      uint64_t n,
+                      const struct GNUNET_PeerIdentity *recv_peers)
+{
+  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+  unsigned int i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "[%s] got %" PRIu64 " peers:\n",
+              GNUNET_i2s (rps_peer->peer_id),
+              n);
+  
+  for (i = 0 ; i < n ; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u: %s\n",
+                i,
+                GNUNET_i2s (&recv_peers[i]));
+
+    GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]);
+  }
+}
+
+/**
+ * Request random peers.
+ */
+static void
+request_peers (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Requesting one peer\n");
+
+  GNUNET_free (GNUNET_RPS_request_peers (rps_peer->rps_handle,
+                                         1,
+                                         cur_test_run.reply_handle,
+                                         rps_peer));
+  //rps_peer->req_handle = GNUNET_RPS_request_peers (rps_peer->rps_handle, 1, handle_reply, rps_peer);
+}
+
 
 /***********************************
  * MALICIOUS
@@ -792,6 +914,8 @@ churn (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    }
   }
 
+  GNUNET_free (permut);
+
   churn_task = GNUNET_SCHEDULER_add_delayed (
         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
         churn,
@@ -807,20 +931,83 @@ profiler_pre (void *cls, struct GNUNET_RPS_Handle *h)
   //                                           churn, NULL);
   mal_pre (cls, h);
 
-  if (NULL == churn_task)
+  /* if (NULL == churn_task)
+  {
+    churn_task = GNUNET_SCHEDULER_add_delayed (
+          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+          churn,
+          NULL);
+  } */
+}
+
+
+/**
+ * Callback to call on receipt of a reply
+ *
+ * @param cls closure
+ * @param n number of peers
+ * @param recv_peers the received peers
+ */
+static void
+profiler_reply_handle (void *cls,
+                      uint64_t n,
+                      const struct GNUNET_PeerIdentity *recv_peers)
+{
+  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+  char *file_name;
+  unsigned int i;
+
+  file_name = "/tmp/rps/received_ids";
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "[%s] got %" PRIu64 " peers:\n",
+              GNUNET_i2s (rps_peer->peer_id),
+              n);
+  
+  for (i = 0 ; i < n ; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%u: %s\n",
+                i,
+                GNUNET_i2s (&recv_peers[i]));
+
+    /* GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]); */
+    to_file (file_name,
+             "%s\n",
+             GNUNET_i2s_full (&recv_peers[i]));
+  }
+}
+
+
+static void
+profiler_cb (struct RPSPeer *rps_peer)
+{
+  uint32_t i;
+
+  /* Churn only at peers that do not request peers for evaluation */
+  if (NULL == churn_task &&
+      rps_peer->index != num_peers - 2)
   {
     churn_task = GNUNET_SCHEDULER_add_delayed (
           GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
           churn,
           NULL);
   }
-}
 
-static void
-profiler_cb (struct RPSPeer *rps_peer)
-{
-  // We're not requesting peers
-  // TODO maybe seed
+  /* Only request peer ids at one peer.
+   * (It's the before-last because last one is target of the focussed attack.)
+   */
+  if (rps_peer->index == num_peers - 2)
+  {
+    for (i = 0 ; i < cur_test_run.num_requests ; i++)
+    {
+      GNUNET_SCHEDULER_add_delayed (
+          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                         cur_test_run.request_interval * i),
+          request_peers,
+          rps_peer);
+    }
+  }
 }
 
 
@@ -893,7 +1080,6 @@ run (void *cls,
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
 
-  //GNUNET_SCHEDULER_add_delayed (TIMEOUT, &shutdown_task, NULL);
   GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
 }
 
@@ -910,6 +1096,7 @@ main (int argc, char *argv[])
 {
   cur_test_run.name = "test-rps-default";
   cur_test_run.pre_test = NULL;
+  cur_test_run.reply_handle = default_reply_handle;
   cur_test_run.eval_cb = default_eval_cb;
   churn_task = NULL;
 
@@ -999,9 +1186,14 @@ main (int argc, char *argv[])
     mal_type = 3;
     cur_test_run.pre_test = profiler_pre;
     cur_test_run.main_test = profiler_cb;
+    cur_test_run.reply_handle = profiler_reply_handle;
     cur_test_run.eval_cb = no_eval;
+    cur_test_run.request_interval = 2;
+    cur_test_run.num_requests = 50;
 
-    num_peers = 5;
+    num_peers = 50;
+
+    GNUNET_DISK_directory_create ("/tmp/rps/");
     //timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
   }
 
@@ -1009,7 +1201,6 @@ main (int argc, char *argv[])
   rps_peer_ids = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
 
   ok = 1;
-  //(void) GNUNET_TESTBED_test_run ("test-rps-multipeer",
   (void) GNUNET_TESTBED_test_run (cur_test_run.name,
                                   "test_rps.conf",
                                   num_peers,
