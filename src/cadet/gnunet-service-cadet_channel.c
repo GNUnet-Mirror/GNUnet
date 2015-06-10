@@ -425,7 +425,7 @@ add_buffered_data (const struct GNUNET_CADET_Data *msg,
     }
   }
   copy = copy_message (msg, mid, rel);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " insert at tail!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " insert at tail! (now: %u)\n", rel->n_recv);
   GNUNET_CONTAINER_DLL_insert_tail (rel->head_recv, rel->tail_recv, copy);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
 }
@@ -1439,6 +1439,7 @@ GCCH_get_buffer (struct CadetChannel *ch, int fwd)
     return 64;
   }
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   n_recv %d\n", rel->n_recv);
   return (64 - rel->n_recv);
 }
 
@@ -1652,6 +1653,9 @@ GCCH_debug (struct CadetChannel *ch)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
                 ch->root_rel->client_ready ? "YES" : "NO");
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_root);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv %d\n", ch->root_rel->n_recv);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MID r: %d, s: %d\n",
+         ch->root_rel->mid_recv, ch->root_rel->mid_send);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  dest %p/%p\n",
               ch->dest, ch->dest_rel);
@@ -1661,6 +1665,10 @@ GCCH_debug (struct CadetChannel *ch)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
                 ch->dest_rel->client_ready ? "YES" : "NO");
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv %d\n", ch->dest_rel->n_recv);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MID r: %d, s: %d\n",
+         ch->dest_rel->mid_recv, ch->dest_rel->mid_send);
+
   }
 }
 
@@ -2367,7 +2375,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  new chq: %p\n", chq);
         chq->copy->chq = chq;
         chq->tq = GCT_send_prebuilt_message (message, ch->t, NULL,
-                                             GNUNET_NO,
+                                             NULL != existing_copy,
                                              &ch_message_sent, chq);
         /* q itself is stored in copy */
         GNUNET_assert (NULL != chq->tq || GNUNET_NO != ch->destroy);
