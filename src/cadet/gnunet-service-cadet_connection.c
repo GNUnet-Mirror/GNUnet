@@ -1375,6 +1375,50 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
 
 
 /**
+ * Generic connection timeout implementation.
+ *
+ * Timeout function due to lack of keepalive/traffic from an endpoint.
+ * Destroys connection if called.
+ *
+ * @param c Connection to destroy.
+ * @param fwd Was the timeout from the origin? (FWD timeout)
+ */
+static void
+connection_timeout (struct CadetConnection *c, int fwd)
+{
+  struct CadetFlowControl *reverse_fc;
+
+  reverse_fc = fwd ? c->bck_fc : c->fwd_fc;
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Connection %s %s timed out. Destroying.\n",
+       GCC_2s (c),
+       GC_f2s (fwd));
+  GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
+
+  if (GCC_is_origin (c, fwd)) /* Loopback? Something is wrong! */
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* If dest, salvage queued traffic. */
+  if (GCC_is_origin (c, !fwd))
+  {
+    struct GNUNET_PeerIdentity *next_hop;
+
+    next_hop = fwd ? get_prev_hop (c) : get_next_hop (c);
+    send_broken_unknown (&c->id, &my_full_id, NULL, GCP_get_id (next_hop));
+    if (0 < reverse_fc->queue_n)
+      resend_messages_and_destroy (c, !fwd);
+    return;
+  }
+
+  GCC_destroy (c);
+}
+
+
+/**
  * Timeout function due to lack of keepalive/traffic from the owner.
  * Destroys connection if called.
  *
@@ -1386,40 +1430,19 @@ connection_fwd_timeout (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetConnection *c = cls;
+  struct CadetFlowControl *fc;
 
   c->fwd_maintenance_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Connection %s FWD timed out. Destroying.\n",
-       GCC_2s (c));
-  GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
-
-  if (GCC_is_origin (c, GNUNET_YES)) /* If local, leave. */
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  /* If dest, salvage queued traffic. */
-  if (GCC_is_origin (c, GNUNET_NO) && 0 < c->bck_fc.queue_n)
-  {
-    send_broken_unknown (&c->id, &my_full_id, NULL,
-                         GCP_get_id( get_prev_hop (c)));
-    resend_messages_and_destroy (c, GNUNET_NO);
-    return;
-  }
-
-  GCC_destroy (c);
+  connection_timeout (c, GNUNET_YES);
 }
 
 
 /**
  * Timeout function due to lack of keepalive/traffic from the destination.
  * Destroys connection if called.
- *
- * FIXME refactor and merge with connection_fwd_timeout.
  *
  * @param cls Closure (connection to destroy).
  * @param tc TaskContext
@@ -1434,25 +1457,7 @@ connection_bck_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Connection %s BCK timed out. Destroying.\n",
-       GCC_2s (c));
-
-  if (GCC_is_origin (c, GNUNET_NO)) /* If local, leave. */
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  /* If dest, salvage queued traffic. */
-  if (GCC_is_origin (c, GNUNET_YES) && 0 < c->fwd_fc.queue_n)
-  {
-    send_broken_unknown (&c->id, &my_full_id, NULL,
-                         GCP_get_id (get_next_hop (c)));
-    resend_messages_and_destroy (c, GNUNET_YES);
-    return;
-  }
-
-  GCC_destroy (c);
+  connection_timeout (c, GNUNET_NO);
 }
 
 
