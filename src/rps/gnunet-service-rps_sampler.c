@@ -600,9 +600,6 @@ static void
 sampler_empty (struct RPS_Sampler *sampler)
 {
   sampler_resize (sampler, 0);
-  GNUNET_array_grow (sampler->trash_can,
-                     sampler->trash_can_size,
-                     0);
 }
 
 
@@ -923,6 +920,8 @@ RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                               void *cls, uint32_t num_peers)
 {
   GNUNET_assert (0 != sampler->sampler_size);
+  if (0 == num_peers)
+    return;
 
   // TODO check if we have too much (distinct) sampled peers
   uint32_t i;

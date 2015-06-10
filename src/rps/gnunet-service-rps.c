@@ -1091,8 +1091,10 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
 {
   unsigned int i;
   if (NULL == peer_map)
-    peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers + 1,
-                                                     GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Trying to add peers to an empty peermap.\n");
+    return;
+
   for (i = 0 ; i < num_peers ; i++)
   {
     GNUNET_CONTAINER_multipeermap_put (peer_map,
@@ -1460,6 +1462,10 @@ handle_peer_push (void *cls,
   else if (2 == mal_type)
   { /* We attack one single well-known peer - simply ignore */
     return GNUNET_OK;
+  }
+  else
+  {
+    GNUNET_free (tmp_att_peer);
   }
 
   #endif /* ENABLE_MALICIOUS */
@@ -1951,6 +1957,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
     /* Send PULLs to some peers to learn about additional peers to attack */
+    tmp_att_peer = att_peer_index;
     for (i = 0 ; i < num_pushes * alpha ; i++)
     {
       if (att_peers_tail == tmp_att_peer)
@@ -2597,7 +2604,11 @@ run (void *cls,
   gossip_list_size = 0;
 
   /* file_name_view_log */
-  GNUNET_DISK_directory_create ("/tmp/rps/");
+  if (GNUNET_OK != GNUNET_DISK_directory_create ("/tmp/rps/"))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Failed to create directory /tmp/rps/\n");
+  }
 
   size = (14 + strlen (GNUNET_i2s_full (&own_identity)) + 1) * sizeof (char);
   file_name_view_log = GNUNET_malloc (size);

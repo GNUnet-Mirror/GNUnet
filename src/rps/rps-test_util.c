@@ -82,6 +82,11 @@ to_file_ (char *file_name, char *line)
          "Unable to write to file! (Size: %u, size2: %u)\n",
          size,
          size2);
+
+    if (GNUNET_YES != GNUNET_DISK_file_close (f))
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Unable to close file\n");
+
     return;
   }
 
@@ -149,9 +154,12 @@ create_file (const char *name)
   if (0 > size)
     LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create name_buf\n");
 
-  GNUNET_DISK_directory_create (prefix);
-
-  file_name = GNUNET_malloc (strlen (name_buf) + 6);
+  if (GNUNET_YES != GNUNET_DISK_directory_create (prefix))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Could not create directory %s.\n",
+         prefix);
+  }
 
   if (NULL == (file_name = GNUNET_DISK_mktemp (name_buf)))
         LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
