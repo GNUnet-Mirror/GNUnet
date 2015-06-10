@@ -1388,7 +1388,7 @@ connection_timeout (struct CadetConnection *c, int fwd)
 {
   struct CadetFlowControl *reverse_fc;
 
-  reverse_fc = fwd ? c->bck_fc : c->fwd_fc;
+  reverse_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Connection %s %s timed out. Destroying.\n",
@@ -1405,10 +1405,10 @@ connection_timeout (struct CadetConnection *c, int fwd)
   /* If dest, salvage queued traffic. */
   if (GCC_is_origin (c, !fwd))
   {
-    struct GNUNET_PeerIdentity *next_hop;
+    const struct GNUNET_PeerIdentity *next_hop;
 
-    next_hop = fwd ? get_prev_hop (c) : get_next_hop (c);
-    send_broken_unknown (&c->id, &my_full_id, NULL, GCP_get_id (next_hop));
+    next_hop = GCP_get_id (fwd ? get_prev_hop (c) : get_next_hop (c));
+    send_broken_unknown (&c->id, &my_full_id, NULL, next_hop);
     if (0 < reverse_fc->queue_n)
       resend_messages_and_destroy (c, !fwd);
     return;
@@ -1430,7 +1430,6 @@ connection_fwd_timeout (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetConnection *c = cls;
-  struct CadetFlowControl *fc;
 
   c->fwd_maintenance_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
