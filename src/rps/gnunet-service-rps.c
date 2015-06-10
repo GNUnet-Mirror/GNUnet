@@ -1091,9 +1091,11 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
 {
   unsigned int i;
   if (NULL == peer_map)
+  {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Trying to add peers to an empty peermap.\n");
     return;
+  }
 
   for (i = 0 ; i < num_peers ; i++)
   {
