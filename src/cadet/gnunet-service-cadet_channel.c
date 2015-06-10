@@ -401,7 +401,8 @@ add_buffered_data (const struct GNUNET_CADET_Data *msg,
 
   mid = ntohl (msg->mid);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data %u\n", mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data MID %u (%u)\n",
+       mid, rel->n_recv);
 
   rel->n_recv++;
 
@@ -632,7 +633,8 @@ send_client_buffered_data (struct CadetChannel *ch,
       send_client_data (ch, msg, fwd);
       rel->n_recv--;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %p\n", copy);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %u (%p), %u left\n",
+           copy->mid, copy, rel->n_recv);
       GNUNET_free (copy);
       GCCH_send_data_ack (ch, fwd);
     }
@@ -745,7 +747,7 @@ channel_retransmit_message (void *cls,
   fwd = (rel == ch->root_rel);
 
   /* Message not found in the queue that we are going to use. */
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "RETRANSMIT MID %u\n", copy->mid);
 
   GCCH_send_prebuilt_message (&payload->header, ch, fwd, copy);
   GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
@@ -767,7 +769,7 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RE-CREATE\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "RE-CREATE\n");
   GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
 
   if (rel == rel->ch->root_rel)
@@ -811,28 +813,26 @@ ch_message_sent (void *cls,
   switch (chq->type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_DATA:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT DATA MID %u\n", copy->mid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "data MID %u sent\n", copy->mid);
       GNUNET_assert (chq == copy->chq);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = copy->rel;
       if (NULL == rel->retry_task)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry in 4 * %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  scheduling retry in 4 * %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                      GNUNET_YES));
         if (0 != rel->expected_delay.rel_value_us)
         {
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay != 0\n");
           rel->retry_timer =
           GNUNET_TIME_relative_multiply (rel->expected_delay,
                                          CADET_RETRANSMIT_MARGIN);
         }
         else
         {
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay reset\n");
           rel->retry_timer = CADET_RETRANSMIT_TIME;
         }
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! using delay %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  using delay %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->retry_timer,
                                                      GNUNET_NO));
         rel->retry_task =
@@ -841,7 +841,7 @@ ch_message_sent (void *cls,
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! retry task %u\n", rel->retry_task);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "retry running %p\n", rel->retry_task);
       }
       copy->chq = NULL;
       break;
@@ -850,7 +850,7 @@ ch_message_sent (void *cls,
     case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GC_m2s (chq->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "sent %s\n", GC_m2s (chq->type));
       rel = chq->rel;
       GNUNET_assert (rel->uniq == chq);
       rel->uniq = NULL;
@@ -860,7 +860,7 @@ ch_message_sent (void *cls,
           && GNUNET_NO == rel->ch->destroy)
       {
         GNUNET_assert (NULL == rel->retry_task);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! STD BACKOFF %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "STD BACKOFF %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->retry_timer,
                                                      GNUNET_NO));
         rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
@@ -977,7 +977,7 @@ channel_rel_free_all (struct CadetChannelReliability *rel)
   {
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH RECV %p\n", copy);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE ALL RECV %p\n", copy);
     GNUNET_break (NULL == copy->chq);
     GNUNET_free (copy);
   }
@@ -985,7 +985,7 @@ channel_rel_free_all (struct CadetChannelReliability *rel)
   {
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH %p\n", copy);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE ALL SEND %p\n", copy);
     if (NULL != copy->chq)
     {
       if (NULL != copy->chq->tq)
@@ -1104,7 +1104,7 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
   struct GNUNET_TIME_Relative time;
 
   rel = copy->rel;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TIME Freeing %u\n", copy->mid);
   if (update_time)
   {
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
@@ -1116,15 +1116,16 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
       rel->expected_delay.rel_value_us += time.rel_value_us;
       rel->expected_delay.rel_value_us /= 8;
     }
-    LOG (GNUNET_ERROR_TYPE_INFO, "!!!  took %s, new delay %s\n",
-         GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO),
+    LOG (GNUNET_ERROR_TYPE_INFO, "TIME  message   %12s\n",
+         GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
+    LOG (GNUNET_ERROR_TYPE_INFO, "TIME  new delay %12s\n",
          GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                  GNUNET_NO));
     rel->retry_timer = rel->expected_delay;
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_INFO, "!!! batch free, ignoring timing\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "TIME batch free, ignoring timing\n");
   }
   rel->ch->pending_messages--;
   if (NULL != copy->chq)
@@ -1133,7 +1134,7 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
     /* copy->q is set to NULL by ch_message_sent */
   }
   GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE %p\n", copy);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE SEND %p\n", copy);
   GNUNET_free (copy);
 
   if (GNUNET_NO != rel->ch->destroy && 0 == rel->ch->pending_messages)
@@ -1172,7 +1173,7 @@ channel_confirm (struct CadetChannel *ch, int fwd)
   {
     rel->client_ready = GNUNET_YES;
     rel->expected_delay = rel->retry_timer;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  !! retry timer confirm %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  confirm retry timer %s\n",
          GNUNET_STRINGS_relative_time_to_string (rel->retry_timer, GNUNET_NO));
     if (GCT_get_connections_buffer (ch->t) > 0 || GCT_is_loopback (ch->t))
       send_client_ack (ch, fwd);
@@ -1225,7 +1226,7 @@ channel_save_copy (struct CadetChannel *ch,
   type = ntohs (msg->type);
   size = ntohs (msg->size);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u %s\n", mid, GC_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "save MID %u %s\n", mid, GC_m2s (type));
   copy = GNUNET_malloc (sizeof (struct CadetReliableMessage) + size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", copy);
   copy->mid = mid;
@@ -1296,7 +1297,7 @@ handle_loopback (struct CadetChannel *ch,
   {
     case GNUNET_MESSAGE_TYPE_CADET_DATA:
       /* Don't send hop ACK, wait for client to ACK */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SEND loopback %u (%u)\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "SEND loopback %u (%u)\n",
            ntohl (((struct GNUNET_CADET_Data *) msgh)->mid), ntohs (msgh->size));
       GCCH_handle_data (ch, (struct GNUNET_CADET_Data *) msgh, fwd);
       break;
@@ -1604,7 +1605,7 @@ GCCH_allow_client (struct CadetChannel *ch, int fwd)
         struct CadetReliableMessage *aux;
         for (aux = rel->head_sent; NULL != aux; aux = aux->next)
         {
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "   - sent MID %u\n", aux->mid);
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "   - sent mid %u\n", aux->mid);
         }
       }
     }
@@ -1960,7 +1961,7 @@ GCCH_handle_data (struct CadetChannel *ch,
       ( !GC_is_pid_bigger (rel->mid_recv, mid) &&
         GC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "RECV %u (%u)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "RECV MID %u (%u)\n",
          mid, ntohs (msg->header.size));
     if (GNUNET_YES == ch->reliable)
     {
@@ -2176,9 +2177,9 @@ GCCH_handle_create (struct CadetTunnel *t,
 
     add_destination (ch, c);
     if (GNUNET_YES == ch->reliable)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Reliable\n");
     else
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Not Reliable\n");
 
     send_client_create (ch);
     ch->state =  CADET_CHANNEL_SENT;
