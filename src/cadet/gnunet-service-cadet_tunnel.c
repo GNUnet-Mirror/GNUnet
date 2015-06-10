@@ -43,6 +43,7 @@
 #define DUMP_KEYS_TO_STDERR GNUNET_NO
 #endif
 
+#define MIN_TUNNEL_BUFFER       8
 #define MAX_SKIPPED_KEYS        64
 #define MAX_KEY_GAP             256
 #define AX_HEADER_SIZE (sizeof (uint32_t) * 2\
@@ -3876,7 +3877,7 @@ GCT_get_channels_buffer (struct CadetTunnel *t)
   {
     /* Probably getting buffer for a channel create/handshake. */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no channels, allow max\n");
-    return 64;
+    return MIN_TUNNEL_BUFFER;
   }
 
   buffer = 0;
@@ -3886,6 +3887,8 @@ GCT_get_channels_buffer (struct CadetTunnel *t)
     if (ch_buf > buffer)
       buffer = ch_buf;
   }
+  if (MIN_TUNNEL_BUFFER > buffer)
+    return MIN_TUNNEL_BUFFER;
   return buffer;
 }
 
