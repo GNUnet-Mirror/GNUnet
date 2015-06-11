@@ -26,7 +26,7 @@ AM_LDFLAGS=-avoid-version -module -export-dynamic
 
 nssdir = $(NSS_DIR)
 
-LIBTOOL = $(SUDO_BINARY) $(SHELL) $(top_builddir)/libtool
+LIBTOOL = $(LIBTOOL_SUDO_BINARY) $(SHELL) $(top_builddir)/libtool
 
 if !MINGW
 if INSTALL_NSS
@@ -34,6 +34,11 @@ nss_LTLIBRARIES = \
 	libnss_gns.la \
 	libnss_gns4.la \
 	libnss_gns6.la
+
+install-nssLTLIBRARIES:
+	LIBTOOL_SUDO_BINARY = $(SUDO_BINARY)
+uninstall-nssLTLIBRARIES:
+	LIBTOOL_SUDO_BINARY = $(SUDO_BINARY)
 endif
 endif
 
