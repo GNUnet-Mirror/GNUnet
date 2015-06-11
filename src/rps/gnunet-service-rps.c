@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_cadet_service.h"
+#include "gnunet_peerinfo_service.h"
 #include "gnunet_nse_service.h"
 #include "rps.h"
 #include "rps-test_util.h"
@@ -316,6 +317,16 @@ static struct GNUNET_NSE_Handle *nse;
  * Handler to CADET.
  */
 static struct GNUNET_CADET_Handle *cadet_handle;
+
+/**
+ * Handler to PEERINFO.
+ */
+static struct GNUNET_PEERINFO_Handle *peerinfo_handle;
+
+/**
+ * Handle for cancellation of iteration over peers.
+ */
+struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
 
 
 /**
@@ -1999,6 +2010,8 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing gossip list:\n");
+  to_file (file_name_view_log,
+           "___ new round ___");
   for (i = 0 ; i < gossip_list_size ; i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2213,6 +2226,30 @@ init_peer_cb (void *cls,
 
 
 /**
+ * Iterator over peers from peerinfo.
+ *
+ * @param cls closure
+ * @param peer id of the peer, NULL for last call
+ * @param hello hello message for the peer (can be NULL)
+ * @param error message
+ */
+void
+process_peerinfo_peers (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const struct GNUNET_HELLO_Message *hello,
+                        const char *err_msg)
+{
+  if (NULL != peer)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Got peer_id %s from peerinfo\n",
+         GNUNET_i2s (peer));
+    new_peer_id (peer);
+  }
+}
+
+
+/**
  * Clean the send channel of a peer
  */
 void
@@ -2322,12 +2359,14 @@ shutdown_task (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");
 
+  GNUNET_PEERINFO_notify_cancel (peerinfo_notify_handle);
+  GNUNET_PEERINFO_disconnect (peerinfo_handle);
+
   if (NULL != do_round_task)
   {
     GNUNET_SCHEDULER_cancel (do_round_task);
     do_round_task = NULL;
   }
-
 
   {
   if (GNUNET_SYSERR ==
@@ -2656,6 +2695,7 @@ run (void *cls,
                                        cadet_handlers,
                                        ports);
 
+  peerinfo_handle = GNUNET_PEERINFO_connect (cfg);
 
   /* Initialise sampler */
   struct GNUNET_TIME_Relative half_round_interval;
@@ -2683,6 +2723,10 @@ run (void *cls,
   GNUNET_CADET_get_peers (cadet_handle, &init_peer_cb, NULL);
   // TODO send push/pull to each of those peers?
 
+  peerinfo_notify_handle = GNUNET_PEERINFO_notify (cfg,
+                                                   GNUNET_NO,
+                                                   process_peerinfo_peers,
+                                                   NULL);
 
   rps_start (server);
 }
