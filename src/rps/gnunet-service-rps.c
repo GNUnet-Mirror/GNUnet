@@ -1724,23 +1724,26 @@ handle_peer_pull_reply (void *cls,
       continue;
     }
     #endif /* ENABLE_MALICIOUS */
-    peer_ctx = get_peer_ctx (peer_map, &peers[i]);
-    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID)
-        || NULL != peer_ctx->send_channel
-        || NULL != peer_ctx->recv_channel)
+    if (GNUNET_YES != GNUNET_CRYPTO_cmp_peer_identity (&own_identity,
+                                                       &peers[i]))
     {
-      if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i])
-          && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peers[i]))
-        GNUNET_array_append (pull_list, pull_list_size, peers[i]);
-    }
-    else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
-    {
-      out_op.op = insert_in_pull_list;
-      out_op.op_cls = NULL;
-      GNUNET_array_append (peer_ctx->outstanding_ops,
-                           peer_ctx->num_outstanding_ops,
-                           out_op);
-      check_peer_live (peer_ctx);
+      peer_ctx = get_peer_ctx (peer_map, &peers[i]);
+      if (GNUNET_YES == get_peer_flag (peer_ctx, VALID) ||
+          NULL != peer_ctx->send_channel ||
+          NULL != peer_ctx->recv_channel)
+      {
+        if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
+          GNUNET_array_append (pull_list, pull_list_size, peers[i]);
+      }
+      else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
+      {
+        out_op.op = insert_in_pull_list;
+        out_op.op_cls = NULL;
+        GNUNET_array_append (peer_ctx->outstanding_ops,
+                             peer_ctx->num_outstanding_ops,
+                             out_op);
+        check_peer_live (peer_ctx);
+      }
     }
   }
 
