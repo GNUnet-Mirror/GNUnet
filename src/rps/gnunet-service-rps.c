@@ -217,20 +217,22 @@ static struct GNUNET_CONTAINER_MultiPeerMap *peer_map;
 
 
 /**
- * The gossiped list of peers.
- */
-static struct GNUNET_PeerIdentity *gossip_list;
-
-/**
- * Size of the gossiped list
- */
-//static unsigned int gossip_list_size;
-static uint32_t gossip_list_size;
-
-/**
- * Name to log view (gossip_list) to
+ * Name to log view to
  */
 static char *file_name_view_log;
+
+/**
+ * The "local view" containing peers we learned from gossip and history
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *view;
+
+/**
+ * An array containing the peers of the local view.
+ *
+ * This is created every time we send a pull reply if it has changed since the
+ * last pull reply we sent.
+ */
+static struct GNUNET_PeerIdentity *view_array;
 
 
 /**
@@ -242,9 +244,6 @@ static unsigned int sampler_size_client_need;
 /**
  * The size of sampler we need to be able to satisfy the Brahms protocol's
  * need of random peers.
- *
- * This is directly taken as the #gossip_list_size on update of the
- * #gossip_list
  *
  * This is one minimum size the sampler grows to.
  */
@@ -694,11 +693,28 @@ get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
   void
 hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
 {
-  GNUNET_assert (1 == num_peers);
+  unsigned int i;
 
-  if (gossip_list_size < sampler_size_est_need)
+  for (i = 0; i < GNUNET_MIN (
+       sampler_size_est_need - GNUNET_CONTAINER_multipeermap_size (view),
+       num_peers); i++)
   {
-    GNUNET_array_append (gossip_list, gossip_list_size, *ids);
+    if (GNUNET_OK != GNUNET_CONTAINER_multipeermap_put (view,
+          &ids[i],
+          NULL,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+        {
+          LOG (GNUNET_ERROR_TYPE_WARNING,
+               "Failed to put peer in peermap. (hist_update)\n");
+        }
+
+    /* Might want to check that we really updated the view */
+    if (NULL != view_array)
+    {
+      GNUNET_free (view_array);
+      view_array = NULL;
+    }
+
     to_file (file_name_view_log,
              "+%s\t(hist)",
              GNUNET_i2s_full (ids));
@@ -867,6 +883,10 @@ check_peer_live (struct PeerContext *peer_ctx)
                                             sizeof (struct GNUNET_MessageHeader),
                                             cadet_ntfy_tmt_rdy_cb,
                                             peer_ctx);
+    (void) GNUNET_CONTAINER_multipeermap_put (peer_map,
+        &peer_ctx->peer_id,
+        peer_ctx,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   else
   {
@@ -934,34 +954,42 @@ insert_in_pull_list_scheduled (const struct PeerContext *peer_ctx)
 
 
 /**
- * Insert PeerID in #gossip_list
+ * Insert PeerID in #view
  *
  * Called once we know a peer is live.
  */
   void
-insert_in_gossip_list (void *cls, const struct GNUNET_PeerIdentity *peer)
+insert_in_view (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  if (GNUNET_NO == in_arr (gossip_list, gossip_list_size, peer))
+  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_put (view,
+        peer,
+        NULL,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
-    GNUNET_array_append (gossip_list, gossip_list_size, *peer);
-    to_file (file_name_view_log,
-             "+%s\t(ins in gossip list)",
-             GNUNET_i2s_full (peer));
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Failed to put peer into view. (insert_in_view)\n");
+  }
+
+  /* Might want to check whether we really modified the view */
+  if (NULL != view_array)
+  {
+    GNUNET_free (view_array);
+    view_array = NULL;
   }
 
   (void) get_channel (peer_map, peer);
 }
 
 /**
- * Check whether #insert_in_gossip_list was already scheduled
+ * Check whether #insert_in_view was already scheduled
  */
   int
-insert_in_gossip_list_scheduled (const struct PeerContext *peer_ctx)
+insert_in_view_scheduled (const struct PeerContext *peer_ctx)
 {
   unsigned int i;
 
   for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
-    if (insert_in_gossip_list == peer_ctx->outstanding_ops[i].op)
+    if (insert_in_view == peer_ctx->outstanding_ops[i].op)
       return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -1108,7 +1136,7 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
     return;
   }
 
-  for (i = 0 ; i < num_peers ; i++)
+  for (i = 0; i < num_peers; i++)
   {
     GNUNET_CONTAINER_multipeermap_put (peer_map,
                                        &peer_array[i],
@@ -1180,14 +1208,14 @@ new_peer_id (const struct GNUNET_PeerIdentity *peer_id)
   struct PeerOutstandingOp out_op;
   struct PeerContext *peer_ctx;
 
-  if (NULL != peer_id
-      && 0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer_id))
+  if (NULL != peer_id &&
+      0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer_id))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Got peer_id %s (at %p, gossip_list_size: %u)\n",
+        "Got peer_id %s (at %p, view size: %u)\n",
         GNUNET_i2s (peer_id),
         peer_id,
-        gossip_list_size);
+        GNUNET_CONTAINER_multipeermap_size (view));
 
     peer_ctx = get_peer_ctx (peer_map, peer_id);
     if (GNUNET_YES != get_peer_flag (peer_ctx, VALID))
@@ -1201,9 +1229,9 @@ new_peer_id (const struct GNUNET_PeerIdentity *peer_id)
                              out_op);
       }
 
-      if (GNUNET_NO == insert_in_gossip_list_scheduled (peer_ctx))
+      if (GNUNET_NO == insert_in_view_scheduled (peer_ctx))
       {
-        out_op.op = insert_in_gossip_list;
+        out_op.op = insert_in_view;
         out_op.op_cls = NULL;
         GNUNET_array_append (peer_ctx->outstanding_ops,
                              peer_ctx->num_outstanding_ops,
@@ -1492,6 +1520,58 @@ handle_peer_push (void *cls,
 
 
 /**
+ * Iterator over hash map entries.
+ * Called from #generate_view_array and writes every peer id into #view_array.
+ *
+ * @param cls closure - the pointer to the counter
+ * @param key current public key
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ * iterate,
+ * #GNUNET_NO if not.
+ */
+static int
+dump_id_to_view_array (void *cls,
+                       const struct GNUNET_PeerIdentity *key,
+                       void *value)
+{
+  unsigned int *i = (unsigned int *) cls;
+
+  view_array[(*i)++] = *key;
+  return GNUNET_YES;
+}
+
+
+/**
+ * Makes sure the view_array is filled with the peer ids currently in #view.
+ * Called from within #do_round before sending pushes and pulls and from
+ * #handle_peer_pull_request when a reply is sent.
+ */
+static void
+generate_view_array (unsigned int view_size)
+{
+  unsigned int *i;
+  int ret;
+
+  if (NULL == view_array)
+  {
+    view_array = GNUNET_new_array (view_size,
+                                   struct GNUNET_PeerIdentity);
+    i = GNUNET_new (unsigned int);
+    *i = 0;
+
+    ret = GNUNET_CONTAINER_multipeermap_iterate (view,
+                                                 dump_id_to_view_array,
+                                                 i);
+    GNUNET_assert (view_size == ret);
+    GNUNET_assert (view_size == *i);
+
+    GNUNET_free (i);
+  }
+}
+
+
+/**
  * Handle PULL REQUEST request message from another peer.
  *
  * Reply with the gossip list of PeerIDs.
@@ -1508,6 +1588,7 @@ handle_peer_pull_request (void *cls,
     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PeerIdentity *peer;
+  unsigned int view_size;
 
   peer = (struct GNUNET_PeerIdentity *)
     GNUNET_CADET_channel_get_info (channel,
@@ -1532,7 +1613,10 @@ handle_peer_pull_request (void *cls,
   }
   #endif /* ENABLE_MALICIOUS */
 
-  send_pull_reply (peer, gossip_list, gossip_list_size);
+  view_size = GNUNET_CONTAINER_multipeermap_size (view);
+  generate_view_array (view_size);
+
+  send_pull_reply (peer, view_array, view_size);
 
   return GNUNET_OK;
 }
@@ -1993,7 +2077,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Send out PUSHes and PULLs, possibly update #gossip_list, samplers.
+ * Send out PUSHes and PULLs, possibly update #view, samplers.
  *
  * This is executed regylary.
  */
@@ -2003,140 +2087,161 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round.\n");
 
   uint32_t i;
+  unsigned int view_size;
   unsigned int *permut;
-  unsigned int n_peers; /* Number of peers we send pushes/pulls to */
+  unsigned int a_peers; /* Number of peers we send pushes to */
+  unsigned int b_peers; /* Number of peers we send pull requests to */
   struct GNUNET_PeerIdentity peer;
-  struct GNUNET_PeerIdentity *tmp_peer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing gossip list:\n");
   to_file (file_name_view_log,
            "___ new round ___");
-  for (i = 0 ; i < gossip_list_size ; i++)
+  view_size = GNUNET_CONTAINER_multipeermap_size (view);
+  generate_view_array (view_size);
+  for (i = 0 ; i < view_size ; i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "\t%s\n", GNUNET_i2s (&gossip_list[i]));
+         "\t%s\n", GNUNET_i2s (&view_array[i]));
     to_file (file_name_view_log,
              "=%s\t(do round)",
-             GNUNET_i2s_full (&gossip_list[i]));
+             GNUNET_i2s_full (&view_array[i]));
   }
-  // TODO log lists, ...
 
-  /* Would it make sense to have one shuffeled gossip list and then
-   * to send PUSHes to first alpha peers, PULL requests to next beta peers and
-   * use the rest to update sampler?
-   * in essence get random peers with consumption */
 
-  /* Send PUSHes */
-  if (0 < gossip_list_size)
+  /* Send pushes and pull requests */
+  if (0 < view_size)
   {
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
-                                           (unsigned int) gossip_list_size);
-    n_peers = ceil (alpha * gossip_list_size);
+                                           (unsigned int) view_size);
+
+    /* generate view_array */
+
+    /* Send PUSHes */
+    a_peers = ceil (alpha * view_size);
+
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Going to send pushes to %u (ceil (%f * %u)) peers.\n",
-         n_peers, alpha, gossip_list_size);
-    for (i = 0 ; i < n_peers ; i++)
+         a_peers, alpha, view_size);
+    for (i = 0; i < a_peers; i++)
     {
-      peer = gossip_list[permut[i]];
+      peer = view_array[permut[i]];
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer)) // TODO
       { // FIXME if this fails schedule/loop this for later
         send_push (&peer);
       }
     }
-    GNUNET_free (permut);
-  }
 
-
-  /* Send PULL requests */
-  //permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG, (unsigned int) sampler_list->size);
-  n_peers = ceil (beta * gossip_list_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Going to send pulls to %u (ceil (%f * %u)) peers.\n",
-       n_peers, beta, gossip_list_size);
-  for (i = 0 ; i < n_peers ; i++)
-  {
-    tmp_peer = get_rand_peer_ignore_list (gossip_list, gossip_list_size,
-        pending_pull_reply_list, pending_pull_reply_list_size);
-    if (NULL != tmp_peer)
+    /* Send PULL requests */
+    b_peers = a_peers + floor (beta * view_size);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Going to send pulls to %u (ceil (%f * %u)) peers.\n",
+        b_peers, beta, view_size);
+    for (i = a_peers; i < b_peers; i++)
     {
-      peer = *tmp_peer;
-      GNUNET_free (tmp_peer);
-
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer))
-      {
+      peer = view_array[permut[i]];
+      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer) &&
+          GNUNET_YES != in_arr (pending_pull_reply_list,
+                                pending_pull_reply_list_size,
+                                &peer)) // TODO
+      { // FIXME if this fails schedule/loop this for later
         send_pull_request (&peer);
       }
     }
+
+    GNUNET_free (permut);
+    permut = NULL;
   }
 
 
-  /* Update gossip list */
+  /* Update view */
   /* TODO see how many peers are in push-/pull- list! */
 
-  if (push_list_size <= alpha * gossip_list_size
-      && push_list_size > 0
-      && pull_list_size > 0)
+  if (push_list_size <= alpha * view_size &&
+      0 < push_list_size &&
+      0 < pull_list_size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the gossip list.\n");
 
     uint32_t first_border;
     uint32_t second_border;
-    uint32_t r_index;
+    uint32_t final_size;
     uint32_t peers_to_clean_size;
     struct GNUNET_PeerIdentity *peers_to_clean;
 
     peers_to_clean = NULL;
     peers_to_clean_size = 0;
-    GNUNET_array_grow (peers_to_clean, peers_to_clean_size, gossip_list_size);
+    GNUNET_array_grow (peers_to_clean, peers_to_clean_size, view_size);
     memcpy (peers_to_clean,
-            gossip_list,
-            gossip_list_size * sizeof (struct GNUNET_PeerIdentity));
+            view_array,
+            view_size * sizeof (struct GNUNET_PeerIdentity));
 
-    first_border  =                ceil (alpha * sampler_size_est_need);
-    second_border = first_border + ceil (beta  * sampler_size_est_need);
+    /* Seems like recreating is the easiest way of emptying the peermap */
+    GNUNET_CONTAINER_multipeermap_destroy (view);
+    view = GNUNET_CONTAINER_multipeermap_create (view_size, GNUNET_NO);
 
-    GNUNET_array_grow (gossip_list, gossip_list_size, second_border);
+    /* first_border  =                ceil (alpha * sampler_size_est_need);
+    second_border = first_border + ceil (beta  * sampler_size_est_need); */
+    first_border  = GNUNET_MIN (ceil (alpha * sampler_size_est_need),
+                                push_list_size);
+    second_border = first_border +
+                    GNUNET_MIN (floor (beta  * sampler_size_est_need),
+                                pull_list_size);
+    final_size    = second_border +
+      ceil ((1 - (alpha + beta)) * sampler_size_est_need);
+
+    GNUNET_array_grow (view_array, view_size, second_border);
 
     to_file (file_name_view_log,
              "--- emptied ---");
 
-    for (i = 0 ; i < first_border ; i++)
-    {/* Update gossip list with peers received through PUSHes */
-      r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                          push_list_size);
-      gossip_list[i] = push_list[r_index];
+    /* Update view with peers received through PUSHes */
+    permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
+                                           pull_list_size);
+    for (i = 0; i < first_border; i++)
+    {
+      view_array[i] = push_list[permut[i]];
+      GNUNET_CONTAINER_multipeermap_put (view, &push_list[permut[i]], NULL,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
       to_file (file_name_view_log,
                "+%s't(push list)",
-               GNUNET_i2s_full (&gossip_list[i]));
+               GNUNET_i2s_full (&view_array[i]));
       // TODO change the peer_flags accordingly
     }
+    GNUNET_free (permut);
+    permut = NULL;
 
-    for (i = first_border ; i < second_border ; i++)
-    {/* Update gossip list with peers received through PULLs */
-      r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                          pull_list_size);
-      gossip_list[i] = pull_list[r_index];
+    /* Update view with peers received through PULLs */
+    permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
+                                           pull_list_size);
+    for (i = first_border; i < second_border; i++)
+    {
+      view_array[i] = pull_list[permut[i]];
+      GNUNET_CONTAINER_multipeermap_put (view, &pull_list[permut[i]], NULL,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
       to_file (file_name_view_log,
                "+%s\t(pull list)",
-               GNUNET_i2s_full (&gossip_list[i]));
+               GNUNET_i2s_full (&view_array[i]));
       // TODO change the peer_flags accordingly
     }
+    GNUNET_free (permut);
+    permut = NULL;
 
-    for (i = second_border ; i < sampler_size_est_need ; i++)
-    {/* Update gossip list with peers from history */
-      RPS_sampler_get_n_rand_peers (prot_sampler,
-                                    hist_update,
-                                    NULL,
-                                    1);
-      num_hist_update_tasks++;
-      // TODO change the peer_flags accordingly
-    }
+    /* Update view with peers from history */
+    RPS_sampler_get_n_rand_peers (prot_sampler,
+                                  hist_update,
+                                  NULL,
+                                  final_size - second_border);
+    num_hist_update_tasks = final_size - second_border;
+    // TODO change the peer_flags accordingly
 
-    for (i = 0 ; i < gossip_list_size ; i++)
-      rem_from_list (&peers_to_clean, &peers_to_clean_size, &gossip_list[i]);
+    for (i = 0; i < view_size; i++)
+      rem_from_list (&peers_to_clean, &peers_to_clean_size, &view_array[i]);
 
-    for (i = 0 ; i < peers_to_clean_size ; i++)
+    /* Clean peers that were removed from the view */
+    for (i = 0; i < peers_to_clean_size; i++)
     {
       peer_clean (&peers_to_clean[i]);
       /* to_file (file_name_view_log,
@@ -2145,6 +2250,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
     GNUNET_free (peers_to_clean);
+    peers_to_clean = NULL;
   }
   else
   {
@@ -2153,15 +2259,15 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   // TODO independent of that also get some peers from CADET_get_peers()?
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received %u pushes and %u pulls last round (alpha (%.2f) * gossip_list_size (%u) = %.2f)\n",
+       "Received %u pushes and %u pulls last round (alpha (%.2f) * view_size (%u) = %.2f)\n",
        push_list_size,
        pull_list_size,
        alpha,
-       gossip_list_size,
-       alpha * gossip_list_size);
+       view_size,
+       alpha * view_size);
 
   /* Update samplers */
-  for ( i = 0 ; i < push_list_size ; i++ )
+  for (i = 0; i < push_list_size; i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from push list\n",
@@ -2171,7 +2277,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     // TODO set in_flag?
   }
 
-  for ( i = 0 ; i < pull_list_size ; i++ )
+  for (i = 0; i < pull_list_size; i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from pull list\n",
@@ -2191,7 +2297,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   time_next_round = compute_rand_delay (round_interval, 2);
 
   /* Schedule next round */
-  //do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_round, NULL);
   do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round, &do_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
@@ -2258,8 +2363,8 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *peer_ctx;
   struct GNUNET_CADET_Channel *channel;
 
-  if (GNUNET_YES != in_arr (gossip_list, gossip_list_size, peer)
-      && GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
+      GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     peer_ctx = get_peer_ctx (peer_map, peer);
     if (NULL != peer_ctx->send_channel)
@@ -2281,10 +2386,9 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   struct PeerContext *peer_ctx;
   const struct GNUNET_CADET_Channel *channel =
     (const struct GNUNET_CADET_Channel *) cls;
-  struct GNUNET_CADET_Channel *recv;
-  struct GNUNET_CADET_Channel *send;
 
   peer_ctx = (struct PeerContext *) value;
+  set_peer_flag (peer_ctx, TO_DESTROY);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Going to clean peer %s\n",
@@ -2292,29 +2396,31 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
   /* If operations are still scheduled for this peer cancel those */
   if (0 != peer_ctx->num_outstanding_ops)
+  {
     GNUNET_array_grow (peer_ctx->outstanding_ops,
                        peer_ctx->num_outstanding_ops,
                        0);
+  }
 
   /* If we are still waiting for notification whether this peer is live 
    * cancel the according task */
   if (NULL != peer_ctx->is_live_task)
   {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Trying to cancle is_live_task for peer %s\n",
-       GNUNET_i2s (key));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Trying to cancle is_live_task for peer %s\n",
+         GNUNET_i2s (key));
     GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
     peer_ctx->is_live_task = NULL;
   }
 
+  rem_from_list (&pending_pull_reply_list,
+                 &pending_pull_reply_list_size,
+                 key);
 
-  recv = peer_ctx->recv_channel;
-  peer_ctx->recv_channel = NULL;
-  if (NULL != recv
-      && channel != recv)
-  {
-    GNUNET_CADET_channel_destroy (recv);
-  }
+  to_file (file_name_view_log,
+           "-%s\t(cleanup channel, other peer)",
+           GNUNET_i2s_full (key));
+  GNUNET_CONTAINER_multipeermap_remove_all (view, key);
 
   /* If there is still a mq destroy it */
   if (NULL != peer_ctx->mq)
@@ -2323,24 +2429,32 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
     peer_ctx->mq = NULL;
   }
 
+
   /* Remove the send_channel
-   * The peer map entry should be removed
-   * from the callback #cleanup_channel */
-  send = peer_ctx->send_channel;
-  peer_ctx->send_channel = NULL;
-  if (NULL != send
-      && channel != send)
+   * This function should be called again from #cleanup_channel (callback
+   * called on the destruction of channels) and clean up the rest. */
+  if (NULL != peer_ctx->send_channel &&
+      channel != peer_ctx->send_channel)
   {
-    set_peer_flag (peer_ctx, TO_DESTROY);
-    GNUNET_CADET_channel_destroy (send);
+    GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
+    peer_ctx->send_channel = NULL;
   }
-  else
-  { /* If there is no channel we have to remove it now */
-    if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
-      LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
-    else
-      GNUNET_free (peer_ctx);
+
+  /* Remove the recv_channel
+   * This function should be called again from #cleanup_channel (callback
+   * called on the destruction of channels) and clean up the rest. */
+  if (NULL != peer_ctx->recv_channel &&
+      channel != peer_ctx->recv_channel)
+  {
+    GNUNET_CADET_channel_destroy (peer_ctx->recv_channel);
+    peer_ctx->recv_channel = NULL;
   }
+
+  /* If there is no channel we have to remove the context now */
+  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
+    LOG (GNUNET_ERROR_TYPE_WARNING, "removing peer from peer_map failed\n");
+
+  GNUNET_free (peer_ctx);
 
   return GNUNET_YES;
 }
@@ -2381,10 +2495,11 @@ shutdown_task (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Size of the peermap: %u\n",
        GNUNET_CONTAINER_multipeermap_size (peer_map));
-  GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
+  GNUNET_break (0 != GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   GNUNET_CADET_disconnect (cadet_handle);
-  GNUNET_array_grow (gossip_list, gossip_list_size, 0);
+  GNUNET_CONTAINER_multipeermap_destroy (view);
+  view = NULL;
   GNUNET_array_grow (push_list, push_list_size, 0);
   GNUNET_array_grow (pull_list, pull_list_size, 0);
   #ifdef ENABLE_MALICIOUS
@@ -2456,6 +2571,12 @@ handle_inbound_channel (void *cls,
   (void) GNUNET_CONTAINER_multipeermap_put (peer_map, &peer, peer_ctx,
       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
 
+  /* This would make the push-message unnecessary */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Got peer_id %s from peerinfo\n",
+      GNUNET_i2s (&peer));
+  new_peer_id (&peer);
+
   peer_is_live (peer_ctx);
 
   return NULL; // TODO
@@ -2463,7 +2584,7 @@ handle_inbound_channel (void *cls,
 
 
 /**
- * This is called when a remote peer destroys a channel.
+ * This is called when a channel is destroyed.
  *
  * @param cls The closure
  * @param channel The channel being closed
@@ -2482,75 +2603,58 @@ cleanup_channel (void *cls,
        // Guess simply casting isn't the nicest way...
        // FIXME wait for cadet to change this function
 
-  //if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
-  //{
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  {/* We don't want to implicitly create a context that we're about to kill */
     peer_ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
-
     if (NULL == peer_ctx) /* It could have been removed by shutdown_task */
       return;
 
+    if (get_peer_flag (peer_ctx, TO_DESTROY))
+    {/* We initiatad the destruction of this particular peer */
+      if (channel == peer_ctx->send_channel)
+        peer_ctx->send_channel = NULL;
+      else if (channel == peer_ctx->recv_channel)
+        peer_ctx->recv_channel = NULL;
 
-    if (channel == peer_ctx->send_channel)
-    { /* Something (but us) killd the channel */
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "send channel (%s) was destroyed - cleaning up\n",
-           GNUNET_i2s (peer));
-
-      rem_from_list (&gossip_list,
-                     &gossip_list_size,
-                     peer);
-      rem_from_list (&pending_pull_reply_list,
-                     &pending_pull_reply_list_size,
-                     peer);
-      to_file (file_name_view_log,
-               "-%s\t(cleanup channel, other peer)",
-               GNUNET_i2s_full (peer));
-
-      peer_ctx->send_channel = NULL;
-      /* Somwewhat {ab,re}use the iterator function */
-      /* Cast to void is ok, because it's used as void in peer_remove_cb */
-      (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
-
-      //if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove_all (peer_map, key))
-      //  LOG (GNUNET_ERROR_TYPE_WARNING, "Removing peer from peer_map failed\n");
-      //else
-      //  GNUNET_free (peer_ctx);
-    }
-    else if (channel == peer_ctx->recv_channel)
-    { /* Other peer doesn't want to send us messages anymore */
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Peer %s destroyed recv channel - cleaning up channel\n",
-           GNUNET_i2s (peer));
-      peer_ctx->recv_channel = NULL;
-    }
-    else if (NULL == peer_ctx->send_channel &&
-             get_peer_flag (peer_ctx, TO_DESTROY))
-    { /* We closed the channel to that peer */
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "send channel (%s) was destroyed by us - cleaning up\n",
-           GNUNET_i2s (peer));
-
-      rem_from_list (&gossip_list,
-                     &gossip_list_size,
-                     peer);
-      rem_from_list (&pending_pull_reply_list,
-                     &pending_pull_reply_list_size,
-                     peer);
       to_file (file_name_view_log,
                "-%s\t(cleanup channel, ourself)",
                GNUNET_i2s_full (peer));
+    }
 
-      /* Somwewhat {ab,re}use the iterator function */
-      /* Cast to void is ok, because it's used as void in peer_remove_cb */
-      (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
-    }
     else
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "unknown channel (%s) was destroyed\n",
-           GNUNET_i2s (peer));
+    { /* We did not initiate the destruction of this peer */
+      if (channel == peer_ctx->send_channel)
+      { /* Something (but us) killd the channel - clean up peer */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "send channel (%s) was destroyed - cleaning up\n",
+            GNUNET_i2s (peer));
+        peer_ctx->send_channel = NULL;
+        /* Somwewhat {ab,re}use the iterator function */
+        /* Cast to void is ok, because it's used as void in peer_remove_cb */
+        (void) peer_remove_cb ((void *) channel, peer, peer_ctx);
+      }
+      else if (channel == peer_ctx->recv_channel)
+      { /* Other peer doesn't want to send us messages anymore */
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Peer %s destroyed recv channel - cleaning up channel\n",
+             GNUNET_i2s (peer));
+        peer_ctx->recv_channel = NULL;
+      }
+      else
+      {
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "unknown channel (%s) was destroyed\n",
+             GNUNET_i2s (peer));
+      }
     }
-  //}
+  }
+
+  else
+  { /* We don't know a context to that peer */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "channel (%s) without associated context was destroyed\n",
+         GNUNET_i2s (peer));
+  }
 }
 
 
@@ -2641,8 +2745,7 @@ run (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "INITSIZE is %" PRIu64 "\n", sampler_size_est_need);
 
 
-  gossip_list = NULL;
-  gossip_list_size = 0;
+  view = GNUNET_CONTAINER_multipeermap_create (4, GNUNET_NO);
 
   /* file_name_view_log */
   if (GNUNET_OK != GNUNET_DISK_directory_create ("/tmp/rps/"))
