@@ -170,8 +170,9 @@ finish_response ()
               "Creating hostlist response with %u bytes\n",
               (unsigned int) builder->size);
   response =
-      MHD_create_response_from_data (builder->size, builder->data, MHD_YES,
-                                     MHD_NO);
+      MHD_create_response_from_buffer (builder->size,
+                                       builder->data,
+                                       MHD_RESPMEM_MUST_FREE);
   add_cors_headers (response);
   if ((NULL == daemon_handle_v4) && (NULL == daemon_handle_v6))
   {

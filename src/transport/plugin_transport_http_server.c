@@ -1761,10 +1761,9 @@ server_access_cb (void *cls,
     else
     {
       /* existing session already has matching connection, refuse */
-      response = MHD_create_response_from_data (strlen (HTTP_ERROR_RESPONSE),
-                                                HTTP_ERROR_RESPONSE,
-                                                MHD_NO,
-                                                MHD_NO);
+      response = MHD_create_response_from_buffer (strlen (HTTP_ERROR_RESPONSE),
+                                                  HTTP_ERROR_RESPONSE,
+                                                  MHD_RESPMEM_PERSISTENT);
       MHD_add_response_header (response,
 			       MHD_HTTP_HEADER_CONTENT_TYPE,
 			       "text/html");
@@ -1779,8 +1778,9 @@ server_access_cb (void *cls,
   {
     /* Session was already disconnected;
        sent HTTP/1.1: 200 OK as response */
-    response = MHD_create_response_from_data (strlen ("Thank you!"),
-        "Thank you!", MHD_NO, MHD_NO);
+    response = MHD_create_response_from_buffer (strlen ("Thank you!"),
+                                                "Thank you!",
+                                                MHD_RESPMEM_PERSISTENT);
     add_cors_headers(response);
     MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
@@ -1823,8 +1823,9 @@ server_access_cb (void *cls,
                                                  s->address->address_length));
       sc->connected = GNUNET_NO;
       /* Sent HTTP/1.1: 200 OK as PUT Response\ */
-      response = MHD_create_response_from_data (strlen ("Thank you!"),
-          "Thank you!", MHD_NO, MHD_NO);
+      response = MHD_create_response_from_buffer (strlen ("Thank you!"),
+                                                  "Thank you!",
+                                                  MHD_RESPMEM_PERSISTENT);
       add_cors_headers(response);
       MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
       MHD_destroy_response (response);
