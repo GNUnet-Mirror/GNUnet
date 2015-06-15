@@ -69,6 +69,11 @@ enum LocalAddressSource
    * given in the configuration (i.e. hole-punched DynDNS setup).
    */
   LAL_EXTERNAL_IP,
+  
+   /**
+   * Address was obtained by an external STUN server
+   */
+  LAL_EXTERNAL_STUN_IP,
 
   /**
    * Address was obtained by DNS resolution of the external hostname

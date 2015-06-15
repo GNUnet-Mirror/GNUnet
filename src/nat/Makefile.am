@@ -63,7 +63,8 @@ libgnunetnat_la_SOURCES = \
   nat.c nat.h \
   nat_auto.c \
   nat_test.c \
-  nat_mini.c 
+  nat_mini.c \
+  nat_stun.c
 
 libgnunetnat_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -76,7 +77,8 @@ libgnunetnat_la_LDFLAGS = \
 check_PROGRAMS = \
   test_nat \
   test_nat_mini \
-  test_nat_test
+  test_nat_test \
+  test_stun
 
 if ENABLE_TEST_RUN
  AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
@@ -102,6 +104,11 @@ test_nat_test_LDADD = \
  libgnunetnat.la \
  $(top_builddir)/src/util/libgnunetutil.la 
 
+test_stun_SOURCES = \
+  test_stun.c
+test_stun_LDADD = \
+ libgnunetnat.la \
+ $(top_builddir)/src/util/libgnunetutil.la 
 
 EXTRA_DIST = \
  test_nat_data.conf \
