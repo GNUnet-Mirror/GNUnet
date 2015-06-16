@@ -49,6 +49,10 @@
 #include <stdarg.h>
 #endif
 
+#ifdef HAVE_BYTESWAP_H
+#include <byteswap.h>
+#endif
+
 #ifdef __cplusplus
 extern "C"
 {
