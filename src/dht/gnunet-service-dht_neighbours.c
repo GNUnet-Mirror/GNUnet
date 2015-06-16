@@ -45,7 +45,6 @@
 #include "gnunet-service-dht_neighbours.h"
 #include "gnunet-service-dht_nse.h"
 #include "gnunet-service-dht_routing.h"
-#include <fenv.h>
 #include "dht.h"
 
 #define LOG_TRAFFIC(kind,...) GNUNET_log_from (kind, "dht-traffic",__VA_ARGS__)

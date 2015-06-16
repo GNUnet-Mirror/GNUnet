@@ -41,7 +41,6 @@
 #include "gnunet-service-xdht_datacache.h"
 #include "gnunet-service-xdht_neighbours.h"
 #include "gnunet-service-xdht_routing.h"
-#include <fenv.h>
 #include "dht.h"
 
 /**

@@ -44,9 +44,6 @@
 #include "gnunet-service-wdht_datacache.h"
 #include "gnunet-service-wdht_neighbours.h"
 #include "gnunet-service-wdht_nse.h"
-#include <fenv.h>
-#include <stdlib.h>
-#include <string.h>
 #include "dht.h"
 
 #define DEBUG(...)                                           \
