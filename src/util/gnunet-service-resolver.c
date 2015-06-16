@@ -630,7 +630,7 @@ main (int argc, char *const *argv)
   return ret;
 }
 
-#ifdef LINUX
+#if defined(LINUX) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**

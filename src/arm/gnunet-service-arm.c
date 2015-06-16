@@ -1563,7 +1563,7 @@ main (int argc, char *const *argv)
 }
 
 
-#ifdef LINUX
+#if defined(LINUX) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**

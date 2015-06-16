@@ -1629,7 +1629,7 @@ main (int argc,
 }
 
 
-#ifdef LINUX
+#if defined(LINUX) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**

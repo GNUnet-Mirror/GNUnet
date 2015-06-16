@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-05-31 20:32+0200\n"
+"POT-Creation-Date: 2015-06-07 23:01+0200\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -749,7 +749,7 @@ msgstr "proveer información acerca de un túnel en particular"
 msgid "provide information about all tunnels"
 msgstr "proveer información acerca de un túnel en particular"
 
-#: src/cadet/gnunet-service-cadet_peer.c:514
+#: src/cadet/gnunet-service-cadet_peer.c:509
 msgid "Wrong CORE service\n"
 msgstr "Servicio principal (CORE) erróneo\n"
 
@@ -2037,7 +2037,7 @@ msgstr "opción para usar el demultiplexado de la DHT siempre"
 
 #: src/dht/gnunet-dht-get.c:204 src/dht/gnunet-dht-monitor.c:271
 #: src/dht/gnunet-dht-put.c:213 src/fs/gnunet-auto-share.c:755
-#: src/fs/gnunet-download.c:328 src/fs/gnunet-publish.c:959
+#: src/fs/gnunet-download.c:328 src/fs/gnunet-publish.c:961
 #: src/fs/gnunet-search.c:307 src/fs/gnunet-unindex.c:168
 #: src/nse/gnunet-nse-profiler.c:873
 msgid "be verbose (print progress information)"
@@ -3173,69 +3173,69 @@ msgstr "Se produjo un fallo al escribir «%s»: %s\n"
 msgid "Failed to connect to datastore."
 msgstr "Se produjo un fallo al conectar con el almacén de datos."
 
-#: src/fs/fs_publish.c:127 src/fs/fs_publish.c:437
+#: src/fs/fs_publish.c:127 src/fs/fs_publish.c:443
 #, c-format
 msgid "Publishing failed: %s"
 msgstr "Publicación fallida: %s"
 
-#: src/fs/fs_publish.c:703 src/fs/fs_publish.c:720 src/fs/fs_publish.c:759
-#: src/fs/fs_publish.c:780 src/fs/fs_publish.c:804 src/fs/fs_publish.c:1054
+#: src/fs/fs_publish.c:709 src/fs/fs_publish.c:726 src/fs/fs_publish.c:765
+#: src/fs/fs_publish.c:786 src/fs/fs_publish.c:810 src/fs/fs_publish.c:1060
 #, c-format
 msgid "Can not index file `%s': %s.  Will try to insert instead.\n"
 msgstr "No se pudo indexar el fichero «%s»: %s.  Se intentará insertar.\n"
 
-#: src/fs/fs_publish.c:705
+#: src/fs/fs_publish.c:711
 msgid "timeout on index-start request to `fs' service"
 msgstr ""
 "expiración del plazo en la petición de inicio de indexado (index-start) al "
 "servicio «fs»"
 
-#: src/fs/fs_publish.c:717
+#: src/fs/fs_publish.c:723
 msgid "unknown error"
 msgstr "error desconocido"
 
-#: src/fs/fs_publish.c:761
+#: src/fs/fs_publish.c:767
 msgid "failed to compute hash"
 msgstr "se produjo un fallo al calcular el hash"
 
-#: src/fs/fs_publish.c:781
+#: src/fs/fs_publish.c:787
 msgid "filename too long"
 msgstr "nombre de fichero demasiado largo"
 
-#: src/fs/fs_publish.c:806
+#: src/fs/fs_publish.c:812
 msgid "could not connect to `fs' service"
 msgstr "no se pudo conectar con el servicio «fs»"
 
-#: src/fs/fs_publish.c:829
+#: src/fs/fs_publish.c:835
 #, c-format
 msgid "Failed to get file identifiers for `%s'\n"
 msgstr ""
 "Se produjo un fallo al obtener los identificadores de fichero para «%s»\n"
 
-#: src/fs/fs_publish.c:893 src/fs/fs_publish.c:934
+#: src/fs/fs_publish.c:899 src/fs/fs_publish.c:940
 msgid "Can not create LOC URI. Will continue with CHK instead.\n"
 msgstr ""
 
-#: src/fs/fs_publish.c:1008
+#: src/fs/fs_publish.c:1014
 #, c-format
 msgid "Recursive upload failed at `%s': %s"
 msgstr "La subida recursiva falló en «%s»: %s"
 
-#: src/fs/fs_publish.c:1016
+#: src/fs/fs_publish.c:1022
 #, c-format
 msgid "Recursive upload failed: %s"
 msgstr "Subida recursiva fallida: %s"
 
-#: src/fs/fs_publish.c:1056
+#: src/fs/fs_publish.c:1062
 msgid "needs to be an actual file"
 msgstr "tiene que ser un fichero de verdad"
 
-#: src/fs/fs_publish.c:1292
-#, c-format
-msgid "Insufficient space for publishing: %s"
-msgstr "Espacio insuficiente para publicar: %s"
+#: src/fs/fs_publish.c:1301
+#, fuzzy, c-format
+msgid "Datastore failure: %s"
+msgstr "# «PUT» en el almacén de datos fallidos"
 
-#: src/fs/fs_publish.c:1383
+#: src/fs/fs_publish.c:1392
 #, c-format
 msgid "Reserving space for %u entries and %llu bytes for publication\n"
 msgstr "Reservando espacio para %u entradas y %llu bytes para publicación\n"
@@ -3452,24 +3452,24 @@ msgstr ""
 "Debes especificar uno y solo un nombre de directorio para publicación "
 "automática.\n"
 
-#: src/fs/gnunet-auto-share.c:739 src/fs/gnunet-publish.c:906
+#: src/fs/gnunet-auto-share.c:739 src/fs/gnunet-publish.c:908
 msgid "set the desired LEVEL of sender-anonymity"
 msgstr "establece el nivel LEVEL deseado de anonimato del emisor"
 
-#: src/fs/gnunet-auto-share.c:743 src/fs/gnunet-publish.c:910
+#: src/fs/gnunet-auto-share.c:743 src/fs/gnunet-publish.c:912
 msgid "disable adding the creation time to the metadata of the uploaded file"
 msgstr ""
 "deshabilitar añadir tiempo de creación a los metadatos del fichero subido"
 
-#: src/fs/gnunet-auto-share.c:746 src/fs/gnunet-publish.c:913
+#: src/fs/gnunet-auto-share.c:746 src/fs/gnunet-publish.c:915
 msgid "do not use libextractor to add keywords or metadata"
 msgstr "no usar libextractor para añadir palabras clave o metadatos"
 
-#: src/fs/gnunet-auto-share.c:749 src/fs/gnunet-publish.c:937
+#: src/fs/gnunet-auto-share.c:749 src/fs/gnunet-publish.c:939
 msgid "specify the priority of the content"
 msgstr "especificar la prioridad del contenido"
 
-#: src/fs/gnunet-auto-share.c:752 src/fs/gnunet-publish.c:944
+#: src/fs/gnunet-auto-share.c:752 src/fs/gnunet-publish.c:946
 msgid "set the desired replication LEVEL"
 msgstr "establece el nivel LEVEL deseado de replicación"
 
@@ -3542,7 +3542,7 @@ msgstr "Error descargando: %s.\n"
 msgid "Downloading `%s' done (%s/s).\n"
 msgstr "Finalizada descarga «%s» (%s/s).\n"
 
-#: src/fs/gnunet-download.c:209 src/fs/gnunet-publish.c:317
+#: src/fs/gnunet-download.c:209 src/fs/gnunet-publish.c:319
 #: src/fs/gnunet-search.c:206 src/fs/gnunet-unindex.c:108
 #, c-format
 msgid "Unexpected status: %d\n"
@@ -3552,7 +3552,7 @@ msgstr "Estado inesperado: %d\n"
 msgid "You need to specify a URI argument.\n"
 msgstr "Tiene que especificar una URI como parámetro.\n"
 
-#: src/fs/gnunet-download.c:240 src/fs/gnunet-publish.c:732
+#: src/fs/gnunet-download.c:240 src/fs/gnunet-publish.c:734
 #, c-format
 msgid "Failed to parse URI: %s\n"
 msgstr "Se produjo un fallo al procesar la URI: %s\n"
@@ -3565,7 +3565,7 @@ msgstr "Sólo URI «CHK» o «LOC» soportadas.\n"
 msgid "Target filename must be specified.\n"
 msgstr "El nombre de fichero de destino debe ser especificado.\n"
 
-#: src/fs/gnunet-download.c:268 src/fs/gnunet-publish.c:876
+#: src/fs/gnunet-download.c:268 src/fs/gnunet-publish.c:878
 #: src/fs/gnunet-search.c:256 src/fs/gnunet-unindex.c:140
 #, c-format
 msgid "Could not initialize `%s' subsystem.\n"
@@ -3675,67 +3675,67 @@ msgstr "Limpieza completada\n"
 msgid "Cleanup after abort failed.\n"
 msgstr "Limpieza completada\n"
 
-#: src/fs/gnunet-publish.c:445
+#: src/fs/gnunet-publish.c:447
 #, c-format
 msgid "Meta data for file `%s' (%s)\n"
 msgstr "Metadatos para el fichero «%s» (%s)\n"
 
-#: src/fs/gnunet-publish.c:447
+#: src/fs/gnunet-publish.c:449
 #, c-format
 msgid "Keywords for file `%s' (%s)\n"
 msgstr "Palabras clave para el fichero «%s» (%s)\n"
 
-#: src/fs/gnunet-publish.c:592
+#: src/fs/gnunet-publish.c:594
 msgid "Could not publish\n"
 msgstr "No se pudo publicar\n"
 
-#: src/fs/gnunet-publish.c:617
+#: src/fs/gnunet-publish.c:619
 msgid "Could not start publishing.\n"
 msgstr "No se pudo empezar a publicar.\n"
 
-#: src/fs/gnunet-publish.c:651
+#: src/fs/gnunet-publish.c:653
 #, c-format
 msgid "Scanning directory `%s'.\n"
 msgstr "Escaneando directorio «%s».\n"
 
-#: src/fs/gnunet-publish.c:655
+#: src/fs/gnunet-publish.c:657
 #, c-format
 msgid "Scanning file `%s'.\n"
 msgstr "Escaneando fichero «%s».\n"
 
-#: src/fs/gnunet-publish.c:661
+#: src/fs/gnunet-publish.c:663
 #, c-format
 msgid "There was trouble processing file `%s', skipping it.\n"
 msgstr "Hubo un problema procesando el fichero «%s», omitiéndolo.\n"
 
-#: src/fs/gnunet-publish.c:668
+#: src/fs/gnunet-publish.c:670
 msgid "Preprocessing complete.\n"
 msgstr "Preprocesado completo.\n"
 
-#: src/fs/gnunet-publish.c:673
+#: src/fs/gnunet-publish.c:675
 #, c-format
 msgid "Extracting meta data from file `%s' complete.\n"
 msgstr "Extracción de metadatos del fichero «%s» completa.\n"
 
-#: src/fs/gnunet-publish.c:680
+#: src/fs/gnunet-publish.c:682
 msgid "Meta data extraction has finished.\n"
 msgstr "La extracción de metadatos ha finalizado.\n"
 
-#: src/fs/gnunet-publish.c:689
+#: src/fs/gnunet-publish.c:691
 msgid "Internal error scanning directory.\n"
 msgstr "Error interno escaneando directorio.\n"
 
-#: src/fs/gnunet-publish.c:721
+#: src/fs/gnunet-publish.c:723
 #, fuzzy, c-format
 msgid "Selected pseudonym `%s' unknown\n"
 msgstr "Espacio de nombres «%s» desconocido.\n"
 
-#: src/fs/gnunet-publish.c:753
+#: src/fs/gnunet-publish.c:755
 #, c-format
 msgid "Failed to access `%s': %s\n"
 msgstr "Se produjo un fallo al acceder «%s»: %s\n"
 
-#: src/fs/gnunet-publish.c:767
+#: src/fs/gnunet-publish.c:769
 msgid ""
 "Failed to start meta directory scanner.  Is gnunet-helper-publish-fs "
 "installed?\n"
@@ -3743,34 +3743,34 @@ msgstr ""
 "Se produjo un fallo al iniciar el meta-escáner de directorios.  ¿Está "
 "«gnunet-helper-publish-fs» instalado?\n"
 
-#: src/fs/gnunet-publish.c:823
+#: src/fs/gnunet-publish.c:825
 #, c-format
 msgid "Cannot extract metadata from a URI!\n"
 msgstr "¡No se pueden extraer metadatos de una URI!\n"
 
-#: src/fs/gnunet-publish.c:830
+#: src/fs/gnunet-publish.c:832
 #, c-format
 msgid "You must specify one and only one filename for insertion.\n"
 msgstr "Se debe especificar uno y solo un nombre de fichero para insertar.\n"
 
-#: src/fs/gnunet-publish.c:836
+#: src/fs/gnunet-publish.c:838
 #, c-format
 msgid "You must NOT specify an URI and a filename.\n"
 msgstr "No se puede especificar una URI y un nombre de fichero.\n"
 
-#: src/fs/gnunet-publish.c:844 src/vpn/gnunet-vpn.c:209
+#: src/fs/gnunet-publish.c:846 src/vpn/gnunet-vpn.c:209
 #, c-format
 msgid "Option `%s' is required when using option `%s'.\n"
 msgstr "La opción «%s» es obligatoria cuando se usa la opción «%s».\n"
 
-#: src/fs/gnunet-publish.c:855 src/fs/gnunet-publish.c:863
+#: src/fs/gnunet-publish.c:857 src/fs/gnunet-publish.c:865
 #: src/transport/gnunet-transport.c:1928 src/transport/gnunet-transport.c:1958
 #: src/transport/gnunet-transport.c:1989
 #, c-format
 msgid "Option `%s' makes no sense without option `%s'.\n"
 msgstr "La opción «%s» no tiene sentido sin la opción «%s».\n"
 
-#: src/fs/gnunet-publish.c:917
+#: src/fs/gnunet-publish.c:919
 msgid ""
 "print list of extracted keywords that would be used, but do not perform "
 "upload"
@@ -3778,7 +3778,7 @@ msgstr ""
 "imprimir una lista de las palabras clave extraídas que podrían ser usadas, "
 "pero sin realizar la subida"
 
-#: src/fs/gnunet-publish.c:921
+#: src/fs/gnunet-publish.c:923
 msgid ""
 "add an additional keyword for the top-level file or directory (this option "
 "can be specified multiple times)"
@@ -3786,11 +3786,11 @@ msgstr ""
 "añadir una palabra clave adicional para el fichero del nivel más alto o el "
 "directorio (esta opción puede ser especificada varias veces)"
 
-#: src/fs/gnunet-publish.c:925
+#: src/fs/gnunet-publish.c:927
 msgid "set the meta-data for the given TYPE to the given VALUE"
 msgstr "establece los metadatos para el tipo TYPE dado al valor VALUE dado"
 
-#: src/fs/gnunet-publish.c:928
+#: src/fs/gnunet-publish.c:930
 msgid ""
 "do not index, perform full insertion (stores entire file in encrypted form "
 "in GNUnet database)"
@@ -3798,7 +3798,7 @@ msgstr ""
 "no indexar, hacer inserciones totales (almacena el fichero entero de forma "
 "cifrada en la base de datos de GNUnet)"
 
-#: src/fs/gnunet-publish.c:933
+#: src/fs/gnunet-publish.c:935
 msgid ""
 "specify ID of an updated version to be published in the future (for "
 "namespace insertions only)"
@@ -3806,13 +3806,13 @@ msgstr ""
 "especificar la ID de una versión actualizada para ser publicada en el futuro "
 "(para inserciones en el espacio de nombres únicamente)"
 
-#: src/fs/gnunet-publish.c:941
+#: src/fs/gnunet-publish.c:943
 msgid "publish the files under the pseudonym NAME (place file into namespace)"
 msgstr ""
 "publicar los ficheros bajo el seudónimo NAME (coloca el fichero en el "
 "espacio)"
 
-#: src/fs/gnunet-publish.c:947
+#: src/fs/gnunet-publish.c:949
 msgid ""
 "only simulate the process but do not do any actual publishing (useful to "
 "compute URIs)"
@@ -3820,14 +3820,14 @@ msgstr ""
 "únicamente simular el proceso pero no publicar nada realmente (útil para "
 "calcular URI)"
 
-#: src/fs/gnunet-publish.c:951
+#: src/fs/gnunet-publish.c:953
 msgid ""
 "set the ID of this version of the publication (for namespace insertions only)"
 msgstr ""
 "establece la ID de esta versión de la publicación (para inserciones en el "
 "espacio únicamente)"
 
-#: src/fs/gnunet-publish.c:955
+#: src/fs/gnunet-publish.c:957
 msgid ""
 "URI to be published (can be used instead of passing a file to add keywords "
 "to the file with the respective URI)"
@@ -3835,7 +3835,7 @@ msgstr ""
 "URI a ser publicada (puede ser usado en vez de pasar un fichero para añadir "
 "claves con el fichero con la URI respectiva)"
 
-#: src/fs/gnunet-publish.c:971
+#: src/fs/gnunet-publish.c:973
 msgid "Publish a file or directory on GNUnet"
 msgstr "Publicar un fichero o un directorio en GNUnet"
 
@@ -8223,8 +8223,8 @@ msgstr "tamaño del mensaje"
 #: src/transport/plugin_transport_http_client.c:1481
 #: src/transport/plugin_transport_http_server.c:2247
 #: src/transport/plugin_transport_http_server.c:3414
-#: src/transport/plugin_transport_tcp.c:2923
-#: src/transport/plugin_transport_tcp.c:2930
+#: src/transport/plugin_transport_tcp.c:2931
+#: src/transport/plugin_transport_tcp.c:2938
 msgid "TCP_STEALTH not supported on this platform.\n"
 msgstr ""
 
@@ -8430,14 +8430,15 @@ msgid "# bytes dropped by SMTP (outgoing)"
 msgstr "# bytes omitidos por SMTP (salientes)"
 
 #: src/transport/plugin_transport_tcp.c:672
+#: src/transport/plugin_transport_tcp.c:1989
 #, c-format
 msgid "Unexpected address length: %u bytes\n"
 msgstr "Longitud de dirección inesperada: %u bytes\n"
 
 #: src/transport/plugin_transport_tcp.c:855
 #: src/transport/plugin_transport_tcp.c:1081
-#: src/transport/plugin_transport_tcp.c:2251
-#: src/transport/plugin_transport_tcp.c:3042
+#: src/transport/plugin_transport_tcp.c:2259
+#: src/transport/plugin_transport_tcp.c:3050
 msgid "# TCP sessions active"
 msgstr "# Sesiones TCP activas"
 
@@ -8470,42 +8471,42 @@ msgstr ""
 msgid "# transport-service disconnect requests for TCP"
 msgstr "# peticiones de desconexión del servicio de transporte por TCP"
 
-#: src/transport/plugin_transport_tcp.c:2310
+#: src/transport/plugin_transport_tcp.c:2318
 msgid "# TCP WELCOME messages received"
 msgstr "# Mensajes «WELCOME» TCP recibidos"
 
-#: src/transport/plugin_transport_tcp.c:2501
+#: src/transport/plugin_transport_tcp.c:2509
 msgid "# bytes received via TCP"
 msgstr "# bytes recibidos vía TCP"
 
-#: src/transport/plugin_transport_tcp.c:2552
-#: src/transport/plugin_transport_tcp.c:2610
+#: src/transport/plugin_transport_tcp.c:2560
+#: src/transport/plugin_transport_tcp.c:2618
 #, fuzzy
 msgid "# TCP server connections active"
 msgstr "# conexiones «stream» activas"
 
-#: src/transport/plugin_transport_tcp.c:2556
+#: src/transport/plugin_transport_tcp.c:2564
 #, fuzzy
 msgid "# TCP server connect events"
 msgstr "# Pares conectados"
 
-#: src/transport/plugin_transport_tcp.c:2562
+#: src/transport/plugin_transport_tcp.c:2570
 msgid "TCP connection limit reached, suspending server\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2564
+#: src/transport/plugin_transport_tcp.c:2572
 msgid "# TCP service suspended"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2604
+#: src/transport/plugin_transport_tcp.c:2612
 msgid "# TCP service resumed"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2614
+#: src/transport/plugin_transport_tcp.c:2622
 msgid "# network-level TCP disconnect events"
 msgstr "# eventos de desconexión TCP a nivel de red"
 
-#: src/transport/plugin_transport_tcp.c:2857 src/util/service.c:584
+#: src/transport/plugin_transport_tcp.c:2865 src/util/service.c:584
 #: src/util/service.c:590
 #, c-format
 msgid "Require valid port number for service `%s' in configuration!\n"
@@ -8513,20 +8514,20 @@ msgstr ""
 "¡Se requiere un número de puerto válido para el servicio «%s» en la "
 "configuración!\n"
 
-#: src/transport/plugin_transport_tcp.c:2873
+#: src/transport/plugin_transport_tcp.c:2881
 msgid "Failed to start service.\n"
 msgstr "Se produjo un fallo al iniciar el servicio.\n"
 
-#: src/transport/plugin_transport_tcp.c:3030
+#: src/transport/plugin_transport_tcp.c:3038
 #, c-format
 msgid "TCP transport listening on port %llu\n"
 msgstr "Transporte TCP escuchando en el puerto %llu\n"
 
-#: src/transport/plugin_transport_tcp.c:3034
+#: src/transport/plugin_transport_tcp.c:3042
 msgid "TCP transport not listening on any port (client only)\n"
 msgstr "Transporte TCP no escuchando en ningún puerto (únicamente cliente)\n"
 
-#: src/transport/plugin_transport_tcp.c:3038
+#: src/transport/plugin_transport_tcp.c:3046
 #, c-format
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr "El transporte TCP anuncia que está en el puerto %llu\n"
@@ -9174,13 +9175,13 @@ msgstr ""
 msgid "Manipulate GNUnet proof of work files"
 msgstr "Manipular los ficheros de clave privada ECC de GNUnet"
 
-#: src/util/gnunet-service-resolver.c:310
+#: src/util/gnunet-service-resolver.c:327
 #, c-format
 msgid "Could not resolve `%s' (%s): %s\n"
 msgstr "No se pudo resolver «%s» (%s): %s\n"
 
-#: src/util/gnunet-service-resolver.c:382
-#: src/util/gnunet-service-resolver.c:423
+#: src/util/gnunet-service-resolver.c:400
+#: src/util/gnunet-service-resolver.c:441
 #, c-format
 msgid "Could not find IP of host `%s': %s\n"
 msgstr "No se encontró la IP del host «%s»: %s\n"
@@ -9320,7 +9321,7 @@ msgstr "Expiración de plazo intentando resolver la dirección IP «%s».\n"
 msgid "Timeout trying to resolve hostname `%s'.\n"
 msgstr "Expiración de plazo intentando resolver el nombre de máquina «%s».\n"
 
-#: src/util/resolver_api.c:1004
+#: src/util/resolver_api.c:1023
 #, c-format
 msgid "Could not resolve our FQDN : %s\n"
 msgstr ""
@@ -9774,6 +9775,9 @@ msgstr "Violación externa del protocolo detectada en %s:%d.\n"
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
+
+#~ msgid "Insufficient space for publishing: %s"
+#~ msgstr "Espacio insuficiente para publicar: %s"
 
 #, fuzzy
 #~ msgid "valid public key required"

@@ -1077,7 +1077,7 @@ main (int argc, char *const *argv)
                               &run, NULL)) ? 0 : 1;
 }
 
-#ifdef LINUX
+#if defined(LINUX) && defined(__GLIBC__)
 #include <malloc.h>
 
 /**
