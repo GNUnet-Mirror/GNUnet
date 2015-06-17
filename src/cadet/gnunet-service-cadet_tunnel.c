@@ -3654,6 +3654,9 @@ GCT_destroy (struct CadetTunnel *t)
                 GNUNET_CONTAINER_multipeermap_remove (tunnels,
                                                       GCP_get_id (t->peer), t));
 
+  while (NULL != t->tq_head)
+    unqueue_data (t->tq_head);
+
   for (iter_c = t->connection_head; NULL != iter_c; iter_c = next_c)
   {
     next_c = iter_c->next;
