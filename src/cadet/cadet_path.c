@@ -77,7 +77,7 @@ path_new (unsigned int length)
     p->length = length;
     p->peers = GNUNET_malloc (length * sizeof (GNUNET_PEER_Id));
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, "New path %p (%u)\n", path, path->length);
+  LOG (GNUNET_ERROR_TYPE_INFO, "New path %p (%u)\n", p, p->length);
   return p;
 }
 

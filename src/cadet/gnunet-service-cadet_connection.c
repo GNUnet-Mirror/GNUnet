@@ -2061,7 +2061,8 @@ GCC_handle_broken (void* cls,
       return GNUNET_OK;
     }
     endpoint = GCP_get_short (c->path->peers[c->path->length - 1]);
-    path_invalidate (c->path);
+    if (2 < c->path->length)
+      path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
 
     c->state = CADET_CONNECTION_BROKEN;
