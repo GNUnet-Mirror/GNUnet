@@ -428,7 +428,7 @@ core_connect (void *cls,
                             1,
                             GNUNET_NO);
   GNUNET_assert (NULL == mp->connections);
-  mp->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
+  mp->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
 
   if ( (NULL != GCP_get_tunnel (mp)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
