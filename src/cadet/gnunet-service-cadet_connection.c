@@ -1576,10 +1576,10 @@ unregister_neighbors (struct CadetConnection *c)
 
   peer = get_next_hop (c);
   GNUNET_assert (c->next_peer == peer);
-  GCP_remove_connection (peer, c, GNUNET_NO);
+  GCP_remove_connection (peer, c);
   peer = get_prev_hop (c);
   GNUNET_assert (c->prev_peer == peer);
-  GCP_remove_connection (peer, c, GNUNET_YES);
+  GCP_remove_connection (peer, c);
 }
 
 

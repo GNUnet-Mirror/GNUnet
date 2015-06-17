@@ -318,12 +318,10 @@ GCP_remove_path (struct CadetPeer *peer,
  *
  * @param peer Peer to remove connection from.
  * @param c Connection to remove.
- * @param pred #GNUNET_YES if we were predecessor, #GNUNET_NO if we were successor
  */
 void
 GCP_remove_connection (struct CadetPeer *peer,
-                       const struct CadetConnection *c,
-                       int pred);
+                       const struct CadetConnection *c);
 
 
 /**
