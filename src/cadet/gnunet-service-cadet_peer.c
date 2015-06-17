@@ -1759,10 +1759,11 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id)
     {
       peer_delete_oldest ();
     }
-    GNUNET_CONTAINER_multipeermap_put (peers,
-                                       peer_id,
-                                       peer,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (peers,
+                                                      peer_id,
+                                                      peer,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     peer->id = GNUNET_PEER_intern (peer_id);
   }
   peer->last_contact = GNUNET_TIME_absolute_get ();
