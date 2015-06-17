@@ -4125,6 +4125,7 @@ GCT_cancel (struct CadetTunnelQueue *q)
 {
   if (NULL != q->cq)
   {
+    GNUNET_assert (NULL == q->tqd);
     GCC_cancel (q->cq);
     /* tun_message_sent() will be called and free q */
   }
