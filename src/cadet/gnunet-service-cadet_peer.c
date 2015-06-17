@@ -730,6 +730,7 @@ peer_destroy (struct CadetPeer *peer)
   }
   if (NULL != peer->tunnel)
     GCT_destroy_empty (peer->tunnel);
+  GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
   return GNUNET_OK;
 }
