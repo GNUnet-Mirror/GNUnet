@@ -843,6 +843,19 @@ select_key (const struct CadetTunnel *t)
 
 
 /**
+ * Create a new Axolotl ephemeral (ratchet) key.
+ *
+ * @param t Tunnel.
+ */
+static void
+new_ephemeral (struct CadetTunnel *t)
+{
+  GNUNET_free_non_null (t->ax->DHRs);
+  t->ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create();
+}
+
+
+/**
  * Calculate HMAC.
  *
  * @param plaintext Content to HMAC.
@@ -995,7 +1008,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
     struct GNUNET_HashCode hmac;
     static const char ctx[] = "axolotl ratchet";
 
-    ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create ();
+    new_ephemeral (t);
     ax->HKs = ax->NHKs;
 
     /* RK, NHKs, CKs = KDF( HMAC-HASH(RK, DH(DHRs, DHRr)) ) */
@@ -2650,19 +2663,6 @@ handle_ch_destroy (struct CadetTunnel *t,
   }
 
   GCCH_handle_destroy (ch, msg, fwd);
-}
-
-
-/**
- * Create a new Axolotl ephemeral (ratchet) key.
- *
- * @param t Tunnel.
- */
-static void
-new_ephemeral (struct CadetTunnel *t)
-{
-  GNUNET_free_non_null (t->ax->DHRs);
-  t->ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create();
 }
 
 
