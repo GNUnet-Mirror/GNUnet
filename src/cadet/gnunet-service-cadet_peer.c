@@ -451,8 +451,7 @@ core_disconnect (void *cls,
   char own_id[16];
 
   strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
-  p = GNUNET_CONTAINER_multipeermap_get (peers,
-                                         peer);
+  p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == p)
   {
     GNUNET_break (0);
@@ -696,7 +695,48 @@ get_priority (struct CadetPeerQueue *q)
 
 
 /**
- * Iterator over tunnel hash map entries to destroy the tunnel during shutdown.
+ * Destroy the peer_info and free any allocated resources linked to it
+ *
+ * @param peer The peer_info to destroy.
+ * @return #GNUNET_OK on success
+ */
+static int
+peer_destroy (struct CadetPeer *peer)
+{
+  struct GNUNET_PeerIdentity id;
+  struct CadetPeerPath *p;
+  struct CadetPeerPath *nextp;
+
+  GNUNET_PEER_resolve (peer->id, &id);
+  GNUNET_PEER_change_rc (peer->id, -1);
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "destroying peer %s\n",
+       GNUNET_i2s (&id));
+
+  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, " peer not in peermap!!\n");
+  }
+  GCP_stop_search (peer);
+  p = peer->path_head;
+  while (NULL != p)
+  {
+    nextp = p->next;
+    GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
+    path_destroy (p);
+    p = nextp;
+  }
+  if (NULL != peer->tunnel)
+    GCT_destroy_empty (peer->tunnel);
+  GNUNET_free (peer);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Iterator over peer hash map entries to destroy the peer during shutdown.
  *
  * @param cls closure
  * @param key current key code
@@ -705,15 +745,17 @@ get_priority (struct CadetPeerQueue *q)
  *         #GNUNET_NO if not.
  */
 static int
-shutdown_tunnel (void *cls,
-                 const struct GNUNET_PeerIdentity *key,
-                 void *value)
+shutdown_peer (void *cls,
+               const struct GNUNET_PeerIdentity *key,
+               void *value)
 {
   struct CadetPeer *p = value;
   struct CadetTunnel *t = p->tunnel;
 
   if (NULL != t)
     GCT_destroy (t);
+  p->tunnel = NULL;
+  peer_destroy (p);
   return GNUNET_YES;
 }
 
@@ -751,49 +793,6 @@ delayed_search (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GCP_start_search (peer);
-}
-
-
-/**
- * Destroy the peer_info and free any allocated resources linked to it
- *
- * @param peer The peer_info to destroy.
- * @return #GNUNET_OK on success
- */
-static int
-peer_destroy (struct CadetPeer *peer)
-{
-  struct GNUNET_PeerIdentity id;
-  struct CadetPeerPath *p;
-  struct CadetPeerPath *nextp;
-
-  GNUNET_PEER_resolve (peer->id, &id);
-  GNUNET_PEER_change_rc (peer->id, -1);
-
-  LOG (GNUNET_ERROR_TYPE_WARNING,
-       "destroying peer %s\n",
-       GNUNET_i2s (&id));
-
-  if (GNUNET_YES !=
-    GNUNET_CONTAINER_multipeermap_remove (peers,
-                                          &id,
-                                          peer))
-  {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING, " not in peermap!!\n");
-  }
-  GCP_stop_search (peer);
-  p = peer->path_head;
-  while (NULL != p)
-  {
-    nextp = p->next;
-    GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
-    path_destroy (p);
-    p = nextp;
-  }
-  GCT_destroy_empty (peer->tunnel);
-  GNUNET_free (peer);
-  return GNUNET_OK;
 }
 
 
@@ -1720,7 +1719,7 @@ void
 GCP_shutdown (void)
 {
   GNUNET_CONTAINER_multipeermap_iterate (peers,
-                                         &shutdown_tunnel,
+                                         &shutdown_peer,
                                          NULL);
   if (NULL != core_handle)
   {
