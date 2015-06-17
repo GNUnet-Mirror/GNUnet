@@ -48,6 +48,8 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetPeer *peer;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Destroy delayed %p (%u)\n", path, path->length);
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
   path->path_delete = NULL;
   peer = GCP_get_short (path->peers[path->length - 1]);
   if (2 < path->length)
@@ -75,6 +77,7 @@ path_new (unsigned int length)
     p->length = length;
     p->peers = GNUNET_malloc (length * sizeof (GNUNET_PEER_Id));
   }
+  LOG (GNUNET_ERROR_TYPE_INFO, "New path %p (%u)\n", path, path->length);
   return p;
 }
 
