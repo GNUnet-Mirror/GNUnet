@@ -11,18 +11,18 @@ dnl the same distribution terms as the rest of that program.
 # see some message along those lines on the console).
 AC_DEFUN([AC_UNALIGNED_64_ACCESS],
 [AC_CACHE_CHECK([whether unaligned 64-bit access works],
- ac_cv_unaligned_64_access, 
+ ac_cv_unaligned_64_access,
  [
  AC_RUN_IFELSE([AC_LANG_PROGRAM([[struct S { int a,b,c;};]],
-                               [[struct S s = {0,0,0}; long long * p = (long long *) &s.b; 
-			         void *bp = malloc (50); 
- 				 long long x = *p; 
+                               [[struct S s = {0,0,0}; long long * p = (long long *) &s.b;
+			         void *bp = malloc (50);
+ 				 long long x = *p;
 				 long long *be = (long long*) &bp[1];
 				 long long y = *be;
-				 return (int) x*y;]]),
+				 return (int) x*y;]])],
  ac_cv_unaligned_64_access=yes,
  ac_cv_unaligned_64_access=no,
- ac_cv_unaligned_64_access=no])
+ ac_cv_unaligned_64_access=no)
  ])
  case "$ac_cv_unaligned_64_access" in
   *yes) value=1;;
