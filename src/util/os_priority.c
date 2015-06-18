@@ -268,7 +268,10 @@ GNUNET_OS_process_kill (struct GNUNET_OS_Process *proc, int sig)
     }
     return 0;
 #else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending signal %d to pid: %u via system call\n", sig, proc->pid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending signal %d to pid: %u via system call\n",
+         sig,
+         proc->pid);
     return PLIBC_KILL (proc->pid, sig);
 #endif
   default:
@@ -307,7 +310,7 @@ GNUNET_OS_process_destroy (struct GNUNET_OS_Process *proc)
   if (NULL != proc->control_pipe)
     GNUNET_DISK_file_close (proc->control_pipe);
 #if defined (WINDOWS)
-  if (proc->handle != NULL)
+  if (NULL != proc->handle)
     CloseHandle (proc->handle);
 #endif
   GNUNET_free (proc);
@@ -1062,7 +1065,9 @@ start_process (int pipe_control,
   if (NULL == (wcmd = u8_to_u16 ((uint8_t *) cmd, 1 + strlen (cmd), NULL, &wcmd_len)))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Failed to convert `%s' from UTF-8 to UTF-16: %d\n", cmd, errno);
+         "Failed to convert `%s' from UTF-8 to UTF-16: %d\n",
+         cmd,
+         errno);
     GNUNET_free (env_block);
     GNUNET_free (cmd);
     free (wpath);
@@ -1100,7 +1105,11 @@ start_process (int pipe_control,
     SetHandleInformation (stdeh, HANDLE_FLAG_INHERIT, stdef);
 
   if (!bresult)
-    LOG (GNUNET_ERROR_TYPE_ERROR, "CreateProcess(%s, %s) failed: %lu\n", path, cmd, error_code);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "CreateProcess(%s, %s) failed: %lu\n",
+         path,
+         cmd,
+         error_code);
 
   GNUNET_free (env_block);
   GNUNET_free (cmd);
@@ -1517,7 +1526,7 @@ GNUNET_OS_start_process_s (int pipe_control,
  * @param proc process ID
  * @param type status type
  * @param code return code/signal number
- * @return GNUNET_OK on success, GNUNET_NO if the process is still running, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_NO if the process is still running, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
@@ -1612,10 +1621,14 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
 
 /**
- * Wait for a process
+ * Wait for a process to terminate. The return code is discarded.
+ * You must not use #GNUNET_OS_process_status() on the same process
+ * after calling this function!  This function is blocking and should
+ * thus only be used if the child process is known to have terminated
+ * or to terminate very soon.
  *
  * @param proc pointer to process structure
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
@@ -1628,7 +1641,8 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
 	  (EINTR == errno) ) ;
   if (pid != ret)
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                  "waitpid");
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
@@ -1638,7 +1652,8 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc)
   h = proc->handle;
   if (NULL == h)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid process information {%d, %08X}\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Invalid process information {%d, %08X}\n",
          proc->pid, h);
     return GNUNET_SYSERR;
   }
@@ -1682,7 +1697,7 @@ struct GNUNET_OS_CommandHandle
   GNUNET_OS_LineProcessor proc;
 
   /**
-   * Closure for 'proc'.
+   * Closure for @e proc.
    */
   void *proc_cls;
 
@@ -1694,7 +1709,7 @@ struct GNUNET_OS_CommandHandle
   /**
    * Task reading from pipe.
    */
-  struct GNUNET_SCHEDULER_Task * rtask;
+  struct GNUNET_SCHEDULER_Task *rtask;
 
   /**
    * When to time out.
@@ -1790,15 +1805,17 @@ cmd_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * for each line of the output.
  *
  * @param proc function to call for each line of the output
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @param timeout when to time out
  * @param binary command to run
  * @param ... arguments to command
  * @return NULL on error
  */
 struct GNUNET_OS_CommandHandle *
-GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
-                       struct GNUNET_TIME_Relative timeout, const char *binary,
+GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc,
+                       void *proc_cls,
+                       struct GNUNET_TIME_Relative timeout,
+                       const char *binary,
                        ...)
 {
   struct GNUNET_OS_CommandHandle *cmd;
