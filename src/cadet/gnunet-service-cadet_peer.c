@@ -250,6 +250,7 @@ static struct GNUNET_TRANSPORT_Handle *transport_handle;
 static void
 queue_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
 {
+  struct GNUNET_TIME_Relative core_wait_time;
   struct CadetPeerQueue *q;
   int do_log;
 
@@ -262,6 +263,9 @@ queue_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
   LOG2 (level, "QQQ Message queue towards %s\n", GCP_2s (p));
   LOG2 (level, "QQQ  queue length: %u\n", p->queue_n);
   LOG2 (level, "QQQ  core tmt rdy: %p\n", p->core_transmit);
+  core_wait_time = GNUNET_TIME_absolute_get_duration (p->tmt_time);
+  LOG2 (level, "QQQ  core called %s ago\n",
+        GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
 
   for (q = p->queue_head; NULL != q; q = q->next)
   {
