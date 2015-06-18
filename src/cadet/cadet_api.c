@@ -723,16 +723,12 @@ static void
 reconnect (struct GNUNET_CADET_Handle *h)
 {
   struct GNUNET_CADET_Channel *ch;
-  struct GNUNET_CADET_Channel *next;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Requested RECONNECT, destroying all channels\n");
   h->in_receive = GNUNET_NO;
-  for (ch = h->channels_head; NULL != ch; ch = next)
-  {
-    next = ch->next;
+  for (ch = h->channels_head; NULL != ch; ch = h->channels_head)
     destroy_channel (ch, GNUNET_YES);
-  }
   if (NULL == h->reconnect_task)
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
                                                       &reconnect_cbk, h);
@@ -751,7 +747,7 @@ reconnect (struct GNUNET_CADET_Handle *h)
  */
 static void
 process_channel_created (struct GNUNET_CADET_Handle *h,
-                        const struct GNUNET_CADET_ChannelMessage *msg)
+                         const struct GNUNET_CADET_ChannelMessage *msg)
 {
   struct GNUNET_CADET_Channel *ch;
   CADET_ChannelNumber chid;
