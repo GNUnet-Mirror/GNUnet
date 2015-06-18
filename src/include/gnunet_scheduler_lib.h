@@ -227,7 +227,7 @@ typedef int
  * always only create a single scheduler.
  *
  * @param task task to run first (and immediately)
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  */
 void
 GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,

@@ -470,7 +470,7 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
 
 /**
  * Wait for a process to terminate.  The return code is discarded.
- * You must not use 'GNUNET_OS_process_status' on the same process
+ * You must not use #GNUNET_OS_process_status() on the same process
  * after calling this function!  This function is blocking and should
  * thus only be used if the child process is known to have terminated
  * or to terminate very soon.
@@ -485,7 +485,7 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
 /**
  * Connects this process to its parent via pipe;
  * essentially, the parent control handler will read signal numbers
- * from the 'GNUNET_OS_CONTROL_PIPE' (as given in an environment
+ * from the #GNUNET_OS_CONTROL_PIPE (as given in an environment
  * variable) and raise those signals.
  *
  * @param cls closure (unused)
