@@ -2090,7 +2090,10 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int *permut;
   unsigned int a_peers; /* Number of peers we send pushes to */
   unsigned int b_peers; /* Number of peers we send pull requests to */
+  uint32_t first_border;
+  uint32_t second_border;
   struct GNUNET_PeerIdentity peer;
+  struct PeerContext *peer_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing view:\n");
@@ -2130,11 +2133,18 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
 
     /* Send PULL requests */
-    b_peers = a_peers + floor (beta * view_size);
+    b_peers = ceil (beta * view_size);
+    first_border = a_peers;
+    second_border = a_peers + b_peers;
+    if (second_border > view_size)
+    {
+      first_border = view_size - b_peers;
+      second_border = view_size;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Going to send pulls to %u (ceil (%f * %u)) peers.\n",
         b_peers, beta, view_size);
-    for (i = a_peers; i < b_peers; i++)
+    for (i = first_border; i < second_border; i++)
     {
       peer = view_array[permut[i]];
       peer_ctx = get_peer_ctx (peer_map, &peer);
@@ -2159,8 +2169,6 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the view.\n");
 
-    uint32_t first_border;
-    uint32_t second_border;
     uint32_t final_size;
     uint32_t peers_to_clean_size;
     struct GNUNET_PeerIdentity *peers_to_clean;
