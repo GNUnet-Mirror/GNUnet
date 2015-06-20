@@ -2198,7 +2198,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     /* Update view with peers received through PUSHes */
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
-                                           pull_list_size);
+                                           push_list_size);
     for (i = 0; i < first_border; i++)
     {
       view_array[i] = push_list[permut[i]];
@@ -2497,7 +2497,7 @@ shutdown_task (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Size of the peermap: %u\n",
        GNUNET_CONTAINER_multipeermap_size (peer_map));
-  GNUNET_break (0 != GNUNET_CONTAINER_multipeermap_size (peer_map));
+  GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   GNUNET_CADET_disconnect (cadet_handle);
   GNUNET_CONTAINER_multipeermap_destroy (view);
