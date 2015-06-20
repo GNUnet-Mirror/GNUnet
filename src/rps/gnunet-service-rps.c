@@ -923,8 +923,6 @@ insert_in_pull_list (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_NO == in_arr (pull_list, pull_list_size, peer))
     GNUNET_array_append (pull_list, pull_list_size, *peer);
-
-  peer_clean (peer);
 }
 
 /**
@@ -2350,29 +2348,6 @@ process_peerinfo_peers (void *cls,
 
 
 /**
- * Clean the send channel of a peer
- */
-void
-peer_clean (const struct GNUNET_PeerIdentity *peer)
-{
-  struct PeerContext *peer_ctx;
-  struct GNUNET_CADET_Channel *channel;
-
-  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
-      GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
-  {
-    peer_ctx = get_peer_ctx (peer_map, peer);
-    if (NULL != peer_ctx->send_channel)
-    {
-      channel = peer_ctx->send_channel;
-      peer_ctx->send_channel = NULL;
-      GNUNET_CADET_channel_destroy (channel);
-    }
-  }
-}
-
-
-/**
  * Callback used to remove peers from the multipeermap.
  */
   int
@@ -2450,6 +2425,32 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   GNUNET_free (peer_ctx);
 
   return GNUNET_YES;
+}
+
+
+/**
+ * Clean the send channel of a peer
+ * If there is also no channel to receive messages from that peer, remove it
+ * from the peermap.
+ */
+void
+peer_clean (const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerContext *peer_ctx;
+  /* struct GNUNET_CADET_Channel *channel; */
+
+  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
+      GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  {
+    peer_ctx = get_peer_ctx (peer_map, peer);
+    GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
+    peer_ctx->send_channel = NULL;
+
+    if (NULL == peer_ctx->recv_channel)
+    {
+      peer_remove_cb (NULL, peer, peer_ctx);
+    }
+  }
 }
 
 
