@@ -1193,8 +1193,9 @@ main (int argc, char *argv[])
 
     num_peers = 50;
 
+    (void) GNUNET_DISK_directory_remove ("/tmp/rps/");
     GNUNET_DISK_directory_create ("/tmp/rps/");
-    //timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 90);
   }
 
   rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
