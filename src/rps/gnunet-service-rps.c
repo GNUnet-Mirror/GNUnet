@@ -1594,7 +1594,7 @@ handle_peer_pull_request (void *cls,
 
   else if (2 == mal_type)
   { /* Try to partition network */
-    if (GNUNET_YES == GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
     {
       send_pull_reply (peer, mal_peers, num_mal_peers);
     }
@@ -1705,8 +1705,8 @@ handle_peer_pull_reply (void *cls,
                                                                &peers[i])
           && GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (mal_peer_set,
                                                                   &peers[i])
-          && GNUNET_NO == GNUNET_CRYPTO_cmp_peer_identity (&peers[i],
-                                                           &own_identity))
+          && 0 != GNUNET_CRYPTO_cmp_peer_identity (&peers[i],
+                                                   &own_identity))
       {
         tmp_att_peer = GNUNET_new (struct AttackedPeer);
         tmp_att_peer->peer_id = peers[i];
@@ -1718,8 +1718,8 @@ handle_peer_pull_reply (void *cls,
       continue;
     }
     #endif /* ENABLE_MALICIOUS */
-    if (GNUNET_YES != GNUNET_CRYPTO_cmp_peer_identity (&own_identity,
-                                                       &peers[i]))
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity,
+                                              &peers[i]))
     {
       peer_ctx = get_peer_ctx (peer_map, &peers[i]);
       if (GNUNET_YES == get_peer_flag (peer_ctx, VALID) ||
