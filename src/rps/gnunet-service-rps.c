@@ -1683,7 +1683,7 @@ handle_peer_pull_reply (void *cls,
   #endif /* ENABLE_MALICIOUS */
 
   /* Do actual logic */
-  peers = (struct GNUNET_PeerIdentity *) &msg[1];
+  peers = (struct GNUNET_PeerIdentity *) &in_msg[1];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "PULL REPLY received, got following %u peers:\n",
