@@ -361,17 +361,6 @@ static struct GNUNET_TIME_Relative  request_rate;
 
 
 /**
- * List with the peers we sent requests to.
- */
-struct GNUNET_PeerIdentity *pending_pull_reply_list;
-
-/**
- * Size of #pending_pull_reply_list.
- */
-uint32_t pending_pull_reply_list_size;
-
-
-/**
  * Number of history update tasks.
  */
 uint32_t num_hist_update_tasks;
@@ -1676,7 +1665,7 @@ handle_peer_pull_reply (void *cls,
        // FIXME wait for cadet to change this function
   sender_ctx = get_peer_ctx (peer_map, sender);
 
-  if (GNUNET_YES == get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
+  if (GNUNET_YES != get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
@@ -1748,7 +1737,6 @@ handle_peer_pull_reply (void *cls,
   }
 
   unset_peer_flag (sender_ctx, PULL_REPLY_PENDING);
-  rem_from_list (&pending_pull_reply_list, &pending_pull_reply_list_size, sender);
 
   return GNUNET_OK;
 }
@@ -1810,12 +1798,15 @@ send_pull_request (struct GNUNET_PeerIdentity *peer_id)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_MQ_Handle *mq;
+  struct PeerContext *peer_ctx;
+
+  peer_ctx = get_peer_ctx (peer_map, peer_id);
+  GNUNET_assert (GNUNET_NO == get_peer_flag (peer_ctx, PULL_REPLY_PENDING));
+  set_peer_flag (peer_ctx, PULL_REPLY_PENDING);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sending PULL request to peer %s of gossiped list.\n",
        GNUNET_i2s (peer_id));
-
-  GNUNET_array_append (pending_pull_reply_list, pending_pull_reply_list_size, *peer_id);
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
   mq = get_mq (peer_map, peer_id);
@@ -2143,10 +2134,9 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (i = a_peers; i < b_peers; i++)
     {
       peer = view_array[permut[i]];
+      peer_ctx = get_peer_ctx (peer_map, &peer);
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer) &&
-          GNUNET_YES != in_arr (pending_pull_reply_list,
-                                pending_pull_reply_list_size,
-                                &peer)) // TODO
+          GNUNET_NO == get_peer_flag (peer_ctx, PULL_REPLY_PENDING)) // TODO
       { // FIXME if this fails schedule/loop this for later
         send_pull_request (&peer);
       }
@@ -2416,9 +2406,7 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
     peer_ctx->is_live_task = NULL;
   }
 
-  rem_from_list (&pending_pull_reply_list,
-                 &pending_pull_reply_list_size,
-                 key);
+  unset_peer_flag (peer_ctx, PULL_REPLY_PENDING);
 
   to_file (file_name_view_log,
            "-%s\t(cleanup channel, other peer)",
@@ -2818,8 +2806,6 @@ run (void *cls,
   push_list_size = 0;
   pull_list = NULL;
   pull_list_size = 0;
-  pending_pull_reply_list = NULL;
-  pending_pull_reply_list_size = 0;
 
 
   num_hist_update_tasks = 0;
