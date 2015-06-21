@@ -49,7 +49,11 @@
 #include "gnunet_protocols.h"
 #include "gnunet_transport_plugin.h"
 #include "plugin_transport_http_common.h"
+#if HAVE_CURL_CURL_H
 #include <curl/curl.h>
+#elif HAVE_GNURL_CURL_H
+#include <gnurl/curl.h>
+#endif
 
 
 #define LOG(kind,...) GNUNET_log_from(kind, PLUGIN_NAME, __VA_ARGS__)

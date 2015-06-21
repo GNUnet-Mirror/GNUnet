@@ -229,6 +229,7 @@ src/nat/gnunet-nat-server.c
 src/nat/nat_auto.c
 src/nat/nat.c
 src/nat/nat_mini.c
+src/nat/nat_stun.c
 src/nat/nat_test.c
 src/nse/gnunet-nse.c
 src/nse/gnunet-nse-profiler.c
@@ -458,6 +459,7 @@ src/include/gnunet_common.h
 src/include/gnunet_mq_lib.h
 src/include/gnunet_postgres_lib.h
 src/include/gnunet_time_lib.h
+src/nat/test_stun.h
 src/rps/rps-test_util.h
 src/scalarproduct/scalarproduct.h
 src/testbed/testbed_api.h

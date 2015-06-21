@@ -24,7 +24,11 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_CURL_CURL_H
 #include <curl/curl.h>
+#elif HAVE_GNURL_CURL_H
+#include <gnurl/curl.h>
+#endif
 #include <microhttpd.h>
 #include "gnunet_vpn_service.h"
 #include "gnunet_testing_lib.h"

@@ -29,7 +29,12 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet-daemon-hostlist.h"
+#if HAVE_CURL_CURL_H
 #include <curl/curl.h>
+#elif HAVE_GNURL_CURL_H
+#include <gnurl/curl.h>
+#endif
+
 
 
 /**

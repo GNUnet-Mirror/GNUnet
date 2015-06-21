@@ -24,7 +24,11 @@
  * @author Martin Schanzenbach
  */
 #include "platform.h"
+#if HAVE_CURL_CURL_H
 #include <curl/curl.h>
+#elif HAVE_GNURL_CURL_H
+#include <gnurl/curl.h>
+#endif
 #include <microhttpd.h>
 #include "gnunet_namestore_service.h"
 #include "gnunet_gns_service.h"
@@ -246,7 +250,7 @@ static void
 start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_asprintf (&url,
-		   "http://%s:%d/hello_world",	
+		   "http://%s:%d/hello_world",
 		   TEST_DOMAIN, PORT);
   curl = curl_easy_init ();
   curl_easy_setopt (curl, CURLOPT_URL, url);
@@ -475,4 +479,3 @@ main (int argc, char *const *argv)
 }
 
 /* end of test_gns_vpn.c */
-

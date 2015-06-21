@@ -159,6 +159,22 @@ x=CURLOPT_STDERR;
 x=CURLOPT_VERBOSE;
 ])],libgnurl_cv_lib_gnurl_usable=yes,libgnurl_cv_lib_gnurl_usable=no)
 
+# BEGIN Changes from original libcurl.m4:
+# Give it a 2nd shot using 'gnurl/curl.h'
+           AC_LINK_IFELSE([AC_LANG_PROGRAM([#include <gnurl/curl.h>],[
+/* Try and use a few common options to force a failure if we are
+   missing symbols or can't link. */
+int x;
+curl_easy_setopt(NULL,CURLOPT_URL,NULL);
+x=CURL_ERROR_SIZE;
+x=CURLOPT_WRITEFUNCTION;
+x=CURLOPT_FILE;
+x=CURLOPT_ERRORBUFFER;
+x=CURLOPT_STDERR;
+x=CURLOPT_VERBOSE;
+])],libgnurl_cv_lib_gnurl_usable=yes)
+# END Changes from original libcurl.m4:
+
            CPPFLAGS=$_libgnurl_save_cppflags
            LIBS=$_libgnurl_save_libs
            unset _libgnurl_save_cppflags
