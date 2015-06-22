@@ -277,7 +277,7 @@ struct RegexSearchContext
 
 
 /**
- * Type of values in #dht_get_results().
+ * Type of values in `dht_get_results`.
  */
 struct Result
 {

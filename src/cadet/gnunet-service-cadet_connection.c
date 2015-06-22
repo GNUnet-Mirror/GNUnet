@@ -198,12 +198,12 @@ struct CadetConnection
   struct CadetPeerQueue *maintenance_q;
 
   /**
-   * Should equal #get_next_hop(this).
+   * Should equal #get_next_hop().
    */
   struct CadetPeer *next_peer;
 
   /**
-   * Should equal #get_prev_hop(this).
+   * Should equal #get_prev_hop().
    */
   struct CadetPeer *prev_peer;
 

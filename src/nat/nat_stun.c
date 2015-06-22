@@ -36,11 +36,7 @@
  * Of course all fields are in network format.
  *
  *
- * @file nat/test_stun.c
+ * @file nat/nat_stun.c
  * @brief Testcase for STUN library
  * @author Bruno Souza Cabral
- * @autor Mark Spencer (Original code borrowed from Asterisk)
- *
  */
- 
- 
