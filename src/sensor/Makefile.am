@@ -129,11 +129,12 @@ perf_pow_sign_LDADD = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   libgnunetsensorutil.la
 
+EXTRA_DIST = sensors
 pkgsensordir = sensors
 
 install-data-local:
-	$(mkinstalldirs) $(datadir)/$(PACKAGE)/$(pkgsensordir)
+	$(mkinstalldirs) $(DESTDIR)$(datadir)/$(PACKAGE)/$(pkgsensordir)
 	@$(NORMAL_INSTALL)
 	for sensor in $(pkgsensordir)/*; do \
-	  cp -a $$sensor $(datadir)/$(PACKAGE)/$(pkgsensordir)/ ; \
+	  cp -a $$sensor $(DESTDIR)$(datadir)/$(PACKAGE)/$(pkgsensordir)/ ; \
 	done
