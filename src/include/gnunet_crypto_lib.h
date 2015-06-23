@@ -56,11 +56,6 @@ struct GNUNET_PeerIdentity;
 #include "gnunet_common.h"
 #include <gcrypt.h>
 
-/**
- * We need this enum here, but not the entire scheduler API.
- * For the full definition, see gnunet_scheduler_lib.h.
- */
-enum GNUNET_SCHEDULER_Priority;
 
 /**
  * @brief A 512-bit hashcode

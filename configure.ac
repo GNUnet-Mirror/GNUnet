@@ -380,6 +380,7 @@ then
   bluetooth=1
 fi
 
+
 # check for libpulse(audio) library
 pulse=0
 AC_CHECK_LIB(pulse,pa_stream_peek,
