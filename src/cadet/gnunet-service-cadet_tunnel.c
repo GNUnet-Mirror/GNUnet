@@ -2679,6 +2679,9 @@ destroy_ax (struct CadetTunnel *t)
 
   GNUNET_free_non_null (t->ax->DHRs);
   GNUNET_free_non_null (t->ax->kx_0);
+  while (NULL != t->ax->skipped_head)
+    delete_skipped_key (t, t->ax->skipped_head);
+  GNUNET_assert (0 == t->ax->skipped);
 
   GNUNET_free (t->ax);
   t->ax = NULL;
