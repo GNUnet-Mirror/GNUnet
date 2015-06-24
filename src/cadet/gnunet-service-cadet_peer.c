@@ -737,6 +737,11 @@ peer_destroy (struct CadetPeer *peer)
   }
   if (NULL != peer->tunnel)
     GCT_destroy_empty (peer->tunnel);
+  if (NULL != peer->connections)
+  {
+    GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (peer->connections));
+    GNUNET_CONTAINER_multihashmap_destroy (peer->connections);
+  }
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
   return GNUNET_OK;
@@ -2184,7 +2189,7 @@ GCP_remove_connection (struct CadetPeer *peer,
                                                        GCC_get_h (c),
                                                        c));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Peer %s reamins with %u connections.\n",
+       "Peer %s remains with %u connections.\n",
        GCP_2s (peer),
        GNUNET_CONTAINER_multihashmap_size (peer->connections));
 }
