@@ -2800,6 +2800,8 @@ GCC_destroy (struct CadetConnection *c)
   {
     connection_cancel_queues (c, GNUNET_YES);
     connection_cancel_queues (c, GNUNET_NO);
+    path_destroy (c->path);
+    c->path = NULL;
   }
   unregister_neighbors (c);
 
@@ -2821,9 +2823,6 @@ GCC_destroy (struct CadetConnection *c)
   if (NULL != c->t)
     GCT_remove_connection (c->t, c);
 
-  if ( (GNUNET_NO == GCC_is_origin (c, GNUNET_YES)) &&
-       (NULL != c->path) )
-    path_destroy (c->path);
   if (NULL != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
   if (NULL != c->bck_maintenance_task)
