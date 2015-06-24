@@ -19,14 +19,9 @@
 */
 
 /**
- * This code is based on ministun.c, that is based on Asterisk old STUN code.
+ * 
  * This code provides some support for doing STUN transactions.
- * The simplest request packet is just the header defined in
- * struct stun_header, and from the response we may just look at
- * one attribute, STUN_MAPPED_ADDRESS, that we find in the response.
- * By doing more transactions with different server addresses we
- * may determine more about the behaviour of the NAT boxes, of
- * course - the details are in the RFC.
+ * We send simplest possible packet ia REQUEST with BIND to a STUN server.
  *
  * All STUN packets start with a simple header made of a type,
  * length (excluding the header) and a 16-byte random transaction id.
@@ -34,6 +29,8 @@
  * structured as a type, length and a value (whose format depends
  * on the type, but often contains addresses).
  * Of course all fields are in network format.
+ * 
+ * This code was based on ministun.c.
  *
  *
  * @file nat/nat_stun.c
