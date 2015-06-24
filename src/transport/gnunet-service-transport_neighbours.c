@@ -3770,7 +3770,11 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
     GNUNET_break_op (0);
     return;
   }
-  n->delayed_disconnect_task = GNUNET_SCHEDULER_add_now (&delayed_disconnect, n);
+  if (NULL == n->delayed_disconnect_task)
+  {
+    n->delayed_disconnect_task = GNUNET_SCHEDULER_add_now (&delayed_disconnect,
+                                                           n);
+  }
 }
 
 
