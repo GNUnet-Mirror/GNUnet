@@ -1150,7 +1150,7 @@ queue_send (void *cls, size_t size, void *buf)
   /* Sanity checking */
   if (NULL == buf || 0 == size)
   {
-    GNUNET_break ();
+    GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING, "CORE gave buffer size 0.\n");
     peer->tmt_time.abs_value_us = 0;
     peer->core_transmit = NULL;
@@ -1172,11 +1172,15 @@ queue_send (void *cls, size_t size, void *buf)
   }
   core_wait_time = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
   if (core_wait_time.rel_value_us >= 1000000)
-    LOG (GNUNET_ERROR_TYPE_ERROR, " core wait time %s > 1 second\n",
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, " core wait time %s \n",
          GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
+  }
   else
+  {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " core wait time %s\n",
          GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
+  }
   peer->tmt_time.abs_value_us = 0;
 
   /* Copy all possible messages to the core buffer */
