@@ -223,7 +223,10 @@ struct CadetConnection
   unsigned int pending_messages;
 
   /**
-   * Destroy flag: if true, destroy on last message.
+   * Destroy flag:
+   * - if 0, connection in use.
+   * - if 1, destroy on last message.
+   * - if 2, connection is being destroyed don't re-enter.
    */
   int destroy;
 
@@ -2800,10 +2803,10 @@ GCC_destroy (struct CadetConnection *c)
   {
     connection_cancel_queues (c, GNUNET_YES);
     connection_cancel_queues (c, GNUNET_NO);
-    path_destroy (c->path);
-    c->path = NULL;
   }
   unregister_neighbors (c);
+  path_destroy (c->path);
+  c->path = NULL;
 
   /* Cancel maintainance task (keepalive/timeout) */
   if (NULL != c->fwd_fc.poll_msg)
