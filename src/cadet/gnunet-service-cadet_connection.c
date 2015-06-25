@@ -1800,10 +1800,17 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     path = path_build_from_peer_ids ((struct GNUNET_PeerIdentity *) &msg[1],
                                      size, myid, &own_pos);
     if (NULL == path)
+    {
+      /* Path was malformed, probably our own ID was not in it. */
+      GNUNET_STATISTICS_update (stats, "# malformed paths", 1, GNUNET_NO);
+      GNUNET_break_op (0);
       return GNUNET_OK;
+    }
 
     if (0 == own_pos)
     {
+      /* We received this request from a neighbor, we cannot be origin */
+      GNUNET_STATISTICS_update (stats, "# fake paths", 1, GNUNET_NO);
       GNUNET_break_op (0);
       path_destroy (path);
       return GNUNET_OK;
