@@ -104,6 +104,8 @@ do_udp_read (void *cls,
 		
 		
 	}
+
+
 }
 
 
@@ -167,10 +169,12 @@ run (void *cls, char *const *args, const char *cfgfile,
         //Lets call our function now when it accepts
         ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 lsock4, &do_udp_read, NULL);
+        /* So you read once and what will happen if you get an irregular message? Repeat and add timeout */
 
     }
     if(NULL == lsock4 )
     {
+    	/* FIXME: duplicate check  */
         GNUNET_SCHEDULER_shutdown ();
         return;
     }
@@ -205,4 +209,5 @@ main (int argc, char *const argv[])
 	return ret;
 }
 
+/* FIXME: wrong file name */
 /* end of test_nat.c */
