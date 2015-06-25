@@ -427,12 +427,14 @@ stun_dns_callback (void *cls,
 
      if(NULL == request) {
           LOG (GNUNET_ERROR_TYPE_INFO, "Empty request\n");
+          /* FIXME clean up ? */
           return;
      }
 
      if (NULL == addr) {
           request->dns_active = NULL;
           LOG (GNUNET_ERROR_TYPE_INFO, "Error resolving host %s\n", request->stun_server);
+          /* FIXME clean up? */
           return;
      }
 
@@ -487,6 +489,7 @@ GNUNET_NAT_stun_make_request(char * server, int port, struct GNUNET_NETWORK_Hand
         strcpy (server_copy, server);
      }else{
          GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "Failed to allocate string");
+         /* FIXME: cleanup rh? */
          return NULL;
      }
 
@@ -495,7 +498,7 @@ GNUNET_NAT_stun_make_request(char * server, int port, struct GNUNET_NETWORK_Hand
      rh->dns_active = GNUNET_RESOLVER_ip_get (rh->stun_server, AF_INET,
                                               GNUNET_CONNECTION_CONNECT_RETRY_TIMEOUT,
                                               &stun_dns_callback, rh);
-
+     /* FIXME: error handling NULL==dns_active, callback function? */
 
      return rh;
 }
