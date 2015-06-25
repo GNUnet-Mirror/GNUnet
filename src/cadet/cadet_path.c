@@ -48,12 +48,14 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetPeer *peer;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Destroy delayed %p (%u)\n", path, path->length);
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
   path->path_delete = NULL;
-  peer = GCP_get_short (path->peers[path->length - 1]);
-  if (2 < path->length)
+
+  if (2 < path->length && (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) == 0)
+  {
+    /* During shutdown, the peers peermap might not exist anymore. */
+    peer = GCP_get_short (path->peers[path->length - 1]);
     GCP_remove_path (peer, path);
+  }
   else
     path_destroy (path);
 }
