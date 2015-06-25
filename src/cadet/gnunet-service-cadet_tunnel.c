@@ -3657,9 +3657,6 @@ GCT_destroy (struct CadetTunnel *t)
                 GNUNET_CONTAINER_multipeermap_remove (tunnels,
                                                       GCP_get_id (t->peer), t));
 
-  while (NULL != t->tq_head)
-    unqueue_data (t->tq_head);
-
   for (iter_c = t->connection_head; NULL != iter_c; iter_c = next_c)
   {
     next_c = iter_c->next;
@@ -3671,6 +3668,13 @@ GCT_destroy (struct CadetTunnel *t)
     GCCH_destroy (iter_ch->ch);
     /* Should only happen on shutdown, but it's ok. */
   }
+  while (NULL != t->tq_head)
+  {
+    /* Should have been cleaned by destuction of channel. */
+    GNUNET_break (0);
+    unqueue_data (t->tq_head);
+  }
+
 
   if (NULL != t->destroy_task)
   {
