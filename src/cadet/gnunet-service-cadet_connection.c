@@ -1577,6 +1577,9 @@ unregister_neighbors (struct CadetConnection *c)
 {
   struct CadetPeer *peer;
 
+  if (NULL == c->path)
+    return;
+
   peer = get_next_hop (c);
   GNUNET_assert (c->next_peer == peer);
   GCP_remove_connection (peer, c);
