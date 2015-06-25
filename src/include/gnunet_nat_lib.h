@@ -455,6 +455,41 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah);
 
+
+struct GNUNET_NAT_StunRequestHandle;
+
+/**
+ * Make Generic STUN request and
+ * Send a generic stun request to the server specified using the specified socket.
+ * possibly waiting for a reply and filling the 'reply' field with
+ * the externally visible address.
+ *c
+ * @param server, the address of the stun server
+ * @param port, port of the stun server
+ * @param sock the socket used to send the request
+ * @return GNUNET_NAT_StunRequestHandle on success, NULL on error.
+ */
+struct GNUNET_NAT_StunRequestHandle *
+GNUNET_NAT_stun_make_request(char * server, int port, struct GNUNET_NETWORK_Handle * sock);
+
+
+/**
+ * Handle an incoming STUN message, Do some basic sanity checks on packet size and content,
+ * try to extract a bit of information, and possibly reply.
+ * At the moment this only processes BIND requests, and returns
+ * the externally visible address of the request.
+ * If a callback is specified, invoke it with the attribute.
+ *
+ * @param data, pointer where we will set the type
+ * @param len, pointer where we will set the type
+ * @param st, pointer where we will set the type
+ *
+ * @return, 0 on IGNORE, -1 if the packet is invalid ( not a stun packet)
+ */
+int
+GNUNET_NAT_stun_handle_packet(const uint8_t *data, size_t len,struct sockaddr_in *arg);
+
+
 #endif
 
 /* end of gnunet_nat_lib.h */
