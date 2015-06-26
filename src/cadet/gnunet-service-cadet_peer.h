@@ -407,7 +407,6 @@ GCP_get_hello (struct CadetPeer *peer);
 void
 GCP_try_connect (struct CadetPeer *peer);
 
-
 /**
  * Notify a peer that a link between two other peers is broken. If any path
  * used that link, eliminate it.
