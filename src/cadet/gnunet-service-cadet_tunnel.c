@@ -3089,6 +3089,8 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   if (-1 == decrypted_size)
   {
     GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto on tunnel %s\n", GCT_2s (t));
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
 
@@ -4365,26 +4367,26 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
   struct CadetTunnelSkippedKey *iter;
 
 
-  LOG2 (level, "TTT  RK\t %s\n",
+  LOG2 (level, "TTT  RK  \t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->RK));
 
-  LOG2 (level, "TTT  HKs\t %s\n",
+  LOG2 (level, "TTT  HKs \t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKs));
-  LOG2 (level, "TTT  HKr\t %s\n",
+  LOG2 (level, "TTT  HKr \t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKr));
   LOG2 (level, "TTT  NHKs\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->NHKs));
   LOG2 (level, "TTT  NHKr\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->NHKr));
 
-  LOG2 (level, "TTT  CKs\t %s\n",
+  LOG2 (level, "TTT  CKs \t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKs));
-  LOG2 (level, "TTT  CKr\t %s\n",
+  LOG2 (level, "TTT  CKr \t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKr));
 
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &pub);
   LOG2 (level, "TTT  DHRs\t %s\n",
-        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &pub));
+        GNUNET_h2s ((struct GNUNET_HashCode *) &pub));
   LOG2 (level, "TTT  DHRr\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHRr));
 
