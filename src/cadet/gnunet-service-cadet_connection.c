@@ -1861,8 +1861,6 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     add_to_peer (c, orig_peer);
     if (GNUNET_YES == does_connection_exist (c))
     {
-      path_destroy (path);
-      GCC_destroy (c);
       // FIXME Peer created a connection equal to one we think exists
       //       and is fine. What should we do?
       // Use explicit duplicate?
@@ -1871,6 +1869,9 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       // Keep the one created by peer with higher ID?
       // For now: reject new connection until current confirmed dead
       GNUNET_break_op (0);
+      GCC_debug (c, GNUNET_ERROR_TYPE_WARNING);
+      path_destroy (path);
+      GCC_destroy (c);
       send_broken_unknown (cid, &my_full_id, NULL, peer);
 
       return GNUNET_OK;
