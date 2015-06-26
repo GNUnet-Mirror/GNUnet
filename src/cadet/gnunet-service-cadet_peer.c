@@ -236,6 +236,11 @@ static struct GNUNET_CORE_Handle *core_handle;
  */
 static struct GNUNET_TRANSPORT_Handle *transport_handle;
 
+/**
+ * Shutdown falg.
+ */
+static int in_shutdown;
+
 
 /******************************************************************************/
 /*****************************     DEBUG      *********************************/
@@ -460,7 +465,7 @@ core_disconnect (void *cls,
   p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == p)
   {
-    GNUNET_break (0);
+    GNUNET_break (GNUNET_YES == in_shutdown);
     return;
   }
   if (myid == p->id)
@@ -1150,8 +1155,6 @@ queue_send (void *cls, size_t size, void *buf)
   /* Sanity checking */
   if (NULL == buf || 0 == size)
   {
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_INFO, "CORE gave buffer size 0.\n");
     peer->tmt_time.abs_value_us = 0;
     peer->core_transmit = NULL;
     return 0;
@@ -1671,6 +1674,7 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GCP_init\n");
+  in_shutdown = GNUNET_NO;
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (c, "CADET", "MAX_PEERS",
@@ -1740,6 +1744,7 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCP_shutdown (void)
 {
+  in_shutdown = GNUNET_YES;
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &shutdown_peer,
                                          NULL);
