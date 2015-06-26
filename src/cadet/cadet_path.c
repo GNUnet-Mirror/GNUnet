@@ -244,6 +244,9 @@ path_equivalent (const struct CadetPeerPath *p1,
   unsigned int l;
   unsigned int half;
 
+  if (NULL == p1 || NULL == p2)
+    return GNUNET_NO;
+
   if (p1->length != p2->length)
     return GNUNET_NO;
 
