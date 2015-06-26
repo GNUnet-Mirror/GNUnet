@@ -1976,6 +1976,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t i;
   struct GNUNET_TIME_Relative time_next_round;
   struct AttackedPeer *tmp_att_peer;
+  struct PeerContext *peer_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously type %" PRIu32 ".\n",
       mal_type);
@@ -2031,6 +2032,20 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (3 == mal_type)
   { /* Combined attack */
 
+    /* Send PUSH to attacked peers */
+    peer_ctx = get_peer_ctx (peer_map, &attacked_peer);
+    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID)
+          || NULL != peer_ctx->send_channel
+          || NULL != peer_ctx->recv_channel)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+          "Goding to send push to attacked peer (%s)\n",
+          GNUNET_i2s (&attacked_peer));
+      send_push (&attacked_peer);
+    }
+    else
+      check_peer_live (peer_ctx);
+
     /* The maximum of pushes we're going to send this round */
     num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit - 1,
                                          num_attacked_peers),
@@ -2039,9 +2054,6 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Going to send %" PRIu32 " pushes\n",
          num_pushes);
-
-    /* Send PUSHes to attacked peers */
-    send_push (&attacked_peer);
 
     for (i = 0 ; i < num_pushes ; i++)
     {
