@@ -2380,7 +2380,7 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
                        0);
   }
 
-  /* If we are still waiting for notification whether this peer is live 
+  /* If we are still waiting for notification whether this peer is live
    * cancel the according task */
   if (NULL != peer_ctx->is_live_task)
   {
@@ -2498,8 +2498,8 @@ shutdown_task (void *cls,
        "Size of the peermap: %u\n",
        GNUNET_CONTAINER_multipeermap_size (peer_map));
   GNUNET_break (0 == GNUNET_CONTAINER_multipeermap_size (peer_map));
-  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   GNUNET_CADET_disconnect (cadet_handle);
+  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   GNUNET_CONTAINER_multipeermap_destroy (view);
   view = NULL;
   GNUNET_array_grow (push_list, push_list_size, 0);
