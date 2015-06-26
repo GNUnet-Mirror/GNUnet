@@ -1977,7 +1977,8 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative time_next_round;
   struct AttackedPeer *tmp_att_peer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously type %" PRIu32 ".\n",
+      mal_type);
 
   /* Do malicious actions */
   if (1 == mal_type)
