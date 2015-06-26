@@ -754,7 +754,7 @@ peer_destroy (struct CadetPeer *peer)
 
 
 /**
- * Iterator over peer hash map entries to destroy the peer during shutdown.
+ * Iterator over peer hash map entries to destroy the peer during in_shutdown.
  *
  * @param cls closure
  * @param key current key code
@@ -1155,8 +1155,26 @@ queue_send (void *cls, size_t size, void *buf)
   /* Sanity checking */
   if (NULL == buf || 0 == size)
   {
-    peer->tmt_time.abs_value_us = 0;
-    peer->core_transmit = NULL;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not allowed/\n");
+    if (GNUNET_NO == in_shutdown)
+    {
+      queue = peer_get_first_message (peer);
+      dst_id = GNUNET_PEER_resolve2 (peer->id);
+      peer->core_transmit =
+          GNUNET_CORE_notify_transmit_ready (core_handle,
+                                            GNUNET_NO, get_priority (queue),
+                                            GNUNET_TIME_UNIT_FOREVER_REL,
+                                            dst_id,
+                                            get_core_size (queue->size),
+                                            &queue_send,
+                                            peer);
+      peer->tmt_time = GNUNET_TIME_absolute_get ();
+    }
+    else
+    {
+      peer->core_transmit = NULL;
+      peer->tmt_time.abs_value_us = 0;
+    }
     return 0;
   }
 
