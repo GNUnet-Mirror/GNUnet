@@ -1577,6 +1577,7 @@ unregister_neighbors (struct CadetConnection *c)
 {
   struct CadetPeer *peer;
 
+  /* Either already unregistered or never got registered, it's ok either way. */
   if (NULL == c->path)
     return;
 
@@ -2772,10 +2773,15 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
   {
     if (0 == own_pos)
     {
-      path_invalidate (c->path);
+      /* We were the origin of this request, this means we have invalid
+       * info about the paths to reach the destination. We must invalidate
+       * the *original* path to avoid trying it again in the next minute.
+       */
+      path_invalidate (path);
       c->t = NULL;
-      c->path = NULL;
     }
+    path_destroy (c->path);
+    c->path = NULL;
     GCC_destroy (c);
     return NULL;
   }
