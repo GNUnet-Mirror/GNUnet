@@ -773,17 +773,35 @@ check_ephemeral (struct CadetTunnel *t,
 {
   /* Check message size */
   if (ntohs (msg->header.size) != sizeof (struct GNUNET_CADET_KX_Ephemeral))
+  {
+    /* This is probably an old "MESH" version. */
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Expected ephemeral of size %u, got %u\n",
+         sizeof (struct GNUNET_CADET_KX_Ephemeral),
+         ntohs (msg->header.size));
     return GNUNET_SYSERR;
+  }
 
   /* Check signature size */
   if (ntohl (msg->purpose.size) != ephemeral_purpose_size ())
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Expected signature purpose of size %u, got %u\n",
+         ephemeral_purpose_size (),
+         ntohs (msg->purpose.size));
     return GNUNET_SYSERR;
+  }
 
   /* Check origin */
   if (0 != memcmp (&msg->origin_identity,
                    GCP_get_id (t->peer),
                    sizeof (struct GNUNET_PeerIdentity)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Unexpected origin, got %s\n",
+         GNUNET_i2s (&msg->origin_identity));
     return GNUNET_SYSERR;
+  }
 
   /* Check signature */
   if (GNUNET_OK !=
@@ -791,7 +809,10 @@ check_ephemeral (struct CadetTunnel *t,
                                   &msg->purpose,
                                   &msg->signature,
                                   &msg->origin_identity.public_key))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Signature invalid\n");
     return GNUNET_SYSERR;
+  }
 
   return GNUNET_OK;
 }
@@ -2711,11 +2732,9 @@ handle_ephemeral (struct CadetTunnel *t,
 {
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GCT_2s (t));
 
+  /* Some old versions are still around, don't log as error. */
   if (GNUNET_OK != check_ephemeral (t, msg))
-  {
-    GNUNET_break_op (0);
     return;
-  }
 
   /* If we get a proper OTR-style ephemeral, fallback to old crypto. */
   if (NULL != t->ax)
