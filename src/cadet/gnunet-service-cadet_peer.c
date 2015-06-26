@@ -1151,7 +1151,7 @@ queue_send (void *cls, size_t size, void *buf)
   if (NULL == buf || 0 == size)
   {
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "CORE gave buffer size 0.\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "CORE gave buffer size 0.\n");
     peer->tmt_time.abs_value_us = 0;
     peer->core_transmit = NULL;
     return 0;
