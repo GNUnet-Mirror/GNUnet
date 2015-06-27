@@ -3554,6 +3554,18 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                          GNUNET_TRANSPORT_PS_CONNECTED,
                          GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
 
+  if (NULL == n->primary_address.address) {
+    /* See issue #3693.
+     * We are in state = PSY_SYN_RECV_ACK or ack_state = ACK_SEND_ACK, which
+     * really means we did try (and succeed) to send a SYN and are waiting for
+     * an ACK.
+     * That suggests that the primary_address used to be non-NULL, but maybe it
+     * got reset to NULL without the state being changed appropriately?
+     */
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+
   /* Reset backoff for primary address */
   GST_ats_block_reset (n->primary_address.address,
                        n->primary_address.session);
