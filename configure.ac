@@ -777,9 +777,12 @@ AC_SUBST(SQLITE_LDFLAGS)
 postgres=false
 AX_LIB_POSTGRESQL([])
 if test "$found_postgresql" = "yes"; then
-  postgres=true
+  AC_CHECK_HEADERS([libpq-fe.h], 
+    postgres=true)
 fi
+
 AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
+
 
 LDFLAGS=$SAVE_LDFLAGS
 CPPFLAGS=$SAVE_CPPFLAGS
