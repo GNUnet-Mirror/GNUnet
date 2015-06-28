@@ -137,9 +137,11 @@ struct OpusHeadPacket
 
 GNUNET_NETWORK_STRUCT_END
 
-/*Process an Opus header and setup the opus decoder based on it.
-  It takes several pointers for header values which are needed
-  elsewhere in the code.*/
+/**
+ * Process an Opus header and setup the opus decoder based on it.
+ * It takes several pointers for header values which are needed
+ * elsewhere in the code.
+ */
 static OpusDecoder *
 process_header (ogg_packet *op)
 {
@@ -163,19 +165,24 @@ process_header (ogg_packet *op)
 
   if (header.channel_mapping != 0)
   {
-    fprintf (stderr, "This implementation does not support non-mono streams\n");
+    fprintf (stderr,
+	     "This implementation does not support non-mono streams\n");
     return NULL;
   }
 
   dec = opus_decoder_create (SAMPLING_RATE, channels, &err);
   if (OPUS_OK != err)
   {
-    fprintf (stderr, "Cannot create encoder: %s\n", opus_strerror (err));
+    fprintf (stderr, 
+	     "Cannot create encoder: %s\n", 
+	     opus_strerror (err));
     return NULL;
   }
-  if (!dec)
+  if (! dec)
   {
-    fprintf (stderr, "Decoder initialization failed: %s\n", opus_strerror (err));
+    fprintf (stderr,
+	     "Decoder initialization failed: %s\n", 
+	     opus_strerror (err));
     return NULL;
   }
 
@@ -202,7 +209,8 @@ process_header (ogg_packet *op)
 
 
 #ifdef DEBUG_DUMP_DECODED_OGG
-static size_t fwrite_le32(opus_int32 i32, FILE *file)
+static size_t 
+fwrite_le32(opus_int32 i32, FILE *file)
 {
    unsigned char buf[4];
    buf[0]=(unsigned char)(i32&0xFF);
@@ -212,7 +220,9 @@ static size_t fwrite_le32(opus_int32 i32, FILE *file)
    return fwrite(buf,4,1,file);
 }
 
-static size_t fwrite_le16(int i16, FILE *file)
+
+static size_t 
+fwrite_le16(int i16, FILE *file)
 {
    unsigned char buf[2];
    buf[0]=(unsigned char)(i16&0xFF);
@@ -220,7 +230,9 @@ static size_t fwrite_le16(int i16, FILE *file)
    return fwrite(buf,2,1,file);
 }
 
-static int write_wav_header()
+
+static int
+write_wav_header()
 {
    int ret;
    FILE *file = stdout;
@@ -244,6 +256,7 @@ static int write_wav_header()
 }
 
 #endif
+
 
 static int64_t
 audio_write (int64_t maxout)
