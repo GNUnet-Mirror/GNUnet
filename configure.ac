@@ -368,16 +368,16 @@ fi	# $build = $target
 # check for bluetooth library
 bluetooth=0
 AC_CHECK_LIB(bluetooth, ba2str,[AC_CHECK_HEADER([bluetooth/bluetooth.h],bluetooth=1)])
-if test "$bluetooth" = 1
-then
-  AM_CONDITIONAL(HAVE_LIBBLUETOOTH, true)
-  AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])
-else
-  AM_CONDITIONAL(HAVE_LIBBLUETOOTH, false)
-fi
 if test "$build_target" = "mingw"
 then
   bluetooth=1
+fi
+AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
+if test "$bluetooth" = 1	  
+then
+  AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])
+else
+  AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])
 fi
 
 
@@ -385,13 +385,13 @@ fi
 pulse=0
 AC_CHECK_LIB(pulse,pa_stream_peek,
   [AC_CHECK_HEADER([pulse/simple.h],pulse=1)])
-if test "$pulse" = 1
-then
-  AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
-fi
 if test "$build_target" = "mingw"
 then
   pulse=0
+fi
+if test "$pulse" = 1
+then
+  AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
 fi
 
 # check for libopus(audio) library
@@ -442,9 +442,9 @@ then
   AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
   AM_CONDITIONAL(BUILD_GST_HELPERS, false)
  else
-  conversation_backend=gst
-  AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
-  AM_CONDITIONAL(BUILD_GST_HELPERS, true)
+   conversation_backend=gst
+   AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
+   AM_CONDITIONAL(BUILD_GST_HELPERS, true)
  fi
 else
  conversation_backend=pulse
@@ -460,6 +460,7 @@ then
 	AC_DEFINE([HAVE_LIBGNURL],[1],[Have libgnurl])
 else
 	AM_CONDITIONAL(HAVE_LIBGNURL, false)
+	AC_DEFINE([HAVE_LIBGNURL],[0],[Lacking libgnurl])
 fi
 
 SAVE_CPPFLAGS=$CPPFLAGS

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.9.5a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2015-06-07 23:01+0200\n"
+"POT-Creation-Date: 2015-06-27 21:45+0200\n"
 "PO-Revision-Date: 2013-02-23 17:50+0100\n"
 "Last-Translator: Miguel Ángel Arruga Vivas <rosen644835@gmail.com>\n"
 "Language-Team: Spanish <es@li.org>\n"
@@ -749,7 +749,7 @@ msgstr "proveer información acerca de un túnel en particular"
 msgid "provide information about all tunnels"
 msgstr "proveer información acerca de un túnel en particular"
 
-#: src/cadet/gnunet-service-cadet_peer.c:509
+#: src/cadet/gnunet-service-cadet_peer.c:537
 msgid "Wrong CORE service\n"
 msgstr "Servicio principal (CORE) erróneo\n"
 
@@ -1501,8 +1501,8 @@ msgstr "Mensaje no soportado del tipo %u (%u bytes) recibido del par «%s»\n"
 
 #: src/core/gnunet-service-core_sessions.c:252
 #: src/core/gnunet-service-core_sessions.c:338
-#: src/dht/gnunet-service-dht_neighbours.c:661
-#: src/dht/gnunet-service-dht_neighbours.c:726
+#: src/dht/gnunet-service-dht_neighbours.c:660
+#: src/dht/gnunet-service-dht_neighbours.c:725
 #: src/fs/gnunet-service-fs_cp.c:655 src/fs/gnunet-service-fs_cp.c:1649
 #: src/topology/gnunet-daemon-topology.c:734
 #: src/topology/gnunet-daemon-topology.c:835
@@ -1598,7 +1598,7 @@ msgstr "Caché de datos de montículo (heap) ejecutándose\n"
 #: src/testbed/gnunet-daemon-testbed-underlay.c:55
 #: src/testbed/testbed_api_hosts.c:69 src/util/crypto_ecc.c:52
 #: src/util/crypto_ecc_setup.c:41 src/util/crypto_mpi.c:39
-#: src/include/gnunet_common.h:667 src/include/gnunet_common.h:676
+#: src/include/gnunet_common.h:671 src/include/gnunet_common.h:680
 #: src/scalarproduct/scalarproduct.h:35
 #, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
@@ -2284,123 +2284,123 @@ msgstr "# Peticiones «GET» realizadas a la caché de datos"
 msgid "# HELLOs obtained from peerinfo"
 msgstr "# «HELLO» obtenidos de «peerinfo»"
 
-#: src/dht/gnunet-service-dht_neighbours.c:515
+#: src/dht/gnunet-service-dht_neighbours.c:514
 msgid "# Preference updates given to core"
 msgstr "# Actualizaciones de preferencias dadas al servicio principal"
 
-#: src/dht/gnunet-service-dht_neighbours.c:609
+#: src/dht/gnunet-service-dht_neighbours.c:608
 msgid "# FIND PEER messages initiated"
 msgstr "# mensajes «FIND PEER» iniciados"
 
-#: src/dht/gnunet-service-dht_neighbours.c:763
-#: src/dht/gnunet-service-xdht_neighbours.c:6062
+#: src/dht/gnunet-service-dht_neighbours.c:762
+#: src/dht/gnunet-service-xdht_neighbours.c:6061
 msgid "# Queued messages discarded (peer disconnected)"
 msgstr "# Mensajes encolados descartados (par desconectado)"
 
-#: src/dht/gnunet-service-dht_neighbours.c:793
-#: src/dht/gnunet-service-xdht_neighbours.c:987
+#: src/dht/gnunet-service-dht_neighbours.c:792
+#: src/dht/gnunet-service-xdht_neighbours.c:986
 #, fuzzy
 msgid "# Messages dropped (CORE timeout)"
 msgstr "# Peticiones DNS omitidas (expiradas)"
 
-#: src/dht/gnunet-service-dht_neighbours.c:823
-#: src/dht/gnunet-service-xdht_neighbours.c:1019
+#: src/dht/gnunet-service-dht_neighbours.c:822
+#: src/dht/gnunet-service-xdht_neighbours.c:1018
 msgid "# Bytes transmitted to other peers"
 msgstr "# Bytes transmitidos a otros pares"
 
-#: src/dht/gnunet-service-dht_neighbours.c:861
+#: src/dht/gnunet-service-dht_neighbours.c:860
 msgid "# Bytes of bandwidth requested from core"
 msgstr "# Bytes de ancho de banda solicitados por el servicio principal"
 
-#: src/dht/gnunet-service-dht_neighbours.c:893
+#: src/dht/gnunet-service-dht_neighbours.c:892
 #, fuzzy
 msgid "# requests TTL-dropped"
 msgstr "# peticiones unidas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1097
-#: src/dht/gnunet-service-dht_neighbours.c:1134
+#: src/dht/gnunet-service-dht_neighbours.c:1096
+#: src/dht/gnunet-service-dht_neighbours.c:1133
 msgid "# Peers excluded from routing due to Bloomfilter"
 msgstr "# Pares excluidos del encaminado debido a «Bloomfilter»"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1112
-#: src/dht/gnunet-service-dht_neighbours.c:1149
+#: src/dht/gnunet-service-dht_neighbours.c:1111
+#: src/dht/gnunet-service-dht_neighbours.c:1148
 msgid "# Peer selection failed"
 msgstr "# Selecciones de pares fallidas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1293
+#: src/dht/gnunet-service-dht_neighbours.c:1292
 msgid "# PUT requests routed"
 msgstr "# Peticiones «PUT» encaminadas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1322
+#: src/dht/gnunet-service-dht_neighbours.c:1321
 msgid "# PUT messages queued for transmission"
 msgstr "# mensajes «PUT» encolados para transmisión"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1332
-#: src/dht/gnunet-service-dht_neighbours.c:1456
-#: src/dht/gnunet-service-dht_neighbours.c:1561
-#: src/dht/gnunet-service-xdht_neighbours.c:1129
-#: src/dht/gnunet-service-xdht_neighbours.c:1198
-#: src/dht/gnunet-service-xdht_neighbours.c:1248
-#: src/dht/gnunet-service-xdht_neighbours.c:1312
-#: src/dht/gnunet-service-xdht_neighbours.c:1379
-#: src/dht/gnunet-service-xdht_neighbours.c:1441
-#: src/dht/gnunet-service-xdht_neighbours.c:1503
-#: src/dht/gnunet-service-xdht_neighbours.c:1565
-#: src/dht/gnunet-service-xdht_neighbours.c:1625
+#: src/dht/gnunet-service-dht_neighbours.c:1331
+#: src/dht/gnunet-service-dht_neighbours.c:1455
+#: src/dht/gnunet-service-dht_neighbours.c:1560
+#: src/dht/gnunet-service-xdht_neighbours.c:1128
+#: src/dht/gnunet-service-xdht_neighbours.c:1197
+#: src/dht/gnunet-service-xdht_neighbours.c:1247
+#: src/dht/gnunet-service-xdht_neighbours.c:1311
+#: src/dht/gnunet-service-xdht_neighbours.c:1378
+#: src/dht/gnunet-service-xdht_neighbours.c:1440
+#: src/dht/gnunet-service-xdht_neighbours.c:1502
+#: src/dht/gnunet-service-xdht_neighbours.c:1564
+#: src/dht/gnunet-service-xdht_neighbours.c:1624
 msgid "# P2P messages dropped due to full queue"
 msgstr "# Mensajes P2P omitidos debido a saturación de la cola"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1418
+#: src/dht/gnunet-service-dht_neighbours.c:1417
 msgid "# GET requests routed"
 msgstr "# Peticiones «GET» encaminadas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1445
+#: src/dht/gnunet-service-dht_neighbours.c:1444
 msgid "# GET messages queued for transmission"
 msgstr "# Mensajes «GET» encolados para transmisión"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1568
+#: src/dht/gnunet-service-dht_neighbours.c:1567
 msgid "# RESULT messages queued for transmission"
 msgstr "# Mensajes «RESULT» encolados para transmisión"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1655
+#: src/dht/gnunet-service-dht_neighbours.c:1654
 msgid "# P2P PUT requests received"
 msgstr "# Peticiones «PUT» P2P recibidas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1658
+#: src/dht/gnunet-service-dht_neighbours.c:1657
 #, fuzzy
 msgid "# P2P PUT bytes received"
 msgstr "# Peticiones «PUT» P2P recibidas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1826
+#: src/dht/gnunet-service-dht_neighbours.c:1825
 msgid "# FIND PEER requests ignored due to Bloomfilter"
 msgstr "# Peticiones «FIND PEER» ignoradas debido a «Bloomfilter»"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1834
+#: src/dht/gnunet-service-dht_neighbours.c:1833
 msgid "# FIND PEER requests ignored due to lack of HELLO"
 msgstr "# Peticiones «FIND PEER» ignoradas debido a falta de «HELLO»"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1929
+#: src/dht/gnunet-service-dht_neighbours.c:1928
 msgid "# P2P GET requests received"
 msgstr "# Peticiones «GET» P2P recibidas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1932
+#: src/dht/gnunet-service-dht_neighbours.c:1931
 #, fuzzy
 msgid "# P2P GET bytes received"
 msgstr "# Peticiones «GET» P2P recibidas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:1997
+#: src/dht/gnunet-service-dht_neighbours.c:1996
 msgid "# P2P FIND PEER requests processed"
 msgstr "# Peticiones «FIND PEER» P2P procesadas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2011
+#: src/dht/gnunet-service-dht_neighbours.c:2010
 msgid "# P2P GET requests ONLY routed"
 msgstr "# Peticiones «GET» P2P SOLAMENTE encaminadas"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2096
+#: src/dht/gnunet-service-dht_neighbours.c:2095
 msgid "# P2P RESULTS received"
 msgstr "# Resultados (RESULTS) P2P recibidos"
 
-#: src/dht/gnunet-service-dht_neighbours.c:2099
+#: src/dht/gnunet-service-dht_neighbours.c:2098
 #, fuzzy
 msgid "# P2P RESULT bytes received"
 msgstr "# Resultados (RESULTS) P2P recibidos"
@@ -2453,78 +2453,78 @@ msgstr "# Peticiones a la DHT combinadas"
 msgid "PUT request received, but have no datacache!\n"
 msgstr "¡Petición %s recibida, pero no tiene caché de datos!\n"
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1832
+#: src/dht/gnunet-service-xdht_neighbours.c:1831
 #, c-format
 msgid ""
 "\n"
 "SUPU %s, %s, %d,trail_length = %d"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1837
+#: src/dht/gnunet-service-xdht_neighbours.c:1836
 #, c-format
 msgid ""
 "\n"
 "SUPU %s, %s, %d,trail[%d]=%s"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1857
+#: src/dht/gnunet-service-xdht_neighbours.c:1856
 #, c-format
 msgid ""
 "\n"
 "SUPU************  FRIEND_PEERMAP of %s"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1867
+#: src/dht/gnunet-service-xdht_neighbours.c:1866
 #, c-format
 msgid ""
 "\n"
 "SUPU %s, %s, %d, friend = %s, friend->trails_count = %d"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1888
+#: src/dht/gnunet-service-xdht_neighbours.c:1887
 #, c-format
 msgid ""
 "\n"
 "SUPU************  FINGER_TABLE of %s"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1897
+#: src/dht/gnunet-service-xdht_neighbours.c:1896
 #, c-format
 msgid ""
 "\n"
 "SUPU %s, %s, %d, finger_table[%d] = %s, trails_count = %d"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1904
+#: src/dht/gnunet-service-xdht_neighbours.c:1903
 #, c-format
 msgid ""
 "\n"
 "SUPU %s, %s, %d, trail_id[%d]=%s"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1910
+#: src/dht/gnunet-service-xdht_neighbours.c:1909
 #, c-format
 msgid ""
 "\n"
 "SUPU %s, %s, %d,trail[%d] = %s "
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:3559
+#: src/dht/gnunet-service-xdht_neighbours.c:3558
 msgid "# FINGERS_COUNT"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:3700
-#: src/dht/gnunet-service-xdht_neighbours.c:3938
-#: src/dht/gnunet-service-xdht_neighbours.c:4090
-#: src/dht/gnunet-service-xdht_neighbours.c:4242
-#: src/dht/gnunet-service-xdht_neighbours.c:4423
-#: src/dht/gnunet-service-xdht_neighbours.c:4936
-#: src/dht/gnunet-service-xdht_neighbours.c:5329
-#: src/dht/gnunet-service-xdht_neighbours.c:5422
-#: src/dht/gnunet-service-xdht_neighbours.c:5512
-#: src/dht/gnunet-service-xdht_neighbours.c:5616
-#: src/dht/gnunet-service-xdht_neighbours.c:5760
-#: src/dht/gnunet-service-xdht_neighbours.c:5849
+#: src/dht/gnunet-service-xdht_neighbours.c:3699
+#: src/dht/gnunet-service-xdht_neighbours.c:3937
+#: src/dht/gnunet-service-xdht_neighbours.c:4089
+#: src/dht/gnunet-service-xdht_neighbours.c:4241
+#: src/dht/gnunet-service-xdht_neighbours.c:4422
+#: src/dht/gnunet-service-xdht_neighbours.c:4935
+#: src/dht/gnunet-service-xdht_neighbours.c:5328
+#: src/dht/gnunet-service-xdht_neighbours.c:5421
+#: src/dht/gnunet-service-xdht_neighbours.c:5511
+#: src/dht/gnunet-service-xdht_neighbours.c:5615
+#: src/dht/gnunet-service-xdht_neighbours.c:5759
+#: src/dht/gnunet-service-xdht_neighbours.c:5848
 #, fuzzy
 msgid "# Bytes received from other peers"
 msgstr "# respuestas recibidas de otros pares"
@@ -4273,7 +4273,7 @@ msgstr ""
 msgid "Refusing `%s' request to HTTP server\n"
 msgstr "Rechazando petición «%s» al servidor de listas de máquinas\n"
 
-#: src/gns/gnunet-bcd.c:355 src/hostlist/gnunet-daemon-hostlist_server.c:759
+#: src/gns/gnunet-bcd.c:355 src/hostlist/gnunet-daemon-hostlist_server.c:760
 #, c-format
 msgid "Invalid port number %llu.  Exiting.\n"
 msgstr "Número de puerto %llu no válido.  Saliendo.\n"
@@ -4440,129 +4440,129 @@ msgstr "Fallo al conectar a gnunetd.\n"
 msgid "This program will import some GNS authorities into your GNS namestore."
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:105
-#: src/hostlist/gnunet-daemon-hostlist_client.c:524
-#: src/hostlist/gnunet-daemon-hostlist_client.c:741
-#: src/hostlist/gnunet-daemon-hostlist_client.c:747
-#: src/hostlist/gnunet-daemon-hostlist_client.c:800
-#: src/hostlist/gnunet-daemon-hostlist_client.c:809
-#: src/hostlist/gnunet-daemon-hostlist_client.c:931
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1026
+#: src/gns/gnunet-gns-proxy.c:109
+#: src/hostlist/gnunet-daemon-hostlist_client.c:529
+#: src/hostlist/gnunet-daemon-hostlist_client.c:746
+#: src/hostlist/gnunet-daemon-hostlist_client.c:752
+#: src/hostlist/gnunet-daemon-hostlist_client.c:805
+#: src/hostlist/gnunet-daemon-hostlist_client.c:814
+#: src/hostlist/gnunet-daemon-hostlist_client.c:936
 #: src/hostlist/gnunet-daemon-hostlist_client.c:1031
-#: src/transport/plugin_transport_http_client.c:595
-#: src/transport/plugin_transport_http_client.c:613
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1036
+#: src/transport/plugin_transport_http_client.c:599
+#: src/transport/plugin_transport_http_client.c:617
 #, c-format
 msgid "%s failed at %s:%d: `%s'\n"
 msgstr "%s falló en %s:%d: «%s».\n"
 
-#: src/gns/gnunet-gns-proxy.c:842
+#: src/gns/gnunet-gns-proxy.c:846
 #, fuzzy, c-format
 msgid "Unsupported CURL SSL backend %d\n"
 msgstr "Tipo de bloque %u no soportado\n"
 
-#: src/gns/gnunet-gns-proxy.c:865
+#: src/gns/gnunet-gns-proxy.c:869
 #, fuzzy, c-format
 msgid "Failed to fetch CN from cert: %s\n"
 msgstr "Se produjo un fallo al mandar la petición DNS a %s\n"
 
-#: src/gns/gnunet-gns-proxy.c:888
+#: src/gns/gnunet-gns-proxy.c:892
 #, fuzzy, c-format
 msgid "Failed to initialize DANE: %s\n"
 msgstr "¡No se puede inicializar el resolvedor!\n"
 
-#: src/gns/gnunet-gns-proxy.c:901
+#: src/gns/gnunet-gns-proxy.c:905
 #, fuzzy, c-format
 msgid "Failed to parse DANE record: %s\n"
 msgstr "Se produjo un fallo al procesar la petición DNS.  Omitiendo.\n"
 
-#: src/gns/gnunet-gns-proxy.c:916
+#: src/gns/gnunet-gns-proxy.c:920
 #, fuzzy, c-format
 msgid "Failed to verify TLS connection using DANE: %s\n"
 msgstr "Se produjo un fallo al borrar el fichero de configuración %s\n"
 
-#: src/gns/gnunet-gns-proxy.c:926
+#: src/gns/gnunet-gns-proxy.c:930
 #, c-format
 msgid "Failed DANE verification failed with GnuTLS verify status code: %u\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:950
+#: src/gns/gnunet-gns-proxy.c:954
 #, c-format
 msgid "SSL certificate subject name (%s) does not match `%s'\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1095
+#: src/gns/gnunet-gns-proxy.c:1099
 #, c-format
 msgid "Cookie domain `%s' supplied by server is invalid\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:1630
+#: src/gns/gnunet-gns-proxy.c:1634
 #, fuzzy, c-format
 msgid "Unsupported HTTP method `%s'\n"
 msgstr "Tipo no soportado «%s»\n"
 
-#: src/gns/gnunet-gns-proxy.c:2002
+#: src/gns/gnunet-gns-proxy.c:2006
 #, c-format
 msgid "Unable to import private key from file `%s'\n"
 msgstr "No se pudo importar la clave privada del fichero «%s»\n"
 
-#: src/gns/gnunet-gns-proxy.c:2032
+#: src/gns/gnunet-gns-proxy.c:2036
 #, c-format
 msgid "Unable to import certificate %s\n"
 msgstr "No se pudo importar el certificado %s\n"
 
-#: src/gns/gnunet-gns-proxy.c:2206
+#: src/gns/gnunet-gns-proxy.c:2210
 #, fuzzy, c-format
 msgid "Failed to start HTTPS server for `%s'\n"
 msgstr "Se produjo un fallo al iniciar el servidor HTTP\n"
 
-#: src/gns/gnunet-gns-proxy.c:2225 src/rest/gnunet-rest-server.c:529
+#: src/gns/gnunet-gns-proxy.c:2229 src/rest/gnunet-rest-server.c:529
 #, fuzzy
 msgid "Failed to pass client to MHD\n"
 msgstr "Se produjo un fallo al conectar con GNS\n"
 
-#: src/gns/gnunet-gns-proxy.c:2547
+#: src/gns/gnunet-gns-proxy.c:2551
 #, fuzzy, c-format
 msgid "Unsupported socks version %d\n"
 msgstr "Tipo de bloque %u no soportado\n"
 
-#: src/gns/gnunet-gns-proxy.c:2576
+#: src/gns/gnunet-gns-proxy.c:2580
 #, fuzzy, c-format
 msgid "Unsupported socks command %d\n"
 msgstr "Tipo de bloque %u no soportado\n"
 
-#: src/gns/gnunet-gns-proxy.c:2594 src/gns/gnunet-gns-proxy.c:2623
+#: src/gns/gnunet-gns-proxy.c:2598 src/gns/gnunet-gns-proxy.c:2627
 msgid "SSL connection to plain IPv4 address requested\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:2674
+#: src/gns/gnunet-gns-proxy.c:2678
 #, fuzzy, c-format
 msgid "Unsupported socks address type %d\n"
 msgstr "Tipo de bloque %u no soportado\n"
 
-#: src/gns/gnunet-gns-proxy.c:3013
+#: src/gns/gnunet-gns-proxy.c:3017
 msgid "No ego configured for `shorten-zone`\n"
 msgstr ""
 
-#: src/gns/gnunet-gns-proxy.c:3053 src/gns/gnunet-service-gns.c:894
+#: src/gns/gnunet-gns-proxy.c:3057 src/gns/gnunet-service-gns.c:894
 #, fuzzy, c-format
 msgid "No ego configured for `%s`\n"
 msgstr ""
 "Ningún puerto fue configurado para el módulo «%s», no se puede probar\n"
 
-#: src/gns/gnunet-gns-proxy.c:3115
+#: src/gns/gnunet-gns-proxy.c:3119
 #, fuzzy, c-format
 msgid "Failed to load SSL/TLS key and certificate from `%s'\n"
 msgstr "Se produjo un fallo al leer la lista de amigos de «%s»\n"
 
-#: src/gns/gnunet-gns-proxy.c:3156
+#: src/gns/gnunet-gns-proxy.c:3160
 msgid "listen on specified port (default: 7777)"
 msgstr "escuchar en el puerto especificado (predeterminado: 7777)"
 
-#: src/gns/gnunet-gns-proxy.c:3159
+#: src/gns/gnunet-gns-proxy.c:3163
 msgid "pem file to use as CA"
 msgstr "fichero pem para usar como autoridad de certificación (CA)"
 
-#: src/gns/gnunet-gns-proxy.c:3178
+#: src/gns/gnunet-gns-proxy.c:3182
 msgid "GNUnet GNS proxy"
 msgstr "Proxy GNUnet GNS"
 
@@ -4862,36 +4862,36 @@ msgstr "proveer un servidor de listas de máquinas"
 msgid "GNUnet hostlist server and client"
 msgstr "Servidor y cliente GNUnet de listas de máquinas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:343
+#: src/hostlist/gnunet-daemon-hostlist_client.c:348
 msgid "# bytes downloaded from hostlist servers"
 msgstr "# bytes descargados de servidores de listas de máquinas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:364
-#: src/hostlist/gnunet-daemon-hostlist_client.c:394
+#: src/hostlist/gnunet-daemon-hostlist_client.c:369
+#: src/hostlist/gnunet-daemon-hostlist_client.c:399
 msgid "# invalid HELLOs downloaded from hostlist servers"
 msgstr "# «HELLO» no válidos descargados de servidores de listas de máquinas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:367
-#: src/hostlist/gnunet-daemon-hostlist_client.c:397
+#: src/hostlist/gnunet-daemon-hostlist_client.c:372
+#: src/hostlist/gnunet-daemon-hostlist_client.c:402
 #, c-format
 msgid "Invalid `%s' message received from hostlist at `%s'\n"
 msgstr "Mensaje «%s» no válido recibido de la lista de máquinas en «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:385
+#: src/hostlist/gnunet-daemon-hostlist_client.c:390
 msgid "# valid HELLOs downloaded from hostlist servers"
 msgstr "# «HELLO» válidos descargados de servidores de listas de máquinas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:650
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1402
+#: src/hostlist/gnunet-daemon-hostlist_client.c:655
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1407
 msgid "# advertised hostlist URIs"
 msgstr "# URI de listas de máquinas anunciadas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:680
+#: src/hostlist/gnunet-daemon-hostlist_client.c:685
 #, c-format
 msgid "# advertised URI `%s' downloaded"
 msgstr "# URI anunciadas «%s» descargadas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:722
+#: src/hostlist/gnunet-daemon-hostlist_client.c:727
 #, c-format
 msgid ""
 "Advertised hostlist with URI `%s' could not be downloaded. Advertised URI "
@@ -4900,120 +4900,120 @@ msgstr ""
 "Lista de máquinas anunciada con la URI «%s» no pudo ser descargada. La URI "
 "anunciada es descartada.\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:862
+#: src/hostlist/gnunet-daemon-hostlist_client.c:867
 #, c-format
 msgid "Timeout trying to download hostlist from `%s'\n"
 msgstr ""
 "Finalizado el plazo mientras se intentaba bajar lista de máquinas de «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:876
+#: src/hostlist/gnunet-daemon-hostlist_client.c:881
 #, c-format
 msgid "Download limit of %u bytes exceeded, stopping download\n"
 msgstr "Límite de descarga de %u bytes superado, parando descarga\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:896
+#: src/hostlist/gnunet-daemon-hostlist_client.c:901
 #, c-format
 msgid "Download of hostlist from `%s' failed: `%s'\n"
 msgstr "Descarga de lista de máquinas de «%s» fallida: «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:902
+#: src/hostlist/gnunet-daemon-hostlist_client.c:907
 #, c-format
 msgid "Download of hostlist `%s' completed.\n"
 msgstr "Descarga de lista de máquinas «%s» completada.\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:910
+#: src/hostlist/gnunet-daemon-hostlist_client.c:915
 #, c-format
 msgid "Adding successfully tested hostlist `%s' datastore.\n"
 msgstr "Añadiendo el almacén de datos de la lista de máquinas probada «%s».\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:963
+#: src/hostlist/gnunet-daemon-hostlist_client.c:968
 #, c-format
 msgid "Bootstrapping using hostlist at `%s'.\n"
 msgstr "Inicializando usando lista de máquinas en «%s».\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:971
+#: src/hostlist/gnunet-daemon-hostlist_client.c:976
 msgid "# hostlist downloads initiated"
 msgstr "# descargas de listas de máquinas iniciadas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1103
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1655
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1108
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1660
 msgid "# milliseconds between hostlist downloads"
 msgstr "# milisegundos entre descargas de listas de máquinas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1112
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1117
 #, c-format
 msgid "Have %u/%u connections.  Will consider downloading hostlist in %s\n"
 msgstr ""
 "Hay %u/%u conexiones.  Se considerará descargar una lista de máquinas en %s\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1172
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1188
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1177
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1193
 msgid "# active connections"
 msgstr "# conexiones activas"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1348
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1353
 #, c-format
 msgid "Loading saved hostlist entries from file `%s' \n"
 msgstr "Cargando entradas guardadas de listas de máquinas del fichero «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1353
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1358
 #, c-format
 msgid "Hostlist file `%s' does not exist\n"
 msgstr "El fichero de listas de máquinas «%s» no existe\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1362
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1367
 #, c-format
 msgid "Could not open file `%s' for reading to load hostlists: %s\n"
 msgstr ""
 "No se pudo abrir el fichero «%s» en modo lectura para cargar las listas de "
 "máquinas: %s\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1396
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1401
 #, c-format
 msgid "%u hostlist URIs loaded from file\n"
 msgstr "%u URI de listas de máquinas cargadas del fichero\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1399
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1404
 msgid "# hostlist URIs read from file"
 msgstr "# URI de listas de máquinas leídas de fichero"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1445
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1450
 #, c-format
 msgid "Could not open file `%s' for writing to save hostlists: %s\n"
 msgstr ""
 "No se pudo abrir el fichero «%s» en modo escritura para almacenar las listas "
 "de máquinas: %s\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1452
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1457
 #, c-format
 msgid "Writing %u hostlist URIs to `%s'\n"
 msgstr "Escribiendo %u URI de listas de máquinas a «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1476
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1493
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1481
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1498
 #, c-format
 msgid "Error writing hostlist URIs to file `%s'\n"
 msgstr "Error escribiendo URI de listas de máquinas al fichero «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1488
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1493
 msgid "# hostlist URIs written to file"
 msgstr "# URI de listas de máquinas escritas a fichero"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1588
-#: src/transport/plugin_transport_http_client.c:2265
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1593
+#: src/transport/plugin_transport_http_client.c:2269
 #, c-format
 msgid "Invalid proxy type: `%s', disabling proxy! Check configuration!\n"
 msgstr ""
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1617
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1622
 msgid "Learning is enabled on this peer\n"
 msgstr "El aprendizaje está habilitado en este par\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1630
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1635
 msgid "Learning is not enabled on this peer\n"
 msgstr "El aprendizaje no está habilitado en este par\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_client.c:1641
+#: src/hostlist/gnunet-daemon-hostlist_client.c:1646
 #, c-format
 msgid ""
 "Since learning is not enabled on this peer, hostlist file `%s' was removed\n"
@@ -5021,16 +5021,16 @@ msgstr ""
 "La lista de máquinas «%s» fue eliminada puesto que el aprendizaje no está "
 "habilitado en este par\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:181
+#: src/hostlist/gnunet-daemon-hostlist_server.c:182
 msgid "bytes in hostlist"
 msgstr "bytes en la lista de máquinas"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:206
+#: src/hostlist/gnunet-daemon-hostlist_server.c:207
 msgid "expired addresses encountered"
 msgstr "direcciones expiradas encontradas"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:241
-#: src/hostlist/gnunet-daemon-hostlist_server.c:590
+#: src/hostlist/gnunet-daemon-hostlist_server.c:242
+#: src/hostlist/gnunet-daemon-hostlist_server.c:591
 #: src/peerinfo-tool/gnunet-peerinfo.c:382
 #: src/peerinfo-tool/gnunet-peerinfo.c:531
 #: src/topology/gnunet-daemon-topology.c:952
@@ -5040,60 +5040,60 @@ msgstr ""
 "Error en la comunicación con el servicio de información de pares (PEERINFO): "
 "%s\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:265
+#: src/hostlist/gnunet-daemon-hostlist_server.c:266
 msgid "HELLOs without addresses encountered (ignored)"
 msgstr "«HELLO» sin dirección encontrados (ignorados)"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:282
+#: src/hostlist/gnunet-daemon-hostlist_server.c:283
 msgid "bytes not included in hostlist (size limit)"
 msgstr "bytes no incluidos en la lista de máquinas (límite de tamaño)"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:386
+#: src/hostlist/gnunet-daemon-hostlist_server.c:387
 #, c-format
 msgid "Refusing `%s' request to hostlist server\n"
 msgstr "Rechazando petición «%s» al servidor de listas de máquinas\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:389
+#: src/hostlist/gnunet-daemon-hostlist_server.c:390
 msgid "hostlist requests refused (not HTTP GET)"
 msgstr "Peticiones de listas de máquinas rechazadas (no HTTP GET)"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:403
+#: src/hostlist/gnunet-daemon-hostlist_server.c:404
 #, c-format
 msgid "Refusing `%s' request with %llu bytes of upload data\n"
 msgstr "Rechazando petición «%s» con %llu bytes de datos de subida\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:407
+#: src/hostlist/gnunet-daemon-hostlist_server.c:408
 msgid "hostlist requests refused (upload data)"
 msgstr "Peticiones de listas de máquinas rechazadas (datos de subida)"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:414
+#: src/hostlist/gnunet-daemon-hostlist_server.c:415
 msgid "Could not handle hostlist request since I do not have a response yet\n"
 msgstr ""
 "No se pudo manejar una petición de lista de máquinas debido a que no hay una "
 "respuesta todavía\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:417
+#: src/hostlist/gnunet-daemon-hostlist_server.c:418
 msgid "hostlist requests refused (not ready)"
 msgstr "Peticiones de listas de máquinas rechazadas (no preparados)"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:422
+#: src/hostlist/gnunet-daemon-hostlist_server.c:423
 msgid "Received request for our hostlist\n"
 msgstr "Peticiones recibidas de nuestra lista de máquinas\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:424
+#: src/hostlist/gnunet-daemon-hostlist_server.c:425
 msgid "hostlist requests processed"
 msgstr "Peticiones de lista de máquinas procesadas"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:485
+#: src/hostlist/gnunet-daemon-hostlist_server.c:486
 msgid "# hostlist advertisements send"
 msgstr "# anuncios de listas de máquinas enviados"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:535
+#: src/hostlist/gnunet-daemon-hostlist_server.c:536
 msgid "Advertisement message could not be queued by core\n"
 msgstr ""
 "Los mensajes de anuncio no pudieron encolarse por el servicio principal\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:747
+#: src/hostlist/gnunet-daemon-hostlist_server.c:748
 #: src/peerinfo-tool/gnunet-peerinfo.c:736
 #: src/transport/gnunet-service-transport.c:852
 msgid "Could not access PEERINFO service.  Exiting.\n"
@@ -5101,37 +5101,37 @@ msgstr ""
 "No se pudo acceder al servicio de información de pares (PEERINFO).  "
 "Saliendo.\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:771
+#: src/hostlist/gnunet-daemon-hostlist_server.c:772
 #, c-format
 msgid "Hostlist service starts on %s:%llu\n"
 msgstr "Servicio de listas de máquinas arranca en %s:%llu\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:786
+#: src/hostlist/gnunet-daemon-hostlist_server.c:787
 #, c-format
 msgid "Address to obtain hostlist: `%s'\n"
 msgstr "Dirección para obtener la lista de máquinas: «%s»\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:799
+#: src/hostlist/gnunet-daemon-hostlist_server.c:800
 #, fuzzy
 msgid "BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV4.\n"
 msgstr "¡«%s» no es una dirección IP válida! Ignorando «BINDTOIP».\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:812
+#: src/hostlist/gnunet-daemon-hostlist_server.c:813
 #, fuzzy
 msgid "BINDTOIP does not a valid IPv4 address! Ignoring BINDTOIPV6.\n"
 msgstr "¡«%s» no es una dirección IP válida! Ignorando «BINDTOIP».\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:833
+#: src/hostlist/gnunet-daemon-hostlist_server.c:834
 #, fuzzy, c-format
 msgid "`%s' is not a valid IPv4 address! Ignoring BINDTOIPV4.\n"
 msgstr "¡«%s» no es una dirección IP válida! Ignorando «BINDTOIP».\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:853
+#: src/hostlist/gnunet-daemon-hostlist_server.c:854
 #, fuzzy, c-format
 msgid "`%s' is not a valid IPv6 address! Ignoring BINDTOIPV6.\n"
 msgstr "¡«%s» no es una dirección IP válida! Ignorando «BINDTOIP».\n"
 
-#: src/hostlist/gnunet-daemon-hostlist_server.c:893
+#: src/hostlist/gnunet-daemon-hostlist_server.c:894
 #, c-format
 msgid "Could not start hostlist HTTP server on port %u\n"
 msgstr ""
@@ -5619,37 +5619,37 @@ msgstr "No se ha encontrado un «gnunet-helper-nat-server» funcional\n"
 msgid "test_icmp_client not possible, as we have no internal IPv4 address\n"
 msgstr ""
 
-#: src/nat/nat.c:862
+#: src/nat/nat.c:867
 #, c-format
 msgid "gnunet-helper-nat-server generated malformed address `%s'\n"
 msgstr "«gnunet-helper-nat-server» generó la dirección mal formada «%s»\n"
 
-#: src/nat/nat.c:912
+#: src/nat/nat.c:917
 #, c-format
 msgid "Failed to start %s\n"
 msgstr "Se produjo un fallo al arrancar %s\n"
 
-#: src/nat/nat.c:1027
+#: src/nat/nat.c:1032
 msgid "Error while running upnp client:\n"
 msgstr ""
 
-#: src/nat/nat.c:1097
+#: src/nat/nat.c:1102
 #, fuzzy, c-format
 msgid "Failed to run upnp client for port %u\n"
 msgstr ""
 "Se produjo un fallo al inicializar la clave de la máquina desde el par %u\n"
 
-#: src/nat/nat.c:1237
+#: src/nat/nat.c:1242
 msgid "malformed"
 msgstr "mal formado"
 
-#: src/nat/nat.c:1291
+#: src/nat/nat.c:1296
 msgid ""
 "UPnP enabled in configuration, but UPnP client `upnpc` command not found, "
 "disabling UPnP \n"
 msgstr ""
 
-#: src/nat/nat.c:1318 src/nat/nat.c:1330
+#: src/nat/nat.c:1323 src/nat/nat.c:1335
 #, c-format
 msgid ""
 "Configuration requires `%s', but binary is not installed properly (SUID bit "
@@ -5658,98 +5658,98 @@ msgstr ""
 "La configuración requiere «%s», pero el binario no está instalado de forma "
 "correcta (SUID bit no activado).  Opción deshabilitada.\n"
 
-#: src/nat/nat.c:1468
+#: src/nat/nat.c:1473
 msgid "Internal IP address not known, cannot use ICMP NAT traversal method\n"
 msgstr ""
 "Direcciones internas IP no conocidas, no se puede usar el método del "
 "recorrido NAT ICMP\n"
 
-#: src/nat/nat.c:1484
+#: src/nat/nat.c:1489
 #, c-format
 msgid "Running gnunet-helper-nat-client %s %s %u\n"
 msgstr "Ejecutando gnunet-helper-nat-client %s %s %u\n"
 
-#: src/nat/nat.c:1569
+#: src/nat/nat.c:1574
 msgid "Operation Successful"
 msgstr ""
 
-#: src/nat/nat.c:1571
+#: src/nat/nat.c:1576
 msgid "Internal Failure (IPC, ...)"
 msgstr ""
 
-#: src/nat/nat.c:1573
+#: src/nat/nat.c:1578
 msgid "Failure in network subsystem, check permissions."
 msgstr ""
 
-#: src/nat/nat.c:1575
+#: src/nat/nat.c:1580
 msgid "Encountered timeout while performing operation"
 msgstr ""
 
-#: src/nat/nat.c:1577
+#: src/nat/nat.c:1582
 msgid "detected that we are offline"
 msgstr ""
 
-#: src/nat/nat.c:1579
+#: src/nat/nat.c:1584
 #, fuzzy
 msgid "`upnpc` command not found"
 msgstr "comando «upnpc» no encontrado\n"
 
-#: src/nat/nat.c:1581
+#: src/nat/nat.c:1586
 #, fuzzy
 msgid "Failed to run `upnpc` command"
 msgstr "Se produjo un fallo al ejecutar «%s»\n"
 
-#: src/nat/nat.c:1583
+#: src/nat/nat.c:1588
 #, fuzzy
 msgid "`upnpc' command took too long, process killed"
 msgstr "comando «upnpc» no encontrado\n"
 
-#: src/nat/nat.c:1585
+#: src/nat/nat.c:1590
 msgid "`upnpc' command failed to establish port mapping"
 msgstr ""
 
-#: src/nat/nat.c:1587
+#: src/nat/nat.c:1592
 #, fuzzy
 msgid "`external-ip' command not found"
 msgstr "comando «external-ip» no encontrado\n"
 
-#: src/nat/nat.c:1589
+#: src/nat/nat.c:1594
 #, fuzzy
 msgid "Failed to run `external-ip` command"
 msgstr "Se produjo un fallo al ejecutar «%s»\n"
 
-#: src/nat/nat.c:1591
+#: src/nat/nat.c:1596
 #, fuzzy
 msgid "`external-ip' command output invalid"
 msgstr "comando «external-ip» no encontrado\n"
 
-#: src/nat/nat.c:1593
+#: src/nat/nat.c:1598
 msgid "no valid address was returned by `external-ip'"
 msgstr ""
 
-#: src/nat/nat.c:1595
+#: src/nat/nat.c:1600
 #, fuzzy
 msgid "Could not determine interface with internal/local network address"
 msgstr "No se pudo determinar la ruta de instalación de los módulos.\n"
 
-#: src/nat/nat.c:1597
+#: src/nat/nat.c:1602
 #, fuzzy
 msgid "No functioning gnunet-helper-nat-server installation found"
 msgstr "No se ha encontrado un «gnunet-helper-nat-server» funcional\n"
 
-#: src/nat/nat.c:1599
+#: src/nat/nat.c:1604
 msgid "NAT test could not be initialized"
 msgstr ""
 
-#: src/nat/nat.c:1601
+#: src/nat/nat.c:1606
 msgid "NAT test timeout reached"
 msgstr ""
 
-#: src/nat/nat.c:1603
+#: src/nat/nat.c:1608
 msgid "could not register NAT"
 msgstr ""
 
-#: src/nat/nat.c:1605
+#: src/nat/nat.c:1610
 #, fuzzy
 msgid "No working gnunet-helper-nat-client installation found"
 msgstr "No se ha encontrado un «gnunet-helper-nat-server» funcional\n"
@@ -7736,7 +7736,7 @@ msgstr "# mensajes «REQUEST CONNECT» recibidos"
 msgid "# disconnect messages ignored (timestamp)"
 msgstr "# mensajes de desconexión ignorados (marca temporal)"
 
-#: src/transport/gnunet-service-transport_neighbours.c:3867
+#: src/transport/gnunet-service-transport_neighbours.c:3871
 msgid "# disconnected from peer upon explicit request"
 msgstr "# desconexiones del par debido a una petición explícita"
 
@@ -8220,34 +8220,34 @@ msgstr "número de mensajes a usar por iteración"
 msgid "message size to use"
 msgstr "tamaño del mensaje"
 
-#: src/transport/plugin_transport_http_client.c:1481
-#: src/transport/plugin_transport_http_server.c:2247
-#: src/transport/plugin_transport_http_server.c:3414
+#: src/transport/plugin_transport_http_client.c:1485
+#: src/transport/plugin_transport_http_server.c:2248
+#: src/transport/plugin_transport_http_server.c:3415
 #: src/transport/plugin_transport_tcp.c:2931
 #: src/transport/plugin_transport_tcp.c:2938
 msgid "TCP_STEALTH not supported on this platform.\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_client.c:2106
+#: src/transport/plugin_transport_http_client.c:2110
 #, c-format
 msgid "Could not initialize curl multi handle, failed to start %s plugin!\n"
 msgstr ""
 "¡No se pudo inicializar el multi-manejador de curl, no se pudo iniciar el "
 "módulo %s!\n"
 
-#: src/transport/plugin_transport_http_client.c:2155
-#: src/transport/plugin_transport_http_server.c:3148
+#: src/transport/plugin_transport_http_client.c:2159
+#: src/transport/plugin_transport_http_server.c:3149
 #, c-format
 msgid "Shutting down plugin `%s'\n"
 msgstr "Finalizando el módulo «%s»\n"
 
-#: src/transport/plugin_transport_http_client.c:2172
-#: src/transport/plugin_transport_http_server.c:3218
+#: src/transport/plugin_transport_http_client.c:2176
+#: src/transport/plugin_transport_http_server.c:3219
 #, c-format
 msgid "Shutdown for plugin `%s' complete\n"
 msgstr "Finalización del módulo «%s» completa\n"
 
-#: src/transport/plugin_transport_http_client.c:2206
+#: src/transport/plugin_transport_http_client.c:2210
 #, fuzzy, c-format
 msgid "Maximum number of requests is %u\n"
 msgstr "El número máximo de conexiones es %u\n"
@@ -8261,12 +8261,12 @@ msgstr ""
 "Acceso desde la conexión %p (%u de %u) para «%s» «%s» URL «%s» con tamaño de "
 "los datos de subida %u\n"
 
-#: src/transport/plugin_transport_http_server.c:1965
+#: src/transport/plugin_transport_http_server.c:1966
 #, c-format
 msgid "Accepting connection (%u of %u) from `%s'\n"
 msgstr "Aceptando conexión (%u de %u) desde «%s»\n"
 
-#: src/transport/plugin_transport_http_server.c:1973
+#: src/transport/plugin_transport_http_server.c:1974
 #, c-format
 msgid ""
 "Server reached maximum number connections (%u), rejecting new connection\n"
@@ -8274,7 +8274,7 @@ msgstr ""
 "El servidor ha alcanzado el número máximo de conexiones (%u), rechazando "
 "nueva conexión\n"
 
-#: src/transport/plugin_transport_http_server.c:2123
+#: src/transport/plugin_transport_http_server.c:2124
 msgid ""
 "Could not create a new TLS certificate, program `gnunet-transport-"
 "certificate-creation' could not be started!\n"
@@ -8282,104 +8282,104 @@ msgstr ""
 "¡No se pudo crear un certificado TLS nuevo, el programa «gnunet-transport-"
 "certificate-creation» no pudo ser iniciado!\n"
 
-#: src/transport/plugin_transport_http_server.c:2146
+#: src/transport/plugin_transport_http_server.c:2147
 #, fuzzy, c-format
 msgid "No usable TLS certificate found and creating one at `%s/%s' failed!\n"
 msgstr ""
 "¡No se encontró ningún certificado TLS útil y se produjo un fallo al crear "
 "uno!\n"
 
-#: src/transport/plugin_transport_http_server.c:2273
+#: src/transport/plugin_transport_http_server.c:2274
 msgid "Could not load or create server certificate! Loading plugin failed!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2582
+#: src/transport/plugin_transport_http_server.c:2583
 msgid "Require valid port number for service in configuration!\n"
 msgstr "¡Se necesita un puerto válido para el servicio en la configuración!\n"
 
-#: src/transport/plugin_transport_http_server.c:2616 src/util/service.c:704
+#: src/transport/plugin_transport_http_server.c:2617 src/util/service.c:704
 #, c-format
 msgid "Failed to resolve `%s': %s\n"
 msgstr "Se produjo un fallo al resolver «%s»: %s\n"
 
-#: src/transport/plugin_transport_http_server.c:2634 src/util/service.c:723
+#: src/transport/plugin_transport_http_server.c:2635 src/util/service.c:723
 #, c-format
 msgid "Failed to find %saddress for `%s'.\n"
 msgstr "No se encontró la dirección %s para «%s».\n"
 
-#: src/transport/plugin_transport_http_server.c:2747
+#: src/transport/plugin_transport_http_server.c:2748
 #, c-format
 msgid "Found %u addresses to report to NAT service\n"
 msgstr "Encontradas %u direcciones para comunicar al servicio NAT\n"
 
-#: src/transport/plugin_transport_http_server.c:2825
+#: src/transport/plugin_transport_http_server.c:2826
 #: src/transport/plugin_transport_udp.c:3338
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr "¡Deshabilitando IPv6 ya que no está soportado en este sistema!\n"
 
-#: src/transport/plugin_transport_http_server.c:2924
+#: src/transport/plugin_transport_http_server.c:2925
 #, c-format
 msgid "IPv4 support is %s\n"
 msgstr "El soporte IPv4 es %s\n"
 
-#: src/transport/plugin_transport_http_server.c:2939
+#: src/transport/plugin_transport_http_server.c:2940
 #, c-format
 msgid "IPv6 support is %s\n"
 msgstr "El soporte IPv6 es %s\n"
 
-#: src/transport/plugin_transport_http_server.c:2945
+#: src/transport/plugin_transport_http_server.c:2946
 msgid "Neither IPv4 nor IPv6 are enabled! Fix in configuration\n"
 msgstr "¡Ni IPv4 ni IPv6 están habilitadas! Corrija la configuración\n"
 
-#: src/transport/plugin_transport_http_server.c:2956
+#: src/transport/plugin_transport_http_server.c:2957
 msgid "Port is required! Fix in configuration\n"
 msgstr "¡El puerto es necesario! Corrija la configuración\n"
 
-#: src/transport/plugin_transport_http_server.c:2962
+#: src/transport/plugin_transport_http_server.c:2963
 #, c-format
 msgid "Using port %u\n"
 msgstr "Usando puerto %u\n"
 
-#: src/transport/plugin_transport_http_server.c:2976
+#: src/transport/plugin_transport_http_server.c:2977
 #, c-format
 msgid "Specific IPv4 address `%s' in configuration file is invalid!\n"
 msgstr ""
 "¡La dirección IPv4 «%s» especificada en el fichero de configuración no es "
 "válida!\n"
 
-#: src/transport/plugin_transport_http_server.c:2986
+#: src/transport/plugin_transport_http_server.c:2987
 #, c-format
 msgid "Binding to IPv4 address %s\n"
 msgstr "Asociando a la dirección IPv4 %s\n"
 
-#: src/transport/plugin_transport_http_server.c:3008
+#: src/transport/plugin_transport_http_server.c:3009
 #, c-format
 msgid "Specific IPv6 address `%s' in configuration file is invalid!\n"
 msgstr ""
 "¡La dirección IPv6 «%s» especificada en el fichero de configuración no es "
 "válida!\n"
 
-#: src/transport/plugin_transport_http_server.c:3018
+#: src/transport/plugin_transport_http_server.c:3019
 #, c-format
 msgid "Binding to IPv6 address %s\n"
 msgstr "Asociando a la dirección IPv6 %s\n"
 
-#: src/transport/plugin_transport_http_server.c:3081
+#: src/transport/plugin_transport_http_server.c:3082
 #, c-format
 msgid "Using external hostname `%s'\n"
 msgstr "Usando nombre de máquina externo «%s»\n"
 
-#: src/transport/plugin_transport_http_server.c:3102
+#: src/transport/plugin_transport_http_server.c:3103
 #, c-format
 msgid "Notifying transport only about hostname `%s'\n"
 msgstr "Notificando al transporte sólo el nombre de máquina «%s»\n"
 
-#: src/transport/plugin_transport_http_server.c:3119
+#: src/transport/plugin_transport_http_server.c:3120
 #, c-format
 msgid "Maximum number of connections is %u\n"
 msgstr "El número máximo de conexiones es %u\n"
 
-#: src/transport/plugin_transport_http_server.c:3426
+#: src/transport/plugin_transport_http_server.c:3427
 #, fuzzy
 msgid "Unable to compile URL regex\n"
 msgstr "¡Imposible obtener «HELLO» del par!\n"
@@ -9458,118 +9458,118 @@ msgstr "señal (%d, %p) devolvió %d.\n"
 msgid "b"
 msgstr "b"
 
-#: src/util/strings.c:435
+#: src/util/strings.c:437
 #, c-format
 msgid "Character sets requested were `%s'->`%s'\n"
 msgstr "Los conjuntos de caracteres pedidos fueron «%s»->«%s»\n"
 
-#: src/util/strings.c:563
+#: src/util/strings.c:565
 msgid "Failed to expand `$HOME': environment variable `HOME' not set"
 msgstr ""
 "Se produjo un fallo al expandir «$HOME»: variable de entorno «HOME» no "
 "establecida"
 
-#: src/util/strings.c:660
+#: src/util/strings.c:662
 msgid "µs"
 msgstr ""
 
-#: src/util/strings.c:664
+#: src/util/strings.c:666
 msgid "forever"
 msgstr "para siempre"
 
-#: src/util/strings.c:666
+#: src/util/strings.c:668
 msgid "0 ms"
 msgstr "0 ms"
 
-#: src/util/strings.c:672
+#: src/util/strings.c:674
 msgid "ms"
 msgstr "ms"
 
-#: src/util/strings.c:678
+#: src/util/strings.c:680
 msgid "s"
 msgstr "s"
 
-#: src/util/strings.c:684
+#: src/util/strings.c:686
 msgid "m"
 msgstr "m"
 
-#: src/util/strings.c:690
+#: src/util/strings.c:692
 msgid "h"
 msgstr "h"
 
-#: src/util/strings.c:697
+#: src/util/strings.c:699
 msgid "day"
 msgstr "día"
 
-#: src/util/strings.c:699
+#: src/util/strings.c:701
 msgid "days"
 msgstr "días"
 
-#: src/util/strings.c:728
+#: src/util/strings.c:730
 msgid "end of time"
 msgstr "fin del plazo"
 
-#: src/util/strings.c:1227
+#: src/util/strings.c:1229
 msgid "IPv6 address did not start with `['\n"
 msgstr "La dirección IPv6 no empezaba con «[»\n"
 
-#: src/util/strings.c:1235
+#: src/util/strings.c:1237
 msgid "IPv6 address did contain ':' to separate port number\n"
 msgstr "La dirección IPv6 contenía «:» para separar el número de puerto\n"
 
-#: src/util/strings.c:1241
+#: src/util/strings.c:1243
 msgid "IPv6 address did contain ']' before ':' to separate port number\n"
 msgstr ""
 "La dirección IPv6 contenía «]» antes de «:» para separar el número de "
 "puerto\n"
 
-#: src/util/strings.c:1248
+#: src/util/strings.c:1250
 msgid "IPv6 address did contain a valid port number after the last ':'\n"
 msgstr ""
 "La dirección IPv6 contenía un número de puerto válido después del último "
 "«:»\n"
 
-#: src/util/strings.c:1257
+#: src/util/strings.c:1259
 #, c-format
 msgid "Invalid IPv6 address `%s': %s\n"
 msgstr "Dirección IPv6 «%s» no válida: %s\n"
 
-#: src/util/strings.c:1463 src/util/strings.c:1479
+#: src/util/strings.c:1465 src/util/strings.c:1481
 msgid "Port not in range\n"
 msgstr ""
 
-#: src/util/strings.c:1488
+#: src/util/strings.c:1490
 #, fuzzy, c-format
 msgid "Malformed port policy `%s'\n"
 msgstr "Se produjo un fallo al iniciar el servicio «%s»\n"
 
-#: src/util/strings.c:1571 src/util/strings.c:1602 src/util/strings.c:1650
-#: src/util/strings.c:1671
+#: src/util/strings.c:1573 src/util/strings.c:1604 src/util/strings.c:1652
+#: src/util/strings.c:1673
 #, c-format
 msgid "Invalid format for IP: `%s'\n"
 msgstr "Formato no válido para la IP: «%s»\n"
 
-#: src/util/strings.c:1628
+#: src/util/strings.c:1630
 #, c-format
 msgid "Invalid network notation ('/%d' is not legal in IPv4 CIDR)."
 msgstr "Notación de red no válida («/%d» no es válido en IPv4 CIDR)."
 
-#: src/util/strings.c:1680
+#: src/util/strings.c:1682
 #, fuzzy, c-format
 msgid "Invalid format: `%s'\n"
 msgstr "Formato de tiempo no válido «%s»\n"
 
-#: src/util/strings.c:1732
+#: src/util/strings.c:1734
 #, c-format
 msgid "Invalid network notation (does not end with ';': `%s')\n"
 msgstr "Notación de red no válida (no termina con «;»: «%s»)\n"
 
-#: src/util/strings.c:1782
+#: src/util/strings.c:1784
 #, c-format
 msgid "Wrong format `%s' for netmask\n"
 msgstr "Formato «%s» erroneo para máscara de red\n"
 
-#: src/util/strings.c:1813
+#: src/util/strings.c:1815
 #, c-format
 msgid "Wrong format `%s' for network\n"
 msgstr "Formato «%s» erroneo para red\n"
@@ -9760,18 +9760,18 @@ msgstr "el servicio es ofrecido vía UDP"
 msgid "Setup tunnels via VPN."
 msgstr "Configurar túneles vía VPN."
 
-#: src/include/gnunet_common.h:631 src/include/gnunet_common.h:638
-#: src/include/gnunet_common.h:646
+#: src/include/gnunet_common.h:635 src/include/gnunet_common.h:642
+#: src/include/gnunet_common.h:650
 #, c-format
 msgid "Assertion failed at %s:%d.\n"
 msgstr "Aserción fallida en %s:%d.\n"
 
-#: src/include/gnunet_common.h:658
+#: src/include/gnunet_common.h:662
 #, c-format
 msgid "External protocol violation detected at %s:%d.\n"
 msgstr "Violación externa del protocolo detectada en %s:%d.\n"
 
-#: src/include/gnunet_common.h:685 src/include/gnunet_common.h:694
+#: src/include/gnunet_common.h:689 src/include/gnunet_common.h:698
 #, c-format
 msgid "`%s' failed on file `%s' at %s:%d with error: %s\n"
 msgstr "«%s» falló en el fichero «%s» en %s:%d con el error: %s\n"
