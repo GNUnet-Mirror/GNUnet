@@ -43,13 +43,13 @@
 
 /**
  * Max number of microseconds to buffer in audiosink.
- * Default is 200000
+ * Default is 1000
  */
 #define BUFFER_TIME 1000
 
 /**
  * Min number of microseconds to buffer in audiosink.
- * Default is 10000
+ * Default is 1000
  */
 #define LATENCY_TIME 1000
 
@@ -79,15 +79,25 @@ static GstElement *sink;
  */
 static int abort_read;
 
-static void
-sink_child_added (GstChildProxy *child_proxy, GObject *object, gchar *name, gpointer user_data)
-{
-  if (GST_IS_AUDIO_BASE_SRC (object))
-    g_object_set (object, "buffer-time", (gint64) BUFFER_TIME, "latency-time", (gint64) LATENCY_TIME, NULL);
-}
 
 static void
-ogg_pad_added (GstElement *element, GstPad *pad, gpointer data)
+sink_child_added (GstChildProxy *child_proxy,
+		  GObject *object, 
+		  gchar *name,
+		  gpointer user_data)
+{
+  if (GST_IS_AUDIO_BASE_SRC (object))
+    g_object_set (object,
+		  "buffer-time", (gint64) BUFFER_TIME, 
+		  "latency-time", (gint64) LATENCY_TIME,
+		  NULL);
+}
+
+
+static void
+ogg_pad_added (GstElement *element, 
+	       GstPad *pad,
+	       gpointer data)
 {
   GstPad *sinkpad;
   GstElement *decoder = (GstElement *) data;
@@ -102,6 +112,7 @@ ogg_pad_added (GstElement *element, GstPad *pad, gpointer data)
   gst_object_unref (sinkpad);
 }
 
+
 static void
 quit ()
 {
@@ -112,14 +123,17 @@ quit ()
   abort_read = 1;
 }
 
+
 static gboolean
 bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Bus message\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Bus message\n");
   switch (GST_MESSAGE_TYPE (msg))
   {
   case GST_MESSAGE_EOS:
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "End of stream\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"End of stream\n");
     quit ();
     break;
 
@@ -131,7 +145,9 @@ bus_call (GstBus *bus, GstMessage *msg, gpointer data)
       gst_message_parse_error (msg, &error, &debug);
       g_free (debug);
       
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error: %s\n", error->message);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
+		  "Error: %s\n", 
+		  error->message);
       g_error_free (error);
       
       quit ();
@@ -151,6 +167,7 @@ signalhandler (int s)
   quit ();
 }
 
+
 static int
 feed_buffer_to_gst (const char *audio, size_t b_len)
 {
@@ -159,14 +176,15 @@ feed_buffer_to_gst (const char *audio, size_t b_len)
   GstFlowReturn flow;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Feeding %u bytes to GStreamer\n",
-      (unsigned int) b_len);
+	      "Feeding %u bytes to GStreamer\n",
+	      (unsigned int) b_len);
 
   bufspace = g_memdup (audio, b_len);
   b = gst_buffer_new_wrapped (bufspace, b_len);
   if (NULL == b)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to wrap a buffer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Failed to wrap a buffer\n");
     g_free (bufspace);
     return GNUNET_SYSERR;
   }
@@ -178,23 +196,28 @@ feed_buffer_to_gst (const char *audio, size_t b_len)
   switch (flow)
   {
   case GST_FLOW_OK:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fed %u bytes to the pipeline\n",
-        (unsigned int) b_len);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+		"Fed %u bytes to the pipeline\n",
+		(unsigned int) b_len);
     break;
   case GST_FLOW_FLUSHING:
     /* buffer was dropped, because pipeline state is not PAUSED or PLAYING */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Dropped a buffer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+		"Dropped a buffer\n");
     break;
   case GST_FLOW_EOS:
     /* end of stream */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "EOS\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+		"EOS\n");
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unexpected push result\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+		"Unexpected push result\n");
     break;
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Message callback
@@ -236,26 +259,29 @@ main (int argc, char **argv)
   int read_pure_ogg = getenv ("GNUNET_READ_PURE_OGG") ? 1 : 0;
 #endif
 
-  inthandler = signal (SIGINT, signalhandler);
-  termhandler = signal (SIGTERM, signalhandler);
-
+  inthandler = signal (SIGINT, 
+		       &signalhandler);
+  termhandler = signal (SIGTERM, 
+			&signalhandler);
+  
 #ifdef WINDOWS
   setmode (0, _O_BINARY);
 #endif
-
+  
   /* Initialisation */
   gst_init (&argc, &argv);
 
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_log_setup ("gnunet-helper-audio-playback",
+		 GNUNET_log_setup ("gnunet-helper-audio-playback-gst",
 				   "WARNING",
 				   NULL));
-
+  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Audio sink starts\n");
-
-  stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, NULL);
-
+  
+  stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, 
+					NULL);
+  
   /* Create gstreamer elements */
   pipeline = gst_pipeline_new ("audio-player");
   source   = gst_element_factory_make ("appsrc",        "audio-input");
@@ -268,12 +294,18 @@ main (int argc, char **argv)
   if (!pipeline || !source || !conv || !resampler || !decoder || !demuxer || !sink)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "One element could not be created. Exiting.\n");
+		"One element could not be created. Exiting.\n");
     return -1;
   }
 
-  g_signal_connect (sink, "child-added", G_CALLBACK (sink_child_added), NULL);
-  g_signal_connect (demuxer, "pad-added", G_CALLBACK (ogg_pad_added), decoder);
+  g_signal_connect (sink, 
+		    "child-added",
+		    G_CALLBACK (sink_child_added), 
+		    NULL);
+  g_signal_connect (demuxer, 
+		    "pad-added",
+		    G_CALLBACK (ogg_pad_added), 
+		    decoder);
 
   /* Keep a reference to it, we operate on it */
   gst_object_ref (GST_OBJECT (source));
@@ -349,10 +381,12 @@ main (int argc, char **argv)
   signal (SIGINT, inthandler);
   signal (SIGINT, termhandler);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Returned, stopping playback\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Returned, stopping playback\n");
   quit ();
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting pipeline\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+	      "Deleting pipeline\n");
   gst_object_unref (GST_OBJECT (source));
   source = NULL;
   gst_object_unref (GST_OBJECT (pipeline));
