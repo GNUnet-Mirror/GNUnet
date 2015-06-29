@@ -109,6 +109,16 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_CONTAINER_MultiHashMap *plugin_map;
 
 /**
+ * Allowed Origins (CORS)
+ */
+static char* allow_origin;
+
+/**
+ * Allowed Headers (CORS)
+ */
+static char* allow_headers;
+
+/**
  * MHD Connection handle 
  */
 struct MhdConnectionHandle
@@ -325,13 +335,31 @@ create_response (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
-    /* FIXME: this is a bit dangerous... only for testing. */
-    MHD_add_response_header (con_handle->response,
-			     "Access-Control-Allow-Origin",
-			     "*");
+    //Handle Preflights
+    if (0 == strcmp(meth, MHD_HTTP_METHOD_OPTIONS))
+    {
+      if (NULL != allow_origin)
+      {
+        MHD_add_response_header (con_handle->response,
+                                 "Access-Control-Allow-Origin",
+                                 allow_origin);
+      }
+      if (NULL != allow_headers)
+      {
+        MHD_add_response_header (con_handle->response,
+                                 "Access-Control-Allow-Headers",
+                                 allow_headers);
+      }
+      if (NULL != con_handle->plugin)
+      {
+        MHD_add_response_header (con_handle->response,
+                                 "Access-Control-Allow-Methods",
+                                 con_handle->plugin->allow_methods);
+      }
+    }
     int ret = MHD_queue_response (con,
-                                 con_handle->status,
-                                 con_handle->response);
+                                  con_handle->status,
+                                  con_handle->response);
     cleanup_handle (con_handle);
     return ret;
   }
@@ -547,6 +575,8 @@ do_shutdown (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
   kill_httpd ();
+  GNUNET_free_non_null (allow_origin);
+  GNUNET_free_non_null (allow_headers);
 }
 
 
@@ -678,6 +708,25 @@ run (void *cls,
 {
   cfg = c;
   plugin_map = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
+
+  /* Get CORS data from cfg */
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "rest",
+                                                          "REST_ALLOW_ORIGIN",
+                                                          &allow_origin))
+  {
+    //No origin specified
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No CORS Access-Control-Allow-Origin Header will be sent...\n");
+  }
+
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "rest",
+                                                          "REST_ALLOW_HEADERS",
+                                                          &allow_headers))
+  {
+    //No origin specified
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "No CORS Access-Control-Allow-Headers Header will be sent...\n");
+  }
 
   /* Open listen socket proxy */
   lsock6 = bind_v6 ();

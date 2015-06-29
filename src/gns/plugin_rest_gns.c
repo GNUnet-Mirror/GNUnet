@@ -648,6 +648,7 @@ libgnunet_plugin_rest_gns_init (void *cls)
   api->cls = &plugin;
   api->name = API_NAMESPACE;
   api->process_request = &rest_gns_process_request;
+  GNUNET_asprintf (&api->allow_methods, "%s", MHD_HTTP_METHOD_GET);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("GNS REST API initialized\n"));
   return api;
@@ -667,6 +668,7 @@ libgnunet_plugin_rest_gns_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   plugin->cfg = NULL;
+  GNUNET_free_non_null (api->allow_methods);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "GNS REST plugin is finished\n");

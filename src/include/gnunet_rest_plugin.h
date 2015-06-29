@@ -59,6 +59,11 @@ struct GNUNET_REST_Plugin
   char *name;
 
   /**
+   * Supported HTTP Methods
+   */
+  char *allow_methods;
+
+  /**
    * Function to process a REST call
    * 
    * @param method the HTTP method called
