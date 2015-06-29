@@ -341,7 +341,7 @@ create_response (void *cls,
       if (NULL != allow_origin)
       {
         MHD_add_response_header (con_handle->response,
-                                 "Access-Control-Allow-Origin",
+                                 MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
                                  allow_origin);
       }
       if (NULL != allow_headers)
