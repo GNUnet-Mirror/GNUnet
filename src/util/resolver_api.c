@@ -1004,7 +1004,6 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
 char *
 GNUNET_RESOLVER_local_fqdn_get ()
 {
-  struct hostent *host;
   char hostname[GNUNET_OS_get_hostname_max_length () + 1];
 
   if (0 != gethostname (hostname, sizeof (hostname) - 1))
@@ -1016,15 +1015,57 @@ GNUNET_RESOLVER_local_fqdn_get ()
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Resolving our FQDN `%s'\n",
        hostname);
-  host = gethostbyname (hostname);
-  if (NULL == host)
+#if HAVE_GETADDRINFO
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Could not resolve our FQDN : %s\n"),
-         hstrerror (h_errno));
-    return NULL;
+    struct addrinfo *ai;
+    int ret;
+    char *rval;
+
+    if (0 != (ret = getaddrinfo (hostname, NULL, NULL, &ai)))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Could not resolve our FQDN: %s\n"),
+           gai_strerror (ret));
+      return NULL;
+    }
+    rval = GNUNET_strdup (ai->ai_canonname);
+    freeaddrinfo (ai);
+    return rval;
   }
-  return GNUNET_strdup (host->h_name);
+#elif HAVE_GETHOSTBYNAME2
+  {
+    struct hostent *host;
+
+    host = gethostbyname2 (hostname, AF_INET);
+    if (NULL == host)
+      host = gethostbyname2 (hostname, AF_INET6);
+    if (NULL == host)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Could not resolve our FQDN: %s\n"),
+             hstrerror (h_errno));
+        return NULL;
+      }
+    return GNUNET_strdup (host->h_name);
+  }
+#elif HAVE_GETHOSTBYNAME
+  {
+    struct hostent *host;
+
+    host = gethostbyname (hostname);
+    if (NULL == host)
+      {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _("Could not resolve our FQDN: %s\n"),
+             hstrerror (h_errno));
+        return NULL;
+      }
+    return GNUNET_strdup (host->h_name);
+  }
+#else
+  /* fallback: just hope name is already FQDN */
+  return GNUNET_strdup (hostname);
+#endif
 }
 
 

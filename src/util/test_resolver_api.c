@@ -137,45 +137,6 @@ check_127 (void *cls, const struct sockaddr *sa, socklen_t salen)
 
 
 static void
-check_local_fqdn (void *cls, const char *gnunet_fqdn)
-{
-  int result = 0;
-
-  struct hostent *host;
-  char hostname[GNUNET_OS_get_hostname_max_length () + 1];
-
-  if (0 != gethostname (hostname, sizeof (hostname) - 1))
-  {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                         "gethostname");
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Resolving our FQDN `%s'\n",
-              hostname);
-  host = gethostbyname (hostname);
-  if (NULL == host)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not resolve our FQDN: %s %u\n",
-                hstrerror (h_errno),
-                h_errno);
-    return;
-  }
-
-  GNUNET_assert (0 != host);
-
-  result = strcmp (host->h_name, gnunet_fqdn);
-  if (0 != result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Local resolved and resolver resolved fqdns are not equal\n");
-  }
-  GNUNET_assert (0 == result);
-}
-
-
-static void
 check_rootserver_ip (void *cls, const struct sockaddr *sa, socklen_t salen)
 {
   int *ok = cls;
@@ -252,7 +213,8 @@ run (void *cls, char *const *args, const char *cfgfile,
    * Looking up our own fqdn
    */
   own_fqdn = GNUNET_RESOLVER_local_fqdn_get ();
-  check_local_fqdn (NULL, own_fqdn);
+  /* can't really check, only thing we can safely
+     compare against is our own identical logic... */
   GNUNET_free_non_null (own_fqdn);
 
   /*

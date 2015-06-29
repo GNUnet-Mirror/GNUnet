@@ -365,10 +365,11 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   freeaddrinfo (result);
   return GNUNET_OK;
 }
-#endif
 
 
-#if HAVE_GETHOSTBYNAME2
+#elif HAVE_GETHOSTBYNAME2
+
+
 static int
 gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
                         const char *hostname,
@@ -424,10 +425,10 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   }
   return GNUNET_OK;
 }
-#endif
+
+#elif HAVE_GETHOSTBYNAME
 
 
-#if HAVE_GETHOSTBYNAME
 static int
 gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
                        const char *hostname)
@@ -478,12 +479,10 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
 #if HAVE_GETADDRINFO
   if (ret == GNUNET_NO)
     ret = getaddrinfo_resolve (tc, hostname, af);
-#endif
-#if HAVE_GETHOSTBYNAME2
+#elif HAVE_GETHOSTBYNAME2
   if (ret == GNUNET_NO)
     ret = gethostbyname2_resolve (tc, hostname, af);
-#endif
-#if HAVE_GETHOSTBYNAME
+#elif HAVE_GETHOSTBYNAME
   if ((ret == GNUNET_NO) && ((af == AF_UNSPEC) || (af == PF_INET)))
     gethostbyname_resolve (tc, hostname);
 #endif

@@ -168,7 +168,7 @@ struct DnsResult
 
   /**
    * Expiration time for the DNS record, 0 if we didn't
-   * get anything useful (i.e. 'gethostbyname' was used).
+   * get anything useful (i.e. 'gethostbyname()' was used).
    */
   uint64_t expiration_time;
 

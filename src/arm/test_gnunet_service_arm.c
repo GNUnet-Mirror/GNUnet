@@ -214,13 +214,54 @@ main (int argc, char *av[])
     strcpy (hostname,
 	    "www.gnu.org");
   }
-  if (NULL == gethostbyname (hostname))
+  /* trigger DNS lookup */
+#if HAVE_GETADDRINFO
   {
-    FPRINTF (stderr,
-             "Failed to resolve my hostname `%s', testcase not run.\n",
-             hostname);
-    return 0;
+    struct addrinfo *ai;
+    int ret;
+
+    if (0 != (ret = getaddrinfo (hostname, NULL, NULL, &ai)))
+    {
+      FPRINTF (stderr,
+               "Failed to resolve my hostname `%s', testcase not run.\n",
+               hostname);
+      return 0;
+    }
+    freeaddrinfo (ai);
   }
+#elif HAVE_GETHOSTBYNAME2
+  {
+    struct hostent *host;
+
+    host = gethostbyname2 (hostname, AF_INET);
+    if (NULL == host)
+      host = gethostbyname2 (hostname, AF_INET6);
+    if (NULL == host)
+      {
+        FPRINTF (stderr,
+                 "Failed to resolve my hostname `%s', testcase not run.\n",
+                 hostname);
+        return 0;
+      }
+  }
+#elif HAVE_GETHOSTBYNAME
+  {
+    struct hostent *host;
+
+    host = gethostbyname (hostname);
+    if (NULL == host)
+      {
+        FPRINTF (stderr,
+                 "Failed to resolve my hostname `%s', testcase not run.\n",
+                 hostname);
+        return 0;
+      }
+  }
+#else
+  FPRINTF (stderr,
+           "libc fails to have resolver function, testcase not run.\n");
+  return 0;
+#endif
   GNUNET_log_setup ("test-gnunet-service-arm",
 		    "WARNING",
 		    NULL);
