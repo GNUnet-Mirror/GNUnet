@@ -55,6 +55,8 @@ struct Plugin
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+static char* allow_methods;
+
 struct EgoEntry
 {
   /**
@@ -652,6 +654,23 @@ ego_delete_cont (struct RestConnectionDataHandle *con_handle,
 
 }
 
+void
+options_cont (struct RestConnectionDataHandle *con_handle,
+              const char* url,
+              void *cls)
+{
+  struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
+
+  //For now, independent of path return all options
+  resp = GNUNET_REST_create_json_response (NULL);
+  MHD_add_response_header (resp,
+                           "Access-Control-Allow-Methods",
+                           allow_methods);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  cleanup_handle (handle);
+  return;
+}
 
 /**
  * Handle rest request
@@ -666,6 +685,7 @@ init_cont (struct RequestHandle *handle)
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY, &ego_create_cont},
     {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_IDENTITY, &ego_edit_cont},
     {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_IDENTITY, &ego_delete_cont},
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY, &options_cont},
     GNUNET_REST_HANDLER_END
   };
 
@@ -799,7 +819,7 @@ libgnunet_plugin_rest_identity_init (void *cls)
   api->cls = &plugin;
   api->name = GNUNET_REST_API_NS_IDENTITY;
   api->process_request = &rest_identity_process_request;
-  GNUNET_asprintf (&api->allow_methods,
+  GNUNET_asprintf (&allow_methods,
                    "%s, %s, %s, %s, %s",
                    MHD_HTTP_METHOD_GET,
                    MHD_HTTP_METHOD_POST,
@@ -826,7 +846,7 @@ libgnunet_plugin_rest_identity_done (void *cls)
   struct Plugin *plugin = api->cls;
 
   plugin->cfg = NULL;
-  GNUNET_free_non_null (api->allow_methods);
+  GNUNET_free_non_null (allow_methods);
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Identity REST plugin is finished\n");

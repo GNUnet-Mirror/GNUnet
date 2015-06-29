@@ -350,12 +350,6 @@ create_response (void *cls,
                                  "Access-Control-Allow-Headers",
                                  allow_headers);
       }
-      if (NULL != con_handle->plugin)
-      {
-        MHD_add_response_header (con_handle->response,
-                                 "Access-Control-Allow-Methods",
-                                 con_handle->plugin->allow_methods);
-      }
     }
     int ret = MHD_queue_response (con,
                                   con_handle->status,
