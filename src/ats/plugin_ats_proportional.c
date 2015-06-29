@@ -824,9 +824,10 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
     aw_min = NULL;
     for (aw = asi_best->network->head; NULL != aw; aw = aw->next)
     {
-      if (con_min >
-          (a_con = s->env->get_connectivity (s->env->cls,
-                                             &aw->addr->peer)))
+      if ( (con_min >
+            (a_con = s->env->get_connectivity (s->env->cls,
+                                               &aw->addr->peer))) &&
+           (GNUNET_YES == aw->addr->active) )
       {
         aw_min = aw;
         con_min = a_con;
