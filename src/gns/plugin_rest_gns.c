@@ -34,7 +34,7 @@
 #include <gnunet_rest_lib.h>
 #include <jansson.h>
 
-#define API_NAMESPACE "/resolver"
+#define GNUNET_REST_API_NS_GNS "/gns"
 
 #define GNUNET_REST_JSONAPI_GNS_RECORD_TYPE "record_type"
 
@@ -502,30 +502,16 @@ parse_url (const char *url, struct LookupHandle *handle)
   return GNUNET_OK;
 }
 
-/**
- * Function processing the REST call
- *
- * @param method HTTP method
- * @param url URL of the HTTP request
- * @param data body of the HTTP request (optional)
- * @param data_size length of the body
- * @param proc callback function for the result
- * @param proc_cls closure for callback function
- * @return GNUNET_OK if request accepted
- */
 static void
-rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
-                         GNUNET_REST_ResultProcessor proc,
-                         void *proc_cls)
+get_gns_cont (struct RestConnectionDataHandle *conndata_handle,
+              const char* url,
+              void *cls)
 {
-  struct LookupHandle *handle = GNUNET_new (struct LookupHandle);
+  struct LookupHandle *handle = cls;
   struct GNUNET_HashCode key;
 
-  handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  handle->proc_cls = proc_cls;
-  handle->proc = proc;
   //parse name and type from url
-  if (GNUNET_OK != parse_url (conndata_handle->url, handle))
+  if (GNUNET_OK != parse_url (url, handle))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error parsing url...\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
@@ -555,7 +541,7 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
                                                &key) )
   {
     handle->options = GNUNET_GNS_LO_DEFAULT;//TODO(char*) GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
-                                                         //&key);
+    //&key);
   }
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_GNS_RECORD_TYPE,
                       strlen (GNUNET_REST_JSONAPI_GNS_RECORD_TYPE),
@@ -566,7 +552,7 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
   {
     handle->type = GNUNET_GNSRECORD_typename_to_number 
       (GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
-      &key));
+                                          &key));
   }
   else
     handle->type = GNUNET_GNSRECORD_TYPE_ANY;
@@ -628,6 +614,64 @@ rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
 }
 
 /**
+ * Handle rest request
+ *
+ * @param handle the lookup handle
+ */
+static void
+options_cont (struct RestConnectionDataHandle *con_handle,
+              const char* url,
+              void *cls)
+{
+  struct MHD_Response *resp;
+  struct LookupHandle *handle = cls;
+
+  //For GNS, independent of path return all options
+  resp = GNUNET_REST_create_json_response (NULL);
+  MHD_add_response_header (resp,
+                           "Access-Control-Allow-Methods",
+                           MHD_HTTP_METHOD_GET);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  cleanup_handle (handle);
+  return;
+}
+
+
+/**
+ * Function processing the REST call
+ *
+ * @param method HTTP method
+ * @param url URL of the HTTP request
+ * @param data body of the HTTP request (optional)
+ * @param data_size length of the body
+ * @param proc callback function for the result
+ * @param proc_cls closure for callback function
+ * @return GNUNET_OK if request accepted
+ */
+static void
+rest_gns_process_request(struct RestConnectionDataHandle *conndata_handle,
+                         GNUNET_REST_ResultProcessor proc,
+                         void *proc_cls)
+{
+  struct LookupHandle *handle = GNUNET_new (struct LookupHandle);
+
+  handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
+  handle->proc_cls = proc_cls;
+  handle->proc = proc;
+
+  static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_GNS, &get_gns_cont},
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_GNS, &options_cont},
+    GNUNET_REST_HANDLER_END
+  };
+
+  if (GNUNET_NO == GNUNET_REST_handle_request (conndata_handle, handlers, handle))
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+}
+
+
+
+/**
  * Entry point for the plugin.
  *
  * @param cls the "struct GNUNET_NAMESTORE_PluginEnvironment*"
@@ -646,7 +690,7 @@ libgnunet_plugin_rest_gns_init (void *cls)
   plugin.cfg = cfg;
   api = GNUNET_new (struct GNUNET_REST_Plugin);
   api->cls = &plugin;
-  api->name = API_NAMESPACE;
+  api->name = GNUNET_REST_API_NS_GNS;
   api->process_request = &rest_gns_process_request;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("GNS REST API initialized\n"));

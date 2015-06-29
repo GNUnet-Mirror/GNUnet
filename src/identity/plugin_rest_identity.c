@@ -654,7 +654,15 @@ ego_delete_cont (struct RestConnectionDataHandle *con_handle,
 
 }
 
-void
+
+/**
+ * Respond to OPTIONS request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
 options_cont (struct RestConnectionDataHandle *con_handle,
               const char* url,
               void *cls)
