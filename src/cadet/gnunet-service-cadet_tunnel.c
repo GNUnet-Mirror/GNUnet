@@ -896,7 +896,7 @@ t_hmac (const void *plaintext, size_t size,
 
 #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  HMAC %u bytes with key %s\n", size,
-       GNUNET_h2s ((struct GNUNET_HashCode *) key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) key));
 #endif
   GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
                                  &iv, sizeof (iv),
@@ -935,7 +935,7 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
   key = GNUNET_YES == force_newest_key ? &t->e_key : select_key (t);
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  ENC with key %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) key));
   #endif
   GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
@@ -1055,9 +1055,9 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  CKs: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKs));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->CKs));
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC with key %u: %s\n", ax->Ns,
-       GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &MK));
   #endif
 
   out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &MK, &iv, dst);
@@ -1097,9 +1097,9 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
 
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  CKr: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKr));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->CKr));
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with key %u: %s\n", ax->Nr,
-       GNUNET_h2s ((struct GNUNET_HashCode *) &MK));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &MK));
   #endif
 
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
@@ -1134,7 +1134,7 @@ t_h_encrypt (struct CadetTunnel *t, struct GNUNET_CADET_AX *msg)
 
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC_H with key %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKs));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->HKs));
   #endif
 
   out_size = GNUNET_CRYPTO_symmetric_encrypt (&msg->Ns, AX_HEADER_SIZE,
@@ -1168,7 +1168,7 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_AX *src,
 
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC_H with key %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKr));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->HKr));
   #endif
 
   out_size = GNUNET_CRYPTO_symmetric_decrypt (&src->Ns, AX_HEADER_SIZE,
@@ -1228,7 +1228,7 @@ t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
 
 #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt with %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
 #endif
   if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
   {
@@ -1341,7 +1341,7 @@ try_old_ax_keys (struct CadetTunnel *t, struct GNUNET_CADET_AX *dst,
 
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with skipped key %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &key->MK));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
   #endif
 
   GNUNET_assert (size > sizeof (struct GNUNET_CADET_AX));
@@ -1374,9 +1374,9 @@ store_skipped_key (struct CadetTunnel *t,
   t_hmac_derive_key (&t->ax->CKr, &key->MK, "0", 1);
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
-       t->ax->Nr, GNUNET_h2s ((struct GNUNET_HashCode *) &key->MK));
+       t->ax->Nr, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
   LOG (GNUNET_ERROR_TYPE_INFO, "    for CKr: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->ax->CKr));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->ax->CKr));
   #endif
   t_hmac_derive_key (&t->ax->CKr, &t->ax->CKr, "1", 1);
   GNUNET_CONTAINER_DLL_insert (t->ax->skipped_head, t->ax->skipped_tail, key);
@@ -1595,14 +1595,14 @@ create_otr_keys (struct CadetTunnel *t)
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &otr_kx_msg.ephemeral_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
   LOG (GNUNET_ERROR_TYPE_INFO, "EK: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->e_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "DK: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
   #endif
   return GNUNET_OK;
 }
@@ -2390,7 +2390,7 @@ global_otr_rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   otr_kx_msg.expiration_time = GNUNET_TIME_absolute_hton (time);
   GNUNET_CRYPTO_ecdhe_key_get_public (otr_ephemeral_key, &otr_kx_msg.ephemeral_key);
   LOG (GNUNET_ERROR_TYPE_INFO, "GLOBAL OTR RE-KEY, NEW EPHM: %s\n",
-       GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &otr_kx_msg.ephemeral_key));
 
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_eddsa_sign (id_key,
@@ -2762,9 +2762,9 @@ handle_ephemeral (struct CadetTunnel *t,
   {
     #if DUMP_KEYS_TO_STDERR
     LOG (GNUNET_ERROR_TYPE_INFO, "OLD: %s\n",
-         GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+         GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
     LOG (GNUNET_ERROR_TYPE_INFO, "NEW: %s\n",
-         GNUNET_h2s ((struct GNUNET_HashCode *) &msg->ephemeral_key));
+         GNUNET_i2s ((struct GNUNET_PeerIdentity *) &msg->ephemeral_key));
     #endif
     t->peers_ephemeral_key = msg->ephemeral_key;
 
@@ -4366,29 +4366,28 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
   struct GNUNET_CRYPTO_EcdhePublicKey pub;
   struct CadetTunnelSkippedKey *iter;
 
-
   LOG2 (level, "TTT  RK  \t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->RK));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->RK));
 
   LOG2 (level, "TTT  HKs \t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKs));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->HKs));
   LOG2 (level, "TTT  HKr \t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->HKr));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->HKr));
   LOG2 (level, "TTT  NHKs\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->NHKs));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->NHKs));
   LOG2 (level, "TTT  NHKr\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->NHKr));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->NHKr));
 
   LOG2 (level, "TTT  CKs \t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKs));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->CKs));
   LOG2 (level, "TTT  CKr \t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->CKr));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->CKr));
 
   GNUNET_CRYPTO_ecdhe_key_get_public (ax->DHRs, &pub);
   LOG2 (level, "TTT  DHRs\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &pub));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &pub));
   LOG2 (level, "TTT  DHRr\t %s\n",
-        GNUNET_h2s ((struct GNUNET_HashCode *) &ax->DHRr));
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->DHRr));
 
   LOG2 (level, "TTT  Nr\t %u\tNs\t%u\n", ax->Nr, ax->Ns);
   LOG2 (level, "TTT  PNs\t %u\tSkipped\t%u\n", ax->PNs, ax->skipped);
@@ -4397,9 +4396,9 @@ ax_debug (const struct CadetTunnelAxolotl *ax, enum GNUNET_ErrorType level)
   for (iter = ax->skipped_head; NULL != iter; iter = iter->next)
   {
     LOG2 (level, "TTT    HK\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &iter->HK));
+          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &iter->HK));
     LOG2 (level, "TTT    MK\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &iter->MK));
+          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &iter->MK));
   }
 }
 
@@ -4435,19 +4434,19 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   else
   {
     LOG2 (level, "TTT  my EPHM\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &otr_kx_msg.ephemeral_key));
+          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &otr_kx_msg.ephemeral_key));
     LOG2 (level, "TTT  peers EPHM:\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->peers_ephemeral_key));
     LOG2 (level, "TTT  ENC key:\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
+          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->e_key));
     LOG2 (level, "TTT  DEC key:\t %s\n",
-          GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+          GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->d_key));
     if (t->kx_ctx)
     {
       LOG2 (level, "TTT  OLD ENC key:\t %s\n",
-            GNUNET_h2s ((struct GNUNET_HashCode *) &t->kx_ctx->e_key_old));
+            GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->kx_ctx->e_key_old));
       LOG2 (level, "TTT  OLD DEC key:\t %s\n",
-            GNUNET_h2s ((struct GNUNET_HashCode *) &t->kx_ctx->d_key_old));
+            GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->kx_ctx->d_key_old));
     }
   }
 #endif
