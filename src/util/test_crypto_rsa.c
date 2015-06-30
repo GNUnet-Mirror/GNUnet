@@ -32,10 +32,12 @@ main (int argc,
 #define RND_BLK_SIZE 4096
   unsigned char rnd_blk[RND_BLK_SIZE];
   struct GNUNET_CRYPTO_rsa_PrivateKey *priv;
+  struct GNUNET_CRYPTO_rsa_PrivateKey *priv_copy;
   struct GNUNET_CRYPTO_rsa_PublicKey *pub;
   struct GNUNET_CRYPTO_rsa_PublicKey *pub_copy;
   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
   struct GNUNET_CRYPTO_rsa_Signature *sig;
+  struct GNUNET_CRYPTO_rsa_Signature *sig_copy;
   struct GNUNET_CRYPTO_rsa_Signature *bsig;
   struct GNUNET_HashCode hash;
   char *blind_buf;
@@ -49,6 +51,9 @@ main (int argc,
                       RND_BLK_SIZE,
                       &hash);
   priv = GNUNET_CRYPTO_rsa_private_key_create (KEY_SIZE);
+  priv_copy = GNUNET_CRYPTO_rsa_private_key_dup (priv);
+  GNUNET_assert (NULL != priv_copy);
+  GNUNET_assert (0 == GNUNET_CRYPTO_rsa_private_key_cmp (priv, priv_copy));
   pub = GNUNET_CRYPTO_rsa_private_key_get_public (priv);
   /* Encoding */
   size_t size;
@@ -70,6 +75,9 @@ main (int argc,
   sig = GNUNET_CRYPTO_rsa_sign (priv,
                         &hash,
                         sizeof (hash));
+  sig_copy = GNUNET_CRYPTO_rsa_signature_dup (sig);
+  GNUNET_assert (NULL != sig);
+  GNUNET_assert (0 == GNUNET_CRYPTO_rsa_signature_cmp (sig, sig_copy));
   pub_copy = GNUNET_CRYPTO_rsa_public_key_dup (pub);
   GNUNET_assert (NULL != pub_copy);
   GNUNET_assert (GNUNET_OK ==
@@ -102,7 +110,9 @@ main (int argc,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));
   GNUNET_CRYPTO_rsa_signature_free (sig);
+  GNUNET_CRYPTO_rsa_signature_free (sig_copy);
   GNUNET_CRYPTO_rsa_private_key_free (priv);
+  GNUNET_CRYPTO_rsa_private_key_free (priv_copy);
   GNUNET_CRYPTO_rsa_public_key_free (pub);
   GNUNET_CRYPTO_rsa_public_key_free (pub_copy);
   GNUNET_CRYPTO_rsa_blinding_key_free (bkey);

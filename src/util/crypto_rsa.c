@@ -494,6 +494,39 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
 
 
 /**
+ * Compare the values of two private keys.
+ *
+ * @param p1 one private key
+ * @param p2 the other private key
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_rsa_PrivateKey *p1,
+				  struct GNUNET_CRYPTO_rsa_PrivateKey *p2)
+{
+  char *b1;
+  char *b2;
+  size_t z1;
+  size_t z2;
+  int ret;
+
+  z1 = GNUNET_CRYPTO_rsa_private_key_encode (p1,
+					    &b1);
+  z2 = GNUNET_CRYPTO_rsa_private_key_encode (p2,
+					    &b2);
+  if (z1 != z2)
+    ret = 1;
+  else
+    ret = memcmp (b1,
+		  b2,
+		  z1);
+  GNUNET_free (b1);
+  GNUNET_free (b2);
+  return ret;
+}
+
+
+/**
  * Destroy a blinding key
  *
  * @param bkey the blinding key to destroy
@@ -926,6 +959,59 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
     return GNUNET_SYSERR;
   }
   return GNUNET_OK;
+}
+
+
+/**
+ * Duplicate the given private key
+ *
+ * @param key the private key to duplicate
+ * @return the duplicate key; NULL upon error
+ */
+struct GNUNET_CRYPTO_rsa_PrivateKey *
+GNUNET_CRYPTO_rsa_private_key_dup (const struct GNUNET_CRYPTO_rsa_PrivateKey *key)
+{
+  struct GNUNET_CRYPTO_rsa_PrivateKey *dup;
+  gcry_sexp_t dup_sexp;
+  size_t erroff;
+
+  /* check if we really are exporting a private key */
+  dup_sexp = gcry_sexp_find_token (key->sexp, "private-key", 0);
+  GNUNET_assert (NULL != dup_sexp);
+  gcry_sexp_release (dup_sexp);
+  /* copy the sexp */
+  GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", key->sexp));
+  dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_PrivateKey);
+  dup->sexp = dup_sexp;
+  return dup;
+}
+
+
+/**
+ * Duplicate the given private key
+ *
+ * @param key the private key to duplicate
+ * @return the duplicate key; NULL upon error
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_rsa_Signature *sig)
+{
+  struct GNUNET_CRYPTO_rsa_Signature *dup;
+  gcry_sexp_t dup_sexp;
+  size_t erroff;
+  gcry_mpi_t s;
+  int ret;
+
+  /* verify that this is an RSA signature */
+  ret = key_from_sexp (&s, sig->sexp, "sig-val", "s");
+  GNUNET_assert (0 == ret);
+  ret = key_from_sexp (&s, sig->sexp, "rsa", "s");
+  GNUNET_assert (0==ret);
+  /* copy the sexp */
+  GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", sig->sexp));
+  dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
+  dup->sexp = dup_sexp;
+  return dup;
 }
 
 

@@ -1603,6 +1603,16 @@ GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
 
 
 /**
+ * Duplicate the given private key
+ *
+ * @param key the private key to duplicate
+ * @return the duplicate key; NULL upon error
+ */
+struct GNUNET_CRYPTO_rsa_PrivateKey *
+GNUNET_CRYPTO_rsa_private_key_dup (const struct GNUNET_CRYPTO_rsa_PrivateKey *key);
+
+
+/**
  * Extract the public key of the given private key.
  *
  * @param priv the private key
@@ -1700,6 +1710,17 @@ GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
 int
 GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_rsa_Signature *s1,
 				 struct GNUNET_CRYPTO_rsa_Signature *s2);
+
+/**
+ * Compare the values of two private keys.
+ *
+ * @param p1 one private key
+ * @param p2 the other private key
+ * @return 0 if the two are equal
+ */
+int
+GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_rsa_PrivateKey *p1,
+				  struct GNUNET_CRYPTO_rsa_PrivateKey *p2);
 
 
 /**
@@ -1811,6 +1832,16 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *si
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
 				    size_t len);
+
+
+/**
+ * Duplicate the given rsa signature
+ *
+ * @param sig the signature to duplicate
+ * @return the duplicate key; NULL upon error
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_rsa_Signature *sig);
 
 
 /**
