@@ -91,13 +91,13 @@ do_udp_read (void *cls,
                                    lsock4)))
 	{
 		rlen = GNUNET_NETWORK_socket_recv (lsock4, reply_buf, sizeof (reply_buf));
-		printf("Recivied something of size %d", rlen);
+		
 		
 		//Lets handle the packet
 		memset(&answer, 0, sizeof(struct sockaddr_in));
         GNUNET_NAT_stun_handle_packet(reply_buf,rlen, &answer);
 
-		//Print the anser
+		//Print the answer
 		//TODO: Delete the object
 		ret = 0;
 		print_answer(&answer);
@@ -209,5 +209,4 @@ main (int argc, char *const argv[])
 	return ret;
 }
 
-/* FIXME: wrong file name */
-/* end of test_nat.c */
+/* end of test_stun.c */
