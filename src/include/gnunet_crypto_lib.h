@@ -1281,6 +1281,45 @@ GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
 
 
 /**
+ * Internal structure used to cache pre-calculated values for DLOG calculation.
+ */
+struct GNUNET_CRYPTO_EccDlogContext;
+
+/**
+ * Do pre-calculation for ECC discrete logarithm for small factors.
+ * 
+ * @param max maximum value the factor can be
+ * @param mem memory to use (should be smaller than @a max), must not be zero.
+ * @return @a max if dlog failed, otherwise the factor
+ */
+struct GNUNET_CRYPTO_EccDlogContext *
+GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
+				unsigned int mem);
+
+
+
+/**
+ * Calculate ECC discrete logarithm for small factors.
+ * 
+ * @param dlc precalculated values, determine range of factors
+ * @param input point on the curve to factor
+ * @return `dlc->max` if dlog failed, otherwise the factor
+ */
+unsigned int
+GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
+			gcry_mpi_point_t input);
+
+
+/**
+ * Release precalculated values.
+ *
+ * @param dlc dlog context
+ */
+void
+GNUNET_CRYPTO_ecc_dlog_release (struct GNUNET_CRYPTO_EccDlogContext *dlc);
+
+
+/**
  * @ingroup crypto
  * Derive key material from a public and a private ECC key.
  *

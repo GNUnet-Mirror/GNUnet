@@ -76,6 +76,7 @@ libgnunetutil_la_SOURCES = \
   crypto_symmetric.c \
   crypto_crc.c \
   crypto_ecc.c \
+  crypto_ecc_dlog.c \
   crypto_ecc_setup.c \
   crypto_hash.c \
   crypto_hash_file.c \
@@ -271,6 +272,7 @@ check_PROGRAMS = \
  test_crypto_eddsa \
  test_crypto_ecdhe \
  test_crypto_ecdh_eddsa \
+ test_crypto_ecc_dlog \
  test_crypto_hash \
  test_crypto_hash_context \
  test_crypto_hkdf \
@@ -418,6 +420,12 @@ test_crypto_ecdsa_LDADD = \
 test_crypto_eddsa_SOURCES = \
  test_crypto_eddsa.c
 test_crypto_eddsa_LDADD = \
+ libgnunetutil.la \
+ $(LIBGCRYPT_LIBS)
+
+test_crypto_ecc_dlog_SOURCES = \
+ test_crypto_ecc_dlog.c
+test_crypto_ecc_dlog_LDADD = \
  libgnunetutil.la \
  $(LIBGCRYPT_LIBS)
 
