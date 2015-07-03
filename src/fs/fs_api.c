@@ -307,7 +307,11 @@ process_job_queue (void *cls,
 	      num_downloads_change,
 	      GNUNET_STRINGS_relative_time_to_string (restart_at, GNUNET_YES));
 
-  /* make sure we run again */
+  /* make sure we run again, callbacks might have
+     already re-scheduled the job, so cancel such
+     an operation (if it exists) */
+  if (NULL != h->queue_job)
+    GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job =
       GNUNET_SCHEDULER_add_delayed (restart_at, &process_job_queue, h);
 }
@@ -343,7 +347,7 @@ GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
   qe->priority = priority;
   GNUNET_CONTAINER_DLL_insert_after (h->pending_head, h->pending_tail,
                                      h->pending_tail, qe);
-  if (h->queue_job != NULL)
+  if (NULL != h->queue_job)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -371,7 +375,7 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe)
     stop_job (qe);
   GNUNET_CONTAINER_DLL_remove (h->pending_head, h->pending_tail, qe);
   GNUNET_free (qe);
-  if (h->queue_job != NULL)
+  if (NULL != h->queue_job)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   h->queue_job = GNUNET_SCHEDULER_add_now (&process_job_queue, h);
 }
@@ -3039,11 +3043,12 @@ deserialize_download_file (void *cls, const char *filename)
  * Deserialize informatin about pending operations.
  *
  * @param master_path which master directory should be scanned
- * @param proc function to call for each entry (will get 'h' for 'cls')
- * @param h the 'struct GNUNET_FS_Handle*'
+ * @param proc function to call for each entry (will get @a h for 'cls')
+ * @param h the `struct GNUNET_FS_Handle *`
  */
 static void
-deserialization_master (const char *master_path, GNUNET_FileNameCallback proc,
+deserialization_master (const char *master_path,
+			GNUNET_FileNameCallback proc,
                         struct GNUNET_FS_Handle *h)
 {
   char *dn;
@@ -3127,17 +3132,19 @@ GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Close our connection with the file-sharing service.
- * The callback given to GNUNET_FS_start will no longer be
+ * The callback given to #GNUNET_FS_start() will no longer be
  * called after this function returns.
+ * This function MUST NOT be called from within the
+ * callback itself.
  *
  * @param h handle that was returned from #GNUNET_FS_start()
  */
 void
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 {
-  while (h->top_head != NULL)
+  while (NULL != h->top_head)
     h->top_head->ssf (h->top_head->ssf_cls);
-  if (h->queue_job != NULL)
+  if (NULL != h->queue_job)
     GNUNET_SCHEDULER_cancel (h->queue_job);
   GNUNET_free (h->client_name);
   GNUNET_free (h);

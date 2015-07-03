@@ -1703,16 +1703,21 @@ struct GNUNET_FS_Handle;
  */
 struct GNUNET_FS_Handle *
 GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 const char *client_name, GNUNET_FS_ProgressCallback upcb,
-                 void *upcb_cls, enum GNUNET_FS_Flags flags, ...);
+                 const char *client_name, 
+		 GNUNET_FS_ProgressCallback upcb,
+                 void *upcb_cls, 
+		 enum GNUNET_FS_Flags flags,
+		 ...);
 
 
 /**
  * Close our connection with the file-sharing service.
- * The callback given to GNUNET_FS_start will no longer be
+ * The callback given to #GNUNET_FS_start() will no longer be
  * called after this function returns.
+ * This function MUST NOT be called from within the
+ * callback itself.
  *
- * @param h handle that was returned from GNUNET_FS_start
+ * @param h handle that was returned from #GNUNET_FS_start()
  */
 void
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
