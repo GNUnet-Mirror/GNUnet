@@ -1028,7 +1028,10 @@ GNUNET_RESOLVER_local_fqdn_get ()
            gai_strerror (ret));
       return NULL;
     }
-    rval = GNUNET_strdup (ai->ai_canonname);
+    if (NULL != ai->ai_canonname)
+      rval = GNUNET_strdup (ai->ai_canonname);
+    else
+      rval = GNUNET_strdup (hostname);
     freeaddrinfo (ai);
     return rval;
   }

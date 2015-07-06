@@ -269,7 +269,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   }
 
   /* generate r < n (without bias) */
-  GNUNET_assert (0 != (r = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (r = gcry_mpi_new (0)));
   do {
     gcry_mpi_randomize (r, highbit + 1, GCRY_STRONG_RANDOM);
   }

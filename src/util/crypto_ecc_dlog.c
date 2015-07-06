@@ -20,11 +20,10 @@
 
 /**
  * @file util/crypto_ecc_dlog.c
- * @brief ECC discreate logarithm for small values
+ * @brief ECC addition and discreate logarithm for small values.
+ *        Allows us to use ECC for computations as long as the
+ *        result is relativey small.
  * @author Christian Grothoff
- *
- * TODO:
- * - support negative factors
  */
 #include "platform.h"
 #include <gcrypt.h>
@@ -66,9 +65,27 @@ extract_pk (gcry_mpi_point_t pt,
  */
 struct GNUNET_CRYPTO_EccDlogContext 
 {
+  /**
+   * Maximum absolute value the calculation supports.
+   */
   unsigned int max;
+
+  /**
+   * How much memory should we use (relates to the number of entries in the map).
+   */
   unsigned int mem;
+
+  /**
+   * Map mapping points (here "interpreted" as EdDSA public keys) to
+   * a "void * = long" which corresponds to the numeric value of the
+   * point.  As NULL is used to represent "unknown", the actual value
+   * represented by the entry in the map is the "long" minus @e max.
+   */
   struct GNUNET_CONTAINER_MultiPeerMap *map;
+
+  /**
+   * Context to use for operations on the elliptic curve.
+   */
   gcry_ctx_t ctx;
 
 };
@@ -91,8 +108,10 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
   struct GNUNET_PeerIdentity key;
   gcry_mpi_point_t gKi;
   gcry_mpi_t fact;
+  gcry_mpi_t n;
   unsigned int i;
 
+  GNUNET_assert (max < INT32_MAX);
   edc = GNUNET_new (struct GNUNET_CRYPTO_EccDlogContext);
   edc->max = max;
   edc->mem = mem;
@@ -115,10 +134,25 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONTAINER_multipeermap_put (edc->map,
 						      &key,
-						      (void*) (long) i + 1,
+						      (void*) (long) i + max,
+						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+  /* negative values */
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+  for (i=1;i<mem;i++)
+  {
+    gcry_mpi_set_ui (fact, i * K);
+    gcry_mpi_sub (fact, n, fact);
+    gcry_mpi_ec_mul (gKi, fact, g, edc->ctx);
+    extract_pk (gKi, edc->ctx, &key);
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_CONTAINER_multipeermap_put (edc->map,
+						      &key,
+						      (void*) (long) max - i,
 						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   gcry_mpi_release (fact);
+  gcry_mpi_release (n);
   gcry_mpi_point_release (gKi);
   gcry_mpi_point_release (g);
   return edc;
@@ -132,7 +166,7 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
  * @param input point on the curve to factor
  * @return `edc->max` if dlog failed, otherwise the factor
  */
-unsigned int
+int
 GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
 			gcry_mpi_point_t input)
 {
@@ -141,7 +175,7 @@ GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
   struct GNUNET_PeerIdentity key;
   gcry_mpi_point_t q;
   unsigned int i;
-  unsigned int res;
+  int res;
   void *retp;
 
   g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
@@ -159,10 +193,10 @@ GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
 					      &key);
     if (NULL != retp)
     {
-      res = (((long) retp) - 1) * K - i;
-      fprintf (stderr,
-	       "Got DLOG %u\n",
-	       res);
+      res = (((long) retp) - edc->max) * K - i;
+      /* we continue the loop here to make the implementation
+	 "constant-time". If we do not care about this, we could just
+	 'break' here and do fewer operations... */
     }
     if (i == edc->max/edc->mem)
       break;
@@ -180,6 +214,40 @@ GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
 
 
 /**
+ * Generate a random value mod n.
+ *
+ * @param edc ECC context
+ * @return random value mod n.
+ */
+gcry_mpi_t
+GNUNET_CRYPTO_ecc_random_mod_n (struct GNUNET_CRYPTO_EccDlogContext *edc)
+{
+  gcry_mpi_t n;
+  unsigned int highbit;
+  gcry_mpi_t r;
+
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+
+  /* check public key for number of bits, bail out if key is all zeros */
+  highbit = 256; /* Curve25519 */
+  while ( (! gcry_mpi_test_bit (n, highbit)) &&
+          (0 != highbit) )
+    highbit--;
+  GNUNET_assert (0 != highbit);
+  /* generate fact < n (without bias) */
+  GNUNET_assert (NULL != (r = gcry_mpi_new (0)));
+  do {
+    gcry_mpi_randomize (r, 
+			highbit + 1,
+			GCRY_STRONG_RANDOM);
+  }
+  while (gcry_mpi_cmp (r, n) >= 0);  
+  gcry_mpi_release (n);
+  return r;
+}
+
+
+/**
  * Release precalculated values.
  *
  * @param edc dlog context
@@ -191,6 +259,147 @@ GNUNET_CRYPTO_ecc_dlog_release (struct GNUNET_CRYPTO_EccDlogContext *edc)
   GNUNET_CONTAINER_multipeermap_destroy (edc->map);
   GNUNET_free (edc);
 }
+
+
+/**
+ * Multiply the generator g of the elliptic curve by @a val
+ * to obtain the point on the curve representing @a val.
+ * Afterwards, point addition will correspond to integer
+ * addition.  #GNUNET_CRYPTO_ecc_dlog() can be used to 
+ * convert a point back to an integer (as long as the
+ * integer is smaller than the MAX of the @a edc context).
+ * 
+ * @param edc calculation context for ECC operations
+ * @param val value to encode into a point
+ * @return representation of the value as an ECC point,
+ *         must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_dexp (struct GNUNET_CRYPTO_EccDlogContext *edc,
+			int val)
+{
+  gcry_mpi_t fact;
+  gcry_mpi_t n;
+  gcry_mpi_point_t g;
+  gcry_mpi_point_t r;
+
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  fact = gcry_mpi_new (0);
+  if (val < 0)
+  {
+    n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+    gcry_mpi_set_ui (fact, - val);
+    gcry_mpi_sub (fact, n, fact);
+    gcry_mpi_release (n);
+  }
+  else
+  {
+    gcry_mpi_set_ui (fact, val);
+  }
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (r, fact, g, edc->ctx);
+  gcry_mpi_release (fact);
+  gcry_mpi_point_release (g);
+  return r;
+}
+
+
+/**
+ * Multiply the generator g of the elliptic curve by @a val
+ * to obtain the point on the curve representing @a val.
+ * 
+ * @param edc calculation context for ECC operations
+ * @param val (positive) value to encode into a point
+ * @return representation of the value as an ECC point,
+ *         must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_dexp_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+			    gcry_mpi_t val)
+{
+  gcry_mpi_point_t g;
+  gcry_mpi_point_t r;
+
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (r, val, g, edc->ctx);
+  gcry_mpi_point_release (g);
+  return r;
+}
+
+
+/**
+ * Add two points on the elliptic curve.
+ * 
+ * @param edc calculation context for ECC operations
+ * @param a some value
+ * @param b some value
+ * @return @a a + @a b, must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_add (struct GNUNET_CRYPTO_EccDlogContext *edc,
+		       gcry_mpi_point_t a,
+		       gcry_mpi_point_t b)
+{
+  gcry_mpi_point_t r;
   
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_add (r, a, b, edc->ctx);
+  return r;
+}
+
+
+/**
+ * Obtain a random point on the curve and its
+ * additive inverse. Both returned values
+ * must be freed using #GNUNET_CRYPTO_ecc_free().
+ * 
+ * @param edc calculation context for ECC operations
+ * @param[out] r set to a random point on the curve
+ * @param[out] r_inv set to the additive inverse of @a r
+ */
+void
+GNUNET_CRYPTO_ecc_rnd (struct GNUNET_CRYPTO_EccDlogContext *edc,
+		       gcry_mpi_point_t *r,
+		       gcry_mpi_point_t *r_inv)
+{
+  gcry_mpi_t fact;
+  gcry_mpi_t n;
+  gcry_mpi_point_t g;
+
+  fact = GNUNET_CRYPTO_ecc_random_mod_n (edc);
+
+  /* calculate 'r' */
+  g = gcry_mpi_ec_get_point ("g", edc->ctx, 0);
+  GNUNET_assert (NULL != g);
+  *r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (*r, fact, g, edc->ctx);
+
+  /* calculate 'r_inv' */
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+  gcry_mpi_sub (fact, n, fact); /* fact = n - fact = - fact */
+  *r_inv = gcry_mpi_point_new (0); 
+  gcry_mpi_ec_mul (*r_inv, fact, g, edc->ctx);
+
+  gcry_mpi_release (n);
+  gcry_mpi_release (fact);
+  gcry_mpi_point_release (g);
+}
+ 
+
+/**
+ * Free a point value returned by the API.
+ * 
+ * @param p point to free
+ */
+void
+GNUNET_CRYPTO_ecc_free (gcry_mpi_point_t p)
+{
+  gcry_mpi_point_release (p);
+}
+
+ 
 /* end of crypto_ecc_dlog.c */
 

@@ -1297,17 +1297,97 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
 				unsigned int mem);
 
 
-
 /**
  * Calculate ECC discrete logarithm for small factors.
+ * Opposite of #GNUNET_CRYPTO_ecc_dexp().
  * 
  * @param dlc precalculated values, determine range of factors
  * @param input point on the curve to factor
  * @return `dlc->max` if dlog failed, otherwise the factor
  */
-unsigned int
+int
 GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
 			gcry_mpi_point_t input);
+
+
+/**
+ * Multiply the generator g of the elliptic curve by @a val
+ * to obtain the point on the curve representing @a val.
+ * Afterwards, point addition will correspond to integer
+ * addition.  #GNUNET_CRYPTO_ecc_dlog() can be used to 
+ * convert a point back to an integer (as long as the
+ * integer is smaller than the MAX of the @a edc context).
+ * 
+ * @param edc calculation context for ECC operations
+ * @param val value to encode into a point
+ * @return representation of the value as an ECC point,
+ *         must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_dexp (struct GNUNET_CRYPTO_EccDlogContext *edc,
+			int val);
+
+
+/**
+ * Multiply the generator g of the elliptic curve by @a val
+ * to obtain the point on the curve representing @a val.
+ * 
+ * @param edc calculation context for ECC operations
+ * @param val (positive) value to encode into a point
+ * @return representation of the value as an ECC point,
+ *         must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_dexp_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+			    gcry_mpi_t val);
+
+
+/**
+ * Add two points on the elliptic curve.
+ * 
+ * @param edc calculation context for ECC operations
+ * @param a some value
+ * @param b some value
+ * @return @a a + @a b, must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_add (struct GNUNET_CRYPTO_EccDlogContext *edc,
+		       gcry_mpi_point_t a,
+		       gcry_mpi_point_t b);
+
+
+/**
+ * Obtain a random point on the curve and its
+ * additive inverse. Both returned values
+ * must be freed using #GNUNET_CRYPTO_ecc_free().
+ * 
+ * @param edc calculation context for ECC operations
+ * @param[out] r set to a random point on the curve
+ * @param[out] r_inv set to the additive inverse of @a r
+ */
+void
+GNUNET_CRYPTO_ecc_rnd (struct GNUNET_CRYPTO_EccDlogContext *edc,
+		       gcry_mpi_point_t *r,
+		       gcry_mpi_point_t *r_inv);
+
+
+/**
+ * Generate a random value mod n.
+ *
+ * @param edc ECC context
+ * @return random value mod n.
+ */
+gcry_mpi_t
+GNUNET_CRYPTO_ecc_random_mod_n (struct GNUNET_CRYPTO_EccDlogContext *edc);
+
+
+/**
+ * Free a point value returned by the API.
+ * 
+ * @param p point to free
+ */
+void
+GNUNET_CRYPTO_ecc_free (gcry_mpi_point_t p);
 
 
 /**

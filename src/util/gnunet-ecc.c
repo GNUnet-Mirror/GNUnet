@@ -28,6 +28,9 @@
 #include "gnunet_testing_lib.h"
 #include <gcrypt.h>
 
+/**
+ * Number of characters a Base32-encoded public key requires.
+ */
 #define KEY_STR_LEN sizeof(struct GNUNET_CRYPTO_EddsaPublicKey)*8/5+1
 
 /**
@@ -69,9 +72,9 @@ create_keys (const char *fn, const char *prefix)
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   struct GNUNET_CRYPTO_EddsaPublicKey target_pub;
   static char vanity[KEY_STR_LEN + 1];
-  int len;
-  int n;
-  int rest;
+  size_t len;
+  size_t n;
+  size_t rest;
   unsigned char mask;
   unsigned target_byte;
   char *s;
@@ -119,9 +122,9 @@ create_keys (const char *fn, const char *prefix)
              s);
     GNUNET_free (s);
     fprintf (stderr,
-             "\nattempt %s [%d, %X]\n",
+             "\nattempt %s [%u, %X]\n",
              vanity,
-             n,
+             (unsigned int) n,
              mask);
   }
   else
