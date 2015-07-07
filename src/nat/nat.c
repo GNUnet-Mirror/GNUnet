@@ -651,6 +651,13 @@ process_hostname_ip (void *cls,
 
 
 /**
+ * Length of the interface names returned from os_network.c.
+ * (in that file, hardcoded at 11).
+ */
+#define IF_NAME_LEN 11
+
+
+/**
  * Add the IP of our network interface to the list of
  * our IP addresses.
  *
@@ -689,8 +696,9 @@ process_interfaces (void *cls,
                                              "IFNAME",
                                              &tun_if))
   {
-    if (0 == strcmp (name,
-                     tun_if))
+    if (0 == strncasecmp (name,
+                          tun_if,
+                          IF_NAME_LEN))
     {
       GNUNET_free (tun_if);
       return GNUNET_OK;
@@ -703,8 +711,9 @@ process_interfaces (void *cls,
                                              "IFNAME",
                                              &tun_if))
   {
-    if (0 == strcmp (name,
-                     tun_if))
+    if (0 == strncasecmp (name,
+                          tun_if,
+                          IF_NAME_LEN))
     {
       GNUNET_free (tun_if);
       return GNUNET_OK;
@@ -717,8 +726,9 @@ process_interfaces (void *cls,
                                              "EXIT_IFNAME",
                                              &tun_if))
   {
-    if (0 == strcmp (name,
-                     tun_if))
+    if (0 == strncasecmp (name,
+                          tun_if,
+                          IF_NAME_LEN))
     {
       GNUNET_free (tun_if);
       return GNUNET_OK;
