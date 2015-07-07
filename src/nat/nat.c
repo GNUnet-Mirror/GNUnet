@@ -69,7 +69,7 @@ enum LocalAddressSource
    * given in the configuration (i.e. hole-punched DynDNS setup).
    */
   LAL_EXTERNAL_IP,
-  
+
    /**
    * Address was obtained by an external STUN server
    */
@@ -664,10 +664,13 @@ process_hostname_ip (void *cls,
  * @return #GNUNET_OK to continue iterating
  */
 static int
-process_interfaces (void *cls, const char *name, int isDefault,
+process_interfaces (void *cls,
+                    const char *name,
+                    int isDefault,
                     const struct sockaddr *addr,
                     const struct sockaddr *broadcast_addr,
-                    const struct sockaddr *netmask, socklen_t addrlen)
+                    const struct sockaddr *netmask,
+                    socklen_t addrlen)
 {
   const static struct in6_addr any6 = IN6ADDR_ANY_INIT;
   struct GNUNET_NAT_Handle *h = cls;
@@ -677,6 +680,51 @@ process_interfaces (void *cls, const char *name, int isDefault,
   char buf[INET6_ADDRSTRLEN];
   unsigned int i;
   int have_any;
+  char *tun_if;
+
+  /* skip virtual interfaces created by GNUnet-vpn */
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (h->cfg,
+                                             "vpn",
+                                             "IFNAME",
+                                             &tun_if))
+  {
+    if (0 == strcmp (name,
+                     tun_if))
+    {
+      GNUNET_free (tun_if);
+      return GNUNET_OK;
+    }
+  }
+  /* skip virtual interfaces created by GNUnet-dns */
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (h->cfg,
+                                             "dns",
+                                             "IFNAME",
+                                             &tun_if))
+  {
+    if (0 == strcmp (name,
+                     tun_if))
+    {
+      GNUNET_free (tun_if);
+      return GNUNET_OK;
+    }
+  }
+  /* skip virtual interfaces created by GNUnet-exit */
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_string (h->cfg,
+                                             "exit",
+                                             "EXIT_IFNAME",
+                                             &tun_if))
+  {
+    if (0 == strcmp (name,
+                     tun_if))
+    {
+      GNUNET_free (tun_if);
+      return GNUNET_OK;
+    }
+  }
+
 
   switch (addr->sa_family)
   {
