@@ -138,7 +138,7 @@ static char *dns_ip;
 /**
  * UDP Port we listen on for inbound DNS requests.
  */
-static unsigned int listen_port = 53;
+static unsigned int listen_port = 2853;
 
 /**
  * Which GNS zone do we translate incoming DNS requests to?
