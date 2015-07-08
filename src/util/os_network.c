@@ -18,7 +18,6 @@
      Boston, MA 02110-1301, USA.
 
 */
-
 /**
  * @file util/os_network.c
  * @brief function to determine available network interfaces
@@ -38,7 +37,7 @@
  * @brief Enumerate all network interfaces
  *
  * @param proc the callback function
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 void
 GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,

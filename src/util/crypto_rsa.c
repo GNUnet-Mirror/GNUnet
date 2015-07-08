@@ -527,6 +527,32 @@ GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_rsa_PrivateKey *p1,
 
 
 /**
+ * Obtain the length of the RSA key in bits.
+ *
+ * @param key the public key to introspect
+ * @return length of the key in bits
+ */
+unsigned int
+GNUNET_CRYPTO_rsa_public_key_len (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
+{
+  gcry_mpi_t n;
+  int ret;
+  unsigned int rval;
+
+  ret = key_from_sexp (&n, key->sexp, "rsa", "n");
+  if (0 != ret)
+  {
+    /* this is no public RSA key */
+    GNUNET_break (0);
+    return 0;
+  }
+  rval = gcry_mpi_get_nbits (n);
+  gcry_mpi_release (n);
+  return rval;
+}
+
+
+/**
  * Destroy a blinding key
  *
  * @param bkey the blinding key to destroy
@@ -549,7 +575,7 @@ GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey)
  */
 size_t
 GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                               char **buffer)
+                                       char **buffer)
 {
   size_t n;
   char *b;

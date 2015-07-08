@@ -75,14 +75,15 @@ This example is a simple way to get started, using a server that has a known lis
     OPTIONS = \-b
     SERVERS = http://v9.gnunet.org:58080/
 
-    [arm]
-    DEFAULTSERVICES = topology hostlist fs
-
     [nat]
     BEHIND_NAT = YES
     ENABLE_UPNP = YES
     DISABLEV6 = YES
     EXTERNAL_ADDRESS = 157.166.249.10
+
+    [arm]
+    SYSTEM_ONLY = YES
+    USER_ONLY = NO
 
 .SH FILES
 .TP

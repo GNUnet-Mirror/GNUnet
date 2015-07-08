@@ -112,4 +112,3 @@ gnunet_rps_profiler_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \
   test_rps.conf
-

@@ -5,9 +5,6 @@ BINARY = gnunet-service-arm
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 
-
-DEFAULTSERVICES = topology hostlist dht nse cadet fs revocation
-
 # Special case, uses user runtime dir even for per-system service.
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-arm.sock
 UNIX_MATCH_UID = YES

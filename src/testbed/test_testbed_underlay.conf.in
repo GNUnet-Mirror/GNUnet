@@ -11,6 +11,3 @@ FORCESTART = YES
 
 [dv]
 AUTOSTART = NO
-
-[arm]
-DEFAULTSERVICES = core transport testbed-underlay

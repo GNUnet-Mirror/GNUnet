@@ -1753,6 +1753,16 @@ GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_rsa_PublicKey *key
 
 
 /**
+ * Obtain the length of the RSA key in bits.
+ *
+ * @param key the public key to introspect
+ * @return length of the key in bits
+ */
+unsigned int
+GNUNET_CRYPTO_rsa_public_key_len (const struct GNUNET_CRYPTO_rsa_PublicKey *key);
+
+
+/**
  * Free memory occupied by the public key.
  *
  * @param key pointer to the memory to free
