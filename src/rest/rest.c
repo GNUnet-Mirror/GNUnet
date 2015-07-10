@@ -227,11 +227,9 @@ add_json_resource (struct JsonApiObject *obj,
 {
   struct JsonApiResource *res;
   json_t *type_json;
-  json_t *id_json;
 
-  id_json = json_object_get (res_json, GNUNET_REST_JSONAPI_KEY_ID);
   type_json = json_object_get (res_json, GNUNET_REST_JSONAPI_KEY_TYPE);
-  if (!json_is_string (id_json) || !json_is_string (type_json))
+  if (!json_is_string (type_json))
     return;
   res = GNUNET_new (struct JsonApiResource);
   res->next = NULL;

@@ -336,20 +336,17 @@ create_response (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Queueing response from plugin with MHD\n");
     //Handle Preflights
-    if (0 == strcmp(meth, MHD_HTTP_METHOD_OPTIONS))
+    if (NULL != allow_origin)
     {
-      if (NULL != allow_origin)
-      {
-        MHD_add_response_header (con_handle->response,
-                                 MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
-                                 allow_origin);
-      }
-      if (NULL != allow_headers)
-      {
-        MHD_add_response_header (con_handle->response,
-                                 "Access-Control-Allow-Headers",
-                                 allow_headers);
-      }
+      MHD_add_response_header (con_handle->response,
+                               MHD_HTTP_HEADER_ACCESS_CONTROL_ALLOW_ORIGIN,
+                               allow_origin);
+    }
+    if (NULL != allow_headers)
+    {
+      MHD_add_response_header (con_handle->response,
+                               "Access-Control-Allow-Headers",
+                               allow_headers);
     }
     int ret = MHD_queue_response (con,
                                   con_handle->status,

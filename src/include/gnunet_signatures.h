@@ -176,6 +176,12 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT 25
 
+/**
+ * Signature for a GNUid Token
+ */
+#define GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN 26
+
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
