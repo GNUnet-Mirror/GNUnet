@@ -394,9 +394,7 @@ access_handler_callback (void *cls,
   if (NULL == *con_cls)
   {
     (*con_cls) = &dummy;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending 100 CONTINUE reply\n");
-    return MHD_YES;             /* send 100 continue */
+    return MHD_YES;
   }
   if (0 != *upload_data_size)
   {
@@ -861,9 +859,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        &accept_policy_callback, NULL,
                                        &access_handler_callback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT,
-                                       (unsigned int) 16,
+                                       (unsigned int) 128,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-                                       (unsigned int) 1,
+                                       (unsigned int) 32,
                                        MHD_OPTION_CONNECTION_TIMEOUT,
                                        (unsigned int) 16,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT,
@@ -876,9 +874,9 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        &accept_policy_callback, NULL,
                                        &access_handler_callback, NULL,
                                        MHD_OPTION_CONNECTION_LIMIT,
-                                       (unsigned int) 16,
+                                       (unsigned int) 128,
                                        MHD_OPTION_PER_IP_CONNECTION_LIMIT,
-                                       (unsigned int) 1,
+                                       (unsigned int) 32,
                                        MHD_OPTION_CONNECTION_TIMEOUT,
                                        (unsigned int) 16,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT,
