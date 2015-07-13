@@ -41,6 +41,7 @@ extern "C"
  */
 struct GNUNET_SIGNAL_Context;
 
+
 /**
  * A signal handler.  Since different OSes have different signatures
  * for their handlers, the API only gives the most restrictive
@@ -49,7 +50,9 @@ struct GNUNET_SIGNAL_Context;
  * the implementation must guarantee that this handler is not called
  * for signals other than the one that it has been registered for.
  */
-typedef void (*GNUNET_SIGNAL_Handler) (void);
+typedef void
+(*GNUNET_SIGNAL_Handler) (void);
+
 
 /**
  * Install a signal handler that will be run if the
@@ -60,7 +63,9 @@ typedef void (*GNUNET_SIGNAL_Handler) (void);
  * @return context that can be used to restore, NULL on error
  */
 struct GNUNET_SIGNAL_Context *
-GNUNET_SIGNAL_handler_install (int signal, GNUNET_SIGNAL_Handler handler);
+GNUNET_SIGNAL_handler_install (int signal,
+                               GNUNET_SIGNAL_Handler handler);
+
 
 /**
  * Uninstall a previously installed signal hander.
