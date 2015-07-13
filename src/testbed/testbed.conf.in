@@ -72,7 +72,7 @@ SETUP_TIMEOUT = 5 m
 # Where should testbed write load statistics data
 # STATS_DIR = /tmp/load
 
-# What services should be shared among peers.  
+# What services should be shared among peers.
 # Format is "[<service:share>] [<service:share>] ...".  The shared services are
 # started standalone without any other peer services or a hostkey.  For this
 # reason, only services which doesn't depend on other services can only be
@@ -113,13 +113,15 @@ UNIX_MATCH_GID = YES
 # connectivity restrictions of NAT boxes
 [testbed-underlay]
 AUTOSTART = NO
+NOARMBIND = YES
 BINARY = gnunet-daemon-testbed-underlay
 # The sqlite3 database file containing information about what underlay
 # restrictions to apply
-# DBFILE = 
+# DBFILE =
 
 [latency-logger]
 AUTOSTART = NO
+NOARMBIND = YES
 BINARY = gnunet-daemon-latency-logger
 # The sqlite3 database file where the latency values are to be stored
-# DBFILE = 
+# DBFILE =
