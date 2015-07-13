@@ -106,6 +106,21 @@ char *
 GNUNET_NETWORK_shorten_unixpath (char *unixpath);
 
 
+#ifndef WINDOWS
+/**
+ * If services crash, they can leave a unix domain socket file on the
+ * disk. This needs to be manually removed, because otherwise both
+ * bind() and connect() for the respective address will fail.  In this
+ * function, we test if such a left-over file exists, and if so,
+ * remove it (unless there is a listening service at the address).
+ *
+ * @param un unix domain socket address to check
+ */
+void
+GNUNET_NETWORK_unix_precheck (const struct sockaddr_un *un);
+#endif
+
+
 /**
  * Accept a new connection on a socket.  Configure it for non-blocking
  * IO and mark it as non-inheritable to child processes (set the

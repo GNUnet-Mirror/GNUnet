@@ -147,6 +147,53 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
 }
 
 
+#ifndef WINDOWS
+/**
+ * If services crash, they can leave a unix domain socket file on the
+ * disk. This needs to be manually removed, because otherwise both
+ * bind() and connect() for the respective address will fail.  In this
+ * function, we test if such a left-over file exists, and if so,
+ * remove it (unless there is a listening service at the address).
+ *
+ * @param un unix domain socket address to check
+ */
+void
+GNUNET_NETWORK_unix_precheck (const struct sockaddr_un *un)
+{
+  int s;
+  int eno;
+  struct stat sbuf;
+  int ret;
+
+  s = socket (AF_UNIX, SOCK_STREAM, 0);
+  ret = connect (s,
+                 (struct sockaddr *) un,
+                 sizeof (struct sockaddr_un));
+  eno = errno;
+  GNUNET_break (0 == close (s));
+  if (0 == ret)
+    return; /* another process is listening, do not remove! */
+  if (ECONNREFUSED != eno)
+    return; /* some other error, likely "no such file or directory" -- all well */
+  /* should unlink, but sanity checks first */
+  if (0 != stat (un->sun_path,
+                 &sbuf))
+    return; /* failed to 'stat', likely does not exist after all */
+  if (S_IFSOCK != (S_IFMT & sbuf.st_mode))
+    return; /* refuse to unlink anything except sockets */
+  /* finally, really unlink */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Removing left-over `%s' from previous exeuction\n",
+              un->sun_path);
+  if (0 != unlink (un->sun_path))
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                              "unlink",
+                              un->sun_path);
+}
+#endif
+
+
+
 #ifndef FD_COPY
 #define FD_COPY(s, d) (memcpy ((d), (s), sizeof (fd_set)))
 #endif
@@ -447,6 +494,8 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #endif
 #endif
 #ifndef WINDOWS
+  if (AF_UNIX == address->sa_family)
+    GNUNET_NETWORK_unix_precheck ((const struct sockaddr_un *) address);
   {
     const int on = 1;
 
@@ -459,8 +508,6 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
       LOG_STRERROR (GNUNET_ERROR_TYPE_DEBUG,
                     "setsockopt");
   }
-#endif
-#ifndef WINDOWS
   {
     /* set permissions of newly created non-abstract UNIX domain socket to
        "user-only"; applications can choose to relax this later */
@@ -476,7 +523,10 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
       old_mask = umask (S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH);
 #endif
 
-    ret = bind (desc->fd, address, address_len);
+    ret = bind (desc->fd,
+                address,
+                address_len);
+
 #ifndef WINDOWS
     if (not_abstract)
       (void) umask (old_mask);
@@ -486,7 +536,7 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
   if (SOCKET_ERROR == ret)
     SetErrnoFromWinsockError (WSAGetLastError ());
 #endif
-  if (ret != 0)
+  if (0 != ret)
     return GNUNET_SYSERR;
 #ifndef MINGW
   desc->addr = GNUNET_malloc (address_len);

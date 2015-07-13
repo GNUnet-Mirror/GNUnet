@@ -603,7 +603,8 @@ accept_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param sl service entry for the service in question
  */
 static void
-create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
+create_listen_socket (struct sockaddr *sa,
+                      socklen_t addr_len,
 		      struct ServiceList *sl)
 {
   static int on = 1;
@@ -652,14 +653,18 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
 			 "setsockopt");
 #endif
-
+#ifndef WINDOWS
+  if (AF_UNIX == sa->sa_family)
+    GNUNET_NETWORK_unix_precheck ((struct sockaddr_un *) sa);
+#endif
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (sock, (const struct sockaddr *) sa, addr_len))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
-                sl->name, GNUNET_a2s (sa, addr_len), STRERROR (errno));
+                _("Unable to bind listening socket for service `%s' to address `%s': %s\n"),
+                sl->name,
+                GNUNET_a2s (sa, addr_len),
+                STRERROR (errno));
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (sock));
     GNUNET_free (sa);
     return;
@@ -1394,11 +1399,11 @@ setup_service (void *cls,
                                             "FORCESTART"))
   {
     sl->force_start = GNUNET_YES;
-    /* FIXME: we might like the pre-binding even for
-       _certain_ services that have force_start set,
-       otherwise interdependencies may again force
-       client's to retry connections during startup. */
-    return;
+    if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                              section,
+                                              "NOARMBIND"))
+      return;
   }
   else
   {

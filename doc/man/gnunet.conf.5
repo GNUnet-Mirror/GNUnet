@@ -28,6 +28,10 @@ The following options are generic and shared by all services:
     Start the service always when the peer starts.  Set to YES for services that should always be launched, even if no other service explicitly needs them.
 .IP AUTOSTART
     Set to YES to automatically start the service when it is requested by another service. YES for most GNUnet services.
+.IP NOARMBIND
+    Set to YES to never have ARM bind to the respective socket. This option is mostly for debugging in situations where ARM cannot pass the pre-bound socket to the child due to interference from PREFIX-commands.  This option is only effective in combination with FORCESTART being YES.  NO by default.
+.IP PREFIX
+    PREFIX the given command (with its arguments) to the actual BINARY to be executed. Useful to run certain services under special supervisors (like strace or valgrind).  Typically used in combination with FORCESTART and NOARMBIND. Empty by default.
 .IP ACCEPT_FROM
     A semi-column separated list of IPv4 addresses that are allowed to use the service; usually 127.0.0.1.
 .IP ACCEPT_FROM6
