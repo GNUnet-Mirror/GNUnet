@@ -2198,6 +2198,26 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
 
 
 /**
+ * Check that we are aware of a connection from a neighboring peer.
+ *
+ * @param peer Peer to the connection is with
+ * @param c Connection that should be in the map with this peer.
+ */
+void
+GCP_check_connection (const struct CadetPeer *peer,
+                      const struct CadetConnection *c)
+{
+  if ( (NULL == peer) ||
+       (NULL == peer->connections) )
+    return;
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multihashmap_contains_value (peer->connections,
+                                                               GCC_get_h (c),
+                                                               c));
+}
+
+
+/**
  * Remove a connection from a neighboring peer.
  *
  * @param peer Peer to remove connection from.

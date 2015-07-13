@@ -102,10 +102,14 @@ struct CadetConnectionQueue;
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  */
-typedef void (*GCC_sent) (void *cls,
-                          struct CadetConnection *c,
-                          struct CadetConnectionQueue *q,
-                          uint16_t type, int fwd, size_t size);
+typedef void
+(*GCC_sent) (void *cls,
+             struct CadetConnection *c,
+             struct CadetConnectionQueue *q,
+             uint16_t type,
+             int fwd,
+             size_t size);
+
 
 /**
  * Core handler for connection creation.
@@ -113,13 +117,14 @@ typedef void (*GCC_sent) (void *cls,
  * @param cls Closure (unused).
  * @param peer Sender (neighbor).
  * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_create (void *cls,
+                   const struct GNUNET_PeerIdentity *peer,
                    const struct GNUNET_MessageHeader *message);
+
 
 /**
  * Core handler for path confirmations.
@@ -127,13 +132,14 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param message message
  * @param peer peer identity this notification is about
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_confirm (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message);
+
 
 /**
  * Core handler for notifications of broken paths
@@ -141,9 +147,8 @@ GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param cls Closure (unused).
  * @param id Peer identity of sending neighbor.
  * @param message Message.
- *
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 int
 GCC_handle_broken (void* cls,

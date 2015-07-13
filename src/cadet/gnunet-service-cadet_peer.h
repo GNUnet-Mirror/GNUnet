@@ -314,6 +314,17 @@ GCP_remove_path (struct CadetPeer *peer,
 
 
 /**
+ * Check that we are aware of a connection from a neighboring peer.
+ *
+ * @param peer Peer to the connection is with
+ * @param c Connection that should be in the map with this peer.
+ */
+void
+GCP_check_connection (const struct CadetPeer *peer,
+                      const struct CadetConnection *c);
+
+
+/**
  * Remove a connection from a neighboring peer.
  *
  * @param peer Peer to remove connection from.
