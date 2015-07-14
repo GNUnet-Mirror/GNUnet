@@ -497,7 +497,7 @@ then
 	AM_CONDITIONAL(HAVE_LIBCURL, false)
 if test "$gnurl" = 0
 then
-	AC_MSG_WARN([GNUnet requires libcurl-gnutls  >= 7.34])
+	AC_MSG_WARN([GNUnet requires libcurl-gnutls or gnurl >= 7.34])
 fi
 else
 	AM_CONDITIONAL(HAVE_LIBCURL, true)
@@ -1663,7 +1663,7 @@ then
 fi
 
 # libgnurl
-if test "x$gnurl" = "xfalse"
+if test "x$gnurl" = "0"
 then
   if test "x$curl" = "xfalse"
   then
