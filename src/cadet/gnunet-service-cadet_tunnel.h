@@ -156,11 +156,13 @@ void
 GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_CRYPTO_EddsaPrivateKey *key);
 
+
 /**
  * Shut down the tunnel subsystem.
  */
 void
 GCT_shutdown (void);
+
 
 /**
  * Create a tunnel.
@@ -169,6 +171,7 @@ GCT_shutdown (void);
  */
 struct CadetTunnel *
 GCT_new (struct CadetPeer *destination);
+
 
 /**
  * Tunnel is empty: destroy it.
@@ -180,6 +183,7 @@ GCT_new (struct CadetPeer *destination);
 void
 GCT_destroy_empty (struct CadetTunnel *t);
 
+
 /**
  * Destroy tunnel if empty (no more channels).
  *
@@ -187,6 +191,7 @@ GCT_destroy_empty (struct CadetTunnel *t);
  */
 void
 GCT_destroy_if_empty (struct CadetTunnel *t);
+
 
 /**
  * Destroy the tunnel.
@@ -222,6 +227,7 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate);
 void
 GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state);
 
+
 /**
  * Add a connection to a tunnel.
  *
@@ -230,6 +236,7 @@ GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state);
  */
 void
 GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c);
+
 
 /**
  * Remove a connection from a tunnel.
@@ -240,6 +247,7 @@ GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c);
 void
 GCT_remove_connection (struct CadetTunnel *t, struct CadetConnection *c);
 
+
 /**
  * Add a channel to a tunnel.
  *
@@ -249,6 +257,7 @@ GCT_remove_connection (struct CadetTunnel *t, struct CadetConnection *c);
 void
 GCT_add_channel (struct CadetTunnel *t, struct CadetChannel *ch);
 
+
 /**
  * Remove a channel from a tunnel.
  *
@@ -257,6 +266,7 @@ GCT_add_channel (struct CadetTunnel *t, struct CadetChannel *ch);
  */
 void
 GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch);
+
 
 /**
  * Search for a channel by global ID.
@@ -268,6 +278,7 @@ GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch);
  */
 struct CadetChannel *
 GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid);
+
 
 /**
  * Decrypt and demultiplex by message type. Call appropriate handler
@@ -291,6 +302,7 @@ void
 GCT_handle_kx (struct CadetTunnel *t,
                const struct GNUNET_MessageHeader *message);
 
+
 /**
  * @brief Use the given path for the tunnel.
  * Update the next and prev hops (and RCs).
@@ -304,6 +316,7 @@ GCT_handle_kx (struct CadetTunnel *t,
 struct CadetConnection *
 GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p);
 
+
 /**
  * Count all created connections of a tunnel. Not necessarily ready connections!
  *
@@ -313,6 +326,7 @@ GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p);
  */
 unsigned int
 GCT_count_any_connections (struct CadetTunnel *t);
+
 
 /**
  * Count established (ready) connections of a tunnel.
@@ -324,6 +338,7 @@ GCT_count_any_connections (struct CadetTunnel *t);
 unsigned int
 GCT_count_connections (struct CadetTunnel *t);
 
+
 /**
  * Count channels of a tunnel.
  *
@@ -333,6 +348,7 @@ GCT_count_connections (struct CadetTunnel *t);
  */
 unsigned int
 GCT_count_channels (struct CadetTunnel *t);
+
 
 /**
  * Get the connectivity state of a tunnel.
@@ -344,6 +360,7 @@ GCT_count_channels (struct CadetTunnel *t);
 enum CadetTunnelCState
 GCT_get_cstate (struct CadetTunnel *t);
 
+
 /**
  * Get the encryption state of a tunnel.
  *
@@ -353,6 +370,7 @@ GCT_get_cstate (struct CadetTunnel *t);
  */
 enum CadetTunnelEState
 GCT_get_estate (struct CadetTunnel *t);
+
 
 /**
  * Get the maximum buffer space for a tunnel towards a local client.
@@ -364,6 +382,7 @@ GCT_get_estate (struct CadetTunnel *t);
 unsigned int
 GCT_get_channels_buffer (struct CadetTunnel *t);
 
+
 /**
  * Get the total buffer space for a tunnel for P2P traffic.
  *
@@ -373,6 +392,7 @@ GCT_get_channels_buffer (struct CadetTunnel *t);
  */
 unsigned int
 GCT_get_connections_buffer (struct CadetTunnel *t);
+
 
 /**
  * Get the tunnel's destination.
@@ -384,6 +404,7 @@ GCT_get_connections_buffer (struct CadetTunnel *t);
 const struct GNUNET_PeerIdentity *
 GCT_get_destination (struct CadetTunnel *t);
 
+
 /**
  * Get the tunnel's next free Channel ID.
  *
@@ -394,6 +415,7 @@ GCT_get_destination (struct CadetTunnel *t);
 CADET_ChannelNumber
 GCT_get_next_chid (struct CadetTunnel *t);
 
+
 /**
  * Send ACK on one or more channels due to buffer in connections.
  *
@@ -401,6 +423,7 @@ GCT_get_next_chid (struct CadetTunnel *t);
  */
 void
 GCT_unchoke_channels (struct CadetTunnel *t);
+
 
 /**
  * Send ACK on one or more connections due to buffer space to the client.
@@ -411,6 +434,7 @@ GCT_unchoke_channels (struct CadetTunnel *t);
  */
 void
 GCT_send_connection_acks (struct CadetTunnel *t);
+
 
 /**
  * Cancel a previously sent message while it's in the queue.
@@ -423,6 +447,7 @@ GCT_send_connection_acks (struct CadetTunnel *t);
  */
 void
 GCT_cancel (struct CadetTunnelQueue *q);
+
 
 /**
  * Sends an already built message on a tunnel, encrypting it and
@@ -442,6 +467,7 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct CadetTunnel *t, struct CadetConnection *c,
                            int force, GCT_sent cont, void *cont_cls);
 
+
 /**
  * Send an Axolotl KX message.
  *
@@ -450,6 +476,7 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  */
 void
 GCT_send_ax_kx (struct CadetTunnel *t, int force_reply);
+
 
 /**
  * Sends an already built and encrypted message on a tunnel, choosing the best
@@ -462,6 +489,7 @@ void
 GCT_resend_message (const struct GNUNET_MessageHeader *message,
                     struct CadetTunnel *t);
 
+
 /**
  * Is the tunnel directed towards the local peer?
  *
@@ -471,6 +499,7 @@ GCT_resend_message (const struct GNUNET_MessageHeader *message,
  */
 int
 GCT_is_loopback (const struct CadetTunnel *t);
+
 
 /**
  * Is the tunnel using this path already?
@@ -482,6 +511,7 @@ GCT_is_loopback (const struct CadetTunnel *t);
  */
 int
 GCT_is_path_used (const struct CadetTunnel *t, const struct CadetPeerPath *p);
+
 
 /**
  * Get a cost of a path for a tunnel considering existing connections.
@@ -495,6 +525,7 @@ unsigned int
 GCT_get_path_cost (const struct CadetTunnel *t,
                    const struct CadetPeerPath *path);
 
+
 /**
  * Get the static string for the peer this tunnel is directed.
  *
@@ -505,6 +536,7 @@ GCT_get_path_cost (const struct CadetTunnel *t,
 const char *
 GCT_2s (const struct CadetTunnel *t);
 
+
 /**
  * Log all possible info about the tunnel state.
  *
@@ -513,6 +545,7 @@ GCT_2s (const struct CadetTunnel *t);
  */
 void
 GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level);
+
 
 /**
  * Iterate all tunnels.
@@ -523,6 +556,7 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level);
 void
 GCT_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
 
+
 /**
  * Count all tunnels.
  *
@@ -530,6 +564,7 @@ GCT_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
  */
 unsigned int
 GCT_count_all (void);
+
 
 /**
  * Iterate all connections of a tunnel.
@@ -541,6 +576,7 @@ GCT_count_all (void);
 void
 GCT_iterate_connections (struct CadetTunnel *t, GCT_conn_iter iter, void *cls);
 
+
 /**
  * Iterate all channels of a tunnel.
  *
@@ -549,7 +585,10 @@ GCT_iterate_connections (struct CadetTunnel *t, GCT_conn_iter iter, void *cls);
  * @param cls Closure for @c iter.
  */
 void
-GCT_iterate_channels (struct CadetTunnel *t, GCT_chan_iter iter, void *cls);
+GCT_iterate_channels (struct CadetTunnel *t,
+                      GCT_chan_iter iter,
+                      void *cls);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

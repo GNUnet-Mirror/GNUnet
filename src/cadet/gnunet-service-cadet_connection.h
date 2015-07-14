@@ -92,6 +92,12 @@ struct CadetConnectionQueue;
 #include "gnunet-service-cadet_peer.h"
 
 
+/**
+ * Check invariants for all connections using #check_neighbours().
+ */
+void
+GCC_check_connections ();
+
 
 /**
  * Callback called when a queued message is sent.

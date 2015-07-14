@@ -52,6 +52,7 @@ struct CadetPeerQueue;
 
 #include "gnunet-service-cadet_connection.h"
 
+
 /**
  * Callback called when a queued message is sent.
  *
@@ -63,13 +64,14 @@ struct CadetPeerQueue;
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
- *
  * @return #GNUNET_YES if connection was destroyed, #GNUNET_NO otherwise.
  */
-typedef int (*GCP_sent) (void *cls,
-                          struct CadetConnection *c, int sent,
-                          uint16_t type, uint32_t pid, int fwd, size_t size,
-                          struct GNUNET_TIME_Relative wait);
+typedef int
+(*GCP_sent) (void *cls,
+             struct CadetConnection *c, int sent,
+             uint16_t type, uint32_t pid, int fwd, size_t size,
+             struct GNUNET_TIME_Relative wait);
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/

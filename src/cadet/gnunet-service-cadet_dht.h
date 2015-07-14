@@ -50,8 +50,9 @@ struct GCD_search_handle;
  * @param path An unchecked, unoptimized path to the target node.
  *             After callback will no longer be valid!
  */
-typedef void (*GCD_search_callback) (void *cls,
-                                     const struct CadetPeerPath *path);
+typedef void
+(*GCD_search_callback) (void *cls,
+                        const struct CadetPeerPath *path);
 
 /******************************************************************************/
 /********************************    API    ***********************************/

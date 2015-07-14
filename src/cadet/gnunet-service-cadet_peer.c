@@ -409,6 +409,7 @@ core_connect (void *cls,
   struct CadetPeerPath *path;
   char own_id[16];
 
+  GCC_check_connections ();
   GNUNET_snprintf (own_id,
                    sizeof (own_id),
                    "%s",
@@ -444,6 +445,7 @@ core_connect (void *cls,
   if ( (NULL != GCP_get_tunnel (mp)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
     GCP_connect (mp);
+  GCC_check_connections ();
 }
 
 
@@ -461,6 +463,7 @@ core_disconnect (void *cls,
   struct CadetPeerPath *direct_path;
   char own_id[16];
 
+  GCC_check_connections ();
   strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
   p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == p)
@@ -493,6 +496,7 @@ core_disconnect (void *cls,
                             -1,
                             GNUNET_NO);
   path_destroy (direct_path);
+  GCC_check_connections ();
 }
 
 
@@ -789,8 +793,9 @@ shutdown_peer (void *cls,
 static int
 is_searching (const struct CadetPeer *peer)
 {
-  return (NULL == peer->search_h && NULL == peer->search_delayed) ?
-         GNUNET_NO : GNUNET_YES;
+  return ( (NULL == peer->search_h) &&
+           (NULL == peer->search_delayed) ) ?
+    GNUNET_NO : GNUNET_YES;
 }
 
 
@@ -806,11 +811,11 @@ delayed_search (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetPeer *peer = cls;
 
   peer->search_delayed = NULL;
-
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
-
+  GCC_check_connections ();
   GCP_start_search (peer);
+  GCC_check_connections ();
 }
 
 
@@ -1017,6 +1022,7 @@ search_handler (void *cls, const struct CadetPeerPath *path)
   struct CadetPeer *peer = cls;
   unsigned int connection_count;
 
+  GCC_check_connections ();
   GCP_add_path_to_all (path, GNUNET_NO);
 
   /* Count connections */
@@ -1024,13 +1030,17 @@ search_handler (void *cls, const struct CadetPeerPath *path)
 
   /* If we already have our minimum (or more) connections, it's enough */
   if (CONNECTIONS_PER_TUNNEL <= connection_count)
+  {
+    GCC_check_connections ();
     return;
+  }
 
   if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (peer->tunnel))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GCP_connect (peer);
   }
+  GCC_check_connections ();
 }
 
 
@@ -1147,6 +1157,7 @@ queue_send (void *cls, size_t size, void *buf)
   char *dst;
   uint32_t pid;
 
+  GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue send towards %s (max %u)\n",
@@ -1175,6 +1186,7 @@ queue_send (void *cls, size_t size, void *buf)
       peer->core_transmit = NULL;
       peer->tmt_time.abs_value_us = 0;
     }
+    GCC_check_connections ();
     return 0;
   }
 
@@ -1274,7 +1286,7 @@ queue_send (void *cls, size_t size, void *buf)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", total_size);
   queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
-
+  GCC_check_connections ();
   return total_size;
 }
 
@@ -1300,12 +1312,15 @@ queue_send (void *cls, size_t size, void *buf)
  *         #GNUNET_NO otherwise.
  */
 int
-GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
-                   int sent, uint32_t pid)
+GCP_queue_destroy (struct CadetPeerQueue *queue,
+                   int clear_cls,
+                   int sent,
+                   uint32_t pid)
 {
   struct CadetPeer *peer;
   int connection_destroyed;
 
+  GCC_check_connections ();
   peer = queue->peer;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy %s\n", GC_m2s (queue->type));
   if (GNUNET_YES == clear_cls)
@@ -1365,6 +1380,7 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
   }
 
   GNUNET_free (queue);
+  GCC_check_connections ();
   return connection_destroyed;
 }
 
@@ -1396,6 +1412,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
   int priority;
   int call_core;
 
+  GCC_check_connections ();
   if (NULL == c && GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN != type)
     error_level = GNUNET_ERROR_TYPE_ERROR;
   else
@@ -1481,6 +1498,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
 
   }
   queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
+  GCC_check_connections ();
   return q;
 }
 
@@ -1500,6 +1518,7 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
   struct CadetPeerQueue *prev;
   int connection_destroyed;
 
+  GCC_check_connections ();
   connection_destroyed = GNUNET_NO;
   for (q = peer->queue_head; NULL != q; q = next)
   {
@@ -1537,6 +1556,7 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
     peer->core_transmit = NULL;
     peer->tmt_time.abs_value_us = 0;
   }
+  GCC_check_connections ();
 }
 
 
@@ -1592,6 +1612,7 @@ GCP_connection_pop (struct CadetPeer *peer,
   struct GNUNET_MessageHeader *msg;
   int dest;
 
+  GCC_check_connections ();
   GNUNET_assert (NULL != destroyed);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_pop on connection %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
@@ -1636,9 +1657,10 @@ GCP_connection_pop (struct CadetPeer *peer,
         LOG (GNUNET_ERROR_TYPE_DEBUG, "Unknown message %s\n", GC_m2s (q->type));
     }
   }
-
+  GCC_check_connections ();
   return NULL;
 }
+
 
 /**
  * Unlock a possibly locked queue for a connection.
@@ -1656,6 +1678,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
   struct CadetPeerQueue *q;
   size_t size;
 
+  GCC_check_connections ();
   if (NULL != peer->core_transmit)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  already unlocked!\n");
@@ -1679,6 +1702,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
                                          &queue_send,
                                          peer);
   peer->tmt_time = GNUNET_TIME_absolute_get ();
+  GCC_check_connections ();
 }
 
 
@@ -1865,6 +1889,7 @@ GCP_connect (struct CadetPeer *peer)
   struct CadetConnection *c;
   int rerun_search;
 
+  GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GCP_2s (peer));
 
   /* If we have a current hello, try to connect using it. */
@@ -1924,13 +1949,16 @@ GCP_connect (struct CadetPeer *peer)
 
     GCP_stop_search (peer);
     delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100);
-    peer->search_delayed = GNUNET_SCHEDULER_add_delayed (delay, &delayed_search,
+    peer->search_delayed = GNUNET_SCHEDULER_add_delayed (delay,
+                                                         &delayed_search,
                                                          peer);
+    GCC_check_connections ();
     return;
   }
 
   if (GNUNET_NO == is_searching (peer))
     GCP_start_search (peer);
+  GCC_check_connections ();
 }
 
 
@@ -1971,9 +1999,11 @@ GCP_is_neighbor (const struct CadetPeer *peer)
 void
 GCP_add_tunnel (struct CadetPeer *peer)
 {
+  GCC_check_connections ();
   if (NULL != peer->tunnel)
     return;
   peer->tunnel = GCT_new (peer);
+  GCC_check_connections ();
 }
 
 
@@ -2025,14 +2055,17 @@ GCP_add_connection (struct CadetPeer *peer,
  *         NULL on error.
  */
 struct CadetPeerPath *
-GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
+GCP_add_path (struct CadetPeer *peer,
+              struct CadetPeerPath *path,
               int trusted)
 {
   struct CadetPeerPath *aux;
   unsigned int l;
   unsigned int l2;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
+  GCC_check_connections ();
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "adding path [%u] to peer %s\n",
        path->length, GCP_2s (peer));
 
   if (NULL == peer || NULL == path
@@ -2106,6 +2139,7 @@ finish:
   {
     GCP_connect (peer);
   }
+  GCC_check_connections ();
   return path;
 }
 
@@ -2148,6 +2182,7 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
   unsigned int i;
 
   /* TODO: invert and add */
+  GCC_check_connections ();
   for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
   for (i++; i < p->length; i++)
   {
@@ -2159,6 +2194,7 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
     copy->length = i + 1;
     GCP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
   }
+  GCC_check_connections ();
 }
 
 
@@ -2174,6 +2210,7 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
   struct CadetPeerPath *iter;
   struct CadetPeerPath *next;
 
+  GCC_check_connections ();
   GNUNET_assert (myid == path->peers[0]);
   GNUNET_assert (peer->id == path->peers[path->length - 1]);
 
@@ -2194,6 +2231,7 @@ GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
     }
   }
   path_destroy (path);
+  GCC_check_connections ();
 }
 
 
@@ -2259,7 +2297,8 @@ GCP_start_search (struct CadetPeer *peer)
   const struct GNUNET_PeerIdentity *id;
   struct CadetTunnel *t = peer->tunnel;
 
-  if (NULL != peer->search_h)
+  GCC_check_connections ();
+ if (NULL != peer->search_h)
   {
     GNUNET_break (0);
     return;
@@ -2283,6 +2322,7 @@ GCP_start_search (struct CadetPeer *peer)
   {
     GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
   }
+  GCC_check_connections ();
 }
 
 
@@ -2295,6 +2335,7 @@ GCP_start_search (struct CadetPeer *peer)
 void
 GCP_stop_search (struct CadetPeer *peer)
 {
+  GCC_check_connections ();
   if (NULL != peer->search_h)
   {
     GCD_search_stop (peer->search_h);
@@ -2305,6 +2346,7 @@ GCP_stop_search (struct CadetPeer *peer)
     GNUNET_SCHEDULER_cancel (peer->search_delayed);
     peer->search_delayed = NULL;
   }
+  GCC_check_connections ();
 }
 
 
@@ -2381,7 +2423,8 @@ GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
   struct GNUNET_HELLO_Message *old;
   size_t size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "set hello for %s\n", GCP_2s (peer));
+  GCC_check_connections ();
+ LOG (GNUNET_ERROR_TYPE_DEBUG, "set hello for %s\n", GCP_2s (peer));
   if (NULL == hello)
     return;
 
@@ -2400,6 +2443,7 @@ GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
          peer->hello, GNUNET_HELLO_size (hello));
     GNUNET_free (old);
   }
+  GCC_check_connections ();
 }
 
 
@@ -2445,13 +2489,17 @@ GCP_try_connect (struct CadetPeer *peer)
 
   if (NULL == transport_handle)
     return;
-
+  GCC_check_connections ();
   hello = GCP_get_hello (peer);
   if (NULL == hello)
     return;
 
   mh = GNUNET_HELLO_get_header (hello);
-  GNUNET_TRANSPORT_offer_hello (transport_handle, mh, try_connect, peer);
+  GNUNET_TRANSPORT_offer_hello (transport_handle,
+                                mh,
+                                &try_connect,
+                                peer);
+  GCC_check_connections ();
 }
 
 
@@ -2474,6 +2522,7 @@ GCP_notify_broken_link (struct CadetPeer *peer,
   GNUNET_PEER_Id p1;
   GNUNET_PEER_Id p2;
 
+  GCC_check_connections ();
   p1 = GNUNET_PEER_search (peer1);
   p2 = GNUNET_PEER_search (peer2);
 
@@ -2502,6 +2551,7 @@ GCP_notify_broken_link (struct CadetPeer *peer,
       }
     }
   }
+  GCC_check_connections ();
 }
 
 
@@ -2535,9 +2585,11 @@ void
 GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter,
                  void *cls)
 {
+  GCC_check_connections ();
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          iter,
                                          cls);
+  GCC_check_connections ();
 }
 
 
@@ -2555,3 +2607,6 @@ GCP_2s (const struct CadetPeer *peer)
     return "(NULL)";
   return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
 }
+
+
+/* end of gnunet-service-cadet_peer.c */
