@@ -1402,10 +1402,16 @@ GCP_queue_destroy (struct CadetPeerQueue *queue,
  *         message has been sent and therefore the handle is no longer valid.
  */
 struct CadetPeerQueue *
-GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
-               uint16_t payload_type, uint32_t payload_id, size_t size,
-               struct CadetConnection *c, int fwd,
-               GCP_sent cont, void *cont_cls)
+GCP_queue_add (struct CadetPeer *peer,
+               void *cls,
+               uint16_t type,
+               uint16_t payload_type,
+               uint32_t payload_id,
+               size_t size,
+               struct CadetConnection *c,
+               int fwd,
+               GCP_sent cont,
+               void *cont_cls)
 {
   struct CadetPeerQueue *q;
   int error_level;
@@ -1511,7 +1517,8 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
  *          the sent continuation call.
  */
 void
-GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
+GCP_queue_cancel (struct CadetPeer *peer,
+                  struct CadetConnection *c)
 {
   struct CadetPeerQueue *q;
   struct CadetPeerQueue *next;
@@ -1525,7 +1532,9 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
     prev = q->prev;
     if (q->c == c)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP queue cancel %s\n", GC_m2s (q->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "GMP queue cancel %s\n",
+           GC_m2s (q->type));
       GNUNET_break (GNUNET_NO == connection_destroyed);
       if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY == q->type)
       {
@@ -1550,7 +1559,8 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
     }
   }
 
-  if (NULL == peer->queue_head && NULL != peer->core_transmit)
+  if ( (NULL == peer->queue_head) &&
+       (NULL != peer->core_transmit) )
   {
     GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
     peer->core_transmit = NULL;
@@ -2245,8 +2255,8 @@ void
 GCP_check_connection (const struct CadetPeer *peer,
                       const struct CadetConnection *c)
 {
-  if ( (NULL == peer) ||
-       (NULL == peer->connections) )
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != peer->connections);
     return;
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_contains_value (peer->connections,
