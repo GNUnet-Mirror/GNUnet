@@ -1694,9 +1694,15 @@ unregister_neighbors (struct CadetConnection *c)
   if (NULL == c->path)
     return;
   if (NULL != c->next_peer)
+  {
     GCP_remove_connection (c->next_peer, c);
+    c->next_peer = NULL;
+  }
   if (NULL != c->prev_peer)
+  {
     GCP_remove_connection (c->prev_peer, c);
+    c->prev_peer = NULL;
+  }
 }
 
 
@@ -3266,16 +3272,7 @@ GCC_notify_broken (struct CadetConnection *c,
                                                       c));
   /* Cancel queue in the direction that just died. */
   connection_cancel_queues (c, ! fwd);
-  if (fwd)
-  {
-    GCP_remove_connection (c->prev_peer, c);
-    c->prev_peer = NULL;
-  }
-  else
-  {
-    GCP_remove_connection (c->next_peer, c);
-    c->next_peer = NULL;
-  }
+  unregister_neighbors (c);
   GNUNET_assert (NULL != ( (fwd) ? c->next_peer : c->prev_peer) );
   GCC_check_connections ();
 }
