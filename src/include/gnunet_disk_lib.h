@@ -344,7 +344,7 @@ GNUNET_DISK_file_size (const char *filename, uint64_t *size,
  * @param filename name of the file
  * @param dev set to the device ID
  * @param ino set to the inode ID
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_DISK_file_get_identifiers (const char *filename,
@@ -528,7 +528,6 @@ GNUNET_DISK_fix_permissions (const char *fn,
                              int require_gid_match);
 
 
-
 /**
  * Get a handle from a native integer FD.
  *
@@ -646,7 +645,8 @@ GNUNET_DISK_fn_write (const char *fn,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_DISK_file_copy (const char *src, const char *dst);
+GNUNET_DISK_file_copy (const char *src,
+                       const char *dst);
 
 
 /**
@@ -679,10 +679,11 @@ struct GNUNET_DISK_DirectoryIterator;
  * @param filename complete filename (absolute path)
  * @param dirname directory name (absolute path)
  */
-typedef void (*GNUNET_DISK_DirectoryIteratorCallback) (void *cls,
-                                                       struct GNUNET_DISK_DirectoryIterator *di,
-                                                       const char *filename,
-                                                       const char *dirname);
+typedef void
+(*GNUNET_DISK_DirectoryIteratorCallback) (void *cls,
+                                          struct GNUNET_DISK_DirectoryIterator *di,
+                                          const char *filename,
+                                          const char *dirname);
 
 
 /**

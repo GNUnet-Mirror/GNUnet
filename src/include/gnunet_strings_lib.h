@@ -316,7 +316,7 @@ GNUNET_STRINGS_data_to_string_alloc (const void *buf,
  * @a out_size must match exactly the size of the data before it was encoded.
  *
  * @param enc the encoding
- * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
+ * @param enclen number of characters in @a enc (without 0-terminator, which can be missing)
  * @param out location where to store the decoded data
  * @param out_size size of the output buffer @a out
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if result has the wrong encoding

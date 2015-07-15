@@ -962,7 +962,7 @@ AM_CONDITIONAL([HAVE_PYTHON], [test "$PYTHON" != :])
 
 # check for gettext
 AM_GNU_GETTEXT([external])
-AM_GNU_GETTEXT_VERSION([0.18.3])
+AM_GNU_GETTEXT_VERSION([0.18.1])
 
 # Checks for standard typedefs, structures, and compiler characteristics.
 AC_TYPE_PID_T
