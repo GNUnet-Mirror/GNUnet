@@ -79,7 +79,7 @@ gnunet_identity_token_SOURCES = \
  check_token.c         
 gnunet_identity_token_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -ljansson -lmicrohttpd
+  -ljansson -lmicrohttpd \
   $(GN_LIBINTL)
 
 if HAVE_TESTING
