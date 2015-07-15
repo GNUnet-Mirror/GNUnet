@@ -1327,7 +1327,8 @@ send_callback (void *cls, size_t size, void *buf)
       struct GNUNET_CADET_LocalData *dmsg;
       struct GNUNET_MessageHeader *mh;
 
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload, %u bytes on %X (%p)\n",
+           th->size, ch->chid, ch);
       if (GNUNET_NO == ch->allow_send)
       {
         /* This channel is not ready to transmit yet, Try the next message */
@@ -1348,7 +1349,7 @@ send_callback (void *cls, size_t size, void *buf)
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
         dmsg->header.size = htons (psize);
         dmsg->id = htonl (ch->chid);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  sending, type %s\n",
              GC_m2s (ntohs (mh->type)));
         ch->allow_send = GNUNET_NO;
       }
@@ -1394,7 +1395,7 @@ send_callback (void *cls, size_t size, void *buf)
   else
   {
     if (NULL != h->th_head)
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  can't transmit any more\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "#  nothing ready to transmit\n");
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  nothing left to transmit\n");
   }
@@ -1405,7 +1406,7 @@ send_callback (void *cls, size_t size, void *buf)
     GNUNET_CLIENT_receive (h->client, &msg_received, h,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "# Send packet() END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "# Send callback() END\n");
   return tsize;
 }
 
@@ -1749,6 +1750,10 @@ GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *t
 {
   struct GNUNET_CADET_Handle *cadet;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "CADET NOTIFY TRANSMIT READY CANCEL\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    on channel %X (%p)\n",
+       th->channel->chid, th->channel);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    size %u bytes\n", th->size);
   th->channel->packet_size = 0;
   cadet = th->channel->cadet;
   if (th->timeout_task != NULL)
@@ -1761,6 +1766,7 @@ GNUNET_CADET_notify_transmit_ready_cancel (struct GNUNET_CADET_TransmitHandle *t
     GNUNET_CLIENT_notify_transmit_ready_cancel (cadet->th);
     cadet->th = NULL;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "CADET NOTIFY TRANSMIT READY CANCEL END\n");
 }
 
 
