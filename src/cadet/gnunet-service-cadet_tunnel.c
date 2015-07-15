@@ -2080,6 +2080,7 @@ ephm_sent (void *cls,
     if (NULL != t->rekey_task)
     {
       GNUNET_break (0);
+      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
       GNUNET_SCHEDULER_cancel (t->rekey_task);
     }
     t->rekey_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
