@@ -3273,7 +3273,6 @@ GCC_notify_broken (struct CadetConnection *c,
   /* Cancel queue in the direction that just died. */
   connection_cancel_queues (c, ! fwd);
   unregister_neighbors (c);
-  GNUNET_assert (NULL != ( (fwd) ? c->next_peer : c->prev_peer) );
   GCC_check_connections ();
 }
 
