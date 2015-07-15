@@ -3705,7 +3705,13 @@ GCT_destroy (struct CadetTunnel *t)
   while (NULL != t->tq_head)
   {
     /* Should have been cleaned by destuction of channel. */
+    struct GNUNET_MessageHeader *mh;
+
     GNUNET_break (0);
+    mh = (struct GNUNET_MessageHeader *) &t->tq_head[1];
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "message left behind on tunnel shutdown: %s\n",
+         GC_m2s (ntohs (mh->type)));
     unqueue_data (t->tq_head);
   }
 
@@ -4185,6 +4191,21 @@ GCT_cancel (struct CadetTunnelQueue *q)
   {
     GNUNET_break (0);
   }
+}
+
+
+/**
+ * Check if the tunnel has queued traffic.
+ *
+ * @param t Tunnel to check.
+ *
+ * @return #GNUNET_YES if there is queued traffic
+ *         #GNUNET_NO otherwise
+ */
+int
+GCT_has_queued_traffic (struct CadetTunnel *t)
+{
+  return (NULL != t->tq_head) ? GNUNET_YES : GNUNET_NO;
 }
 
 

@@ -1064,8 +1064,9 @@ send_connection_keepalive (struct CadetConnection *c, int fwd)
        "keepalive %s for connection %s\n",
        GC_f2s (fwd), GCC_2s (c));
 
+  GNUNET_assert (NULL != c->t);
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (0 < fc->queue_n)
+  if (0 < fc->queue_n || GNUNET_YES == GCT_has_queued_traffic (c->t))
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, traffic in queue\n");
     return;

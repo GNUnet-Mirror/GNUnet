@@ -450,6 +450,17 @@ GCT_cancel (struct CadetTunnelQueue *q);
 
 
 /**
+ * Check if the tunnel has queued traffic.
+ *
+ * @param t Tunnel to check.
+ *
+ * @return #GNUNET_YES if there is queued traffic
+ *         #GNUNET_NO otherwise
+ */
+int
+GCT_has_queued_traffic (struct CadetTunnel *t);
+
+/**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection.
  *
