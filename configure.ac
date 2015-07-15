@@ -1663,7 +1663,7 @@ then
 fi
 
 # libgnurl
-if test "x$gnurl" = "0"
+if test "$gnurl" = "0"
 then
   if test "x$curl" = "xfalse"
   then
