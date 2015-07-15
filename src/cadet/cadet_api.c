@@ -1549,8 +1549,8 @@ GNUNET_CADET_disconnect (struct GNUNET_CADET_Handle *handle)
         break;
       default:
         GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_ERROR, "unexpected msg %u\n",
-             ntohs(msg->type));
+        LOG (GNUNET_ERROR_TYPE_ERROR, "unexpected unsent msg %s\n",
+             GC_m2s (ntohs(msg->type)));
     }
 
     GNUNET_CONTAINER_DLL_remove (handle->th_head, handle->th_tail, th);
