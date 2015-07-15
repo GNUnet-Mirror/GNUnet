@@ -3681,6 +3681,7 @@ GCT_destroy (struct CadetTunnel *t)
   struct CadetTConnection *next_c;
   struct CadetTChannel *iter_ch;
   struct CadetTChannel *next_ch;
+  unsigned int keepalives_queued;
 
   if (NULL == t)
     return;
@@ -3702,16 +3703,28 @@ GCT_destroy (struct CadetTunnel *t)
     GCCH_destroy (iter_ch->ch);
     /* Should only happen on shutdown, but it's ok. */
   }
+  keepalives_queued = 0;
   while (NULL != t->tq_head)
   {
     /* Should have been cleaned by destuction of channel. */
     struct GNUNET_MessageHeader *mh;
+    uint16_t type;
 
-    GNUNET_break (0);
     mh = (struct GNUNET_MessageHeader *) &t->tq_head[1];
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "message left behind on tunnel shutdown: %s\n",
-         GC_m2s (ntohs (mh->type)));
+    type = ntohs (mh->type);
+    if (0 == keepalives_queued && GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE == type)
+    {
+      keepalives_queued = 1;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "one keepalive left behind on tunnel shutdown\n");
+    }
+    else
+    {
+      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "message left behind on tunnel shutdown: %s\n",
+           GC_m2s (ntohs (mh->type)));
+    }
     unqueue_data (t->tq_head);
   }
 
