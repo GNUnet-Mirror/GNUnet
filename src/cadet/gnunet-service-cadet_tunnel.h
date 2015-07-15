@@ -90,10 +90,19 @@ enum CadetTunnelEState
   CADET_TUNNEL_KEY_SENT,
 
   /**
-   * New ephemeral key and ping sent, waiting for pong.
+   * In OTR: New ephemeral key and ping sent, waiting for pong.
+   *
    * This means that we DO have the peer's ephemeral key, otherwise the
    * state would be KEY_SENT. We DO NOT have a valid session key (either no
    * previous key or previous key expired).
+   *
+   *
+   * In Axolotl: Key sent and received but no deciphered traffic yet.
+   *
+   * This means that we can send traffic (otherwise we would never complete
+   * the handshake), but we don't have complete confirmation. Since the first
+   * traffic MUST be a complete channel creation 3-way handshake, no payload
+   * will be sent before confirmation.
    */
   CADET_TUNNEL_KEY_PING,
 
