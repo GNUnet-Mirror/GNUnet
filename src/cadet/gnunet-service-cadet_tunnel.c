@@ -2476,7 +2476,9 @@ handle_data (struct CadetTunnel *t,
              int fwd)
 {
   struct CadetChannel *ch;
+  char buf[128];
   size_t size;
+  uint16_t type;
 
   /* Check size */
   size = ntohs (msg->header.size);
@@ -2487,8 +2489,11 @@ handle_data (struct CadetTunnel *t,
     GNUNET_break (0);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
-              GC_m2s (ntohs (msg[1].header.type)));
+  type = ntohs (msg[1].header.type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n", GC_m2s (type));
+  sprintf (buf, "# received payload of type %hu", type);
+  GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
+
 
   /* Check channel */
   ch = GCT_get_channel (t, ntohl (msg->chid));
@@ -3005,9 +3010,13 @@ handle_decrypted (struct CadetTunnel *t,
                   int fwd)
 {
   uint16_t type;
+  char buf[256];
 
   type = ntohs (msgh->type);
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s on %s\n", GC_m2s (type), GCT_2s (t));
+  sprintf (buf, "# received encrypted of type %hu (%s)", type, GC_m2s (type));
+  GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
+
 
   switch (type)
   {
@@ -3080,6 +3089,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     {
       const struct GNUNET_CADET_Encrypted *emsg;
 
+      GNUNET_STATISTICS_update (stats, "# received OTR", 1, GNUNET_NO);
       emsg = (const struct GNUNET_CADET_Encrypted *) msg;
       payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
       decrypted_size = t_decrypt_and_validate (t, cbuf, &emsg[1], payload_size,
@@ -3090,6 +3100,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     {
       const struct GNUNET_CADET_AX *emsg;
 
+      GNUNET_STATISTICS_update (stats, "# received Axolotl", 1, GNUNET_NO);
       emsg = (const struct GNUNET_CADET_AX *) msg;
       decrypted_size = t_ax_decrypt_and_validate (t, cbuf, emsg, size);
     }
@@ -3102,6 +3113,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   if (-1 == decrypted_size)
   {
     GNUNET_break_op (0);
+    GNUNET_STATISTICS_update (stats, "# unable to decrypt", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong crypto on tunnel %s\n", GCT_2s (t));
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
@@ -3140,9 +3152,12 @@ GCT_handle_kx (struct CadetTunnel *t,
                const struct GNUNET_MessageHeader *message)
 {
   uint16_t type;
+  char buf[256];
 
   type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received: %s\n", GC_m2s (type));
+  sprintf (buf, "# received KX of type %hu (%s)", type, GC_m2s (type));
+  GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:

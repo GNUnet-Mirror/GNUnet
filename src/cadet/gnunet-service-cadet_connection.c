@@ -2470,7 +2470,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* Is this message for us? */
   if (GCC_is_terminal (c, fwd))
   {
-    GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# received encrypted", 1, GNUNET_NO);
 
     if (NULL == c->t)
     {
@@ -2546,7 +2546,7 @@ handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
   if (GCC_is_terminal (c, fwd))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
-    GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# received KX", 1, GNUNET_NO);
     if (NULL == c->t)
     {
       GNUNET_break (0);
