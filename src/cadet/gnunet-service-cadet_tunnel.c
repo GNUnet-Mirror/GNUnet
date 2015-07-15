@@ -2001,7 +2001,7 @@ send_queued_data (struct CadetTunnel *t)
 
   if (GNUNET_NO == is_ready (t))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not ready yet: %s/%s\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  not ready yet: %s/%s\n",
          estate2s (t->estate), cstate2s (t->cstate));
     return;
   }
