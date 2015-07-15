@@ -2037,7 +2037,11 @@ ax_kx_resend (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   if (CADET_TUNNEL_KEY_OK == t->estate)
+  {
+    /* Should have been canceled on estate change */
+    GNUNET_break (0);
     return;
+  }
 
   GCT_send_ax_kx (t, GNUNET_YES);
 }
@@ -2066,7 +2070,7 @@ ephm_sent (void *cls,
   if (CADET_TUNNEL_KEY_OK == t->estate)
     return;
 
-  if (CADET_Axolotl == t->enc_type && CADET_TUNNEL_KEY_OK != t->estate)
+  if (CADET_Axolotl == t->enc_type)
   {
     if (NULL != t->rekey_task)
     {
@@ -2973,7 +2977,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     ax->ratchet_expiration =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), ratchet_time);
   }
-  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
 }
 
 
@@ -3039,6 +3042,7 @@ handle_decrypted (struct CadetTunnel *t,
   }
 }
 
+
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
@@ -3086,6 +3090,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     GNUNET_break_op (0);
     return;
   }
+
   if (-1 == decrypted_size)
   {
     GNUNET_break_op (0);
@@ -3093,6 +3098,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
+  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
 
   /* FIXME: this is bad, as the structs returned from
      this loop may be unaligned, see util's MST for
@@ -3305,6 +3311,8 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
 /**
  * Change the tunnel encryption state.
  *
+ * If the encryption state changes to OK, stop the rekey task.
+ *
  * @param t Tunnel whose encryption state to change, or NULL.
  * @param state New encryption state.
  */
@@ -3323,11 +3331,16 @@ GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s estate is now %s\n",
        GCP_2s (t->peer), estate2s (t->estate));
 
-  /* Send queued data if enc state changes to OK */
-  if (myid != GCP_get_short_id (t->peer) &&
-      CADET_TUNNEL_KEY_OK != old && CADET_TUNNEL_KEY_OK == t->estate)
+  if (CADET_TUNNEL_KEY_OK != old && CADET_TUNNEL_KEY_OK == t->estate)
   {
-    send_queued_data (t);
+    if (NULL != t->rekey_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->rekey_task);
+      t->rekey_task = NULL;
+    }
+    /* Send queued data if tunnel is not loopback */
+    if (myid != GCP_get_short_id (t->peer))
+      send_queued_data (t);
   }
 }
 
