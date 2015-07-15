@@ -624,10 +624,15 @@ static int
 is_ready (struct CadetTunnel *t)
 {
   int ready;
+  int conn_ok;
+  int enc_ok;
 
-  ready = CADET_TUNNEL_READY == t->cstate
-          && (CADET_TUNNEL_KEY_OK == t->estate
-              || CADET_TUNNEL_KEY_REKEY == t->estate);
+  conn_ok = CADET_TUNNEL_READY == t->cstate;
+  enc_ok = CADET_TUNNEL_KEY_OK == t->estate
+           || CADET_TUNNEL_KEY_REKEY == t->estate
+           || (CADET_TUNNEL_KEY_PING == t->estate
+               && CADET_Axolotl == t->enc_type);
+  ready = conn_ok && enc_ok;
   ready = ready || GCT_is_loopback (t);
   return ready;
 }
@@ -2977,6 +2982,8 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     ax->ratchet_expiration =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), ratchet_time);
   }
+  GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
+  send_queued_data (t);
 }
 
 
