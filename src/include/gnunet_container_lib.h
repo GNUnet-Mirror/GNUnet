@@ -36,9 +36,11 @@
 /* add error and config prototypes */
 #include "gnunet_crypto_lib.h"
 
-#if HAVE_EXTRACTOR_H
+#if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
 
 #include <extractor.h>
+
+
 
 #else
 
