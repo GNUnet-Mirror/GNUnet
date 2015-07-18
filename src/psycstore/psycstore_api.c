@@ -302,16 +302,9 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       if (NULL != op->res_cb)
       {
-        const struct StateModifyRequest *smreq;
         const struct StateSyncRequest *ssreq;
         switch (ntohs (op->msg->type))
         {
-        case GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY:
-          smreq = (const struct StateModifyRequest *) op->msg;
-          if (!(smreq->flags & STATE_OP_LAST
-                || GNUNET_OK != result_code))
-            op->res_cb = NULL;
-          break;
         case GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_SYNC:
           ssreq = (const struct StateSyncRequest *) op->msg;
           if (!(ssreq->flags & STATE_OP_LAST
@@ -1234,10 +1227,6 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
  *        ID of the message that contains the @a modifiers.
  * @param state_delta
  *        Value of the _state_delta PSYC header variable of the message.
- * @param modifier_count
- *        Number of elements in the @a modifiers array.
- * @param modifiers
- *        List of modifiers to apply.
  * @param rcb
  *        Callback to call with the result of the operation.
  * @param rcb_cls
@@ -1250,50 +1239,31 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                uint64_t message_id,
                                uint64_t state_delta,
-                               size_t modifier_count,
-                               const struct GNUNET_ENV_Modifier *modifiers,
                                GNUNET_PSYCSTORE_ResultCallback rcb,
                                void *rcb_cls)
 {
   struct GNUNET_PSYCSTORE_OperationHandle *op = NULL;
-  size_t i;
+  struct StateModifyRequest *req;
 
-  for (i = 0; i < modifier_count; i++) {
-    struct StateModifyRequest *req;
-    uint16_t name_size = strlen (modifiers[i].name) + 1;
+  op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  op->h = h;
+  op->res_cb = rcb;
+  op->cls = rcb_cls;
 
-    op = GNUNET_malloc (sizeof (*op) + sizeof (*req) + name_size +
-                        modifiers[i].value_size);
-    op->h = h;
-    op->res_cb = rcb;
-    op->cls = rcb_cls;
+  req = (struct StateModifyRequest *) &op[1];
+  op->msg = (struct GNUNET_MessageHeader *) req;
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY);
+  req->header.size = htons (sizeof (*req));
+  req->channel_key = *channel_key;
+  req->message_id = GNUNET_htonll (message_id);
+  req->state_delta = GNUNET_htonll (state_delta);
 
-    req = (struct StateModifyRequest *) &op[1];
-    op->msg = (struct GNUNET_MessageHeader *) req;
-    req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY);
-    req->header.size = htons (sizeof (*req) + name_size
-                              + modifiers[i].value_size);
-    req->channel_key = *channel_key;
-    req->message_id = GNUNET_htonll (message_id);
-    req->state_delta = GNUNET_htonll (state_delta);
-    req->oper = modifiers[i].oper;
-    req->name_size = htons (name_size);
-    req->flags
-      = 0 == i
-      ? STATE_OP_FIRST
-      : modifier_count - 1 == i
-      ? STATE_OP_LAST
-      : 0;
+  op->op_id = get_next_op_id (h);
+  req->op_id = GNUNET_htonll (op->op_id);
 
-    memcpy (&req[1], modifiers[i].name, name_size);
-    memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
+  GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
+  transmit_next (h);
 
-    op->op_id = get_next_op_id (h);
-    req->op_id = GNUNET_htonll (op->op_id);
-
-    GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
-    transmit_next (h);
-  }
   return op;
   /* FIXME: only the last operation is returned,
    *        operation_cancel() should be able to cancel all of them.
@@ -1308,7 +1278,9 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
  *        Handle for the PSYCstore.
  * @param channel_key
  *        The channel we are interested in.
- * @param message_id
+ * @param max_state_message_id
+ *        ID of the last stateful message before @a state_hash_message_id.
+ * @param state_hash_message_id
  *        ID of the message that contains the state_hash PSYC header variable.
  * @param modifier_count
  *        Number of elements in the @a modifiers array.
@@ -1324,7 +1296,8 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
                              const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                             uint64_t message_id,
+                             uint64_t max_state_message_id,
+                             uint64_t state_hash_message_id,
                              size_t modifier_count,
                              const struct GNUNET_ENV_Modifier *modifiers,
                              GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -1349,7 +1322,8 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
     req->header.size = htons (sizeof (*req) + name_size
                               + modifiers[i].value_size);
     req->channel_key = *channel_key;
-    req->message_id = GNUNET_htonll (message_id);
+    req->max_state_message_id = GNUNET_htonll (max_state_message_id);
+    req->state_hash_message_id = GNUNET_htonll (state_hash_message_id);
     req->name_size = htons (name_size);
     req->flags
       = (0 == i)

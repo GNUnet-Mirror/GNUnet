@@ -85,7 +85,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_PSYCSTORE_PluginFunctions *ret;
   char *libname;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' psycstore plugin\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Loading `%s' psycstore plugin\n"),
               plugin_name);
   GNUNET_asprintf (&libname, "libgnunet_plugin_psycstore_%s", plugin_name);
   if (NULL == (ret = GNUNET_PLUGIN_load (libname, (void*) cfg)))
@@ -306,15 +306,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   message_id = GNUNET_ntohll (fcls.msg[0]->message_id) + 1;
   GNUNET_assert (GNUNET_OK == db->state_modify_begin (db->cls, &channel_pub_key,
-                                                      message_id, 1));
+                                                      message_id, 0));
 
-  GNUNET_assert (GNUNET_OK == db->state_modify_set (db->cls, &channel_pub_key,
-                                                    "_foo",
-                                                    C2ARG("one two three")));
+  GNUNET_assert (GNUNET_OK == db->state_modify_op (db->cls, &channel_pub_key,
+                                                   GNUNET_ENV_OP_ASSIGN,
+                                                   "_foo",
+                                                   C2ARG("one two three")));
 
-  GNUNET_assert (GNUNET_OK == db->state_modify_set (db->cls, &channel_pub_key,
-                                                    "_foo_bar", slave_key,
-                                                    sizeof (*slave_key)));
+  GNUNET_assert (GNUNET_OK == db->state_modify_op (db->cls, &channel_pub_key,
+                                                   GNUNET_ENV_OP_ASSIGN,
+                                                   "_foo_bar", slave_key,
+                                                   sizeof (*slave_key)));
 
   GNUNET_assert (GNUNET_OK == db->state_modify_end (db->cls, &channel_pub_key,
                                                     message_id));
@@ -366,15 +368,16 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_assert (GNUNET_OK == db->state_sync_begin (db->cls, &channel_pub_key));
 
-  GNUNET_assert (GNUNET_OK == db->state_sync_set (db->cls, &channel_pub_key,
-                                                  "_sync_bar", scls.value[0],
-                                                  scls.value_size[0]));
+  GNUNET_assert (GNUNET_OK == db->state_sync_assign (db->cls, &channel_pub_key,
+                                                     "_sync_bar", scls.value[0],
+                                                     scls.value_size[0]));
 
-  GNUNET_assert (GNUNET_OK == db->state_sync_set (db->cls, &channel_pub_key,
-                                                  "_sync_foo", scls.value[1],
-                                                  scls.value_size[1]));
+  GNUNET_assert (GNUNET_OK == db->state_sync_assign (db->cls, &channel_pub_key,
+                                                     "_sync_foo", scls.value[1],
+                                                     scls.value_size[1]));
 
   GNUNET_assert (GNUNET_OK == db->state_sync_end (db->cls, &channel_pub_key,
+                                                  max_state_msg_id,
                                                   INT64_MAX - 5));
 
   GNUNET_assert (GNUNET_NO == db->state_get_prefix (db->cls, &channel_pub_key,
@@ -394,11 +397,13 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   message_id = GNUNET_ntohll (fcls.msg[0]->message_id) + 6;
   GNUNET_assert (GNUNET_OK == db->state_modify_begin (db->cls, &channel_pub_key,
-                                                      message_id, 3));
+                                                      message_id,
+                                                      message_id - max_state_msg_id));
 
-  GNUNET_assert (GNUNET_OK == db->state_modify_set (db->cls, &channel_pub_key,
-                                                    "_sync_foo",
-                                                    C2ARG("five six seven")));
+  GNUNET_assert (GNUNET_OK == db->state_modify_op (db->cls, &channel_pub_key,
+                                                   GNUNET_ENV_OP_ASSIGN,
+                                                   "_sync_foo",
+                                                   C2ARG("five six seven")));
 
   GNUNET_assert (GNUNET_OK == db->state_modify_end (db->cls, &channel_pub_key,
                                                     message_id));

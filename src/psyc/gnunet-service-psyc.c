@@ -416,6 +416,8 @@ struct Slave
 static void
 transmit_message (struct Channel *chn);
 
+static uint64_t
+message_queue_run (struct Channel *chn);
 
 static uint64_t
 message_queue_drop (struct Channel *chn);
@@ -1274,6 +1276,39 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
 }
 
 
+struct StateModifyClosure
+{
+  struct Channel *chn;
+  struct FragmentQueue *fragq;
+  uint64_t message_id;
+};
+
+
+void
+store_recv_state_modify_result (void *cls, int64_t result,
+                                const char *err_msg, uint16_t err_msg_size)
+{
+  struct StateModifyClosure *mcls = cls;
+  struct Channel *chn = mcls->chn;
+  struct FragmentQueue *fragq = mcls->fragq;
+  uint64_t msg_id = mcls->message_id;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p GNUNET_PSYCSTORE_state_modify() returned %" PRId64 " (%.*s)\n",
+              chn, result, err_msg_size, err_msg);
+
+  if (GNUNET_OK == result)
+  {
+    chn->max_state_message_id = msg_id;
+    chn->max_message_id = msg_id;
+
+    fragment_queue_run (chn, msg_id, fragq, MSG_FRAG_STATE_DROP == fragq->state);
+    GNUNET_CONTAINER_heap_remove_root (chn->recv_msgs);
+    message_queue_run (chn);
+  }
+}
+
+
 /**
  * Run message queue.
  *
@@ -1294,6 +1329,7 @@ message_queue_run (struct Channel *chn)
               "%p Running message queue.\n", chn);
   uint64_t n = 0;
   uint64_t msg_id;
+
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (chn->recv_msgs, NULL,
                                                     &msg_id))
   {
@@ -1325,7 +1361,7 @@ message_queue_run (struct Channel *chn)
                       "%p Out of order message. "
                       "(%" PRIu64 " - 1 != %" PRIu64 ")\n",
                       chn, msg_id, chn->max_message_id);
-          break;
+          continue;
         }
       }
       else
@@ -1336,14 +1372,19 @@ message_queue_run (struct Channel *chn)
                       "%p Out of order stateful message. "
                       "(%" PRIu64 " - %" PRIu64 " != %" PRIu64 ")\n",
                       chn, msg_id, fragq->state_delta, chn->max_state_message_id);
-          break;
+          continue;
         }
-#if TODO
-        /* FIXME: apply modifiers to state in PSYCstore */
-        GNUNET_PSYCSTORE_state_modify (store, &chn->pub_key, message_id,
-                                       store_recv_state_modify_result, cls);
-#endif
-        chn->max_state_message_id = msg_id;
+
+        struct StateModifyClosure *mcls = GNUNET_malloc (sizeof (*mcls));
+        mcls->chn = chn;
+        mcls->fragq = fragq;
+        mcls->message_id = msg_id;
+
+        /* Apply modifiers to state in PSYCstore */
+        GNUNET_PSYCSTORE_state_modify (store, &chn->pub_key, msg_id,
+                                       fragq->state_delta,
+                                       store_recv_state_modify_result, mcls);
+        break;
       }
       chn->max_message_id = msg_id;
     }
@@ -1351,6 +1392,7 @@ message_queue_run (struct Channel *chn)
     GNUNET_CONTAINER_heap_remove_root (chn->recv_msgs);
     n++;
   }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Removed %" PRIu64 " messages from queue.\n", chn, n);
   return n;
@@ -2038,6 +2080,11 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg,
     else
     {
       pmeth->state_delta = GNUNET_htonll (GNUNET_PSYC_STATE_NOT_MODIFIED);
+    }
+
+    if (pmeth->flags & GNUNET_PSYC_MASTER_TRANSMIT_STATE_HASH)
+    {
+      /// @todo add state_hash to PSYC header
     }
   }
 }

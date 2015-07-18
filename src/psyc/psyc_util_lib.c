@@ -343,7 +343,7 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Queueing message part of type %u and size %u (end: %u)).\n",
-       ntohs (msg->type), size, end);
+       NULL != msg ? ntohs (msg->type) : 0, size, end);
 
   if (NULL != tmit->msg)
   {
@@ -917,7 +917,8 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     }
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received message part from PSYC.\n");
+                "Received message part of type %u and size %u from PSYC.\n",
+                ptype, psize);
     GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG, pmsg);
 
     switch (ptype)
@@ -1118,7 +1119,7 @@ GNUNET_PSYC_receive_check_parts (uint16_t data_size, const char *data,
                   ptype, psize);
       return GNUNET_SYSERR;
     }
-    /* FIXME: check message part order */
+    /** @todo FIXME: check message part order */
   }
   return parts;
 }

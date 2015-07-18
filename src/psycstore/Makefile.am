@@ -49,6 +49,7 @@ gnunet_service_psycstore_SOURCES = \
 gnunet_service_psycstore_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
   $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \

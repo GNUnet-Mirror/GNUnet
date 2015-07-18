@@ -494,10 +494,6 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
  *        ID of the message that contains the @a modifiers.
  * @param state_delta
  *        Value of the @e state_delta PSYC header variable of the message.
- * @param modifier_count
- *        Number of elements in the @a modifiers array.
- * @param modifiers
- *        List of modifiers to apply.
  * @param rcb
  *        Callback to call with the result of the operation.
  * @param rcb_cls
@@ -510,8 +506,6 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                uint64_t message_id,
                                uint64_t state_delta,
-                               size_t modifier_count,
-                               const struct GNUNET_ENV_Modifier *modifiers,
                                GNUNET_PSYCSTORE_ResultCallback rcb,
                                void *rcb_cls);
 
@@ -523,7 +517,9 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
  *        Handle for the PSYCstore.
  * @param channel_key
  *        The channel we are interested in.
- * @param message_id
+ * @param max_state_message_id
+ *        ID of the last stateful message before @a state_hash_message_id.
+ * @param state_hash_message_id
  *        ID of the message that contains the state_hash PSYC header variable.
  * @param modifier_count
  *        Number of elements in the @a modifiers array.
@@ -539,7 +535,8 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
                              const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                             uint64_t message_id,
+                             uint64_t max_state_message_id,
+                             uint64_t state_hash_message_id,
                              size_t modifier_count,
                              const struct GNUNET_ENV_Modifier *modifiers,
                              GNUNET_PSYCSTORE_ResultCallback rcb,

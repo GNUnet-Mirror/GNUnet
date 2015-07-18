@@ -441,35 +441,24 @@ struct StateModifyRequest
   struct GNUNET_MessageHeader header;
 
   /**
-   * Size of name, including NUL terminator.
-   */
-  uint16_t name_size GNUNET_PACKED;
-
-  /**
-   * OR'd StateOpFlags
-   */
-  uint8_t flags;
-
-  /**
-   * enum GNUNET_ENV_Operator
-   */
-  uint8_t oper;
-
-  /**
    * Operation ID.
    */
   uint64_t op_id GNUNET_PACKED;
 
   /**
+   * ID of the message to apply the state changes in.
+   */
+  uint64_t message_id GNUNET_PACKED;
+
+  /**
+   * State delta of the message with ID @a message_id.
+   */
+  uint64_t state_delta GNUNET_PACKED;
+
+  /**
    * Channel's public key.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
-
-  uint64_t message_id GNUNET_PACKED;
-
-  uint64_t state_delta GNUNET_PACKED;
-
-  /* Followed by NUL-terminated name, then the value. */
 };
 
 
@@ -495,12 +484,20 @@ struct StateSyncRequest
 
   uint8_t reserved;
 
-  uint64_t message_id GNUNET_PACKED;
-
   /**
    * Operation ID.
    */
   uint64_t op_id GNUNET_PACKED;
+
+  /**
+   * ID of the message that contains the state_hash PSYC header variable.
+   */
+  uint64_t state_hash_message_id GNUNET_PACKED;
+
+  /**
+   * ID of the last stateful message before @a state_hash_message_id.
+   */
+  uint64_t max_state_message_id GNUNET_PACKED;
 
   /**
    * Channel's public key.

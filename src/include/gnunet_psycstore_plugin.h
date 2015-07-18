@@ -240,9 +240,10 @@ struct GNUNET_PSYCSTORE_PluginFunctions
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_modify_set) (void *cls,
-                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                       const char *name, const void *value, size_t value_size);
+  (*state_modify_op) (void *cls,
+                      const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                      enum GNUNET_ENV_Operator op,
+                      const char *name, const void *value, size_t value_size);
 
 
   /**
@@ -270,20 +271,20 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                          const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key);
 
   /**
-   * Set the value of a state variable while synchronizing state.
+   * Assign value of a state variable while synchronizing state.
    *
    * The state synchronization process is started with state_sync_begin(),
    * which is followed by one or more calls to this function,
-   * and finished with state_sync_end().
+   * and finished using state_sync_end().
    *
    * @see GNUNET_PSYCSTORE_state_sync()
    *
    * @return #GNUNET_OK on success, else #GNUNET_SYSERR
    */
   int
-  (*state_sync_set) (void *cls,
-                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                     const char *name, const void *value, size_t value_size);
+  (*state_sync_assign) (void *cls,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                        const char *name, const void *value, size_t value_size);
 
 
   /**
@@ -296,7 +297,8 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   int
   (*state_sync_end) (void *cls,
                      const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                     uint64_t message_id);
+                     uint64_t max_state_message_id,
+                     uint64_t state_hash_message_id);
 
 
   /**

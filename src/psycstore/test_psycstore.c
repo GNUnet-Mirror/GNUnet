@@ -224,8 +224,8 @@ state_get_result (void *cls, int64_t result,
   scls.value_size[0] = sizeof ("ten eleven twelve") - 1;
 
   scls.name[1] = "_sync_foo";
-  scls.value[1] = "one two three";
-  scls.value_size[1] = sizeof ("one two three") - 1;
+  scls.value[1] = "three two one";
+  scls.value_size[1] = sizeof ("three two one") - 1;
 
   op = GNUNET_PSYCSTORE_state_get_prefix (h, &channel_pub_key, "_sync",
                                           &state_result,
@@ -253,11 +253,11 @@ counters_result (void *cls, int status, uint64_t max_fragment_id,
   GNUNET_assert (result == 1);
 
   scls.n = 0;
-  scls.name[0] = "_bar";
-  scls.value[0] = "four five six";
-  scls.value_size[0] = sizeof ("four five six") - 1;
+  scls.name[0] = "_sync_bar";
+  scls.value[0] = "ten eleven twelve";
+  scls.value_size[0] = sizeof ("ten eleven twelve") - 1;
 
-  op = GNUNET_PSYCSTORE_state_get (h, &channel_pub_key, "_bar_x_yy_zzz",
+  op = GNUNET_PSYCSTORE_state_get (h, &channel_pub_key, "_sync_bar_x_yy_zzz",
                                    &state_result, &state_get_result, &scls);
 }
 
@@ -284,22 +284,9 @@ state_sync_result (void *cls, int64_t result,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "state_sync_result:\t%d\n", result);
   GNUNET_assert (GNUNET_OK == result);
 
-  modifiers[0] = (struct GNUNET_ENV_Modifier) {
-    .oper = '=',
-    .name = "_sync_foo",
-    .value = "one two three",
-    .value_size = sizeof ("one two three") - 1
-  };
-  modifiers[1] = (struct GNUNET_ENV_Modifier) {
-    .oper = '=',
-    .name = "_bar",
-    .value = "four five six",
-    .value_size = sizeof ("four five six") - 1
-  };
-
   op = GNUNET_PSYCSTORE_state_modify (h, &channel_pub_key,
-                                      GNUNET_ntohll (fcls->msg[0]->message_id), 0,
-                                      2, modifiers, state_modify_result, fcls);
+                                      GNUNET_ntohll (fcls->msg[0]->message_id),
+                                      0, state_modify_result, fcls);
 }
 
 
@@ -356,6 +343,7 @@ message_get_latest_result (void *cls, int64_t result,
 
   op = GNUNET_PSYCSTORE_state_sync (h, &channel_pub_key,
                                     GNUNET_ntohll (fcls->msg[0]->message_id) + 1,
+                                    GNUNET_ntohll (fcls->msg[0]->message_id) + 2,
                                     2, modifiers, state_sync_result, fcls);
 }
 

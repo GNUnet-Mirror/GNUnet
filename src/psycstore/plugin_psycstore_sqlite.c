@@ -35,6 +35,7 @@
 #include "gnunet_psycstore_service.h"
 #include "gnunet_multicast_service.h"
 #include "gnunet_crypto_lib.h"
+#include "gnunet_env_lib.h"
 #include "psycstore.h"
 #include <sqlite3.h>
 
@@ -172,14 +173,8 @@ struct Plugin
    */
   sqlite3_stmt *update_max_state_message_id;
 
-
   /**
-   * Precompiled SQL for message_modify_begin()
-   */
-  sqlite3_stmt *select_message_state_delta;
-
-  /**
-   * Precompiled SQL for state_modify_set()
+   * Precompiled SQL for state_modify_op()
    */
   sqlite3_stmt *insert_state_current;
 
@@ -353,8 +348,8 @@ database_setup (struct Plugin *plugin)
             "CREATE TABLE IF NOT EXISTS channels (\n"
             "  id INTEGER PRIMARY KEY,\n"
             "  pub_key BLOB UNIQUE,\n"
-            "  max_state_message_id INTEGER,\n"
-            "  state_hash_message_id INTEGER\n"
+            "  max_state_message_id INTEGER,\n" // last applied state message ID
+            "  state_hash_message_id INTEGER\n" // last message ID with a state hash
             ");");
 
   sql_exec (plugin->dbh,
@@ -541,17 +536,6 @@ database_setup (struct Plugin *plugin)
                "SET state_hash_message_id = ?\n"
                "WHERE pub_key = ?;",
                &plugin->update_state_hash_message_id);
-
-  sql_prepare (plugin->dbh,
-               "SELECT 1\n"
-               "FROM channels AS c\n"
-               "LEFT JOIN messages AS m\n"
-               "ON c.id = m.channel_id\n"
-               "WHERE c.pub_key = ?\n"
-               "      AND ((? < c.state_hash_message_id AND c.state_hash_message_id < ?)\n"
-               "           OR (m.message_id = ? AND m.psycstore_flags & ?))\n"
-               "LIMIT 1;",
-               &plugin->select_message_state_delta);
 
   sql_prepare (plugin->dbh,
                "INSERT OR REPLACE INTO state\n"
@@ -1447,14 +1431,14 @@ counters_state_get (void *cls,
 
 
 /**
- * Set a state variable to the given value.
+ * Assign a value to a state variable.
  *
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-state_set (struct Plugin *plugin, sqlite3_stmt *stmt,
-           const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-           const char *name, const void *value, size_t value_size)
+state_assign (struct Plugin *plugin, sqlite3_stmt *stmt,
+              const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+              const char *name, const void *value, size_t value_size)
 {
   int ret = GNUNET_SYSERR;
 
@@ -1527,50 +1511,25 @@ state_modify_begin (void *cls,
                     uint64_t message_id, uint64_t state_delta)
 {
   struct Plugin *plugin = cls;
-  sqlite3_stmt *stmt = plugin->select_message_state_delta;
 
   if (state_delta > 0)
   {
-    int ret = GNUNET_SYSERR;
-    if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
-                                        sizeof (*channel_key), SQLITE_STATIC)
-        || SQLITE_OK != sqlite3_bind_int64 (stmt, 2,
-                                            message_id - state_delta)
-        || SQLITE_OK != sqlite3_bind_int64 (stmt, 3,
-                                            message_id)
-        || SQLITE_OK != sqlite3_bind_int64 (stmt, 4,
-                                            message_id - state_delta)
-        || SQLITE_OK != sqlite3_bind_int64 (stmt, 5,
-                                            GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED))
-    {
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_bind");
-    }
-    else
-    {
-      switch (sqlite3_step (stmt))
-      {
-      case SQLITE_DONE:
-        ret = GNUNET_NO;
-        break;
-      case SQLITE_ROW:
-        ret = GNUNET_OK;
-        break;
-      default:
-        LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                    "sqlite3_step");
-      }
-    }
-    if (SQLITE_OK != sqlite3_reset (stmt))
-    {
-      ret = GNUNET_SYSERR;
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_reset");
-     }
+    /**
+     * We can only apply state modifiers in the current message if modifiers in
+     * the previous stateful message (message_id - state_delta) were already
+     * applied.
+     */
+
+    uint64_t max_state_message_id = 0;
+    int ret = counters_state_get (plugin, channel_key, &max_state_message_id);
     if (GNUNET_OK != ret)
       return ret;
+
+    if (message_id - state_delta != max_state_message_id)
+      return GNUNET_NO;
   }
 
+  // Make sure no other transaction is going on.
   if (TRANSACTION_NONE != plugin->transaction)
       if (GNUNET_OK != transaction_rollback (plugin))
           return GNUNET_SYSERR;
@@ -1587,16 +1546,24 @@ state_modify_begin (void *cls,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-state_modify_set (void *cls,
-                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                  const char *name, const void *value, size_t value_size)
+state_modify_op (void *cls,
+                 const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                 enum GNUNET_ENV_Operator op,
+                 const char *name, const void *value, size_t value_size)
 {
   struct Plugin *plugin = cls;
   GNUNET_assert (TRANSACTION_STATE_MODIFY == plugin->transaction);
 
-  return state_set (plugin, plugin->insert_state_current, channel_key,
-                    name, value, value_size);
+  switch (op)
+  {
+  case GNUNET_ENV_OP_ASSIGN:
+    return state_assign (plugin, plugin->insert_state_current, channel_key,
+                         name, value, value_size);
 
+  /// @todo implement more state operations
+  default:
+    return GNUNET_SYSERR;
+  }
 }
 
 
@@ -1634,20 +1601,20 @@ state_sync_begin (void *cls,
 
 
 /**
- * Set the current value of state variable.
+ * Assign current value of a state variable.
  *
  * @see GNUNET_PSYCSTORE_state_modify()
  *
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-state_sync_set (void *cls,
+state_sync_assign (void *cls,
                 const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                 const char *name, const void *value, size_t value_size)
 {
   struct Plugin *plugin = cls;
-  return state_set (cls, plugin->insert_state_sync, channel_key,
-                    name, value, value_size);
+  return state_assign (cls, plugin->insert_state_sync, channel_key,
+                       name, value, value_size);
 }
 
 
@@ -1657,7 +1624,8 @@ state_sync_set (void *cls,
 static int
 state_sync_end (void *cls,
                 const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                uint64_t message_id)
+                uint64_t max_state_message_id,
+                uint64_t state_hash_message_id)
 {
   struct Plugin *plugin = cls;
   int ret = GNUNET_SYSERR;
@@ -1670,7 +1638,10 @@ state_sync_end (void *cls,
                                   channel_key)
     && GNUNET_OK == update_message_id (plugin,
                                        plugin->update_state_hash_message_id,
-                                       channel_key, message_id)
+                                       channel_key, state_hash_message_id)
+    && GNUNET_OK == update_message_id (plugin,
+                                       plugin->update_max_state_message_id,
+                                       channel_key, max_state_message_id)
     && GNUNET_OK == transaction_commit (plugin)
     ? ret = GNUNET_OK
     : transaction_rollback (plugin);
@@ -1679,7 +1650,7 @@ state_sync_end (void *cls,
 
 
 /**
- * Reset the state of a channel.
+ * Delete the whole state.
  *
  * @see GNUNET_PSYCSTORE_state_reset()
  *
@@ -1922,10 +1893,10 @@ libgnunet_plugin_psycstore_sqlite_init (void *cls)
   api->counters_message_get = &counters_message_get;
   api->counters_state_get = &counters_state_get;
   api->state_modify_begin = &state_modify_begin;
-  api->state_modify_set = &state_modify_set;
+  api->state_modify_op = &state_modify_op;
   api->state_modify_end = &state_modify_end;
   api->state_sync_begin = &state_sync_begin;
-  api->state_sync_set = &state_sync_set;
+  api->state_sync_assign = &state_sync_assign;
   api->state_sync_end = &state_sync_end;
   api->state_reset = &state_reset;
   api->state_update_signed = &state_update_signed;
