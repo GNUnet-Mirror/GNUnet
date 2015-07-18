@@ -84,12 +84,25 @@ disk_utilization_change_cb (void *cls, int delta)
 
 
 static void
-test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+test (void *cls,
+      const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+/**
+ * Put continuation.
+ *
+ * @param cls closure
+ * @param key key for the item stored
+ * @param size size of the item stored
+ * @param status #GNUNET_OK or #GNUNET_SYSERROR
+ * @param msg error message on error
+ */
 static void
-put_continuation (void *cls, const struct GNUNET_HashCode *key,
-                  uint32_t size, int status, char *msg)
+put_continuation (void *cls, 
+		  const struct GNUNET_HashCode *key,
+                  uint32_t size, 
+		  int status, 
+		  const char *msg)
 {
   struct CpsRunContext *crc = cls;
   static unsigned long long os;
@@ -238,7 +251,9 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-update_continuation (void *cls, int status, char *msg)
+update_continuation (void *cls, 
+		     int status,
+		     const char *msg)
 {
   struct CpsRunContext *crc = cls;
 
@@ -285,8 +300,12 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                        GNUNET_BLOCK_TYPE_ANY, &iterate_one_shot, crc);
     break;
   case RP_UPDATE:
-    crc->api->update (crc->api->cls, guid, 1, GNUNET_TIME_UNIT_ZERO_ABS,
-                      update_continuation, crc);
+    crc->api->update (crc->api->cls,
+		      guid,
+		      1, 
+		      GNUNET_TIME_UNIT_ZERO_ABS,
+                      &update_continuation, 
+		      crc);
     break;
 
   case RP_ITER_ZERO:

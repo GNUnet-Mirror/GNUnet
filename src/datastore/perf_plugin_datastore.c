@@ -99,12 +99,25 @@ disk_utilization_change_cb (void *cls, int delta)
 
 
 static void
-test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+test (void *cls, 
+      const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+/**
+ * Put continuation.
+ *
+ * @param cls closure
+ * @param key key for the item stored
+ * @param size size of the item stored
+ * @param status #GNUNET_OK or #GNUNET_SYSERROR
+ * @param msg error message on error
+ */
 static void
-put_continuation (void *cls, const struct GNUNET_HashCode *key,
-                  uint32_t size, int status, char *msg)
+put_continuation (void *cls,
+		  const struct GNUNET_HashCode *key,
+                  uint32_t size, 
+		  int status, 
+		  const char *msg)
 {
   struct CpsRunContext *crc = cls;
 

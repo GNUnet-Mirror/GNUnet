@@ -829,9 +829,21 @@ struct PutContext
 };
 
 
+/**
+ * Put continuation.
+ *
+ * @param cls closure
+ * @param key key for the item stored
+ * @param size size of the item stored
+ * @param status #GNUNET_OK or #GNUNET_SYSERROR
+ * @param msg error message on error
+ */
 static void
-put_continuation (void *cls, const struct GNUNET_HashCode *key, uint32_t size,
-                  int status, char *msg)
+put_continuation (void *cls, 
+		  const struct GNUNET_HashCode *key, 
+		  uint32_t size,
+                  int status,
+		  const char *msg)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
@@ -877,7 +889,9 @@ execute_put (struct GNUNET_SERVER_Client *client, const struct DataMessage *dm)
 
 
 static void
-check_present_continuation (void *cls, int status, char *msg)
+check_present_continuation (void *cls, 
+			    int status, 
+			    const char *msg)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
@@ -890,7 +904,7 @@ check_present_continuation (void *cls, int status, char *msg)
  * Function that will check if the given datastore entry
  * matches the put and if none match executes the put.
  *
- * @param cls closure, pointer to the client (of type 'struct PutContext').
+ * @param cls closure, pointer to the client (of type `struct PutContext`).
  * @param key key for the content
  * @param size number of bytes in data
  * @param data content stored
@@ -900,14 +914,18 @@ check_present_continuation (void *cls, int status, char *msg)
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_OK usually
- *         GNUNET_NO to delete the item
+ * @return #GNUNET_OK usually
+ *         #GNUNET_NO to delete the item
  */
 static int
-check_present (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_present (void *cls, 
+	       const struct GNUNET_HashCode *key,
+	       uint32_t size,
+               const void *data, 
+	       enum GNUNET_BLOCK_Type type, 
+	       uint32_t priority,
+               uint32_t anonymity, 
+	       struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct PutContext *pc = cls;
@@ -932,10 +950,12 @@ check_present (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
     if ((ntohl (dm->priority) > 0) ||
         (GNUNET_TIME_absolute_ntoh (dm->expiration).abs_value_us >
          expiration.abs_value_us))
-      plugin->api->update (plugin->api->cls, uid,
+      plugin->api->update (plugin->api->cls, 
+			   uid,
                            (int32_t) ntohl (dm->priority),
                            GNUNET_TIME_absolute_ntoh (dm->expiration),
-                           check_present_continuation, pc->client);
+                           &check_present_continuation,
+			   pc->client);
     else
     {
       transmit_status (pc->client, GNUNET_NO, NULL);
@@ -1008,8 +1028,13 @@ handle_put (void *cls, struct GNUNET_SERVER_Client *client,
     pc->client = client;
     GNUNET_SERVER_client_keep (client);
     memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
-    plugin->api->get_key (plugin->api->cls, 0, &dm->key, &vhash,
-                          ntohl (dm->type), &check_present, pc);
+    plugin->api->get_key (plugin->api->cls,
+			  0, 
+			  &dm->key, 
+			  &vhash,
+                          ntohl (dm->type),
+			  &check_present, 
+			  pc);
     return;
   }
   execute_put (client, dm);
@@ -1069,7 +1094,9 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 static void
-update_continuation (void *cls, int status, char *msg)
+update_continuation (void *cls, 
+		     int status, 
+		     const char *msg)
 {
   struct GNUNET_SERVER_Client *client = cls;
 

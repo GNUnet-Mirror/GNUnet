@@ -48,7 +48,9 @@
  * @param delta change in disk utilization,
  *        0 for "reset to empty"
  */
-typedef void (*DiskUtilizationChange) (void *cls, int delta);
+typedef void 
+(*GNUNET_DATASTORE_DiskUtilizationChange) (void *cls, 
+					   int delta);
 
 
 /**
@@ -66,7 +68,7 @@ struct GNUNET_DATASTORE_PluginEnvironment
   /**
    * Function to call on disk utilization change.
    */
-  DiskUtilizationChange duc;
+  GNUNET_DATASTORE_DiskUtilizationChange duc;
 
   /**
    * Closure.
@@ -91,12 +93,17 @@ struct GNUNET_DATASTORE_PluginEnvironment
  * @return #GNUNET_OK to keep the item
  *         #GNUNET_NO to delete the item
  */
-typedef int (*PluginDatumProcessor) (void *cls, const struct GNUNET_HashCode * key,
-                                     uint32_t size, const void *data,
-                                     enum GNUNET_BLOCK_Type type,
-                                     uint32_t priority, uint32_t anonymity,
-                                     struct GNUNET_TIME_Absolute expiration,
-                                     uint64_t uid);
+typedef int 
+(*PluginDatumProcessor) (void *cls, 
+			 const struct GNUNET_HashCode *key,
+			 uint32_t size, 
+			 const void *data,
+			 enum GNUNET_BLOCK_Type type,
+			 uint32_t priority, 
+			 uint32_t anonymity,
+			 struct GNUNET_TIME_Absolute expiration,
+			 uint64_t uid);
+
 
 /**
  * Get an estimate of how much space the database is
@@ -109,7 +116,9 @@ typedef int (*PluginDatumProcessor) (void *cls, const struct GNUNET_HashCode * k
  * @param estimate location to store estimate
  * @return number of bytes used on disk
  */
-typedef void (*PluginEstimateSize) (void *cls, unsigned long long *estimate);
+typedef void
+(*PluginEstimateSize) (void *cls,
+		       unsigned long long *estimate);
 
 
 /**
@@ -118,11 +127,15 @@ typedef void (*PluginEstimateSize) (void *cls, unsigned long long *estimate);
  * @param cls closure
  * @param key key for the item stored
  * @param size size of the item stored
- * @param status GNUNET_OK or GNUNET_SYSERROR
+ * @param status #GNUNET_OK or #GNUNET_SYSERROR
  * @param msg error message on error
  */
-typedef void (*PluginPutCont) (void *cls, const struct GNUNET_HashCode *key,
-                               uint32_t size, int status, char *msg);
+typedef void 
+(*PluginPutCont) (void *cls, 
+		  const struct GNUNET_HashCode *key,
+		  uint32_t size,
+		  int status, 
+		  const char *msg);
 
 
 /**
@@ -140,15 +153,19 @@ typedef void (*PluginPutCont) (void *cls, const struct GNUNET_HashCode *key,
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param cont continuation called with success or failure status
- * @param cont_cls continuation closure
+ * @param cont_cls continuation closure for @a cont
  */
-typedef void (*PluginPut) (void *cls, const struct GNUNET_HashCode * key,
-                           uint32_t size,
-                           const void *data, enum GNUNET_BLOCK_Type type,
-                           uint32_t priority, uint32_t anonymity,
-                           uint32_t replication,
-                           struct GNUNET_TIME_Absolute expiration,
-                           PluginPutCont cont, void *cont_cls);
+typedef void 
+(*PluginPut) (void *cls, const struct GNUNET_HashCode *key,
+	      uint32_t size,
+	      const void *data,
+	      enum GNUNET_BLOCK_Type type,
+	      uint32_t priority, 
+	      uint32_t anonymity,
+	      uint32_t replication,
+	      struct GNUNET_TIME_Absolute expiration,
+	      PluginPutCont cont, 
+	      void *cont_cls);
 
 
 /**
@@ -158,9 +175,10 @@ typedef void (*PluginPut) (void *cls, const struct GNUNET_HashCode * key,
  * @param key key in the data store, if NULL iteration is finished
  * @param count how many values are stored under this key in the datastore
  */
-typedef void (*PluginKeyProcessor) (void *cls,
-				    const struct GNUNET_HashCode *key,
-				    unsigned int count);
+typedef void 
+(*PluginKeyProcessor) (void *cls,
+		       const struct GNUNET_HashCode *key,
+		       unsigned int count);
 
 
 /**
@@ -170,8 +188,9 @@ typedef void (*PluginKeyProcessor) (void *cls,
  * @param proc function to call on each key
  * @param proc_cls closure for @a proc
  */
-typedef void (*PluginGetKeys) (void *cls,
-			       PluginKeyProcessor proc, void *proc_cls);
+typedef void
+(*PluginGetKeys) (void *cls,
+		  PluginKeyProcessor proc, void *proc_cls);
 
 
 /**
@@ -192,11 +211,14 @@ typedef void (*PluginGetKeys) (void *cls,
  *        proc should be called with NULL if there is no result
  * @param proc_cls closure for @a proc
  */
-typedef void (*PluginGetKey) (void *cls, uint64_t offset,
-                              const struct GNUNET_HashCode * key,
-                              const struct GNUNET_HashCode * vhash,
-                              enum GNUNET_BLOCK_Type type,
-                              PluginDatumProcessor proc, void *proc_cls);
+typedef void 
+(*PluginGetKey) (void *cls, 
+		 uint64_t offset,
+		 const struct GNUNET_HashCode *key,
+		 const struct GNUNET_HashCode *vhash,
+		 enum GNUNET_BLOCK_Type type,
+		 PluginDatumProcessor proc,
+		 void *proc_cls);
 
 
 /**
@@ -209,18 +231,23 @@ typedef void (*PluginGetKey) (void *cls, uint64_t offset,
  * @param proc function to call the value (once only).
  * @param proc_cls closure for @a proc
  */
-typedef void (*PluginGetRandom) (void *cls, PluginDatumProcessor proc,
-                                 void *proc_cls);
+typedef void 
+(*PluginGetRandom) (void *cls, 
+		    PluginDatumProcessor proc,
+		    void *proc_cls);
 
 
 /**
  * Update continuation.
  *
  * @param cls closure
- * @param status GNUNET_OK or GNUNET_SYSERROR
+ * @param status #GNUNET_OK or #GNUNET_SYSERROR
  * @param msg error message on error
  */
-typedef void (*PluginUpdateCont) (void *cls, int status, char *msg);
+typedef void 
+(*PluginUpdateCont) (void *cls, 
+		     int status,
+		     const char *msg);
 
 
 /**
@@ -243,9 +270,13 @@ typedef void (*PluginUpdateCont) (void *cls, int status, char *msg);
  * @param cont continuation called with success or failure status
  * @param cons_cls continuation closure
  */
-typedef void (*PluginUpdate) (void *cls, uint64_t uid, int delta,
-                              struct GNUNET_TIME_Absolute expire,
-                              PluginUpdateCont cont, void *cont_cls);
+typedef void 
+(*PluginUpdate) (void *cls,
+		 uint64_t uid,
+		 int delta,
+		 struct GNUNET_TIME_Absolute expire,
+		 PluginUpdateCont cont, 
+		 void *cont_cls);
 
 
 /**
@@ -260,9 +291,12 @@ typedef void (*PluginUpdate) (void *cls, uint64_t uid, int delta,
  * @param proc function to call on the matching value
  * @param proc_cls closure for @a proc
  */
-typedef void (*PluginGetType) (void *cls, uint64_t offset,
-                               enum GNUNET_BLOCK_Type type,
-                               PluginDatumProcessor proc, void *proc_cls);
+typedef void 
+(*PluginGetType) (void *cls,
+		  uint64_t offset,
+		  enum GNUNET_BLOCK_Type type,
+		  PluginDatumProcessor proc,
+		  void *proc_cls);
 
 
 /**
@@ -270,8 +304,8 @@ typedef void (*PluginGetType) (void *cls, uint64_t offset,
  *
  * @param cls closure
  */
-typedef void (*PluginDrop) (void *cls);
-
+typedef void 
+(*PluginDrop) (void *cls);
 
 
 /**
