@@ -1381,6 +1381,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
        method,
        url);
   stc.tag = 0;
+  options = 0; /* make gcc happy */
   if (GNUNET_SYSERR ==
       server_parse_url (plugin, url, &target, &stc.tag, &options))
   {

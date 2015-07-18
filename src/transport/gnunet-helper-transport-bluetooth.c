@@ -1667,24 +1667,30 @@ main (int argc, char *argv[])
     int stdin_open;
     struct MessageStreamTokenizer *stdin_mst;
     int raw_eno, i;
-    uid_t uid;
     int crt_rfds = 0, rfds_list[MAX_PORTS];
     int broadcast, sendsocket;
+
     /* Assert privs so we can modify the firewall rules! */
-    uid = getuid ();
-  #ifdef HAVE_SETRESUID
-    if (0 != setresuid (uid, 0, 0))
     {
-      fprintf (stderr, "Failed to setresuid to root: %s\n", strerror (errno));
-      return 254;
+#ifdef HAVE_SETRESUID
+      uid_t uid = getuid ();
+
+      if (0 != setresuid (uid, 0, 0))
+      {
+	fprintf (stderr, 
+		 "Failed to setresuid to root: %s\n",
+		 strerror (errno));
+	return 254;
+      }
+#else
+      if (0 != seteuid (0))
+      {
+	fprintf (stderr, 
+		 "Failed to seteuid back to root: %s\n", strerror (errno));
+	return 254;
+      }
+#endif
     }
-  #else
-    if (0 != seteuid (0))
-    {
-      fprintf (stderr, "Failed to seteuid back to root: %s\n", strerror (errno));
-      return 254;
-    }
-  #endif
 
     /* Make use of SGID capabilities on POSIX */
     memset (&dev, 0, sizeof (dev));
