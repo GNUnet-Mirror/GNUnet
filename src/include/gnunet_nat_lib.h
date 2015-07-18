@@ -170,6 +170,8 @@ enum GNUNET_NAT_StatusCode
    */
   GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND,
 
+
+
   /**
    *
    */
@@ -217,7 +219,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const socklen_t *addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
-                     void *callback_cls);
+                     void *callback_cls,
+                     struct GNUNET_NETWORK_Handle* sock );
 
 
 /**
@@ -455,22 +458,43 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah);
 
+/**
+ * Handle for active STUN Requests.
+ */
+struct GNUNET_NAT_STUN_Handle;
 
-struct GNUNET_NAT_StunRequestHandle;
+
+
+
+/**
+ * Function called with the result from NAT request.
+ *
+ * @param cls closure
+ * @param diff minimal suggested changes to the original configuration
+ *             to make it work (as best as we can)
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ */
+typedef void
+(*GNUNET_NAT_stun_RequestCallback)(void *cls,
+                                 enum GNUNET_NAT_StatusCode result);
+
 
 /**
  * Make Generic STUN request and
  * Send a generic stun request to the server specified using the specified socket.
  * possibly waiting for a reply and filling the 'reply' field with
  * the externally visible address.
- *c
+ *
+
  * @param server, the address of the stun server
  * @param port, port of the stun server
  * @param sock the socket used to send the request
- * @return GNUNET_NAT_StunRequestHandle on success, NULL on error.
+ * @return GNUNET_NAT_STUN_Handle on success, NULL on error.
  */
-struct GNUNET_NAT_StunRequestHandle *
-GNUNET_NAT_stun_make_request(char * server, int port, struct GNUNET_NETWORK_Handle * sock);
+struct GNUNET_NAT_STUN_Handle *
+GNUNET_NAT_stun_make_request(char * server, int port,
+                             struct GNUNET_NETWORK_Handle * sock, GNUNET_NAT_stun_RequestCallback cb,
+                             void *cb_cls);
 
 
 /**
@@ -488,6 +512,20 @@ GNUNET_NAT_stun_make_request(char * server, int port, struct GNUNET_NETWORK_Hand
  */
 int
 GNUNET_NAT_stun_handle_packet(const uint8_t *data, size_t len,struct sockaddr_in *arg);
+
+/**
+ * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet
+ *
+ * @param cls, NAT callback
+ * @param data, pointer where we will set the type
+ * @param len, pointer where we will set the type
+ * @param st, pointer where we will set the type
+ *
+ * @return, 0 on IGNORE, -1 if the packet is invalid ( not a stun packet)
+ */
+int
+GNUNET_NAT_try_decode_stun_packet(void *cls, const uint8_t *data, size_t len);
+
 
 
 #endif

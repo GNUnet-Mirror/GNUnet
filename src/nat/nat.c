@@ -57,6 +57,12 @@
 
 
 /**
+ * How often do we check a STUN server ?
+ */
+#define STUN_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 2)
+
+
+/**
  * Where did the given local address originate from?
  * To be used for debugging as well as in the future
  * to remove all addresses from a certain source when
@@ -164,6 +170,35 @@ struct MiniList
 
   /**
    * Local port number that was mapped.
+   */
+  uint16_t port;
+
+};
+
+
+/**
+ * List of STUN servers
+ */
+struct StunServerList
+{
+
+  /**
+   * Doubly-linked list.
+   */
+  struct StunServerList *next;
+
+  /**
+   * Doubly-linked list.
+   */
+  struct StunServerList *prev;
+
+  /**
+   * Address
+   */
+  char * address;
+
+  /**
+   * Server Port
    */
   uint16_t port;
 
@@ -366,6 +401,46 @@ struct GNUNET_NAT_Handle
    */
   uint16_t adv_port;
 
+  /**
+   * Should we use STUN ?
+   */
+  int use_stun;
+
+  /**
+   * How often should se check STUN ?
+   */
+  struct GNUNET_TIME_Relative stun_frequency;
+
+  /**
+   * STUN socket
+   */
+  struct GNUNET_NETWORK_Handle* socket;
+
+  /*
+   * Am I waiting for a STUN response ?
+   */
+  int waiting_stun;
+
+  /**
+   * STUN request task
+   */
+  struct GNUNET_SCHEDULER_Task * stun_task;
+
+  /**
+   * Head of List of STUN servers
+   */
+  struct StunServerList *stun_servers_head;
+
+  /**
+   * Tail of List of STUN servers
+   */
+  struct StunServerList *stun_servers_tail;
+
+  /**
+   * Actual STUN Server
+   */
+  struct StunServerList *actual_stun_server;
+
 };
 
 
@@ -377,6 +452,20 @@ struct GNUNET_NAT_Handle
  */
 static void
 start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
+
+
+
+
+/**
+ * Call task to process STUN
+ *
+ * @param cls handle to NAT
+ * @param tc TaskContext
+ */
+
+static void
+process_stun (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -1013,6 +1102,113 @@ list_interfaces (void *cls,
 }
 
 
+
+/**
+ * Callback if the STun request have a error
+ *
+ * @param cls the NAT handle
+ * @param result , the status
+ */
+static void stun_request_callback(void *cls,
+                                  enum GNUNET_NAT_StatusCode result)
+{
+
+  struct GNUNET_NAT_Handle *h = cls;
+
+  h->waiting_stun = GNUNET_NO;
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Error processing a STUN request");
+
+};
+
+/**
+ * Check if STUN can decode the packet
+ *
+ * @param cls the NAT handle
+ * @param data, packet
+ * @param len, packet lenght
+ *
+ * @return GNUNET_NO if it can't decode, GNUNET_YES if is a packet
+ */
+int
+GNUNET_NAT_try_decode_stun_packet(void *cls, const uint8_t *data, size_t len)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+  struct sockaddr_in answer;
+
+  /* We are not expecting a STUN message*/
+  if(!h->waiting_stun)
+    return GNUNET_NO;
+
+  /* Empty the answer structure */
+  memset(&answer, 0, sizeof(struct sockaddr_in));
+
+  /*Lets handle the packet*/
+  int valid = GNUNET_NAT_stun_handle_packet(data,len, &answer);
+  if(valid)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Stun server returned IP %s , with port %d \n", inet_ntoa(answer.sin_addr), ntohs(answer.sin_port));
+    /* ADD IP AS VALID*/
+    add_to_address_list (h, LAL_EXTERNAL_IP, (const struct sockaddr *) &answer,
+                         sizeof (struct sockaddr_in));
+    h->waiting_stun = GNUNET_NO;
+    return GNUNET_YES;
+  }
+  else
+  {
+    return GNUNET_NO;
+  }
+
+
+
+}
+
+/**
+ * Task to do a STUN request
+ *
+ * @param cls the NAT handle
+ * @param tc scheduler context
+ */
+static void
+process_stun (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_Handle *h = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "I will do a STUN request\n");
+
+
+  h->stun_task = NULL;
+  h->waiting_stun = GNUNET_YES;
+
+  struct StunServerList* elem = h->actual_stun_server;
+
+  /* Make the request */
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "I will request the stun server %s:%i !\n", elem->address, elem->port);
+
+  GNUNET_NAT_stun_make_request(elem->address, elem->port, h->socket, &stun_request_callback, NULL);
+
+  h->stun_task =
+          GNUNET_SCHEDULER_add_delayed (h->stun_frequency,
+                                        &process_stun, h);
+
+  /* Set actual Server*/
+  if(elem->next)
+  {
+    h->actual_stun_server = elem->next;
+  }
+  else
+  {
+    h->actual_stun_server = h->stun_servers_head;
+  }
+
+}
+
+
+
 /**
  * Task to do a lookup on our hostname for IP addresses.
  *
@@ -1242,6 +1438,7 @@ add_from_bind (struct GNUNET_NAT_Handle *h)
  * @param address_callback function to call everytime the public IP address changes
  * @param reversal_callback function to call if someone wants connection reversal from us
  * @param callback_cls closure for callbacks
+ * @param sock used socket
  * @return NULL on error, otherwise handle that can be used to unregister
  */
 struct GNUNET_NAT_Handle *
@@ -1253,7 +1450,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      const socklen_t *addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
-                     void *callback_cls)
+                     void *callback_cls,
+                     struct GNUNET_NETWORK_Handle* sock )
 {
   struct GNUNET_NAT_Handle *h;
   struct in_addr in_addr;
@@ -1355,6 +1553,17 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     h->enable_upnp = GNUNET_NO;
   }
 
+  /* STUN */
+  h->use_stun =
+          GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat",
+                                                "USE_STUN");
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "nat", "STUN_FREQUENCY",
+                                           &h->stun_frequency))
+    h->stun_frequency = STUN_FREQUENCY;
+
+
   /* Check if NAT was hole-punched */
   if ((NULL != h->address_callback) &&
       (NULL != h->external_address) &&
@@ -1363,12 +1572,102 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     h->dns_task = GNUNET_SCHEDULER_add_now (&resolve_dns, h);
     h->enable_nat_server = GNUNET_NO;
     h->enable_upnp = GNUNET_NO;
+    h->use_stun = GNUNET_NO;
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "No external IP address given to add to our list of addresses\n");
   }
+
+  /* ENABLE STUN ONLY ON UDP*/
+  if(!is_tcp && (NULL != sock) && h->use_stun  ) {
+    h->socket = sock;
+    h->actual_stun_server = NULL;
+
+    /* Lets process the servers*/
+    char *stun_servers;
+
+    size_t urls;
+    int pos;
+    size_t pos_port;
+
+    if (GNUNET_OK !=
+        GNUNET_CONFIGURATION_get_value_string (cfg, "nat", "STUN_SERVERS",
+                                               &stun_servers))
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+                                 "nat", "STUN_SERVERS");
+    }
+
+    urls = 0;
+    h->stun_servers_head = NULL;
+    h->stun_servers_tail = NULL;
+    h->actual_stun_server = NULL;
+    if (strlen (stun_servers) > 0)
+    {
+      pos = strlen (stun_servers) - 1;
+      pos_port = 0;
+      while (pos >= 0)
+      {
+        if (stun_servers[pos] == ':')
+        {
+          pos_port = pos + 1;
+        }
+        if ((stun_servers[pos] == ' ') || (0 == pos))
+        {
+
+          /*Check if we do have a port*/
+          if((0 == pos_port) || (pos_port <= pos))
+          {
+            LOG (GNUNET_ERROR_TYPE_WARNING,
+                 "STUN server format mistake\n");
+            break;
+          }
+
+          urls++;
+
+          struct StunServerList* ml = GNUNET_new (struct StunServerList);
+
+          ml->next = NULL;
+          ml->prev = NULL;
+
+          ml->port = atoi(&stun_servers[pos_port]);
+          stun_servers[pos_port-1] = '\0';
+
+          /* Remove trailing space */
+          if(stun_servers[pos] == ' ')
+            ml->address = GNUNET_strdup (&stun_servers[pos + 1]);
+          else
+            ml->address = GNUNET_strdup (&stun_servers[pos]);
+
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "Found STUN server %s port %i !!!\n", ml->address, ml->port);
+
+          GNUNET_CONTAINER_DLL_insert (h->stun_servers_head, h->stun_servers_tail, ml);
+          /* Make sure that we STOP if is the last one*/
+          if(0== pos)
+            break;
+        }
+
+        pos--;
+      }
+    }
+    if (urls == 0)
+    {
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
+                                 "nat", "STUN_SERVERS");
+    }
+    else
+    {
+      /* Set the actual STUN server*/
+      h->actual_stun_server = h->stun_servers_head;
+    }
+
+    h->stun_task = GNUNET_SCHEDULER_add_now(&process_stun,
+                                            h);
+  }
+
 
   /* Test for SUID binaries */
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");

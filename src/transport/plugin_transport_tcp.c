@@ -2960,7 +2960,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                              (const struct sockaddr **) addrs, addrlens,
                              &tcp_nat_port_map_callback,
                              &try_connection_reversal,
-                             plugin);
+                             plugin, NULL);
     for (ret = ret_s -1; ret >= 0; ret--)
       GNUNET_free (addrs[ret]);
     GNUNET_free_non_null (addrs);
@@ -2976,7 +2976,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
                                        NULL,
                                        NULL,
                                        &try_connection_reversal,
-                                       plugin);
+                                       plugin,
+                                       NULL);
   }
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;

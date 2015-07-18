@@ -444,7 +444,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       = GNUNET_NAT_register (cfg, is_tcp, 0, 0, 
 			     NULL, NULL,
 			     &addr_cb,
-                             &reversal_cb, nh);
+                             &reversal_cb, nh, NULL);
   }
   else
   {
@@ -490,7 +490,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
     nh->nat = GNUNET_NAT_register (cfg, is_tcp, adv_port, 1,
                                    addrs, addrlens,
-                                   &addr_cb, NULL, nh);
+                                   &addr_cb, NULL, nh, NULL);
     if (NULL == nh->nat)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,

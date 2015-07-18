@@ -143,7 +143,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   nat = GNUNET_NAT_register (cfg, GNUNET_YES /* tcp */ ,
                              2086, 1, (const struct sockaddr **) &addr,
-                             &data.addrlen, &addr_callback, NULL, NULL);
+                             &data.addrlen, &addr_callback, NULL, NULL, NULL);
   GNUNET_free (addr);
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, nat);
 }

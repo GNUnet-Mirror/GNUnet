@@ -2761,7 +2761,7 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
                            plugin->port,
                            (unsigned int) res,
                            (const struct sockaddr **) addrs, addrlens,
-                           &server_nat_port_map_callback, NULL, plugin);
+                           &server_nat_port_map_callback, NULL, plugin, NULL);
   while (res > 0)
   {
     res--;

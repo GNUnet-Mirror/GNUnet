@@ -58,7 +58,7 @@ try_anat (uint32_t dst_ipv4, uint16_t dport, int is_tcp)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Asking for connection reversal with %x and code %u\n",
               (unsigned int) dst_ipv4, (unsigned int) dport);
-  h = GNUNET_NAT_register (cfg, is_tcp, dport, 0, NULL, NULL, NULL, NULL, NULL);
+  h = GNUNET_NAT_register (cfg, is_tcp, dport, 0, NULL, NULL, NULL, NULL, NULL, NULL);
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
 #if HAVE_SOCKADDR_IN_SIN_LEN

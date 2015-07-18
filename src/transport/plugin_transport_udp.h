@@ -190,6 +190,11 @@ struct Plugin
   struct GNUNET_NAT_Handle *nat;
 
   /**
+   * Handle to NAT traversal support.
+   */
+  struct GNUNET_NAT_STUN_Handle *stun;
+  
+  /**
    * The read socket for IPv4
    */
   struct GNUNET_NETWORK_Handle *sockv4;

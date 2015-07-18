@@ -2854,6 +2854,13 @@ udp_select_read (struct Plugin *plugin,
     /* Connection failure or something. Not a protocol violation. */
     return;
   }
+
+
+  /* PROCESS STUN PACKET */
+  if(GNUNET_NAT_try_decode_stun_packet(plugin->nat,(uint8_t *)buf, size ))
+    return;
+
+
   if (size < sizeof(struct GNUNET_MessageHeader))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -2866,6 +2873,10 @@ udp_select_read (struct Plugin *plugin,
     GNUNET_break_op (0);
     return;
   }
+
+
+
+
   msg = (const struct GNUNET_MessageHeader *) buf;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "UDP received %u-byte message from `%s' type %u\n",
@@ -3533,7 +3544,8 @@ setup_sockets (struct Plugin *plugin,
                                      addrlens,
                                      &udp_nat_port_map_callback,
                                      NULL,
-                                     plugin);
+                                     plugin,
+                                     plugin->sockv4);
   return sockets_created;
 }
 

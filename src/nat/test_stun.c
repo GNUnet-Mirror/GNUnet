@@ -23,7 +23,7 @@
  *
  * @file nat/test_stun.c
  * @brief Testcase for STUN library
- * @author Bruno Souza Cabral - Major rewrite.
+ * @author Bruno Souza Cabral
 
  *
  */
@@ -40,13 +40,19 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "test-stun", __VA_ARGS__)
 
 /**
+ * Time to wait before stopping NAT, in seconds
+ */
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+
+
+/**
  * The port the test service is running on (default 7895)
  */
 static unsigned long port = 7895;
 static int ret = 1;
 
-static char *stun_server = "stun.ekiga.net";
-static int stun_port = 3478;
+static char *stun_server = "stun2.l.google.com";
+static int stun_port = 19302;
 
 /**
  * The listen socket of the service for IPv4
@@ -85,23 +91,26 @@ do_udp_read (void *cls,
 	ssize_t rlen;
 	struct sockaddr_in answer;
 
+    printf("UDP READ\n");
+
 
     if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                    lsock4)))
 	{
 		rlen = GNUNET_NETWORK_socket_recv (lsock4, reply_buf, sizeof (reply_buf));
-		
+
 		
 		//Lets handle the packet
 		memset(&answer, 0, sizeof(struct sockaddr_in));
         GNUNET_NAT_stun_handle_packet(reply_buf,rlen, &answer);
 
 		//Print the answer
-		//TODO: Delete the object
 		ret = 0;
 		print_answer(&answer);
-		
+
+        //Destroy the connection
+        GNUNET_NETWORK_socket_close(lsock4);
 		
 	}
 
@@ -144,13 +153,38 @@ bind_v4 ()
     return ls;
 }
 
+/**
+ * Function that terminates the test.
+ */
+static void
+stop ()
+{
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
+
+    printf("Stopped !!\n");
+    //Clean task
+    if(NULL != ltask4)
+        GNUNET_SCHEDULER_cancel (ltask4);
+
+    //Clean socket
+    if(NULL != ltask4)
+        GNUNET_NETWORK_socket_close (lsock4);
+
+}
+
+
+static void request_callback(void *cls,
+enum GNUNET_NAT_StatusCode result)
+{
+    ret = result;
+    stop();
+    printf("Called back\n");
+};
 
 
 /**
  * Main function run with scheduler.
  */
-
-
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -162,29 +196,26 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (NULL == lsock4)
     {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+        GNUNET_SCHEDULER_shutdown ();
+        return;
     }
     else
     {
-		printf("Binded, now will call add_read\n");
         //Lets call our function now when it accepts
         ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 lsock4, &do_udp_read, NULL);
         /* So you read once and what will happen if you get an irregular message? Repeat and add timeout */
 
     }
-    if(NULL == lsock4 )
-    {
-    	/* FIXME: duplicate check  */
-        GNUNET_SCHEDULER_shutdown ();
-        return;
-    }
+
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Service listens on port %u\n",
                 port);
 	printf("Start main event\n");
-    GNUNET_NAT_stun_make_request(stun_server, stun_port, lsock4);
-    //Main event
-    //main_task = GNUNET_SCHEDULER_add_delayed (timeout, &do_timeout, nh);
+    GNUNET_NAT_stun_make_request(stun_server, stun_port, lsock4, &request_callback, NULL);
+    printf("Made the requeest\n");
+
+    //GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, NULL);
 
 }
 
@@ -198,13 +229,38 @@ main (int argc, char *const argv[])
 
     char *const argv_prog[] = {
         "test-stun",
+        "-c",
+        "test_stun.conf",
         NULL
     };
     GNUNET_log_setup ("test-stun",
                       "WARNING",
                       NULL);
 
-    GNUNET_PROGRAM_run (1, argv_prog, "test-stun", "nohelp", options, &run, NULL);
+    /* Lets start resolver */
+    char *fn;
+    struct GNUNET_OS_Process *proc;
+
+    fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
+    proc = GNUNET_OS_start_process (GNUNET_YES,
+                                    GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                    NULL, NULL, NULL,
+                                    fn,
+                                    "gnunet-service-resolver",
+                                    "-c", "test_stun.conf", NULL);
+    GNUNET_assert (NULL != proc);
+
+    GNUNET_PROGRAM_run (3, argv_prog, "test-stun", "nohelp", options, &run, NULL);
+
+    /* Now kill the resolver */
+    if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
+    {
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
+    }
+    GNUNET_OS_process_wait (proc);
+    GNUNET_OS_process_destroy (proc);
+    proc = NULL;
+
     
 	return ret;
 }
