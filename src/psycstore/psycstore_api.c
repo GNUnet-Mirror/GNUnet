@@ -1180,10 +1180,14 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
  * The current value of counters are needed when a channel master is restarted,
  * so that it can continue incrementing the counters from their last value.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key Public key that identifies the channel.
- * @param ccb Callback to call with the result.
- * @param ccb_cls Closure for the @a ccb callback.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        Public key that identifies the channel.
+ * @param ccb
+ *        Callback to call with the result.
+ * @param ccb_cls
+ *        Closure for the @a ccb callback.
  *
  * @return Handle that can be used to cancel the operation.
  */
@@ -1222,14 +1226,22 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
  * An error is returned if there are missing messages containing state
  * operations before the current one.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param message_id ID of the message that contains the @a modifiers.
- * @param state_delta Value of the _state_delta PSYC header variable of the message.
- * @param modifier_count Number of elements in the @a modifiers array.
- * @param modifiers List of modifiers to apply.
- * @param rcb Callback to call with the result of the operation.
- * @param rcb_cls Closure for the @a rcb callback.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param message_id
+ *        ID of the message that contains the @a modifiers.
+ * @param state_delta
+ *        Value of the _state_delta PSYC header variable of the message.
+ * @param modifier_count
+ *        Number of elements in the @a modifiers array.
+ * @param modifiers
+ *        List of modifiers to apply.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param rcb_cls
+ *        Closure for the @a rcb callback.
  *
  * @return Handle that can be used to cancel the operation.
  */
@@ -1292,13 +1304,20 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Store synchronized state.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param message_id ID of the message that contains the state_hash PSYC header variable.
- * @param modifier_count Number of elements in the @a modifiers array.
- * @param modifiers Full state to store.
- * @param rcb Callback to call with the result of the operation.
- * @param rcb_cls Closure for the callback.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param message_id
+ *        ID of the message that contains the state_hash PSYC header variable.
+ * @param modifier_count
+ *        Number of elements in the @a modifiers array.
+ * @param modifiers
+ *        Full state to store.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param rcb_cls
+ *        Closure for the callback.
  *
  * @return Handle that can be used to cancel the operation.
  */
@@ -1357,10 +1376,14 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
  *
  * Delete all state variables stored for the given channel.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param rcb Callback to call with the result of the operation.
- * @param rcb_cls Closure for the callback.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param rcb_cls
+ *        Closure for the callback.
  *
  * @return Handle that can be used to cancel the operation.
  */
@@ -1398,13 +1421,18 @@ GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Update signed values of state variables in the state store.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param message_id Message ID that contained the state @a hash.
- * @param hash Hash of the serialized full state.
- * @param rcb Callback to call with the result of the operation.
- * @param rcb_cls Closure for the callback.
- *
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param message_id
+ *        Message ID that contained the state @a hash.
+ * @param hash
+ *        Hash of the serialized full state.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param rcb_cls
+ *        Closure for the callback.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
@@ -1441,12 +1469,18 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Retrieve the best matching state variable.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param name Name of variable to match, the returned variable might be less specific.
- * @param scb Callback to return the matching state variable.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param name
+ *        Name of variable to match, the returned variable might be less specific.
+ * @param scb
+ *        Callback to return the matching state variable.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
@@ -1488,12 +1522,18 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Retrieve all state variables for a channel with the given prefix.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param name_prefix Prefix of state variable names to match.
- * @param scb Callback to return matching state variables.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param name_prefix
+ *        Prefix of state variable names to match.
+ * @param scb
+ *        Callback to return matching state variables.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
