@@ -824,17 +824,25 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     memcpy (&cbuf[off], pending->msg, msize);
     off += msize;
     peer->pending_count--;
-    GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, pending);
+    GNUNET_CONTAINER_DLL_remove (peer->head, 
+				 peer->tail,
+				 pending);
     GNUNET_free (pending);
   }
-  if (peer->head != NULL)
+  if (NULL != (pending = peer->head))
   {
+    /* technically redundant, but easier to read and
+       avoids bogus gcc warning... */
+    msize = ntohs (pending->msg->size);
     peer->th =
-        GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
-                                           GNUNET_CORE_PRIO_BEST_EFFORT,
-                                           GNUNET_TIME_absolute_get_remaining
-                                           (pending->timeout), &peer->id, msize,
-                                           &core_transmit_notify, peer);
+      GNUNET_CORE_notify_transmit_ready (core_api, 
+					 GNUNET_NO,
+					 GNUNET_CORE_PRIO_BEST_EFFORT,
+					 GNUNET_TIME_absolute_get_remaining (pending->timeout), 
+					 &peer->id,
+					 msize,
+					 &core_transmit_notify, 
+					 peer);
     GNUNET_break (NULL != peer->th);
   }
   return off;
