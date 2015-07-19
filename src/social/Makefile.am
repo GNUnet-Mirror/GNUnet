@@ -25,7 +25,7 @@ libgnunetsocial_la_SOURCES = \
 libgnunetsocial_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
+  $(top_builddir)/src/psycstore/libgnunetpsycutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/gns/libgnunetgns.la \
@@ -46,7 +46,7 @@ gnunet_service_social_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/psyc/libgnunetpsyc.la \
-  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
+  $(top_builddir)/src/psycstore/libgnunetpsycutil.la \
   $(GN_LIBINTL)
 
 
@@ -67,7 +67,7 @@ test_social_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
+  $(top_builddir)/src/psycstore/libgnunetpsycutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/identity/libgnunetidentity.la
 
