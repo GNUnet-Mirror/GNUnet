@@ -263,7 +263,7 @@ channel_recv_result (void *cls,
   uint16_t data_size = size - sizeof (*res);
   const char *data = (0 < data_size) ? (void *) &res[1] : NULL;
   GNUNET_CLIENT_MANAGER_op_result (chn->client, GNUNET_ntohll (res->op_id),
-                                   GNUNET_ntohll_signed (res->result_code),
+                                   GNUNET_ntohll (res->result_code),
                                    data, data_size);
 }
 
@@ -433,7 +433,7 @@ master_recv_start_ack (void *cls,
 
   struct GNUNET_PSYC_CountersResultMessage *
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
-  int32_t result = GNUNET_ntohl_signed (cres->result_code);
+  int32_t result = ntohl (cres->result_code);
   if (GNUNET_OK != result && GNUNET_NO != result)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "Could not start master: %ld\n", result);
@@ -486,7 +486,7 @@ slave_recv_join_ack (void *cls,
                                                    sizeof (struct GNUNET_PSYC_Channel));
   struct GNUNET_PSYC_CountersResultMessage *
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
-  int32_t result = GNUNET_ntohl_signed (cres->result_code);
+  int32_t result = ntohl (cres->result_code);
   if (GNUNET_YES != result && GNUNET_NO != result)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "Could not join slave.\n");

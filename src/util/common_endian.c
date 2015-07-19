@@ -93,47 +93,4 @@ GNUNET_ntoh_double (double d)
 }
 
 
-uint64_t
-GNUNET_htonll_signed (int64_t n)
-{
-  return GNUNET_htonll (n - INT64_MIN);
-}
-
-
-int64_t
-GNUNET_ntohll_signed (uint64_t n)
-{
-  return GNUNET_ntohll (n) + INT64_MIN;
-}
-
-
-uint32_t
-GNUNET_htonl_signed (int32_t n)
-{
-  return htonl (n - INT32_MIN);
-}
-
-
-int32_t
-GNUNET_ntohl_signed (uint32_t n)
-{
-  return ntohl (n) + INT32_MIN;
-}
-
-
-uint16_t
-GNUNET_htons_signed (int16_t n)
-{
-  return htons (n - INT16_MIN);
-}
-
-
-int16_t
-GNUNET_ntohs_signed (uint16_t n)
-{
-  return ntohs (n) + INT16_MIN;
-}
-
-
-
 /* end of common_endian.c */

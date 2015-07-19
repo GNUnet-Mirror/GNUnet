@@ -653,7 +653,7 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
   res = GNUNET_malloc (sizeof (*res) + data_size);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE);
   res->header.size = htons (sizeof (*res) + data_size);
-  res->result_code = GNUNET_htonll_signed (result_code);
+  res->result_code = GNUNET_htonll (result_code);
   res->op_id = op_id;
   if (0 < data_size)
     memcpy (&res[1], data, data_size);
@@ -1544,7 +1544,7 @@ store_recv_master_counters (void *cls, int result, uint64_t max_fragment_id,
   struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = GNUNET_htonl_signed (result);
+  res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (max_message_id);
 
   if (GNUNET_OK == result || GNUNET_NO == result)
@@ -1590,7 +1590,7 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
   struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = GNUNET_htonl_signed (result);
+  res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (max_message_id);
 
   if (GNUNET_OK == result || GNUNET_NO == result)
@@ -1680,7 +1680,7 @@ client_recv_master_start (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_PSYC_CountersResultMessage res;
     res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK);
     res.header.size = htons (sizeof (res));
-    res.result_code = GNUNET_htonl_signed (GNUNET_OK);
+    res.result_code = htonl (GNUNET_OK);
     res.max_message_id = GNUNET_htonll (mst->max_message_id);
 
     GNUNET_SERVER_notification_context_add (nc, client);
@@ -1791,7 +1791,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_PSYC_CountersResultMessage res;
     res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK);
     res.header.size = htons (sizeof (res));
-    res.result_code = GNUNET_htonl_signed (GNUNET_OK);
+    res.result_code = htonl (GNUNET_OK);
     res.max_message_id = GNUNET_htonll (chn->max_message_id);
 
     GNUNET_SERVER_notification_context_add (nc, client);
@@ -2310,7 +2310,7 @@ store_recv_fragment_history (void *cls,
   res->header.size = htons (sizeof (*res) + psize);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT);
   res->op_id = op->op_id;
-  res->result_code = GNUNET_htonll_signed (GNUNET_OK);
+  res->result_code = GNUNET_htonll (GNUNET_OK);
 
   pmsg = (struct GNUNET_PSYC_MessageHeader *) &res[1];
   psyc_msg_init (pmsg, mmsg, flags | GNUNET_PSYC_MESSAGE_HISTORIC);

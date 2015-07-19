@@ -497,7 +497,7 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
   res = GNUNET_malloc (sizeof (*res) + data_size);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE);
   res->header.size = htons (sizeof (*res) + data_size);
-  res->result_code = GNUNET_htonll_signed (result_code);
+  res->result_code = GNUNET_htonll (result_code);
   res->op_id = op_id;
   if (0 < data_size)
     memcpy (&res[1], data, data_size);
@@ -1558,7 +1558,7 @@ psyc_recv_history_message (void *cls,
   res->header.size = htons (sizeof (*res) + size);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT);
   res->op_id = opcls->op_id;
-  res->result_code = GNUNET_htonll_signed (GNUNET_OK);
+  res->result_code = GNUNET_htonll (GNUNET_OK);
 
   memcpy (&res[1], msg, size);
 

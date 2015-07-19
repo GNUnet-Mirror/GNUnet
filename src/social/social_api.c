@@ -661,7 +661,7 @@ place_recv_result (void *cls,
   uint16_t data_size = size - sizeof (*res);
   const char *data = (0 < data_size) ? (const char *) &res[1] : NULL;
   GNUNET_CLIENT_MANAGER_op_result (plc->client, GNUNET_ntohll (res->op_id),
-                                   GNUNET_ntohll_signed (res->result_code),
+                                   GNUNET_ntohll (res->result_code),
                                    data, data_size);
 }
 
