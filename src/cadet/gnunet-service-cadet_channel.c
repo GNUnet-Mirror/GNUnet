@@ -1022,8 +1022,10 @@ channel_rel_free_all (struct CadetChannelReliability *rel)
  *
  * @param rel Reliability data.
  * @param msg DataACK message with a bitfield of future ACK'd messages.
+ *
+ * @return How many messages have been freed.
  */
-static void
+static unsigned int
 channel_rel_free_sent (struct CadetChannelReliability *rel,
                        const struct GNUNET_CADET_DataACK *msg)
 {
@@ -1034,12 +1036,13 @@ channel_rel_free_sent (struct CadetChannelReliability *rel,
   uint32_t mid;
   uint32_t target;
   unsigned int i;
+  unsigned int r;
 
   bitfield = msg->futures;
   mid = ntohl (msg->mid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable %u %llX\n", mid, bitfield);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " rel %p, head %p\n", rel, rel->head_sent);
-  for (i = 0, copy = rel->head_sent;
+  for (i = 0, r = 0, copy = rel->head_sent;
        i < 64 && NULL != copy && 0 != bitfield;
        i++)
   {
@@ -1063,7 +1066,7 @@ channel_rel_free_sent (struct CadetChannelReliability *rel,
     if (NULL == copy)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "run out of copies...\n");
-      return;
+      return r;
     }
 
     /* Did we overshoot the target? (previously freed, it's ok) */
@@ -1079,9 +1082,11 @@ channel_rel_free_sent (struct CadetChannelReliability *rel,
     /* Now copy->mid == target, free it */
     next = copy->next;
     GNUNET_break (GNUNET_YES != rel_message_free (copy, GNUNET_YES));
+    r++;
     copy = next;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable END\n");
+  return r;
 }
 
 
@@ -2071,7 +2076,8 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
     if (GC_is_pid_bigger (copy->mid, ack))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  head %u, out!\n", copy->mid);
-      channel_rel_free_sent (rel, msg);
+      if (0 < channel_rel_free_sent (rel, msg))
+        work = GNUNET_YES;
       break;
     }
     work = GNUNET_YES;
