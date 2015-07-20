@@ -820,14 +820,15 @@ ch_message_sent (void *cls,
       rel = copy->rel;
       if (NULL == rel->retry_task)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  scheduling retry in 4 * %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  scheduling retry in %d * %s\n",
+             CADET_RETRANSMIT_MARGIN,
              GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                      GNUNET_YES));
         if (0 != rel->expected_delay.rel_value_us)
         {
           rel->retry_timer =
-          GNUNET_TIME_relative_multiply (rel->expected_delay,
-                                         CADET_RETRANSMIT_MARGIN);
+              GNUNET_TIME_relative_multiply (rel->expected_delay,
+                                             CADET_RETRANSMIT_MARGIN);
         }
         else
         {
@@ -1106,7 +1107,7 @@ rel_message_free (struct CadetReliableMessage *copy, int update_time)
 
   rel = copy->rel;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Freeing %u\n", copy->mid);
-  if (update_time)
+  if (GNUNET_YES == update_time)
   {
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
     if (0 == rel->expected_delay.rel_value_us)
@@ -2054,16 +2055,13 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
        GC_f2s (fwd), ack, msg->futures);
 
   if (GNUNET_YES == fwd)
-  {
     rel = ch->root_rel;
-  }
   else
-  {
     rel = ch->dest_rel;
-  }
+
   if (NULL == rel)
   {
-    GNUNET_break_op (GNUNET_NO != ch->destroy);
+    GNUNET_break (GNUNET_NO != ch->destroy);
     return;
   }
 
@@ -2080,7 +2078,10 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %u\n", copy->mid);
     next = copy->next;
     if (GNUNET_YES == rel_message_free (copy, GNUNET_YES))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " channel destoyed\n");
       return;
+    }
   }
 
   /* ACK client if needed and possible */
