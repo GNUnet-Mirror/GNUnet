@@ -2221,8 +2221,10 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                            pull_list_size);
     for (i = first_border; i < second_border; i++)
     {
-      view_array[i] = pull_list[permut[i]];
-      GNUNET_CONTAINER_multipeermap_put (view, &pull_list[permut[i]], NULL,
+      view_array[i] = pull_list[permut[i - first_border]];
+      GNUNET_CONTAINER_multipeermap_put (view,
+          &pull_list[permut[i - first_border]],
+          NULL,
           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
       to_file (file_name_view_log,
