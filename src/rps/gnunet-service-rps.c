@@ -1913,14 +1913,18 @@ handle_client_act_malicious (void *cls,
     GNUNET_array_grow (mal_peers,
                        num_mal_peers,
                        num_mal_peers + num_mal_peers_sent);
-    memcpy (&mal_peers[num_mal_peers_old],
-            peers,
-            num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
+    if (NULL != mal_peers &&
+        0 != num_mal_peers)
+    {
+      memcpy (&mal_peers[num_mal_peers_old],
+              peers,
+              num_mal_peers_sent * sizeof (struct GNUNET_PeerIdentity));
 
-    /* Add all mal peers to mal_peer_set */
-    add_peer_array_to_set (&mal_peers[num_mal_peers_old],
-                           num_mal_peers_sent,
-                           mal_peer_set);
+      /* Add all mal peers to mal_peer_set */
+      add_peer_array_to_set (&mal_peers[num_mal_peers_old],
+                             num_mal_peers_sent,
+                             mal_peer_set);
+    }
 
     /* Store the one attacked peer */
     memcpy (&attacked_peer,
