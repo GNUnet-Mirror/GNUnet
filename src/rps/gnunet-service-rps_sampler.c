@@ -804,11 +804,8 @@ sampler_mod_get_rand_peer (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GetPeerCls *gpc = cls;
-  struct GNUNET_PeerIdentity tmp_id;
-  unsigned int empty_flag;
   struct RPS_SamplerElement *s_elem;
   struct GNUNET_TIME_Relative last_request_diff;
-  uint32_t tmp_client_get_index;
 
   gpc->get_peer_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -816,51 +813,22 @@ sampler_mod_get_rand_peer (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Single peer was requested\n");
 
-
-  /* Store the next #client_get_index to check whether we cycled over the whole list */
-  if (0 < client_get_index)
-    tmp_client_get_index = client_get_index - 1;
-  else
-    tmp_client_get_index = gpc->sampler->sampler_size - 1;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "sched for later if index reaches %" PRIX32 " (sampler size: %" PRIX32 ").\n",
-      tmp_client_get_index, gpc->sampler->sampler_size);
-
-  do
-  { /* Get first non empty sampler */
-    if (tmp_client_get_index == client_get_index)
-    { /* We once cycled over the whole list */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "reached tmp_index %" PRIX32 ".\n",
-           client_get_index);
-      GNUNET_assert (NULL == gpc->get_peer_task);
-      gpc->get_peer_task =
-        GNUNET_SCHEDULER_add_delayed (gpc->sampler->max_round_interval,
-                                      &sampler_mod_get_rand_peer,
-                                      cls);
-      return;
-    }
-
-    tmp_id = gpc->sampler->sampler_elements[client_get_index]->peer_id;
-    empty_flag = gpc->sampler->sampler_elements[client_get_index]->is_empty;
-    RPS_sampler_elem_reinit (gpc->sampler->sampler_elements[client_get_index]);
-    if (EMPTY != empty_flag)
-      RPS_sampler_elem_next (gpc->sampler->sampler_elements[client_get_index],
-                             gpc->sampler,
-                             &tmp_id);
-
-    /* Cycle the #client_get_index one step further */
-    if ( client_get_index == gpc->sampler->sampler_size - 1 )
-      client_get_index = 0;
-    else
-      client_get_index++;
-
-    /* LOG (GNUNET_ERROR_TYPE_DEBUG, "incremented index to %" PRIX32 ".\n",
-         client_get_index); */
-  } while (EMPTY == gpc->sampler->sampler_elements[client_get_index]->is_empty);
+  /* Cycle the #client_get_index one step further */
+  client_get_index = (client_get_index + 1) % gpc->sampler->sampler_size;
 
   s_elem = gpc->sampler->sampler_elements[client_get_index];
   *gpc->id = s_elem->peer_id;
+
+  if (NULL == s_elem)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Sampler_mod element empty, rescheduling.\n");
+    GNUNET_assert (NULL == gpc->get_peer_task);
+    gpc->get_peer_task =
+      GNUNET_SCHEDULER_add_delayed (gpc->sampler->max_round_interval,
+                                    &sampler_mod_get_rand_peer,
+                                    cls);
+    return;
+  }
 
   /* Check whether we may use this sampler to give it back to the client */
   if (GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us != s_elem->last_client_request.abs_value_us)
