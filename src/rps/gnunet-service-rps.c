@@ -2456,8 +2456,6 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
       GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     peer_ctx = get_peer_ctx (peer_map, peer);
-    GNUNET_CADET_channel_destroy (peer_ctx->send_channel);
-    peer_ctx->send_channel = NULL;
 
     if (NULL == peer_ctx->recv_channel)
     {
