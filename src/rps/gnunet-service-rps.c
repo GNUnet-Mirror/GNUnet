@@ -2743,17 +2743,19 @@ run (void *cls,
                                                         "ROUNDINTERVAL",
                                                         &round_interval))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read ROUNDINTERVAL from config\n");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "RPS", "ROUNDINTERVAL");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
   /* Get initial size of sampler/view from the configuration */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, "RPS",
-                                                         "INITSIZE",
-                                                         (long long unsigned int *) &sampler_size_est_need))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "RPS", "INITSIZE",
+        (long long unsigned int *) &sampler_size_est_need))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Failed to read INITSIZE from config\n");
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "RPS", "INITSIZE");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
