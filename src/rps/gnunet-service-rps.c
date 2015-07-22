@@ -1722,9 +1722,7 @@ handle_peer_pull_reply (void *cls,
                                               &peers[i]))
     {
       peer_ctx = get_peer_ctx (peer_map, &peers[i]);
-      if (GNUNET_YES == get_peer_flag (peer_ctx, VALID) ||
-          NULL != peer_ctx->send_channel ||
-          NULL != peer_ctx->recv_channel)
+      if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
       {
         if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
           GNUNET_array_append (pull_list, pull_list_size, peers[i]);
@@ -2034,9 +2032,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     /* Send PUSH to attacked peers */
     peer_ctx = get_peer_ctx (peer_map, &attacked_peer);
-    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID)
-          || NULL != peer_ctx->send_channel
-          || NULL != peer_ctx->recv_channel)
+    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
           "Goding to send push to attacked peer (%s)\n",
