@@ -812,12 +812,6 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
                                    GNUNET_RPS_CADET_PORT,
                                    GNUNET_CADET_OPTION_RELIABLE);
 
-    // do I have to explicitly put it in the peer_map?
-    (void) GNUNET_CONTAINER_multipeermap_put
-      (peer_map,
-       peer,
-       peer_ctx,
-       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   return peer_ctx->send_channel;
 }
@@ -872,10 +866,6 @@ check_peer_live (struct PeerContext *peer_ctx)
                                             sizeof (struct GNUNET_MessageHeader),
                                             cadet_ntfy_tmt_rdy_cb,
                                             peer_ctx);
-    (void) GNUNET_CONTAINER_multipeermap_put (peer_map,
-        &peer_ctx->peer_id,
-        peer_ctx,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   else
   {
