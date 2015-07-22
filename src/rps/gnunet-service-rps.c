@@ -52,6 +52,8 @@
 
 // TODO API request_cancel
 
+// TODO don't pass peermap all the time
+
 // hist_size_init, hist_size_max
 
 /**
@@ -1554,7 +1556,7 @@ generate_view_array (unsigned int view_size)
  * Reply with the view of PeerIDs.
  *
  * @param cls Closure
- * @param channel The channel the PUSH was received over
+ * @param channel The channel the PULL REQUEST was received over
  * @param channel_ctx The context associated with this channel
  * @param msg The message header
  */
@@ -1840,8 +1842,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * Turn RPS service to act malicious.
  *
  * @param cls Closure
- * @param channel The channel the PUSH was received over
- * @param channel_ctx The context associated with this channel
+ * @param client The client that sent the message
  * @param msg The message header
  */
   static void
