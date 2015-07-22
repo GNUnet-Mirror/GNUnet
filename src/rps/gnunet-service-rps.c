@@ -1641,7 +1641,7 @@ handle_peer_pull_reply (void *cls,
       sizeof (struct GNUNET_PeerIdentity) != ntohl (in_msg->num_peers))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        "message says it sends %" PRIu64 " peers, have space for %i peers\n",
+        "message says it sends %" PRIu32 " peers, have space for %i peers\n",
         ntohl (in_msg->num_peers),
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
@@ -1877,8 +1877,9 @@ handle_client_act_malicious (void *cls,
   mal_type = ntohl (in_msg->type);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Now acting malicious type %" PRIu32 "\n",
-       mal_type);
+       "Now acting malicious type %" PRIu32 ", got %" PRIu32 " peers.\n",
+       mal_type,
+       ntohl (in_msg->num_peers));
 
   if (1 == mal_type)
   { /* Try to maximise representation */
