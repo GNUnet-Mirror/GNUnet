@@ -855,12 +855,14 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 void
 check_peer_live (struct PeerContext *peer_ctx)
 {
-  (void) get_channel (peer_map, &peer_ctx->peer_id);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Get informed about peer %s getting live\n",
        GNUNET_i2s (&peer_ctx->peer_id));
-  if (NULL == peer_ctx->is_live_task)
+
+  if (NULL == peer_ctx->is_live_task &&
+      NULL == peer_ctx->send_channel)
   {
+    (void) get_channel (peer_map, &peer_ctx->peer_id);
     peer_ctx->is_live_task =
         GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
                                             GNUNET_NO,
@@ -869,11 +871,12 @@ check_peer_live (struct PeerContext *peer_ctx)
                                             cadet_ntfy_tmt_rdy_cb,
                                             peer_ctx);
   }
-  else
-  {
+  else if (NULL != peer_ctx->is_live_task)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Already waiting for notification\n");
-  }
+  else if (NULL != peer_ctx->send_channel)
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Already have established channel to peer\n");
 }
 
 
