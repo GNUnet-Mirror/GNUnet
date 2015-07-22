@@ -1039,20 +1039,15 @@ static void
 client_resize_wrapper ()
 {
   uint32_t bigger_size;
-  unsigned int sampler_size;
 
   // TODO statistics
 
-  sampler_size = RPS_sampler_get_size (client_sampler);
-
-  if (sampler_size_est_need > sampler_size_client_need)
-    bigger_size = sampler_size_est_need;
-  else
-    bigger_size = sampler_size_client_need;
+  bigger_size = GNUNET_MAX (sampler_size_est_need, sampler_size_client_need);
 
   // TODO respect the min, max
   resize_wrapper (client_sampler, bigger_size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler_size is now %u\n", sampler_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sampler_size_client is now %" PRIu32 "\n",
+      bigger_size);
 }
 
 
