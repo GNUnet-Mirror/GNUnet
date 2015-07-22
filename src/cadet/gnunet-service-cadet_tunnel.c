@@ -3744,9 +3744,9 @@ GCT_destroy (struct CadetTunnel *t)
     else
     {
       GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
+      LOG (GNUNET_ERROR_TYPE_ERROR,
            "message left behind on tunnel shutdown: %s\n",
-           GC_m2s (ntohs (mh->type)));
+           GC_m2s (type));
     }
     unqueue_data (t->tq_head);
   }
@@ -4521,7 +4521,7 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   }
 #endif
   LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
-  LOG2 (level, "TTT  destroy %u\n", t->destroy_task);
+  LOG2 (level, "TTT  destroy %p\n", t->destroy_task);
 
   LOG2 (level, "TTT  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
