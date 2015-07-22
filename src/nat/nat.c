@@ -812,7 +812,7 @@ process_interfaces (void *cls,
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (h->cfg,
                                              "exit",
-                                             "EXIT_IFNAME",
+                                             "TUN_IFNAME",
                                              &tun_if))
   {
     if (0 == strncasecmp (name,
