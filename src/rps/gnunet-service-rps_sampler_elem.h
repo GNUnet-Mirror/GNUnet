@@ -129,6 +129,16 @@ void
 RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
                        const struct GNUNET_PeerIdentity *new_ID);
 
+/**
+ * Initialise the min-wise independent function of the given sampler element.
+ *
+ * @param s_elem the sampler element
+ * @param auth_key the key to use
+ */
+void
+RPS_sampler_elem_set (struct RPS_SamplerElement *s_elem,
+                      struct GNUNET_CRYPTO_AuthKey auth_key);
+
 
 #endif /* RPS_SAMPLER_ELEM_H */
 /* end of gnunet-service-rps.c */

@@ -128,7 +128,7 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
     *end = '\0';
   }
 
-  size = GNUNET_snprintf (name_buf, name_buf_size, "sampler_el-%s-", buf);
+  size = GNUNET_snprintf (name_buf, name_buf_size, "sampler_el-%s", buf);
   if (0 > size)
     LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create name_buf\n");
 
@@ -136,6 +136,25 @@ auth_key_to_string (struct GNUNET_CRYPTO_AuthKey auth_key)
 
   return name_buf;
 }
+
+
+struct GNUNET_CRYPTO_AuthKey
+string_to_auth_key (const char *str)
+{
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (str,
+                                     strlen (str),
+                                     &auth_key.key,
+                                     sizeof (struct GNUNET_CRYPTO_AuthKey)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to convert string to data\n");
+  }
+
+  return auth_key;
+}
+
 
 char *
 create_file (const char *name)
@@ -150,7 +169,7 @@ create_file (const char *name)
   name_buf_size = (strlen (prefix) + strlen (name) + 2) * sizeof (char);
   name_buf = GNUNET_malloc (name_buf_size);
 
-  size = GNUNET_snprintf (name_buf, name_buf_size, "%s%s-", prefix, name);
+  size = GNUNET_snprintf (name_buf, name_buf_size, "%s%s", prefix, name);
   if (0 > size)
     LOG (GNUNET_ERROR_TYPE_WARNING, "Failed to create name_buf\n");
 
@@ -161,12 +180,16 @@ create_file (const char *name)
          prefix);
   }
 
-  if (NULL == (file_name = GNUNET_DISK_mktemp (name_buf)))
-        LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
+  if (NULL == strstr (name, "sampler_el"))
+  {/* only append random string to sampler */
+    if (NULL == (file_name = GNUNET_DISK_mktemp (name_buf)))
+          LOG (GNUNET_ERROR_TYPE_WARNING, "Could not create file\n");
 
   GNUNET_free (name_buf);
-
   return file_name;
+  }
+
+  return name_buf;
 }
 
 #endif /* TO_FILE */

@@ -81,34 +81,32 @@ ld_rps_test_lib = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   -lm
 
+rps_test_src = \
+	test_rps.c \
+	rps-test_util.h rps-test_util.c \
+ gnunet-service-rps_sampler_elem.h gnunet-service-rps_sampler_elem.c
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
 endif
 
-test_rps_malicious_1_SOURCES = \
-	test_rps.c
+test_rps_malicious_1_SOURCES = $(rps_test_src)
 test_rps_malicious_1_LDADD = $(ld_rps_test_lib)
 
-test_rps_malicious_2_SOURCES = \
-	test_rps.c
+test_rps_malicious_2_SOURCES = $(rps_test_src)
 test_rps_malicious_2_LDADD = $(ld_rps_test_lib)
 
-test_rps_malicious_3_SOURCES = \
-	test_rps.c
+test_rps_malicious_3_SOURCES = $(rps_test_src)
 test_rps_malicious_3_LDADD = $(ld_rps_test_lib)
 
-test_rps_single_req_SOURCES = \
- test_rps.c
+test_rps_single_req_SOURCES = $(rps_test_src)
 test_rps_single_req_LDADD = $(ld_rps_test_lib)
 
-test_rps_seed_request_SOURCES = \
- test_rps.c
+test_rps_seed_request_SOURCES = $(rps_test_src)
 test_rps_seed_request_LDADD = $(ld_rps_test_lib)
 
-gnunet_rps_profiler_SOURCES = \
- test_rps.c
+gnunet_rps_profiler_SOURCES = $(rps_test_src)
 gnunet_rps_profiler_LDADD = $(ld_rps_test_lib)
 
 EXTRA_DIST = \

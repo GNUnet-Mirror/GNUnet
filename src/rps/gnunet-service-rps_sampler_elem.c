@@ -166,4 +166,26 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
            GNUNET_i2s_full (&s_elem->peer_id));
 }
 
+/**
+ * Initialise the min-wise independent function of the given sampler element.
+ *
+ * @param s_elem the sampler element
+ * @param auth_key the key to use
+ */
+void
+RPS_sampler_elem_set (struct RPS_SamplerElement *s_elem,
+                      struct GNUNET_CRYPTO_AuthKey auth_key)
+{
+  s_elem->auth_key = auth_key;
+
+  #ifdef TO_FILE
+  /* Create a file(-name) to store internals to */
+  char *name_buf;
+  name_buf = auth_key_to_string (s_elem->auth_key);
+
+  s_elem->file_name = create_file (name_buf);
+  GNUNET_free (name_buf);
+  #endif /* TO_FILE */
+}
+
 /* end of gnunet-service-rps.c */

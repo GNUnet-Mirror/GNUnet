@@ -27,7 +27,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
+
 #include "gnunet_rps_service.h"
+#include "rps-test_util.h"
+#include "gnunet-service-rps_sampler_elem.h"
 
 #include <inttypes.h>
 
@@ -257,7 +260,7 @@ struct SingleTestRun
  * Append arguments to file
  */
 static void
-to_file_ (char *file_name, char *line)
+tofile_ (const char *file_name, char *line)
 {
   struct GNUNET_DISK_FileHandle *f;
   /* char output_buffer[512]; */
@@ -312,7 +315,7 @@ to_file_ (char *file_name, char *line)
 /**
  * This function is used to facilitate writing important information to disk
  */
-#define to_file(file_name, ...) do {\
+#define tofile(file_name, ...) do {\
   char tmp_buf[512];\
     int size;\
     size = GNUNET_snprintf(tmp_buf,sizeof(tmp_buf),__VA_ARGS__);\
@@ -320,7 +323,7 @@ to_file_ (char *file_name, char *line)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,\
                      "Failed to create tmp_buf\n");\
     else\
-      to_file_(file_name,tmp_buf);\
+      tofile_(file_name,tmp_buf);\
   } while (0);
 
 /**
@@ -386,7 +389,7 @@ make_oplist_entry ()
 
 
 /**
- * Callback to be called when NSE service is started or stopped at peers
+ * Callback to be called when RPS service is started or stopped at peers
  *
  * @param cls NULL
  * @param op the operation handle
@@ -521,7 +524,7 @@ info_cb (void *cb_cls,
   rps_peers[entry->index].rec_ids = NULL;
   rps_peers[entry->index].num_rec_ids = 0;
 
-  to_file ("/tmp/rps/peer_ids",
+  tofile ("/tmp/rps/peer_ids",
            "%u\t%s\n",
            entry->index,
            GNUNET_i2s_full (&rps_peer_ids[entry->index]));
@@ -972,7 +975,7 @@ profiler_reply_handle (void *cls,
                 GNUNET_i2s (&recv_peers[i]));
 
     /* GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]); */
-    to_file (file_name,
+    tofile (file_name,
              "%s\n",
              GNUNET_i2s_full (&recv_peers[i]));
   }
@@ -1008,6 +1011,57 @@ profiler_cb (struct RPSPeer *rps_peer)
           rps_peer);
     }
   }
+}
+
+/**
+ * Function called from #profiler_eval with a filename.
+ *
+ * @param cls closure
+ * @param filename complete filename (absolute path)
+ * @return #GNUNET_OK to continue to iterate,
+ *  #GNUNET_NO to stop iteration with no error,
+ *  #GNUNET_SYSERR to abort iteration with error!
+ */
+int
+file_name_cb (void *cls, const char *filename)
+{
+  if (NULL != strstr (filename, "sampler_el"))
+  {
+    struct RPS_SamplerElement *s_elem;
+    struct GNUNET_CRYPTO_AuthKey auth_key;
+    const char *key_char;
+    uint32_t i;
+
+    key_char = filename + 20; /* Length of "/tmp/rps/sampler_el-" */
+    tofile (filename, "--------------------------\n");
+
+    auth_key = string_to_auth_key (key_char);
+    s_elem = RPS_sampler_elem_create ();
+    RPS_sampler_elem_set (s_elem, auth_key);
+
+    for (i = 0; i < num_peers; i++)
+    {
+      RPS_sampler_elem_next (s_elem, &rps_peer_ids[i]);
+    }
+  }
+  return GNUNET_OK;
+}
+
+/**
+ * This is run after the test finished.
+ *
+ * Compute all perfect samples.
+ */
+int
+profiler_eval (void)
+{
+  /* Compute perfect sample for each sampler element */
+  if (-1 == GNUNET_DISK_directory_scan ("/tmp/rps/", file_name_cb, NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Scan of directory failed\n");
+  }
+
+  return 0;
 }
 
 
@@ -1187,7 +1241,7 @@ main (int argc, char *argv[])
     cur_test_run.pre_test = profiler_pre;
     cur_test_run.main_test = profiler_cb;
     cur_test_run.reply_handle = profiler_reply_handle;
-    cur_test_run.eval_cb = no_eval;
+    cur_test_run.eval_cb = profiler_eval;
     cur_test_run.request_interval = 2;
     cur_test_run.num_requests = 50;
 
