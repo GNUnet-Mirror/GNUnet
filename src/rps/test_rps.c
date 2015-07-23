@@ -446,6 +446,11 @@ churn_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "peer %s probably went online as expected\n",
                   GNUNET_i2s (rps_peers[entry->index].peer_id));
+      if (NULL != cur_test_run.pre_test)
+      {
+        cur_test_run.pre_test (&rps_peers[entry->index],
+            rps_peers[entry->index].rps_handle);
+      }
     }
     rps_peers[entry->index].online = GNUNET_YES;
   }
