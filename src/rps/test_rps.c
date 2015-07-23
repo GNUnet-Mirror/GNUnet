@@ -159,6 +159,11 @@ struct RPSPeer
 static struct RPSPeer *rps_peers;
 
 /**
+ * Peermap to get the index of a given peer ID quick.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *peer_map;
+
+/**
  * IDs of the peers.
  */
 static struct GNUNET_PeerIdentity *rps_peer_ids;
@@ -325,6 +330,7 @@ tofile_ (const char *file_name, char *line)
     else\
       tofile_(file_name,tmp_buf);\
   } while (0);
+
 
 /**
  * Write the ids and their according index in the given array to a file 
@@ -528,6 +534,11 @@ info_cb (void *cb_cls,
   rps_peers[entry->index].peer_id = &rps_peer_ids[entry->index];
   rps_peers[entry->index].rec_ids = NULL;
   rps_peers[entry->index].num_rec_ids = 0;
+
+  GNUNET_CONTAINER_multipeermap_put (peer_map,
+      &rps_peer_ids[entry->index],
+      &rps_peers[entry->index],
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 
   tofile ("/tmp/rps/peer_ids",
            "%u\t%s\n",
@@ -962,10 +973,13 @@ profiler_reply_handle (void *cls,
                       const struct GNUNET_PeerIdentity *recv_peers)
 {
   struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
+  struct RPSPeer *rcv_rps_peer;
   char *file_name;
+  char *file_name_dh;
   unsigned int i;
 
   file_name = "/tmp/rps/received_ids";
+  file_name_dh = "/tmp/rps/diehard_input";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "[%s] got %" PRIu64 " peers:\n",
@@ -983,6 +997,12 @@ profiler_reply_handle (void *cls,
     tofile (file_name,
              "%s\n",
              GNUNET_i2s_full (&recv_peers[i]));
+
+    rcv_rps_peer = GNUNET_CONTAINER_multipeermap_get (peer_map, &recv_peers[i]);
+
+    tofile (file_name_dh,
+             "%" PRIu32 "\n",
+             (uint32_t) rcv_rps_peer->index);
   }
 }
 
@@ -1153,6 +1173,8 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  int ret_value;
+
   cur_test_run.name = "test-rps-default";
   cur_test_run.pre_test = NULL;
   cur_test_run.reply_handle = default_reply_handle;
@@ -1259,6 +1281,7 @@ main (int argc, char *argv[])
 
   rps_peers = GNUNET_new_array (num_peers, struct RPSPeer);
   rps_peer_ids = GNUNET_new_array (num_peers, struct GNUNET_PeerIdentity);
+  peer_map = GNUNET_CONTAINER_multipeermap_create (num_peers, GNUNET_NO);
 
   ok = 1;
   (void) GNUNET_TESTBED_test_run (cur_test_run.name,
@@ -1267,7 +1290,13 @@ main (int argc, char *argv[])
                                   0, NULL, NULL,
                                   &run, NULL);
 
-  return cur_test_run.eval_cb();
+  ret_value = cur_test_run.eval_cb();
+
+  GNUNET_free (rps_peers );
+  GNUNET_free (rps_peer_ids);
+  GNUNET_CONTAINER_multipeermap_destroy (peer_map);
+
+  return ret_value;
 }
 
 /* end of test_rps_multipeer.c */
