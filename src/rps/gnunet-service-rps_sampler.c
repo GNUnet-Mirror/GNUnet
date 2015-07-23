@@ -28,6 +28,7 @@
 #include "rps.h"
 
 #include "gnunet-service-rps_sampler.h"
+#include "gnunet-service-rps_sampler_elem.h"
 
 #include <math.h>
 #include <inttypes.h>
@@ -51,68 +52,6 @@
 ***********************************************************************/
 
 // TODO care about invalid input of the caller (size 0 or less...)
-
-enum RPS_SamplerEmpty
-{
-  NOT_EMPTY = 0x0,
-      EMPTY = 0x1
-};
-
-/**
- * A sampler element sampling one PeerID at a time.
- */
-struct RPS_SamplerElement
-{
-  /**
-   * Min-wise linear permutation used by this sampler.
-   *
-   * This is an key later used by a hmac.
-   */
-  struct GNUNET_CRYPTO_AuthKey auth_key;
-
-  /**
-   * The PeerID this sampler currently samples.
-   */
-  struct GNUNET_PeerIdentity peer_id;
-
-  /**
-   * The according hash value of this PeerID.
-   */
-  struct GNUNET_HashCode peer_id_hash;
-
-
-  /**
-   * Time of last request.
-   */
-  struct GNUNET_TIME_Absolute last_client_request;
-
-  /**
-   * Flag that indicates that we are not holding a valid PeerID right now.
-   */
-  enum RPS_SamplerEmpty is_empty;
-
-  /**
-   * 'Birth'
-   */
-  struct GNUNET_TIME_Absolute birth;
-
-  /**
-   * How many times a PeerID was put in this sampler.
-   */
-  uint32_t num_peers;
-
-  /**
-   * How many times this sampler changed the peer_id.
-   */
-  uint32_t num_change;
-
-  /**
-   * The file name this sampler element should log to
-   */
-  #ifdef TO_FILE
-  char *file_name;
-  #endif /* TO_FILE */
-};
 
 /**
  * Callback that is called from _get_rand_peer() when the PeerID is ready.
@@ -212,25 +151,6 @@ struct RPS_Sampler
    * All sampler elements in one array.
    */
   struct RPS_SamplerElement **sampler_elements;
-
-  /**
-   * Number of sampler elements trash can holds.
-   */
-  unsigned int trash_can_size;
-
-  /**
-   * Trash can for old sampler elements.
-   * We need this to evaluate the sampler.
-   * TODO remove after evaluation
-   *      and undo changes in
-   *      sampler_resize
-   *      sampler_empty
-   *      sampler_init
-   *      sampler_remove?
-   *      sampler_reinitialise_by_value
-   *      sampler_update
-   */
-  struct RPS_SamplerElement **trash_can;
 
   /**
    * Maximum time a round takes
@@ -353,129 +273,6 @@ check_n_peers_ready (void *cls,
 
 
 /**
- * Reinitialise a previously initialised sampler element.
- *
- * @param sampler pointer to the memory that keeps the value.
- */
-  static void
-RPS_sampler_elem_reinit (struct RPS_SamplerElement *sampler_el)
-{
-  sampler_el->is_empty = EMPTY;
-
-  // I guess I don't need to call GNUNET_CRYPTO_hmac_derive_key()...
-  GNUNET_CRYPTO_random_block(GNUNET_CRYPTO_QUALITY_STRONG,
-                             &(sampler_el->auth_key.key),
-                             GNUNET_CRYPTO_HASH_LENGTH);
-
-  #ifdef TO_FILE
-  /* Create a file(-name) to store internals to */
-  char *name_buf;
-  name_buf = auth_key_to_string (sampler_el->auth_key);
-
-  sampler_el->file_name = create_file (name_buf);
-  GNUNET_free (name_buf);
-  #endif /* TO_FILE */
-
-  sampler_el->last_client_request = GNUNET_TIME_UNIT_FOREVER_ABS;
-
-  sampler_el->birth = GNUNET_TIME_absolute_get ();
-  sampler_el->num_peers = 0;
-  sampler_el->num_change = 0;
-}
-
-
-/**
- * (Re)Initialise given Sampler with random min-wise independent function.
- *
- * In this implementation this means choosing an auth_key for later use in
- * a hmac at random.
- *
- * @return a newly created RPS_SamplerElement which currently holds no id.
- */
-  struct RPS_SamplerElement *
-RPS_sampler_elem_create (void)
-{
-  struct RPS_SamplerElement *s;
-
-  s = GNUNET_new (struct RPS_SamplerElement);
-
-  RPS_sampler_elem_reinit (s);
-
-  return s;
-}
-
-
-/**
- * Input an PeerID into the given sampler element.
- *
- * @param sampler the sampler the @a s_elem belongs to.
- *                Needed to know the
- */
-static void
-RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
-                       struct RPS_Sampler *sampler, /* TODO remove? */
-                       const struct GNUNET_PeerIdentity *other)
-{
-  struct GNUNET_HashCode other_hash;
-
-  s_elem->num_peers++;
-
-  to_file (s_elem->file_name,
-           "Got id %s",
-           GNUNET_i2s_full (other));
-
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "         Got PeerID %s\n",
-        GNUNET_i2s (other));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Have already PeerID %s\n",
-        GNUNET_i2s (&(s_elem->peer_id)));
-  }
-  else
-  {
-    GNUNET_CRYPTO_hmac(&s_elem->auth_key,
-        other,
-        sizeof(struct GNUNET_PeerIdentity),
-        &other_hash);
-
-    if (EMPTY == s_elem->is_empty)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Got PeerID %s; Simply accepting (was empty previously).\n",
-           GNUNET_i2s(other));
-      s_elem->peer_id = *other;
-      s_elem->peer_id_hash = other_hash;
-
-      s_elem->num_change++;
-    }
-    else if (0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &s_elem->peer_id_hash))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "           Got PeerID %s\n",
-          GNUNET_i2s (other));
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
-          GNUNET_i2s (&s_elem->peer_id));
-      s_elem->peer_id = *other;
-      s_elem->peer_id_hash = other_hash;
-
-      s_elem->num_change++;
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "        Got PeerID %s\n",
-          GNUNET_i2s (other));
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Keeping old PeerID %s\n",
-          GNUNET_i2s (&s_elem->peer_id));
-    }
-  }
-  s_elem->is_empty = NOT_EMPTY;
-
-  to_file (s_elem->file_name,
-           "Now holding %s",
-           GNUNET_i2s_full (&s_elem->peer_id));
-}
-
-
-/**
  * Get the size of the sampler.
  *
  * @param sampler the sampler to return the size of.
@@ -517,19 +314,12 @@ sampler_resize (struct RPS_Sampler *sampler, unsigned int new_size)
          old_size,
          new_size);
 
-    /* TODO Temporary store those to properly call the removeCB on those later? */
-    GNUNET_array_grow (sampler->trash_can,
-                       sampler->trash_can_size,
-                       old_size - new_size);
     for (i = new_size ; i < old_size ; i++)
     {
       to_file (sampler->file_name,
                "-%" PRIu32 ": %s",
                i,
                sampler->sampler_elements[i]->file_name);
-      to_file (sampler->sampler_elements[i]->file_name,
-               "--- non-active");
-      sampler->trash_can[i - new_size] = sampler->sampler_elements[i];
     }
 
     GNUNET_array_grow (sampler->sampler_elements,
@@ -632,8 +422,6 @@ RPS_sampler_init (size_t init_size,
 
   sampler->sampler_size = 0;
   sampler->sampler_elements = NULL;
-  sampler->trash_can_size = 0;
-  sampler->trash_can = NULL;
   sampler->max_round_interval = max_round_interval;
   sampler->get_peers = sampler_get_rand_peer;
   sampler->gpc_head = NULL;
@@ -693,16 +481,9 @@ RPS_sampler_update (struct RPS_Sampler *sampler,
   for (i = 0 ; i < sampler->sampler_size ; i++)
   {
     RPS_sampler_elem_next (sampler->sampler_elements[i],
-                           sampler,
                            id);
   }
 
-  for (i = 0 ; i < sampler->trash_can_size ; i++)
-  {
-    RPS_sampler_elem_next (sampler->trash_can[i],
-                           sampler,
-                           id);
-  }
 }
 
 
@@ -728,9 +509,6 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Reinitialising sampler\n");
       trash_entry = GNUNET_new (struct RPS_SamplerElement);
       *trash_entry = *(sampler->sampler_elements[i]);
-      GNUNET_array_append (sampler->trash_can,
-                           sampler->trash_can_size,
-                           trash_entry);
       to_file (trash_entry->file_name,
                "--- non-active");
       RPS_sampler_elem_reinit (sampler->sampler_elements[i]);
