@@ -1492,6 +1492,7 @@ handle_peer_push (void *cls,
   if (GNUNET_NO == in_arr (push_list, push_list_size, peer))
     GNUNET_array_append (push_list, push_list_size, *peer);
 
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -1597,6 +1598,7 @@ handle_peer_pull_request (void *cls,
 
   send_pull_reply (peer, view_array, view_size);
 
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -1731,6 +1733,7 @@ handle_peer_pull_reply (void *cls,
 
   unset_peer_flag (sender_ctx, PULL_REPLY_PENDING);
 
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 
