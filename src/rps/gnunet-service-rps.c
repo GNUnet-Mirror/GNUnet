@@ -1276,6 +1276,7 @@ nse_callback (void *cls, struct GNUNET_TIME_Absolute timestamp,
 void client_respond (void *cls,
     struct GNUNET_PeerIdentity *peer_ids, uint32_t num_peers)
 {
+  uint32_t i;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_ReplyMessage *out_msg;
   struct ReplyCls *reply_cls = (struct ReplyCls *) cls;
@@ -1283,8 +1284,15 @@ void client_respond (void *cls,
   struct ClientContext *cli_ctx;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "sampler returned %" PRIu32 " peers\n",
+       "sampler returned %" PRIu32 " peers:\n",
        num_peers);
+  for (i = 0; i < num_peers; i++)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  %lu: %s\n",
+         i,
+         GNUNET_i2s (&peer_ids[i]));
+  }
 
   size_needed = sizeof (struct GNUNET_RPS_CS_ReplyMessage) +
                 num_peers * sizeof (struct GNUNET_PeerIdentity);

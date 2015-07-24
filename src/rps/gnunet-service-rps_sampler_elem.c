@@ -118,8 +118,6 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (other, &(s_elem->peer_id)))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "         Got PeerID %s\n",
-        GNUNET_i2s (other));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Have already PeerID %s\n",
         GNUNET_i2s (&(s_elem->peer_id)));
   }
@@ -142,8 +140,6 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
     }
     else if (0 > GNUNET_CRYPTO_hash_cmp (&other_hash, &s_elem->peer_id_hash))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "           Got PeerID %s\n",
-          GNUNET_i2s (other));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Discarding old PeerID %s\n",
           GNUNET_i2s (&s_elem->peer_id));
       s_elem->peer_id = *other;
@@ -153,8 +149,6 @@ RPS_sampler_elem_next (struct RPS_SamplerElement *s_elem,
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "        Got PeerID %s\n",
-          GNUNET_i2s (other));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Keeping old PeerID %s\n",
           GNUNET_i2s (&s_elem->peer_id));
     }
