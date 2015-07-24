@@ -596,8 +596,9 @@ sampler_mod_get_rand_peer (void *cls,
 
   s_elem = gpc->sampler->sampler_elements[client_get_index];
   *gpc->id = s_elem->peer_id;
+  GNUNET_assert (NULL == s_elem);
 
-  if (NULL == s_elem)
+  if (EMPTY == s_elem->is_empty)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Sampler_mod element empty, rescheduling.\n");
     GNUNET_assert (NULL == gpc->get_peer_task);
