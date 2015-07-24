@@ -596,7 +596,7 @@ sampler_mod_get_rand_peer (void *cls,
 
   s_elem = gpc->sampler->sampler_elements[client_get_index];
   *gpc->id = s_elem->peer_id;
-  GNUNET_assert (NULL == s_elem);
+  GNUNET_assert (NULL != s_elem);
 
   if (EMPTY == s_elem->is_empty)
   {
