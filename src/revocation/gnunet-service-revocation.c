@@ -146,6 +146,60 @@ static unsigned long long revocation_work_required;
 static struct GNUNET_HashCode revocation_set_union_app_id;
 
 
+/**
+ * Create a new PeerEntry and add it to the peers multipeermap.
+ *
+ * @param peer the peer identity
+ * @return a pointer to the new PeerEntry
+ */
+static struct PeerEntry *
+new_peer_entry(const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerEntry *peer_entry;
+
+  peer_entry = GNUNET_new (struct PeerEntry);
+  peer_entry->id = *peer;
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_put (peers,
+                                                    &peer_entry->id,
+                                                    peer_entry,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  peer_entry->mq = GNUNET_CORE_mq_create (core_api, peer);
+  return peer_entry;
+}
+
+
+/**
+ * Delete a PeerEntry for the given peer
+ *
+ * @param peer the identity of the peer to delete
+ */
+static void
+delete_peer_entry(const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerEntry *peer_entry;
+
+  peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
+                                                  peer);
+  GNUNET_assert (NULL != peer_entry);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (peers,
+                                                       peer,
+                                                       peer_entry));
+  GNUNET_MQ_destroy (peer_entry->mq);
+  if (NULL != peer_entry->transmit_task)
+  {
+    GNUNET_SCHEDULER_cancel (peer_entry->transmit_task);
+    peer_entry->transmit_task = NULL;
+  }
+  if (NULL != peer_entry->so)
+  {
+    GNUNET_SET_operation_cancel (peer_entry->so);
+    peer_entry->so = NULL;
+  }
+  GNUNET_free (peer_entry);
+}
+
 
 /**
  * An revoke message has been received, check that it is well-formed.
@@ -536,14 +590,7 @@ handle_core_connect (void *cls,
        with.  This should be rare, but isn't impossible. */
     return;
   }
-  peer_entry = GNUNET_new (struct PeerEntry);
-  peer_entry->id = *peer;
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (peers,
-                                                    &peer_entry->id,
-                                                    peer_entry,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  peer_entry->mq = GNUNET_CORE_mq_create (core_api, peer);
+  peer_entry = new_peer_entry(peer);
   GNUNET_CRYPTO_hash (&my_identity,
                       sizeof (my_identity),
                       &my_hash);
@@ -575,8 +622,6 @@ static void
 handle_core_disconnect (void *cls,
 			const struct GNUNET_PeerIdentity *peer)
 {
-  struct PeerEntry *pos;
-
   if (0 == memcmp (peer,
                    &my_identity,
                    sizeof (my_identity)))
@@ -587,25 +632,7 @@ handle_core_disconnect (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer `%s' disconnected from us\n",
               GNUNET_i2s (peer));
-  pos = GNUNET_CONTAINER_multipeermap_get (peers,
-                                           peer);
-  GNUNET_assert (NULL != pos);
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (peers,
-                                                       peer,
-                                                       pos));
-  GNUNET_MQ_destroy (pos->mq);
-  if (NULL != pos->transmit_task)
-  {
-    GNUNET_SCHEDULER_cancel (pos->transmit_task);
-    pos->transmit_task = NULL;
-  }
-  if (NULL != pos->so)
-  {
-    GNUNET_SET_operation_cancel (pos->so);
-    pos->so = NULL;
-  }
-  GNUNET_free (pos);
+  delete_peer_entry(peer);
   GNUNET_STATISTICS_update (stats,
                             "# peers connected",
                             -1,
@@ -739,13 +766,7 @@ handle_revocation_union_request (void *cls,
                                                   other_peer);
   if (NULL == peer_entry)
   {
-    peer_entry = GNUNET_new (struct PeerEntry);
-    peer_entry->id = *other_peer;
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (peers,
-                                                      other_peer,
-                                                      peer_entry,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    peer_entry = new_peer_entry(other_peer);
   }
   peer_entry->so = GNUNET_SET_accept (request,
                                       GNUNET_SET_RESULT_ADDED,
