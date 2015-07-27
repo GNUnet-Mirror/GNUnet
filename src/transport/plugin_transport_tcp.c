@@ -154,7 +154,7 @@ struct IPv4TcpAddress
    * Optional options and flags for this address,
    * see `enum TcpAddressOptions`
    */
-  uint32_t options;
+  uint32_t options GNUNET_PACKED;
 
   /**
    * IPv4 address, in network byte order.
@@ -177,7 +177,7 @@ struct IPv6TcpAddress
    * Optional flags for this address
    * see `enum TcpAddressOptions`
    */
-  uint32_t options;
+  uint32_t options GNUNET_PACKED;
 
   /**
    * IPv6 address.
