@@ -121,9 +121,9 @@ struct GNUNET_FS_PublishUblockContext
  * Continuation of #GNUNET_FS_publish_ublock_().
  *
  * @param cls closure of type "struct GNUNET_FS_PublishUblockContext*"
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop)
+ *                #GNUNET_NO if content was already there
+ *                #GNUNET_YES (or other positive value) on success
  * @param min_expiration minimum expiration time required for 0-priority content to be stored
  *                by the datacache at this time, zero for unknown, forever if we have no
  *                space for 0-priority content
@@ -285,7 +285,9 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
   if (NULL != dsh)
   {
     uc->qre =
-      GNUNET_DATASTORE_put (dsh, 0, &query,
+      GNUNET_DATASTORE_put (dsh,
+                            0,
+                            &query,
                             ulen + slen + mdsize + sizeof (struct UBlock),
                             ub_enc,
                             GNUNET_BLOCK_TYPE_FS_UBLOCK,

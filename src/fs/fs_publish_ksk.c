@@ -105,11 +105,11 @@ struct GNUNET_FS_PublishKskContext
 
 
 /**
- * Continuation of "GNUNET_FS_publish_ksk" that performs
+ * Continuation of #GNUNET_FS_publish_ksk() that performs
  * the actual publishing operation (iterating over all
  * of the keywords).
  *
- * @param cls closure of type "struct PublishKskContext*"
+ * @param cls closure of type `struct PublishKskContext *`
  * @param tc unused
  */
 static void
@@ -121,7 +121,7 @@ publish_ksk_cont (void *cls,
  * Function called by the datastore API with
  * the result from the PUT request.
  *
- * @param cls closure of type "struct GNUNET_FS_PublishKskContext*"
+ * @param cls closure of type `struct GNUNET_FS_PublishKskContext *`
  * @param msg error message (or NULL)
  */
 static void
@@ -144,14 +144,15 @@ kb_put_cont (void *cls,
 
 
 /**
- * Continuation of "GNUNET_FS_publish_ksk" that performs the actual
+ * Continuation of #GNUNET_FS_publish_ksk() that performs the actual
  * publishing operation (iterating over all of the keywords).
  *
- * @param cls closure of type "struct GNUNET_FS_PublishKskContext*"
+ * @param cls closure of type `struct GNUNET_FS_PublishKskContext *`
  * @param tc unused
  */
 static void
-publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+publish_ksk_cont (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishKskContext *pkc = cls;
   const char *keyword;
@@ -160,8 +161,10 @@ publish_ksk_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ( (pkc->i == pkc->ksk_uri->data.ksk.keywordCount) ||
        (NULL == pkc->dsh) )
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "KSK PUT operation complete\n");
-    pkc->cont (pkc->cont_cls, pkc->ksk_uri, NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "KSK PUT operation complete\n");
+    pkc->cont (pkc->cont_cls, pkc->ksk_uri,
+               NULL);
     GNUNET_FS_publish_ksk_cancel (pkc);
     return;
   }
@@ -216,7 +219,9 @@ GNUNET_FS_publish_ksk (struct GNUNET_FS_Handle *h,
     pkc->dsh = GNUNET_DATASTORE_connect (h->cfg);
     if (NULL == pkc->dsh)
     {
-      cont (cont_cls, NULL, _("Could not connect to datastore."));
+      cont (cont_cls,
+            NULL,
+            _("Could not connect to datastore."));
       GNUNET_free (pkc);
       return NULL;
     }
