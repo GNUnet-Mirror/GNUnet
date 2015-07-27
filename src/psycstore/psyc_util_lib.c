@@ -19,7 +19,7 @@
  */
 
 /**
- * @file psyc/psyc_util_lib.c
+ * @file psycstore/psyc_util_lib.c
  * @brief PSYC utilities; receiving/transmitting/logging PSYC messages.
  * @author Gabor X Toth
  */

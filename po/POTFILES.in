@@ -248,9 +248,9 @@ src/peerstore/plugin_peerstore_sqlite.c
 src/postgres/postgres.c
 src/psyc/gnunet-service-psyc.c
 src/psyc/psyc_api.c
-src/psyc/psyc_util_lib.c
 src/psycstore/gnunet-service-psycstore.c
 src/psycstore/plugin_psycstore_sqlite.c
+src/psycstore/psyc_util_lib.c
 src/psycstore/psycstore_api.c
 src/pt/gnunet-daemon-pt.c
 src/regex/gnunet-daemon-regexprofiler.c
