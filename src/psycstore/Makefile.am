@@ -76,10 +76,12 @@ libgnunet_plugin_psycstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
+if HAVE_SQLITE
 if HAVE_TESTING
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  test_psycstore
+endif
 endif
 
 if ENABLE_TEST_RUN
@@ -102,4 +104,4 @@ test_plugin_psycstore_sqlite_SOURCES = \
  test_plugin_psycstore.c
 test_plugin_psycstore_sqlite_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
