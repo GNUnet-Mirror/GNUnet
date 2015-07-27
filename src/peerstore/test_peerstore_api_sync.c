@@ -181,7 +181,7 @@ main (int argc, char *argv[])
   if (0 != ok)
     fprintf (stderr,
 	     "Test failed: %d\n",
-	     ok).
+	     ok);
   return ok;
 }
 
