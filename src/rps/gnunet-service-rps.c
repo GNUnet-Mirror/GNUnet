@@ -141,11 +141,6 @@ struct PeerOutstandingOp
 struct PeerContext
 {
   /**
-   * Flags indicating status of peer
-   */
-  uint32_t peer_flags;
-
-  /**
    * Message queue open to client
    */
   struct GNUNET_MQ_Handle *mq;
@@ -166,22 +161,26 @@ struct PeerContext
   struct PeerOutstandingOp *outstanding_ops;
 
   /**
-   * Number of outstanding operations.
-   */
-  unsigned int num_outstanding_ops;
-  //size_t num_outstanding_ops;
-
-  /**
    * Handle to the callback given to cadet_ntfy_tmt_rdy()
    *
    * To be canceled on shutdown.
    */
-  struct GNUNET_CADET_TransmitHandle *is_live_task;
+  struct GNUNET_CADET_TransmitHandle *transmit_handle;
+
+  /**
+   * Number of outstanding operations.
+   */
+  unsigned int num_outstanding_ops;
 
   /**
    * Identity of the peer
    */
   struct GNUNET_PeerIdentity peer_id;
+  
+  /**
+   * Flags indicating status of peer
+   */
+  uint32_t peer_flags;
 
   /**
    * This is pobably followed by 'statistical' data (when we first saw
@@ -651,29 +650,32 @@ get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
  * Get the context of a peer. If not existing, create.
  */
   struct PeerContext *
-get_peer_ctx (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
-              const struct GNUNET_PeerIdentity *peer)
+get_peer_ctx (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *ctx;
+  int ret;
 
-  if ( GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
-  {
-    ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
-  }
-  else
-  {
-    ctx = GNUNET_new (struct PeerContext);
-    ctx->peer_flags = 0;
-    ctx->mq = NULL;
-    ctx->send_channel = NULL;
-    ctx->recv_channel = NULL;
-    ctx->outstanding_ops = NULL;
-    ctx->num_outstanding_ops = 0;
-    ctx->is_live_task = NULL;
-    ctx->peer_id = *peer;
-    (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
-                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-  }
+  ret = GNUNET_CONTAINER_multipeermap_contains (peer_map, peer);
+  GNUNET_assert (GNUNET_YES == ret);
+  ctx = GNUNET_CONTAINER_multipeermap_get (peer_map, peer);
+  GNUNET_assert (NULL != ctx);
+  return ctx;
+}
+
+/**
+ * Create a new peer context and insert it into the peer map
+ */
+struct PeerContext *
+create_peer_ctx (const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerContext *ctx;
+  int ret;
+
+  ctx = GNUNET_new (struct PeerContext);
+  ctx->peer_id = *peer;
+  ret = GNUNET_CONTAINER_multipeermap_put (peer_map, peer, ctx,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_assert (GNUNET_OK == ret);
   return ctx;
 }
 
@@ -724,11 +726,11 @@ peer_is_live (struct PeerContext *peer_ctx)
 {
   struct GNUNET_PeerIdentity *peer;
 
-  /* Cancle is_live_task if still scheduled */
-  if (NULL != peer_ctx->is_live_task)
+  /* Cancle transmit_handle if still scheduled */
+  if (NULL != peer_ctx->transmit_handle)
   {
-    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-    peer_ctx->is_live_task = NULL;
+    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->transmit_handle);
+    peer_ctx->transmit_handle = NULL;
   }
 
   peer = &peer_ctx->peer_id;
@@ -759,9 +761,9 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
 {
   struct PeerContext *peer_ctx = (struct PeerContext *) cls;
 
-  peer_ctx->is_live_task = NULL;
+  peer_ctx->transmit_handle = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Set ->is_live_task = NULL for peer %s\n",
+       "Set ->transmit_handle = NULL for peer %s\n",
        GNUNET_i2s (&peer_ctx->peer_id));
 
   if (NULL != buf
@@ -777,13 +779,13 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
     // TODO reschedule? cleanup?
   }
 
-  //if (NULL != peer_ctx->is_live_task)
+  //if (NULL != peer_ctx->transmit_handle)
   //{
   //  LOG (GNUNET_ERROR_TYPE_DEBUG,
-  //       "Trying to cancle is_live_task for peer %s\n",
+  //       "Trying to cancle transmit_handle for peer %s\n",
   //       GNUNET_i2s (&peer_ctx->peer_id));
-  //  GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-  //  peer_ctx->is_live_task = NULL;
+  //  GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->transmit_handle);
+  //  peer_ctx->transmit_handle = NULL;
   //}
 
   return 0;
@@ -799,8 +801,7 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 {
   struct PeerContext *peer_ctx;
 
-  peer_ctx = get_peer_ctx (peer_map, peer);
-
+  peer_ctx = get_peer_ctx (peer);
   if (NULL == peer_ctx->send_channel)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -831,9 +832,9 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 {
   struct PeerContext *peer_ctx;
 
-  peer_ctx = get_peer_ctx (peer_map, peer_id);
+  peer_ctx = get_peer_ctx (peer_id);
 
-  GNUNET_assert (NULL == peer_ctx->is_live_task);
+  GNUNET_assert (NULL == peer_ctx->transmit_handle);
 
   if (NULL == peer_ctx->mq)
   {
@@ -859,11 +860,11 @@ check_peer_live (struct PeerContext *peer_ctx)
        "Get informed about peer %s getting live\n",
        GNUNET_i2s (&peer_ctx->peer_id));
 
-  if (NULL == peer_ctx->is_live_task &&
+  if (NULL == peer_ctx->transmit_handle &&
       NULL == peer_ctx->send_channel)
   {
     (void) get_channel (peer_map, &peer_ctx->peer_id);
-    peer_ctx->is_live_task =
+    peer_ctx->transmit_handle =
         GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
                                             GNUNET_NO,
                                             GNUNET_TIME_UNIT_FOREVER_REL,
@@ -871,7 +872,7 @@ check_peer_live (struct PeerContext *peer_ctx)
                                             cadet_ntfy_tmt_rdy_cb,
                                             peer_ctx);
   }
-  else if (NULL != peer_ctx->is_live_task)
+  else if (NULL != peer_ctx->transmit_handle)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Already waiting for notification\n");
   else if (NULL != peer_ctx->send_channel)
@@ -1185,43 +1186,47 @@ new_peer_id (const struct GNUNET_PeerIdentity *peer_id)
   struct PeerOutstandingOp out_op;
   struct PeerContext *peer_ctx;
 
-  if (NULL != peer_id &&
-      0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer_id))
+  if ((NULL == peer_id) ||
+      (0 == GNUNET_CRYPTO_cmp_peer_identity (&own_identity, peer_id)))
+    return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got peer_id %s (at %p, view size: %u)\n",
+       GNUNET_i2s (peer_id),
+       peer_id,
+       GNUNET_CONTAINER_multipeermap_size (view));
+
+  /* if the seed peer is already know, skip context creation */
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer_id))
+    peer_ctx = create_peer_ctx (peer_id);
+  else
+    peer_ctx = get_peer_ctx (peer_id);
+
+  if (GNUNET_NO == get_peer_flag (peer_ctx, VALID))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Got peer_id %s (at %p, view size: %u)\n",
-        GNUNET_i2s (peer_id),
-        peer_id,
-        GNUNET_CONTAINER_multipeermap_size (view));
-
-    peer_ctx = get_peer_ctx (peer_map, peer_id);
-    if (GNUNET_YES != get_peer_flag (peer_ctx, VALID))
+    if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
     {
-      if (GNUNET_NO == insert_in_sampler_scheduled (peer_ctx))
-      {
-        out_op.op = insert_in_sampler;
-        out_op.op_cls = NULL;
-        GNUNET_array_append (peer_ctx->outstanding_ops,
-                             peer_ctx->num_outstanding_ops,
-                             out_op);
-      }
-
-      if (GNUNET_NO == insert_in_view_scheduled (peer_ctx))
-      {
-        out_op.op = insert_in_view;
-        out_op.op_cls = NULL;
-        GNUNET_array_append (peer_ctx->outstanding_ops,
-                             peer_ctx->num_outstanding_ops,
-                             out_op);
-      }
-
-      /* Trigger livelyness test on peer */
-      check_peer_live (peer_ctx);
+      out_op.op = insert_in_sampler;
+      out_op.op_cls = NULL;
+      GNUNET_array_append (peer_ctx->outstanding_ops,
+                           peer_ctx->num_outstanding_ops,
+                           out_op);
     }
-    // else...?
 
-    // send push/pull to each of those peers?
+    if (GNUNET_NO == insert_in_view_scheduled (peer_ctx))
+    {
+      out_op.op = insert_in_view;
+      out_op.op_cls = NULL;
+      GNUNET_array_append (peer_ctx->outstanding_ops,
+                           peer_ctx->num_outstanding_ops,
+                           out_op);
+    }
+
+    /* Trigger livelyness test on peer */
+    check_peer_live (peer_ctx);
   }
+  // else...?
+
+  // send push/pull to each of those peers?
 }
 
 
@@ -1659,11 +1664,11 @@ handle_peer_pull_reply (void *cls,
     return GNUNET_SYSERR;
   }
 
-  sender = (struct GNUNET_PeerIdentity *) GNUNET_CADET_channel_get_info (
-      (struct GNUNET_CADET_Channel *) channel, GNUNET_CADET_OPTION_PEER);
-       // Guess simply casting isn't the nicest way...
-       // FIXME wait for cadet to change this function
-  sender_ctx = get_peer_ctx (peer_map, sender);
+  // Guess simply casting isn't the nicest way...
+  // FIXME wait for cadet to change this function
+  sender = (struct GNUNET_PeerIdentity *)
+      GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
+  sender_ctx = get_peer_ctx (sender);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received (%s)\n", GNUNET_i2s (sender));
 
@@ -1721,7 +1726,7 @@ handle_peer_pull_reply (void *cls,
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity,
                                               &peers[i]))
     {
-      peer_ctx = get_peer_ctx (peer_map, &peers[i]);
+      peer_ctx = get_peer_ctx (&peers[i]);
       if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
       {
         if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
@@ -1804,7 +1809,7 @@ send_pull_request (struct GNUNET_PeerIdentity *peer_id)
   struct GNUNET_MQ_Handle *mq;
   struct PeerContext *peer_ctx;
 
-  peer_ctx = get_peer_ctx (peer_map, peer_id);
+  peer_ctx = get_peer_ctx (peer_id);
   GNUNET_assert (GNUNET_NO == get_peer_flag (peer_ctx, PULL_REPLY_PENDING));
   set_peer_flag (peer_ctx, PULL_REPLY_PENDING);
 
@@ -2036,7 +2041,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   { /* Combined attack */
 
     /* Send PUSH to attacked peers */
-    peer_ctx = get_peer_ctx (peer_map, &attacked_peer);
+    peer_ctx = get_peer_ctx (&attacked_peer);
     if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2161,7 +2166,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (i = first_border; i < second_border; i++)
     {
       peer = view_array[permut[i]];
-      peer_ctx = get_peer_ctx (peer_map, &peer);
+      peer_ctx = get_peer_ctx (&peer);
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity, &peer) &&
           GNUNET_NO == get_peer_flag (peer_ctx, PULL_REPLY_PENDING)) // TODO
       { // FIXME if this fails schedule/loop this for later
@@ -2398,13 +2403,13 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
   /* If we are still waiting for notification whether this peer is live
    * cancel the according task */
-  if (NULL != peer_ctx->is_live_task)
+  if (NULL != peer_ctx->transmit_handle)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Trying to cancle is_live_task for peer %s\n",
+         "Trying to cancle transmit_handle for peer %s\n",
          GNUNET_i2s (key));
-    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->is_live_task);
-    peer_ctx->is_live_task = NULL;
+    GNUNET_CADET_notify_transmit_ready_cancel (peer_ctx->transmit_handle);
+    peer_ctx->transmit_handle = NULL;
   }
 
   unset_peer_flag (peer_ctx, PULL_REPLY_PENDING);
@@ -2466,7 +2471,7 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
   if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
       GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
-    peer_ctx = get_peer_ctx (peer_map, peer);
+    peer_ctx = get_peer_ctx (peer);
 
     if (NULL == peer_ctx->recv_channel)
     {
@@ -2564,38 +2569,24 @@ handle_inbound_channel (void *cls,
                         enum GNUNET_CADET_ChannelOption options)
 {
   struct PeerContext *peer_ctx;
-  struct GNUNET_PeerIdentity peer;
 
-  peer = *initiator;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "New channel was established to us (Peer %s).\n",
-      GNUNET_i2s (&peer));
-
-  GNUNET_assert (NULL != channel);
-
-  // we might not even store the recv_channel
-
-  peer_ctx = get_peer_ctx (peer_map, &peer);
-  // FIXME what do we do if a channel is established twice?
-  //       overwrite? Clean old channel? ...?
-  //if (NULL != peer_ctx->recv_channel)
-  //{
-  //  peer_ctx->recv_channel = channel;
-  //}
+      GNUNET_i2s (initiator));
+  GNUNET_assert (NULL != channel); /* according to cadet API */
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, initiator))
+    peer_ctx = create_peer_ctx (initiator);
+  else
+    peer_ctx = get_peer_ctx (initiator);
+  /* We only accept one incoming channel from peers */
+  if (NULL != peer_ctx->recv_channel)
+  {
+    GNUNET_CADET_channel_destroy (channel);
+    return NULL;
+  }
   peer_ctx->recv_channel = channel;
-
-  (void) GNUNET_CONTAINER_multipeermap_put (peer_map, &peer, peer_ctx,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-
-  /* This would make the push-message unnecessary */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Got peer_id %s from peerinfo\n",
-      GNUNET_i2s (&peer));
-  new_peer_id (&peer);
-
   peer_is_live (peer_ctx);
-
-  return NULL; // TODO
+  return NULL;
 }
 
 
