@@ -1,0 +1,19 @@
+# Last Modified: Wed Jul  8 10:49:34 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-ats {
+  #include <abstractions/gnunet-common>
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-ats mr,
+  
+  #Gnunet librairies
+  /usr/local/lib/libgnunethello.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunetats.so.* mr,
+
+  #Gnunet plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_ats_proportional.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_ats_proportional.so mr,
+
+  /usr/lib/ld-*.so r,
+}

@@ -1,0 +1,29 @@
+# Last Modified: Thu Jul  9 10:01:49 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-namecache {
+  #include <abstractions/gnunet-common>
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-namecache mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetdnsparser.so.* mr,
+  /usr/local/lib/libgnunetnamecache.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunetgnsrecord.so.* mr,
+
+  #Gnunet plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_namecache_sqlite.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_namecache_sqlite.so mr,
+
+  /var/lib/gnunet/.local/share/gnunet/namecache/ r,
+  /var/lib/gnunet/.local/share/gnunet/namecache/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/namecache/sqlite.db-journal rw,
+
+  #Librairies  
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libsqlite3.so.* mr,
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/ld-*.so r,
+}
+

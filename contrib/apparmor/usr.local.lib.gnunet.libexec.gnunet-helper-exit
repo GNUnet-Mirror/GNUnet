@@ -1,0 +1,11 @@
+# Last Modified: Tue Jul 28 11:44:00 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-helper-exit flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  capability setuid,
+
+  /usr/local/lib/gnunet/libexec/gnunet-helper-exit mr,
+
+}

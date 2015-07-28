@@ -1,0 +1,24 @@
+# Last Modified: Tue Jul 21 11:51:29 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-identity {
+  #include <abstractions/gnunet-common>
+
+  /tmp/gnunet-*-runtime/ a,
+
+  /usr/lib/ld-*.so r,
+
+  /var/lib/gnunet/.local/share/gnunet/identity/ a,
+  /var/lib/gnunet/.local/share/gnunet/identity/egos/ ra,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-identity mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+
+  @{HOME}/.config/gnunet/identity/subsystem_defaults.conf rw,
+
+  @{HOME}/.local/share/gnunet/identity/egos/ r,
+  @{HOME}/.local/share/gnunet/identity/egos/master-zone rk,
+  @{HOME}/.local/share/gnunet/identity/egos/private-zone rk,
+  @{HOME}/.local/share/gnunet/identity/egos/short-zone rk,
+  @{HOME}/.local/share/gnunet/identity/egos/sks-zone rk,
+}

@@ -1,0 +1,109 @@
+# Last Modified: Thu Jul  9 10:27:23 2015
+
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-arm {
+  #include <abstractions/gnunet-common> 
+
+  /dev/null ra,
+
+  /tmp/gnunet-*-runtime/ rw,
+  /tmp/gnunet-*-runtime/gnunet-service-arm.sock rw,
+  /tmp/gnunet-*-runtime/gnunet-service-gns.sock rw,
+  /tmp/gnunet-*-runtime/gnunet-service-identity.unix rw,
+  /tmp/gnunet-*-runtime/gnunet-service-namestore.sock rw,
+
+  /tmp/gnunet-system-runtime/ rw,
+  /tmp/gnunet-system-runtime/gnunet-service-*.sock rw,
+  /tmp/gnunet-system-runtime/gnunet-service-nse.unix rw,
+  /tmp/gnunet-system-runtime/gnunet-service-revocation.unix rw,
+
+  /var/lib/gnunet/.local/share/gnunet/ r,
+  /var/lib/gnunet/.local/share/gnunet/revocation.dat r,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/ a,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db-journal rw,
+  /var/lib/gnunet/.config/gnunet.conf r,
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libpthread-*.so mr,
+  
+  /usr/lib/libsqlite3.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  /usr/share/locale/locale-alias r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-arm mr,
+
+  /usr/local/lib/gnunet/ r,
+
+  /usr/local/lib/gnunet/libexec/ r,
+
+  #Gnunet daemon
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-exit Px,
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-hostlist Px,
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-latency-logger Px,
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-testbed-underlay Px,
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-topology Px,
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-pt Px,
+
+  /usr/local/lib/gnunet/libexec/gnunet-dns2gns Px,
+
+  /usr/local/lib/gnunet/libexec/gnunet-gns-proxy Px,
+
+  /usr/local/lib/gnunet/libexec/gnunet-namestore-fcfsd Px,
+
+  #Gnunet service
+  /usr/local/lib/gnunet/libexec/gnunet-service-ats Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-cadet Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-core Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-conversation Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-datastore Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-dht Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-dns Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-fs Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-gns Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-identity Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-mesh Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-namecache Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-namestore Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-nse Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-peerinfo Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-peerstore Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-regex Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-resolver Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-revocation Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-set Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-scalarproduct-alice Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-scalarproduct-bob Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-statistics Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-template Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-testbed Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-testbed-logger Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-transport Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-vpn Px,
+
+  #Gnunet helper
+  /usr/local/lib/gnunet/libexec/gnunet-helper-dns r,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetats.so.* mr,
+  /usr/local/lib/libgnunetcadet.so.* mr,
+  /usr/local/lib/libgnunetdht.so.* mr,
+  /usr/local/lib/libgnunetdnsstub.so.* mr,
+  /usr/local/lib/libgnunetgnsrecord.so.* r,
+  /usr/local/lib/libgnunethello.so.* mr,
+  /usr/local/lib/libgnunetnamecache.so.* r,
+  /usr/local/lib/libgnunetpeerstore.so.* mr,
+  /usr/local/lib/libgnunetregex.so.* mr,
+  /usr/local/lib/libgnunetset.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunettransport.so.* mr,
+  /usr/local/lib/libgnunettun.so.* mr,
+
+  #Gnunet plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_peerstore_sqlite.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_peerstore_sqlite.so mr,
+}

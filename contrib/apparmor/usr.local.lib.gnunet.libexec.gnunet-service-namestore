@@ -1,0 +1,35 @@
+# Last Modified: Tue Jul  7 10:43:41 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-namestore {
+  #include <abstractions/gnunet-common>
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-namestore mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetnamecache.so.* mr,
+  /usr/local/lib/libgnunetgnsrecord.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunetnamestore.so.* mr,
+  /usr/local/lib/libgnunetdnsparser.so.* mr,
+
+  #Gnunet plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_namestore_sqlite.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_namestore_sqlite.so mr,
+
+  #Librairies
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/ld-*.so r,
+  /usr/lib/libsqlite3.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+
+  /var/lib/gnunet/.local/share/gnunet/namestore/ ra,
+  /var/lib/gnunet/.local/share/gnunet/namestore/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/namestore/sqlite.db-journal rw, 
+
+  @{HOME}/.local/share/gnunet/namestore/ r,
+  @{HOME}/.local/share/gnunet/namestore/sqlite.db rwk,
+  @{HOME}/.local/share/gnunet/namestore/sqlite.db-journal rw,
+
+  /tmp/gnunet-*-runtime/ a,
+}

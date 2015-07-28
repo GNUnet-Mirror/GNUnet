@@ -1,0 +1,11 @@
+# Last Modified: Mon Jul 27 15:48:05 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-scalarproduct-bob {
+  #include <abstractions/gnunet-common>
+
+  /usr/lib/ld-*.so r,
+  /usr/local/lib/gnunet/libexec/gnunet-service-scalarproduct-bob mr,
+  /usr/local/lib/libgnunetcadet.so.* mr,
+  /usr/local/lib/libgnunetset.so.* mr,
+}

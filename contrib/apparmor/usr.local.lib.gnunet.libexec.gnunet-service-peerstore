@@ -1,0 +1,23 @@
+# Last Modified: Mon Jul 27 11:06:13 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-peerstore {
+  #include <abstractions/gnunet-common>
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libsqlite3.so.* mr,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-peerstore mr,
+
+  #Gnunet Plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_peerstore_sqlite.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_peerstore_sqlite.so mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetpeerstore.so.* mr,
+
+  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db-journal rw,
+}

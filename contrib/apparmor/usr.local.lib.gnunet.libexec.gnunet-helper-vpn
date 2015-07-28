@@ -1,0 +1,16 @@
+# Last Modified: Mon Jul 27 11:06:22 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-helper-vpn flags=(complain) {
+
+  capability net_admin,
+  capability setuid,
+
+  /dev/net/tun rw,
+  /etc/ld.so.cache r,
+  /usr/lib/ld-*.so r,
+  /usr/lib/libc-*.so mr,
+  /usr/lib/libm-*.so mr,
+  /usr/local/lib/gnunet/libexec/gnunet-helper-vpn mr,
+
+}

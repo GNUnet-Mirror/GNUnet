@@ -1,0 +1,26 @@
+# Last Modified: Thu Jul  9 10:16:30 2015
+
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-revocation {
+  #include <abstractions/gnunet-common>
+  
+  /etc/gnunet.conf r,
+  @{HOME}/.config/gnunet.conf r,
+
+  /tmp/gnunet-system-runtime/gnunet-service-revocation.unix w,
+
+  /var/lib/gnunet/.local/share/gnunet/revocation.dat rw,
+
+  @{HOME}/.local/share/gnunet/revocation.dat rw,
+
+  /usr/lib/ld-*.so r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-revocation mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetcore.so.* mr,
+  /usr/local/lib/libgnunetrevocation.so.* mr,
+  /usr/local/lib/libgnunetset.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+}

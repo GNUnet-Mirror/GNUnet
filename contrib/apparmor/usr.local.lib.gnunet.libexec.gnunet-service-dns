@@ -1,0 +1,19 @@
+# Last Modified: Mon Jul 27 15:18:30 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-dns {
+  #include <abstractions/gnunet-common>
+
+  capability setgid,
+
+  /usr/lib/ld-*.so r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-helper-dns Px,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-dns mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetdnsstub.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunettun.so.* mr,
+}

@@ -1,0 +1,9 @@
+# Last Modified: Tue Jul 28 11:46:24 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-helper-audio-playback flags=(complain) {
+  #include <abstractions/gnunet-common>
+  #include <abstractions/gnunet-libaudio>
+
+  /usr/local/lib/gnunet/libexec/gnunet-helper-audio-playback mr,
+}

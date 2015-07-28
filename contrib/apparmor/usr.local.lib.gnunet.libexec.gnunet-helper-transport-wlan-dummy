@@ -1,0 +1,9 @@
+# Last Modified: Tue Jul 28 11:36:52 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-helper-transport-wlan-dummy flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  /usr/local/lib/gnunet/libexec/gnunet-helper-transport-wlan-dummy mr,
+
+}

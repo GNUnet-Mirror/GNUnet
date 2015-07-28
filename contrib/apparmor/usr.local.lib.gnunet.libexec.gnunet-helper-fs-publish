@@ -1,0 +1,13 @@
+# Last Modified: Tue Jul 28 11:42:58 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-helper-fs-publish flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  /usr/lib/libbz2.so.* mr,
+  /usr/lib/libextractor.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/librt-*.so mr,
+
+  /usr/local/lib/gnunet/libexec/gnunet-helper-fs-publish mr,
+}

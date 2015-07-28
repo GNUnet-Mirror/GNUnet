@@ -1,0 +1,27 @@
+#/usr/local/lib Last Modified: Fri Jul  3 14:48:33 2015
+#include <tunables/global>
+
+/usr/local/bin/gnunet-arm {
+  #include <abstractions/gnunet-common>
+
+  /usr/local/bin/gnunet-arm mr,
+
+  /usr/lib/gconv/gconv-modules r,
+
+  /usr/local/lib/libgnunetarm.so.* mr,
+
+  /dev/null ra,
+
+  /usr/lib/locale/locale-archive r,
+
+  /usr/share/locale/locale.alias r,
+  /usr/share/locale/fr/LC_MESSAGES/libc.mo r,
+
+  #Gnunet service
+  /usr/local/lib/gnunet/libexec/gnunet-service-arm Px ,
+
+  /tmp/gnunet-*-runtime/ rw,
+  /tmp/gnunet-*-runtime/gnunet-service-arm.sock rw,
+
+  #/tmp/gnunet-gnunet-runtime/* rw,
+}

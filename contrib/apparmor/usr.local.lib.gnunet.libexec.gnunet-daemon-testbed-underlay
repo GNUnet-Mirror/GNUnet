@@ -1,0 +1,22 @@
+# Last Modified: Mon Jul 27 16:37:03 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-daemon-testbed-underlay {
+  #include <abstractions/gnunet-common>
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libsqlite3.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-testbed-underlay mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetats.so.* mr,
+  /usr/local/lib/libgnunethello.so.* mr,
+  /usr/local/lib/libgnunettransport.so.* mr,
+
+  /usr/share/locale/locale.alias r,
+}

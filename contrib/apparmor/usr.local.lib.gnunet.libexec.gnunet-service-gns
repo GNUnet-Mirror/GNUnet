@@ -1,0 +1,29 @@
+# Last Modified: Wed Jul  8 15:17:46 2015
+
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-gns {
+  #include <abstractions/gnunet-common>
+
+  @{HOME}/.config/gnunet.conf r,
+
+  #Librairies
+  /usr/lib/ld-2.21.so r,
+  /usr/lib/libidn.so.* mr,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-gns mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetdht.so.* mr,
+  /usr/local/lib/libgnunetdns.so.* mr,
+  /usr/local/lib/libgnunetdnsparser.so.* mr,
+  /usr/local/lib/libgnunetdnsstub.so.* mr,
+  /usr/local/lib/libgnunetgnsrecord.so.* mr,
+  /usr/local/lib/libgnunetidentity.so.* mr,
+  /usr/local/lib/libgnunetnamecache.so.* mr,
+  /usr/local/lib/libgnunetnamestore.so.* mr,
+  /usr/local/lib/libgnunetrevocation.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunettun.so.* mr,
+  /usr/local/lib/libgnunetvpn.so.* mr,
+}

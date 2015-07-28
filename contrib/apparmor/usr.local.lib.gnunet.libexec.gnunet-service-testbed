@@ -1,0 +1,35 @@
+# Last Modified: Mon Jul 27 11:02:46 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-testbed flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  /etc/gai.conf r,
+ 
+  /tmp/gnunet-system-runtime/ w,
+  /tmp/gnunet-system-runtime/gnunet-service-testbed-barrier.sock w,
+  /tmp/gnunet-system-runtime/gnunet-service-testbed.sock w,
+
+  /usr/lib/ld-*.so r,
+
+  /dev/null r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-* r,
+
+  /usr/local/lib/gnunet/libexec/ r,
+  /usr/local/lib/gnunet/libexec/gnunet-service-arm Px,
+  /usr/local/lib/gnunet/libexec/gnunet-service-testbed mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetarm.so.* mr,
+  /usr/local/lib/libgnunetats.so.* mr,
+  /usr/local/lib/libgnunetcore.so.* mr,
+  /usr/local/lib/libgnunethello.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunettestbed.so.* mr,
+  /usr/local/lib/libgnunettesting.so.* mr,
+  /usr/local/lib/libgnunettransport.so.* mr,
+
+  /usr/local/share/gnunet/testing_hostkeys.ecc r,
+
+}

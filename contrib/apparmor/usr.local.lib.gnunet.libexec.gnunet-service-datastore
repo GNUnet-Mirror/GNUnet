@@ -1,0 +1,26 @@
+# Last Modified: Thu Jul  9 10:16:30 2015
+
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-datastore {
+  #include <abstractions/gnunet-common>
+  
+  /var/lib/gnunet/.local/share/gnunet/datastore/bloomfilter.sqlite rw,
+  /var/lib/gnunet/.local/share/gnunet/datastore/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/datastore/sqlite.db-journal rw,
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libsqlite3.so.* mr,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-datastore mr,
+
+  #Gnunet plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_datastore_sqlite.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_datastore_sqlite.so mr,
+
+  #Gnunet Librairies
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunetutil.so.* mr,
+}

@@ -1,0 +1,25 @@
+# Last Modified: Mon Jul 20 17:48:20 2015
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-daemon-pt {
+  #include <abstractions/gnunet-common>
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libidn.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-daemon-pt mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetcadet.so.* mr,
+  /usr/local/lib/libgnunetdht.so.* mr,
+  /usr/local/lib/libgnunetdns.so.* mr,
+  /usr/local/lib/libgnunetdnsparser.so.* mr,
+  /usr/local/lib/libgnunetmesh.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunetvpn.so.* mr,
+
+  /usr/share/locale/locale.alias r,
+}

@@ -1,0 +1,28 @@
+# Last Modified: Thu Jul  9 10:16:30 2015
+
+#include <tunables/global>
+
+/usr/local/lib/gnunet/libexec/gnunet-service-transport {
+  #include <abstractions/gnunet-common>
+
+  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
+
+  /usr/lib/ld-*.so r,
+
+  /usr/local/lib/gnunet/libexec/gnunet-service-transport mr,
+
+  #Gnunet plugin
+  /usr/local/lib/gnunet/libgnunet_plugin_transport_tcp.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_transport_tcp.so mr,
+  /usr/local/lib/gnunet/libgnunet_plugin_transport_udp.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_transport_udp.so mr,
+
+  #Gnunet librairies
+  /usr/local/lib/libgnunetats.so.* mr,
+  /usr/local/lib/libgnunetfragmentation.so.* mr,
+  /usr/local/lib/libgnunethello.so.* mr,
+  /usr/local/lib/libgnunetnat.so.* mr,
+  /usr/local/lib/libgnunetpeerinfo.so.* mr,
+  /usr/local/lib/libgnunetstatistics.so.* mr,
+  /usr/local/lib/libgnunettransport.so.* mr,
+}
