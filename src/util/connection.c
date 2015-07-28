@@ -251,6 +251,11 @@ struct GNUNET_CONNECTION_Handle
    */
   int8_t destroy_later;
 
+  /**
+   * Handle to subsequent connection after proxy handshake completes,
+   */
+  struct GNUNET_CONNECTION_Handle *proxy_handshake;
+
 };
 
 
@@ -571,6 +576,7 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *connection)
   GNUNET_break (GNUNET_NO == connection->dns_active);
   GNUNET_break (NULL == connection->sock);
   GNUNET_assert (NULL == connection->write_task);
+  GNUNET_assert (NULL == connection->proxy_handshake);
 
   /* signal errors for jobs that used to wait on the connection */
   connection->destroy_later = 1;
@@ -687,7 +693,9 @@ connect_probe_continuation (void *cls,
   {
     GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (ap->sock));
     GNUNET_free (ap);
-    if ((NULL == connection->ap_head) && (GNUNET_NO == connection->dns_active))
+    if ((NULL == connection->ap_head) &&
+        (GNUNET_NO == connection->dns_active) &&
+        (NULL == connection->proxy_handshake))
       connect_fail_continuation (connection);
     return;
   }
@@ -730,7 +738,9 @@ try_connect_using_address (void *cls,
   if (NULL == addr)
   {
     connection->dns_active = NULL;
-    if ((NULL == connection->ap_head) && (NULL == connection->sock))
+    if ((NULL == connection->ap_head) && 
+        (NULL == connection->sock) &&
+        (NULL == connection->proxy_handshake))
       connect_fail_continuation (connection);
     return;
   }
@@ -982,7 +992,9 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
 int
 GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *connection)
 {
-  if ((NULL != connection->ap_head) || (NULL != connection->dns_active))
+  if ((NULL != connection->ap_head) || 
+      (NULL != connection->dns_active) || 
+      (NULL != connection->proxy_handshake))
     return GNUNET_YES;          /* still trying to connect */
   if ( (0 != connection->destroy_later) ||
        (NULL == connection->sock) )
@@ -1034,6 +1046,12 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
   {
     GNUNET_RESOLVER_request_cancel (connection->dns_active);
     connection->dns_active = NULL;
+  }
+  if (NULL != connection->proxy_handshake)
+  {
+    /* GNUNET_CONNECTION_destroy (connection->proxy_handshake); */
+    connection->proxy_handshake->destroy_later = -1;
+    connection->proxy_handshake = NULL;  /* Not leaked ??? */
   }
   while (NULL != (pos = connection->ap_head))
   {
@@ -1182,7 +1200,9 @@ GNUNET_CONNECTION_receive (struct GNUNET_CONNECTION_Handle *connection,
                                      connection);
     return;
   }
-  if ((NULL == connection->dns_active) && (NULL == connection->ap_head))
+  if ((NULL == connection->dns_active) &&
+      (NULL == connection->ap_head) &&
+      (NULL == connection->proxy_handshake))
   {
     connection->receiver = NULL;
     receiver (receiver_cls, NULL, 0, NULL, 0, ETIMEDOUT);
@@ -1496,7 +1516,8 @@ GNUNET_CONNECTION_notify_transmit_ready (struct GNUNET_CONNECTION_Handle *connec
   GNUNET_assert (NULL == connection->nth.timeout_task);
   if ((NULL == connection->sock) &&
       (NULL == connection->ap_head) &&
-      (NULL == connection->dns_active))
+      (NULL == connection->dns_active) &&
+      (NULL == connection->proxy_handshake))
   {
     if (NULL != connection->write_task)
       GNUNET_SCHEDULER_cancel (connection->write_task);
@@ -1550,5 +1571,41 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct GNUNET_CONNECTION_Transmi
     th->connection->write_task = NULL;
   }
 }
+
+
+/**
+ * Create a connection to be proxied using a given connection.
+ *
+ * @param cph connection to proxy server
+ * @return connection to be proxied
+ */
+struct GNUNET_CONNECTION_Handle *
+GNUNET_CONNECTION_create_proxied_from_handshake (struct GNUNET_CONNECTION_Handle *cph)
+{
+  struct GNUNET_CONNECTION_Handle * proxied = GNUNET_CONNECTION_create_from_existing(NULL);
+  proxied->proxy_handshake = cph;
+  return proxied;
+}
+
+
+/**
+ * Activate proxied connection and destroy initial proxy handshake connection. 
+ * There must not be any pending requests for reading or writing to the
+ * proxy hadshake connection at this time.
+ *
+ * @param proxied connection connection to proxy server
+ */
+void
+GNUNET_CONNECTION_acivate_proxied (struct GNUNET_CONNECTION_Handle *proxied)
+{
+  struct GNUNET_CONNECTION_Handle *cph = proxied->proxy_handshake;
+  GNUNET_assert (NULL != cph);
+  GNUNET_assert (NULL == proxied->sock);
+  GNUNET_assert (NULL != cph->sock);
+  proxied->sock=cph->sock;
+  cph->sock=NULL;
+  GNUNET_CONNECTION_destroy (cph);
+}
+
 
 /* end of connection.c */
