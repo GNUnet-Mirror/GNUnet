@@ -1147,18 +1147,14 @@ run (void *cls,
     rps_peers[i].index = i;
     rps_peers[i].op =
       GNUNET_TESTBED_service_connect (&rps_peers[i],
-						                          peers[i],
-						                          "rps",
-						                          &rps_connect_complete_cb,
-						                          &rps_peers[i],
-						                          &rps_connect_adapter,
-						                          &rps_disconnect_adapter,
-						                          &rps_peers[i]);
+                                      peers[i],
+                                      "rps",
+                                      &rps_connect_complete_cb,
+                                      &rps_peers[i],
+                                      &rps_connect_adapter,
+                                      &rps_disconnect_adapter,
+                                      &rps_peers[i]);
   }
-
-  if (NULL != churn_task)
-    GNUNET_SCHEDULER_cancel (churn_task);
-
   GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
 }
 

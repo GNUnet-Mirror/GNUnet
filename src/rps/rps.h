@@ -154,7 +154,8 @@ struct GNUNET_RPS_CS_ActMaliciousMessage
    */
   uint32_t num_peers GNUNET_PACKED;
 
-  /* Followed by num_peers * GNUNET_PeerIdentity */
+  /* Followed by num_peers * GNUNET_PeerIdentity when the type of malicious
+     behaviour is 1 */
 };
 #endif /* ENABLE_MALICIOUS */
 

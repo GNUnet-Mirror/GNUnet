@@ -410,7 +410,7 @@ static struct GNUNET_CONTAINER_MultiPeerMap *mal_peer_set = NULL;
 /**
  * Number of other malicious peers
  */
-static uint32_t num_mal_peers = 0;
+static uint32_t num_mal_peers;
 
 
 /**
@@ -1288,6 +1288,7 @@ void client_respond (void *cls,
   uint32_t size_needed;
   struct ClientContext *cli_ctx;
 
+  GNUNET_assert (NULL != reply_cls);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "sampler returned %" PRIu32 " peers:\n",
        num_peers);
@@ -1415,6 +1416,7 @@ handle_client_seed (void *cls,
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client,
                                 GNUNET_SYSERR);
+    return;
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1989,6 +1991,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously type %" PRIu32 ".\n",
       mal_type);
 
+  GNUNET_assert (mal_type <= 3);
   /* Do malicious actions */
   if (1 == mal_type)
   { /* Try to maximise representation */
