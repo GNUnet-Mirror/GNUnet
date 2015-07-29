@@ -1505,7 +1505,11 @@ handle_peer_push (void *cls,
 
   /* Add the sending peer to the push_list */
   if (GNUNET_NO == in_arr (push_list, push_list_size, peer))
+  {
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+      (void) create_peer_ctx (peer);
     GNUNET_array_append (push_list, push_list_size, *peer);
+  }
 
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
