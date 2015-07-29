@@ -1962,7 +1962,7 @@ handle_client_act_malicious (void *cls,
           &attacked_peer))
     {
       att_ctx = create_peer_ctx (&attacked_peer);
-      set_peer_flag (att_ctx, VALID);
+      check_peer_live (att_ctx);
     }
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2053,7 +2053,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      * That is one push per round as it will ignore more.
      */
     peer_ctx = get_peer_ctx (&attacked_peer);
-    if (NULL == peer_ctx->transmit_handle)
+    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
       send_push (&attacked_peer);
   }
 
@@ -2317,7 +2317,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          GNUNET_i2s (&push_list[i]));
     RPS_sampler_update (prot_sampler,   &push_list[i]);
     RPS_sampler_update (client_sampler, &push_list[i]);
-    // TODO set in_flag?
+    peer_clean (&push_list[i]); /* This cleans only if it is not in the view */
   }
 
   for (i = 0; i < pull_list_size; i++)
@@ -2327,7 +2327,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          GNUNET_i2s (&pull_list[i]));
     RPS_sampler_update (prot_sampler,   &pull_list[i]);
     RPS_sampler_update (client_sampler, &pull_list[i]);
-    // TODO set in_flag?
+    peer_clean (&pull_list[i]); /* This cleans only if it is not in the view */
   }
 
 
@@ -2411,7 +2411,7 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   set_peer_flag (peer_ctx, TO_DESTROY);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Going to clean peer %s\n",
+       "Going to remove peer %s\n",
        GNUNET_i2s (&peer_ctx->peer_id));
 
   /* If operations are still scheduled for this peer cancel those */
@@ -2435,10 +2435,19 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
   unset_peer_flag (peer_ctx, PULL_REPLY_PENDING);
 
-  to_file (file_name_view_log,
-           "-%s\t(cleanup channel, other peer)",
-           GNUNET_i2s_full (key));
-  GNUNET_CONTAINER_multipeermap_remove_all (view, key);
+  /* Remove peer from view */
+  if (GNUNET_CONTAINER_multipeermap_contains (view, key))
+  {
+    to_file (file_name_view_log,
+        "-%s\t(cleanup channel, other peer)",
+        GNUNET_i2s_full (key));
+    GNUNET_CONTAINER_multipeermap_remove_all (view, key);
+    if (NULL != view_array)
+    {
+      GNUNET_free (view_array);
+      view_array = NULL;
+    }
+  }
 
   /* If there is still a mq destroy it */
   if (NULL != peer_ctx->mq)
@@ -2489,8 +2498,10 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *peer_ctx;
   /* struct GNUNET_CADET_Channel *channel; */
 
-  if (GNUNET_NO  == GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
-      GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+  if ( (GNUNET_NO  == GNUNET_CONTAINER_multipeermap_contains (view, peer)) &&
+       (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer)) &&
+       (GNUNET_NO  == in_arr (push_list, push_list_size, peer)) &&
+       (GNUNET_NO  == in_arr (pull_list, pull_list_size, peer)) )
   {
     peer_ctx = get_peer_ctx (peer);
 
