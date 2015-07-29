@@ -52,8 +52,6 @@
 
 // TODO API request_cancel
 
-// TODO don't pass peermap all the time
-
 // hist_size_init, hist_size_max
 
 /**
@@ -796,8 +794,7 @@ cadet_ntfy_tmt_rdy_cb (void *cls, size_t size, void *buf)
  * Get the channel of a peer. If not existing, create.
  */
   struct GNUNET_CADET_Channel *
-get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
-             const struct GNUNET_PeerIdentity *peer)
+get_channel (const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *peer_ctx;
 
@@ -827,8 +824,7 @@ get_channel (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
  * simply return it, otherways create one.
  */
   struct GNUNET_MQ_Handle *
-get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
-        const struct GNUNET_PeerIdentity *peer_id)
+get_mq (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct PeerContext *peer_ctx;
 
@@ -838,7 +834,7 @@ get_mq (struct GNUNET_CONTAINER_MultiPeerMap *peer_map,
 
   if (NULL == peer_ctx->mq)
   {
-    (void) get_channel (peer_map, peer_id);
+    (void) get_channel (peer_id);
     peer_ctx->mq = GNUNET_CADET_mq_create (peer_ctx->send_channel);
     //do I have to explicitly put it in the peer_map?
     (void) GNUNET_CONTAINER_multipeermap_put (peer_map, peer_id, peer_ctx,
@@ -863,7 +859,7 @@ check_peer_live (struct PeerContext *peer_ctx)
   if (NULL == peer_ctx->transmit_handle &&
       NULL == peer_ctx->send_channel)
   {
-    (void) get_channel (peer_map, &peer_ctx->peer_id);
+    (void) get_channel (&peer_ctx->peer_id);
     peer_ctx->transmit_handle =
         GNUNET_CADET_notify_transmit_ready (peer_ctx->send_channel,
                                             GNUNET_NO,
@@ -960,7 +956,7 @@ insert_in_view (void *cls, const struct GNUNET_PeerIdentity *peer)
     view_array = NULL;
   }
 
-  (void) get_channel (peer_map, peer);
+  (void) get_channel (peer);
 }
 
 /**
@@ -1161,7 +1157,7 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
       "PULL REQUEST from peer %s received, going to send %u peers\n",
       GNUNET_i2s (peer_id), send_size);
 
-  mq = get_mq (peer_map, peer_id);
+  mq = get_mq (peer_id);
 
   ev = GNUNET_MQ_msg_extra (out_msg,
                             send_size * sizeof (struct GNUNET_PeerIdentity),
@@ -1820,7 +1816,7 @@ send_pull_request (struct GNUNET_PeerIdentity *peer_id)
        GNUNET_i2s (peer_id));
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
-  mq = get_mq (peer_map, peer_id);
+  mq = get_mq (peer_id);
   GNUNET_MQ_send (mq, ev);
 }
 
@@ -1841,7 +1837,7 @@ send_push (struct GNUNET_PeerIdentity *peer_id)
        GNUNET_i2s (peer_id));
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
-  mq = get_mq (peer_map, peer_id);
+  mq = get_mq (peer_id);
   GNUNET_MQ_send (mq, ev);
 }
 
