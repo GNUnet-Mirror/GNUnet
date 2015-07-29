@@ -690,6 +690,10 @@ hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
        sampler_size_est_need - GNUNET_CONTAINER_multipeermap_size (view),
        num_peers); i++)
   {
+    /* Make sure there is a context associated with the id in the peermap */
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, &ids[i]))
+      (void) create_peer_ctx (&ids[i]);
+
     if (GNUNET_OK != GNUNET_CONTAINER_multipeermap_put (view,
           &ids[i],
           NULL,
@@ -1724,7 +1728,12 @@ handle_peer_pull_reply (void *cls,
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&own_identity,
                                               &peers[i]))
     {
-      peer_ctx = get_peer_ctx (&peers[i]);
+      if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map,
+            &peers[i]))
+        peer_ctx = create_peer_ctx (&peers[i]);
+      else
+        peer_ctx = get_peer_ctx (&peers[i]);
+
       if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
       {
         if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
@@ -1743,6 +1752,8 @@ handle_peer_pull_reply (void *cls,
   }
 
   unset_peer_flag (sender_ctx, PULL_REPLY_PENDING);
+
+  peer_clean (sender);
 
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
@@ -1922,6 +1933,8 @@ handle_client_act_malicious (void *cls,
            || 3 == mal_type)
   { /* Try to partition the network */
     /* Add other malicious peers to those we already know */
+    struct PeerContext *att_ctx;
+
     num_mal_peers_sent = ntohl (in_msg->num_peers) - 1;
     num_mal_peers_old = num_mal_peers;
     GNUNET_array_grow (mal_peers,
@@ -1944,6 +1957,13 @@ handle_client_act_malicious (void *cls,
     memcpy (&attacked_peer,
             &in_msg->attacked_peer,
             sizeof (struct GNUNET_PeerIdentity));
+    /* Set the flag of the attacked peer to valid to avoid problems */
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map,
+          &attacked_peer))
+    {
+      att_ctx = create_peer_ctx (&attacked_peer);
+      set_peer_flag (att_ctx, VALID);
+    }
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Attacked peer is %s\n",
@@ -2032,6 +2052,8 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      * Send as many pushes to the attacked peer as possible
      * That is one push per round as it will ignore more.
      */
+    peer_ctx = get_peer_ctx (&attacked_peer);
+    if (NULL == peer_ctx->transmit_handle)
       send_push (&attacked_peer);
   }
 
@@ -2264,13 +2286,13 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* Clean peers that were removed from the view */
     for (i = 0; i < peers_to_clean_size; i++)
     {
-      peer_clean (&peers_to_clean[i]);
       to_file (file_name_view_log,
                "-%s",
                GNUNET_i2s_full (&peers_to_clean[i]));
+      peer_clean (&peers_to_clean[i]);
     }
 
-    GNUNET_free (peers_to_clean);
+    GNUNET_array_grow (peers_to_clean, peers_to_clean_size, 0);
     peers_to_clean = NULL;
   }
   else
@@ -2467,12 +2489,13 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *peer_ctx;
   /* struct GNUNET_CADET_Channel *channel; */
 
-  if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
+  if (GNUNET_NO  == GNUNET_CONTAINER_multipeermap_contains (view, peer) &&
       GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
   {
     peer_ctx = get_peer_ctx (peer);
 
-    if (NULL == peer_ctx->recv_channel)
+    if ( (NULL == peer_ctx->recv_channel) &&
+         (GNUNET_NO == get_peer_flag (peer_ctx, PULL_REPLY_PENDING)) )
     {
       peer_remove_cb (NULL, peer, peer_ctx);
     }
