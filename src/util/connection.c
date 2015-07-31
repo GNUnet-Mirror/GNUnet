@@ -798,8 +798,7 @@ try_connect_using_address (void *cls,
   if (NULL != connection->nth.notify_ready)
     delay =
         GNUNET_TIME_relative_min (delay,
-                                  GNUNET_TIME_absolute_get_remaining (connection->
-                                                                      nth.transmit_timeout));
+                                  GNUNET_TIME_absolute_get_remaining (connection->nth.transmit_timeout));
   if (NULL != connection->receiver)
     delay =
         GNUNET_TIME_relative_min (delay,
@@ -1605,6 +1604,7 @@ GNUNET_CONNECTION_acivate_proxied (struct GNUNET_CONNECTION_Handle *proxied)
   proxied->sock=cph->sock;
   cph->sock=NULL;
   GNUNET_CONNECTION_destroy (cph);
+  connect_success_continuation (proxied);
 }
 
 
