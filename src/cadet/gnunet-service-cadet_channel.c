@@ -1863,7 +1863,7 @@ GCCH_handle_local_create (struct CadetClient *c,
     return GNUNET_SYSERR;
   }
 
-  peer = GCP_get (&msg->peer);
+  peer = GCP_get (&msg->peer, GNUNET_YES);
   GCP_add_tunnel (peer);
   t = GCP_get_tunnel (peer);
 

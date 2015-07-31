@@ -414,7 +414,7 @@ core_connect (void *cls,
                    sizeof (own_id),
                    "%s",
                    GNUNET_i2s (&my_full_id));
-  mp = GCP_get (peer);
+  mp = GCP_get (peer, GNUNET_YES);
   if (myid == mp->id)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
@@ -1817,15 +1817,18 @@ GCP_shutdown (void)
 
 
 /**
- * Retrieve the CadetPeer stucture associated with the peer, create one
- * and insert it in the appropriate structures if the peer is not known yet.
+ * Retrieve the CadetPeer stucture associated with the peer. Optionally create
+ * one and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer_id Full identity of the peer.
+ * @param create #GNUNET_YES if a new peer should be created if unknown.
+ *               #GNUNET_NO otherwise.
  *
  * @return Existing or newly created peer structure.
+ *         NULL if unknown and not requested @a create
  */
 struct CadetPeer *
-GCP_get (const struct GNUNET_PeerIdentity *peer_id)
+GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create)
 {
   struct CadetPeer *peer;
 
@@ -1851,17 +1854,20 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id)
 
 
 /**
- * Retrieve the CadetPeer stucture associated with the peer, create one
- * and insert it in the appropriate structures if the peer is not known yet.
+ * Retrieve the CadetPeer stucture associated with the peer. Optionally create
+ * one and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
+ * @param create #GNUNET_YES if a new peer should be created if unknown.
+ *               #GNUNET_NO otherwise.
  *
  * @return Existing or newly created peer structure.
+ *         NULL if unknown and not requested @a create
  */
 struct CadetPeer *
-GCP_get_short (const GNUNET_PEER_Id peer)
+GCP_get_short (const GNUNET_PEER_Id peer, int create)
 {
-  return GCP_get (GNUNET_PEER_resolve2 (peer));
+  return GCP_get (GNUNET_PEER_resolve2 (peer), create);
 }
 
 
@@ -2199,7 +2205,7 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
     struct CadetPeer *aux;
     struct CadetPeerPath *copy;
 
-    aux = GCP_get_short (p->peers[i]);
+    aux = GCP_get_short (p->peers[i], GNUNET_YES);
     copy = path_duplicate (p);
     copy->length = i + 1;
     GCP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
@@ -2417,6 +2423,8 @@ GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t)
 struct CadetTunnel *
 GCP_get_tunnel (const struct CadetPeer *peer)
 {
+  if (NULL == peer)
+    return NULL;
   return peer->tunnel;
 }
 
@@ -2577,6 +2585,34 @@ GCP_count_paths (const struct CadetPeer *peer)
 
   for (iter = peer->path_head, i = 0; NULL != iter; iter = iter->next)
     i++;
+
+  return i;
+}
+
+
+/**
+ * Iterate over the paths to a peer.
+ *
+ * @param peer Peer to get path info.
+ * @param callback Function to call for every path.
+ * @param cls Closure for @a callback.
+ *
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_paths (struct CadetPeer *peer,
+                   GCP_path_iterator callback,
+                   void *cls)
+{
+  struct CadetPeerPath *iter;
+  unsigned int i;
+
+  for (iter = peer->path_head, i = 0; NULL != iter; iter = iter->next)
+  {
+    i++;
+    if (GNUNET_YES != callback (cls, peer, iter))
+      break;
+  }
 
   return i;
 }

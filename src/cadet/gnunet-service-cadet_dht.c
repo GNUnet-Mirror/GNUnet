@@ -187,7 +187,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   s = path_2s (p);
   LOG (GNUNET_ERROR_TYPE_INFO, "Got path from DHT: %s\n", s);
   GNUNET_free_non_null (s);
-  peer = GCP_get_short (p->peers[p->length - 1]);
+  peer = GCP_get_short (p->peers[p->length - 1], GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got HELLO for %s\n", GCP_2s (peer));
   h->callback (h->cls, p);
   path_destroy (p);

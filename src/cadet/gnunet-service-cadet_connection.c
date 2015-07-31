@@ -783,7 +783,7 @@ get_prev_hop (const struct CadetConnection *c)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s (%u)\n",
        GNUNET_i2s (GNUNET_PEER_resolve2 (id)), id);
 
-  return GCP_get_short (id);
+  return GCP_get_short (id, GNUNET_YES);
 }
 
 
@@ -812,7 +812,7 @@ get_next_hop (const struct CadetConnection *c)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s (%u)\n",
        GNUNET_i2s (GNUNET_PEER_resolve2 (id)), id);
 
-  return GCP_get_short (id);
+  return GCP_get_short (id, GNUNET_YES);
 }
 
 
@@ -1038,7 +1038,8 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
     msg->peer2 = *id2;
   else
     memset (&msg->peer2, 0, sizeof (msg->peer2));
-  neighbor = GCP_get (peer_id);
+  neighbor = GCP_get (peer_id, GNUNET_NO); /* We MUST know neighbor. */
+  GNUNET_assert (NULL != neighbor);
   GCP_queue_add (neighbor, msg, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
                  0, 2, sizeof (struct GNUNET_CADET_ConnectionBroken),
                  NULL, GNUNET_SYSERR, /* connection, fwd */
@@ -1777,7 +1778,9 @@ does_connection_exist (struct CadetConnection *conn)
   struct CadetTunnel *t;
   struct CadetConnection *c;
 
-  p = GCP_get_short (conn->path->peers[0]);
+  p = GCP_get_short (conn->path->peers[0], GNUNET_NO);
+  if (NULL == p)
+    return GNUNET_NO;
   t = GCP_get_tunnel (p);
   if (NULL == t)
     return GNUNET_NO;
@@ -1967,8 +1970,8 @@ GCC_handle_create (void *cls,
     connection_change_state (c, CADET_CONNECTION_SENT);
 
   /* Remember peers */
-  dest_peer = GCP_get (&id[size - 1]);
-  orig_peer = GCP_get (&id[0]);
+  dest_peer = GCP_get (&id[size - 1], GNUNET_YES);
+  orig_peer = GCP_get (&id[0], GNUNET_YES);
 
   /* Is it a connection to us? */
   if (c->own_pos == path->length - 1)
@@ -2056,7 +2059,7 @@ GCC_handle_confirm (void *cls,
 
   oldstate = c->state;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n", GNUNET_i2s (peer));
-  pi = GCP_get (peer);
+  pi = GCP_get (peer, GNUNET_YES);
   if (get_next_hop (c) == pi)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
@@ -2194,7 +2197,7 @@ GCC_handle_broken (void* cls,
       GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
       return GNUNET_OK;
     }
-    endpoint = GCP_get_short (c->path->peers[c->path->length - 1]);
+    endpoint = GCP_get_short (c->path->peers[c->path->length - 1], GNUNET_YES);
     if (2 < c->path->length)
       path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);

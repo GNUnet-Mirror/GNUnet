@@ -1058,11 +1058,17 @@ static void
 process_get_peer (struct GNUNET_CADET_Handle *h,
                   const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_CADET_LocalInfoTunnel *msg;
+  struct GNUNET_CADET_LocalInfoPeer *msg;
+  struct GNUNET_PeerIdentity *id;
+  unsigned int epaths;
+  unsigned int paths;
+  unsigned int path_length;
+  unsigned int i;
+  int neighbor;
   size_t esize;
   size_t msize;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Info Peer messasge received\n");
   if (NULL == h->info_cb.peer_cb)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
@@ -1070,17 +1076,34 @@ process_get_peer (struct GNUNET_CADET_Handle *h,
   }
 
   /* Verify message sanity */
-  msg = (struct GNUNET_CADET_LocalInfoTunnel *) message;
-  msize = ntohs (message->size);
-  esize = sizeof (struct GNUNET_CADET_LocalInfoPeer);
-  if (esize > msize)
+  msg = (struct GNUNET_CADET_LocalInfoPeer *) message;
+  esize = ntohs (message->size);
+  msize = sizeof (struct GNUNET_CADET_LocalInfoPeer);
+  if (esize < msize)
   {
     GNUNET_break_op (0);
     h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
   }
-//   esize += ch_n * sizeof (CADET_ChannelNumber);
-//   esize += c_n * sizeof (struct GNUNET_CADET_Hash);
+  epaths = (unsigned int) ntohs (msg->paths);
+  paths = 0;
+  path_length = 0;
+  neighbor = GNUNET_NO;
+  id = (struct GNUNET_PeerIdentity *) &msg[1];
+  for (i = 0; msize < esize; i++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %s\n", GNUNET_i2s (&id[i]));
+    msize += sizeof (struct GNUNET_PeerIdentity);
+    path_length++;
+    if (0 == memcmp (&id[i], &msg->destination,
+                     sizeof (struct GNUNET_PeerIdentity)))
+    {
+      if (1 == path_length)
+        neighbor = GNUNET_YES;
+      path_length = 0;
+      paths++;
+    }
+  }
   if (msize != esize)
   {
     GNUNET_break_op (0);
@@ -1088,9 +1111,22 @@ process_get_peer (struct GNUNET_CADET_Handle *h,
     h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
   }
+  if (paths != epaths)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "p:%u, e: %u\n", paths, epaths);
+    h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
+    goto clean_cls;
+  }
 
   /* Call Callback with tunnel info. */
-  h->info_cb.peer_cb (h->info_cls, &msg->destination, 0, 0, 0, NULL);
+  id = (struct GNUNET_PeerIdentity *) &msg[1];
+  h->info_cb.peer_cb (h->info_cls,
+                      &msg->destination,
+                      (int) ntohs (msg->tunnel),
+                      neighbor,
+                      paths,
+                      id);
 
   clean_cls:
   h->info_cb.peer_cb = NULL;

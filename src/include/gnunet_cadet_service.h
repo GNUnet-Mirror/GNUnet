@@ -420,7 +420,7 @@ typedef void
  * @param neighbor Is this a direct neighbor? #GNUNET_YES/#GNUNET_NO
  * @param n_paths Number of paths known towards peer.
  * @param paths Array of PEER_IDs representing all paths to reach the peer.
- *              Each path starts with the local peer.
+ *              Each path starts with the first hop (local peer not included).
  *              Each path ends with the destination peer (given in @c peer).
  */
 typedef void

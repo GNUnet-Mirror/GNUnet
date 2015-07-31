@@ -39,6 +39,7 @@ extern "C"
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "cadet_path.h"
 
 /**
  * Struct containing all information regarding a given peer
@@ -72,6 +73,20 @@ typedef int
              uint16_t type, uint32_t pid, int fwd, size_t size,
              struct GNUNET_TIME_Relative wait);
 
+/**
+ * Peer path iterator.
+ *
+ * @param cls Closure.
+ * @param peer Peer this path is towards.
+ * @param path Path itself
+ * @return #GNUNET_YES if should keep iterating.
+ *         #GNUNET_NO otherwise.
+ */
+typedef int
+(*GCP_path_iterator) (void *cls,
+                      struct CadetPeer *peer,
+                      struct CadetPeerPath *path);
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/
@@ -93,27 +108,32 @@ GCP_shutdown (void);
 
 
 /**
- * Retrieve the CadetPeer stucture associated with the peer, create one
- * and insert it in the appropriate structures if the peer is not known yet.
+ * Retrieve the CadetPeer stucture associated with the peer. Optionally create
+ * one and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer_id Full identity of the peer.
+ * @param create #GNUNET_YES if a new peer should be created if unknown.
+ *               #GNUNET_NO otherwise.
  *
  * @return Existing or newly created peer structure.
+ *         NULL if unknown and not requested @a create
  */
 struct CadetPeer *
-GCP_get (const struct GNUNET_PeerIdentity *peer_id);
-
+GCP_get (const struct GNUNET_PeerIdentity *peer_id, int create);
 
 /**
- * Retrieve the CadetPeer stucture associated with the peer, create one
- * and insert it in the appropriate structures if the peer is not known yet.
+ * Retrieve the CadetPeer stucture associated with the peer. Optionally create
+ * one and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
+ * @param create #GNUNET_YES if a new peer should be created if unknown.
+ *               #GNUNET_NO otherwise.
  *
  * @return Existing or newly created peer structure.
+ *         NULL if unknown and not requested @a create
  */
 struct CadetPeer *
-GCP_get_short (const GNUNET_PEER_Id peer);
+GCP_get_short (const GNUNET_PEER_Id peer, int create);
 
 /**
  * Try to establish a new connection to this peer (in its tunnel).
@@ -443,6 +463,20 @@ GCP_notify_broken_link (struct CadetPeer *peer,
  */
 unsigned int
 GCP_count_paths (const struct CadetPeer *peer);
+
+/**
+ * Iterate over the paths to a peer.
+ *
+ * @param peer Peer to get path info.
+ * @param callback Function to call for every path.
+ * @param cls Closure for @a callback.
+ *
+ * @return Number of iterated paths.
+ */
+unsigned int
+GCP_iterate_paths (struct CadetPeer *peer,
+                   GCP_path_iterator callback,
+                   void *cls);
 
 
 /**

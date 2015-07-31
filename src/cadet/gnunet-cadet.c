@@ -515,15 +515,17 @@ peer_callback (void *cls,
            GNUNET_i2s_full (peer),
            tunnel ? "Y" : "N", neighbor ? "Y" : "N", n_paths);
   p = paths;
-  for (i = 0; i < n_paths && NULL != p; i++)
+  for (i = 0; i < n_paths && NULL != p;)
   {
-    FPRINTF (stdout, "%s ", GNUNET_i2s_full (p));
+    FPRINTF (stdout, "%s ", GNUNET_i2s (p));
     if (0 == memcmp (p, peer, sizeof (*p)))
     {
       FPRINTF (stdout, "\n");
+      i++;
     }
     p++;
   }
+
   GNUNET_SCHEDULER_shutdown();
 }
 

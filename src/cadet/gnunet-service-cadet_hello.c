@@ -108,7 +108,7 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
   LOG (GNUNET_ERROR_TYPE_DEBUG, " hello for %s (%d bytes), expires on %s\n",
        GNUNET_i2s (id), GNUNET_HELLO_size (hello),
        GNUNET_STRINGS_absolute_time_to_string (GNUNET_HELLO_get_last_expiration(hello)));
-  peer = GCP_get (id);
+  peer = GCP_get (id, GNUNET_YES);
   GCP_set_hello (peer, hello);
 
   if (GCP_get_short_id (peer) == myid)
@@ -176,7 +176,12 @@ GCH_get_mine (void)
 const struct GNUNET_HELLO_Message *
 GCH_get (const struct GNUNET_PeerIdentity *id)
 {
-  return GCP_get_hello (GCP_get (id));
+  struct CadetPeer *p;
+
+  p = GCP_get (id, GNUNET_NO);
+  if (NULL == p)
+    return NULL;
+  return GCP_get_hello (p);
 }
 
 
