@@ -1,0 +1,31 @@
+# Last Modified: Tue Jul 21 17:25:12 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-namestore-fcfsd {
+  #include <abstractions/gnunet-common>
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libffi.so.* mr,
+  /usr/lib/libgmp.so.* mr,
+  /usr/lib/libgnutls.so.* mr,
+  /usr/lib/libhogweed.so.* mr,
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/libmicrohttpd.so.* mr,
+  /usr/lib/libnettle.so.* mr,
+  /usr/lib/libp11-kit.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libtasn1.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-namestore-fcfsd mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetdnsparser.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetidentity.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetnamestore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+}

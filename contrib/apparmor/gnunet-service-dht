@@ -1,0 +1,57 @@
+# Last Modified: Fri Jul  3 17:37:39 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dht {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dht mr,
+ 
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetnse.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetblock.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdatacache.so.* mr,  
+  @{GNUNET_PREFIX}/lib/libgnunetfs.so.* mr,  
+  @{GNUNET_PREFIX}/lib/libgnunetdatastore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetregexblock.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdnsparser.so.* mr,
+  
+  #Gnunet plugin
+  @{GNUNET_PREFIX}/lib/gnunet/ r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_template.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_template.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_dns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_dns.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_fs.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_fs.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_regex.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_regex.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_dht.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_dht.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_dht.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_test.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_test.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_gns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_block_gns.so mr,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datacache_heap.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datacache_heap.so mr,
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libextractor.so.* mr,
+  /usr/lib/libbz2.so.* mr,
+  /usr/lib/librt-*.so mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libidn.so.* mr,
+
+  /tmp/gnunet-system-runtime/gnunet-service-dht.sock w,
+  
+  /tmp/gnunet-datacachebloom* rw,
+}

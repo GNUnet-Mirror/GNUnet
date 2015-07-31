@@ -1,0 +1,17 @@
+# Last Modified: Tue Jul 21 17:19:18 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed-logger {
+  #include <abstractions/gnunet-common>
+
+  #???
+  /tmp/archlinux_*.dat w,
+
+  /tmp/gnunet-system-runtime/ w,
+  /tmp/gnunet-system-runtime/gnunet-gnunet-testbed-logger.sock w,
+
+  /usr/lib/ld-*.so r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed-logger mr,
+}

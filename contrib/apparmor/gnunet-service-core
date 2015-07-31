@@ -1,0 +1,20 @@
+# Last Modified: Thu Jul  9 10:16:30 2015
+
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-core {
+  #include <abstractions/gnunet-common>
+
+  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
+
+  /usr/lib/ld-*.so r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-core mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+}

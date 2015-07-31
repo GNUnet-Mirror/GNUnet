@@ -1,0 +1,13 @@
+# Last Modified: Mon Jul 27 15:48:05 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-scalarproduct-alice {
+  #include <abstractions/gnunet-common>
+
+  /usr/lib/ld-*.so r,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-scalarproduct-alice mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetset.so.* mr,
+
+}

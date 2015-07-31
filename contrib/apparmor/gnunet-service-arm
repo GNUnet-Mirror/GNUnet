@@ -1,0 +1,109 @@
+# Last Modified: Thu Jul  9 10:27:23 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-arm {
+  #include <abstractions/gnunet-common> 
+
+  /dev/null ra,
+
+  /tmp/gnunet-*-runtime/ rw,
+  /tmp/gnunet-*-runtime/gnunet-service-arm.sock rw,
+  /tmp/gnunet-*-runtime/gnunet-service-gns.sock rw,
+  /tmp/gnunet-*-runtime/gnunet-service-identity.unix rw,
+  /tmp/gnunet-*-runtime/gnunet-service-namestore.sock rw,
+
+  /tmp/gnunet-system-runtime/ rw,
+  /tmp/gnunet-system-runtime/gnunet-service-*.sock rw,
+  /tmp/gnunet-system-runtime/gnunet-service-nse.unix rw,
+  /tmp/gnunet-system-runtime/gnunet-service-revocation.unix rw,
+
+  /var/lib/gnunet/.local/share/gnunet/ r,
+  /var/lib/gnunet/.local/share/gnunet/revocation.dat r,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/ a,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db-journal rw,
+  /var/lib/gnunet/.config/gnunet.conf r,
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libpthread-*.so mr,
+  
+  /usr/lib/libsqlite3.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  /usr/share/locale/locale-alias r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-arm mr,
+
+  @{GNUNET_PREFIX}/lib/gnunet/ r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/ r,
+
+  #Gnunet daemon
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-exit Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-hostlist Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-latency-logger Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-testbed-underlay Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-topology Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-pt Px,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-dns2gns Px,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-gns-proxy Px,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-namestore-fcfsd Px,
+
+  #Gnunet service
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-ats Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-cadet Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-core Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-conversation Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-datastore Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dht Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dns Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-fs Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-gns Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-identity Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-mesh Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namecache Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namestore Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-nse Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-peerinfo Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-peerstore Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-regex Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-resolver Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-revocation Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-set Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-scalarproduct-alice Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-scalarproduct-bob Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-statistics Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-template Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed-logger Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-transport Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-vpn Px,
+
+  #Gnunet helper
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-dns r,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdnsstub.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* r,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetnamecache.so.* r,
+  @{GNUNET_PREFIX}/lib/libgnunetpeerstore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetregex.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetset.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettun.so.* mr,
+
+  #Gnunet plugin
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_peerstore_sqlite.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_peerstore_sqlite.so mr,
+}

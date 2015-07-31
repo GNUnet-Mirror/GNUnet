@@ -1,0 +1,30 @@
+# Last Modified: Fri Jul  3 17:37:56 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-mesh {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-mesh mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetblock.so.* mr,
+
+  #Librairies
+  /usr/lib/librt-*.so mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/ld-*.so r,
+
+  @{HOME}/.local/share/gnunet/private_key.ecc rk,
+
+  /tmp/gnunet-system-runtime/gnunet-service-mesh.sock w,
+
+  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rwk,
+}

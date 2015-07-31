@@ -1,0 +1,10 @@
+# Last Modified: Tue Jul 28 11:42:58 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-audio-record flags=(complain) {
+  #include <abstractions/gnunet-common>
+  #include <abstractions/gnunet-libaudio>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-audio-record mr,
+}

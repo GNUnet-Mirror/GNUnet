@@ -1,0 +1,33 @@
+# Last Modified: Thu Jul  9 10:01:36 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-resolver {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-resolver mr,
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libnss_files-*.so mr,
+  /usr/lib/libnss_gns.so.* mr,
+  /usr/lib/libnss_dns-*.so mr,
+  /usr/lib/libresolv-*.so mr,
+  /usr/lib/libnss_myhostname.so.* mr,
+  /usr/lib/librt-*.so mr,
+  /usr/lib/liblzma.so.* mr,
+  /usr/lib/liblz4.so.* mr,
+  /usr/lib/libacl.so.* mr,
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/libseccomp.so.* mr,
+  /usr/lib/libcap.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libattr.so.* mr,
+
+  /etc/nsswitch.conf r,
+  /etc/resolv.conf r,
+  /etc/host.conf r,
+  /etc/hosts r,
+
+  /tmp/gnunet-system-runtime/gnunet-service-resolver.sock w,
+}

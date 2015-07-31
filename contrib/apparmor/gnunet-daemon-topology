@@ -1,0 +1,27 @@
+# Last Modified: Fri Jul  3 17:37:12 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-topology {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-topology mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetfriends.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+
+  /usr/lib/ld-*.so r,
+  
+  /usr/lib//locale/locale-archive r,
+
+  /usr/lib/gconv/gconv-modules r,
+
+  /usr/share/locale/locale.alias r,
+  /usr/share/locale/fr/LC_MESSAGES/libc.mo r,
+}

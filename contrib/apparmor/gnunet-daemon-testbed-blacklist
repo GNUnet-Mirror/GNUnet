@@ -1,0 +1,13 @@
+# Last Modified: Tue Jul 28 11:42:58 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-testbed-blacklist flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-testbed-blacklist mr,
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+
+}

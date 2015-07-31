@@ -1,0 +1,66 @@
+# Last Modified: Fri Jul 10 10:43:55 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-hostlist {
+   #include <abstractions/gnunet-common>
+
+  /etc/gai.conf r,
+  /etc/host.conf r,
+  /etc/hosts r,
+  /etc/nsswitch.conf r,
+  /etc/resolv.conf r,
+
+  /usr/lib/gconv/gconv-modules r,
+
+  #Librairies  
+  /usr/lib/ld-*.so r,
+  /usr/lib/libacl.so.* mr,
+  /usr/lib/libattr.so.* mr,
+  /usr/lib/libcap.so.* mr,
+  /usr/lib/libcom_err.so.* mr,
+  /usr/lib/libcrypto.so.* mr,
+  /usr/lib/libffi.so.* mr,
+  /usr/lib/libgmp.so.* mr,
+  /usr/lib/libgnurl.so.* mr,
+  /usr/lib/libgnutls.so.* mr,
+  /usr/lib/libgssapi_krb5.so.* mr,
+  /usr/lib/libhogweed.so.* mr,
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/libk5crypto.so.* mr,
+  /usr/lib/libkeyutils.so.* mr,
+  /usr/lib/libkrb5.so.* mr,
+  /usr/lib/libkrb5support.so.* mr,
+  /usr/lib/liblz4.so.* mr,
+  /usr/lib/liblzma.so.* mr,
+  /usr/lib/libmicrohttpd.so.* mr,
+  /usr/lib/libnettle.so.* mr,
+  /usr/lib/libnss_dns-*.so mr,
+  /usr/lib/libnss_files-*.so mr,
+  /usr/lib/libnss_gns.so.* mr,
+  /usr/lib/libnss_myhostname.so.* mr,
+  /usr/lib/libp11-kit.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libresolv-*.so mr,
+  /usr/lib/librt-*.so mr,
+  /usr/lib/libseccomp.so.* mr,
+  /usr/lib/libssh2.so.* mr,
+  /usr/lib/libssl.so.* mr,
+  /usr/lib/libtasn1.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-hostlist mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetutil.so.* mr,
+
+  /usr/share/locale/fr/LC_MESSAGES/libc.mo r,
+  /usr/share/locale/locale.alias r,
+}

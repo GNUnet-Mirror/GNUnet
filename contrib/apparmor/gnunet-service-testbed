@@ -1,0 +1,36 @@
+# Last Modified: Mon Jul 27 11:02:46 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  /etc/gai.conf r,
+ 
+  /tmp/gnunet-system-runtime/ w,
+  /tmp/gnunet-system-runtime/gnunet-service-testbed-barrier.sock w,
+  /tmp/gnunet-system-runtime/gnunet-service-testbed.sock w,
+
+  /usr/lib/ld-*.so r,
+
+  /dev/null r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-* r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/ r,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-arm Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetarm.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettestbed.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettesting.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+
+  @{GNUNET_PREFIX}/share/gnunet/testing_hostkeys.ecc r,
+
+}

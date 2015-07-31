@@ -1,0 +1,50 @@
+# Last Modified: Tue Jul 21 16:35:07 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-gns-proxy {
+  #include <abstractions/gnunet-common>
+
+  /etc/ssl/openssl.cnf r,
+
+  @{HOME}/.local/share/gnunet/gns/gns_ca_cert.pem r,
+
+  #Librairies
+  /usr/lib/gconv/gconv-modules r,
+  /usr/lib/ld-*.so r,
+  /usr/lib/libcom_err.so.* mr,
+  /usr/lib/libcrypto.so.* mr,
+  /usr/lib/libffi.so.* mr,
+  /usr/lib/libgmp.so.* mr,
+  /usr/lib/libgnurl.so.* mr,
+  /usr/lib/libgnutls.so.* mr,
+  /usr/lib/libgssapi_krb5.so.* mr,
+  /usr/lib/libhogweed.so.* mr,
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/libk5crypto.so.* mr,
+  /usr/lib/libkeyutils.so.* mr,
+  /usr/lib/libkrb5.so.* mr,
+  /usr/lib/libkrb5support.so.* mr,
+  /usr/lib/libltdl.so.* mr,
+  /usr/lib/libmicrohttpd.so.* mr,
+  /usr/lib/libnettle.so.* mr,
+  /usr/lib/libp11-kit.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/libresolv-*.so mr,
+  /usr/lib/libssh2.so.* mr,
+  /usr/lib/libssl.so.* mr,
+  /usr/lib/libtasn1.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-gns-proxy mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetdnsparser.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetgns.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetidentity.so.* mr,
+
+  /usr/share/locale/fr/LC_MESSAGES/libc.mo r,
+  /usr/share/locale/locale.alias r,
+}

@@ -1,0 +1,12 @@
+# Last Modified: Tue Jul 28 11:44:00 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-nat-server flags=(complain) {
+  #include <abstractions/gnunet-common>
+
+  capability setuid,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-nat-server mr,
+
+}

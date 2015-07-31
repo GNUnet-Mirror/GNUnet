@@ -1,0 +1,21 @@
+# Last Modified: Wed Jul  8 17:03:17 2015
+
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-peerinfo {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/share/gnunet/hellos/ r,
+  @{GNUNET_PREFIX}/share/gnunet/hellos/* r,
+
+  /var/lib/gnunet/.local/share/gnunet/peerinfo/hosts/ r,
+  /var/lib/gnunet/.local/share/gnunet/peerinfo/hosts/* rw,
+
+  /usr/lib/ld-*.so r,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-peerinfo mr,
+
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+}

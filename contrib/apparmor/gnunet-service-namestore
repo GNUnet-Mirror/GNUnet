@@ -1,0 +1,36 @@
+# Last Modified: Tue Jul  7 10:43:41 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namestore {
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namestore mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetnamecache.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetnamestore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdnsparser.so.* mr,
+
+  #Gnunet plugin
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_sqlite.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_sqlite.so mr,
+
+  #Librairies
+  /usr/lib/libidn.so.* mr,
+  /usr/lib/ld-*.so r,
+  /usr/lib/libsqlite3.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+
+  /var/lib/gnunet/.local/share/gnunet/namestore/ ra,
+  /var/lib/gnunet/.local/share/gnunet/namestore/sqlite.db rwk,
+  /var/lib/gnunet/.local/share/gnunet/namestore/sqlite.db-journal rw, 
+
+  @{HOME}/.local/share/gnunet/namestore/ r,
+  @{HOME}/.local/share/gnunet/namestore/sqlite.db rwk,
+  @{HOME}/.local/share/gnunet/namestore/sqlite.db-journal rw,
+
+  /tmp/gnunet-*-runtime/ a,
+}

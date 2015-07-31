@@ -1,0 +1,26 @@
+# Last Modified: Mon Jul 27 11:09:34 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-cadet {
+  #include <abstractions/gnunet-common>
+
+  #Librairies
+  /usr/lib/ld-*.so r,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/librt-*.so mr,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-cadet mr,
+
+  #Gnunet librairies
+  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetblock.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+
+  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
+}
