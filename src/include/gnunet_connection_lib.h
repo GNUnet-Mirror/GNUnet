@@ -359,6 +359,26 @@ GNUNET_CONNECTION_notify_transmit_ready_cancel (struct
                                                 *th);
 
 
+/**
+ * Create a connection to be proxied using a given connection.
+ *
+ * @param cph connection to proxy server
+ * @return connection to be proxied
+ */
+struct GNUNET_CONNECTION_Handle *
+GNUNET_CONNECTION_create_proxied_from_handshake (struct GNUNET_CONNECTION_Handle *cph);
+
+
+/**
+ * Activate proxied connection and destroy initial proxy handshake connection. 
+ * There must not be any pending requests for reading or writing to the
+ * proxy hadshake connection at this time.
+ *
+ * @param proxied connection connection to proxy server
+ */
+void
+GNUNET_CONNECTION_acivate_proxied (struct GNUNET_CONNECTION_Handle *proxied);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
