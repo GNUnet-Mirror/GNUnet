@@ -413,6 +413,7 @@ data_callback (void *cls,
   uint16_t off;
   const char *buf;
   GNUNET_break (ch == channel);
+  GNUNET_CADET_receive_done (channel);
 
   if (GNUNET_YES == echo)
   {
