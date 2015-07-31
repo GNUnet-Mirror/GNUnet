@@ -1355,6 +1355,8 @@ handle_client_request (void *cls,
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE < size_needed)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Message received from client has size larger than expected\n");
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -1506,8 +1508,7 @@ handle_peer_push (void *cls,
   /* Add the sending peer to the push_list */
   if (GNUNET_NO == in_arr (push_list, push_list_size, peer))
   {
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
-      (void) create_peer_ctx (peer);
+    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer));
     GNUNET_array_append (push_list, push_list_size, *peer);
   }
 
@@ -1654,6 +1655,7 @@ handle_peer_pull_reply (void *cls,
   if (sizeof (struct GNUNET_RPS_P2P_PullReplyMessage) > ntohs (msg->size))
   {
     GNUNET_break_op (0);
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_SYSERR;
   }
 
@@ -1667,6 +1669,7 @@ handle_peer_pull_reply (void *cls,
         (ntohs (msg->size) - sizeof (struct GNUNET_RPS_P2P_PullReplyMessage)) /
             sizeof (struct GNUNET_PeerIdentity));
     GNUNET_break_op (0);
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_SYSERR;
   }
 
@@ -1683,6 +1686,7 @@ handle_peer_pull_reply (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Received a pull reply from a peer we didn't request one from!\n");
     GNUNET_break_op (0);
+    GNUNET_CADET_receive_done (channel);
     return GNUNET_OK;
   }
 
@@ -1708,8 +1712,8 @@ handle_peer_pull_reply (void *cls,
          GNUNET_i2s (&peers[i]));
 
     #ifdef ENABLE_MALICIOUS
-    if (1 == mal_type
-        || 3 == mal_type)
+    if ((NULL != att_peer_set) &&
+        (1 == mal_type || 3 == mal_type))
     { /* Add attacked peer to local list */
       // TODO check if we sent a request and this was the first reply
       if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
@@ -2010,7 +2014,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round maliciously type %" PRIu32 ".\n",
       mal_type);
-
+  do_round_task = NULL;
   GNUNET_assert (mal_type <= 3);
   /* Do malicious actions */
   if (1 == mal_type)
@@ -2112,7 +2116,9 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Schedule next round */
   time_next_round = compute_rand_delay (round_interval, 2);
 
-  //do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_mal_round, NULL);
+  //do_round_task = GNUNET_SCHEDULER_add_delayed (round_interval, &do_mal_round,
+  //NULL);
+  GNUNET_assert (NULL == do_round_task);
   do_round_task = GNUNET_SCHEDULER_add_delayed (time_next_round, &do_mal_round, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Finished round\n");
 }
@@ -2139,6 +2145,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PeerIdentity peer;
   struct PeerContext *peer_ctx;
 
+  do_round_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Printing view:\n");
   to_file (file_name_view_log,
