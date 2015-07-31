@@ -3741,6 +3741,11 @@ GCT_destroy (struct CadetTunnel *t)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "one keepalive left behind on tunnel shutdown\n");
     }
+    else if (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY == type)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "tunnel destroyed before a CHANNEL_DESTROY was sent to peer\n");
+    }
     else
     {
       GNUNET_break (0);
