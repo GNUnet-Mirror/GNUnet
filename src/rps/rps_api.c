@@ -40,7 +40,7 @@ struct GNUNET_RPS_Handle
   /**
    * The handle to the client configuration.
    */
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
+  struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * The connection to the client.
@@ -144,6 +144,12 @@ handle_reply (void *cls,
   rh->ready_cb((rh)->ready_cb_cls, ntohl (msg->num_peers), peers);
 }
 
+/**
+ * Reconnect to the service
+ */
+static void
+reconnect (struct GNUNET_RPS_Handle *h);
+
 
 /**
  * Error handler for mq.
@@ -157,13 +163,37 @@ handle_reply (void *cls,
   static void
 mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
+  struct GNUNET_RPS_Handle *h = cls;
   //TODO LOG
   LOG (GNUNET_ERROR_TYPE_WARNING, "Some problem with the message queue. error: %i\n\
        1: READ,\n\
        2: WRITE,\n\
        4: TIMEOUT\n",
        error);
+  reconnect (h);
+}
 
+/**
+ * Reconnect to the service
+ */
+static void
+reconnect (struct GNUNET_RPS_Handle *h)
+{
+  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    {&handle_reply, GNUNET_MESSAGE_TYPE_RPS_CS_REPLY, 0},
+    GNUNET_MQ_HANDLERS_END
+  };
+
+  if (NULL != h->mq)
+    GNUNET_MQ_destroy (h->mq);
+  if (NULL != h->conn)
+    GNUNET_CLIENT_disconnect (h->conn);
+  h->conn = GNUNET_CLIENT_connect ("rps", h->cfg);
+  GNUNET_assert (NULL != h->conn);
+  h->mq = GNUNET_MQ_queue_for_connection_client(h->conn,
+                                                mq_handlers,
+                                                mq_error_handler, // TODO implement
+                                                h);
 }
 
 /**
@@ -177,21 +207,10 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_RPS_Handle *h;
   //struct GNUNET_RPS_Request_Handle *rh;
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {&handle_reply, GNUNET_MESSAGE_TYPE_RPS_CS_REPLY, 0},
-    GNUNET_MQ_HANDLERS_END
-  };
 
   h = GNUNET_new(struct GNUNET_RPS_Handle);
-  //h->cfg = GNUNET_new(struct GNUNET_CONFIGURATION_Handle);
-  //*h->cfg = *cfg;
-  h->cfg = cfg; // FIXME |^
-  h->conn = GNUNET_CLIENT_connect("rps", cfg);
-  h->mq = GNUNET_MQ_queue_for_connection_client(h->conn,
-                                                mq_handlers,
-                                                mq_error_handler, // TODO implement
-                                                h);
-
+  h->cfg = GNUNET_CONFIGURATION_dup (cfg);
+  reconnect (h);
   return h;
 }
 
@@ -413,6 +432,9 @@ GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
 {
   if (NULL != h->conn)
     GNUNET_CLIENT_disconnect (h->conn);
+  GNUNET_CONFIGURATION_destroy (h->cfg);
+  GNUNET_MQ_destroy (h->mq);
+  GNUNET_free (h);
 }
 
 
