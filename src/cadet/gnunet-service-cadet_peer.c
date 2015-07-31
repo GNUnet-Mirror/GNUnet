@@ -2442,15 +2442,12 @@ GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
   if (NULL == old)
   {
     size = GNUNET_HELLO_size (hello);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " new (%u bytes)\n", size);
     peer->hello = GNUNET_malloc (size);
     memcpy (peer->hello, hello, size);
   }
   else
   {
     peer->hello = GNUNET_HELLO_merge (old, hello);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " merge into %p (%u bytes)\n",
-         peer->hello, GNUNET_HELLO_size (hello));
     GNUNET_free (old);
   }
   GCC_check_connections ();

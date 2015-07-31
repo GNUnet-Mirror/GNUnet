@@ -112,10 +112,7 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
   GCP_set_hello (peer, hello);
 
   if (GCP_get_short_id (peer) == myid)
-  {
     mine = GCP_get_hello (peer);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " updated mine to %p\n", mine);
-  }
 }
 
 
@@ -165,7 +162,6 @@ GCH_shutdown ()
 const struct GNUNET_HELLO_Message *
 GCH_get_mine (void)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " mine is %p\n", mine);
   return mine;
 }
 
