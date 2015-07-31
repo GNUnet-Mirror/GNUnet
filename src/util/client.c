@@ -29,6 +29,7 @@
 #include "platform.h"
 #include "gnunet_protocols.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_socks.h"
 
 
 /**
@@ -338,6 +339,10 @@ do_connect (const char *service_name,
   struct GNUNET_CONNECTION_Handle *connection;
   char *hostname;
   unsigned long long port;
+
+  /* Never use a local source if a proxy is configured */
+  if (GNUNET_YES == GNUNET_SOCKS_check_service (service_name,cfg))
+    return GNUNET_SOCKS_do_connect (service_name,cfg);
 
   connection = NULL;
   if (0 == (attempt % 2))
