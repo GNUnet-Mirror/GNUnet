@@ -2908,7 +2908,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
       (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
     GCT_send_ax_kx (t, GNUNET_NO);
 
-  if (CADET_TUNNEL_KEY_OK == t->estate)
+  if (0 == memcmp(&ax->DHRr, &msg->ratchet_key, sizeof(msg->ratchet_key)))
     return;
 
   LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", am_I_alice ? "YES" : "NO");
