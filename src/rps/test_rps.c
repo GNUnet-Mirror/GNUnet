@@ -46,7 +46,6 @@ uint32_t num_peers;
 //#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 static struct GNUNET_TIME_Relative timeout;
 
-
 /**
  * Portion of malicious peers
  */
@@ -260,6 +259,10 @@ struct SingleTestRun
   uint32_t num_requests;
 } cur_test_run;
 
+/**
+ * Are we shutting down?
+ */
+static int in_shutdown;
 
 /**
  * Append arguments to file
@@ -476,6 +479,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
+  in_shutdown = GNUNET_YES;
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
 
@@ -625,7 +629,7 @@ rps_connect_adapter (void *cls,
  */
 static void
 rps_disconnect_adapter (void *cls,
-			                  void *op_result)
+                        void *op_result)
 {
   struct GNUNET_RPS_Handle *h = op_result;
   GNUNET_RPS_disconnect (h);
@@ -689,6 +693,8 @@ request_peers (void *cls,
 {
   struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
 
+  if (GNUNET_YES == in_shutdown)
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Requesting one peer\n");
 
