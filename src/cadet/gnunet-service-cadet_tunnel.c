@@ -2905,12 +2905,13 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     return;
   }
 
-  if (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY ==
-      (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
+  if (0 != (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
     GCT_send_ax_kx (t, GNUNET_NO);
 
-  if (0 == memcmp(&ax->DHRr, &msg->ratchet_key, sizeof(msg->ratchet_key)))
+  if (0 == memcmp (&ax->DHRr, &msg->ratchet_key, sizeof(msg->ratchet_key)))
+  {
     return;
+  }
 
   LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", am_I_alice ? "YES" : "NO");
 
@@ -4301,7 +4302,7 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
   GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &msg.ratchet_key);
 
   t->ephm_h = send_kx (t, &msg.header);
-  if (CADET_TUNNEL_KEY_OK != t->estate)
+  if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     GCT_change_estate (t, CADET_TUNNEL_KEY_SENT);
 }
 
