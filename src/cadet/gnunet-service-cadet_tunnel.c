@@ -2892,6 +2892,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     GNUNET_break (CADET_Axolotl == t->enc_type);
     return;
   }
+  ax = t->ax;
 
   pid = GCT_get_destination (t);
   if (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, pid))
@@ -2913,7 +2914,6 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 
   LOG (GNUNET_ERROR_TYPE_INFO, " is Alice? %s\n", am_I_alice ? "YES" : "NO");
 
-  ax = t->ax;
   ax->DHRr = msg->ratchet_key;
 
   /* ECDH A B0 */
