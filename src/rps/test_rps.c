@@ -267,6 +267,11 @@ static int ok;
  */
 static struct GNUNET_SCHEDULER_Task *churn_task;
 
+/**
+ * Identifier for the churn task that runs periodically
+ */
+static struct GNUNET_SCHEDULER_Task *shutdown_task;
+
 
 /**
  * Called to initialise the given RPSPeer
@@ -453,25 +458,23 @@ ids_to_file (char *file_name,
  * Test the success of a single test
  */
 static int
-evaluate (struct RPSPeer *loc_rps_peers,
-          unsigned int num_loc_rps_peers,
-          unsigned int expected_recv)
+evaluate (void)
 {
   unsigned int i;
   int tmp_ok;
 
-  tmp_ok = (1 == loc_rps_peers[0].num_rec_ids);
+  tmp_ok = 1;
 
-  for (i = 0 ; i < num_loc_rps_peers ; i++)
+  for (i = 0; i < num_peers; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "%u. peer [%s] received %u of %u expected peer_ids: %i\n",
-                i,
-                GNUNET_i2s (loc_rps_peers[i].peer_id),
-                loc_rps_peers[i].num_rec_ids,
-                expected_recv,
-                (1 == loc_rps_peers[i].num_rec_ids));
-    tmp_ok &= (1 == loc_rps_peers[i].num_rec_ids);
+        "%u. peer [%s] received %u of %u expected peer_ids: %i\n",
+        i,
+        GNUNET_i2s (rps_peers[i].peer_id),
+        rps_peers[i].num_rec_ids,
+        rps_peers[i].num_ids_to_request,
+        (rps_peers[i].num_ids_to_request == rps_peers[i].num_rec_ids));
+    tmp_ok &= (rps_peers[i].num_ids_to_request == rps_peers[i].num_rec_ids);
   }
   return tmp_ok? 0 : 1;
 }
@@ -495,7 +498,7 @@ make_oplist_entry ()
  * Task run on timeout to shut everything down.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_op (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
@@ -650,7 +653,7 @@ rps_connect_adapter (void *cls,
  */
 static void
 rps_disconnect_adapter (void *cls,
-                        void *op_result)
+			                  void *op_result)
 {
   struct GNUNET_RPS_Handle *h = op_result;
   GNUNET_RPS_disconnect (h);
@@ -665,7 +668,7 @@ rps_disconnect_adapter (void *cls,
 static int
 default_eval_cb (void)
 {
-  return evaluate (rps_peers, num_peers, 1);
+  return evaluate ();
 }
 
 static int
@@ -708,7 +711,7 @@ default_reply_handle (void *cls,
               GNUNET_i2s (rps_peer->peer_id),
               n);
   
-  for (i = 0 ; i < n ; i++)
+  for (i = 0; i < n; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%u: %s\n",
@@ -716,6 +719,12 @@ default_reply_handle (void *cls,
                 GNUNET_i2s (&recv_peers[i]));
 
     GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]);
+  }
+
+  if (0 == evaluate ())
+  {
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&shutdown_op, NULL);
   }
 }
 
@@ -843,6 +852,16 @@ cancel_pending_req_rep (struct RPSPeer *rps_peer)
 /***********************************
  * MALICIOUS
 ***********************************/
+
+/**
+ * Initialise only non-mal RPSPeers
+ */
+static void mal_init_peer (struct RPSPeer *rps_peer)
+{
+  if (rps_peer->index >= round (portion * num_peers))
+    rps_peer->num_ids_to_request = 1;
+}
+
 static void
 mal_pre (void *cls, struct GNUNET_RPS_Handle *h)
 {
@@ -886,17 +905,6 @@ mal_cb (struct RPSPeer *rps_peer)
     schedule_missing_requests (rps_peer);
   }
   #endif /* ENABLE_MALICIOUS */
-}
-
-static int
-mal_eval (void)
-{
-  unsigned int num_mal_peers;
-
-  num_mal_peers = round (num_peers * portion);
-  return evaluate (&rps_peers[num_mal_peers],
-                   num_peers - (num_mal_peers),
-                   1);
 }
 
 
@@ -1270,7 +1278,7 @@ profiler_eval (void)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Scan of directory failed\n");
   }
 
-  return 0;
+  return evaluate ();
 }
 
 
@@ -1331,7 +1339,7 @@ run (void *cls,
 
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
-  GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_task, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (timeout, &shutdown_op, NULL);
 }
 
 
@@ -1360,7 +1368,7 @@ main (int argc, char *argv[])
   {
     cur_test_run.pre_test = mal_pre;
     cur_test_run.main_test = mal_cb;
-    cur_test_run.eval_cb = mal_eval;
+    cur_test_run.init_peer = mal_init_peer;
 
     if (strstr (argv[0], "_1") != NULL)
     {
@@ -1432,6 +1440,7 @@ main (int argc, char *argv[])
     num_peers = 1;
     cur_test_run.main_test = req_cancel_cb;
     cur_test_run.eval_cb = no_eval;
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
 
   else if (strstr (argv[0], "profiler") != NULL)
