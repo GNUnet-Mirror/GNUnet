@@ -56,7 +56,9 @@ struct GNUNET_RPS_Request_Handle;
  * @param num_peers the number of peers returned
  * @param peers array with num_peers PeerIDs
  */
-typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls, uint64_t num_peers, const struct GNUNET_PeerIdentity *peers);
+typedef void (* GNUNET_RPS_NotifyReadyCB) (void *cls,
+    uint64_t num_peers,
+    const struct GNUNET_PeerIdentity *peers);
 
 /**
  * Connect to the rps service
@@ -125,7 +127,8 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh);
 GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t type,
                           uint32_t num_peers,
-                          const struct GNUNET_PeerIdentity *ids);
+                          const struct GNUNET_PeerIdentity *ids,
+                          const struct GNUNET_PeerIdentity *target_peer);
 #endif /* ENABLE_MALICIOUS */
 
 

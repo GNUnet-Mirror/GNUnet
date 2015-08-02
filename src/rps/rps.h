@@ -106,6 +106,22 @@ struct GNUNET_RPS_CS_ReplyMessage
 };
 
 /**
+ * Message from client to RPS service to cancel request.
+ */
+struct GNUNET_RPS_CS_RequestCancelMessage
+{
+  /**
+   * Header including size and type in NBO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Identifyer of the message.
+   */
+  uint32_t id GNUNET_PACKED;
+};
+
+/**
  * Message from client to service with seed of peers.
  */
 struct GNUNET_RPS_CS_SeedMessage

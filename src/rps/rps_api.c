@@ -339,7 +339,8 @@ GNUNET_RPS_seed_ids (struct GNUNET_RPS_Handle *h,
 GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                           uint32_t type,
                           uint32_t num_peers,
-                          const struct GNUNET_PeerIdentity *peer_ids)
+                          const struct GNUNET_PeerIdentity *peer_ids,
+                          const struct GNUNET_PeerIdentity *target_peer)
 {
   size_t size_needed;
   uint32_t num_peers_max;
@@ -379,8 +380,8 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                               GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
     msg->type = htonl (type);
     msg->num_peers = htonl (num_peers_max);
-    if (2 == type
-        || 3 == type)
+    if ( (2 == type) ||
+         (3 == type) )
       msg->attacked_peer = peer_ids[num_peers];
     memcpy (&msg[1],
             tmp_peer_pointer,
@@ -400,9 +401,9 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
                             GNUNET_MESSAGE_TYPE_RPS_ACT_MALICIOUS);
   msg->type = htonl (type);
   msg->num_peers = htonl (num_peers);
-  if (2 == type
-      || 3 == type)
-    msg->attacked_peer = peer_ids[num_peers];
+  if ( (2 == type) ||
+       (3 == type) )
+    msg->attacked_peer = *target_peer;
   memcpy (&msg[1], tmp_peer_pointer, num_peers * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_send (h->mq, ev);
@@ -418,7 +419,17 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   void
 GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
 {
-  // TODO
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_RPS_CS_RequestCancelMessage*msg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Cancelling request with id %" PRIu32 "\n",
+       rh->id);
+
+  GNUNET_array_append (req_handlers, req_handlers_size, *rh);
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL);
+  msg->id = htonl (rh->id);
+  GNUNET_MQ_send (rh->rps_handle->mq, ev);
 }
 
 

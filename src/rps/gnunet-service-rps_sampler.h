@@ -34,6 +34,11 @@
  */
 struct RPS_Sampler;
 
+/**
+ * A handle to cancel a request.
+ */
+struct RPS_SamplerRequestHandle;
+
 
 /**
  * Callback that is called from _get_n_rand_peers() when the PeerIDs are ready.
@@ -130,10 +135,18 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
  *                   #GNUNET_NO if used internally
  * @param num_peers the number of peers requested
  */
-    void
+struct RPS_SamplerRequestHandle *
 RPS_sampler_get_n_rand_peers (struct RPS_Sampler *sampler,
                               RPS_sampler_n_rand_peers_ready_cb cb,
                               void *cls, uint32_t num_peers);
+
+/**
+ * Cancle a request issued through #RPS_sampler_n_rand_peers_ready_cb.
+ *
+ * @param req_handle the handle to the request
+ */
+void
+RPS_sampler_request_cancel (struct RPS_SamplerRequestHandle *req_handle);
 
 
 /**
