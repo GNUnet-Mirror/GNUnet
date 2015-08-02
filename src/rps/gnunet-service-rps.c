@@ -935,6 +935,8 @@ insert_in_pull_list_scheduled (const struct PeerContext *peer_ctx)
   void
 insert_in_view (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (view, peer))
+      return;
   if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_put (view,
         peer,
         NULL,
@@ -2150,16 +2152,20 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   { /* Combined attack */
 
     /* Send PUSH to attacked peers */
-    peer_ctx = get_peer_ctx (&attacked_peer);
-    if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
+    if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map,
+          &attacked_peer))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "Goding to send push to attacked peer (%s)\n",
-          GNUNET_i2s (&attacked_peer));
-      send_push (&attacked_peer);
+      peer_ctx = get_peer_ctx (&attacked_peer);
+      if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "Goding to send push to attacked peer (%s)\n",
+            GNUNET_i2s (&attacked_peer));
+        send_push (&attacked_peer);
+      }
+      else
+        check_peer_live (peer_ctx);
     }
-    else
-      check_peer_live (peer_ctx);
 
     /* The maximum of pushes we're going to send this round */
     num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit - 1,

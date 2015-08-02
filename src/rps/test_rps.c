@@ -718,7 +718,8 @@ default_reply_handle (void *cls,
                 i,
                 GNUNET_i2s (&recv_peers[i]));
 
-    GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]);
+    /* GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]); */
+    rps_peer->num_rec_ids++;
   }
 
   if (0 == evaluate ())
@@ -821,6 +822,12 @@ schedule_missing_requests (struct RPSPeer *rps_peer)
   unsigned int i;
   struct PendingRequest *pending_req;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Scheduling %u - %u missing requests\n",
+      rps_peer->num_ids_to_request,
+      rps_peer->num_pending_reqs + rps_peer->num_pending_reps);
+  GNUNET_assert (rps_peer->num_pending_reqs + rps_peer->num_pending_reps <=
+      rps_peer->num_ids_to_request);
   for (i = rps_peer->num_pending_reqs + rps_peer->num_pending_reps;
        i < rps_peer->num_ids_to_request; i++)
   {
@@ -841,6 +848,8 @@ schedule_missing_requests (struct RPSPeer *rps_peer)
 void
 cancel_pending_req_rep (struct RPSPeer *rps_peer)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Cancelling all (pending) requests.\n");
   while (NULL != rps_peer->pending_req_head)
     cancel_pending_req (rps_peer->pending_req_head);
   GNUNET_assert (0 == rps_peer->num_pending_reqs);
@@ -1072,14 +1081,16 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
               i,
               j,
               GNUNET_i2s (rps_peers[j].peer_id),
-              (delta < 0)? "online" : "offline");
+              (0 > delta) ? "online" : "offline");
   if (prob < prob_go_on_off * UINT32_MAX)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s goes %s\n",
                 GNUNET_i2s (rps_peers[j].peer_id),
-                (delta < 0) ? "offline" : "online");
+                (0 > delta) ? "offline" : "online");
 
+    if (0 > delta)
+      cancel_pending_req_rep (&rps_peers[j]);
     entry = make_oplist_entry ();
     entry->delta = delta;
     entry->index = j;
@@ -1088,7 +1099,7 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
                                                     "rps",
                                                     &churn_cb,
                                                     entry,
-                                                    (delta < 0) ? 0 : 1);
+                                                    (0 > delta) ? 0 : 1);
   }
 }
 
@@ -1133,7 +1144,6 @@ churn (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* If online, shut down with certain probability */
     if (GNUNET_YES == rps_peers[j].online)
     {
-      cancel_pending_req_rep (&rps_peers[j]);
       manage_service_wrapper (i, j, -1, prob_go_offline);
     }
 
@@ -1203,11 +1213,7 @@ profiler_reply_handle (void *cls,
              "%" PRIu32 "\n",
              (uint32_t) rcv_rps_peer->index);
   }
-  /* Find #PendingReply holding the request handle */
-  GNUNET_CONTAINER_DLL_remove (rps_peer->pending_rep_head,
-                               rps_peer->pending_rep_tail,
-                               pending_rep);
-  rps_peer->num_pending_reps--;
+  default_reply_handle (cls, n, recv_peers);
 }
 
 
