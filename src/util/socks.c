@@ -34,7 +34,6 @@
 #define LOG_STRERROR(kind,syscall) GNUNET_log_from_strerror (kind, "socks", syscall)
 
 
-
 /* SOCKS5 authentication methods */
 #define SOCKS5_AUTH_REJECT 0xFF /* No acceptable auth method */
 #define SOCKS5_AUTH_NOAUTH 0x00 /* without authentication */
@@ -164,8 +163,7 @@ register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want);
 
 
 struct GNUNET_CONNECTION_TransmitHandle *
-register_sender (struct GNUNET_SOCKS_Handshake *ih, 
-                 struct GNUNET_TIME_Relative timeout);
+register_sender (struct GNUNET_SOCKS_Handshake *ih);
 
 
 /**
@@ -279,7 +277,7 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
   ih->instart = b;
   /* Do not reschedule the sender unless we're done reading. 
    * I imagine this lets us avoid ever cancelling the transmit handle. */
-  register_sender (ih, GNUNET_TIME_relative_get_minute_ ());
+  register_sender (ih);
 }
 
 
@@ -355,9 +353,30 @@ transmit_ready (void *cls,
    * successful operations, including DNS resolution, do not use this.  */
   if (NULL==buf)
   {
-    GNUNET_break (0);
+    enum GNUNET_SCHEDULER_Reason reason = GNUNET_SCHEDULER_get_reason ();
+    if (0 != (reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+      return 0;
+    if (0 != (reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) {
+      if (0==ih->step) {
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "Timeout contacting SOCKS server, retrying indefinitely, but probably hopeless.\n");
+        register_sender (ih);
+      } else {
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             "Timeout during mid SOCKS handshake (step %u), probably not a SOCKS server.\n",
+             ih->step);
+        GNUNET_break (0);
+      }
+      return 0;
+    }
+    printf("Erronious socks.c transmit_ready() callback on step %u with reason %u.\n", 
+       ih->step, reason );
+    /* if (reason == 48) register_sender (ih); */
+    /* GNUNET_break(0); */
     return 0;
-  }
+  } else 
+    printf("Good socks.c transmit_ready() callback on step %u with reason %u.\n", 
+       ih->step, GNUNET_SCHEDULER_get_reason () );
 
   GNUNET_assert (1024 >= size && size > 0);
   GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
@@ -380,13 +399,17 @@ transmit_ready (void *cls,
  *         NULL if we are already going to notify someone else (busy)
  */
 struct GNUNET_CONNECTION_TransmitHandle *
-register_sender (struct GNUNET_SOCKS_Handshake *ih, 
-                 struct GNUNET_TIME_Relative timeout)
+register_sender (struct GNUNET_SOCKS_Handshake *ih)
 {
+  struct GNUNET_TIME_Relative timeout = GNUNET_TIME_UNIT_MINUTES;
+
   GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
+  if (0 == ih->step)
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3);
   unsigned char * b = ih->outstep[ih->step];
   unsigned char * e = ih->outstep[ih->step+1];
   GNUNET_assert (ih->outbuf <= b && b < e && e < &ih->outbuf[1024]);
+  printf("register_sender on step %u for %u bytes.\n", ih->step, (unsigned)(e - b) );
   ih->th = GNUNET_CONNECTION_notify_transmit_ready (ih->socks5_connection,
                                                     e - b,
                                                     timeout,
@@ -430,7 +453,7 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
    * them but we do not have any. */
   if (user == NULL)
     user = "";
-  if (user == NULL)
+  if (pass == NULL)
     pass = "";
 
   ih->outstep[SOCKS5_step_auth] = b;
@@ -514,7 +537,8 @@ GNUNET_SOCKS_run_handshake(struct GNUNET_SOCKS_Handshake *ih,
 {
   ih->socks5_connection=c;
   ih->target_connection = GNUNET_CONNECTION_create_proxied_from_handshake (c);
-  register_sender (ih, GNUNET_TIME_relative_get_forever_ () );
+  register_sender (ih);
+
   return ih->target_connection;
 }
 
@@ -567,8 +591,8 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 _
-	 ("Attempting to use invalid port or hostname for SOCKS proxy for service `%s'.\n"),
-	 service_name);
+	 ("Attempting to use invalid port %d as SOCKS proxy for service `%s'.\n"),
+	 port0,service_name);
     return NULL;
   }
 
@@ -576,12 +600,12 @@ GNUNET_SOCKS_do_connect (const char *service_name,
        GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "PORT", &port1))
       || (port1 > 65535) || (port1 <= 0) ||
        (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOST", &host1)))
+        GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "HOSTNAME", &host1)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 _
-	 ("Attempting to proxy service `%s' to invalid port or hostname.\n"),
-	 service_name);
+	 ("Attempting to proxy service `%s' to invalid port %d or hostname `%s'.\n"),
+	 service_name,port1,host1);
     return NULL;
   }
 
@@ -592,6 +616,9 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSUSER", &user);
   GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSPASS", &pass);
   ih = GNUNET_SOCKS_init_handshake(user,pass);
+  if (NULL != user) GNUNET_free (user);
+  if (NULL != pass) GNUNET_free (pass);
+
   GNUNET_SOCKS_set_handshake_destination (ih,host1,port1);
   GNUNET_free (host1);
 
