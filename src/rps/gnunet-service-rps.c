@@ -712,48 +712,6 @@ create_peer_ctx (const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * Put random peer from sampler into the view as history update.
- */
-  void
-hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
-{
-  unsigned int i;
-
-  for (i = 0; i < GNUNET_MIN (
-       sampler_size_est_need - GNUNET_CONTAINER_multipeermap_size (view),
-       num_peers); i++)
-  {
-    /* Make sure there is a context associated with the id in the peermap */
-    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, &ids[i]))
-      (void) create_peer_ctx (&ids[i]);
-
-    if (GNUNET_OK != GNUNET_CONTAINER_multipeermap_put (view,
-          &ids[i],
-          NULL,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
-        {
-          LOG (GNUNET_ERROR_TYPE_WARNING,
-               "Failed to put peer in peermap. (hist_update)\n");
-        }
-
-    /* Might want to check that we really updated the view */
-    if (NULL != view_array)
-    {
-      GNUNET_free (view_array);
-      view_array = NULL;
-    }
-
-    to_file (file_name_view_log,
-             "+%s\t(hist)",
-             GNUNET_i2s_full (ids));
-  }
-
-  if (0 < num_hist_update_tasks)
-    num_hist_update_tasks--;
-}
-
-
-/**
  * Set the peer flag to living and call the outstanding operations on this peer.
  */
 static size_t
@@ -985,14 +943,13 @@ insert_in_view (void *cls, const struct GNUNET_PeerIdentity *peer)
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Failed to put peer into view. (insert_in_view)\n");
   }
-
-  /* Might want to check whether we really modified the view */
   if (NULL != view_array)
   {
     GNUNET_free (view_array);
     view_array = NULL;
   }
-
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+    create_peer_ctx (peer);
   (void) get_channel (peer);
 }
 
@@ -1022,6 +979,12 @@ insert_in_sampler (void *cls, const struct GNUNET_PeerIdentity *peer)
        GNUNET_i2s (peer));
   RPS_sampler_update (prot_sampler,   peer);
   RPS_sampler_update (client_sampler, peer);
+  if (0 < RPS_sampler_count_id (prot_sampler, peer))
+  {
+    if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer))
+      (void) create_peer_ctx (peer);
+    (void) get_channel (peer);
+  }
 }
 
 
@@ -1038,6 +1001,28 @@ insert_in_sampler_scheduled (const struct PeerContext *peer_ctx)
       return GNUNET_YES;
   return GNUNET_NO;
 }
+
+/**
+ * Put random peer from sampler into the view as history update.
+ */
+  void
+hist_update (void *cls, struct GNUNET_PeerIdentity *ids, uint32_t num_peers)
+{
+  unsigned int i;
+
+  for (i = 0; i < GNUNET_MIN (
+       sampler_size_est_need - GNUNET_CONTAINER_multipeermap_size (view),
+       num_peers); i++)
+  {
+    insert_in_view (NULL, &ids[i]);
+    to_file (file_name_view_log,
+             "+%s\t(hist)",
+             GNUNET_i2s_full (ids));
+  }
+  if (0 < num_hist_update_tasks)
+    num_hist_update_tasks--;
+}
+
 
 
 /**
@@ -2421,8 +2406,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from push list\n",
          GNUNET_i2s (&push_list[i]));
-    RPS_sampler_update (prot_sampler,   &push_list[i]);
-    RPS_sampler_update (client_sampler, &push_list[i]);
+    insert_in_sampler (NULL, &push_list[i]);
     peer_clean (&push_list[i]); /* This cleans only if it is not in the view */
   }
 
@@ -2431,8 +2415,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from pull list\n",
          GNUNET_i2s (&pull_list[i]));
-    RPS_sampler_update (prot_sampler,   &pull_list[i]);
-    RPS_sampler_update (client_sampler, &pull_list[i]);
+    insert_in_sampler (NULL, &pull_list[i]);
     peer_clean (&pull_list[i]); /* This cleans only if it is not in the view */
   }
 
@@ -2520,6 +2503,9 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
        "Going to remove peer %s\n",
        GNUNET_i2s (&peer_ctx->peer_id));
 
+  /* Remove it from the sampler used for the Brahms protocol */
+    RPS_sampler_reinitialise_by_value (prot_sampler, key);
+
   /* If operations are still scheduled for this peer cancel those */
   if (0 != peer_ctx->num_outstanding_ops)
   {
@@ -2554,6 +2540,12 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
       view_array = NULL;
     }
   }
+
+  /* Remove from push and pull lists */
+  if (GNUNET_YES == in_arr (push_list, push_list_size, key))
+    rem_from_list (&push_list, &push_list_size, key);
+  if (GNUNET_YES == in_arr (pull_list, pull_list_size, key))
+    rem_from_list (&pull_list, &pull_list_size, key);
 
   /* If there is still a mq destroy it */
   if (NULL != peer_ctx->mq)
@@ -2604,7 +2596,8 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *peer_ctx;
   /* struct GNUNET_CADET_Channel *channel; */
 
-  if ( (GNUNET_NO  == GNUNET_CONTAINER_multipeermap_contains (view, peer)) &&
+  if ( (0 == RPS_sampler_count_id (prot_sampler, peer)) &&
+       (GNUNET_NO  == GNUNET_CONTAINER_multipeermap_contains (view, peer)) &&
        (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer)) &&
        (GNUNET_NO  == in_arr (push_list, push_list_size, peer)) &&
        (GNUNET_NO  == in_arr (pull_list, pull_list_size, peer)) )
@@ -2614,7 +2607,12 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
     if ( (NULL == peer_ctx->recv_channel) &&
          (GNUNET_NO == get_peer_flag (peer_ctx, PULL_REPLY_PENDING)) )
     {
+      #ifdef ENABLE_MALICIOUS
+      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&attacked_peer, peer))
+        peer_remove_cb (NULL, peer, peer_ctx);
+      #else
       peer_remove_cb (NULL, peer, peer_ctx);
+      #endif /* ENABLE_MALICIOUS */
     }
   }
 }
