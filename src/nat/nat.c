@@ -1912,7 +1912,9 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
     }
   }
   LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Asked to validate one of my addresses and validation failed!\n");
+       "Asked to validate one of my addresses (%s) and validation failed!\n",
+       GNUNET_a2s (addr,
+                   addrlen));
   return GNUNET_NO;
 }
 
