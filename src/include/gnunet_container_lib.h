@@ -986,7 +986,12 @@ typedef int
                                      void *value);
 
 
+/**
+ * Hash map from peer identities to values.
+ */
 struct GNUNET_CONTAINER_MultiPeerMap;
+
+
 /**
  * @ingroup hashmap
  * Create a multi peer map (hash map for public keys of peers).

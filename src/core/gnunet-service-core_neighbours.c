@@ -141,7 +141,8 @@ find_neighbour (const struct GNUNET_PeerIdentity *peer)
 {
   if (NULL == neighbours)
     return NULL;
-  return GNUNET_CONTAINER_multipeermap_get (neighbours, peer);
+  return GNUNET_CONTAINER_multipeermap_get (neighbours,
+                                            peer);
 }
 
 
@@ -218,7 +219,9 @@ process_queue (struct Neighbour *n);
  * @return number of bytes transmitted
  */
 static size_t
-transmit_ready (void *cls, size_t size, void *buf)
+transmit_ready (void *cls,
+                size_t size,
+                void *buf)
 {
   struct Neighbour *n = cls;
   struct NeighbourMessageEntry *m;
@@ -249,13 +252,16 @@ transmit_ready (void *cls, size_t size, void *buf)
   }
   cbuf = buf;
   GNUNET_assert (size >= m->size);
-  memcpy (cbuf, &m[1], m->size);
+  memcpy (cbuf,
+          &m[1],
+          m->size);
   ret = m->size;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Copied message of type %u and size %u into transport buffer for `%4s'\n",
               (unsigned int)
               ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
-              (unsigned int) ret, GNUNET_i2s (&n->peer));
+              (unsigned int) ret,
+              GNUNET_i2s (&n->peer));
   GNUNET_free (m);
   n->has_excess_bandwidth = GNUNET_NO;
   process_queue (n);
@@ -336,20 +342,21 @@ handle_transport_notify_connect (void *cls,
     return;
   }
   n = find_neighbour (peer);
-  if (n != NULL)
+  if (NULL != n)
   {
     /* duplicate connect notification!? */
     GNUNET_break (0);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received connection from `%4s'.\n",
+              "Received connection from `%s'.\n",
               GNUNET_i2s (peer));
   n = GNUNET_new (struct Neighbour);
   n->peer = *peer;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (neighbours,
-                                                    &n->peer, n,
+                                                    &n->peer,
+                                                    n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_set (GSC_stats,
                          gettext_noop ("# neighbour entries allocated"),
@@ -373,7 +380,7 @@ handle_transport_notify_disconnect (void *cls,
   struct Neighbour *n;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer `%4s' disconnected from us; received notification from transport.\n",
+              "Peer `%s' disconnected from us; received notification from transport.\n",
               GNUNET_i2s (peer));
   n = find_neighbour (peer);
   if (NULL == n)
@@ -401,15 +408,18 @@ handle_transport_receive (void *cls,
   uint16_t type;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received message of type %u from `%4s', demultiplexing.\n",
-              (unsigned int) ntohs (message->type), GNUNET_i2s (peer));
-  if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+              "Received message of type %u from `%s', demultiplexing.\n",
+              (unsigned int) ntohs (message->type),
+              GNUNET_i2s (peer));
+  if (0 == memcmp (peer,
+                   &GSC_my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
     return;
   }
   n = find_neighbour (peer);
-  if (n == NULL)
+  if (NULL == n)
   {
     /* received message from peer that is not connected!? */
     GNUNET_break (0);
@@ -556,9 +566,12 @@ GSC_NEIGHBOURS_check_excess_bandwidth (const struct GNUNET_PeerIdentity *target)
 int
 GSC_NEIGHBOURS_init ()
 {
-  neighbours = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  neighbours = GNUNET_CONTAINER_multipeermap_create (128,
+                                                     GNUNET_YES);
   transport =
-      GNUNET_TRANSPORT_connect2 (GSC_cfg, &GSC_my_identity, NULL,
+      GNUNET_TRANSPORT_connect2 (GSC_cfg,
+                                 &GSC_my_identity,
+                                 NULL,
                                  &handle_transport_receive,
                                  &handle_transport_notify_connect,
                                  &handle_transport_notify_disconnect,
@@ -574,7 +587,7 @@ GSC_NEIGHBOURS_init ()
 
 
 /**
- * Wrapper around 'free_neighbour'.
+ * Wrapper around #free_neighbour().
  *
  * @param cls unused
  * @param key peer identity

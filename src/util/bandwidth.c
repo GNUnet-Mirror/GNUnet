@@ -216,7 +216,7 @@ update_excess (struct GNUNET_BANDWIDTH_Tracker *av)
  * bytes).
  *
  * To stop notifications about updates and excess callbacks use
- * #GNUNET_BANDWIDTH_tracker_notification_stop
+ * #GNUNET_BANDWIDTH_tracker_notification_stop().
  *
  * @param av tracker to initialize
  * @param update_cb callback to notify a client about the tracker being updated

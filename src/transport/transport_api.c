@@ -414,7 +414,7 @@ struct GNUNET_TRANSPORT_Handle
 
   /**
    * Hash map of the current connected neighbours of this peer.
-   * Maps peer identities to 'struct Neighbour' entries.
+   * Maps peer identities to `struct Neighbour` entries.
    */
   struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
 
@@ -493,7 +493,8 @@ static struct Neighbour *
 neighbour_find (struct GNUNET_TRANSPORT_Handle *h,
                 const struct GNUNET_PeerIdentity *peer)
 {
-  return GNUNET_CONTAINER_multipeermap_get (h->neighbours, peer);
+  return GNUNET_CONTAINER_multipeermap_get (h->neighbours,
+                                            peer);
 }
 
 
@@ -561,14 +562,16 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   n->is_ready = GNUNET_YES;
   n->traffic_overhead = 0;
   GNUNET_BANDWIDTH_tracker_init2 (&n->out_tracker,
-                                  &outbound_bw_tracker_update, n,
+                                  &outbound_bw_tracker_update,
+                                  n,
                                   GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                   MAX_BANDWIDTH_CARRY_S,
                                   &notify_excess_cb,
                                   n);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (h->neighbours,
-                                                    &n->id, n,
+                                                    &n->id,
+                                                    n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   return n;
 }
@@ -586,19 +589,22 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
  */
 static int
 neighbour_delete (void *cls,
-		  const struct GNUNET_PeerIdentity *key, void *value)
+		  const struct GNUNET_PeerIdentity *key,
+                  void *value)
 {
   struct GNUNET_TRANSPORT_Handle *handle = cls;
   struct Neighbour *n = value;
 
+  GNUNET_BANDWIDTH_tracker_notification_stop (&n->out_tracker);
   if (NULL != handle->nd_cb)
-    handle->nd_cb (handle->cls, &n->id);
+    handle->nd_cb (handle->cls,
+                   &n->id);
   GNUNET_assert (NULL == n->th);
   GNUNET_assert (NULL == n->hn);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (handle->neighbours, key,
+                 GNUNET_CONTAINER_multipeermap_remove (handle->neighbours,
+                                                       key,
                                                        n));
-  GNUNET_BANDWIDTH_tracker_notification_stop (&n->out_tracker);
   GNUNET_free (n);
   return GNUNET_YES;
 }
@@ -642,14 +648,17 @@ demultiplexer (void *cls,
     disconnect_and_schedule_reconnect (h);
     return;
   }
-  GNUNET_CLIENT_receive (h->client, &demultiplexer, h,
+  GNUNET_CLIENT_receive (h->client,
+                         &demultiplexer,
+                         h,
                          GNUNET_TIME_UNIT_FOREVER_REL);
   size = ntohs (msg->size);
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_HELLO:
     if (GNUNET_OK !=
-        GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg, &me))
+        GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) msg,
+                             &me))
     {
       GNUNET_break (0);
       break;
@@ -697,15 +706,17 @@ demultiplexer (void *cls,
       GNUNET_break (0);
       break;
     }
-    n = neighbour_add (h, &cim->id);
+    n = neighbour_add (h,
+                       &cim->id);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receiving CONNECT message for `%4s' with quota %u\n",
          GNUNET_i2s (&cim->id),
          ntohl (cim->quota_out.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
                                            cim->quota_out);
-    if (h->nc_cb != NULL)
-      h->nc_cb (h->cls, &n->id);
+    if (NULL != h->nc_cb)
+      h->nc_cb (h->cls,
+                &n->id);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT:
     if (size != sizeof (struct DisconnectInfoMessage))
@@ -724,7 +735,9 @@ demultiplexer (void *cls,
       GNUNET_break (0);
       break;
     }
-    neighbour_delete (h, &dim->peer, n);
+    neighbour_delete (h,
+                      &dim->peer,
+                      n);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK:
     if (size != sizeof (struct SendOkMessage))
@@ -788,7 +801,9 @@ demultiplexer (void *cls,
       break;
     }
     if (NULL != h->rec)
-      h->rec (h->cls, &im->peer, imm);
+      h->rec (h->cls,
+              &im->peer,
+              imm);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA:
     if (size != sizeof (struct QuotaSetMessage))
@@ -837,7 +852,9 @@ timeout_request_due_to_congestion (void *cls,
   GNUNET_assert (th == n->th);
   GNUNET_assert (NULL == n->hn);
   n->th = NULL;
-  th->notify (th->notify_cls, 0, NULL);
+  th->notify (th->notify_cls,
+              0,
+              NULL);
   GNUNET_free (th);
 }
 
@@ -851,7 +868,9 @@ timeout_request_due_to_congestion (void *cls,
  * @return number of bytes copied to @a buf
  */
 static size_t
-transport_notify_ready (void *cls, size_t size, void *buf)
+transport_notify_ready (void *cls,
+                        size_t size,
+                        void *buf)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
   struct GNUNET_TRANSPORT_TransmitHandle *th;
@@ -874,7 +893,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   cbuf = buf;
   ret = 0;
   /* first send control messages */
-  while ((NULL != (th = h->control_head)) && (th->notify_size <= size))
+  while ( (NULL != (th = h->control_head)) &&
+          (th->notify_size <= size) )
   {
     GNUNET_CONTAINER_DLL_remove (h->control_head,
                                  h->control_tail,
@@ -1173,23 +1193,31 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   }
   /* Forget about all neighbours that we used to be connected to */
   GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
-                                         &neighbour_delete, h);
-  if (h->quota_task != NULL)
+                                         &neighbour_delete,
+                                         h);
+  if (NULL != h->quota_task)
   {
     GNUNET_SCHEDULER_cancel (h->quota_task);
     h->quota_task = NULL;
   }
   while ((NULL != (th = h->control_head)))
   {
-    GNUNET_CONTAINER_DLL_remove (h->control_head, h->control_tail, th);
-    th->notify (th->notify_cls, 0, NULL);
+    GNUNET_CONTAINER_DLL_remove (h->control_head,
+                                 h->control_tail,
+                                 th);
+    th->notify (th->notify_cls,
+                0,
+                NULL);
     GNUNET_free (th);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling task to reconnect to transport service in %s.\n",
-       GNUNET_STRINGS_relative_time_to_string(h->reconnect_delay, GNUNET_YES));
+       GNUNET_STRINGS_relative_time_to_string (h->reconnect_delay,
+                                               GNUNET_YES));
   h->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (h->reconnect_delay, &reconnect, h);
+      GNUNET_SCHEDULER_add_delayed (h->reconnect_delay,
+                                    &reconnect,
+                                    h);
   h->reconnect_delay = GNUNET_TIME_STD_BACKOFF (h->reconnect_delay);
 }
 
@@ -1206,7 +1234,9 @@ cancel_control_transmit (struct GNUNET_TRANSPORT_Handle *th,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Canceling transmit of contral transmission requested\n");
-  GNUNET_CONTAINER_DLL_remove (th->control_head, th->control_tail, tth);
+  GNUNET_CONTAINER_DLL_remove (th->control_head,
+                               th->control_tail,
+                               tth);
   GNUNET_free (tth);
 }
 
@@ -1430,7 +1460,9 @@ GNUNET_TRANSPORT_try_disconnect_cancel (struct GNUNET_TRANSPORT_TryDisconnectHan
  * @return number of bytes copied to @a buf
  */
 static size_t
-send_hello (void *cls, size_t size, void *buf)
+send_hello (void *cls,
+            size_t size,
+            void *buf)
 {
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh = cls;
   struct GNUNET_MessageHeader *msg = ohh->msg;
@@ -1446,9 +1478,12 @@ send_hello (void *cls, size_t size, void *buf)
          "Timeout while trying to transmit `%s' request.\n",
          "HELLO");
     if (NULL != ohh->cont)
-      ohh->cont (ohh->cls, &tc);
+      ohh->cont (ohh->cls,
+                 &tc);
     GNUNET_free (msg);
-    GNUNET_CONTAINER_DLL_remove (ohh->th->oh_head, ohh->th->oh_tail, ohh);
+    GNUNET_CONTAINER_DLL_remove (ohh->th->oh_head,
+                                 ohh->th->oh_tail,
+                                 ohh);
     GNUNET_free (ohh);
     return 0;
   }
@@ -1457,12 +1492,17 @@ send_hello (void *cls, size_t size, void *buf)
        "HELLO");
   ssize = ntohs (msg->size);
   GNUNET_assert (size >= ssize);
-  memcpy (buf, msg, ssize);
+  memcpy (buf,
+          msg,
+          ssize);
   GNUNET_free (msg);
   tc.reason = GNUNET_SCHEDULER_REASON_READ_READY;
   if (NULL != ohh->cont)
-    ohh->cont (ohh->cls, &tc);
-  GNUNET_CONTAINER_DLL_remove (ohh->th->oh_head, ohh->th->oh_tail, ohh);
+    ohh->cont (ohh->cls,
+               &tc);
+  GNUNET_CONTAINER_DLL_remove (ohh->th->oh_head,
+                               ohh->th->oh_tail,
+                               ohh);
   GNUNET_free (ohh);
   return ssize;
 }
@@ -1556,7 +1596,8 @@ GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
 struct GNUNET_TRANSPORT_OfferHelloHandle *
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
-                              GNUNET_SCHEDULER_TaskCallback cont, void *cls)
+                              GNUNET_SCHEDULER_TaskCallback cont,
+                              void *cls)
 {
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh;
   struct GNUNET_MessageHeader *msg;
@@ -1569,7 +1610,8 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   size = ntohs (hello->size);
   GNUNET_break (size >= sizeof (struct GNUNET_MessageHeader));
   if (GNUNET_OK !=
-      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hello, &peer))
+      GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) hello,
+                           &peer))
   {
     GNUNET_break (0);
     return NULL;
@@ -1604,7 +1646,9 @@ GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *o
   struct GNUNET_TRANSPORT_Handle *th = ohh->th;
 
   cancel_control_transmit (ohh->th, ohh->tth);
-  GNUNET_CONTAINER_DLL_remove (th->oh_head, th->oh_tail, ohh);
+  GNUNET_CONTAINER_DLL_remove (th->oh_head,
+                               th->oh_tail,
+                               ohh);
   GNUNET_free (ohh->msg);
   GNUNET_free (ohh);
 }
@@ -1712,13 +1756,19 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
  */
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_PeerIdentity *self, void *cls,
+                          const struct GNUNET_PeerIdentity *self,
+                          void *cls,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
                           GNUNET_TRANSPORT_NotifyConnect nc,
                           GNUNET_TRANSPORT_NotifyDisconnect nd)
 {
-  return GNUNET_TRANSPORT_connect2 (cfg, self, cls,
-                                    rec, nc, nd, NULL);
+  return GNUNET_TRANSPORT_connect2 (cfg,
+                                    self,
+                                    cls,
+                                    rec,
+                                    nc,
+                                    nd,
+                                    NULL);
 }
 
 
@@ -1738,7 +1788,8 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const struct GNUNET_PeerIdentity *self, void *cls,
+                           const struct GNUNET_PeerIdentity *self,
+                           void *cls,
                            GNUNET_TRANSPORT_ReceiveCallback rec,
                            GNUNET_TRANSPORT_NotifyConnect nc,
                            GNUNET_TRANSPORT_NotifyDisconnect nd,
@@ -1761,7 +1812,8 @@ GNUNET_TRANSPORT_connect2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to transport service.\n");
-  ret->client = GNUNET_CLIENT_connect ("transport", cfg);
+  ret->client = GNUNET_CLIENT_connect ("transport",
+                                       cfg);
   if (NULL == ret->client)
   {
     GNUNET_free (ret);
@@ -1772,8 +1824,10 @@ GNUNET_TRANSPORT_connect2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                           GNUNET_YES);
   ret->ready_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
- schedule_control_transmit (ret, sizeof (struct StartMessage),
-                            &send_start, ret);
+  schedule_control_transmit (ret,
+                             sizeof (struct StartMessage),
+                             &send_start,
+                             ret);
   return ret;
 }
 
@@ -1869,15 +1923,19 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   th->notify_size = size;
   n->th = th;
   /* calculate when our transmission should be ready */
-  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size + n->traffic_overhead);
+  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
+                                              size + n->traffic_overhead);
   n->traffic_overhead = 0;
   if (delay.rel_value_us > timeout.rel_value_us)
     delay.rel_value_us = 0;        /* notify immediately (with failure) */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Bandwidth tracker allows next transmission to peer %s in %s\n",
        GNUNET_i2s (target),
-       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
-  n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap, n, delay.rel_value_us);
+       GNUNET_STRINGS_relative_time_to_string (delay,
+                                               GNUNET_YES));
+  n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap,
+                                        n,
+                                        delay.rel_value_us);
   schedule_transmission (handle);
   return th;
 }
