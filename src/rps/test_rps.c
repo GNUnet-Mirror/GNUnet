@@ -215,14 +215,9 @@ struct RPSPeer
   unsigned int num_pending_reps;
 
   /**
-   * Received PeerIDs
-   */
-  struct GNUNET_PeerIdentity *rec_ids;
-
-  /**
    * Number of received PeerIDs
    */
-  unsigned int num_rec_ids;
+  unsigned int num_recv_ids;
 };
 
 
@@ -471,10 +466,10 @@ evaluate (void)
         "%u. peer [%s] received %u of %u expected peer_ids: %i\n",
         i,
         GNUNET_i2s (rps_peers[i].peer_id),
-        rps_peers[i].num_rec_ids,
+        rps_peers[i].num_recv_ids,
         rps_peers[i].num_ids_to_request,
-        (rps_peers[i].num_ids_to_request == rps_peers[i].num_rec_ids));
-    tmp_ok &= (rps_peers[i].num_ids_to_request == rps_peers[i].num_rec_ids);
+        (rps_peers[i].num_ids_to_request == rps_peers[i].num_recv_ids));
+    tmp_ok &= (rps_peers[i].num_ids_to_request == rps_peers[i].num_recv_ids);
   }
   return tmp_ok? 0 : 1;
 }
@@ -721,8 +716,7 @@ default_reply_handle (void *cls,
                 i,
                 GNUNET_i2s (&recv_peers[i]));
 
-    /* GNUNET_array_append (rps_peer->rec_ids, rps_peer->num_rec_ids, recv_peers[i]); */
-    rps_peer->num_rec_ids++;
+    rps_peer->num_recv_ids++;
   }
 
   if (0 == evaluate ())
