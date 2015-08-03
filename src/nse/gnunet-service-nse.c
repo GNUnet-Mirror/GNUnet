@@ -954,7 +954,8 @@ find_proof (void *cls,
   }
   if (my_proof / (100 * ROUND_SIZE) < counter / (100 * ROUND_SIZE))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Testing proofs currently at %llu\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Testing proofs currently at %llu\n",
                 (unsigned long long) counter);
     /* remember progress every 100 rounds */
     my_proof = counter;
@@ -1132,6 +1133,9 @@ handle_p2p_size_estimate (void *cls,
       return GNUNET_OK;         /* ignore, simply too early/late */
     if (GNUNET_YES != verify_message_crypto (incoming_flood))
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Peer %s is likely ill-configured!\n",
+                  GNUNET_i2s (peer));
       GNUNET_break_op (0);
       return GNUNET_OK;
     }
