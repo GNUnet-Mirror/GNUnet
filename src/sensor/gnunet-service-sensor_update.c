@@ -710,7 +710,7 @@ handle_sensor_full (void *cls, struct GNUNET_CADET_Channel *channel,
   {
     updating = GNUNET_NO;
     cleanup_updatepoint (up_default);
-    GNUNET_SCHEDULER_add_continuation (&reset, NULL, 0);
+    GNUNET_SCHEDULER_add_now (&reset, NULL);
   }
   else
     GNUNET_CADET_receive_done (channel);
