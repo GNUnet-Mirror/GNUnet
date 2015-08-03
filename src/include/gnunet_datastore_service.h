@@ -92,10 +92,11 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  *                space for 0-priority content
  * @param msg NULL on success, otherwise an error message
  */
-typedef void (*GNUNET_DATASTORE_ContinuationWithStatus) (void *cls,
-                                                         int32_t success,
-							 struct GNUNET_TIME_Absolute min_expiration,
-                                                         const char *msg);
+typedef void
+(*GNUNET_DATASTORE_ContinuationWithStatus) (void *cls,
+                                            int32_t success,
+                                            struct GNUNET_TIME_Absolute min_expiration,
+                                            const char *msg);
 
 
 /**
@@ -148,13 +149,18 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
-                      const struct GNUNET_HashCode *key, size_t size,
-                      const void *data, enum GNUNET_BLOCK_Type type,
-                      uint32_t priority, uint32_t anonymity,
+GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
+                      uint32_t rid,
+                      const struct GNUNET_HashCode *key,
+                      size_t size,
+                      const void *data,
+                      enum GNUNET_BLOCK_Type type,
+                      uint32_t priority,
+                      uint32_t anonymity,
                       uint32_t replication,
                       struct GNUNET_TIME_Absolute expiration,
-                      unsigned int queue_priority, unsigned int max_queue_size,
+                      unsigned int queue_priority,
+                      unsigned int max_queue_size,
                       struct GNUNET_TIME_Relative timeout,
                       GNUNET_DATASTORE_ContinuationWithStatus cont,
                       void *cont_cls);
