@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,7 +22,6 @@
  * @brief base test case for dht api
  *
  * This test case tests DHT api to DUMMY DHT service communication.
- *
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -120,17 +119,12 @@ end_badly ()
  * @param tc context information (why was this task triggered now)
  */
 static void
-test_get_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_get_stop (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get_stop!\n");
-  if ((tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT) != 0)
-  {
-    GNUNET_break (0);
-    GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
-  GNUNET_assert (dht_handle != NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Called test_get_stop!\n");
+  GNUNET_assert (NULL != dht_handle);
   GNUNET_DHT_get_stop (get_handle);
   get_handle = NULL;
   GNUNET_SCHEDULER_add_now (&end, NULL);
@@ -143,13 +137,14 @@ test_get_iterator (void *cls, struct GNUNET_TIME_Absolute exp,
                    const struct GNUNET_PeerIdentity *get_path,
                    unsigned int get_path_length,
                    const struct GNUNET_PeerIdentity *put_path,
-                   unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
+                   unsigned int put_path_length,
+                   enum GNUNET_BLOCK_Type type,
                    size_t size, const void *data)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "test_get_iterator called (we got a result), stopping get request!\n");
-  GNUNET_SCHEDULER_add_continuation (&test_get_stop, NULL,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&test_get_stop,
+                            NULL);
 }
 
 
@@ -164,9 +159,12 @@ test_get (void *cls, int success)
 {
   struct GNUNET_HashCode hash;
 
-  memset (&hash, 42, sizeof (struct GNUNET_HashCode));
+  memset (&hash,
+          42,
+          sizeof (struct GNUNET_HashCode));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Called test_get!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Called test_get!\n");
   GNUNET_assert (dht_handle != NULL);
   retry_context.real_timeout = GNUNET_TIME_relative_to_absolute (TOTAL_TIMEOUT);
   retry_context.next_timeout = BASE_TIMEOUT;
