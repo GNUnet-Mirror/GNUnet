@@ -179,9 +179,6 @@ main (int argc, char *argv[])
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_number (cfg, MYNAME, "PORT", PORT);
   GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "HOSTNAME", "localhost");
-/* Appears unnecessary : 
-  GNUNET_CONFIGURATION_set_value_string (cfg, "resolver", "HOSTNAME",
-                                         "localhost");*/
   ok = 1;
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
