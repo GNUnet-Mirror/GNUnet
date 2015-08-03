@@ -274,6 +274,7 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
     case SOCKS5_step_done: 
       GNUNET_assert (0);
   }
+  ++ih->step;
   ih->instart = b;
   /* Do not reschedule the sender unless we're done reading. 
    * I imagine this lets us avoid ever cancelling the transmit handle. */
@@ -294,6 +295,7 @@ reciever (void *cls,
           const struct sockaddr * addr,
           socklen_t addrlen, int errCode)
 {
+printf("Meow(%d)",available);
   struct GNUNET_SOCKS_Handshake * ih = cls;
   GNUNET_assert (&ih->inend[available] < &ih->inbuf[1024]);
   memcpy(ih->inend, buf, available);
@@ -312,6 +314,7 @@ reciever (void *cls,
 void
 register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want)
 {
+  printf("register_reciever on step %u for %d bytes.\n", ih->step, want );
   GNUNET_CONNECTION_receive (ih->socks5_connection,
                              want,
                              GNUNET_TIME_relative_get_minute_ (),
@@ -381,12 +384,13 @@ transmit_ready (void *cls,
   GNUNET_assert (1024 >= size && size > 0);
   GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
   unsigned char * b = ih->outstep[ih->step];
-  unsigned char * e = ih->outstep[ih->step++];
+  unsigned char * e = ih->outstep[ih->step+1];
   GNUNET_assert (e <= &ih->outbuf[1024]);
   unsigned l = e - b;
   GNUNET_assert (size >= l && l >= 0);
-  memcpy(b, buf, l);
+  memcpy(buf, b, l);
   register_reciever (ih, register_reciever_wants(ih));
+  printf("sent(%d)\n",l);
   return l;
 }
 
