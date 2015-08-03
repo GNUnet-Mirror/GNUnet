@@ -165,7 +165,7 @@ mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_RPS_Handle *h = cls;
   //TODO LOG
-  LOG (GNUNET_ERROR_TYPE_WARNING, "Some problem with the message queue. error: %i\n\
+  LOG (GNUNET_ERROR_TYPE_WARNING, "Problem with message queue. error: %i\n\
        1: READ,\n\
        2: WRITE,\n\
        4: TIMEOUT\n",
@@ -426,7 +426,6 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
        "Cancelling request with id %" PRIu32 "\n",
        rh->id);
 
-  GNUNET_array_append (req_handlers, req_handlers_size, *rh);
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL);
   msg->id = htonl (rh->id);
   GNUNET_MQ_send (rh->rps_handle->mq, ev);

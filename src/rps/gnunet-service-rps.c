@@ -937,6 +937,9 @@ insert_in_view (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (view, peer))
       return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Going to put %s into view\n",
+      GNUNET_i2s (peer));
   if (GNUNET_YES != GNUNET_CONTAINER_multipeermap_put (view,
         peer,
         NULL,
@@ -2166,6 +2169,9 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       else
         check_peer_live (peer_ctx);
     }
+    else
+      peer_ctx = create_peer_ctx (&attacked_peer);
+    check_peer_live (peer_ctx);
 
     /* The maximum of pushes we're going to send this round */
     num_pushes = GNUNET_MIN (GNUNET_MIN (push_limit - 1,
