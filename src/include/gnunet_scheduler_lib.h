@@ -221,30 +221,15 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task);
  * and the reason code can be specified.
  *
  * @param task main function of the task
- * @param task_cls closure of task
- * @param reason reason for task invocation
- */
-void
-GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_TaskCallback task,
-                                   void *task_cls,
-                                   enum GNUNET_SCHEDULER_Reason reason);
-
-
-/**
- * Continue the current execution with the given function.  This is
- * similar to the other "add" functions except that there is no delay
- * and the reason code can be specified.
- *
- * @param task main function of the task
  * @param task_cls closure for @a task
  * @param reason reason for task invocation
  * @param priority priority to use for the task
  */
 void
-GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_TaskCallback task,
-                                                 void *task_cls,
-						 enum GNUNET_SCHEDULER_Reason reason,
-						 enum GNUNET_SCHEDULER_Priority priority);
+GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback task,
+                                               void *task_cls,
+                                               enum GNUNET_SCHEDULER_Reason reason,
+                                               enum GNUNET_SCHEDULER_Priority priority);
 
 
 /**

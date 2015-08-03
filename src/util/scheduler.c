@@ -757,9 +757,10 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
 #endif
   current_priority = GNUNET_SCHEDULER_PRIORITY_DEFAULT;
   current_lifeness = GNUNET_YES;
-  GNUNET_SCHEDULER_add_continuation (task,
-                                     task_cls,
-                                     GNUNET_SCHEDULER_REASON_STARTUP);
+  GNUNET_SCHEDULER_add_with_reason_and_priority (task,
+                                                 task_cls,
+                                                 GNUNET_SCHEDULER_REASON_STARTUP,
+                                                 GNUNET_SCHEDULER_PRIORITY_DEFAULT);
   active_task = (void *) (long) -1;     /* force passing of sanity check */
   GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
                                           &GNUNET_OS_install_parent_control_handler,
@@ -1004,10 +1005,10 @@ GNUNET_SCHEDULER_cancel (struct GNUNET_SCHEDULER_Task *task)
  * @param priority priority to use for the task
  */
 void
-GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_TaskCallback task,
-                                                 void *task_cls,
-						 enum GNUNET_SCHEDULER_Reason reason,
-						 enum GNUNET_SCHEDULER_Priority priority)
+GNUNET_SCHEDULER_add_with_reason_and_priority (GNUNET_SCHEDULER_TaskCallback task,
+                                               void *task_cls,
+                                               enum GNUNET_SCHEDULER_Reason reason,
+                                               enum GNUNET_SCHEDULER_Priority priority)
 {
   struct GNUNET_SCHEDULER_Task *t;
 
@@ -1038,25 +1039,6 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_TaskCallback t
        "Adding continuation task %p\n",
        t);
   queue_ready_task (t);
-}
-
-
-/**
- * Continue the current execution with the given function.  This is
- * similar to the other "add" functions except that there is no delay
- * and the reason code can be specified.
- *
- * @param task main function of the task
- * @param task_cls closure for @a task
- * @param reason reason for task invocation
- */
-void
-GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_TaskCallback task, void *task_cls,
-                                   enum GNUNET_SCHEDULER_Reason reason)
-{
-  GNUNET_SCHEDULER_add_continuation_with_priority (task, task_cls,
-						   reason,
-						   GNUNET_SCHEDULER_PRIORITY_DEFAULT);
 }
 
 
