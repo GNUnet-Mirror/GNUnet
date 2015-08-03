@@ -65,11 +65,6 @@ struct GNUNET_RPS_Request_Handle
   struct GNUNET_RPS_Handle *rps_handle;
 
   /**
-   * The id of the request.
-   */
-  uint32_t id;
-
-  /**
    * The callback to be called when we receive an answer.
    */
   GNUNET_RPS_NotifyReadyCB ready_cb;
@@ -78,6 +73,11 @@ struct GNUNET_RPS_Request_Handle
    * The closure for the callback.
    */
   void *ready_cb_cls;
+
+  /**
+   * The id of the request.
+   */
+  uint32_t id;
 };
 
 
@@ -237,7 +237,8 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
   // assert func != NULL
   rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
   rh->rps_handle = rps_handle;
-  rh->id = req_handlers_size; // TODO ntoh
+  GNUNET_assert (req_handlers_size < UINT32_MAX);
+  rh->id = (uint32_t) req_handlers_size;
   rh->ready_cb = ready_cb;
   rh->ready_cb_cls = cls;
 
