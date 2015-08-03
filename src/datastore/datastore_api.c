@@ -308,16 +308,14 @@ transmit_drop (void *cls, size_t size, void *buf)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Failed to transmit request to drop database.\n"));
-    GNUNET_SCHEDULER_add_continuation (&disconnect_after_drop, h,
-				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&disconnect_after_drop, h);
     return 0;
   }
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   hdr = buf;
   hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
   hdr->type = htons (GNUNET_MESSAGE_TYPE_DATASTORE_DROP);
-  GNUNET_SCHEDULER_add_continuation (&disconnect_after_drop, h,
-				     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&disconnect_after_drop, h);
   return sizeof (struct GNUNET_MessageHeader);
 }
 

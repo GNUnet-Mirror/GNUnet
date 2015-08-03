@@ -132,8 +132,7 @@ check_success (void *cls, int success, struct GNUNET_TIME_Absolute min_expiratio
   GNUNET_assert (GNUNET_OK == success);
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 
@@ -149,8 +148,7 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
   if (NULL == key)
   {
     crc->phase = RP_GET_FAIL;
-    GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&run_continuation, crc);
     return;
   }
   i = crc->i;
@@ -164,8 +162,7 @@ check_value (void *cls, const struct GNUNET_HashCode * key, size_t size,
   crc->i--;
   if (crc->i == 0)
     crc->phase = RP_DONE;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 
@@ -180,8 +177,7 @@ check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
   GNUNET_assert (key == NULL);
   if (0 == --crc->i)
     crc->phase = RP_DONE;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 
@@ -252,8 +248,7 @@ run_tests (void *cls, int success, struct GNUNET_TIME_Absolute min_expiration, c
     GNUNET_free (crc);
     return;
   }
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 

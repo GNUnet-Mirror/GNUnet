@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2004, 2005, 2006, 2007, 2009 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2004, 2005, 2006, 2007, 2009, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -40,16 +40,23 @@
 
 #define ITERATIONS 256
 
+/**
+ * Handle to the datastore.
+ */
 static struct GNUNET_DATASTORE_Handle *datastore;
 
 static struct GNUNET_TIME_Absolute now;
 
+/**
+ * Value we return from #main().
+ */
 static int ok;
 
 /**
  * Name of plugin under test.
  */
 static const char *plugin_name;
+
 
 static size_t
 get_size (int i)
@@ -98,9 +105,20 @@ get_expiration (int i)
   return av;
 }
 
+
+/**
+ * Which phase of the process are we in?
+ */
 enum RunPhase
 {
+  /**
+   * We are done (shutting down normally).
+   */
   RP_DONE = 0,
+
+  /**
+   * We are adding new entries to the datastore.
+   */
   RP_PUT = 1,
   RP_GET = 2,
   RP_DEL = 3,
@@ -113,29 +131,61 @@ enum RunPhase
   RP_GET_MULTIPLE_NEXT = 10,
   RP_UPDATE = 11,
   RP_UPDATE_VALIDATE = 12,
+
+  /**
+   * Execution failed with some kind of error.
+   */
   RP_ERROR
 };
 
 
+/**
+ * Closure we give to all of the functions executing the
+ * benchmark.  Could right now be global, but this allows
+ * us to theoretically run multiple clients "in parallel".
+ */
 struct CpsRunContext
 {
+  /**
+   * Execution phase we are in.
+   */
+  enum RunPhase phase;
+
   struct GNUNET_HashCode key;
   int i;
   int rid;
-  const struct GNUNET_CONFIGURATION_Handle *cfg;
   void *data;
   size_t size;
-  enum RunPhase phase;
+
   uint64_t uid;
   uint64_t offset;
   uint64_t first_uid;
 };
 
 
+/**
+ * Main state machine.  Executes the next step of the test
+ * depending on the current state.
+ *
+ * @param cls the `struct CpsRunContext`
+ * @param tc scheduler context (unused)
+ */
 static void
-run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+run_continuation (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
+/**
+ * Continuation called to notify client about result of an
+ * operation.  Checks for errors, updates our iteration counters and
+ * continues execution with #run_continuation().
+ *
+ * @param cls the `struct CpsRunContext`
+ * @param success #GNUNET_SYSERR on failure
+ * @param min_expiration minimum expiration time required for content to be stored
+ *                by the datacache at this time, zero for unknown
+ * @param msg NULL on success, otherwise an error message
+ */
 static void
 check_success (void *cls,
                int success,
@@ -147,14 +197,15 @@ check_success (void *cls,
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Operation %d/%d not successfull: `%s'\n", crc->phase, crc->i,
+                "Operation %d/%d not successfull: `%s'\n",
+                crc->phase,
+                crc->i,
                 msg);
     crc->phase = RP_ERROR;
   }
   GNUNET_free_non_null (crc->data);
   crc->data = NULL;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 
@@ -172,8 +223,8 @@ get_reserved (void *cls,
                 msg);
   GNUNET_assert (0 < success);
   crc->rid = success;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation,
+                            crc);
 }
 
 
@@ -199,8 +250,8 @@ check_value (void *cls,
                 crc->phase,
                 crc->i);
     crc->phase = RP_ERROR;
-    GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&run_continuation,
+                              crc);
     return;
   }
 #if 0
@@ -225,8 +276,8 @@ check_value (void *cls,
     crc->phase = RP_DEL;
     crc->i = ITERATIONS;
   }
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation,
+                            crc);
 }
 
 
@@ -250,15 +301,20 @@ delete_value (void *cls,
   crc->data = GNUNET_malloc (size);
   memcpy (crc->data, data, size);
   crc->phase = RP_DO_DEL;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation,
+                            crc);
 }
 
 
 static void
-check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
-               const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-               uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+check_nothing (void *cls,
+               const struct GNUNET_HashCode *key,
+               size_t size,
+               const void *data,
+               enum GNUNET_BLOCK_Type type,
+               uint32_t priority,
+               uint32_t anonymity,
+               struct GNUNET_TIME_Absolute expiration,
                uint64_t uid)
 {
   struct CpsRunContext *crc = cls;
@@ -266,8 +322,8 @@ check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
   GNUNET_assert (key == NULL);
   if (crc->i == 0)
     crc->phase = RP_RESERVE;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation,
+                            crc);
 }
 
 
@@ -303,8 +359,7 @@ check_multiple (void *cls,
   }
   if (priority == get_priority (42))
     crc->uid = uid;
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 
@@ -330,11 +385,17 @@ check_update (void *cls,
     GNUNET_assert (size == get_size (43));
     crc->offset++;
   }
-  GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&run_continuation, crc);
 }
 
 
+/**
+ * Main state machine.  Executes the next step of the test
+ * depending on the current state.
+ *
+ * @param cls the `struct CpsRunContext`
+ * @param tc scheduler context (unused)
+ */
 static void
 run_continuation (void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -430,43 +491,68 @@ run_continuation (void *cls,
     break;
   case RP_PUT_MULTIPLE_NEXT:
     crc->phase = RP_GET_MULTIPLE;
-    GNUNET_DATASTORE_put (datastore, crc->rid, &crc->key, get_size (43),
-                          get_data (43), get_type (42), get_priority (43),
-                          get_anonymity (43), 0, get_expiration (43), 1, 1,
-                          TIMEOUT, &check_success, crc);
+    GNUNET_DATASTORE_put (datastore, crc->rid,
+                          &crc->key,
+                          get_size (43),
+                          get_data (43),
+                          get_type (42),
+                          get_priority (43),
+                          get_anonymity (43),
+                          0,
+                          get_expiration (43),
+                          1, 1,
+                          TIMEOUT,
+                          &check_success, crc);
     break;
   case RP_GET_MULTIPLE:
     GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,
-                                             get_type (42), 1, 1, TIMEOUT,
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (42), 1, 1,
+                                             TIMEOUT,
                                              &check_multiple, crc));
     break;
   case RP_GET_MULTIPLE_NEXT:
     GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,
-                                             get_type (42), 1, 1, TIMEOUT,
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (42),
+                                             1, 1,
+                                             TIMEOUT,
                                              &check_multiple, crc));
     break;
   case RP_UPDATE:
     GNUNET_assert (crc->uid > 0);
     crc->phase = RP_UPDATE_VALIDATE;
-    GNUNET_DATASTORE_update (datastore, crc->uid, 100, get_expiration (42), 1,
-                             1, TIMEOUT, &check_success, crc);
+    GNUNET_DATASTORE_update (datastore,
+                             crc->uid, 100,
+                             get_expiration (42), 1,
+                             1, TIMEOUT,
+                             &check_success, crc);
     break;
   case RP_UPDATE_VALIDATE:
     GNUNET_assert (NULL !=
-                   GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,
-                                             get_type (42), 1, 1, TIMEOUT,
+                   GNUNET_DATASTORE_get_key (datastore,
+                                             crc->offset,
+                                             &crc->key,
+                                             get_type (42),
+                                             1, 1,
+                                             TIMEOUT,
                                              &check_update, crc));
     break;
   case RP_DONE:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished, disconnecting\n");
-    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finished, disconnecting\n");
+    GNUNET_DATASTORE_disconnect (datastore,
+                                 GNUNET_YES);
     GNUNET_free (crc);
     ok = 0;
     break;
   case RP_ERROR:
-    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+    GNUNET_DATASTORE_disconnect (datastore,
+                                 GNUNET_YES);
     GNUNET_free (crc);
     ok = 43;
     break;
@@ -474,6 +560,18 @@ run_continuation (void *cls,
 }
 
 
+/**
+ * Function called with the result of the initial PUT operation.  If
+ * the PUT succeeded, we start the actual benchmark loop, otherwise we
+ * bail out with an error.
+ *
+ *
+ * @param cls closure
+ * @param success #GNUNET_SYSERR on failure
+ * @param min_expiration minimum expiration time required for content to be stored
+ *                by the datacache at this time, zero for unknown
+ * @param msg NULL on success, otherwise an error message
+ */
 static void
 run_tests (void *cls,
            int32_t success,
@@ -485,20 +583,22 @@ run_tests (void *cls,
   switch (success)
   {
   case GNUNET_YES:
-    GNUNET_SCHEDULER_add_continuation (&run_continuation, crc,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&run_continuation,
+                              crc);
     return;
   case GNUNET_NO:
     FPRINTF (stderr,
              "%s", "Test 'put' operation failed, key already exists (!?)\n");
-    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+    GNUNET_DATASTORE_disconnect (datastore,
+                                 GNUNET_YES);
     GNUNET_free (crc);
     return;
   case GNUNET_SYSERR:
     FPRINTF (stderr,
              "Test 'put' operation failed with error `%s' database likely not setup, skipping test.\n",
              msg);
-    GNUNET_DATASTORE_disconnect (datastore, GNUNET_YES);
+    GNUNET_DATASTORE_disconnect (datastore,
+                                 GNUNET_YES);
     GNUNET_free (crc);
     return;
   default:
@@ -507,6 +607,15 @@ run_tests (void *cls,
 }
 
 
+/**
+ * Beginning of the actual execution of the benchmark.
+ * Performs a first test operation (PUT) to verify that
+ * the plugin works at all.
+ *
+ * @param cls NULL
+ * @param cfg configuration to use
+ * @param peer peer handle (unused)
+ */
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -516,32 +625,52 @@ run (void *cls,
   static struct GNUNET_HashCode zkey;
 
   crc = GNUNET_new (struct CpsRunContext);
-  crc->cfg = cfg;
   crc->phase = RP_PUT;
   now = GNUNET_TIME_absolute_get ();
   datastore = GNUNET_DATASTORE_connect (cfg);
   if (NULL ==
-      GNUNET_DATASTORE_put (datastore, 0, &zkey, 4, "TEST",
-                            GNUNET_BLOCK_TYPE_TEST, 0, 0, 0,
+      GNUNET_DATASTORE_put (datastore,
+                            0,
+                            &zkey,
+                            4,
+                            "TEST",
+                            GNUNET_BLOCK_TYPE_TEST,
+                            0, 0, 0,
                             GNUNET_TIME_relative_to_absolute
-                            (GNUNET_TIME_UNIT_SECONDS), 0, 1,
-                            GNUNET_TIME_UNIT_MINUTES, &run_tests, crc))
+                            (GNUNET_TIME_UNIT_SECONDS),
+                            0, 1,
+                            GNUNET_TIME_UNIT_MINUTES,
+                            &run_tests, crc))
   {
-    FPRINTF (stderr, "%s",  "Test 'put' operation failed.\n");
+    FPRINTF (stderr,
+             "%s",
+             "Test 'put' operation failed.\n");
     ok = 1;
     GNUNET_free (crc);
   }
 }
 
 
+/**
+ * Entry point into the test. Determines which configuration / plugin
+ * we are running with based on the name of the binary and starts
+ * the peer.
+ *
+ * @param argc should be 1
+ * @param argv used to determine plugin / configuration name.
+ * @return 0 on success
+ */
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   char cfg_name[128];
 
   plugin_name = GNUNET_TESTING_get_testname_from_underscore (argv[0]);
-  GNUNET_snprintf (cfg_name, sizeof (cfg_name),
-                   "test_datastore_api_data_%s.conf", plugin_name);
+  GNUNET_snprintf (cfg_name,
+                   sizeof (cfg_name),
+                   "test_datastore_api_data_%s.conf",
+                   plugin_name);
   if (0 !=
       GNUNET_TESTING_peer_run ("test-gnunet-datastore",
 			       cfg_name,
