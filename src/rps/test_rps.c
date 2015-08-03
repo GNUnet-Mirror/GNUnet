@@ -655,8 +655,11 @@ static void
 rps_disconnect_adapter (void *cls,
 			                  void *op_result)
 {
+  struct RPSPeer *peer = cls;
   struct GNUNET_RPS_Handle *h = op_result;
+  GNUNET_assert (NULL != peer);
   GNUNET_RPS_disconnect (h);
+  peer->rps_handle = NULL;
 }
 
 
