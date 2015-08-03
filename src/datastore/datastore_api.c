@@ -328,7 +328,8 @@ transmit_drop (void *cls, size_t size, void *buf)
  * @param drop set to #GNUNET_YES to delete all data in datastore (!)
  */
 void
-GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
+GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
+                             int drop)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe;
 
@@ -338,12 +339,12 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
   }
-  if (h->client != NULL)
+  if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-  if (h->reconnect_task != NULL)
+  if (NULL != h->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
     h->reconnect_task = NULL;
@@ -356,21 +357,23 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
   if (GNUNET_YES == drop)
   {
     h->client = GNUNET_CLIENT_connect ("datastore", h->cfg);
-    if (h->client != NULL)
+    if (NULL != h->client)
     {
       if (NULL !=
           GNUNET_CLIENT_notify_transmit_ready (h->client,
                                                sizeof (struct
                                                        GNUNET_MessageHeader),
-                                               GNUNET_TIME_UNIT_MINUTES,
-                                               GNUNET_YES, &transmit_drop, h))
+                                               GNUNET_TIME_UNIT_SECONDS,
+                                               GNUNET_YES,
+                                               &transmit_drop, h))
         return;
       GNUNET_CLIENT_disconnect (h->client);
       h->client = NULL;
     }
     GNUNET_break (0);
   }
-  GNUNET_STATISTICS_destroy (h->stats, GNUNET_NO);
+  GNUNET_STATISTICS_destroy (h->stats,
+                             GNUNET_NO);
   h->stats = NULL;
   GNUNET_free (h);
 }
@@ -396,8 +399,12 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Timeout of request in datastore queue\n");
   /* response_proc's expect request at the head of the queue! */
-  GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, qe);
-  GNUNET_CONTAINER_DLL_insert (h->queue_head, h->queue_tail, qe);
+  GNUNET_CONTAINER_DLL_remove (h->queue_head,
+                               h->queue_tail,
+                               qe);
+  GNUNET_CONTAINER_DLL_insert (h->queue_head,
+                               h->queue_tail,
+                               qe);
   GNUNET_assert (h->queue_head == qe);
   qe->response_proc (qe->h, NULL);
 }
@@ -418,8 +425,10 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return NULL if the queue is full
  */
 static struct GNUNET_DATASTORE_QueueEntry *
-make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
-                  unsigned int queue_priority, unsigned int max_queue_size,
+make_queue_entry (struct GNUNET_DATASTORE_Handle *h,
+                  size_t msize,
+                  unsigned int queue_priority,
+                  unsigned int max_queue_size,
                   struct GNUNET_TIME_Relative timeout,
                   GNUNET_CLIENT_MessageHandler response_proc,
                   const union QueueContext *qc)
@@ -856,13 +865,18 @@ process_status_message (void *cls,
  *         (or rather, will already have been invoked)
  */
 struct GNUNET_DATASTORE_QueueEntry *
-GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
-                      const struct GNUNET_HashCode * key, size_t size,
-                      const void *data, enum GNUNET_BLOCK_Type type,
-                      uint32_t priority, uint32_t anonymity,
+GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h,
+                      uint32_t rid,
+                      const struct GNUNET_HashCode *key,
+                      size_t size,
+                      const void *data,
+                      enum GNUNET_BLOCK_Type type,
+                      uint32_t priority,
+                      uint32_t anonymity,
                       uint32_t replication,
                       struct GNUNET_TIME_Absolute expiration,
-                      unsigned int queue_priority, unsigned int max_queue_size,
+                      unsigned int queue_priority,
+                      unsigned int max_queue_size,
                       struct GNUNET_TIME_Relative timeout,
                       GNUNET_DATASTORE_ContinuationWithStatus cont,
                       void *cont_cls)
@@ -881,7 +895,11 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   qc.sc.cont = cont;
   qc.sc.cont_cls = cont_cls;
-  qe = make_queue_entry (h, msize, queue_priority, max_queue_size, timeout,
+  qe = make_queue_entry (h,
+                         msize,
+                         queue_priority,
+                         max_queue_size,
+                         timeout,
                          &process_status_message, &qc);
   if (qe == NULL)
   {

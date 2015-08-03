@@ -407,11 +407,22 @@ run_continuation (void *cls,
                      "DATASTORE-%s",
                      plugin_name);
     if ((crc->i == ITERATIONS) && (stored_ops > 0))
+    {
       GAUGER (gstr,
               "PUT operation duration",
               GNUNET_TIME_absolute_get_duration (start_time).rel_value_us / 1000LL /
               stored_ops,
               "ms/operation");
+      fprintf (stdout,
+               "\nPUT performance: %s for %llu operations\n",
+               GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start_time),
+                                                       GNUNET_YES),
+               stored_ops);
+      fprintf (stdout,
+               "PUT performance: %llu ms/operation\n",
+               GNUNET_TIME_absolute_get_duration (start_time).rel_value_us / 1000LL /
+               stored_ops);
+    }
     GNUNET_DATASTORE_disconnect (datastore,
                                  GNUNET_YES);
     GNUNET_free (crc);
@@ -493,7 +504,7 @@ run (void *cls,
                             0, 0, 0,
                             GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS),
                             0, 1,
-                            GNUNET_TIME_UNIT_MINUTES,
+                            TIMEOUT,
                             &run_tests, crc))
   {
     FPRINTF (stderr,

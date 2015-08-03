@@ -639,7 +639,7 @@ run (void *cls,
                             GNUNET_TIME_relative_to_absolute
                             (GNUNET_TIME_UNIT_SECONDS),
                             0, 1,
-                            GNUNET_TIME_UNIT_MINUTES,
+                            TIMEOUT,
                             &run_tests, crc))
   {
     FPRINTF (stderr,
