@@ -501,8 +501,9 @@ shutdown_op (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != churn_task)
     GNUNET_SCHEDULER_cancel (churn_task);
 
-  for (i = 0 ; i < num_peers ; i++)
-    GNUNET_TESTBED_operation_done (rps_peers[i].op);
+  for (i = 0; i < num_peers; i++)
+    if (NULL != rps_peers[i].op)
+      GNUNET_TESTBED_operation_done (rps_peers[i].op);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -544,6 +545,7 @@ info_cb (void *cb_cls,
   if (NULL == pinfo || NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got Error: %s\n", emsg);
+    GNUNET_TESTBED_operation_done (entry->op);
     return;
   }
 
@@ -554,8 +556,6 @@ info_cb (void *cb_cls,
 
   rps_peer_ids[entry->index] = *(pinfo->result.id);
   rps_peers[entry->index].peer_id = &rps_peer_ids[entry->index];
-  rps_peers[entry->index].rec_ids = NULL;
-  rps_peers[entry->index].num_rec_ids = 0;
 
   GNUNET_CONTAINER_multipeermap_put (peer_map,
       &rps_peer_ids[entry->index],
@@ -566,11 +566,8 @@ info_cb (void *cb_cls,
            entry->index,
            GNUNET_i2s_full (&rps_peer_ids[entry->index]));
 
-  if (NULL != cur_test_run.init_peer)
-    cur_test_run.init_peer (&rps_peers[entry->index]);
-
-  GNUNET_TESTBED_operation_done (entry->op);
   GNUNET_CONTAINER_DLL_remove (oplist_head, oplist_tail, entry);
+  GNUNET_TESTBED_operation_done (entry->op);
   GNUNET_free (entry);
 }
 
@@ -1312,32 +1309,41 @@ run (void *cls,
 {
   unsigned int i;
   struct OpListEntry *entry;
+  uint32_t num_mal_peers;
 
   testbed_peers = peers;
   num_peers_online = 0;
-  for (i = 0 ; i < num_peers ; i++)
+  for (i = 0; i < num_peers; i++)
   {
     entry = make_oplist_entry ();
     entry->index = i;
+    rps_peers[i].index = i;
+    if (NULL != cur_test_run.init_peer)
+      cur_test_run.init_peer (&rps_peers[i]);
     entry->op = GNUNET_TESTBED_peer_get_information (peers[i],
                                                      GNUNET_TESTBED_PIT_IDENTITY,
                                                      &info_cb,
                                                      entry);
   }
 
+  num_mal_peers = round (portion * num_peers);
   GNUNET_assert (num_peers == n_peers);
-  for (i = 0 ; i < n_peers ; i++)
+  for (i = 0; i < n_peers; i++)
   {
     rps_peers[i].index = i;
-    rps_peers[i].op =
-      GNUNET_TESTBED_service_connect (&rps_peers[i],
-                                      peers[i],
-                                      "rps",
-                                      &rps_connect_complete_cb,
-                                      &rps_peers[i],
-                                      &rps_connect_adapter,
-                                      &rps_disconnect_adapter,
-                                      &rps_peers[i]);
+    if ( (rps_peers[i].num_recv_ids < rps_peers[i].num_ids_to_request) ||
+         (i < num_mal_peers) )
+    {
+      rps_peers[i].op =
+        GNUNET_TESTBED_service_connect (&rps_peers[i],
+                                        peers[i],
+                                        "rps",
+                                        &rps_connect_complete_cb,
+                                        &rps_peers[i],
+                                        &rps_connect_adapter,
+                                        &rps_disconnect_adapter,
+                                        &rps_peers[i]);
+    }
   }
 
   if (NULL != churn_task)
