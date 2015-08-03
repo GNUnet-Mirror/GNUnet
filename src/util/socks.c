@@ -274,7 +274,6 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
     case SOCKS5_step_done: 
       GNUNET_assert (0);
   }
-  ++ih->step;
   ih->instart = b;
   /* Do not reschedule the sender unless we're done reading. 
    * I imagine this lets us avoid ever cancelling the transmit handle. */
@@ -295,7 +294,6 @@ reciever (void *cls,
           const struct sockaddr * addr,
           socklen_t addrlen, int errCode)
 {
-printf("Meow(%d)",available);
   struct GNUNET_SOCKS_Handshake * ih = cls;
   GNUNET_assert (&ih->inend[available] < &ih->inbuf[1024]);
   memcpy(ih->inend, buf, available);
@@ -314,7 +312,6 @@ printf("Meow(%d)",available);
 void
 register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want)
 {
-  printf("register_reciever on step %u for %d bytes.\n", ih->step, want );
   GNUNET_CONNECTION_receive (ih->socks5_connection,
                              want,
                              GNUNET_TIME_relative_get_minute_ (),
@@ -372,14 +369,10 @@ transmit_ready (void *cls,
       }
       return 0;
     }
-    printf("Erronious socks.c transmit_ready() callback on step %u with reason %u.\n", 
-       ih->step, reason );
     /* if (reason == 48) register_sender (ih); */
     /* GNUNET_break(0); */
     return 0;
-  } else 
-    printf("Good socks.c transmit_ready() callback on step %u with reason %u.\n", 
-       ih->step, GNUNET_SCHEDULER_get_reason () );
+  }
 
   GNUNET_assert (1024 >= size && size > 0);
   GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
@@ -390,7 +383,6 @@ transmit_ready (void *cls,
   GNUNET_assert (size >= l && l >= 0);
   memcpy(buf, b, l);
   register_reciever (ih, register_reciever_wants(ih));
-  printf("sent(%d)\n",l);
   return l;
 }
 
@@ -407,13 +399,13 @@ register_sender (struct GNUNET_SOCKS_Handshake *ih)
 {
   struct GNUNET_TIME_Relative timeout = GNUNET_TIME_UNIT_MINUTES;
 
-  GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
+  GNUNET_assert (SOCKS5_step_done > ih->step);
+  GNUNET_assert (ih->step >= 0);
   if (0 == ih->step)
     timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 3);
   unsigned char * b = ih->outstep[ih->step];
   unsigned char * e = ih->outstep[ih->step+1];
   GNUNET_assert (ih->outbuf <= b && b < e && e < &ih->outbuf[1024]);
-  printf("register_sender on step %u for %u bytes.\n", ih->step, (unsigned)(e - b) );
   ih->th = GNUNET_CONNECTION_notify_transmit_ready (ih->socks5_connection,
                                                     e - b,
                                                     timeout,
@@ -466,6 +458,8 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
   b = SOCK5_proto_string(b,pass);
 
   ih->outstep[SOCKS5_step_cmd] = b;
+
+  ih->inend = ih->instart = ih->inbuf;
 
   return ih;
 }

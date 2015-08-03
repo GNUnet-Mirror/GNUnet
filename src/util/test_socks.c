@@ -116,7 +116,6 @@ make_msg (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
 
-  printf("Hmm(%u,%u)\n",NULL==buf,GNUNET_SCHEDULER_get_reason ());
   GNUNET_assert (size >= sizeof (struct GNUNET_MessageHeader));
   msg->type = htons (MY_TYPE);
   msg->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -211,7 +210,6 @@ main (int argc, char *argv[])
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
 
-  printf("killing %d\n",pid);
   kill(pid,SIGTERM);
   return ok;
 }

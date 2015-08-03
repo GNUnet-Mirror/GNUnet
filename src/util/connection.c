@@ -740,7 +740,7 @@ try_connect_using_address (void *cls,
     connection->dns_active = NULL;
     if ((NULL == connection->ap_head) && 
         (NULL == connection->sock) &&
-        (NULL == connection->proxy_handshake))
+        (NULL == connection->proxy_handshake)) 
       connect_fail_continuation (connection);
     return;
   }
