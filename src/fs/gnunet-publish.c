@@ -30,9 +30,9 @@
 #include "gnunet_identity_service.h"
 
 /**
- * Global return value from 'main'.
+ * Global return value from #main().
  */
-static int ret = 1;
+static int ret;
 
 /**
  * Command line option 'verbose' set
@@ -125,11 +125,6 @@ static int extract_only;
 static int do_disable_creation_time;
 
 /**
- * Task run on CTRL-C to kill everything nicely.
- */
-static struct GNUNET_SCHEDULER_Task * kill_task;
-
-/**
  * Handle to the directory scanner (for recursive insertions).
  */
 static struct GNUNET_FS_DirScanner *ds;
@@ -159,7 +154,11 @@ do_stop_task (void *cls,
 {
   struct GNUNET_FS_PublishContext *p;
 
-  kill_task = NULL;
+  if (NULL != ds)
+  {
+    GNUNET_FS_directory_scan_abort (ds);
+    ds = NULL;
+  }
   if (NULL != identity)
   {
     GNUNET_IDENTITY_disconnect (identity);
@@ -171,37 +170,21 @@ do_stop_task (void *cls,
     pc = NULL;
     GNUNET_FS_publish_stop (p);
   }
+  if (NULL != ctx)
+  {
+    GNUNET_FS_stop (ctx);
+    ctx = NULL;
+  }
   if (NULL != meta)
   {
     GNUNET_CONTAINER_meta_data_destroy (meta);
     meta = NULL;
   }
-}
-
-
-/**
- * Stop the directory scanner (we had an error).
- *
- * @param cls closure
- * @param tc scheduler context
- */
-static void
-stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  kill_task = NULL;
-  if (NULL != ds)
+  if (NULL != uri)
   {
-    GNUNET_FS_directory_scan_abort (ds);
-    ds = NULL;
+    GNUNET_FS_uri_destroy (uri);
+    uri = NULL;
   }
-  if (NULL != identity)
-  {
-    GNUNET_IDENTITY_disconnect (identity);
-    identity = NULL;
-  }
-  GNUNET_FS_stop (ctx);
-  ctx = NULL;
-  ret = 1;
 }
 
 
@@ -254,14 +237,11 @@ progress_cb (void *cls,
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
-    FPRINTF (stderr, _("Error publishing: %s.\n"),
+    FPRINTF (stderr,
+             _("Error publishing: %s.\n"),
              info->value.publish.specifics.error.message);
-    if (kill_task != NULL)
-    {
-      GNUNET_SCHEDULER_cancel (kill_task);
-      kill_task = NULL;
-    }
-    kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
+    ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
     FPRINTF (stdout,
@@ -284,11 +264,9 @@ progress_cb (void *cls,
     }
     if (NULL == info->value.publish.pctx)
     {
-      if (NULL != kill_task)
-        GNUNET_SCHEDULER_cancel (kill_task);
-      kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
+      ret = 0;
+      GNUNET_SCHEDULER_shutdown ();
     }
-    ret = 0;
     break;
   case GNUNET_FS_STATUS_PUBLISH_STOPPED:
     GNUNET_break (NULL == pc);
@@ -351,9 +329,15 @@ meta_printer (void *cls,
   if (EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME == type)
     return 0;
 #if HAVE_LIBEXTRACTOR
-  FPRINTF (stdout, "\t%s - %s\n", EXTRACTOR_metatype_to_string (type), data);
+  FPRINTF (stdout,
+           "\t%s - %s\n",
+           EXTRACTOR_metatype_to_string (type),
+           data);
 #else
-  FPRINTF (stdout, "\t%d - %s\n", type, data);
+  FPRINTF (stdout,
+           "\t%d - %s\n",
+           type,
+           data);
 #endif
   return 0;
 }
@@ -444,17 +428,26 @@ publish_inspector (void *cls,
     fn = GNUNET_CONTAINER_meta_data_get_by_type (m,
                                                  EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
     fs = GNUNET_STRINGS_byte_size_fancy (length);
-    FPRINTF (stdout, _("Meta data for file `%s' (%s)\n"), fn, fs);
+    FPRINTF (stdout,
+             _("Meta data for file `%s' (%s)\n"),
+             fn,
+             fs);
     GNUNET_CONTAINER_meta_data_iterate (m, &meta_printer, NULL);
-    FPRINTF (stdout, _("Keywords for file `%s' (%s)\n"), fn, fs);
+    FPRINTF (stdout,
+             _("Keywords for file `%s' (%s)\n"),
+             fn,
+             fs);
     GNUNET_free (fn);
     GNUNET_free (fs);
     if (NULL != *uri)
       GNUNET_FS_uri_ksk_get_keywords (*uri, &keyword_printer, NULL);
-    FPRINTF (stdout, "%s",  "\n");
+    FPRINTF (stdout,
+             "%s",
+             "\n");
   }
   if (GNUNET_YES == GNUNET_FS_meta_data_test_for_directory (m))
-    GNUNET_FS_file_information_inspect (fi, &publish_inspector, fi);
+    GNUNET_FS_file_information_inspect (fi,
+                                        &publish_inspector, fi);
   return GNUNET_OK;
 }
 
@@ -475,13 +468,12 @@ uri_sks_continuation (void *cls,
 {
   if (NULL != emsg)
   {
-    FPRINTF (stderr, "%s\n", emsg);
+    FPRINTF (stderr,
+             "%s\n",
+             emsg);
     ret = 1;
   }
-  GNUNET_FS_uri_destroy (uri);
-  uri = NULL;
-  GNUNET_FS_stop (ctx);
-  ctx = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -503,21 +495,26 @@ uri_ksk_continuation (void *cls,
 
   if (NULL != emsg)
   {
-    FPRINTF (stderr, "%s\n", emsg);
+    FPRINTF (stderr,
+             "%s\n",
+             emsg);
     ret = 1;
   }
   if (NULL != namespace)
   {
     priv = GNUNET_IDENTITY_ego_get_private_key (namespace);
-    GNUNET_FS_publish_sks (ctx, priv, this_id, next_id, meta, uri, &bo,
+    GNUNET_FS_publish_sks (ctx,
+                           priv,
+                           this_id,
+                           next_id,
+                           meta,
+                           uri,
+                           &bo,
 			   GNUNET_FS_PUBLISH_OPTION_NONE,
 			   &uri_sks_continuation, NULL);
     return;
   }
-  GNUNET_FS_uri_destroy (uri);
-  uri = NULL;
-  GNUNET_FS_stop (ctx);
-  ctx = NULL;
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -592,8 +589,8 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
     FPRINTF (stderr,
              "%s",
              _("Could not publish\n"));
-    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_FS_file_information_inspect (fi, &publish_inspector, NULL);
@@ -617,8 +614,8 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
     FPRINTF (stderr,
              "%s",
              _("Could not start publishing.\n"));
-    GNUNET_SCHEDULER_shutdown ();
     ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 }
@@ -689,12 +686,8 @@ directory_scan_cb (void *cls,
     FPRINTF (stdout,
              "%s",
              _("Internal error scanning directory.\n"));
-    if (kill_task != NULL)
-    {
-      GNUNET_SCHEDULER_cancel (kill_task);
-      kill_task = NULL;
-    }
-    kill_task = GNUNET_SCHEDULER_add_now (&stop_scanner_task, NULL);
+    ret = 1;
+    GNUNET_SCHEDULER_shutdown ();
     break;
   default:
     GNUNET_assert (0);
@@ -722,6 +715,7 @@ identity_continuation (const char *args0)
     FPRINTF (stderr,
              _("Selected pseudonym `%s' unknown\n"),
              pseudonym);
+    ret = 1;
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -734,8 +728,8 @@ identity_continuation (const char *args0)
                _("Failed to parse URI: %s\n"),
                emsg);
       GNUNET_free (emsg);
-      GNUNET_SCHEDULER_shutdown ();
       ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
       return;
     }
     GNUNET_FS_publish_ksk (ctx, topKeywords,
@@ -880,10 +874,9 @@ run (void *cls,
     ret = 1;
     return;
   }
-  kill_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  &do_stop_task,
-                                  NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &do_stop_task,
+                                NULL);
   if (NULL != pseudonym)
     identity = GNUNET_IDENTITY_connect (cfg,
 					&identity_cb,
