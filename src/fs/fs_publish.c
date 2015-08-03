@@ -143,8 +143,6 @@ ds_put_cont (void *cls,
     }
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "SOME DONE!\n");
   pc->any_done = GNUNET_YES;
   GNUNET_assert (NULL == pc->upload_task);
   pc->upload_task =
