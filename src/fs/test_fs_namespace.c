@@ -118,8 +118,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
         FPRINTF (stderr, "%s",  "Wrong result for ksk search!\n");
         err = 1;
       }
-      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_ksk_search_task, NULL);
     }
     else
     {
@@ -131,11 +130,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     FPRINTF (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
     if (sks_search == event->value.search.sc)
-      GNUNET_SCHEDULER_add_continuation (&abort_sks_search_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_sks_search_task, NULL);
     else if (ksk_search == event->value.search.sc)
-      GNUNET_SCHEDULER_add_continuation (&abort_ksk_search_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_ksk_search_task, NULL);
     else
       GNUNET_break (0);
     break;

@@ -76,11 +76,10 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-list_indexed_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+list_indexed_task (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-
-  GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
 }
 
 
@@ -100,8 +99,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                    GNUNET_TIME_absolute_get_duration
                                    (start).rel_value_us) / 1024));
     if (0 == strcmp ("list_indexed-context-dir", event->value.publish.cctx))
-      GNUNET_SCHEDULER_add_continuation (&list_indexed_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&list_indexed_task, NULL);
 
     break;
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
@@ -124,8 +122,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
              event->value.publish.specifics.error.message);
     err = 1;
     if (0 == strcmp ("list_indexed-context-dir", event->value.publish.cctx))
-      GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_START:
     ret = event->value.publish.cctx;

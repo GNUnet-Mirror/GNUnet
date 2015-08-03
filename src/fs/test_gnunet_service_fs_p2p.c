@@ -61,24 +61,29 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *fancy;
 
   GNUNET_SCHEDULER_shutdown ();
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
-  {
-    del = GNUNET_TIME_absolute_get_duration (start_time);
-    if (del.rel_value_us == 0)
-      del.rel_value_us = 1;
-    fancy =
-      GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
-				      1000000LL / del.rel_value_us);
-    FPRINTF (stdout, "Download speed was %s/s\n", fancy);
-    GNUNET_free (fancy);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
-                (unsigned long long) FILESIZE);
-  }
-  else
+  if (0 ==
+      GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (start_time,
+                                                                    TIMEOUT)).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Timeout during download, shutting down with error\n");
     ok = 1;
+  }
+  else
+  {
+    del = GNUNET_TIME_absolute_get_duration (start_time);
+    if (0 == del.rel_value_us)
+      del.rel_value_us = 1;
+    fancy =
+      GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
+				      1000000LL / del.rel_value_us);
+    FPRINTF (stdout,
+             "Download speed was %s/s\n",
+             fancy);
+    GNUNET_free (fancy);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Finished download, shutting down\n",
+                (unsigned long long) FILESIZE);
   }
   if (NULL != fn)
   {

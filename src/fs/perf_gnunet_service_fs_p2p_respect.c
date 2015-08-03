@@ -287,7 +287,9 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char *fancy;
   struct StatMaster *sm;
 
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_PREREQ_DONE))
+  if (0 ==
+      GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (start_time,
+                                                                    TIMEOUT)).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout during download for type `%s', shutting down with error\n",
@@ -362,7 +364,7 @@ do_downloads (void *cls, const struct GNUNET_FS_Uri *u2,
 
 
 static void
-do_publish2 (void *cls,	
+do_publish2 (void *cls,
 	     const struct GNUNET_FS_Uri *u1,
 	     const char *fn)
 {

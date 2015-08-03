@@ -87,8 +87,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                    GNUNET_TIME_absolute_get_duration
                                    (start).rel_value_us) / 1024));
     if (0 == strcmp ("publish-context-dir", event->value.publish.cctx))
-      GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
     ret = event->value.publish.cctx;
@@ -113,8 +112,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     {
       FPRINTF (stderr, "Scheduling abort task for error on `%s'\n",
                (const char *) event->value.publish.cctx);
-      GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     }
     break;
   case GNUNET_FS_STATUS_PUBLISH_START:

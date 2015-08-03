@@ -108,8 +108,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
                                   (1 +
                                    GNUNET_TIME_absolute_get_duration
                                    (start).rel_value_us) / 1024));
-    GNUNET_SCHEDULER_add_continuation (&abort_unindex_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_unindex_task, NULL);
     break;
   case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
     GNUNET_assert (unindex == event->value.unindex.uc);
@@ -125,14 +124,12 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     FPRINTF (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   case GNUNET_FS_STATUS_UNINDEX_ERROR:
     FPRINTF (stderr, "Error unindexing file: %s\n",
              event->value.unindex.specifics.error.message);
-    GNUNET_SCHEDULER_add_continuation (&abort_unindex_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_unindex_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_START:
     GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
@@ -157,8 +154,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     break;
   case GNUNET_FS_STATUS_UNINDEX_STOPPED:
     GNUNET_assert (unindex == event->value.unindex.uc);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   default:
     printf ("Unexpected event: %d\n", event->status);

@@ -101,8 +101,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     GNUNET_SCHEDULER_shutdown ();
     break;
   case GNUNET_FS_STATUS_UNINDEX_STOPPED:
-    GNUNET_SCHEDULER_add_continuation (&cleanup_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
     break;
   default:
     FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);

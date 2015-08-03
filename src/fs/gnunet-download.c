@@ -199,8 +199,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_STOPPED:
     if (info->value.download.dc == dc)
-      GNUNET_SCHEDULER_add_continuation (&cleanup_task, NULL,
-                                         GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+      GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:

@@ -138,7 +138,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
 	  char *emsg = NULL;
 	  kuri = GNUNET_FS_uri_ksk_create ("+down_foo +down_bar", &emsg);
       GNUNET_assert (kuri != NULL);
-		
+
       start = GNUNET_TIME_absolute_get ();
       search =
           GNUNET_FS_search_start (fs, kuri, 1, GNUNET_FS_SEARCH_OPTION_NONE,
@@ -150,21 +150,18 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
   case GNUNET_FS_STATUS_SEARCH_RESULT:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Search complete.\n");
-    GNUNET_SCHEDULER_add_continuation (&abort_search_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_search_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_ERROR:
     FPRINTF (stderr, "Error publishing file: %s\n",
              event->value.publish.specifics.error.message);
     GNUNET_break (0);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   case GNUNET_FS_STATUS_SEARCH_ERROR:
     FPRINTF (stderr, "Error searching file: %s\n",
              event->value.search.specifics.error.message);
-    GNUNET_SCHEDULER_add_continuation (&abort_search_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_search_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_START:
     GNUNET_assert (0 == strcmp ("publish-context", event->value.publish.cctx));
@@ -189,8 +186,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event)
     break;
   case GNUNET_FS_STATUS_SEARCH_STOPPED:
     GNUNET_assert (search == event->value.search.sc);
-    GNUNET_SCHEDULER_add_continuation (&abort_publish_task, NULL,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
     break;
   default:
     FPRINTF (stderr, "Unexpected event: %d\n", event->status);
@@ -220,7 +216,7 @@ run (void *cls,
   fs = GNUNET_FS_start (cfg, "test-fs-search", &progress_cb, NULL,
                         GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   GNUNET_assert (NULL != fs);
-  
+
   processed_files = 0;
   for(j = 0; j < NUM_FILES; j++){
    buf = GNUNET_malloc (FILESIZE);
@@ -244,8 +240,8 @@ run (void *cls,
                                 GNUNET_FS_PUBLISH_OPTION_NONE);
    GNUNET_assert (publish != NULL);
   }
-  
-  
+
+
   timeout_task = GNUNET_SCHEDULER_add_delayed (LIFETIME,
 					       &abort_error, NULL);
 }

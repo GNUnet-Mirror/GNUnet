@@ -42,10 +42,10 @@
  * @param fn name of the file on disk to be removed upon
  *           completion, or NULL for inserted files (also NULL on error)
  */
-typedef void (*GNUNET_FS_TEST_UriContinuation) (void *cls,
-                                                const struct GNUNET_FS_Uri *
-                                                uri,
-						const char *fn);
+typedef void
+(*GNUNET_FS_TEST_UriContinuation) (void *cls,
+                                   const struct GNUNET_FS_Uri *uri,
+                                   const char *fn);
 
 
 /**
@@ -55,20 +55,24 @@ typedef void (*GNUNET_FS_TEST_UriContinuation) (void *cls,
  * @param timeout if this operation cannot be completed within the
  *                given period, call the continuation with an error code
  * @param anonymity option for publication
- * @param do_index GNUNET_YES for index, GNUNET_NO for insertion,
- *                GNUNET_SYSERR for simulation
+ * @param do_index #GNUNET_YES for index, #GNUNET_NO for insertion,
+ *                #GNUNET_SYSERR for simulation
  * @param size size of the file to publish
  * @param seed seed to use for file generation
  * @param verbose how verbose to be in reporting
  * @param cont function to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  */
 void
 GNUNET_FS_TEST_publish (struct GNUNET_TESTBED_Peer *peer,
-                        struct GNUNET_TIME_Relative timeout, uint32_t anonymity,
-                        int do_index, uint64_t size, uint32_t seed,
+                        struct GNUNET_TIME_Relative timeout,
+                        uint32_t anonymity,
+                        int do_index,
+                        uint64_t size,
+                        uint32_t seed,
                         unsigned int verbose,
-                        GNUNET_FS_TEST_UriContinuation cont, void *cont_cls);
+                        GNUNET_FS_TEST_UriContinuation cont,
+                        void *cont_cls);
 
 
 /**
@@ -82,14 +86,17 @@ GNUNET_FS_TEST_publish (struct GNUNET_TESTBED_Peer *peer,
  * @param uri URI of file to download (CHK/LOC only)
  * @param verbose how verbose to be in reporting
  * @param cont function to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  */
 void
 GNUNET_FS_TEST_download (struct GNUNET_TESTBED_Peer *peer,
                          struct GNUNET_TIME_Relative timeout,
-                         uint32_t anonymity, uint32_t seed,
-                         const struct GNUNET_FS_Uri *uri, unsigned int verbose,
-                         GNUNET_SCHEDULER_TaskCallback cont, void *cont_cls);
+                         uint32_t anonymity,
+                         uint32_t seed,
+                         const struct GNUNET_FS_Uri *uri,
+                         unsigned int verbose,
+                         GNUNET_SCHEDULER_TaskCallback cont,
+                         void *cont_cls);
 
 
 

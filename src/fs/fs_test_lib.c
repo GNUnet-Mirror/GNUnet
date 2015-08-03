@@ -245,8 +245,8 @@ publish_progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     po->publish_timeout_task = NULL;
     po->publish_uri =
         GNUNET_FS_uri_dup (info->value.publish.specifics.completed.chk_uri);
-    GNUNET_SCHEDULER_add_continuation (&report_uri, po,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&report_uri,
+                              po);
     break;
   case GNUNET_FS_STATUS_PUBLISH_PROGRESS:
     if (po->verbose)
@@ -490,10 +490,10 @@ download_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout while trying to download file\n");
   dop->download_timeout_task = NULL;
-  GNUNET_FS_download_stop (dop->download_context, GNUNET_YES);
-  GNUNET_SCHEDULER_add_continuation (dop->download_cont,
-                                     dop->download_cont_cls,
-                                     GNUNET_SCHEDULER_REASON_TIMEOUT);
+  GNUNET_FS_download_stop (dop->download_context,
+                           GNUNET_YES);
+  GNUNET_SCHEDULER_add_now (dop->download_cont,
+                            dop->download_cont_cls);
   GNUNET_TESTBED_operation_done (dop->fs_op);
   GNUNET_FS_uri_destroy (dop->uri);
   GNUNET_free (dop);
@@ -512,10 +512,10 @@ report_success (void *cls,
 {
   struct TestDownloadOperation *dop = cls;
 
-  GNUNET_FS_download_stop (dop->download_context, GNUNET_YES);
-  GNUNET_SCHEDULER_add_continuation (dop->download_cont,
-                                     dop->download_cont_cls,
-                                     GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+  GNUNET_FS_download_stop (dop->download_context,
+                           GNUNET_YES);
+  GNUNET_SCHEDULER_add_now (dop->download_cont,
+                            dop->download_cont_cls);
   GNUNET_TESTBED_operation_done (dop->fs_op);
   GNUNET_FS_uri_destroy (dop->uri);
   GNUNET_free (dop);
@@ -529,7 +529,8 @@ report_success (void *cls,
  * @param info information about the event
  */
 static void *
-download_progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
+download_progress_cb (void *cls,
+                      const struct GNUNET_FS_ProgressInfo *info)
 {
   struct TestDownloadOperation *dop = cls;
 
@@ -537,15 +538,15 @@ download_progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   {
   case GNUNET_FS_STATUS_DOWNLOAD_PROGRESS:
     if (dop->verbose)
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Download at %llu/%llu bytes\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Download at %llu/%llu bytes\n",
                   (unsigned long long) info->value.download.completed,
                   (unsigned long long) info->value.download.size);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_COMPLETED:
     GNUNET_SCHEDULER_cancel (dop->download_timeout_task);
     dop->download_timeout_task = NULL;
-    GNUNET_SCHEDULER_add_continuation (&report_success, dop,
-                                       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&report_success, dop);
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_ACTIVE:
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:

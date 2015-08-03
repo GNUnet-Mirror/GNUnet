@@ -51,6 +51,8 @@ static struct GNUNET_TIME_Absolute start_time;
 
 static const char *progname;
 
+static struct GNUNET_TIME_Absolute start_time;
+
 
 /**
  * Master context for 'stat_run'.
@@ -105,8 +107,8 @@ static struct StatValues stats[] = {
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
 print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -114,8 +116,12 @@ print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
 {
   struct StatMaster *sm = cls;
 
-  FPRINTF (stderr, "Peer %2u: %12s/%50s = %12llu\n", sm->daemon, subsystem,
-           name, (unsigned long long) value);
+  FPRINTF (stderr,
+           "Peer %2u: %12s/%50s = %12llu\n",
+           sm->daemon,
+           subsystem,
+           name,
+           (unsigned long long) value);
   return GNUNET_OK;
 }
 
@@ -232,7 +238,8 @@ stat_run (void *cls,
 
 
 static void
-do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_report (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   char *fn = cls;
   struct GNUNET_TIME_Relative del;
@@ -244,7 +251,9 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_DISK_directory_remove (fn);
     GNUNET_free (fn);
   }
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if (0 ==
+      GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (start_time,
+                                                                    TIMEOUT)).rel_value_us)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout during download, shutting down with error\n");
@@ -297,7 +306,13 @@ do_download (void *cls,
     anonymity = 0;
   else
     anonymity = 1;
-  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, anonymity, SEED, uri, VERBOSE,
+  start_time = GNUNET_TIME_absolute_get ();
+  GNUNET_FS_TEST_download (daemons[0],
+                           TIMEOUT,
+                           anonymity,
+                           SEED,
+                           uri,
+                           VERBOSE,
                            &do_report,
 			   (NULL == fn) ? NULL : GNUNET_strdup (fn));
 }

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2010, 2012 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2010, 2012, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -64,13 +64,22 @@ struct DownloadContext
 
 
 static void
-do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop (void *cls,
+         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative del;
   char *fancy;
 
   GNUNET_SCHEDULER_shutdown ();
-  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT))
+  if (0 ==
+      GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_add (start_time,
+                                                                    TIMEOUT)).rel_value_us)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Timeout during download, shutting down with error\n");
+    ok = 1;
+  }
+  else
   {
     del = GNUNET_TIME_absolute_get_duration (start_time);
     if (del.rel_value_us == 0)
@@ -78,16 +87,13 @@ do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     fancy =
         GNUNET_STRINGS_byte_size_fancy (((unsigned long long) FILESIZE) *
                                         1000000LL / del.rel_value_us);
-    FPRINTF (stdout, "Download speed was %s/s\n", fancy);
+    FPRINTF (stdout,
+             "Download speed was %s/s\n",
+             fancy);
     GNUNET_free (fancy);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
-                (unsigned long long) FILESIZE);
-  }
-  else
-  {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout during download, shutting down with error\n");
-    ok = 1;
+                "Finished download, shutting down\n",
+                (unsigned long long) FILESIZE);
   }
 }
 
@@ -110,34 +116,45 @@ do_download (void *cls,
   if (NULL != emsg)
   {
     GNUNET_SCHEDULER_shutdown ();
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to stop source daemon: %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to stop source daemon: %s\n",
                 emsg);
     GNUNET_FS_uri_destroy (uri);
     ok = 1;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Downloading %llu bytes\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Downloading %llu bytes\n",
               (unsigned long long) FILESIZE);
   start_time = GNUNET_TIME_absolute_get ();
-  GNUNET_FS_TEST_download (daemons[0], TIMEOUT, 1, SEED, uri, VERBOSE, &do_stop,
+  GNUNET_FS_TEST_download (daemons[0],
+                           TIMEOUT,
+                           1,
+                           SEED,
+                           uri,
+                           VERBOSE,
+                           &do_stop,
                            NULL);
   GNUNET_FS_uri_destroy (uri);
 }
 
 
 static void
-stop_source_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stop_source_peer (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct DownloadContext *dc = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping source peer\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stopping source peer\n");
   op = GNUNET_TESTBED_peer_stop (NULL, daemons[1], &do_download, dc);
   GNUNET_assert (NULL != op);
 }
 
 
 static void
-do_wait (void *cls, const struct GNUNET_FS_Uri *uri,
+do_wait (void *cls,
+         const struct GNUNET_FS_Uri *uri,
 	 const char *fn)
 {
   struct DownloadContext *dc;
@@ -150,7 +167,8 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri,
     ok = 1;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting to allow content to migrate\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Waiting to allow content to migrate\n");
   dc = GNUNET_new (struct DownloadContext);
   dc->uri = GNUNET_FS_uri_dup (uri);
   if (NULL != fn)
@@ -172,7 +190,8 @@ do_publish (void *cls,
   GNUNET_assert (2 == num_peers);
   for (i=0;i<num_peers;i++)
     daemons[i] = peers[i];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Publishing %llu bytes\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Publishing %llu bytes\n",
               (unsigned long long) FILESIZE);
   GNUNET_FS_TEST_publish (daemons[1], TIMEOUT, 1, GNUNET_NO, FILESIZE, SEED,
                           VERBOSE, &do_wait, NULL);
@@ -180,7 +199,8 @@ do_publish (void *cls,
 
 
 int
-main (int argc, char *argv[])
+main (int argc,
+      char *argv[])
 {
   (void) GNUNET_TESTBED_test_run ("test-gnunet-service-fs-migration",
                                   "fs_test_lib_data.conf",
