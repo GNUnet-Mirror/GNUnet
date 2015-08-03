@@ -51,6 +51,16 @@ struct GNUNET_RPS_Handle
    * The message queue to the client.
    */
   struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Array of Request_Handles.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap32 *req_handlers;
+
+  /**
+   * The id of the last request.
+   */
+  uint32_t current_request_id;
 };
 
 
@@ -65,6 +75,11 @@ struct GNUNET_RPS_Request_Handle
   struct GNUNET_RPS_Handle *rps_handle;
 
   /**
+   * The id of the request.
+   */
+  uint32_t id;
+
+  /**
    * The callback to be called when we receive an answer.
    */
   GNUNET_RPS_NotifyReadyCB ready_cb;
@@ -73,23 +88,7 @@ struct GNUNET_RPS_Request_Handle
    * The closure for the callback.
    */
   void *ready_cb_cls;
-
-  /**
-   * The id of the request.
-   */
-  uint32_t id;
 };
-
-
-/**
- * Array of Request_Handles.
- */
-struct GNUNET_RPS_Request_Handle *req_handlers = NULL;
-
-/**
- * Current length of req_handlers.
- */
-unsigned int req_handlers_size = 0;
 
 
 /**
@@ -127,20 +126,27 @@ struct cb_cls_pack
 handle_reply (void *cls,
               const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_RPS_Handle *h = (struct GNUNET_RPS_Handle *) cls;
   struct GNUNET_RPS_CS_ReplyMessage *msg;
   struct GNUNET_PeerIdentity *peers;
   struct GNUNET_RPS_Request_Handle *rh;
+  uint32_t id;
 
   /* Give the peers back */
   msg = (struct GNUNET_RPS_CS_ReplyMessage *) message;
+  id = ntohl (msg->id);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Service replied with %" PRIu32 " peers for id %" PRIu32 "\n",
        ntohl (msg->num_peers),
-       ntohl (msg->id));
+       id);
 
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
-  rh = &req_handlers[ntohl (msg->id)];
+  GNUNET_assert (GNUNET_YES ==
+      GNUNET_CONTAINER_multihashmap32_contains (h->req_handlers, id));
+  rh = GNUNET_CONTAINER_multihashmap32_get (h->req_handlers, id);
+  GNUNET_assert (NULL != rh);
+  GNUNET_CONTAINER_multihashmap32_remove_all (h->req_handlers, id);
   rh->ready_cb((rh)->ready_cb_cls, ntohl (msg->num_peers), peers);
 }
 
@@ -211,6 +217,7 @@ GNUNET_RPS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h = GNUNET_new(struct GNUNET_RPS_Handle);
   h->cfg = GNUNET_CONFIGURATION_dup (cfg);
   reconnect (h);
+  h->req_handlers = GNUNET_CONTAINER_multihashmap32_create (4);
   return h;
 }
 
@@ -237,8 +244,7 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
   // assert func != NULL
   rh = GNUNET_new (struct GNUNET_RPS_Request_Handle);
   rh->rps_handle = rps_handle;
-  GNUNET_assert (req_handlers_size < UINT32_MAX);
-  rh->id = (uint32_t) req_handlers_size;
+  rh->id = rps_handle->current_request_id++;
   rh->ready_cb = ready_cb;
   rh->ready_cb_cls = cls;
 
@@ -247,8 +253,8 @@ GNUNET_RPS_request_peers (struct GNUNET_RPS_Handle *rps_handle,
        num_req_peers,
        rh->id);
 
-  GNUNET_array_append (req_handlers, req_handlers_size, *rh);
-  //memcpy(&req_handlers[req_handlers_size-1], rh, sizeof(struct GNUNET_RPS_Request_Handle));
+  GNUNET_CONTAINER_multihashmap32_put (rps_handle->req_handlers, rh->id, rh,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST);
   msg->num_peers = htonl (num_req_peers);
@@ -420,6 +426,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   void
 GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
 {
+  struct GNUNET_RPS_Handle *h;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_RPS_CS_RequestCancelMessage*msg;
 
@@ -427,6 +434,10 @@ GNUNET_RPS_request_cancel (struct GNUNET_RPS_Request_Handle *rh)
        "Cancelling request with id %" PRIu32 "\n",
        rh->id);
 
+  h = rh->rps_handle;
+  GNUNET_assert (GNUNET_CONTAINER_multihashmap32_contains (h->req_handlers,
+        rh->id));
+  GNUNET_CONTAINER_multihashmap32_remove_all (h->req_handlers, rh->id);
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_RPS_CS_REQUEST_CANCEL);
   msg->id = htonl (rh->id);
   GNUNET_MQ_send (rh->rps_handle->mq, ev);
@@ -445,6 +456,10 @@ GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h)
     GNUNET_CLIENT_disconnect (h->conn);
   GNUNET_CONFIGURATION_destroy (h->cfg);
   GNUNET_MQ_destroy (h->mq);
+  if (0 < GNUNET_CONTAINER_multihashmap32_size (h->req_handlers))
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Still waiting for requests\n");
+  GNUNET_CONTAINER_multihashmap32_destroy (h->req_handlers);
   GNUNET_free (h);
 }
 
