@@ -347,6 +347,11 @@ test_client_nc_SOURCES = \
 test_client_nc_LDADD = \
  libgnunetutil.la
 
+test_socks_nc_SOURCES = \
+ test_socks.c
+test_socks_nc_LDADD = \
+ libgnunetutil.la
+
 test_common_allocation_SOURCES = \
  test_common_allocation.c
 test_common_allocation_LDADD = \
