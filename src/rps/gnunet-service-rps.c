@@ -1567,6 +1567,8 @@ handle_peer_push (void *cls,
   { /* Try to maximise representation */
     if (NULL == att_peer_set)
       att_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
+    if (NULL == mal_peer_set)
+      mal_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
     if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
                                                              peer))
     {
