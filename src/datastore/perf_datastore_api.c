@@ -46,7 +46,7 @@
 /**
  * Target datastore size (in bytes).
  */
-#define MAX_SIZE 1024LL * 1024 * 4
+#define MAX_SIZE (1024LL * 1024 * 4)
 
 /**
  * Report progress outside of major reports? Should probably be #GNUNET_YES if
@@ -65,6 +65,13 @@
  * 10 iterations.  Abort with CTRL-C.
  */
 #define ITERATIONS 8
+
+/**
+ * Total number of iterations to do to go beyond the quota.
+ * The quota is set to 10 MB or 2.5 times #MAX_SIZE,
+ * so we got 16 times #MAX_SIZE to be sure to hit it a LOT.
+ */
+#define QUOTA_PUTS (MAX_SIZE / 32 / 1024 * 16LL)
 
 
 /**
@@ -123,6 +130,12 @@ enum RunPhase
    * We are deleting entries from the datastore.
    */
   RP_CUT,
+
+  /**
+   * We are putting as much as we can to see how the database performs
+   * when it reaches the quota and has to auto-delete (see #3903).
+   */
+  RP_PUT_QUOTA,
 
   /**
    * We are generating a report.
@@ -199,6 +212,9 @@ check_success (void *cls,
 {
   struct CpsRunContext *crc = cls;
 
+#if REPORT_ID
+  FPRINTF (stderr, "%s",  (GNUNET_OK == success) ? "I" : "i");
+#endif
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -209,21 +225,32 @@ check_success (void *cls,
                               crc);
     return;
   }
-#if REPORT_ID
-  FPRINTF (stderr, "%s",  "I");
-#endif
   stored_bytes += crc->size;
   stored_ops++;
   stored_entries++;
   crc->j++;
-  if (crc->j >= PUT_10)
+  switch (crc->phase)
   {
-    crc->j = 0;
-    crc->i++;
-    if (crc->i == ITERATIONS)
+  case RP_PUT:
+    if (crc->j >= PUT_10)
+    {
+      crc->j = 0;
+      crc->i++;
+      if (crc->i == ITERATIONS)
+        crc->phase = RP_PUT_QUOTA;
+      else
+        crc->phase = RP_CUT;
+    }
+    break;
+  case RP_PUT_QUOTA:
+    if (crc->j >= QUOTA_PUTS)
+    {
+      crc->j = 0;
       crc->phase = RP_DONE;
-    else
-      crc->phase = RP_CUT;
+    }
+    break;
+  default:
+    GNUNET_assert (0);
   }
   GNUNET_SCHEDULER_add_now (&run_continuation,
                             crc);
@@ -329,6 +356,8 @@ run_continuation (void *cls,
   static char data[65536];
   char gstr[128];
 
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    crc->phase = RP_ERROR;
   ok = (int) crc->phase;
   switch (crc->phase)
   {
@@ -401,6 +430,52 @@ run_continuation (void *cls,
     GNUNET_SCHEDULER_add_now (&run_continuation,
                               crc);
     break;
+  case RP_PUT_QUOTA:
+    memset (&key,
+            256 - crc->i,
+            sizeof (struct GNUNET_HashCode));
+    /* most content is 32k */
+    size = 32 * 1024;
+    if (0 ==
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                  16)) /* but some of it is less! */
+      size = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                       32 * 1024);
+    crc->size = size = size - (size & 7);       /* always multiple of 8 */
+    GNUNET_CRYPTO_hash (&key,
+                        sizeof (struct GNUNET_HashCode),
+                        &key);
+    memset (data,
+            (int) crc->j,
+            size);
+    if (crc->j > 255)
+      memset (data,
+              (int) (crc->j - 255),
+              size / 2);
+    data[0] = crc->i;
+    GNUNET_assert (NULL !=
+                   GNUNET_DATASTORE_put (datastore,
+                                         0, /* reservation ID */
+                                         &key,
+                                         size,
+                                         data,
+                                         crc->j + 1, /* type */
+                                         GNUNET_CRYPTO_random_u32
+                                         (GNUNET_CRYPTO_QUALITY_WEAK,
+                                          100), /* priority */
+                                         crc->j, /* anonymity */
+                                         0, /* replication */
+                                         GNUNET_TIME_relative_to_absolute
+                                         (GNUNET_TIME_relative_multiply
+                                          (GNUNET_TIME_UNIT_SECONDS,
+                                           GNUNET_CRYPTO_random_u32
+                                           (GNUNET_CRYPTO_QUALITY_WEAK, 1000))),
+                                         1,
+                                         1,
+                                         TIMEOUT,
+                                         &check_success, crc));
+    break;
+
   case RP_DONE:
     GNUNET_snprintf (gstr,
                      sizeof (gstr),
