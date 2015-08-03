@@ -183,10 +183,9 @@ main (int argc, char *argv[])
   if (pid < 0)
     abort();
   if (pid == 0) {
-    return 0;
-    execlp("ssh","ssh","-D",socksport,"127.0.0.1","-N",(char*)NULL);
-    perror("execlp(\"ssh\",\"ssh\",\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
-    printf(""
+    execlp ("ssh","ssh","-D",socksport,"127.0.0.1","-N",(char*)NULL);
+    perror ("execlp(\"ssh\",\"ssh\",\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
+    printf (""
 "Please ensure you have ssh installed and have sshd installed and running :\n"
 "\tsudo apt-get install openssh-client openssh-server\n"
 "If you run Tor as a network proxy then Tor might prevent ssh from connecting\n"
@@ -196,7 +195,7 @@ main (int argc, char *argv[])
 "\t  CheckHostIP no\n"
 "\t  Protocol 2\n"
 "\t  ProxyCommand nc 127.0.0.1 22\n");
-    kill(getppid(), SIGTERM);
+    kill (getppid(), SIGTERM);
     return 1;
   }
   sleep(1);
@@ -210,7 +209,7 @@ main (int argc, char *argv[])
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
 
-  kill(pid,SIGTERM);
+  kill (pid,SIGTERM);
   return ok;
 }
 

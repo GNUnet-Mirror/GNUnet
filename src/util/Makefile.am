@@ -257,6 +257,7 @@ endif
 check_PROGRAMS = \
  test_bio \
  test_client.nc \
+ test_socks.nc \
  test_common_allocation \
  test_common_endian \
  test_common_logging \
