@@ -518,8 +518,7 @@ reconnect_later (struct GNUNET_STATISTICS_Handle *h)
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		  _("Could not save some persistent statistics\n"));
     h->do_destroy = GNUNET_NO;
-    GNUNET_SCHEDULER_add_continuation (&do_destroy, h,
-				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&do_destroy, h);
     return;
   }
   h->backoff_task =
@@ -674,8 +673,7 @@ receive_stats (void *cls,
       return;
     }
     h->do_destroy = GNUNET_NO;
-    GNUNET_SCHEDULER_add_continuation (&destroy_task, h,
-				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&destroy_task, h);
     break;
   case GNUNET_MESSAGE_TYPE_STATISTICS_END:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1089,8 +1087,7 @@ transmit_test_on_shutdown (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Failed to receive acknowledgement from statistics service, some statistics might have been lost!\n"));
     h->do_destroy = GNUNET_NO;
-    GNUNET_SCHEDULER_add_continuation (&destroy_task, h,
-				       GNUNET_SCHEDULER_REASON_PREREQ_DONE);
+    GNUNET_SCHEDULER_add_now (&destroy_task, h);
     return 0;
   }
   hdr.type = htons (GNUNET_MESSAGE_TYPE_TEST);
