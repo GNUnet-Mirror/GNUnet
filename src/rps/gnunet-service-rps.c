@@ -1133,7 +1133,7 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
   if (NULL == peer_map)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Trying to add peers to an empty peermap.\n");
+         "Trying to add peers to non-existing peermap.\n");
     return;
   }
 
@@ -1567,8 +1567,6 @@ handle_peer_push (void *cls,
   { /* Try to maximise representation */
     if (NULL == att_peer_set)
       att_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
-    if (NULL == mal_peer_set)
-      mal_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
     if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (att_peer_set,
                                                              peer))
     {
@@ -1995,6 +1993,8 @@ handle_client_act_malicious (void *cls,
   /* Do actual logic */
   peers = (struct GNUNET_PeerIdentity *) &msg[1];
   mal_type = ntohl (in_msg->type);
+  if (NULL == mal_peer_set)
+    mal_peer_set = GNUNET_CONTAINER_multipeermap_create (1, GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Now acting malicious type %" PRIu32 ", got %" PRIu32 " peers.\n",
