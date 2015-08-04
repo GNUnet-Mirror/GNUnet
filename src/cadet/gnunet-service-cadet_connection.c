@@ -251,6 +251,11 @@ struct CadetConnection
    * Counter to do exponential backoff when creating a connection (max 64).
    */
   unsigned short create_retry;
+
+  /**
+   * Task to check if connection has duplicates.
+   */
+  struct GNUNET_SCHEDULER_Task *check_duplicates_task;
 };
 
 
@@ -1622,6 +1627,143 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
 
 
 /**
+ * Iterator to compare each connection's path with the path of a new connection.
+ *
+ * If the connection conincides, the c member of path is set to the connection
+ * and the destroy flag of the connection is set.
+ *
+ * @param cls Closure (new path).
+ * @param c Connection in the tunnel to check.
+ */
+static void
+check_path (void *cls, struct CadetConnection *c)
+{
+  struct CadetConnection *new_conn = cls;
+  struct CadetPeerPath *path = new_conn->path;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  checking %s (%p), length %u\n",
+       GCC_2s (c), c, c->path->length);
+
+  if (c != new_conn
+      && c->destroy == GNUNET_NO
+      && c->state != CADET_CONNECTION_BROKEN
+      && c->state != CADET_CONNECTION_DESTROYED
+      && path_equivalent (path, c->path))
+  {
+    new_conn->destroy = GNUNET_YES;
+    new_conn->path->c = c;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MATCH!\n");
+  }
+}
+
+
+/**
+ * Finds out if this path is already being used by an existing connection.
+ *
+ * Checks the tunnel towards the destination to see if it contains
+ * any connection with the same path.
+ *
+ * If the existing connection is ready, it is kept.
+ * Otherwise if the sender has a smaller ID that ours, we accept it (and
+ * the peer will eventually reject our attempt).
+ *
+ * @param path Path to check.
+ * @return #GNUNET_YES if the tunnel has a connection with the same path,
+ *         #GNUNET_NO otherwise.
+ */
+static int
+does_connection_exist (struct CadetConnection *conn)
+{
+  struct CadetPeer *p;
+  struct CadetTunnel *t;
+  struct CadetConnection *c;
+
+  p = GCP_get_short (conn->path->peers[0], GNUNET_NO);
+  if (NULL == p)
+    return GNUNET_NO;
+  t = GCP_get_tunnel (p);
+  if (NULL == t)
+    return GNUNET_NO;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking for duplicates\n");
+
+  GCT_iterate_connections (t, &check_path, conn);
+
+  if (GNUNET_YES == conn->destroy)
+  {
+    c = conn->path->c;
+    conn->destroy = GNUNET_NO;
+    conn->path->c = conn;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " found duplicate of %s\n", GCC_2s (conn));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate: %s\n", GCC_2s (c));
+    GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
+    if (CADET_CONNECTION_READY == c->state)
+    {
+      /* The other peer confirmed a live connection with this path,
+       * why is it trying to duplicate it. */
+      GNUNET_STATISTICS_update (stats, "# duplicate connections", 1, GNUNET_NO);
+      return GNUNET_YES;
+    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate not valid, connection unique\n");
+    return GNUNET_NO;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " %s has no duplicates\n", GCC_2s (conn));
+    return GNUNET_NO;
+  }
+}
+
+
+/**
+ * @brief Check if the tunnel this connection belongs to has any other
+ * connection with the same path, and destroy one if so.
+ *
+ * @param cls Closure (connection to check).
+ * @param tc Task context.
+ */
+static void
+check_duplicates (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CadetConnection *c = cls;
+
+  c->check_duplicates_task = NULL;
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  if (GNUNET_YES == does_connection_exist (c))
+  {
+    GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
+    send_broken (c, &my_full_id, &my_full_id, GCC_is_origin (c, GNUNET_YES));
+    GCC_destroy (c);
+  }
+}
+
+
+
+/**
+ * Wait for enough time to let any dead connections time out and check for
+ * any remaining duplicates.
+ *
+ * @param c Connection that is a potential duplicate.
+ */
+static void
+schedule_check_duplicates (struct CadetConnection *c)
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (NULL != c->check_duplicates_task)
+    return;
+
+  delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 5);
+  c->check_duplicates_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                           &check_duplicates,
+                                                           c);
+}
+
+
+
+/**
  * Add the connection to the list of both neighbors.
  *
  * @param c Connection.
@@ -1723,110 +1865,6 @@ add_to_peer (struct CadetConnection *c,
   GCP_add_tunnel (peer);
   c->t = GCP_get_tunnel (peer);
   GCT_add_connection (c->t, c);
-}
-
-
-/**
- * Iterator to compare each connection's path with the path of a new connection.
- *
- * If the connection conincides, the c member of path is set to the connection
- * and the destroy flag of the connection is set.
- *
- * @param cls Closure (new path).
- * @param c Connection in the tunnel to check.
- */
-static void
-check_path (void *cls, struct CadetConnection *c)
-{
-  struct CadetConnection *new_conn = cls;
-  struct CadetPeerPath *path = new_conn->path;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  checking %s (%p), length %u\n",
-       GCC_2s (c), c, c->path->length);
-
-  if (c != new_conn
-      && c->destroy == GNUNET_NO
-      && c->state != CADET_CONNECTION_BROKEN
-      && c->state != CADET_CONNECTION_DESTROYED
-      && path_equivalent (path, c->path))
-  {
-    new_conn->destroy = GNUNET_YES;
-    new_conn->path->c = c;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MATCH!\n");
-  }
-}
-
-
-/**
- * Finds out if this path is already being used by and existing connection.
- *
- * Checks the tunnel towards the first peer in the path to see if it contains
- * any connection with the same path.
- *
- * If the existing connection is ready, it is kept.
- * Otherwise if the sender has a smaller ID that ours, we accept it (and
- * the peer will eventually reject our attempt).
- *
- * @param path Path to check.
- * @return #GNUNET_YES if the tunnel has a connection with the same path,
- *         #GNUNET_NO otherwise.
- */
-static int
-does_connection_exist (struct CadetConnection *conn)
-{
-  struct CadetPeer *p;
-  struct CadetTunnel *t;
-  struct CadetConnection *c;
-
-  p = GCP_get_short (conn->path->peers[0], GNUNET_NO);
-  if (NULL == p)
-    return GNUNET_NO;
-  t = GCP_get_tunnel (p);
-  if (NULL == t)
-    return GNUNET_NO;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Checking for duplicates\n");
-
-  GCT_iterate_connections (t, &check_path, conn);
-
-  if (GNUNET_YES == conn->destroy)
-  {
-    c = conn->path->c;
-    conn->destroy = GNUNET_NO;
-    conn->path->c = conn;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " found duplicate of %s\n", GCC_2s (conn));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate: %s\n", GCC_2s (c));
-    GCC_debug (c, GNUNET_ERROR_TYPE_DEBUG);
-    if (CADET_CONNECTION_READY == c->state)
-    {
-      /* The other peer confirmed a live connection with this path,
-       * why is it trying to duplicate it. */
-      return GNUNET_YES;
-    }
-
-    if (GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GCP_get_id (p)) > 0)
-    {
-      struct CadetPeer *neighbor;
-
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " duplicate allowed (killing old)\n");
-      if (GCC_is_origin (c, GNUNET_YES))
-        neighbor = get_next_hop (c);
-      else
-        neighbor = get_prev_hop (c);
-      send_broken_unknown (&c->id, &my_full_id, NULL,
-                           GCP_get_id (neighbor));
-      GCC_destroy (c);
-      return GNUNET_NO;
-    }
-    else
-      return GNUNET_YES;
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " %s has no duplicates\n", GCC_2s (conn));
-    return GNUNET_NO;
-  }
 }
 
 
@@ -1982,22 +2020,16 @@ GCC_handle_create (void *cls,
     add_to_peer (c, orig_peer);
     if (GNUNET_YES == does_connection_exist (c))
     {
-      // FIXME Peer created a connection equal to one we think exists
-      //       and is fine. What should we do?
-      // Use explicit duplicate?
-      // Accept new conn and destroy the old? (interruption in higher level)
-      // Keep both and postpone disambiguation?
-      // Keep the one created by peer with higher ID?
-      // For now: reject new connection until current confirmed dead
-      GNUNET_break_op (0);
-      if (NULL != c->t)
-        GCT_debug (c->t, GNUNET_ERROR_TYPE_WARNING);
-      GCC_debug (c, GNUNET_ERROR_TYPE_WARNING);
-      path_destroy (path);
-      GCC_destroy (c);
-      send_broken_unknown (cid, &my_full_id, NULL, peer);
-      GCC_check_connections ();
-      return GNUNET_OK;
+      /* Peer created a connection equal to one we think exists
+       * and is fine.
+       * Solution: Keep both and postpone disambiguation. In the meantime
+       * the connection will time out or peer will inform us it is broken.
+       *
+       * Other options:
+       * - Use explicit duplicate.
+       * - Accept new conn and destroy the old. (interruption in higher level)
+       * - Keep the one with higher ID / created by peer with higher ID. */
+       schedule_check_duplicates (c);
     }
 
     if (CADET_TUNNEL_NEW == GCT_get_cstate (c->t))
@@ -3023,6 +3055,8 @@ GCC_destroy (struct CadetConnection *c)
   if (NULL != c->t)
     GCT_remove_connection (c->t, c);
 
+  if (NULL != c->check_duplicates_task)
+    GNUNET_SCHEDULER_cancel (c->check_duplicates_task);
   if (NULL != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
   if (NULL != c->bck_maintenance_task)
