@@ -73,7 +73,8 @@ check_PROGRAMS = \
  test_rps_malicious_3 \
  test_rps_seed_request \
  test_rps_single_req \
- test_rps_req_cancel
+ test_rps_req_cancel \
+ test_rps_seed_big
 endif
 
 ld_rps_test_lib = \
@@ -109,6 +110,9 @@ test_rps_seed_request_LDADD = $(ld_rps_test_lib)
 
 test_rps_req_cancel_SOURCES = $(rps_test_src)
 test_rps_req_cancel_LDADD = $(ld_rps_test_lib)
+
+test_rps_seed_big_SOURCES = $(rps_test_src)
+test_rps_seed_big_LDADD = $(ld_rps_test_lib)
 
 gnunet_rps_profiler_SOURCES = $(rps_test_src)
 gnunet_rps_profiler_LDADD = $(ld_rps_test_lib)

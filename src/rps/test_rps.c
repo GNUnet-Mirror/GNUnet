@@ -530,6 +530,39 @@ seed_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_RPS_seed_ids (peer->rps_handle, amount, rps_peer_ids);
 }
 
+/**
+ * Seed peers.
+ */
+  void
+seed_peers_big (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RPSPeer *peer = (struct RPSPeer *) cls;
+  unsigned int seed_msg_size;
+  uint32_t num_peers_max;
+  unsigned int amount;
+  unsigned int i;
+
+  seed_msg_size = 8; /* sizeof (struct GNUNET_RPS_CS_SeedMessage) */
+  num_peers_max = (GNUNET_SERVER_MAX_MESSAGE_SIZE - seed_msg_size) /
+    sizeof (struct GNUNET_PeerIdentity);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Peers that fit in one seed msg; %u\n",
+      num_peers_max);
+  amount = num_peers_max + (0.5 * num_peers_max);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Seeding many (%u) peers:\n",
+      amount);
+  struct GNUNET_PeerIdentity ids_to_seed[amount];
+  for (i = 0; i < amount; i++)
+  {
+    ids_to_seed[i] = *peer->peer_id;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Seeding %u. peer: %s\n",
+                i,
+                GNUNET_i2s (&ids_to_seed[i]));
+  }
+
+  GNUNET_RPS_seed_ids (peer->rps_handle, amount, ids_to_seed);
+}
 
 /**
  * Get the id of peer i.
@@ -935,8 +968,9 @@ delay_req_cb (struct RPSPeer *rps_peer)
 static void
 seed_cb (struct RPSPeer *rps_peer)
 {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-                                seed_peers, rps_peer);
+  GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+      seed_peers, rps_peer);
 }
 
 /***********************************
@@ -946,6 +980,9 @@ static void
 seed_big_cb (struct RPSPeer *rps_peer)
 {
   // TODO test seeding > GNUNET_SERVER_MAX_MESSAGE_SIZE peers
+  GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+      seed_peers_big, rps_peer);
 }
 
 /***********************************
@@ -963,8 +1000,9 @@ single_peer_seed_cb (struct RPSPeer *rps_peer)
 static void
 seed_req_cb (struct RPSPeer *rps_peer)
 {
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
-                                seed_peers, rps_peer);
+  GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2),
+      seed_peers, rps_peer);
   schedule_missing_requests (rps_peer);
 }
 
@@ -1416,8 +1454,11 @@ main (int argc, char *argv[])
   else if (strstr (argv[0], "_seed_big") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test seeding (num_peers > GNUNET_SERVER_MAX_MESSAGE_SIZE)\n");
+    num_peers = 1;
     cur_test_run.name = "test-rps-seed-big";
     cur_test_run.main_test = seed_big_cb;
+    cur_test_run.eval_cb = no_eval;
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10);
   }
 
   else if (strstr (argv[0], "_single_peer_seed") != NULL)
