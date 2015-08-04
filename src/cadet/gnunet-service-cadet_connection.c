@@ -1990,6 +1990,8 @@ GCC_handle_create (void *cls,
       // Keep the one created by peer with higher ID?
       // For now: reject new connection until current confirmed dead
       GNUNET_break_op (0);
+      if (NULL != c->t)
+        GCT_debug (c->t, GNUNET_ERROR_TYPE_WARNING);
       GCC_debug (c, GNUNET_ERROR_TYPE_WARNING);
       path_destroy (path);
       GCC_destroy (c);
