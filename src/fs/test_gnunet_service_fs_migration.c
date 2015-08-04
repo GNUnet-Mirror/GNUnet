@@ -145,6 +145,9 @@ stop_source_peer (void *cls,
 {
   struct DownloadContext *dc = cls;
 
+  /* Do not interact with testbed when shutting down */
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Stopping source peer\n");
   op = GNUNET_TESTBED_peer_stop (NULL, daemons[1], &do_download, dc);
