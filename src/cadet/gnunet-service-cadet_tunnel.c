@@ -1427,6 +1427,8 @@ store_ax_keys (struct CadetTunnel *t,
     /* Avoid DoS (forcing peer to do 2*33 chain HMAC operations) */
     /* TODO: start new key exchange on return */
     GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Got message %u, expected %u+\n",
+         Np, t->ax->Nr);
     return;
   }
 
