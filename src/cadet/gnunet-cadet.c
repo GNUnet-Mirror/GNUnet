@@ -126,6 +126,58 @@ static void
 listen_stdio (void);
 
 
+/**
+ * Convert encryption status to human readable string.
+ *
+ * @param status Encryption status.
+ *
+ * @return Human readable string.
+ */
+static const char *
+enc_2s (uint16_t status)
+{
+  switch (status)
+  {
+    case 0:
+      return "NULL ";
+    case 1:
+      return "KSENT";
+    case 2:
+      return "KRECV";
+    case 3:
+      return "READY";
+    default:
+      return "";
+  }
+}
+
+
+/**
+ * Convert connection status to human readable string.
+ *
+ * @param status Connection status.
+ *
+ * @return Human readable string.
+ */
+static const char *
+conn_2s (uint16_t status)
+{
+  switch (status)
+  {
+    case 0:
+      return "OFF  ";
+    case 1:
+      return "SENT ";
+    case 2:
+      return "ACK'D";
+    case 3:
+      return "READY";
+    default:
+      return "";
+  }
+}
+
+
 
 /**
  * Task run in monitor mode when the user presses CTRL-C to abort.
@@ -557,8 +609,10 @@ tunnels_callback (void *cls,
     }
     return;
   }
-  FPRINTF (stdout, "%s [ENC: %u, CON: %u] CHs: %u, CONNs: %u\n",
-           GNUNET_i2s_full (peer), estate, cstate, channels, connections);
+  FPRINTF (stdout, "%s [ENC: %s, CON: %s] CHs: %u, CONNs: %u\n",
+           GNUNET_i2s_full (peer),
+           enc_2s (estate), conn_2s (cstate),
+           channels, connections);
 }
 
 
@@ -590,21 +644,20 @@ tunnel_callback (void *cls,
   if (NULL != peer)
   {
     FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
-    FPRINTF (stdout, "- %u channels\n", n_channels);
+    FPRINTF (stdout, "\t%u channels\n", n_channels);
     for (i = 0; i < n_channels; i++)
-      FPRINTF (stdout, "   %u\n", channels[i]);
-    FPRINTF (stdout, "- %u connections\n", n_connections);
+      FPRINTF (stdout, "\t\t%u\n", channels[i]);
+    FPRINTF (stdout, "\t%u connections\n", n_connections);
     for (i = 0; i < n_connections; i++)
-      FPRINTF (stdout, "   %s\n", GC_h2s (&connections[i]));
-    FPRINTF (stdout, "- enc state: %u\n", estate);
-    FPRINTF (stdout, "- con state: %u\n", cstate);
+      FPRINTF (stdout, "\t\t%s\n", GC_h2s (&connections[i]));
+    FPRINTF (stdout, "\tencryption state: %s\n", enc_2s (estate));
+    FPRINTF (stdout, "\tconnection state: %s\n", conn_2s (cstate));
   }
   if (GNUNET_YES != monitor_mode)
   {
     GNUNET_SCHEDULER_shutdown();
   }
   return;
-
 }
 
 
@@ -752,7 +805,7 @@ run (void *cls, char *const *args, const char *cfgfile,
        && target_id != NULL)
   {
     FPRINTF (stderr,
-             _("You must NOT give a TARGET"
+             _("You must NOT give a TARGET "
                "when using 'request all' options\n"));
     return;
   }
