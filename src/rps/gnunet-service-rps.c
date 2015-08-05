@@ -1148,6 +1148,21 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
 
 
 /**
+ * @brief This is called once a message is sent.
+ *
+ * @param cls type of the message that was sent
+ */
+static void
+ntfy_callback (void *cls)
+{
+  char *type = (char *) cls;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "%s was sent.\n",
+      type);
+}
+
+
+/**
  * Send a PULL REPLY to @a peer_id
  *
  * @param peer_id the peer to send the reply to.
@@ -1181,8 +1196,8 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
     send_size = num_peer_ids;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "PULL REQUEST from peer %s received, going to send %u peers\n",
-      GNUNET_i2s (peer_id), send_size);
+      "Going to send PULL REPLY with %u peers to %s\n",
+      send_size, GNUNET_i2s (peer_id));
 
   mq = get_mq (peer_id);
 
@@ -1193,6 +1208,9 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
   memcpy (&out_msg[1], peer_ids,
          send_size * sizeof (struct GNUNET_PeerIdentity));
 
+  GNUNET_MQ_notify_sent (ev,
+      ntfy_callback,
+      "PULL REPLY");
   GNUNET_MQ_send (mq, ev);
 }
 
@@ -1555,7 +1573,7 @@ handle_peer_push (void *cls,
     GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PUSH received (%s)\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PUSH (%s)\n", GNUNET_i2s (peer));
 
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
@@ -1678,7 +1696,7 @@ handle_peer_pull_request (void *cls,
                                    GNUNET_CADET_OPTION_PEER);
   // FIXME wait for cadet to change this function
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REQUEST received (%s)\n", GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REQUEST (%s)\n", GNUNET_i2s (peer));
 
   #ifdef ENABLE_MALICIOUS
   if (1 == mal_type
@@ -1764,7 +1782,7 @@ handle_peer_pull_reply (void *cls,
       GNUNET_CADET_channel_get_info (channel, GNUNET_CADET_OPTION_PEER);
   sender_ctx = get_peer_ctx (sender);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PULL REPLY received (%s)\n", GNUNET_i2s (sender));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received PULL REPLY (%s)\n", GNUNET_i2s (sender));
 
   if (GNUNET_YES != get_peer_flag (sender_ctx, PULL_REPLY_PENDING))
   {
@@ -1916,11 +1934,14 @@ send_pull_request (struct GNUNET_PeerIdentity *peer_id)
   set_peer_flag (peer_ctx, PULL_REPLY_PENDING);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending PULL request to peer %s of view.\n",
+       "Going to send PULL REQUEST to peer %s.\n",
        GNUNET_i2s (peer_id));
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
   mq = get_mq (peer_id);
+  GNUNET_MQ_notify_sent (ev,
+      ntfy_callback,
+      "PULL REQUEST");
   GNUNET_MQ_send (mq, ev);
 }
 
@@ -1937,11 +1958,14 @@ send_push (struct GNUNET_PeerIdentity *peer_id)
   struct GNUNET_MQ_Handle *mq;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending PUSH to peer %s of view.\n",
+       "Going to send PUSH to peer %s.\n",
        GNUNET_i2s (peer_id));
 
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
   mq = get_mq (peer_id);
+  GNUNET_MQ_notify_sent (ev,
+      ntfy_callback,
+      "PUSH");
   GNUNET_MQ_send (mq, ev);
 }
 
