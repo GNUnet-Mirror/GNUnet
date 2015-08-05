@@ -1153,9 +1153,9 @@ add_peer_array_to_set (const struct GNUNET_PeerIdentity *peer_array,
  * @param cls type of the message that was sent
  */
 static void
-ntfy_callback (void *cls)
+mq_notify_sent_cb (void *cls)
 {
-  char *type = (char *) cls;
+  const char *type = cls;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "%s was sent.\n",
       type);
@@ -1209,7 +1209,7 @@ send_pull_reply (const struct GNUNET_PeerIdentity *peer_id,
          send_size * sizeof (struct GNUNET_PeerIdentity));
 
   GNUNET_MQ_notify_sent (ev,
-      ntfy_callback,
+      mq_notify_sent_cb,
       "PULL REPLY");
   GNUNET_MQ_send (mq, ev);
 }
@@ -1940,7 +1940,7 @@ send_pull_request (struct GNUNET_PeerIdentity *peer_id)
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PULL_REQUEST);
   mq = get_mq (peer_id);
   GNUNET_MQ_notify_sent (ev,
-      ntfy_callback,
+      mq_notify_sent_cb,
       "PULL REQUEST");
   GNUNET_MQ_send (mq, ev);
 }
@@ -1964,7 +1964,7 @@ send_push (struct GNUNET_PeerIdentity *peer_id)
   ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_RPS_PP_PUSH);
   mq = get_mq (peer_id);
   GNUNET_MQ_notify_sent (ev,
-      ntfy_callback,
+      mq_notify_sent_cb,
       "PUSH");
   GNUNET_MQ_send (mq, ev);
 }
