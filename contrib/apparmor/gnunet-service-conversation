@@ -18,7 +18,6 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-conversation {
   @{GNUNET_PREFIX}/lib/libgnunetgns.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetidentity.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetmesh.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetmicrophone.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetnamestore.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetspeaker.so.* mr,

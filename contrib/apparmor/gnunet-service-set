@@ -10,7 +10,6 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-set {
   #Gnunet librairies
   @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetmesh.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetblock.so.* mr,
 
   #Librairies

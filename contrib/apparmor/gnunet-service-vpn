@@ -21,7 +21,6 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-vpn {
   
   #Gnunet librairies
   @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetmesh.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetregex.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunettun.so.* mr,
