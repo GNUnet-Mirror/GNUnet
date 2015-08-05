@@ -254,10 +254,14 @@ if HAVE_BENCHMARKS
   perf_malloc
 endif
 
+if HAVE_SSH_BINARY
+ SSH_USING_TESTS = test_socks.nc
+endif
+
 check_PROGRAMS = \
  test_bio \
  test_client.nc \
- test_socks.nc \
+ $(SSH_USING_TESTS) \
  test_common_allocation \
  test_common_endian \
  test_common_logging \
