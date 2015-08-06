@@ -1031,8 +1031,10 @@ GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_rsa_Signature *sig)
   /* verify that this is an RSA signature */
   ret = key_from_sexp (&s, sig->sexp, "sig-val", "s");
   GNUNET_assert (0 == ret);
+  gcry_mpi_release (s);
   ret = key_from_sexp (&s, sig->sexp, "rsa", "s");
-  GNUNET_assert (0==ret);
+  GNUNET_assert (0 == ret);
+  gcry_mpi_release (s);
   /* copy the sexp */
   GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", sig->sexp));
   dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
