@@ -189,7 +189,7 @@ GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_rsa_PrivateKey *key)
  */
 size_t
 GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
-                              char **buffer)
+                                      char **buffer)
 {
   size_t n;
   char *b;
@@ -219,7 +219,7 @@ GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey 
  */
 struct GNUNET_CRYPTO_rsa_PrivateKey *
 GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
-                              size_t len)
+                                      size_t len)
 {
   struct GNUNET_CRYPTO_rsa_PrivateKey *key;
   key = GNUNET_new (struct GNUNET_CRYPTO_rsa_PrivateKey);
@@ -502,7 +502,7 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
  */
 int
 GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_rsa_PrivateKey *p1,
-				  struct GNUNET_CRYPTO_rsa_PrivateKey *p2)
+                                   struct GNUNET_CRYPTO_rsa_PrivateKey *p2)
 {
   char *b1;
   char *b2;
@@ -640,9 +640,9 @@ GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
  */
 size_t
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
-                 struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                 struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
-                 char **buffer)
+                         struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                         struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                         char **buffer)
 {
   gcry_mpi_t data;
   gcry_mpi_t ne[2];
@@ -825,7 +825,7 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *si
  */
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
-                            size_t len)
+                                    size_t len)
 {
   struct GNUNET_CRYPTO_rsa_Signature *sig;
   int ret;
@@ -896,8 +896,8 @@ GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
  */
 struct GNUNET_CRYPTO_rsa_Signature *
 GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
-                   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                   struct GNUNET_CRYPTO_rsa_PublicKey *pkey)
+                           struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
+                           struct GNUNET_CRYPTO_rsa_PublicKey *pkey)
 {
   gcry_mpi_t n;
   gcry_mpi_t s;
@@ -963,8 +963,8 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
  */
 int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
-                  const struct GNUNET_CRYPTO_rsa_Signature *sig,
-                  const struct GNUNET_CRYPTO_rsa_PublicKey *public_key)
+                          const struct GNUNET_CRYPTO_rsa_Signature *sig,
+                          const struct GNUNET_CRYPTO_rsa_PublicKey *public_key)
 {
   gcry_sexp_t data;
   int rc;
