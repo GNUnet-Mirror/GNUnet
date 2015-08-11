@@ -182,7 +182,7 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namestore-sqlite");
+  //GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namestore-sqlite");
   GNUNET_log_setup ("test-plugin-namestore",
                     "WARNING",
                     NULL);
@@ -193,7 +193,7 @@ main (int argc, char *argv[])
                       "test-plugin-namestore", "nohelp", options, &run, NULL);
   if (ok != 0)
     FPRINTF (stderr, "Missed some testcases: %d\n", ok);
-  GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namestore-sqlite");
+  //GNUNET_DISK_directory_remove ("/tmp/gnunet-test-plugin-namestore-sqlite");
   return ok;
 }
 

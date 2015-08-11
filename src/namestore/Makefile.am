@@ -20,6 +20,13 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+if HAVE_EXPERIMENTAL
+FLAT_PLUGIN = libgnunet_plugin_namestore_flat.la
+if HAVE_TESTING
+FLAT_TESTS = test_plugin_namestore_flat
+endif
+endif
+
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_namestore_sqlite.la
 if HAVE_TESTING
@@ -60,6 +67,7 @@ if HAVE_SQLITE
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  $(POSTGRES_TESTS) \
+ $(FLAT_TESTS) \
  $(TESTING_TESTS)
 endif
 
@@ -150,7 +158,19 @@ gnunet_service_namestore_LDADD = \
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(POSTGRES_PLUGIN) \
+	$(FLAT_PLUGIN) \
 	$(REST_PLUGIN)
+
+libgnunet_plugin_namestore_flat_la_SOURCES = \
+  plugin_namestore_flat.c
+libgnunet_plugin_namestore_flat_la_LIBADD = \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la  \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
+libgnunet_plugin_namestore_flat_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 libgnunet_plugin_namestore_sqlite_la_SOURCES = \
   plugin_namestore_sqlite.c
@@ -307,6 +327,12 @@ test_namestore_api_zone_iteration_stop_LDADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
   libgnunetnamestore.la
 
+test_plugin_namestore_flat_SOURCES = \
+ test_plugin_namestore.c
+test_plugin_namestore_flat_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 test_plugin_namestore_sqlite_SOURCES = \
  test_plugin_namestore.c
 test_plugin_namestore_sqlite_LDADD = \
@@ -328,6 +354,7 @@ EXTRA_DIST = \
   test_namestore_api.conf \
   test_plugin_namestore_sqlite.conf \
   test_plugin_namestore_postgres.conf \
+	test_plugin_namestore_flat.conf \
   test_hostkey \
   zonefiles/S5I9DSGQVAB5FVV16T3B3CC5H1B2JGL3Q412JBKURME8EKU0600G.zkey \
   zonefiles/AQ835GVL939H4O8QJQ7GBLPTQC0QAAO91BN7QK01BA63MDSK6I4G.zkey \
