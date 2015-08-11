@@ -20,6 +20,13 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+if HAVE_EXPERIMENTAL
+FLAT_PLUGIN = libgnunet_plugin_namecache_flat.la
+if HAVE_TESTING
+FLAT_TESTS = test_plugin_namecache_flat
+endif
+endif
+
 if HAVE_SQLITE
 SQLITE_PLUGIN = libgnunet_plugin_namecache_sqlite.la
 if HAVE_TESTING
@@ -44,6 +51,7 @@ if HAVE_SQLITE
 check_PROGRAMS = \
  $(SQLITE_TESTS) \
  $(POSTGRES_TESTS) \
+ $(FLAT_TESTS) \
  $(TESTING_TESTS)
 endif
 
@@ -96,7 +104,18 @@ gnunet_service_namecache_LDADD = \
 
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
+	$(FLAT_PLUGIN) \
   $(POSTGRES_PLUGIN)
+
+libgnunet_plugin_namecache_flat_la_SOURCES = \
+  plugin_namecache_flat.c
+libgnunet_plugin_namecache_flat_la_LIBADD = \
+  libgnunetnamecache.la  \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
+libgnunet_plugin_namecache_flat_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 libgnunet_plugin_namecache_sqlite_la_SOURCES = \
   plugin_namecache_sqlite.c
@@ -128,6 +147,13 @@ test_namecache_api_cache_block_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
+
+test_plugin_namecache_flat_SOURCES = \
+ test_plugin_namecache.c
+test_plugin_namecache_flat_LDADD = \
+ $(top_builddir)/src/testing/libgnunettesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 test_plugin_namecache_sqlite_SOURCES = \
  test_plugin_namecache.c
 test_plugin_namecache_sqlite_LDADD = \
@@ -143,5 +169,6 @@ test_plugin_namecache_postgres_LDADD = \
 EXTRA_DIST = \
   test_namecache_api.conf \
   test_plugin_namecache_sqlite.conf \
-  test_plugin_namecache_postgres.conf 
+  test_plugin_namecache_postgres.conf \
+	test_plugin_namecache_flat.conf
 
