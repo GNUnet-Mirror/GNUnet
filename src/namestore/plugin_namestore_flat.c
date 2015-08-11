@@ -174,7 +174,8 @@ database_setup (struct Plugin *plugin)
   plugin->hm = GNUNET_CONTAINER_multihashmap_create (10,
                                                      GNUNET_NO);
   fh = GNUNET_DISK_file_open (afsdir,
-                              GNUNET_DISK_OPEN_CREATE,
+                              GNUNET_DISK_OPEN_CREATE |
+                              GNUNET_DISK_OPEN_READWRITE,
                               GNUNET_DISK_PERM_USER_WRITE |
                               GNUNET_DISK_PERM_USER_READ);
   if (NULL == fh)
