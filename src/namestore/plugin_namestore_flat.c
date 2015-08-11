@@ -305,7 +305,7 @@ store_and_free_entries (void *cls,
                                 &record_data_b64);
 
   GNUNET_asprintf (&line,
-                   "%s.%s.%s.%s.%s.%s\n",
+                   "%s,%s,%s,%s,%s,%s\n",
                    zone_private_key,
                    pkey,
                    rvalue,
