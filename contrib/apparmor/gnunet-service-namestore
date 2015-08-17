@@ -10,8 +10,8 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namestore {
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namestore mr,
 
   #Gnunet plugin
-# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_sqlite.la r,
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_sqlite.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_*.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_*.so mr,
 
   /tmp/gnunet-*-runtime/ a,
   

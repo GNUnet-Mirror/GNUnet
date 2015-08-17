@@ -10,12 +10,12 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namecache {
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-namecache mr,
 
   #Gnunet plugin
-# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namecache_sqlite.la r,
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namecache_sqlite.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namecache_*.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namecache_*.so mr,
 
   @{GNUNET_USER}/.local/share/gnunet/namecache/ r,
-  @{GNUNET_USER}/.local/share/gnunet/namecache/sqlite.db rwk,
-  @{GNUNET_USER}/.local/share/gnunet/namecache/sqlite.db-journal rw,
+  @{GNUNET_USER}/.local/share/gnunet/namecache/*.db rwk,
+  @{GNUNET_USER}/.local/share/gnunet/namecache/*.db-journal rw,
   
   # Site-specific additions and overrides. See local/README for details.
   #include <local/gnunet>
