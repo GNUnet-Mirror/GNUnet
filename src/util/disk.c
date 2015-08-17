@@ -823,6 +823,11 @@ GNUNET_DISK_directory_create_for_file (const char *filename)
   while ((len > 0) && (rdir[len] != DIR_SEPARATOR))
     len--;
   rdir[len] = '\0';
+  /* The empty path is invalid and in this case refers to / */
+  if (0 == len) {
+    GNUNET_free (rdir);
+    rdir = GNUNET_strdup ("/");
+  }
   ret = GNUNET_DISK_directory_create (rdir);
   if ((ret == GNUNET_OK) && (0 != ACCESS (rdir, W_OK)))
     ret = GNUNET_NO;
