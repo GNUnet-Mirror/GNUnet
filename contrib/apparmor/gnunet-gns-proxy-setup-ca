@@ -1,0 +1,40 @@
+# Last Modified: Tue Aug 11 11:40:50 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-gns-proxy-setup-ca {
+  #include <abstractions/base>
+  #include <abstractions/bash>
+  #include <abstractions/user-tmp>
+  #include <abstractions/openssl>
+
+  /dev/tty rw,
+  /etc/passwd r,
+  /home/*/.local/share/gnunet/gns/ r,
+  /home/*/.local/share/gnunet/gns/gns_ca_cert.pem rw,
+  /home/*/.mozilla/firefox/ r,
+  /home/*/.mozilla/firefox/kw6js9xl.default/cert8.db rw,
+  /home/*/.mozilla/firefox/kw6js9xl.default/key3.db rw,
+  /home/*/.mozilla/firefox/kw6js9xl.default/secmod.db r,
+  /home/*/.pki/nssdb/cert8.db rw,
+  /home/*/.pki/nssdb/key3.db rw,
+  /home/*/.pki/nssdb/secmod.db r,
+  /home/*/.rnd rw,
+
+  /usr/bin/bash ix,
+  /usr/bin/cat rix,
+  /usr/bin/certtool r,
+  /usr/bin/certutil rix,
+  /usr/bin/dirname rix,
+  /usr/bin/mkdir rix,
+  /usr/bin/mktemp rix,
+  /usr/bin/openssl rix,
+  /usr/bin/rm rix,
+  /usr/bin/which rix,
+
+  @{GNUNET_PREFIX}/bin/gnunet-config Px,
+  @{GNUNET_PREFIX}/bin/gnunet-gns-proxy-setup-ca r,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

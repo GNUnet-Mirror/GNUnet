@@ -3,17 +3,15 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-identity {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
   /tmp/gnunet-*-runtime/ a,
 
-  /usr/lib/ld-*.so r,
-
-  /var/lib/gnunet/.local/share/gnunet/identity/ a,
-  /var/lib/gnunet/.local/share/gnunet/identity/egos/ ra,
+  @{GNUNET_USER}/.local/share/gnunet/identity/ a,
+  @{GNUNET_USER}/.local/share/gnunet/identity/egos/ ra,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-identity mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
 
   @{HOME}/.config/gnunet/identity/subsystem_defaults.conf rw,
 
@@ -22,4 +20,7 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-identity {
   @{HOME}/.local/share/gnunet/identity/egos/private-zone rk,
   @{HOME}/.local/share/gnunet/identity/egos/short-zone rk,
   @{HOME}/.local/share/gnunet/identity/egos/sks-zone rk,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

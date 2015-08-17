@@ -1,16 +1,15 @@
 # Last Modified: Thu Jul  9 10:16:30 2015
-
 #include <tunables/global>
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-statistics {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
-  /var/lib/gnunet/.local/share/gnunet/statistics.dat rw,
-
-  /usr/lib/ld-*.so r,
+  @{GNUNET_USER}/.local/share/gnunet/statistics.dat rw,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-statistics mr,
-
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

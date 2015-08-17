@@ -3,12 +3,11 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-scalarproduct-bob {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
-  /usr/lib/ld-*.so r,
-
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-scalarproduct-bob mr,
-
-  @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetset.so.* mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

@@ -3,22 +3,19 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-peerstore {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
-
-  #Librairies
-  /usr/lib/ld-*.so r,
-  /usr/lib/libpthread-*.so mr,
-  /usr/lib/libsqlite3.so.* mr,
+  #include <abstractions/gnunet-db>
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-peerstore mr,
 
   #Gnunet Plugin
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_peerstore_sqlite.la r,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_peerstore_sqlite.la r,
   @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_peerstore_sqlite.so mr,
 
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetpeerstore.so.* mr,
-
-  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db rwk,
-  /var/lib/gnunet/.local/share/gnunet/peerstore/sqlite.db-journal rw,
+  @{GNUNET_USER}/.local/share/gnunet/peerstore/sqlite.db rwk,
+  @{GNUNET_USER}/.local/share/gnunet/peerstore/sqlite.db-journal rw,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

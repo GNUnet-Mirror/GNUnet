@@ -1,0 +1,26 @@
+# Last Modified: Wed Aug  5 11:25:26 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-gtk {
+  #include <abstractions/gnome>
+  #include <abstractions/gnunet-gtk>
+  #include <abstractions/kde>
+
+  @{GNUNET_PREFIX}/bin/gnunet-gtk mr,
+
+  #GNUnet gtk binaries
+  @{GNUNET_PREFIX}/bin/gnunet-conversation-gtk Px,
+  @{GNUNET_PREFIX}/bin/gnunet-fs-gtk Px,
+  @{GNUNET_PREFIX}/bin/gnunet-identity-gtk Px,
+  @{GNUNET_PREFIX}/bin/gnunet-namestore-gtk Px,
+  @{GNUNET_PREFIX}/bin/gnunet-peerinfo-gtk Px,
+  @{GNUNET_PREFIX}/bin/gnunet-statistics-gtk Px,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/*.png r,
+  @{GNUNET_PREFIX}/share/gnunet-gtk/gnunet_gtk.glade r,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+
+}

@@ -1,0 +1,13 @@
+
+  #testbed (if the /tmp directory is used)
+  /tmp/testbed*/	rw,
+  /tmp/testbed*/**	rwk,
+
+  #testbed helper
+  /tmp/testbed-helper*/ rw,
+  
+  #gnunet-testing
+  /tmp/gnunet-testing*  rw,
+  /tmp/gnunet_service_test*/ rw,
+  /tmp/gnunet_service_test*/** rw,
+  

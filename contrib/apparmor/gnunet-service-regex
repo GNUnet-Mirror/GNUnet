@@ -3,16 +3,13 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-regex {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
-
-  /usr/lib/ld-*.so r,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-regex mr,
 
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetregexblock.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-
-  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
+  @{GNUNET_USER}/.local/share/gnunet/private_key.ecc rk,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

@@ -1,0 +1,21 @@
+# Last Modified: Mon Aug 10 11:05:21 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-namestore {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/bin/gnunet-namestore mr,
+
+  #GNUnet plugin
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_dns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_dns.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_gns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_gns.so mr,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

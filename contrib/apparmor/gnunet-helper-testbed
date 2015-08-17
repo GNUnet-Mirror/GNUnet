@@ -2,36 +2,20 @@
 #include <tunables/global>
 #include <tunables/gnunet>
 
-profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-testbed flags=(complain) {
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-testbed {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
+  #include <abstractions/gnunet-test>
 
-  /dev/null rw,
- 
   /etc/gai.conf r,
-
-  /usr/lib/ld-*.so r,
-
-  /usr/lib/locale/locale-archive r,
-
-  /usr/share/locale/locale.alias r,
-  /usr/share/locale/fr/LC_MESSAGES/libc.mo r,
-
-  /usr/lib/gconv/gconv-modules r,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/ r,
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-testbed mr,
-  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-arm r,
+  #@{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-arm r,
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed Px,
 
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetarm.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettestbed.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettesting.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
-
   @{GNUNET_PREFIX}/share/gnunet/testing_hostkeys.ecc r,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

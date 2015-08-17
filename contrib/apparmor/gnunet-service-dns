@@ -3,12 +3,13 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dns {
-  #include <abstractions/gnunet-common>
+  #include <abstractions/gnunet-sgid>
 
   capability setgid,
 
   /usr/lib/ld-*.so r,
 
+  #GNUnet helper
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-dns Px,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dns mr,
@@ -17,4 +18,7 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-dns {
   @{GNUNET_PREFIX}/lib/libgnunetdnsstub.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
   @{GNUNET_PREFIX}/lib/libgnunettun.so.* mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet-sgid>
 }

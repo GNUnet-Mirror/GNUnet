@@ -1,0 +1,57 @@
+# Last Modified: Tue Aug 11 16:25:03 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-setup {
+  #include <abstractions/gnome>
+  #include <abstractions/gnunet-gtk>
+  #include <abstractions/kde>
+
+  /etc/nsswitch.conf r,
+  /etc/passwd r,
+  @{PROC}/@{pid}/fd/ r,
+
+  /usr/bin/exo-open rix,
+
+  @{GNUNET_PREFIX}/bin/gnunet-peerinfo-gtk Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-hostlist Px,
+
+  @{GNUNET_PREFIX}/bin/gnunet-setup mr,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/*.png r,
+  @{GNUNET_PREFIX}/share/gnunet-gtk/gnunet_setup_main_window.glade r,
+
+  @{HOME}/.config/gtk-*/bookmarks r,
+
+  #GNUnet plugin
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datacache_heap.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datacache_heap.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datacache_sqlite.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datacache_sqlite.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_mysql.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_mysql.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_sqlite.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_sqlite.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_sqlite.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_namestore_sqlite.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_http_client.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_http_client.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_http_server.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_http_server.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_https_client.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_https_client.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_https_server.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_https_server.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_wlan.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_wlan.so mr,
+
+  /usr/share/glib-*/schemas/gschemas.compiled r,
+  /usr/share/gtk-*/gtkrc r,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

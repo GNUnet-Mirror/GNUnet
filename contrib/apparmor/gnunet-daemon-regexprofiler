@@ -2,12 +2,12 @@
 #include <tunables/global>
 #include <tunables/gnunet>
 
-profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-regexprofiler flags=(complain) {
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-regexprofiler {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-regexprofiler mr,
-  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetregexblock.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

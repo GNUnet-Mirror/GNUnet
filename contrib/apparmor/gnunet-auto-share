@@ -1,0 +1,27 @@
+# Last Modified: Thu Aug  6 11:44:37 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-auto-share {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{HOME}/.config/gnunet.conf r,
+
+  #Directory access(?)
+  @{HOME}/gnunet-fs/ r,
+  @{HOME}/gnunet-fs/.auto-share rw,
+
+  @{GNUNET_PREFIX}/bin/gnunet-auto-share mr,
+
+  @{GNUNET_PREFIX}/bin/gnunet-publish Px,
+
+  @{GNUNET_PREFIX}/lib/libgnunetutil.so.* mr,
+
+  @{GNUNET_PREFIX}/share/gnunet/config.d/ r,
+  @{GNUNET_PREFIX}/share/gnunet/config.d/*.conf r,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+
+}

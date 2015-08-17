@@ -1,0 +1,21 @@
+# Last Modified: Fri Aug  7 17:41:19 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile /usr/local/bin/gnunet-gns {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  /usr/local/bin/gnunet-gns mr,
+
+  /usr/local/lib/gnunet/ r,
+# /usr/local/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.so mr,
+# /usr/local/lib/gnunet/libgnunet_plugin_gnsrecord_dns.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_gnsrecord_dns.so mr,
+# /usr/local/lib/gnunet/libgnunet_plugin_gnsrecord_gns.la r,
+  /usr/local/lib/gnunet/libgnunet_plugin_gnsrecord_gns.so mr,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

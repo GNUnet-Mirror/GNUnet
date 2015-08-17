@@ -1,0 +1,15 @@
+# Last Modified: Wed Aug  5 15:08:43 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-ats {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{HOME}/.config/gnunet.conf r,
+
+  @{GNUNET_PREFIX}/bin/gnunet-ats mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

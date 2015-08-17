@@ -3,24 +3,15 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-cadet {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
-  #Librairies
-  /usr/lib/ld-*.so r,
-  /usr/lib/libpthread-*.so mr,
-  /usr/lib/librt-*.so mr,
+  /tmp/gnunet-system-runtime/gnunet-service-cadet.sock rw,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-cadet mr,
 
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetblock.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
-
-  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
+  @{GNUNET_USER}/.local/share/gnunet/private_key.ecc rk,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

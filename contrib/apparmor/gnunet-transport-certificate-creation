@@ -1,0 +1,26 @@
+# Last Modified: Mon Aug 10 17:31:32 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-transport-certificate-creation {
+  #include <abstractions/base>
+  #include <abstractions/openssl>
+  #include <abstractions/gnunet-common>
+
+  @{HOME}/.rnd rw,
+
+  @{PROC}/meminfo r,
+
+  /usr/bin/openssl rix,
+
+  @{GNUNET_PREFIX}/bin/gnunet-transport-certificate-creation mr,
+
+  #Access to arg privatekey and certificate ?
+  @{HOME}/ rw,
+  @{HOME}/** rw,
+  deny @{HOME}/.*/ rw,
+  deny @{HOME}/.*/** rw,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

@@ -2,8 +2,8 @@
 #include <tunables/global>
 #include <tunables/gnunet>
 
-profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-dns flags=(complain) {
-  #include <abstractions/gnunet-common>
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-dns {
+  #include <abstractions/gnunet-suid>
 
   #Capability
   capability net_admin,
@@ -42,4 +42,7 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-dns flags=(complain) {
   /usr/lib/locale/locale-archive r,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-dns mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

@@ -1,1 +1,6 @@
 @{GNUNET_PREFIX}=/usr/local
+@{GNUNET_USER}=/var/lib/gnunet
+@{LIBPRE}=/ /usr/
+@{LIBDIRS}=lib{,32,64} lib/@{multiarch}
+@{LIBS}=libc libm linux-vso 
+

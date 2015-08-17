@@ -1,0 +1,17 @@
+# Last Modified: Tue Aug 11 16:20:57 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-peerinfo-gtk {
+  #include <abstractions/gnome>
+  #include <abstractions/gnunet-gtk>
+  #include <abstractions/kde>
+
+  @{GNUNET_PREFIX}/bin/gnunet-peerinfo-gtk mr,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/* r,
+  @{GNUNET_PREFIX}/share/gnunet-gtk/flags/*.png r,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

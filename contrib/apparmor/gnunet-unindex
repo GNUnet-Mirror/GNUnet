@@ -1,0 +1,21 @@
+# Last Modified: Mon Aug 10 17:40:53 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-unindex {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/bin/gnunet-unindex mr,
+  
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-fs-publish Px,
+
+  #Path to files to unindex ?
+  @{HOME}/ rw,
+  @{HOME}/** rw,
+  deny @{HOME}/.*/ rw,
+  deny @{HOME}/.*/** rw,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

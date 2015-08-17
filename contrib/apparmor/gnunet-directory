@@ -1,0 +1,16 @@
+# Last Modified: Fri Aug  7 16:34:37 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-directory {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/bin/gnunet-directory mr,
+
+  # Access to directory ?
+
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

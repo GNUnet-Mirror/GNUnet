@@ -1,27 +1,22 @@
 # Last Modified: Thu Jul  9 10:16:30 2015
-
 #include <tunables/global>
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-datastore {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
+  #include <abstractions/gnunet-db>
   
-  /var/lib/gnunet/.local/share/gnunet/datastore/bloomfilter.sqlite rw,
-  /var/lib/gnunet/.local/share/gnunet/datastore/sqlite.db rwk,
-  /var/lib/gnunet/.local/share/gnunet/datastore/sqlite.db-journal rw,
-
-  #Librairies
-  /usr/lib/ld-*.so r,
-  /usr/lib/libpthread-*.so mr,
-  /usr/lib/libsqlite3.so.* mr,
+  @{GNUNET_USER}/.local/share/gnunet/datastore/bloomfilter.sqlite rw,
+  @{GNUNET_USER}/.local/share/gnunet/datastore/sqlite.db rwk,
+  @{GNUNET_USER}/.local/share/gnunet/datastore/sqlite.db-journal rw,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-datastore mr,
 
   #Gnunet plugin
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_sqlite.la r,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_sqlite.la r,
   @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_datastore_sqlite.so mr,
-
-  #Gnunet Librairies
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetutil.so.* mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

@@ -1,0 +1,8 @@
+# gnunet-db
+@{GNUNET_USER}/.local/share/gnunet/namestore/ ra,
+@{GNUNET_USER}/.local/share/gnunet/namestore/sqlite.db rwk,
+@{GNUNET_USER}/.local/share/gnunet/namestore/sqlite.db-journal rw,
+
+@{HOME}/.local/share/gnunet/namestore/ r,
+@{HOME}/.local/share/gnunet/namestore/sqlite.db rwk,
+@{HOME}/.local/share/gnunet/namestore/sqlite.db-journal rw,

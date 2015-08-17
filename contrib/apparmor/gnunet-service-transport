@@ -1,29 +1,21 @@
 # Last Modified: Thu Jul  9 10:16:30 2015
-
 #include <tunables/global>
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-transport {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
-  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
-
-  /usr/lib/ld-*.so r,
+  @{GNUNET_USER}/.local/share/gnunet/private_key.ecc rk,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-transport mr,
 
   #Gnunet plugin
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.la r,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.la r,
   @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.so mr,
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.la r,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.la r,
   @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.so mr,
-
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetfragmentation.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetnat.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetpeerinfo.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettransport.so.* mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

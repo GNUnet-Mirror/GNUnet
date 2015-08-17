@@ -3,25 +3,17 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-conversation {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
-
-  #Librairies
-  /usr/lib/ld-*.so r,
-  /usr/lib/libidn.so.* mr,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-conversation mr,
 
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetconversation.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetdnsparser.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetgns.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetgnsrecord.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetidentity.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetmicrophone.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetnamestore.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetspeaker.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
+  #GNUnet helper
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-audio-playback Px,
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-audio-record   Px,
 
-  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rk,
+  @{GNUNET_USER}/.local/share/gnunet/private_key.ecc rk,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

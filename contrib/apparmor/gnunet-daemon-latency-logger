@@ -3,15 +3,11 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-latency-logger {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
-  /usr/lib/ld-*.so r,
-  /usr/lib/libpthread-*.so mr,
-  /usr/lib/libsqlite3.so.* mr,
-  /usr/lib/locale/locale-archive r,
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-latency-logger mr,
-  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
-  /usr/share/locale/locale.alias r,
-
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

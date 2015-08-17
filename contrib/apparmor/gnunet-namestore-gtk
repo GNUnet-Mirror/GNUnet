@@ -1,0 +1,27 @@
+# Last Modified: Wed Aug  5 11:24:52 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-namestore-gtk {
+  #include <abstractions/gnome>
+  #include <abstractions/gnunet-gtk>
+  #include <abstractions/kde>
+
+  @{GNUNET_PREFIX}/bin/gnunet-namestore-gtk mr,
+
+  @{GNUNET_PREFIX}/lib/gnunet/ r,
+
+  #GNUnet plugin
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_dns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_dns.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_gns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_gns.so mr,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/gnunet_namestore_gtk_main_window.glade r,
+  @{GNUNET_PREFIX}/share/gnunet-gtk/qr_dummy.png r,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

@@ -3,25 +3,15 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-vpn {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
-  
-  #Capability
-  capability setuid,
-  capability net_admin,
 
-  /dev/net/tun rw,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-vpn mr,
-
-  #Librairies
-  /usr/lib/ld-*.so r,
 
   #Gnunet helper
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-vpn Px,
   
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetregex.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettun.so.* mr,
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

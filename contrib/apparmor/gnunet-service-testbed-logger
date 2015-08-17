@@ -3,6 +3,7 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed-logger {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
   #???
@@ -11,7 +12,8 @@ profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed-logger {
   /tmp/gnunet-system-runtime/ w,
   /tmp/gnunet-system-runtime/gnunet-gnunet-testbed-logger.sock w,
 
-  /usr/lib/ld-*.so r,
-
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-testbed-logger mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

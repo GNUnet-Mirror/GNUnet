@@ -2,20 +2,17 @@
 #include <tunables/global>
 #include <tunables/gnunet> 
 
-profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-vpn flags=(complain) {
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-vpn {
+  #include <abstractions/gnunet-suid>
 
   #Capability
   capability net_admin,
   capability setuid,
 
   /dev/net/tun rw,
-  /etc/ld.so.cache r,
-
-  #Librairies
-  /usr/lib/ld-*.so r,
-  /usr/lib/libc-*.so mr,
-  /usr/lib/libm-*.so mr,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-vpn mr,
-
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

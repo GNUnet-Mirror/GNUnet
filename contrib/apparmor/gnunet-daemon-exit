@@ -3,22 +3,11 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-exit {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
-  /usr/lib/ld-*.so r,
-
-  /usr/lib/locale/locale-archive r,
-
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-daemon-exit mr,
-
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetcadet.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetdht.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetdnsstub.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetregex.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunettun.so.* mr,
-
-  /usr/share/locale/locale.alias r,
-
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

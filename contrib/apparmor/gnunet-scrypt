@@ -1,0 +1,19 @@
+# Last Modified: Mon Aug 10 15:36:34 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-scrypt {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{HOME}/.local/share/gnunet/nse/proof.dat rw,
+  @{HOME}/.local/share/gnunet/private_key.ecc rk,
+
+  @{GNUNET_PREFIX}/bin/gnunet-scrypt mr,
+
+  @{GNUNET_USER}/.local/share/gnunet/nse/proof.dat rw,
+  @{GNUNET_USER}/.local/share/gnunet/private_key.ecc rk,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

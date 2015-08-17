@@ -3,22 +3,19 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-nse {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-nse mr,
 
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunetnse.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetcore.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-
-  /usr/lib/ld-*.so mr,
-
-  /tmp/gnunet-system-runtime/gnunet-service-nse.unix w,
+  /tmp/gnunet-system-runtime/gnunet-service-nse.sock rw,
 
   @{HOME}/.local/share/gnunet/private_key.ecc rk,
   owner @{HOME}/.local/share/gnunet/nse/proof.dat rw,
 
-  /var/lib/gnunet/.local/share/gnunet/private_key.ecc rwk,
-  /var/lib/gnunet/.local/share/gnunet/nse/proof.dat rw,
+  @{GNUNET_USER}/.local/share/gnunet/private_key.ecc rwk,
+  @{GNUNET_USER}/.local/share/gnunet/nse/proof.dat rw,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

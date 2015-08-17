@@ -1,34 +1,12 @@
 # This files contains common permissions for gnunet
 
-  /usr/share/zoneinfo/           	  r,
-  /usr/share/zoneinfo/**         	  r,
+  #GNUnet configuration file
+  @{GNUNET_PREFIX}/share/gnunet/config.d/       r,
+  @{GNUNET_PREFIX}/share/gnunet/config.d/*.conf r,
   
-  /dev/urandom 			 	  r,
-  
-  /etc/ld.so.cache 		 	  r,
+  /etc/gnunet.conf 		 	   r,
+  @{HOME}/.config/gnunet.conf 	   r,
+  owner @{GNUNET_USER}/.config/gnunet.conf r,
 
-  @{PROC}/@{pid}/maps 		 	  r,
-
-  #Gnunet configuration file
-  /usr/local/share/gnunet/config.d/ 	  r,
-  /usr/local/share/gnunet/config.d/*.conf r,
-  
-  /etc/gnunet.conf 		 	  r,
-  owner @{HOME}/.config/gnunet.conf 	  r,
-
-  #Librairies
-  /usr/lib/libc-*.so             	  mr,
-  /usr/lib/libdl-*.so 		 	  mr,
-  /usr/lib/libgcrypt.so.*	 	  mr,
-  /usr/lib/libltdl.so.*		 	  mr,
-  /usr/lib/libgpg-error.so.*	 	  mr,
-  /usr/lib/libm-*.so 		 	  mr,
-  /usr/lib/libunistring.so.*	 	  mr,
-  /usr/lib/libz.so.* 		 	  mr,
-
-  #Gnunet librairies
-  /usr/local/lib/libgnunetutil.so.* 	  mr,
-  
-  #For testbed (if the /tmp directory is used)
-  /tmp/testbed*/		 	  rw,
-  /tmp/testbed*/**		 	  rwk,
+  #GNUnet librairies
+  @{GNUNET_PREFIX}/lib/libgnunet*.so.* 	  mr,

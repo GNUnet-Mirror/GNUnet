@@ -2,13 +2,17 @@
 #include <tunables/global>
 #include <tunables/gnunet>
 
-profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-fs-publish flags=(complain) {
+profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-fs-publish {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
+  #include <abstractions/user-download>
 
-  /usr/lib/libbz2.so.* mr,
-  /usr/lib/libextractor.so.* mr,
-  /usr/lib/libpthread-*.so mr,
-  /usr/lib/librt-*.so mr,
+  /dev/shm/LE-* r,
+
+  /usr/share/file/misc/magic.mgc r,
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-helper-fs-publish mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 }

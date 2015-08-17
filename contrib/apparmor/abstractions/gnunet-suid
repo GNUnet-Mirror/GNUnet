@@ -1,0 +1,15 @@
+# gnunet-suid
+
+  /etc/ld.so.cache					mr,
+  /lib{,32,64}/ld{,32,64}-*.so 				mrix,
+  /lib{,32,64}/**/ld{,32,64}-*.so 			mrix,
+  /lib/@{multiarch}/ld{,32,64}-*.so 			mrix,
+  /lib/tls/i686/{cmov,nosegneg}/ld-*.so                 mrix,
+  /lib/i386-linux-gnu/tls/i686/{cmov,nosegneg}/ld-*.so  mrix,
+  /opt/*-linux-uclibc/lib/ld-uClibc*so*                 mrix,
+
+  @{LIBPRE}@{LIBDIRS}/** 				   r,
+  @{LIBPRE}@{LIBDIRS}/@{LIBS}.so* 			   mr,
+  @{LIBPRE}@{LIBDIRS}/**/@{LIBS}.so* 			   mr,
+  /lib/tls/i686/{cmov,nosegneg}/@{LIBS}.so* 		   mr,
+  /lib/i386-linux-gnu/tls/i686/{cmov,nosegneg}/@{LIBS}.so* mr,

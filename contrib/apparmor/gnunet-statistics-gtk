@@ -1,0 +1,16 @@
+# Last Modified: Wed Aug  5 11:25:27 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-statistics-gtk {
+  #include <abstractions/kde>
+  #include <abstractions/gnome>
+  #include <abstractions/gnunet-gtk>
+
+  @{GNUNET_PREFIX}/bin/gnunet-statistics-gtk mr,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/gnunet_statistics_gtk_main_window.glade r,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

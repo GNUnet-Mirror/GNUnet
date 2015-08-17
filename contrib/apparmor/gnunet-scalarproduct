@@ -1,0 +1,13 @@
+# Last Modified: Mon Aug 10 15:13:42 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-scalarproduct {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/bin/gnunet-scalarproduct mr,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

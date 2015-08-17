@@ -1,0 +1,26 @@
+# Last Modified: Tue Aug  4 16:59:51 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-conversation-gtk {
+  #include <abstractions/kde>
+  #include <abstractions/gnome>
+  #include <abstractions/gnunet-gtk>
+
+  @{GNUNET_PREFIX}/bin/gnunet-conversation-gtk mr,
+
+  @{GNUNET_PREFIX}/lib/gnunet/ r,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_conversation.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_dns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_dns.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_gns.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_gnsrecord_gns.so mr,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/gnunet_conversation_gtk_main_window.glade r,
+
+  @{HOME}/.local/share/gnunet/private_key.ecc rk,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

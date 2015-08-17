@@ -3,18 +3,16 @@
 #include <tunables/gnunet>
 
 profile @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-ats {
+  #include <abstractions/base>
   #include <abstractions/gnunet-common>
 
   @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-ats mr,
   
-  #Gnunet librairies
-  @{GNUNET_PREFIX}/lib/libgnunethello.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetstatistics.so.* mr,
-  @{GNUNET_PREFIX}/lib/libgnunetats.so.* mr,
-
   #Gnunet plugin
-  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_ats_proportional.la r,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_ats_proportional.la r,
   @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_ats_proportional.so mr,
+  
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
 
-  /usr/lib/ld-*.so r,
 }

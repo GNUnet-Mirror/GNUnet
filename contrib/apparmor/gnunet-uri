@@ -1,0 +1,16 @@
+# Last Modified: Mon Aug 10 18:04:08 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-uri {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  #More needed
+  @{GNUNET_PREFIX}/bin/gnunet-fs-gtk Px,
+
+  @{GNUNET_PREFIX}/bin/gnunet-uri mr,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

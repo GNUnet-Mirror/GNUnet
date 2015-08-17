@@ -1,0 +1,19 @@
+# Last Modified: Mon Aug 10 11:46:50 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-peerinfo {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/bin/gnunet-peerinfo mr,
+
+  #GNUnet plugin
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_tcp.so mr,
+# @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.la r,
+  @{GNUNET_PREFIX}/lib/gnunet/libgnunet_plugin_transport_udp.so mr,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}

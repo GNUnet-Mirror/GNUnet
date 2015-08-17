@@ -1,0 +1,10 @@
+# gnunet-gtk
+
+  #include <abstractions/gnunet-common>
+ 
+  @{PROC}/@{pid}/cmdline 	  r,
+
+  /usr/share/gtk-*/settings.ini r,
+
+  @{GNUNET_PREFIX}/share/gnunet-gtk/config.d/ 			r,
+  @{GNUNET_PREFIX}/share/gnunet-gtk/config.d/gnunet-*-gtk.conf 	r,

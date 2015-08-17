@@ -1,0 +1,15 @@
+# Last Modified: Mon Aug 10 17:17:40 2015
+#include <tunables/global>
+#include <tunables/gnunet>
+
+profile @{GNUNET_PREFIX}/bin/gnunet-transport {
+  #include <abstractions/base>
+  #include <abstractions/gnunet-common>
+
+  @{GNUNET_PREFIX}/bin/gnunet-transport mr,
+
+  @{GNUNET_PREFIX}/lib/gnunet/libexec/gnunet-service-resolver Px,
+
+  # Site-specific additions and overrides. See local/README for details.
+  #include <local/gnunet>
+}
