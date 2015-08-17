@@ -1115,9 +1115,16 @@ static void stun_request_callback(void *cls,
 
   struct GNUNET_NAT_Handle *h = cls;
 
+  if(NULL == cls)
+    return;
+
   h->waiting_stun = GNUNET_NO;
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+
+  if(result != GNUNET_OK)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
        "Error processing a STUN request");
+  }
 
 };
 
@@ -1131,7 +1138,7 @@ static void stun_request_callback(void *cls,
  * @return GNUNET_NO if it can't decode, GNUNET_YES if is a packet
  */
 int
-GNUNET_NAT_try_decode_stun_packet(void *cls, const uint8_t *data, size_t len)
+GNUNET_NAT_try_decode_stun_packet(void *cls, const void *data, size_t len)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct sockaddr_in answer;

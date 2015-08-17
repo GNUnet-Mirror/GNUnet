@@ -220,7 +220,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls,
-                     struct GNUNET_NETWORK_Handle* sock );
+                     struct GNUNET_NETWORK_Handle* sock);
 
 
 /**
@@ -492,7 +492,8 @@ typedef void
  * @return GNUNET_NAT_STUN_Handle on success, NULL on error.
  */
 struct GNUNET_NAT_STUN_Handle *
-GNUNET_NAT_stun_make_request(char * server, int port,
+GNUNET_NAT_stun_make_request(char * server,
+                             int port,
                              struct GNUNET_NETWORK_Handle * sock, GNUNET_NAT_stun_RequestCallback cb,
                              void *cb_cls);
 
@@ -511,7 +512,9 @@ GNUNET_NAT_stun_make_request(char * server, int port,
  * @return, 0 on IGNORE, -1 if the packet is invalid ( not a stun packet)
  */
 int
-GNUNET_NAT_stun_handle_packet(const uint8_t *data, size_t len,struct sockaddr_in *arg);
+GNUNET_NAT_stun_handle_packet(const void *data,
+                              size_t len,
+                              struct sockaddr_in *arg);
 
 /**
  * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet
@@ -524,7 +527,9 @@ GNUNET_NAT_stun_handle_packet(const uint8_t *data, size_t len,struct sockaddr_in
  * @return, 0 on IGNORE, -1 if the packet is invalid ( not a stun packet)
  */
 int
-GNUNET_NAT_try_decode_stun_packet(void *cls, const uint8_t *data, size_t len);
+GNUNET_NAT_try_decode_stun_packet(void *cls,
+                                  const void *data,
+                                  size_t len);
 
 
 

@@ -334,7 +334,7 @@ stun_get_mapped(struct StunState *st, struct stun_attr *attr,struct sockaddr_in 
  * @return, GNUNET_OK on OK, GNUNET_NO if the packet is invalid ( not a stun packet)
  */
 int
-GNUNET_NAT_stun_handle_packet(const uint8_t *data, size_t len,struct sockaddr_in *arg)
+GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *arg)
 {
     struct stun_header *hdr = (struct stun_header *)data;
     struct stun_attr *attr;
@@ -463,8 +463,9 @@ stun_dns_callback (void *cls,
 
         if( GNUNET_NO == request->dns_success){
             LOG (GNUNET_ERROR_TYPE_INFO, "Empty request\n");
-            clean(request);
             request->cb(request->cb_cls, GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
+            clean(request);
+
         }
         return;
     }
@@ -474,8 +475,9 @@ stun_dns_callback (void *cls,
 
         if( GNUNET_NO == request->dns_success){
             LOG (GNUNET_ERROR_TYPE_INFO, "Error resolving host %s\n", request->stun_server);
-            clean(request);
             request->cb(request->cb_cls, GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
+            clean(request);
+
         }
 
         return;
@@ -503,8 +505,8 @@ stun_dns_callback (void *cls,
                                             (const struct sockaddr *) &server, sizeof (server)))
     {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "Fail to sendto");
-        clean(request);
         request->cb(request->cb_cls, GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
+        clean(request);
         return;
     }
 
