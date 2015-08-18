@@ -1743,7 +1743,7 @@ fi
 
 AC_MSG_NOTICE([********************************************
 Please make sure NOW that you have created a user and group 'gnunet'
-and additionally a group 'gnunetdns':
+and additionally a group 'gnunetdns'. On Debian and Ubuntu GNU/Linux, type:
         addgroup gnunetdns
         adduser --system --group --disabled-login --home /var/lib/gnunet gnunet
 
@@ -1761,6 +1761,8 @@ require fresh login to come into effect):
 (run the above command as root once for each of your users, replacing
 "USERNAME" with the respective login names).  If you have a global IP
 address, no further configuration is required.
+
+For more detailed setup instructions, see https://gnunet.org/installation
 
 Optionally, download and compile gnunet-gtk to get a GUI for
 file-sharing and configuration.  This is particularly recommended
