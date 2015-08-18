@@ -302,8 +302,8 @@ GNUNET_STRINGS_data_to_string (const void *data,
  * The returned string will be freshly allocated, and must be free'd
  * with #GNUNET_free().
  *
- * @param buffer with data
- * @param size size of the buffer
+ * @param buf buffer with data
+ * @param size size of the buffer @a buf
  * @return freshly allocated, null-terminated string
  */
 char *
