@@ -1745,7 +1745,6 @@ AC_MSG_NOTICE([********************************************
 Please make sure NOW that you have created a user and group 'gnunet'
 and additionally a group 'gnunetdns':
         addgroup gnunetdns
-        addgroup gnunet
         adduser gnunet
 
 Make sure that '/var/lib/gnunet' is owned (and writable) by user
