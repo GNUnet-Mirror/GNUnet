@@ -1745,7 +1745,7 @@ AC_MSG_NOTICE([********************************************
 Please make sure NOW that you have created a user and group 'gnunet'
 and additionally a group 'gnunetdns'. On Debian and Ubuntu GNU/Linux, type:
         addgroup gnunetdns
-        adduser --system --group --disabled-login --home /var/lib/gnunet gnunet
+        adduser --system --group --disabled-login --shell /bin/bash --home /var/lib/gnunet gnunet
 
 Make sure that '/var/lib/gnunet' is owned (and writable) by user
 'gnunet'.  Then, you can compile GNUnet with
