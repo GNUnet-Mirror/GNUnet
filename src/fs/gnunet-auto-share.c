@@ -378,6 +378,8 @@ maint_child_death (void *cls,
 				      &maint_child_death, wi);
     return;
   }
+  /* consume the signal */
+  GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
 
   ret = GNUNET_OS_process_status (publish_proc,
 				  &type,
@@ -385,21 +387,20 @@ maint_child_death (void *cls,
   GNUNET_assert (GNUNET_SYSERR != ret);
   if (GNUNET_NO == ret)
   {
-    /* process still running? Well, how did we get here?
-       Anyway, answer is to kill it! */
+    /* process still running? Then where did the SIGCHLD come from?
+       Well, let's declare it spurious (kernel bug?) and keep rolling.
+    */  
     GNUNET_break (0);
-    GNUNET_OS_process_kill (publish_proc, 
-			    SIGKILL);
-    ret = GNUNET_OS_process_status (publish_proc,
-				    &type,
-				    &code);
+    run_task =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+				      pr,
+				      &maint_child_death, wi);
+    return;
   }
   GNUNET_assert (GNUNET_OK == ret);
   
   GNUNET_OS_process_destroy (publish_proc);
   publish_proc = NULL;
-  /* consume the signal */
-  GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
 
   if (GNUNET_YES == do_shutdown)
   {
