@@ -3680,7 +3680,7 @@ GCT_destroy_empty (struct CadetTunnel *t)
   // FIXME make delay a config option
   t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                   &delayed_destroy, t);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled destroy of %p as %llu\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled destroy of %p as %p\n",
        t, t->destroy_task);
 }
 
@@ -3774,14 +3774,14 @@ GCT_destroy (struct CadetTunnel *t)
 
   if (NULL != t->destroy_task)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling dest: %llX\n", t->destroy_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling dest: %p\n", t->destroy_task);
     GNUNET_SCHEDULER_cancel (t->destroy_task);
     t->destroy_task = NULL;
   }
 
   if (NULL != t->trim_connections_task)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling trim: %llX\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling trim: %p\n",
          t->trim_connections_task);
     GNUNET_SCHEDULER_cancel (t->trim_connections_task);
     t->trim_connections_task = NULL;
