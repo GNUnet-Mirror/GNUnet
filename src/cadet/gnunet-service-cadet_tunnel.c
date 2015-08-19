@@ -2909,7 +2909,8 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 
   if (0 != (GNUNET_CADET_AX_KX_FLAG_FORCE_REPLY & ntohl (msg->flags)))
   {
-    if (NULL != t->rekey_task) {
+    if (NULL != t->rekey_task)
+    {
       GNUNET_SCHEDULER_cancel (t->rekey_task);
       t->rekey_task = NULL;
     }
