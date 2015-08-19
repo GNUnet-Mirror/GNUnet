@@ -3134,13 +3134,18 @@ GCT_handle_encrypted (struct CadetTunnel *t,
      this loop may be unaligned, see util's MST for
      how to do this right. */
   off = 0;
-  while (off < decrypted_size)
+  while (off + sizeof (struct GNUNET_MessageHeader) < decrypted_size)
   {
     uint16_t msize;
 
     msgh = (const struct GNUNET_MessageHeader *) &cbuf[off];
     msize = ntohs (msgh->size);
     if (msize < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    if (off + msize < decrypted_size)
     {
       GNUNET_break_op (0);
       return;
