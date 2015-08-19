@@ -2919,6 +2919,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
 
   if (0 == memcmp (&ax->DHRr, &msg->ratchet_key, sizeof(msg->ratchet_key)))
   {
+    LOG (GNUNET_ERROR_TYPE_INFO, " known ratchet key, exit\n");
     return;
   }
 
@@ -2998,6 +2999,9 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
     ax->ratchet_expiration =
       GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), ratchet_time);
   }
+  ax->PNs = 0;
+  ax->Nr = 0;
+  ax->Ns = 0;
   GCT_change_estate (t, CADET_TUNNEL_KEY_PING);
   send_queued_data (t);
 }
