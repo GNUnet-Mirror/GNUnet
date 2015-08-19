@@ -3086,7 +3086,6 @@ GCT_handle_encrypted (struct CadetTunnel *t,
 {
   uint16_t size = ntohs (msg->size);
   char cbuf [size];
-  size_t payload_size;
   int decrypted_size;
   uint16_t type;
   const struct GNUNET_MessageHeader *msgh;
@@ -3098,6 +3097,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
     {
       const struct GNUNET_CADET_Encrypted *emsg;
+      size_t payload_size;
 
       GNUNET_STATISTICS_update (stats, "# received OTR", 1, GNUNET_NO);
       emsg = (const struct GNUNET_CADET_Encrypted *) msg;
