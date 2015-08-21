@@ -112,4 +112,5 @@ test_stun_LDADD = \
 
 EXTRA_DIST = \
  test_nat_data.conf \
- test_nat_test_data.conf 
+ test_nat_test_data.conf \
+ test_stun.conf
