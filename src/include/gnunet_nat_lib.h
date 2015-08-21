@@ -489,9 +489,9 @@ typedef void
  * @param server, the address of the stun server
  * @param port, port of the stun server
  * @param sock the socket used to send the request
- * @return GNUNET_NAT_STUN_Handle on success, NULL on error.
+ * @return #GNUNET_OK success, #GNUNET_NO on error.
  */
-struct GNUNET_NAT_STUN_Handle *
+int
 GNUNET_NAT_stun_make_request(char * server,
                              int port,
                              struct GNUNET_NETWORK_Handle * sock, GNUNET_NAT_stun_RequestCallback cb,
@@ -499,17 +499,18 @@ GNUNET_NAT_stun_make_request(char * server,
 
 
 /**
+ *
  * Handle an incoming STUN message, Do some basic sanity checks on packet size and content,
  * try to extract a bit of information, and possibly reply.
  * At the moment this only processes BIND requests, and returns
  * the externally visible address of the request.
  * If a callback is specified, invoke it with the attribute.
  *
- * @param data, pointer where we will set the type
- * @param len, pointer where we will set the type
- * @param st, pointer where we will set the type
+ * @param data, the packet
+ * @param len, the length of the packet
+ * @param arg, sockaddr_in where we will set our discovered packet
  *
- * @return, 0 on IGNORE, -1 if the packet is invalid ( not a stun packet)
+ * @return, #GNUNET_OK on OK, #GNUNET_NO if the packet is invalid ( not a stun packet)
  */
 int
 GNUNET_NAT_stun_handle_packet(const void *data,
@@ -517,17 +518,18 @@ GNUNET_NAT_stun_handle_packet(const void *data,
                               struct sockaddr_in *arg);
 
 /**
- * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet
+ * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet.
+ * It also check if it can handle the packet based on the NAT handler.
+ * You don't need to call anything else to check if the packet is valid,
  *
- * @param cls, NAT callback
- * @param data, pointer where we will set the type
- * @param len, pointer where we will set the type
- * @param st, pointer where we will set the type
+ * @param cls the NAT handle
+ * @param data, packet
+ * @param len, packet length
  *
- * @return, 0 on IGNORE, -1 if the packet is invalid ( not a stun packet)
+ * @return #GNUNET_NO if it can't decode,# GNUNET_YES if is a packet
  */
 int
-GNUNET_NAT_try_decode_stun_packet(void *cls,
+GNUNET_NAT_is_valid_stun_packet(void *cls,
                                   const void *data,
                                   size_t len);
 

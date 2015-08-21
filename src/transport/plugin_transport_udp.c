@@ -2857,7 +2857,7 @@ udp_select_read (struct Plugin *plugin,
 
 
   /* PROCESS STUN PACKET */
-  if(GNUNET_NAT_try_decode_stun_packet(plugin->nat,(uint8_t *)buf, size ))
+  if(GNUNET_NAT_is_valid_stun_packet(plugin->nat,(uint8_t *)buf, size ))
     return;
 
 
