@@ -51,8 +51,8 @@
 static unsigned long port = 7895;
 static int ret = 1;
 
-static char *stun_server = "stun2.l.google.com";
-static int stun_port = 19302;
+static char *stun_server = "stun.ekiga.net";
+static int stun_port = 3478;
 
 /**
  * The listen socket of the service for IPv4
@@ -71,7 +71,7 @@ static struct GNUNET_SCHEDULER_Task * ltask4;
 static void
 print_answer(struct sockaddr_in* answer)
 {
-	printf("External IP is: %s , with port %d\n", inet_ntoa(answer->sin_addr), ntohs(answer->sin_port));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,"External IP is: %s , with port %d\n", inet_ntoa(answer->sin_addr), ntohs(answer->sin_port));
 }
 
 
@@ -90,9 +90,6 @@ do_udp_read (void *cls,
 	unsigned char reply_buf[1024];
 	ssize_t rlen;
 	struct sockaddr_in answer;
-
-    printf("UDP READ\n");
-
 
     if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
@@ -161,7 +158,6 @@ stop ()
 {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
 
-    printf("Stopped !!\n");
     //Clean task
     if(NULL != ltask4)
         GNUNET_SCHEDULER_cancel (ltask4);
@@ -178,7 +174,6 @@ enum GNUNET_NAT_StatusCode result)
 {
     ret = result;
     stop();
-    printf("Called back\n");
 };
 
 
@@ -211,9 +206,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Service listens on port %u\n",
                 port);
-	printf("Start main event\n");
     GNUNET_NAT_stun_make_request(stun_server, stun_port, lsock4, &request_callback, NULL);
-    printf("Made the requeest\n");
 
     //GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, NULL);
 

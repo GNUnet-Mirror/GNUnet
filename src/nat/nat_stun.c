@@ -111,8 +111,10 @@ struct StunState {
  * @param msg the received message
  * @return the converted StunClass
  */
-static int decode_class(int msg)
+static int
+decode_class(int msg)
 {
+    /* Sorry for the magic, but this maps the class according to rfc5245 */
     return ((msg & 0x0010) >> 4) | ((msg & 0x0100) >> 7);
 }
 
@@ -122,7 +124,8 @@ static int decode_class(int msg)
  * @param msg the received message
  * @return the converted StunMethod
  */
-static int decode_method(int msg)
+static int
+decode_method(int msg)
 {
     return (msg & 0x000f) | ((msg & 0x00e0) >> 1) | ((msg & 0x3e00) >> 2);
 }
@@ -134,7 +137,8 @@ static int decode_method(int msg)
  * @param method method to be converted
  * @return message in a STUN compatible format
  */
-static int encode_message(StunClasses msg_class, StunMethods method)
+static int
+encode_message(StunClasses msg_class, StunMethods method)
 {
     return ((msg_class & 1) << 4) | ((msg_class & 2) << 7) |
            (method & 0x000f) | ((method & 0x0070) << 1) | ((method & 0x0f800) << 2);
@@ -146,7 +150,8 @@ static int encode_message(StunClasses msg_class, StunMethods method)
  * @param msg
  * @return string with the message class and method
  */
-static const char *stun_msg2str(int msg)
+static const char *
+stun_msg2str(int msg)
 {
 
     const struct { enum StunClasses value; const char *name; } classes[] = {
@@ -180,7 +185,7 @@ static const char *stun_msg2str(int msg)
         if (methods[i].value == value)
             break;
     }
-    snprintf(result, sizeof(result), "%s %s",
+    GNUNET_snprintf(result, sizeof(result), "%s %s",
              method ? : "Unknown Method",
              msg_class ? : "Unknown Class Message");
     return result;
@@ -192,7 +197,8 @@ static const char *stun_msg2str(int msg)
  * @param msg with a attribute type
  * @return string with the attribute name
  */
-static const char *stun_attr2str(int msg)
+static const char *
+stun_attr2str(int msg)
 {
     const struct { enum StunAttributes value; const char *name; } attrs[] = {
             { STUN_MAPPED_ADDRESS, "Mapped Address" },
@@ -234,7 +240,8 @@ static const char *stun_attr2str(int msg)
  *
  * @param req, stun header to be filled
  */
-static int stun_process_attr(struct StunState *state, struct stun_attr *attr)
+static int
+stun_process_attr(struct StunState *state, struct stun_attr *attr)
 {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Found STUN Attribute %s (%04x), length %d\n",
@@ -264,7 +271,7 @@ static int stun_process_attr(struct StunState *state, struct stun_attr *attr)
 static void
 generate_request_id(struct stun_header *req)
 {
-    int x;
+    unsigned int x;
     req->magic = htonl(STUN_MAGIC_COOKIE);
     for (x = 0; x < 3; x++)
         req->id.id[x] = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
@@ -282,7 +289,7 @@ generate_request_id(struct stun_header *req)
  * @param arg , pointer to a sockaddr_in where we will set the reported IP and port
  * @param magic , Magic cookie
  *
- * @return 0 on sucess, other value otherwise
+ * @return 0 on success, other value otherwise
  */
 static int
 stun_get_mapped(struct StunState *st, struct stun_attr *attr,struct sockaddr_in *arg, unsigned int magic)
@@ -312,7 +319,7 @@ stun_get_mapped(struct StunState *st, struct stun_attr *attr,struct sockaddr_in 
     }
 
     st->attr = type;
-    /*TODO: Detect Family*/
+
     sa->sin_family = AF_INET;
     sa->sin_port = returned_addr->port ^ htons(ntohl(magic) >> 16);
     sa->sin_addr.s_addr = returned_addr->addr ^ magic;
@@ -331,12 +338,12 @@ stun_get_mapped(struct StunState *st, struct stun_attr *attr,struct sockaddr_in 
  * @param len, the length of the packet
  * @param arg, sockaddr_in where we will set our discovered packet
  *
- * @return, GNUNET_OK on OK, GNUNET_NO if the packet is invalid ( not a stun packet)
+ * @return, #GNUNET_OK on OK, #GNUNET_NO if the packet is invalid ( not a stun packet)
  */
 int
 GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *arg)
 {
-    struct stun_header *hdr = (struct stun_header *)data;
+    const struct stun_header *hdr = (const struct stun_header *)data;
     struct stun_attr *attr;
     struct StunState st;
     int ret = GNUNET_OK;
@@ -367,28 +374,29 @@ GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *
     if(STUN_MAGIC_COOKIE != message_magic_cookie){
         LOG (GNUNET_ERROR_TYPE_INFO,
              "Invalid magic cookie \n");
-        GNUNET_break_op (0);
         return GNUNET_NO;
     }
 
 
-    LOG (GNUNET_ERROR_TYPE_INFO, "STUN Packet, msg %s (%04x), length: %d\n", stun_msg2str(ntohs(hdr->msgtype)), ntohs(hdr->msgtype), advertised_message_size);
+    LOG (GNUNET_ERROR_TYPE_INFO, "STUN Packet, msg %s (%04x), length: %d\n", stun_msg2str(ntohs(hdr->msgtype)),
+         ntohs(hdr->msgtype),
+         advertised_message_size);
 
 
     if (advertised_message_size > len) {
-        LOG (GNUNET_ERROR_TYPE_INFO, "Scrambled STUN packet length (got %d, expecting %d)\n", advertised_message_size, (int)len);
-        GNUNET_break_op (0);
+        LOG (GNUNET_ERROR_TYPE_INFO, "Scrambled STUN packet length (got %d, expecting %d)\n", advertised_message_size,
+             (int)len);
         return GNUNET_NO;
     } else {
         len = advertised_message_size;
     }
-    /* Zero the struct */
+
     memset(&st,0, sizeof(st));
 
     while (len > 0) {
         if (len < sizeof(struct stun_attr)) {
-            LOG (GNUNET_ERROR_TYPE_INFO, "Attribute too short (got %d, expecting %d)\n", (int)len, (int) sizeof(struct stun_attr));
-            GNUNET_break_op (0);
+            LOG (GNUNET_ERROR_TYPE_INFO, "Attribute too short (got %d, expecting %d)\n", (int)len,
+                 (int) sizeof(struct stun_attr));
             break;
         }
         attr = (struct stun_attr *)data;
@@ -398,8 +406,8 @@ GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *
 
         /* Check if we still have space in our buffer */
         if (advertised_message_size > len ) {
-            LOG (GNUNET_ERROR_TYPE_INFO, "Inconsistent Attribute (length %d exceeds remaining msg len %d)\n", advertised_message_size, (int)len);
-            GNUNET_break_op (0);
+            LOG (GNUNET_ERROR_TYPE_INFO, "Inconsistent Attribute (length %d exceeds remaining msg len %d)\n", advertised_message_size,
+                 (int)len);
             break;
         }
 
@@ -407,7 +415,8 @@ GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *
         stun_get_mapped(&st, attr, arg, hdr->magic);
 
         if (stun_process_attr(&st, attr)) {
-            LOG (GNUNET_ERROR_TYPE_INFO, "Failed to handle attribute %s (%04x)\n", stun_attr2str(ntohs(attr->attr)), ntohs(attr->attr));
+            LOG (GNUNET_ERROR_TYPE_INFO, "Failed to handle attribute %s (%04x)\n", stun_attr2str(ntohs(attr->attr)),
+                 ntohs(attr->attr));
             break;
         }
         /** Clear attribute id: in case previous entry was a string,
@@ -429,7 +438,8 @@ GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *
  *
  * @param cls our `struct GNUNET_NAT_STUN_Handle *`
  */
-void clean(struct GNUNET_NAT_STUN_Handle * handle)
+static void
+clean(struct GNUNET_NAT_STUN_Handle * handle)
 {
     GNUNET_free(handle->stun_server);
     GNUNET_free(handle);
@@ -526,9 +536,9 @@ stun_dns_callback (void *cls,
  * @param server, the address of the stun server
  * @param port, port of the stun server
  * @param sock the socket used to send the request
- * @return GNUNET_NAT_STUN_Handle on success, NULL on error.
+ * @return #GNUNET_OK success, #GNUNET_NO on error.
  */
-struct GNUNET_NAT_STUN_Handle *
+int
 GNUNET_NAT_stun_make_request(char * server, int port,
                              struct GNUNET_NETWORK_Handle * sock,GNUNET_NAT_stun_RequestCallback cb,
                              void *cb_cls)
@@ -554,9 +564,10 @@ GNUNET_NAT_stun_make_request(char * server, int port,
     if(rh->dns_active == NULL)
     {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "Failed DNS");
-        return NULL;
+        GNUNET_free(rh);
+        return GNUNET_NO;
     }
 
 
-    return rh;
+    return GNUNET_OK;
 }

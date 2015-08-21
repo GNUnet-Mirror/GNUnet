@@ -407,7 +407,7 @@ struct GNUNET_NAT_Handle
   int use_stun;
 
   /**
-   * How often should se check STUN ?
+   * How often should we check STUN ?
    */
   struct GNUNET_TIME_Relative stun_frequency;
 
@@ -1109,7 +1109,8 @@ list_interfaces (void *cls,
  * @param cls the NAT handle
  * @param result , the status
  */
-static void stun_request_callback(void *cls,
+static void
+stun_request_callback(void *cls,
                                   enum GNUNET_NAT_StatusCode result)
 {
 
@@ -1129,22 +1130,28 @@ static void stun_request_callback(void *cls,
 };
 
 /**
- * Check if STUN can decode the packet
+ * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet.
+ * It also check if it can handle the packet based on the NAT handler.
+ * You don't need to call anything else to check if the packet is valid,
  *
  * @param cls the NAT handle
  * @param data, packet
- * @param len, packet lenght
+ * @param len, packet length
  *
- * @return GNUNET_NO if it can't decode, GNUNET_YES if is a packet
+ * @return #GNUNET_NO if it can't decode, #GNUNET_YES if is a packet
  */
 int
-GNUNET_NAT_try_decode_stun_packet(void *cls, const void *data, size_t len)
+GNUNET_NAT_is_valid_stun_packet(void *cls, const void *data, size_t len)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct sockaddr_in answer;
 
   /* We are not expecting a STUN message*/
   if(!h->waiting_stun)
+    return GNUNET_NO;
+
+  /*We dont have STUN installed*/
+  if(!h->use_stun)
     return GNUNET_NO;
 
   /* Empty the answer structure */
@@ -1154,7 +1161,7 @@ GNUNET_NAT_try_decode_stun_packet(void *cls, const void *data, size_t len)
   int valid = GNUNET_NAT_stun_handle_packet(data,len, &answer);
   if(valid)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_INFO,
          "Stun server returned IP %s , with port %d \n", inet_ntoa(answer.sin_addr), ntohs(answer.sin_port));
     /* ADD IP AS VALID*/
     add_to_address_list (h, LAL_EXTERNAL_IP, (const struct sockaddr *) &answer,
@@ -1183,20 +1190,25 @@ process_stun (void *cls,
 {
   struct GNUNET_NAT_Handle *h = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "I will do a STUN request\n");
-
-
   h->stun_task = NULL;
-  h->waiting_stun = GNUNET_YES;
+
+
 
   struct StunServerList* elem = h->actual_stun_server;
 
   /* Make the request */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_INFO,
        "I will request the stun server %s:%i !\n", elem->address, elem->port);
 
-  GNUNET_NAT_stun_make_request(elem->address, elem->port, h->socket, &stun_request_callback, NULL);
+  if(GNUNET_OK == GNUNET_NAT_stun_make_request(elem->address, elem->port, h->socket, &stun_request_callback, NULL))
+  {
+    h->waiting_stun = GNUNET_YES;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "STUN request failed %s:%i !\n", elem->address, elem->port);
+  }
 
   h->stun_task =
           GNUNET_SCHEDULER_add_delayed (h->stun_frequency,
@@ -1588,7 +1600,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   /* ENABLE STUN ONLY ON UDP*/
-  if(!is_tcp && (NULL != sock) && h->use_stun  ) {
+  if(!is_tcp && (NULL != sock) && h->use_stun  )
+  {
     h->socket = sock;
     h->actual_stun_server = NULL;
 
@@ -1771,6 +1784,11 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   {
     GNUNET_SCHEDULER_cancel (h->dns_task);
     h->dns_task = NULL;
+  }
+  if (NULL !=   h->stun_task)
+  {
+    GNUNET_SCHEDULER_cancel (h->stun_task);
+    h->stun_task = NULL;
   }
   if (NULL != h->server_proc)
   {
