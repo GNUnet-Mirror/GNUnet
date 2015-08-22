@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2012 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,6 +22,7 @@
  * @file nat/nat_auto.c
  * @brief functions for auto-configuration of the network
  * @author Christian Grothoff
+ * @author Bruno Cabral
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -37,6 +38,8 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 15)
 
+#define NAT_SERVER_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 /**
  * Phases of the auto configuration.
  */
@@ -48,14 +51,14 @@ enum AutoPhase
   AUTO_INIT = 0,
 
   /**
-   * Test if we are online.
+   * Test our external IP.
    */
-  AUTO_ONLINE,
+  AUTO_EXTERNAL_IP,
 
   /**
    * Test our external IP.
    */
-  AUTO_EXTERNAL_IP,
+   AUTO_STUN,
 
   /**
    * Test our internal IP.
@@ -136,10 +139,37 @@ struct GNUNET_NAT_AutoHandle
    */
   enum AutoPhase phase;
 
+
+  /**
+   * Situation of the NAT
+   */
+  enum GNUNET_NAT_Type type;
+
   /**
    * Do we have IPv6?
    */
   int have_v6;
+
+  /**
+   * UPnP already set the external ip address ?
+   */
+  int upnp_set_external_address;
+
+  /**
+   * Did the external server connected back ?
+   */
+  int connected_back;
+
+  /**
+    * Address detected by STUN
+   */
+  char* stun_ip;
+  int stun_port;
+
+  /**
+   * Internal IP is the same as the public one ?
+   */
+  int internal_ip_is_public;
 
   /**
    * Error code for better debugging and user feedback
@@ -148,13 +178,197 @@ struct GNUNET_NAT_AutoHandle
 };
 
 
+
+
+
+
+/**
+ * The listen socket of the service for IPv4
+ */
+static struct GNUNET_NETWORK_Handle *lsock4;
+
+
+/**
+ * The listen task ID for IPv4
+ */
+static struct GNUNET_SCHEDULER_Task * ltask4;
+
+
+
+
+/**
+ * The port the test service is running on (default 7895)
+ */
+static unsigned long long port = 7895;
+
+static char *stun_server = "stun.ekiga.net";
+static int stun_port = 3478;
+
+
+
 /**
  * Run the next phase of the auto test.
  *
  * @param ah auto test handle
  */
 static void
-next_phase (struct GNUNET_NAT_AutoHandle *ah);
+        next_phase (struct GNUNET_NAT_AutoHandle *ah);
+
+
+
+
+static void
+process_stun_reply(struct sockaddr_in* answer, struct GNUNET_NAT_AutoHandle *ah)
+{
+
+  ah->stun_ip = inet_ntoa(answer->sin_addr);
+  ah->stun_port = ntohs(answer->sin_port);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "External IP is: %s , with port %d\n", ah->stun_ip, ah->stun_port);
+
+
+  next_phase (ah);
+
+}
+
+/**
+ * Function that terminates the test.
+ */
+static void
+stop_stun ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
+
+  //Clean task
+  if(NULL != ltask4)
+    GNUNET_SCHEDULER_cancel (ltask4);
+
+  //Clean socket
+  if(NULL != ltask4)
+    GNUNET_NETWORK_socket_close (lsock4);
+
+}
+
+/**
+ * Activity on our incoming socket.  Read data from the
+ * incoming connection.
+ *
+ * @param cls
+ * @param tc scheduler context
+ */
+static void
+do_udp_read (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_NAT_AutoHandle *ah = cls;
+  unsigned char reply_buf[1024];
+  ssize_t rlen;
+  struct sockaddr_in answer;
+
+
+  if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
+      (GNUNET_NETWORK_fdset_isset (tc->read_ready,
+                                   lsock4)))
+  {
+    rlen = GNUNET_NETWORK_socket_recv (lsock4, reply_buf, sizeof (reply_buf));
+
+
+    //Lets handle the packet
+    memset(&answer, 0, sizeof(struct sockaddr_in));
+
+
+
+
+
+    if(ah->phase == AUTO_NAT_PUNCHED)
+    {
+      //Destroy the connection
+      GNUNET_NETWORK_socket_close (lsock4);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "The external server was able to connect back");
+      ah->connected_back = GNUNET_YES;
+      next_phase (ah);
+    }
+    else
+    {
+      if(GNUNET_OK == GNUNET_NAT_stun_handle_packet(reply_buf,rlen, &answer))
+      {
+        //Process the answer
+        process_stun_reply(&answer, ah);
+
+      }
+      else
+      {
+        next_phase (ah);
+      }
+    }
+
+
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TIMEOUT while aiting for an answer");
+    if(ah->phase == AUTO_NAT_PUNCHED)
+    {
+      stop_stun();
+    }
+
+    next_phase(ah);
+  }
+
+
+
+}
+
+
+/**
+ * Create an IPv4 listen socket bound to our port.
+ *
+ * @return NULL on error
+ */
+static struct GNUNET_NETWORK_Handle *
+bind_v4 ()
+{
+  struct GNUNET_NETWORK_Handle *ls;
+  struct sockaddr_in sa4;
+  int eno;
+
+  memset (&sa4, 0, sizeof (sa4));
+  sa4.sin_family = AF_INET;
+  sa4.sin_port = htons (port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    sa4.sin_len = sizeof (sa4);
+#endif
+  ls = GNUNET_NETWORK_socket_create (AF_INET,
+                                     SOCK_DGRAM,
+                                     0);
+  if (NULL == ls)
+    return NULL;
+  if (GNUNET_OK !=
+      GNUNET_NETWORK_socket_bind (ls, (const struct sockaddr *) &sa4,
+                                  sizeof (sa4)))
+  {
+    eno = errno;
+    GNUNET_NETWORK_socket_close (ls);
+    errno = eno;
+    return NULL;
+  }
+  return ls;
+}
+
+
+
+
+static void request_callback(void *cls,
+                             enum GNUNET_NAT_StatusCode result)
+{
+  struct GNUNET_NAT_AutoHandle *ah = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
+  stop_stun();
+
+  next_phase(ah);
+};
+
+
+
 
 
 /**
@@ -170,6 +384,7 @@ result_callback (void *cls,
                  enum GNUNET_NAT_StatusCode ret)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
+
   if (GNUNET_NAT_ERROR_SUCCESS == ret)
     GNUNET_NAT_test_stop (ah->tst);
   ah->tst = NULL;
@@ -206,24 +421,8 @@ reversal_test (void *cls,
 
 
 /**
- * Test if we are online at all.
+ * Set our external IPv4 address based on the UPnP.
  *
- * @param ah auto setup context
- */
-static void
-test_online (struct GNUNET_NAT_AutoHandle *ah)
-{
-  // FIXME: not implemented
-  /*
-   * if (failure)
-   *  ah->ret = GNUNET_NAT_ERROR_NOT_ONLINE;
-   */
-  next_phase (ah);
-}
-
-
-/**
- * Set our external IPv4 address.
  *
  * @param cls closure with our setup context
  * @param addr the address, NULL on errors
@@ -267,6 +466,7 @@ set_external_ipv4 (void *cls,
   }
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
 					 buf);
+  ah->upnp_set_external_address = GNUNET_YES;
   next_phase (ah);
 }
 
@@ -287,6 +487,59 @@ test_external_ip (struct GNUNET_NAT_AutoHandle *ah)
   ah->eh = GNUNET_NAT_mini_get_external_ipv4 (TIMEOUT,
 					      &set_external_ipv4, ah);
 }
+
+
+/**
+ * Determine our external IPv4 address and port using an external STUN server
+ *
+ * @param ah auto setup context
+ */
+static void
+test_stun (struct GNUNET_NAT_AutoHandle *ah)
+{
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,"Running STUN test");
+
+  /* Get port from the configuration */
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (ah->cfg,
+                                             "transport-udp",
+                                             "PORT",
+                                             &port))
+  {
+    port = 2086;
+  }
+
+  //Lets create the socket
+  lsock4 = bind_v4 ();
+  if (NULL == lsock4)
+  {
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "bind");
+    next_phase(ah);
+    return;
+  }
+  else
+  {
+    //Lets call our function now when it accepts
+    ltask4 = GNUNET_SCHEDULER_add_read_net (NAT_SERVER_TIMEOUT,
+                                            lsock4, &do_udp_read, ah);
+
+  }
+
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "STUN service listens on port %u\n",
+              port);
+  if( GNUNET_NO == GNUNET_NAT_stun_make_request(stun_server, stun_port, lsock4, &request_callback, NULL))
+  {
+    /*An error happened*/
+    stop_stun();
+    next_phase(ah);
+  }
+
+
+}
+
 
 
 /**
@@ -315,8 +568,7 @@ process_if (void *cls,
   const struct sockaddr_in *in;
   char buf[INET_ADDRSTRLEN];
 
-  if (!isDefault)
-    return GNUNET_OK;
+
   if ( (sizeof (struct sockaddr_in6) == addrlen) &&
        (0 != memcmp (&in6addr_loopback, &((const struct sockaddr_in6 *) addr)->sin6_addr,
 		     sizeof (struct in6_addr))) &&
@@ -325,11 +577,13 @@ process_if (void *cls,
     ah->have_v6 = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("This system has a global IPv6 address, setting IPv6 to supported.\n"));
+
     return GNUNET_OK;
   }
   if (addrlen != sizeof (struct sockaddr_in))
     return GNUNET_OK;
   in = (const struct sockaddr_in *) addr;
+
 
   /* set internal IP address */
   if (NULL == inet_ntop (AF_INET, &in->sin_addr, buf, sizeof (buf)))
@@ -342,9 +596,24 @@ process_if (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Detected internal network address `%s'.\n"),
 	      buf);
+
+
   ah->ret = GNUNET_NAT_ERROR_SUCCESS;
-  /* no need to continue iteration */
-  return GNUNET_SYSERR;
+
+  /* Check if our internal IP is the same as the External detect by STUN*/
+  if(ah->stun_ip && (strcmp(buf, ah->stun_ip) == 0) )
+  {
+    ah->internal_ip_is_public = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,"A internal IP is the sameas the external");
+    /* No need to continue*/
+    return GNUNET_SYSERR;
+  }
+
+  /* no need to continue iteration if we found the default */
+  if (!isDefault)
+    return GNUNET_OK;
+  else
+    return GNUNET_SYSERR;
 }
 
 
@@ -374,13 +643,53 @@ test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
 static void
 test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
 {
-  if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
-    next_phase (ah);
-  
-  // FIXME: not implemented
-  
-  next_phase (ah);
+
+  struct GNUNET_CLIENT_Connection *client;
+  struct GNUNET_NAT_TestMessage msg;
+
+
+  if(ah->stun_ip)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Asking gnunet-nat-server to connect to `%s'\n",
+         ah->stun_ip);
+
+
+    msg.header.size = htons (sizeof (struct GNUNET_NAT_TestMessage));
+    msg.header.type = htons (GNUNET_MESSAGE_TYPE_NAT_TEST);
+    msg.dst_ipv4 = inet_addr(ah->stun_ip);
+    msg.dport = htons(ah->stun_port);
+    msg.data = port;
+    msg.is_tcp = htonl ((uint32_t) GNUNET_NO);
+
+    client = GNUNET_CLIENT_connect ("gnunet-nat-server", ah->cfg);
+    if (NULL == client)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to connect to `gnunet-nat-server'\n"));
+      return;
+    }
+
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CLIENT_transmit_and_get_response (client, &msg.header,
+                                                           NAT_SERVER_TIMEOUT,
+                                                           GNUNET_YES, NULL,
+                                                           NULL));
+    ltask4 = GNUNET_SCHEDULER_add_read_net (NAT_SERVER_TIMEOUT,
+                                            lsock4, &do_udp_read, ah);
+
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "We don't have a STUN IP");
+    next_phase(ah);
+  }
+
+
 }
+
+
 
 
 /**
@@ -391,16 +700,16 @@ test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
 static void
 test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 {
+
   int have_upnpc;
 
   if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
     next_phase (ah);
   
-  /* test if upnpc is available */
+  // test if upnpc is available
   have_upnpc = (GNUNET_SYSERR !=
 		GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL));
-  /* FIXME: test if upnpc is actually working, that is, if transports
-     start to work once we use UPnP */
+  //FIXME: test if upnpc is actually working, that is, if transports start to work once we use UPnP
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      (have_upnpc)
 	      ? _("upnpc found, enabling its use\n")
@@ -408,6 +717,7 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_UPNP",
 					 (GNUNET_YES == have_upnpc) ? "YES" : "NO");
   next_phase (ah);
+
 }
 
 
@@ -419,6 +729,7 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 static void
 test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
 {
+
   int ext_ip;
   int nated;
   int binary;
@@ -460,6 +771,7 @@ err:
     ah->task = GNUNET_SCHEDULER_add_now (&reversal_test, ah);
   else
     next_phase (ah);
+
 }
 
 
@@ -471,6 +783,8 @@ err:
 static void
 test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
 {
+
+
   char *tmp;
   char *helper;
 
@@ -502,6 +816,7 @@ err:
   GNUNET_free (helper);
 
   next_phase (ah);
+
 }
 
 
@@ -519,37 +834,116 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
   case AUTO_INIT:
     GNUNET_assert (0);
     break;
-  case AUTO_ONLINE:
-    test_online (ah);
-    break;
   case AUTO_EXTERNAL_IP:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_EXTERNAL_IP\n");
     test_external_ip (ah);
     break;
+  case AUTO_STUN:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_STUN\n");
+    test_stun (ah);
+    break;
   case AUTO_LOCAL_IP:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_LOCAL_IP\n");
     test_local_ip (ah);
     break;
   case AUTO_NAT_PUNCHED:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run GNUNET_ERROR_TYPE_DEBUG\n");
     test_nat_punched (ah);
     break;
   case AUTO_UPNPC:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_UPNPC\n");
     test_upnpc (ah);
     break;
   case AUTO_ICMP_SERVER:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_ICMP_SERVER\n");
     test_icmp_server (ah);
     break;
   case AUTO_ICMP_CLIENT:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_ICMP_CLIENT\n");
     test_icmp_client (ah);
     break;
   case AUTO_DONE:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Done with tests\n");
+    if(!ah->internal_ip_is_public)
+    {
+      GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "BEHIND_NAT", "YES");
+
+      if(ah->connected_back)
+      {
+        GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "PUNCHED_NAT", "YES");
+      }
+      else
+      {
+        GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "PUNCHED_NAT", "NO");
+      }
+
+      if (ah->stun_ip)
+      {
+        GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
+                                               ah->stun_ip);
+        if(ah->connected_back)
+        {
+          ah->type = GNUNET_NAT_TYPE_STUN_PUNCHED_NAT;
+          GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "USE_STUN", "YES");
+        }
+        else
+        {
+          ah->type = GNUNET_NAT_TYPE_UNREACHABLE_NAT;
+          GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "USE_STUN", "NO");
+        }
+
+      }
+      if(ah->stun_port)
+      {
+        GNUNET_CONFIGURATION_set_value_number (ah->cfg, "transport-udp",
+                                               "ADVERTISED_PORT",
+                                               ah->stun_port);
+      }
+
+    }
+    else
+    {
+      //The internal IP is the same as public, but we didn't got a incoming connection
+      if(ah->connected_back)
+      {
+        ah->type = GNUNET_NAT_TYPE_NO_NAT;
+        GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "BEHIND_NAT", "NO");
+      }
+      else
+      {
+        GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "BEHIND_NAT", "YES");
+        ah->type = GNUNET_NAT_TYPE_UNREACHABLE_NAT;
+        if (ah->stun_ip)
+        {
+          GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
+                                                 ah->stun_ip);
+        }
+        if(ah->stun_port)
+        {
+          GNUNET_CONFIGURATION_set_value_number (ah->cfg, "transport-udp",
+                                                 "ADVERTISED_PORT",
+                                                 ah->stun_port);
+
+        }
+      }
+    }
+
     diff = GNUNET_CONFIGURATION_get_diff (ah->initial_cfg,
-					  ah->cfg);
+                                          ah->cfg);
+
+
     ah->fin_cb (ah->fin_cb_cls,
-		diff,
-                ah->ret);
+                diff,
+                ah->ret,
+                ah->type);
     GNUNET_CONFIGURATION_destroy (diff);
     GNUNET_NAT_autoconfig_cancel (ah);
     return;
+
   }
+
+
+
 }
 
 
@@ -580,6 +974,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat",
 					 "USE_LOCALADDR",
 					 "NO");
+
   next_phase (ah);
   return ah;
 }

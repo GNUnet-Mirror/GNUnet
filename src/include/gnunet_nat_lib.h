@@ -70,6 +70,31 @@ typedef void
 struct GNUNET_NAT_Handle;
 
 
+
+/**
+ * What the situation of the NAT connectivity
+ */
+enum GNUNET_NAT_Type
+{
+  /**
+   * We have a direct connection
+   */
+  GNUNET_NAT_TYPE_NO_NAT = GNUNET_OK,
+  /**
+   * We are under a NAT but cannot traverse it
+   */
+  GNUNET_NAT_TYPE_UNREACHABLE_NAT,
+  /**
+   * We can traverse using STUN
+   */
+  GNUNET_NAT_TYPE_STUN_PUNCHED_NAT,
+  /**
+   * WE can traverse using UPNP
+   */
+  GNUNET_NAT_TYPE_UPNP_NAT
+
+};
+
 /**
  * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
  */
@@ -428,11 +453,13 @@ struct GNUNET_NAT_AutoHandle;
  * @param diff minimal suggested changes to the original configuration
  *             to make it work (as best as we can)
  * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ * @param type what the situation of the NAT
  */
 typedef void
 (*GNUNET_NAT_AutoResultCallback)(void *cls,
                                  const struct GNUNET_CONFIGURATION_Handle *diff,
-                                 enum GNUNET_NAT_StatusCode result);
+                                 enum GNUNET_NAT_StatusCode result,
+                                 enum GNUNET_NAT_Type type);
 
 
 /**

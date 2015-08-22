@@ -34,7 +34,8 @@ install-exec-hook:
 endif
 
 bin_PROGRAMS = \
- gnunet-nat-server 
+ gnunet-nat-server \
+ gnunet-nat
 
 libexec_PROGRAMS = \
  $(NATBIN) 
@@ -51,6 +52,12 @@ gnunet_helper_nat_server_SOURCES = \
 gnunet_helper_nat_client_SOURCES = \
  $(NATCLIENT)         
 
+ 
+gnunet_nat_SOURCES = \
+gnunet-nat.c nat.h
+gnunet_nat_LDADD = \
+  libgnunetnat.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 
 if USE_COVERAGE

@@ -287,6 +287,8 @@ do_accept (void *cls,
   struct GNUNET_NETWORK_Handle *s;
   struct NatActivity *wl;
 
+  printf("Inbound");
+
   tst->ltask = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -332,6 +334,8 @@ addr_cb (void *cls,
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_NAT_TestMessage msg;
   const struct sockaddr_in *sa;
+
+  printf("Addr callback");
 
   if (GNUNET_YES != add_remove)
     return;
@@ -448,6 +452,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   else
   {
+    printf("Vou criar o socket");
     nh->lsock =
         GNUNET_NETWORK_socket_create (AF_INET,
                                       (is_tcp ==
@@ -484,7 +489,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
           GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                          nh->lsock, &do_udp_read, nh);
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_INFO,
 	 "NAT test listens on port %u (%s)\n",
 	 bnd_port,
 	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
@@ -493,7 +498,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                    &addr_cb, NULL, nh, NULL);
     if (NULL == nh->nat)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
+      LOG (GNUNET_ERROR_TYPE_INFO,
           _("NAT test failed to start NAT library\n"));
       if (NULL != nh->ltask)
       {
