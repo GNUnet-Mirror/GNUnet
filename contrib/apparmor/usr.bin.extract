@@ -1,0 +1,60 @@
+# Last Modified: Wed Jul 15 15:26:31 2015
+#include <tunables/global>
+
+/usr/bin/extract {
+  /dev/shm/LE-* rw,
+
+  /etc/ld.so.cache mr,
+
+  /usr/bin/extract mr,
+
+  /usr/lib/gconv/gconv-modules r,
+
+  /usr/lib/libFLAC.so.* mr,
+  /usr/lib/libacl.so.* mr,
+  /usr/lib/libarchive.so.* mr,
+  /usr/lib/libattr.so.* mr,
+  /usr/lib/libbz2.so.* mr,
+  /usr/lib/libc-*.so mr,
+  /usr/lib/libcrypto.so.* mr,
+  /usr/lib/libdl-*.so mr,
+  /usr/lib/libexiv2.so.* mr,
+  /usr/lib/libexpat.so.* mr,
+  /usr/lib/libextractor.so.* mr,
+
+  /usr/lib/libextractor/ r,
+  /usr/lib/libextractor/libextractor_*.so mr,
+
+  /usr/lib/libextractor_common.so.* mr,
+
+  /usr/lib/libgcc_s.so.* mr,
+  /usr/lib/libjpeg.so.* mr,
+  /usr/lib/libltdl.so.* mr,
+  /usr/lib/liblzma.so.* mr,
+  /usr/lib/liblzo2.so.* mr,
+  /usr/lib/libm-*.so mr,
+  /usr/lib/libmagic.so.* mr,
+  /usr/lib/libmpeg2.so.* mr,
+  /usr/lib/libogg.so.* mr,
+  /usr/lib/libpthread-*.so mr,
+  /usr/lib/librt-*.so mr,
+  /usr/lib/libstdc++.so.* mr,
+  /usr/lib/libtiff.so.* mr,
+  /usr/lib/libvorbis.so.* mr,
+  /usr/lib/libvorbisfile.so.* mr,
+  /usr/lib/libz.so.* mr,
+
+  /usr/lib/locale/locale-archive r,
+
+  /usr/share/file/misc/magic.mgc r,
+
+  /usr/share/locale/fr/LC_MESSAGES/libc.mo r,
+  /usr/share/locale/fr/LC_MESSAGES/libextractor.mo r,
+  /usr/share/locale/locale.alias r,
+
+  deny @{HOME}/.** mr,
+  owner @{HOME}/** r,
+  /media/** r,
+
+  @{PROC}/@{pid}/maps r,
+}
