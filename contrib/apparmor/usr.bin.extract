@@ -52,7 +52,9 @@
   /usr/share/locale/fr/LC_MESSAGES/libextractor.mo r,
   /usr/share/locale/locale.alias r,
 
-  deny @{HOME}/.** mr,
+  deny @{HOME}/.* r,
+  deny @{HOME}/.*/** r, 
+  #files where extract can be used
   owner @{HOME}/** r,
   /media/** r,
 
