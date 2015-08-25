@@ -488,7 +488,6 @@ dns_string_to_value (void *cls,
           GNUNET_free (cert_data);
           return GNUNET_SYSERR;
         }
-        GNUNET_free (cert_data);
         *data_size = off;
         *data = GNUNET_malloc (off);
         memcpy (*data, certbuf, off);
