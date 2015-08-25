@@ -548,7 +548,7 @@ GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
     return NULL;
   }
   memcpy (&dcert, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsCertRecord));
-  (*off) += sizeof (sizeof (struct GNUNET_TUN_DnsCertRecord));
+  (*off) += sizeof (struct GNUNET_TUN_DnsCertRecord);
   cert = GNUNET_new (struct GNUNET_DNSPARSER_CertRecord);
   cert->cert_type = ntohs (dcert.cert_type);
   cert->cert_tag = ntohs (dcert.cert_tag);
