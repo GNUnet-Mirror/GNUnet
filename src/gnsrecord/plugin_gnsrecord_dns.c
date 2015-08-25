@@ -259,6 +259,74 @@ dns_value_to_string (void *cls,
 
 
 /**
+ * Convert RFC 4394 Mnemonics to the corresponding integer values.
+ *
+ * @param mnemonic string to look up
+ * @return the value, 0 if not found
+ */
+static unsigned int
+rfc4394_mnemonic_to_value (const char *mnemonic)
+{
+  static struct {
+    const char *mnemonic;
+    unsigned int val;
+  } table[] = {
+    { "PKIX", 1 },
+    { "SPKI", 2 },
+    { "PGP", 3 },
+    { "IPKIX", 4 },
+    { "ISPKI", 5 },
+    { "IPGP", 6 },
+    { "ACPKIX", 7},
+    { "IACPKIX", 8},
+    { "URI", 253},
+    { "OID", 254},
+    { NULL, 0 }
+  };
+  unsigned int i;
+
+  for (i=0;NULL != table[i].mnemonic;i++)
+    if (0 == strcasecmp (mnemonic,
+                         table[i].mnemonic))
+      return table[i].val;
+  return 0;
+}
+
+
+/**
+ * Convert RFC 4034 algorithm types to the corresponding integer values.
+ *
+ * @param mnemonic string to look up
+ * @return the value, 0 if not found
+ */
+static unsigned int
+rfc4034_mnemonic_to_value (const char *mnemonic)
+{
+  static struct {
+    const char *mnemonic;
+    unsigned int val;
+  } table[] = {
+    { "RSAMD5", 1 },
+    { "DH", 2 },
+    { "DSA", 3 },
+    { "ECC", 4 },
+    { "RSASHA1", 5 },
+    { "INDIRECT", 252 },
+    { "PRIVATEDNS", 253 },
+    { "PRIVATEOID", 254 },
+    { NULL, 0 }
+  };
+  unsigned int i;
+
+  for (i=0;NULL != table[i].mnemonic;i++)
+    if (0 == strcasecmp (mnemonic,
+                         table[i].mnemonic))
+      return table[i].val;
+  return 0;
+}
+
+
+/**
  * Convert human-readable version of a 'value' of a record to the binary
  * representation.
  *
@@ -356,12 +424,12 @@ dns_string_to_value (void *cls,
 
       sdup = GNUNET_strdup (s);
       typep = strtok (sdup, " ");
-      /* TODO: add typep mnemonic conversion according to RFC 4398 */
       if ( (NULL == typep) ||
-           (1 != SSCANF (typep,
-                         "%u",
-                         &type)) ||
-           (type > UINT16_MAX) )
+           ( (0 == (type = rfc4394_mnemonic_to_value (typep))) &&
+             ( (1 != SSCANF (typep,
+                             "%u",
+                             &type)) ||
+               (type > UINT16_MAX) ) ) )
       {
         GNUNET_free (sdup);
         return GNUNET_SYSERR;
@@ -377,12 +445,12 @@ dns_string_to_value (void *cls,
         return GNUNET_SYSERR;
       }
       algp = strtok (NULL, " ");
-      /* TODO: add algp mnemonic conversion according to RFC 4398/RFC 4034 */
       if ( (NULL == algp) ||
-           (1 != sscanf (algp,
-                         "%u",
-                         &alg)) ||
-           (alg > UINT8_MAX) )
+           ( (0 == (type = rfc4034_mnemonic_to_value (typep))) &&
+             ( (1 != sscanf (algp,
+                             "%u",
+                             &alg)) ||
+               (alg > UINT8_MAX) ) ) )
       {
         GNUNET_free (sdup);
         return GNUNET_SYSERR;
