@@ -565,9 +565,10 @@ GNUNET_NAT_stun_make_request(char * server, int port,
     {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "Failed DNS");
         GNUNET_free(rh);
+        GNUNET_free(server_copy);
+
         return GNUNET_NO;
     }
-
 
     return GNUNET_OK;
 }

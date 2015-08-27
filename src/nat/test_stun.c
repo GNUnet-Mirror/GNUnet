@@ -241,7 +241,12 @@ main (int argc, char *const argv[])
                                     fn,
                                     "gnunet-service-resolver",
                                     "-c", "test_stun.conf", NULL);
-    GNUNET_assert (NULL != proc);
+
+    if (NULL != proc)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "This test was unable to start gnunet-service-resolver, and it is required to run ...\n");
+      exit(1);
+    }
 
     GNUNET_PROGRAM_run (3, argv_prog, "test-stun", "nohelp", options, &run, NULL);
 
@@ -253,6 +258,7 @@ main (int argc, char *const argv[])
     GNUNET_OS_process_wait (proc);
     GNUNET_OS_process_destroy (proc);
     proc = NULL;
+    GNUNET_free (fn);
 
     
 	return ret;
