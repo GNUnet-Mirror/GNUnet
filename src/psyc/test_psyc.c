@@ -329,7 +329,9 @@ slave_message_part_cb (void *cls, uint64_t message_id,
 
 
 void
-state_get_var (void *cls, const char *name, const void *value, size_t value_size)
+state_get_var (void *cls, const struct GNUNET_MessageHeader *mod,
+               const char *name, const void *value,
+               uint32_t value_size, uint32_t full_value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Got state var: %s\n%.*s\n", name, value_size, value);
@@ -354,8 +356,8 @@ void
 slave_state_get_prefix ()
 {
   test = TEST_SLAVE_STATE_GET_PREFIX;
-  GNUNET_PSYC_channel_state_get_prefix (slv_chn, "_foo", &state_get_var,
-                                        &slave_state_get_prefix_result, NULL);
+  GNUNET_PSYC_channel_state_get_prefix (slv_chn, "_foo", state_get_var,
+                                        slave_state_get_prefix_result, NULL);
 }
 
 
@@ -377,8 +379,8 @@ void
 master_state_get_prefix ()
 {
   test = TEST_MASTER_STATE_GET_PREFIX;
-  GNUNET_PSYC_channel_state_get_prefix (mst_chn, "_foo", &state_get_var,
-                                        &master_state_get_prefix_result, NULL);
+  GNUNET_PSYC_channel_state_get_prefix (mst_chn, "_foo", state_get_var,
+                                        master_state_get_prefix_result, NULL);
 }
 
 
@@ -401,8 +403,8 @@ void
 slave_state_get ()
 {
   test = TEST_SLAVE_STATE_GET;
-  GNUNET_PSYC_channel_state_get (slv_chn, "_foo_bar_baz", &state_get_var,
-                                 &slave_state_get_result, NULL);
+  GNUNET_PSYC_channel_state_get (slv_chn, "_foo_bar_baz", state_get_var,
+                                 slave_state_get_result, NULL);
 }
 
 
@@ -425,8 +427,8 @@ void
 master_state_get ()
 {
   test = TEST_MASTER_STATE_GET;
-  GNUNET_PSYC_channel_state_get (mst_chn, "_foo_bar_baz", &state_get_var,
-                                 &master_state_get_result, NULL);
+  GNUNET_PSYC_channel_state_get (mst_chn, "_foo_bar_baz", state_get_var,
+                                 master_state_get_result, NULL);
 }
 
 

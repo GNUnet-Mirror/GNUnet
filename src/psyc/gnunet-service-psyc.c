@@ -1,3 +1,4 @@
+
 /*
  * This file is part of GNUnet
  * Copyright (C) 2013 Christian Grothoff (and other contributing authors)
@@ -169,6 +170,11 @@ struct FragmentQueue
    * @see MessageFragmentState
    */
   uint8_t state;
+
+  /**
+   * Whether the state is already modified in PSYCstore.
+   */
+  uint8_t state_is_modified;
 
   /**
    * Is the message queued for delivery to the client?
@@ -460,9 +466,9 @@ op_add (struct Channel *chn, struct GNUNET_SERVER_Client *client,
 
 
 static void
-op_remove (struct Channel *chn, struct Operation *op)
+op_remove (struct Operation *op)
 {
-  GNUNET_CONTAINER_DLL_remove (chn->op_head, chn->op_tail, op);
+  GNUNET_CONTAINER_DLL_remove (op->chn->op_head, op->chn->op_tail, op);
   GNUNET_free (op);
 }
 
@@ -1008,7 +1014,8 @@ client_send_mcast_msg (struct Channel *chn,
               chn, GNUNET_ntohll (mmsg->fragment_id),
               GNUNET_ntohll (mmsg->message_id));
 
-  struct GNUNET_PSYC_MessageHeader *pmsg = psyc_msg_new (mmsg, flags);
+  struct GNUNET_PSYC_MessageHeader *
+    pmsg = GNUNET_PSYC_message_header_create (mmsg, flags);
   client_send_msg (chn, &pmsg->header);
   GNUNET_free (pmsg);
 }
@@ -1049,7 +1056,7 @@ client_send_mcast_req (struct Master *mst,
 /**
  * Insert a multicast message fragment into the queue belonging to the message.
  *
- * @param chn           Channel.
+ * @param chn          Channel.
  * @param mmsg         Multicast message fragment.
  * @param msg_id_hash  Message ID of @a mmsg in a struct GNUNET_HashCode.
  * @param first_ptype  First PSYC message part type in @a mmsg.
@@ -1222,7 +1229,7 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
   struct GNUNET_CONTAINER_MultiHashMap
     *chan_msgs = GNUNET_CONTAINER_multihashmap_get (recv_cache,
                                                     &chn->pub_key_hash);
-  GNUNET_assert (NULL != chan_msgs);
+  GNUNET_assert (NULL != chan_msgs); // FIXME
   uint64_t frag_id;
 
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (fragq->fragments, NULL,
@@ -1279,8 +1286,8 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
 struct StateModifyClosure
 {
   struct Channel *chn;
-  struct FragmentQueue *fragq;
-  uint64_t message_id;
+  uint64_t msg_id;
+  struct GNUNET_HashCode msg_id_hash;
 };
 
 
@@ -1290,21 +1297,37 @@ store_recv_state_modify_result (void *cls, int64_t result,
 {
   struct StateModifyClosure *mcls = cls;
   struct Channel *chn = mcls->chn;
-  struct FragmentQueue *fragq = mcls->fragq;
-  uint64_t msg_id = mcls->message_id;
+  uint64_t msg_id = mcls->msg_id;
+
+  struct FragmentQueue *
+    fragq = GNUNET_CONTAINER_multihashmap_get (chn->recv_frags, &mcls->msg_id_hash);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p GNUNET_PSYCSTORE_state_modify() returned %" PRId64 " (%.*s)\n",
               chn, result, err_msg_size, err_msg);
 
-  if (GNUNET_OK == result)
+  switch (result)
   {
-    chn->max_state_message_id = msg_id;
-    chn->max_message_id = msg_id;
+  case GNUNET_OK:
+  case GNUNET_NO:
+    if (NULL != fragq)
+      fragq->state_is_modified = GNUNET_YES;
+    if (chn->max_state_message_id < msg_id)
+      chn->max_state_message_id = msg_id;
+    if (chn->max_message_id < msg_id)
+      chn->max_message_id = msg_id;
 
-    fragment_queue_run (chn, msg_id, fragq, MSG_FRAG_STATE_DROP == fragq->state);
+    if (NULL != fragq)
+      fragment_queue_run (chn, msg_id, fragq, MSG_FRAG_STATE_DROP == fragq->state);
     GNUNET_CONTAINER_heap_remove_root (chn->recv_msgs);
     message_queue_run (chn);
+    break;
+
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p GNUNET_PSYCSTORE_state_modify() failed with error %" PRId64 " (%.*s)\n",
+                chn, result, err_msg_size, err_msg);
+    /** @todo FIXME: handle state_modify error */
   }
 }
 
@@ -1349,42 +1372,58 @@ message_queue_run (struct Channel *chn)
       break;
     }
 
-    if (MSG_FRAG_STATE_HEADER == fragq->state)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p Fragment queue entry:  state: %u, state delta: "
+                "%" PRIu64 " - %" PRIu64 " ?= %" PRIu64 "\n",
+                chn, fragq->state, msg_id, fragq->state_delta, chn->max_state_message_id);
+
+    if (MSG_FRAG_STATE_DATA <= fragq->state)
     {
       /* Check if there's a missing message before the current one */
       if (GNUNET_PSYC_STATE_NOT_MODIFIED == fragq->state_delta)
       {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p state NOT modified\n");
+
         if (!(fragq->flags & GNUNET_PSYC_MESSAGE_ORDER_ANY)
-            && msg_id - 1 != chn->max_message_id)
+            && (chn->max_message_id != msg_id - 1
+                && chn->max_message_id != msg_id))
         {
           GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                       "%p Out of order message. "
-                      "(%" PRIu64 " - 1 != %" PRIu64 ")\n",
-                      chn, msg_id, chn->max_message_id);
-          continue;
+                      "(%" PRIu64 " != %" PRIu64 " - 1)\n",
+                      chn, chn->max_message_id, msg_id);
+          break;
+          // FIXME: keep track of messages processed in this queue run,
+          //        and only stop after reaching the end
         }
       }
       else
       {
-        if (msg_id - fragq->state_delta != chn->max_state_message_id)
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p state modified\n");
+        if (GNUNET_YES != fragq->state_is_modified)
         {
-          GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                      "%p Out of order stateful message. "
-                      "(%" PRIu64 " - %" PRIu64 " != %" PRIu64 ")\n",
-                      chn, msg_id, fragq->state_delta, chn->max_state_message_id);
-          continue;
+          if (msg_id - fragq->state_delta != chn->max_state_message_id)
+          {
+            GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                        "%p Out of order stateful message. "
+                        "(%" PRIu64 " - %" PRIu64 " != %" PRIu64 ")\n",
+                        chn, msg_id, fragq->state_delta, chn->max_state_message_id);
+            break;
+            // FIXME: keep track of messages processed in this queue run,
+            //        and only stop after reaching the end
+          }
+
+          struct StateModifyClosure *mcls = GNUNET_malloc (sizeof (*mcls));
+          mcls->chn = chn;
+          mcls->msg_id = msg_id;
+          mcls->msg_id_hash = msg_id_hash;
+
+          /* Apply modifiers to state in PSYCstore */
+          GNUNET_PSYCSTORE_state_modify (store, &chn->pub_key, msg_id,
+                                         fragq->state_delta,
+                                         store_recv_state_modify_result, mcls);
+          break; // continue after asynchronous state modify result
         }
-
-        struct StateModifyClosure *mcls = GNUNET_malloc (sizeof (*mcls));
-        mcls->chn = chn;
-        mcls->fragq = fragq;
-        mcls->message_id = msg_id;
-
-        /* Apply modifiers to state in PSYCstore */
-        GNUNET_PSYCSTORE_state_modify (store, &chn->pub_key, msg_id,
-                                       fragq->state_delta,
-                                       store_recv_state_modify_result, mcls);
-        break;
       }
       chn->max_message_id = msg_id;
     }
@@ -2060,7 +2099,7 @@ static void
 master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg,
                      uint16_t first_ptype, uint16_t last_ptype)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p master_queue_message()\n", mst);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message()\n", mst);
 
   if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == first_ptype)
   {
@@ -2074,11 +2113,13 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg,
     }
     else if (pmeth->flags & GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message: setting state_modify flag\n", mst);
       pmeth->state_delta = GNUNET_htonll (tmit_msg->id
                                           - mst->max_state_message_id);
     }
     else
     {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message: setting state_not_modified flag\n", mst);
       pmeth->state_delta = GNUNET_htonll (GNUNET_PSYC_STATE_NOT_MODIFIED);
     }
 
@@ -2226,14 +2267,6 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
 };
 
 
-struct MembershipStoreClosure
-{
-  struct GNUNET_SERVER_Client *client;
-  struct Channel *chn;
-  uint64_t op_id;
-};
-
-
 /**
  * Received result of GNUNET_PSYCSTORE_membership_store()
  */
@@ -2241,12 +2274,13 @@ static void
 store_recv_membership_store_result (void *cls, int64_t result,
                                     const char *err_msg, uint16_t err_msg_size)
 {
-  struct MembershipStoreClosure *mcls = cls;
+  struct Operation *op = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%.s)\n",
-              mcls->chn, result, err_msg_size, err_msg);
+              op->chn, result, err_msg_size, err_msg);
 
-  client_send_result (mcls->client, mcls->op_id, result, err_msg, err_msg_size);
+  client_send_result (op->client, op->op_id, result, err_msg, err_msg_size);
+  op_remove (op);
 }
 
 
@@ -2264,10 +2298,7 @@ client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
   const struct ChannelMembershipStoreRequest *
     req = (const struct ChannelMembershipStoreRequest *) msg;
 
-  struct MembershipStoreClosure *mcls = GNUNET_malloc (sizeof (*mcls));
-  mcls->client = client;
-  mcls->chn = chn;
-  mcls->op_id = req->op_id;
+  struct Operation *op = op_add (chn, client, req->op_id, 0);
 
   uint64_t announced_at = GNUNET_ntohll (req->announced_at);
   uint64_t effective_since = GNUNET_ntohll (req->effective_since);
@@ -2280,7 +2311,7 @@ client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_PSYCSTORE_membership_store (store, &chn->pub_key, &req->slave_key,
                                      req->did_join, announced_at, effective_since,
                                      0, /* FIXME: group_generation */
-                                     &store_recv_membership_store_result, mcls);
+                                     &store_recv_membership_store_result, op);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2313,7 +2344,7 @@ store_recv_fragment_history (void *cls,
   res->result_code = GNUNET_htonll (GNUNET_OK);
 
   pmsg = (struct GNUNET_PSYC_MessageHeader *) &res[1];
-  psyc_msg_init (pmsg, mmsg, flags | GNUNET_PSYC_MESSAGE_HISTORIC);
+  GNUNET_PSYC_message_header_init (pmsg, mmsg, flags | GNUNET_PSYC_MESSAGE_HISTORIC);
   memcpy (&res[1], pmsg, psize);
 
   /** @todo FIXME: send only to requesting client */
@@ -2339,7 +2370,7 @@ store_recv_fragment_history_result (void *cls, int64_t result,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p History replay #%" PRIu64 ": "
               "PSYCSTORE returned %" PRId64 " (%.*s)\n",
-              op->chn, op->op_id, result, err_msg_size, err_msg);
+              op->chn, GNUNET_ntohll (op->op_id), result, err_msg_size, err_msg);
 
   if (op->flags & GNUNET_PSYC_HISTORY_REPLAY_REMOTE)
   {
@@ -2347,6 +2378,7 @@ store_recv_fragment_history_result (void *cls, int64_t result,
   }
 
   client_send_result (op->client, op->op_id, result, err_msg, err_msg_size);
+  op_remove (op);
 }
 
 
@@ -2404,12 +2436,16 @@ client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
  */
 static int
 store_recv_state_var (void *cls, const char *name,
-                      const void *value, size_t value_size)
+                      const void *value, uint32_t value_size)
 {
   struct Operation *op = cls;
   struct GNUNET_OperationResultMessage *res;
 
-  if (NULL != name)
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p state_get #%" PRIu64 " - received var from PSYCstore: %s\n",
+              op->chn, GNUNET_ntohll (op->op_id), name);
+
+  if (NULL != name) /* First part */
   {
     uint16_t name_size = strnlen (name, GNUNET_PSYC_MODIFIER_MAX_PAYLOAD) + 1;
     struct GNUNET_PSYC_MessageModifier *mod;
@@ -2427,7 +2463,7 @@ store_recv_state_var (void *cls, const char *name,
     memcpy (&mod[1], name, name_size);
     memcpy (((char *) &mod[1]) + name_size, value, value_size);
   }
-  else
+  else /* Continuation */
   {
     struct GNUNET_MessageHeader *mod;
     res = GNUNET_malloc (sizeof (*res) + sizeof (*mod) + value_size);
@@ -2445,7 +2481,6 @@ store_recv_state_var (void *cls, const char *name,
   GNUNET_SERVER_notification_context_add (nc, op->client);
   GNUNET_SERVER_notification_context_unicast (nc, op->client, &res->header,
                                               GNUNET_NO);
-  GNUNET_free (op);
   return GNUNET_YES;
 }
 
@@ -2460,12 +2495,13 @@ store_recv_state_result (void *cls, int64_t result,
 {
   struct Operation *op = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p History replay #%" PRIu64 ": "
+              "%p state_get #%" PRIu64 ": "
               "PSYCSTORE returned %" PRId64 " (%.*s)\n",
-              op->chn, op->op_id, result, err_msg_size, err_msg);
+              op->chn, GNUNET_ntohll (op->op_id), result, err_msg_size, err_msg);
 
   // FIXME: client might have been disconnected
   client_send_result (op->client, op->op_id, result, err_msg, err_msg_size);
+  op_remove (op);
 }
 
 

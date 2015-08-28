@@ -570,7 +570,7 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 {
   struct GNUNET_PSYC_TransmitHandle *tmit = cls;
   uint16_t name_size = 0;
-  size_t value_size = 0;
+  uint32_t value_size = 0;
   const char *value = NULL;
 
   if (NULL != oper)
@@ -1230,4 +1230,42 @@ GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
   return (GNUNET_PSYC_MESSAGE_STATE_END == cls.msg_state)
     ? GNUNET_OK
     : GNUNET_SYSERR;
+}
+
+
+/**
+ * Initialize PSYC message header.
+ */
+void
+GNUNET_PSYC_message_header_init (struct GNUNET_PSYC_MessageHeader *pmsg,
+                                 const struct GNUNET_MULTICAST_MessageHeader *mmsg,
+                                 uint32_t flags)
+{
+  uint16_t size = ntohs (mmsg->header.size);
+  uint16_t psize = sizeof (*pmsg) + size - sizeof (*mmsg);
+
+  pmsg->header.size = htons (psize);
+  pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
+  pmsg->message_id = mmsg->message_id;
+  pmsg->fragment_offset = mmsg->fragment_offset;
+  pmsg->flags = htonl (flags);
+
+  memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
+}
+
+
+/**
+ * Create a new PSYC message header from a multicast message for sending it to clients.
+ */
+struct GNUNET_PSYC_MessageHeader *
+GNUNET_PSYC_message_header_create (const struct GNUNET_MULTICAST_MessageHeader *mmsg,
+                                   uint32_t flags)
+{
+  struct GNUNET_PSYC_MessageHeader *pmsg;
+  uint16_t size = ntohs (mmsg->header.size);
+  uint16_t psize = sizeof (*pmsg) + size - sizeof (*mmsg);
+
+  pmsg = GNUNET_malloc (psize);
+  GNUNET_PSYC_message_header_init (pmsg, mmsg, flags);
+  return pmsg;
 }

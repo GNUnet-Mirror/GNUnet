@@ -64,7 +64,8 @@
 
 enum Transactions {
   TRANSACTION_NONE = 0,
-  TRANSACTION_STATE_MODIFY
+  TRANSACTION_STATE_MODIFY,
+  TRANSACTION_STATE_SYNC,
 };
 
 /**
@@ -1522,18 +1523,27 @@ state_modify_begin (void *cls,
 
     uint64_t max_state_message_id = 0;
     int ret = counters_state_get (plugin, channel_key, &max_state_message_id);
-    if (GNUNET_OK != ret)
+    switch (ret)
+    {
+    case GNUNET_OK:
+    case GNUNET_NO: // no state yet
+      ret = GNUNET_OK;
+      break;
+    default:
       return ret;
+    }
 
-    if (message_id - state_delta != max_state_message_id)
-      return GNUNET_NO;
+    if (max_state_message_id < message_id - state_delta)
+      return GNUNET_NO; /* some stateful messages not yet applied */
+    else if (message_id - state_delta < max_state_message_id)
+      return GNUNET_NO; /* changes already applied */
   }
 
-  // Make sure no other transaction is going on.
   if (TRANSACTION_NONE != plugin->transaction)
-      if (GNUNET_OK != transaction_rollback (plugin))
-          return GNUNET_SYSERR;
-
+  {
+    /** @todo FIXME: wait for other transaction to finish  */
+    return GNUNET_SYSERR;
+  }
   return transaction_begin (plugin, TRANSACTION_STATE_MODIFY);
 }
 
@@ -1560,8 +1570,8 @@ state_modify_op (void *cls,
     return state_assign (plugin, plugin->insert_state_current, channel_key,
                          name, value, value_size);
 
-  /// @todo implement more state operations
-  default:
+  default: /** @todo implement more state operations */
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 }
@@ -1630,7 +1640,13 @@ state_sync_end (void *cls,
   struct Plugin *plugin = cls;
   int ret = GNUNET_SYSERR;
 
-  GNUNET_OK == transaction_begin (plugin, TRANSACTION_NONE)
+  if (TRANSACTION_NONE != plugin->transaction)
+  {
+    /** @todo FIXME: wait for other transaction to finish  */
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_OK == transaction_begin (plugin, TRANSACTION_STATE_SYNC)
     && GNUNET_OK == exec_channel (plugin, plugin->delete_state, channel_key)
     && GNUNET_OK == exec_channel (plugin, plugin->insert_state_from_sync,
                                   channel_key)

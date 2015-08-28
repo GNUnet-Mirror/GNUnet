@@ -220,7 +220,8 @@ struct GNUNET_PSYC_Message
 /**
  * Header of a PSYC message.
  *
- * Only present when receiving a message.
+ * The PSYC service adds this when delivering the message to local clients,
+ * not present on the multicast layer.
  */
 struct GNUNET_PSYC_MessageHeader
 {
@@ -1193,17 +1194,30 @@ GNUNET_PSYC_channel_history_replay_cancel (struct GNUNET_PSYC_Channel *channel,
 /**
  * Function called to inform a member about stored state values for a channel.
  *
- * @param cls Closure.
- * @param name Name of the state variable.  A NULL value indicates that there
- *        are no more state variables to be returned.
- * @param value Value of the state variable.
- * @param value_size Number of bytes in @a value.
+ * If @a full_value_size > value_size then this function is called multiple
+ * times until the whole value arrived.
+ *
+ * @param cls
+ *        Closure.
+ * @param name
+ *        Name of the state variable.
+ *        NULL if there are no more state variables to be returned.
+ * @param value
+ *        Value of the state variable.
+ * @param value_size
+ *        Number of bytes in @a value.
+ * @param full_value_size
+ *        Number of bytes in the full value, including continuations.
+ *        Only set for the first part of a variable,
+ *        in case of a continuation it is 0.
  */
 typedef void
 (*GNUNET_PSYC_StateVarCallback) (void *cls,
+                                 const struct GNUNET_MessageHeader *mod,
                                  const char *name,
                                  const void *value,
-                                 size_t value_size);
+                                 uint32_t value_size,
+                                 uint32_t full_value_size);
 
 
 /**

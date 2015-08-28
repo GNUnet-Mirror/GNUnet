@@ -141,7 +141,7 @@ struct StateClosure {
 };
 
 static int
-state_cb (void *cls, const char *name, const void *value, size_t value_size)
+state_cb (void *cls, const char *name, const void *value, uint32_t value_size)
 {
   struct StateClosure *scls = cls;
   const void *val = scls->value[scls->n];

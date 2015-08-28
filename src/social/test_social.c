@@ -36,7 +36,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_identity_service.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 #define DATA2ARG(data) data, sizeof (data)
 
@@ -99,6 +99,10 @@ struct TransmitClosure
   uint8_t n;
 } tmit;
 
+struct ResultClosure {
+  uint32_t n;
+};
+
 uint8_t join_req_count;
 struct GNUNET_PSYC_Message *join_resp;
 
@@ -107,19 +111,21 @@ uint32_t counter;
 enum
 {
   TEST_NONE = 0,
-  TEST_HOST_ANSWER_DOOR_REFUSE      = 1,
-  TEST_GUEST_RECV_ENTRY_DCSN_REFUSE = 2,
-  TEST_HOST_ANSWER_DOOR_ADMIT       = 3,
-  TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  = 4,
-  TEST_HOST_ANNOUNCE   	            = 5,
-  TEST_HOST_ANNOUNCE_END            = 6,
-  TEST_HOST_ANNOUNCE2  	            = 7,
-  TEST_HOST_ANNOUNCE2_END           = 8,
-  TEST_GUEST_TALK                   = 9,
-  TEST_GUEST_HISTORY_REPLAY        = 10,
-  TEST_GUEST_HISTORY_REPLAY_LATEST = 11,
-  TEST_GUEST_LEAVE                 = 12,
-  TEST_HOST_LEAVE                  = 13,
+  TEST_HOST_ANSWER_DOOR_REFUSE      =  1,
+  TEST_GUEST_RECV_ENTRY_DCSN_REFUSE =  2,
+  TEST_HOST_ANSWER_DOOR_ADMIT       =  3,
+  TEST_GUEST_RECV_ENTRY_DCSN_ADMIT  =  4,
+  TEST_HOST_ANNOUNCE   	            =  5,
+  TEST_HOST_ANNOUNCE_END            =  6,
+  TEST_HOST_ANNOUNCE2  	            =  7,
+  TEST_HOST_ANNOUNCE2_END           =  8,
+  TEST_GUEST_TALK                   =  9,
+  TEST_GUEST_HISTORY_REPLAY         = 10,
+  TEST_GUEST_HISTORY_REPLAY_LATEST  = 11,
+  TEST_GUEST_LOOK_AT                = 12,
+  TEST_GUEST_LOOK_FOR               = 13,
+  TEST_GUEST_LEAVE                  = 14,
+  TEST_HOST_LEAVE                   = 15,
 } test;
 
 
@@ -351,6 +357,86 @@ schedule_guest_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
+guest_look_for_result (void *cls, int64_t result_code,
+                      const void *data, uint16_t data_size)
+{
+  struct ResultClosure *rcls = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "guest_look_for_result: %d\n", result_code);
+  GNUNET_assert (GNUNET_OK == result_code);
+  GNUNET_assert (3 == rcls->n);
+  GNUNET_free (rcls);
+  GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
+}
+
+
+static void
+guest_look_for_var (void *cls,
+                   const struct GNUNET_MessageHeader *mod,
+                   const char *name,
+                   const void *value,
+                   uint32_t value_size,
+                   uint32_t full_value_size)
+{
+  struct ResultClosure *rcls = cls;
+  rcls->n++;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "guest_look_for_var: %s\n%.*s\n",
+              name, value_size, value);
+}
+
+
+static void
+guest_look_for ()
+{
+  test = TEST_GUEST_LOOK_FOR;
+  struct ResultClosure *rcls = GNUNET_malloc (sizeof (*rcls));
+  GNUNET_SOCIAL_place_look_for (gst_plc, "_foo", guest_look_for_var, guest_look_for_result, rcls);
+}
+
+
+static void
+guest_look_at_result (void *cls, int64_t result_code,
+                      const void *data, uint16_t data_size)
+{
+  struct ResultClosure *rcls = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "guest_look_at_result: %d\n", result_code);
+  GNUNET_assert (GNUNET_OK == result_code);
+  GNUNET_assert (1 == rcls->n);
+  GNUNET_free (rcls);
+  guest_look_for ();
+}
+
+
+static void
+guest_look_at_var (void *cls,
+                   const struct GNUNET_MessageHeader *mod,
+                   const char *name,
+                   const void *value,
+                   uint32_t value_size,
+                   uint32_t full_value_size)
+{
+  struct ResultClosure *rcls = cls;
+  rcls->n++;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "guest_look_at_var: %s\n%.*s\n",
+              name, value_size, value);
+}
+
+
+static void
+guest_look_at ()
+{
+  test = TEST_GUEST_LOOK_AT;
+  struct ResultClosure *rcls = GNUNET_malloc (sizeof (*rcls));
+  GNUNET_SOCIAL_place_look_at (gst_plc, "_foo_bar", guest_look_at_var, guest_look_at_result, rcls);
+}
+
+
+static void
 guest_recv_history_replay_latest_result (void *cls, int64_t result,
                                          const void *data, uint16_t data_size)
 {
@@ -361,7 +447,7 @@ guest_recv_history_replay_latest_result (void *cls, int64_t result,
   GNUNET_assert (2 == counter); /* message count */
   GNUNET_assert (7 == result); /* fragment count */
 
-  GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
+  guest_look_at ();
 }
 
 
@@ -488,6 +574,7 @@ guest_recv_eom (void *cls,
     break;
 
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
     GNUNET_assert (0);
   }
 }
@@ -570,10 +657,11 @@ host_recv_eom (void *cls,
     break;
 
   case TEST_GUEST_TALK:
-    guest_history_replay ();
+      guest_history_replay ();
     break;
 
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
     GNUNET_assert (0);
   }
 }
@@ -624,7 +712,8 @@ host_announce ()
   tmit.host_ann
     = GNUNET_SOCIAL_host_announce (hst, "_message_host", tmit.env,
                                    &notify_data, &tmit,
-                                   GNUNET_SOCIAL_ANNOUNCE_NONE);
+                                   GNUNET_SOCIAL_ANNOUNCE_NONE
+                                   | GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY);
 }
 
 
@@ -689,6 +778,7 @@ guest_recv_entry_decision (void *cls,
     break;
 
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
     GNUNET_assert (0);
   }
 }
@@ -728,6 +818,7 @@ host_answer_door (void *cls,
     break;
 
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
     GNUNET_assert (0);
   }
 }

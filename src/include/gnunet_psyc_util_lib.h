@@ -230,6 +230,23 @@ GNUNET_PSYC_receive_check_parts (uint16_t data_size, const char *data,
                                  uint16_t *first_ptype, uint16_t *last_ptype);
 
 
+/**
+ * Initialize PSYC message header.
+ */
+void
+GNUNET_PSYC_message_header_init (struct GNUNET_PSYC_MessageHeader *pmsg,
+                                 const struct GNUNET_MULTICAST_MessageHeader *mmsg,
+                                 uint32_t flags);
+
+
+/**
+ * Create a new PSYC message header from a multicast message for sending it to clients.
+ */
+struct GNUNET_PSYC_MessageHeader *
+GNUNET_PSYC_message_header_create (const struct GNUNET_MULTICAST_MessageHeader *mmsg,
+                                   uint32_t flags);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

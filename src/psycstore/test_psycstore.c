@@ -170,7 +170,7 @@ state_reset_result (void *cls, int64_t result,
 
 
 static int
-state_result (void *cls, const char *name, const void *value, size_t value_size)
+state_result (void *cls, const char *name, const void *value, uint32_t value_size)
 {
   struct StateClosure *scls = cls;
   const char *nam = scls->name[scls->n];

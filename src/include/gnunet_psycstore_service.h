@@ -612,7 +612,7 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
  */;
 typedef int
 (*GNUNET_PSYCSTORE_StateCallback) (void *cls, const char *name,
-                                   const void *value, size_t value_size);
+                                   const void *value, uint32_t value_size);
 
 
 /**

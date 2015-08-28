@@ -217,7 +217,7 @@ send_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
 
 static int
 send_state_var (void *cls, const char *name,
-                const void *value, size_t value_size)
+                const void *value, uint32_t value_size)
 {
   struct SendClosure *sc = cls;
   struct StateResult *res;
@@ -496,14 +496,14 @@ handle_counters_get (void *cls,
 
 struct StateModifyClosure
 {
-  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key;
+  const struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
   struct GNUNET_PSYC_ReceiveHandle *recv;
   enum GNUNET_PSYC_MessageState msg_state;
   char mod_oper;
   char *mod_name;
   char *mod_value;
-  uint64_t mod_value_size;
-  uint64_t mod_value_remaining;
+  uint32_t mod_value_size;
+  uint32_t mod_value_remaining;
 };
 
 
@@ -513,6 +513,12 @@ recv_state_message_part (void *cls, uint64_t message_id, uint64_t data_offset,
 {
   struct StateModifyClosure *scls = cls;
   uint16_t psize;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "recv_state_message_part()  message_id: %" PRIu64
+              ", data_offset: %" PRIu64 ", flags: %u\n",
+              message_id, data_offset, flags);
+
   if (NULL == msg)
   {
     scls->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
@@ -533,7 +539,7 @@ recv_state_message_part (void *cls, uint64_t message_id, uint64_t data_offset,
       pmod = (struct GNUNET_PSYC_MessageModifier *) msg;
     psize = ntohs (pmod->header.size);
     uint16_t name_size = ntohs (pmod->name_size);
-    uint16_t value_size = ntohs (pmod->value_size);
+    uint32_t value_size = ntohl (pmod->value_size);
 
     const char *name = (const char *) &pmod[1];
     const void *value = name + name_size;
@@ -542,7 +548,7 @@ recv_state_message_part (void *cls, uint64_t message_id, uint64_t data_offset,
     { // Apply non-transient operation.
       if (psize == sizeof (*pmod) + name_size + value_size)
       {
-        db->state_modify_op (db->cls, scls->channel_key,
+        db->state_modify_op (db->cls, &scls->channel_key,
                              pmod->oper, name, value, value_size);
       }
       else
@@ -576,7 +582,7 @@ recv_state_message_part (void *cls, uint64_t message_id, uint64_t data_offset,
       scls->mod_value_remaining -= psize - sizeof (*msg);
       if (0 == scls->mod_value_remaining)
       {
-        db->state_modify_op (db->cls, scls->channel_key,
+        db->state_modify_op (db->cls, &scls->channel_key,
                              scls->mod_oper, scls->mod_name,
                              scls->mod_value, scls->mod_value_size);
         GNUNET_free (scls->mod_name);
@@ -616,9 +622,13 @@ recv_state_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
                                              scls);
   }
 
-  const struct GNUNET_PSYC_MessageHeader *
-    pmsg = (const struct GNUNET_PSYC_MessageHeader *) &msg[1];
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "recv_state_fragment: %" PRIu64 "\n", GNUNET_ntohll (msg->fragment_id));
+
+  struct GNUNET_PSYC_MessageHeader *
+    pmsg = GNUNET_PSYC_message_header_create (msg, flags);
   GNUNET_PSYC_receive_message (scls->recv, pmsg);
+  GNUNET_free (pmsg);
 
   return GNUNET_YES;
 }
@@ -635,31 +645,41 @@ handle_state_modify (void *cls,
   uint64_t message_id = GNUNET_ntohll (req->message_id);
   uint64_t state_delta = GNUNET_ntohll (req->state_delta);
   uint64_t ret_frags = 0;
+  struct StateModifyClosure
+    scls = { .channel_key = req->channel_key };
 
-  struct StateModifyClosure scls = { 0 };
+  int ret = db->state_modify_begin (db->cls, &req->channel_key,
+                                    message_id, state_delta);
 
-  if (GNUNET_OK != db->state_modify_begin (db->cls, &req->channel_key,
-                                           message_id, state_delta))
+  if (GNUNET_OK != ret)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to begin modifying state!\n"));
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to begin modifying state: %d\n"), ret);
   }
-
-  int ret = db->message_get (db->cls, &req->channel_key,
-                             message_id, message_id,
-                             &ret_frags, &recv_state_fragment, &scls);
-
-  if (GNUNET_OK != db->state_modify_end (db->cls, &req->channel_key, message_id))
+  else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to end modifying state!\n"));
-    GNUNET_break (0);
-  }
-
-  if (NULL != scls.recv)
-  {
-    GNUNET_PSYC_receive_destroy (scls.recv);
+    ret = db->message_get (db->cls, &req->channel_key,
+                           message_id, message_id,
+                           &ret_frags, &recv_state_fragment, &scls);
+    if (GNUNET_OK != ret)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to modify state: %d\n"), ret);
+      GNUNET_break (0);
+    }
+    else
+    {
+      if (GNUNET_OK != db->state_modify_end (db->cls, &req->channel_key, message_id))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Failed to end modifying state!\n"));
+        GNUNET_break (0);
+      }
+    }
+    if (NULL != scls.recv)
+    {
+      GNUNET_PSYC_receive_destroy (scls.recv);
+    }
   }
 
   send_result_code (client, req->op_id, ret, NULL);

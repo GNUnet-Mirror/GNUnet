@@ -350,7 +350,7 @@ cleanup_guest (struct Guest *gst)
   struct GNUNET_CONTAINER_MultiHashMap *
     plc_gst = GNUNET_CONTAINER_multihashmap_get (place_guests,
                                                 &plc->pub_key_hash);
-  GNUNET_assert (NULL != plc_gst);
+  GNUNET_assert (NULL != plc_gst); // FIXME
   GNUNET_CONTAINER_multihashmap_remove (plc_gst, &gst->pub_key_hash, gst);
 
   if (0 == GNUNET_CONTAINER_multihashmap_size (plc_gst))
@@ -1302,7 +1302,7 @@ psyc_transmit_queue_next_method (struct Place *plc,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%p psyc_transmit_queue_next_method: unexpected message part of type %u.\n",
-                plc, ntohs (pmsg->type));
+                plc, NULL != pmsg ? ntohs (pmsg->type) : 0);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -1536,12 +1536,10 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * A historic message result arrived from PSYC.
+ * A historic message arrived from PSYC.
  */
 static void
-psyc_recv_history_message (void *cls,
-                           uint64_t message_id,
-                           uint32_t flags,
+psyc_recv_history_message (void *cls, uint64_t message_id, uint32_t flags,
                            const struct GNUNET_PSYC_MessageHeader *msg)
 {
   struct OperationClosure *opcls = cls;
@@ -1567,6 +1565,9 @@ psyc_recv_history_message (void *cls,
 }
 
 
+/**
+ * Result of message history replay from PSYC.
+ */
 static void
 psyc_recv_history_result (void *cls, int64_t result,
                           const void *err_msg, uint16_t err_msg_size)
@@ -1574,7 +1575,7 @@ psyc_recv_history_result (void *cls, int64_t result,
   struct OperationClosure *opcls = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p History replay #%" PRIu64 ": "
-              "PSYCSTORE returned %" PRId64 " (%.*s)\n",
+              "PSYCstore returned %" PRId64 " (%.*s)\n",
               opcls->plc, GNUNET_ntohll (opcls->op_id), result, err_msg_size, err_msg);
 
   // FIXME: place might have been destroyed
@@ -1635,6 +1636,118 @@ client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+/**
+ * A state variable part arrived from PSYC.
+ */
+void
+psyc_recv_state_var (void *cls,
+                     const struct GNUNET_MessageHeader *mod,
+                     const char *name,
+                     const void *value,
+                     uint32_t value_size,
+                     uint32_t full_value_size)
+{
+  struct OperationClosure *opcls = cls;
+  struct Place *plc = opcls->plc;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received state variable %s from PSYC\n",
+              plc, name);
+
+  uint16_t size = ntohs (mod->size);
+
+  struct GNUNET_OperationResultMessage *
+    res = GNUNET_malloc (sizeof (*res) + size);
+  res->header.size = htons (sizeof (*res) + size);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT);
+  res->op_id = opcls->op_id;
+  res->result_code = GNUNET_htonll (GNUNET_OK);
+
+  memcpy (&res[1], mod, size);
+
+  /** @todo FIXME: send only to requesting client */
+  client_send_msg (plc, &res->header);
+}
+
+
+/**
+ * Result of retrieving state variable from PSYC.
+ */
+static void
+psyc_recv_state_result (void *cls, int64_t result,
+                        const void *err_msg, uint16_t err_msg_size)
+{
+  struct OperationClosure *opcls = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p State get #%" PRIu64 ": "
+              "PSYCstore returned %" PRId64 " (%.*s)\n",
+              opcls->plc, GNUNET_ntohll (opcls->op_id), result, err_msg_size, err_msg);
+
+  // FIXME: place might have been destroyed
+  client_send_result (opcls->client, opcls->op_id, result, err_msg, err_msg_size);
+}
+
+
+/**
+ * Client requests channel history.
+ */
+static void
+client_recv_state_get (void *cls, struct GNUNET_SERVER_Client *client,
+                       const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *
+    ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
+  GNUNET_assert (NULL != ctx);
+  struct Place *plc = ctx->plc;
+
+  const struct GNUNET_PSYC_StateRequestMessage *
+    req = (const struct GNUNET_PSYC_StateRequestMessage *) msg;
+  uint16_t size = ntohs (msg->size);
+  const char *name = (const char *) &req[1];
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "%p State get #%" PRIu64 ": %s\n",
+              plc, GNUNET_ntohll (req->op_id), name);
+
+  if (size < sizeof (*req) + 1
+      || '\0' != name[size - sizeof (*req) - 1])
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p State get #%" PRIu64 ": "
+                "invalid name. size: %u < %u?\n",
+                plc, GNUNET_ntohll (req->op_id), size, sizeof (*req) + 1);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  struct OperationClosure *opcls = GNUNET_malloc (sizeof (*opcls));
+  opcls->client = client;
+  opcls->plc = plc;
+  opcls->op_id = req->op_id;
+
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_PSYC_STATE_GET:
+      GNUNET_PSYC_channel_state_get (plc->channel, name,
+                                     psyc_recv_state_var,
+                                     psyc_recv_state_result, opcls);
+      break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX:
+      GNUNET_PSYC_channel_state_get_prefix (plc->channel, name,
+                                            psyc_recv_state_var,
+                                            psyc_recv_state_result, opcls);
+      break;
+
+  default:
+      GNUNET_assert (0);
+  }
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
 static const struct GNUNET_SERVER_MessageHandler handlers[] = {
   { &client_recv_host_enter, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER, 0 },
@@ -1650,13 +1763,13 @@ static const struct GNUNET_SERVER_MessageHandler handlers[] = {
 
   { &client_recv_history_replay, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY, 0 },
-#if FIXME
+
   { &client_recv_state_get, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STATE_GET, 0 },
 
-  { &client_recv_state_get_prefix, NULL,
+  { &client_recv_state_get, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX, 0 },
-#endif
+
   { NULL, NULL, 0, 0 }
 };
 

@@ -310,6 +310,21 @@ struct GNUNET_SOCIAL_LookHandle
   GNUNET_ResultCallback result_cb;
 
   /**
+   * Name of current modifier being received.
+   */
+  char *mod_name;
+
+  /**
+   * Size of current modifier value being received.
+   */
+  size_t mod_value_size;
+
+  /**
+   * Remaining size of current modifier value still to be received.
+   */
+  size_t mod_value_remaining;
+
+  /**
    * Closure for @a result_cb.
    */
   void *cls;
@@ -753,49 +768,66 @@ place_recv_state_result (void *cls,
   const struct GNUNET_OperationResultMessage *
     res = (const struct GNUNET_OperationResultMessage *) msg;
 
-#if FIXME
   GNUNET_ResultCallback result_cb = NULL;
-  struct GNUNET_PSYC_StateRequest *sr = NULL;
+  struct GNUNET_SOCIAL_LookHandle *look = NULL;
 
   if (GNUNET_YES != GNUNET_CLIENT_MANAGER_op_find (plc->client,
                                                    GNUNET_ntohll (res->op_id),
-                                                   &result_cb, (void *) &sr))
+                                                   &result_cb, (void *) &look))
   { /* Operation not found. */
     return;
   }
 
   const struct GNUNET_MessageHeader *
-    modc = (struct GNUNET_MessageHeader *) &res[1];
-  uint16_t modc_size = ntohs (modc->size);
-  if (ntohs (msg->size) - sizeof (*msg) != modc_size)
+    mod = (struct GNUNET_MessageHeader *) &res[1];
+  uint16_t mod_size = ntohs (mod->size);
+  if (ntohs (msg->size) - sizeof (*res) != mod_size)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Invalid modifier size in state result: %u - %u != %u\n",
+         ntohs (msg->size), sizeof (*res), mod_size);
     return;
   }
-  switch (ntohs (modc->type))
+  switch (ntohs (mod->type))
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
   {
     const struct GNUNET_PSYC_MessageModifier *
-      mod = (const struct GNUNET_PSYC_MessageModifier *) modc;
+      pmod = (const struct GNUNET_PSYC_MessageModifier *) mod;
 
-    const char *name = (const char *) &mod[1];
-    uint16_t name_size = ntohs (mod->name_size);
+    const char *name = (const char *) &pmod[1];
+    uint16_t name_size = ntohs (pmod->name_size);
     if ('\0' != name[name_size - 1])
     {
-      GNUNET_break (0);
+      GNUNET_break_op (0);
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Invalid modifier name in state result\n");
       return;
     }
-    sr->var_cb (sr->cls, name, name + name_size, ntohs (mod->value_size));
+    look->mod_value_size = ntohs (pmod->value_size);
+    look->var_cb (look->cls, mod, name, name + name_size,
+                  mod_size - sizeof (*mod) - name_size,
+                  look->mod_value_size);
+    if (look->mod_value_size > mod_size - sizeof (*mod) - name_size)
+    {
+        look->mod_value_remaining = look->mod_value_size;
+        look->mod_name = GNUNET_malloc (name_size);
+        memcpy (look->mod_name, name, name_size);
+    }
     break;
   }
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
-    sr->var_cb (sr->cls, NULL, (const char *) &modc[1],
-                modc_size - sizeof (*modc));
+    look->var_cb (look->cls, mod, look->mod_name, (const char *) &mod[1],
+                  mod_size - sizeof (*mod), look->mod_value_size);
+    look->mod_value_remaining -= mod_size - sizeof (*mod);
+    if (0 == look->mod_value_remaining)
+    {
+        GNUNET_free (look->mod_name);
+    }
     break;
   }
-#endif
 }
 
 
@@ -1980,7 +2012,7 @@ place_state_get (struct GNUNET_SOCIAL_Place *plc,
  * what was requested).
  *
  * @param place
- *        The place to look the object at.
+ *        The place where to look.
  * @param full_name
  *        Full name of the object.
  * @param value_size
@@ -2004,7 +2036,7 @@ GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *plc,
  * Look for objects in the place with a matching name prefix.
  *
  * @param place
- *        The place to look its objects at.
+ *        The place where to look.
  * @param name_prefix
  *        Look at objects with names beginning with this value.
  * @param var_cb

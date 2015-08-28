@@ -366,34 +366,36 @@ channel_recv_state_result (void *cls,
   }
 
   const struct GNUNET_MessageHeader *
-    modc = (struct GNUNET_MessageHeader *) &res[1];
-  uint16_t modc_size = ntohs (modc->size);
-  if (ntohs (msg->size) - sizeof (*msg) != modc_size)
+    mod = (struct GNUNET_MessageHeader *) &res[1];
+  uint16_t mod_size = ntohs (mod->size);
+  if (ntohs (msg->size) - sizeof (*res) != mod_size)
   {
     GNUNET_break (0);
     return;
   }
-  switch (ntohs (modc->type))
+  switch (ntohs (mod->type))
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
   {
     const struct GNUNET_PSYC_MessageModifier *
-      mod = (const struct GNUNET_PSYC_MessageModifier *) modc;
+      pmod = (const struct GNUNET_PSYC_MessageModifier *) mod;
 
-    const char *name = (const char *) &mod[1];
-    uint16_t name_size = ntohs (mod->name_size);
+    const char *name = (const char *) &pmod[1];
+    uint16_t name_size = ntohs (pmod->name_size);
     if ('\0' != name[name_size - 1])
     {
       GNUNET_break (0);
       return;
     }
-    sr->var_cb (sr->cls, name, name + name_size, ntohs (mod->value_size));
+    sr->var_cb (sr->cls, mod, name, name + name_size,
+                ntohs (pmod->header.size) - sizeof (*pmod),
+                ntohs (pmod->value_size));
     break;
   }
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
-    sr->var_cb (sr->cls, NULL, (const char *) &modc[1],
-                modc_size - sizeof (*modc));
+    sr->var_cb (sr->cls, mod, NULL, (const char *) &mod[1],
+                mod_size - sizeof (*mod), 0);
     break;
   }
 }
