@@ -82,7 +82,7 @@ struct GNUNET_NAT_STUN_Handle {
     /**
      * Function to call when a error occours
     */
-    GNUNET_NAT_stun_RequestCallback cb;
+    GNUNET_NAT_STUN_ErrorCallback cb;
 
     /**
      * Closure for @e cb.
@@ -441,7 +441,10 @@ GNUNET_NAT_stun_handle_packet(const void *data, size_t len, struct sockaddr_in *
 static void
 clean(struct GNUNET_NAT_STUN_Handle * handle)
 {
+  if(handle->stun_server)
+  {
     GNUNET_free(handle->stun_server);
+  }
     GNUNET_free(handle);
 
 }
@@ -485,7 +488,7 @@ stun_dns_callback (void *cls,
 
         if( GNUNET_NO == request->dns_success){
             LOG (GNUNET_ERROR_TYPE_INFO, "Error resolving host %s\n", request->stun_server);
-            request->cb(request->cb_cls, GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
+            request->cb(request->cb_cls, GNUNET_NAT_ERROR_NOT_ONLINE);
             clean(request);
 
         }
@@ -536,11 +539,14 @@ stun_dns_callback (void *cls,
  * @param server, the address of the stun server
  * @param port, port of the stun server
  * @param sock the socket used to send the request
+ * @param cb, callback in case of error
  * @return #GNUNET_OK success, #GNUNET_NO on error.
  */
 int
-GNUNET_NAT_stun_make_request(char * server, int port,
-                             struct GNUNET_NETWORK_Handle * sock,GNUNET_NAT_stun_RequestCallback cb,
+GNUNET_NAT_stun_make_request(char * server,
+                             int port,
+                             struct GNUNET_NETWORK_Handle * sock,
+                             GNUNET_NAT_STUN_ErrorCallback cb,
                              void *cb_cls)
 {
 

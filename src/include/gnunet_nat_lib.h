@@ -494,16 +494,14 @@ struct GNUNET_NAT_STUN_Handle;
 
 
 /**
- * Function called with the result from NAT request.
+ * Function called with the result if an error happened during STUN request.
  *
  * @param cls closure
- * @param diff minimal suggested changes to the original configuration
- *             to make it work (as best as we can)
- * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ * @param result the specific error code
  */
 typedef void
-(*GNUNET_NAT_stun_RequestCallback)(void *cls,
-                                 enum GNUNET_NAT_StatusCode result);
+(*GNUNET_NAT_STUN_ErrorCallback)(void *cls,
+                                 enum GNUNET_NAT_StatusCode error);
 
 
 /**
@@ -516,12 +514,13 @@ typedef void
  * @param server, the address of the stun server
  * @param port, port of the stun server
  * @param sock the socket used to send the request
+ * @param cb callback in case of error
  * @return #GNUNET_OK success, #GNUNET_NO on error.
  */
 int
 GNUNET_NAT_stun_make_request(char * server,
                              int port,
-                             struct GNUNET_NETWORK_Handle * sock, GNUNET_NAT_stun_RequestCallback cb,
+                             struct GNUNET_NETWORK_Handle * sock, GNUNET_NAT_STUN_ErrorCallback cb,
                              void *cb_cls);
 
 

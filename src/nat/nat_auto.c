@@ -243,7 +243,7 @@ stop_stun ()
     GNUNET_SCHEDULER_cancel (ltask4);
 
   //Clean socket
-  if(NULL != ltask4)
+  if(NULL != lsock4)
     GNUNET_NETWORK_socket_close (lsock4);
 
 }
