@@ -239,7 +239,7 @@ filtered_map_initialization (void *cls,
               GNUNET_h2s (&ee->element_hash),
               ee->element.size);
 
-  if (_GSS_is_element_of_operation (ee, op))
+  if (GNUNET_NO == _GSS_is_element_of_operation (ee, op))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Reduced initialization, not starting with %s:%u (wrong generation)\n",
@@ -785,7 +785,7 @@ initialize_map_unfiltered (void *cls,
   struct ElementEntry *ee = value;
   struct Operation *op = cls;
 
-  if (_GSS_is_element_of_operation (ee, op))
+  if (GNUNET_NO == _GSS_is_element_of_operation (ee, op))
     return GNUNET_YES; /* element not live in operation's generation */
   GNUNET_CRYPTO_hash_xor (&op->state->my_xor,
                           &ee->element_hash,
