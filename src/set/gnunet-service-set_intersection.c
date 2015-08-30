@@ -239,8 +239,7 @@ filtered_map_initialization (void *cls,
               GNUNET_h2s (&ee->element_hash),
               ee->element.size);
 
-  if ( (op->generation_created < ee->generation_removed) &&
-       (op->generation_created >= ee->generation_added) )
+  if (_GSS_is_element_of_operation (ee, op))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Reduced initialization, not starting with %s:%u (wrong generation)\n",
@@ -617,7 +616,7 @@ process_bf (struct Operation *op)
               op->state->phase,
               op->spec->remote_element_count,
               op->state->my_element_count,
-              GNUNET_CONTAINER_multihashmap_size (op->spec->set->elements));
+              GNUNET_CONTAINER_multihashmap_size (op->spec->set->content->elements));
   switch (op->state->phase)
   {
   case PHASE_INITIAL:
@@ -631,7 +630,7 @@ process_bf (struct Operation *op)
       = GNUNET_CONTAINER_multihashmap_create (op->spec->remote_element_count,
                                               GNUNET_YES);
     op->state->my_element_count = 0;
-    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->content->elements,
                                            &filtered_map_initialization,
                                            op);
     break;
@@ -786,8 +785,7 @@ initialize_map_unfiltered (void *cls,
   struct ElementEntry *ee = value;
   struct Operation *op = cls;
 
-  if ( (op->generation_created < ee->generation_removed) &&
-       (op->generation_created >= ee->generation_added) )
+  if (_GSS_is_element_of_operation (ee, op))
     return GNUNET_YES; /* element not live in operation's generation */
   GNUNET_CRYPTO_hash_xor (&op->state->my_xor,
                           &ee->element_hash,
@@ -840,7 +838,7 @@ begin_bf_exchange (struct Operation *op)
   op->state->my_elements
     = GNUNET_CONTAINER_multihashmap_create (op->state->my_element_count,
                                             GNUNET_YES);
-  GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+  GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->content->elements,
                                          &initialize_map_unfiltered,
                                          op);
   send_bloomfilter (op);

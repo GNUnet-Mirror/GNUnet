@@ -33,6 +33,17 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "set-api",__VA_ARGS__)
 
+struct SetCopyRequest
+{
+  struct SetCopyRequest *next;
+
+  struct SetCopyRequest *prev;
+
+  void *cls;
+
+  GNUNET_SET_CopyReadyCallback cb;
+};
+
 /**
  * Opaque handle to a set.
  */
@@ -84,6 +95,21 @@ struct GNUNET_SET_Handle
    * created so far to match replies with iterators.
    */
   uint16_t iteration_id;
+
+  /**
+   * Configuration, needed when creating (lazy) copies.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Doubly linked list of copy requests.
+   */
+  struct SetCopyRequest *copy_req_head;
+
+  /**
+   * Doubly linked list of copy requests.
+   */
+  struct SetCopyRequest *copy_req_tail;
 };
 
 
@@ -211,6 +237,55 @@ struct GNUNET_SET_ListenHandle
    */
   enum GNUNET_SET_OperationType operation;
 };
+
+
+/* mutual recursion with handle_copy_lazy */
+static struct GNUNET_SET_Handle *
+create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                 enum GNUNET_SET_OperationType op,
+                 uint32_t *cookie);
+
+
+/**
+ * Handle element for iteration over the set.  Notifies the
+ * iterator and sends an acknowledgement to the service.
+ *
+ * @param cls the `struct GNUNET_SET_Handle *`
+ * @param mh the message
+ */
+static void
+handle_copy_lazy (void *cls,
+                  const struct GNUNET_MessageHeader *mh)
+{
+  struct GNUNET_SET_CopyLazyResponseMessage *msg;
+  struct GNUNET_SET_Handle *set = cls;
+  struct SetCopyRequest *req;
+  struct GNUNET_SET_Handle *new_set;
+
+  msg = (struct GNUNET_SET_CopyLazyResponseMessage *) mh;
+
+  req = set->copy_req_head;
+
+  if (NULL == req)
+  {
+    /* Service sent us unsolicited lazy copy response */
+    GNUNET_break (0);
+    return;
+  }
+  
+  GNUNET_CONTAINER_DLL_remove (set->copy_req_head,
+                               set->copy_req_tail,
+                               req);
+
+  
+  // We pass none as operation here, since it doesn't matter when
+  // cloning.
+  new_set = create_internal (set->cfg, GNUNET_SET_OPERATION_NONE, &msg->cookie);
+
+  req->cb (req->cls, new_set);
+
+  GNUNET_free (req);
+}
 
 
 /**
@@ -455,6 +530,65 @@ handle_client_set_error (void *cls,
 }
 
 
+static struct GNUNET_SET_Handle *
+create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                 enum GNUNET_SET_OperationType op,
+                 uint32_t *cookie)
+{
+  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    { &handle_result,
+      GNUNET_MESSAGE_TYPE_SET_RESULT,
+      0 },
+    { &handle_iter_element,
+      GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
+      0 },
+    { &handle_iter_done,
+      GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
+      sizeof (struct GNUNET_MessageHeader) },
+    { &handle_copy_lazy,
+      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE,
+      sizeof (struct GNUNET_SET_CopyLazyResponseMessage) },
+    GNUNET_MQ_HANDLERS_END
+  };
+  struct GNUNET_SET_Handle *set;
+  struct GNUNET_MQ_Envelope *mqm;
+  struct GNUNET_SET_CreateMessage *create_msg;
+  struct GNUNET_SET_CopyLazyConnectMessage *copy_msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Creating new set (operation %u)\n",
+              op);
+  set = GNUNET_new (struct GNUNET_SET_Handle);
+  set->client = GNUNET_CLIENT_connect ("set", cfg);
+  set->cfg = cfg;
+  if (NULL == set->client)
+  {
+    GNUNET_free (set);
+    return NULL;
+  }
+  set->mq = GNUNET_MQ_queue_for_connection_client (set->client,
+                                                   mq_handlers,
+                                                   &handle_client_set_error,
+                                                   set);
+  GNUNET_assert (NULL != set->mq);
+
+  if (NULL == cookie)
+  {
+    mqm = GNUNET_MQ_msg (create_msg,
+                         GNUNET_MESSAGE_TYPE_SET_CREATE);
+    create_msg->operation = htonl (op);
+  }
+  else
+  {
+    mqm = GNUNET_MQ_msg (copy_msg,
+                         GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT);
+    copy_msg->cookie = *cookie;
+  }
+  GNUNET_MQ_send (set->mq, mqm);
+  return set;
+}
+
+
 /**
  * Create an empty set, supporting the specified operation.
  *
@@ -470,42 +604,7 @@ struct GNUNET_SET_Handle *
 GNUNET_SET_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                    enum GNUNET_SET_OperationType op)
 {
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    { &handle_result,
-      GNUNET_MESSAGE_TYPE_SET_RESULT,
-      0 },
-    { &handle_iter_element,
-      GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT,
-      0 },
-    { &handle_iter_done,
-      GNUNET_MESSAGE_TYPE_SET_ITER_DONE,
-      sizeof (struct GNUNET_MessageHeader) },
-    GNUNET_MQ_HANDLERS_END
-  };
-  struct GNUNET_SET_Handle *set;
-  struct GNUNET_MQ_Envelope *mqm;
-  struct GNUNET_SET_CreateMessage *msg;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating new set (operation %u)\n",
-              op);
-  set = GNUNET_new (struct GNUNET_SET_Handle);
-  set->client = GNUNET_CLIENT_connect ("set", cfg);
-  if (NULL == set->client)
-  {
-    GNUNET_free (set);
-    return NULL;
-  }
-  set->mq = GNUNET_MQ_queue_for_connection_client (set->client,
-                                                   mq_handlers,
-                                                   &handle_client_set_error,
-                                                   set);
-  GNUNET_assert (NULL != set->mq);
-  mqm = GNUNET_MQ_msg (msg,
-                       GNUNET_MESSAGE_TYPE_SET_CREATE);
-  msg->operation = htonl (op);
-  GNUNET_MQ_send (set->mq, mqm);
-  return set;
+  return create_internal (cfg, op, NULL);
 }
 
 
@@ -976,19 +1075,23 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
 }
 
 
-/**
- * Stop iteration over all elements in the given set.  Can only
- * be called before the iteration has "naturally" completed its
- * turn.
- *
- * @param set the set to stop iterating over
- */
 void
-GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set)
+GNUNET_SET_copy_lazy (struct GNUNET_SET_Handle *set,
+                      GNUNET_SET_CopyReadyCallback cb,
+                      void *cls)
 {
-  GNUNET_assert (NULL != set->iterator);
-  set->iterator = NULL;
-  set->iteration_id++;
+  struct GNUNET_MQ_Envelope *ev;
+  struct SetCopyRequest *req;
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_PREPARE);
+  GNUNET_MQ_send (set->mq, ev);
+
+  req = GNUNET_new (struct SetCopyRequest);
+  req->cb = cb;
+  req->cls = cls;
+  GNUNET_CONTAINER_DLL_insert (set->copy_req_head,
+                               set->copy_req_tail,
+                               req);
 }
 
 

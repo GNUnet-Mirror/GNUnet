@@ -211,6 +211,10 @@ typedef void
 (*CancelImpl) (struct Operation *op);
 
 
+typedef struct SetState *
+(*CopyStateImpl) (struct Set *op);
+
+
 /**
  * Dispatch table for a specific set operation.  Every set operation
  * has to implement the callback in this struct.
@@ -261,6 +265,30 @@ struct SetVT
    * Callback for canceling an operation by its ID.
    */
   CancelImpl cancel;
+
+  CopyStateImpl copy_state;
+};
+
+
+/**
+ * MutationEvent gives information about changes
+ * to an element (removal / addition) in a set content.
+ */
+struct MutationEvent
+{
+  /**
+   * First generation affected by this mutation event.
+   *
+   * If @a generation is 0, this mutation event is a list
+   * sentinel element.
+   */
+  unsigned int generation;
+
+  /**
+   * If @a added is #GNUNET_YES, then this is a
+   * `remove` event, otherwise it is an `add` event.
+   */
+  int added;
 };
 
 
@@ -285,22 +313,17 @@ struct ElementEntry
   struct GNUNET_HashCode element_hash;
 
   /**
-   * Generation the element was added by the client.
-   * Operations of earlier generations will not consider the element.
+   * If @a mutations is not NULL, it contains
+   * a list of mutations, ordered by increasing generation.
+   * The list is terminated by a sentinel event with `generation`
+   * set to 0.
+   *
+   * If @a mutations is NULL, then this element exists in all generations
+   * of the respective set content this element belongs to.
    */
-  unsigned int generation_added;
+  struct MutationEvent *mutations;
 
-  /**
-   * Generation the element was removed by the client.
-   * Operations of later generations will not consider the element.
-   * Only valid if @e removed is #GNUNET_YES.
-   */
-  unsigned int generation_removed;
-
-  /**
-   * #GNUNET_YES if the element has been removed in some generation.
-   */
-  int removed;
+  unsigned int mutations_size;
 
   /**
    * #GNUNET_YES if the element is a remote element, and does not belong
@@ -323,12 +346,12 @@ struct Operation
   const struct SetVT *vt;
 
   /**
-   * Tunnel to the peer.
+   * Channel to the peer.
    */
   struct GNUNET_CADET_Channel *channel;
 
   /**
-   * Message queue for the tunnel.
+   * Message queue for the channel.
    */
   struct GNUNET_MQ_Handle *mq;
 
@@ -366,7 +389,7 @@ struct Operation
    * Timeout task, if the incoming peer has not been accepted
    * after the timeout, it will be disconnected.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * Unique request id for the request from a remote peer, sent to the
@@ -393,6 +416,41 @@ struct Operation
    * (Used as a reference counter, but only during termination.)
    */
   unsigned int keep;
+};
+
+
+/**
+ * SetContent stores the actual set elements,
+ * which may be shared by multiple generations derived
+ * from one set.
+ */
+struct SetContent
+{
+  /**
+   * Number of references to the content.
+   */
+  unsigned int refcount;
+
+  /**
+   * Maps `struct GNUNET_HashCode *` to `struct ElementEntry *`.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *elements;
+
+  unsigned int latest_generation;
+};
+
+
+struct GenerationRange
+{
+  /**
+   * First generation that is excluded.
+   */
+  unsigned int start;
+
+  /**
+   * Generation after the last excluded generation.
+   */
+  unsigned int end;
 };
 
 
@@ -444,11 +502,6 @@ struct Set
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
 
   /**
-   * Maps `struct GNUNET_HashCode *` to `struct ElementEntry *`.
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *elements;
-
-  /**
    * Evaluate operations are held in a linked list.
    */
   struct Operation *ops_head;
@@ -460,9 +513,16 @@ struct Set
 
   /**
    * Current generation, that is, number of previously executed
-   * operations on this set
+   * operations and lazy copies on the underlying set content.
    */
   unsigned int current_generation;
+
+  /**
+   * List of generations we have to exclude, due to lazy copies.
+   */
+  struct GenerationRange *excluded_generations;
+
+  unsigned int excluded_generations_size;
 
   /**
    * Type of operation supported for this set
@@ -474,6 +534,12 @@ struct Set
    * can distinguish iterations.
    */
   uint16_t iteration_id;
+
+  /**
+   * Content, possibly shared by multiple sets,
+   * and thus reference counted.
+   */
+  struct SetContent *content;
 
 };
 
@@ -508,6 +574,15 @@ _GSS_union_vt (void);
  */
 const struct SetVT *
 _GSS_intersection_vt (void);
+
+
+int
+_GSS_is_element_of_set (struct ElementEntry *ee,
+                        struct Set *set);
+
+int
+_GSS_is_element_of_operation (struct ElementEntry *ee,
+                              struct Operation *op);
 
 
 #endif

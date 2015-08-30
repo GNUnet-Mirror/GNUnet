@@ -72,6 +72,16 @@ struct Listener
 };
 
 
+struct LazyCopyRequest
+{
+  struct Set *source_set;
+  uint32_t cookie;
+
+  struct LazyCopyRequest *prev;
+  struct LazyCopyRequest *next;
+};
+
+
 /**
  * Configuration of our local peer.
  */
@@ -114,6 +124,11 @@ static struct Operation *incoming_head;
  * list.
  */
 static struct Operation *incoming_tail;
+
+static struct LazyCopyRequest *lazy_copy_head;
+static struct LazyCopyRequest *lazy_copy_tail;
+
+static uint32_t lazy_copy_cookie = 1;
 
 /**
  * Counter for allocating unique IDs for clients, used to identify
@@ -253,20 +268,20 @@ garbage_collect_cb (void *cls,
                     const struct GNUNET_HashCode *key,
                     void *value)
 {
-  struct GarbageContext *gc = cls;
-  struct ElementEntry *ee = value;
+  //struct GarbageContext *gc = cls;
+  //struct ElementEntry *ee = value;
 
-  if (GNUNET_YES != ee->removed)
-    return GNUNET_OK;
-  if ( (gc->max_op_generation < ee->generation_added) ||
-       (ee->generation_removed > gc->min_op_generation) )
-  {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multihashmap_remove (gc->map,
-                                                         key,
-                                                         ee));
-    GNUNET_free (ee);
-  }
+  //if (GNUNET_YES != ee->removed)
+  //  return GNUNET_OK;
+  //if ( (gc->max_op_generation < ee->generation_added) ||
+  //     (ee->generation_removed > gc->min_op_generation) )
+  //{
+  //  GNUNET_assert (GNUNET_YES ==
+  //                 GNUNET_CONTAINER_multihashmap_remove (gc->map,
+  //                                                       key,
+  //                                                       ee));
+  //  GNUNET_free (ee);
+  //}
   return GNUNET_OK;
 }
 
@@ -293,10 +308,89 @@ collect_generation_garbage (struct Set *set)
     gc.max_op_generation = GNUNET_MAX (gc.max_op_generation,
                                        op->generation_created);
   }
-  gc.map = set->elements;
-  GNUNET_CONTAINER_multihashmap_iterate (set->elements,
+  gc.map = set->content->elements;
+  GNUNET_CONTAINER_multihashmap_iterate (set->content->elements,
                                          &garbage_collect_cb,
                                          &gc);
+}
+
+int
+is_excluded_generation (unsigned int generation,
+                        struct GenerationRange *excluded,
+                        unsigned int excluded_size)
+{
+  unsigned int i;
+
+  for (i = 0; i < excluded_size; i++)
+  {
+    if ( (generation >= excluded[i].start) && (generation < excluded[i].end) )
+      return GNUNET_YES;
+  }
+
+  return GNUNET_NO;
+}
+
+
+int
+is_element_of_generation (struct ElementEntry *ee,
+                          unsigned int query_generation,
+                          struct GenerationRange *excluded,
+                          unsigned int excluded_size)
+{
+  struct MutationEvent *mut;
+  int is_present;
+
+  if (NULL == ee->mutations)
+    return GNUNET_YES;
+
+  if (GNUNET_YES == is_excluded_generation (query_generation, excluded, excluded_size))
+  {
+    GNUNET_break (0);
+    return GNUNET_NO;
+  }
+
+  is_present = GNUNET_YES;
+
+  // Could be made faster with binary search, but lists
+  // are small, so why bother.
+  for (mut = ee->mutations; 0 != mut->generation; mut++)
+  {
+    if ( (mut->generation > query_generation) ||
+         (GNUNET_YES == is_excluded_generation (mut->generation, excluded, excluded_size)) )
+    {
+      continue;
+    }
+
+    // This would be an inconsistency in how we manage mutations.
+    if ( (GNUNET_YES == is_present) && (GNUNET_YES == mut->added) )
+      GNUNET_assert (0);
+
+    is_present = mut->added;
+  }
+
+  return GNUNET_YES;
+}
+
+
+int
+_GSS_is_element_of_set (struct ElementEntry *ee,
+                        struct Set *set)
+{
+  return is_element_of_generation (ee,
+                                   set->current_generation,
+                                   set->excluded_generations,
+                                   set->excluded_generations_size);
+}
+
+
+int
+_GSS_is_element_of_operation (struct ElementEntry *ee,
+                              struct Operation *op)
+{
+  return is_element_of_generation (ee,
+                                   op->generation_created,
+                                   op->spec->set->excluded_generations,
+                                   op->spec->set->excluded_generations_size);
 }
 
 
@@ -371,6 +465,8 @@ destroy_elements_iterator (void *cls,
 {
   struct ElementEntry *ee = value;
 
+  GNUNET_free_non_null (ee->mutations);
+
   GNUNET_free (ee);
   return GNUNET_YES;
 }
@@ -412,17 +508,31 @@ set_destroy (struct Set *set)
     set->iter = NULL;
     set->iteration_id++;
   }
-  if (NULL != set->elements)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (set->elements,
-                                           &destroy_elements_iterator,
-                                           NULL);
-    GNUNET_CONTAINER_multihashmap_destroy (set->elements);
-    set->elements = NULL;
+    struct SetContent *content;
+
+    content = set->content;
+    set->content = NULL;
+    GNUNET_assert (0 != content->refcount);
+    content->refcount -= 1;
+    if (0 == content->refcount)
+    {
+      GNUNET_assert (NULL != content->elements);
+      GNUNET_CONTAINER_multihashmap_iterate (content->elements,
+                                             &destroy_elements_iterator,
+                                             NULL);
+      GNUNET_CONTAINER_multihashmap_destroy (content->elements);
+      content->elements = NULL;
+    }
   }
+  GNUNET_free_non_null (set->excluded_generations);
+  set->excluded_generations = NULL;
   GNUNET_CONTAINER_DLL_remove (sets_head,
                                sets_tail,
                                set);
+
+  // FIXME: remove from lazy copy requests
+
   GNUNET_free (set);
 }
 
@@ -722,10 +832,10 @@ handle_client_iterate (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Iterating set with %u elements\n",
-              GNUNET_CONTAINER_multihashmap_size (set->elements));
+              GNUNET_CONTAINER_multihashmap_size (set->content->elements));
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
-  set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->elements);
+  set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->content->elements);
   send_client_element (set);
 }
 
@@ -773,8 +883,11 @@ handle_client_create_set (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+  set->operation = ntohl (msg->operation);
   set->state = set->vt->create ();
-  set->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+  set->content = GNUNET_new (struct SetContent);
+  set->content->refcount = 1;
+  set->content->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   set->client = client;
   set->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_CONTAINER_DLL_insert (sets_head,
@@ -895,7 +1008,7 @@ handle_client_add (void *cls,
   const struct GNUNET_SET_ElementMessage *msg;
   struct GNUNET_SET_Element el;
   struct ElementEntry *ee;
-  struct ElementEntry *ee_dup;
+  struct GNUNET_HashCode hash;
 
   set = set_get (client);
   if (NULL == set)
@@ -913,28 +1026,43 @@ handle_client_add (void *cls,
 	      "Client inserts element of size %u\n",
               el.size);
   el.data = &msg[1];
-  ee = GNUNET_malloc (el.size + sizeof *ee);
-  ee->element.size = el.size;
-  memcpy (&ee[1],
-          el.data,
-          el.size);
-  ee->element.data = &ee[1];
-  ee->generation_added = set->current_generation;
-  ee->remote = GNUNET_NO;
-  GNUNET_CRYPTO_hash (ee->element.data,
+  GNUNET_CRYPTO_hash (el.data,
                       el.size,
-                      &ee->element_hash);
-  ee_dup = GNUNET_CONTAINER_multihashmap_get (set->elements,
-                                              &ee->element_hash);
-  if (NULL != ee_dup)
+                      &hash);
+
+  ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
+                                          &hash);
+
+  if (NULL == ee)
   {
+    ee = GNUNET_malloc (el.size + sizeof *ee);
+    ee->element.size = el.size;
+    memcpy (&ee[1],
+            el.data,
+            el.size);
+    ee->element.data = &ee[1];
+    ee->remote = GNUNET_NO;
+    ee->mutations = NULL;
+    ee->mutations_size = 0;
+    ee->element_hash = hash;
+  } else if (GNUNET_YES == _GSS_is_element_of_set (ee, set)) {
     /* same element inserted twice */
     GNUNET_break (0);
-    GNUNET_free (ee);
     return;
   }
+
+  if (0 != set->current_generation)
+  {
+    struct MutationEvent mut = {
+      .generation = set->current_generation,
+      .added = GNUNET_YES
+    };
+    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
+    ee->mutations_size += 1;
+  }
+
   GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_put (set->elements,
+                GNUNET_CONTAINER_multihashmap_put (set->content->elements,
                                                    &ee->element_hash,
                                                    ee,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
@@ -980,7 +1108,7 @@ handle_client_remove (void *cls,
   GNUNET_CRYPTO_hash (el.data,
                       el.size,
                       &hash);
-  ee = GNUNET_CONTAINER_multihashmap_get (set->elements,
+  ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
                                           &hash);
   if (NULL == ee)
   {
@@ -988,17 +1116,64 @@ handle_client_remove (void *cls,
     GNUNET_break (0);
     return;
   }
-  if (GNUNET_YES == ee->removed)
+  if (GNUNET_NO == _GSS_is_element_of_set (ee, set))
   {
     /* Client tried to remove element twice */
     GNUNET_break (0);
     return;
   }
-  ee->removed = GNUNET_YES;
-  ee->generation_removed = set->current_generation;
+  else if (0 == set->current_generation)
+  {
+    // If current_generation is 0, then there are no running set operations
+    // or lazy copies, thus we can safely remove the element.
+    (void) GNUNET_CONTAINER_multihashmap_remove_all (set->content->elements, &hash);
+  }
+  else
+  {
+    struct MutationEvent mut = {
+      .generation = set->current_generation,
+      .added = GNUNET_NO
+    };
+    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
+    ee->mutations_size += 1;
+  }
   set->vt->remove (set->state, ee);
 }
 
+
+
+/**
+ * Advance the current generation of a set,
+ * adding exclusion ranges if necessary.
+ *
+ * @param set the set where we want to advance the generation
+ */
+static void
+advance_generation (struct Set *set)
+{
+  struct GenerationRange r;
+
+  if (set->current_generation == set->content->latest_generation)
+  {
+    set->content->latest_generation += 1;
+    set->current_generation += 1;
+    return;
+  }
+
+  GNUNET_assert (set->current_generation < set->content->latest_generation);
+
+  r.start = set->current_generation + 1;
+  r.end = set->content->latest_generation + 1;
+
+  set->content->latest_generation = r.end;
+  set->current_generation = r.end;
+
+  GNUNET_array_append (set->excluded_generations,
+                       set->excluded_generations_size,
+                       r);
+
+  set->excluded_generations_size += 1;
+}
 
 /**
  * Called when a client wants to initiate a set operation with another
@@ -1040,7 +1215,12 @@ handle_client_evaluate (void *cls,
   context = GNUNET_MQ_extract_nested_mh (msg);
   op = GNUNET_new (struct Operation);
   op->spec = spec;
-  op->generation_created = set->current_generation++;
+
+  // Advance generation values, so that
+  // mutations won't interfer with the running operation.
+  op->generation_created = set->current_generation;
+  advance_generation (set);
+
   op->vt = set->vt;
   GNUNET_CONTAINER_DLL_insert (set->ops_head,
                                set->ops_tail,
@@ -1104,6 +1284,135 @@ handle_client_iter_ack (void *cls,
     set->iter = NULL;
     set->iteration_id++;
   }
+}
+
+
+/**
+ * Handle a request from the client to
+ * copy a set.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param mh the message
+ */
+static void
+handle_client_copy_lazy_prepare (void *cls,
+                                 struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *mh)
+{
+  struct Set *set;
+  struct LazyCopyRequest *cr;
+
+  set = set_get (client);
+  if (NULL == set)
+  {
+    /* client without a set requested an operation */
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+
+  cr = GNUNET_new (struct LazyCopyRequest);
+
+  cr->cookie = lazy_copy_cookie;
+  lazy_copy_cookie += 1;
+  cr->source_set = set;
+
+  GNUNET_CONTAINER_DLL_insert (lazy_copy_head,
+                               lazy_copy_tail,
+                               cr);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
+}
+
+
+/**
+ * Handle a request from the client to
+ * connect to a copy of a set.
+ *
+ * @param cls unused
+ * @param client the client
+ * @param mh the message
+ */
+static void
+handle_client_copy_lazy_connect (void *cls,
+                                 struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *mh)
+{
+  struct LazyCopyRequest *cr;
+  const struct GNUNET_SET_CopyLazyConnectMessage *msg =
+      (const struct GNUNET_SET_CopyLazyConnectMessage *) mh;
+  struct Set *set;
+  int found;
+
+  if (NULL != set_get (client))
+  {
+    /* There can only be one set per client */
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+
+  found = GNUNET_NO;
+
+  for (cr = lazy_copy_head; NULL != cr; cr = cr->next)
+  {
+    if (cr->cookie == msg->cookie)
+    {
+      found = GNUNET_YES;
+      break;
+    } 
+  }
+
+  if (GNUNET_NO == found)
+  {
+    /* client asked for copy with cookie we don't know */
+    GNUNET_break (0);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
+
+  GNUNET_CONTAINER_DLL_remove (lazy_copy_head,
+                               lazy_copy_tail,
+                               cr);
+
+  set = GNUNET_new (struct Set);
+
+  switch (cr->source_set->operation)
+  {
+  case GNUNET_SET_OPERATION_INTERSECTION:
+    set->vt = _GSS_intersection_vt ();
+    break;
+  case GNUNET_SET_OPERATION_UNION:
+    set->vt = _GSS_union_vt ();
+    break;
+  default:
+    GNUNET_assert (0);
+    return;
+  }
+
+  if (NULL == set->vt->copy_state) {
+    /* Lazy copy not supported for this set operation */
+    GNUNET_break (0);
+    GNUNET_free (set);
+    GNUNET_free (cr);
+    return;
+  }
+
+  set->operation = cr->source_set->operation;
+  set->state = set->vt->copy_state (set);
+  set->content = cr->source_set->content;
+  set->content->refcount += 1;
+  set->client = client;
+  set->client_mq = GNUNET_MQ_queue_for_server_client (client);
+  GNUNET_CONTAINER_DLL_insert (sets_head,
+                               sets_tail,
+                               set);
+
+  GNUNET_free (cr);
+
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -1226,7 +1535,12 @@ handle_client_accept (void *cls,
                                op);
   op->spec->client_request_id = ntohl (msg->request_id);
   op->spec->result_mode = ntohl (msg->result_mode);
-  op->generation_created = set->current_generation++;
+
+  // Advance generation values, so that
+  // mutations won't interfer with the running operation.
+  op->generation_created = set->current_generation;
+  advance_generation (set);
+
   op->vt = set->vt;
   op->vt->accept (op);
   GNUNET_SERVER_receive_done (client,
@@ -1497,6 +1811,12 @@ run (void *cls,
     { &handle_client_cancel, NULL,
       GNUNET_MESSAGE_TYPE_SET_CANCEL,
       sizeof (struct GNUNET_SET_CancelMessage)},
+    { &handle_client_copy_lazy_prepare, NULL,
+      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_PREPARE,
+      sizeof (struct GNUNET_MessageHeader)},
+    { &handle_client_copy_lazy_connect, NULL,
+      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT,
+      sizeof (struct GNUNET_SET_CopyLazyConnectMessage)},
     { NULL, NULL, 0, 0}
   };
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {

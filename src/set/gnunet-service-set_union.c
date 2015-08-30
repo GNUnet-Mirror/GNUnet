@@ -515,18 +515,16 @@ init_key_to_element_iterator (void *cls,
                               void *value)
 {
   struct Operation *op = cls;
-  struct ElementEntry *e = value;
+  struct ElementEntry *ee = value;
 
   /* make sure that the element belongs to the set at the time
    * of creating the operation */
-  if ( (e->generation_added > op->generation_created) ||
-       ( (GNUNET_YES == e->removed) &&
-         (e->generation_removed < op->generation_created)))
+  if (GNUNET_NO == _GSS_is_element_of_operation (ee, op))
     return GNUNET_YES;
 
-  GNUNET_assert (GNUNET_NO == e->remote);
+  GNUNET_assert (GNUNET_NO == ee->remote);
 
-  op_register_element (op, e);
+  op_register_element (op, ee);
   return GNUNET_YES;
 }
 
@@ -546,9 +544,9 @@ prepare_ibf (struct Operation *op,
   {
     unsigned int len;
 
-    len = GNUNET_CONTAINER_multihashmap_size (op->spec->set->elements);
+    len = GNUNET_CONTAINER_multihashmap_size (op->spec->set->content->elements);
     op->state->key_to_element = GNUNET_CONTAINER_multihashmap32_create (len + 1);
-    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->content->elements,
                                            init_key_to_element_iterator, op);
   }
   if (NULL != op->state->local_ibf)

@@ -308,6 +308,41 @@ struct GNUNET_SET_IterAckMessage
   uint32_t send_more;
 };
 
+
+/**
+ * Server responds to a lazy copy request.
+ */
+struct GNUNET_SET_CopyLazyResponseMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Temporary name for the copied set.
+   */
+  uint32_t cookie;
+};
+
+
+/**
+ * Client connects to a lazily copied set.
+ */
+struct GNUNET_SET_CopyLazyConnectMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Temporary name for the copied set.
+   */
+  uint32_t cookie;
+};
+
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif
