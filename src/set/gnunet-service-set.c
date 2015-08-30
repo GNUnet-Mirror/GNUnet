@@ -510,8 +510,24 @@ set_destroy (struct Set *set)
   }
   {
     struct SetContent *content;
+    struct PendingMutation *pm;
+    struct PendingMutation *pm_current;
 
     content = set->content;
+
+    // discard any pending mutations that reference this set
+    pm = content->pending_mutations_head;
+    while (NULL != pm)
+    {
+      pm_current = pm;
+      pm = pm->next;
+      if (pm_current-> set == set)
+        GNUNET_CONTAINER_DLL_remove (content->pending_mutations_head,
+                                     content->pending_mutations_tail,
+                                     pm_current);
+
+    }
+
     set->content = NULL;
     GNUNET_assert (0 != content->refcount);
     content->refcount -= 1;
@@ -531,7 +547,21 @@ set_destroy (struct Set *set)
                                sets_tail,
                                set);
 
-  // FIXME: remove from lazy copy requests
+  // remove set from pending copy requests
+  {
+    struct LazyCopyRequest *lcr;
+    lcr = lazy_copy_head;
+    while (NULL != lcr)
+    {
+      struct LazyCopyRequest *lcr_current;
+      lcr_current = lcr;
+      lcr = lcr->next;
+      if (lcr_current->source_set == set)
+        GNUNET_CONTAINER_DLL_remove (lazy_copy_head,
+                                     lazy_copy_tail,
+                                     lcr_current);
+    }
+  }
 
   GNUNET_free (set);
 }
@@ -750,6 +780,140 @@ handle_incoming_msg (struct Operation *op,
 }
 
 
+static void
+execute_add (struct Set *set,
+             const struct GNUNET_MessageHeader *m)
+{
+  const struct GNUNET_SET_ElementMessage *msg;
+  struct GNUNET_SET_Element el;
+  struct ElementEntry *ee;
+  struct GNUNET_HashCode hash;
+
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_SET_ADD == ntohs (m->type));
+
+  msg = (const struct GNUNET_SET_ElementMessage *) m;
+  el.size = ntohs (m->size) - sizeof *msg;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client inserts element of size %u\n",
+              el.size);
+  el.data = &msg[1];
+  GNUNET_CRYPTO_hash (el.data,
+                      el.size,
+                      &hash);
+
+  ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
+                                          &hash);
+
+  if (NULL == ee)
+  {
+    ee = GNUNET_malloc (el.size + sizeof *ee);
+    ee->element.size = el.size;
+    memcpy (&ee[1],
+            el.data,
+            el.size);
+    ee->element.data = &ee[1];
+    ee->remote = GNUNET_NO;
+    ee->mutations = NULL;
+    ee->mutations_size = 0;
+    ee->element_hash = hash;
+  } else if (GNUNET_YES == _GSS_is_element_of_set (ee, set)) {
+    /* same element inserted twice */
+    GNUNET_break (0);
+    return;
+  }
+
+  if (0 != set->current_generation)
+  {
+    struct MutationEvent mut = {
+      .generation = set->current_generation,
+      .added = GNUNET_YES
+    };
+    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
+    ee->mutations_size += 1;
+  }
+
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multihashmap_put (set->content->elements,
+                                                   &ee->element_hash,
+                                                   ee,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  set->vt->add (set->state, ee);
+}
+
+
+static void
+execute_remove (struct Set *set,
+                const struct GNUNET_MessageHeader *m)
+{
+  const struct GNUNET_SET_ElementMessage *msg;
+  struct GNUNET_SET_Element el;
+  struct ElementEntry *ee;
+  struct GNUNET_HashCode hash;
+
+  GNUNET_assert (GNUNET_MESSAGE_TYPE_SET_REMOVE == ntohs (m->type));
+
+  msg = (const struct GNUNET_SET_ElementMessage *) m;
+  el.size = ntohs (m->size) - sizeof *msg;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client removes element of size %u\n",
+              el.size);
+  el.data = &msg[1];
+  GNUNET_CRYPTO_hash (el.data,
+                      el.size,
+                      &hash);
+  ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
+                                          &hash);
+  if (NULL == ee)
+  {
+    /* Client tried to remove non-existing element */
+    GNUNET_break (0);
+    return;
+  }
+  if (GNUNET_NO == _GSS_is_element_of_set (ee, set))
+  {
+    /* Client tried to remove element twice */
+    GNUNET_break (0);
+    return;
+  }
+  else if (0 == set->current_generation)
+  {
+    // If current_generation is 0, then there are no running set operations
+    // or lazy copies, thus we can safely remove the element.
+    (void) GNUNET_CONTAINER_multihashmap_remove_all (set->content->elements, &hash);
+  }
+  else
+  {
+    struct MutationEvent mut = {
+      .generation = set->current_generation,
+      .added = GNUNET_NO
+    };
+    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
+    ee->mutations_size += 1;
+  }
+  set->vt->remove (set->state, ee);
+}
+
+
+
+static void
+execute_mutation (struct Set *set,
+                  const struct GNUNET_MessageHeader *m)
+{
+  switch (ntohs (m->type))
+  {
+    case GNUNET_MESSAGE_TYPE_SET_ADD:
+      execute_add (set, m);
+      break;
+    case GNUNET_MESSAGE_TYPE_SET_REMOVE:
+      execute_remove (set, m);
+      break;
+    default:
+      GNUNET_break (0);
+  }
+}
+
+
+
 /**
  * Send the next element of a set to the set's client.  The next element is given by
  * the set's current hashmap iterator.  The set's iterator will be set to NULL if there
@@ -777,14 +941,43 @@ send_client_element (struct Set *set)
                                                      (const void **) &ee);
   if (GNUNET_NO == ret)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Iteration on %p done.\n",
+                (void *) set);
     ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_ITER_DONE);
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
     set->iter = NULL;
     set->iteration_id++;
+    
+    GNUNET_assert (set->content->iterator_count > 0);
+    set->content->iterator_count -= 1;
+
+    if (0 == set->content->iterator_count)
+    {
+      while (NULL != set->content->pending_mutations_head)
+      {
+        struct PendingMutation *pm;
+
+        pm = set->content->pending_mutations_head;
+        GNUNET_CONTAINER_DLL_remove (set->content->pending_mutations_head,
+                                     set->content->pending_mutations_tail,
+                                     pm);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Executing pending mutation on %p.\n",
+                    (void *) pm->set);
+        execute_mutation (pm->set, pm->mutation_message);
+        GNUNET_free (pm->mutation_message);
+        GNUNET_free (pm);
+      }
+    }
+
   }
   else
   {
     GNUNET_assert (NULL != ee);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending iteration element on %p.\n",
+                (void *) set);
     ev = GNUNET_MQ_msg_extra (msg,
                               ee->element.size,
                               GNUNET_MESSAGE_TYPE_SET_ITER_ELEMENT);
@@ -831,10 +1024,12 @@ handle_client_iterate (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Iterating set with %u elements\n",
+              "Iterating set %p with %u elements\n",
+              (void *) set,
               GNUNET_CONTAINER_multihashmap_size (set->content->elements));
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
+  set->content->iterator_count += 1;
   set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->content->elements);
   send_client_element (set);
 }
@@ -992,23 +1187,20 @@ handle_client_reject (void *cls,
 }
 
 
+
 /**
- * Called when a client wants to add an element to a set it inhabits.
+ * Called when a client wants to add or remove an element to a set it inhabits.
  *
  * @param cls unused
  * @param client client that sent the message
  * @param m message sent by the client
  */
 static void
-handle_client_add (void *cls,
-                   struct GNUNET_SERVER_Client *client,
-                   const struct GNUNET_MessageHeader *m)
+handle_client_mutation (void *cls,
+                        struct GNUNET_SERVER_Client *client,
+                        const struct GNUNET_MessageHeader *m)
 {
   struct Set *set;
-  const struct GNUNET_SET_ElementMessage *msg;
-  struct GNUNET_SET_Element el;
-  struct ElementEntry *ee;
-  struct GNUNET_HashCode hash;
 
   set = set_get (client);
   if (NULL == set)
@@ -1018,128 +1210,28 @@ handle_client_add (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
-  msg = (const struct GNUNET_SET_ElementMessage *) m;
-  el.size = ntohs (m->size) - sizeof *msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client inserts element of size %u\n",
-              el.size);
-  el.data = &msg[1];
-  GNUNET_CRYPTO_hash (el.data,
-                      el.size,
-                      &hash);
 
-  ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
-                                          &hash);
-
-  if (NULL == ee)
+  if (0 != set->content->iterator_count)
   {
-    ee = GNUNET_malloc (el.size + sizeof *ee);
-    ee->element.size = el.size;
-    memcpy (&ee[1],
-            el.data,
-            el.size);
-    ee->element.data = &ee[1];
-    ee->remote = GNUNET_NO;
-    ee->mutations = NULL;
-    ee->mutations_size = 0;
-    ee->element_hash = hash;
-  } else if (GNUNET_YES == _GSS_is_element_of_set (ee, set)) {
-    /* same element inserted twice */
-    GNUNET_break (0);
+    struct PendingMutation *pm;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Scheduling mutation on set\n");
+
+    pm = GNUNET_new (struct PendingMutation);
+    pm->mutation_message = GNUNET_copy_message (m);
+    pm->set = set;
+    GNUNET_CONTAINER_DLL_insert (set->content->pending_mutations_head,
+                                 set->content->pending_mutations_tail,
+                                 pm);
     return;
   }
 
-  if (0 != set->current_generation)
-  {
-    struct MutationEvent mut = {
-      .generation = set->current_generation,
-      .added = GNUNET_YES
-    };
-    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
-    ee->mutations_size += 1;
-  }
-
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_put (set->content->elements,
-                                                   &ee->element_hash,
-                                                   ee,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  set->vt->add (set->state, ee);
+  execute_mutation (set, m);
 }
-
-
-/**
- * Called when a client wants to remove an element from a set it
- * inhabits.
- *
- * @param cls unused
- * @param client client that sent the message
- * @param m message sent by the client
- */
-static void
-handle_client_remove (void *cls,
-                      struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *m)
-{
-  struct Set *set;
-  const struct GNUNET_SET_ElementMessage *msg;
-  struct GNUNET_SET_Element el;
-  struct ElementEntry *ee;
-  struct GNUNET_HashCode hash;
-
-  set = set_get (client);
-  if (NULL == set)
-  {
-    /* client without a set requested an operation */
-    GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
-    return;
-  }
-  GNUNET_SERVER_receive_done (client,
-                              GNUNET_OK);
-  msg = (const struct GNUNET_SET_ElementMessage *) m;
-  el.size = ntohs (m->size) - sizeof *msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client removes element of size %u\n",
-              el.size);
-  el.data = &msg[1];
-  GNUNET_CRYPTO_hash (el.data,
-                      el.size,
-                      &hash);
-  ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
-                                          &hash);
-  if (NULL == ee)
-  {
-    /* Client tried to remove non-existing element */
-    GNUNET_break (0);
-    return;
-  }
-  if (GNUNET_NO == _GSS_is_element_of_set (ee, set))
-  {
-    /* Client tried to remove element twice */
-    GNUNET_break (0);
-    return;
-  }
-  else if (0 == set->current_generation)
-  {
-    // If current_generation is 0, then there are no running set operations
-    // or lazy copies, thus we can safely remove the element.
-    (void) GNUNET_CONTAINER_multihashmap_remove_all (set->content->elements, &hash);
-  }
-  else
-  {
-    struct MutationEvent mut = {
-      .generation = set->current_generation,
-      .added = GNUNET_NO
-    };
-    GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
-    ee->mutations_size += 1;
-  }
-  set->vt->remove (set->state, ee);
-}
-
 
 
 /**
@@ -1302,6 +1394,8 @@ handle_client_copy_lazy_prepare (void *cls,
 {
   struct Set *set;
   struct LazyCopyRequest *cr;
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_SET_CopyLazyResponseMessage *resp_msg;
 
   set = set_get (client);
   if (NULL == set)
@@ -1321,8 +1415,19 @@ handle_client_copy_lazy_prepare (void *cls,
   GNUNET_CONTAINER_DLL_insert (lazy_copy_head,
                                lazy_copy_tail,
                                cr);
+
+
+  ev = GNUNET_MQ_msg (resp_msg,
+                      GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE);
+  resp_msg->cookie = cr->cookie;
+  GNUNET_MQ_send (set->client_mq, ev);
+
+
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client requested lazy copy\n");
 }
 
 
@@ -1396,11 +1501,12 @@ handle_client_copy_lazy_connect (void *cls,
     GNUNET_break (0);
     GNUNET_free (set);
     GNUNET_free (cr);
+    GNUNET_SERVER_client_disconnect (client);
     return;
   }
 
   set->operation = cr->source_set->operation;
-  set->state = set->vt->copy_state (set);
+  set->state = set->vt->copy_state (cr->source_set);
   set->content = cr->source_set->content;
   set->content->refcount += 1;
   set->client = client;
@@ -1413,6 +1519,9 @@ handle_client_copy_lazy_connect (void *cls,
 
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client connected to lazy set\n");
 }
 
 
@@ -1787,7 +1896,7 @@ run (void *cls,
     { &handle_client_iter_ack, NULL,
       GNUNET_MESSAGE_TYPE_SET_ITER_ACK,
       sizeof (struct GNUNET_SET_IterAckMessage) },
-    { &handle_client_add, NULL,
+    { &handle_client_mutation, NULL,
       GNUNET_MESSAGE_TYPE_SET_ADD,
       0},
     { &handle_client_create_set, NULL,
@@ -1805,7 +1914,7 @@ run (void *cls,
     { &handle_client_reject, NULL,
       GNUNET_MESSAGE_TYPE_SET_REJECT,
       sizeof (struct GNUNET_SET_RejectMessage)},
-    { &handle_client_remove, NULL,
+    { &handle_client_mutation, NULL,
       GNUNET_MESSAGE_TYPE_SET_REMOVE,
       0},
     { &handle_client_cancel, NULL,

@@ -437,6 +437,25 @@ struct SetContent
   struct GNUNET_CONTAINER_MultiHashMap *elements;
 
   unsigned int latest_generation;
+
+  /**
+   * Mutations requested by the client that we're
+   * unable to execute right now because we're iterating
+   * over the underlying hash map of elements.
+   */
+  struct PendingMutation *pending_mutations_head;
+
+  /**
+   * Mutations requested by the client that we're
+   * unable to execute right now because we're iterating
+   * over the underlying hash map of elements.
+   */
+  struct PendingMutation *pending_mutations_tail;
+
+  /**
+   * Number of concurrently active iterators.
+   */
+  int iterator_count;
 };
 
 
@@ -451,6 +470,22 @@ struct GenerationRange
    * Generation after the last excluded generation.
    */
   unsigned int end;
+};
+
+
+struct PendingMutation
+{
+  struct PendingMutation *prev;
+  struct PendingMutation *next;
+
+  struct Set *set;
+
+  /**
+   * Message that describes the desired mutation.
+   * May only be a GNUNET_MESSAGE_TYPE_SET_ADD or
+   * GNUNET_MESSAGE_TYPE_SET_REMOVE.
+   */
+  struct GNUNET_MessageHeader *mutation_message;
 };
 
 
@@ -540,7 +575,6 @@ struct Set
    * and thus reference counted.
    */
   struct SetContent *content;
-
 };
 
 

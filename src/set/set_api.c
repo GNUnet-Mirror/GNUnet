@@ -272,6 +272,9 @@ handle_copy_lazy (void *cls,
     GNUNET_break (0);
     return;
   }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Handling response to lazy copy\n");
   
   GNUNET_CONTAINER_DLL_remove (set->copy_req_head,
                                set->copy_req_tail,
@@ -555,9 +558,6 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_SET_CreateMessage *create_msg;
   struct GNUNET_SET_CopyLazyConnectMessage *copy_msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Creating new set (operation %u)\n",
-              op);
   set = GNUNET_new (struct GNUNET_SET_Handle);
   set->client = GNUNET_CLIENT_connect ("set", cfg);
   set->cfg = cfg;
@@ -574,12 +574,18 @@ create_internal (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (NULL == cookie)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Creating new set (operation %u)\n",
+         op);
     mqm = GNUNET_MQ_msg (create_msg,
                          GNUNET_MESSAGE_TYPE_SET_CREATE);
     create_msg->operation = htonl (op);
   }
   else
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Creating new set (lazy copy)\n",
+         op);
     mqm = GNUNET_MQ_msg (copy_msg,
                          GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT);
     copy_msg->cookie = *cookie;

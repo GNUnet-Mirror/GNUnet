@@ -1452,6 +1452,17 @@ union_peer_disconnect (struct Operation *op)
     finish_and_destroy (op);
 }
 
+static struct SetState *
+union_copy_state (struct Set *set)
+{
+  struct SetState *new_state;
+
+  new_state = GNUNET_new (struct SetState);
+  GNUNET_assert ( (NULL != set->state) && (NULL != set->state->se) );
+  new_state->se = strata_estimator_dup (set->state->se);
+
+  return new_state;
+}
 
 /**
  * Get the table with implementing functions for
@@ -1472,6 +1483,7 @@ _GSS_union_vt ()
     .accept = &union_accept,
     .peer_disconnect = &union_peer_disconnect,
     .cancel = &union_op_cancel,
+    .copy_state = &union_copy_state,
   };
 
   return &union_vt;
