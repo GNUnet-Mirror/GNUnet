@@ -1918,6 +1918,22 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_DONE 593
 
+/**
+ * Ask the set service to prepare a copy of a set.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_PREPARE 594
+
+/**
+ * Give the client an ID for connecting to the set's copy.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_RESPONSE 595
+
+/**
+ * Sent by the client to the server to connect to an existing,
+ * lazily copied set.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_COPY_LAZY_CONNECT 596
+
 
 /*******************************************************************************
  * TESTBED LOGGER message types

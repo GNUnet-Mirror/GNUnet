@@ -223,6 +223,11 @@ typedef void
 
 
 
+typedef void
+(*GNUNET_SET_CopyReadyCallback) (void *cls,
+                                 struct GNUNET_SET_Handle *copy);
+
+
 /**
  * Create an empty set, supporting the specified operation.
  *
@@ -277,6 +282,12 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
                            const struct GNUNET_SET_Element *element,
                            GNUNET_SET_Continuation cont,
                            void *cont_cls);
+
+
+void
+GNUNET_SET_copy_lazy (struct GNUNET_SET_Handle *set,
+                      GNUNET_SET_CopyReadyCallback cb,
+                      void *cls);
 
 
 /**

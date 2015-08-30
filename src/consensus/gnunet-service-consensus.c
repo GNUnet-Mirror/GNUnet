@@ -324,8 +324,6 @@ have_exp_subround_finished (const struct ConsensusSession *session)
 static void
 destroy_session (struct ConsensusSession *session)
 {
-  int i;
-
   GNUNET_CONTAINER_DLL_remove (sessions_head, sessions_tail, session);
   if (NULL != session->element_set)
   {
@@ -359,6 +357,7 @@ destroy_session (struct ConsensusSession *session)
   }
   if (NULL != session->info)
   {
+    int i;
     for (i = 0; i < session->num_peers; i++)
     {
       struct ConsensusPeerInformation *cpi;
@@ -1349,9 +1348,9 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, destroying session\n");
     destroy_session (session);
+    return;
   }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, but waiting for consensus to finish\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, but waiting for consensus to finish\n");
 }
 
 
