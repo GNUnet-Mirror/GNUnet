@@ -252,6 +252,7 @@ src/psycstore/gnunet-service-psycstore.c
 src/psycstore/plugin_psycstore_sqlite.c
 src/psycstore/psyc_util_lib.c
 src/psycstore/psycstore_api.c
+src/psycstore/psyc_util_lib.c
 src/pt/gnunet-daemon-pt.c
 src/regex/gnunet-daemon-regexprofiler.c
 src/regex/gnunet-regex-profiler.c
@@ -274,6 +275,7 @@ src/revocation/revocation_api.c
 src/rps/gnunet-rps.c
 src/rps/gnunet-service-rps.c
 src/rps/gnunet-service-rps_sampler.c
+src/rps/gnunet-service-rps_sampler_elem.c
 src/rps/rps_api.c
 src/rps/rps-test_util.c
 src/scalarproduct/gnunet-scalarproduct.c
@@ -403,6 +405,7 @@ src/util/container_multihashmap.c
 src/util/container_multipeermap.c
 src/util/crypto_crc.c
 src/util/crypto_ecc.c
+src/util/crypto_ecc_dlog.c
 src/util/crypto_ecc_setup.c
 src/util/crypto_hash.c
 src/util/crypto_hash_file.c
