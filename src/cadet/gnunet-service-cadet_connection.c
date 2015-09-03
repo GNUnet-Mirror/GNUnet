@@ -727,6 +727,7 @@ conn_message_sent (void *cls,
       break;
 
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
       break;
 
     default:
