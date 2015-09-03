@@ -1064,8 +1064,11 @@ handle_info_dump (void *cls, struct GNUNET_SERVER_Client *client,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, "Client %u (%p), handle: %p\n",
          c->id, c, c->handle);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u ports registered\n",
-         GNUNET_CONTAINER_multihashmap32_size (c->ports));
+    if (NULL != c->ports)
+      LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u ports registered\n",
+           GNUNET_CONTAINER_multihashmap32_size (c->ports));
+    else
+      LOG (GNUNET_ERROR_TYPE_ERROR, "\t no ports registered\n");
     LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u own channles\n",
          GNUNET_CONTAINER_multihashmap32_size (c->own_channels));
     LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u incoming channles\n",
