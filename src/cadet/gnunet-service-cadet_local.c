@@ -1292,6 +1292,8 @@ GML_get_next_chid (struct CadetClient *c)
 struct CadetClient *
 GML_client_get (struct GNUNET_SERVER_Client *client)
 {
+  if (NULL == client)
+    return NULL;
   return GNUNET_SERVER_client_get_user_context (client, struct CadetClient);
 }
 
