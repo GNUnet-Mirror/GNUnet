@@ -463,7 +463,8 @@ core_disconnect (void *cls,
   char own_id[16];
 
   GCC_check_connections ();
-  strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
+  strncpy (own_id, GNUNET_i2s (&my_full_id), 16);
+  own_id[15] = '\0';
   p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == p)
   {
