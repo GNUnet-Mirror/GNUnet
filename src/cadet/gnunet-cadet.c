@@ -116,6 +116,11 @@ static struct GNUNET_CADET_Handle *mh;
 static struct GNUNET_CADET_Channel *ch;
 
 /**
+ * Transmit handle.
+ */
+static struct GNUNET_CADET_TransmitHandle *th;
+
+/**
  * Shutdown task handle.
  */
 struct GNUNET_SCHEDULER_Task * sd;
@@ -223,6 +228,8 @@ data_ready (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg;
   size_t total_size;
 
+  th = NULL;
+
   if (NULL == buf || 0 == size)
   {
     GNUNET_SCHEDULER_shutdown();
@@ -251,8 +258,7 @@ data_ready (void *cls, size_t size, void *buf)
 
 
 /**
- * Task run in monitor mode when the user presses CTRL-C to abort.
- * Stops monitoring activity.
+ * Task run in stdio mode, after some data is available at stdin.
  *
  * @param cls Closure (unused).
  * @param tc scheduler context
@@ -275,11 +281,12 @@ read_stdio (void *cls,
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     data_size
-                                     + sizeof (struct GNUNET_MessageHeader),
-                                     &data_ready, buf);
+  GNUNET_assert (NULL == th);
+  th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           sizeof (struct GNUNET_MessageHeader)
+                                           + data_size,
+                                           &data_ready, buf);
 }
 
 
@@ -318,7 +325,17 @@ channel_ended (void *cls,
                void *channel_ctx)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel ended!\n");
-  GNUNET_break (channel == ch);
+  if (channel != ch)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ended: %p, expected: %p\n", channel, ch);
+  }
+  if (NULL != th)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (th);
+    th = NULL;
+  }
+
   ch = NULL;
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -353,7 +370,10 @@ channel_incoming (void *cls,
               channel, port);
   if (NULL != ch)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "A channel already exists\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "A channel already exists (%p)\n", channel);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Incoming channel %p on port %u\n", channel, port);
     return NULL;
   }
   if (0 == listen_port)
@@ -383,10 +403,11 @@ send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) || NULL == ch)
     return;
 
-  GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     sizeof (struct GNUNET_MessageHeader),
-                                     &data_ready, NULL);
+  GNUNET_assert (NULL == th);
+  th = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           sizeof (struct GNUNET_MessageHeader),
+                                           &data_ready, NULL);
 }
 
 
@@ -472,10 +493,16 @@ data_callback (void *cls,
     if (0 != listen_port)
     {
       /* Just listening to echo incoming messages*/
-      GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
-                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                        sizeof (struct GNUNET_MessageHeader),
-                                        &data_ready, NULL);
+      if (NULL != th)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Last echo reply not yet sent, dropping current reply.\n");
+        return GNUNET_OK;
+      }
+      th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               sizeof (struct GNUNET_MessageHeader),
+                                               &data_ready, NULL);
       return GNUNET_OK;
     }
     else
