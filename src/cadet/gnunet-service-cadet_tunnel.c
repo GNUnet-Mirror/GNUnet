@@ -1376,6 +1376,7 @@ store_skipped_key (struct CadetTunnel *t,
 
   key = GNUNET_new (struct CadetTunnelSkippedKey);
   key->timestamp = GNUNET_TIME_absolute_get ();
+  key->HK = t->ax->HKr;
   t_hmac_derive_key (&t->ax->CKr, &key->MK, "0", 1);
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
