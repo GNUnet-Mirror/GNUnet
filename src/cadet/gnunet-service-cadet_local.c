@@ -226,6 +226,7 @@ client_destroy (struct CadetClient *c)
 
   GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
   GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
+  GNUNET_SERVER_client_set_user_context (c->handle, NULL);
   GNUNET_free (c);
 }
 
@@ -304,7 +305,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, " disconnecting client's context NULL\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " disconnecting client's context NULL\n");
   }
   return;
 }
