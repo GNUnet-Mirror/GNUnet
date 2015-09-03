@@ -335,13 +335,16 @@ channel_ended (void *cls,
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ended: %p, expected: %p\n", channel, ch);
   }
+  else
+  {
+    ch = NULL;
+  }
   if (NULL != th)
   {
     GNUNET_CADET_notify_transmit_ready_cancel (th);
     th = NULL;
   }
 
-  ch = NULL;
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -375,8 +378,9 @@ channel_incoming (void *cls,
               channel, port);
   if (NULL != ch)
   {
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "A channel already exists (%p)\n", channel);
+                "A channel already exists (%p)\n", ch);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Incoming channel %p on port %u\n", channel, port);
     return NULL;
