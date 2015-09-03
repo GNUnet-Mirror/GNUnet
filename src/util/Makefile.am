@@ -248,6 +248,7 @@ libgnunet_plugin_test_la_LDFLAGS = \
 if HAVE_BENCHMARKS
  BENCHMARKS = \
   perf_crypto_hash \
+  perf_crypto_rsa \
   perf_crypto_paillier \
   perf_crypto_symmetric \
   perf_crypto_asymmetric \
@@ -624,6 +625,11 @@ test_speedup_LDADD = \
 perf_crypto_hash_SOURCES = \
  perf_crypto_hash.c
 perf_crypto_hash_LDADD = \
+ libgnunetutil.la
+
+perf_crypto_rsa_SOURCES = \
+ perf_crypto_rsa.c
+perf_crypto_rsa_LDADD = \
  libgnunetutil.la
 
 perf_crypto_symmetric_SOURCES = \

@@ -608,7 +608,7 @@ GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKe
  */
 struct GNUNET_CRYPTO_rsa_BlindingKey *
 GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
-                               size_t len)
+                                       size_t len)
 {
   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
   size_t rsize;
@@ -753,6 +753,7 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
 			size_t msg_len)
 {
   struct GNUNET_CRYPTO_rsa_Signature *sig;
+  struct GNUNET_CRYPTO_rsa_PublicKey *public_key;
   gcry_sexp_t result;
   gcry_sexp_t data;
 
@@ -766,6 +767,23 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
     GNUNET_break (0);
     return NULL;
   }
+
+  /* verify signature (guards against Lenstra's attack with fault injection...) */
+  public_key = GNUNET_CRYPTO_rsa_private_key_get_public (key);
+  if (0 !=
+      gcry_pk_verify (result,
+                      data,
+                      public_key->sexp))
+  {
+    GNUNET_break (0);
+    GNUNET_CRYPTO_rsa_public_key_free (public_key);
+    gcry_sexp_release (data);
+    gcry_sexp_release (result);
+    return NULL;
+  }
+  GNUNET_CRYPTO_rsa_public_key_free (public_key);
+
+  /* return signature */
   gcry_sexp_release (data);
   sig = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
   sig->sexp = result;
