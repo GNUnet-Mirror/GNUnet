@@ -915,7 +915,7 @@ iter_channel (void *cls, struct CadetChannel *ch)
   struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
   CADET_ChannelNumber *chn = (CADET_ChannelNumber *) &h[msg->connections];
 
-  chn[msg->channels] = GCCH_get_id (ch);
+  chn[msg->channels] = htonl (GCCH_get_id (ch));
   msg->channels++;
 }
 
