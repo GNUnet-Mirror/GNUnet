@@ -948,7 +948,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   msg = (struct GNUNET_CADET_LocalInfo *) message;
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received tunnel info request from client %u for tunnel %s\n",
        c->id, GNUNET_i2s_full(&msg->peer));
 
@@ -998,7 +998,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
                                               &resp->header, GNUNET_NO);
   GNUNET_free (resp);
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Show tunnel request from client %u completed. %u conn, %u ch\n",
        c->id, c_n, ch_n);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

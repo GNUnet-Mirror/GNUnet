@@ -1958,8 +1958,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (NULL == cont)
   {
-    GNUNET_break (NULL == GCC_send_prebuilt_message (msg, type,
-                                                     mid, c, fwd, force, NULL, NULL));
+    GNUNET_break (NULL == GCC_send_prebuilt_message (msg, type, mid, c, fwd,
+                                                     force, NULL, NULL));
     return NULL;
   }
   if (NULL == existing_q)
