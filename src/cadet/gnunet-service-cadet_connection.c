@@ -2964,6 +2964,7 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
 
   GCC_check_connections ();
   p = path_duplicate (path);
+  GNUNET_assert (NULL != p);
   c = GNUNET_new (struct CadetConnection);
   c->id = *cid;
   GNUNET_assert (GNUNET_OK ==
@@ -2980,7 +2981,6 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
   c->own_pos = own_pos;
   c->path = p;
   p->c = c;
-  GNUNET_assert (NULL != p);
   if (GNUNET_OK != register_neighbors (c))
   {
     if (0 == own_pos)
