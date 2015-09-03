@@ -160,40 +160,10 @@ client_release_ports (void *cls,
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-                "Port %u by client %p was not registered.\n",
-                key, value);
+         "Port %u by client %p was not registered.\n",
+         key, value);
   }
   return GNUNET_OK;
-}
-
-
-
-/******************************************************************************/
-/********************************  HANDLES  ***********************************/
-/******************************************************************************/
-
-
-/**
- * Handler for client connection.
- *
- * @param cls Closure (unused).
- * @param client Client handler.
- */
-static void
-handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
-{
-  struct CadetClient *c;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "client connected: %p\n", client);
-  if (NULL == client)
-    return;
-  c = GNUNET_new (struct CadetClient);
-  c->handle = client;
-  c->id = next_client_id++; /* overflow not important: just for debug */
-  c->next_chid = GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
-  GNUNET_SERVER_client_keep (client);
-  GNUNET_SERVER_client_set_user_context (client, c);
-  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
 }
 
 
@@ -215,11 +185,99 @@ channel_destroy_iterator (void *cls,
   struct CadetClient *c = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              " Channel %s destroy, due to client %s shutdown.\n",
-              GCCH_2s (ch), GML_2s (c));
+       " Channel %s destroy, due to client %s shutdown.\n",
+       GCCH_2s (ch), GML_2s (c));
 
   GCCH_handle_local_destroy (ch, c, key < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
   return GNUNET_OK;
+}
+
+
+/**
+ * Unregister data and free memory for a client.
+ *
+ * @param c Client to destroy. No longer valid after call.
+ */
+static void
+client_destroy (struct CadetClient *c)
+{
+  LOG (GNUNET_ERROR_TYPE_INFO, "  client destroy: %p/%u\n", c, c->id);
+  GNUNET_SERVER_client_drop (c->handle);
+  c->shutting_down = GNUNET_YES;
+
+  if (NULL != c->own_channels)
+  {
+    GNUNET_CONTAINER_multihashmap32_iterate (c->own_channels,
+                                             &channel_destroy_iterator, c);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->own_channels);
+  }
+  if (NULL != c->incoming_channels)
+  {
+    GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_channels,
+                                             &channel_destroy_iterator, c);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_channels);
+  }
+  if (NULL != c->ports)
+  {
+    GNUNET_CONTAINER_multihashmap32_iterate (c->ports,
+                                             &client_release_ports, c);
+    GNUNET_CONTAINER_multihashmap32_destroy (c->ports);
+  }
+
+  GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
+  GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
+  GNUNET_free (c);
+}
+
+/**
+ * Create a client record, register data and initialize memory.
+ *
+ * @param client Client's handle.
+ */
+static struct CadetClient *
+client_new (struct GNUNET_SERVER_Client *client)
+{
+  struct CadetClient *c;
+
+  GNUNET_SERVER_client_keep (client);
+  GNUNET_SERVER_notification_context_add (nc, client);
+
+  c = GNUNET_new (struct CadetClient);
+  c->handle = client;
+  c->id = next_client_id++; /* overflow not important: just for debug */
+  c->next_chid = GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
+
+  c->own_channels = GNUNET_CONTAINER_multihashmap32_create (32);
+  c->incoming_channels = GNUNET_CONTAINER_multihashmap32_create (32);
+
+  GNUNET_SERVER_client_set_user_context (client, c);
+  GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
+  GNUNET_STATISTICS_update (stats, "# clients", +1, GNUNET_NO);
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "  client created: %p/%u\n", c, c->id);
+
+  return c;
+}
+
+
+/******************************************************************************/
+/********************************  HANDLES  ***********************************/
+/******************************************************************************/
+
+/**
+ * Handler for client connection.
+ *
+ * @param cls Closure (unused).
+ * @param client Client handler.
+ */
+static void
+handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  LOG (GNUNET_ERROR_TYPE_INFO, "Client connected: %p\n", client);
+  if (NULL == client)
+    return;
+
+  (void) client_new (client);
 }
 
 
@@ -235,50 +293,19 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct CadetClient *c;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "client disconnected: %p\n", client);
-  if (client == NULL)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "   (SERVER DOWN)\n");
-    return;
-  }
+  LOG (GNUNET_ERROR_TYPE_INFO, "Client disconnected: %p\n", client);
 
   c = GML_client_get (client);
   if (NULL != c)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "matching client found (%u, %p)\n",
                 c->id, c);
-    GNUNET_SERVER_client_drop (c->handle);
-    c->shutting_down = GNUNET_YES;
-    if (NULL != c->own_channels)
-    {
-      GNUNET_CONTAINER_multihashmap32_iterate (c->own_channels,
-                                               &channel_destroy_iterator, c);
-      GNUNET_CONTAINER_multihashmap32_destroy (c->own_channels);
-    }
-
-    if (NULL != c->incoming_channels)
-    {
-      GNUNET_CONTAINER_multihashmap32_iterate (c->incoming_channels,
-                                               &channel_destroy_iterator, c);
-      GNUNET_CONTAINER_multihashmap32_destroy (c->incoming_channels);
-    }
-
-    if (NULL != c->ports)
-    {
-      GNUNET_CONTAINER_multihashmap32_iterate (c->ports,
-                                               &client_release_ports, c);
-      GNUNET_CONTAINER_multihashmap32_destroy (c->ports);
-    }
-    GNUNET_CONTAINER_DLL_remove (clients_head, clients_tail, c);
-    GNUNET_STATISTICS_update (stats, "# clients", -1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  client free (%p)\n", c);
-    GNUNET_free (c);
+    client_destroy (c);
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, " context NULL!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, " disconnecting client's context NULL\n");
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "done!\n");
   return;
 }
 
@@ -301,20 +328,27 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   unsigned int i;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_INFO, "new client registering %p\n", client);
 
   /* Check data sanity */
-  size = ntohs (message->size) - sizeof (struct GNUNET_CADET_ClientConnect);
-  cc_msg = (struct GNUNET_CADET_ClientConnect *) message;
+  size = ntohs (message->size);
+  if (size < sizeof (struct GNUNET_CADET_ClientConnect))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  size -= sizeof (struct GNUNET_CADET_ClientConnect); /* Array size */
   if (0 != (size % sizeof (uint32_t)))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  size /= sizeof (uint32_t);
+  size /= sizeof (uint32_t); /* Number of ports */
+  cc_msg = (struct GNUNET_CADET_ClientConnect *) message;
 
-  /* Initialize new client structure */
+  /* Retrieve client structure */
   c = GNUNET_SERVER_client_get_user_context (client, struct CadetClient);
   if (NULL == c)
   {
@@ -323,8 +357,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
+  LOG (GNUNET_ERROR_TYPE_INFO, "  client %u has %u ports\n", c-> id, size);
   if (size > 0)
   {
     uint32_t u32;
@@ -334,7 +367,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     for (i = 0; i < size; i++)
     {
       u32 = ntohl (p[i]);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "    port: %u\n", u32);
+      LOG (GNUNET_ERROR_TYPE_INFO, "    port: %u\n", u32);
 
       /* store in client's hashmap */
       GNUNET_CONTAINER_multihashmap32_put (c->ports, u32, c,
@@ -347,13 +380,8 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     }
   }
 
-  c->own_channels = GNUNET_CONTAINER_multihashmap32_create (32);
-  c->incoming_channels = GNUNET_CONTAINER_multihashmap32_create (32);
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_STATISTICS_update (stats, "# clients", 1, GNUNET_NO);
-
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client processed\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new regitering processed\n");
 }
 
 
@@ -1112,11 +1140,17 @@ GML_start (void)
 void
 GML_shutdown (void)
 {
+  struct CadetClient *c;
+
+  for (c = clients_head; NULL != clients_head; c = clients_head)
+    client_destroy (c);
+
   if (nc != NULL)
   {
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
   }
+
 }
 
 

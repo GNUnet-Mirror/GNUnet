@@ -1207,14 +1207,15 @@ queue_send (void *cls, size_t size, void *buf)
   if (core_wait_time.rel_value_us >= 1000000)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         " core wait time %s > 1 second for %u bytes\n",
-         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO),
+         " %s: core wait time %s (> 1 second) for %u bytes\n",
+         GCP_2s (peer),
+         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES),
          queue->size);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " core wait time %s\n",
-         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_NO));
+         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES));
   }
   peer->tmt_time.abs_value_us = 0;
 
