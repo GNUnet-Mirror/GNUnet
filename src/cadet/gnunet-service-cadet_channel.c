@@ -33,6 +33,7 @@
 #include "gnunet-service-cadet_peer.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-chn",__VA_ARGS__)
+#define LOG2(level, ...) GNUNET_log_from_nocheck(level,"cadet-chn",__VA_ARGS__)
 
 #define CADET_RETRANSMIT_TIME    GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_MILLISECONDS, 250)
@@ -1368,7 +1369,7 @@ GCCH_destroy (struct CadetChannel *ch)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
               GCT_2s (ch->t), ch->gid);
-  GCCH_debug (ch);
+  GCCH_debug (ch, GNUNET_ERROR_TYPE_DEBUG);
 
   c = ch->root;
   if (NULL != c)
@@ -1437,7 +1438,7 @@ GCCH_get_buffer (struct CadetChannel *ch, int fwd)
 
   rel = fwd ? ch->dest_rel : ch->root_rel;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "   get buffer, channel %s\n", GCCH_2s (ch));
-  GCCH_debug (ch);
+  GCCH_debug (ch, GNUNET_ERROR_TYPE_DEBUG);
   /* If rel is NULL it means that the end is not yet created,
    * most probably is a loopback channel at the point of sending
    * the ChannelCreate to itself.
@@ -1643,40 +1644,45 @@ GCCH_allow_client (struct CadetChannel *ch, int fwd)
  * Log channel info.
  *
  * @param ch Channel.
+ * @param level Debug level to use.
  */
 void
-GCCH_debug (struct CadetChannel *ch)
+GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level)
 {
+  int do_log;
+
+  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
+                                       "cadet-chn",
+                                       __FILE__, __FUNCTION__, __LINE__);
+  if (0 == do_log)
+    return;
+
   if (NULL == ch)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "*** DEBUG NULL CHANNEL ***\n");
+    LOG2 (level, "*** DEBUG NULL CHANNEL ***\n");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %s:%X (%p)\n",
-              GCT_2s (ch->t), ch->gid, ch);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  root %p/%p\n",
-              ch->root, ch->root_rel);
+  LOG2 (level, "Channel %s:%X (%p)\n", GCT_2s (ch->t), ch->gid, ch);
+  LOG2 (level, "  root %p/%p\n", ch->root, ch->root_rel);
   if (NULL != ch->root)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cli %s\n", GML_2s (ch->root));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
-                ch->root_rel->client_ready ? "YES" : "NO");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_root);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv %d\n", ch->root_rel->n_recv);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MID r: %d, s: %d\n",
-         ch->root_rel->mid_recv, ch->root_rel->mid_send);
+    LOG2 (level, "  cli %s\n", GML_2s (ch->root));
+    LOG2 (level, "  ready %s\n", ch->root_rel->client_ready ? "YES" : "NO");
+    LOG2 (level, "  id %X\n", ch->lid_root);
+    LOG2 (level, "  recv %d\n", ch->root_rel->n_recv);
+    LOG2 (level, "  MID r: %d, s: %d\n",
+          ch->root_rel->mid_recv, ch->root_rel->mid_send);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  dest %p/%p\n",
+  LOG2 (level, "  dest %p/%p\n",
               ch->dest, ch->dest_rel);
   if (NULL != ch->dest)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cli %s\n", GML_2s (ch->dest));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready %s\n",
-                ch->dest_rel->client_ready ? "YES" : "NO");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %X\n", ch->lid_dest);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv %d\n", ch->dest_rel->n_recv);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  MID r: %d, s: %d\n",
-         ch->dest_rel->mid_recv, ch->dest_rel->mid_send);
+    LOG2 (level, "  cli %s\n", GML_2s (ch->dest));
+    LOG2 (level, "  ready %s\n", ch->dest_rel->client_ready ? "YES" : "NO");
+    LOG2 (level, "  id %X\n", ch->lid_dest);
+    LOG2 (level, "  recv %d\n", ch->dest_rel->n_recv);
+    LOG2 (level, "  MID r: %d, s: %d\n",
+          ch->dest_rel->mid_recv, ch->dest_rel->mid_send);
 
   }
 }
@@ -2290,7 +2296,7 @@ GCCH_handle_destroy (struct CadetChannel *ch,
     fwd = (NULL != ch->dest) ? GNUNET_YES : GNUNET_NO;
   }
 
-  GCCH_debug (ch);
+  GCCH_debug (ch, GNUNET_ERROR_TYPE_DEBUG);
   if ( (fwd && NULL == ch->dest) || (!fwd && NULL == ch->root) )
   {
     /* Not for us (don't destroy twice a half-open loopback channel) */

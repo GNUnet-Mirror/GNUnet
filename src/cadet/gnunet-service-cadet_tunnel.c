@@ -4550,7 +4550,7 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
   {
-    LOG2 (level, "TTT  - %s\n", GCCH_2s (iterch->ch));
+    GCCH_debug (iterch->ch, level);
   }
 
   LOG2 (level, "TTT  connections:\n");

@@ -160,9 +160,10 @@ GCCH_allow_client (struct CadetChannel *ch, int fwd);
  * Log channel info.
  *
  * @param ch Channel.
+ * @param level Debug level to use.
  */
 void
-GCCH_debug (struct CadetChannel *ch);
+GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level);
 
 /**
  * Handle an ACK given by a client.
