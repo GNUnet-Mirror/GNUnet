@@ -1659,29 +1659,29 @@ GCCH_debug (struct CadetChannel *ch, enum GNUNET_ErrorType level)
 
   if (NULL == ch)
   {
-    LOG2 (level, "*** DEBUG NULL CHANNEL ***\n");
+    LOG2 (level, "CHN *** DEBUG NULL CHANNEL ***\n");
     return;
   }
-  LOG2 (level, "Channel %s:%X (%p)\n", GCT_2s (ch->t), ch->gid, ch);
-  LOG2 (level, "  root %p/%p\n", ch->root, ch->root_rel);
+  LOG2 (level, "CHN Channel %s:%X (%p)\n", GCT_2s (ch->t), ch->gid, ch);
+  LOG2 (level, "CHN   root %p/%p\n", ch->root, ch->root_rel);
   if (NULL != ch->root)
   {
-    LOG2 (level, "  cli %s\n", GML_2s (ch->root));
-    LOG2 (level, "  ready %s\n", ch->root_rel->client_ready ? "YES" : "NO");
-    LOG2 (level, "  id %X\n", ch->lid_root);
-    LOG2 (level, "  recv %d\n", ch->root_rel->n_recv);
-    LOG2 (level, "  MID r: %d, s: %d\n",
+    LOG2 (level, "CHN   cli %s\n", GML_2s (ch->root));
+    LOG2 (level, "CHN   ready %s\n", ch->root_rel->client_ready ? "YES" : "NO");
+    LOG2 (level, "CHN   id %X\n", ch->lid_root);
+    LOG2 (level, "CHN   recv %d\n", ch->root_rel->n_recv);
+    LOG2 (level, "CHN   MID r: %d, s: %d\n",
           ch->root_rel->mid_recv, ch->root_rel->mid_send);
   }
-  LOG2 (level, "  dest %p/%p\n",
+  LOG2 (level, "CHN   dest %p/%p\n",
               ch->dest, ch->dest_rel);
   if (NULL != ch->dest)
   {
-    LOG2 (level, "  cli %s\n", GML_2s (ch->dest));
-    LOG2 (level, "  ready %s\n", ch->dest_rel->client_ready ? "YES" : "NO");
-    LOG2 (level, "  id %X\n", ch->lid_dest);
-    LOG2 (level, "  recv %d\n", ch->dest_rel->n_recv);
-    LOG2 (level, "  MID r: %d, s: %d\n",
+    LOG2 (level, "CHN   cli %s\n", GML_2s (ch->dest));
+    LOG2 (level, "CHN   ready %s\n", ch->dest_rel->client_ready ? "YES" : "NO");
+    LOG2 (level, "CHN   id %X\n", ch->lid_dest);
+    LOG2 (level, "CHN   recv %d\n", ch->dest_rel->n_recv);
+    LOG2 (level, "CHN   MID r: %d, s: %d\n",
           ch->dest_rel->mid_recv, ch->dest_rel->mid_send);
 
   }
