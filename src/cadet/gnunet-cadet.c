@@ -196,6 +196,11 @@ shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
+  if (NULL != th)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (th);
+    th = NULL;
+  }
   if (NULL != ch)
   {
     GNUNET_CADET_channel_destroy (ch);
