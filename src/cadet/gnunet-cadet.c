@@ -646,7 +646,7 @@ tunnel_callback (void *cls,
     FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
     FPRINTF (stdout, "\t%u channels\n", n_channels);
     for (i = 0; i < n_channels; i++)
-      FPRINTF (stdout, "\t\t%u\n", channels[i]);
+      FPRINTF (stdout, "\t\t%X\n", channels[i]);
     FPRINTF (stdout, "\t%u connections\n", n_connections);
     for (i = 0; i < n_connections; i++)
       FPRINTF (stdout, "\t\t%s\n", GC_h2s (&connections[i]));
