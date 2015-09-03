@@ -460,8 +460,7 @@ GCC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param peer Peer that disconnected.
  */
 void
-GCC_notify_broken (struct CadetConnection *c,
-                   struct CadetPeer *peer);
+GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer);
 
 /**
  * Is this peer the first one on the connection?

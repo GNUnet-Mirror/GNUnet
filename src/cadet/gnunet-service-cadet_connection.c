@@ -3270,17 +3270,18 @@ GCC_allow (struct CadetConnection *c, unsigned int buffer, int fwd)
  * @param peer Peer that disconnected.
  */
 void
-GCC_notify_broken (struct CadetConnection *c,
-                   struct CadetPeer *peer)
+GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
 {
   struct CadetPeer *hop;
+  char peer_name[16];
   int fwd;
 
   GCC_check_connections ();
+  strncpy (peer_name, GCP_2s (peer), 16);
+  peer_name[15] = '\0';
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Notify broken on %s due to %s disconnect\n",
-       GCC_2s (c),
-       GCP_2s (peer));
+       "shutting down %s, %s disconnected\n",
+       GCC_2s (c), peer_name);
   hop = get_prev_hop (c);
   if (NULL == hop)
   {
@@ -3290,7 +3291,7 @@ GCC_notify_broken (struct CadetConnection *c,
   }
   fwd = (peer == hop);
   if ( (GNUNET_YES == GCC_is_terminal (c, fwd)) ||
-       (GNUNET_YES == c->destroy) )
+       (GNUNET_NO != c->destroy) )
   {
     /* Local shutdown, or other peer already down (hence 'c->destroy');
        so there is no one to notify about this, just clean up. */
@@ -3312,6 +3313,7 @@ GCC_notify_broken (struct CadetConnection *c,
                                                       c));
   /* Cancel queue in the direction that just died. */
   connection_cancel_queues (c, ! fwd);
+  GCC_stop_poll (c, ! fwd);
   unregister_neighbors (c);
   GCC_check_connections ();
 }

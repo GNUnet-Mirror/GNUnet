@@ -343,7 +343,7 @@ GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
  * Iterator to notify all connections of a broken link. Mark connections
  * to destroy after all traffic has been sent.
  *
- * @param cls Closure (peer disconnected).
+ * @param cls Closure (disconnected peer).
  * @param key Current key code (peer id).
  * @param value Value in the hash map (connection).
  *
@@ -361,8 +361,7 @@ notify_broken (void *cls,
        "Notifying %s due to %s\n",
        GCC_2s (c),
        GCP_2s (peer));
-  GCC_notify_broken (c,
-                     peer);
+  GCC_neighbor_disconnected (c, peer);
   return GNUNET_YES;
 }
 
