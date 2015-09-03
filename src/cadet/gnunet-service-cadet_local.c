@@ -1057,10 +1057,21 @@ handle_info_dump (void *cls, struct GNUNET_SERVER_Client *client,
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Received dump info request from client %u\n",
        c->id);
-
   LOG (GNUNET_ERROR_TYPE_ERROR,
        "*************************** DUMP START ***************************\n");
 
+  for (c = clients_head; NULL != c; c = c->next)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, "Client %u (%p), handle: %p\n",
+         c->id, c, c->handle);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u ports registered\n",
+         GNUNET_CONTAINER_multihashmap32_size (c->ports));
+    LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u own channles\n",
+         GNUNET_CONTAINER_multihashmap32_size (c->own_channels));
+    LOG (GNUNET_ERROR_TYPE_ERROR, "\t%3u incoming channles\n",
+         GNUNET_CONTAINER_multihashmap32_size (c->incoming_channels));
+  }
+  LOG (GNUNET_ERROR_TYPE_ERROR, "***************************\n");
   GCP_iterate_all (&show_peer_iterator, NULL);
 
   LOG (GNUNET_ERROR_TYPE_ERROR,
