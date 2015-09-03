@@ -811,8 +811,8 @@ process_channel_destroy (struct GNUNET_CADET_Handle *h,
   struct GNUNET_CADET_Channel *ch;
   CADET_ChannelNumber chid;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel Destroy received from service\n");
   chid = ntohl (msg->channel_id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %X Destroy from service\n", chid);
   ch = retrieve_channel (h, chid);
 
   if (NULL == ch)
@@ -820,7 +820,6 @@ process_channel_destroy (struct GNUNET_CADET_Handle *h,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "channel %X unknown\n", chid);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " destroying channel %X\n", ch->chid);
   destroy_channel (ch, GNUNET_YES);
 }
 
