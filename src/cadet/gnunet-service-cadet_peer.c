@@ -1414,22 +1414,15 @@ GCP_queue_add (struct CadetPeer *peer,
                void *cont_cls)
 {
   struct CadetPeerQueue *q;
-  int error_level;
   int priority;
   int call_core;
 
   GCC_check_connections ();
-  if (NULL == c && GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN != type)
-    error_level = GNUNET_ERROR_TYPE_ERROR;
-  else
-    error_level = GNUNET_ERROR_TYPE_INFO;
-  LOG (error_level,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "que %s (%s %4u) on connection %s (%p) %s towards %s (size %u)\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id,
        GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
-  if (error_level == GNUNET_ERROR_TYPE_ERROR)
-    GNUNET_assert (0);
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
