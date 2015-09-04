@@ -36,7 +36,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_identity_service.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define DATA2ARG(data) data, sizeof (data)
 
@@ -101,7 +101,7 @@ struct TransmitClosure
 
 struct ResultClosure {
   uint32_t n;
-};
+} mod_foo_bar_rcls;
 
 uint8_t join_req_count;
 struct GNUNET_PSYC_Message *join_resp;
@@ -504,23 +504,44 @@ guest_recv_method (void *cls,
               "Test #%u: Guest received method for message ID %" PRIu64 ":\n"
               "%s (flags: %x)\n",
               test, message_id, method_name, flags);
-  /* FIXME: check message */
+  /** @todo FIXME: check message */
 }
 
 
 static void
 guest_recv_modifier (void *cls,
-                    const struct GNUNET_PSYC_MessageModifier *mod,
-                    uint64_t message_id,
-                    enum GNUNET_ENV_Operator oper,
-                    const char *name,
-                    const void *value,
-                    uint16_t value_size)
+                     const struct GNUNET_MessageHeader *msg,
+                     uint64_t message_id,
+                     enum GNUNET_ENV_Operator oper,
+                     const char *name,
+                     const void *value,
+                     uint16_t value_size,
+                     uint16_t full_value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received modifier for message ID %" PRIu64 ":\n"
-              "%c%s: %.*s\n",
-              test, message_id, oper, name, value_size, value);
+              "%c%s: %.*s (size: %u)\n",
+              test, message_id, oper, name, value_size, value, value_size);
+  /** @todo FIXME: check modifier */
+}
+
+static void
+guest_recv_mod_foo_bar (void *cls,
+                        const struct GNUNET_MessageHeader *msg,
+                        uint64_t message_id,
+                        enum GNUNET_ENV_Operator oper,
+                        const char *name,
+                        const void *value,
+                        uint16_t value_size,
+                        uint16_t full_value_size)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Guest received modifier matching _foo_bar for message ID %" PRIu64 ":\n"
+              "%c%s: %.*s (size: %u)\n",
+              test, message_id, oper, name, value_size, value, value_size);
+  struct ResultClosure *rc = cls;
+  rc->n++;
+  /** @todo FIXME: check modifier */
 }
 
 
@@ -536,6 +557,7 @@ guest_recv_data (void *cls,
               "Test #%u: Guest received data for message ID %" PRIu64 ":\n"
               "%.*s\n",
               test, message_id, data_size, data);
+  /** @todo FIXME: check data */
 }
 
 
@@ -592,18 +614,19 @@ host_recv_method (void *cls,
               "Test #%u: Host received method for message ID %" PRIu64 ":\n"
               "%s\n",
               test, message_id, method_name);
-  /* FIXME: check message */
+  /** @todo FIXME: check message */
 }
 
 
 static void
 host_recv_modifier (void *cls,
-                    const struct GNUNET_PSYC_MessageModifier *mod,
+                    const struct GNUNET_MessageHeader *msg,
                     uint64_t message_id,
                     enum GNUNET_ENV_Operator oper,
                     const char *name,
                     const void *value,
-                    uint16_t value_size)
+                    uint16_t value_size,
+                    uint16_t full_value_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Host received modifier for message ID %" PRIu64 ":\n"
@@ -657,7 +680,7 @@ host_recv_eom (void *cls,
     break;
 
   case TEST_GUEST_TALK:
-      guest_history_replay ();
+    guest_history_replay ();
     break;
 
   default:
@@ -695,6 +718,9 @@ host_announce ()
 {
   test = TEST_HOST_ANNOUNCE;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Host announcement.\n", test);
+
   tmit = (struct TransmitClosure) {};
   tmit.env = GNUNET_ENV_environment_create ();
   GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
@@ -720,7 +746,14 @@ host_announce ()
 static void
 host_announce2 ()
 {
+  GNUNET_assert (2 == mod_foo_bar_rcls.n);
+  GNUNET_SOCIAL_slicer_modifier_remove (guest_slicer, "_foo_bar",
+                                        guest_recv_mod_foo_bar);
+
   test = TEST_HOST_ANNOUNCE2;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Host announcement.\n", test);
 
   tmit = (struct TransmitClosure) {};
   tmit.env = GNUNET_ENV_environment_create ();
@@ -748,8 +781,8 @@ guest_recv_entry_decision (void *cls,
                            const struct GNUNET_PSYC_Message *entry_resp)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Guest received entry decision (try %u): %d.\n",
-              join_req_count, is_admitted);
+              "Test #%u: Guest received entry decision (try %u): %d.\n",
+              test, join_req_count, is_admitted);
 
   if (NULL != entry_resp)
   {
@@ -762,7 +795,7 @@ guest_recv_entry_decision (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s\n%.*s\n",
                 method_name, data_size, data);
-    /* FIXME: check response message */
+    /** @todo FIXME: check response message */
   }
 
   switch (test)
@@ -795,8 +828,8 @@ host_answer_door (void *cls,
   join_req_count++;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Host received entry request from guest (try %u).\n",
-                join_req_count);
+              "Test #%u: Host received entry request from guest (try %u).\n",
+              test, join_req_count);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%s\n%.*s\n",
               method_name, data_size, data);
@@ -827,7 +860,8 @@ host_answer_door (void *cls,
 static void
 guest_recv_local_enter (void *cls, int result, uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Guest entered to local place.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Guest entered to local place.\n", test);
 
 }
 
@@ -835,7 +869,8 @@ guest_recv_local_enter (void *cls, int result, uint64_t max_message_id)
 static void
 guest_enter ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Entering to place as guest.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Entering to place as guest.\n", test);
 
   struct GuestEnterMessage *emsg = &guest_enter_msg;
 
@@ -865,11 +900,13 @@ id_guest_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   guest_ego = ego;
 
   guest_slicer = GNUNET_SOCIAL_slicer_create ();
-  GNUNET_SOCIAL_slicer_add (guest_slicer, "",
-                            &guest_recv_method, &guest_recv_modifier,
-                            &guest_recv_data, &guest_recv_eom, NULL);
+  GNUNET_SOCIAL_slicer_method_add (guest_slicer, "",
+                                   guest_recv_method, guest_recv_modifier,
+                                   guest_recv_data, guest_recv_eom, NULL);
+  GNUNET_SOCIAL_slicer_modifier_add (guest_slicer, "_foo_bar",
+                                     guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
   test = TEST_HOST_ANSWER_DOOR_ADMIT;
-  //host_announce ();
+
   guest_enter ();
 }
 
@@ -906,9 +943,9 @@ id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   host_ego = ego;
 
   host_slicer = GNUNET_SOCIAL_slicer_create ();
-  GNUNET_SOCIAL_slicer_add (host_slicer, "",
-                            &host_recv_method, &host_recv_modifier,
-                            &host_recv_data, &host_recv_eom, NULL);
+  GNUNET_SOCIAL_slicer_method_add (host_slicer, "",
+                                   &host_recv_method, &host_recv_modifier,
+                                   &host_recv_data, &host_recv_eom, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Entering to place as host.\n");
   hst = GNUNET_SOCIAL_host_enter (cfg, host_ego, place_key,

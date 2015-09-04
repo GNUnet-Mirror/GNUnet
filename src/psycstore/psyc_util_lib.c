@@ -590,9 +590,10 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 
     if (name_size + tmit->mod->value_size <= *data_size)
     {
-      *data_size = name_size + tmit->mod->value_size;
+      value_size = tmit->mod->value_size;
+      *data_size = name_size + value_size;
     }
-    else
+    else /* full modifier does not fit in data, continuation needed */
     {
       value_size = *data_size - name_size;
       tmit->mod_value = tmit->mod->value + value_size;

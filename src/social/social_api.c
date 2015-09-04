@@ -179,10 +179,14 @@ struct GNUNET_CONTAINER_MultiHashMap *nyms;
 struct GNUNET_SOCIAL_Slicer
 {
   /**
-   * Message handlers: method_name -> SlicerCallbacks
+   * Method handlers: method_name -> SlicerMethodCallbacks
    */
-  struct GNUNET_CONTAINER_MultiHashMap *handlers;
+  struct GNUNET_CONTAINER_MultiHashMap *method_handlers;
 
+  /**
+   * Modifier handlers: modifier name -> SlicerModifierCallbacks
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *modifier_handlers;
 
   /**
    * Currently being processed message part.
@@ -200,6 +204,16 @@ struct GNUNET_SOCIAL_Slicer
   char *method_name;
 
   /**
+   * Name of currently processed modifier.
+   */
+  char *mod_name;
+
+  /**
+   * Value of currently processed modifier.
+   */
+  char *mod_value;
+
+  /**
    * Public key of the nym the current message originates from.
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey nym_key;
@@ -208,13 +222,38 @@ struct GNUNET_SOCIAL_Slicer
    * Size of @a method_name (including terminating \0).
    */
   uint16_t method_name_size;
+
+  /**
+   * Size of @a modifier_name (including terminating \0).
+   */
+  uint16_t mod_name_size;
+
+  /**
+   * Size of modifier value fragment.
+   */
+  uint16_t mod_value_size;
+
+  /**
+   * Full size of modifier value.
+   */
+  uint16_t mod_full_value_size;
+
+  /**
+   * Remaining bytes from the value of the current modifier.
+   */
+  uint16_t mod_value_remaining;
+
+  /**
+   * Operator of currently processed modifier.
+   */
+  uint8_t mod_oper;
 };
 
 
 /**
  * Callbacks for a slicer method handler.
  */
-struct SlicerCallbacks
+struct SlicerMethodCallbacks
 {
   GNUNET_SOCIAL_MethodCallback method_cb;
   GNUNET_SOCIAL_ModifierCallback modifier_cb;
@@ -224,10 +263,27 @@ struct SlicerCallbacks
 };
 
 
-struct SlicerRemoveClosure
+struct SlicerMethodRemoveClosure
 {
   struct GNUNET_SOCIAL_Slicer *slicer;
-  struct SlicerCallbacks rm_cbs;
+  struct SlicerMethodCallbacks rm_cbs;
+};
+
+
+/**
+ * Callbacks for a slicer method handler.
+ */
+struct SlicerModifierCallbacks
+{
+  GNUNET_SOCIAL_ModifierCallback modifier_cb;
+  void *cls;
+};
+
+
+struct SlicerModifierRemoveClosure
+{
+  struct GNUNET_SOCIAL_Slicer *slicer;
+  struct SlicerModifierCallbacks rm_cbs;
 };
 
 
@@ -244,12 +300,6 @@ struct GNUNET_SOCIAL_Announcement
  * A talk request.
  */
 struct GNUNET_SOCIAL_TalkRequest
-{
-
-};
-
-
-struct GNUNET_SOCIAL_WatchHandle
 {
 
 };
@@ -368,21 +418,15 @@ nym_destroy (struct GNUNET_SOCIAL_Nym *nym)
 
 
 /**
- * Call a handler for an incoming message part.
- *
- * @param cls
- * @param key
- * @param value
- *
- * @return
+ * Call a method handler for an incoming message part.
  */
 int
-slicer_handler_notify (void *cls, const struct GNUNET_HashCode *key,
-                       void *value)
+slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
+                              void *value)
 {
   struct GNUNET_SOCIAL_Slicer *slicer = cls;
   const struct GNUNET_MessageHeader *msg = slicer->msg;
-  struct SlicerCallbacks *cbs = value;
+  struct SlicerMethodCallbacks *cbs = value;
   uint16_t ptype = ntohs (msg->type);
 
   switch (ptype)
@@ -406,9 +450,10 @@ slicer_handler_notify (void *cls, const struct GNUNET_HashCode *key,
       break;
     struct GNUNET_PSYC_MessageModifier *
       mod = (struct GNUNET_PSYC_MessageModifier *) msg;
-    cbs->modifier_cb (cbs->cls, mod, slicer->message_id,
+    cbs->modifier_cb (cbs->cls, &mod->header, slicer->message_id,
                       mod->oper, (const char *) &mod[1],
                       (const void *) &mod[1] + ntohs (mod->name_size),
+                      ntohs (mod->header.size) - sizeof (*mod) - ntohs (mod->name_size),
                       ntohs (mod->value_size));
     break;
   }
@@ -417,7 +462,10 @@ slicer_handler_notify (void *cls, const struct GNUNET_HashCode *key,
   {
     if (NULL == cbs->modifier_cb)
       break;
-    /* FIXME: concatenate until done */
+    cbs->modifier_cb (cbs->cls, msg, slicer->message_id,
+                      slicer->mod_oper, slicer->mod_name, &msg[1],
+                      ntohs (msg->size) - sizeof (*msg),
+                      slicer->mod_full_value_size);
     break;
   }
 
@@ -443,6 +491,23 @@ slicer_handler_notify (void *cls, const struct GNUNET_HashCode *key,
     cbs->eom_cb (cbs->cls, msg, slicer->message_id, GNUNET_YES);
     break;
   }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Call a method handler for an incoming message part.
+ */
+int
+slicer_modifier_handler_notify (void *cls, const struct GNUNET_HashCode *key,
+                                void *value)
+{
+  struct GNUNET_SOCIAL_Slicer *slicer = cls;
+  struct SlicerModifierCallbacks *cbs = value;
+
+  cbs->modifier_cb (cbs->cls, slicer->msg, slicer->message_id, slicer->mod_oper,
+                    slicer->mod_name, slicer->mod_value,
+                    slicer->mod_value_size, slicer->mod_full_value_size);
   return GNUNET_YES;
 }
 
@@ -486,6 +551,52 @@ slicer_message (void *cls, uint64_t message_id, uint64_t fragment_offset,
        ptype, ntohs (msg->size), message_id, slicer->method_name);
 
   slicer->msg = msg;
+
+  /* try-and-slice modifier */
+
+  switch (ptype)
+  {
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+  {
+    struct GNUNET_PSYC_MessageModifier *
+      mod = (struct GNUNET_PSYC_MessageModifier *) msg;
+    slicer->mod_oper = mod->oper;
+    slicer->mod_name_size = ntohs (mod->name_size);
+    slicer->mod_name = GNUNET_malloc (slicer->mod_name_size);
+    memcpy (slicer->mod_name, &mod[1], slicer->mod_name_size);
+    slicer->mod_value = (char *) &mod[1] + slicer->mod_name_size;
+    slicer->mod_full_value_size = ntohs (mod->value_size);
+    slicer->mod_value_remaining = slicer->mod_full_value_size;
+    slicer->mod_value_size
+      = ntohs (mod->header.size) - sizeof (*mod) - slicer->mod_name_size;
+  }
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
+    if (ptype == GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT)
+    {
+      slicer->mod_value = (char *) &msg[1];
+      slicer->mod_value_size = ntohs (msg->size) - sizeof (*msg);
+    }
+    slicer->mod_value_remaining -= slicer->mod_value_size;
+    char *name = GNUNET_malloc (slicer->mod_name_size);
+    memcpy (name, slicer->mod_name, slicer->mod_name_size);
+    do
+    {
+      struct GNUNET_HashCode key;
+      uint16_t name_len = strlen (name);
+      GNUNET_CRYPTO_hash (name, name_len, &key);
+      GNUNET_CONTAINER_multihashmap_get_multiple (slicer->modifier_handlers, &key,
+                                                  slicer_modifier_handler_notify,
+                                                  slicer);
+      char *p = strrchr (name, '_');
+      if (NULL == p)
+        break;
+      *p = '\0';
+    } while (1);
+    GNUNET_free (name);
+  }
+
+  /* try-and-slice method */
+
   char *name = GNUNET_malloc (slicer->method_name_size);
   memcpy (name, slicer->method_name, slicer->method_name_size);
   do
@@ -493,23 +604,38 @@ slicer_message (void *cls, uint64_t message_id, uint64_t fragment_offset,
     struct GNUNET_HashCode key;
     uint16_t name_len = strlen (name);
     GNUNET_CRYPTO_hash (name, name_len, &key);
-    GNUNET_CONTAINER_multihashmap_get_multiple (slicer->handlers, &key,
-                                                &slicer_handler_notify, slicer);
+    GNUNET_CONTAINER_multihashmap_get_multiple (slicer->method_handlers, &key,
+                                                slicer_method_handler_notify,
+                                                slicer);
     char *p = strrchr (name, '_');
     if (NULL == p)
       break;
     *p = '\0';
   } while (1);
   GNUNET_free (name);
-  slicer->msg = NULL;
 
   if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END <= ptype)
     GNUNET_free (slicer->method_name);
+
+  if (0 == slicer->mod_value_remaining && NULL != slicer->mod_name)
+  {
+    GNUNET_free (slicer->mod_name);
+    slicer->mod_name = NULL;
+    slicer->mod_name_size = 0;
+    slicer->mod_value_size = 0;
+    slicer->mod_full_value_size = 0;
+    slicer->mod_oper = 0;
+  }
+
+  slicer->msg = NULL;
 }
 
 
 /**
  * Create a try-and-slice instance.
+ *
+ * A slicer processes incoming messages and notifies callbacks about matching
+ * methods or modifiers encountered.
  *
  * @return A new try-and-slice construct.
  */
@@ -517,7 +643,8 @@ struct GNUNET_SOCIAL_Slicer *
 GNUNET_SOCIAL_slicer_create (void)
 {
   struct GNUNET_SOCIAL_Slicer *slicer = GNUNET_malloc (sizeof (*slicer));
-  slicer->handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+  slicer->method_handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+  slicer->modifier_handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   return slicer;
 }
 
@@ -525,53 +652,62 @@ GNUNET_SOCIAL_slicer_create (void)
 /**
  * Add a method to the try-and-slice instance.
  *
- * A slicer processes messages and calls methods that match a message. A match
- * happens whenever the method name of a message starts with the method_name
- * parameter given here.
+ * The callbacks are called for messages with a matching @a method_name prefix.
  *
- * @param slicer The try-and-slice instance to extend.
- * @param method_name Name of the given method, use empty string for default.
- * @param method Method to invoke.
- * @param method_cls Closure for method.
+ * @param slicer
+ *        The try-and-slice instance to extend.
+ * @param method_name
+ *        Name of the given method, use empty string to match all.
+ * @param method_cb
+ *        Method handler invoked upon a matching message.
+ * @param modifier_cb
+ *        Modifier handler, invoked after @a method_cb
+ *        for each modifier in the message.
+ * @param data_cb
+ *        Data handler, invoked after @a modifier_cb for each data fragment.
+ * @param eom_cb
+ *        Invoked upon reaching the end of a matching message.
+ * @param cls
+ *        Closure for the callbacks.
  */
 void
-GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
-                          const char *method_name,
-                          GNUNET_SOCIAL_MethodCallback method_cb,
-                          GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                          GNUNET_SOCIAL_DataCallback data_cb,
-                          GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
-                          void *cls)
+GNUNET_SOCIAL_slicer_method_add (struct GNUNET_SOCIAL_Slicer *slicer,
+                                 const char *method_name,
+                                 GNUNET_SOCIAL_MethodCallback method_cb,
+                                 GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                                 GNUNET_SOCIAL_DataCallback data_cb,
+                                 GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
+                                 void *cls)
 {
   struct GNUNET_HashCode key;
   GNUNET_CRYPTO_hash (method_name, strlen (method_name), &key);
 
-  struct SlicerCallbacks *cbs = GNUNET_malloc (sizeof (*cbs));
+  struct SlicerMethodCallbacks *cbs = GNUNET_malloc (sizeof (*cbs));
   cbs->method_cb = method_cb;
   cbs->modifier_cb = modifier_cb;
   cbs->data_cb = data_cb;
   cbs->eom_cb = eom_cb;
   cbs->cls = cls;
 
-  GNUNET_CONTAINER_multihashmap_put (slicer->handlers, &key, cbs,
+  GNUNET_CONTAINER_multihashmap_put (slicer->method_handlers, &key, cbs,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 }
 
 
 int
-slicer_remove_handler (void *cls, const struct GNUNET_HashCode *key, void *value)
+slicer_method_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
-  struct SlicerRemoveClosure *rm_cls = cls;
+  struct SlicerMethodRemoveClosure *rm_cls = cls;
   struct GNUNET_SOCIAL_Slicer *slicer = rm_cls->slicer;
-  struct SlicerCallbacks *rm_cbs = &rm_cls->rm_cbs;
-  struct SlicerCallbacks *cbs = value;
+  struct SlicerMethodCallbacks *rm_cbs = &rm_cls->rm_cbs;
+  struct SlicerMethodCallbacks *cbs = value;
 
   if (cbs->method_cb == rm_cbs->method_cb
       && cbs->modifier_cb == rm_cbs->modifier_cb
       && cbs->data_cb == rm_cbs->data_cb
       && cbs->eom_cb == rm_cbs->eom_cb)
   {
-    GNUNET_CONTAINER_multihashmap_remove (slicer->handlers, key, cbs);
+    GNUNET_CONTAINER_multihashmap_remove (slicer->method_handlers, key, cbs);
     GNUNET_free (cbs);
     return GNUNET_NO;
   }
@@ -582,29 +718,39 @@ slicer_remove_handler (void *cls, const struct GNUNET_HashCode *key, void *value
 /**
  * Remove a registered method from the try-and-slice instance.
  *
- * Removes the first matching handler registered with @a method and the given callbacks.
+ * Removes one matching handler registered with the given
+ * @a method_name and  callbacks.
  *
- * @param slicer The try-and-slice instance.
- * @param method_name Name of the method to remove.
- * @param method Method handler.
+ * @param slicer
+ *        The try-and-slice instance.
+ * @param method_name
+ *        Name of the method to remove.
+ * @param method_cb
+ *        Method handler.
+ * @param modifier_cb
+ *        Modifier handler.
+ * @param data_cb
+ *        Data handler.
+ * @param eom_cb
+ *        End of message handler.
  *
  * @return #GNUNET_OK if a method handler was removed,
  *         #GNUNET_NO if no handler matched the given method name and callbacks.
  */
 int
-GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
-                             const char *method_name,
-                             GNUNET_SOCIAL_MethodCallback method_cb,
-                             GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                             GNUNET_SOCIAL_DataCallback data_cb,
-                             GNUNET_SOCIAL_EndOfMessageCallback eom_cb)
+GNUNET_SOCIAL_slicer_method_remove (struct GNUNET_SOCIAL_Slicer *slicer,
+                                    const char *method_name,
+                                    GNUNET_SOCIAL_MethodCallback method_cb,
+                                    GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                                    GNUNET_SOCIAL_DataCallback data_cb,
+                                    GNUNET_SOCIAL_EndOfMessageCallback eom_cb)
 {
   struct GNUNET_HashCode key;
   GNUNET_CRYPTO_hash (method_name, strlen (method_name), &key);
 
-  struct SlicerRemoveClosure rm_cls;
+  struct SlicerMethodRemoveClosure rm_cls;
   rm_cls.slicer = slicer;
-  struct SlicerCallbacks *rm_cbs = &rm_cls.rm_cbs;
+  struct SlicerMethodCallbacks *rm_cbs = &rm_cls.rm_cbs;
   rm_cbs->method_cb = method_cb;
   rm_cbs->modifier_cb = modifier_cb;
   rm_cbs->data_cb = data_cb;
@@ -612,18 +758,101 @@ GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
 
   return
     (GNUNET_SYSERR
-     == GNUNET_CONTAINER_multihashmap_get_multiple (slicer->handlers, &key,
-                                                    &slicer_remove_handler,
+     == GNUNET_CONTAINER_multihashmap_get_multiple (slicer->method_handlers, &key,
+                                                    slicer_method_remove,
                                                     &rm_cls))
     ? GNUNET_NO
     : GNUNET_OK;
 }
 
 
-int
-slicer_free_handler (void *cls, const struct GNUNET_HashCode *key, void *value)
+/**
+ * Watch a place for changed objects.
+ *
+ * @param slicer
+ *        The try-and-slice instance.
+ * @param object_filter
+ *        Object prefix to match.
+ * @param modifier_cb
+ *        Function to call when encountering a state modifier.
+ * @param cls
+ *        Closure for callback.
+ */
+void
+GNUNET_SOCIAL_slicer_modifier_add (struct GNUNET_SOCIAL_Slicer *slicer,
+                                   const char *object_filter,
+                                   GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                                   void *cls)
 {
-  struct SlicerCallbacks *cbs = value;
+  struct SlicerModifierCallbacks *cbs = GNUNET_malloc (sizeof *cbs);
+  cbs->modifier_cb = modifier_cb;
+  cbs->cls = cls;
+
+  struct GNUNET_HashCode key;
+  GNUNET_CRYPTO_hash (object_filter, strlen (object_filter), &key);
+  GNUNET_CONTAINER_multihashmap_put (slicer->modifier_handlers, &key, cbs,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+}
+
+
+int
+slicer_modifier_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  struct SlicerModifierRemoveClosure *rm_cls = cls;
+  struct GNUNET_SOCIAL_Slicer *slicer = rm_cls->slicer;
+  struct SlicerModifierCallbacks *rm_cbs = &rm_cls->rm_cbs;
+  struct SlicerModifierCallbacks *cbs = value;
+
+  if (cbs->modifier_cb == rm_cbs->modifier_cb)
+  {
+    GNUNET_CONTAINER_multihashmap_remove (slicer->modifier_handlers, key, cbs);
+    GNUNET_free (cbs);
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+
+/**
+ * Remove a registered modifier from the try-and-slice instance.
+ *
+ * Removes one matching handler registered with the given
+ * @a object_filter and @a modifier_cb.
+ *
+ * @param slicer
+ *        The try-and-slice instance.
+ * @param object_filter
+ *        Object prefix to match.
+ * @param modifier_cb
+ *        Function to call when encountering a state modifier changes.
+ */
+int
+GNUNET_SOCIAL_slicer_modifier_remove (struct GNUNET_SOCIAL_Slicer *slicer,
+                                      const char *object_filter,
+                                      GNUNET_SOCIAL_ModifierCallback modifier_cb)
+{
+  struct GNUNET_HashCode key;
+  GNUNET_CRYPTO_hash (object_filter, strlen (object_filter), &key);
+
+  struct SlicerModifierRemoveClosure rm_cls;
+  rm_cls.slicer = slicer;
+  struct SlicerModifierCallbacks *rm_cbs = &rm_cls.rm_cbs;
+  rm_cbs->modifier_cb = modifier_cb;
+
+  return
+    (GNUNET_SYSERR
+     == GNUNET_CONTAINER_multihashmap_get_multiple (slicer->modifier_handlers, &key,
+                                                    slicer_modifier_remove,
+                                                    &rm_cls))
+    ? GNUNET_NO
+    : GNUNET_OK;
+ }
+
+
+int
+slicer_method_free (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  struct SlicerMethodCallbacks *cbs = value;
   GNUNET_free (cbs);
   return GNUNET_YES;
 }
@@ -638,9 +867,9 @@ slicer_free_handler (void *cls, const struct GNUNET_HashCode *key, void *value)
 void
 GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (slicer->handlers, &slicer_free_handler,
-                                         NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (slicer->handlers);
+  GNUNET_CONTAINER_multihashmap_iterate (slicer->method_handlers,
+                                         slicer_method_free, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy (slicer->method_handlers);
   GNUNET_free (slicer);
 }
 
@@ -1598,32 +1827,38 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
   struct GuestEnterRequest *
     req = (struct GuestEnterRequest *) plc->connect_msg;
   uint16_t req_size = ntohs (req->header.size);
-
-  struct GNUNET_PeerIdentity *relays = NULL;
   uint16_t relay_count = ntohs (rec->relay_count);
 
   if (0 < relay_count)
   {
-    uint16_t relay_size = relay_count * sizeof (struct GNUNET_PeerIdentity);
-    struct GuestEnterRequest *
-      req2 = GNUNET_malloc (req_size + relay_size);
-
-    req2->header.size = htons (req_size + relay_size);
-    req2->header.type = req->header.type;
-    req2->guest_key = req->guest_key;
-
-    uint16_t p = sizeof (*req);
-    if (0 < relay_size)
+    if (rd->data_size == sizeof (*rec) + relay_count * sizeof (struct GNUNET_PeerIdentity))
     {
-      memcpy ((char *) req2 + p, relays, relay_size);
-      p += relay_size;
+      struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &rec[1];
+      uint16_t relay_size = relay_count * sizeof (struct GNUNET_PeerIdentity);
+      struct GuestEnterRequest *
+        req2 = GNUNET_malloc (req_size + relay_size);
+
+      req2->header.size = htons (req_size + relay_size);
+      req2->header.type = req->header.type;
+      req2->guest_key = req->guest_key;
+
+      uint16_t p = sizeof (*req);
+      if (0 < relay_size)
+      {
+        memcpy ((char *) req2 + p, relays, relay_size);
+        p += relay_size;
+      }
+
+      memcpy ((char *) req + p, &req[1], req_size - sizeof (*req));
+
+      plc->connect_msg = &req2->header;
+      GNUNET_free (req);
+      req = req2;
     }
-
-    memcpy ((char *) req + p, &req[1], req_size - sizeof (*req));
-
-    plc->connect_msg = &req2->header;
-    GNUNET_free (req);
-    req = req2;
+    else
+    {
+      GNUNET_break_op (0);
+    }
   }
 
   req->place_key = rec->place_key;
@@ -1804,42 +2039,6 @@ struct GNUNET_SOCIAL_Place *
 GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *gst)
 {
   return &gst->plc;
-}
-
-
-/**
- * Watch a place for changed objects.
- *
- * @param place
- *        Place to watch.
- * @param object_filter
- *        Object prefix to match.
- * @param var_cb
- *        Function to call when an object/state var changes.
- * @param cls
- *        Closure for callback.
- *
- * @return Handle that can be used to cancel watching.
- */
-struct GNUNET_SOCIAL_WatchHandle *
-GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
-                           const char *object_filter,
-                           GNUNET_PSYC_StateVarCallback var_cb,
-                           void *cls)
-{
-  return NULL;
-}
-
-
-/**
- * Cancel watching a place for changed objects.
- *
- * @param wh Watch handle to cancel.
- */
-void
-GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh)
-{
-
 }
 
 

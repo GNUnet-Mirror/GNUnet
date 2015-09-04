@@ -105,7 +105,7 @@ typedef void
 
 
 /**
- * Function called upon receiving a data fragment of a message.
+ * Function called upon receiving a modifier of a message.
  *
  * @param cls
  *        Closure.
@@ -115,8 +115,10 @@ typedef void
  *        Message part, as it arrived from the network.
  * @param oper
  *        Operation to perform.
+ *        0 in case of a modifier continuation.
  * @param name
  *        Name of the modifier.
+ *        NULL in case of a modifier continuation.
  * @param value
  *        Value of the modifier.
  * @param value_size
@@ -124,12 +126,13 @@ typedef void
  */
 typedef void
 (*GNUNET_SOCIAL_ModifierCallback) (void *cls,
-                                   const struct GNUNET_PSYC_MessageModifier *msg,
+                                   const struct GNUNET_MessageHeader *msg,
                                    uint64_t message_id,
                                    enum GNUNET_ENV_Operator oper,
                                    const char *name,
                                    const void *value,
-                                   uint16_t value_size);
+                                   uint16_t value_size,
+                                   uint16_t full_value_size);
 
 
 /**
@@ -185,6 +188,9 @@ typedef void
 /**
  * Create a try-and-slice instance.
  *
+ * A slicer processes incoming messages and notifies callbacks about matching
+ * methods or modifiers encountered.
+ *
  * @return A new try-and-slice construct.
  */
 struct GNUNET_SOCIAL_Slicer *
@@ -194,45 +200,107 @@ GNUNET_SOCIAL_slicer_create (void);
 /**
  * Add a method to the try-and-slice instance.
  *
- * A slicer processes messages and calls methods that match a message. A match
- * happens whenever the method name of a message starts with the method_name
- * parameter given here.
+ * The callbacks are called for messages with a matching @a method_name prefix.
  *
- * @param slicer The try-and-slice instance to extend.
- * @param method_name Name of the given method, use empty string for default.
- * @param method Method to invoke.
- * @param method_cls Closure for method.
+ * @param slicer
+ *        The try-and-slice instance to extend.
+ * @param method_name
+ *        Name of the given method, use empty string to match all.
+ * @param method_cb
+ *        Method handler invoked upon a matching message.
+ * @param modifier_cb
+ *        Modifier handler, invoked after @a method_cb
+ *        for each modifier in the message.
+ * @param data_cb
+ *        Data handler, invoked after @a modifier_cb for each data fragment.
+ * @param eom_cb
+ *        Invoked upon reaching the end of a matching message.
+ * @param cls
+ *        Closure for the callbacks.
  */
 void
-GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
-                          const char *method_name,
-                          GNUNET_SOCIAL_MethodCallback method_cb,
-                          GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                          GNUNET_SOCIAL_DataCallback data_cb,
-                          GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
-                          void *cls);
+GNUNET_SOCIAL_slicer_method_add (struct GNUNET_SOCIAL_Slicer *slicer,
+                                 const char *method_name,
+                                 GNUNET_SOCIAL_MethodCallback method_cb,
+                                 GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                                 GNUNET_SOCIAL_DataCallback data_cb,
+                                 GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
+                                 void *cls);
+
+/**
+ * Remove a registered method from the try-and-slice instance.
+ *
+ * Removes one matching handler registered with the given
+ * @a method_name and callbacks.
+ *
+ * @param slicer
+ *        The try-and-slice instance.
+ * @param method_name
+ *        Name of the method to remove.
+ * @param method_cb
+ *        Method handler.
+ * @param modifier_cb
+ *        Modifier handler.
+ * @param data_cb
+ *        Data handler.
+ * @param eom_cb
+ *        End of message handler.
+ *
+ * @return #GNUNET_OK if a method handler was removed,
+ *         #GNUNET_NO if no handler matched the given method name and callbacks.
+ */
+int
+GNUNET_SOCIAL_slicer_method_remove (struct GNUNET_SOCIAL_Slicer *slicer,
+                                    const char *method_name,
+                                    GNUNET_SOCIAL_MethodCallback method_cb,
+                                    GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                                    GNUNET_SOCIAL_DataCallback data_cb,
+                                    GNUNET_SOCIAL_EndOfMessageCallback eom_cb);
 
 
 /**
- * Remove a registered method handler from the try-and-slice instance.
+ * Watch a place for changed objects.
  *
- * @param slicer The try-and-slice instance.
- * @param method_name Name of the method to remove.
- * @param method Method handler.
+ * @param slicer
+ *        The try-and-slice instance.
+ * @param object_filter
+ *        Object prefix to match.
+ * @param modifier_cb
+ *        Function to call when encountering a state modifier.
+ * @param cls
+ *        Closure for callback.
+ */
+void
+GNUNET_SOCIAL_slicer_modifier_add (struct GNUNET_SOCIAL_Slicer *slicer,
+                                   const char *object_filter,
+                                   GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                                   void *cls);
+
+
+/**
+ * Remove a registered modifier from the try-and-slice instance.
+ *
+ * Removes one matching handler registered with the given
+ * @a object_filter and callback.
+ *
+ * @param slicer
+ *        The try-and-slice instance.
+ * @param object_filter
+ *        Object prefix to match.
+ * @param modifier_cb
+ *        Function to call when encountering a state modifier changes.
  */
 int
-GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
-                             const char *method_name,
-                             GNUNET_SOCIAL_MethodCallback method_cb,
-                             GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                             GNUNET_SOCIAL_DataCallback data_cb,
-                             GNUNET_SOCIAL_EndOfMessageCallback eom_cb);
+GNUNET_SOCIAL_slicer_modifier_remove (struct GNUNET_SOCIAL_Slicer *slicer,
+                                      const char *object_filter,
+                                      GNUNET_SOCIAL_ModifierCallback modifier_cb);
 
 
 /**
  * Destroy a given try-and-slice instance.
  *
- * @param slicer slicer to destroy
+ * @param slicer
+ *        Slicer to destroy
  */
 void
 GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
@@ -824,38 +892,6 @@ GNUNET_SOCIAL_place_history_replay_latest (struct GNUNET_SOCIAL_Place *plc,
  */
 void
 GNUNET_SOCIAL_place_history_replay_cancel (struct GNUNET_SOCIAL_HistoryRequest *hist);
-
-
-struct GNUNET_SOCIAL_WatchHandle;
-
-/**
- * Watch a place for changed objects.
- *
- * @param place
- *        Place to watch.
- * @param object_filter
- *        Object prefix to match.
- * @param var_cb
- *        Function to call when an object/state var changes.
- * @param cls
- *        Closure for callback.
- *
- * @return Handle that can be used to cancel watching.
- */
-struct GNUNET_SOCIAL_WatchHandle *
-GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
-                           const char *object_filter,
-                           GNUNET_PSYC_StateVarCallback var_cb,
-                           void *cls);
-
-
-/**
- * Cancel watching a place for changed objects.
- *
- * @param wh Watch handle to cancel.
- */
-void
-GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh);
 
 
 struct GNUNET_SOCIAL_LookHandle;
