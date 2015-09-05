@@ -615,8 +615,6 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
   struct EccAliceCryptodataMessage *msg;
   struct GNUNET_MQ_Envelope *e;
   struct GNUNET_CRYPTO_EccPoint *payload;
-  gcry_mpi_point_t g_i;
-  gcry_mpi_point_t h_i;
   gcry_mpi_t r_ia;
   gcry_mpi_t r_ia_ai;
   unsigned int i;
@@ -658,6 +656,8 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
     for (i = off; i < off + todo_count; i++)
     {
       gcry_mpi_t r_i;
+      gcry_mpi_point_t g_i;
+      gcry_mpi_point_t h_i;
 
       r_i = GNUNET_CRYPTO_ecc_random_mod_n (edc);
       g_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
