@@ -1134,11 +1134,6 @@ handle_alices_computation_request (void *cls,
   struct BobServiceSession *s;
   const struct ServiceRequestMessage *msg;
 
-  if (ntohs (message->size) != sizeof (struct ServiceRequestMessage))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
   msg = (const struct ServiceRequestMessage *) message;
   if (GNUNET_YES == in->in_map)
   {
