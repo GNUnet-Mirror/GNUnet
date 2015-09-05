@@ -78,6 +78,8 @@ struct GNUNET_SOCIAL_Guest *gst;
 struct GNUNET_SOCIAL_Place *hst_plc;
 struct GNUNET_SOCIAL_Place *gst_plc;
 
+struct GNUNET_SOCIAL_Nym *nym_eject;
+
 struct GuestEnterMessage
 {
   struct GNUNET_PSYC_Message *msg;
@@ -161,7 +163,7 @@ cleanup ()
 
   if (NULL != gst)
   {
-    GNUNET_SOCIAL_guest_leave (gst, GNUNET_NO, NULL, NULL);
+    GNUNET_SOCIAL_guest_leave (gst, GNUNET_NO, NULL, NULL, NULL);
     gst = NULL;
     gst_plc = NULL;
   }
@@ -306,21 +308,26 @@ schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 host_farewell (void *cls,
-               struct GNUNET_SOCIAL_Nym *nym,
-               struct GNUNET_ENV_Environment *env,
-               size_t variable_count,
-               struct GNUNET_ENV_Modifier *variables)
+               const struct GNUNET_SOCIAL_Nym *nym,
+               struct GNUNET_ENV_Environment *env)
 {
-  // FIXME: this function is not called yet
-  struct GNUNET_CRYPTO_EcdsaPublicKey *nym_key = GNUNET_SOCIAL_nym_get_key (nym);
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_key = GNUNET_SOCIAL_nym_get_key (nym);
   char *str;
 
   str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Nym %s has left the place.\n",
+              "Farewell: nym %s has left the place.\n",
               str);
   GNUNET_free (str);
-  GNUNET_assert (0 == memcmp (&guest_pub_key, nym_key, sizeof (*nym_key)));
+  GNUNET_assert (1 == GNUNET_ENV_environment_get_count (env));
+  if (0 != memcmp (&guest_pub_key, nym_key, sizeof (*nym_key)))
+  {
+    str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&guest_pub_key);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Farewell: nym does not match guest: %s\n", str);
+    GNUNET_free (str);
+    GNUNET_assert (0);
+  }
 
   GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
 }
@@ -335,8 +342,6 @@ guest_left (void *cls)
   guest_slicer = NULL;
   gst = NULL;
   gst_plc = NULL;
-
-  GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
 }
 
 
@@ -344,8 +349,14 @@ static void
 guest_leave()
 {
   test = TEST_GUEST_LEAVE;
-  /* FIXME test keep_active */
-  GNUNET_SOCIAL_guest_leave (gst, GNUNET_NO, &guest_left, NULL);
+
+  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_SET,
+                              "_message", DATA2ARG ("Leaving."));
+  GNUNET_SOCIAL_guest_leave (gst, GNUNET_NO, env, &guest_left, NULL);
+  GNUNET_ENV_environment_destroy (env);
+
+  /* @todo test keep_active */
 }
 
 
@@ -683,6 +694,9 @@ host_recv_eom (void *cls,
     guest_history_replay ();
     break;
 
+  case TEST_GUEST_LEAVE:
+    break;
+
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
     GNUNET_assert (0);
@@ -738,8 +752,7 @@ host_announce ()
   tmit.host_ann
     = GNUNET_SOCIAL_host_announce (hst, "_message_host", tmit.env,
                                    &notify_data, &tmit,
-                                   GNUNET_SOCIAL_ANNOUNCE_NONE
-                                   | GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY);
+                                   GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
 
 
@@ -753,7 +766,7 @@ host_announce2 ()
   test = TEST_HOST_ANNOUNCE2;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Host announcement.\n", test);
+              "Test #%u: Host announcement 2.\n", test);
 
   tmit = (struct TransmitClosure) {};
   tmit.env = GNUNET_ENV_environment_create ();
@@ -898,6 +911,7 @@ id_guest_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   GNUNET_assert (NULL != ego);
   guest_ego = ego;
+  GNUNET_IDENTITY_ego_get_public_key (ego, &guest_pub_key);
 
   guest_slicer = GNUNET_SOCIAL_slicer_create ();
   GNUNET_SOCIAL_slicer_method_add (guest_slicer, "",
@@ -950,8 +964,8 @@ id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Entering to place as host.\n");
   hst = GNUNET_SOCIAL_host_enter (cfg, host_ego, place_key,
                                   GNUNET_PSYC_CHANNEL_PRIVATE, host_slicer,
-                                  &host_entered, &host_answer_door,
-                                  &host_farewell, NULL);
+                                  host_entered, host_answer_door,
+                                  host_farewell, NULL);
   hst_plc = GNUNET_SOCIAL_host_get_place (hst);
 }
 
@@ -1011,10 +1025,7 @@ run (void *cls,
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   place_key = GNUNET_CRYPTO_eddsa_key_create ();
-  guest_key = GNUNET_CRYPTO_ecdsa_key_create ();
-
   GNUNET_CRYPTO_eddsa_key_get_public (place_key, &place_pub_key);
-  GNUNET_CRYPTO_ecdsa_key_get_public (guest_key, &guest_pub_key);
 
   core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
                               NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);

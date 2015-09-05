@@ -339,17 +339,15 @@ typedef void
  * This is also called if the @a nym was never given permission to enter
  * (i.e. the @a nym stopped asking to get in).
  *
- * @param cls   Closure.
- * @param nym Handle for the user who left.
- * @param variable_count Number of elements in the @a variables array.
- * @param variables Variables present in the message.
+ * @param cls
+ *        Closure.
+ * @param nym
+ *        Handle for the user who left.
  */
 typedef void
 (*GNUNET_SOCIAL_FarewellCallback) (void *cls,
-                                   struct GNUNET_SOCIAL_Nym *nym,
-                                   struct GNUNET_ENV_Environment *env,
-                                   size_t variable_count,
-                                   struct GNUNET_ENV_Modifier *variables);
+                                   const struct GNUNET_SOCIAL_Nym *nym,
+                                   struct GNUNET_ENV_Environment *env);
 
 
 /**
@@ -443,12 +441,14 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
  * #GNUNET_SOCIAL_FarewellCallback is invoked,
  * which should be very soon after this call.
  *
- * @param host  Host of the place.
- * @param nym  Handle for the entity to be ejected.
+ * @param host
+ *        Host of the place.
+ * @param nym
+ *        Handle for the entity to be ejected.
  */
 void
 GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
-                          struct GNUNET_SOCIAL_Nym *nym);
+                          const struct GNUNET_SOCIAL_Nym *nym);
 
 
 /**
@@ -461,21 +461,8 @@ GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
  *
  * @return Public key of nym;
  */
-struct GNUNET_CRYPTO_EcdsaPublicKey *
-GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym);
-
-
-/**
- * Obtain the private-public key pair of the host.
- *
- * @param host  Host to get the key of.
- * @param[out] host_key  Set to the private-public key pair of the host.  The
- *                 public part is suitable for storing in GNS within a "PLACE"
- *                 record, along with peer IDs to join at.
- */
-void
-GNUNET_SOCIAL_host_get_key (struct GNUNET_SOCIAL_Host *host,
-                            struct GNUNET_CRYPTO_EddsaPrivateKey *host_key);
+const struct GNUNET_CRYPTO_EcdsaPublicKey *
+GNUNET_SOCIAL_nym_get_key (const struct GNUNET_SOCIAL_Nym *nym);
 
 
 /**
@@ -782,23 +769,25 @@ GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
 
 
 /**
- * Leave a place permanently.
+ * Leave a place temporarily or permanently.
  *
  * Notifies the owner of the place about leaving, and destroys the place handle.
  *
  * @param place
- *        Place to leave permanently.
+ *        Place to leave.
  * @param keep_active
  *        Keep place active after last application disconnected.
+ *        #GNUNET_YES or #GNUNET_NO
+ * @param env
+ *        Optional environment for the leave message if @a keep_active
+ *        is #GNUNET_NO.  NULL if not needed.
  * @param leave_cb
- *        Function called after the guest left the place
- *        and disconnected from the social service.
- * @param leave_cls
- *        Closure for @a leave_cb.
+ *        Called upon disconnecting from the social service.
  */
 void
-GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *guest,
+GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
                            int keep_active,
+                           struct GNUNET_ENV_Environment *env,
                            GNUNET_ContinuationCallback leave_cb,
                            void *leave_cls);
 
