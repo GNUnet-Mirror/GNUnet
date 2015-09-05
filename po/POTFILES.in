@@ -250,8 +250,8 @@ src/psyc/gnunet-service-psyc.c
 src/psyc/psyc_api.c
 src/psycstore/gnunet-service-psycstore.c
 src/psycstore/plugin_psycstore_sqlite.c
-src/psycstore/psyc_util_lib.c
 src/psycstore/psycstore_api.c
+src/psycstore/psyc_util_lib.c
 src/psycstore/psyc_util_lib.c
 src/pt/gnunet-daemon-pt.c
 src/regex/gnunet-daemon-regexprofiler.c
@@ -446,6 +446,7 @@ src/util/server_nc.c
 src/util/server_tc.c
 src/util/service.c
 src/util/signal.c
+src/util/socks.c
 src/util/speedup.c
 src/util/strings.c
 src/util/time.c

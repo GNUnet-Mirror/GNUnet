@@ -467,6 +467,29 @@ GNUNET_CRYPTO_ecc_rnd (struct GNUNET_CRYPTO_EccDlogContext *edc,
 
 
 /**
+ * Obtain a random scalar for point multiplication on the curve and
+ * its multiplicative inverse.
+ *
+ * @param edc calculation context for ECC operations
+ * @param[out] r set to a random scalar on the curve
+ * @param[out] r_inv set to the multiplicative inverse of @a r
+ */
+void
+GNUNET_CRYPTO_ecc_rnd_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                           gcry_mpi_t *r,
+                           gcry_mpi_t *r_inv)
+{
+  gcry_mpi_t n;
+
+  *r = GNUNET_CRYPTO_ecc_random_mod_n (edc);
+  /* r_inv = n - r = - r */
+  *r_inv = gcry_mpi_new (0);
+  n = gcry_mpi_ec_get_mpi ("n", edc->ctx, 1);
+  gcry_mpi_sub (*r_inv, n, *r);
+}
+
+
+/**
  * Free a point value returned by the API.
  *
  * @param p point to free
