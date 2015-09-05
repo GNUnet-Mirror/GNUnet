@@ -646,7 +646,7 @@ handle_alices_cryptodata_message (void *cls,
      an upper bound on the required array size */
   max = GNUNET_CONTAINER_multihashmap_size (s->intersected_elements);
   msg_length = sizeof (struct EccAliceCryptodataMessage)
-    + contained_elements * sizeof (struct GNUNET_CRYPTO_EccPoint);
+    + contained_elements * sizeof (struct GNUNET_CRYPTO_EccPoint) * 2;
   if ( (msize != msg_length) ||
        (0 == contained_elements) ||
        (contained_elements > UINT16_MAX) ||

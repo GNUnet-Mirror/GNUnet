@@ -469,6 +469,8 @@ compute_scalar_product (struct AliceServiceSession *session,
   if (MAX_RESULT == ai_bi)
   {
     /* result too big */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Scalar product result out of range\n");
     return NULL;
   }
   ret = gcry_mpi_new (0);
