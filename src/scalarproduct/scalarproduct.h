@@ -19,7 +19,7 @@
 */
 /**
  * @file   scalarproduct.h
- * @brief  Scalar Product Message Types
+ * @brief  Scalar Product API Message Types
  * @author Christian M. Fuchs
  */
 #ifndef SCALARPRODUCT_H
@@ -172,4 +172,3 @@ struct ClientResponseMessage
 GNUNET_NETWORK_STRUCT_END
 
 #endif	/* SCALARPRODUCT_H */
-
