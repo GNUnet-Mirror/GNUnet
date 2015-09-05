@@ -114,4 +114,5 @@ endif
 test_ecc_scalarproduct_SOURCES = \
  test_ecc_scalarproduct.c
 test_ecc_scalarproduct_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lgcrypt
