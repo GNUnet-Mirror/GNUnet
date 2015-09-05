@@ -21,7 +21,7 @@
 /**
  * Testcase for STUN server resolution
  *
- * @file nat/test_stun.h
+ * @file nat/nat_stun.h
  * @brief Testcase for STUN library
  * @author Bruno Souza Cabral
  * @autor Mark Spencer (Original code borrowed from Asterisk)
