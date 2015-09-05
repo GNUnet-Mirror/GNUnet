@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2013, 2014 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2013-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
  */
 /**
- * @file scalarproduct/gnunet-service-scalarproduct_alice.c
+ * @file scalarproduct/gnunet-service-scalarproduct-ecc_alice.c
  * @brief scalarproduct service implementation
  * @author Christian M. Fuchs
  * @author Christian Grothoff
@@ -34,9 +34,15 @@
 #include "gnunet_scalarproduct_service.h"
 #include "gnunet_set_service.h"
 #include "scalarproduct.h"
-#include "gnunet-service-scalarproduct.h"
+#include "gnunet-service-scalarproduct-ecc.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct-alice", __VA_ARGS__)
+
+/**
+ * Maximum allowed result value for the scalarproduct computation.
+ * DLOG will fail if the result is bigger.
+ */
+#define MAX_RESULT (1024 * 1024)
 
 /**
  * An encrypted element key-value pair.
@@ -51,9 +57,15 @@ struct MpiElement
   const struct GNUNET_HashCode *key;
 
   /**
-   * Value represented (a).
+   * a_i value, not disclosed to Bob.
    */
   gcry_mpi_t value;
+
+  /**
+   * r_i value, chosen at random, not disclosed to Bob.
+   */
+  gcry_mpi_t r_i;
+
 };
 
 
@@ -123,26 +135,6 @@ struct AliceServiceSession
   struct MpiElement *sorted_elements;
 
   /**
-   * Bob's permutation p of R
-   */
-  struct GNUNET_CRYPTO_PaillierCiphertext *r;
-
-  /**
-   * Bob's permutation q of R
-   */
-  struct GNUNET_CRYPTO_PaillierCiphertext *r_prime;
-
-  /**
-   * Bob's "s"
-   */
-  struct GNUNET_CRYPTO_PaillierCiphertext s;
-
-  /**
-   * Bob's "s'"
-   */
-  struct GNUNET_CRYPTO_PaillierCiphertext s_prime;
-
-  /**
    * The computed scalar
    */
   gcry_mpi_t product;
@@ -167,12 +159,6 @@ struct AliceServiceSession
   uint32_t client_received_element_count;
 
   /**
-   * Already transferred elements from Bob to us.
-   * Less or equal than @e total.
-   */
-  uint32_t cadet_received_element_count;
-
-  /**
    * State of this session.   In
    * #GNUNET_SCALARPRODUCT_STATUS_ACTIVE while operation is
    * ongoing, afterwards in #GNUNET_SCALARPRODUCT_STATUS_SUCCESS or
@@ -195,19 +181,19 @@ struct AliceServiceSession
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
- * Service's own public key
+ * Context for DLOG operations on a curve.
  */
-static struct GNUNET_CRYPTO_PaillierPublicKey my_pubkey;
+static struct GNUNET_CRYPTO_EccDlogContext *edc;
 
 /**
- * Service's own private key
+ * Alice's private key ('a').
  */
-static struct GNUNET_CRYPTO_PaillierPrivateKey my_privkey;
+static gcry_mpi_t my_privkey;
 
 /**
- * Service's offset for values that could possibly be negative but are plaintext for encryption.
+ * Inverse of Alice's private key ('a_inv').
  */
-static gcry_mpi_t my_offset;
+static gcry_mpi_t my_privkey_inv;
 
 /**
  * Handle to the CADET service.
@@ -299,16 +285,6 @@ destroy_service_session (struct AliceServiceSession *s)
       gcry_mpi_release (s->sorted_elements[i].value);
     GNUNET_free (s->sorted_elements);
     s->sorted_elements = NULL;
-  }
-  if (NULL != s->r)
-  {
-    GNUNET_free (s->r);
-    s->r = NULL;
-  }
-  if (NULL != s->r_prime)
-  {
-    GNUNET_free (s->r_prime);
-    s->r_prime = NULL;
   }
   if (NULL != s->product)
   {
@@ -463,248 +439,41 @@ cb_channel_destruction (void *cls,
 
 
 /**
- * Computes the square sum over a vector of a given length.
- *
- * @param vector the vector to compute over
- * @param length the length of the vector
- * @return an MPI value containing the calculated sum, never NULL
- */
-static gcry_mpi_t
-compute_square_sum_mpi_elements (const struct MpiElement *vector,
-                                 uint32_t length)
-{
-  gcry_mpi_t elem;
-  gcry_mpi_t sum;
-  uint32_t i;
-
-  GNUNET_assert (NULL != (sum = gcry_mpi_new (0)));
-  GNUNET_assert (NULL != (elem = gcry_mpi_new (0)));
-  for (i = 0; i < length; i++)
-  {
-    gcry_mpi_mul (elem, vector[i].value, vector[i].value);
-    gcry_mpi_add (sum, sum, elem);
-  }
-  gcry_mpi_release (elem);
-  return sum;
-}
-
-
-/**
- * Computes the square sum over a vector of a given length.
- *
- * @param vector the vector to compute over
- * @param length the length of the vector
- * @return an MPI value containing the calculated sum, never NULL
- */
-static gcry_mpi_t
-compute_square_sum (const gcry_mpi_t *vector,
-                    uint32_t length)
-{
-  gcry_mpi_t elem;
-  gcry_mpi_t sum;
-  uint32_t i;
-
-  GNUNET_assert (NULL != (sum = gcry_mpi_new (0)));
-  GNUNET_assert (NULL != (elem = gcry_mpi_new (0)));
-  for (i = 0; i < length; i++)
-  {
-    gcry_mpi_mul (elem, vector[i], vector[i]);
-    gcry_mpi_add (sum, sum, elem);
-  }
-  gcry_mpi_release (elem);
-  return sum;
-}
-
-
-/**
  * Compute our scalar product, done by Alice
  *
  * @param session the session associated with this computation
+ * @param prod_g_i_b_i value from Bob
+ * @param prod_h_i_b_i value from Bob
  * @return product as MPI, never NULL
  */
 static gcry_mpi_t
-compute_scalar_product (struct AliceServiceSession *session)
+compute_scalar_product (struct AliceServiceSession *session,
+                        gcry_mpi_point_t prod_g_i_b_i,
+                        gcry_mpi_point_t prod_h_i_b_i)
 {
-  uint32_t count;
-  gcry_mpi_t t;
-  gcry_mpi_t u;
-  gcry_mpi_t u_prime;
-  gcry_mpi_t p;
-  gcry_mpi_t p_prime;
-  gcry_mpi_t tmp;
-  gcry_mpi_t r[session->used_element_count];
-  gcry_mpi_t r_prime[session->used_element_count];
-  gcry_mpi_t s;
-  gcry_mpi_t s_prime;
-  unsigned int i;
+  gcry_mpi_point_t g_i_b_i_a_inv;
+  gcry_mpi_point_t g_ai_bi;
+  int ai_bi;
+  gcry_mpi_t ret;
 
-  count = session->used_element_count;
-  // due to the introduced static offset S, we now also have to remove this
-  // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
-  // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
-  for (i = 0; i < count; i++)
+  g_i_b_i_a_inv = GNUNET_CRYPTO_ecc_pmul_mpi (edc,
+                                              prod_g_i_b_i,
+                                              my_privkey_inv);
+  g_ai_bi = GNUNET_CRYPTO_ecc_add (edc,
+                                   g_i_b_i_a_inv,
+                                   prod_h_i_b_i);
+  gcry_mpi_point_release (g_i_b_i_a_inv);
+  ai_bi = GNUNET_CRYPTO_ecc_dlog (edc,
+                                  g_ai_bi);
+  gcry_mpi_point_release (g_ai_bi);
+  if (MAX_RESULT == ai_bi)
   {
-    r[i] = gcry_mpi_new (0);
-    GNUNET_CRYPTO_paillier_decrypt (&my_privkey,
-                                    &my_pubkey,
-                                    &session->r[i],
-                                    r[i]);
-    gcry_mpi_sub (r[i],
-                  r[i],
-                  my_offset);
-    gcry_mpi_sub (r[i],
-                  r[i],
-                  my_offset);
-    r_prime[i] = gcry_mpi_new (0);
-    GNUNET_CRYPTO_paillier_decrypt (&my_privkey,
-                                    &my_pubkey,
-                                    &session->r_prime[i],
-                                    r_prime[i]);
-    gcry_mpi_sub (r_prime[i],
-                  r_prime[i],
-                  my_offset);
-    gcry_mpi_sub (r_prime[i],
-                  r_prime[i],
-                  my_offset);
+    /* result too big */
+    return NULL;
   }
-
-  // calculate t = sum(ai)
-  t = compute_square_sum_mpi_elements (session->sorted_elements,
-                                       count);
-  // calculate U
-  u = gcry_mpi_new (0);
-  tmp = compute_square_sum (r, count);
-  gcry_mpi_sub (u, u, tmp);
-  gcry_mpi_release (tmp);
-
-  //calculate U'
-  u_prime = gcry_mpi_new (0);
-  tmp = compute_square_sum (r_prime, count);
-  gcry_mpi_sub (u_prime, u_prime, tmp);
-
-  GNUNET_assert (p = gcry_mpi_new (0));
-  GNUNET_assert (p_prime = gcry_mpi_new (0));
-  GNUNET_assert (s = gcry_mpi_new (0));
-  GNUNET_assert (s_prime = gcry_mpi_new (0));
-
-  // compute P
-  GNUNET_CRYPTO_paillier_decrypt (&my_privkey,
-                                  &my_pubkey,
-                                  &session->s,
-                                  s);
-  GNUNET_CRYPTO_paillier_decrypt (&my_privkey,
-                                  &my_pubkey,
-                                  &session->s_prime,
-                                  s_prime);
-
-  // compute P
-  gcry_mpi_add (p, s, t);
-  gcry_mpi_add (p, p, u);
-
-  // compute P'
-  gcry_mpi_add (p_prime, s_prime, t);
-  gcry_mpi_add (p_prime, p_prime, u_prime);
-
-  gcry_mpi_release (t);
-  gcry_mpi_release (u);
-  gcry_mpi_release (u_prime);
-  gcry_mpi_release (s);
-  gcry_mpi_release (s_prime);
-
-  // compute product
-  gcry_mpi_sub (p, p, p_prime);
-  gcry_mpi_release (p_prime);
-  tmp = gcry_mpi_set_ui (tmp, 2);
-  gcry_mpi_div (p, NULL, p, tmp, 0);
-
-  gcry_mpi_release (tmp);
-  for (i = 0; i < count; i++)
-  {
-    gcry_mpi_release (session->sorted_elements[i].value);
-    gcry_mpi_release (r[i]);
-    gcry_mpi_release (r_prime[i]);
-  }
-  GNUNET_free (session->sorted_elements);
-  session->sorted_elements = NULL;
-  GNUNET_free (session->r);
-  session->r = NULL;
-  GNUNET_free (session->r_prime);
-  session->r_prime = NULL;
-
-  return p;
-}
-
-
-/**
- * Handle a multipart chunk of a response we got from another service
- * we wanted to calculate a scalarproduct with.
- *
- * @param cls closure (set from #GNUNET_CADET_connect)
- * @param channel connection to the other end
- * @param channel_ctx place to store local state associated with the @a channel
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close it (signal serious error)
- */
-static int
-handle_bobs_cryptodata_multipart (void *cls,
-                                  struct GNUNET_CADET_Channel *channel,
-                                  void **channel_ctx,
-                                  const struct GNUNET_MessageHeader *message)
-{
-  struct AliceServiceSession *s = *channel_ctx;
-  const struct BobCryptodataMultipartMessage *msg;
-  const struct GNUNET_CRYPTO_PaillierCiphertext *payload;
-  size_t i;
-  uint32_t contained;
-  size_t msg_size;
-  size_t required_size;
-
-  if (NULL == s)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  msg_size = ntohs (message->size);
-  if (sizeof (struct BobCryptodataMultipartMessage) > msg_size)
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-  msg = (const struct BobCryptodataMultipartMessage *) message;
-  contained = ntohl (msg->contained_element_count);
-  required_size = sizeof (struct BobCryptodataMultipartMessage)
-    + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
-  if ( (required_size != msg_size) ||
-       (s->cadet_received_element_count + contained > s->used_element_count) )
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received %u additional crypto values from Bob\n",
-              (unsigned int) contained);
-
-  payload = (const struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-  /* Convert each k[][perm] to its MPI_value */
-  for (i = 0; i < contained; i++)
-  {
-    memcpy (&s->r[s->cadet_received_element_count + i],
-            &payload[2 * i],
-            sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-    memcpy (&s->r_prime[s->cadet_received_element_count + i],
-            &payload[2 * i],
-            sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  }
-  s->cadet_received_element_count += contained;
-  GNUNET_CADET_receive_done (s->channel);
-  if (s->cadet_received_element_count != s->used_element_count)
-    return GNUNET_OK;
-
-  s->product = compute_scalar_product (s);
-  transmit_client_response (s);
-  return GNUNET_OK;
+  ret = gcry_mpi_new (0);
+  gcry_mpi_set_ui (ret, ai_bi);
+  return ret;
 }
 
 
@@ -726,12 +495,11 @@ handle_bobs_cryptodata_message (void *cls,
                                 const struct GNUNET_MessageHeader *message)
 {
   struct AliceServiceSession *s = *channel_ctx;
-  const struct BobCryptodataMessage *msg;
-  const struct GNUNET_CRYPTO_PaillierCiphertext *payload;
-  uint32_t i;
+  const struct EccBobCryptodataMessage *msg;
   uint32_t contained;
   uint16_t msg_size;
-  size_t required_size;
+  gcry_mpi_point_t prod_g_i_b_i;
+  gcry_mpi_point_t prod_h_i_b_i;
 
   if (NULL == s)
   {
@@ -739,19 +507,14 @@ handle_bobs_cryptodata_message (void *cls,
     return GNUNET_SYSERR;
   }
   msg_size = ntohs (message->size);
-  if (sizeof (struct BobCryptodataMessage) > msg_size)
+  if (sizeof (struct EccBobCryptodataMessage) > msg_size)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  msg = (const struct BobCryptodataMessage *) message;
+  msg = (const struct EccBobCryptodataMessage *) message;
   contained = ntohl (msg->contained_element_count);
-  required_size = sizeof (struct BobCryptodataMessage)
-    + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)
-    + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
-  if ( (msg_size != required_size) ||
-       (contained > UINT16_MAX) ||
-       (s->used_element_count < contained) )
+  if (2 != contained)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -771,37 +534,16 @@ handle_bobs_cryptodata_message (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u crypto values from Bob\n",
               (unsigned int) contained);
-
-  payload = (const struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-  memcpy (&s->s,
-          &payload[0],
-          sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  memcpy (&s->s_prime,
-          &payload[1],
-          sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  payload = &payload[2];
-
-  s->r = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * s->used_element_count);
-  s->r_prime = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * s->used_element_count);
-  for (i = 0; i < contained; i++)
-  {
-    memcpy (&s->r[i],
-            &payload[2 * i],
-            sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-    memcpy (&s->r_prime[i],
-            &payload[2 * i + 1],
-            sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  }
-  s->cadet_received_element_count = contained;
   GNUNET_CADET_receive_done (s->channel);
-
-  if (s->cadet_received_element_count != s->used_element_count)
-  {
-    /* More to come */
-    return GNUNET_OK;
-  }
-
-  s->product = compute_scalar_product (s);
+  prod_g_i_b_i = GNUNET_CRYPTO_ecc_bin_to_point (edc,
+                                                 &msg->prod_g_i_b_i);
+  prod_h_i_b_i = GNUNET_CRYPTO_ecc_bin_to_point (edc,
+                                                 &msg->prod_h_i_b_i);
+  s->product = compute_scalar_product (s,
+                                       prod_g_i_b_i,
+                                       prod_h_i_b_i);
+  gcry_mpi_point_release (prod_g_i_b_i);
+  gcry_mpi_point_release (prod_h_i_b_i);
   transmit_client_response (s);
   return GNUNET_OK;
 }
@@ -832,6 +574,8 @@ copy_element_cb (void *cls,
   else
     gcry_mpi_add_ui (mval, mval, val);
   s->sorted_elements [s->used_element_count].value = mval;
+  s->sorted_elements [s->used_element_count].r_i
+    = GNUNET_CRYPTO_ecc_random_mod_n (edc);
   s->sorted_elements [s->used_element_count].key = &e->key;
   s->used_element_count++;
   return GNUNET_OK;
@@ -861,7 +605,7 @@ element_cmp (const void *a,
  * Maximum number of elements we can put into a single cryptodata
  * message
  */
-#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - sizeof (struct AliceCryptodataMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+#define ELEMENT_CAPACITY ((GNUNET_CONSTANTS_MAX_CADET_MESSAGE_SIZE - 1 - sizeof (struct EccAliceCryptodataMessage)) / sizeof (struct GNUNET_CRYPTO_EccPoint))
 
 
 /**
@@ -873,13 +617,16 @@ element_cmp (const void *a,
 static void
 send_alices_cryptodata_message (struct AliceServiceSession *s)
 {
-  struct AliceCryptodataMessage *msg;
+  struct EccAliceCryptodataMessage *msg;
   struct GNUNET_MQ_Envelope *e;
-  struct GNUNET_CRYPTO_PaillierCiphertext *payload;
+  struct GNUNET_CRYPTO_EccPoint *payload;
+  gcry_mpi_point_t g_i;
+  gcry_mpi_point_t h_i;
+  gcry_mpi_t r_ia;
+  gcry_mpi_t r_ia_ai;
   unsigned int i;
-  uint32_t todo_count;
-  gcry_mpi_t a;
-  uint32_t off;
+  unsigned int off;
+  unsigned int todo_count;
 
   s->sorted_elements
     = GNUNET_malloc (GNUNET_CONTAINER_multihashmap_size (s->intersected_elements) *
@@ -907,23 +654,37 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
                 (unsigned int) s->used_element_count);
 
     e = GNUNET_MQ_msg_extra (msg,
-                             todo_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext),
-                             GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA);
+                             todo_count * 2 * sizeof (struct GNUNET_CRYPTO_EccPoint),
+                             GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_ALICE_CRYPTODATA);
     msg->contained_element_count = htonl (todo_count);
-    payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-    a = gcry_mpi_new (0);
+    payload = (struct GNUNET_CRYPTO_EccPoint *) &msg[1];
+    r_ia = gcry_mpi_new (0);
+    r_ia_ai = gcry_mpi_new (0);
     for (i = off; i < off + todo_count; i++)
     {
-      gcry_mpi_add (a,
+      g_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
+                                        s->sorted_elements [i].r_i);
+      /* r_ia = r_i * a */
+      gcry_mpi_mul (s->sorted_elements[i].r_i,
+                    my_privkey,
+                    r_ia);
+      /* r_ia_ai = r_ia + a_i */
+      gcry_mpi_add (r_ia_ai,
                     s->sorted_elements[i].value,
-                    my_offset);
-      GNUNET_assert (3 ==
-                     GNUNET_CRYPTO_paillier_encrypt (&my_pubkey,
-                                                     a,
-                                                     3,
-                                                     &payload[i - off]));
+                    r_ia);
+      h_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
+                                        r_ia_ai);
+      GNUNET_CRYPTO_ecc_point_to_bin (edc,
+                                      g_i,
+                                      &payload[(i - off) * 2]);
+      GNUNET_CRYPTO_ecc_point_to_bin (edc,
+                                      h_i,
+                                      &payload[(i - off) * 2 + 1]);
+      gcry_mpi_point_release (g_i);
+      gcry_mpi_point_release (h_i);
     }
-    gcry_mpi_release (a);
+    gcry_mpi_release (r_ia);
+    gcry_mpi_release (r_ia_ai);
     off += todo_count;
     GNUNET_MQ_send (s->cadet_mq,
                     e);
@@ -1069,7 +830,7 @@ cb_intersection_request_alice (void *cls,
 static void
 client_request_complete_alice (struct AliceServiceSession *s)
 {
-  struct ServiceRequestMessage *msg;
+  struct EccServiceRequestMessage *msg;
   struct GNUNET_MQ_Envelope *e;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1079,7 +840,7 @@ client_request_complete_alice (struct AliceServiceSession *s)
     = GNUNET_CADET_channel_create (my_cadet,
                                    s,
                                    &s->peer,
-                                   GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
+                                   GNUNET_APPLICATION_TYPE_SCALARPRODUCT_ECC,
                                    GNUNET_CADET_OPTION_RELIABLE);
   if (NULL == s->channel)
   {
@@ -1104,9 +865,8 @@ client_request_complete_alice (struct AliceServiceSession *s)
   }
 
   e = GNUNET_MQ_msg (msg,
-                     GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION);
+                     GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_SESSION_INITIALIZATION);
   msg->session_id = s->session_id;
-  msg->public_key = my_pubkey;
   GNUNET_MQ_send (s->cadet_mq,
                   e);
 }
@@ -1327,6 +1087,11 @@ shutdown_task (void *cls,
     GNUNET_CADET_disconnect (my_cadet);
     my_cadet = NULL;
   }
+  if (NULL != edc)
+  {
+    GNUNET_CRYPTO_ecc_dlog_release (edc);
+    edc = NULL;
+  }
 }
 
 
@@ -1375,10 +1140,7 @@ run (void *cls,
 {
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     { &handle_bobs_cryptodata_message,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA,
-      0},
-    { &handle_bobs_cryptodata_multipart,
-      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA_MULTIPART,
+      GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ECC_BOB_CRYPTODATA,
       0},
     { NULL, 0, 0}
   };
@@ -1393,16 +1155,12 @@ run (void *cls,
   };
 
   cfg = c;
-  /*
-    offset has to be sufficiently small to allow computation of:
-    m1+m2 mod n == (S + a) + (S + b) mod n,
-    if we have more complex operations, this factor needs to be lowered */
-  my_offset = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS / 3);
-  gcry_mpi_set_bit (my_offset,
-                    GNUNET_CRYPTO_PAILLIER_BITS / 3);
-
-  GNUNET_CRYPTO_paillier_create (&my_pubkey,
-                                 &my_privkey);
+  edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_RESULT /* max value */,
+                                        1024 /* RAM */);
+  /* Select a random 'a' value for Alice */
+  GNUNET_CRYPTO_ecc_rnd_mpi (edc,
+                             &my_privkey,
+                             &my_privkey_inv);
   GNUNET_SERVER_add_handlers (server,
                               server_handlers);
   GNUNET_SERVER_disconnect_notify (server,
@@ -1445,4 +1203,4 @@ main (int argc,
                               &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-service-scalarproduct_alice.c */
+/* end of gnunet-service-scalarproduct-ecc_alice.c */

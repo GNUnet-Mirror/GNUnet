@@ -60,7 +60,7 @@ gnunet_service_scalarproduct_bob_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_scalarproduct_ecc_alice_SOURCES = \
-  gnunet-service-scalarproduct.h \
+  gnunet-service-scalarproduct-ecc.h \
   gnunet-service-scalarproduct-ecc_alice.c
 gnunet_service_scalarproduct_ecc_alice_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -71,7 +71,7 @@ gnunet_service_scalarproduct_ecc_alice_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_scalarproduct_ecc_bob_SOURCES = \
-  gnunet-service-scalarproduct.h \
+  gnunet-service-scalarproduct-ecc.h \
   gnunet-service-scalarproduct-ecc_bob.c
 gnunet_service_scalarproduct_ecc_bob_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
