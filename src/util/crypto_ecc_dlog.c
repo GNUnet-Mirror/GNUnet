@@ -407,6 +407,28 @@ GNUNET_CRYPTO_ecc_add (struct GNUNET_CRYPTO_EccDlogContext *edc,
 
 
 /**
+ * Multiply the point @a p on the elliptic curve by @a val.
+ *
+ * @param edc calculation context for ECC operations
+ * @param p point to multiply
+ * @param val (positive) value to encode into a point
+ * @return representation of the value as an ECC point,
+ *         must be freed using #GNUNET_CRYPTO_ecc_free()
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_pmul_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                            gcry_mpi_point_t p,
+			    gcry_mpi_t val)
+{
+  gcry_mpi_point_t r;
+
+  r = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (r, val, p, edc->ctx);
+  return r;
+}
+
+
+/**
  * Obtain a random point on the curve and its
  * additive inverse. Both returned values
  * must be freed using #GNUNET_CRYPTO_ecc_free().

@@ -116,6 +116,10 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_MULTICAST 26
 
+/**
+ * Vectorproduct, ECC variant. Used for two-peer scalarproduct operations
+ */
+#define GNUNET_APPLICATION_TYPE_SCALARPRODUCT_ECC 27
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
