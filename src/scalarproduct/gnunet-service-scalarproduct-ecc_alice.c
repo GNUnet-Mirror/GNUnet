@@ -61,11 +61,6 @@ struct MpiElement
    */
   gcry_mpi_t value;
 
-  /**
-   * r_i value, chosen at random, not disclosed to Bob.
-   */
-  gcry_mpi_t r_i;
-
 };
 
 
@@ -576,8 +571,6 @@ copy_element_cb (void *cls,
   else
     gcry_mpi_add_ui (mval, mval, val);
   s->sorted_elements [s->used_element_count].value = mval;
-  s->sorted_elements [s->used_element_count].r_i
-    = GNUNET_CRYPTO_ecc_random_mod_n (edc);
   s->sorted_elements [s->used_element_count].key = &e->key;
   s->used_element_count++;
   return GNUNET_OK;
@@ -664,12 +657,16 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
     r_ia_ai = gcry_mpi_new (0);
     for (i = off; i < off + todo_count; i++)
     {
+      gcry_mpi_t r_i;
+
+      r_i = GNUNET_CRYPTO_ecc_random_mod_n (edc);
       g_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
-                                        s->sorted_elements [i].r_i);
+                                        r_i);
       /* r_ia = r_i * a */
-      gcry_mpi_mul (s->sorted_elements[i].r_i,
+      gcry_mpi_mul (r_i,
                     my_privkey,
                     r_ia);
+      gcry_mpi_release (r_i);
       /* r_ia_ai = r_ia + a_i */
       gcry_mpi_add (r_ia_ai,
                     s->sorted_elements[i].value,
