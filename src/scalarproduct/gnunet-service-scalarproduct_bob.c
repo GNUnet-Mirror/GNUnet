@@ -140,11 +140,6 @@ struct BobServiceSession
   struct CadetIncomingSession *cadet;
 
   /**
-   * The computed scalar
-   */
-  gcry_mpi_t product;
-
-  /**
    * How many elements will be supplied in total from the client.
    */
   uint32_t total;
@@ -407,11 +402,6 @@ destroy_service_session (struct BobServiceSession *s)
   {
     GNUNET_free (s->r_prime);
     s->r_prime = NULL;
-  }
-  if (NULL != s->product)
-  {
-    gcry_mpi_release (s->product);
-    s->product = NULL;
   }
   GNUNET_free (s);
 }
