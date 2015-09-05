@@ -267,7 +267,7 @@ group_recv_message (void *cls,
               "Calling message callback with a message of size %u.\n",
               ntohs (mmsg->header.size));
 
-  if (NULL != grp->message_cb)
+  if (GNUNET_YES != grp->is_disconnecting && NULL != grp->message_cb)
     grp->message_cb (grp->cb_cls, mmsg);
 }
 
@@ -848,7 +848,7 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem,
   grp->disconnect_cls = part_cls;
 
   GNUNET_CLIENT_MANAGER_disconnect (mem->grp.client, GNUNET_YES,
-                                    &member_cleanup, mem);
+                                    member_cleanup, mem);
 }
 
 

@@ -508,8 +508,10 @@ struct StateModifyClosure
 
 
 static void
-recv_state_message_part (void *cls, uint64_t message_id, uint64_t data_offset,
-                         uint32_t flags, const struct GNUNET_MessageHeader *msg)
+recv_state_message_part (void *cls,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                         uint64_t message_id, uint32_t flags, uint64_t data_offset,
+                         const struct GNUNET_MessageHeader *msg)
 {
   struct StateModifyClosure *scls = cls;
   uint16_t psize;
@@ -618,7 +620,7 @@ recv_state_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
 
   if (NULL == scls->recv)
   {
-    scls->recv = GNUNET_PSYC_receive_create (NULL, &recv_state_message_part,
+    scls->recv = GNUNET_PSYC_receive_create (NULL, recv_state_message_part,
                                              scls);
   }
 
@@ -660,7 +662,7 @@ handle_state_modify (void *cls,
   {
     ret = db->message_get (db->cls, &req->channel_key,
                            message_id, message_id,
-                           &ret_frags, &recv_state_fragment, &scls);
+                           &ret_frags, recv_state_fragment, &scls);
     if (GNUNET_OK != ret)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

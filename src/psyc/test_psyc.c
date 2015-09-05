@@ -213,8 +213,9 @@ master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 
 
 void
-master_message_part_cb (void *cls, uint64_t message_id,
-                        uint64_t data_offset, uint32_t flags,
+master_message_part_cb (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                        uint64_t message_id, uint32_t flags, uint64_t data_offset,
                         const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
@@ -284,8 +285,9 @@ slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 
 
 void
-slave_message_part_cb (void *cls, uint64_t message_id,
-                       uint64_t data_offset, uint32_t flags,
+slave_message_part_cb (void *cls,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                       uint64_t message_id, uint32_t flags, uint64_t data_offset,
                        const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
@@ -453,9 +455,9 @@ slave_history_replay ()
   test = TEST_SLAVE_HISTORY_REPLAY;
   GNUNET_PSYC_channel_history_replay (slv_chn, 1, 1, "",
                                       GNUNET_PSYC_HISTORY_REPLAY_LOCAL,
-                                      &slave_message_cb,
-                                      &slave_message_part_cb,
-                                      &slave_history_replay_result, NULL);
+                                      slave_message_cb,
+                                      slave_message_part_cb,
+                                      slave_history_replay_result, NULL);
 }
 
 
@@ -481,9 +483,9 @@ master_history_replay ()
   test = TEST_MASTER_HISTORY_REPLAY;
   GNUNET_PSYC_channel_history_replay (mst_chn, 1, 1, "",
                                       GNUNET_PSYC_HISTORY_REPLAY_LOCAL,
-                                      &master_message_cb,
-                                      &master_message_part_cb,
-                                      &master_history_replay_result, NULL);
+                                      master_message_cb,
+                                      master_message_part_cb,
+                                      master_history_replay_result, NULL);
 }
 
 

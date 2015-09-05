@@ -537,11 +537,18 @@ typedef void
 /**
  * Method called from PSYC upon receiving part of a message.
  *
- * @param cls  Closure.
- * @param message_id  Sequence number of the message.
- * @param data_offset  Byte offset of data, only set if @a msg has a type
- *                     #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
- * @param flags  OR'ed GNUNET_PSYC_MessageFlags
+ * @param cls
+ *        Closure.
+ * @param slave_key
+ *        Public key of the slave sending the message.
+ *        Only set for channel master.
+ * @param message_id
+ *        Sequence number of the message.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_MessageFlags
+ * @param data_offset
+ *        Byte offset of data, only set if @a msg has a type
+ *        #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
  * @param msg  Message part, one of the following types:
  * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER
  * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
@@ -552,19 +559,24 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_MessagePartCallback) (void *cls,
+                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                     uint64_t message_id,
-                                    uint64_t data_offset,
                                     uint32_t flags,
+                                    uint64_t data_offset,
                                     const struct GNUNET_MessageHeader *msg);
 
 
 /**
  * Method called from PSYC upon receiving a join request.
  *
- * @param cls  Closure.
- * @param slave_key  Public key of the slave requesting join.
- * @param join_msg  Join message sent along with the request.
- * @param jh  Join handle to use with GNUNET_PSYC_join_decision()
+ * @param cls
+ *        Closure.
+ * @param slave_key
+ *        Public key of the slave requesting join.
+ * @param join_msg
+ *        Join message sent along with the request.
+ * @param jh
+ *        Join handle to use with GNUNET_PSYC_join_decision()
  */
 typedef void
 (*GNUNET_PSYC_JoinRequestCallback) (void *cls,

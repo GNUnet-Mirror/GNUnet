@@ -788,9 +788,11 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client connected to group %s..\n",
               mem, GNUNET_h2s (&grp->pub_key_hash));
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&mem->pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p ..as member %s.\n",
-              mem, GNUNET_h2s (&mem_pub_key_hash));
+              "%p ..as member %s (%s).\n",
+              mem, GNUNET_h2s (&mem->pub_key_hash), str);
+  GNUNET_free (str);
 
   GNUNET_SERVER_client_set_user_context (client, grp);
 
@@ -833,6 +835,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     if (0 < join_msg_size)
       memcpy (&req[1], join_msg, join_msg_size);
 
+    req->member_key = mem->pub_key;
     req->purpose.size = htonl (msg_size
                                - sizeof (req->header)
                                - sizeof (req->reserved)
@@ -1000,6 +1003,7 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
   /* FIXME: yucky, should use separate message structs for P2P and CS! */
   out = (struct GNUNET_MULTICAST_RequestHeader *) GNUNET_copy_message (m);
 
+  out->member_key = mem->pub_key;
   out->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
   out->purpose.size = htonl (ntohs (out->header.size)
                              - sizeof (out->header)

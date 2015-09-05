@@ -401,12 +401,17 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
 static void
 transmit_data (struct GNUNET_PSYC_TransmitHandle *tmit)
 {
-  uint16_t data_size = GNUNET_PSYC_DATA_MAX_PAYLOAD;
+  int notify_ret = GNUNET_YES;
+  uint16_t data_size = 0;
   char data[GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD] = "";
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) data;
   msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA);
 
-  int notify_ret = tmit->notify_data (tmit->notify_data_cls, &data_size, &msg[1]);
+  if (NULL != tmit->notify_data)
+  {
+    data_size = GNUNET_PSYC_DATA_MAX_PAYLOAD;
+    notify_ret = tmit->notify_data (tmit->notify_data_cls, &data_size, &msg[1]);
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "transmit_data (ret: %d, size: %u): %.*s\n",
        notify_ret, data_size, data_size, &msg[1]);
@@ -461,10 +466,11 @@ transmit_data (struct GNUNET_PSYC_TransmitHandle *tmit)
 static void
 transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
 {
-  uint16_t max_data_size, data_size;
+  uint16_t max_data_size = 0;
+  uint16_t data_size = 0;
   char data[GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD] = "";
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) data;
-  int notify_ret;
+  int notify_ret = GNUNET_YES;
 
   switch (tmit->state)
   {
@@ -472,11 +478,16 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
   {
     struct GNUNET_PSYC_MessageModifier *mod
       = (struct GNUNET_PSYC_MessageModifier *) msg;
-    max_data_size = data_size = GNUNET_PSYC_MODIFIER_MAX_PAYLOAD;
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER);
     msg->size = sizeof (struct GNUNET_PSYC_MessageModifier);
-    notify_ret = tmit->notify_mod (tmit->notify_mod_cls, &data_size, &mod[1],
-                                   &mod->oper, &mod->value_size);
+
+    if (NULL != tmit->notify_mod)
+    {
+      max_data_size = GNUNET_PSYC_MODIFIER_MAX_PAYLOAD;
+      data_size = max_data_size;
+      notify_ret = tmit->notify_mod (tmit->notify_mod_cls, &data_size, &mod[1],
+                                     &mod->oper, &mod->value_size);
+    }
 
     mod->name_size = strnlen ((char *) &mod[1], data_size) + 1;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -498,11 +509,16 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
   }
   case GNUNET_PSYC_MESSAGE_STATE_MOD_CONT:
   {
-    max_data_size = data_size = GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD;
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT);
     msg->size = sizeof (struct GNUNET_MessageHeader);
-    notify_ret = tmit->notify_mod (tmit->notify_mod_cls,
-                                   &data_size, &msg[1], NULL, NULL);
+
+    if (NULL != tmit->notify_mod)
+    {
+      max_data_size = GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD;
+      data_size = max_data_size;
+      notify_ret = tmit->notify_mod (tmit->notify_mod_cls,
+                                     &data_size, &msg[1], NULL, NULL);
+    }
     tmit->mod_value_remaining -= data_size;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "transmit_mod (ret: %d, size: %u): %.*s\n",
@@ -847,7 +863,8 @@ static void
 recv_error (struct GNUNET_PSYC_ReceiveHandle *recv)
 {
   if (NULL != recv->message_part_cb)
-    recv->message_part_cb (recv->cb_cls, recv->message_id, 0, recv->flags, NULL);
+    recv->message_part_cb (recv->cb_cls, NULL, recv->message_id, recv->flags,
+                           0, NULL);
 
   if (NULL != recv->message_cb)
     recv->message_cb (recv->cb_cls, recv->message_id, recv->flags, NULL);
@@ -1066,8 +1083,10 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     }
 
     if (NULL != recv->message_part_cb)
-      recv->message_part_cb (recv->cb_cls, recv->message_id, 0, // FIXME: data_offset
-                             recv->flags, pmsg);
+      recv->message_part_cb (recv->cb_cls, &recv->slave_key,
+                             recv->message_id, recv->flags,
+                             0, // FIXME: data_offset
+                             pmsg);
 
     switch (ptype)
     {
@@ -1144,8 +1163,10 @@ struct ParseMessageClosure
 
 
 static void
-parse_message_part_cb (void *cls, uint64_t message_id, uint64_t data_offset,
-                       uint32_t flags, const struct GNUNET_MessageHeader *msg)
+parse_message_part_cb (void *cls,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                       uint64_t message_id, uint32_t flags, uint64_t data_offset,
+                       const struct GNUNET_MessageHeader *msg)
 {
   struct ParseMessageClosure *pmc = cls;
   if (NULL == msg)
@@ -1230,7 +1251,7 @@ GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
   memcpy (&pmsg[1], &msg[1], msg_size - sizeof (*msg));
 
   struct GNUNET_PSYC_ReceiveHandle *
-    recv = GNUNET_PSYC_receive_create (NULL, &parse_message_part_cb, &cls);
+    recv = GNUNET_PSYC_receive_create (NULL, parse_message_part_cb, &cls);
   GNUNET_PSYC_receive_message (recv, pmsg);
   GNUNET_PSYC_receive_destroy (recv);
   GNUNET_free (pmsg);

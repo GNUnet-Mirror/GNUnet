@@ -534,8 +534,12 @@ cleanup_slave (struct Slave *slv)
 static void
 cleanup_channel (struct Channel *chn)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "%p Cleaning up channel %s. master? %u\n",
+              chn, GNUNET_h2s (&chn->pub_key_hash), chn->is_master);
   message_queue_drop (chn);
-  GNUNET_CONTAINER_multihashmap_remove_all (recv_cache, &chn->pub_key_hash);
+  GNUNET_CONTAINER_multihashmap_destroy (chn->recv_frags);
+  chn->recv_frags = NULL;
 
   if (NULL != chn->store_op)
   {
@@ -565,6 +569,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
   struct Channel *
     chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  chn->is_disconnected = GNUNET_YES;
 
   if (NULL == chn)
   {
@@ -1046,6 +1051,7 @@ client_send_mcast_req (struct Master *mst,
   pmsg->message_id = req->request_id;
   pmsg->fragment_offset = req->fragment_offset;
   pmsg->flags = htonl (GNUNET_PSYC_MESSAGE_REQUEST);
+  pmsg->slave_key = req->member_key;
 
   memcpy (&pmsg[1], &req[1], size - sizeof (*req));
   client_send_msg (chn, &pmsg->header);
@@ -1229,7 +1235,7 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
   struct GNUNET_CONTAINER_MultiHashMap
     *chan_msgs = GNUNET_CONTAINER_multihashmap_get (recv_cache,
                                                     &chn->pub_key_hash);
-  GNUNET_assert (NULL != chan_msgs); // FIXME
+  GNUNET_assert (NULL != chan_msgs);
   uint64_t frag_id;
 
   while (GNUNET_YES == GNUNET_CONTAINER_heap_peek2 (fragq->fragments, NULL,
@@ -1382,7 +1388,7 @@ message_queue_run (struct Channel *chn)
       /* Check if there's a missing message before the current one */
       if (GNUNET_PSYC_STATE_NOT_MODIFIED == fragq->state_delta)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p state NOT modified\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p state NOT modified\n", chn);
 
         if (!(fragq->flags & GNUNET_PSYC_MESSAGE_ORDER_ANY)
             && (chn->max_message_id != msg_id - 1
@@ -1399,7 +1405,7 @@ message_queue_run (struct Channel *chn)
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p state modified\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p state modified\n", chn);
         if (GNUNET_YES != fragq->state_is_modified)
         {
           if (msg_id - fragq->state_delta != chn->max_state_message_id)
@@ -1594,12 +1600,12 @@ store_recv_master_counters (void *cls, int result, uint64_t max_fragment_id,
     mst->max_group_generation = max_group_generation;
     mst->origin
       = GNUNET_MULTICAST_origin_start (cfg, &mst->priv_key, max_fragment_id,
-                                       &mcast_recv_join_request,
-                                       &mcast_recv_membership_test,
-                                       &mcast_recv_replay_fragment,
-                                       &mcast_recv_replay_message,
-                                       &mcast_recv_request,
-                                       &mcast_recv_message, chn);
+                                       mcast_recv_join_request,
+                                       mcast_recv_membership_test,
+                                       mcast_recv_replay_fragment,
+                                       mcast_recv_replay_message,
+                                       mcast_recv_request,
+                                       mcast_recv_message, chn);
     chn->is_ready = GNUNET_YES;
   }
   else
@@ -1641,12 +1647,12 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
                                       &slv->origin,
                                       slv->relay_count, slv->relays,
                                       &slv->join_msg->header,
-                                      &mcast_recv_join_request,
-                                      &mcast_recv_join_decision,
-                                      &mcast_recv_membership_test,
-                                      &mcast_recv_replay_fragment,
-                                      &mcast_recv_replay_message,
-                                      &mcast_recv_message, chn);
+                                      mcast_recv_join_request,
+                                      mcast_recv_join_decision,
+                                      mcast_recv_membership_test,
+                                      mcast_recv_replay_fragment,
+                                      mcast_recv_replay_message,
+                                      mcast_recv_message, chn);
     if (NULL != slv->join_msg)
     {
       GNUNET_free (slv->join_msg);
@@ -2004,7 +2010,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   else if (GNUNET_YES == chn->is_disconnected)
   {
     /* FIXME: handle partial message (when still in_transmit) */
-    cleanup_channel (chn);
+    return GNUNET_SYSERR;
   }
   return ret;
 }
@@ -2113,13 +2119,17 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg,
     }
     else if (pmeth->flags & GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message: setting state_modify flag\n", mst);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "%p master_queue_message: state_delta=%" PRIu64 "\n",
+                  mst, tmit_msg->id - mst->max_state_message_id);
       pmeth->state_delta = GNUNET_htonll (tmit_msg->id
                                           - mst->max_state_message_id);
+      mst->max_state_message_id = tmit_msg->id;
     }
     else
     {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message: setting state_not_modified flag\n", mst);
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "%p master_queue_message: state not modified\n", mst);
       pmeth->state_delta = GNUNET_htonll (GNUNET_PSYC_STATE_NOT_MODIFIED);
     }
 
@@ -2234,7 +2244,9 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t size = ntohs (msg->size);
   if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < size - sizeof (*msg))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%p Message payload too large.\n", chn);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p Message payload too large: %u < %u.\n",
+                chn, GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD, size - sizeof (*msg));
     GNUNET_break (0);
     transmit_cancel (chn, client);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -2613,7 +2625,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   masters = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   slaves = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   channel_slaves = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  recv_cache = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+  recv_cache = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, server_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);

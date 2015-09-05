@@ -191,6 +191,10 @@ recv_message (void *cls, const struct GNUNET_MessageHeader *msg)
     size = ntohs (msg->size);
     /* FIXME: decrease reconnect_delay gradually after a successful reconnection */
   }
+  else /* disconnected */
+  {
+    mgr->client_tmit = NULL;
+  }
 
   size_t i = 0;
   while (NULL != mgr->handlers[i].callback)

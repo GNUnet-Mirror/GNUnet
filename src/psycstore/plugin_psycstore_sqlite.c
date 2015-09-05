@@ -598,7 +598,7 @@ database_setup (struct Plugin *plugin)
                "SELECT name, value_current\n"
                "FROM state\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "      AND (name = ? OR name LIKE ?);",
+               "      AND (name = ? OR substr(name, 1, ?) = ? || '_');",
                &plugin->select_state_prefix);
 
   sql_prepare (plugin->dbh,
@@ -1763,16 +1763,12 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
   int ret = GNUNET_SYSERR;
   sqlite3_stmt *stmt = plugin->select_state_prefix;
   size_t name_len = strlen (name);
-  char *name_prefix;
 
-  GNUNET_asprintf (&name_prefix,
-                   "%s_%%",
-                   name);
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
                                       sizeof (*channel_key), SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_text (stmt, 2, name, name_len, SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_text (stmt, 3, name_prefix, name_len + 2,
-                                         SQLITE_STATIC))
+      || SQLITE_OK != sqlite3_bind_int (stmt, 3, name_len + 1)
+      || SQLITE_OK != sqlite3_bind_text (stmt, 4, name, name_len, SQLITE_STATIC))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind");
@@ -1808,7 +1804,6 @@ state_get_prefix (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *channel_
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_reset");
   }
-  GNUNET_free (name_prefix);
   return ret;
 }
 
