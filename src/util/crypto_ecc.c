@@ -130,7 +130,7 @@ decode_private_ecdsa_key (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv)
   rc = gcry_sexp_build (&result, NULL,
 			"(private-key(ecc(curve \"" CURVE "\")"
                         "(d %b)))",
-			(int)sizeof (priv->d), priv->d);
+			(int) sizeof (priv->d), priv->d);
   if (0 != rc)
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
@@ -855,16 +855,16 @@ GNUNET_CRYPTO_ecdsa_verify (uint32_t purpose,
   /* build s-expression for signature */
   if (0 != (rc = gcry_sexp_build (&sig_sexpr, NULL,
 				  "(sig-val(ecdsa(r %b)(s %b)))",
-                                  (int)sizeof (sig->r), sig->r,
-                                  (int)sizeof (sig->s), sig->s)))
+                                  (int) sizeof (sig->r), sig->r,
+                                  (int) sizeof (sig->s), sig->s)))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return GNUNET_SYSERR;
   }
   data = data_to_ecdsa_value (validate);
   if (0 != (rc = gcry_sexp_build (&pub_sexpr, NULL,
-                            "(public-key(ecc(curve " CURVE ")(q %b)))",
-                                  (int)sizeof (pub->q_y), pub->q_y)))
+                                  "(public-key(ecc(curve " CURVE ")(q %b)))",
+                                  (int) sizeof (pub->q_y), pub->q_y)))
   {
     gcry_sexp_release (data);
     gcry_sexp_release (sig_sexpr);

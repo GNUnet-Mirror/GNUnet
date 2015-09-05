@@ -1285,9 +1285,24 @@ GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
  */
 struct GNUNET_CRYPTO_EccDlogContext;
 
+
+/**
+ * Point on a curve (always for Curve25519) encoded in a format suitable
+ * for network transmission (ECDH), see http://cr.yp.to/ecdh.html.
+ */
+struct GNUNET_CRYPTO_EccPoint
+{
+  /**
+   * Q consists of an x- and a y-value, each mod p (256 bits), given
+   * here in affine coordinates and Ed25519 standard compact format.
+   */
+  unsigned char q_y[256 / 8];
+};
+
+
 /**
  * Do pre-calculation for ECC discrete logarithm for small factors.
- * 
+ *
  * @param max maximum value the factor can be
  * @param mem memory to use (should be smaller than @a max), must not be zero.
  * @return @a max if dlog failed, otherwise the factor
@@ -1300,7 +1315,7 @@ GNUNET_CRYPTO_ecc_dlog_prepare (unsigned int max,
 /**
  * Calculate ECC discrete logarithm for small factors.
  * Opposite of #GNUNET_CRYPTO_ecc_dexp().
- * 
+ *
  * @param dlc precalculated values, determine range of factors
  * @param input point on the curve to factor
  * @return `dlc->max` if dlog failed, otherwise the factor
@@ -1314,10 +1329,10 @@ GNUNET_CRYPTO_ecc_dlog (struct GNUNET_CRYPTO_EccDlogContext *edc,
  * Multiply the generator g of the elliptic curve by @a val
  * to obtain the point on the curve representing @a val.
  * Afterwards, point addition will correspond to integer
- * addition.  #GNUNET_CRYPTO_ecc_dlog() can be used to 
+ * addition.  #GNUNET_CRYPTO_ecc_dlog() can be used to
  * convert a point back to an integer (as long as the
  * integer is smaller than the MAX of the @a edc context).
- * 
+ *
  * @param edc calculation context for ECC operations
  * @param val value to encode into a point
  * @return representation of the value as an ECC point,
@@ -1331,7 +1346,7 @@ GNUNET_CRYPTO_ecc_dexp (struct GNUNET_CRYPTO_EccDlogContext *edc,
 /**
  * Multiply the generator g of the elliptic curve by @a val
  * to obtain the point on the curve representing @a val.
- * 
+ *
  * @param edc calculation context for ECC operations
  * @param val (positive) value to encode into a point
  * @return representation of the value as an ECC point,
@@ -1343,8 +1358,33 @@ GNUNET_CRYPTO_ecc_dexp_mpi (struct GNUNET_CRYPTO_EccDlogContext *edc,
 
 
 /**
+ * Convert point value to binary representation.
+ *
+ * @param edc calculation context for ECC operations
+ * @param point computational point representation
+ * @param[out] bin binary point representation
+ */
+void
+GNUNET_CRYPTO_ecc_point_to_bin (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                                gcry_mpi_point_t point,
+                                struct GNUNET_CRYPTO_EccPoint *bin);
+
+
+/**
+ * Convert binary representation of a point to computational representation.
+ *
+ * @param edc calculation context for ECC operations
+ * @param bin binary point representation
+ * @return computational representation
+ */
+gcry_mpi_point_t
+GNUNET_CRYPTO_ecc_bin_to_point (struct GNUNET_CRYPTO_EccDlogContext *edc,
+                                const struct GNUNET_CRYPTO_EccPoint *bin);
+
+
+/**
  * Add two points on the elliptic curve.
- * 
+ *
  * @param edc calculation context for ECC operations
  * @param a some value
  * @param b some value
@@ -1360,7 +1400,7 @@ GNUNET_CRYPTO_ecc_add (struct GNUNET_CRYPTO_EccDlogContext *edc,
  * Obtain a random point on the curve and its
  * additive inverse. Both returned values
  * must be freed using #GNUNET_CRYPTO_ecc_free().
- * 
+ *
  * @param edc calculation context for ECC operations
  * @param[out] r set to a random point on the curve
  * @param[out] r_inv set to the additive inverse of @a r
@@ -1383,7 +1423,7 @@ GNUNET_CRYPTO_ecc_random_mod_n (struct GNUNET_CRYPTO_EccDlogContext *edc);
 
 /**
  * Free a point value returned by the API.
- * 
+ *
  * @param p point to free
  */
 void
