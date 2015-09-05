@@ -210,7 +210,7 @@ create_indices (sqlite3 * dbh)
 #else
 #define ENULL &e
 #define ENULL_DEFINED 1
-#define CHECK(a) if (! a) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", e); sqlite3_free(e); }
+#define CHECK(a) if (! (a)) { GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "%s\n", e); sqlite3_free(e); }
 #endif
 
 
