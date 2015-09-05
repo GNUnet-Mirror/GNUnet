@@ -2,15 +2,19 @@
 # Computes a simple scalar product, with configurable vector size.
 #
 # Some results (wall-clock for Alice+Bob, single-core, i7):
-# SIZE   2048-H(s)  2048-O(s)    1024-O(s)
-#  25     10          14            3
-#  50     17          21            5
-# 100     32          39            7
-# 200                 77           13
-# 400                149           23
-# 800                304           32
+# SIZE   2048-H(s)  2048-O(s)    1024-O(s)      ECC-2^20-H(s)  ECC-2^28-H(s)
+#  25     10          14            3              2               29
+#  50     17          21            5              2               29
+# 100     32          39            7              2               29
+# 200                 77           13              3               30
+# 400                149           23             OOR              31
+# 800                304           32             OOR              33
+
+# Bandwidth (including set intersection):
+#              RSA-2048       ECC
+# 800:         3846 kb       70 kb
 # Configure benchmark size:
-SIZE=1600
+SIZE=800
 #
 # Construct input vectors:
 INPUTALICE="-k CCC -e '"
@@ -54,4 +58,3 @@ gnunet-statistics $CFGBOB -s core | grep "bytes encrypted"
 echo "Terminating testbed..."
 # terminate the testbed
 kill $PID
-

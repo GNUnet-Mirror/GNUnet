@@ -40,9 +40,18 @@
 
 /**
  * Maximum allowed result value for the scalarproduct computation.
- * DLOG will fail if the result is bigger.
+ * DLOG will fail if the result is bigger.  At 1 million, the
+ * precomputation takes about 2s on a fast machine.
  */
 #define MAX_RESULT (1024 * 1024)
+
+/**
+ * How many values should DLOG store in memory (determines baseline
+ * RAM consumption, roughly 100 bytes times the value given here).
+ * Should be about SQRT (MAX_RESULT), larger values will make the
+ * online computation faster.
+ */
+#define MAX_RAM (1024)
 
 /**
  * An encrypted element key-value pair.
@@ -1162,8 +1171,8 @@ run (void *cls,
   };
 
   cfg = c;
-  edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_RESULT /* max value */,
-                                        1024 /* RAM */);
+  edc = GNUNET_CRYPTO_ecc_dlog_prepare (MAX_RESULT,
+                                        MAX_RAM);
   /* Select a random 'a' value for Alice */
   GNUNET_CRYPTO_ecc_rnd_mpi (edc,
                              &my_privkey,
