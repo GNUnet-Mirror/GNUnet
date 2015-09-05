@@ -50,6 +50,8 @@ test_sp (const unsigned int *avec,
   gcry_mpi_t a_inv;
   gcry_mpi_t ri;
   gcry_mpi_t val;
+  gcry_mpi_t ria;
+  gcry_mpi_t tmp;
   gcry_mpi_point_t *g;
   gcry_mpi_point_t *h;
   gcry_mpi_point_t pg;
@@ -70,29 +72,26 @@ test_sp (const unsigned int *avec,
                         gcry_mpi_point_t);
   h = GNUNET_new_array (len,
                         gcry_mpi_point_t);
+  ria = gcry_mpi_new (0);
+  tmp = gcry_mpi_new (0);
   for (i=0;i<len;i++)
   {
-    gcry_mpi_t tmp;
-    gcry_mpi_t ria;
-
     ri = GNUNET_CRYPTO_ecc_random_mod_n (edc);
     g[i] = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
                                        ri);
     /* ria = ri * a */
-    ria = gcry_mpi_new (0);
     gcry_mpi_mul (ria,
                   ri,
                   a);
     /* tmp = ria + avec[i] */
-    tmp = gcry_mpi_new (0);
     gcry_mpi_add_ui (tmp,
                      ria,
                      avec[i]);
-    gcry_mpi_release (ria);
     h[i] = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
                                        tmp);
-    gcry_mpi_release (tmp);
   }
+  gcry_mpi_release (ria);
+  gcry_mpi_release (tmp);
 
   /* Bob */
   val = gcry_mpi_new (0);

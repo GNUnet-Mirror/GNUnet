@@ -469,7 +469,15 @@ compute_scalar_product (struct AliceServiceSession *session,
     return NULL;
   }
   ret = gcry_mpi_new (0);
-  gcry_mpi_set_ui (ret, ai_bi);
+  if (ai_bi > 0)
+  {
+    gcry_mpi_set_ui (ret, ai_bi);
+  }
+  else
+  {
+    gcry_mpi_set_ui (ret, - ai_bi);
+    gcry_mpi_neg (ret, ret);
+  }
   return ret;
 }
 
@@ -663,14 +671,14 @@ send_alices_cryptodata_message (struct AliceServiceSession *s)
       g_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
                                         r_i);
       /* r_ia = r_i * a */
-      gcry_mpi_mul (r_i,
-                    my_privkey,
-                    r_ia);
+      gcry_mpi_mul (r_ia,
+                    r_i,
+                    my_privkey);
       gcry_mpi_release (r_i);
       /* r_ia_ai = r_ia + a_i */
       gcry_mpi_add (r_ia_ai,
-                    s->sorted_elements[i].value,
-                    r_ia);
+                    r_ia,
+                    s->sorted_elements[i].value);
       h_i = GNUNET_CRYPTO_ecc_dexp_mpi (edc,
                                         r_ia_ai);
       GNUNET_CRYPTO_ecc_point_to_bin (edc,
