@@ -528,7 +528,7 @@ psyc_master_started (void *cls, int result, uint64_t max_message_id)
   struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (result - INT32_MIN);
+  res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (plc->max_message_id);
 
   client_send_msg (plc, &res.header);
@@ -568,7 +568,7 @@ psyc_slave_connected (void *cls, int result, uint64_t max_message_id)
   struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (result - INT32_MIN);
+  res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (plc->max_message_id);
 
   client_send_msg (plc, &res.header);

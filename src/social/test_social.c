@@ -68,6 +68,7 @@ struct GNUNET_CRYPTO_EcdsaPrivateKey *guest_key;
 
 struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 struct GNUNET_CRYPTO_EcdsaPublicKey guest_pub_key;
+struct GNUNET_CRYPTO_EcdsaPublicKey host_pub_key;
 
 struct GNUNET_SOCIAL_Slicer *host_slicer;
 struct GNUNET_SOCIAL_Slicer *guest_slicer;
@@ -110,6 +111,8 @@ struct GNUNET_PSYC_Message *join_resp;
 
 uint32_t counter;
 
+uint8_t guest_pkey_added = GNUNET_NO;
+
 enum
 {
   TEST_NONE = 0,
@@ -136,10 +139,11 @@ enum
 static void
 guest_enter ();
 
+static void
+guest_enter_by_name ();
 
 static void
 guest_talk ();
-
 
 static void
 host_announce2 ();
@@ -309,10 +313,25 @@ schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
+id_guest_ego_cb2 (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
+{
+  GNUNET_assert (NULL != ego);
+  guest_ego = ego;
+
+  guest_enter_by_name ();
+}
+
+
+static void
 host_recv_advertise_result (void *cls, int32_t success, const char *emsg)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Advertise result: %d (%s).\n",
+              test, success, emsg);
   GNUNET_assert (GNUNET_YES == success);
-  GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
+
+  GNUNET_assert (GNUNET_YES == guest_pkey_added);
+  GNUNET_IDENTITY_ego_lookup (cfg, guest_name, id_guest_ego_cb2, NULL);
 }
 
 
@@ -320,10 +339,12 @@ static void
 host_advertise ()
 {
   test = TEST_HOST_ADVERTISE;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%u: Advertising place.\n", test);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Advertising place.\n", test);
+
   GNUNET_SOCIAL_host_advertise (hst, "home", 1, &this_peer,
-                                GNUNET_TIME_UNIT_MINUTES, "let.me*in!",
-                                host_recv_advertise_result, hst);
+                                GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
+                                "let.me*in!", host_recv_advertise_result, hst);
 }
 
 
@@ -714,10 +735,9 @@ host_recv_eom (void *cls,
     guest_history_replay ();
     break;
 
-  case TEST_GUEST_LEAVE:
-    break;
-
   default:
+    if (TEST_GUEST_LEAVE <= test)
+      break;
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "invalid test: %d\n", test);
     GNUNET_assert (0);
   }
@@ -811,19 +831,22 @@ host_announce2 ()
 static void
 guest_recv_entry_decision (void *cls,
                            int is_admitted,
-                           const struct GNUNET_PSYC_Message *entry_resp)
+                           const struct GNUNET_PSYC_Message *entry_msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest received entry decision (try %u): %d.\n",
               test, join_req_count, is_admitted);
 
-  if (NULL != entry_resp)
+  if (NULL != entry_msg)
   {
     struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
     const char *method_name = NULL;
     const void *data = NULL;
     uint16_t data_size = 0;
-    GNUNET_PSYC_message_parse (entry_resp, &method_name, env, &data, &data_size);
+    struct GNUNET_PSYC_MessageHeader *
+      pmsg = GNUNET_PSYC_message_header_create_from_psyc (entry_msg);
+    GNUNET_PSYC_message_parse (pmsg, &method_name, env, &data, &data_size);
+    GNUNET_free (pmsg);
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%s\n%.*s\n",
@@ -841,6 +864,10 @@ guest_recv_entry_decision (void *cls,
   case TEST_GUEST_RECV_ENTRY_DCSN_ADMIT:
     GNUNET_assert (GNUNET_YES == is_admitted);
     host_announce ();
+    break;
+
+  case TEST_GUEST_ENTER_BY_NAME:
+    GNUNET_SCHEDULER_add_now (schedule_host_leave, NULL);
     break;
 
   default:
@@ -878,6 +905,7 @@ host_answer_door (void *cls,
 
   case TEST_HOST_ANSWER_DOOR_ADMIT:
     test = TEST_GUEST_RECV_ENTRY_DCSN_ADMIT;
+  case TEST_GUEST_ENTER_BY_NAME:
     join_resp = GNUNET_PSYC_message_create ("_admit_nym", env,
                                             DATA2ARG ("Welcome, nym!"));
     GNUNET_SOCIAL_host_entry_decision (hst, nym, GNUNET_YES, join_resp);
@@ -894,8 +922,9 @@ static void
 guest_recv_local_enter (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Test #%u: Guest entered to local place.\n", test);
-
+              "Test #%u: Guest entered to local place: %d\n",
+              test, result);
+  GNUNET_assert (0 <= result);
 }
 
 
@@ -919,10 +948,47 @@ guest_enter ()
                                           emsg->data, emsg->data_size);
 
   gst = GNUNET_SOCIAL_guest_enter (cfg, guest_ego, &place_pub_key,
-                                   &this_peer, 0, NULL, emsg->msg,
-                                   guest_slicer, &guest_recv_local_enter,
-                                   &guest_recv_entry_decision, NULL);
+                                   &this_peer, 0, NULL, emsg->msg, guest_slicer,
+                                   guest_recv_local_enter,
+                                   guest_recv_entry_decision, NULL);
   gst_plc = GNUNET_SOCIAL_guest_get_place (gst);
+}
+
+
+static void
+guest_enter_by_name ()
+{
+  test = TEST_GUEST_ENTER_BY_NAME;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%u: Entering to place by name as guest.\n", test);
+
+  struct GuestEnterMessage *emsg = &guest_enter_msg;
+
+  emsg->method_name = "_request_enter";
+  emsg->env = GNUNET_ENV_environment_create ();
+  GNUNET_ENV_environment_add (emsg->env, GNUNET_ENV_OP_ASSIGN,
+                              "_abc", "abc def", 7);
+  GNUNET_ENV_environment_add (emsg->env, GNUNET_ENV_OP_ASSIGN,
+                              "_abc_def", "abc def ghi", 11);
+  emsg->data = "let me in";
+  emsg->data_size = strlen (emsg->data) + 1;
+  emsg->msg = GNUNET_PSYC_message_create (emsg->method_name, emsg->env,
+                                          emsg->data, emsg->data_size);
+
+  gst = GNUNET_SOCIAL_guest_enter_by_name (cfg, guest_ego,
+                                           "home.host.gnu", "let.me*in!",
+                                           emsg->msg, guest_slicer,
+                                           guest_recv_local_enter,
+                                           guest_recv_entry_decision, NULL);
+  gst_plc = GNUNET_SOCIAL_guest_get_place (gst);
+}
+
+
+static void
+guest_recv_add_pkey_result (void *cls, int32_t success, const char *emsg)
+{
+  GNUNET_assert (GNUNET_YES == success);
+  guest_pkey_added = GNUNET_YES;
 }
 
 
@@ -940,6 +1006,10 @@ id_guest_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
   GNUNET_SOCIAL_slicer_modifier_add (guest_slicer, "_foo_bar",
                                      guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
   test = TEST_HOST_ANSWER_DOOR_ADMIT;
+
+  GNUNET_SOCIAL_zone_add_pkey (cfg, guest_ego, "host", &host_pub_key,
+                               GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
+                               guest_recv_add_pkey_result, NULL);
 
   guest_enter ();
 }
@@ -975,6 +1045,7 @@ id_host_ego_cb (void *cls, const struct GNUNET_IDENTITY_Ego *ego)
 {
   GNUNET_assert (NULL != ego);
   host_ego = ego;
+  GNUNET_IDENTITY_ego_get_public_key (ego, &host_pub_key);
 
   host_slicer = GNUNET_SOCIAL_slicer_create ();
   GNUNET_SOCIAL_slicer_method_add (host_slicer, "",

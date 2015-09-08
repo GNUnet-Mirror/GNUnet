@@ -470,7 +470,6 @@ host_recv_notice_place_leave_method (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "_notice_place_leave: got method from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
-  GNUNET_break (0);
 }
 
 
@@ -1251,7 +1250,7 @@ host_recv_enter_ack (void *cls,
 
   struct GNUNET_PSYC_CountersResultMessage *
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
-  int32_t result = ntohl (cres->result_code) + INT32_MIN;
+  int32_t result = ntohl (cres->result_code);
   if (NULL != hst->enter_cb)
     hst->enter_cb (hst->cb_cls, result, GNUNET_ntohll (cres->max_message_id));
 }
@@ -1270,6 +1269,7 @@ host_recv_enter_request (void *cls,
 
   const char *method_name = NULL;
   struct GNUNET_ENV_Environment *env = NULL;
+  struct GNUNET_PSYC_MessageHeader *entry_pmsg;
   const void *data = NULL;
   uint16_t data_size = 0;
   char *str;
@@ -1277,34 +1277,38 @@ host_recv_enter_request (void *cls,
     req = (const struct GNUNET_PSYC_JoinRequestMessage *) msg;
   const struct GNUNET_PSYC_Message *entry_msg = NULL;
 
-  if (sizeof (*req) + sizeof (*entry_msg) <= ntohs (req->header.size))
+  do
   {
-    entry_msg = (struct GNUNET_PSYC_Message *) &req[1];
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received entry_msg of type %u and size %u.\n",
-         ntohs (entry_msg->header.type), ntohs (entry_msg->header.size));
-
-    env = GNUNET_ENV_environment_create ();
-    if (GNUNET_OK != GNUNET_PSYC_message_parse (entry_msg, &method_name, env,
-                                                &data, &data_size))
+    if (sizeof (*req) + sizeof (*entry_msg) <= ntohs (req->header.size))
     {
-      GNUNET_break_op (0);
-      str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->slave_key);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Ignoring invalid entry request from nym %s.\n",
-           str);
-      GNUNET_free (str);
-      GNUNET_ENV_environment_destroy (env);
-      return;
-    }
-  }
+      entry_msg = (struct GNUNET_PSYC_Message *) &req[1];
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received entry_msg of type %u and size %u.\n",
+           ntohs (entry_msg->header.type), ntohs (entry_msg->header.size));
 
-  struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (&req->slave_key);
-  hst->answer_door_cb (hst->cb_cls, nym, method_name, env,
-                       data_size, data);
+      env = GNUNET_ENV_environment_create ();
+      entry_pmsg = GNUNET_PSYC_message_header_create_from_psyc (entry_msg);
+      if (GNUNET_OK != GNUNET_PSYC_message_parse (entry_pmsg, &method_name, env,
+                                                  &data, &data_size))
+      {
+        GNUNET_break_op (0);
+        str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->slave_key);
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "Ignoring invalid entry request from nym %s.\n",
+             str);
+        GNUNET_free (str);
+        break;
+      }
+    }
+
+    struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (&req->slave_key);
+    hst->answer_door_cb (hst->cb_cls, nym, method_name, env,
+                         data_size, data);
+  } while (0);
 
   if (NULL != env)
     GNUNET_ENV_environment_destroy (env);
+  GNUNET_free (entry_pmsg);
 }
 
 
@@ -1319,7 +1323,7 @@ guest_recv_enter_ack (void *cls,
 
   struct GNUNET_PSYC_CountersResultMessage *
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
-  int32_t result = ntohl (cres->result_code) + INT32_MIN;
+  int32_t result = ntohl (cres->result_code);
   if (NULL != gst->enter_cb)
     gst->enter_cb (gst->cb_cls, result, GNUNET_ntohll (cres->max_message_id));
 }
@@ -1424,11 +1428,30 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler guest_handlers[] =
 static void
 place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
-  GNUNET_PSYC_transmit_destroy (plc->tmit);
-  GNUNET_PSYC_receive_destroy (plc->recv);
-  GNUNET_free (plc->connect_msg);
+  if (NULL != plc->tmit)
+    GNUNET_PSYC_transmit_destroy (plc->tmit);
+  if (NULL != plc->recv)
+    GNUNET_PSYC_receive_destroy (plc->recv);
+  if (NULL != plc->connect_msg)
+    GNUNET_free (plc->connect_msg);
   if (NULL != plc->disconnect_cb)
     plc->disconnect_cb (plc->disconnect_cls);
+
+  if (NULL != core)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
+  if (NULL != namestore)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore);
+    namestore = NULL;
+  }
+  if (NULL != gns)
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
+  }
 }
 
 
@@ -1508,7 +1531,6 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_CRYPTO_eddsa_key_clear (ephemeral_key);
     GNUNET_free (ephemeral_key);
   }
-  plc->ego_key = *GNUNET_IDENTITY_ego_get_private_key (ego);
 
   req->header.size = htons (sizeof (*req));
   req->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
@@ -1521,7 +1543,9 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
   plc->is_host = GNUNET_YES;
   plc->slicer = slicer;
 
-  hst->plc.ego_key = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  plc->ego_key = *GNUNET_IDENTITY_ego_get_private_key (ego);
+  GNUNET_CRYPTO_eddsa_key_get_public (place_key, &plc->pub_key);
+
   hst->enter_cb = enter_cb;
   hst->answer_door_cb = answer_door_cb;
   hst->farewell_cb = farewell_cb;
@@ -1744,7 +1768,7 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  * @param expiration_time
  *        Expiration time of the record, use 0 to remove the record.
  * @param password
- *        Password used to encrypt the record.
+ *        Password used to encrypt the record or NULL to keep it cleartext.
  * @param result_cb
  *        Function called with the result of the operation.
  * @param result_cls
@@ -1753,9 +1777,9 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 void
 GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *hst,
                               const char *name,
-                              size_t peer_count,
+                              uint32_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
-                              struct GNUNET_TIME_Relative expiration_time,
+                              struct GNUNET_TIME_Absolute expiration_time,
                               const char *password,
                               GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
                               void *result_cls)
@@ -1767,19 +1791,20 @@ GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *hst,
     core = GNUNET_CORE_connect (plc->cfg, NULL, core_connected_cb, NULL, NULL,
                                 NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
 
-  struct GNUNET_GNSRECORD_Data rd = { 0 };
+  struct GNUNET_GNSRECORD_Data rd = { };
   rd.record_type = GNUNET_GNSRECORD_TYPE_PLACE;
   rd.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-  rd.expiration_time
-    = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_WEEKS, 1).rel_value_us;
+  rd.expiration_time = expiration_time.abs_value_us;
 
-  struct GNUNET_GNSRECORD_PlaceData *rec = GNUNET_malloc (sizeof (*rec));
+  struct GNUNET_GNSRECORD_PlaceData *
+    rec = GNUNET_malloc (sizeof (*rec) + peer_count * sizeof (*peers));
   rec->place_key = plc->pub_key;
   rec->origin = this_peer;
-  rec->relay_count = htons (0); // FIXME
+  rec->relay_count = htonl (peer_count);
+  memcpy (&rec[1], peers, peer_count * sizeof (*peers));
 
-  rd.data_size = sizeof (*rec);
   rd.data = rec;
+  rd.data_size = sizeof (*rec) + peer_count * sizeof (*peers);
 
   GNUNET_NAMESTORE_records_store (namestore, &hst->plc.ego_key,
                                   name, 1, &rd, result_cb, result_cls);
@@ -1907,7 +1932,7 @@ guest_enter_request_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *guest_ke
   req->place_key = *place_key;
   req->guest_key = *guest_key;
   req->origin = *origin;
-  req->relay_count = relay_count;
+  req->relay_count = htonl (relay_count);
 
   uint16_t p = sizeof (*req);
   if (0 < relay_size)
@@ -1990,6 +2015,9 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
   struct GNUNET_SOCIAL_Guest *gst = cls;
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "%p GNS result: %u records.\n", gst, rd_count);
+
   const struct GNUNET_GNSRECORD_PlaceData *
     rec = (const struct GNUNET_GNSRECORD_PlaceData *) rd->data;
 
@@ -2000,7 +2028,6 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
     return;
   }
 
-
   if (rd->data_size < sizeof (*rec))
   {
     GNUNET_break_op (0);
@@ -2009,80 +2036,67 @@ gns_result_guest_enter (void *cls, uint32_t rd_count,
     return;
   }
 
-  struct GuestEnterRequest *
-    req = (struct GuestEnterRequest *) plc->connect_msg;
-  uint16_t req_size = ntohs (req->header.size);
-  uint16_t relay_count = ntohs (rec->relay_count);
+  uint16_t relay_count = ntohl (rec->relay_count);
+  struct GNUNET_PeerIdentity *relays = NULL;
 
   if (0 < relay_count)
   {
     if (rd->data_size == sizeof (*rec) + relay_count * sizeof (struct GNUNET_PeerIdentity))
     {
-      struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &rec[1];
-      uint16_t relay_size = relay_count * sizeof (struct GNUNET_PeerIdentity);
-      struct GuestEnterRequest *
-        req2 = GNUNET_malloc (req_size + relay_size);
-
-      req2->header.size = htons (req_size + relay_size);
-      req2->header.type = req->header.type;
-      req2->guest_key = req->guest_key;
-
-      uint16_t p = sizeof (*req);
-      if (0 < relay_size)
-      {
-        memcpy ((char *) req2 + p, relays, relay_size);
-        p += relay_size;
-      }
-
-      memcpy ((char *) req + p, &req[1], req_size - sizeof (*req));
-
-      plc->connect_msg = &req2->header;
-      GNUNET_free (req);
-      req = req2;
+      relays = (struct GNUNET_PeerIdentity *) &rec[1];
     }
     else
     {
+      relay_count = 0;
       GNUNET_break_op (0);
     }
   }
 
-  req->place_key = rec->place_key;
-  req->origin = rec->origin;
-  req->relay_count = rec->relay_count;
-  memcpy (&req[1], &rec[1],
-          ntohl (rec->relay_count) * sizeof (struct GNUNET_PeerIdentity));
-
+  struct GuestEnterRequest *
+    req = guest_enter_request_create (&plc->ego_key, &rec->place_key,
+                                      &rec->origin, relay_count, relays,
+                                      (struct GNUNET_PSYC_Message *) plc->connect_msg);
+  GNUNET_free (plc->connect_msg);
   plc->connect_msg = &req->header;
   plc->pub_key = req->place_key;
 
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc);
+  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc->slicer);
 
   place_send_connect_msg (plc);
 }
 
+
 /**
- * Request entry to a place as a guest.
+ * Request entry to a place by name as a guest.
  *
- * @param cfg  Configuration to contact the social service.
- * @param ego  Identity of the guest.
- * @param address GNS name of the place to enter.  Either in the form of
+ * @param cfg
+ *        Configuration to contact the social service.
+ * @param ego
+ *        Identity of the guest.
+ * @param gns_name
+ *        GNS name of the place to enter.  Either in the form of
  *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
  *        the 'PLACE' record of the empty label ("+") in the GNS zone with the
  *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
  *        pseudonym's place directly.
- * @param method_name Method name for the message.
- * @param env Environment containing variables for the message, or NULL.
- * @param data Payload for the message to give to the enter callback.
- * @param data_size Number of bytes in @a data.
- * @param slicer Slicer to use for processing incoming requests from guests.
+ * @param password
+ *        Password to decrypt the record, or NULL for cleartext records.
+ * @param join_msg
+ *        Entry request message.
+ * @param slicer
+ *        Slicer to use for processing incoming requests from guests.
+ * @param local_enter_cb
+ *        Called upon connection established to the social service.
+ * @param entry_decision_cb
+ *        Called upon receiving entry decision.
  *
  * @return NULL on errors, otherwise handle for the guest.
  */
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   struct GNUNET_IDENTITY_Ego *ego,
-                                   char *gns_name,
+                                   const struct GNUNET_IDENTITY_Ego *ego,
+                                   const char *gns_name, const char *password,
                                    const struct GNUNET_PSYC_Message *join_msg,
                                    struct GNUNET_SOCIAL_Slicer *slicer,
                                    GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
@@ -2092,7 +2106,10 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg
   struct GNUNET_SOCIAL_Guest *gst = GNUNET_malloc (sizeof (*gst));
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
 
+  GNUNET_assert (NULL != join_msg);
+
   gst->enter_cb = local_enter_cb;
+  gst->entry_dcsn_cb = entry_decision_cb;
   gst->cb_cls = cls;
 
   plc->ego_key = *GNUNET_IDENTITY_ego_get_private_key (ego);
@@ -2100,14 +2117,10 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg
   plc->is_host = GNUNET_NO;
   plc->slicer = slicer;
 
-  struct GuestEnterRequest *
-    req = guest_enter_request_create (&plc->ego_key, NULL, NULL, 0, NULL,
-                                      join_msg);
-  plc->connect_msg = &req->header;
+  uint16_t join_msg_size = ntohs (join_msg->header.size);
+  plc->connect_msg = GNUNET_malloc (join_msg_size);
+  memcpy (plc->connect_msg, join_msg, join_msg_size);
 
-  /* FIXME: get the public key of the origin and relays
-   *        by looking up the PLACE record of gns_name.
-   */
   if (NULL == gns)
     gns = GNUNET_GNS_connect (cfg);
 
@@ -2119,7 +2132,6 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg
   GNUNET_GNS_lookup (gns, gns_name, &ego_pub_key,
                      GNUNET_GNSRECORD_TYPE_PLACE, GNUNET_GNS_LO_DEFAULT,
                      NULL, gns_result_guest_enter, gst);
-
   return gst;
 }
 
@@ -2151,10 +2163,13 @@ GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *gst,
                           void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags)
 {
+  struct GNUNET_SOCIAL_Place *plc = &gst->plc;
+  GNUNET_assert (NULL != plc->tmit);
+
   if (GNUNET_OK ==
-      GNUNET_PSYC_transmit_message (gst->plc.tmit, method_name, env,
+      GNUNET_PSYC_transmit_message (plc->tmit, method_name, env,
                                     NULL, notify_data, notify_data_cls, flags));
-  return (struct GNUNET_SOCIAL_TalkRequest *) gst->plc.tmit;
+  return (struct GNUNET_SOCIAL_TalkRequest *) plc->tmit;
 }
 
 
@@ -2209,13 +2224,14 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
 {
   struct GNUNET_SOCIAL_Place *plc = &gst->plc;
 
-  /* FIXME: send msg to service */
-
   plc->is_disconnecting = GNUNET_YES;
   plc->disconnect_cb = leave_cb;
   plc->disconnect_cls = leave_cls;
 
-  if (GNUNET_NO == keep_active)
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Guest: leaving place.\n");
+
+  if (GNUNET_NO == keep_active && NULL != plc->tmit)
   {
     GNUNET_SOCIAL_guest_talk (gst, "_notice_place_leave", env, NULL, NULL,
                               GNUNET_SOCIAL_TALK_NONE);
@@ -2468,6 +2484,49 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *look)
 {
   GNUNET_CLIENT_MANAGER_op_cancel (look->plc->client, look->op_id);
   GNUNET_free (look);
+}
+
+
+/**
+ * Add public key to the GNS zone of the @e ego.
+ *
+ * @param cfg
+ *        Configuration.
+ * @param ego
+ *        Ego.
+ * @param name
+ *        The name for the PKEY record to put in the zone.
+ * @param pub_key
+ *        Public key to add.
+ * @param expiration_time
+ *        Expiration time of the record, use 0 to remove the record.
+ * @param result_cb
+ *        Function called with the result of the operation.
+ * @param result_cls
+ *        Closure for @a result_cb
+ */
+void
+GNUNET_SOCIAL_zone_add_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const struct GNUNET_IDENTITY_Ego *ego,
+                             const char *name,
+                             const struct GNUNET_CRYPTO_EcdsaPublicKey *pub_key,
+                             struct GNUNET_TIME_Absolute expiration_time,
+                             GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
+                             void *result_cls)
+{
+  if (NULL == namestore)
+    namestore = GNUNET_NAMESTORE_connect (cfg);
+
+  struct GNUNET_GNSRECORD_Data rd = { };
+  rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
+  rd.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+  rd.expiration_time = expiration_time.abs_value_us;
+  rd.data = pub_key;
+  rd.data_size = sizeof (*pub_key);
+
+  GNUNET_NAMESTORE_records_store (namestore,
+                                  GNUNET_IDENTITY_ego_get_private_key (ego),
+                                  name, 1, &rd, result_cb, result_cls);
 }
 
 

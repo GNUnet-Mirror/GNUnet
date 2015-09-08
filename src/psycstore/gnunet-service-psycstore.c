@@ -479,7 +479,7 @@ handle_counters_get (void *cls,
 
   res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_COUNTERS);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (ret - INT32_MIN);
+  res.result_code = htonl (ret);
   res.op_id = req->op_id;
   res.max_fragment_id = GNUNET_htonll (res.max_fragment_id);
   res.max_message_id = GNUNET_htonll (res.max_message_id);

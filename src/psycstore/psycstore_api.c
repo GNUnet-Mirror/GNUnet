@@ -346,7 +346,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       if (NULL != op->data_cb)
         ((GNUNET_PSYCSTORE_CountersCallback)
          op->data_cb) (op->cls,
-                       ntohl (cres->result_code) + INT32_MIN,
+                       ntohl (cres->result_code),
                        GNUNET_ntohll (cres->max_fragment_id),
                        GNUNET_ntohll (cres->max_message_id),
                        GNUNET_ntohll (cres->max_group_generation),

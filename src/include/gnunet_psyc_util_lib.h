@@ -79,7 +79,7 @@ GNUNET_PSYC_message_create (const char *method_name,
  *         #GNUNET_SYSERR on parse error.
  */
 int
-GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
+GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_MessageHeader *msg,
                            const char **method_name,
                            struct GNUNET_ENV_Environment *env,
                            const void **data,
@@ -245,6 +245,13 @@ GNUNET_PSYC_message_header_init (struct GNUNET_PSYC_MessageHeader *pmsg,
 struct GNUNET_PSYC_MessageHeader *
 GNUNET_PSYC_message_header_create (const struct GNUNET_MULTICAST_MessageHeader *mmsg,
                                    uint32_t flags);
+
+
+/**
+ * Create a new PSYC message header from a PSYC message.
+ */
+struct GNUNET_PSYC_MessageHeader *
+GNUNET_PSYC_message_header_create_from_psyc (const struct GNUNET_PSYC_Message *msg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

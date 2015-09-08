@@ -807,7 +807,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   else if (grp->clients_head == grp->clients_tail)
   { /* First client of the group, send join request. */
     struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
-    uint32_t relay_count = ntohs (msg->relay_count);
+    uint32_t relay_count = ntohl (msg->relay_count);
     uint16_t relay_size = relay_count * sizeof (*relays);
     struct GNUNET_MessageHeader *join_msg = NULL;
     uint16_t join_msg_size = 0;

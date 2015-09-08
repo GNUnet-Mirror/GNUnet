@@ -669,7 +669,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   req->channel_key = *channel_key;
   req->policy = policy;
 
-  chn->connect_msg = (struct GNUNET_MessageHeader *) req;
+  chn->connect_msg = &req->header;
   chn->cfg = cfg;
   chn->is_master = GNUNET_YES;
 
@@ -896,8 +896,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   else
     join_msg_size = ntohs (join_msg->header.size);
   req = GNUNET_malloc (sizeof (*req) + relay_size + join_msg_size);
-  req->header.size = htons (sizeof (*req)
-                            + relay_count * sizeof (*relays));
+  req->header.size = htons (sizeof (*req) + relay_size + join_msg_size);
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN);
   req->channel_key = *channel_key;
   req->slave_key = *slave_key;
@@ -908,11 +907,9 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
     memcpy (&req[1], relays, relay_size);
 
   if (NULL != join_msg)
-    memcpy ((char *) &req[1] + relay_size,
-            join_msg,
-            join_msg_size);
+    memcpy ((char *) &req[1] + relay_size, join_msg, join_msg_size);
 
-  chn->connect_msg = (struct GNUNET_MessageHeader *) req;
+  chn->connect_msg = &req->header;
   chn->cfg = cfg;
   chn->is_master = GNUNET_NO;
 

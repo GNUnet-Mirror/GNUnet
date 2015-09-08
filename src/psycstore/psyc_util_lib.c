@@ -198,11 +198,11 @@ GNUNET_PSYC_message_create (const char *method_name,
   if (method_name_size == 1)
     return NULL;
 
-  uint16_t msg_size = sizeof (*msg)			/* header */
-    + sizeof (*pmeth) + method_name_size	        /* method */
-    + env_size						/* modifiers */
-    + ((0 < data_size) ? sizeof (*pmsg) + data_size : 0)/* data */
-    + sizeof (*pmsg);					/* end of message */
+  uint16_t msg_size = sizeof (*msg)                      /* header */
+    + sizeof (*pmeth) + method_name_size                 /* method */
+    + env_size                                           /* modifiers */
+    + ((0 < data_size) ? sizeof (*pmsg) + data_size : 0) /* data */
+    + sizeof (*pmsg);                                    /* end of message */
   msg = GNUNET_malloc (msg_size);
   msg->header.size = htons (msg_size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE); /* FIXME */
@@ -224,6 +224,10 @@ GNUNET_PSYC_message_create (const char *method_name,
       pmod->header.size = sizeof (*pmod) + mod_name_size + mod->value_size;
       p += pmod->header.size;
       pmod->header.size = htons (pmod->header.size);
+
+      pmod->oper = mod->oper;
+      pmod->name_size = htons (mod_name_size);
+      pmod->value_size = htonl (mod->value_size);
 
       memcpy (&pmod[1], mod->name, mod_name_size);
       if (0 < mod->value_size)
@@ -1192,9 +1196,9 @@ parse_message_part_cb (void *cls,
       pmod = (struct GNUNET_PSYC_MessageModifier *) msg;
 
     const char *name = (const char *) &pmod[1];
-    const void *value = name + pmod->name_size;
+    const void *value = name + ntohs (pmod->name_size);
     GNUNET_ENV_environment_add (pmc->env, pmod->oper, name, value,
-                                pmod->value_size);
+                                ntohl (pmod->value_size));
     pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_MODIFIER;
     break;
   }
@@ -1233,7 +1237,7 @@ parse_message_part_cb (void *cls,
  *         #GNUNET_SYSERR on parse error.
  */
 int
-GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
+GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_MessageHeader *msg,
                            const char **method_name,
                            struct GNUNET_ENV_Environment *env,
                            const void **data,
@@ -1245,16 +1249,10 @@ GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
   cls.data = data;
   cls.data_size = data_size;
 
-  uint16_t msg_size = ntohs (msg->header.size);
-  struct GNUNET_PSYC_MessageHeader *
-    pmsg = GNUNET_malloc (sizeof (*pmsg) + msg_size - sizeof (*msg));
-  memcpy (&pmsg[1], &msg[1], msg_size - sizeof (*msg));
-
   struct GNUNET_PSYC_ReceiveHandle *
     recv = GNUNET_PSYC_receive_create (NULL, parse_message_part_cb, &cls);
-  GNUNET_PSYC_receive_message (recv, pmsg);
+  GNUNET_PSYC_receive_message (recv, msg);
   GNUNET_PSYC_receive_destroy (recv);
-  GNUNET_free (pmsg);
 
   return (GNUNET_PSYC_MESSAGE_STATE_END == cls.msg_state)
     ? GNUNET_OK
@@ -1284,7 +1282,7 @@ GNUNET_PSYC_message_header_init (struct GNUNET_PSYC_MessageHeader *pmsg,
 
 
 /**
- * Create a new PSYC message header from a multicast message for sending it to clients.
+ * Create a new PSYC message header from a multicast message.
  */
 struct GNUNET_PSYC_MessageHeader *
 GNUNET_PSYC_message_header_create (const struct GNUNET_MULTICAST_MessageHeader *mmsg,
@@ -1296,5 +1294,21 @@ GNUNET_PSYC_message_header_create (const struct GNUNET_MULTICAST_MessageHeader *
 
   pmsg = GNUNET_malloc (psize);
   GNUNET_PSYC_message_header_init (pmsg, mmsg, flags);
+  return pmsg;
+}
+
+
+/**
+ * Create a new PSYC message header from a PSYC message.
+ */
+struct GNUNET_PSYC_MessageHeader *
+GNUNET_PSYC_message_header_create_from_psyc (const struct GNUNET_PSYC_Message *msg)
+{
+  uint16_t msg_size = ntohs (msg->header.size);
+  struct GNUNET_PSYC_MessageHeader *
+    pmsg = GNUNET_malloc (sizeof (*pmsg) + msg_size - sizeof (*msg));
+  pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
+  pmsg->header.size = htons (sizeof (*pmsg) + msg_size - sizeof (*msg));
+  memcpy (&pmsg[1], &msg[1], msg_size - sizeof (*msg));
   return pmsg;
 }

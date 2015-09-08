@@ -494,6 +494,7 @@ GNUNET_SOCIAL_nym_get_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
  *        Expiration time of the record, use 0 to remove the record.
  * @param password
  *        Password used to encrypt the record.
+ *        FIXME: not implemented yet.
  * @param result_cb
  *        Function called with the result of the operation.
  * @param result_cls
@@ -502,9 +503,9 @@ GNUNET_SOCIAL_nym_get_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
 void
 GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *host,
                               const char *name,
-                              size_t peer_count,
+                              uint32_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
-                              struct GNUNET_TIME_Relative expiration_time,
+                              struct GNUNET_TIME_Absolute expiration_time,
                               const char *password,
                               GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
                               void *result_cls);
@@ -702,27 +703,35 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Request entry to a place as a guest using a GNS name.
+ * Request entry to a place by name as a guest.
  *
- * @param cfg  Configuration to contact the social service.
- * @param ego  Identity of the guest.
- * @param address GNS name of the place to enter.  Either in the form of
+ * @param cfg
+ *        Configuration to contact the social service.
+ * @param ego
+ *        Identity of the guest.
+ * @param gns_name
+ *        GNS name of the place to enter.  Either in the form of
  *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
  *        the 'PLACE' record of the empty label ("+") in the GNS zone with the
  *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
  *        pseudonym's place directly.
- * @param method_name Method name for the message.
- * @param env Environment containing variables for the message, or NULL.
- * @param data Payload for the message to give to the enter callback.
- * @param data_size Number of bytes in @a data.
- * @param slicer Slicer to use for processing incoming requests from guests.
+ * @param password
+ *        Password to decrypt the record, or NULL for cleartext records.
+ * @param join_msg
+ *        Entry request message.
+ * @param slicer
+ *        Slicer to use for processing incoming requests from guests.
+ * @param local_enter_cb
+ *        Called upon connection established to the social service.
+ * @param entry_decision_cb
+ *        Called upon receiving entry decision.
  *
  * @return NULL on errors, otherwise handle for the guest.
  */
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   struct GNUNET_IDENTITY_Ego *ego,
-                                   char *gns_name,
+                                   const struct GNUNET_IDENTITY_Ego *ego,
+                                   const char *gns_name, const char *password,
                                    const struct GNUNET_PSYC_Message *join_msg,
                                    struct GNUNET_SOCIAL_Slicer *slicer,
                                    GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
@@ -962,6 +971,34 @@ GNUNET_SOCIAL_place_look_for (struct GNUNET_SOCIAL_Place *plc,
  */
 void
 GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
+
+
+/**
+ * Add public key to the GNS zone of the @e ego.
+ *
+ * @param cfg
+ *        Configuration.
+ * @param ego
+ *        Ego.
+ * @param name
+ *        The name for the PKEY record to put in the zone.
+ * @param pub_key
+ *        Public key to add.
+ * @param expiration_time
+ *        Expiration time of the record, use 0 to remove the record.
+ * @param result_cb
+ *        Function called with the result of the operation.
+ * @param result_cls
+ *        Closure for @a result_cb
+ */
+void
+GNUNET_SOCIAL_zone_add_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                             const struct GNUNET_IDENTITY_Ego *ego,
+                             const char *name,
+                             const struct GNUNET_CRYPTO_EcdsaPublicKey *pub_key,
+                             struct GNUNET_TIME_Absolute expiration_time,
+                             GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
+                             void *result_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

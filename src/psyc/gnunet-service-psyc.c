@@ -1792,9 +1792,11 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     if (sizeof (*req) + relay_size + sizeof (struct GNUNET_MessageHeader)
         <= req_size)
     {
-      join_msg_size = ntohs (slv->join_msg->header.size);
+      struct GNUNET_PSYC_Message *
+        join_msg = (struct GNUNET_PSYC_Message *) (((char *) &req[1]) + relay_size);
+      join_msg_size = ntohs (join_msg->header.size);
       slv->join_msg = GNUNET_malloc (join_msg_size);
-      memcpy (slv->join_msg, ((char *) &req[1]) + relay_size, join_msg_size);
+      memcpy (slv->join_msg, join_msg, join_msg_size);
     }
     if (sizeof (*req) + relay_size + join_msg_size != req_size)
     {

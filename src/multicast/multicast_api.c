@@ -802,6 +802,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   join->group_key = *group_key;
   join->member_key = *member_key;
   join->origin = *origin;
+  join->relay_count = ntohl (relay_count);
   if (0 < relay_size)
     memcpy (&join[1], relays, relay_size);
   if (0 < join_msg_size)
