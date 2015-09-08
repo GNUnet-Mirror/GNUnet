@@ -599,6 +599,13 @@ psyc_recv_message (void *cls,
                    const struct GNUNET_PSYC_MessageHeader *msg)
 {
   struct Place *plc = cls;
+
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&msg->slave_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received PSYC message of size %u from %s.\n",
+              plc, ntohs (msg->header.size), str);
+  GNUNET_free (str);
+
   client_send_msg (plc, &msg->header);
 
   /* FIXME: further processing */

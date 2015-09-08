@@ -127,7 +127,9 @@ enum
   TEST_GUEST_LOOK_AT                = 12,
   TEST_GUEST_LOOK_FOR               = 13,
   TEST_GUEST_LEAVE                  = 14,
-  TEST_HOST_LEAVE                   = 15,
+  TEST_HOST_ADVERTISE               = 15,
+  TEST_GUEST_ENTER_BY_NAME          = 16,
+  TEST_HOST_LEAVE                   = 17,
 } test;
 
 
@@ -307,17 +309,36 @@ schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
+host_recv_advertise_result (void *cls, int32_t success, const char *emsg)
+{
+  GNUNET_assert (GNUNET_YES == success);
+  GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
+}
+
+
+static void
+host_advertise ()
+{
+  test = TEST_HOST_ADVERTISE;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%u: Advertising place.\n", test);
+  GNUNET_SOCIAL_host_advertise (hst, "home", 1, &this_peer,
+                                GNUNET_TIME_UNIT_MINUTES, "let.me*in!",
+                                host_recv_advertise_result, hst);
+}
+
+
+static void
 host_farewell (void *cls,
                const struct GNUNET_SOCIAL_Nym *nym,
                struct GNUNET_ENV_Environment *env)
 {
-  const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_key = GNUNET_SOCIAL_nym_get_key (nym);
-  char *str;
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *
+    nym_key = GNUNET_SOCIAL_nym_get_key (nym);
 
-  str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (nym_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Farewell: nym %s has left the place.\n",
-              str);
+              "Farewell: nym %s (%s) has left the place.\n",
+              GNUNET_h2s (GNUNET_SOCIAL_nym_get_key_hash (nym)), str);
   GNUNET_free (str);
   GNUNET_assert (1 == GNUNET_ENV_environment_get_count (env));
   if (0 != memcmp (&guest_pub_key, nym_key, sizeof (*nym_key)))
@@ -328,8 +349,7 @@ host_farewell (void *cls,
     GNUNET_free (str);
     GNUNET_assert (0);
   }
-
-  GNUNET_SCHEDULER_add_now (&schedule_host_leave, NULL);
+  host_advertise ();
 }
 
 

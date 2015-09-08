@@ -1,4 +1,3 @@
-
 /*
  * This file is part of GNUnet
  * Copyright (C) 2013 Christian Grothoff (and other contributing authors)
@@ -534,7 +533,7 @@ cleanup_slave (struct Slave *slv)
 static void
 cleanup_channel (struct Channel *chn)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Cleaning up channel %s. master? %u\n",
               chn, GNUNET_h2s (&chn->pub_key_hash), chn->is_master);
   message_queue_drop (chn);
@@ -569,7 +568,6 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
   struct Channel *
     chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
-  chn->is_disconnected = GNUNET_YES;
 
   if (NULL == chn)
   {
@@ -583,6 +581,8 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
               "%p Client (%s) disconnected from channel %s\n",
               chn, (GNUNET_YES == chn->is_master) ? "master" : "slave",
               GNUNET_h2s (&chn->pub_key_hash));
+
+  chn->is_disconnected = GNUNET_YES;
 
   struct Client *cli = chn->clients_head;
   while (NULL != cli)
@@ -1548,9 +1548,11 @@ mcast_recv_request (void *cls,
   struct Master *mst = cls;
   uint16_t size = ntohs (req->header.size);
 
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->member_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Received multicast request of size %u.\n",
-              mst, size);
+              "%p Received multicast request of size %u from %s.\n",
+              mst, size, str);
+  GNUNET_free (str);
 
   uint16_t first_ptype = 0, last_ptype = 0;
   if (GNUNET_SYSERR

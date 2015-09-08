@@ -38,6 +38,7 @@ extern "C"
 #include "gnunet_util_lib.h"
 #include "gnunet_env_lib.h"
 #include "gnunet_identity_service.h"
+#include "gnunet_namestore_service.h"
 #include "gnunet_psyc_service.h"
 
 
@@ -459,22 +460,44 @@ GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
  * @param nym
  *        Pseudonym to map to a cryptographic identifier.
  *
- * @return Public key of nym;
+ * @return Public key of nym.
  */
 const struct GNUNET_CRYPTO_EcdsaPublicKey *
 GNUNET_SOCIAL_nym_get_key (const struct GNUNET_SOCIAL_Nym *nym);
 
 
 /**
+ * Get the hash of the public key of a @a nym.
+ *
+ * @param nym
+ *        Pseudonym to map to a cryptographic identifier.
+ *
+ * @return Hash of the public key of nym.
+ */
+const struct GNUNET_HashCode *
+GNUNET_SOCIAL_nym_get_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
+
+
+/**
  * Advertise the place in the GNS zone of the @e ego of the @a host.
  *
- * @param host  Host of the place.
- * @param name The name for the PLACE record to put in the zone.
- * @param peer_count Number of elements in the @a peers array.
- * @param peers List of peers in the PLACE record that can be used to send join
- *        requests to.
- * @param expiration_time Expiration time of the record, use 0 to remove the record.
- * @param password Password used to encrypt the record.
+ * @param hst
+ *        Host of the place.
+ * @param name
+ *        The name for the PLACE record to put in the zone.
+ * @param peer_count
+ *        Number of elements in the @a peers array.
+ * @param peers
+ *        List of peers to put in the PLACE record to advertise
+ *        as entry points to the place in addition to the origin.
+ * @param expiration_time
+ *        Expiration time of the record, use 0 to remove the record.
+ * @param password
+ *        Password used to encrypt the record.
+ * @param result_cb
+ *        Function called with the result of the operation.
+ * @param result_cls
+ *        Closure for @a result_cb
  */
 void
 GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *host,
@@ -482,7 +505,9 @@ GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *host,
                               size_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
                               struct GNUNET_TIME_Relative expiration_time,
-                              const char *password);
+                              const char *password,
+                              GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
+                              void *result_cls);
 
 
 /**

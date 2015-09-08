@@ -455,7 +455,8 @@ host_recv_notice_place_leave_method (void *cls,
                                      const char *method_name)
 {
   struct GNUNET_SOCIAL_Host *hst = cls;
-  if (NULL == nym)
+  if (0 == memcmp (&(struct GNUNET_CRYPTO_EcdsaPublicKey) {},
+                   &nym->pub_key, sizeof (nym->pub_key)))
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -464,6 +465,12 @@ host_recv_notice_place_leave_method (void *cls,
 
   hst->notice_place_leave_nym = (struct GNUNET_SOCIAL_Nym *) nym;
   hst->notice_place_leave_env = GNUNET_ENV_environment_create ();
+
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "_notice_place_leave: got method from nym %s (%s).\n",
+              GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
+  GNUNET_break (0);
 }
 
 
@@ -505,6 +512,11 @@ host_recv_notice_place_leave_eom (void *cls,
   struct GNUNET_SOCIAL_Host *hst = cls;
   if (NULL == hst->notice_place_leave_env)
     return;
+
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "_notice_place_leave: got EOM from nym %s (%s).\n",
+              GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
 
   if (GNUNET_YES != cancelled)
   {
@@ -658,10 +670,12 @@ slicer_message (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
     GNUNET_assert (message_id == slicer->message_id);
   }
 
+  char *nym_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (slave_key);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Slicer received message of type %u and size %u, "
-       "with ID %" PRIu64 " and method %s\n",
-       ptype, ntohs (msg->size), message_id, slicer->method_name);
+       "with ID %" PRIu64 " and method %s from %s\n",
+       ptype, ntohs (msg->size), message_id, slicer->method_name, nym_str);
+  GNUNET_free (nym_str);
 
   slicer->msg = msg;
 
@@ -1661,13 +1675,28 @@ GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *hst,
  *
  * @param nym
  *        Pseudonym to map to a cryptographic identifier.
- * @param[out] nym_key
- *        Set to the public key of the nym.
+ *
+ * @return Public key of nym.
  */
 const struct GNUNET_CRYPTO_EcdsaPublicKey *
 GNUNET_SOCIAL_nym_get_key (const struct GNUNET_SOCIAL_Nym *nym)
 {
   return &nym->pub_key;
+}
+
+
+/**
+ * Get the hash of the public key of a @a nym.
+ *
+ * @param nym
+ *        Pseudonym to map to a cryptographic identifier.
+ *
+ * @return Hash of the public key of nym.
+ */
+const struct GNUNET_HashCode *
+GNUNET_SOCIAL_nym_get_key_hash (const struct GNUNET_SOCIAL_Nym *nym)
+{
+  return &nym->pub_key_hash;
 }
 
 
@@ -1689,13 +1718,6 @@ GNUNET_SOCIAL_host_get_place_key (struct GNUNET_SOCIAL_Host *hst)
 }
 
 
-static void
-namestore_result_host_advertise (void *cls, int32_t success, const char *emsg)
-{
-
-}
-
-
 /**
  * Connected to core service.
  */
@@ -1710,13 +1732,23 @@ core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 /**
  * Advertise the place in the GNS zone of the @e ego of the @a host.
  *
- * @param hst  Host of the place.
- * @param name The name for the PLACE record to put in the zone.
- * @param peer_count Number of elements in the @a peers array.
- * @param peers List of peers in the PLACE record that can be used to send join
- *        requests to.
- * @param expiration_time Expiration time of the record, use 0 to remove the record.
- * @param password Password used to encrypt the record.
+ * @param hst
+ *        Host of the place.
+ * @param name
+ *        The name for the PLACE record to put in the zone.
+ * @param peer_count
+ *        Number of elements in the @a peers array.
+ * @param peers
+ *        List of peers to put in the PLACE record to advertise
+ *        as entry points to the place in addition to the origin.
+ * @param expiration_time
+ *        Expiration time of the record, use 0 to remove the record.
+ * @param password
+ *        Password used to encrypt the record.
+ * @param result_cb
+ *        Function called with the result of the operation.
+ * @param result_cls
+ *        Closure for @a result_cb
  */
 void
 GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *hst,
@@ -1724,7 +1756,9 @@ GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *hst,
                               size_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
                               struct GNUNET_TIME_Relative expiration_time,
-                              const char *password)
+                              const char *password,
+                              GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
+                              void *result_cls)
 {
   struct GNUNET_SOCIAL_Place *plc = &hst->plc;
   if (NULL == namestore)
@@ -1748,8 +1782,7 @@ GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *hst,
   rd.data = rec;
 
   GNUNET_NAMESTORE_records_store (namestore, &hst->plc.ego_key,
-                                  name, 1, &rd, namestore_result_host_advertise,
-                                  hst);
+                                  name, 1, &rd, result_cb, result_cls);
 }
 
 
