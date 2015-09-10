@@ -27,6 +27,19 @@ endif
 lib_LTLIBRARIES = \
 	libgnunetidentity.la 
 
+if HAVE_REST
+plugin_LTLIBRARIES += \
+  libgnunet_plugin_gnsrecord_identity.la
+
+
+libgnunet_plugin_gnsrecord_identity_la_SOURCES = \
+  plugin_gnsrecord_identity.c
+libgnunet_plugin_gnsrecord_identity_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_gnsrecord_identity_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+endif
 
 libgnunet_plugin_rest_identity_la_SOURCES = \
   plugin_rest_identity.c

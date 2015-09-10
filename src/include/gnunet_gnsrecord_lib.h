@@ -85,6 +85,18 @@ extern "C"
  */
 #define GNUNET_GNSRECORD_TYPE_PHONE 65543
 
+/**
+ * Record type for identity attributes (of IDENTITY).
+ */
+#define GNUNET_GNSRECORD_TYPE_ID_ATTR 65544
+
+/**
+ * Record type for an identity token (of IDENTITY).
+ */
+#define GNUNET_GNSRECORD_TYPE_ID_TOKEN 65545
+
+
+
 
 /**
  * Flags that can be set for a record.
