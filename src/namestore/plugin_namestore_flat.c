@@ -93,11 +93,6 @@ struct FlatFileEntry
   struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key;
 
   /**
-   * Entry zone pkey
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey *pkey;
-
-  /**
    * Record cound
    */
   uint32_t record_count;
@@ -111,6 +106,11 @@ struct FlatFileEntry
    * Record data
    */
   struct GNUNET_GNSRECORD_Data *record_data;
+
+  /**
+   * Record data size
+   */
+  size_t data_size;
 
   /**
    * Label
@@ -136,7 +136,6 @@ database_setup (struct Plugin *plugin)
   char *key_str;
   char *record_data;
   char *zone_private_key;
-  char *pkey;
   char *record_data_b64;
   char *buffer;
   char *line;
@@ -210,53 +209,60 @@ database_setup (struct Plugin *plugin)
   }
 
   GNUNET_DISK_file_close (fh);
-
-  line = strtok ("\n", buffer);
-  while (line != NULL) {
-    zone_private_key = strtok (",", line);
-    pkey = strtok (NULL, line);
-    rvalue = strtok (NULL, line);
-    record_count = strtok (NULL, line);
-    record_data_b64 = strtok (NULL, line);
-    label = strtok (NULL, line);
-    line = strtok ("\n", buffer);
-    entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
-    GNUNET_CRYPTO_ecdsa_public_key_from_string (pkey,
-                                                strlen (pkey),
-                                                entry->pkey);
-    sscanf (rvalue, "%lu", &entry->rvalue);
-    sscanf (record_count, "%u", &entry->record_count);
-    entry->label = GNUNET_strdup (label);
-    record_data_size = GNUNET_STRINGS_base64_decode (record_data_b64,
-                                                     strlen (record_data_b64),
-                                                     &record_data);
-    entry->record_data = 
-      GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Data) * entry->record_count);
-    GNUNET_GNSRECORD_records_deserialize (record_data_size,
-                                          record_data,
-                                          entry->record_count,
-                                          entry->record_data);
-    GNUNET_free (record_data);
-    GNUNET_STRINGS_base64_decode (zone_private_key,
-                                  strlen (zone_private_key),
-                                  (char**)&entry->private_key);
-    key_str = GNUNET_malloc (strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-    memcpy (key_str, label, strlen (label));
-    memcpy (key_str+strlen(label),
-            entry->private_key,
-            sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-    GNUNET_CRYPTO_hash (key_str,
-                        strlen (key_str),
-                        &hkey);
-    GNUNET_free (key_str);
-    if (GNUNET_OK != 
-        GNUNET_CONTAINER_multihashmap_put (plugin->hm,
-                                           &hkey,
-                                           entry,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-    {
-      GNUNET_free (entry);
-      GNUNET_break (0);
+  if (0 < size) {
+    line = strtok (buffer, "\n");
+    while (line != NULL) {
+      zone_private_key = strtok (line, ",");
+      if (NULL == zone_private_key)
+        break;
+      rvalue = strtok (NULL, ",");
+      if (NULL == rvalue)
+        break;
+      record_count = strtok (NULL, ",");
+      if (NULL == record_count)
+        break;
+      record_data_b64 = strtok (NULL, ",");
+      if (NULL == record_data_b64)
+        break;
+      label = strtok (NULL, ",");
+      if (NULL == label)
+        break;
+      line = strtok (NULL, "\n");
+      entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
+      sscanf (rvalue, "%lu", &entry->rvalue);
+      sscanf (record_count, "%u", &entry->record_count);
+      entry->label = GNUNET_strdup (label);
+      record_data_size = GNUNET_STRINGS_base64_decode (record_data_b64,
+                                                       strlen (record_data_b64),
+                                                       &record_data);
+      entry->record_data = 
+        GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Data) * entry->record_count);
+      GNUNET_GNSRECORD_records_deserialize (record_data_size,
+                                            record_data,
+                                            entry->record_count,
+                                            entry->record_data);
+      GNUNET_free (record_data);
+      GNUNET_STRINGS_base64_decode (zone_private_key,
+                                    strlen (zone_private_key),
+                                    (char**)&entry->private_key);
+      key_str = GNUNET_malloc (strlen (label) + sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+      memcpy (key_str, label, strlen (label));
+      memcpy (key_str+strlen(label),
+              entry->private_key,
+              sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
+      GNUNET_CRYPTO_hash (key_str,
+                          strlen (key_str),
+                          &hkey);
+      GNUNET_free (key_str);
+      if (GNUNET_OK != 
+          GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                             &hkey,
+                                             entry,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      {
+        GNUNET_free (entry);
+        GNUNET_break (0);
+      }
     }
   }
   GNUNET_free (buffer);
@@ -278,37 +284,23 @@ store_and_free_entries (void *cls,
   struct FlatFileEntry *entry = value;
   char *line;
   char *zone_private_key;
-  char *pkey;
   char *rvalue;
   char *record_count;
-  char *record_data_buf;
   char *record_data_b64;
-  size_t record_data_len;
 
   GNUNET_STRINGS_base64_encode ((char*)entry->private_key,
                                 sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey),
                                 &zone_private_key);
-  pkey = GNUNET_CRYPTO_ecdsa_public_key_to_string (entry->pkey);
-  GNUNET_asprintf (&rvalue, "%hhu", entry->rvalue);
+  GNUNET_asprintf (&rvalue, "%lu", entry->rvalue);
   GNUNET_asprintf (&record_count, "%u", entry->record_count);
 
-  record_data_len = GNUNET_GNSRECORD_records_get_size (entry->record_count,
-                                                       entry->record_data);
-
-  record_data_buf = GNUNET_malloc (record_data_len);
-  GNUNET_GNSRECORD_records_serialize (entry->record_count,
-                                      entry->record_data,
-                                      record_data_len,
-                                      record_data_buf);
-
-  GNUNET_STRINGS_base64_encode (record_data_buf,
-                                strlen (record_data_buf),
+  GNUNET_STRINGS_base64_encode ((char*)entry->record_data,
+                                entry->data_size,
                                 &record_data_b64);
 
   GNUNET_asprintf (&line,
-                   "%s,%s,%s,%s,%s,%s\n",
+                   "%s,%s,%s,%s,%s\n",
                    zone_private_key,
-                   pkey,
                    rvalue,
                    record_count,
                    record_data_b64,
@@ -316,7 +308,6 @@ store_and_free_entries (void *cls,
 
   GNUNET_free (rvalue);
   GNUNET_free (record_count);
-  GNUNET_free (record_data_buf);
   GNUNET_free (record_data_b64);
 
   GNUNET_DISK_file_write (fh,
@@ -324,7 +315,6 @@ store_and_free_entries (void *cls,
                           strlen (line));
 
   GNUNET_free (entry->private_key);
-  GNUNET_free (entry->pkey);
   GNUNET_free (entry->label);
   GNUNET_free (entry->record_data);
   GNUNET_free (entry);
@@ -349,8 +339,8 @@ database_shutdown (struct Plugin *plugin)
   if (NULL == fh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-         _("Unable to initialize file: %s.\n"),
-         plugin->fn);
+                _("Unable to initialize file: %s.\n"),
+                plugin->fn);
     return;
   }
 
@@ -381,24 +371,12 @@ namestore_store_records (void *cls,
                          const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Plugin *plugin = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
   uint64_t rvalue;
   size_t data_size;
-  unsigned int i;
   char *key_str;
   struct GNUNET_HashCode hkey;
   struct FlatFileEntry *entry;
 
-  memset (&pkey, 0, sizeof (pkey));
-  for (i=0;i<rd_count;i++)
-    if (GNUNET_GNSRECORD_TYPE_PKEY == rd[i].record_type)
-    {
-      GNUNET_break (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) == rd[i].data_size);
-      memcpy (&pkey,
-              rd[i].data,
-              rd[i].data_size);
-      break;
-    }
   rvalue = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
   data_size = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
   if (data_size > 64 * 65536)
@@ -430,17 +408,17 @@ namestore_store_records (void *cls,
   {
     entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
     entry->private_key = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-    memcpy (&entry->private_key,
+    GNUNET_asprintf (&entry->label,
+                     label,
+                     strlen (label));
+    memcpy (entry->private_key,
             zone_key,
             sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey));
-    entry->pkey = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-    memcpy (entry->pkey,
-            &pkey,
-            sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
     entry->rvalue = rvalue;
     entry->record_count = rd_count;
+    entry->data_size = data_size;
     entry->record_data = GNUNET_malloc (data_size);
-    memcpy (&entry->record_data, data, data_size);
+    memcpy (entry->record_data, data, data_size);
     return GNUNET_CONTAINER_multihashmap_put (plugin->hm,
                                               &hkey,
                                               entry,
@@ -606,8 +584,8 @@ namestore_zone_to_name (void *cls,
   struct Plugin *plugin = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-       "Performing reverse lookup for `%s'\n",
-       GNUNET_GNSRECORD_z2s (value_zone));
+              "Performing reverse lookup for `%s'\n",
+              GNUNET_GNSRECORD_z2s (value_zone));
 
   GNUNET_CONTAINER_multihashmap_iterate (plugin->hm,
                                          &zone_to_name,
@@ -647,7 +625,7 @@ libgnunet_plugin_namestore_flat_init (void *cls)
   api->zone_to_name = &namestore_zone_to_name;
   api->lookup_records = &namestore_lookup_records;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-       _("flat file database running\n"));
+              _("flat file database running\n"));
   return api;
 }
 
@@ -668,7 +646,7 @@ libgnunet_plugin_namestore_flat_done (void *cls)
   plugin->cfg = NULL;
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-       "flat file plugin is finished\n");
+              "flat file plugin is finished\n");
   return NULL;
 }
 

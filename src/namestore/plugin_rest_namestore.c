@@ -371,6 +371,7 @@ namestore_list_response (void *cls,
 
   if (NULL == rname)
   {
+    handle->list_it = NULL;
     //Handle response
     if (GNUNET_SYSERR == GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result))
     {
@@ -379,7 +380,6 @@ namestore_list_response (void *cls,
     }
     GNUNET_REST_jsonapi_object_delete (handle->resp_object);
     resp = GNUNET_REST_create_json_response (result);
-    handle->list_it = NULL;
     handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
     GNUNET_free (result);
     GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
@@ -395,8 +395,6 @@ namestore_list_response (void *cls,
     return;
   }
 
-  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
-                                                    rname);
   result_array = json_array ();
   for (i=0; i<rd_len; i++)
   {
@@ -411,10 +409,14 @@ namestore_list_response (void *cls,
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
+
+  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
+                                                    rname);
   GNUNET_REST_jsonapi_resource_add_attr (json_resource,
                                          GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
                                          result_array);
   GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
+
   json_decref (result_array);
   GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
 }
@@ -475,8 +477,8 @@ create_new_record_cont (void *cls,
   if (0 != rd_count)
   {
     handle->proc (handle->proc_cls,
-                GNUNET_REST_create_json_response (NULL),
-                MHD_HTTP_CONFLICT);
+                  GNUNET_REST_create_json_response (NULL),
+                  MHD_HTTP_CONFLICT);
     GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
     return;
   }
@@ -525,10 +527,10 @@ del_finished (void *cls,
 
 static void
 del_cont (void *cls,
-             const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-             const char *label,
-             unsigned int rd_count,
-             const struct GNUNET_GNSRECORD_Data *rd)
+          const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+          const char *label,
+          unsigned int rd_count,
+          const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
 
@@ -586,7 +588,7 @@ json_to_gnsrecord (const json_t *records_json,
   json_t *value_json;
   json_t *record_json;
   json_t *exp_json;
-  
+
   *rd_count = json_array_size (records_json);
   *rd = GNUNET_malloc (sizeof (struct GNUNET_GNSRECORD_Data) * *rd_count);
   for (i = 0; i < *rd_count; i++)
@@ -622,7 +624,7 @@ json_to_gnsrecord (const json_t *records_json,
                                                        value,
                                                        &rdata,
                                                        &rdata_size))
-   {
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Value `%s' invalid for record type `%s'\n"),
                   value, typestring);
       return GNUNET_SYSERR;
@@ -910,6 +912,7 @@ testservice_id_task (void *cls, int result)
   struct GNUNET_HashCode key;
   char *ego;
   char *name;
+  char *type;
 
   if (result != GNUNET_YES)
   {
@@ -931,6 +934,19 @@ testservice_id_task (void *cls, int result)
     ego = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                              &key);
   }
+
+  type = GNUNET_GNSRECORD_TYPE_ANY;
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE,
+                      strlen (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE),
+                      &key);
+  if ( GNUNET_YES == 
+       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                               &key) )
+  {
+    type = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                              &key);
+  }
+  handle->type = GNUNET_GNSRECORD_typename_to_number (type);
   name = get_name_from_url (handle->url);
   if (NULL != ego)
     GNUNET_asprintf (&handle->ego_name, "%s", ego);
