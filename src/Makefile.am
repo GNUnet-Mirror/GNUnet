@@ -65,7 +65,6 @@ SUBDIRS = \
   peerinfo \
   $(MYSQL_DIR) \
   $(POSTGRES_DIR) \
-  $(REST_DIR) \
   datacache \
   datastore \
   template \
@@ -99,6 +98,7 @@ SUBDIRS = \
   fs \
   exit \
   pt \
+  $(REST_DIR) \
   integration-tests \
   $(EXP_DIR)
 

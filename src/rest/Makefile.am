@@ -20,11 +20,17 @@ if USE_COVERAGE
   XLIBS = -lgcov
 endif
 
+REST_PLUGINS = libgnunet_plugin_rest_gns.la \
+							 libgnunet_plugin_rest_identity.la \
+							 libgnunet_plugin_rest_namestore.la
+
 lib_LTLIBRARIES = \
-	libgnunetrest.la
+	libgnunetrest.la \
+	$(REST_PLUGINS)
 
 libexec_PROGRAMS = \
  gnunet-rest-server
+
 
 gnunet_rest_server_SOURCES = \
  gnunet-rest-server.c
@@ -41,3 +47,34 @@ libgnunetrest_la_LIBADD = \
 libgnunetrest_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
   -version-info 0:0:0
+
+libgnunet_plugin_rest_gns_la_SOURCES = \
+  plugin_rest_gns.c
+libgnunet_plugin_rest_gns_la_LIBADD = \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_gns_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
+libgnunet_plugin_rest_identity_la_SOURCES = \
+  plugin_rest_namestore.c
+libgnunet_plugin_rest_identity_la_LIBADD = \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_identity_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_rest_namestore_la_SOURCES = \
+  plugin_rest_namestore.c
+libgnunet_plugin_rest_namestore_la_LIBADD = \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_namestore_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+

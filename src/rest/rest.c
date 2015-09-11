@@ -403,12 +403,15 @@ GNUNET_REST_jsonapi_data_serialize (const struct JsonApiObject *resp,
   json_t *root_json;
   json_t *res_arr;
   
-  if ( (NULL == resp) ||
-       (0 == resp->res_count) )
+  if ((NULL == resp))
     return GNUNET_SYSERR;
 
   root_json = json_object ();
-  if (1 == resp->res_count)
+  if (0 == resp->res_count)
+  {
+    json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, json_array());
+  }
+  else if (1 == resp->res_count)
   {
     json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, resp->res_list_head->res_obj);
   }

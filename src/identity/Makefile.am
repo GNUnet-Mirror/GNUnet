@@ -19,39 +19,9 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   identity.conf
 
-if HAVE_REST
-REST_PLUGIN = libgnunet_plugin_rest_identity.la
-plugin_LTLIBRARIES = ${REST_PLUGIN}
-endif
-
 lib_LTLIBRARIES = \
-	libgnunetidentity.la 
-
-if HAVE_REST
-plugin_LTLIBRARIES += \
-  libgnunet_plugin_gnsrecord_identity.la
-
-
-libgnunet_plugin_gnsrecord_identity_la_SOURCES = \
-  plugin_gnsrecord_identity.c
-libgnunet_plugin_gnsrecord_identity_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(LTLIBINTL)
-libgnunet_plugin_gnsrecord_identity_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-endif
-
-libgnunet_plugin_rest_identity_la_SOURCES = \
-  plugin_rest_identity.c
-libgnunet_plugin_rest_identity_la_LIBADD = \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-  $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_identity_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-
-
+	libgnunetidentity.la \
+	libgnunet_plugin_gnsrecord_identity.la
 
 libgnunetidentity_la_SOURCES = \
   identity_api.c \
@@ -69,16 +39,27 @@ bin_PROGRAMS = \
 
 libexec_PROGRAMS = \
  gnunet-service-identity 
+
 if HAVE_REST
 bin_PROGRAMS += \
 								gnunet-identity-token
 endif
+
 gnunet_service_identity_SOURCES = \
  gnunet-service-identity.c         
 gnunet_service_identity_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
+
+libgnunet_plugin_gnsrecord_identity_la_SOURCES = \
+  plugin_gnsrecord_identity.c
+libgnunet_plugin_gnsrecord_identity_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_gnsrecord_identity_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 gnunet_identity_SOURCES = \
  gnunet-identity.c         

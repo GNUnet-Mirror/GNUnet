@@ -89,7 +89,7 @@
 /**
  * GNUid token lifetime
  */
-#define GNUNET_GNUID_TOKEN_EXPIRATION_SECONDS 360
+#define GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS 300000000
 
 /**
  * The configuration handle
@@ -307,11 +307,13 @@ make_gnuid_token (struct RequestHandle *handle,
                   char **token)
 {
   uint64_t time;
+  uint64_t lbl;
   char *header_str;
   char *payload_str;
   char *header_base64;
   char *payload_base64;
   char *sig_str;
+  char *lbl_str;
   json_t *header;
   json_t *payload;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
@@ -319,16 +321,20 @@ make_gnuid_token (struct RequestHandle *handle,
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
 
   time = GNUNET_TIME_absolute_get().abs_value_us;
+  lbl = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
+  GNUNET_STRINGS_base64_encode ((char*)&lbl, sizeof (uint64_t), &lbl_str);
+
   header = json_object ();
   json_object_set_new (header, "alg", json_string ("ED512"));
   json_object_set_new (header, "typ", json_string ("JWT"));
   
   payload = json_object ();
   json_object_set_new (payload, "iss", json_string (ego_entry->keystring));
+  json_object_set_new (payload, "lbl", json_string (lbl_str));
   json_object_set_new (payload, "sub", json_string (name));
   json_object_set_new (payload, "nbf", json_integer (time));
   json_object_set_new (payload, "iat", json_integer (time));
-  json_object_set_new (payload, "exp", json_integer (time+GNUNET_GNUID_TOKEN_EXPIRATION_SECONDS));
+  json_object_set_new (payload, "exp", json_integer (time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS));
   json_object_set_new (payload, "aud", json_string (token_aud));
   header_str = json_dumps (header, JSON_COMPACT);
   GNUNET_STRINGS_base64_encode (header_str,
@@ -370,6 +376,7 @@ make_gnuid_token (struct RequestHandle *handle,
   GNUNET_free (payload_str);
   GNUNET_free (payload_base64);
   GNUNET_free (purpose);
+  GNUNET_free (lbl_str);
   json_decref (header);
   json_decref (payload);
 }

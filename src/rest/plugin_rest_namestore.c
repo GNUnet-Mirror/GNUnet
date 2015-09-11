@@ -60,6 +60,12 @@ struct Plugin
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 };
 
+
+/**
+ * HTTP methods allows for this plugin
+ */
+static char* allow_methods;
+
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 struct RecordEntry
@@ -409,13 +415,16 @@ namestore_list_response (void *cls,
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
-
-  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
-                                                    rname);
-  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
-                                         GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
-                                         result_array);
-  GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
+  
+  if (0 < json_array_size(result_array))
+  {
+    json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
+                                                      rname);
+    GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+                                           GNUNET_REST_JSONAPI_NAMESTORE_RECORD,
+                                           result_array);
+    GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
+  }
 
   json_decref (result_array);
   GNUNET_NAMESTORE_zone_iterator_next (handle->list_it);
@@ -789,6 +798,31 @@ get_name_from_url (const char* url)
 }
 
 /**
+ * Respond to OPTIONS request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+options_cont (struct RestConnectionDataHandle *con_handle,
+              const char* url,
+              void *cls)
+{
+  struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
+
+  //For now, independent of path return all options
+  resp = GNUNET_REST_create_json_response (NULL);
+  MHD_add_response_header (resp,
+                           "Access-Control-Allow-Methods",
+                           allow_methods);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  cleanup_handle (handle);
+  return;
+}
+
+/**
  * Function called with the result from the check if the namestore
  * service is actually running.  If it is, we start the actual
  * operation.
@@ -806,6 +840,7 @@ testservice_task (void *cls,
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_create_cont}, //create
     //    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_NAMESTORE, &namestore_edit_cont}, //update. TODO this shoul be PATCH
     {MHD_HTTP_METHOD_DELETE, GNUNET_REST_API_NS_NAMESTORE, &namestore_delete_cont}, //delete
+    {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_NAMESTORE, &options_cont},
     GNUNET_REST_HANDLER_END
   };
 
@@ -935,7 +970,7 @@ testservice_id_task (void *cls, int result)
                                              &key);
   }
 
-  type = GNUNET_GNSRECORD_TYPE_ANY;
+  handle->type = GNUNET_GNSRECORD_TYPE_ANY;
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE,
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE),
                       &key);
@@ -945,8 +980,9 @@ testservice_id_task (void *cls, int result)
   {
     type = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                               &key);
+
+    handle->type = GNUNET_GNSRECORD_typename_to_number (type);
   }
-  handle->type = GNUNET_GNSRECORD_typename_to_number (type);
   name = get_name_from_url (handle->url);
   if (NULL != ego)
     GNUNET_asprintf (&handle->ego_name, "%s", ego);
@@ -1035,6 +1071,13 @@ libgnunet_plugin_rest_namestore_init (void *cls)
   api->cls = &plugin;
   api->name = GNUNET_REST_API_NS_NAMESTORE;
   api->process_request = &rest_identity_process_request;
+  GNUNET_asprintf (&allow_methods,
+                   "%s, %s, %s, %s, %s",
+                   MHD_HTTP_METHOD_GET,
+                   MHD_HTTP_METHOD_POST,
+                   MHD_HTTP_METHOD_PUT,
+                   MHD_HTTP_METHOD_DELETE,
+                   MHD_HTTP_METHOD_OPTIONS);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Namestore REST API initialized\n"));
   return api;
@@ -1055,6 +1098,7 @@ libgnunet_plugin_rest_namestore_done (void *cls)
 
   plugin->cfg = NULL;
   GNUNET_free (api);
+  GNUNET_free_non_null (allow_methods);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Namestore REST plugin is finished\n");
   return NULL;
