@@ -20,8 +20,8 @@ pkgcfg_DATA = \
   identity.conf
 
 lib_LTLIBRARIES = \
-	libgnunetidentity.la \
-	libgnunet_plugin_gnsrecord_identity.la
+	libgnunetidentity.la
+#	libgnunet_plugin_gnsrecord_identity.la
 
 libgnunetidentity_la_SOURCES = \
   identity_api.c \
