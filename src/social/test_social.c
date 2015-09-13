@@ -757,6 +757,7 @@ guest_talk ()
                               "_bar_baz", DATA2ARG ("four five"));
   tmit.data[0] = "zzz xxx yyy";
   tmit.data[1] = "zyx wvu tsr qpo";
+  tmit.data_delay[1] = 1;
   tmit.data[2] = "testing ten nine eight";
   tmit.data_count = 3;
 
@@ -785,6 +786,7 @@ host_announce ()
                               "_foo_bar_baz", DATA2ARG ("foo bar baz"));
   tmit.data[0] = "aaa bbb ccc";
   tmit.data[1] = "abc def ghi jkl";
+  tmit.data_delay[1] = 1;
   tmit.data[2] = "testing one two three";
   tmit.data[3] = "four five";
   tmit.data_count = 4;

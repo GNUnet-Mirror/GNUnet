@@ -878,6 +878,7 @@ client_send_join_decision (struct Member *mem,
   }
   else
   { /* Refused entry, disconnect clients. */
+#if FIXME
     struct ClientList *cl = mem->grp.clients_head;
     while (NULL != cl)
     {
@@ -885,6 +886,7 @@ client_send_join_decision (struct Member *mem,
       cl = cl->next;
       GNUNET_SERVER_client_disconnect (client);
     }
+#endif
   }
 }
 

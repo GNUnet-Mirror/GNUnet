@@ -327,18 +327,29 @@ member_recv_join_decision (void *cls,
   uint16_t relay_count = ntohl (dcsn->relay_count);
   const struct GNUNET_PeerIdentity *relays = NULL;
   uint16_t relay_size = relay_count * sizeof (*relays);
-  if (0 < relay_count && dcsn_size < sizeof (*dcsn) + relay_size)
-    relays = (struct GNUNET_PeerIdentity *) &dcsn[1];
+  if (0 < relay_count)
+  {
+    if (dcsn_size < sizeof (*dcsn) + relay_size)
+    {
+      GNUNET_break_op (0);
+      is_admitted = GNUNET_SYSERR;
+    }
+    else
+    {
+      relays = (struct GNUNET_PeerIdentity *) &dcsn[1];
+    }
+  }
 
   if (sizeof (*dcsn) + relay_size + sizeof (*join_resp) <= dcsn_size)
   {
-    join_resp = (const struct GNUNET_MessageHeader *) &dcsn[1];
+    join_resp = (const struct GNUNET_MessageHeader *) ((char *) &dcsn[1] + relay_size);
     join_resp_size = ntohs (join_resp->size);
   }
   if (dcsn_size < sizeof (*dcsn) + relay_size + join_resp_size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received invalid join decision message from multicast.\n");
+         "Received invalid join decision message from multicast: %u < %u + %u + %u\n",
+         dcsn_size , sizeof (*dcsn), relay_size, join_resp_size);
     GNUNET_break_op (0);
     is_admitted = GNUNET_SYSERR;
   }
