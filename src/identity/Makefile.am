@@ -1,7 +1,7 @@
 # This Makefile.am is in the public domain
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
- plugindir = $(libdir)/gnunet
+plugindir = $(libdir)/gnunet
 
 if MINGW
  WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
@@ -20,8 +20,7 @@ pkgcfg_DATA = \
   identity.conf
 
 lib_LTLIBRARIES = \
-	libgnunetidentity.la \
-	libgnunet_plugin_gnsrecord_identity.la
+	libgnunetidentity.la
 
 libgnunetidentity_la_SOURCES = \
   identity_api.c \
@@ -41,7 +40,9 @@ libexec_PROGRAMS = \
  gnunet-service-identity 
 
 if HAVE_REST
-lib_LTLIBRARIES += libgnunet_plugin_rest_identity.la
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_rest_identity.la \
+	libgnunet_plugin_gnsrecord_identity.la
 endif
 
 

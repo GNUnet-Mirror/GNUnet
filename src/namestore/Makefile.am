@@ -71,6 +71,10 @@ check_PROGRAMS = \
  $(TESTING_TESTS)
 endif
 
+if HAVE_REST
+REST_PLUGIN=libgnunet_plugin_rest_namestore.la
+endif
+
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = \
@@ -80,10 +84,6 @@ endif
 
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
-
-if HAVE_REST
-lib_LTLIBRARIES += libgnunet_plugin_rest_namestore.la
-endif
 
 
 libgnunetnamestore_la_SOURCES = \
@@ -148,7 +148,10 @@ gnunet_service_namestore_LDADD = \
 plugin_LTLIBRARIES = \
   $(SQLITE_PLUGIN) \
   $(POSTGRES_PLUGIN) \
-	$(FLAT_PLUGIN)
+	$(FLAT_PLUGIN) \
+	$(REST_PLUGIN)
+
+
 
 libgnunet_plugin_namestore_flat_la_SOURCES = \
   plugin_namestore_flat.c

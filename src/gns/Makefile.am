@@ -51,9 +51,6 @@ lib_LTLIBRARIES = \
   $(DO_W32_NSP) \
   libgnunetgns.la
 
-if HAVE_REST
-lib_LTLIBRARIES += libgnunet_plugin_rest_gns.la
-endif
 
 if HAVE_MHD
 if HAVE_GNUTLS
@@ -94,6 +91,10 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
   libgnunet_plugin_gnsrecord_gns.la
 
+
+if HAVE_REST
+plugin_LTLIBRARIES += libgnunet_plugin_rest_gns.la
+endif
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c

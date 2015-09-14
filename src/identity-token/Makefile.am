@@ -20,7 +20,7 @@ pkgcfg_DATA = \
   identity-token.conf
 
 if HAVE_REST
-lib_LTLIBRARIES = \
+plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_identity_token.la
 endif
 
