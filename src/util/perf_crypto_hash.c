@@ -43,6 +43,19 @@ perfHash ()
 
 
 static void
+perfHashSmall ()
+{
+  struct GNUNET_HashCode hc;
+  unsigned int i;
+  char buf[64];
+
+  memset (buf, 1, sizeof (buf));
+  for (i = 0; i < 1024; i++)
+    GNUNET_CRYPTO_hash (buf, sizeof (buf), &hc);
+}
+
+
+static void
 perfHKDF ()
 {
   unsigned int i;
@@ -68,8 +81,14 @@ main (int argc, char *argv[])
   struct GNUNET_TIME_Absolute start;
 
   start = GNUNET_TIME_absolute_get ();
+  perfHashSmall ();
+  printf ("1024x 64-byte Hash perf took %s\n",
+          GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
+						  GNUNET_YES));
+
+  start = GNUNET_TIME_absolute_get ();
   perfHash ();
-  printf ("Hash perf took %s\n",
+  printf ("1024x 64k Hash perf took %s\n",
           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (start),
 						  GNUNET_YES));
   GAUGER ("UTIL", "Cryptographic hashing",
