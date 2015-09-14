@@ -70,17 +70,6 @@
 
 
 /**
- * URL parameter to create a GNUid token for a specific audience
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_CREATE_TOKEN "create_token_for"
-
-/**
- * Attribute containing the GNUid token if
- * GNUNET_REST_JSONAPI_IDENTITY_CREATE_TOKEN was requested
- */
-#define GNUNET_REST_JSONAPI_IDENTITY_GNUID "gnuid_token"
-
-/**
  * Error messages
  */
 #define GNUNET_REST_ERROR_RESOURCE_INVALID "Resource location invalid"
@@ -291,95 +280,6 @@ do_error (void *cls,
   GNUNET_free (json_error);
 }
 
-/**
- * Build a GNUid token for identity
- * @param handle the handle
- * @param ego_entry the ego to build the token for
- * @param name name of the ego
- * @param token_aud token audience
- * @param token the resulting gnuid token
- */
-static void
-make_gnuid_token (struct RequestHandle *handle,
-                  struct EgoEntry *ego_entry,
-                  const char *name,
-                  const char *token_aud,
-                  char **token)
-{
-  uint64_t time;
-  uint64_t lbl;
-  char *header_str;
-  char *payload_str;
-  char *header_base64;
-  char *payload_base64;
-  char *sig_str;
-  char *lbl_str;
-  json_t *header;
-  json_t *payload;
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
-  struct GNUNET_CRYPTO_EcdsaSignature sig;
-  struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
-
-  time = GNUNET_TIME_absolute_get().abs_value_us;
-  lbl = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
-  GNUNET_STRINGS_base64_encode ((char*)&lbl, sizeof (uint64_t), &lbl_str);
-
-  header = json_object ();
-  json_object_set_new (header, "alg", json_string ("ED512"));
-  json_object_set_new (header, "typ", json_string ("JWT"));
-  
-  payload = json_object ();
-  json_object_set_new (payload, "iss", json_string (ego_entry->keystring));
-  json_object_set_new (payload, "lbl", json_string (lbl_str));
-  json_object_set_new (payload, "sub", json_string (name));
-  json_object_set_new (payload, "nbf", json_integer (time));
-  json_object_set_new (payload, "iat", json_integer (time));
-  json_object_set_new (payload, "exp", json_integer (time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS));
-  json_object_set_new (payload, "aud", json_string (token_aud));
-  header_str = json_dumps (header, JSON_COMPACT);
-  GNUNET_STRINGS_base64_encode (header_str,
-                                strlen (header_str),
-                                &header_base64);
-  char* padding = strtok(header_base64, "=");
-  while (NULL != padding)
-    padding = strtok(NULL, "=");
-
-  payload_str = json_dumps (payload, JSON_COMPACT);
-  GNUNET_STRINGS_base64_encode (payload_str,
-                                strlen (payload_str),
-                                &payload_base64);
-  padding = strtok(payload_base64, "=");
-  while (NULL != padding)
-    padding = strtok(NULL, "=");
-
-  GNUNET_asprintf (token, "%s,%s", header_base64, payload_base64);
-  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
-  purpose = 
-    GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + 
-                   strlen (*token));
-  purpose->size = 
-    htonl (strlen (*token) + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
-  purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN);
-  memcpy (&purpose[1], *token, strlen (*token));
-  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (priv_key,
-                                             purpose,
-                                             &sig))
-    GNUNET_break(0);
-  GNUNET_free (*token);
-  sig_str = GNUNET_STRINGS_data_to_string_alloc (&sig,
-                                                 sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
-  GNUNET_asprintf (token, "%s.%s.%s",
-                   header_base64, payload_base64, sig_str);
-  GNUNET_free (sig_str);
-  GNUNET_free (header_str);
-  GNUNET_free (header_base64);
-  GNUNET_free (payload_str);
-  GNUNET_free (payload_base64);
-  GNUNET_free (purpose);
-  GNUNET_free (lbl_str);
-  json_decref (header);
-  json_decref (payload);
-}
 
 /**
  * Callback for IDENTITY_get()
@@ -454,8 +354,6 @@ ego_info_response (struct RestConnectionDataHandle *con,
   const char *egoname;
   char *result_str;
   char *subsys_val;
-  char *create_token_for;
-  char *token;
   char *keystring;
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
@@ -464,7 +362,6 @@ ego_info_response (struct RestConnectionDataHandle *con,
   struct JsonApiObject *json_object;
   struct JsonApiResource *json_resource;
   json_t *name_str;
-  json_t *token_str;
 
   if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url, GNUNET_REST_API_NS_IDENTITY))
   {
@@ -512,18 +409,6 @@ ego_info_response (struct RestConnectionDataHandle *con,
     }
   }
 
-  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_CREATE_TOKEN,
-                      strlen (GNUNET_REST_JSONAPI_IDENTITY_CREATE_TOKEN),
-                      &key);
-
-  //Token audience
-  create_token_for = NULL;
-  if ( GNUNET_YES ==
-       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                               &key) )
-    create_token_for = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                          &key);
-
   json_object = GNUNET_REST_jsonapi_object_new ();
 
   //Return all egos
@@ -541,20 +426,6 @@ ego_info_response (struct RestConnectionDataHandle *con,
                                            GNUNET_REST_JSONAPI_IDENTITY_NAME,
                                            name_str);
     json_decref (name_str);
-    if (NULL != create_token_for)
-    {
-      make_gnuid_token (handle,
-                        ego_entry,
-                        ego_entry->identifier,
-                        create_token_for,
-                        &token);
-      token_str = json_string (token);
-      GNUNET_free (token);
-      GNUNET_REST_jsonapi_resource_add_attr (json_resource,
-                                             GNUNET_REST_JSONAPI_IDENTITY_GNUID,
-                                             token_str);
-      json_decref (token_str);
-    }
     GNUNET_REST_jsonapi_object_resource_add (json_object, json_resource);
   }
   if (0 == GNUNET_REST_jsonapi_object_resource_count (json_object))
