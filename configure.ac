@@ -1602,6 +1602,7 @@ src/util/resolver.conf
 src/vpn/Makefile
 src/vpn/vpn.conf
 src/rest/Makefile
+src/identity-token/Makefile
 pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetats.pc
