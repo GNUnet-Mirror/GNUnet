@@ -57,6 +57,7 @@ else
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
+	$(REST_DIR) \
   hello \
   tun \
   block \
@@ -99,7 +100,6 @@ SUBDIRS = \
   fs \
   exit \
   pt \
-  $(REST_DIR) \
   integration-tests \
   $(EXP_DIR)
 

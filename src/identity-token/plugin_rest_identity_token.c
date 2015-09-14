@@ -553,11 +553,9 @@ issue_token_cont (struct RestConnectionDataHandle *con,
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Ego not found: %s\n", ego_val);
         resp = GNUNET_REST_create_json_response (NULL);
         handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
-        GNUNET_free (ego_val);
         cleanup_handle (handle);
         return;
       }
-      GNUNET_free (ego_val);
     }
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego to issue token for: %s\n", egoname);

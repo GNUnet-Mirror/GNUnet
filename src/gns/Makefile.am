@@ -232,6 +232,7 @@ libgnunet_plugin_rest_gns_la_SOURCES = \
   plugin_rest_gns.c
 libgnunet_plugin_rest_gns_la_LIBADD = \
   libgnunetgns.la \
+	$(top_builddir)/src/rest/libgnunetrest.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
