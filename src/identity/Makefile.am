@@ -20,8 +20,8 @@ pkgcfg_DATA = \
   identity.conf
 
 lib_LTLIBRARIES = \
-	libgnunetidentity.la
-#	libgnunet_plugin_gnsrecord_identity.la
+	libgnunetidentity.la \
+	libgnunet_plugin_gnsrecord_identity.la
 
 libgnunetidentity_la_SOURCES = \
   identity_api.c \
@@ -41,9 +41,9 @@ libexec_PROGRAMS = \
  gnunet-service-identity 
 
 if HAVE_REST
-bin_PROGRAMS += \
-								gnunet-identity-token
+lib_LTLIBRARIES += libgnunet_plugin_rest_identity.la
 endif
+
 
 gnunet_service_identity_SOURCES = \
  gnunet-service-identity.c         
@@ -61,19 +61,22 @@ libgnunet_plugin_gnsrecord_identity_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 
+libgnunet_plugin_rest_identity_la_SOURCES = \
+  plugin_rest_identity.c
+libgnunet_plugin_rest_identity_la_LIBADD = \
+	libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_identity_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
+
 gnunet_identity_SOURCES = \
  gnunet-identity.c         
 gnunet_identity_LDADD = \
   libgnunetidentity.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_LIBINTL)
-
-gnunet_identity_token_SOURCES = \
- check_token.c         
-gnunet_identity_token_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  -ljansson -lmicrohttpd \
   $(GN_LIBINTL)
 
 if HAVE_TESTING

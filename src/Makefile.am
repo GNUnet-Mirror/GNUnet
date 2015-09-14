@@ -21,6 +21,7 @@ if HAVE_EXPERIMENTAL
   psyc \
   rps \
   social \
+	identity-token \
   $(CONSENSUS) \
   $(SECRETSHARING) \
   $(SENSOR) \

@@ -81,6 +81,11 @@ endif
 lib_LTLIBRARIES = \
   libgnunetnamestore.la
 
+if HAVE_REST
+lib_LTLIBRARIES += libgnunet_plugin_rest_namestore.la
+endif
+
+
 libgnunetnamestore_la_SOURCES = \
   namestore_api.c \
   namestore_api_monitor.c \
@@ -176,6 +181,17 @@ libgnunet_plugin_namestore_postgres_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_namestore_postgres_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
+
+libgnunet_plugin_rest_namestore_la_SOURCES = \
+  plugin_rest_namestore.c
+libgnunet_plugin_rest_namestore_la_LIBADD = \
+  libgnunetnamestore.la \
+	$(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_namestore_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+
 
 test_namestore_api_store_SOURCES = \
  test_namestore_api_store.c

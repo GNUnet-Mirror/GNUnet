@@ -51,6 +51,9 @@ lib_LTLIBRARIES = \
   $(DO_W32_NSP) \
   libgnunetgns.la
 
+if HAVE_REST
+lib_LTLIBRARIES += libgnunet_plugin_rest_gns.la
+endif
 
 if HAVE_MHD
 if HAVE_GNUTLS
@@ -90,6 +93,7 @@ bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 plugin_LTLIBRARIES = \
   libgnunet_plugin_block_gns.la \
   libgnunet_plugin_gnsrecord_gns.la
+
 
 libgnunet_plugin_gnsrecord_gns_la_SOURCES = \
   plugin_gnsrecord_gns.c
@@ -222,6 +226,16 @@ libgnunet_plugin_block_gns_la_LIBADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la
 libgnunet_plugin_block_gns_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
+
+libgnunet_plugin_rest_gns_la_SOURCES = \
+  plugin_rest_gns.c
+libgnunet_plugin_rest_gns_la_LIBADD = \
+  libgnunetgns.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL) -ljansson -lmicrohttpd
+libgnunet_plugin_rest_gns_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
 
 
 check_SCRIPTS = \
