@@ -27,6 +27,8 @@
 #include "platform.h"
 #include "gnunet_rest_plugin.h"
 #include "gnunet_identity_service.h"
+#include "gnunet_gnsrecord_lib.h"
+#include "gnunet_namestore_service.h"
 #include "gnunet_rest_lib.h"
 #include "microhttpd.h"
 #include <jansson.h>
@@ -148,6 +150,11 @@ struct RequestHandle
   struct EgoEntry *ego_tail;
 
   /**
+   * Selected ego
+   */
+  struct EgoEntry *ego_entry;
+
+  /**
    * Handle to the rest connection
    */
   struct RestConnectionDataHandle *conndata_handle;
@@ -158,7 +165,7 @@ struct RequestHandle
   int state;
 
   /**
-   * Handle to GNS service.
+   * Handle to Identity service.
    */
   struct GNUNET_IDENTITY_Handle *identity_handle;
 
@@ -166,6 +173,16 @@ struct RequestHandle
    * IDENTITY Operation
    */
   struct GNUNET_IDENTITY_Operation *op;
+
+  /**
+   * Handle to NS service
+   */
+  struct GNUNET_NAMESTORE_Handle *ns_handle;
+
+  /**
+   * NS iterator
+   */
+  struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
 
   /**
    * Desired timeout for the lookup (default is no timeout).
@@ -217,6 +234,16 @@ struct RequestHandle
    */
   char *emsg;
 
+  /**
+   * JSON header
+   */
+  json_t *header;
+
+  /**
+   * JSON payload
+   */
+  json_t *payload;
+
 };
 
 
@@ -237,6 +264,11 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
   if (NULL != handle->identity_handle)
     GNUNET_IDENTITY_disconnect (handle->identity_handle);
+  if (NULL != handle->ns_it)
+    GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
+  if (NULL != handle->ns_handle)
+    GNUNET_NAMESTORE_disconnect (handle->ns_handle);
+
   if (NULL != handle->url)
     GNUNET_free (handle->url);
   if (NULL != handle->emsg)
@@ -287,44 +319,41 @@ do_error (void *cls,
  * @param token the resulting gnuid token
  * @return identifier string of token (label)
  */
-static char*
-make_gnuid_token (struct RequestHandle *handle,
-                  struct EgoEntry *ego_entry,
-                  const char *name,
-                  const char *token_aud,
-                  char **token)
+static void
+sign_and_return_token (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  uint64_t time;
-  uint64_t lbl;
   char *header_str;
   char *payload_str;
   char *header_base64;
   char *payload_base64;
   char *sig_str;
   char *lbl_str;
-  json_t *header;
-  json_t *payload;
+  char *result_str;
+  char *token;
+  uint64_t time;
+  uint64_t lbl;
+  json_t *token_str;
+  json_t *name_str;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct GNUNET_CRYPTO_EcdsaSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
+  struct MHD_Response *resp;
+  struct JsonApiResource *json_resource;
+  struct JsonApiObject *json_obj;
+  struct RequestHandle *handle = cls;
 
   time = GNUNET_TIME_absolute_get().abs_value_us;
   lbl = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   GNUNET_STRINGS_base64_encode ((char*)&lbl, sizeof (uint64_t), &lbl_str);
 
-  header = json_object ();
-  json_object_set_new (header, "alg", json_string ("ED512"));
-  json_object_set_new (header, "typ", json_string ("JWT"));
-  
-  payload = json_object ();
-  json_object_set_new (payload, "iss", json_string (ego_entry->keystring));
-  json_object_set_new (payload, "lbl", json_string (lbl_str));
-  json_object_set_new (payload, "sub", json_string (name));
-  json_object_set_new (payload, "nbf", json_integer (time));
-  json_object_set_new (payload, "iat", json_integer (time));
-  json_object_set_new (payload, "exp", json_integer (time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS));
-  json_object_set_new (payload, "aud", json_string (token_aud));
-  header_str = json_dumps (header, JSON_COMPACT);
+  json_object_set_new (handle->payload, "lbl", json_string (lbl_str));
+  json_object_set_new (handle->payload, "sub", json_string (handle->ego_entry->identifier));
+  json_object_set_new (handle->payload, "nbf", json_integer (time));
+  json_object_set_new (handle->payload, "iat", json_integer (time));
+  json_object_set_new (handle->payload, "exp", json_integer (time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS));
+
+  header_str = json_dumps (handle->header, JSON_COMPACT);
   GNUNET_STRINGS_base64_encode (header_str,
                                 strlen (header_str),
                                 &header_base64);
@@ -332,7 +361,7 @@ make_gnuid_token (struct RequestHandle *handle,
   while (NULL != padding)
     padding = strtok(NULL, "=");
 
-  payload_str = json_dumps (payload, JSON_COMPACT);
+  payload_str = json_dumps (handle->payload, JSON_COMPACT);
   GNUNET_STRINGS_base64_encode (payload_str,
                                 strlen (payload_str),
                                 &payload_base64);
@@ -340,23 +369,23 @@ make_gnuid_token (struct RequestHandle *handle,
   while (NULL != padding)
     padding = strtok(NULL, "=");
 
-  GNUNET_asprintf (token, "%s,%s", header_base64, payload_base64);
-  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  GNUNET_asprintf (&token, "%s,%s", header_base64, payload_base64);
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_entry->ego);
   purpose = 
     GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + 
-                   strlen (*token));
+                   strlen (token));
   purpose->size = 
-    htonl (strlen (*token) + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
+    htonl (strlen (token) + sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose));
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN);
-  memcpy (&purpose[1], *token, strlen (*token));
+  memcpy (&purpose[1], token, strlen (token));
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (priv_key,
                                              purpose,
                                              &sig))
     GNUNET_break(0);
-  GNUNET_free (*token);
+  GNUNET_free (token);
   sig_str = GNUNET_STRINGS_data_to_string_alloc (&sig,
                                                  sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
-  GNUNET_asprintf (token, "%s.%s.%s",
+  GNUNET_asprintf (&token, "%s.%s.%s",
                    header_base64, payload_base64, sig_str);
   GNUNET_free (sig_str);
   GNUNET_free (header_str);
@@ -364,10 +393,105 @@ make_gnuid_token (struct RequestHandle *handle,
   GNUNET_free (payload_str);
   GNUNET_free (payload_base64);
   GNUNET_free (purpose);
-  json_decref (header);
-  json_decref (payload);
-  return lbl_str;
+  json_decref (handle->header);
+  json_decref (handle->payload);
+
+  json_obj = GNUNET_REST_jsonapi_object_new ();
+
+  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
+                                                    lbl_str);
+  GNUNET_free (lbl_str);
+  name_str = json_string (handle->ego_entry->identifier);
+  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+                                         GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
+                                         name_str);
+  json_decref (name_str);
+
+
+
+  token_str = json_string (token);
+  GNUNET_free (token);
+  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+                                         GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
+                                         token_str);
+  json_decref (token_str);
+  GNUNET_REST_jsonapi_object_resource_add (json_obj, json_resource);
+  GNUNET_REST_jsonapi_data_serialize (json_obj, &result_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
+  resp = GNUNET_REST_create_json_response (result_str);
+  GNUNET_REST_jsonapi_object_delete (json_obj);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (result_str);
+  cleanup_handle (handle);
 }
+
+
+static void
+attr_collect (void *cls,
+              const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+              const char *label,
+              unsigned int rd_count,
+              const struct GNUNET_GNSRECORD_Data *rd)
+{
+  int i;
+  char* data;
+  json_t *attr_arr;
+  struct RequestHandle *handle = cls;
+
+  if (NULL == label)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute END: \n");
+    handle->ns_it = NULL;
+    GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute: %s\n", label);
+
+  if (0 == rd_count)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
+    return;
+  }
+
+  if (1 == rd_count)
+  {
+    if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
+    {
+      data = GNUNET_GNSRECORD_value_to_string (rd->record_type,
+                                               rd->data,
+                                               rd->data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding value: %s\n", data);
+      json_object_set_new (handle->payload, label, json_string (data));
+      GNUNET_free (data);
+    }
+    GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
+    return;
+  }
+
+  i = 0;
+  attr_arr = json_array();
+  for (; i < rd_count; i++)
+  {
+    if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
+    {
+      data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                               rd[i].data,
+                                               rd[i].data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding value: %s\n", data);
+      json_array_append_new (attr_arr, json_string (data));
+      GNUNET_free (data);
+    }
+  }
+
+  if (0 < json_array_size (attr_arr))
+  {
+    json_object_set (handle->payload, label, attr_arr);
+  }
+  json_decref (attr_arr);
+  GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
+}
+
 
 /**
  * Create a response with requested ego(s)
@@ -378,23 +502,17 @@ make_gnuid_token (struct RequestHandle *handle,
  */
 static void
 issue_token_cont (struct RestConnectionDataHandle *con,
-                   const char *url,
-                   void *cls)
+                  const char *url,
+                  void *cls)
 {
   const char *egoname;
-  char *result_str;
-  char *res_id;
   char *ego_val;
-  char *token;
   char *audience;
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
   struct MHD_Response *resp;
-  struct JsonApiObject *json_object;
-  struct JsonApiResource *json_resource;
-  json_t *name_str;
-  json_t *token_str;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
 
   if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url,
                                                 GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE))
@@ -405,7 +523,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
     cleanup_handle (handle);
     return;
   }
-  
+
   egoname = NULL;
   ego_entry = NULL;
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
@@ -446,7 +564,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST,
                       strlen (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST),
                       &key);
-  
+
   //Token audience
   audience = NULL;
   if ( GNUNET_YES !=
@@ -462,38 +580,28 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   audience = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                 &key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Audience to issue token for: %s\n", audience);
-  json_object = GNUNET_REST_jsonapi_object_new ();
+  handle->header = json_object ();
+  json_object_set_new (handle->header, "alg", json_string ("ED512"));
+  json_object_set_new (handle->header, "typ", json_string ("JWT"));
 
-  //create token
-  res_id = make_gnuid_token (handle,
-                             ego_entry,
-                             ego_entry->identifier,
-                             audience,
-                             &token);
-  token_str = json_string (token);
-  json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
-                                                    res_id);
-  GNUNET_free (res_id);
-  name_str = json_string (ego_entry->identifier);
-  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
-                                         GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
-                                         name_str);
-  json_decref (name_str);
+  handle->payload = json_object ();
+  json_object_set_new (handle->payload, "iss", json_string (ego_entry->keystring));
+  json_object_set_new (handle->payload, "aud", json_string (audience));
 
-  GNUNET_free (token);
-  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
-                                         GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
-                                         token_str);
-  json_decref (token_str);
-  GNUNET_REST_jsonapi_object_resource_add (json_object, json_resource);
-  GNUNET_REST_jsonapi_data_serialize (json_object, &result_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_json_response (result_str);
-  GNUNET_REST_jsonapi_object_delete (json_object);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_free (result_str);
-  cleanup_handle (handle);
+
+  //Get identity attributes
+  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  handle->ego_entry = ego_entry;
+  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
+                                                         priv_key,
+                                                         &attr_collect,
+                                                         handle);
 }
+
+
+
+
 
 /**
  * Respond to OPTIONS request
