@@ -399,6 +399,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   if (GNUNET_NO == GNUNET_REST_namespace_match (handle->url,
                                                 GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "URL invalid: %s\n", handle->url);
     resp = GNUNET_REST_create_json_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
     cleanup_handle (handle);
@@ -406,6 +407,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   }
   
   egoname = NULL;
+  ego_entry = NULL;
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
                       strlen (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST),
                       &key);
@@ -415,53 +417,59 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   {
     ego_val = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                  &key);
+    if (NULL == ego_val)
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Ego invalid: %s\n", ego_val);
     if (NULL != ego_val)
     {
       for (ego_entry = handle->ego_head;
            NULL != ego_entry;
            ego_entry = ego_entry->next)
       {
-        if (0 != strcmp (ego_val, ego_entry->keystring))
+        if (0 != strcmp (ego_val, ego_entry->identifier))
           continue;
         egoname = ego_entry->identifier;
+        break;
+      }
+      if (NULL == egoname || NULL == ego_entry)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Ego not found: %s\n", ego_val);
+        resp = GNUNET_REST_create_json_response (NULL);
+        handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
+        GNUNET_free (ego_val);
+        cleanup_handle (handle);
+        return;
       }
       GNUNET_free (ego_val);
     }
-    if (NULL == egoname)
-    {
-      resp = GNUNET_REST_create_json_response (NULL);
-      handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
-      cleanup_handle (handle);
-      return;
-    }
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ego to issue token for: %s\n", egoname);
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST,
                       strlen (GNUNET_REST_JSONAPI_IDENTITY_AUD_REQUEST),
                       &key);
-
+  
   //Token audience
   audience = NULL;
   if ( GNUNET_YES !=
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Audience missing!\n");
     resp = GNUNET_REST_create_json_response (NULL);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
     cleanup_handle (handle);
     return;
   }
   audience = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                        &key);
-
+                                                &key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Audience to issue token for: %s\n", audience);
   json_object = GNUNET_REST_jsonapi_object_new ();
 
   //create token
-    res_id = make_gnuid_token (handle,
-                    ego_entry,
-                    ego_entry->identifier,
-                    audience,
-                    &token);
+  res_id = make_gnuid_token (handle,
+                             ego_entry,
+                             ego_entry->identifier,
+                             audience,
+                             &token);
   token_str = json_string (token);
   json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
                                                     res_id);
