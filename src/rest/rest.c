@@ -305,10 +305,10 @@ GNUNET_REST_jsonapi_object_delete (struct JsonApiObject *resp)
   for (res = resp->res_list_head; 
        res != NULL;)
   {
+    res_next = res->next;
     GNUNET_CONTAINER_DLL_remove (resp->res_list_head,
                                  resp->res_list_tail,
                                  res);
-    res_next = res->next;
     GNUNET_REST_jsonapi_resource_delete (res);
     res = res_next;
   }

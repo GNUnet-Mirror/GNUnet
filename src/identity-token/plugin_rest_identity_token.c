@@ -244,6 +244,12 @@ struct RequestHandle
    */
   json_t *payload;
 
+  /**
+   * Response object
+   */
+  struct JsonApiObject *resp_object;
+
+
 };
 
 
@@ -258,6 +264,8 @@ cleanup_handle (struct RequestHandle *handle)
   struct EgoEntry *ego_tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
+  if (NULL != handle->resp_object) 
+    GNUNET_REST_jsonapi_object_delete (handle->resp_object);
   if (NULL != handle->name)
     GNUNET_free (handle->name);
   if (NULL != handle->timeout_task)
@@ -340,7 +348,6 @@ sign_and_return_token (void *cls,
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct MHD_Response *resp;
   struct JsonApiResource *json_resource;
-  struct JsonApiObject *json_obj;
   struct RequestHandle *handle = cls;
 
   time = GNUNET_TIME_absolute_get().abs_value_us;
@@ -396,7 +403,7 @@ sign_and_return_token (void *cls,
   json_decref (handle->header);
   json_decref (handle->payload);
 
-  json_obj = GNUNET_REST_jsonapi_object_new ();
+  handle->resp_object = GNUNET_REST_jsonapi_object_new ();
 
   json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
                                                     lbl_str);
@@ -415,11 +422,10 @@ sign_and_return_token (void *cls,
                                          GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
                                          token_str);
   json_decref (token_str);
-  GNUNET_REST_jsonapi_object_resource_add (json_obj, json_resource);
-  GNUNET_REST_jsonapi_data_serialize (json_obj, &result_str);
+  GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
+  GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
-  GNUNET_REST_jsonapi_object_delete (json_obj);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
   cleanup_handle (handle);
@@ -598,7 +604,171 @@ issue_token_cont (struct RestConnectionDataHandle *con,
 }
 
 
+/**
+ * Build a GNUid token for identity
+ * @param handle the handle
+ * @param ego_entry the ego to build the token for
+ * @param name name of the ego
+ * @param token_aud token audience
+ * @param token the resulting gnuid token
+ * @return identifier string of token (label)
+ */
+static void
+return_token_list (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  char* result_str;
+  struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
 
+  GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
+  resp = GNUNET_REST_create_json_response (result_str);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (result_str);
+  cleanup_handle (handle);
+}
+
+/**
+ * Collect all tokens for ego
+ */
+static void
+token_collect (void *cls,
+               const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+               const char *label,
+               unsigned int rd_count,
+               const struct GNUNET_GNSRECORD_Data *rd)
+{
+  int i;
+  char* data;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_tmp;
+  struct JsonApiResource *json_resource;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  json_t *issuer;
+  json_t *token;
+
+  if (NULL == label)
+  {
+    ego_tmp = handle->ego_head;
+    GNUNET_CONTAINER_DLL_remove (handle->ego_head,
+                                 handle->ego_tail,
+                                 ego_tmp);
+    GNUNET_free (ego_tmp->identifier);
+    GNUNET_free (ego_tmp->keystring);
+    GNUNET_free (ego_tmp);
+
+    if (NULL == handle->ego_head)
+    {
+      //Done
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding token END\n");
+      handle->ns_it = NULL;
+      GNUNET_SCHEDULER_add_now (&return_token_list, handle);
+      return;
+    }
+
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Next ego: %s\n", handle->ego_head->identifier);
+    priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
+    handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
+                                                           priv_key,
+                                                           &token_collect,
+                                                           handle);
+    return;
+  }
+
+  for (i = 0; i < rd_count; i++)
+  {
+    if (rd[i].record_type == GNUNET_GNSRECORD_TYPE_ID_TOKEN)
+    {
+      data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                               rd[i].data,
+                                               rd[i].data_size);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding token: %s\n", data);
+      json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
+                                                        label);
+      issuer = json_string (handle->ego_head->identifier);
+      GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+                                             GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
+                                             issuer);
+      json_decref (issuer);
+      token = json_string (data);
+      GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+                                             GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
+                                             token);
+      json_decref (token);
+
+      GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
+      GNUNET_free (data);
+    }
+  }
+
+  GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
+}
+
+
+
+/**
+ * Respond to OPTIONS request
+ *
+ * @param con_handle the connection handle
+ * @param url the url
+ * @param cls the RequestHandle
+ */
+static void
+list_token_cont (struct RestConnectionDataHandle *con_handle,
+                 const char* url,
+                 void *cls)
+{
+  char* ego_val;
+  struct GNUNET_HashCode key;
+  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct RequestHandle *handle = cls;
+  struct EgoEntry *ego_entry;
+  struct EgoEntry *ego_tmp;
+
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
+                      strlen (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST),
+                      &key);
+
+  if ( GNUNET_YES ==
+       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                               &key) )
+  {
+    ego_val = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                 &key);
+    //Remove non-matching egos
+    for (ego_entry = handle->ego_head;
+         NULL != ego_entry;)
+    {
+      ego_tmp = ego_entry;
+      ego_entry = ego_entry->next;
+      if (0 != strcmp (ego_val, ego_tmp->identifier))
+      {
+        GNUNET_CONTAINER_DLL_remove (handle->ego_head,
+                                     handle->ego_tail,
+                                     ego_tmp);
+        GNUNET_free (ego_tmp->identifier);
+        GNUNET_free (ego_tmp->keystring);
+        GNUNET_free (ego_tmp);
+      }
+    }
+  }
+  handle->resp_object = GNUNET_REST_jsonapi_object_new ();
+  if (NULL == handle->ego_head)
+  {
+    //Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "No results.\n");
+    GNUNET_SCHEDULER_add_now (&return_token_list, handle);
+    return;
+  }
+  priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
+  handle->ns_handle = GNUNET_NAMESTORE_connect (cfg);
+  handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
+                                                         priv_key,
+                                                         &token_collect,
+                                                         handle);
+
+}
 
 
 /**
@@ -637,6 +807,7 @@ init_cont (struct RequestHandle *handle)
   static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TOKEN_ISSUE, &issue_token_cont},
     //{MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_IDENTITY_TOKEN_CHECK, &check_token_cont},
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_IDENTITY_TOKEN, &list_token_cont},
     {MHD_HTTP_METHOD_OPTIONS, GNUNET_REST_API_NS_IDENTITY_TOKEN, &options_cont},
     GNUNET_REST_HANDLER_END
   };
@@ -746,7 +917,6 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
   handle->identity_handle = GNUNET_IDENTITY_connect (cfg,
                                                      &list_ego,
                                                      handle);
-  GNUNET_strdup ("Timeout");
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                   &do_error,
