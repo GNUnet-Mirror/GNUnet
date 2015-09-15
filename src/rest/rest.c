@@ -435,14 +435,7 @@ GNUNET_REST_jsonapi_data_serialize (const struct JsonApiObject *resp,
 int
 GNUNET_REST_namespace_match (const char *url, const char *namespace)
 {
-  if (0 != strncmp (namespace, url, strlen (namespace)))
-    return GNUNET_NO;
-
-  if ((strlen (namespace) < strlen (url)) &&
-      (url[strlen (namespace)] != '/'))
-    return GNUNET_NO;
-
-  return GNUNET_YES;
+  return 0 == strncmp (namespace, url, strlen (namespace));
 }
 
 /**

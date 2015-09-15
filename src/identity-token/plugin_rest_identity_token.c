@@ -185,6 +185,11 @@ struct RequestHandle
   struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
 
   /**
+   * NS Handle
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
+
+  /**
    * Desired timeout for the lookup (default is no timeout).
    */
   struct GNUNET_TIME_Relative timeout;
@@ -274,6 +279,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_IDENTITY_disconnect (handle->identity_handle);
   if (NULL != handle->ns_it)
     GNUNET_NAMESTORE_zone_iteration_stop (handle->ns_it);
+  if (NULL != handle->ns_qe)
+    GNUNET_NAMESTORE_cancel (handle->ns_qe);
   if (NULL != handle->ns_handle)
     GNUNET_NAMESTORE_disconnect (handle->ns_handle);
 
@@ -319,6 +326,44 @@ do_error (void *cls,
 }
 
 /**
+ * Task run on shutdown.  Cleans up everything.
+ *
+ * @param cls unused
+ * @param tc scheduler context
+ */
+static void
+do_cleanup_handle_delayed (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct RequestHandle *handle = cls;
+  cleanup_handle(handle);
+}
+
+void
+store_token_cont (void *cls,
+                  int32_t success,
+                  const char *emsg)
+{
+  char *result_str;
+  struct MHD_Response *resp;
+  struct RequestHandle *handle = cls;
+  
+  handle->ns_qe = NULL;
+  if (GNUNET_SYSERR == success)
+  {
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
+  resp = GNUNET_REST_create_json_response (result_str);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (result_str);
+  GNUNET_SCHEDULER_add_now (&do_cleanup_handle_delayed, handle);
+}
+
+
+/**
  * Build a GNUid token for identity
  * @param handle the handle
  * @param ego_entry the ego to build the token for
@@ -337,7 +382,6 @@ sign_and_return_token (void *cls,
   char *payload_base64;
   char *sig_str;
   char *lbl_str;
-  char *result_str;
   char *token;
   uint64_t time;
   uint64_t lbl;
@@ -346,9 +390,9 @@ sign_and_return_token (void *cls,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct GNUNET_CRYPTO_EcdsaSignature sig;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
-  struct MHD_Response *resp;
   struct JsonApiResource *json_resource;
   struct RequestHandle *handle = cls;
+  struct GNUNET_GNSRECORD_Data token_record;
 
   time = GNUNET_TIME_absolute_get().abs_value_us;
   lbl = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
@@ -407,7 +451,6 @@ sign_and_return_token (void *cls,
 
   json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
                                                     lbl_str);
-  GNUNET_free (lbl_str);
   name_str = json_string (handle->ego_entry->identifier);
   GNUNET_REST_jsonapi_resource_add_attr (json_resource,
                                          GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
@@ -417,19 +460,30 @@ sign_and_return_token (void *cls,
 
 
   token_str = json_string (token);
-  GNUNET_free (token);
   GNUNET_REST_jsonapi_resource_add_attr (json_resource,
                                          GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
                                          token_str);
-  json_decref (token_str);
   GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
-  GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
-  resp = GNUNET_REST_create_json_response (result_str);
-  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
-  GNUNET_free (result_str);
-  cleanup_handle (handle);
+  token_record.data = token;
+  token_record.data_size = strlen (token);
+  token_record.expiration_time = time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS;
+  token_record.record_type = GNUNET_GNSRECORD_TYPE_ID_TOKEN;
+  token_record.flags = GNUNET_GNSRECORD_RF_NONE;
+  //Persist token
+  handle->ns_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
+                                                  priv_key,
+                                                  lbl_str,
+                                                  1,
+                                                  &token_record,
+                                                  &store_token_cont,
+                                                  handle);
+  GNUNET_free (lbl_str);
+  GNUNET_free (token);
+  json_decref (token_str);
 }
+
+
+
 
 
 static void
