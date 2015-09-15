@@ -882,7 +882,6 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
   handle->identity_handle = GNUNET_IDENTITY_connect (cfg,
                                                      &list_ego,
                                                      handle);
-  GNUNET_strdup ("Timeout");
   handle->timeout_task =
     GNUNET_SCHEDULER_add_delayed (handle->timeout,
                                   &do_error,

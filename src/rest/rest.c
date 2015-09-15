@@ -407,26 +407,17 @@ GNUNET_REST_jsonapi_data_serialize (const struct JsonApiObject *resp,
     return GNUNET_SYSERR;
 
   root_json = json_object ();
-  if (0 == resp->res_count)
+  res_arr = json_array ();
+  for (res = resp->res_list_head; 
+       res != NULL;
+       res = res->next)
   {
-    json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, json_array());
+    json_array_append (res_arr, res->res_obj);
   }
-  else if (1 == resp->res_count)
-  {
-    json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, resp->res_list_head->res_obj);
-  }
-  else
-  {
-    res_arr = json_array ();
-    for (res = resp->res_list_head; 
-         res != NULL;
-         res = res->next)
-    {
-      json_array_append (res_arr, res->res_obj);
-    }
-    json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, res_arr);
-  }
+  json_object_set (root_json, GNUNET_REST_JSONAPI_KEY_DATA, res_arr);
   *result = json_dumps (root_json, JSON_INDENT(2));
+  json_decref (root_json);
+  json_decref (res_arr);
   return GNUNET_OK;
 }
 
@@ -434,13 +425,13 @@ GNUNET_REST_jsonapi_data_serialize (const struct JsonApiObject *resp,
  * REST Utilities
  */
 
-/**
- * Check if namespace is in URL.
- *
- * @param url URL to check
- * @param namespace namespace to check against
- * @retun GNUNET_YES if namespace matches
- */
+  /**
+   * Check if namespace is in URL.
+   *
+   * @param url URL to check
+   * @param namespace namespace to check against
+   * @retun GNUNET_YES if namespace matches
+   */
 int
 GNUNET_REST_namespace_match (const char *url, const char *namespace)
 {

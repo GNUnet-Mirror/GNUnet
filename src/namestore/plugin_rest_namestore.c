@@ -234,6 +234,8 @@ cleanup_handle (struct RequestHandle *handle)
   int i;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
+  if (NULL != handle->resp_object)
+    GNUNET_REST_jsonapi_object_delete (handle->resp_object);
   if (NULL != handle->name)
     GNUNET_free (handle->name);
   if (NULL != handle->timeout_task)
@@ -384,7 +386,6 @@ namestore_list_response (void *cls,
       GNUNET_SCHEDULER_add_now (&do_error, handle);
       return;
     }
-    GNUNET_REST_jsonapi_object_delete (handle->resp_object);
     resp = GNUNET_REST_create_json_response (result);
     handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
     GNUNET_free (result);
