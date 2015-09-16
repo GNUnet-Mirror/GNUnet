@@ -75,6 +75,10 @@
  */
 #define GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST "issuer"
 
+/**
+ * Attributes passed to issue request
+ */
+#define GNUNET_IDENTITY_TOKEN_ATTR_LIST "requested_attrs"
 
 /**
  * Error messages
@@ -254,6 +258,11 @@ struct RequestHandle
    */
   struct JsonApiObject *resp_object;
 
+  /**
+   * ID Attribute list given
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *attr_map;
+
 
 };
 
@@ -283,6 +292,8 @@ cleanup_handle (struct RequestHandle *handle)
     GNUNET_NAMESTORE_cancel (handle->ns_qe);
   if (NULL != handle->ns_handle)
     GNUNET_NAMESTORE_disconnect (handle->ns_handle);
+  if (NULL != handle->attr_map)
+    GNUNET_CONTAINER_multihashmap_destroy (handle->attr_map);
 
   if (NULL != handle->url)
     GNUNET_free (handle->url);
@@ -497,6 +508,7 @@ attr_collect (void *cls,
   char* data;
   json_t *attr_arr;
   struct RequestHandle *handle = cls;
+  struct GNUNET_HashCode key;
 
   if (NULL == label)
   {
@@ -506,13 +518,22 @@ attr_collect (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute: %s\n", label);
+  GNUNET_CRYPTO_hash (label,
+                      strlen (label),
+                      &key);
 
-  if (0 == rd_count)
+  if (0 == rd_count ||
+      ( (NULL != handle->attr_map) &&
+        (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (handle->attr_map,
+                                                               &key))
+      )
+     )
   {
     GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute: %s\n", label);
 
   if (1 == rd_count)
   {
@@ -951,8 +972,14 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
                               void *proc_cls)
 {
   struct RequestHandle *handle = GNUNET_new (struct RequestHandle);
+  struct GNUNET_HashCode key;
+  char* attr_list;
+  char* attr_list_tmp;
+  char* attr;
 
-
+  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_ATTR_LIST,
+                      strlen (GNUNET_IDENTITY_TOKEN_ATTR_LIST),
+                      &key);
 
   handle->timeout = GNUNET_TIME_UNIT_FOREVER_REL;
 
@@ -963,6 +990,32 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
   handle->data = conndata_handle->data;
   handle->data_size = conndata_handle->data_size;
   handle->method = conndata_handle->method;
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                                            &key))
+  {
+    handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
+                                                             GNUNET_NO);
+    attr_list = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                   &key);
+    if (NULL != attr_list)
+    {
+      attr_list_tmp = GNUNET_strdup (attr_list);
+      attr = strtok(attr_list_tmp, ",");
+      for (; NULL != attr; attr = strtok (NULL, ","))
+      {
+        GNUNET_CRYPTO_hash (attr,
+                            strlen (attr),
+                            &key);
+        GNUNET_CONTAINER_multihashmap_put (handle->attr_map,
+                                           &key,
+                                           attr,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+      }
+      GNUNET_free (attr_list_tmp);
+    }
+  }
+
+
   GNUNET_asprintf (&handle->url, "%s", conndata_handle->url);
   if (handle->url[strlen (handle->url)-1] == '/')
     handle->url[strlen (handle->url)-1] = '\0';
