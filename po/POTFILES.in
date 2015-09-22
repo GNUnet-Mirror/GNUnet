@@ -211,6 +211,7 @@ src/mysql/mysql.c
 src/namecache/gnunet-namecache.c
 src/namecache/gnunet-service-namecache.c
 src/namecache/namecache_api.c
+src/namecache/plugin_namecache_flat.c
 src/namecache/plugin_namecache_postgres.c
 src/namecache/plugin_namecache_sqlite.c
 src/namestore/gnunet-namestore.c
@@ -218,6 +219,7 @@ src/namestore/gnunet-namestore-fcfsd.c
 src/namestore/gnunet-service-namestore.c
 src/namestore/namestore_api.c
 src/namestore/namestore_api_monitor.c
+src/namestore/plugin_namestore_flat.c
 src/namestore/plugin_namestore_postgres.c
 src/namestore/plugin_namestore_sqlite.c
 src/namestore/plugin_rest_namestore.c
@@ -225,6 +227,7 @@ src/nat/gnunet-helper-nat-client.c
 src/nat/gnunet-helper-nat-client-windows.c
 src/nat/gnunet-helper-nat-server.c
 src/nat/gnunet-helper-nat-server-windows.c
+src/nat/gnunet-nat.c
 src/nat/gnunet-nat-server.c
 src/nat/nat_auto.c
 src/nat/nat.c
@@ -281,6 +284,8 @@ src/rps/rps-test_util.c
 src/scalarproduct/gnunet-scalarproduct.c
 src/scalarproduct/gnunet-service-scalarproduct_alice.c
 src/scalarproduct/gnunet-service-scalarproduct_bob.c
+src/scalarproduct/gnunet-service-scalarproduct-ecc_alice.c
+src/scalarproduct/gnunet-service-scalarproduct-ecc_bob.c
 src/scalarproduct/scalarproduct_api.c
 src/secretsharing/gnunet-secretsharing-profiler.c
 src/secretsharing/gnunet-service-secretsharing.c

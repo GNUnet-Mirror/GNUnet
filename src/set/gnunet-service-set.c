@@ -339,7 +339,12 @@ is_element_of_generation (struct ElementEntry *ee,
 {
   struct MutationEvent *mut;
   int is_present;
+  unsigned int i;
 
+  /* If ee->mutations is NULL,
+     the element was added in generation 0,
+     and there are no removes, thus the element
+     is part of any generation we query. */
   if (NULL == ee->mutations)
     return GNUNET_YES;
 
@@ -349,20 +354,36 @@ is_element_of_generation (struct ElementEntry *ee,
     return GNUNET_NO;
   }
 
-  is_present = GNUNET_YES;
+  is_present = GNUNET_NO;
 
-  // Could be made faster with binary search, but lists
-  // are small, so why bother.
-  for (mut = ee->mutations; 0 != mut->generation; mut++)
+  /* Could be made faster with binary search, but lists
+     are small, so why bother. */
+  for (i = 0; i < ee->mutations_size; i++)
   {
-    if ( (mut->generation > query_generation) ||
-         (GNUNET_YES == is_excluded_generation (mut->generation, excluded, excluded_size)) )
+    mut = &ee->mutations[i];
+
+    if (mut->generation > query_generation)
     {
+      /* The mutation doesn't apply to our generation
+         anymore.  We can'b break here, since mutations aren't
+         sorted by generation. */
       continue;
     }
 
-    // This would be an inconsistency in how we manage mutations.
+    if (GNUNET_YES == is_excluded_generation (mut->generation, excluded, excluded_size))
+    {
+      /* The generation is excluded (because it belongs to another
+         fork via a lazy copy) and thus mutations aren't considered
+         for membership testing. */
+      continue;
+    }
+
+    /* This would be an inconsistency in how we manage mutations. */
     if ( (GNUNET_YES == is_present) && (GNUNET_YES == mut->added) )
+      GNUNET_assert (0);
+
+    /* Likewise. */
+    if ( (GNUNET_NO == is_present) && (GNUNET_NO == mut->added) )
       GNUNET_assert (0);
 
     is_present = mut->added;
@@ -816,7 +837,9 @@ execute_add (struct Set *set,
     ee->mutations = NULL;
     ee->mutations_size = 0;
     ee->element_hash = hash;
-  } else if (GNUNET_YES == _GSS_is_element_of_set (ee, set)) {
+  }
+  else if (GNUNET_YES == _GSS_is_element_of_set (ee, set))
+  {
     /* same element inserted twice */
     GNUNET_break (0);
     return;
@@ -829,7 +852,6 @@ execute_add (struct Set *set,
       .added = GNUNET_YES
     };
     GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
-    ee->mutations_size += 1;
   }
 
   GNUNET_break (GNUNET_YES ==
@@ -888,7 +910,6 @@ execute_remove (struct Set *set,
       .added = GNUNET_NO
     };
     GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
-    ee->mutations_size += 1;
   }
   set->vt->remove (set->state, ee);
 }
@@ -1263,8 +1284,6 @@ advance_generation (struct Set *set)
   GNUNET_array_append (set->excluded_generations,
                        set->excluded_generations_size,
                        r);
-
-  set->excluded_generations_size += 1;
 }
 
 /**

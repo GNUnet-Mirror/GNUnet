@@ -323,6 +323,9 @@ struct ElementEntry
    */
   struct MutationEvent *mutations;
 
+  /**
+   * Number of elements in the array @a mutations.
+   */
   unsigned int mutations_size;
 
   /**

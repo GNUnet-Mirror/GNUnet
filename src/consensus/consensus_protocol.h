@@ -37,6 +37,9 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Sent as context message for set reconciliation.
+ *
+ * Essentially contains all the fields
+ * from 'struct TaskKey', but in NBO.
  */
 struct GNUNET_CONSENSUS_RoundContextMessage
 {
@@ -44,9 +47,44 @@ struct GNUNET_CONSENSUS_RoundContextMessage
    * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT
    */
   struct GNUNET_MessageHeader header;
-  uint32_t round;
-  uint32_t exp_repetition;
-  uint32_t exp_subround;
+
+  /**
+   * A value from 'enum PhaseKind'.
+   */
+  uint16_t kind;
+
+  /**
+   * Number of the first peer
+   * in canonical order.
+   */
+  int16_t peer1;
+
+  /**
+   * Number of the second peer in canonical order.
+   */
+  int16_t peer2;
+
+  /**
+   * Repetition of the gradecast phase.
+   */
+  int16_t repetition;
+
+  /**
+   * Leader in the gradecast phase.
+   *
+   * Can be different from both peer1 and peer2.
+   */
+  int16_t leader;
+
+  /**
+   * Non-zero if this set reconciliation
+   * had elements removed because they were contested.
+   *
+   * Will be considered when grading broadcasts.
+   *
+   * Ignored for set operations that are not within gradecasts.
+   */
+  uint16_t is_contested;
 };
 
 GNUNET_NETWORK_STRUCT_END
