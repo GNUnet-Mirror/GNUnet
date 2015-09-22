@@ -1003,7 +1003,12 @@ send_client_element (struct Operation *op,
     GNUNET_break (0);
     return;
   }
-  rm->result_status = htons (GNUNET_SET_STATUS_OK);
+
+  if (GNUNET_SET_RESULT_ADDED == op->spec->result_mode)
+    rm->result_status = htons (GNUNET_SET_STATUS_OK);
+  else if (GNUNET_SET_RESULT_SYMMETRIC == op->spec->result_mode)
+    rm->result_status = htons (GNUNET_SET_STATUS_ADD_LOCAL);
+
   rm->request_id = htonl (op->spec->client_request_id);
   rm->element_type = element->element_type;
   memcpy (&rm[1], element->data, element->size);
@@ -1167,7 +1172,7 @@ handle_p2p_elements (void *cls,
 
   op_register_element (op, ee);
   /* only send results immediately if the client wants it */
-  if (GNUNET_SET_RESULT_ADDED == op->spec->result_mode)
+  if (GNUNET_SET_RESULT_FULL != op->spec->result_mode)
     send_client_element (op, &ee->element);
 }
 

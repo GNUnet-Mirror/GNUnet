@@ -417,6 +417,8 @@ handle_result (void *cls,
     switch (result_status)
     {
     case GNUNET_SET_STATUS_OK:
+    case GNUNET_SET_STATUS_ADD_LOCAL:
+    case GNUNET_SET_STATUS_ADD_REMOTE:
       break;
     case GNUNET_SET_STATUS_FAILURE:
       oh->result_cb = NULL;

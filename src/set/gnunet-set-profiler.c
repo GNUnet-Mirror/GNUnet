@@ -150,7 +150,7 @@ set_listen_cb (void *cls,
   GNUNET_assert (NULL == info2.oh);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "set listen cb called\n");
-  info2.oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED,
+  info2.oh = GNUNET_SET_accept (request, GNUNET_SET_RESULT_SYMMETRIC,
                                set_result_cb, &info2);
   GNUNET_SET_commit (info2.oh, info2.set);
 }
@@ -273,7 +273,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                     &app_id, set_listen_cb, NULL);
 
   info1.oh = GNUNET_SET_prepare (&local_peer, &app_id, NULL,
-                                 GNUNET_SET_RESULT_ADDED,
+                                 GNUNET_SET_RESULT_SYMMETRIC,
                                  set_result_cb, &info1);
   GNUNET_SET_commit (info1.oh, info1.set);
   GNUNET_SET_destroy (info1.set);

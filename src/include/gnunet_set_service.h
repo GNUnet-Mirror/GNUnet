@@ -99,8 +99,31 @@ enum GNUNET_SET_Status
    * Everything went ok, we are transmitting an element of the
    * result (in set, or to be removed from set, depending on
    * the `enum GNUNET_SET_ResultMode`).
+   *
+   * Only applies to
+   * #GNUNET_SET_RESULT_FULL,
+   * #GNUNET_SET_RESULT_ADDED,
+   * #GNUNET_SET_RESULT_REMOVED,
    */
   GNUNET_SET_STATUS_OK,
+
+  /**
+   * Element should be added to the result set
+   * of the local peer, i.e. the local peer is
+   * missing an element.
+   *
+   * Only applies to #GNUNET_SET_RESULT_SYMMETRIC
+   */
+  GNUNET_SET_STATUS_ADD_LOCAL,
+
+  /**
+   * Element should be added to the result set
+   * of the remove peer, i.e. the remote peer is
+   * missing an element.
+   *
+   * Only applies to #GNUNET_SET_RESULT_SYMMETRIC
+   */
+  GNUNET_SET_STATUS_ADD_REMOTE,
 
   /**
    * The other peer refused to to the operation with us,
@@ -129,20 +152,32 @@ enum GNUNET_SET_ResultMode
 {
   /**
    * Client gets every element in the resulting set.
+   *
+   * Only supported for set intersection.
    */
   GNUNET_SET_RESULT_FULL,
 
   /**
-   * Client gets only elements that have been added to the set.
-   * Only works with set union.
+   * Client gets notified of the required changes
+   * for both the local and the remote set.
+   *
+   * Only supported for set 
    */
-  GNUNET_SET_RESULT_ADDED,
+  GNUNET_SET_RESULT_SYMMETRIC,
 
   /**
    * Client gets only elements that have been removed from the set.
-   * Only works with set intersection.
+   *
+   * Only supported for set intersection.
    */
-  GNUNET_SET_RESULT_REMOVED
+  GNUNET_SET_RESULT_REMOVED,
+
+  /**
+   * Client gets only elements that have been removed from the set.
+   *
+   * Only supported for set union.
+   */
+  GNUNET_SET_RESULT_ADDED
 };
 
 
