@@ -535,19 +535,24 @@ member_cleanup (void *cls)
  * Must be called once and only once in response to an invocation of the
  * #GNUNET_MULTICAST_JoinRequestCallback.
  *
- * @param join  Join request handle.
- * @param is_admitted  #GNUNET_YES    if the join is approved,
- *                     #GNUNET_NO     if it is disapproved,
- *                     #GNUNET_SYSERR if we cannot answer the request.
- * @param relay_count Number of relays given.
- * @param relays Array of suggested peers that might be useful relays to use
+ * @param join
+ *        Join request handle.
+ * @param is_admitted
+ *        #GNUNET_YES    if the join is approved,
+ *        #GNUNET_NO     if it is disapproved,
+ *        #GNUNET_SYSERR if we cannot answer the request.
+ * @param relay_count
+ *        Number of relays given.
+ * @param relays
+ *        Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
  *        are already part of the multicast group and might thus be willing
  *        to help with routing).  If empty, only this local peer (which must
  *        be the multicast origin) is a good candidate for building the
  *        multicast tree.  Note that it is unnecessary to specify our own
  *        peer identity in this array.
- * @param join_resp  Message to send in response to the joining peer;
+ * @param join_resp
+ *        Message to send in response to the joining peer;
  *        can also be used to redirect the peer to a different group at the
  *        application layer; this response is to be transmitted to the
  *        peer that issued the request even if admission is denied.
@@ -592,8 +597,10 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *join,
 /**
  * Call informing multicast about the decision taken for a membership test.
  *
- * @param mth Handle that was given for the query.
- * @param result #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
+ * @param mth
+ *        Handle that was given for the query.
+ * @param result
+ *        #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
  *        #GNUNET_SYSERR if we cannot answer the membership test.
  */
 void
@@ -653,7 +660,8 @@ GNUNET_MULTICAST_replay_response (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *
  * Invalidates the replay handle.
  *
- * @param rh Replay session to end.
+ * @param rh
+ *        Replay session to end.
  */
 void
 GNUNET_MULTICAST_replay_response_end (struct GNUNET_MULTICAST_ReplayHandle *rh)
@@ -677,9 +685,12 @@ GNUNET_MULTICAST_replay_response_end (struct GNUNET_MULTICAST_ReplayHandle *rh)
 /**
  * Replay a message for the multicast group.
  *
- * @param rh Replay handle identifying which replay operation was requested.
- * @param notify Function to call to get the message.
- * @param notify_cls Closure for @a notify.
+ * @param rh
+ *        Replay handle identifying which replay operation was requested.
+ * @param notify
+ *        Function to call to get the message.
+ * @param notify_cls
+ *        Closure for @a notify.
  */
 void
 GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
@@ -701,20 +712,30 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * candidate will be given a response.  Members in the group can send messages
  * to the origin (one at a time).
  *
- * @param cfg  Configuration to use.
- * @param priv_key  ECC key that will be used to sign messages for this
+ * @param cfg
+ *        Configuration to use.
+ * @param priv_key
+ *        ECC key that will be used to sign messages for this
  *        multicast session; public key is used to identify the multicast group;
- * @param max_fragment_id  Maximum fragment ID already sent to the group.
+ * @param max_fragment_id
+ *        Maximum fragment ID already sent to the group.
  *        0 for a new group.
- * @param join_request_cb Function called to approve / disapprove joining of a peer.
- * @param member_test_cb  Function multicast can use to test group membership.
- * @param replay_frag_cb  Function that can be called to replay a message fragment.
- * @param replay_msg_cb  Function that can be called to replay a message.
- * @param request_cb  Function called with message fragments from group members.
- * @param message_cb  Function called with the message fragments sent to the
+ * @param join_request_cb
+ *        Function called to approve / disapprove joining of a peer.
+ * @param member_test_cb
+ *        Function multicast can use to test group membership.
+ * @param replay_frag_cb
+ *        Function that can be called to replay a message fragment.
+ * @param replay_msg_cb
+ *        Function that can be called to replay a message.
+ * @param request_cb
+ *        Function called with message fragments from group members.
+ * @param message_cb
+ *        Function called with the message fragments sent to the
  *        network by GNUNET_MULTICAST_origin_to_all().  These message fragments
  *        should be stored for answering replay requests later.
- * @param cls  Closure for the various callbacks that follow.
+ * @param cls
+ *        Closure for the various callbacks that follow.
  *
  * @return Handle for the origin, NULL on error.
  */
@@ -763,7 +784,8 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Stop a multicast group.
  *
- * @param origin Multicast group to stop.
+ * @param origin
+ *        Multicast group to stop.
  */
 void
 GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig,
@@ -822,12 +844,17 @@ origin_to_all (struct GNUNET_MULTICAST_Origin *orig)
 /**
  * Send a message to the multicast group.
  *
- * @param orig  Handle to the multicast group.
- * @param message_id  Application layer ID for the message.  Opaque to multicast.
- * @param group_generation  Group generation of the message.
- *                          Documented in struct GNUNET_MULTICAST_MessageHeader.
- * @param notify  Function to call to get the message.
- * @param notify_cls  Closure for @a notify.
+ * @param orig
+ *        Handle to the multicast group.
+ * @param message_id
+ *        Application layer ID for the message.  Opaque to multicast.
+ * @param group_generation
+ *        Group generation of the message.
+ *        Documented in struct GNUNET_MULTICAST_MessageHeader.
+ * @param notify
+ *        Function to call to get the message.
+ * @param notify_cls
+ *        Closure for @a notify.
  *
  * @return Message handle on success,
  *         NULL on error (i.e. another request is already pending).
@@ -860,7 +887,8 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *orig,
 /**
  * Resume message transmission to multicast group.
  *
- * @param th  Transmission to cancel.
+ * @param th
+ *        Transmission to cancel.
  */
 void
 GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginTransmitHandle *th)
@@ -872,7 +900,8 @@ GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginTransmitHan
 /**
  * Cancel request for message transmission to multicast group.
  *
- * @param th  Transmission to cancel.
+ * @param th
+ *        Transmission to cancel.
  */
 void
 GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHandle *th)
@@ -892,32 +921,46 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  * anytime by the multicast service to support relaying messages to other
  * members of the group.
  *
- * @param cfg Configuration to use.
- * @param group_key ECC public key that identifies the group to join.
- * @param member_key ECC key that identifies the member and used to sign
- *        requests sent to the origin.
- * @param origin Peer ID of the origin to send unicast requsets to.  If NULL,
+ * @param cfg
+ *        Configuration to use.
+ * @param group_key
+ *        ECC public key that identifies the group to join.
+ * @param member_key
+ *        ECC key that identifies the member
+ *        and used to sign requests sent to the origin.
+ * @param origin
+ *        Peer ID of the origin to send unicast requsets to.  If NULL,
  *        unicast requests are sent back via multiple hops on the reverse path
  *        of multicast messages.
- * @param relay_count Number of peers in the @a relays array.
- * @param relays Peer identities of members of the group, which serve as relays
+ * @param relay_count
+ *        Number of peers in the @a relays array.
+ * @param relays
+ *        Peer identities of members of the group, which serve as relays
  *        and can be used to join the group at. and send the @a join_request to.
  *        If empty, the @a join_request is sent directly to the @a origin.
- * @param join_msg  Application-dependent join message to be passed to the peer
- *        @a origin.
- * @param join_request_cb Function called to approve / disapprove joining of a peer.
- * @param join_decision_cb Function called to inform about the join decision.
- * @param member_test_cb Function multicast can use to test group membership.
- * @param replay_frag_cb Function that can be called to replay message fragments
+ * @param join_msg
+ *        Application-dependent join message to be passed to the peer @a origin.
+ * @param join_request_cb
+ *        Function called to approve / disapprove joining of a peer.
+ * @param join_decision_cb
+ *        Function called to inform about the join decision.
+ * @param member_test_cb
+ *        Function multicast can use to test group membership.
+ * @param replay_frag_cb
+ *        Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
  *        client is unable to support replay.
- * @param replay_msg_cb Function that can be called to replay message fragments
+ * @param replay_msg_cb
+ *        Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
  *        client is unable to support replay.
- * @param message_cb Function to be called for all message fragments we
+ * @param message_cb
+ *        Function to be called for all message fragments we
  *        receive from the group, excluding those our @a replay_cb
  *        already has.
- * @param cls Closure for callbacks.
+ * @param cls
+ *        Closure for callbacks.
+ *
  * @return Handle for the member, NULL on error.
  */
 struct GNUNET_MULTICAST_Member *
@@ -982,7 +1025,8 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * An application-dependent part message can be transmitted beforehand using
  * #GNUNET_MULTICAST_member_to_origin())
  *
- * @param member Membership handle.
+ * @param member
+ *        Membership handle.
  */
 void
 GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem,
@@ -1089,7 +1133,8 @@ GNUNET_MULTICAST_member_replay_message (struct GNUNET_MULTICAST_Member *mem,
 /**
  * Cancel a replay request.
  *
- * @param rh Request to cancel.
+ * @param rh
+ *        Request to cancel.
  */
 void
 GNUNET_MULTICAST_member_replay_cancel (struct GNUNET_MULTICAST_MemberReplayHandle *rh)
@@ -1138,10 +1183,15 @@ member_to_origin (struct GNUNET_MULTICAST_Member *mem)
 /**
  * Send a message to the origin of the multicast group.
  *
- * @param mem Membership handle.
- * @param request_id Application layer ID for the request.  Opaque to multicast.
- * @param notify Callback to call to get the message.
- * @param notify_cls Closure for @a notify.
+ * @param mem
+ *        Membership handle.
+ * @param request_id
+ *        Application layer ID for the request.  Opaque to multicast.
+ * @param notify
+ *        Callback to call to get the message.
+ * @param notify_cls
+ *        Closure for @a notify.
+ *
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
  */
 struct GNUNET_MULTICAST_MemberTransmitHandle *
@@ -1170,7 +1220,8 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *mem,
 /**
  * Resume message transmission to origin.
  *
- * @param th  Transmission to cancel.
+ * @param th
+ *        Transmission to cancel.
  */
 void
 GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmitHandle *th)
@@ -1182,7 +1233,8 @@ GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmit
 /**
  * Cancel request for message transmission to origin.
  *
- * @param th  Transmission to cancel.
+ * @param th
+ *        Transmission to cancel.
  */
 void
 GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmitHandle *th)
