@@ -317,7 +317,7 @@ member_replay_ok ()
   replay_fragment_id = 1;
   replay_flags = 1 | 1<<11;
   GNUNET_MULTICAST_member_replay_fragment (member, replay_fragment_id,
-                                           replay_flags, NULL, NULL);
+                                           replay_flags);
 }
 
 
@@ -330,7 +330,7 @@ member_replay_error ()
   replay_fragment_id = 1234;
   replay_flags = 11 | 1<<11;
   GNUNET_MULTICAST_member_replay_fragment (member, replay_fragment_id,
-                                           replay_flags, NULL, NULL);
+                                           replay_flags);
 }
 
 

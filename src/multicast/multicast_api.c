@@ -182,9 +182,6 @@ struct GNUNET_MULTICAST_ReplayHandle
  */
 struct GNUNET_MULTICAST_MemberReplayHandle
 {
-
-  GNUNET_MULTICAST_ResultCallback result_cb;
-  void *result_cls;
 };
 
 
@@ -1051,19 +1048,13 @@ member_replay_request (struct GNUNET_MULTICAST_Member *mem,
  * @param flags
  *        Additional flags for the replay request.
  *        It is used and defined by GNUNET_MULTICAST_ReplayFragmentCallback
- * @param result_cb
- *        Function to call when the replayed message fragment arrives.
- * @param result_cls
- *        Closure for @a result_cb.
  *
  * @return Replay request handle.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *mem,
                                          uint64_t fragment_id,
-                                         uint64_t flags,
-                                         GNUNET_MULTICAST_ResultCallback result_cb,
-                                         void *result_cls)
+                                         uint64_t flags)
 {
   member_replay_request (mem, fragment_id, 0, 0, flags);
 }
@@ -1084,10 +1075,6 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *mem,
  * @param flags
  *        Additional flags for the replay request.
  *        It is used & defined by GNUNET_MULTICAST_ReplayMessageCallback
- * @param result_cb
- *        Function to call for each replayed message fragment.
- * @param result_cls
- *        Closure for @a result_cb.
  *
  * @return Replay request handle, NULL on error.
  */
@@ -1095,23 +1082,9 @@ struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_replay_message (struct GNUNET_MULTICAST_Member *mem,
                                         uint64_t message_id,
                                         uint64_t fragment_offset,
-                                        uint64_t flags,
-                                        GNUNET_MULTICAST_ResultCallback result_cb,
-                                        void *result_cls)
+                                        uint64_t flags)
 {
   member_replay_request (mem, 0, message_id, fragment_offset, flags);
-}
-
-
-/**
- * Cancel a replay request.
- *
- * @param rh
- *        Request to cancel.
- */
-void
-GNUNET_MULTICAST_member_replay_cancel (struct GNUNET_MULTICAST_MemberReplayHandle *rh)
-{
 }
 
 

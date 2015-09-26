@@ -377,19 +377,6 @@ typedef void
 
 
 /**
- * Function called with the result of an asynchronous operation.
- *
- * @see GNUNET_MULTICAST_replay_fragment()
- *
- * @param result
- *        Result of the operation.
- */
-typedef void
-(*GNUNET_MULTICAST_ResultCallback) (void *cls,
-                                    int result);
-
-
-/**
  * Opaque handle to a replay request from the multicast service.
  */
 struct GNUNET_MULTICAST_ReplayHandle;
@@ -775,19 +762,13 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
  * @param flags
  *        Additional flags for the replay request.
  *        It is used and defined by GNUNET_MULTICAST_ReplayFragmentCallback
- * @param result_cb
- *        Function to call when the replayed message fragment arrives.
- * @param result_cls
- *        Closure for @a result_cb.
  *
  * @return Replay request handle, NULL on error.
  */
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
                                          uint64_t fragment_id,
-                                         uint64_t flags,
-                                         GNUNET_MULTICAST_ResultCallback result_cb,
-                                         void *result_cb_cls);
+                                         uint64_t flags);
 
 
 /**
@@ -805,10 +786,6 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
  * @param flags
  *        Additional flags for the replay request.
  *        It is used & defined by GNUNET_MULTICAST_ReplayMessageCallback
- * @param result_cb
- *        Function to call for each replayed message fragment.
- * @param result_cls
- *        Closure for @a result_cb.
  *
  * @return Replay request handle, NULL on error.
  */
@@ -816,9 +793,7 @@ struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_replay_message (struct GNUNET_MULTICAST_Member *member,
                                         uint64_t message_id,
                                         uint64_t fragment_offset,
-                                        uint64_t flags,
-                                        GNUNET_MULTICAST_ResultCallback result_cb,
-                                        void *result_cb_cls);
+                                        uint64_t flags);
 
 
 /**

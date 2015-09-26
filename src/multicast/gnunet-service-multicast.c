@@ -1373,17 +1373,6 @@ client_recv_replay_response (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Incoming replay request from a client.
- */
-static void
-client_recv_replay_request_cancel (void *cls, struct GNUNET_SERVER_Client *client,
-                                   const struct GNUNET_MessageHeader *m)
-{
-  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-}
-
-
-/**
  * A new client connected.
  */
 static void
@@ -1415,9 +1404,6 @@ static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
 
   { client_recv_replay_request, NULL,
     GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST, 0 },
-
-  { client_recv_replay_request_cancel, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL, 0 },
 
   { client_recv_replay_response, NULL,
     GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE, 0 },
@@ -1722,19 +1708,6 @@ cadet_recv_replay_request (void *cls,
 
 
 /**
- * Incoming multicast replay request cancellation from CADET.
- */
-int
-cadet_recv_replay_request_cancel (void *cls,
-                                  struct GNUNET_CADET_Channel *channel,
-                                  void **ctx,
-                                  const struct GNUNET_MessageHeader *m)
-{
-
-}
-
-
-/**
  * Incoming multicast replay response from CADET.
  */
 int
@@ -1766,9 +1739,6 @@ static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
 
   { cadet_recv_replay_request,
     GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST, 0 },
-
-  { cadet_recv_replay_request_cancel,
-    GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL, 0 },
 
   { cadet_recv_replay_response,
     GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE, 0 },
