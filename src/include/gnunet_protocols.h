@@ -2437,6 +2437,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBERSHIP_TEST_RESULT 762
 
+/**
+ * C<->S<->T: Replay response from a group member to another member.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE 763
+
+/**
+ * C<->S: End of replay response.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END 764
+
 
 
 /*******************************************************************************

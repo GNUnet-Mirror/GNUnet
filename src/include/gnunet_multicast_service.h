@@ -750,7 +750,9 @@ struct GNUNET_MULTICAST_MemberReplayHandle;
 struct GNUNET_MULTICAST_MemberReplayHandle *
 GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *member,
                                          uint64_t fragment_id,
-                                         uint64_t flags);
+                                         uint64_t flags,
+                                         GNUNET_MULTICAST_ResultCallback result_cb,
+                                         void *result_cb_cls);
 
 
 /**

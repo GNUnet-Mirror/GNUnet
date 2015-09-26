@@ -84,17 +84,21 @@ struct GNUNET_MessageHeader *join_req, *join_resp;
 
 enum
 {
-  TEST_NONE               = 0,
-  TEST_ORIGIN_START       = 1,
-  TEST_MEMBER_JOIN_REFUSE = 2,
-  TEST_MEMBER_JOIN_ADMIT  = 3,
-  TEST_ORIGIN_TO_ALL      = 4,
-  TEST_ORIGIN_TO_ALL_RECV = 5,
-  TEST_MEMBER_TO_ORIGIN   = 6,
-  TEST_MEMBER_PART        = 7,
-  TEST_ORIGIN_STOP        = 8,
+  TEST_NONE                = 0,
+  TEST_ORIGIN_START        = 1,
+  TEST_MEMBER_JOIN_REFUSE  = 2,
+  TEST_MEMBER_JOIN_ADMIT   = 3,
+  TEST_ORIGIN_TO_ALL       = 4,
+  TEST_ORIGIN_TO_ALL_RECV  = 5,
+  TEST_MEMBER_TO_ORIGIN    = 6,
+  TEST_MEMBER_REPLAY_ERROR = 7,
+  TEST_MEMBER_REPLAY_OK    = 8,
+  TEST_MEMBER_PART         = 9,
+  TEST_ORIGIN_STOP        = 10,
 } test;
 
+uint64_t replay_fragment_id;
+uint64_t replay_flags;
 
 static void
 member_join (int t);
@@ -230,56 +234,6 @@ tmit_notify (void *cls, size_t *data_size, void *data)
 
 
 static void
-origin_recv_replay_msg (void *cls,
-                        const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                        uint64_t message_id,
-                        uint64_t fragment_offset,
-                        uint64_t flags,
-                        struct GNUNET_MULTICAST_ReplayHandle *rh)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: origin_recv_replay_msg()\n", test);
-}
-
-
-static void
-member_recv_replay_msg (void *cls,
-                        const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                        uint64_t message_id,
-                        uint64_t fragment_offset,
-                        uint64_t flags,
-                        struct GNUNET_MULTICAST_ReplayHandle *rh)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: member_recv_replay_msg()\n", test);
-}
-
-
-static void
-origin_recv_replay_frag (void *cls,
-                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                         uint64_t fragment_id,
-                         uint64_t flags,
-                         struct GNUNET_MULTICAST_ReplayHandle *rh)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: origin_recv_replay_frag()\n", test);
-}
-
-
-static void
-member_recv_replay_frag (void *cls,
-                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                         uint64_t fragment_id,
-                         uint64_t flags,
-                         struct GNUNET_MULTICAST_ReplayHandle *rh)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: member_recv_replay_frag()\n", test);
-}
-
-
-static void
 origin_recv_membership_test (void *cls,
                              const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
                              uint64_t message_id,
@@ -339,6 +293,7 @@ member_parted (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%u: member_parted()\n", test);
+  member = NULL;
 
   switch (test)
   {
@@ -359,20 +314,135 @@ member_parted (void *cls)
 
 
 static void
+schedule_member_part (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: schedule_member_part()\n", test);
+  GNUNET_MULTICAST_member_part (member, member_parted, NULL);
+}
+
+
+static void
 member_part ()
 {
   test = TEST_MEMBER_PART;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: member_part()\n", test);
-  GNUNET_MULTICAST_member_part (member, member_parted, NULL);
-  member = NULL;
+  GNUNET_SCHEDULER_add_now (schedule_member_part, NULL);
 }
 
 
 static void
-schedule_member_part (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+member_replay_ok ()
 {
-  GNUNET_MULTICAST_member_part (member, member_parted, NULL);
+  test = TEST_MEMBER_REPLAY_OK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: member_replay_ok()\n", test);
+  replay_fragment_id = 1;
+  replay_flags = 1 | 1<<11;
+  GNUNET_MULTICAST_member_replay_fragment (member, replay_fragment_id,
+                                           replay_flags, NULL, NULL);
+}
+
+
+static void
+member_replay_error ()
+{
+  test = TEST_MEMBER_REPLAY_ERROR;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: member_replay_error()\n", test);
+  replay_fragment_id = 1234;
+  replay_flags = 11 | 1<<11;
+  GNUNET_MULTICAST_member_replay_fragment (member, replay_fragment_id,
+                                           replay_flags, NULL, NULL);
+}
+
+
+static void
+origin_recv_replay_msg (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                        uint64_t message_id,
+                        uint64_t fragment_offset,
+                        uint64_t flags,
+                        struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: origin_recv_replay_msg()\n", test);
+  GNUNET_assert (0);
+}
+
+
+static void
+member_recv_replay_msg (void *cls,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                        uint64_t message_id,
+                        uint64_t fragment_offset,
+                        uint64_t flags,
+                        struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: member_recv_replay_msg()\n", test);
+  GNUNET_assert (0);
+}
+
+
+static void
+origin_recv_replay_frag (void *cls,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                         uint64_t fragment_id,
+                         uint64_t flags,
+                         struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: origin_recv_replay_frag()"
+              " - fragment_id=%" PRIu64 " flags=%" PRIu64 "\n",
+              test, fragment_id, flags);
+  GNUNET_assert (replay_fragment_id == fragment_id && replay_flags == flags);
+  switch (test)
+  {
+  case TEST_MEMBER_REPLAY_ERROR:
+    GNUNET_MULTICAST_replay_response (rh, NULL, GNUNET_SYSERR);
+    member_replay_ok ();
+    break;
+
+  case TEST_MEMBER_REPLAY_OK:
+  {
+    struct GNUNET_MULTICAST_MessageHeader mmsg = {
+      .header = {
+        .type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE),
+        .size = htons (sizeof (mmsg)),
+      },
+      .fragment_id = GNUNET_htonll (1),
+      .message_id = GNUNET_htonll (1),
+      .fragment_offset = 0,
+      .group_generation = GNUNET_htonll (1),
+      .flags = 0,
+    };
+    member_cls.n = 0;
+    member_cls.msgs_expected = 1;
+    GNUNET_MULTICAST_replay_response (rh, &mmsg.header, GNUNET_MULTICAST_REC_OK);
+    GNUNET_MULTICAST_replay_response_end (rh);
+    break;
+  }
+
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Invalid test #%d in origin_recv_replay_frag()\n", test);
+    GNUNET_assert (0);
+  }
+}
+
+
+static void
+member_recv_replay_frag (void *cls,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                         uint64_t fragment_id,
+                         uint64_t flags,
+                         struct GNUNET_MULTICAST_ReplayHandle *rh)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Test #%u: member_recv_replay_frag()\n", test);
+  GNUNET_assert (0);
 }
 
 
@@ -385,14 +455,14 @@ origin_recv_request (void *cls,
               "Test #%u: origin_recv_request()\n", test);
   if (++ocls->n != ocls->msgs_expected)
     return;
-  
+
   GNUNET_assert (0 == memcmp (&req->member_key,
                               &member_pub_key, sizeof (member_pub_key)));
 
 
   // FIXME: check message content
 
-  member_part ();
+  member_replay_error ();
 }
 
 
@@ -435,6 +505,11 @@ member_recv_message (void *cls,
   {
   case TEST_ORIGIN_TO_ALL_RECV:
     member_to_origin ();
+    break;
+
+  case TEST_MEMBER_REPLAY_OK:
+    GNUNET_assert (replay_fragment_id == GNUNET_ntohll (msg->fragment_id));
+    member_part ();
     break;
 
   default:
@@ -516,7 +591,7 @@ member_recv_join_decision (void *cls,
     GNUNET_assert (0 == relay_count);
     GNUNET_SCHEDULER_add_now (schedule_member_part, NULL);
     break;
-    
+
   case TEST_MEMBER_JOIN_ADMIT:
     GNUNET_assert (1 == relay_count);
     GNUNET_assert (0 == memcmp (relays, &this_peer, sizeof (this_peer)));
@@ -551,13 +626,13 @@ origin_recv_join_request (void *cls,
   join_resp->size = htons (sizeof (join_resp) + data_size);
   join_resp->type = htons (456);
   memcpy (&join_resp[1], data, data_size);
-  
+
   switch (test)
   {
   case TEST_MEMBER_JOIN_REFUSE:
     GNUNET_MULTICAST_join_decision (jh, GNUNET_NO, 0, NULL, join_resp);
     break;
-    
+
   case TEST_MEMBER_JOIN_ADMIT:
     GNUNET_MULTICAST_join_decision (jh, GNUNET_YES, 1, &this_peer, join_resp);
     break;

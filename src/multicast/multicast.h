@@ -27,6 +27,9 @@
 #ifndef MULTICAST_H
 #define MULTICAST_H
 
+#include "platform.h"
+#include "gnunet_multicast_service.h"
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
@@ -157,6 +160,53 @@ struct MulticastMembershipTestResultMessage
 
 
 /**
+ * Message sent from the client to the service OR the service to the
+ * client asking for a message fragment to be replayed.
+ */
+struct MulticastReplayRequestMessage
+{
+
+  /**
+   * The message type can be either
+   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST or
+   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * S->C: Public key of the member requesting replay.
+   * C->S: Unused.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+
+  /**
+   * ID of the message that is being requested.
+   */
+  uint64_t fragment_id;
+
+  /**
+   * ID of the message that is being requested.
+   */
+  uint64_t message_id;
+
+  /**
+   * Offset of the fragment that is being requested.
+   */
+  uint64_t fragment_offset;
+
+  /**
+   * Additional flags for the request.
+   */
+  uint64_t flags;
+
+  /**
+   * Replay request ID.
+   */
+  uint32_t uid;
+};
+
+
+/**
  * Message sent from the client to the service to give the service
  * a replayed message.
  */
@@ -164,14 +214,30 @@ struct MulticastReplayResponseMessage
 {
 
   /**
-   *
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE
+   *    or GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Unique ID that identifies the associated replay session.
+   * ID of the message that is being requested.
    */
-  uint32_t uid;
+  uint64_t fragment_id;
+
+  /**
+   * ID of the message that is being requested.
+   */
+  uint64_t message_id;
+
+  /**
+   * Offset of the fragment that is being requested.
+   */
+  uint64_t fragment_offset;
+
+  /**
+   * Additional flags for the request.
+   */
+  uint64_t flags;
 
   /**
    * An `enum GNUNET_MULTICAST_ReplayErrorCode` identifying issues (in NBO).
@@ -179,27 +245,6 @@ struct MulticastReplayResponseMessage
   int32_t error_code;
 
   /* followed by replayed message */
-
-};
-
-
-/**
- * Message sent from the client to the service to notify the service
- * about the end of a replay session.
- */
-struct MulticastReplayEndMessage
-{
-
-  /**
-   *
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Unique ID that identifies the associated replay session.
-   */
-  uint32_t uid;
-
 };
 
 
@@ -252,6 +297,7 @@ struct MulticastMemberJoinMessage
 
   /* Followed by struct GNUNET_MessageHeader join_msg */
 };
+
 
 #if NOT_USED
 /**
@@ -317,44 +363,6 @@ struct MulticastJoinMessage
   struct GNUNET_CRYPTO_EcdsaPrivateKey member_key;
 
   /* followed by 'relay_count' `struct GNUNET_PeerIdentity`s */
-
-};
-
-
-
-/**
- * Message sent from the client to the service OR the service to the
- * client asking for a message fragment to be replayed.
- */
-struct MulticastReplayRequestMessage
-{
-
-  /**
-   * The message type can be either
-   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST or
-   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL.
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Replay request ID.
-   */
-  uint32_t uid;
-
-  /**
-   * ID of the message that is being requested.
-   */
-  uint64_t message_id;
-
-  /**
-   * Offset of the fragment that is being requested.
-   */
-  uint64_t fragment_offset;
-
-  /**
-   * Additional flags for the request.
-   */
-  uint64_t flags;
 
 };
 

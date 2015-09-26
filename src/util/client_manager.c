@@ -491,7 +491,7 @@ GNUNET_CLIENT_MANAGER_transmit (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                                 struct GNUNET_MessageHeader *msg)
 {
   struct MessageQueueItem *mqi = GNUNET_malloc (sizeof (*mqi));
-  mqi->msg = msg;
+  mqi->msg = GNUNET_copy_message (msg);
   GNUNET_CONTAINER_DLL_insert_tail (mgr->tmit_head, mgr->tmit_tail, mqi);
   transmit_next (mgr);
 }
@@ -511,7 +511,7 @@ GNUNET_CLIENT_MANAGER_transmit_now (struct GNUNET_CLIENT_MANAGER_Connection *mgr
                                     struct GNUNET_MessageHeader *msg)
 {
   struct MessageQueueItem *mqi = GNUNET_malloc (sizeof (*mqi));
-  mqi->msg = msg;
+  mqi->msg = GNUNET_copy_message (msg);
   GNUNET_CONTAINER_DLL_insert (mgr->tmit_head, mgr->tmit_tail, mqi);
   transmit_next (mgr);
 }
