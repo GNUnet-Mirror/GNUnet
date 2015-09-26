@@ -154,6 +154,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                   uint64_t first_fragment_id,
                   uint64_t last_fragment_id,
+                  uint64_t fragment_limit,
                   uint64_t *returned_fragments,
                   GNUNET_PSYCSTORE_FragmentCallback cb,
                   void *cb_cls);

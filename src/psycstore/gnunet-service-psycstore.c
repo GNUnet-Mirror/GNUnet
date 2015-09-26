@@ -319,8 +319,10 @@ handle_fragment_get (void *cls,
   const struct FragmentGetRequest *
     req = (const struct FragmentGetRequest *) msg;
   struct SendClosure
-    sc = { .op_id = req->op_id, .client = client,
-           .channel_key = req->channel_key, .slave_key = req->slave_key,
+    sc = { .op_id = req->op_id,
+           .client = client,
+           .channel_key = req->channel_key,
+           .slave_key = req->slave_key,
            .membership_test = req->do_membership_test };
 
   int64_t ret;
@@ -332,10 +334,10 @@ handle_fragment_get (void *cls,
   if (0 == limit)
     ret = db->fragment_get (db->cls, &req->channel_key,
                             first_fragment_id, last_fragment_id,
-                            &ret_frags, &send_fragment, &sc);
+                            &ret_frags, send_fragment, &sc);
   else
     ret = db->fragment_get_latest (db->cls, &req->channel_key, limit,
-                                   &ret_frags, &send_fragment, &sc);
+                                   &ret_frags, send_fragment, &sc);
 
   switch (ret)
   {
@@ -389,24 +391,27 @@ handle_message_get (void *cls,
   }
 
   struct SendClosure
-    sc = { .op_id = req->op_id, .client = client,
-           .channel_key = req->channel_key, .slave_key = req->slave_key,
+    sc = { .op_id = req->op_id,
+           .client = client,
+           .channel_key = req->channel_key,
+           .slave_key = req->slave_key,
            .membership_test = req->do_membership_test };
 
   int64_t ret;
   uint64_t ret_frags = 0;
   uint64_t first_message_id = GNUNET_ntohll (req->first_message_id);
   uint64_t last_message_id = GNUNET_ntohll (req->last_message_id);
-  uint64_t limit = GNUNET_ntohll (req->message_limit);
+  uint64_t msg_limit = GNUNET_ntohll (req->message_limit);
+  uint64_t frag_limit = GNUNET_ntohll (req->fragment_limit);
 
   /** @todo method_prefix */
-  if (0 == limit)
+  if (0 == msg_limit)
     ret = db->message_get (db->cls, &req->channel_key,
-                           first_message_id, last_message_id,
-                           &ret_frags, &send_fragment, &sc);
+                           first_message_id, last_message_id, frag_limit,
+                           &ret_frags, send_fragment, &sc);
   else
-    ret = db->message_get_latest (db->cls, &req->channel_key, limit,
-                                  &ret_frags, &send_fragment, &sc);
+    ret = db->message_get_latest (db->cls, &req->channel_key, msg_limit,
+                                  &ret_frags, send_fragment, &sc);
 
   switch (ret)
   {
@@ -661,7 +666,7 @@ handle_state_modify (void *cls,
   else
   {
     ret = db->message_get (db->cls, &req->channel_key,
-                           message_id, message_id,
+                           message_id, message_id, 0,
                            &ret_frags, recv_state_fragment, &scls);
     if (GNUNET_OK != ret)
     {

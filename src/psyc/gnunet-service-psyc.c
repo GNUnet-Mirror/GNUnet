@@ -926,7 +926,7 @@ mcast_recv_replay_message (void *cls,
 {
   struct Channel *chn = cls;
   GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, slave_key,
-                                message_id, message_id, NULL,
+                                message_id, message_id, 1, NULL,
                                 &store_recv_fragment_replay,
                                 &store_recv_fragment_replay_result, rh);
 }
@@ -2432,7 +2432,7 @@ client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, NULL,
                                   GNUNET_ntohll (req->start_message_id),
                                   GNUNET_ntohll (req->end_message_id),
-                                  method_prefix,
+                                  0, method_prefix,
                                   &store_recv_fragment_history,
                                   &store_recv_fragment_history_result, op);
   else

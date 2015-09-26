@@ -330,6 +330,8 @@ GNUNET_PSYCSTORE_fragment_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
  *        First message ID to retrieve.
  * @param last_message_id
  *        Last consecutive message ID to retrieve.
+ * @param fragment_limit
+ *        Maximum number of fragments to retrieve.
  * @param method_prefix
  *        Retrieve only messages with a matching method prefix.
  * @param fragment_cb
@@ -347,6 +349,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                               uint64_t first_message_id,
                               uint64_t last_message_id,
+                              uint64_t fragment_limit,
                               const char *method_prefix,
                               GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                               GNUNET_PSYCSTORE_ResultCallback result_cb,

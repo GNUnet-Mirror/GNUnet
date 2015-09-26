@@ -345,6 +345,11 @@ struct MessageGetRequest
   uint64_t message_limit GNUNET_PACKED;
 
   /**
+   * Maximum number of fragments to retrieve.
+   */
+  uint64_t fragment_limit GNUNET_PACKED;
+
+  /**
    * Do membership test with @a slave_key before returning fragment?
    * #GNUNET_YES or #GNUNET_NO
    */

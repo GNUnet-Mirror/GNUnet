@@ -472,7 +472,8 @@ database_setup (struct Plugin *plugin)
                "       multicast_flags, psycstore_flags, data\n"
                "FROM messages\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "      AND ? <= message_id AND message_id <= ?;",
+               "      AND ? <= message_id AND message_id <= ?"
+               "LIMIT ?;",
                &plugin->select_messages);
 
   sql_prepare (plugin->dbh,
@@ -1195,6 +1196,7 @@ message_get (void *cls,
              const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
              uint64_t first_message_id,
              uint64_t last_message_id,
+             uint64_t fragment_limit,
              uint64_t *returned_fragments,
              GNUNET_PSYCSTORE_FragmentCallback cb,
              void *cb_cls)
@@ -1208,7 +1210,11 @@ message_get (void *cls,
                                       sizeof (*channel_key),
                                       SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_int64 (stmt, 2, first_message_id)
-      || SQLITE_OK != sqlite3_bind_int64 (stmt, 3, last_message_id))
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 3, last_message_id)
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 4,
+                                          (0 != fragment_limit)
+                                          ? fragment_limit
+                                          : -1))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind");

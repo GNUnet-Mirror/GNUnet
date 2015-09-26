@@ -378,7 +378,7 @@ message_get_fragment_result (void *cls, int64_t result,
   fcls->n_expected = 3;
   uint64_t message_id = GNUNET_ntohll (fcls->msg[0]->message_id);
   op = GNUNET_PSYCSTORE_message_get (h, &channel_pub_key, &slave_pub_key,
-                                     message_id, message_id, "",
+                                     message_id, message_id, 0, "",
                                      &fragment_result,
                                      &message_get_result, fcls);
 }

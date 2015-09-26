@@ -285,7 +285,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   GNUNET_assert (
     GNUNET_OK == db->message_get (db->cls, &channel_pub_key,
-                                  message_id, message_id,
+                                  message_id, message_id, 0,
                                   &ret_frags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 2 && ret_frags == 2);
 
