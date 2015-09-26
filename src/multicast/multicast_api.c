@@ -1033,11 +1033,18 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem,
                               GNUNET_ContinuationCallback part_cb,
                               void *part_cls)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p Member parting.\n", mem);
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
 
   grp->is_disconnecting = GNUNET_YES;
   grp->disconnect_cb = part_cb;
   grp->disconnect_cls = part_cls;
+
+  mem->join_dcsn_cb = NULL;
+  grp->join_req_cb = NULL;
+  grp->message_cb = NULL;
+  grp->replay_msg_cb = NULL;
+  grp->replay_frag_cb = NULL;
 
   GNUNET_CLIENT_MANAGER_disconnect (mem->grp.client, GNUNET_YES,
                                     member_cleanup, mem);
@@ -1157,7 +1164,8 @@ member_to_origin (struct GNUNET_MULTICAST_Member *mem)
       || GNUNET_MULTICAST_FRAGMENT_MAX_SIZE < buf_size)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "MemberTransmitNotify() returned error or invalid message size.\n");
+         "MemberTransmitNotify() returned error or invalid message size. "
+         "ret=%d, buf_size=%u\n", ret, buf_size);
     /* FIXME: handle error */
     GNUNET_free (req);
     return;

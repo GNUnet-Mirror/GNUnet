@@ -86,19 +86,22 @@ uint8_t join_req_count, end_count;
 
 enum
 {
-  TEST_NONE = 0,
-  TEST_MASTER_START = 1,
-  TEST_SLAVE_JOIN = 2,
-  TEST_SLAVE_TRANSMIT = 3,
-  TEST_MASTER_TRANSMIT = 4,
-  TEST_MASTER_HISTORY_REPLAY_LATEST = 5,
-  TEST_SLAVE_HISTORY_REPLAY_LATEST = 6,
-  TEST_MASTER_HISTORY_REPLAY = 7,
-  TEST_SLAVE_HISTORY_REPLAY = 8,
-  TEST_MASTER_STATE_GET = 9,
-  TEST_SLAVE_STATE_GET = 10,
-  TEST_MASTER_STATE_GET_PREFIX = 11,
-  TEST_SLAVE_STATE_GET_PREFIX = 12,
+  TEST_NONE                         = 0,
+  TEST_MASTER_START                 = 1,
+  TEST_SLAVE_JOIN_REJECT            = 2,
+  TEST_SLAVE_JOIN_ACCEPT            = 3,
+  TEST_SLAVE_ADD                    = 4,
+  TEST_SLAVE_REMOVE                 = 5,
+  TEST_SLAVE_TRANSMIT               = 6,
+  TEST_MASTER_TRANSMIT              = 7,
+  TEST_MASTER_HISTORY_REPLAY_LATEST = 8,
+  TEST_SLAVE_HISTORY_REPLAY_LATEST  = 9,
+  TEST_MASTER_HISTORY_REPLAY       = 10,
+  TEST_SLAVE_HISTORY_REPLAY        = 11,
+  TEST_MASTER_STATE_GET            = 12,
+  TEST_SLAVE_STATE_GET             = 13,
+  TEST_MASTER_STATE_GET_PREFIX     = 14,
+  TEST_SLAVE_STATE_GET_PREFIX      = 15,
 } test;
 
 
@@ -204,6 +207,7 @@ void
 master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
                    const struct GNUNET_PSYC_MessageHeader *msg)
 {
+  GNUNET_assert (NULL != msg);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%d: Master got PSYC message fragment of size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
@@ -718,17 +722,46 @@ slave_remove_cb (void *cls, int64_t result,
 
 
 void
+slave_remove ()
+{
+  test = TEST_SLAVE_REMOVE;
+  struct GNUNET_PSYC_Channel *chn = GNUNET_PSYC_master_get_channel (mst);
+  GNUNET_PSYC_channel_slave_remove (chn, &slave_pub_key, 2,
+                                    &slave_remove_cb, chn);
+}
+
+
+void
 slave_add_cb (void *cls, int64_t result,
               const void *err_msg, uint16_t err_msg_size)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "slave_add:\t%" PRId64 " (%.*s)\n",
               result, err_msg_size, err_msg);
+  slave_remove ();
+}
 
-  struct GNUNET_PSYC_Channel *chn = cls;
-  GNUNET_PSYC_channel_slave_remove (chn, &slave_pub_key, 2,
-                                    &slave_remove_cb, chn);
 
+void
+slave_add ()
+{
+  test = TEST_SLAVE_ADD;
+  struct GNUNET_PSYC_Channel *chn = GNUNET_PSYC_master_get_channel (mst);
+  GNUNET_PSYC_channel_slave_add (chn, &slave_pub_key, 2, 2, &slave_add_cb, chn);
+}
+
+
+void first_slave_parted (void *cls)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "First slave parted.\n");
+  slave_join (TEST_SLAVE_JOIN_ACCEPT);
+}
+
+
+void
+schedule_slave_part (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_PSYC_slave_part (slv, GNUNET_NO, first_slave_parted, NULL);
 }
 
 
@@ -741,15 +774,23 @@ join_decision_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Slave got join decision: %d\n", is_admitted);
 
-  if (GNUNET_YES != is_admitted)
-  { /* First join request is refused, retry. */
+  switch (test)
+  {
+  case TEST_SLAVE_JOIN_REJECT:
+    GNUNET_assert (0 == is_admitted);
     GNUNET_assert (1 == join_req_count);
-    slave_join ();
-    return;
-  }
+    GNUNET_SCHEDULER_add_now (schedule_slave_part, NULL);
+    break;
 
-  struct GNUNET_PSYC_Channel *chn = GNUNET_PSYC_master_get_channel (mst);
-  GNUNET_PSYC_channel_slave_add (chn, &slave_pub_key, 2, 2, &slave_add_cb, chn);
+  case TEST_SLAVE_JOIN_ACCEPT:
+    GNUNET_assert (1 == is_admitted);
+    GNUNET_assert (2 == join_req_count);
+    slave_add ();
+    break;
+
+  default:
+    GNUNET_break (0);
+  }
 }
 
 
@@ -778,16 +819,16 @@ slave_connect_cb (void *cls, int result, uint64_t max_message_id)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Slave connected: %d, max_message_id: %" PRIu64 "\n",
               result, max_message_id);
-  GNUNET_assert (TEST_SLAVE_JOIN == test);
+  GNUNET_assert (TEST_SLAVE_JOIN_REJECT == test || TEST_SLAVE_JOIN_ACCEPT == test);
   GNUNET_assert (GNUNET_OK == result || GNUNET_NO == result);
 }
 
 
 static void
-slave_join ()
+slave_join (int t)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
-  test = TEST_SLAVE_JOIN;
+  test = t;
 
   struct GNUNET_PeerIdentity origin = this_peer;
   struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
@@ -870,7 +911,7 @@ master_start_cb (void *cls, int result, uint64_t max_message_id)
               result, max_message_id);
   GNUNET_assert (TEST_MASTER_START == test);
   GNUNET_assert (GNUNET_OK == result || GNUNET_NO == result);
-  slave_join ();
+  slave_join (TEST_SLAVE_JOIN_REJECT);
 }
 
 

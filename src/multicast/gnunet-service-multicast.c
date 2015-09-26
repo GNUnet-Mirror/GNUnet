@@ -509,7 +509,7 @@ client_notify_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p User context is NULL in client_disconnect()\n", grp);
-    GNUNET_assert (0);
+    GNUNET_break (0);
     return;
   }
 
@@ -969,7 +969,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
                                                 mem->join_dcsn,
                                                 GNUNET_NO);
   }
-  else if (grp->clients_head == grp->clients_tail)
+  else
   { /* First client of the group, send join request. */
     struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
     uint32_t relay_count = ntohl (msg->relay_count);
@@ -1042,16 +1042,7 @@ client_send_join_decision (struct Member *mem,
     memcpy (mem->join_dcsn, dcsn, dcsn_size);
   }
   else
-  { /* Refused entry, disconnect clients. */
-#if FIXME
-    struct ClientList *cl = mem->grp.clients_head;
-    while (NULL != cl)
-    {
-      struct GNUNET_SERVER_Client *client = cl->client;
-      cl = cl->next;
-      GNUNET_SERVER_client_disconnect (client);
-    }
-#endif
+  { /* Refused entry, but replay would be still possible for past members. */
   }
 }
 

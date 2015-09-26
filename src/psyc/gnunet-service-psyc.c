@@ -98,6 +98,16 @@ struct TransmitMessage
   uint16_t size;
 
   /**
+   * Type of first message part.
+   */
+  uint16_t first_ptype;
+
+  /**
+   * Type of last message part.
+   */
+  uint16_t last_ptype;
+
+  /**
    * @see enum MessageState
    */
   uint8_t state;
@@ -483,7 +493,7 @@ cleanup_master (struct Master *mst)
   if (NULL != mst->origin)
     GNUNET_MULTICAST_origin_stop (mst->origin, NULL, NULL); // FIXME
   GNUNET_CONTAINER_multihashmap_destroy (mst->join_reqs);
-  GNUNET_CONTAINER_multihashmap_remove (masters, &chn->pub_key_hash, chn);
+  GNUNET_CONTAINER_multihashmap_remove (masters, &chn->pub_key_hash, mst);
 }
 
 
@@ -523,7 +533,7 @@ cleanup_slave (struct Slave *slv)
     GNUNET_MULTICAST_member_part (slv->member, NULL, NULL); // FIXME
     slv->member = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, chn);
+  GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, slv);
 }
 
 
@@ -582,8 +592,6 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
               chn, (GNUNET_YES == chn->is_master) ? "master" : "slave",
               GNUNET_h2s (&chn->pub_key_hash));
 
-  chn->is_disconnected = GNUNET_YES;
-
   struct Client *cli = chn->clients_head;
   while (NULL != cli)
   {
@@ -609,6 +617,11 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 
   if (NULL == chn->clients_head)
   { /* Last client disconnected. */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p Last client (%s) disconnected from channel %s\n",
+                chn, (GNUNET_YES == chn->is_master) ? "master" : "slave",
+                GNUNET_h2s (&chn->pub_key_hash));
+    chn->is_disconnected = GNUNET_YES;
     if (NULL != chn->tmit_head)
     { /* Send pending messages to multicast before cleanup. */
       transmit_message (chn);
@@ -789,6 +802,11 @@ mcast_recv_join_decision (void *cls, int is_admitted,
   struct Channel *chn = &slv->chn;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Got join decision: %d\n", slv, is_admitted);
+  if (GNUNET_YES == chn->is_ready)
+  {
+    /* Already admitted */
+    return;
+  }
 
   uint16_t join_resp_size = (NULL != join_resp) ? ntohs (join_resp->size) : 0;
   struct GNUNET_PSYC_JoinDecisionMessage *
@@ -804,10 +822,6 @@ mcast_recv_join_decision (void *cls, int is_admitted,
   if (GNUNET_YES == is_admitted)
   {
     chn->is_ready = GNUNET_YES;
-  }
-  else
-  {
-    slv->member = NULL;
   }
 }
 
@@ -2011,7 +2025,8 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   {
     transmit_message (chn);
   }
-  else if (GNUNET_YES == chn->is_disconnected)
+  else if (GNUNET_YES == chn->is_disconnected
+           && tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
   {
     /* FIXME: handle partial message (when still in_transmit) */
     return GNUNET_SYSERR;
@@ -2106,12 +2121,11 @@ transmit_message (struct Channel *chn)
  * Queue a message from a channel master for sending to the multicast group.
  */
 static void
-master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg,
-                     uint16_t first_ptype, uint16_t last_ptype)
+master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "%p master_queue_message()\n", mst);
 
-  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == first_ptype)
+  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == tmit_msg->first_ptype)
   {
     tmit_msg->id = ++mst->max_message_id;
     struct GNUNET_PSYC_MessageMethod *pmeth
@@ -2149,10 +2163,9 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg,
  * Queue a message from a channel slave for sending to the multicast group.
  */
 static void
-slave_queue_message (struct Slave *slv, struct TransmitMessage *tmit_msg,
-                     uint16_t first_ptype, uint16_t last_ptype)
+slave_queue_message (struct Slave *slv, struct TransmitMessage *tmit_msg)
 {
-  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == first_ptype)
+  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == tmit_msg->first_ptype)
   {
     struct GNUNET_PSYC_MessageMethod *pmeth
       = (struct GNUNET_PSYC_MessageMethod *) &tmit_msg[1];
@@ -2185,16 +2198,16 @@ queue_message (struct Channel *chn,
   tmit_msg->client = client;
   tmit_msg->size = data_size;
   tmit_msg->state = chn->tmit_state;
+  tmit_msg->first_ptype = first_ptype;
+  tmit_msg->last_ptype = last_ptype;
 
   /* FIXME: separate queue per message ID */
 
   GNUNET_CONTAINER_DLL_insert_tail (chn->tmit_head, chn->tmit_tail, tmit_msg);
 
   chn->is_master
-    ? master_queue_message ((struct Master *) chn, tmit_msg,
-                            first_ptype, last_ptype)
-    : slave_queue_message ((struct Slave *) chn, tmit_msg,
-                           first_ptype, last_ptype);
+    ? master_queue_message ((struct Master *) chn, tmit_msg)
+    : slave_queue_message ((struct Slave *) chn, tmit_msg);
   return tmit_msg;
 }
 
@@ -2295,7 +2308,8 @@ store_recv_membership_store_result (void *cls, int64_t result,
               "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%.s)\n",
               op->chn, result, err_msg_size, err_msg);
 
-  client_send_result (op->client, op->op_id, result, err_msg, err_msg_size);
+  if (NULL != op->client)
+    client_send_result (op->client, op->op_id, result, err_msg, err_msg_size);
   op_remove (op);
 }
 

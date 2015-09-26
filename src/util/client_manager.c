@@ -196,6 +196,9 @@ recv_message (void *cls, const struct GNUNET_MessageHeader *msg)
     mgr->client_tmit = NULL;
   }
 
+  if (GNUNET_YES == mgr->is_disconnecting)
+    return;
+
   size_t i = 0;
   while (NULL != mgr->handlers[i].callback)
   {

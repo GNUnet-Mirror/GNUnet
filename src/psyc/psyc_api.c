@@ -464,7 +464,7 @@ master_recv_join_request (void *cls,
   if (sizeof (*req) + sizeof (*join_msg) <= ntohs (req->header.size))
   {
     join_msg = (struct GNUNET_PSYC_Message *) &req[1];
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received join_msg of type %u and size %u.\n",
          ntohs (join_msg->header.type), ntohs (join_msg->header.size));
   }
