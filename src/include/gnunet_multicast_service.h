@@ -326,53 +326,6 @@ typedef void
 
 
 /**
- * Handle to pass back for the answer of a membership test.
- */
-struct GNUNET_MULTICAST_MembershipTestHandle;
-
-
-/**
- * Call informing multicast about the decision taken for a membership test.
- *
- * @param mth
- *        Handle that was given for the query.
- * @param result
- *        #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
- *        #GNUNET_SYSERR if we cannot answer the membership test.
- */
-void
-GNUNET_MULTICAST_membership_test_result (struct GNUNET_MULTICAST_MembershipTestHandle *mth,
-                                         int result);
-
-
-/**
- * Method called to test if a member was in the group at a particular time.
- *
- * It is called when a replay request is received to determine if the requested
- * message can be replayed.
- *
- * @param cls
- *        Closure.
- * @param member_key
- *        Identity of the member that we want to test.
- * @param message_id
- *        Message ID for which to perform the test.
- * @param group_generation
- *        Group generation of the message. It has relevance if
- *        the message consists of multiple fragments with different group
- *        generations.
- * @param mth
- *        Handle to give to GNUNET_MULTICAST_membership_test_answer().
- */
-typedef void
-(*GNUNET_MULTICAST_MembershipTestCallback) (void *cls,
-                                            const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                                            uint64_t message_id,
-                                            uint64_t group_generation,
-                                            struct GNUNET_MULTICAST_MembershipTestHandle *mth);
-
-
-/**
  * Function called whenever a group member has transmitted a request
  * to the origin (other than joining or leaving).
  *
@@ -619,8 +572,6 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *        0 for a new group.
  * @param join_request_cb
  *        Function called to approve / disapprove joining of a peer.
- * @param member_test_cb
- *        Function multicast can use to test group membership.
  * @param replay_frag_cb
  *        Function that can be called to replay a message fragment.
  * @param replay_msg_cb
@@ -641,7 +592,6 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
                                uint64_t max_fragment_id,
                                GNUNET_MULTICAST_JoinRequestCallback join_request_cb,
-                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                                GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                                GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb,
@@ -774,8 +724,6 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin,
  *        Function called to approve / disapprove joining of a peer.
  * @param join_decision_cb
  *        Function called to inform about the join decision.
- * @param member_test_cb
- *        Function multicast can use to test group membership.
  * @param replay_frag_cb
  *        Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
@@ -803,7 +751,6 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_MessageHeader *join_request,
                               GNUNET_MULTICAST_JoinRequestCallback join_request_cb,
                               GNUNET_MULTICAST_JoinDecisionCallback join_decision_cb,
-                              GNUNET_MULTICAST_MembershipTestCallback mem_test_cb,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                               GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,

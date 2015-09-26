@@ -234,30 +234,6 @@ tmit_notify (void *cls, size_t *data_size, void *data)
 
 
 static void
-origin_recv_membership_test (void *cls,
-                             const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                             uint64_t message_id,
-                             uint64_t group_generation,
-                             struct GNUNET_MULTICAST_MembershipTestHandle *mth)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: origin_recv_membership_test()\n", test);
-}
-
-
-static void
-member_recv_membership_test (void *cls,
-                             const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
-                             uint64_t message_id,
-                             uint64_t group_generation,
-                             struct GNUNET_MULTICAST_MembershipTestHandle *mth)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test #%u: member_recv_membership_test()\n", test);
-}
-
-
-static void
 member_recv_join_request (void *cls,
                           const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
                           const struct GNUNET_MessageHeader *join_msg,
@@ -670,7 +646,6 @@ member_join (int t)
                                          &this_peer, 1, &this_peer, join_req,
                                          member_recv_join_request,
                                          member_recv_join_decision,
-                                         member_recv_membership_test,
                                          member_recv_replay_frag,
                                          member_recv_replay_msg,
                                          member_recv_message,
@@ -690,7 +665,6 @@ origin_start ()
 
   origin = GNUNET_MULTICAST_origin_start (cfg, group_key, 0,
                                           origin_recv_join_request,
-                                          origin_recv_membership_test,
                                           origin_recv_replay_frag,
                                           origin_recv_replay_msg,
                                           origin_recv_request,

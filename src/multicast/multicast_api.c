@@ -81,7 +81,6 @@ struct GNUNET_MULTICAST_Group
   struct GNUNET_MessageHeader *connect_msg;
 
   GNUNET_MULTICAST_JoinRequestCallback join_req_cb;
-  GNUNET_MULTICAST_MembershipTestCallback member_test_cb;
   GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb;
   GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb;
   GNUNET_MULTICAST_MessageCallback message_cb;
@@ -165,14 +164,6 @@ struct GNUNET_MULTICAST_JoinHandle
    * Peer identity of the member requesting join.
    */
   struct GNUNET_PeerIdentity peer;
-};
-
-
-/**
- * Handle to pass back for the answer of a membership test.
- */
-struct GNUNET_MULTICAST_MembershipTestHandle
-{
 };
 
 
@@ -595,22 +586,6 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *join,
 
 
 /**
- * Call informing multicast about the decision taken for a membership test.
- *
- * @param mth
- *        Handle that was given for the query.
- * @param result
- *        #GNUNET_YES if peer was a member, #GNUNET_NO if peer was not a member,
- *        #GNUNET_SYSERR if we cannot answer the membership test.
- */
-void
-GNUNET_MULTICAST_membership_test_result (struct GNUNET_MULTICAST_MembershipTestHandle *mth,
-                                         int result)
-{
-}
-
-
-/**
  * Replay a message fragment for the multicast group.
  *
  * @param rh
@@ -722,8 +697,6 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *        0 for a new group.
  * @param join_request_cb
  *        Function called to approve / disapprove joining of a peer.
- * @param member_test_cb
- *        Function multicast can use to test group membership.
  * @param replay_frag_cb
  *        Function that can be called to replay a message fragment.
  * @param replay_msg_cb
@@ -744,7 +717,6 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
                                uint64_t max_fragment_id,
                                GNUNET_MULTICAST_JoinRequestCallback join_request_cb,
-                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                                GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                                GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb,
@@ -766,7 +738,6 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   grp->cb_cls = cls;
   grp->join_req_cb = join_request_cb;
-  grp->member_test_cb = member_test_cb;
   grp->replay_frag_cb = replay_frag_cb;
   grp->replay_msg_cb = replay_msg_cb;
   grp->message_cb = message_cb;
@@ -917,9 +888,8 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  * @a message_cb is invoked with a (failure) response and then with NULL.  If
  * the join succeeds, outstanding (state) messages and ongoing multicast
  * messages will be given to the @a message_cb until the member decides to part
- * the group.  The @a test_cb and @a replay_cb functions may be called at
- * anytime by the multicast service to support relaying messages to other
- * members of the group.
+ * the group.  The @a replay_cb function may be called at any time by the
+ * multicast service to support relaying messages to other members of the group.
  *
  * @param cfg
  *        Configuration to use.
@@ -944,8 +914,6 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  *        Function called to approve / disapprove joining of a peer.
  * @param join_decision_cb
  *        Function called to inform about the join decision.
- * @param member_test_cb
- *        Function multicast can use to test group membership.
  * @param replay_frag_cb
  *        Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
@@ -973,7 +941,6 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_MessageHeader *join_msg,
                               GNUNET_MULTICAST_JoinRequestCallback join_request_cb,
                               GNUNET_MULTICAST_JoinDecisionCallback join_decision_cb,
-                              GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                               GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                               GNUNET_MULTICAST_MessageCallback message_cb,
@@ -1003,7 +970,6 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   mem->join_dcsn_cb = join_decision_cb;
   grp->join_req_cb = join_request_cb;
-  grp->member_test_cb = member_test_cb;
   grp->replay_frag_cb = replay_frag_cb;
   grp->replay_msg_cb = replay_msg_cb;
   grp->message_cb = message_cb;

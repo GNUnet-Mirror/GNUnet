@@ -826,41 +826,6 @@ mcast_recv_join_decision (void *cls, int is_admitted,
 }
 
 
-/**
- * Received result of GNUNET_PSYCSTORE_membership_test()
- */
-static void
-store_recv_membership_test_result (void *cls, int64_t result,
-                                   const char *err_msg, uint16_t err_msg_size)
-{
-  struct GNUNET_MULTICAST_MembershipTestHandle *mth = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p GNUNET_PSYCSTORE_membership_test() returned %" PRId64 " (%.*s)\n",
-              mth, result, err_msg_size, err_msg);
-
-  GNUNET_MULTICAST_membership_test_result (mth, result);
-}
-
-
-/**
- * Incoming membership test request from multicast.
- */
-static void
-mcast_recv_membership_test (void *cls,
-                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                            uint64_t message_id, uint64_t group_generation,
-                            struct GNUNET_MULTICAST_MembershipTestHandle *mth)
-{
-  struct Channel *chn = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Received membership test request from multicast.\n",
-              mth);
-  GNUNET_PSYCSTORE_membership_test (store, &chn->pub_key, slave_key,
-                                    message_id, group_generation,
-                                    &store_recv_membership_test_result, mth);
-}
-
-
 static int
 store_recv_fragment_replay (void *cls,
                             struct GNUNET_MULTICAST_MessageHeader *msg,
@@ -1617,7 +1582,6 @@ store_recv_master_counters (void *cls, int result, uint64_t max_fragment_id,
     mst->origin
       = GNUNET_MULTICAST_origin_start (cfg, &mst->priv_key, max_fragment_id,
                                        mcast_recv_join_request,
-                                       mcast_recv_membership_test,
                                        mcast_recv_replay_fragment,
                                        mcast_recv_replay_message,
                                        mcast_recv_request,
@@ -1665,7 +1629,6 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
                                       &slv->join_msg->header,
                                       mcast_recv_join_request,
                                       mcast_recv_join_decision,
-                                      mcast_recv_membership_test,
                                       mcast_recv_replay_fragment,
                                       mcast_recv_replay_message,
                                       mcast_recv_message, chn);
@@ -1870,7 +1833,6 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
                                         &slv->join_msg->header,
                                         &mcast_recv_join_request,
                                         &mcast_recv_join_decision,
-                                        &mcast_recv_membership_test,
                                         &mcast_recv_replay_fragment,
                                         &mcast_recv_replay_message,
                                         &mcast_recv_message, chn);

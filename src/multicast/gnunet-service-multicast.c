@@ -1384,17 +1384,6 @@ client_recv_replay_request_cancel (void *cls, struct GNUNET_SERVER_Client *clien
 
 
 /**
- * Incoming replay request from a client.
- */
-static void
-client_recv_membership_test_result (void *cls, struct GNUNET_SERVER_Client *client,
-                                    const struct GNUNET_MessageHeader *m)
-{
-  struct Group *grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-}
-
-
-/**
  * A new client connected.
  */
 static void
@@ -1435,9 +1424,6 @@ static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
 
   { client_recv_replay_response_end, NULL,
     GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END, 0 },
-
-  { client_recv_membership_test_result, NULL,
-    GNUNET_MESSAGE_TYPE_MULTICAST_MEMBERSHIP_TEST_RESULT, 0 },
 
   { NULL, NULL, 0, 0 }
 };
