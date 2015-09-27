@@ -181,6 +181,11 @@ struct Channel
   int8_t join_status;
 
   /**
+   * Number of messages waiting to be sent to CADET.
+   */
+  uint8_t msgs_pending;
+
+  /**
    * Channel direction.
    * @see enum ChannelDirection
    */
@@ -619,8 +624,10 @@ client_send_member_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
 /**
  * Send message to all origin and member clients connected to the group.
  *
- * @param grp  The group to send @a msg to.
- * @param msg  Message to send.
+ * @param pub_key_hash
+ *        H(key_pub) of the group.
+ * @param msg
+ *        Message to send.
  */
 static int
 client_send_all (struct GNUNET_HashCode *pub_key_hash,
@@ -660,8 +667,10 @@ client_send_random (struct GNUNET_HashCode *pub_key_hash,
 /**
  * Send message to all origin clients connected to the group.
  *
- * @param grp  The group to send @a msg to.
- * @param msg  Message to send.
+ * @param pub_key_hash
+ *        H(key_pub) of the group.
+ * @param msg
+ *        Message to send.
  */
 static int
 client_send_origin (struct GNUNET_HashCode *pub_key_hash,
@@ -676,6 +685,33 @@ client_send_origin (struct GNUNET_HashCode *pub_key_hash,
 
 
 /**
+ * Send fragment acknowledgement to all clients of the channel.
+ *
+ * @param pub_key_hash
+ *        H(key_pub) of the group.
+ */
+static void
+client_send_ack (struct GNUNET_HashCode *pub_key_hash)
+{
+  static struct GNUNET_MessageHeader *msg = NULL;
+  if (NULL == msg)
+  {
+    msg = GNUNET_malloc (sizeof (*msg));
+    msg->type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK);
+    msg->size = htons (sizeof (*msg));
+  }
+  client_send_all (pub_key_hash, msg);
+}
+
+
+struct CadetTransmitClosure
+{
+  struct Channel *chn;
+  const struct GNUNET_MessageHeader *msg;
+};
+
+
+/**
  * CADET is ready to transmit a message.
  */
 size_t
@@ -686,10 +722,21 @@ cadet_notify_transmit_ready (void *cls, size_t buf_size, void *buf)
     /* FIXME: connection closed */
     return 0;
   }
-  const struct GNUNET_MessageHeader *msg = cls;
-  uint16_t msg_size = ntohs (msg->size);
+  struct CadetTransmitClosure *tcls = cls;
+  struct Channel *chn = tcls->chn;
+  uint16_t msg_size = ntohs (tcls->msg->size);
   GNUNET_assert (msg_size <= buf_size);
-  memcpy (buf, msg, msg_size);
+  memcpy (buf, tcls->msg, msg_size);
+  GNUNET_free (tcls);
+
+  if (0 == chn->msgs_pending)
+  {
+    GNUNET_break (0);
+  }
+  else if (0 == --chn->msgs_pending)
+  {
+    client_send_ack (&chn->group_key_hash);
+  }
   return msg_size;
 }
 
@@ -703,6 +750,11 @@ cadet_notify_transmit_ready (void *cls, size_t buf_size, void *buf)
 static void
 cadet_send_channel (struct Channel *chn, const struct GNUNET_MessageHeader *msg)
 {
+  struct CadetTransmitClosure *tcls = GNUNET_malloc (sizeof (*tcls));
+  tcls->chn = chn;
+  tcls->msg = msg;
+
+  chn->msgs_pending++;
   chn->tmit_handle
     = GNUNET_CADET_notify_transmit_ready (chn->channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1132,7 +1184,10 @@ client_recv_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   client_send_all (&grp->pub_key_hash, &out->header);
-  cadet_send_children (&grp->pub_key_hash, &out->header);
+  if (0 == cadet_send_children (&grp->pub_key_hash, &out->header))
+  {
+    client_send_ack (&grp->pub_key_hash);
+  }
   GNUNET_free (out);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1174,11 +1229,13 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_assert (0);
   }
 
+  uint8_t send_ack = GNUNET_YES;
   if (0 == client_send_origin (&grp->pub_key_hash, &out->header))
   { /* No local origins, send to remote origin */
     if (NULL != mem->origin_channel)
     {
       cadet_send_channel (mem->origin_channel, &out->header);
+      send_ack = GNUNET_NO;
     }
     else
     {
@@ -1187,6 +1244,10 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_free (out);
       return;
     }
+  }
+  if (GNUNET_YES == send_ack)
+  {
+    client_send_ack (&grp->pub_key_hash);
   }
   GNUNET_free (out);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

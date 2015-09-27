@@ -183,7 +183,7 @@ tmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TransmitClosure *tmit = cls;
   if (NULL != tmit->orig_tmit)
     GNUNET_MULTICAST_origin_to_all_resume (tmit->orig_tmit);
-  else
+  else if (NULL != tmit->mem_tmit)
     GNUNET_MULTICAST_member_to_origin_resume (tmit->mem_tmit);
 }
 
@@ -453,14 +453,15 @@ member_to_origin ()
   *tmit = (struct TransmitClosure) {};
   tmit->data[0] = "abc def";
   tmit->data[1] = "ghi jkl mno";
-  tmit->data_delay[1] = 1;
+  tmit->data_delay[1] = 2;
   tmit->data[2] = "pqr stuw xyz";
   tmit->data_count = 3;
 
   origin_cls.n = 0;
   origin_cls.msgs_expected = 1;
 
-  GNUNET_MULTICAST_member_to_origin (member, 1, tmit_notify, tmit);
+  tmit->mem_tmit = GNUNET_MULTICAST_member_to_origin (member, 1,
+                                                      tmit_notify, tmit);
 }
 
 
@@ -533,15 +534,19 @@ origin_to_all ()
   struct TransmitClosure *tmit = &tmit_cls;
   *tmit = (struct TransmitClosure) {};
   tmit->data[0] = "ABC DEF";
-  tmit->data[1] = "GHI JKL MNO";
-  tmit->data_delay[1] = 1;
-  tmit->data[2] = "PQR STUW XYZ";
-  tmit->data_count = 3;
+  tmit->data[1] =  GNUNET_malloc (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD + 1);
+  for (uint16_t i = 0; i < GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD; i++)
+    tmit->data[1][i] = (0 == i % 10000) ? '0' + i / 10000 : '_';
+  tmit->data[2] = "GHI JKL MNO";
+  tmit->data_delay[2] = 2;
+  tmit->data[3] = "PQR STUW XYZ";
+  tmit->data_count = 4;
 
   origin_cls.n = member_cls.n = 0;
-  origin_cls.msgs_expected = member_cls.msgs_expected = 1;
+  origin_cls.msgs_expected = member_cls.msgs_expected = tmit->data_count;
 
-  GNUNET_MULTICAST_origin_to_all (origin, 1, 1, tmit_notify, tmit);
+  tmit->orig_tmit = GNUNET_MULTICAST_origin_to_all (origin, 1, 1,
+                                                    tmit_notify, tmit);
 }
 
 

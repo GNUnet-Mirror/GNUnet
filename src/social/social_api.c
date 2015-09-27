@@ -1837,8 +1837,10 @@ GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *hst,
 {
   if (GNUNET_OK ==
       GNUNET_PSYC_transmit_message (hst->plc.tmit, method_name, env,
-                                    NULL, notify_data, notify_data_cls, flags));
-  return (struct GNUNET_SOCIAL_Announcement *) hst->plc.tmit;
+                                    NULL, notify_data, notify_data_cls, flags))
+    return (struct GNUNET_SOCIAL_Announcement *) hst->plc.tmit;
+  else
+    return NULL;
 }
 
 
@@ -2168,8 +2170,10 @@ GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *gst,
 
   if (GNUNET_OK ==
       GNUNET_PSYC_transmit_message (plc->tmit, method_name, env,
-                                    NULL, notify_data, notify_data_cls, flags));
-  return (struct GNUNET_SOCIAL_TalkRequest *) plc->tmit;
+                                    NULL, notify_data, notify_data_cls, flags))
+    return (struct GNUNET_SOCIAL_TalkRequest *) plc->tmit;
+  else
+    return NULL;
 }
 
 

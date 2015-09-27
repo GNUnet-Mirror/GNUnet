@@ -225,7 +225,8 @@ master_message_part_cb (void *cls,
   if (NULL == msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error while receiving message %" PRIu64 "\n", message_id);
+                "Test #%d: Error while master is receiving part of message #%" PRIu64 ".\n",
+                test, message_id);
     return;
   }
 
@@ -243,7 +244,8 @@ master_message_part_cb (void *cls,
     if (GNUNET_PSYC_MESSAGE_REQUEST != flags)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpected request flags: %x" PRIu32 "\n", flags);
+                  "Test #%d: Unexpected request flags: %x" PRIu32 "\n",
+                  test, flags);
       GNUNET_assert (0);
       return;
     }
@@ -297,7 +299,8 @@ slave_message_part_cb (void *cls,
   if (NULL == msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error while receiving message " PRIu64 "\n", message_id);
+                "Test #%d: Error while slave is receiving part of message #%" PRIu64 ".\n",
+                test, message_id);
     return;
   }
 
@@ -322,7 +325,7 @@ slave_message_part_cb (void *cls,
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Test #%d: Unexpected flags for historic message: %x" PRIu32 "\n",
-                  flags);
+                  test, flags);
       GNUNET_assert (0);
       return;
     }
@@ -575,9 +578,9 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 
   uint16_t size = strlen (tmit->data[tmit->n]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit notify data: %u bytes available, "
+              "Test #%d: Transmit notify data: %u bytes available, "
               "processing fragment %u/%u (size %u).\n",
-              *data_size, tmit->n + 1, tmit->data_count, size);
+              test, *data_size, tmit->n + 1, tmit->data_count, size);
   if (*data_size < size)
   {
     *data_size = 0;
@@ -587,7 +590,8 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 
   if (GNUNET_YES != tmit->paused && 0 < tmit->data_delay[tmit->n])
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission paused.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Test #%d: Transmission paused.\n", test);
     tmit->paused = GNUNET_YES;
     GNUNET_SCHEDULER_add_delayed (
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
@@ -611,9 +615,9 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 {
   struct TransmitClosure *tmit = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit notify modifier: %lu bytes available, "
+              "Test #%d: Transmit notify modifier: %lu bytes available, "
               "%u modifiers left to process.\n",
-              *data_size, GNUNET_ENV_environment_get_count (tmit->env));
+              test, *data_size, GNUNET_ENV_environment_get_count (tmit->env));
 
   uint16_t name_size = 0;
   size_t value_size = 0;
@@ -688,9 +692,9 @@ slave_join ();
 void
 slave_transmit ()
 {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave sending request to master.\n");
   test = TEST_SLAVE_TRANSMIT;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%d: Slave sending request to master.\n", test);
 
   tmit = GNUNET_new (struct TransmitClosure);
   tmit->env = GNUNET_ENV_environment_create ();
@@ -772,7 +776,7 @@ join_decision_cb (void *cls,
                   const struct GNUNET_PSYC_Message *join_msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Slave got join decision: %d\n", is_admitted);
+              "Test #%d: Slave got join decision: %d\n", test, is_admitted);
 
   switch (test)
   {
@@ -804,8 +808,8 @@ join_request_cb (void *cls,
   struct GNUNET_HashCode slave_key_hash;
   GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Got join request #%u from %s.\n",
-              join_req_count, GNUNET_h2s (&slave_key_hash));
+              "Test #%d: Got join request #%u from %s.\n",
+              test, join_req_count, GNUNET_h2s (&slave_key_hash));
 
   /* Reject first request */
   int is_admitted = (0 < join_req_count++) ? GNUNET_YES : GNUNET_NO;
@@ -817,8 +821,8 @@ static void
 slave_connect_cb (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Slave connected: %d, max_message_id: %" PRIu64 "\n",
-              result, max_message_id);
+              "Test #%d: Slave connected: %d, max_message_id: %" PRIu64 "\n",
+              test, result, max_message_id);
   GNUNET_assert (TEST_SLAVE_JOIN_REJECT == test || TEST_SLAVE_JOIN_ACCEPT == test);
   GNUNET_assert (GNUNET_OK == result || GNUNET_NO == result);
 }
@@ -827,8 +831,8 @@ slave_connect_cb (void *cls, int result, uint64_t max_message_id)
 static void
 slave_join (int t)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
   test = t;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Joining slave.\n");
 
   struct GNUNET_PeerIdentity origin = this_peer;
   struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
@@ -852,8 +856,9 @@ slave_join (int t)
 void
 master_transmit ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Master sending message to all.\n");
   test = TEST_MASTER_TRANSMIT;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Test #%d: Master sending message to all.\n", test);
   end_count = 0;
 
   uint32_t i, j;
@@ -907,8 +912,8 @@ void
 master_start_cb (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Master started: %d, max_message_id: %" PRIu64 "\n",
-              result, max_message_id);
+              "Test #%d: Master started: %d, max_message_id: %" PRIu64 "\n",
+              test, result, max_message_id);
   GNUNET_assert (TEST_MASTER_START == test);
   GNUNET_assert (GNUNET_OK == result || GNUNET_NO == result);
   slave_join (TEST_SLAVE_JOIN_REJECT);
@@ -918,8 +923,8 @@ master_start_cb (void *cls, int result, uint64_t max_message_id)
 void
 master_start ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
   test = TEST_MASTER_START;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Starting master.\n", test);
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
                                   &master_start_cb, &join_request_cb,
                                   &master_message_cb, &master_message_part_cb,

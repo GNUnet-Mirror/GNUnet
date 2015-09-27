@@ -2439,19 +2439,24 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST 758
 
 /**
+ * C->S: Acknowledgement of a message or request fragment for the client.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK 759
+
+/**
  * C<->S<->T: Replay request from a group member to another member.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST 759
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST 760
 
 /**
  * C<->S<->T: Replay response from a group member to another member.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE 763
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE 761
 
 /**
  * C<->S: End of replay response.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END 764
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE_END 762
 
 
 

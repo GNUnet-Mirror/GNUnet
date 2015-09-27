@@ -107,17 +107,6 @@ struct TransmitMessage
    */
   uint16_t last_ptype;
 
-  /**
-   * @see enum MessageState
-   */
-  uint8_t state;
-
-  /**
-   * Whether a message ACK has already been sent to the client.
-   * #GNUNET_YES or #GNUNET_NO
-   */
-  uint8_t ack_sent;
-
   /* Followed by message */
 };
 
@@ -281,11 +270,6 @@ struct Channel
   uint32_t tmit_mod_value_size;
 
   /**
-   * @see enum MessageState
-   */
-  uint8_t tmit_state;
-
-  /**
    * Is this a channel master (#GNUNET_YES), or slave (#GNUNET_NO)?
    */
   uint8_t is_master;
@@ -436,6 +420,15 @@ message_queue_run (struct Channel *chn);
 
 static uint64_t
 message_queue_drop (struct Channel *chn);
+
+
+static void
+schedule_transmit_message (void *cls,
+                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Channel *chn = cls;
+  transmit_message (chn);
+}
 
 
 /**
@@ -1145,8 +1138,8 @@ fragment_queue_insert (struct Channel *chn,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "%p Header of message %" PRIu64 " is NOT complete yet: "
                   "%" PRIu64 " != %" PRIu64 "\n",
-                  chn, GNUNET_ntohll (mmsg->message_id), frag_offset,
-                  fragq->header_size);
+                  chn, GNUNET_ntohll (mmsg->message_id),
+                  frag_offset, fragq->header_size);
     }
   }
 
@@ -1159,8 +1152,8 @@ fragment_queue_insert (struct Channel *chn,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "%p Message %" PRIu64 " is NOT complete yet: "
                   "%" PRIu64 " != %" PRIu64 "\n",
-                  chn, GNUNET_ntohll (mmsg->message_id), frag_offset,
-                  fragq->size);
+                  chn, GNUNET_ntohll (mmsg->message_id),
+                  frag_offset, fragq->size);
     break;
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
@@ -1486,17 +1479,26 @@ mcast_recv_message (void *cls, const struct GNUNET_MULTICAST_MessageHeader *mmsg
   uint16_t size = ntohs (mmsg->header.size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Received multicast message of size %u.\n",
-              chn, size);
+              "%p Received multicast message of size %u. "
+              "fragment_id=%" PRIu64 ", message_id=%" PRIu64
+              ", fragment_offset=%" PRIu64 ", flags=%" PRIu64 "\n",
+              chn, size,
+              GNUNET_ntohll (mmsg->fragment_id),
+              GNUNET_ntohll (mmsg->message_id),
+              GNUNET_ntohll (mmsg->fragment_offset),
+              GNUNET_ntohll (mmsg->flags));
 
   GNUNET_PSYCSTORE_fragment_store (store, &chn->pub_key, mmsg, 0,
                                    &store_recv_fragment_store_result, chn);
 
   uint16_t first_ptype = 0, last_ptype = 0;
-  if (GNUNET_SYSERR
-      == GNUNET_PSYC_receive_check_parts (size - sizeof (*mmsg),
-                                          (const char *) &mmsg[1],
-                                          &first_ptype, &last_ptype))
+  int check = GNUNET_PSYC_receive_check_parts (size - sizeof (*mmsg),
+                                               (const char *) &mmsg[1],
+                                               &first_ptype, &last_ptype);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Message check result %d, first part type %u, last part type %u\n",
+              chn, check, first_ptype, last_ptype);
+  if (GNUNET_SYSERR == check)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%p Dropping incoming multicast message with invalid parts.\n",
@@ -1504,10 +1506,6 @@ mcast_recv_message (void *cls, const struct GNUNET_MULTICAST_MessageHeader *mmsg
     GNUNET_break_op (0);
     return;
   }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Message parts: first: type %u, last: type %u\n",
-              first_ptype, last_ptype);
 
   fragment_queue_insert (chn, mmsg, first_ptype, last_ptype);
   message_queue_run (chn);
@@ -1965,6 +1963,8 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p transmit_notify: nothing to send.\n", chn);
+    if (NULL != tmit_msg && *data_size < tmit_msg->size)
+      GNUNET_break (0);
     *data_size = 0;
     return GNUNET_NO;
   }
@@ -1975,9 +1975,13 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   *data_size = tmit_msg->size;
   memcpy (data, &tmit_msg[1], *data_size);
 
-  int ret = (MSG_STATE_END < chn->tmit_state) ? GNUNET_NO : GNUNET_YES;
+  int ret
+    = (tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
+    ? GNUNET_NO
+    : GNUNET_YES;
 
-  if (NULL != tmit_msg->client && GNUNET_NO == tmit_msg->ack_sent)
+  /* FIXME: handle disconnecting clients */
+  if (NULL != tmit_msg->client)
     send_message_ack (chn, tmit_msg->client);
 
   GNUNET_CONTAINER_DLL_remove (chn->tmit_head, chn->tmit_tail, tmit_msg);
@@ -1985,7 +1989,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
 
   if (NULL != chn->tmit_head)
   {
-    transmit_message (chn);
+    GNUNET_SCHEDULER_add_now (schedule_transmit_message, chn);
   }
   else if (GNUNET_YES == chn->is_disconnected
            && tmit_msg->last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
@@ -2037,10 +2041,12 @@ slave_transmit_notify (void *cls, size_t *data_size, void *data)
 static void
 master_transmit_message (struct Master *mst)
 {
+  if (NULL == mst->chn.tmit_head)
+    return;
   if (NULL == mst->tmit_handle)
   {
     mst->tmit_handle
-      = GNUNET_MULTICAST_origin_to_all (mst->origin, mst->max_message_id,
+      = GNUNET_MULTICAST_origin_to_all (mst->origin, mst->chn.tmit_head->id,
                                         mst->max_group_generation,
                                         master_transmit_notify, mst);
   }
@@ -2057,10 +2063,12 @@ master_transmit_message (struct Master *mst)
 static void
 slave_transmit_message (struct Slave *slv)
 {
+  if (NULL == slv->chn.tmit_head)
+    return;
   if (NULL == slv->tmit_handle)
   {
     slv->tmit_handle
-      = GNUNET_MULTICAST_member_to_origin (slv->member, slv->max_request_id,
+      = GNUNET_MULTICAST_member_to_origin (slv->member, slv->chn.tmit_head->id,
                                            slave_transmit_notify, slv);
   }
   else
@@ -2090,6 +2098,9 @@ master_queue_message (struct Master *mst, struct TransmitMessage *tmit_msg)
   if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == tmit_msg->first_ptype)
   {
     tmit_msg->id = ++mst->max_message_id;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "%p master_queue_message: message_id=%" PRIu64 "\n",
+                mst, tmit_msg->id);
     struct GNUNET_PSYC_MessageMethod *pmeth
       = (struct GNUNET_PSYC_MessageMethod *) &tmit_msg[1];
 
@@ -2159,7 +2170,6 @@ queue_message (struct Channel *chn,
   memcpy (&tmit_msg[1], data, data_size);
   tmit_msg->client = client;
   tmit_msg->size = data_size;
-  tmit_msg->state = chn->tmit_state;
   tmit_msg->first_ptype = first_ptype;
   tmit_msg->last_ptype = last_ptype;
 

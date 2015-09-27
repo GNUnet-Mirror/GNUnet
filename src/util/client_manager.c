@@ -328,7 +328,7 @@ transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
 
   mgr->client_tmit
     = GNUNET_CLIENT_notify_transmit_ready (mgr->client,
-                                           ntohs (mgr->tmit_head->msg->size),
+                                           GNUNET_SERVER_MAX_MESSAGE_SIZE - 1,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO,
                                            &send_next_message,

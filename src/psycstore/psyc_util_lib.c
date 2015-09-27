@@ -101,6 +101,12 @@ struct GNUNET_PSYC_TransmitHandle
    * Are we currently transmitting a message?
    */
   uint8_t in_transmit;
+
+  /**
+   * Notify callback is currently being called.
+   */
+  uint8_t in_notify;
+
 };
 
 
@@ -334,20 +340,20 @@ GNUNET_PSYC_transmit_destroy (struct GNUNET_PSYC_TransmitHandle *tmit)
  *        Transmission handle.
  * @param msg
  *        Message part, or NULL.
- * @param end
- *        End of message?
+ * @param tmit_now
+ *        Transmit message now, or wait for buffer to fill up?
  *        #GNUNET_YES or #GNUNET_NO.
  */
 static void
 transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
                        const struct GNUNET_MessageHeader *msg,
-                       uint8_t end)
+                       uint8_t tmit_now)
 {
   uint16_t size = (NULL != msg) ? ntohs (msg->size) : 0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Queueing message part of type %u and size %u (end: %u)).\n",
-       NULL != msg ? ntohs (msg->type) : 0, size, end);
+       "Queueing message part of type %u and size %u (tmit_now: %u)).\n",
+       NULL != msg ? ntohs (msg->type) : 0, size, tmit_now);
 
   if (NULL != tmit->msg)
   {
@@ -380,7 +386,7 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
   }
 
   if (NULL != tmit->msg
-      && (GNUNET_YES == end
+      && (GNUNET_YES == tmit_now
           || (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD
               < tmit->msg->size + sizeof (struct GNUNET_MessageHeader))))
   {
@@ -391,9 +397,6 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
     tmit->msg = NULL;
     tmit->acks_pending++;
   }
-
-  if (GNUNET_YES == end)
-    tmit->in_transmit = GNUNET_NO;
 }
 
 
@@ -414,7 +417,9 @@ transmit_data (struct GNUNET_PSYC_TransmitHandle *tmit)
   if (NULL != tmit->notify_data)
   {
     data_size = GNUNET_PSYC_DATA_MAX_PAYLOAD;
+    tmit->in_notify = GNUNET_YES;
     notify_ret = tmit->notify_data (tmit->notify_data_cls, &data_size, &msg[1]);
+    tmit->in_notify = GNUNET_NO;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "transmit_data (ret: %d, size: %u): %.*s\n",
@@ -442,6 +447,7 @@ transmit_data (struct GNUNET_PSYC_TransmitHandle *tmit)
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL);
     msg->size = htons (sizeof (*msg));
     transmit_queue_insert (tmit, msg, GNUNET_YES);
+    tmit->in_transmit = GNUNET_NO;
     return;
   }
 
@@ -458,6 +464,8 @@ transmit_data (struct GNUNET_PSYC_TransmitHandle *tmit)
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END);
     msg->size = htons (sizeof (*msg));
     transmit_queue_insert (tmit, msg, GNUNET_YES);
+    /* FIXME: wait for ACK before setting in_transmit to no */
+    tmit->in_transmit = GNUNET_NO;
   }
 }
 
@@ -489,8 +497,10 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
     {
       max_data_size = GNUNET_PSYC_MODIFIER_MAX_PAYLOAD;
       data_size = max_data_size;
+      tmit->in_notify = GNUNET_YES;
       notify_ret = tmit->notify_mod (tmit->notify_mod_cls, &data_size, &mod[1],
                                      &mod->oper, &mod->value_size);
+      tmit->in_notify = GNUNET_NO;
     }
 
     mod->name_size = strnlen ((char *) &mod[1], data_size) + 1;
@@ -520,8 +530,10 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
     {
       max_data_size = GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD;
       data_size = max_data_size;
+      tmit->in_notify = GNUNET_YES;
       notify_ret = tmit->notify_mod (tmit->notify_mod_cls,
                                      &data_size, &msg[1], NULL, NULL);
+      tmit->in_notify = GNUNET_NO;
     }
     tmit->mod_value_remaining -= data_size;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -558,8 +570,8 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
     tmit->state = GNUNET_PSYC_MESSAGE_STATE_CANCEL;
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL);
     msg->size = htons (sizeof (*msg));
-
     transmit_queue_insert (tmit, msg, GNUNET_YES);
+    tmit->in_transmit = GNUNET_NO;
     return;
   }
 
@@ -748,6 +760,9 @@ GNUNET_PSYC_transmit_message (struct GNUNET_PSYC_TransmitHandle *tmit,
 void
 GNUNET_PSYC_transmit_resume (struct GNUNET_PSYC_TransmitHandle *tmit)
 {
+  if (GNUNET_YES != tmit->in_transmit || GNUNET_NO != tmit->in_notify)
+    return;
+
   if (0 == tmit->acks_pending)
   {
     tmit->paused = GNUNET_NO;
@@ -800,13 +815,11 @@ GNUNET_PSYC_transmit_got_ack (struct GNUNET_PSYC_TransmitHandle *tmit)
   {
   case GNUNET_PSYC_MESSAGE_STATE_MODIFIER:
   case GNUNET_PSYC_MESSAGE_STATE_MOD_CONT:
-    if (GNUNET_NO == tmit->paused)
-      transmit_mod (tmit);
+    transmit_mod (tmit);
     break;
 
   case GNUNET_PSYC_MESSAGE_STATE_DATA:
-    if (GNUNET_NO == tmit->paused)
-      transmit_data (tmit);
+    transmit_data (tmit);
     break;
 
   case GNUNET_PSYC_MESSAGE_STATE_END:

@@ -102,6 +102,11 @@ struct GNUNET_MULTICAST_Group
   uint8_t in_transmit;
 
   /**
+   * Number of MULTICAST_FRAGMENT_ACK messages we are still waiting for.
+   */
+  uint8_t acks_pending;
+
+  /**
    * Is this the origin or a member?
    */
   uint8_t is_origin;
@@ -183,6 +188,13 @@ struct GNUNET_MULTICAST_ReplayHandle
 struct GNUNET_MULTICAST_MemberReplayHandle
 {
 };
+
+
+static void
+origin_to_all (struct GNUNET_MULTICAST_Origin *orig);
+
+static void
+member_to_origin (struct GNUNET_MULTICAST_Member *mem);
 
 
 /**
@@ -272,6 +284,38 @@ group_recv_message (void *cls,
     grp->message_cb (grp->cb_cls, mmsg);
 }
 
+
+/**
+ * Receive message/request fragment acknowledgement from service.
+ */
+static void
+group_recv_fragment_ack (void *cls,
+                         struct GNUNET_CLIENT_MANAGER_Connection *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_MULTICAST_Group *
+    grp = GNUNET_CLIENT_MANAGER_get_user_context_ (client, sizeof (*grp));
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Got fragment ACK. in_transmit=%u, acks_pending=%u\n",
+       grp, grp->in_transmit, grp->acks_pending);
+
+  if (0 == grp->acks_pending)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%p Ignoring extraneous fragment ACK.\n", grp);
+    return;
+  }
+  grp->acks_pending--;
+
+  if (GNUNET_YES != grp->in_transmit)
+    return;
+
+  if (GNUNET_YES == grp->is_origin)
+    origin_to_all ((struct GNUNET_MULTICAST_Origin *) grp);
+  else
+    member_to_origin ((struct GNUNET_MULTICAST_Member *) grp);
+}
 
 /**
  * Origin receives uniquest request from a member.
@@ -447,6 +491,10 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler origin_handlers[] =
     GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST,
     sizeof (struct GNUNET_MULTICAST_RequestHeader), GNUNET_YES },
 
+  { group_recv_fragment_ack, NULL,
+    GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK,
+    sizeof (struct GNUNET_MessageHeader), GNUNET_YES },
+
   { group_recv_join_request, NULL,
     GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
     sizeof (struct MulticastJoinRequestMessage), GNUNET_YES },
@@ -469,6 +517,10 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler member_handlers[] =
   { group_recv_message, NULL,
     GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE,
     sizeof (struct GNUNET_MULTICAST_MessageHeader), GNUNET_YES },
+
+  { group_recv_fragment_ack, NULL,
+    GNUNET_MESSAGE_TYPE_MULTICAST_FRAGMENT_ACK,
+    sizeof (struct GNUNET_MessageHeader), GNUNET_YES },
 
   { group_recv_join_request, NULL,
     GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST,
@@ -577,6 +629,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *join,
     memcpy (((char *) &dcsn[1]) + relay_size, join_resp, join_resp_size);
 
   GNUNET_CLIENT_MANAGER_transmit (grp->client, &hdcsn->header);
+  GNUNET_free (hdcsn);
   GNUNET_free (join);
   return NULL;
 }
@@ -774,9 +827,10 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig,
 static void
 origin_to_all (struct GNUNET_MULTICAST_Origin *orig)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "origin_to_all()\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%p origin_to_all()\n", orig);
   struct GNUNET_MULTICAST_Group *grp = &orig->grp;
   struct GNUNET_MULTICAST_OriginTransmitHandle *tmit = &orig->tmit;
+  GNUNET_assert (GNUNET_YES == grp->in_transmit);
 
   size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_SIZE;
   struct GNUNET_MULTICAST_MessageHeader *msg = GNUNET_malloc (buf_size);
@@ -786,7 +840,8 @@ origin_to_all (struct GNUNET_MULTICAST_Origin *orig)
       || GNUNET_MULTICAST_FRAGMENT_MAX_SIZE < buf_size)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "OriginTransmitNotify() returned error or invalid message size.\n");
+         "%p OriginTransmitNotify() returned error or invalid message size.\n",
+         orig);
     /* FIXME: handle error */
     GNUNET_free (msg);
     return;
@@ -794,6 +849,8 @@ origin_to_all (struct GNUNET_MULTICAST_Origin *orig)
 
   if (GNUNET_NO == ret && 0 == buf_size)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "%p OriginTransmitNotify() - transmission paused.\n", orig);
     GNUNET_free (msg);
     return; /* Transmission paused. */
   }
@@ -805,7 +862,12 @@ origin_to_all (struct GNUNET_MULTICAST_Origin *orig)
   msg->fragment_offset = GNUNET_htonll (tmit->fragment_offset);
   tmit->fragment_offset += sizeof (*msg) + buf_size;
 
+  grp->acks_pending++;
   GNUNET_CLIENT_MANAGER_transmit (grp->client, &msg->header);
+  GNUNET_free (msg);
+
+  if (GNUNET_YES == ret)
+    grp->in_transmit = GNUNET_NO;
 }
 
 
@@ -834,11 +896,10 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *orig,
                                 GNUNET_MULTICAST_OriginTransmitNotify notify,
                                 void *notify_cls)
 {
-/* FIXME
-  if (GNUNET_YES == orig->grp.in_transmit)
+  struct GNUNET_MULTICAST_Group *grp = &orig->grp;
+  if (GNUNET_YES == grp->in_transmit)
     return NULL;
-  orig->grp.in_transmit = GNUNET_YES;
-*/
+  grp->in_transmit = GNUNET_YES;
 
   struct GNUNET_MULTICAST_OriginTransmitHandle *tmit = &orig->tmit;
   tmit->origin = orig;
@@ -861,6 +922,9 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *orig,
 void
 GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginTransmitHandle *th)
 {
+  struct GNUNET_MULTICAST_Group *grp = &th->origin->grp;
+  if (0 != grp->acks_pending || GNUNET_YES != grp->in_transmit)
+    return;
   origin_to_all (th->origin);
 }
 
@@ -874,6 +938,7 @@ GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginTransmitHan
 void
 GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHandle *th)
 {
+  th->origin->grp.in_transmit = GNUNET_NO;
 }
 
 
@@ -1094,6 +1159,7 @@ member_to_origin (struct GNUNET_MULTICAST_Member *mem)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "member_to_origin()\n");
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
   struct GNUNET_MULTICAST_MemberTransmitHandle *tmit = &mem->tmit;
+  GNUNET_assert (GNUNET_YES == grp->in_transmit);
 
   size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_SIZE;
   struct GNUNET_MULTICAST_RequestHeader *req = GNUNET_malloc (buf_size);
@@ -1124,6 +1190,10 @@ member_to_origin (struct GNUNET_MULTICAST_Member *mem)
   tmit->fragment_offset += sizeof (*req) + buf_size;
 
   GNUNET_CLIENT_MANAGER_transmit (grp->client, &req->header);
+  GNUNET_free (req);
+
+  if (GNUNET_YES == ret)
+    grp->in_transmit = GNUNET_NO;
 }
 
 
@@ -1147,11 +1217,9 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *mem,
                                    GNUNET_MULTICAST_MemberTransmitNotify notify,
                                    void *notify_cls)
 {
-/* FIXME
   if (GNUNET_YES == mem->grp.in_transmit)
     return NULL;
   mem->grp.in_transmit = GNUNET_YES;
-*/
 
   struct GNUNET_MULTICAST_MemberTransmitHandle *tmit = &mem->tmit;
   tmit->member = mem;
@@ -1173,6 +1241,9 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *mem,
 void
 GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmitHandle *th)
 {
+  struct GNUNET_MULTICAST_Group *grp = &th->member->grp;
+  if (0 != grp->acks_pending || GNUNET_YES != grp->in_transmit)
+    return;
   member_to_origin (th->member);
 }
 
@@ -1186,6 +1257,7 @@ GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmit
 void
 GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmitHandle *th)
 {
+  th->member->grp.in_transmit = GNUNET_NO;
 }
 
 
