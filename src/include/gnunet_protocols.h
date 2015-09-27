@@ -2444,21 +2444,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST 759
 
 /**
- * C<->S<->T: Cancellation of a replay request.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL 760
-
-/**
- * S->C: Membership test request.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBERSHIP_TEST 761
-
-/**
- * C->S: Membership test result.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBERSHIP_TEST_RESULT 762
-
-/**
  * C<->S<->T: Replay response from a group member to another member.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_RESPONSE 763
