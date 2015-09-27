@@ -33,8 +33,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "set-union",__VA_ARGS__)
 
-#define LOG_OP(kind,msg,op,...) GNUNET_log_from (kind, "set-union","[OP %x] " msg,((void *)op),__VA_ARGS__)
-
 
 /**
  * Number of IBFs in a strata estimator.
@@ -564,10 +562,10 @@ send_ibf (struct Operation *op,
                      buckets_in_message, &msg[1]);
     buckets_sent += buckets_in_message;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "ibf chunk size %u, %u/%u sent\n",
-                buckets_in_message,
-                buckets_sent,
-                1<<ibf_order);
+         "ibf chunk size %u, %u/%u sent\n",
+         buckets_in_message,
+         buckets_sent,
+         1<<ibf_order);
     GNUNET_MQ_send (op->mq, ev);
   }
 
@@ -596,7 +594,7 @@ send_strata_estimator (struct Operation *op)
                   ev);
   op->state->phase = PHASE_EXPECT_IBF;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "sent SE, expecting IBF\n");
+       "sent SE, expecting IBF\n");
 }
 
 
@@ -663,9 +661,9 @@ handle_p2p_strata_estimator (void *cls,
   strata_estimator_destroy (op->state->se);
   op->state->se = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "got se diff=%d, using ibf size %d\n",
-              diff,
-              1<<get_order_from_difference (diff));
+       "got se diff=%d, using ibf size %d\n",
+       diff,
+       1<<get_order_from_difference (diff));
   send_ibf (op,
             get_order_from_difference (diff));
   return GNUNET_OK;
@@ -701,9 +699,9 @@ send_offers_iterator (void *cls,
   GNUNET_assert (NULL != ev);
   *(struct GNUNET_HashCode *) &mh[1] = ke->element->element_hash;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "[OP %x] sending element offer (%s) to peer\n",
-              (void *) op,
-              GNUNET_h2s (&ke->element->element_hash));
+       "[OP %x] sending element offer (%s) to peer\n",
+       (void *) op,
+       GNUNET_h2s (&ke->element->element_hash));
   GNUNET_MQ_send (op->mq, ev);
   return GNUNET_YES;
 }
@@ -755,8 +753,8 @@ decode_and_send (struct Operation *op)
   op->state->remote_ibf = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "decoding IBF (size=%u)\n",
-              diff_ibf->size);
+       "decoding IBF (size=%u)\n",
+       diff_ibf->size);
 
   num_decoded = 0;
   last_key.key_val = 0;
@@ -772,16 +770,16 @@ decode_and_send (struct Operation *op)
     if (res == GNUNET_OK)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "decoded ibf key %lx\n",
-                  (unsigned long) key.key_val);
+           "decoded ibf key %lx\n",
+           (unsigned long) key.key_val);
       num_decoded += 1;
       if ( (num_decoded > diff_ibf->size) ||
            (num_decoded > 1 && last_key.key_val == key.key_val) )
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
-                    "detected cyclic ibf (decoded %u/%u)\n",
-                    num_decoded,
-                    diff_ibf->size);
+             "detected cyclic ibf (decoded %u/%u)\n",
+             num_decoded,
+             diff_ibf->size);
         cycle_detected = GNUNET_YES;
       }
     }
@@ -795,17 +793,16 @@ decode_and_send (struct Operation *op)
       next_order++;
       if (next_order <= MAX_IBF_ORDER)
       {
-        LOG_OP (GNUNET_ERROR_TYPE_DEBUG,
-                "decoding failed, sending larger ibf (size %u)\n",
-                op,
-                1<<next_order);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "decoding failed, sending larger ibf (size %u)\n",
+             1<<next_order);
         send_ibf (op, next_order);
       }
       else
       {
         // XXX: Send the whole set, element-by-element
         LOG (GNUNET_ERROR_TYPE_ERROR,
-                    "set union failed: reached ibf limit\n");
+             "set union failed: reached ibf limit\n");
       }
       break;
     }
@@ -814,7 +811,7 @@ decode_and_send (struct Operation *op)
       struct GNUNET_MQ_Envelope *ev;
 
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "transmitted all values, sending DONE\n");
+           "transmitted all values, sending DONE\n");
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE);
       GNUNET_MQ_send (op->mq, ev);
       /* We now wait until we get a DONE message back
@@ -841,8 +838,8 @@ decode_and_send (struct Operation *op)
               &key,
               sizeof (struct IBF_Key));
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "sending element inquiry for IBF key %lx\n",
-                  (unsigned long) key.key_val);
+           "sending element inquiry for IBF key %lx\n",
+           (unsigned long) key.key_val);
       GNUNET_MQ_send (op->mq, ev);
     }
     else
@@ -886,8 +883,8 @@ handle_p2p_ibf (void *cls,
     op->state->phase = PHASE_EXPECT_IBF_CONT;
     GNUNET_assert (NULL == op->state->remote_ibf);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "Creating new ibf of size %u\n",
-                1 << msg->order);
+         "Creating new ibf of size %u\n",
+         1 << msg->order);
     op->state->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
     op->state->ibf_buckets_received = 0;
     if (0 != ntohs (msg->offset))
@@ -909,9 +906,6 @@ handle_p2p_ibf (void *cls,
   }
   else
   {
-    LOG_OP (GNUNET_ERROR_TYPE_DEBUG,
-            "wrong phase\n",
-            op, NULL);
     GNUNET_assert (0);
   }
 
@@ -942,7 +936,7 @@ handle_p2p_ibf (void *cls,
   if (op->state->ibf_buckets_received == op->state->remote_ibf->size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "received full ibf\n");
+         "received full ibf\n");
     op->state->phase = PHASE_INVENTORY_ACTIVE;
     decode_and_send (op);
   }
@@ -967,8 +961,8 @@ send_client_element (struct Operation *op,
   struct GNUNET_SET_ResultMessage *rm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "sending element (size %u) to client\n",
-              element->size);
+       "sending element (size %u) to client\n",
+       element->size);
   GNUNET_assert (0 != op->spec->client_request_id);
   ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
   if (NULL == ev)
@@ -1098,9 +1092,9 @@ handle_p2p_elements (void *cls,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Got element (size %u, hash %s) from peer\n",
-              (unsigned int) element_size,
-              GNUNET_h2s (&ee->element_hash));
+       "Got element (size %u, hash %s) from peer\n",
+       (unsigned int) element_size,
+       GNUNET_h2s (&ee->element_hash));
 
   if (GNUNET_YES == op_has_element (op, &ee->element_hash))
   {
@@ -1331,7 +1325,7 @@ handle_p2p_done (void *cls,
     op->state->phase = PHASE_FINISH_WAITING;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "got DONE (as passive partner), waiting for our demands to be satisfied\n");
+         "got DONE (as passive partner), waiting for our demands to be satisfied\n");
     /* The active peer is done sending offers
      * and inquiries.  This means that all
      * our responses to that (demands and offers)
@@ -1347,7 +1341,7 @@ handle_p2p_done (void *cls,
   if (op->state->phase == PHASE_INVENTORY_ACTIVE)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "got DONE (as active partner), waiting to finish\n");
+         "got DONE (as active partner), waiting to finish\n");
     /* All demands of the other peer are satisfied,
      * and we processed all offers, thus we know
      * exactly what our demands must be.
@@ -1386,7 +1380,7 @@ union_evaluate (struct Operation *op,
   /* we started the operation, thus we have to send the operation request */
   op->state->phase = PHASE_EXPECT_SE;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Initiating union operation evaluation\n");
+       "Initiating union operation evaluation\n");
   ev = GNUNET_MQ_msg_nested_mh (msg,
                                 GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
                                 opaque_context);
@@ -1404,10 +1398,10 @@ union_evaluate (struct Operation *op,
 
   if (NULL != opaque_context)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "sent op request with context message\n");
+         "sent op request with context message\n");
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "sent op request without context message\n");
+         "sent op request without context message\n");
 }
 
 
@@ -1421,7 +1415,7 @@ static void
 union_accept (struct Operation *op)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "accepting set union operation\n");
+       "accepting set union operation\n");
   GNUNET_assert (NULL == op->state);
   op->state = GNUNET_new (struct OperationState);
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
@@ -1445,7 +1439,7 @@ union_set_create (void)
   struct SetState *set_state;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "union set created\n");
+       "union set created\n");
   set_state = GNUNET_new (struct SetState);
   set_state->se = strata_estimator_create (SE_STRATA_COUNT,
                                            SE_IBF_SIZE, SE_IBF_HASH_NUM);
@@ -1566,15 +1560,15 @@ union_peer_disconnect (struct Operation *op)
     GNUNET_MQ_send (op->spec->set->client_mq,
                     ev);
     LOG (GNUNET_ERROR_TYPE_WARNING,
-                "other peer disconnected prematurely, phase %u\n",
-                op->state->phase);
+         "other peer disconnected prematurely, phase %u\n",
+         op->state->phase);
     _GSS_operation_destroy (op,
                             GNUNET_YES);
     return;
   }
   // else: the session has already been concluded
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "other peer disconnected (finished)\n");
+       "other peer disconnected (finished)\n");
   if (GNUNET_NO == op->state->client_done_sent)
     send_done_and_destroy (op);
 }
