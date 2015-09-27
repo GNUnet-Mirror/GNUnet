@@ -398,40 +398,49 @@ handle_result (void *cls,
                 "Ignoring result from canceled operation\n");
     return;
   }
-  if (GNUNET_SET_STATUS_OK != result_status)
+
+  switch (result_status)
   {
-    /* status is not #GNUNET_SET_STATUS_OK => there's no attached element,
-     * and this is the last result message we get */
-    GNUNET_MQ_assoc_remove (set->mq,
-                            ntohl (msg->request_id));
-    GNUNET_CONTAINER_DLL_remove (set->ops_head,
-                                 set->ops_tail,
-                                 oh);
-    if ( (GNUNET_YES == set->destroy_requested) &&
-         (NULL == set->ops_head) )
-      GNUNET_SET_destroy (set);
-    if (NULL != oh->result_cb)
-      oh->result_cb (oh->result_cls,
-                     NULL,
-                     result_status);
-    switch (result_status)
-    {
     case GNUNET_SET_STATUS_OK:
     case GNUNET_SET_STATUS_ADD_LOCAL:
     case GNUNET_SET_STATUS_ADD_REMOTE:
-      break;
+      goto do_element;
     case GNUNET_SET_STATUS_FAILURE:
-      oh->result_cb = NULL;
-      break;
-    case GNUNET_SET_STATUS_HALF_DONE:
-      break;
     case GNUNET_SET_STATUS_DONE:
-      oh->result_cb = NULL;
-      break;
-    }
-    GNUNET_free (oh);
-    return;
+      goto do_final;
+    case GNUNET_SET_STATUS_HALF_DONE:
+      /* not used anymore */
+      GNUNET_assert (0);
   }
+
+do_final:
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Treating result as final status\n");
+  GNUNET_MQ_assoc_remove (set->mq,
+                          ntohl (msg->request_id));
+  GNUNET_CONTAINER_DLL_remove (set->ops_head,
+                               set->ops_tail,
+                               oh);
+  if (NULL != oh->result_cb)
+  {
+    oh->result_cb (oh->result_cls,
+                   NULL,
+                   result_status);
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No callback for final status\n");
+  }
+  if ( (GNUNET_YES == set->destroy_requested) &&
+       (NULL == set->ops_head) )
+    GNUNET_SET_destroy (set);
+  GNUNET_free (oh);
+  return;
+
+do_element:
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Treating result as element\n");
   e.data = &msg[1];
   e.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ResultMessage);
   e.element_type = msg->element_type;

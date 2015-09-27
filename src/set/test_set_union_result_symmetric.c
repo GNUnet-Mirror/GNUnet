@@ -19,8 +19,8 @@
 */
 
 /**
- * @file set/test_set_union_result_full.c
- * @brief testcase for full result mode of the union set operation
+ * @file set/test_set_union_result_smmetric
+ * @brief testcase for symmetric result mode of the union set operation
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -69,7 +69,7 @@ result_cb_set1 (void *cls,
 {
   switch (status)
   {
-    case GNUNET_SET_STATUS_OK:
+    case GNUNET_SET_STATUS_ADD_LOCAL:
       count_set1++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "set 1: got element\n");
@@ -88,6 +88,8 @@ result_cb_set1 (void *cls,
       if (NULL == set2)
         GNUNET_SCHEDULER_shutdown ();
       break;
+    case GNUNET_SET_STATUS_ADD_REMOTE:
+      break;
     default:
       GNUNET_assert (0);
   }
@@ -101,7 +103,7 @@ result_cb_set2 (void *cls,
 {
   switch (status)
   {
-    case GNUNET_SET_STATUS_OK:
+    case GNUNET_SET_STATUS_ADD_LOCAL:
       count_set2++;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "set 2: got element\n");
@@ -119,6 +121,8 @@ result_cb_set2 (void *cls,
       set2 = NULL;
       if (NULL == set1)
         GNUNET_SCHEDULER_shutdown ();
+      break;
+    case GNUNET_SET_STATUS_ADD_REMOTE:
       break;
     default:
       GNUNET_assert (0);
@@ -140,7 +144,7 @@ listen_cb (void *cls,
               "listen cb called\n");
   GNUNET_SET_listen_cancel (listen_handle);
   oh = GNUNET_SET_accept (request,
-                          GNUNET_SET_RESULT_FULL,
+                          GNUNET_SET_RESULT_SYMMETRIC,
                           &result_cb_set2,
                           NULL);
   GNUNET_SET_commit (oh, set2);
@@ -168,7 +172,7 @@ start (void *cls)
   oh = GNUNET_SET_prepare (&local_id,
                            &app_id,
                            &context_msg,
-                           GNUNET_SET_RESULT_FULL,
+                           GNUNET_SET_RESULT_SYMMETRIC,
                            &result_cb_set1, NULL);
   GNUNET_SET_commit (oh, set1);
 }
@@ -353,7 +357,7 @@ main (int argc, char **argv)
   {
     return 1;
   }
-  GNUNET_assert (4 == count_set1);
-  GNUNET_assert (4 == count_set2);
+  GNUNET_assert (2 == count_set1);
+  GNUNET_assert (1 == count_set2);
   return ret;
 }

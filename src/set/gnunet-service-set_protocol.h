@@ -58,6 +58,12 @@ struct OperationRequestMessage
 };
 
 
+/**
+ * Message containing buckets of an invertible bloom filter.
+ *
+ * If an IBF has too many buckets for an IBF message,
+ * it is split into multiple messages.
+ */
 struct IBFMessage
 {
   /**
@@ -86,7 +92,7 @@ struct IBFMessage
    */
   uint32_t salt GNUNET_PACKED;
 
-  /* rest: strata */
+  /* rest: buckets */
 };
 
 

@@ -1801,6 +1801,27 @@ extern "C"
  * SET message types
  ******************************************************************************/
 
+/**
+ * Demand the whole element from the other
+ * peer, given only the hash code.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND 566
+
+/**
+ * Tell the other peer to send us a list of
+ * hashes that match an IBF key.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY 567
+
+/**
+ * Tell the other peer which hashes match a
+ * given IBF key.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_OFFER 568
+
+/**
+ * Reject a set request.
+ */
 #define GNUNET_MESSAGE_TYPE_SET_REJECT 569
 
 /**
@@ -1884,7 +1905,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS 585
 
 /**
- * Union operation is done.
+ * Set operation is done.
  */
 #define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DONE 586
 

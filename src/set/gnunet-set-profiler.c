@@ -98,6 +98,7 @@ set_result_cb (void *cls,
                  enum GNUNET_SET_Status status)
 {
   struct SetInfo *info = cls;
+  struct GNUNET_HashCode hash;
 
   GNUNET_assert (GNUNET_NO == info->done);
   switch (status)
@@ -114,15 +115,22 @@ set_result_cb (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "failure\n");
       GNUNET_SCHEDULER_shutdown ();
       return;
-    case GNUNET_SET_STATUS_OK:
+    case GNUNET_SET_STATUS_ADD_LOCAL:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set %s: local element\n", info->id);
       break;
+    case GNUNET_SET_STATUS_ADD_REMOTE:
+      GNUNET_CRYPTO_hash (element->data, element->size, &hash);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "set %s: remote element %s\n", info->id,
+                  GNUNET_h2s (&hash));
+      // XXX: record and check
+      return;
     default:
       GNUNET_assert (0);
   }
 
   if (element->size != sizeof (struct GNUNET_HashCode))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "wrong element size: %u\n", element->size);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "wrong element size: %u, expected %u\n", element->size, sizeof (struct GNUNET_HashCode));
     GNUNET_assert (0);
   }
 
@@ -180,6 +188,8 @@ static void
 handle_shutdown (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Shutting down set profiler\n");
   if (NULL != set_listener)
   {
     GNUNET_SET_listen_cancel (set_listener);
@@ -209,11 +219,13 @@ handle_shutdown (void *cls,
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+run (void *cls,
+     const struct GNUNET_CONFIGURATION_Handle *cfg,
+     struct GNUNET_TESTING_Peer *peer)
 {
   unsigned int i;
   struct GNUNET_HashCode hash;
+  struct GNUNET_HashCode hashhash;
 
   config = cfg;
 
@@ -239,6 +251,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < num_a; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
+    GNUNET_CRYPTO_hash (&hash, sizeof (struct GNUNET_HashCode), &hashhash);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set a: Created element %s\n",
+                GNUNET_h2s (&hashhash));
     GNUNET_CONTAINER_multihashmap_put (info1.sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
@@ -246,6 +261,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < num_b; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
+    GNUNET_CRYPTO_hash (&hash, sizeof (struct GNUNET_HashCode), &hashhash);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set b: Created element %s\n",
+                GNUNET_h2s (&hashhash));
     GNUNET_CONTAINER_multihashmap_put (info2.sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
@@ -253,12 +271,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   for (i = 0; i < num_c; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
+    GNUNET_CRYPTO_hash (&hash, sizeof (struct GNUNET_HashCode), &hashhash);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set c: Created element %s\n",
+                GNUNET_h2s (&hashhash));
     GNUNET_CONTAINER_multihashmap_put (common_sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
 
-  /* use last hash for app id */
-  app_id = hash;
+  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &app_id);
 
   /* FIXME: also implement intersection etc. */
   info1.set = GNUNET_SET_create (config, GNUNET_SET_OPERATION_UNION);
@@ -281,6 +301,17 @@ run (void *cls, char *const *args, const char *cfgfile,
 }
 
 
+static void
+pre_run (void *cls, char *const *args, const char *cfgfile,
+         const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  if (0 != GNUNET_TESTING_peer_run ("set-profiler",
+                                    cfgfile,
+                                    &run, NULL))
+    ret = 2;
+}
+
+
 int
 main (int argc, char **argv)
 {
@@ -295,13 +326,13 @@ main (int argc, char **argv)
         gettext_noop ("number of values"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_c },
       { 'x', "operation", NULL,
-        gettext_noop ("oeration to execute"),
+        gettext_noop ("operation to execute"),
         GNUNET_YES, &GNUNET_GETOPT_set_string, &op_str },
       GNUNET_GETOPT_OPTION_END
   };
-  GNUNET_PROGRAM_run (argc, argv, "gnunet-set-profiler",
-                      "help",
-                      options, &run, NULL);
+  GNUNET_PROGRAM_run2 (argc, argv, "gnunet-set-profiler",
+		      "help",
+		      options, &pre_run, NULL, GNUNET_YES);
   return ret;
 }
 

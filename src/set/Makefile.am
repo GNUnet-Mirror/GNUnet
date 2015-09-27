@@ -66,7 +66,7 @@ libgnunetset_la_LDFLAGS = \
 if HAVE_TESTING
 check_PROGRAMS = \
  test_set_api \
- test_set_union_result_full \
+ test_set_union_result_symmetric \
  test_set_intersection_result_full \
  test_set_union_copy
 endif
@@ -83,9 +83,9 @@ test_set_api_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetset.la
 
-test_set_union_result_full_SOURCES = \
- test_set_union_result_full.c
-test_set_union_result_full_LDADD = \
+test_set_union_result_symmetric_SOURCES = \
+ test_set_union_result_symmetric.c
+test_set_union_result_symmetric_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   libgnunetset.la
