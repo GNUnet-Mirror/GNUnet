@@ -370,7 +370,8 @@ GNUNET_xgrow_ (void **old,
     memset (tmp, 0, size);      /* client code should not rely on this, though... */
     if (*oldCount > newCount)
       *oldCount = newCount;     /* shrink is also allowed! */
-    memcpy (tmp, *old, elementSize * (*oldCount));
+    if (NULL != *old)
+      memcpy (tmp, *old, elementSize * (*oldCount));
   }
 
   if (*old != NULL)
