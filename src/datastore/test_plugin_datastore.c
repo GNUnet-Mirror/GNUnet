@@ -344,11 +344,14 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "DATASTORE", "DATABASE",
+      GNUNET_CONFIGURATION_get_value_string (cfg, 
+					     "DATASTORE", 
+					     "DATABASE",
                                              &name))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("No `%s' specified for `%s' in configuration!\n"), "DATABASE",
+                _("No `%s' specified for `%s' in configuration!\n"),
+		"DATABASE",
                 "DATASTORE");
     return NULL;
   }
@@ -363,6 +366,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
     FPRINTF (stderr, "Failed to load plugin `%s'!\n", name);
     GNUNET_free (libname);
     GNUNET_free (name);
+    ok = 77; /* mark test as skipped */    
     return NULL;
   }
   GNUNET_free (libname);
@@ -420,7 +424,7 @@ main (int argc, char *argv[])
                    "test_plugin_datastore_data_%s.conf", plugin_name);
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-plugin-datastore", "nohelp", options, &run, NULL);
-  if (0 != ok)
+  if ( (0 != ok) && (77 != ok) )
     FPRINTF (stderr, "Missed some testcases: %u\n", ok);
   GNUNET_DISK_directory_remove (dir_name);
   return ok;

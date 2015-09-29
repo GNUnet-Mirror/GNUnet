@@ -77,6 +77,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr,
              "%s",
 	     "Failed to initialize datacache.  Database likely not setup, skipping test.\n");
+    ok = 77; /* mark test as skipped */
     return;
   }
   exp = GNUNET_TIME_absolute_get ();
@@ -140,7 +141,7 @@ main (int argc, char *argv[])
                    plugin_name);
   GNUNET_PROGRAM_run ((sizeof (xargv) / sizeof (char *)) - 1, xargv,
                       "test-datacache", "nohelp", options, &run, NULL);
-  if (0 != ok)
+  if ( (0 != ok) && (77 != ok) )
     FPRINTF (stderr, "Missed some testcases: %d\n", ok);
   return ok;
 }

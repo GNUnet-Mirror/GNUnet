@@ -171,8 +171,8 @@ main (int argc, char *argv[])
   }
   if (NULL != directory)
   {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
+    GNUNET_DISK_directory_remove (directory);
+    GNUNET_free (directory);
   }
   return res;
 }

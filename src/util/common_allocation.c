@@ -224,8 +224,8 @@ GNUNET_xrealloc_ (void *ptr,
  * want to keep track of allocations.
  *
  * @param ptr the pointer to free
- * @param filename where in the code was the call to GNUNET_array_grow
- * @param linenumber where in the code was the call to GNUNET_array_grow
+ * @param filename where in the code was the call to GNUNET_free
+ * @param linenumber where in the code was the call to GNUNET_free
  */
 void
 GNUNET_xfree_ (void *ptr,

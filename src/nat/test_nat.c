@@ -128,7 +128,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not find a valid interface address!\n");
-    exit (GNUNET_SYSERR);
+    exit (77); /* marks test as skipped */
   }
   addr = data.addr;
   GNUNET_assert (addr->sa_family == AF_INET || addr->sa_family == AF_INET6);
