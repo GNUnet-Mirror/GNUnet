@@ -99,7 +99,8 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
   struct GNUNET_MessageHeader msg;
 
   GNUNET_assert (got != NULL);  /* timeout */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Receiving bounce, checking content\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Receiving bounce, checking content\n");
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   GNUNET_assert (0 == memcmp (got, &msg, sizeof (struct GNUNET_MessageHeader)));
@@ -173,18 +174,25 @@ int
 main (int argc, char *argv[])
 {
   int ok;
-  char * socksport = "1081";
+  int status;
+  const char *socksport = "1081";
 
   GNUNET_log_setup ("test_client",
                     "WARNING",
                     NULL);
 
   pid_t pid = fork();
-  if (pid < 0)
-    abort();
-  if (pid == 0) {
-    execlp ("ssh","ssh","-D",socksport,"127.0.0.1","-N",(char*)NULL);
-    perror ("execlp(\"ssh\",\"ssh\",\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
+  GNUNET_assert (pid >= 0);
+  if (pid == 0) 
+  {
+    execlp ("ssh",
+	    "ssh",
+	    "-D", 
+	    socksport,
+	    "127.0.0.1",
+	    "-N",
+	    NULL);
+    perror ("execlp (\"ssh\",\"ssh\",\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
     printf (""
 "Please ensure you have ssh installed and have sshd installed and running :\n"
 "\tsudo apt-get install openssh-client openssh-server\n"
@@ -195,10 +203,38 @@ main (int argc, char *argv[])
 "\t  CheckHostIP no\n"
 "\t  Protocol 2\n"
 "\t  ProxyCommand nc 127.0.0.1 22\n");
-    kill (getppid(), SIGTERM);
+    kill (getppid(), SIGALRM);
     return 1;
   }
-  sleep(1);
+  if (0 != sleep (1))
+  {
+    /* sleep interrupted, likely SIGALRM, failure to
+       launch child, terminate */
+    printf (""
+"Please ensure you have ssh installed and have sshd installed and running :\n"
+"\tsudo apt-get install openssh-client openssh-server\n"
+"If you run Tor as a network proxy then Tor might prevent ssh from connecting\n"
+"to localhost.  Please either run  make check  from an unproxied user, or else\n"
+"add these lines to the beginning of your ~/.ssh/config file :"
+"\tHost 127.0.0.1 localhost\n"
+"\t  CheckHostIP no\n"
+"\t  Protocol 2\n"
+"\t  ProxyCommand nc 127.0.0.1 22\n");
+    return 77;
+  }
+  /* check if child exec()ed but died */
+  if (0 != waitpid (pid, &status, WNOHANG))
+  {
+    printf (""
+"If you run Tor as a network proxy then Tor might prevent ssh from connecting\n"
+"to localhost.  Please either run  make check  from an unproxied user, or else\n"
+"add these lines to the beginning of your ~/.ssh/config file :"
+"\tHost 127.0.0.1 localhost\n"
+"\t  CheckHostIP no\n"
+"\t  Protocol 2\n"
+"\t  ProxyCommand nc 127.0.0.1 22\n");
+    return 77;
+  }
 
   cfg = GNUNET_CONFIGURATION_create ();
   GNUNET_CONFIGURATION_set_value_string (cfg, MYNAME, "SOCKSHOST", "127.0.0.1");
@@ -209,8 +245,9 @@ main (int argc, char *argv[])
   GNUNET_SCHEDULER_run (&task, &ok);
   GNUNET_CONFIGURATION_destroy (cfg);
 
-  kill (pid,SIGTERM);
+  GNUNET_break (0 == kill (pid, SIGTERM));
+  GNUNET_break (pid == waitpid (pid, &status, 0));
   return ok;
 }
 
-/* end of test_client.c */
+/* end of test_socks.c */
