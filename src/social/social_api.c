@@ -1269,7 +1269,7 @@ host_recv_enter_request (void *cls,
 
   const char *method_name = NULL;
   struct GNUNET_ENV_Environment *env = NULL;
-  struct GNUNET_PSYC_MessageHeader *entry_pmsg;
+  struct GNUNET_PSYC_MessageHeader *entry_pmsg = NULL;
   const void *data = NULL;
   uint16_t data_size = 0;
   char *str;
@@ -1308,7 +1308,8 @@ host_recv_enter_request (void *cls,
 
   if (NULL != env)
     GNUNET_ENV_environment_destroy (env);
-  GNUNET_free (entry_pmsg);
+  if (NULL != entry_pmsg)
+    GNUNET_free (entry_pmsg);
 }
 
 
