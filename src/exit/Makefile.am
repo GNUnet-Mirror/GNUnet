@@ -22,7 +22,7 @@ dist_pkgcfg_DATA = \
 if LINUX
 EXITBIN = gnunet-helper-exit
 install-exec-hook:
-	$(top_srcdir)/src/exit/install-exit-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/exit/install-exit-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 else
 install-exec-hook:
 endif

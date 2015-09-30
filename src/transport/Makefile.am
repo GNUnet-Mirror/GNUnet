@@ -95,9 +95,9 @@ endif
 
 if LINUX
 install-exec-hook:
-	$(top_srcdir)/src/transport/install-wlan-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/transport/install-wlan-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 if HAVE_LIBBLUETOOTH
-	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/transport/install-bluetooth-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 endif
 else
 install-exec-hook:

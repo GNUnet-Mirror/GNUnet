@@ -20,14 +20,14 @@ if LINUX
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/nat/install-nat-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 else
 if XFREEBSD
   NATBIN = gnunet-helper-nat-server gnunet-helper-nat-client
   NATSERVER = gnunet-helper-nat-server.c
   NATCLIENT = gnunet-helper-nat-client.c
 install-exec-hook:
-	$(top_srcdir)/src/nat/install-nat-helper.sh $(libexecdir) $(SUDO_BINARY) || true
+	$(top_srcdir)/src/nat/install-nat-helper.sh $(DESTDIR)$(libexecdir) $(SUDO_BINARY) || true
 endif
 else
 install-exec-hook:
