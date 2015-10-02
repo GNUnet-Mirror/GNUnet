@@ -36,7 +36,7 @@
 /**
  * Paximum ping period in milliseconds. Real period = rand (0, PING_PERIOD)
  */
-#define PING_PERIOD 1000
+#define PING_PERIOD 500
 
 /**
  * How long until we give up on connecting the peers?
@@ -56,7 +56,7 @@
 /**
  * Ratio of peers active. First round always is 1.0.
  */
-static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.0};
+static float rounds[] = {0.8, 0.6, 0.8, 0.5, 0.3, 0.8, 0.0};
 
 /**
  * Message type for pings.
@@ -617,7 +617,7 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   peer->ping_task = NULL;
 
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)
       || GNUNET_YES == test_finished)
     return;
 
@@ -625,9 +625,9 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               get_index (peer), get_index (peer->dest), peer->data_sent);
 
   GNUNET_CADET_notify_transmit_ready (peer->ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     sizeof (struct CadetPingMessage),
-                                     &tmt_rdy_ping, peer);
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      sizeof (struct CadetPingMessage),
+                                      &tmt_rdy_ping, peer);
 }
 
 /**
@@ -884,8 +884,8 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     peers[i].dest = select_random_peer (&peers[i]);
     peers[i].ch = GNUNET_CADET_channel_create (peers[i].cadet, NULL,
-                                              &peers[i].dest->id,
-                                              1, flags);
+                                               &peers[i].dest->id,
+                                               1, flags);
     if (NULL == peers[i].ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Channel %lu failed\n", i);
