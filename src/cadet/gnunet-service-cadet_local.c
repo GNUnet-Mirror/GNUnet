@@ -852,7 +852,7 @@ handle_show_peer (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &resp->header, GNUNET_NO);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Show peer request from client %u completed.\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "Show peer from client %u completed.\n", c->id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
