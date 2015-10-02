@@ -434,13 +434,15 @@ core_connect (void *cls,
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
   GCP_add_path (neighbor, path, GNUNET_YES);
+
+  GNUNET_assert (NULL == neighbor->connections);
+  neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
+  GNUNET_assert (NULL != neighbor->connections);
+
   GNUNET_STATISTICS_update (stats,
                             "# peers",
                             1,
                             GNUNET_NO);
-  GNUNET_assert (NULL == neighbor->connections);
-  neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
-  GNUNET_assert (NULL != neighbor->connections);
 
   if ( (NULL != GCP_get_tunnel (neighbor)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
@@ -2000,6 +2002,7 @@ GCP_is_neighbor (const struct CadetPeer *peer)
   }
 
   /* Is not a neighbor but connections is not NULL, probably disconnecting */
+  GNUNET_break (0);
   return GNUNET_NO;
 }
 
@@ -2151,7 +2154,8 @@ GCP_add_path (struct CadetPeer *peer,
 
 finish:
   if (NULL != peer->tunnel
-      && CONNECTIONS_PER_TUNNEL > GCT_count_connections (peer->tunnel))
+      && CONNECTIONS_PER_TUNNEL > GCT_count_connections (peer->tunnel)
+      && 2 < path->length) /* Direct paths are handled by core_connect */
   {
     GCP_connect (peer);
   }
