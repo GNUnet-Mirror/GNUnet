@@ -2500,7 +2500,7 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   const struct GNUNET_CADET_AX *ax_msg;
   const struct GNUNET_CADET_Hash* cid;
   struct CadetConnection *c;
-  size_t minumum_size;
+  size_t minimum_size;
   size_t overhead;
   uint32_t pid;
   uint32_t ttl;
@@ -2525,10 +2525,10 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
 
   log_message (message, peer, cid);
 
-  minumum_size = sizeof (struct GNUNET_MessageHeader) + overhead;
+  minimum_size = sizeof (struct GNUNET_MessageHeader) + overhead;
   c = connection_get (cid);
   fwd = check_message (message,
-                       minumum_size,
+                       minimum_size,
                        cid,
                        c,
                        peer,
