@@ -328,6 +328,19 @@ GC_h2hc (const struct GNUNET_CADET_Hash *id);
 const char *
 GC_h2s (const struct GNUNET_CADET_Hash *id);
 
+
+/**
+ * Allocate a string with a hexdump of any binary data.
+ *
+ * @param bin Arbitrary binary data.
+ * @param len Length of @a bin in bytes.
+ * @param output Where to write the output (if *output be NULL it's allocated).
+ *
+ * @return The size of the output.
+ */
+size_t
+GC_bin2s (void *bin, unsigned int len, char **output);
+
 /**
  * Convert a message type into a string to help debug
  * Generated with:

@@ -99,6 +99,38 @@ GC_h2s (const struct GNUNET_CADET_Hash *id)
 }
 
 
+/**
+ * Allocate a string with a hexdump of any binary data.
+ *
+ * @param bin Arbitrary binary data.
+ * @param len Length of @a bin in bytes.
+ * @param output Where to write the output (if *output be NULL it's allocated).
+ *
+ * @return The size of the output.
+ */
+size_t
+GC_bin2s (void *bin, unsigned int len, char **output)
+{
+  char *data = bin;
+  char *buf;
+  unsigned int s_len;
+  unsigned int i;
+
+  s_len = 2 * len + 1;
+  if (NULL == *output)
+    *output = GNUNET_malloc (s_len);
+  buf = *output;
+
+  for (i = 0; i < len; i++)
+  {
+    SPRINTF (&buf[2 * i], "%2X", data[i]);
+  }
+  buf[s_len - 1] = '\0';
+
+  return s_len;
+}
+
+
 #if !defined(GNUNET_CULL_LOGGING)
 const char *
 GC_m2s (uint16_t m)
