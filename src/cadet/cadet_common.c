@@ -114,7 +114,8 @@ GC_m2s (uint16_t m)
      * Used to mark the "payload" of a non-payload message.
      */
     case 0:
-      return "";
+      s = "retrnsmit";
+      break;
 
       /**
        * Request the creation of a path

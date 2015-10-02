@@ -471,11 +471,14 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Retrieve tunnel */
   chid = ntohl (msg->channel_id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  for channel %X\n", chid);
   ch = GML_channel_get (c, chid);
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "Client %u is destroying channel %X\n",
+       c->id, chid);
+
   if (NULL == ch)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  channel %X not found\n", chid);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  channel %X not found\n", chid);
     GNUNET_STATISTICS_update (stats,
                               "# client destroy messages on unknown channel",
                               1, GNUNET_NO);
