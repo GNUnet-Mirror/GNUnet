@@ -3019,6 +3019,11 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
                      salt, sizeof (salt),
                      &key_material, sizeof (key_material), NULL);
 
+  if (0 == memcmp (&ax->RK, &keys[0], sizeof(ax->RK)))
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, " known handshake key, exit\n");
+    return;
+  }
   ax->RK = keys[0];
   if (GNUNET_YES == am_I_alice)
   {
