@@ -1683,6 +1683,8 @@ GNUNET_CADET_channel_destroy (struct GNUNET_CADET_Channel *channel)
       {
         /* applications should cancel before destroying channel */
         GNUNET_break (0);
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+             "Channel destroyed without cancelling transmission requests\n");
         th->notify (th->notify_cls, 0, NULL);
       }
       GNUNET_CADET_notify_transmit_ready_cancel (th);
