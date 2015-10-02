@@ -2964,6 +2964,7 @@ shutdown_iterator (void *cls,
 void
 GCC_shutdown (void)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down connections\n");
   GCC_check_connections ();
   GNUNET_CONTAINER_multihashmap_iterate (connections,
                                          &shutdown_iterator,

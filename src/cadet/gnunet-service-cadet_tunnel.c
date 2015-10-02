@@ -3267,6 +3267,7 @@ GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 GCT_shutdown (void)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down tunnels\n");
   if (NULL != rekey_task)
   {
     GNUNET_SCHEDULER_cancel (rekey_task);

@@ -775,7 +775,7 @@ shutdown_peer (void *cls,
 {
   struct CadetPeer *p = value;
   struct CadetTunnel *t = p->tunnel;
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  shutting down %s\n", GCP_2s (p));
   if (NULL != t)
     GCT_destroy (t);
   p->tunnel = NULL;
@@ -1797,6 +1797,7 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCP_shutdown (void)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down peers\n");
   in_shutdown = GNUNET_YES;
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &shutdown_peer,

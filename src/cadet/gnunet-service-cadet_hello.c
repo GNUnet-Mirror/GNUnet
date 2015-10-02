@@ -141,6 +141,7 @@ GCH_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCH_shutdown ()
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down channels\n");
   if (NULL != nc)
   {
     GNUNET_PEERINFO_notify_cancel (nc);

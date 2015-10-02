@@ -1160,6 +1160,8 @@ GML_shutdown (void)
 {
   struct CadetClient *c;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down local\n");
+
   for (c = clients_head; NULL != clients_head; c = clients_head)
     client_destroy (c);
 

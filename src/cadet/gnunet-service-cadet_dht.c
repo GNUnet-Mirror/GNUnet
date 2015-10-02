@@ -330,6 +330,7 @@ GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCD_shutdown (void)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down DHT\n");
   GNUNET_CONTAINER_multihashmap32_iterate (get_requests, &stop_get, NULL);
   GNUNET_CONTAINER_multihashmap32_destroy (get_requests);
   if (dht_handle != NULL)
