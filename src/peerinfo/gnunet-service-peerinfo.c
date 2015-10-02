@@ -365,19 +365,32 @@ read_host_file (const char *fn,
   {
     hello = (const struct GNUNET_HELLO_Message *) &buffer[read_pos];
     size_hello = GNUNET_HELLO_size (hello);
-    if (0 == size_hello)
+    if ( (0 == size_hello) ||
+         (size_total - read_pos < size_hello) )
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to parse HELLO in file `%s'\n"),
+                  fn);
+      if (0 == read_pos)
       {
-	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to parse HELLO in file `%s'\n"),
-		    fn);
-	if ((GNUNET_YES == unlink_garbage) &&
-	    (0 != UNLINK (fn)) &&
-	    (ENOENT != errno) )
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+        if ((GNUNET_YES == unlink_garbage) &&
+            (0 != UNLINK (fn)) &&
+            (ENOENT != errno) )
+          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
                                     "unlink",
                                     fn);
-	return;
       }
+      else
+      {
+        if ((GNUNET_YES == unlink_garbage) &&
+            (0 != TRUNCATE (fn, read_pos)) &&
+            (ENOENT != errno) )
+          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                    "truncate",
+                                    fn);
+      }
+      return;
+    }
 
     now = GNUNET_TIME_absolute_get ();
     hello_clean = GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES,
