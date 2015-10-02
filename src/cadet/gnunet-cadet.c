@@ -170,13 +170,15 @@ conn_2s (uint16_t status)
   switch (status)
   {
     case 0:
-      return "OFF  ";
+      return "NEW  ";
     case 1:
-      return "SENT ";
+      return "SRCH ";
     case 2:
-      return "ACK'D";
+      return "WAIT ";
     case 3:
       return "READY";
+    case 4:
+      return "SHUTD";
     default:
       return "";
   }
