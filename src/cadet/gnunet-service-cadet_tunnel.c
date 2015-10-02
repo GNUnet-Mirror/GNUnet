@@ -1109,7 +1109,6 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_decrypt start\n");
 
   ax = t->ax;
-  ax_debug (ax, GNUNET_ERROR_TYPE_INFO);
 
   t_hmac_derive_key (&ax->CKr, &MK, "0", 1);
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
