@@ -54,7 +54,7 @@ DISABLE_ANON_TRANSFER = NO
 # at the same time.  Excessive values mostly have the problem that
 # the service might use more memory, so we need to bound this at
 # some reasonable level.  And if we have a very, very large
-# number, we probably won't have enough bandwidth to suppor them
+# number, we probably won't have enough bandwidth to support them
 # well anyway, so better have a moderate cap.
 MAX_CADET_CLIENTS = 128
 
