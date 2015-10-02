@@ -2961,11 +2961,11 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
          unsigned int own_pos)
 {
   struct CadetConnection *c;
-  struct CadetPeerPath *p;
+  struct CadetPeerPath *cpath;
 
   GCC_check_connections ();
-  p = path_duplicate (path);
-  GNUNET_assert (NULL != p);
+  cpath = path_duplicate (path);
+  GNUNET_assert (NULL != cpath);
   c = GNUNET_new (struct CadetConnection);
   c->id = *cid;
   GNUNET_assert (GNUNET_OK ==
@@ -2978,10 +2978,10 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
   c->bck_fc.c = c;
 
   c->t = t;
-  GNUNET_assert (own_pos <= p->length - 1);
+  GNUNET_assert (own_pos <= cpath->length - 1);
   c->own_pos = own_pos;
-  c->path = p;
-  p->c = c;
+  c->path = cpath;
+  cpath->c = c;
   if (GNUNET_OK != register_neighbors (c))
   {
     if (0 == own_pos)
@@ -2990,7 +2990,13 @@ GCC_new (const struct GNUNET_CADET_Hash *cid,
        * info about the paths to reach the destination. We must invalidate
        * the *original* path to avoid trying it again in the next minute.
        */
-      path_invalidate (path);
+      if (2 < path->length)
+        path_invalidate (path);
+      else
+      {
+        GNUNET_break (0);
+        GCT_debug(t, GNUNET_ERROR_TYPE_WARNING);
+      }
       c->t = NULL;
     }
     path_destroy (c->path);
