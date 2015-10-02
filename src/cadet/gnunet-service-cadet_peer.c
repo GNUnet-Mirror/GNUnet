@@ -1150,6 +1150,7 @@ queue_send (void *cls, size_t size, void *buf)
   struct CadetConnection *c;
   struct CadetPeerQueue *queue;
   struct GNUNET_TIME_Relative core_wait_time;
+  const char *wait_s;
   const struct GNUNET_PeerIdentity *dst_id;
   size_t msg_size;
   size_t total_size;
@@ -1175,7 +1176,7 @@ queue_send (void *cls, size_t size, void *buf)
         peer->core_transmit = NULL;
         peer->tmt_time.abs_value_us = 0;
         GCC_check_connections ();
-        return;
+        return 0;
       }
       dst_id = GNUNET_PEER_resolve2 (peer->id);
       peer->core_transmit =
@@ -1211,18 +1212,12 @@ queue_send (void *cls, size_t size, void *buf)
     return 0;
   }
   core_wait_time = GNUNET_TIME_absolute_get_duration (peer->tmt_time);
+  wait_s = GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES);
   if (core_wait_time.rel_value_us >= 1000000)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          " %s: core wait time %s (> 1 second) for %u bytes\n",
-         GCP_2s (peer),
-         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES),
-         queue->size);
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " core wait time %s\n",
-         GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES));
+         GCP_2s (peer), wait_s, queue->size);
   }
   peer->tmt_time.abs_value_us = 0;
 
@@ -1231,7 +1226,7 @@ queue_send (void *cls, size_t size, void *buf)
   {
     c = queue->c;
 
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  on conn %s %s\n",
          GCC_2s (c), GC_f2s(queue->fwd));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  size %u ok (%u/%u)\n",
          queue->size, total_size, size);
@@ -1241,7 +1236,7 @@ queue_send (void *cls, size_t size, void *buf)
     if (0 < drop_percent &&
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on connection %s %s\n",
+      LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
            GC_m2s (queue->type), GC_m2s (queue->payload_type),
            queue->payload_id, GCC_2s (c), GC_f2s (queue->fwd));
       msg_size = 0;
@@ -1249,9 +1244,10 @@ queue_send (void *cls, size_t size, void *buf)
     else
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
-           "snd %s (%s %4u) on connection %s (%p) %s (size %u)\n",
+           ">>> %s (%s %4u) on conn %s (%p) %s (%u bytes), after %s\n",
            GC_m2s (queue->type), GC_m2s (queue->payload_type),
-           queue->payload_id, GCC_2s (c), c, GC_f2s (queue->fwd), msg_size);
+           queue->payload_id, GCC_2s (c), c,
+           GC_f2s (queue->fwd), msg_size, wait_s);
     }
     total_size += msg_size;
     rest -= msg_size;
@@ -1429,7 +1425,7 @@ GCP_queue_add (struct CadetPeer *peer,
 
   GCC_check_connections ();
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "que %s (%s %4u) on connection %s (%p) %s towards %s (size %u)\n",
+       "que %s (%s %4u) on conn %s (%p) %s towards %s (size %u)\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id,
        GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
@@ -1627,7 +1623,7 @@ GCP_connection_pop (struct CadetPeer *peer,
 
   GCC_check_connections ();
   GNUNET_assert (NULL != destroyed);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_pop on connection %p\n", c);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_pop on conn %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
   {
     next = q->next;

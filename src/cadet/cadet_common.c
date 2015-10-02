@@ -105,7 +105,7 @@ GC_m2s (uint16_t m)
 {
   static char buf[2][16];
   static int idx;
-  const char *t;
+  const char *s;
 
   idx = (idx + 1) % 2;
   switch (m)
@@ -120,238 +120,238 @@ GC_m2s (uint16_t m)
        * Request the creation of a path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
-      t = "CONN_CREATE";
+      s = "CONN_CREAT";
       break;
 
       /**
        * Request the modification of an existing path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
-      t = "CONN_ACK";
+      s = "CONN_ACK";
       break;
 
       /**
        * Notify that a connection of a path is no longer valid
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
-      t = "CONN_BROKEN";
+      s = "CONN_BRKN";
       break;
 
       /**
        * At some point, the route will spontaneously change
        */
     case GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED:
-      t = "PATH_CHANGED";
+      s = "PATH_CHNGD";
       break;
 
       /**
        * Transport payload data.
        */
     case GNUNET_MESSAGE_TYPE_CADET_DATA:
-      t = "DATA";
+      s = "DATA";
       break;
 
     /**
      * Confirm receipt of payload data.
      */
     case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
-      t = "DATA_ACK";
+      s = "DATA_ACK";
       break;
 
       /**
        * Key exchange encapsulation.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KX:
-      t = "KX";
+      s = "KX";
       break;
 
       /**
        * Axolotl key exchange message.
        */
     case GNUNET_MESSAGE_TYPE_CADET_AX_KX:
-      t = "AX_KX";
+      s = "AX_KX";
       break;
 
       /**
        * New ephemeral key.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
-      t = "KX_EPHEMERAL";
+      s = "KX_EPHM";
       break;
 
       /**
        * Answer to session key challenge.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
-      t = "KX_PONG";
+      s = "KX_PONG";
       break;
 
       /**
        * Request the destuction of a path
        */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
-      t = "CONN_DESTROY";
+      s = "CONN_DSTRY";
       break;
 
       /**
        * ACK for a data packet.
        */
     case GNUNET_MESSAGE_TYPE_CADET_ACK:
-      t = "ACK";
+      s = "ACK";
       break;
 
       /**
        * POLL for ACK.
        */
     case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      t = "POLL";
+      s = "POLL";
       break;
 
       /**
        * Announce origin is still alive.
        */
     case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
-      t = "KEEPALIVE";
+      s = "KEEPALIVE";
       break;
 
     /**
        * Connect to the cadet service, specifying subscriptions
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT:
-      t = "LOCAL_CONNECT";
+      s = "LOC_CONNCT";
       break;
 
       /**
        * Ask the cadet service to create a new tunnel
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
-      t = "CHAN_CREATE";
+      s = "CHAN_CREAT";
       break;
 
       /**
        * Ask the cadet service to destroy a tunnel
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
-      t = "CHAN_DESTROY";
+      s = "CHAN_DSTRY";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      t = "CHAN_ACK";
+      s = "CHAN_ACK";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      t = "CHAN_NACK";
+      s = "CHAN_NACK";
       break;
 
       /**
        * OTR encrypted payload.
        */
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      t = "OTR";
+      s = "OTR";
       break;
 
       /**
        * Axolotl encrypted payload.
        */
     case GNUNET_MESSAGE_TYPE_CADET_AX:
-      t = "AX";
+      s = "AX";
       break;
 
       /**
        * Local payload traffic
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA:
-      t = "LOCAL_DATA";
+      s = "LOC_DATA";
       break;
 
       /**
        * Local ACK for data.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK:
-      t = "LOCAL_ACK";
+      s = "LOC_ACK";
       break;
 
       /**
        * Local monitoring of channels.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS:
-      t = "INFO_CHANS";
+      s = "INFO_CHANS";
       break;
 
       /**
        * Local monitoring of a channel.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL:
-      t = "INFO_CHAN";
+      s = "INFO_CHAN";
       break;
 
       /**
        * Local monitoring of service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS:
-      t = "INFO_TUNS";
+      s = "INFO_TUNS";
       break;
 
       /**
        * Local monitoring of service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL:
-      t = "INFO_TUN";
+      s = "INFO_TUN";
       break;
 
       /**
        * Local information about all connections of service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS:
-      t = "INFO_CONNS";
+      s = "INFO_CONNS";
       break;
 
       /**
        * Local information of service about a specific connection.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION:
-      t = "INFO_CONN";
+      s = "INFO_CONN";
       break;
 
       /**
        * Local information about all peers known to the service.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS:
-      t = "INFO_PEERS";
+      s = "INFO_PEERS";
       break;
 
       /**
        * Local information of service about a specific peer.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER:
-      t = "INFO_PEER";
+      s = "INFO_PEER";
       break;
 
       /**
        * Traffic (net-cat style) used by the Command Line Interface.
        */
     case GNUNET_MESSAGE_TYPE_CADET_CLI:
-      t = "CLI";
+      s = "CLI";
       break;
 
       /**
        * Debug request.
        */
     case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP:
-      t = "INFO_DUMP";
+      s = "INFO_DUMP";
       break;
 
     default:
-      SPRINTF(buf[idx], "%u (UNKNOWN)", m);
+      SPRINTF (buf[idx], "%u (UNKNOWN)", m);
       return buf[idx];
   }
-  SPRINTF(buf[idx], "{%13s}", t);
+  SPRINTF (buf[idx], "{%10s}", s);
   return buf[idx];
 }
 #else

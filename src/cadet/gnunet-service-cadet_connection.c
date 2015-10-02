@@ -583,7 +583,7 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
 
   prev_fc->last_ack_sent = ack;
 
-  /* Build ACK message and send on connection */
+  /* Build ACK message and send on conn */
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ACK);
   msg.ack = htonl (ack);
@@ -969,7 +969,7 @@ send_connection_ack (struct CadetConnection *connection, int fwd)
 
   GCC_check_connections ();
   t = connection->t;
-  LOG (GNUNET_ERROR_TYPE_INFO, "---> {%14s ACK} on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "--> {%14s ACK} on conn %s\n",
        GC_f2s (!fwd), GCC_2s (connection));
   GCP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, 0, 0,
@@ -1032,7 +1032,7 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
   struct CadetPeer *neighbor;
 
   GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_INFO, "---> BROKEN on unknown connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "--> BROKEN on unknown connection %s\n",
        GNUNET_h2s (GC_h2hc (connection_id)));
 
   msg = GNUNET_new (struct GNUNET_CADET_ConnectionBroken);
@@ -1886,7 +1886,7 @@ log_message (const struct GNUNET_MessageHeader *message,
   size = ntohs (message->size);
   LOG (GNUNET_ERROR_TYPE_INFO, "\n");
   LOG (GNUNET_ERROR_TYPE_INFO, "\n");
-  LOG (GNUNET_ERROR_TYPE_INFO, "<-- %s on connection %s from %s, %6u bytes\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "<-- %s on conn %s from %s, %6u bytes\n",
        GC_m2s (ntohs (message->type)), GNUNET_h2s (GC_h2hc (hash)),
        GNUNET_i2s (peer), (unsigned int) size);
 }
@@ -3438,8 +3438,10 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "--> %s (%s %4u) on connection %s (%u bytes)\n",
-       GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), size);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "--> %s (%s %4u) on conn %s (%p) %s (%u bytes)\n",
+       GC_m2s (type), GC_m2s (payload_type), payload_id, GCC_2s (c), c,
+       GC_f2s(fwd), size);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   droppable = GNUNET_NO == force;
@@ -3601,7 +3603,7 @@ GCC_send_create (struct CadetConnection *connection)
   size = sizeof (struct GNUNET_CADET_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "---> %s on connection %s  (%u bytes)\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "--> %s on conn %s  (%u bytes)\n",
        GC_m2s (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE),
        GCC_2s (connection), size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
