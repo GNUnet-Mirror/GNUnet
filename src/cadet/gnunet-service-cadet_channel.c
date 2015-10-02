@@ -2124,8 +2124,11 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
     }
     else
     {
-      /* Work was done but no task was pending? Shouldn't happen! */
-      GNUNET_break (0);
+      /* Work was done but no task was pending.
+       * Task was cancelled by a retransmission that is sitting in the queue.
+       */
+      // FIXME add test to make sure this is the case, probably add return
+      // value to GCCH_send_prebuilt_message
     }
   }
 }
