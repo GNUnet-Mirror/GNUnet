@@ -404,7 +404,7 @@ static void
 core_connect (void *cls,
               const struct GNUNET_PeerIdentity *peer)
 {
-  struct CadetPeer *mp;
+  struct CadetPeer *neighbor;
   struct CadetPeerPath *path;
   char own_id[16];
 
@@ -413,8 +413,8 @@ core_connect (void *cls,
                    sizeof (own_id),
                    "%s",
                    GNUNET_i2s (&my_full_id));
-  mp = GCP_get (peer, GNUNET_YES);
-  if (myid == mp->id)
+  neighbor = GCP_get (peer, GNUNET_YES);
+  if (myid == neighbor->id)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "CONNECTED %s (self)\n",
@@ -428,22 +428,22 @@ core_connect (void *cls,
          own_id,
          GNUNET_i2s (peer));
     path = path_new (2);
-    path->peers[1] = mp->id;
-    GNUNET_PEER_change_rc (mp->id, 1);
+    path->peers[1] = neighbor->id;
+    GNUNET_PEER_change_rc (neighbor->id, 1);
   }
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
-  GCP_add_path (mp, path, GNUNET_YES);
+  GCP_add_path (neighbor, path, GNUNET_YES);
   GNUNET_STATISTICS_update (stats,
                             "# peers",
                             1,
                             GNUNET_NO);
-  GNUNET_assert (NULL == mp->connections);
-  mp->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
+  GNUNET_assert (NULL == neighbor->connections);
+  neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
 
-  if ( (NULL != GCP_get_tunnel (mp)) &&
+  if ( (NULL != GCP_get_tunnel (neighbor)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
-    GCP_connect (mp);
+    GCP_connect (neighbor);
   GCC_check_connections ();
 }
 
@@ -1900,7 +1900,7 @@ void
 GCP_connect (struct CadetPeer *peer)
 {
   struct CadetTunnel *t;
-  struct CadetPeerPath *p;
+  struct CadetPeerPath *path;
   struct CadetConnection *c;
   int rerun_search;
 
@@ -1917,16 +1917,16 @@ GCP_connect (struct CadetPeer *peer)
   if (NULL != peer->path_head)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  some path exists\n");
-    p = peer_get_best_path (peer);
-    if (NULL != p)
+    path = peer_get_best_path (peer);
+    if (NULL != path)
     {
       char *s;
 
-      s = path_2s (p);
+      s = path_2s (path);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path to use: %s\n", s);
       GNUNET_free (s);
 
-      c = GCT_use_path (t, p);
+      c = GCT_use_path (t, path);
       if (NULL == c)
       {
         /* This case can happen when the path includes a first hop that is
@@ -1935,7 +1935,7 @@ GCP_connect (struct CadetPeer *peer)
          * This happens quite often during testing when running cadet
          * under valgrind: core connect notifications come very late
          * and the DHT result has already come and created a valid
-         * path.  In this case, the peer->connections_{pred,succ}
+         * path.  In this case, the peer->connections
          * hashmaps will be NULL and tunnel_use_path will not be able
          * to create a connection from that path.
          *

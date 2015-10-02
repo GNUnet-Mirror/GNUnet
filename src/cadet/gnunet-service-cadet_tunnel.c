@@ -3824,13 +3824,13 @@ GCT_destroy (struct CadetTunnel *t)
  * @return Connection created.
  */
 struct CadetConnection *
-GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p)
+GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *path)
 {
   struct CadetConnection *c;
   struct GNUNET_CADET_Hash cid;
   unsigned int own_pos;
 
-  if (NULL == t || NULL == p)
+  if (NULL == t || NULL == path)
   {
     GNUNET_break (0);
     return NULL;
@@ -3842,19 +3842,19 @@ GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p)
     return NULL;
   }
 
-  for (own_pos = 0; own_pos < p->length; own_pos++)
+  for (own_pos = 0; own_pos < path->length; own_pos++)
   {
-    if (p->peers[own_pos] == myid)
+    if (path->peers[own_pos] == myid)
       break;
   }
-  if (own_pos >= p->length)
+  if (own_pos >= path->length)
   {
     GNUNET_break_op (0);
     return NULL;
   }
 
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE, &cid, sizeof (cid));
-  c = GCC_new (&cid, t, p, own_pos);
+  c = GCC_new (&cid, t, path, own_pos);
   if (NULL == c)
   {
     /* Path was flawed */
