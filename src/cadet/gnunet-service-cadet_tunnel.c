@@ -3510,7 +3510,6 @@ GCT_remove_connection (struct CadetTunnel *t,
 
   /* Start new connections if needed */
   if (CONNECTIONS_PER_TUNNEL > conns
-      && NULL == t->destroy_task
       && CADET_TUNNEL_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
