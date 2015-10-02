@@ -944,7 +944,7 @@ static void
 iter_channel (void *cls, struct CadetChannel *ch)
 {
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
-  struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
+  struct GNUNET_CADET_Hash *h = (struct GNUNET_CADET_Hash *) &msg[1];
   CADET_ChannelNumber *chn = (CADET_ChannelNumber *) &h[msg->connections];
 
   chn[msg->channels] = htonl (GCCH_get_id (ch));
@@ -1018,12 +1018,13 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   resp = GNUNET_malloc (size);
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
   resp->header.size = htons (size);
+  resp->destination = msg->peer;
+  /* Do not interleave with iterators, iter_channel needs conn in HBO */
   GCT_iterate_connections (t, &iter_connection, resp);
   GCT_iterate_channels (t, &iter_channel, resp);
-  /* Do not interleave with iterators, iter_channel needs conn in HBO */
-  resp->destination = msg->peer;
   resp->connections = htonl (resp->connections);
   resp->channels = htonl (resp->channels);
+  /* Do not interleave end */
   resp->cstate = htons (GCT_get_cstate (t));
   resp->estate = htons (GCT_get_estate (t));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
