@@ -2150,7 +2150,7 @@ GCP_add_path (struct CadetPeer *peer,
 
 finish:
   if (NULL != peer->tunnel
-      && CONNECTIONS_PER_TUNNEL < GCT_count_connections (peer->tunnel))
+      && CONNECTIONS_PER_TUNNEL > GCT_count_connections (peer->tunnel))
   {
     GCP_connect (peer);
   }
