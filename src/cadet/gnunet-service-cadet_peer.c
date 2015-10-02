@@ -1170,15 +1170,22 @@ queue_send (void *cls, size_t size, void *buf)
     if (GNUNET_NO == in_shutdown)
     {
       queue = peer_get_first_message (peer);
+      if (NULL == queue)
+      {
+        peer->core_transmit = NULL;
+        peer->tmt_time.abs_value_us = 0;
+        GCC_check_connections ();
+        return;
+      }
       dst_id = GNUNET_PEER_resolve2 (peer->id);
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
-                                            GNUNET_NO, get_priority (queue),
-                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                            dst_id,
-                                            get_core_size (queue->size),
-                                            &queue_send,
-                                            peer);
+                                             GNUNET_NO, get_priority (queue),
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             dst_id,
+                                             get_core_size (queue->size),
+                                             &queue_send,
+                                             peer);
       peer->tmt_time = GNUNET_TIME_absolute_get ();
     }
     else
