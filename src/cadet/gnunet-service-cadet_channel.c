@@ -2001,23 +2001,24 @@ GCCH_handle_data (struct CadetChannel *ch,
   }
   else
   {
+    GNUNET_STATISTICS_update (stats, "# duplicate MID", 1, GNUNET_NO);
     if (GC_is_pid_bigger (rel->mid_recv, mid))
     {
       GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING,
+      LOG (GNUNET_ERROR_TYPE_INFO,
           "MID %u on channel %s not expected (window: %u - %u). Dropping!\n",
           mid, GCCH_2s (ch), rel->mid_recv, rel->mid_recv + 63);
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING,
+      LOG (GNUNET_ERROR_TYPE_INFO,
            "Duplicate MID %u, channel %s (expecting MID %u). Re-sending ACK!\n",
            mid, GCCH_2s (ch), rel->mid_recv);
       if (NULL != rel->uniq)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
             "We are trying to send an ACK, but don't seem have the "
-            "bandwidth. Try to increase your ats QUOTA in you config file\n");
+            "bandwidth. Try to increase your [ats] QUOTA in you config file\n");
       }
 
     }
