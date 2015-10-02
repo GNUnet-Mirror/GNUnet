@@ -1524,9 +1524,9 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
   if (Np > ax->Nr)
     store_ax_keys (t, &ax->HKr, Np);
 
+  osize = t_ax_decrypt (t, dst, &src[1], esize);
   ax->Nr = Np + 1;
 
-  osize = t_ax_decrypt (t, dst, &src[1], esize);
   if (osize != esize)
   {
     GNUNET_break_op (0);
