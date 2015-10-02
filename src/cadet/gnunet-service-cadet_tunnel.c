@@ -1337,29 +1337,33 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
   struct GNUNET_CADET_Hash *hmac;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
   struct GNUNET_CADET_AX plaintext_header;
+  struct GNUNET_CRYPTO_SymmetricSessionKey *valid_HK;
   size_t esize;
   size_t res;
   size_t len;
+  unsigned int N;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Trying old keys\n");
   hmac = &plaintext_header.hmac;
   esize = size - sizeof (struct GNUNET_CADET_AX);
+
+  /* Find a correct Header Key */
   for (key = t->ax->skipped_head; NULL != key; key = key->next)
   {
+    #if DUMP_KEYS_TO_STDERR
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Trying hmac with key %s\n",
+         GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->HK));
+    #endif
     t_hmac (&src->Ns, AX_HEADER_SIZE + esize, 0, &key->HK, hmac);
     if (0 == memcmp (hmac, &src->hmac, sizeof (*hmac)))
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  hmac correct\n");
+      valid_HK = &key->HK;
       break;
     }
   }
   if (NULL == key)
     return -1;
-
-  #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC_H with skipped key %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->HK));
-  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with skipped key %u: %s\n",
-       key->Kn, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
-  #endif
 
   /* Should've been checked in -cadet_connection.c handle_cadet_encrypted. */
   GNUNET_assert (size > sizeof (struct GNUNET_CADET_AX));
@@ -1371,10 +1375,22 @@ try_old_ax_keys (struct CadetTunnel *t, void *dst,
   res = GNUNET_CRYPTO_symmetric_decrypt (&src->Ns, AX_HEADER_SIZE,
                                          &key->HK, &iv, &plaintext_header.Ns);
   GNUNET_assert (AX_HEADER_SIZE == res);
-  LOG (GNUNET_ERROR_TYPE_INFO, "  Message %u, previous: %u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Message %u, previous: %u\n",
        ntohl (plaintext_header.Ns), ntohl (plaintext_header.PNs));
 
-  // FIXME find correct key
+  /* Find the correct Message Key */
+  N = ntohl (plaintext_header.Ns);
+  while (NULL != key && N != key->Kn)
+    key = key->next;
+  if (NULL == key || 0 != memcmp (&key->HK, valid_HK, sizeof (*valid_HK)))
+    return -1;
+
+  #if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC_H with skipped key %s\n",
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->HK));
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with skipped key %u: %s\n",
+       key->Kn, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
+  #endif
 
   /* Decrypt payload */
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &key->MK, NULL, 0, NULL);
@@ -2972,7 +2988,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   if (GNUNET_YES == am_I_alice)
   {
     GNUNET_CRYPTO_eddsa_ecdh (id_key,              /* A */
-                              &msg->ephemeral_key,  /* B0 */
+                              &msg->ephemeral_key, /* B0 */
                               &key_material[0]);
   }
   else
@@ -2992,7 +3008,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   else
   {
     GNUNET_CRYPTO_eddsa_ecdh (id_key,              /* A */
-                              &msg->ephemeral_key,  /* B0 */
+                              &msg->ephemeral_key, /* B0 */
                               &key_material[1]);
 
 
