@@ -440,6 +440,7 @@ core_connect (void *cls,
                             GNUNET_NO);
   GNUNET_assert (NULL == neighbor->connections);
   neighbor->connections = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
+  GNUNET_assert (NULL != neighbor->connections);
 
   if ( (NULL != GCP_get_tunnel (neighbor)) &&
        (0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer)) )
