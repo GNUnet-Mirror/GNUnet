@@ -9,9 +9,9 @@ grep "STARTING SERVICE " log > __tmp_peers
 
 SED_EXPR=""
 while read -r line; do
-    SRVC=`echo $line | sed -e 's/.*(\([^)]*\)).*/\1/'`
-    PEER=`echo $line | sed -e 's/.*\[\(....\)\].*/\1/'`
-    PID=`echo $line | sed -e "s/.*$SRVC-\([0-9]*\).*/\1/"`
+    SRVC=`echo "$line" | sed -e 's/.*(\([^)]*\)).*/\1/'`
+    PEER=`echo "$line" | sed -e 's/.*\[\(....\)\].*/\1/'`
+    PID=`echo "$line" | sed -e "s/.*$SRVC-\([0-9]*\).*/\1/"`
     echo "$SRVC $PID => $PEER"
     
     SED_EXPR="${SED_EXPR}s/$SRVC-\([a-z2]*\)-$PID/$SRVC \1 $PEER/;"
