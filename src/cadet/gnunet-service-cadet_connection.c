@@ -1834,6 +1834,7 @@ register_neighbors (struct CadetConnection *c)
 static void
 unregister_neighbors (struct CadetConnection *c)
 {
+//  struct CadetPeer *peer; FIXME dont use next_peer, prev_peer
   /* Either already unregistered or never got registered, it's ok either way. */
   if (NULL == c->path)
     return;
