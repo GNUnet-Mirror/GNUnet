@@ -1181,7 +1181,7 @@ t_h_decrypt (struct CadetTunnel *t, const struct GNUNET_CADET_AX *src,
 
   GNUNET_assert (AX_HEADER_SIZE == out_size);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_decrypt end\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_h_decrypt end\n");
 }
 
 
