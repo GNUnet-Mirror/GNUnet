@@ -358,9 +358,8 @@ notify_broken (void *cls,
   struct CadetConnection *c = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Notifying %s due to %s\n",
-       GCC_2s (c),
-       GCP_2s (peer));
+       "Notifying %s due to %s disconnect\n",
+       GCC_2s (c), GCP_2s (peer));
   GCC_neighbor_disconnected (c, peer);
   return GNUNET_YES;
 }
@@ -1016,8 +1015,8 @@ peer_get_first_message (const struct CadetPeer *peer)
  * paths form the initial tunnel, which can be optimized later.
  * Called on each result obtained for the DHT search.
  *
- * @param cls closure
- * @param path
+ * @param cls Closure (peer towards a path has been found).
+ * @param path Path created from the DHT query. Will be freed afterwards.
  */
 static void
 search_handler (void *cls, const struct CadetPeerPath *path)
@@ -1537,7 +1536,7 @@ GCP_queue_cancel (struct CadetPeer *peer,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "GMP queue cancel %s\n",
            GC_m2s (q->type));
-      GNUNET_break (GNUNET_NO == connection_destroyed);
+      GNUNET_assert (GNUNET_NO == connection_destroyed);
       if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY == q->type)
       {
         q->c = NULL;
@@ -2066,7 +2065,7 @@ GCP_add_connection (struct CadetPeer *peer,
  * is the shortest.
  *
  * @param peer Destination peer to add the path to.
- * @param path New path to add. Last peer must be the peer in arg 1.
+ * @param path New path to add. Last peer must be @c peer.
  *             Path will be either used of freed if already known.
  * @param trusted Do we trust that this path is real?
  *
@@ -2206,13 +2205,13 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
   for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
   for (i++; i < p->length; i++)
   {
-    struct CadetPeer *aux;
+    struct CadetPeer *peer;
     struct CadetPeerPath *copy;
 
-    aux = GCP_get_short (p->peers[i], GNUNET_YES);
+    peer = GCP_get_short (p->peers[i], GNUNET_YES);
     copy = path_duplicate (p);
     copy->length = i + 1;
-    GCP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
+    GCP_add_path (peer, copy, 3 > p->length ? GNUNET_NO : confirmed);
   }
   GCC_check_connections ();
 }
@@ -2531,8 +2530,8 @@ GCP_try_connect (struct CadetPeer *peer)
  */
 void
 GCP_notify_broken_link (struct CadetPeer *peer,
-                        struct GNUNET_PeerIdentity *peer1,
-                        struct GNUNET_PeerIdentity *peer2)
+                        const struct GNUNET_PeerIdentity *peer1,
+                        const struct GNUNET_PeerIdentity *peer2)
 {
   struct CadetPeerPath *iter;
   struct CadetPeerPath *next;

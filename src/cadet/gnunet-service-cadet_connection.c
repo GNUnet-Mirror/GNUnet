@@ -1354,7 +1354,12 @@ connection_cancel_queues (struct CadetConnection *c,
   {
     GNUNET_SCHEDULER_cancel (fc->poll_task);
     fc->poll_task = NULL;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Cancel POLL in ccq for fc %p\n", fc);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cancelled POLL task for fc %p\n", fc);
+  }
+  if (NULL != fc->poll_msg)
+  {
+    GCC_cancel (fc->poll_msg);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cancelled POLL msg for fc %p\n", fc);
   }
   peer = get_hop (c, fwd);
   GCP_queue_cancel (peer, c);
@@ -1847,6 +1852,30 @@ unregister_neighbors (struct CadetConnection *c)
   {
     GCP_remove_connection (c->prev_peer, c);
     c->prev_peer = NULL;
+  }
+}
+
+
+/**
+ * Invalidates all paths towards all peers that comprise the connection which
+ * rely on the disconnected peer.
+ *
+ * ~O(n^3) (peers in connection * paths/peer * links/path)
+ *
+ * @param c Connection whose peers' paths to clean.
+ * @param disconnected Peer that disconnected.
+ */
+static void
+invalidate_paths (struct CadetConnection *c, struct CadetPeer *disconnected)
+{
+  struct CadetPeer *peer;
+  unsigned int i;
+
+  for (i = 0; i < c->path->length; i++)
+  {
+    peer = GCP_get_short (c->path->peers[i], GNUNET_NO);
+    if (NULL != peer)
+      GCP_notify_broken_link (peer, &my_full_id, GCP_get_id (disconnected));
   }
 }
 
@@ -3045,20 +3074,6 @@ GCC_destroy (struct CadetConnection *c)
   path_destroy (c->path);
   c->path = NULL;
 
-  /* Cancel maintainance task (keepalive/timeout) */
-  if (NULL != c->fwd_fc.poll_msg)
-  {
-    GCC_cancel (c->fwd_fc.poll_msg);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 " POLL msg FWD canceled\n");
-  }
-  if (NULL != c->bck_fc.poll_msg)
-  {
-    GCC_cancel (c->bck_fc.poll_msg);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 " POLL msg BCK canceled\n");
-  }
-
   /* Delete from tunnel */
   if (NULL != c->t)
     GCT_remove_connection (c->t, c);
@@ -3069,16 +3084,7 @@ GCC_destroy (struct CadetConnection *c)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
   if (NULL != c->bck_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
-  if (NULL != c->fwd_fc.poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL task FWD canceled\n");
-  }
-  if (NULL != c->bck_fc.poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " POLL task BCK canceled\n");
-  }
+
   if (GNUNET_NO == c->was_removed)
   {
     GNUNET_break (GNUNET_YES ==
@@ -3289,6 +3295,9 @@ GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "shutting down %s, %s disconnected\n",
        GCC_2s (c), peer_name);
+
+  invalidate_paths (c, peer);
+
   hop = get_prev_hop (c);
   if (NULL == hop)
   {

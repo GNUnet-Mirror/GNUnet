@@ -450,8 +450,8 @@ GCP_try_connect (struct CadetPeer *peer);
  */
 void
 GCP_notify_broken_link (struct CadetPeer *peer,
-                        struct GNUNET_PeerIdentity *peer1,
-                        struct GNUNET_PeerIdentity *peer2);
+                        const struct GNUNET_PeerIdentity *peer1,
+                        const struct GNUNET_PeerIdentity *peer2);
 
 
 /**
