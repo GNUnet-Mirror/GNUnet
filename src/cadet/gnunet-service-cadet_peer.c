@@ -753,6 +753,8 @@ peer_destroy (struct CadetPeer *peer)
     GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (peer->connections));
     GNUNET_CONTAINER_multihashmap_destroy (peer->connections);
   }
+  if (NULL != peer->core_transmit)
+    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
   return GNUNET_OK;
