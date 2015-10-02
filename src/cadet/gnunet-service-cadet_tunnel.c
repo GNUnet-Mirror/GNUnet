@@ -3032,7 +3032,6 @@ handle_decrypted (struct CadetTunnel *t,
   sprintf (buf, "# received encrypted of type %hu (%s)", type, GC_m2s (type));
   GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
 
-
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
@@ -3139,7 +3138,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
      this loop may be unaligned, see util's MST for
      how to do this right. */
   off = 0;
-  while (off + sizeof (struct GNUNET_MessageHeader) < decrypted_size)
+  while (off + sizeof (struct GNUNET_MessageHeader) <= decrypted_size)
   {
     uint16_t msize;
 
