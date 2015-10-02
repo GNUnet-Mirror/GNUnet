@@ -2214,7 +2214,7 @@ GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
 
 
 /**
- * Remove any path to the peer that has the extact same peers as the one given.
+ * Remove any path to the peer that has the exact same peers as the one given.
  *
  * @param peer Peer to remove the path from.
  * @param path Path to remove. Is always destroyed .

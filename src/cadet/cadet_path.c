@@ -51,8 +51,15 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   path->path_delete = NULL;
 
   /* During shutdown, the peers peermap might not exist anymore. */
-  if (2 < path->length && (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) == 0)
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) == 0)
   {
+    if (2 >= path->length)
+    {
+      /* This is not the place to destroy direct paths, only core_disconnect
+       * should do it and never delay it.
+       */
+      GNUNET_break (0);
+    }
     peer = GCP_get_short (path->peers[path->length - 1], GNUNET_NO);
     if (NULL != peer)
       GCP_remove_path (peer, path);
