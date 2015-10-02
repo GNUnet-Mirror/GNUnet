@@ -2501,6 +2501,8 @@ GCP_try_connect (struct CadetPeer *peer)
   if (NULL == transport_handle)
     return;
   GCC_check_connections ();
+  if (GNUNET_YES == GCP_is_neighbor (peer))
+    return;
   hello = GCP_get_hello (peer);
   if (NULL == hello)
     return;
