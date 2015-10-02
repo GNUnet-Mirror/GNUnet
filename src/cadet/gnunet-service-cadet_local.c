@@ -201,7 +201,7 @@ channel_destroy_iterator (void *cls,
 static void
 client_destroy (struct CadetClient *c)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "  client destroy: %p/%u\n", c, c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client destroy: %p/%u\n", c, c->id);
   GNUNET_SERVER_client_drop (c->handle);
   c->shutting_down = GNUNET_YES;
 
@@ -255,7 +255,7 @@ client_new (struct GNUNET_SERVER_Client *client)
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
   GNUNET_STATISTICS_update (stats, "# clients", +1, GNUNET_NO);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "  client created: %p/%u\n", c, c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client created: %p/%u\n", c, c->id);
 
   return c;
 }
@@ -274,7 +274,7 @@ client_new (struct GNUNET_SERVER_Client *client)
 static void
 handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "Client connected: %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client connected: %p\n", client);
   if (NULL == client)
     return;
 
@@ -294,7 +294,7 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
   struct CadetClient *c;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Client disconnected: %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Client disconnected: %p\n", client);
 
   c = GML_client_get (client);
   if (NULL != c)
@@ -328,8 +328,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t *p;
   unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
-  LOG (GNUNET_ERROR_TYPE_INFO, "new client registering %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client registering %p\n", client);
 
   /* Check data sanity */
   size = ntohs (message->size);
@@ -358,7 +357,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "  client %u has %u ports\n", c-> id, size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  client %u has %u ports\n", c-> id, size);
   if (size > 0)
   {
     uint32_t u32;
@@ -368,7 +367,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
     for (i = 0; i < size; i++)
     {
       u32 = ntohl (p[i]);
-      LOG (GNUNET_ERROR_TYPE_INFO, "    port: %u\n", u32);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "    port: %u\n", u32);
 
       /* store in client's hashmap */
       GNUNET_CONTAINER_multihashmap32_put (c->ports, u32, c,
