@@ -319,6 +319,8 @@ struct GNUNET_CADET_AX
    */
   struct GNUNET_CADET_Hash hmac;
 
+  /**************** AX_HEADER start ****************/
+
   /**
    * Number of messages sent with the current ratchet key.
    */
@@ -333,6 +335,8 @@ struct GNUNET_CADET_AX
    * Current ratchet key.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey DHRs;
+
+  /**************** AX_HEADER  end  ****************/
 
   /**
    * Encrypted content follows.

@@ -188,6 +188,11 @@ struct CadetTunnelSkippedKey
    * Message key.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey MK;
+
+  /**
+   * Key number for a given HK.
+   */
+  unsigned int Kn;
 };
 
 
@@ -1325,38 +1330,60 @@ t_decrypt_and_validate (struct CadetTunnel *t,
  * @return Size of the decrypted data, -1 if an error was encountered.
  */
 static int
-try_old_ax_keys (struct CadetTunnel *t, struct GNUNET_CADET_AX *dst,
+try_old_ax_keys (struct CadetTunnel *t, void *dst,
                  const struct GNUNET_CADET_AX *src, size_t size)
 {
   struct CadetTunnelSkippedKey *key;
-  struct GNUNET_CADET_Hash hmac;
+  struct GNUNET_CADET_Hash *hmac;
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
+  struct GNUNET_CADET_AX plaintext_header;
+  size_t esize;
   size_t res;
   size_t len;
 
-
+  hmac = &plaintext_header.hmac;
+  esize = size - sizeof (struct GNUNET_CADET_AX);
   for (key = t->ax->skipped_head; NULL != key; key = key->next)
   {
-    t_hmac (&src->Ns, AX_HEADER_SIZE, 0, &key->HK, &hmac);
-    if (0 != memcmp (&hmac, &src->hmac, sizeof (hmac)))
+    t_hmac (&src->Ns, AX_HEADER_SIZE + esize, 0, &key->HK, hmac);
+    if (0 == memcmp (hmac, &src->hmac, sizeof (*hmac)))
+    {
       break;
+    }
   }
   if (NULL == key)
     return -1;
 
   #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with skipped key %s\n",
-       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC_H with skipped key %s\n",
+       GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->HK));
+  LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with skipped key %u: %s\n",
+       key->Kn, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
   #endif
 
+  /* Should've been checked in -cadet_connection.c handle_cadet_encrypted. */
   GNUNET_assert (size > sizeof (struct GNUNET_CADET_AX));
   len = size - sizeof (struct GNUNET_CADET_AX);
-  GNUNET_CRYPTO_symmetric_derive_iv (&iv, &key->MK, NULL, 0, NULL);
-  res = GNUNET_CRYPTO_symmetric_decrypt (&src[1], len, &key->MK, &iv, &dst[1]);
+  GNUNET_assert (len >= sizeof (struct GNUNET_MessageHeader));
 
+  /* Decrypt header */
+  GNUNET_CRYPTO_symmetric_derive_iv (&iv, &key->HK, NULL, 0, NULL);
+  res = GNUNET_CRYPTO_symmetric_decrypt (&src->Ns, AX_HEADER_SIZE,
+                                         &key->HK, &iv, &plaintext_header.Ns);
+  GNUNET_assert (AX_HEADER_SIZE == res);
+  LOG (GNUNET_ERROR_TYPE_INFO, "  Message %u, previous: %u\n",
+       ntohl (plaintext_header.Ns), ntohl (plaintext_header.PNs));
+
+  // FIXME find correct key
+
+  /* Decrypt payload */
+  GNUNET_CRYPTO_symmetric_derive_iv (&iv, &key->MK, NULL, 0, NULL);
+  res = GNUNET_CRYPTO_symmetric_decrypt (&src[1], len, &key->MK, &iv, dst);
+
+  /* Remove key */
   GNUNET_CONTAINER_DLL_remove (t->ax->skipped_head, t->ax->skipped_tail, key);
   t->ax->skipped--;
-  GNUNET_free (key);
+  GNUNET_free (key); /* GNUNET_free overwrites memory with 0xbaadf00d */
 
   return res;
 }
@@ -1376,11 +1403,12 @@ store_skipped_key (struct CadetTunnel *t,
 
   key = GNUNET_new (struct CadetTunnelSkippedKey);
   key->timestamp = GNUNET_TIME_absolute_get ();
+  key->Kn = t->ax->Nr;
   key->HK = t->ax->HKr;
   t_hmac_derive_key (&t->ax->CKr, &key->MK, "0", 1);
   #if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
-       t->ax->Nr, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
+       key->Kn, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
   LOG (GNUNET_ERROR_TYPE_INFO, "    for CKr: %s\n",
        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->ax->CKr));
   #endif
@@ -1414,23 +1442,32 @@ delete_skipped_key (struct CadetTunnel *t, struct CadetTunnelSkippedKey *key)
  * @param t Tunnel where to stage the keys.
  * @param HKr Header key.
  * @param Np Received meesage number.
+ *
+ * @return GNUNET_OK if keys were stored.
+ *         GNUNET_SYSERR if an error ocurred (Np not expected).
  */
-static void
+static int
 store_ax_keys (struct CadetTunnel *t,
                const struct GNUNET_CRYPTO_SymmetricSessionKey *HKr,
                uint32_t Np)
 {
   int gap;
 
+
   gap = Np - t->ax->Nr;
-  if (MAX_KEY_GAP < gap || 0 > gap)
+  if (MAX_KEY_GAP < gap)
   {
     /* Avoid DoS (forcing peer to do 2*33 chain HMAC operations) */
     /* TODO: start new key exchange on return */
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_WARNING, "Got message %u, expected %u+\n",
          Np, t->ax->Nr);
-    return;
+    return GNUNET_SYSERR;
+  }
+  if (0 > gap)
+  {
+    /* Delayed message: don't store keys, flag to try old keys. */
+    return GNUNET_SYSERR;
   }
 
   while (t->ax->Nr < Np)
@@ -1438,6 +1475,8 @@ store_ax_keys (struct CadetTunnel *t,
 
   while (t->ax->skipped > MAX_SKIPPED_KEYS)
     delete_skipped_key (t, t->ax->skipped_tail);
+
+  return GNUNET_OK;
 }
 
 
@@ -1459,14 +1498,13 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
   struct CadetTunnelAxolotl *ax;
   struct GNUNET_CADET_Hash msg_hmac;
   struct GNUNET_HashCode hmac;
-  struct GNUNET_CADET_AX *dstmsg;
+  struct GNUNET_CADET_AX plaintext_header;
   uint32_t Np;
   uint32_t PNp;
   size_t esize;
   size_t osize;
 
   ax = t->ax;
-  dstmsg = dst;
   esize = size - sizeof (struct GNUNET_CADET_AX);
 
   if (NULL == ax)
@@ -1489,14 +1527,14 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
       /* Try the skipped keys, if that fails, we're out of luck. */
       return try_old_ax_keys (t, dst, src, size);
     }
-    LOG (GNUNET_ERROR_TYPE_INFO, "next HK\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "next HK worked\n");
 
     HK = ax->HKr;
     ax->HKr = ax->NHKr;
-    t_h_decrypt (t, src, dstmsg);
-    Np = ntohl (dstmsg->Ns);
-    PNp = ntohl (dstmsg->PNs);
-    DHRp = &dstmsg->DHRs;
+    t_h_decrypt (t, src, &plaintext_header);
+    Np = ntohl (plaintext_header.Ns);
+    PNp = ntohl (plaintext_header.PNs);
+    DHRp = &plaintext_header.DHRs;
     store_ax_keys (t, &HK, PNp);
 
     /* RKp, NHKp, CKp = KDF (HMAC-HASH (RK, DH (DHRp, DHRs))) */
@@ -1516,13 +1554,15 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "current HK\n");
-    t_h_decrypt (t, src, dstmsg);
-    Np = ntohl (dstmsg->Ns);
-    PNp = ntohl (dstmsg->PNs);
+    t_h_decrypt (t, src, &plaintext_header);
+    Np = ntohl (plaintext_header.Ns);
+    PNp = ntohl (plaintext_header.PNs);
   }
-
-  if (Np > ax->Nr)
-    store_ax_keys (t, &ax->HKr, Np);
+  LOG (GNUNET_ERROR_TYPE_INFO, "  got AX Nr %u\n", Np);
+  if (Np != ax->Nr)
+    if (GNUNET_OK != store_ax_keys (t, &ax->HKr, Np))
+      /* Try the skipped keys, if that fails, we're out of luck. */
+      return try_old_ax_keys (t, dst, src, size);
 
   osize = t_ax_decrypt (t, dst, &src[1], esize);
   ax->Nr = Np + 1;
