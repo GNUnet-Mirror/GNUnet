@@ -883,6 +883,14 @@ new_ephemeral (struct CadetTunnel *t)
 {
   GNUNET_free_non_null (t->ax->DHRs);
   t->ax->DHRs = GNUNET_CRYPTO_ecdhe_key_create();
+  #if DUMP_KEYS_TO_STDERR
+  {
+    struct GNUNET_CRYPTO_EcdhePublicKey pub;
+    GNUNET_CRYPTO_ecdhe_key_get_public (t->ax->DHRs, &pub);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  new DHRs generated: pub  %s\n",
+        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &pub));
+  }
+  #endif
 }
 
 
@@ -1064,7 +1072,7 @@ t_ax_encrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
 
   #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  CKs: %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  CKs: %s\n",
        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->CKs));
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_ENC with key %u: %s\n", ax->Ns,
        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &MK));
@@ -1101,12 +1109,13 @@ t_ax_decrypt (struct CadetTunnel *t, void *dst, const void *src, size_t size)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_ax_decrypt start\n");
 
   ax = t->ax;
+  ax_debug (ax, GNUNET_ERROR_TYPE_INFO);
 
   t_hmac_derive_key (&ax->CKr, &MK, "0", 1);
   GNUNET_CRYPTO_symmetric_derive_iv (&iv, &MK, NULL, 0, NULL);
 
   #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "  CKr: %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  CKr: %s\n",
        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &ax->CKr));
   LOG (GNUNET_ERROR_TYPE_INFO, "  AX_DEC with key %u: %s\n", ax->Nr,
        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &MK));
@@ -1423,9 +1432,9 @@ store_skipped_key (struct CadetTunnel *t,
   key->HK = t->ax->HKr;
   t_hmac_derive_key (&t->ax->CKr, &key->MK, "0", 1);
   #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_INFO, "    storing MK for Nr %u: %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    storing MK for Nr %u: %s\n",
        key->Kn, GNUNET_i2s ((struct GNUNET_PeerIdentity *) &key->MK));
-  LOG (GNUNET_ERROR_TYPE_INFO, "    for CKr: %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    for CKr: %s\n",
        GNUNET_i2s ((struct GNUNET_PeerIdentity *) &t->ax->CKr));
   #endif
   t_hmac_derive_key (&t->ax->CKr, &t->ax->CKr, "1", 1);
@@ -1471,6 +1480,7 @@ store_ax_keys (struct CadetTunnel *t,
 
 
   gap = Np - t->ax->Nr;
+  LOG (GNUNET_ERROR_TYPE_INFO, "Storing keys [%u, %u)\n", t->ax->Nr, Np);
   if (MAX_KEY_GAP < gap)
   {
     /* Avoid DoS (forcing peer to do 2*33 chain HMAC operations) */
@@ -1537,6 +1547,7 @@ t_ax_decrypt_and_validate (struct CadetTunnel *t, void *dst,
     struct GNUNET_CRYPTO_EcdhePublicKey *DHRp;
 
     /* Try Next HK */
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  trying next HK\n");
     t_hmac (&src->Ns, AX_HEADER_SIZE + esize, 0, &ax->NHKr, &msg_hmac);
     if (0 != memcmp (&msg_hmac, &src->hmac, sizeof (msg_hmac)))
     {
