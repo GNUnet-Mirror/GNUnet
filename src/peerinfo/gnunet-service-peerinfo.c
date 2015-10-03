@@ -700,7 +700,7 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
 {
   struct GNUNET_HELLO_Message * res;
   struct GNUNET_HELLO_Message * tmp;
-  struct GNUNET_CRYPTO_EddsaPublicKey pk;
+  struct GNUNET_PeerIdentity pid;
 
   if (NULL != friend_hello)
   {
@@ -710,12 +710,15 @@ update_friend_hello (const struct GNUNET_HELLO_Message *hello,
   }
 
   if (GNUNET_OK !=
-      GNUNET_HELLO_get_key (hello, &pk))
+      GNUNET_HELLO_get_id (hello, &pid))
   {
     GNUNET_break (0);
     return NULL;
   }
-  tmp = GNUNET_HELLO_create (&pk, NULL, NULL, GNUNET_YES);
+  tmp = GNUNET_HELLO_create (&pid.public_key,
+                             NULL,
+                             NULL,
+                             GNUNET_YES);
   res = GNUNET_HELLO_merge (hello, tmp);
   GNUNET_free (tmp);
   GNUNET_assert (GNUNET_YES == GNUNET_HELLO_is_friend_only (res));

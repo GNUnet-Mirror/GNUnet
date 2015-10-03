@@ -114,7 +114,7 @@ main (int argc, char *argv[])
   struct GNUNET_DISK_FileHandle *fh;
   struct GNUNET_HELLO_Message *orig;
   struct GNUNET_HELLO_Message *result;
-  struct GNUNET_CRYPTO_EddsaPublicKey pk;
+  struct GNUNET_PeerIdentity pid;
   uint64_t fsize;
   address_count = 0;
 
@@ -167,7 +167,8 @@ main (int argc, char *argv[])
     GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
     orig = (struct GNUNET_HELLO_Message *) buf;
     if ( (fsize != GNUNET_HELLO_size (orig)) ||
-	 (GNUNET_OK != GNUNET_HELLO_get_key (orig, &pk)) )
+	 (GNUNET_OK != GNUNET_HELLO_get_id (orig,
+                                            &pid)) )
     {
       FPRINTF (stderr,
 	       _("Did not find well-formed HELLO in file `%s'\n"),
@@ -175,15 +176,16 @@ main (int argc, char *argv[])
       return 1;
     }
     {
-      char *pid;
+      char *pids;
 
-      pid = GNUNET_CRYPTO_eddsa_public_key_to_string (&pk);
+      pids = GNUNET_CRYPTO_eddsa_public_key_to_string (&pid.public_key);
       fprintf (stdout,
                "Processing HELLO for peer `%s'\n",
-               pid);
-      GNUNET_free (pid);
+               pids);
+      GNUNET_free (pids);
     }
-    result = GNUNET_HELLO_create (&pk, &add_from_hello,
+    result = GNUNET_HELLO_create (&pid.public_key,
+                                  &add_from_hello,
                                   &orig,
                                   GNUNET_HELLO_is_friend_only (orig));
     GNUNET_assert (NULL != result);

@@ -204,7 +204,7 @@ struct GNUNET_HELLO_Message;
  * Return HELLO type
  *
  * @param h HELLO Message to test
- * @return #GNUNET_YES or #GNUNET_NO
+ * @return #GNUNET_YES for friend-only or #GNUNET_NO otherwise
  */
 int
 GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
@@ -253,14 +253,14 @@ typedef ssize_t
  * If friend only is set to #GNUNET_YES we create a FRIEND_HELLO which
  * will not be gossiped to other peers.
  *
- * @param publicKey public key to include in the HELLO
+ * @param public_key public key to include in the HELLO
  * @param addrgen callback to invoke to get addresses
  * @param addrgen_cls closure for @a addrgen
  * @param friend_only should the returned HELLO be only visible to friends?
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *publicKey,
+GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
                      void *addrgen_cls,
                      int friend_only);
@@ -357,8 +357,10 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
 
 
 /**
- * Iterate over addresses in "new_hello" that
- * are NOT already present in "old_hello".
+ * Iterate over addresses in @a new_hello that are NOT already present
+ * in @a old_hello. Note that if the address is present in @a old_hello
+ * but the expiration time in @a new_hello is more recent, the
+ * iterator is also called.
  *
  * @param new_hello a HELLO message
  * @param old_hello a HELLO message
@@ -373,18 +375,6 @@ GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message *new_hello
                                     struct GNUNET_TIME_Absolute expiration_limit,
                                     GNUNET_HELLO_AddressIterator it,
                                     void *it_cls);
-
-
-/**
- * Get the public key from a HELLO message.
- *
- * @param hello the hello message
- * @param publicKey where to copy the public key information, can be NULL
- * @return #GNUNET_SYSERR if the HELLO was malformed
- */
-int
-GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
-                      struct GNUNET_CRYPTO_EddsaPublicKey *publicKey);
 
 
 /**
@@ -412,9 +402,11 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello);
 
 
 /**
- * FIXME.
+ * Helper function to load/access transport plugins.
+ * FIXME: pass closure!
  *
- * @param name
+ * @param name name of the transport plugin to load
+ * @return NULL if a plugin with name @a name is not known/loadable
  */
 typedef struct GNUNET_TRANSPORT_PluginFunctions *
 (*GNUNET_HELLO_TransportPluginsFind) (const char *name);

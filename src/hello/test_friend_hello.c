@@ -18,15 +18,18 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file hello/test_hello.c
+ * @file hello/test_friend_hello.c
  * @brief test for hello.c
  * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 
+
 static ssize_t
-my_addr_gen (void *cls, size_t max, void *buf)
+my_addr_gen (void *cls,
+             size_t max,
+             void *buf)
 {
   unsigned int *i = cls;
   size_t ret;
@@ -49,7 +52,8 @@ my_addr_gen (void *cls, size_t max, void *buf)
 
 
 static int
-check_addr (void *cls, const struct GNUNET_HELLO_Address *address,
+check_addr (void *cls,
+            const struct GNUNET_HELLO_Address *address,
             struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *i = cls;
@@ -69,7 +73,8 @@ check_addr (void *cls, const struct GNUNET_HELLO_Address *address,
 
 
 static int
-remove_some (void *cls, const struct GNUNET_HELLO_Address *address,
+remove_some (void *cls,
+             const struct GNUNET_HELLO_Address *address,
              struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *i = cls;
@@ -94,7 +99,6 @@ main (int argc, char *argv[])
   struct GNUNET_HELLO_Message *msg2;
   struct GNUNET_HELLO_Message *msg3;
   struct GNUNET_CRYPTO_EddsaPublicKey publicKey;
-  struct GNUNET_CRYPTO_EddsaPublicKey pk;
   struct GNUNET_TIME_Absolute startup_time;
   unsigned int i;
 
@@ -127,11 +131,6 @@ main (int argc, char *argv[])
                  GNUNET_HELLO_iterate_addresses (msg2, GNUNET_NO, &check_addr,
                                                  &i));
   GNUNET_assert (i == 0);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	   "Testing get_key from HELLO...\n");
-  GNUNET_assert (GNUNET_OK == GNUNET_HELLO_get_key (msg2, &pk));
-  GNUNET_assert (0 == memcmp (&publicKey, &pk, sizeof (pk)));
   GNUNET_free (msg1);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

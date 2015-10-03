@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -108,7 +108,6 @@ struct GNUNET_HELLO_ParseUriContext
    */
   unsigned int counter_added;
 
-
   /**
    * Function for finding transport plugins by name.
    */
@@ -120,13 +119,13 @@ struct GNUNET_HELLO_ParseUriContext
  * Return HELLO type
  *
  * @param h HELLO Message to test
- * @return #GNUNET_YES or #GNUNET_NO
+ * @return #GNUNET_YES for friend-only or #GNUNET_NO otherwise
  */
 int
 GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h)
 {
   if (GNUNET_YES == ntohl(h->friend_only))
-  	return GNUNET_YES;
+    return GNUNET_YES;
   return GNUNET_NO;
 }
 
@@ -173,9 +172,9 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
  * Get the size of an address entry in a HELLO message.
  *
  * @param buf pointer to the start of the address entry
- * @param max maximum size of the entry (end of buf)
+ * @param max maximum size of the entry (end of @a buf)
  * @param ralen set to the address length
- * @return size of the entry, or 0 if max is not large enough
+ * @return size of the entry, or 0 if @a max is not large enough
  */
 static size_t
 get_hello_address_size (const char *buf,
@@ -228,10 +227,17 @@ get_hello_address_size (const char *buf,
  * expiration time and an iterator that spews the
  * transport addresses.
  *
+ * If friend only is set to #GNUNET_YES we create a FRIEND_HELLO which
+ * will not be gossiped to other peers.
+ *
+ * @param public_key public key to include in the HELLO
+ * @param addrgen callback to invoke to get addresses
+ * @param addrgen_cls closure for @a addrgen
+ * @param friend_only should the returned HELLO be only visible to friends?
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
-GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *publicKey,
+GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
                      GNUNET_HELLO_GenerateAddressListCallback addrgen,
                      void *addrgen_cls,
                      int friend_only)
@@ -243,14 +249,16 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *publicKey,
   size_t ret;
   struct GNUNET_HELLO_Message *hello;
 
-  GNUNET_assert (NULL != publicKey);
-  GNUNET_assert ((GNUNET_YES == friend_only) || (GNUNET_NO == friend_only));
-
+  GNUNET_assert (NULL != public_key);
+  GNUNET_assert ( (GNUNET_YES == friend_only) ||
+                  (GNUNET_NO == friend_only) );
   max = sizeof (buffer);
   used = 0;
-  if (addrgen != NULL)
+  if (NULL != addrgen)
   {
-    while (GNUNET_SYSERR != (ret = addrgen (addrgen_cls, max, &buffer[used])))
+    while (GNUNET_SYSERR != (ret = addrgen (addrgen_cls,
+                                            max,
+                                            &buffer[used])))
     {
       max -= ret;
       used += ret;
@@ -260,10 +268,10 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *publicKey,
   hello->header.type = htons (GNUNET_MESSAGE_TYPE_HELLO);
   hello->header.size = htons (sizeof (struct GNUNET_HELLO_Message) + used);
   hello->friend_only = htonl (friend_only);
-
-  memcpy (&hello->publicKey, publicKey,
-          sizeof (struct GNUNET_CRYPTO_EddsaPublicKey));
-  memcpy (&hello[1], buffer, used);
+  hello->publicKey = *public_key;
+  memcpy (&hello[1],
+          buffer,
+          used);
   return hello;
 }
 
@@ -304,22 +312,27 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   if (return_modified)
   {
     ret = GNUNET_malloc (msize);
-    memcpy (ret, msg, msize);
+    memcpy (ret,
+            msg,
+            msize);
   }
   inptr = (const char *) &msg[1];
   insize = msize - sizeof (struct GNUNET_HELLO_Message);
   wpos = 0;
-  woff = (ret != NULL) ? (char *) &ret[1] : NULL;
+  woff = (NULL != ret) ? (char *) &ret[1] : NULL;
   address.peer.public_key = msg->publicKey;
   while (insize > 0)
   {
-    esize = get_hello_address_size (inptr, insize, &alen);
+    esize = get_hello_address_size (inptr,
+                                    insize,
+                                    &alen);
     if (0 == esize)
     {
       GNUNET_break (0);
       GNUNET_free_non_null (ret);
       return NULL;
     }
+    /* need memcpy() due to possibility of misalignment */
     memcpy (&expire,
             &inptr[esize - alen - sizeof (struct GNUNET_TIME_AbsoluteNBO)],
             sizeof (struct GNUNET_TIME_AbsoluteNBO));
@@ -327,23 +340,25 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
     address.address_length = alen;
     address.transport_name = inptr;
     address.local_info = GNUNET_HELLO_ADDRESS_INFO_NONE;
-    iret = it (it_cls, &address, GNUNET_TIME_absolute_ntoh (expire));
-    if (iret == GNUNET_SYSERR)
+    iret = it (it_cls,
+               &address,
+               GNUNET_TIME_absolute_ntoh (expire));
+    if (GNUNET_SYSERR == iret)
+      break;
+    if ( (GNUNET_OK == iret) &&
+         (NULL != ret) )
     {
-      if (ret != NULL)
-        ret->header.size = ntohs (sizeof (struct GNUNET_HELLO_Message) + wpos);
-      return ret;
-    }
-    if ((iret == GNUNET_OK) && (ret != NULL))
-    {
-      memcpy (woff, inptr, esize);
+      /* copy address over */
+      memcpy (woff,
+              inptr,
+              esize);
       woff += esize;
       wpos += esize;
     }
     insize -= esize;
     inptr += esize;
   }
-  if (ret != NULL)
+  if (NULL != ret)
     ret->header.size = ntohs (sizeof (struct GNUNET_HELLO_Message) + wpos);
   return ret;
 }
@@ -386,53 +401,56 @@ get_match_exp (void *cls,
 {
   struct ExpireContext *ec = cls;
 
-  if (0 == GNUNET_HELLO_address_cmp (address, ec->address))
-  {
-    ec->found = GNUNET_YES;
-    ec->expiration = expiration;
-    return GNUNET_SYSERR;       /* done here */
-  }
-  return GNUNET_OK;
+  if (0 != GNUNET_HELLO_address_cmp (address,
+                                     ec->address))
+    return GNUNET_OK;
+  ec->found = GNUNET_YES;
+  ec->expiration = expiration;
+  return GNUNET_SYSERR;       /* done here */
 }
 
 
 /**
- *
+ * Context for a #GNUNET_HELLO_Merge operation.
  */
 struct MergeContext
 {
   /**
-   *
+   * First HELLO we are merging.
    */
   const struct GNUNET_HELLO_Message *h1;
 
   /**
-   *
+   * Second HELLO we are merging.
    */
   const struct GNUNET_HELLO_Message *h2;
 
   /**
-   *
+   * Either @e h1 or @e h2, used when copying
+   * to compare against (so we only copy the
+   * most recent entry).
    */
   const struct GNUNET_HELLO_Message *other;
 
   /**
-   *
+   * Buffer where we copy to.
    */
   char *buf;
 
   /**
-   *
+   * Number of bytes allocated in @e buf
    */
   size_t max;
 
   /**
-   *
+   * Current (write) offset in @e buf.
    */
   size_t ret;
 
   /**
-   *
+   * Should we copy addresses with an identical value
+   * and expiration time in @e other, or do we only
+   * copy addresses with strictly later expiration times?
    */
   int take_equal;
 
@@ -440,12 +458,14 @@ struct MergeContext
 
 
 /**
+ * Append the address @a address to the buffer from
+ * the merge context IF it is more recent than equivalent
+ * addresses in `other`.
  *
- *
- * @param cls
- * @param address
- * @param expiration
- * @return
+ * @param cls the `struct MergeContext`
+ * @param address the HELLO address we might copy
+ * @param expiration expiration time for @a address
+ * @return always #GNUNET_OK
  */
 static int
 copy_latest (void *cls,
@@ -457,14 +477,21 @@ copy_latest (void *cls,
 
   ec.address = address;
   ec.found = GNUNET_NO;
-  GNUNET_HELLO_iterate_addresses (mc->other, GNUNET_NO, &get_match_exp, &ec);
-  if ((ec.found == GNUNET_NO) ||
-      (ec.expiration.abs_value_us < expiration.abs_value_us) ||
-      ((ec.expiration.abs_value_us == expiration.abs_value_us) &&
-       (mc->take_equal == GNUNET_YES)))
+  /* check if address exists in other */
+  GNUNET_HELLO_iterate_addresses (mc->other,
+                                  GNUNET_NO,
+                                  &get_match_exp,
+                                  &ec);
+  if ( (GNUNET_NO == ec.found) ||
+       (ec.expiration.abs_value_us < expiration.abs_value_us) ||
+       ( (ec.expiration.abs_value_us == expiration.abs_value_us) &&
+         (GNUNET_YES == mc->take_equal) ) )
   {
+    /* copy address to buffer */
     mc->ret +=
-        GNUNET_HELLO_add_address (address, expiration, &mc->buf[mc->ret],
+        GNUNET_HELLO_add_address (address,
+                                  expiration,
+                                  &mc->buf[mc->ret],
                                   mc->max - mc->ret);
   }
   return GNUNET_OK;
@@ -472,7 +499,14 @@ copy_latest (void *cls,
 
 
 /**
+ * Function called to build the HELLO during
+ * #GNUNET_HELLO_merge() by merging addresses from
+ * two original HELLOs.
  *
+ * @param cls the `struct MergeContext`
+ * @param max number of bytes we can write at most in @a buf
+ * @param buf where to copy the addresses
+ * @return #GNUNET_SYSERR to end iteration, otherwise number of bytes written to @a buf
  */
 static ssize_t
 merge_addr (void *cls,
@@ -481,17 +515,26 @@ merge_addr (void *cls,
 {
   struct MergeContext *mc = cls;
 
-  if (mc->h1 == NULL)
+  if (NULL == mc->h1)
     return GNUNET_SYSERR; /* Stop iteration */
   mc->ret = 0;
   mc->max = max;
   mc->buf = buf;
   mc->take_equal = GNUNET_NO;
   mc->other = mc->h2;
-  GNUNET_HELLO_iterate_addresses (mc->h1, GNUNET_NO, &copy_latest, mc);
+  /* copy addresses from h1, if strictly larger expiration than h2 */
+  GNUNET_HELLO_iterate_addresses (mc->h1,
+                                  GNUNET_NO,
+                                  &copy_latest,
+                                  mc);
   mc->take_equal = GNUNET_YES;
   mc->other = mc->h1;
-  GNUNET_HELLO_iterate_addresses (mc->h2, GNUNET_NO, &copy_latest, mc);
+  /* copy addresses from h2, if larger or equal expiration than h1 */
+  GNUNET_HELLO_iterate_addresses (mc->h2,
+                                  GNUNET_NO,
+                                  &copy_latest,
+                                  mc);
+  /* set marker to stop iteration */
   mc->h1 = NULL;
   return mc->ret;
 }
@@ -504,7 +547,7 @@ merge_addr (void *cls,
  *
  * @param h1 first HELLO message
  * @param h2 the second HELLO message
- * @return the combined hello message
+ * @return the combined HELLO message
  */
 struct GNUNET_HELLO_Message *
 GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
@@ -526,17 +569,18 @@ GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
 
 
 /**
- *
+ * Context used in #GNUNET_HELLO_iterate_new_addresses() to
+ * figure out which addresses are in fact 'new'.
  */
 struct DeltaContext
 {
   /**
-   *
+   * We should ignore addresses that expire before this time.
    */
   struct GNUNET_TIME_Absolute expiration_limit;
 
   /**
-   *
+   * Function to call on addresses that are indeed new.
    */
   GNUNET_HELLO_AddressIterator it;
 
@@ -546,14 +590,24 @@ struct DeltaContext
   void *it_cls;
 
   /**
-   *
+   * HELLO with known addresses, addresses in this HELLO
+   * we must always ignore.
    */
   const struct GNUNET_HELLO_Message *old_hello;
 };
 
 
 /**
+ * Check if the given address is 'new', and if so, call
+ * the iterator.  Compares the existing address against
+ * addresses in the context's `old_hello` and calls the
+ * iterator on those that are new (and not expired).
  *
+ * @param cls the `struct DeltaContext`
+ * @param address an address to check whether it is new
+ * @param expiration expiration time for @a address
+ * @return #GNUNET_YES if the address is ignored, otherwise
+ *         whatever the iterator returned.
  */
 static int
 delta_match (void *cls,
@@ -570,22 +624,26 @@ delta_match (void *cls,
                                   GNUNET_NO,
                                   &get_match_exp,
                                   &ec);
-  if ((ec.found == GNUNET_YES) &&
-      ((ec.expiration.abs_value_us > expiration.abs_value_us) ||
-       (ec.expiration.abs_value_us >= dc->expiration_limit.abs_value_us)))
-    return GNUNET_YES;          /* skip */
-  ret = dc->it (dc->it_cls, address, expiration);
+  if ( (GNUNET_YES == ec.found) &&
+       ( (ec.expiration.abs_value_us > expiration.abs_value_us) ||
+         (ec.expiration.abs_value_us >= dc->expiration_limit.abs_value_us)))
+    return GNUNET_YES;          /* skip: found and boring */
+  ret = dc->it (dc->it_cls,
+                address,
+                expiration);
   return ret;
 }
 
 
 /**
- * Iterate over addresses in "new_hello" that
- * are NOT already present in "old_hello".
+ * Iterate over addresses in @a new_hello that are NOT already present
+ * in @a old_hello.  Note that if the address is present in @a old_hello
+ * but the expiration time in @a new_hello is more recent, the iterator
+ * is also called.
  *
  * @param new_hello a HELLO message
  * @param old_hello a HELLO message
- * @param expiration_limit ignore addresses in old_hello
+ * @param expiration_limit ignore addresses in @a old_hello
  *        that expired before the given time stamp
  * @param it iterator to call on each address
  * @param it_cls closure for @a it
@@ -603,7 +661,11 @@ GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message *new_hello
   dc.it = it;
   dc.it_cls = it_cls;
   dc.old_hello = old_hello;
-  GNUNET_HELLO_iterate_addresses (new_hello, GNUNET_NO, &delta_match, &dc);
+  GNUNET_assert (NULL ==
+                 GNUNET_HELLO_iterate_addresses (new_hello,
+                                                 GNUNET_NO,
+                                                 &delta_match,
+                                                 &dc));
 }
 
 
@@ -621,27 +683,6 @@ GNUNET_HELLO_size (const struct GNUNET_HELLO_Message *hello)
       (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
     return 0;
   return ret;
-}
-
-
-/**
- * Get the public key from a HELLO message.
- *
- * @param hello the hello message
- * @param publicKey where to copy the public key information, can be NULL
- * @return #GNUNET_SYSERR if the HELLO was malformed
- */
-int
-GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
-                      struct GNUNET_CRYPTO_EddsaPublicKey *publicKey)
-{
-  uint16_t ret = ntohs (hello->header.size);
-
-  if ((ret < sizeof (struct GNUNET_HELLO_Message)) ||
-      (ntohs (hello->header.type) != GNUNET_MESSAGE_TYPE_HELLO))
-    return GNUNET_SYSERR;
-  *publicKey = hello->publicKey;
-  return GNUNET_OK;
 }
 
 
@@ -688,37 +729,41 @@ GNUNET_HELLO_get_header (struct GNUNET_HELLO_Message *hello)
 
 
 /**
- *
+ * Context used for comparing HELLOs in #GNUNET_HELLO_equals().
  */
 struct EqualsContext
 {
   /**
-   *
+   * Addresses that expired before this date are ignored for
+   * the comparisson.
    */
   struct GNUNET_TIME_Absolute expiration_limit;
 
   /**
-   *
+   * Earliest expiration time for which we found a match
+   * with a difference in expiration times.
+   * At this time, the two HELLOs may start to diverge.
    */
   struct GNUNET_TIME_Absolute result;
 
   /**
-   *
+   * HELLO message to compare against. (First set to the second
+   * HELLO, then set to the first HELLO.)
    */
-  const struct GNUNET_HELLO_Message *h2;
+  const struct GNUNET_HELLO_Message *ref;
 
   /**
-   *
+   * Address we are currently looking for.
    */
   const struct GNUNET_HELLO_Address *address;
 
   /**
-   *
+   * Expiration time of @e address.
    */
   struct GNUNET_TIME_Absolute expiration;
 
   /**
-   *
+   * Did we find the address we were looking for?
    */
   int found;
 
@@ -726,7 +771,16 @@ struct EqualsContext
 
 
 /**
+ * Check if the given address matches the address we are currently
+ * looking for. If so, sets `found` to #GNUNET_YES and, if the
+ * expiration times for the two addresses differ, updates `result` to
+ * the minimum of our @a expiration and the existing value
  *
+ * @param cls the `struct EqualsContext`
+ * @param address address from the reference HELLO
+ * @param expiration expiration time for @a address
+ * @return #GNUNET_YES if the address is expired or does not match
+ *         #GNUNET_SYSERR if the address does match.
  */
 static int
 find_other_matching (void *cls,
@@ -741,7 +795,8 @@ find_other_matching (void *cls,
   {
     ec->found = GNUNET_YES;
     if (expiration.abs_value_us < ec->expiration.abs_value_us)
-      ec->result = GNUNET_TIME_absolute_min (expiration, ec->result);
+      ec->result = GNUNET_TIME_absolute_min (expiration,
+                                             ec->result);
     return GNUNET_SYSERR;
   }
   return GNUNET_YES;
@@ -749,7 +804,16 @@ find_other_matching (void *cls,
 
 
 /**
+ * Helper function for #GNUNET_HELLO_equals().  Checks
+ * if the given @a address exists also in the other HELLO;
+ * if not, the result time is set to zero and the iteration
+ * is aborted.
  *
+ * @param cls the `struct EqualsContext`
+ * @param address address to locate
+ * @param expiration expiration time of the current address
+ * @return #GNUNET_OK if the address exists or is expired,
+ *         #GNUNET_SYSERR if it was not found
  */
 static int
 find_matching (void *cls,
@@ -759,13 +823,17 @@ find_matching (void *cls,
   struct EqualsContext *ec = cls;
 
   if (expiration.abs_value_us < ec->expiration_limit.abs_value_us)
-    return GNUNET_YES;
+    return GNUNET_OK; /* expired, we don't care */
   ec->address = address;
   ec->expiration = expiration;
   ec->found = GNUNET_NO;
-  GNUNET_HELLO_iterate_addresses (ec->h2, GNUNET_NO, &find_other_matching, ec);
-  if (ec->found == GNUNET_NO)
+  GNUNET_HELLO_iterate_addresses (ec->ref,
+                                  GNUNET_NO,
+                                  &find_other_matching,
+                                  ec);
+  if (GNUNET_NO == ec->found)
   {
+    /* not found, we differ *now* */
     ec->result = GNUNET_TIME_UNIT_ZERO_ABS;
     return GNUNET_SYSERR;
   }
@@ -776,7 +844,7 @@ find_matching (void *cls,
 /**
  * Test if two HELLO messages contain the same addresses.
  * If they only differ in expiration time, the lowest
- * expiration time larger than 'now' where they differ
+ * expiration time larger than @a now where they differ
  * is returned.
  *
  * @param h1 first HELLO message
@@ -784,9 +852,9 @@ find_matching (void *cls,
  * @param now time to use for deciding which addresses have
  *            expired and should not be considered at all
  * @return absolute time forever if the two HELLOs are
- *         totally identical; smallest timestamp >= now if
+ *         totally identical; smallest timestamp >= @a now if
  *         they only differ in timestamps;
- *         zero if the some addresses with expirations >= now
+ *         zero if the some addresses with expirations >= @a now
  *         do not match at all
  */
 struct GNUNET_TIME_Absolute
@@ -797,22 +865,22 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
   struct EqualsContext ec;
 
   if (h1->header.type != h2->header.type)
-  	return GNUNET_TIME_UNIT_ZERO_ABS;
-
+    return GNUNET_TIME_UNIT_ZERO_ABS;
   if (0 !=
-      memcmp (&h1->publicKey, &h2->publicKey,
+      memcmp (&h1->publicKey,
+              &h2->publicKey,
               sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
     return GNUNET_TIME_UNIT_ZERO_ABS;
   ec.expiration_limit = now;
   ec.result = GNUNET_TIME_UNIT_FOREVER_ABS;
-  ec.h2 = h2;
+  ec.ref = h2;
   GNUNET_HELLO_iterate_addresses (h1,
                                   GNUNET_NO,
                                   &find_matching,
                                   &ec);
   if (ec.result.abs_value_us == GNUNET_TIME_UNIT_ZERO.rel_value_us)
     return ec.result;
-  ec.h2 = h1;
+  ec.ref = h1;
   GNUNET_HELLO_iterate_addresses (h2,
                                   GNUNET_NO,
                                   &find_matching,
@@ -822,7 +890,13 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
 
 
 /**
+ * Iterator to find the time when the last address will expire.
+ * Updates the maximum value stored in @a cls.
  *
+ * @param cls where to store the max, a `struct GNUNET_TIME_Absolute`
+ * @param address an address (ignored)
+ * @param expiration expiration time for @a address
+ * @return #GNUNET_OK (always)
  */
 static int
 find_max_expire (void *cls,
@@ -847,7 +921,7 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
 {
   struct GNUNET_TIME_Absolute ret;
 
-  ret.abs_value_us = 0;
+  ret = GNUNET_TIME_UNIT_ZERO_ABS;
   GNUNET_HELLO_iterate_addresses (msg,
                                   GNUNET_NO,
                                   &find_max_expire,
@@ -954,7 +1028,10 @@ add_address_to_uri (void *cls,
 		   "%s%c%s%c%s%c%s",
 		   ctx->uri,
 		   GNUNET_HELLO_URI_SEP,
-		   strftime (tbuf, sizeof (tbuf), "%Y%m%d%H%M%S", t) ? tbuf : "0",
+		   strftime (tbuf,
+                             sizeof (tbuf),
+                             "%Y%m%d%H%M%S",
+                             t) ? tbuf : "0",
                    GNUNET_HELLO_URI_SEP,
 		   address->transport_name,
 		   GNUNET_HELLO_URI_SEP,
@@ -1006,7 +1083,9 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
  * @return number of bytes added to buffer, #GNUNET_SYSERR on error
  */
 static ssize_t
-add_address_to_hello (void *cls, size_t max, void *buffer)
+add_address_to_hello (void *cls,
+                      size_t max,
+                      void *buffer)
 {
   struct GNUNET_HELLO_ParseUriContext *ctx = cls;
   const char *tname;
@@ -1033,7 +1112,8 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   }
   ctx->pos++;
 
-  if ('0' == ctx->pos[0] && GNUNET_HELLO_URI_SEP == ctx->pos[1])
+  if ( ('0' == ctx->pos[0]) &&
+       (GNUNET_HELLO_URI_SEP == ctx->pos[1]) )
   {
     expire = GNUNET_TIME_UNIT_FOREVER_ABS;
     tname = ctx->pos + 1;
@@ -1162,18 +1242,18 @@ GNUNET_HELLO_parse_uri (const char *uri,
 		    GNUNET_HELLO_URI_PREFIX,
 		    strlen (GNUNET_HELLO_URI_PREFIX)))
   {
-  		pks = &uri[strlen (GNUNET_HELLO_URI_PREFIX)];
-  		friend_only = GNUNET_NO;
+    pks = &uri[strlen (GNUNET_HELLO_URI_PREFIX)];
+    friend_only = GNUNET_NO;
   }
   else if (0 == strncmp (uri,
 	    GNUNET_FRIEND_HELLO_URI_PREFIX,
 	    strlen (GNUNET_FRIEND_HELLO_URI_PREFIX)))
   {
-  	pks = &uri[strlen (GNUNET_FRIEND_HELLO_URI_PREFIX)];
-  	friend_only = GNUNET_YES;
+    pks = &uri[strlen (GNUNET_FRIEND_HELLO_URI_PREFIX)];
+    friend_only = GNUNET_YES;
   }
   else
-  	return GNUNET_SYSERR;
+    return GNUNET_SYSERR;
   exc = strchr (pks, GNUNET_HELLO_URI_SEP);
 
   if (GNUNET_OK !=
@@ -1188,11 +1268,15 @@ GNUNET_HELLO_parse_uri (const char *uri,
   ctx.counter_total = 0;
   ctx.counter_added = 0;
   ctx.plugins_find = plugins_find;
-  *hello = GNUNET_HELLO_create (pubkey, &add_address_to_hello, &ctx, friend_only);
+  *hello = GNUNET_HELLO_create (pubkey,
+                                &add_address_to_hello,
+                                &ctx,
+                                friend_only);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("HELLO URI contained %u addresses, added %u addresses\n"),
-              ctx.counter_total, ctx.counter_added);
+              "HELLO URI contained %u addresses, added %u addresses\n",
+              ctx.counter_total,
+              ctx.counter_added);
 
   return ctx.ret;
 }
