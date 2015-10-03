@@ -25,6 +25,7 @@
  * @author Heikki Lindholm
  * @author Jake Dust
  * @author LRN
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -33,73 +34,19 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 #define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
 
+
+#if ! (HAVE_GETIFADDRS && HAVE_FREEIFADDRS)
 /**
- * @brief Enumerate all network interfaces
+ * Try to enumerate all network interfaces using 'ifconfig'.
  *
  * @param proc the callback function
  * @param proc_cls closure for @a proc
+ * @return #GNUNET_OK if it worked
  */
-void
-GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
-                                   void *proc_cls)
+static int
+try_ifconfig (GNUNET_OS_NetworkInterfaceProcessor proc,
+              void *proc_cls)
 {
-#ifdef MINGW
-  int r;
-  int i;
-  struct EnumNICs3_results *results = NULL;
-  int results_count;
-
-  r = EnumNICs3 (&results, &results_count);
-  if (r != GNUNET_OK)
-    return;
-
-  for (i = 0; i < results_count; i++)
-  {
-    if (GNUNET_OK !=
-        proc (proc_cls, results[i].pretty_name, results[i].is_default,
-              (const struct sockaddr *) &results[i].address,
-              results[i].
-              flags & ENUMNICS3_BCAST_OK ?
-              (const struct sockaddr *) &results[i].broadcast : NULL,
-              results[i].flags & ENUMNICS3_MASK_OK ?
-              (const struct sockaddr *) &results[i].mask : NULL,
-              results[i].addr_size))
-      break;
-  }
-  EnumNICs3_free (results);
-  return;
-
-#elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS
-
-  struct ifaddrs *ifa_first;
-  struct ifaddrs *ifa_ptr;
-  socklen_t alen;
-
-  if (getifaddrs (&ifa_first) == 0)
-  {
-    for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
-    {
-      if (ifa_ptr->ifa_name != NULL && ifa_ptr->ifa_addr != NULL &&
-          (ifa_ptr->ifa_flags & IFF_UP) != 0)
-      {
-        if ((ifa_ptr->ifa_addr->sa_family != AF_INET) &&
-            (ifa_ptr->ifa_addr->sa_family != AF_INET6))
-          continue;
-        if (ifa_ptr->ifa_addr->sa_family == AF_INET)
-          alen = sizeof (struct sockaddr_in);
-        else
-          alen = sizeof (struct sockaddr_in6);
-        if (GNUNET_OK !=
-            proc (proc_cls, ifa_ptr->ifa_name,
-                  0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
-                  ifa_ptr->ifa_addr, ifa_ptr->ifa_broadaddr,
-                  ifa_ptr->ifa_netmask, alen))
-          break;
-      }
-    }
-    freeifaddrs (ifa_first);
-  }
-#else
   int i;
   char line[1024];
   char *replace;
@@ -122,17 +69,19 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
   int prefixlen;
 
   if (system ("ifconfig -a > /dev/null 2> /dev/null"))
-    if (system ("/sbin/ifconfig -a > /dev/null 2> /dev/null") == 0)
+    if (0 == system ("/sbin/ifconfig -a > /dev/null 2> /dev/null"))
       f = popen ("/sbin/ifconfig -a 2> /dev/null", "r");
     else
       f = NULL;
   else
     f = popen ("ifconfig -a 2> /dev/null", "r");
-  if (!f)
+  if (! f)
   {
     LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-                       "popen", "ifconfig");
-    return;
+                       "popen",
+                       "ifconfig");
+
+    return GNUNET_SYSERR;
   }
 
   have_ifc = GNUNET_NO;
@@ -260,6 +209,218 @@ GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
     }
   }
   pclose (f);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Try to enumerate all network interfaces using 'ip'.
+ *
+ * @param proc the callback function
+ * @param proc_cls closure for @a proc
+ * @return #GNUNET_OK if it worked
+ */
+static int
+try_ip (GNUNET_OS_NetworkInterfaceProcessor proc,
+        void *proc_cls)
+{
+  char line[1024];
+  char *replace;
+  char ifname[64];
+  char afstr[6];
+  char addrstr[128];
+  FILE *f;
+  struct sockaddr_in a4;
+  struct sockaddr_in6 a6;
+  struct in_addr v4;
+  struct in6_addr v6;
+  struct sockaddr_in netmask;
+  struct sockaddr_in6 netmask6;
+  unsigned int i;
+  unsigned int prefixlen;
+
+  f = popen ("ip -o add 2> /dev/null", "r");
+  if (! f)
+  {
+    LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+                       "popen",
+                       "ip");
+    return GNUNET_SYSERR;
+  }
+
+  while (NULL != fgets (line, sizeof (line), f))
+  {
+    /* make parsing easier */
+    for (replace = line; *replace != '\0'; replace++)
+    {
+      if (*replace == '/')
+        *replace = ' ';
+    }
+    /* Zero-out stack allocated values */
+    memset (ifname, 0, 64);
+    memset (afstr, 0, 6);
+    memset (addrstr, 0, 128);
+    if (4 != SSCANF (line,
+                     "%*u: %63s %5s %127s %6u",
+                     ifname,
+                     afstr,
+                     addrstr,
+                     &prefixlen))
+      continue;
+    /* IPv4 */
+    if ( (0 == strcasecmp ("inet",
+                           afstr)) &&
+         (1 == inet_pton (AF_INET,
+                          addrstr,
+                          &v4)) )
+    {
+      memset (&a4, 0, sizeof (a4));
+      a4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      a4.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
+      a4.sin_addr = v4;
+
+      memset (&v4.s_addr, 0, sizeof (v4.s_addr));
+      for (i = 0; i < prefixlen; i++)
+        v4.s_addr |= 1 << (i & 7);
+      memset (&netmask, 0, sizeof (netmask));
+      netmask.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      netmask.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
+      netmask.sin_addr = v4;
+
+      if (GNUNET_OK !=
+          proc (proc_cls,
+                ifname,
+                (0 == strcmp (ifname,
+                              GNUNET_DEFAULT_INTERFACE)),
+                (const struct sockaddr *) &a4,
+                NULL,
+                (const struct sockaddr *) &netmask,
+                sizeof (a4)))
+        break;
+    }
+    /* IPv6 */
+    if ( (0 == strcasecmp ("inet6",
+                           afstr)) &&
+         (1 == inet_pton (AF_INET6,
+                          addrstr,
+                          &v6)) )
+    {
+      memset (&a6, 0, sizeof (a6));
+      a6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      a6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+#endif
+      a6.sin6_addr = v6;
+
+      memset (v6.s6_addr, 0, sizeof (v6.s6_addr));
+      for (i = 0; i < prefixlen; i++)
+        v6.s6_addr[i >> 3] |= 1 << (i & 7);
+      memset (&netmask6, 0, sizeof (netmask6));
+      netmask6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+      netmask6.sin6_len = (u_char) sizeof (struct sockaddr_in6);
+#endif
+      netmask6.sin6_addr = v6;
+
+      if (GNUNET_OK !=
+          proc (proc_cls,
+                ifname,
+                (0 == strcmp (ifname,
+                              GNUNET_DEFAULT_INTERFACE)),
+                (const struct sockaddr *) &a6,
+                NULL,
+                (const struct sockaddr *) &netmask6,
+                sizeof (a6)))
+        break;
+    }
+  }
+  pclose (f);
+  return GNUNET_OK;
+}
+#endif
+
+
+/**
+ * @brief Enumerate all network interfaces
+ *
+ * @param proc the callback function
+ * @param proc_cls closure for @a proc
+ */
+void
+GNUNET_OS_network_interfaces_list (GNUNET_OS_NetworkInterfaceProcessor proc,
+                                   void *proc_cls)
+{
+#ifdef MINGW
+  int r;
+  int i;
+  struct EnumNICs3_results *results = NULL;
+  int results_count;
+
+  r = EnumNICs3 (&results, &results_count);
+  if (r != GNUNET_OK)
+    return;
+
+  for (i = 0; i < results_count; i++)
+  {
+    if (GNUNET_OK !=
+        proc (proc_cls, results[i].pretty_name, results[i].is_default,
+              (const struct sockaddr *) &results[i].address,
+              results[i].
+              flags & ENUMNICS3_BCAST_OK ?
+              (const struct sockaddr *) &results[i].broadcast : NULL,
+              results[i].flags & ENUMNICS3_MASK_OK ?
+              (const struct sockaddr *) &results[i].mask : NULL,
+              results[i].addr_size))
+      break;
+  }
+  EnumNICs3_free (results);
+  return;
+
+#elif HAVE_GETIFADDRS && HAVE_FREEIFADDRS
+
+  struct ifaddrs *ifa_first;
+  struct ifaddrs *ifa_ptr;
+  socklen_t alen;
+
+  if (getifaddrs (&ifa_first) == 0)
+  {
+    for (ifa_ptr = ifa_first; ifa_ptr != NULL; ifa_ptr = ifa_ptr->ifa_next)
+    {
+      if (ifa_ptr->ifa_name != NULL && ifa_ptr->ifa_addr != NULL &&
+          (ifa_ptr->ifa_flags & IFF_UP) != 0)
+      {
+        if ((ifa_ptr->ifa_addr->sa_family != AF_INET) &&
+            (ifa_ptr->ifa_addr->sa_family != AF_INET6))
+          continue;
+        if (ifa_ptr->ifa_addr->sa_family == AF_INET)
+          alen = sizeof (struct sockaddr_in);
+        else
+          alen = sizeof (struct sockaddr_in6);
+        if (GNUNET_OK !=
+            proc (proc_cls, ifa_ptr->ifa_name,
+                  0 == strcmp (ifa_ptr->ifa_name, GNUNET_DEFAULT_INTERFACE),
+                  ifa_ptr->ifa_addr, ifa_ptr->ifa_broadaddr,
+                  ifa_ptr->ifa_netmask, alen))
+          break;
+      }
+    }
+    freeifaddrs (ifa_first);
+  }
+#else
+  if (GNUNET_OK ==
+      try_ip (proc,
+              proc_cls))
+    return;
+  if (GNUNET_OK ==
+      try_ifconfig (proc,
+                    proc_cls))
+    return;
+  LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
+       "Failed to enumerate network interfaces\n");
 #endif
 }
 
