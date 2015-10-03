@@ -341,12 +341,7 @@ is_element_of_generation (struct ElementEntry *ee,
   int is_present;
   unsigned int i;
 
-  /* If ee->mutations is NULL,
-     the element was added in generation 0,
-     and there are no removes, thus the element
-     is part of any generation we query. */
-  if (NULL == ee->mutations)
-    return GNUNET_YES;
+  GNUNET_assert (NULL != ee->mutations);
 
   if (GNUNET_YES == is_excluded_generation (query_generation, excluded, excluded_size))
   {
@@ -389,7 +384,7 @@ is_element_of_generation (struct ElementEntry *ee,
     is_present = mut->added;
   }
 
-  return GNUNET_YES;
+  return is_present;
 }
 
 
@@ -399,6 +394,17 @@ _GSS_is_element_of_set (struct ElementEntry *ee,
 {
   return is_element_of_generation (ee,
                                    set->current_generation,
+                                   set->excluded_generations,
+                                   set->excluded_generations_size);
+}
+
+
+static int
+is_element_of_iteration (struct ElementEntry *ee,
+                         struct Set *set)
+{
+  return is_element_of_generation (ee,
+                                   set->iter_generation,
                                    set->excluded_generations,
                                    set->excluded_generations_size);
 }
@@ -842,11 +848,9 @@ execute_add (struct Set *set,
   else if (GNUNET_YES == _GSS_is_element_of_set (ee, set))
   {
     /* same element inserted twice */
-    GNUNET_break (0);
     return;
   }
 
-  if (0 != set->current_generation)
   {
     struct MutationEvent mut = {
       .generation = set->current_generation,
@@ -888,21 +892,13 @@ execute_remove (struct Set *set,
                                           &hash);
   if (NULL == ee)
   {
-    /* Client tried to remove non-existing element */
-    GNUNET_break (0);
+    /* Client tried to remove non-existing element. */
     return;
   }
   if (GNUNET_NO == _GSS_is_element_of_set (ee, set))
   {
     /* Client tried to remove element twice */
-    GNUNET_break (0);
     return;
-  }
-  else if (0 == set->current_generation)
-  {
-    // If current_generation is 0, then there are no running set operations
-    // or lazy copies, thus we can safely remove the element.
-    (void) GNUNET_CONTAINER_multihashmap_remove_all (set->content->elements, &hash);
   }
   else
   {
@@ -958,6 +954,9 @@ send_client_element (struct Set *set)
   struct GNUNET_SET_IterResponseMessage *msg;
 
   GNUNET_assert (NULL != set->iter);
+
+again:
+
   ret = GNUNET_CONTAINER_multihashmap_iterator_next (set->iter,
                                                      NULL,
                                                      (const void **) &ee);
@@ -997,6 +996,10 @@ send_client_element (struct Set *set)
   else
   {
     GNUNET_assert (NULL != ee);
+
+    if (GNUNET_NO == is_element_of_iteration (ee, set))
+      goto again;
+
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Sending iteration element on %p.\n",
                 (void *) set);
@@ -1046,13 +1049,15 @@ handle_client_iterate (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Iterating set %p with %u elements\n",
+              "Iterating set %p in gen %u with %u content elements\n",
               (void *) set,
+              set->current_generation,
               GNUNET_CONTAINER_multihashmap_size (set->content->elements));
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
   set->content->iterator_count += 1;
   set->iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->content->elements);
+  set->iter_generation = set->current_generation;
   send_client_element (set);
 }
 
@@ -1529,6 +1534,17 @@ handle_client_copy_lazy_connect (void *cls,
   set->state = set->vt->copy_state (cr->source_set);
   set->content = cr->source_set->content;
   set->content->refcount += 1;
+
+  set->current_generation = cr->source_set->current_generation;
+  set->excluded_generations_size = cr->source_set->excluded_generations_size;
+  set->excluded_generations = GNUNET_memdup (cr->source_set->excluded_generations,
+                                             set->excluded_generations_size * sizeof (struct GenerationRange));
+
+  /* Advance the generation of the new set, so that mutations to the
+     of the cloned set and the source set are independent. */
+  advance_generation (set);
+
+
   set->client = client;
   set->client_mq = GNUNET_MQ_queue_for_server_client (client);
   GNUNET_CONTAINER_DLL_insert (sets_head,

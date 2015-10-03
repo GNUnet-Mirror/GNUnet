@@ -157,7 +157,7 @@ void test_done (void *cls)
 
 void check_new_set_count (void *cls)
 {
-  check_count (set2, "new set", 2, &test_done, NULL);
+  check_count (set2, "new set", 4, &test_done, NULL);
 }
 
 
@@ -166,8 +166,13 @@ void copy_done (void *cls, struct GNUNET_SET_Handle *new_set)
   printf ("copy done\n");
   set2 = new_set;
   remove_element_str (set2, "spam");
+  add_element_str (set2, "new1");
+  add_element_str (set2, "new2");
+  remove_element_str (set2, "new2");
+  remove_element_str (set2, "new3");
   // Check that set1 didn't change.
-  check_count (set1, "old set", 3, &check_new_set_count, NULL);
+  check_count (set1, "old set", 3,
+               &check_new_set_count, NULL);
 }
 
 
@@ -203,8 +208,14 @@ run (void *cls,
   set1 = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
   add_element_str (set1, "foo");
   add_element_str (set1, "bar");
+  /* duplicate -- ignored */
+  add_element_str (set1, "bar");
   remove_element_str (set1, "foo");
+  /* non-existent -- ignored */
+  remove_element_str (set1, "nonexist1");
   add_element_str (set1, "spam");
+  /* duplicate -- ignored */
+  remove_element_str (set1, "foo");
   add_element_str (set1, "eggs");
 
   check_count (set1, "initial test", 3, &test_copy, NULL);
@@ -214,7 +225,7 @@ run (void *cls,
 int
 main (int argc, char **argv)
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_set_api",
+  if (0 != GNUNET_TESTING_peer_run ("test_set_union_copy",
                                     "test_set.conf",
                                     &run, NULL))
   {

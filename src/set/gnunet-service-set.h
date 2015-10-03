@@ -560,6 +560,9 @@ struct Set
    */
   struct GenerationRange *excluded_generations;
 
+  /**
+   * Number of elements in array @a excluded_generations.
+   */
   unsigned int excluded_generations_size;
 
   /**
@@ -572,6 +575,11 @@ struct Set
    * can distinguish iterations.
    */
   uint16_t iteration_id;
+
+  /**
+   * Generation we're currently iteration over.
+   */
+  unsigned int iter_generation;
 
   /**
    * Content, possibly shared by multiple sets,
