@@ -1000,7 +1000,7 @@ add_address_to_uri (void *cls,
   time_t seconds;
 
   papi = ctx->plugins_find (address->transport_name);
-  if (papi == NULL)
+  if (NULL == papi)
   {
     /* Not an error - we might just not have the right plugin. */
     return GNUNET_OK;
@@ -1012,14 +1012,18 @@ add_address_to_uri (void *cls,
 		address->transport_name);
     return GNUNET_OK;
   }
-  addr = papi->address_to_string (papi->cls, address->address, address->address_length);
-
-  if ( (addr == NULL) || (strlen(addr) == 0) )
+  addr = papi->address_to_string (papi->cls,
+                                  address->address,
+                                  address->address_length);
+  if ( (NULL == addr) ||
+       (0 == strlen(addr)) )
     return GNUNET_OK;
 
   addr_dup = GNUNET_strdup (addr);
   if (NULL != (pos = strstr (addr_dup, "_server")))
-  	memcpy (pos, client_str, strlen(client_str)); /* Replace all server addresses with client addresses */
+    memcpy (pos,
+            client_str,
+            strlen (client_str)); /* Replace all server addresses with client addresses */
 
   seconds = expiration.abs_value_us / 1000LL / 1000LL;
   t = gmtime (&seconds);
@@ -1055,17 +1059,21 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
                           GNUNET_HELLO_TransportPluginsFind plugins_find)
 {
   struct GNUNET_HELLO_ComposeUriContext ctx;
+  char *pkey;
+
   ctx.plugins_find = plugins_find;
-
-  char *pkey = GNUNET_CRYPTO_eddsa_public_key_to_string (&(hello->publicKey));
-
-  GNUNET_asprintf (&(ctx.uri),
+  pkey = GNUNET_CRYPTO_eddsa_public_key_to_string (&hello->publicKey);
+  GNUNET_asprintf (&ctx.uri,
                    "%s%s",
-                   (GNUNET_YES == GNUNET_HELLO_is_friend_only (hello)) ? GNUNET_FRIEND_HELLO_URI_PREFIX : GNUNET_HELLO_URI_PREFIX,
+                   (GNUNET_YES == GNUNET_HELLO_is_friend_only (hello))
+                   ? GNUNET_FRIEND_HELLO_URI_PREFIX
+                   : GNUNET_HELLO_URI_PREFIX,
                    pkey);
   GNUNET_free (pkey);
-
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &add_address_to_uri, &ctx);
+  GNUNET_HELLO_iterate_addresses (hello,
+                                  GNUNET_NO,
+                                  &add_address_to_uri,
+                                  &ctx);
   return ctx.uri;
 }
 
@@ -1153,7 +1161,8 @@ add_address_to_hello (void *cls,
     return GNUNET_SYSERR;
   }
   tname++;
-  address = strchr (tname, (int) GNUNET_HELLO_URI_SEP);
+  address = strchr (tname,
+                    (int) GNUNET_HELLO_URI_SEP);
   if (NULL == address)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1210,7 +1219,10 @@ add_address_to_hello (void *cls,
   haddr.address_length = addr_len;
   haddr.address = addr;
   haddr.transport_name = plugin_name;
-  ret = GNUNET_HELLO_add_address (&haddr, expire, buffer, max);
+  ret = GNUNET_HELLO_add_address (&haddr,
+                                  expire,
+                                  buffer,
+                                  max);
   ctx->counter_added ++;
   GNUNET_free (addr);
   GNUNET_free (plugin_name);
