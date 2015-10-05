@@ -125,12 +125,12 @@ struct Session
   /**
    * Task to transmit corked messages with a delay.
    */
-  struct GNUNET_SCHEDULER_Task * cork_task;
+  struct GNUNET_SCHEDULER_Task *cork_task;
 
   /**
    * Task to transmit our type map.
    */
-  struct GNUNET_SCHEDULER_Task * typemap_task;
+  struct GNUNET_SCHEDULER_Task *typemap_task;
 
   /**
    * Retransmission delay we currently use for the typemap

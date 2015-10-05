@@ -67,6 +67,11 @@ struct GSC_ClientActiveRequest
   struct GNUNET_PeerIdentity target;
 
   /**
+   * At what time did we first see this request?
+   */
+  struct GNUNET_TIME_Absolute received_time;
+
+  /**
    * By what time would the client want to see this message out?
    */
   struct GNUNET_TIME_Absolute deadline;

@@ -57,9 +57,14 @@ struct NeighbourMessageEntry
   struct GNUNET_TIME_Absolute deadline;
 
   /**
-   * How long is the message? (number of bytes following the "struct
-   * MessageEntry", but not including the size of "struct
-   * MessageEntry" itself!)
+   * What time did we submit the request?
+   */
+  struct GNUNET_TIME_Absolute submission_time;
+
+  /**
+   * How long is the message? (number of bytes following the `struct
+   * MessageEntry`, but not including the size of `struct
+   * MessageEntry` itself!)
    */
   size_t size;
 
@@ -157,7 +162,7 @@ free_neighbour (struct Neighbour *n)
   struct NeighbourMessageEntry *m;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Destroying neighbour entry for peer `%4s'\n",
+              "Destroying neighbour entry for peer `%s'\n",
               GNUNET_i2s (&n->peer));
   while (NULL != (m = n->message_head))
   {
@@ -227,6 +232,7 @@ transmit_ready (void *cls,
   struct NeighbourMessageEntry *m;
   size_t ret;
   char *cbuf;
+  struct GNUNET_TIME_Relative delay;
 
   n->th = NULL;
   m = n->message_head;
@@ -250,18 +256,31 @@ transmit_ready (void *cls,
     process_queue (n);
     return 0;
   }
+  delay = GNUNET_TIME_absolute_get_duration (m->submission_time);
   cbuf = buf;
   GNUNET_assert (size >= m->size);
   memcpy (cbuf,
           &m[1],
           m->size);
   ret = m->size;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Copied message of type %u and size %u into transport buffer for `%4s'\n",
+  if (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us)
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Copied message of type %u and size %u into transport buffer for `%s' with delay of %s\n",
               (unsigned int)
               ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
               (unsigned int) ret,
-              GNUNET_i2s (&n->peer));
+              GNUNET_i2s (&n->peer),
+              GNUNET_STRINGS_relative_time_to_string (delay,
+                                                      GNUNET_YES));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Copied message of type %u and size %u into transport buffer for `%s' with delay of %s\n",
+                (unsigned int)
+                ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                (unsigned int) ret,
+                GNUNET_i2s (&n->peer),
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES));
   GNUNET_free (m);
   n->has_excess_bandwidth = GNUNET_NO;
   process_queue (n);
@@ -295,11 +314,12 @@ process_queue (struct Neighbour *n)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking transport for transmission of %u bytes to `%4s' in next %s\n",
+              "Asking transport for transmission of %u bytes to `%s' in next %s\n",
               (unsigned int) m->size,
               GNUNET_i2s (&n->peer),
               GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (m->deadline),
                                                       GNUNET_NO));
+  m->submission_time = GNUNET_TIME_absolute_get ();
   n->th
     = GNUNET_TRANSPORT_notify_transmit_ready (transport,
                                               &n->peer,

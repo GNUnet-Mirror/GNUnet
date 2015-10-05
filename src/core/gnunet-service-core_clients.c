@@ -29,6 +29,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet-service-core.h"
 #include "gnunet-service-core_clients.h"
+#include "gnunet-service-core_neighbours.h"
 #include "gnunet-service-core_sessions.h"
 #include "gnunet-service-core_typemap.h"
 #include "core.h"
@@ -149,7 +150,8 @@ find_client (struct GNUNET_SERVER_Client *client)
  */
 static void
 send_to_client (struct GSC_Client *client,
-                const struct GNUNET_MessageHeader *msg, int can_drop)
+                const struct GNUNET_MessageHeader *msg,
+                int can_drop)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Preparing to send %u bytes of message of type %u to client.\n",
@@ -219,8 +221,10 @@ type_match (uint16_t type, struct GSC_Client *c)
  */
 static void
 send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
-                     const struct GNUNET_MessageHeader *msg, int can_drop,
-                     uint32_t options, uint16_t type)
+                     const struct GNUNET_MessageHeader *msg,
+                     int can_drop,
+                     uint32_t options,
+                     uint16_t type)
 {
   struct GSC_Client *c;
   int tm;
@@ -399,6 +403,7 @@ handle_client_send_request (void *cls,
     GSC_SESSIONS_dequeue_request (car);
   }
   car->target = req->peer;
+  car->received_time = GNUNET_TIME_absolute_get ();
   car->deadline = GNUNET_TIME_absolute_ntoh (req->deadline);
   car->priority = (enum GNUNET_CORE_Priority) ntohl (req->priority);
   car->msize = ntohs (req->size);
@@ -441,7 +446,7 @@ struct TokenizerContext
 
 
 /**
- * Handle CORE_SEND request.
+ * Handle #GNUNET_MESSAGE_TYPE_CORE_CORE_SEND request.
  *
  * @param cls unused
  * @param client the client issuing the request
@@ -456,6 +461,7 @@ handle_client_send (void *cls,
   struct GSC_Client *c;
   struct TokenizerContext tc;
   uint16_t msize;
+  struct GNUNET_TIME_Relative delay;
 
   msize = ntohs (message->size);
   if (msize <
@@ -476,8 +482,9 @@ handle_client_send (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  tc.car =
-      GNUNET_CONTAINER_multipeermap_get (c->requests, &sm->peer);
+  tc.car
+    = GNUNET_CONTAINER_multipeermap_get (c->requests,
+                                         &sm->peer);
   if (NULL == tc.car)
   {
     /* Must have been that we first approved the request, then got disconnected
@@ -489,28 +496,49 @@ handle_client_send (void *cls,
                               gettext_noop
                               ("# messages discarded (session disconnected)"),
                               1, GNUNET_NO);
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_SERVER_receive_done (client,
+                                GNUNET_OK);
     return;
   }
+  delay = GNUNET_TIME_absolute_get_duration (tc.car->received_time);
+  tc.cork = ntohl (sm->cork);
+  tc.priority = (enum GNUNET_CORE_Priority) ntohl (sm->priority);
+  if (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Client waited %s for transmission of %u bytes to `%s'%s, CORE queue is %u entries\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES),
+                msize,
+                GNUNET_i2s (&sm->peer),
+                tc.cork ? "" : " (corked)",
+                GSC_NEIGHBOURS_get_queue_size (&sm->peer));
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client waited %s for transmission of %u bytes to `%s'%s, CORE queue is %u entries\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES),
+                msize,
+                GNUNET_i2s (&sm->peer),
+                tc.cork ? "" : " (corked)",
+                GSC_NEIGHBOURS_get_queue_size (&sm->peer));
+
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (c->requests,
                                                        &sm->peer,
                                                        tc.car));
-  tc.cork = ntohl (sm->cork);
-  tc.priority = (enum GNUNET_CORE_Priority) ntohl (sm->priority);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client asked for transmission of %u bytes to `%s' %s\n",
-              msize,
-              GNUNET_i2s (&sm->peer), tc.cork ? "now" : "");
   GNUNET_SERVER_mst_receive (client_mst, &tc,
-                             (const char *) &sm[1], msize,
-                             GNUNET_YES, GNUNET_NO);
+                             (const char *) &sm[1],
+                             msize,
+                             GNUNET_YES,
+                             GNUNET_NO);
   if (0 !=
-      memcmp (&tc.car->target, &GSC_my_identity,
+      memcmp (&tc.car->target,
+              &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
     GSC_SESSIONS_dequeue_request (tc.car);
   GNUNET_free (tc.car);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_SERVER_receive_done (client,
+                              GNUNET_OK);
 }
 
 
@@ -525,7 +553,8 @@ handle_client_send (void *cls,
  * @param message the actual message
  */
 static int
-client_tokenizer_callback (void *cls, void *client,
+client_tokenizer_callback (void *cls,
+                           void *client,
                            const struct GNUNET_MessageHeader *message)
 {
   struct TokenizerContext *tc = client;
@@ -535,9 +564,13 @@ client_tokenizer_callback (void *cls, void *client,
   GNUNET_snprintf (buf, sizeof (buf),
 		   gettext_noop ("# bytes of messages of type %u received"),
 		   (unsigned int) ntohs (message->type));
-  GNUNET_STATISTICS_update (GSC_stats, buf, ntohs (message->size), GNUNET_NO);
+  GNUNET_STATISTICS_update (GSC_stats,
+                            buf,
+                            ntohs (message->size),
+                            GNUNET_NO);
   if (0 ==
-      memcmp (&car->target, &GSC_my_identity,
+      memcmp (&car->target,
+              &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -618,7 +651,8 @@ handle_client_disconnect (void *cls,
   if (NULL == client)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client %p has disconnected from core service.\n", client);
+              "Client %p has disconnected from core service.\n",
+              client);
   c = find_client (client);
   if (c == NULL)
     return;                     /* client never sent INIT */
@@ -654,6 +688,8 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
 {
   struct GSC_Client *c;
   struct SendMessageReady smr;
+  struct GNUNET_TIME_Relative delay;
+  struct GNUNET_TIME_Relative left;
 
   c = car->client_handle;
   if (GNUNET_YES !=
@@ -662,12 +698,26 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
   {
     /* connection has gone down since, drop request */
     GNUNET_assert (0 !=
-                   memcmp (&car->target, &GSC_my_identity,
+                   memcmp (&car->target,
+                           &GSC_my_identity,
                            sizeof (struct GNUNET_PeerIdentity)));
     GSC_SESSIONS_dequeue_request (car);
     GSC_CLIENTS_reject_request (car);
     return;
   }
+  delay = GNUNET_TIME_absolute_get_duration (car->received_time);
+  left = GNUNET_TIME_absolute_get_remaining (car->deadline);
+  if ( (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us) ||
+       (0 == left.rel_value_us) )
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Client waited %s for permission to transmit to `%s'%s (priority %u)\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES),
+                GNUNET_i2s (&car->target),
+                (0 == left.rel_value_us)
+                ? " (past deadline)"
+                : "",
+                car->priority);
   smr.header.size = htons (sizeof (struct SendMessageReady));
   smr.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_READY);
   smr.size = htons (car->msize);

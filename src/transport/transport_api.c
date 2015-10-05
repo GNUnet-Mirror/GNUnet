@@ -84,7 +84,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
    * Task to trigger request timeout if the request is stalled due to
    * congestion.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
+  struct GNUNET_SCHEDULER_Task *timeout_task;
 
   /**
    * How many bytes is our notify callback waiting for?
@@ -171,7 +171,7 @@ struct GNUNET_TRANSPORT_GetHelloHandle
   /**
    * Task for calling the HelloUpdateCallback when we already have a HELLO
    */
-  struct GNUNET_SCHEDULER_Task * notify_task;
+  struct GNUNET_SCHEDULER_Task *notify_task;
 
   /**
    * Closure for @e rec.
@@ -422,7 +422,7 @@ struct GNUNET_TRANSPORT_Handle
    * Heap sorting peers with pending messages by the timestamps that
    * specify when we could next send a message to the respective peer.
    * Excludes control messages (which can always go out immediately).
-   * Maps time stamps to 'struct Neighbour' entries.
+   * Maps time stamps to `struct Neighbour` entries.
    */
   struct GNUNET_CONTAINER_Heap *ready_heap;
 
@@ -439,10 +439,10 @@ struct GNUNET_TRANSPORT_Handle
   /**
    * ID of the task trying to trigger transmission for a peer while
    * maintaining bandwidth quotas.  In use if there are no control
-   * messages and the smallest entry in the 'ready_heap' has a time
+   * messages and the smallest entry in the @e ready_heap has a time
    * stamp in the future.
    */
-  struct GNUNET_SCHEDULER_Task * quota_task;
+  struct GNUNET_SCHEDULER_Task *quota_task;
 
   /**
    * Delay until we try to reconnect.
@@ -515,7 +515,7 @@ outbound_bw_tracker_update (void *cls)
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
                                               n->th->notify_size + n->traffic_overhead);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New outbound delay %llu us\n",
+       "New outbound delay %s us\n",
        GNUNET_STRINGS_relative_time_to_string (delay,
                                                GNUNET_NO));
   GNUNET_CONTAINER_heap_update_cost (n->h->ready_heap,
@@ -554,7 +554,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   struct Neighbour *n;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating entry for neighbour `%4s'.\n",
+       "Creating entry for neighbour `%s'.\n",
        GNUNET_i2s (pid));
   n = GNUNET_new (struct Neighbour);
   n->id = *pid;
@@ -664,7 +664,7 @@ demultiplexer (void *cls,
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving (my own) HELLO message (%u bytes), I am `%4s'.\n",
+         "Receiving (my own) HELLO message (%u bytes), I am `%s'.\n",
          (unsigned int) size,
          GNUNET_i2s (&me));
     GNUNET_free_non_null (h->my_hello);
@@ -698,7 +698,7 @@ demultiplexer (void *cls,
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving CONNECT message for `%4s'.\n",
+         "Receiving CONNECT message for `%s'.\n",
          GNUNET_i2s (&cim->id));
     n = neighbour_find (h, &cim->id);
     if (NULL != n)
@@ -709,7 +709,7 @@ demultiplexer (void *cls,
     n = neighbour_add (h,
                        &cim->id);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving CONNECT message for `%4s' with quota %u\n",
+         "Receiving CONNECT message for `%s' with quota %u\n",
          GNUNET_i2s (&cim->id),
          ntohl (cim->quota_out.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
@@ -727,7 +727,7 @@ demultiplexer (void *cls,
     dim = (const struct DisconnectInfoMessage *) msg;
     GNUNET_break (ntohl (dim->reserved) == 0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving DISCONNECT message for `%4s'.\n",
+         "Receiving DISCONNECT message for `%s'.\n",
          GNUNET_i2s (&dim->peer));
     n = neighbour_find (h, &dim->peer);
     if (NULL == n)
@@ -792,7 +792,7 @@ demultiplexer (void *cls,
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received message of type %u from `%4s'.\n",
+         "Received message of type %u from `%s'.\n",
          ntohs (imm->type), GNUNET_i2s (&im->peer));
     n = neighbour_find (h, &im->peer);
     if (NULL == n)
@@ -816,7 +816,7 @@ demultiplexer (void *cls,
     if (NULL == n)
       break;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving SET_QUOTA message for `%4s' with quota %u\n",
+         "Receiving SET_QUOTA message for `%s' with quota %u\n",
          GNUNET_i2s (&qm->peer),
          ntohl (qm->quota.value__));
     GNUNET_BANDWIDTH_tracker_update_quota (&n->out_tracker,
@@ -1262,7 +1262,7 @@ send_try_connect (void *cls,
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Discarding  `%s' request to `%4s' due to error in transport service connection.\n",
+         "Discarding  `%s' request to `%s' due to error in transport service connection.\n",
          "REQUEST_CONNECT",
          GNUNET_i2s (&tch->pid));
     if (NULL != tch->cb)
@@ -1272,7 +1272,7 @@ send_try_connect (void *cls,
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting `%s' request with respect to `%4s'.\n",
+       "Transmitting `%s' request with respect to `%s'.\n",
        "REQUEST_CONNECT",
        GNUNET_i2s (&tch->pid));
   GNUNET_assert (size >= sizeof (struct TransportRequestConnectMessage));
@@ -1367,7 +1367,7 @@ send_try_disconnect (void *cls,
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Discarding  `%s' request to `%4s' due to error in transport service connection.\n",
+         "Discarding  `%s' request to `%s' due to error in transport service connection.\n",
          "REQUEST_DISCONNECT",
          GNUNET_i2s (&tdh->pid));
     if (NULL != tdh->cb)
@@ -1377,7 +1377,7 @@ send_try_disconnect (void *cls,
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting `%s' request with respect to `%4s'.\n",
+       "Transmitting `%s' request with respect to `%s'.\n",
        "REQUEST_DISCONNECT",
        GNUNET_i2s (&tdh->pid));
   GNUNET_assert (size >= sizeof (struct TransportRequestDisconnectMessage));
@@ -1620,7 +1620,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   msg = GNUNET_malloc (size);
   memcpy (msg, hello, size);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Offering `%s' message of `%4s' to transport for validation.\n", "HELLO",
+       "Offering HELLO message of `%s' to transport for validation.\n",
        GNUNET_i2s (&peer));
 
   ohh = GNUNET_new (struct GNUNET_TRANSPORT_OfferHelloHandle);
@@ -1638,7 +1638,7 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Cancel the request to transport to offer the HELLO message
  *
- * @param ohh the GNUNET_TRANSPORT_OfferHelloHandle to cancel
+ * @param ohh the handle for the operation to cancel
  */
 void
 GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *ohh)
@@ -1716,7 +1716,9 @@ GNUNET_TRANSPORT_get_hello (struct GNUNET_TRANSPORT_Handle *handle,
   hwl->rec = rec;
   hwl->rec_cls = rec_cls;
   hwl->handle = handle;
-  GNUNET_CONTAINER_DLL_insert (handle->hwl_head, handle->hwl_tail, hwl);
+  GNUNET_CONTAINER_DLL_insert (handle->hwl_head,
+                               handle->hwl_tail,
+                               hwl);
   if (NULL != handle->my_hello)
     hwl->notify_task = GNUNET_SCHEDULER_add_now (&call_hello_update_cb_async,
                                                  hwl);
@@ -1928,11 +1930,20 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   n->traffic_overhead = 0;
   if (delay.rel_value_us > timeout.rel_value_us)
     delay.rel_value_us = 0;        /* notify immediately (with failure) */
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Bandwidth tracker allows next transmission to peer %s in %s\n",
-       GNUNET_i2s (target),
-       GNUNET_STRINGS_relative_time_to_string (delay,
-                                               GNUNET_YES));
+  if (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "At bandwidth %u byte/s next transmission to %s in %s\n",
+         (unsigned int) n->out_tracker.available_bytes_per_s__,
+         GNUNET_i2s (target),
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES));
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "At bandwidth %u byte/s next transmission to %s in %s\n",
+         (unsigned int) n->out_tracker.available_bytes_per_s__,
+         GNUNET_i2s (target),
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES));
   n->hn = GNUNET_CONTAINER_heap_insert (handle->ready_heap,
                                         n,
                                         delay.rel_value_us);
