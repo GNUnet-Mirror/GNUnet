@@ -28,6 +28,7 @@
 
 #include "platform.h"
 #include "gnunet_common.h"
+#include "gnunet_set_service.h"
 
 GNUNET_NETWORK_STRUCT_BEGIN
 

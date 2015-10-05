@@ -825,9 +825,8 @@ execute_add (struct Set *set,
 	      "Client inserts element of size %u\n",
               el.size);
   el.data = &msg[1];
-  GNUNET_CRYPTO_hash (el.data,
-                      el.size,
-                      &hash);
+  el.element_type = ntohs (msg->element_type);
+  GNUNET_SET_element_hash (&el, &hash);
 
   ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
                                           &hash);
@@ -840,6 +839,7 @@ execute_add (struct Set *set,
             el.data,
             el.size);
     ee->element.data = &ee[1];
+    ee->element.element_type = el.element_type;
     ee->remote = GNUNET_NO;
     ee->mutations = NULL;
     ee->mutations_size = 0;
@@ -885,9 +885,8 @@ execute_remove (struct Set *set,
 	      "Client removes element of size %u\n",
               el.size);
   el.data = &msg[1];
-  GNUNET_CRYPTO_hash (el.data,
-                      el.size,
-                      &hash);
+  el.element_type = ntohs (msg->element_type);
+  GNUNET_SET_element_hash (&el, &hash);
   ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
                                           &hash);
   if (NULL == ee)
@@ -1009,7 +1008,7 @@ again:
     memcpy (&msg[1],
             ee->element.data,
             ee->element.size);
-    msg->element_type = ee->element.element_type;
+    msg->element_type = htons (ee->element.element_type);
     msg->iteration_id = htons (set->iteration_id);
   }
   GNUNET_MQ_send (set->client_mq, ev);

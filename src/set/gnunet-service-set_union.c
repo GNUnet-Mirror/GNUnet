@@ -1078,9 +1078,7 @@ handle_p2p_elements (void *cls,
   ee->element.data = &ee[1];
   ee->element.element_type = ntohs (emsg->element_type);
   ee->remote = GNUNET_YES;
-  GNUNET_CRYPTO_hash (ee->element.data,
-                      ee->element.size,
-                      &ee->element_hash);
+  GNUNET_SET_element_hash (&ee->element, &ee->element_hash);
 
   if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (op->state->demanded_hashes, &ee->element_hash, NULL))
   {

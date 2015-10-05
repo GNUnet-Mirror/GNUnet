@@ -330,7 +330,7 @@ handle_iter_element (void *cls,
   if (NULL != iter)
   {
     element.size = msize - sizeof (struct GNUNET_SET_IterResponseMessage);
-    element.element_type = htons (msg->element_type);
+    element.element_type = ntohs (msg->element_type);
     element.data = &msg[1];
     iter (set->iterator_cls,
           &element);
@@ -443,7 +443,7 @@ do_element:
        "Treating result as element\n");
   e.data = &msg[1];
   e.size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ResultMessage);
-  e.element_type = msg->element_type;
+  e.element_type = ntohs (msg->element_type);
   if (NULL != oh->result_cb)
     oh->result_cb (oh->result_cls,
                    &e,
@@ -655,7 +655,7 @@ GNUNET_SET_add_element (struct GNUNET_SET_Handle *set,
   }
   mqm = GNUNET_MQ_msg_extra (msg, element->size,
                              GNUNET_MESSAGE_TYPE_SET_ADD);
-  msg->element_type = element->element_type;
+  msg->element_type = htons (element->element_type);
   memcpy (&msg[1],
           element->data,
           element->size);
@@ -697,7 +697,7 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
   mqm = GNUNET_MQ_msg_extra (msg,
                              element->size,
                              GNUNET_MESSAGE_TYPE_SET_REMOVE);
-  msg->element_type = element->element_type;
+  msg->element_type = htons (element->element_type);
   memcpy (&msg[1],
           element->data,
           element->size);
@@ -1144,8 +1144,14 @@ GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element)
 void
 GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element, struct GNUNET_HashCode *ret_hash)
 {
-  /* FIXME: The element type should also be hashed. */
-  GNUNET_CRYPTO_hash (element->data, element->size, ret_hash);
+  struct GNUNET_HashContext *ctx = GNUNET_CRYPTO_hash_context_start ();
+
+  /* It's not guaranteed that the element data is always after the element header,
+     so we need to hash the chunks separately. */
+  GNUNET_CRYPTO_hash_context_read (ctx, &element->size, sizeof (uint16_t));
+  GNUNET_CRYPTO_hash_context_read (ctx, &element->element_type, sizeof (uint16_t));
+  GNUNET_CRYPTO_hash_context_read (ctx, element->data, element->size);
+  GNUNET_CRYPTO_hash_context_finish (ctx, ret_hash);
 }
 
 /* end of set_api.c */
