@@ -320,19 +320,10 @@ struct Step
   unsigned int is_finished;
 
   /*
-   * Round that this step should start.
-   * If not all prerequisites have run,
-   * the task will run anyway.
+   * Synchrony round of the task.
+   * Determines the deadline for the task.
    */
-  unsigned int start_round;
-
-  /*
-   * Number of rounds this step occupies.
-   *
-   * Some steps are more expensive, and thus
-   * are allocated more rounds.
-   */
-  unsigned int num_rounds;
+  unsigned int round;
 
   /**
    * Human-readable name for
@@ -737,34 +728,6 @@ send_to_client_iter (void *cls,
 }
 
 
-/**
- * Callback for set operation results. Called for each element
- * in the result set.
- *
- * @param cls closure
- * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
- * @param status see enum GNUNET_SET_Status
- */
-static void
-set_result_cb_loop (void *cls,
-               const struct GNUNET_SET_Element *element,
-               enum GNUNET_SET_Status status)
-{
-  /* Nothing to do here.
-     This is the callback for looped local set operations, everything is
-     handled by the first callback */
-
-  struct TaskEntry *task = cls;
-  struct ConsensusSession *session = task->step->session;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "P%u: skipping looped set result for {%s}, status %u\n",
-              session->local_peer_idx,
-              debug_str_task_key (&task->key),
-              status);
-}
-
-
 static struct SetEntry *
 lookup_set (struct ConsensusSession *session, struct SetKey *key)
 {
@@ -863,10 +826,6 @@ rfn_vote (struct ReferendumEntry *rfn,
 
   GNUNET_assert (voting_peer < num_peers);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "voting for element of size %u\n",
-              element->size);
-
   rfn->peer_commited[voting_peer] = GNUNET_YES;
 
   GNUNET_SET_element_hash (element, &hash);
@@ -884,9 +843,6 @@ rfn_vote (struct ReferendumEntry *rfn,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "rfn vote element %p\n",
-              ri->element);
   ri->votes[voting_peer] = vote;
 }
 
@@ -1371,28 +1327,16 @@ diff_compose (struct DiffEntry *diff_1,
   iter = GNUNET_CONTAINER_multihashmap_iterator_create (diff_1->changes);
   while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &di))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "iterating first diff\n");
     diff_insert (diff_new, di->weight, di->element);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "insert done\n");
   }
   GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "iterating first diff done\n");
 
   iter = GNUNET_CONTAINER_multihashmap_iterator_create (diff_2->changes);
   while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &di))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "iterating second diff\n");
     diff_insert (diff_new, di->weight, di->element);
   }
   GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "iterating second diff done\n");
 
   return diff_new;
 }
@@ -1527,6 +1471,13 @@ task_start_reconcile (struct TaskEntry *task)
     }
   }
 
+  if ( (task->key.peer1 == session->local_peer_idx) && (task->key.peer2 == session->local_peer_idx) )
+  {
+    /* XXX: mark the corresponding rfn as commited if necessary */
+    finish_task (task);
+    return;
+  }
+
   if (task->key.peer1 == session->local_peer_idx)
   {
     struct GNUNET_CONSENSUS_RoundContextMessage rcm = { 0 };
@@ -1597,6 +1548,11 @@ rfn_majority (uint16_t num_peers,
   unsigned int nv;
   unsigned int tv;
   unsigned int i;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Computing rfn majority for element %s of rfn {%s}\n",
+              debug_str_element (ri->element),
+              debug_str_rfn_key (&rfn->key));
 
   for (i = 0; i < num_peers; i++)
   {
@@ -2057,10 +2013,10 @@ run_ready_steps (struct ConsensusSession *session)
       GNUNET_assert (0 == step->finished_tasks);
 
 #ifdef GNUNET_EXTRA_LOGGING
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Running step `%s' of round %d:%d with %d tasks and %d subordinates\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Running step `%s' of round %d with %d tasks and %d subordinates\n",
                   session->local_peer_idx,
                   step->debug_name,
-                  step->start_round, step->num_rounds, step->tasks_len, step->subordinates_len);
+                  step->round, step->tasks_len, step->subordinates_len);
 #endif
 
       step->is_running = GNUNET_YES;
@@ -2239,7 +2195,6 @@ set_listen_cb (void *cls,
   struct TaskKey tk;
   struct TaskEntry *task;
   struct GNUNET_CONSENSUS_RoundContextMessage *cm;
-  GNUNET_SET_ResultIterator my_result_cb;
 
   if (NULL == context_msg)
   {
@@ -2293,15 +2248,13 @@ set_listen_cb (void *cls,
     return;
   }
 
-  if (task->key.peer1 == task->key.peer2)
-    my_result_cb = set_result_cb_loop;
-  else
-    my_result_cb = set_result_cb;
+  GNUNET_assert (! ((task->key.peer1 == session->local_peer_idx) &&
+                    (task->key.peer2 == session->local_peer_idx)));
 
   task->cls.setop.op = GNUNET_SET_accept (request,
-                                GNUNET_SET_RESULT_SYMMETRIC,
-                                my_result_cb,
-                                task);
+                                          GNUNET_SET_RESULT_SYMMETRIC,
+                                          set_result_cb,
+                                          task);
   
   /* If the task hasn't been started yet, 
      we wait for that until we commit. */
@@ -2413,7 +2366,7 @@ step_depend_on (struct Step *step, struct Step *dep)
   GNUNET_assert (NULL != step);
   GNUNET_assert (NULL != dep);
   // XXX: make rounds work
-  //GNUNET_assert (dep->start_round <= step->start_round);
+  GNUNET_assert (dep->round <= step->round);
 
 #ifdef GNUNET_EXTRA_LOGGING
   /* Make sure we have complete debugging information.
@@ -2445,13 +2398,12 @@ step_depend_on (struct Step *step, struct Step *dep)
 
 
 static struct Step *
-create_step (struct ConsensusSession *session, int start_round, int num_rounds)
+create_step (struct ConsensusSession *session, int round)
 {
   struct Step *step;
   step = GNUNET_new (struct Step);
   step->session = session;
-  step->start_round = start_round;
-  step->num_rounds = num_rounds;
+  step->round = round;
   GNUNET_CONTAINER_DLL_insert_tail (session->steps_head,
                                     session->steps_tail,
                                     step);
@@ -2488,11 +2440,11 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
 
   unsigned int k;
 
-  round = step_before->start_round + step_before->num_rounds;
+  round = step_before->round + 1;
 
   /* gcast step 1: leader disseminates */
 
-  step = create_step (session, round, 1);
+  step = create_step (session, round);
 
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "disseminate leader %u rep %u", lead, rep);
@@ -2555,7 +2507,8 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
 
   /* gcast phase 2: echo */
   prev_step = step;
-  step = create_step (session, round, 1);
+  round += 1;
+  step = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "echo leader %u rep %u", lead, rep);
 #endif
@@ -2578,7 +2531,8 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
   }
 
   prev_step = step;
-  step = create_step (session, round, 1);
+  /* Same round, since step only has local tasks */
+  step = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "echo grade leader %u rep %u", lead, rep);
 #endif
@@ -2597,7 +2551,8 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
   put_task (session->taskmap, &task);
 
   prev_step = step;
-  step = create_step (session, round, 1);
+  round += 1;
+  step = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "confirm leader %u rep %u", lead, rep);
 #endif
@@ -2621,7 +2576,8 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
   }
 
   prev_step = step;
-  step = create_step (session, round, 1);
+  /* Same round, since step only has local tasks */
+  step = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "confirm grade leader %u rep %u", lead, rep);
 #endif
@@ -2641,7 +2597,8 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
 
 
   prev_step = step;
-  step = create_step (session, round, 1);
+  /* Same round, since step only has local tasks */
+  step = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "gc apply, lead %u rep %u", lead, rep);
 #endif
@@ -2695,7 +2652,7 @@ construct_task_graph (struct ConsensusSession *session)
 
   /* all-to-all step */
 
-  step = create_step (session, round, 1);
+  step = create_step (session, round);
 
 #ifdef GNUNET_EXTRA_LOGGING
   step->debug_name = GNUNET_strdup ("all to all");
@@ -2718,10 +2675,10 @@ construct_task_graph (struct ConsensusSession *session)
     put_task (session->taskmap, &task);
   }
 
-  round++;
-
   prev_step = step;
   step = NULL;
+
+  round += 1;
 
   /* Byzantine union */
 
@@ -2731,14 +2688,17 @@ construct_task_graph (struct ConsensusSession *session)
     struct Step *step_rep_start;
     struct Step *step_rep_end;
 
-    step_rep_start = create_step (session, round, 1);
+    /* Every repetition is in a separate round. */
+    step_rep_start = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
     GNUNET_asprintf (&step_rep_start->debug_name, "gradecast start rep %u", i);
 #endif
 
     step_depend_on (step_rep_start, prev_step);
 
-    step_rep_end = create_step (session, round, 1);
+    /* gradecast has three rounds */
+    round += 3;
+    step_rep_end = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
     GNUNET_asprintf (&step_rep_end->debug_name, "gradecast end rep %u", i);
 #endif
@@ -2764,7 +2724,8 @@ construct_task_graph (struct ConsensusSession *session)
 
  /* There is no next gradecast round, thus the final
     start step is the overall end step of the gradecasts */
-  step = create_step (session, round, 1);
+  round += 1;
+  step = create_step (session, round);
 #ifdef GNUNET_EXTRA_LOGGING
   GNUNET_asprintf (&step->debug_name, "finish");
 #endif
