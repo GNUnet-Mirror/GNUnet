@@ -515,23 +515,31 @@ plugin_env_address_change_notification (void *cls,
   if (GNUNET_YES == add_remove)
   {
     addresses ++;
-    GNUNET_STATISTICS_update (cfg, "# transport addresses", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (cfg,
+                              "# transport addresses",
+                              1,
+                              GNUNET_NO);
   }
   else if (GNUNET_NO == add_remove)
   {
     if (0 == addresses)
+    {
       GNUNET_break (0);
+    }
     else
     {
       addresses --;
-      GNUNET_STATISTICS_update (cfg, "# transport addresses", -1, GNUNET_NO);
+      GNUNET_STATISTICS_update (cfg,
+                                "# transport addresses",
+                                -1,
+                                GNUNET_NO);
     }
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Transport now has %u addresses to communicate\n",
               addresses);
-  GST_hello_modify_addresses (add_remove, address);
+  GST_hello_modify_addresses (add_remove,
+                              address);
 }
 
 

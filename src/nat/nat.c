@@ -454,18 +454,15 @@ static void
 start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
 
 
-
-
 /**
  * Call task to process STUN
  *
  * @param cls handle to NAT
  * @param tc TaskContext
  */
-
 static void
 process_stun (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc);
+              const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -488,10 +485,14 @@ remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
     next = pos->next;
     if (pos->source != src)
       continue;
-    GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, pos);
+    GNUNET_CONTAINER_DLL_remove (h->lal_head,
+                                 h->lal_tail,
+                                 pos);
     if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls, GNUNET_NO,
-                           (const struct sockaddr *) &pos[1], pos->addrlen);
+      h->address_callback (h->callback_cls,
+                           GNUNET_NO,
+                           (const struct sockaddr *) &pos[1],
+                           pos->addrlen);
     GNUNET_free (pos);
   }
 }
@@ -509,7 +510,8 @@ remove_from_address_list_by_source (struct GNUNET_NAT_Handle *h,
 static void
 add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
                            enum LocalAddressSource src,
-                           const struct sockaddr *arg, socklen_t arg_size)
+                           const struct sockaddr *arg,
+                           socklen_t arg_size)
 {
   struct LocalAddressList *lal;
 
@@ -517,13 +519,18 @@ add_to_address_list_as_is (struct GNUNET_NAT_Handle *h,
   memcpy (&lal[1], arg, arg_size);
   lal->addrlen = arg_size;
   lal->source = src;
-  GNUNET_CONTAINER_DLL_insert (h->lal_head, h->lal_tail, lal);
+  GNUNET_CONTAINER_DLL_insert (h->lal_head,
+                               h->lal_tail,
+                               lal);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Adding address `%s' from source %d\n",
        GNUNET_a2s (arg, arg_size),
        src);
   if (NULL != h->address_callback)
-    h->address_callback (h->callback_cls, GNUNET_YES, arg, arg_size);
+    h->address_callback (h->callback_cls,
+                         GNUNET_YES,
+                         arg,
+                         arg_size);
 }
 
 
@@ -1110,15 +1117,13 @@ list_interfaces (void *cls,
  * @param result , the status
  */
 static void
-stun_request_callback(void *cls,
-                                  enum GNUNET_NAT_StatusCode result)
+stun_request_callback (void *cls,
+                       enum GNUNET_NAT_StatusCode result)
 {
-
   struct GNUNET_NAT_Handle *h = cls;
 
-  if(NULL == cls)
+  if (NULL == h)
     return;
-
   h->waiting_stun = GNUNET_NO;
 
   if(result != GNUNET_OK)
@@ -1126,57 +1131,63 @@ stun_request_callback(void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
        "Error processing a STUN request");
   }
+}
 
-};
 
 /**
- * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet.
+ * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet().
  * It also check if it can handle the packet based on the NAT handler.
  * You don't need to call anything else to check if the packet is valid,
  *
  * @param cls the NAT handle
- * @param data, packet
- * @param len, packet length
- *
+ * @param data packet
+ * @param len packet length
  * @return #GNUNET_NO if it can't decode, #GNUNET_YES if is a packet
  */
 int
-GNUNET_NAT_is_valid_stun_packet(void *cls, const void *data, size_t len)
+GNUNET_NAT_is_valid_stun_packet (void *cls,
+                                 const void *data,
+                                 size_t len)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct sockaddr_in answer;
 
-  /* We are not expecting a STUN message*/
-  if(!h->waiting_stun)
+  /* We are not expecting a STUN message */
+  if (! h->waiting_stun)
     return GNUNET_NO;
 
-  /*We dont have STUN installed*/
-  if(!h->use_stun)
+  /* We dont have STUN installed */
+  if (! h->use_stun)
     return GNUNET_NO;
 
   /* Empty the answer structure */
-  memset(&answer, 0, sizeof(struct sockaddr_in));
+  memset (&answer,
+          0,
+          sizeof(struct sockaddr_in));
 
   /*Lets handle the packet*/
-  int valid = GNUNET_NAT_stun_handle_packet(data,len, &answer);
-  if(valid)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Stun server returned IP %s , with port %d \n", inet_ntoa(answer.sin_addr), ntohs(answer.sin_port));
-    /* ADD IP AS VALID*/
-    add_to_address_list (h, LAL_EXTERNAL_IP, (const struct sockaddr *) &answer,
-                         sizeof (struct sockaddr_in));
-    h->waiting_stun = GNUNET_NO;
-    return GNUNET_YES;
-  }
-  else
-  {
+  int valid = GNUNET_NAT_stun_handle_packet (data,
+                                             len,
+                                             &answer);
+  if (! valid)
     return GNUNET_NO;
-  }
 
-
-
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Stun server returned %s:%d\n",
+       inet_ntoa (answer.sin_addr),
+       ntohs (answer.sin_port));
+  /* Remove old IPs from previous STUN calls */
+  remove_from_address_list_by_source (h,
+                                      LAL_EXTERNAL_STUN_IP);
+  /* Add new IP from STUN packet */
+  add_to_address_list (h,
+                       LAL_EXTERNAL_STUN_IP,
+                       (const struct sockaddr *) &answer,
+                       sizeof (struct sockaddr_in));
+  h->waiting_stun = GNUNET_NO;
+  return GNUNET_YES;
 }
+
 
 /**
  * Task to do a STUN request
@@ -1186,36 +1197,39 @@ GNUNET_NAT_is_valid_stun_packet(void *cls, const void *data, size_t len)
  */
 static void
 process_stun (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_Handle *h = cls;
-
-  h->stun_task = NULL;
-
-
-
   struct StunServerList* elem = h->actual_stun_server;
 
+  h->stun_task = NULL;
   /* Make the request */
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "I will request the stun server %s:%i !\n", elem->address, elem->port);
-
-  if(GNUNET_OK == GNUNET_NAT_stun_make_request(elem->address, elem->port, h->socket, &stun_request_callback, NULL))
+       "I will request the stun server %s:%i\n",
+       elem->address,
+       elem->port);
+  if (GNUNET_OK ==
+      GNUNET_NAT_stun_make_request (elem->address,
+                                    elem->port,
+                                    h->socket,
+                                    &stun_request_callback,
+                                    NULL))
   {
     h->waiting_stun = GNUNET_YES;
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "STUN request failed %s:%i !\n", elem->address, elem->port);
+         "STUN request to %s:%i failed\n",
+         elem->address,
+         elem->port);
   }
-
   h->stun_task =
-          GNUNET_SCHEDULER_add_delayed (h->stun_frequency,
-                                        &process_stun, h);
+    GNUNET_SCHEDULER_add_delayed (h->stun_frequency,
+                                  &process_stun, h);
 
   /* Set actual Server*/
-  if(elem->next)
+  if (NULL != elem->next)
   {
     h->actual_stun_server = elem->next;
   }
@@ -1223,9 +1237,7 @@ process_stun (void *cls,
   {
     h->actual_stun_server = h->stun_servers_head;
   }
-
 }
-
 
 
 /**
@@ -1303,15 +1315,16 @@ upnp_add (void *cls,
     /* Error while running upnp client */
     LOG (GNUNET_ERROR_TYPE_ERROR,
           _("Error while running upnp client:\n"));
-
     //FIXME: convert error code to string
-
     return;
   }
 
   if (GNUNET_YES == add_remove)
   {
-    add_to_address_list (h, LAL_UPNP, addr, addrlen);
+    add_to_address_list (h,
+                         LAL_UPNP,
+                         addr,
+                         addrlen);
     return;
   }
   else if (GNUNET_NO == add_remove)
@@ -1324,10 +1337,14 @@ upnp_add (void *cls,
       if ((pos->source != LAL_UPNP) || (pos->addrlen != addrlen) ||
           (0 != memcmp (&pos[1], addr, addrlen)))
         continue;
-      GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, pos);
+      GNUNET_CONTAINER_DLL_remove (h->lal_head,
+                                   h->lal_tail,
+                                   pos);
       if (NULL != h->address_callback)
-        h->address_callback (h->callback_cls, GNUNET_NO,
-                             (const struct sockaddr *) &pos[1], pos->addrlen);
+        h->address_callback (h->callback_cls,
+                             GNUNET_NO,
+                             (const struct sockaddr *) &pos[1],
+                             pos->addrlen);
       GNUNET_free (pos);
       return;                     /* only remove once */
     }
@@ -1377,7 +1394,9 @@ add_minis (struct GNUNET_NAT_Handle *h,
     return;
   }
 
-  GNUNET_CONTAINER_DLL_insert (h->mini_head, h->mini_tail, ml);
+  GNUNET_CONTAINER_DLL_insert (h->mini_head,
+                               h->mini_tail,
+                               ml);
 }
 
 
@@ -1470,7 +1489,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls,
-                     struct GNUNET_NETWORK_Handle* sock )
+                     struct GNUNET_NETWORK_Handle *sock)
 {
   struct GNUNET_NAT_Handle *h;
   struct in_addr in_addr;
@@ -1489,7 +1508,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->callback_cls = callback_cls;
   h->num_local_addrs = num_addrs;
   h->adv_port = adv_port;
-  if (num_addrs != 0)
+  if (0 != num_addrs)
   {
     h->local_addrs = GNUNET_malloc (num_addrs * sizeof (struct sockaddr *));
     h->local_addrlens = GNUNET_malloc (num_addrs * sizeof (socklen_t));
@@ -1574,11 +1593,14 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   /* STUN */
   h->use_stun =
-          GNUNET_CONFIGURATION_get_value_yesno (cfg, "nat",
-                                                "USE_STUN");
+    GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                          "nat",
+                                          "USE_STUN");
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (cfg, "nat", "STUN_FREQUENCY",
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+                                           "nat",
+                                           "STUN_FREQUENCY",
                                            &h->stun_frequency))
     h->stun_frequency = STUN_FREQUENCY;
 
@@ -1599,25 +1621,28 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
          "No external IP address given to add to our list of addresses\n");
   }
 
-  /* ENABLE STUN ONLY ON UDP*/
-  if(!is_tcp && (NULL != sock) && h->use_stun  )
+  /* ENABLE STUN ONLY ON UDP */
+  if( (! is_tcp) &&
+      (NULL != sock) &&
+      h->use_stun)
   {
-    h->socket = sock;
-    h->actual_stun_server = NULL;
-
-    /* Lets process the servers*/
     char *stun_servers;
-
     size_t urls;
     int pos;
     size_t pos_port;
 
+    h->socket = sock;
+    h->actual_stun_server = NULL;
+    /* Lets process the servers*/
     if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (cfg, "nat", "STUN_SERVERS",
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "nat",
+                                               "STUN_SERVERS",
                                                &stun_servers))
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-                                 "nat", "STUN_SERVERS");
+                                 "nat",
+                                 "STUN_SERVERS");
     }
 
     urls = 0;
@@ -1649,10 +1674,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
           struct StunServerList* ml = GNUNET_new (struct StunServerList);
 
-          ml->next = NULL;
-          ml->prev = NULL;
-
-          ml->port = atoi(&stun_servers[pos_port]);
+          ml->port = atoi (&stun_servers[pos_port]);
           stun_servers[pos_port-1] = '\0';
 
           /* Remove trailing space */
@@ -1662,11 +1684,15 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
             ml->address = GNUNET_strdup (&stun_servers[pos]);
 
           LOG (GNUNET_ERROR_TYPE_DEBUG,
-               "Found STUN server %s port %i !!!\n", ml->address, ml->port);
+               "Found STUN server %s:%i\n",
+               ml->address,
+               ml->port);
 
-          GNUNET_CONTAINER_DLL_insert (h->stun_servers_head, h->stun_servers_tail, ml);
+          GNUNET_CONTAINER_DLL_insert (h->stun_servers_head,
+                                       h->stun_servers_tail,
+                                       ml);
           /* Make sure that we STOP if is the last one*/
-          if(0== pos)
+          if (0 == pos)
             break;
         }
 
@@ -1684,17 +1710,21 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       h->actual_stun_server = h->stun_servers_head;
     }
 
-    h->stun_task = GNUNET_SCHEDULER_add_now(&process_stun,
-                                            h);
+    h->stun_task = GNUNET_SCHEDULER_add_now (&process_stun,
+                                             h);
   }
 
 
   /* Test for SUID binaries */
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
-  if ((h->behind_nat == GNUNET_YES) && (GNUNET_YES == h->enable_nat_server) &&
-      (GNUNET_YES !=
-       GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d 127.0.0.1" ))) // use localhost as source for that one udp-port, ok for testing
+  if ( (GNUNET_YES == h->behind_nat) &&
+       (GNUNET_YES == h->enable_nat_server) &&
+       (GNUNET_YES !=
+        GNUNET_OS_check_helper_binary (binary,
+                                       GNUNET_YES,
+                                       "-d 127.0.0.1" )))
   {
+    // use localhost as source for that one udp-port, ok for testing
     h->enable_nat_server = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
@@ -1708,8 +1738,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     h->enable_nat_client = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         _
-         ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
+         _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
          "gnunet-helper-nat-client");
   }
   GNUNET_free (binary);
@@ -1809,10 +1838,14 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   }
   while (NULL != (lal = h->lal_head))
   {
-    GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, lal);
+    GNUNET_CONTAINER_DLL_remove (h->lal_head,
+                                 h->lal_tail,
+                                 lal);
     if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls, GNUNET_NO,
-                           (const struct sockaddr *) &lal[1], lal->addrlen);
+      h->address_callback (h->callback_cls,
+                           GNUNET_NO,
+                           (const struct sockaddr *) &lal[1],
+                           lal->addrlen);
     GNUNET_free (lal);
   }
   for (i = 0; i < h->num_local_addrs; i++)

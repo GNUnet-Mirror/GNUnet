@@ -291,15 +291,19 @@ process_resolved_address (void *cls,
 
   if (NULL != address)
   {
-    if (NULL == ar->result)
+    if (0 != strlen (address))
+    {
+      if (NULL != ar->result)
+        GNUNET_free (ar->result);
       ar->result = GNUNET_strdup (address);
+    }
     return;
   }
   ar->atsc = NULL;
   if (GNUNET_SYSERR == res)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-             _("Failure: Cannot convert address to string for peer `%s'\n"),
-             GNUNET_i2s (&ar->pc->peer));
+                _("Failure: Cannot convert address to string for peer `%s'\n"),
+                GNUNET_i2s (&ar->pc->peer));
   pc->num_addresses++;
   if (pc->num_addresses == pc->address_list_size)
     dump_pc (pc);
@@ -346,6 +350,11 @@ print_address (void *cls,
   ar = &pc->address_list[--pc->off];
   ar->pc = pc;
   ar->expiration = expiration;
+  GNUNET_asprintf (&ar->result,
+                   "%s:%u:%u",
+                   address->transport_name,
+                   address->address_length,
+                   address->local_info);
   ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg,
                                                  address,
                                                  no_resolve,

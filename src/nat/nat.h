@@ -37,7 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_NAT_TestMessage
 {
   /**
-   * Header with type "GNUNET_MESSAGE_TYPE_NAT_TEST"
+   * Header with type #GNUNET_MESSAGE_TYPE_NAT_TEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -57,7 +57,7 @@ struct GNUNET_NAT_TestMessage
   uint16_t data;
 
   /**
-   * GNUNET_YES for TCP, GNUNET_NO for UDP.
+   * #GNUNET_YES for TCP, #GNUNET_NO for UDP.
    */
   int32_t is_tcp;
 

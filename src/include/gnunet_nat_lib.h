@@ -80,14 +80,17 @@ enum GNUNET_NAT_Type
    * We have a direct connection
    */
   GNUNET_NAT_TYPE_NO_NAT = GNUNET_OK,
+
   /**
    * We are under a NAT but cannot traverse it
    */
   GNUNET_NAT_TYPE_UNREACHABLE_NAT,
+
   /**
    * We can traverse using STUN
    */
   GNUNET_NAT_TYPE_STUN_PUNCHED_NAT,
+
   /**
    * WE can traverse using UPNP
    */
@@ -194,8 +197,6 @@ enum GNUNET_NAT_StatusCode
    *
    */
   GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND,
-
-
 
   /**
    *

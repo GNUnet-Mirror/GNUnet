@@ -2855,11 +2855,11 @@ udp_select_read (struct Plugin *plugin,
     return;
   }
 
-
-  /* PROCESS STUN PACKET */
-  if(GNUNET_NAT_is_valid_stun_packet(plugin->nat,(uint8_t *)buf, size ))
-    return;
-
+  /* Check if this is a STUN packet */
+  if (GNUNET_NAT_is_valid_stun_packet (plugin->nat,
+                                       (uint8_t *)buf,
+                                       size))
+    return; /* was STUN, do not process further */
 
   if (size < sizeof(struct GNUNET_MessageHeader))
   {

@@ -116,7 +116,9 @@ struct GNUNET_PEERSTORE_Record
  * @param success #GNUNET_OK or #GNUNET_SYSERR
  */
 typedef void
-(*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
+(*GNUNET_PEERSTORE_Continuation)(void *cls,
+                                 int success);
+
 
 /**
  * Function called by PEERSTORE for each matching record.

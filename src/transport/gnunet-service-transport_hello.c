@@ -76,6 +76,13 @@ struct OwnAddressList
    */
   struct GNUNET_CRYPTO_EddsaSignature pong_signature;
 
+  /**
+   * How often has this address been added/removed? Used as
+   * some plugins may learn the same external address from
+   * multiple origins.
+   */
+  unsigned int rc;
+
 };
 
 
@@ -133,7 +140,7 @@ struct GeneratorContext
 
 
 /**
- * Add an address from the 'OwnAddressList' to the buffer.
+ * Add an address from the `struct OwnAddressList` to the buffer.
  *
  * @param cls the `struct GeneratorContext`
  * @param max maximum number of bytes left
@@ -151,8 +158,10 @@ address_generator (void *cls,
 
   if (NULL == gc->addr_pos)
     return GNUNET_SYSERR; /* Done */
-  ret = GNUNET_HELLO_add_address (gc->addr_pos->address, gc->expiration, buf,
-                                max);
+  ret = GNUNET_HELLO_add_address (gc->addr_pos->address,
+                                  gc->expiration,
+                                  buf,
+                                  max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;
 }
@@ -267,7 +276,7 @@ GST_hello_stop ()
 const struct GNUNET_MessageHeader *
 GST_hello_get ()
 {
-  return (struct GNUNET_MessageHeader *) our_hello;
+  return (const struct GNUNET_MessageHeader *) our_hello;
 }
 
 
@@ -284,28 +293,44 @@ GST_hello_modify_addresses (int addremove,
   struct OwnAddressList *al;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              (addremove ==
-               GNUNET_YES) ? "Adding `%s' to the set of our addresses\n" :
-              "Removing `%s' from the set of our addresses\n",
+              (GNUNET_YES == addremove)
+              ? "Adding `%s' to the set of our addresses\n"
+              : "Removing `%s' from the set of our addresses\n",
               GST_plugins_a2s (address));
-  GNUNET_assert (address != NULL);
+  GNUNET_assert (NULL != address);
+  for (al = oal_head; al != NULL; al = al->next)
+    if (0 == GNUNET_HELLO_address_cmp (address, al->address))
+      break;
   if (GNUNET_NO == addremove)
   {
-    for (al = oal_head; al != NULL; al = al->next)
-      if (0 == GNUNET_HELLO_address_cmp (address, al->address))
-      {
-        GNUNET_CONTAINER_DLL_remove (oal_head, oal_tail, al);
-        GNUNET_HELLO_address_free (al->address);
-        GNUNET_free (al);
-        refresh_hello ();
-        return;
-      }
-    /* address to be removed not found!? */
-    GNUNET_break (0);
+    if (NULL == al)
+    {
+      /* address to be removed not found!? */
+      GNUNET_break (0);
+      return;
+    }
+    al->rc--;
+    if (0 != al->rc)
+      return; /* RC not yet zero */
+    GNUNET_CONTAINER_DLL_remove (oal_head,
+                                 oal_tail,
+                                 al);
+    GNUNET_HELLO_address_free (al->address);
+    GNUNET_free (al);
+    refresh_hello ();
+    return;
+  }
+  if (NULL != al)
+  {
+    /* address added twice or more */
+    al->rc++;
     return;
   }
   al = GNUNET_new (struct OwnAddressList);
-  GNUNET_CONTAINER_DLL_insert (oal_head, oal_tail, al);
+  al->rc = 1;
+  GNUNET_CONTAINER_DLL_insert (oal_head,
+                               oal_tail,
+                               al);
   al->address = GNUNET_HELLO_address_copy (address);
   refresh_hello ();
 }
