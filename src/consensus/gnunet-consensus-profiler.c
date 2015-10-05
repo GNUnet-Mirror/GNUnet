@@ -437,7 +437,7 @@ main (int argc, char **argv)
         gettext_noop ("number of peers in consensus"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
       { 'k', "value-replication", NULL,
-        gettext_noop ("how many peers receive one value?"),
+        gettext_noop ("how many peers (random selection without replacement) receive one value?"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &replication },
       { 'x', "num-values", NULL,
         gettext_noop ("number of values"),

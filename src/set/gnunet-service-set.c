@@ -844,6 +844,11 @@ execute_add (struct Set *set,
     ee->mutations = NULL;
     ee->mutations_size = 0;
     ee->element_hash = hash;
+    GNUNET_break (GNUNET_YES ==
+                  GNUNET_CONTAINER_multihashmap_put (set->content->elements,
+                                                     &ee->element_hash,
+                                                     ee,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   else if (GNUNET_YES == _GSS_is_element_of_set (ee, set))
   {
@@ -859,11 +864,6 @@ execute_add (struct Set *set,
     GNUNET_array_append (ee->mutations, ee->mutations_size, mut);
   }
 
-  GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_put (set->content->elements,
-                                                   &ee->element_hash,
-                                                   ee,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   set->vt->add (set->state, ee);
 }
 

@@ -1112,4 +1112,40 @@ GNUNET_SET_copy_lazy (struct GNUNET_SET_Handle *set,
 }
 
 
+/**
+ * Create a copy of an element.  The copy
+ * must be GNUNET_free-d by the caller.
+ *
+ * @param element the element to copy
+ * @return the copied element
+ */
+struct GNUNET_SET_Element *
+GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element)
+{
+  struct GNUNET_SET_Element *copy;
+
+  copy = GNUNET_malloc (element->size + sizeof (struct GNUNET_SET_Element));
+  copy->size = element->size;
+  copy->element_type = element->element_type;
+  copy->data = &copy[1];
+  memcpy ((void *) copy->data, element->data, copy->size);
+
+  return copy;
+}
+
+
+/**
+ * Hash a set element.
+ *
+ * @param element the element that should be hashed
+ * @param ret_hash a pointer to where the hash of @a element
+ *        should be stored
+ */
+void
+GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element, struct GNUNET_HashCode *ret_hash)
+{
+  /* FIXME: The element type should also be hashed. */
+  GNUNET_CRYPTO_hash (element->data, element->size, ret_hash);
+}
+
 /* end of set_api.c */

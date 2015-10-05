@@ -470,6 +470,26 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set,
 void
 GNUNET_SET_iterate_cancel (struct GNUNET_SET_Handle *set);
 
+/**
+ * Create a copy of an element.  The copy
+ * must be GNUNET_free-d by the caller.
+ *
+ * @param element the element to copy
+ * @return the copied element
+ */
+struct GNUNET_SET_Element *
+GNUNET_SET_element_dup (const struct GNUNET_SET_Element *element);
+
+/**
+ * Hash a set element.
+ *
+ * @param element the element that should be hashed
+ * @param ret_hash a pointer to where the hash of @a element
+ *        should be stored
+ */
+void
+GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element, struct GNUNET_HashCode *ret_hash);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
