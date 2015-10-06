@@ -1139,6 +1139,28 @@ fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
 
 
 /**
+ * Debug function should NEVER return true in production code, useful to
+ * simulate losses for testcases.
+ *
+ * @param q Queue handle with info about the message.
+ *
+ * @return #GNUNET_YES or #GNUNET_NO with the decision to drop.
+ */
+static int
+should_I_drop (struct CadetPeerQueue *q)
+{
+  static int i = 0;
+
+  if (0 == drop_percent)
+    return GNUNET_NO;
+
+  if (GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
+    return GNUNET_YES;
+
+  return GNUNET_NO;
+}
+
+/**
  * Core callback to write a queued packet to core buffer
  *
  * @param cls Closure (peer info).
@@ -1237,8 +1259,7 @@ queue_send (void *cls, size_t size, void *buf)
 
     msg_size = fill_buf (queue, (void *) dst, size, &pid);
 
-    if (0 < drop_percent &&
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
+    if (should_I_drop (queue))
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s (%s %u) on conn %s %s\n",
            GC_m2s (queue->type), GC_m2s (queue->payload_type),
