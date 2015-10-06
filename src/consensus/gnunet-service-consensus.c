@@ -793,6 +793,21 @@ rfn_contest (struct ReferendumEntry *rfn,
   rfn->peer_contested[contested_peer] = GNUNET_YES;
 }
 
+
+static uint16_t
+rfn_noncontested (struct ReferendumEntry *rfn)
+{
+  uint16_t i;
+  uint16_t ret;
+
+  ret = 0;
+  for (i = 0; i < rfn->num_peers; i++)
+    if ( (GNUNET_YES == rfn->peer_commited[i]) && (GNUNET_NO == rfn->peer_contested[i]) )
+      ret++;
+
+  return ret;
+}
+
 static void
 rfn_vote (struct ReferendumEntry *rfn,
           uint16_t voting_peer,
@@ -879,15 +894,7 @@ set_result_cb (void *cls,
     return;
   }
 
-  if (task->key.peer1 == session->local_peer_idx)
-    other_idx = task->key.peer2;
-  else if (task->key.peer2 == session->local_peer_idx)
-    other_idx = task->key.peer1;
-  else
-  {
-    /* error in task graph construction */
-    GNUNET_assert (0);
-  }
+  other_idx = task_other_peer (task);
 
   if (SET_KIND_NONE != setop->output_set.set_kind)
   {
@@ -909,10 +916,12 @@ set_result_cb (void *cls,
 
   if (GNUNET_YES == session->peers_blacklisted[other_idx])
   {
-    /* We should have never started or commited to an operation
-       with a blacklisted peer. */
-    GNUNET_break (0);
-    return;
+    /* Peer might have been blacklisted
+       by a gradecast running in parallel, ignore elements from now */
+    if (GNUNET_SET_STATUS_ADD_LOCAL == status)
+      return;
+    if (GNUNET_SET_STATUS_ADD_REMOTE == status)
+      return;
   }
 
   if ( (GNUNET_SET_STATUS_ADD_LOCAL == status) || (GNUNET_SET_STATUS_ADD_REMOTE == status) )
@@ -1036,7 +1045,8 @@ set_result_cb (void *cls,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       // XXX: cleanup
-      GNUNET_break (0);
+      GNUNET_break_op (0);
+      finish_task (task);
       return;
     default:
       /* not reached */
@@ -1201,7 +1211,17 @@ commit_set (struct ConsensusSession *session,
     element.element_type = ELEMENT_TYPE_CONTESTED_MARKER;
     GNUNET_SET_add_element (set->h, &element, NULL, NULL);
   }
-  GNUNET_SET_commit (setop->op, set->h);
+  if (GNUNET_NO == session->peers_blacklisted[task_other_peer (task)])
+  {
+    GNUNET_SET_commit (setop->op, set->h);
+  }
+  else
+  {
+    /* For our testcases, we don't want the blacklisted
+       peers to wait. */
+    GNUNET_SET_operation_cancel (setop->op);
+    setop->op = NULL;
+  }
 #endif
 }
 
@@ -1338,6 +1358,7 @@ rfn_create (uint16_t size)
   rfn = GNUNET_new (struct ReferendumEntry);
   rfn->rfn_elements = GNUNET_CONTAINER_multihashmap_create (8, GNUNET_NO);
   rfn->peer_commited = GNUNET_new_array (size, int);
+  rfn->peer_contested = GNUNET_new_array (size, int);
   rfn->num_peers = size;
 
   return rfn;
@@ -1612,6 +1633,19 @@ task_start_grade (struct TaskEntry *task)
       default:
         GNUNET_assert (0);
         break;
+    }
+  }
+
+  {
+    uint16_t noncontested;
+    noncontested = rfn_noncontested (input_rfn);
+    if (noncontested < (session->num_peers / 3) * 2)
+    {
+      gradecast_confidence = GNUNET_MIN(1, gradecast_confidence);
+    }
+    if (noncontested < (session->num_peers / 3) + 1)
+    {
+      gradecast_confidence = 0;
     }
   }
 
