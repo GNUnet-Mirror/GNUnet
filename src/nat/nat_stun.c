@@ -19,7 +19,7 @@
 */
 
 /**
- * 
+ *
  * This code provides some support for doing STUN transactions.
  * We send simplest possible packet ia REQUEST with BIND to a STUN server.
  *
@@ -29,7 +29,7 @@
  * structured as a type, length and a value (whose format depends
  * on the type, but often contains addresses).
  * Of course all fields are in network format.
- * 
+ *
  * This code was based on ministun.c.
  *
  *
@@ -567,7 +567,7 @@ GNUNET_NAT_stun_make_request(char * server,
                                              TIMEOUT,
                                              &stun_dns_callback, rh);
 
-    if(rh->dns_active == NULL)
+    if (rh->dns_active == NULL)
     {
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "Failed DNS");
         GNUNET_free(rh);

@@ -105,7 +105,7 @@ stop ()
  * Activity on our incoming socket.  Read data from the
  * incoming connection.
  *
- * @param cls 
+ * @param cls
  * @param tc scheduler context
  */
 static void
@@ -123,7 +123,7 @@ do_udp_read (void *cls,
 	{
 		rlen = GNUNET_NETWORK_socket_recv (lsock4, reply_buf, sizeof (reply_buf));
 
-		
+
 		//Lets handle the packet
 		memset(&answer, 0, sizeof(struct sockaddr_in));
 
@@ -154,8 +154,6 @@ do_udp_read (void *cls,
   }
 
   ltask4 = NULL;
-
-
 }
 
 
@@ -176,7 +174,7 @@ bind_v4 ()
     sa4.sin_port = htons (port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
     sa4.sin_len = sizeof (sa4);
-#endif 
+#endif
     ls = GNUNET_NETWORK_socket_create (AF_INET,
                                        SOCK_DGRAM,
                                        0);
@@ -243,7 +241,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Service listens on port %u\n",
               port);
-  GNUNET_NAT_stun_make_request(stun_server, stun_port, lsock4, &request_callback, NULL);
+  GNUNET_NAT_stun_make_request (stun_server, stun_port, lsock4,
+                                &request_callback, NULL);
 
   GNUNET_SCHEDULER_add_delayed (TIMEOUT, &stop, NULL);
 

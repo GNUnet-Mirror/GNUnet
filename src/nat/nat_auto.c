@@ -236,16 +236,21 @@ process_stun_reply(struct sockaddr_in* answer, struct GNUNET_NAT_AutoHandle *ah)
 static void
 stop_stun ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping STUN and quitting...\n");
 
-  //Clean task
+  /* Clean task */
   if(NULL != ltask4)
+  {
     GNUNET_SCHEDULER_cancel (ltask4);
+    ltask4 = NULL;
+  }
 
-  //Clean socket
+  /* Clean socket */
   if(NULL != lsock4)
+  {
     GNUNET_NETWORK_socket_close (lsock4);
-
+    lsock4 = NULL;
+  }
 }
 
 /**
@@ -271,47 +276,40 @@ do_udp_read (void *cls,
   {
     rlen = GNUNET_NETWORK_socket_recv (lsock4, reply_buf, sizeof (reply_buf));
 
-
     //Lets handle the packet
     memset(&answer, 0, sizeof(struct sockaddr_in));
-
-
-
-
-
     if(ah->phase == AUTO_NAT_PUNCHED)
     {
       //Destroy the connection
       GNUNET_NETWORK_socket_close (lsock4);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "The external server was able to connect back");
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "The external server was able to connect back");
       ah->connected_back = GNUNET_YES;
       next_phase (ah);
     }
     else
     {
-      if(GNUNET_OK == GNUNET_NAT_stun_handle_packet(reply_buf,rlen, &answer))
+      if (GNUNET_OK == GNUNET_NAT_stun_handle_packet (reply_buf, rlen, &answer))
       {
         //Process the answer
-        process_stun_reply(&answer, ah);
-
+        process_stun_reply (&answer, ah);
       }
       else
       {
         next_phase (ah);
       }
     }
-
-
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "TIMEOUT while aiting for an answer");
-    if(ah->phase == AUTO_NAT_PUNCHED)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "TIMEOUT while waiting for an answer\n");
+    if (ah->phase == AUTO_NAT_PUNCHED)
     {
       stop_stun();
     }
 
-    next_phase(ah);
+    next_phase (ah);
   }
 
 
@@ -357,14 +355,15 @@ bind_v4 ()
 
 
 
-static void request_callback(void *cls,
-                             enum GNUNET_NAT_StatusCode result)
+static void request_callback (void *cls,
+                              enum GNUNET_NAT_StatusCode result)
 {
-  struct GNUNET_NAT_AutoHandle *ah = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping NAT and quitting...\n");
-  stop_stun();
+  // struct GNUNET_NAT_AutoHandle *ah = cls;
 
-  next_phase(ah);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Request callback: stop and quit\n");
+  stop_stun ();
+
+  // next_phase (ah); FIXME this always will be NULL, as called in test_stun()
 };
 
 
@@ -498,7 +497,7 @@ static void
 test_stun (struct GNUNET_NAT_AutoHandle *ah)
 {
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,"Running STUN test");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Running STUN test\n");
 
   /* Get port from the configuration */
   if (GNUNET_OK !=
@@ -530,14 +529,15 @@ test_stun (struct GNUNET_NAT_AutoHandle *ah)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "STUN service listens on port %u\n",
               port);
-  if( GNUNET_NO == GNUNET_NAT_stun_make_request(stun_server, stun_port, lsock4, &request_callback, NULL))
+  if (GNUNET_NO == GNUNET_NAT_stun_make_request (stun_server, stun_port,
+                                                 lsock4, &request_callback,
+                                                 NULL))
   {
     /*An error happened*/
-    stop_stun();
-    next_phase(ah);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "STUN error, stopping\n");
+    stop_stun ();
+    next_phase (ah);
   }
-
-
 }
 
 
@@ -648,7 +648,7 @@ test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
   struct GNUNET_NAT_TestMessage msg;
 
 
-  if(ah->stun_ip)
+  if (ah->stun_ip)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Asking gnunet-nat-server to connect to `%s'\n",
@@ -675,8 +675,12 @@ test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
                                                            NAT_SERVER_TIMEOUT,
                                                            GNUNET_YES, NULL,
                                                            NULL));
-    ltask4 = GNUNET_SCHEDULER_add_read_net (NAT_SERVER_TIMEOUT,
-                                            lsock4, &do_udp_read, ah);
+    if (NULL != ltask4)
+    {
+      GNUNET_SCHEDULER_cancel (ltask4);
+      ltask4 = GNUNET_SCHEDULER_add_read_net (NAT_SERVER_TIMEOUT,
+                                              lsock4, &do_udp_read, ah);
+    }
 
   }
   else
@@ -847,7 +851,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
     test_local_ip (ah);
     break;
   case AUTO_NAT_PUNCHED:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run GNUNET_ERROR_TYPE_DEBUG\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Will run AUTO_NAT_PUNCHED\n");
     test_nat_punched (ah);
     break;
   case AUTO_UPNPC:
