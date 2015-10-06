@@ -47,7 +47,7 @@ GC_f2s (int fwd)
   else
   {
     /* Not an error, can happen with CONNECTION_BROKEN messages. */
-    return "";
+    return "\???";
   }
 }
 
@@ -146,7 +146,7 @@ GC_m2s (uint16_t m)
      * Used to mark the "payload" of a non-payload message.
      */
     case 0:
-      s = "retrnsmit";
+      s = "retransmit";
       break;
 
       /**
@@ -380,8 +380,16 @@ GC_m2s (uint16_t m)
       s = "INFO_DUMP";
       break;
 
+      /**
+       * Used to mark the "payload" of a non-payload message.
+       */
+    case UINT16_MAX:
+      s = "      N/A";
+      break;
+
+
     default:
-      SPRINTF (buf[idx], "%u (UNKNOWN)", m);
+      SPRINTF (buf[idx], "{UNK: %5u}", m);
       return buf[idx];
   }
   SPRINTF (buf[idx], "{%10s}", s);

@@ -170,9 +170,13 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
  * @param peer Peer towards which to queue the message.
  * @param cls Closure (@c type dependant). It will be used by queue_send to
  *            build the message to be sent if not already prebuilt.
- * @param type Type of the message, 0 for a raw message.
+ * @param type Type of the message.
+ * @param payload_type Type of the message's payload
+ *                     0 if the message is a retransmission (unknown payload).
+ *                     UINT16_MAX if the message does not have payload.
+ * @param payload_id ID of the payload (MID, ACK #, etc)
  * @param size Size of the message.
- * @param c Connection this message belongs to (cannot be NULL).
+ * @param c Connection this message belongs to (can be NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
@@ -181,10 +185,16 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
  *         message has been sent and therefore the handle is no longer valid.
  */
 struct CadetPeerQueue *
-GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
-               uint16_t payload_type, uint32_t payload_id,
-               size_t size, struct CadetConnection *c, int fwd,
-               GCP_sent cont, void *cont_cls);
+GCP_queue_add (struct CadetPeer *peer,
+               void *cls,
+               uint16_t type,
+               uint16_t payload_type,
+               uint32_t payload_id,
+               size_t size,
+               struct CadetConnection *c,
+               int fwd,
+               GCP_sent cont,
+               void *cont_cls);
 
 /**
  * Cancel all queued messages to a peer that belong to a certain connection.

@@ -2276,7 +2276,7 @@ send_kx (struct CadetTunnel *t,
 static void
 send_ephemeral (struct CadetTunnel *t)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> EPHM for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "==> EPHM for %s\n", GCT_2s (t));
   if (NULL != t->ephm_h)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
@@ -2305,7 +2305,7 @@ send_pong (struct CadetTunnel *t, uint32_t challenge)
 {
   struct GNUNET_CADET_KX_Pong msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> PONG for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "==> PONG for %s\n", GCT_2s (t));
   if (NULL != t->pong_h)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
@@ -2560,7 +2560,7 @@ handle_data (struct CadetTunnel *t,
   }
   type = ntohs (msg[1].header.type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n", GC_m2s (type));
-  sprintf (buf, "# received payload of type %hu", type);
+  SPRINTF (buf, "# received payload of type %hu", type);
   GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
 
 
@@ -2570,8 +2570,7 @@ handle_data (struct CadetTunnel *t,
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel",
                               1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel 0x%X unknown\n",
-         ntohl (msg->chid));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "channel 0x%X unknown\n", ntohl (msg->chid));
     send_channel_destroy (t, ntohl (msg->chid));
     return;
   }
@@ -2624,8 +2623,8 @@ handle_data_ack (struct CadetTunnel *t,
 /**
  * Handle channel create.
  *
- * @param t Tunnel on which the data came.
- * @param msg Data message.
+ * @param t Tunnel on which the message came.
+ * @param msg ChannelCreate message.
  */
 static void
 handle_ch_create (struct CadetTunnel *t,
@@ -2638,7 +2637,7 @@ handle_ch_create (struct CadetTunnel *t,
   size = ntohs (msg->header.size);
   if (size != sizeof (struct GNUNET_CADET_ChannelCreate))
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return;
   }
 
@@ -2814,7 +2813,7 @@ static void
 handle_ephemeral (struct CadetTunnel *t,
                   const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<== EPHM for %s\n", GCT_2s (t));
 
   /* Some old versions are still around, don't log as error. */
   if (GNUNET_OK != check_ephemeral (t, msg))
@@ -2900,7 +2899,7 @@ handle_pong (struct CadetTunnel *t,
 {
   uint32_t challenge;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PONG for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<== PONG for %s\n", GCT_2s (t));
   if (NULL == t->rekey_task)
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
@@ -2952,7 +2951,7 @@ handle_kx_ax (struct CadetTunnel *t, const struct GNUNET_CADET_AX_KX *msg)
   const struct GNUNET_PeerIdentity *pid;
   int am_I_alice;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== AX_KX on %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<== {     AX_KX} on %s\n", GCT_2s (t));
 
   if (NULL == t->ax)
   {
@@ -3099,8 +3098,8 @@ handle_decrypted (struct CadetTunnel *t,
   char buf[256];
 
   type = ntohs (msgh->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s on %s\n", GC_m2s (type), GCT_2s (t));
-  sprintf (buf, "# received encrypted of type %hu (%s)", type, GC_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "<-- %s on %s\n", GC_m2s (type), GCT_2s (t));
+  SPRINTF (buf, "# received encrypted of type %hu (%s)", type, GC_m2s (type));
   GNUNET_STATISTICS_update (stats, buf, 1, GNUNET_NO);
 
   switch (type)
@@ -4374,7 +4373,7 @@ GCT_send_ax_kx (struct CadetTunnel *t, int force_reply)
   struct GNUNET_CADET_AX_KX msg;
   enum GNUNET_CADET_AX_KX_Flags flags;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> AX_KX for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "==> {     AX_KX} on %s\n", GCT_2s (t));
   if (NULL != t->ephm_h)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "     already queued\n");
@@ -4418,7 +4417,8 @@ GCT_resend_message (const struct GNUNET_MessageHeader *message,
     return;
   }
   fwd = GCC_is_origin (c, GNUNET_YES);
-  GNUNET_break (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+  GNUNET_break (NULL == GCC_send_prebuilt_message (message, UINT16_MAX, 0,
+                                                   c, fwd,
                                                    GNUNET_YES, NULL, NULL));
 }
 

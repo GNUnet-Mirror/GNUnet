@@ -1219,7 +1219,7 @@ queue_send (void *cls, size_t size, void *buf)
   wait_s = GNUNET_STRINGS_relative_time_to_string (core_wait_time, GNUNET_YES);
   if (core_wait_time.rel_value_us >= 1000000)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          " %s: core wait time %s (> 1 second) for %u bytes\n",
          GCP_2s (peer), wait_s, queue->size);
   }
@@ -1248,7 +1248,7 @@ queue_send (void *cls, size_t size, void *buf)
     else
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
-           ">>> %s (%s %4u) on conn %s (%p) %s (%u bytes), after %s\n",
+           ">>> %s (%s %4u) on conn %s (%p) %s [%5u], after %s\n",
            GC_m2s (queue->type), GC_m2s (queue->payload_type),
            queue->payload_id, GCC_2s (c), c,
            GC_f2s (queue->fwd), msg_size, wait_s);
@@ -1401,7 +1401,11 @@ GCP_queue_destroy (struct CadetPeerQueue *queue,
  * @param peer Peer towards which to queue the message.
  * @param cls Closure (@c type dependant). It will be used by queue_send to
  *            build the message to be sent if not already prebuilt.
- * @param type Type of the message, 0 for a raw message.
+ * @param type Type of the message.
+ * @param payload_type Type of the message's payload
+ *                     0 if the message is a retransmission (unknown payload).
+ *                     UINT16_MAX if the message does not have payload.
+ * @param payload_id ID of the payload (MID, ACK #, etc)
  * @param size Size of the message.
  * @param c Connection this message belongs to (can be NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
