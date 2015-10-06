@@ -74,10 +74,19 @@ struct TaskKey {
 
 enum ReferendumVote
 {
-  VOTE_NONE = 0,
+  /**
+   * Vote that nothing should change.
+   * This option is never voted explicitly.
+   */
+  VOTE_STAY = 0,
+  /**
+   * Vote that an element should be added.
+   */
   VOTE_ADD = 1,
+  /**
+   * Vote that an element should be removed.
+   */
   VOTE_REMOVE = 2,
-  VOTE_CONTESTED = 3
 };
 
 
@@ -137,28 +146,6 @@ enum PhaseKind
 };
 
 
-enum TaskKind
-{
-  /**
-   * Do a set reconciliation with another peer (or via looback).
-   */
-  TASK_RECONCILE,
-  /**
-   * Same as reconciliation, but only care about added elements.
-   */
-  TASK_UNION,
-  /**
-   * Apply a referendum with a threshold
-   * to a set and/or a diff.
-   */
-  TASK_EVAL_RFN,
-  /**
-   * Apply a diff to a set.
-   */
-  TASK_APPLY_DIFF,
-  FASK_FINISH,
-};
-
 enum SetKind
 {
   SET_KIND_NONE = 0,
@@ -194,35 +181,9 @@ struct SetOpCls
 
   int do_not_remove;
 
+  int transceive_contested;
+
   struct GNUNET_SET_OperationHandle *op;
-};
-
-struct EvalRfnCls
-{
-  struct SetKey input_set;
-  struct RfnKey input_rfn;
-  
-  uint16_t threshold;
-
-  struct SetKey output_set;
-  struct DiffKey output_diff;
-};
-
-
-struct ApplyDiffCls
-{
-  struct SetKey input_set;
-  struct DiffKey input_diff;
-  struct SetKey output_set;
-};
-
-
-struct LeaderApplyCls
-{
-  struct DiffKey input_diff_1;
-  struct DiffKey input_diff_2;
-
-  struct RfnKey output_rfn;
 };
 
 
@@ -238,9 +199,6 @@ struct FinishCls
 union TaskFuncCls
 {
   struct SetOpCls setop;
-  struct EvalRfnCls eval_rfn;
-  struct ApplyDiffCls apply_diff;
-  struct LeaderApplyCls leader_apply;
   struct FinishCls finish;
 };
 
@@ -260,8 +218,6 @@ struct TaskEntry
   int is_started;
 
   int is_finished;
-
-  enum TaskKind kind;
 
   TaskFunc start;
   TaskFunc cancel;
@@ -338,10 +294,15 @@ struct RfnElementInfo
   const struct GNUNET_SET_Element *element;
 
   /*
-   * Vote (or VOTE_NONE) from every peer
-   * in the session about the element.
+   * GNUNET_YES if the peer votes for the proposal.
    */
   int *votes;
+
+  /**
+   * Proposal for this element,
+   * can only be VOTE_ADD or VOTE_REMOVE.
+   */
+  enum ReferendumVote proposal;
 };
 
 
@@ -356,6 +317,8 @@ struct ReferendumEntry
    * to 'struct RfnElementInfo'.
    */
   struct GNUNET_CONTAINER_MultiHashMap *rfn_elements;
+
+  unsigned int num_peers;
 
   /**
    * Stores, for every peer in the session,
@@ -426,7 +389,7 @@ struct ConsensusSession
   /**
    * Array of peers with length 'num_peers'.
    */
-  int *peers_ignored;
+  int *peers_blacklisted;
 
   /*
    * Mapping from (hashed) TaskKey to TaskEntry.
@@ -522,12 +485,6 @@ finish_task (struct TaskEntry *task);
 
 static void
 task_start_reconcile (struct TaskEntry *task);
-
-static void
-task_start_eval_rfn (struct TaskEntry *task);
-
-static void
-task_start_apply_diff (struct TaskEntry *task);
 
 static void
 run_ready_steps (struct ConsensusSession *session);
@@ -627,7 +584,7 @@ debug_str_diff_key (struct DiffKey *dk)
 }
 
 static const char *
-debug_str_set_key (struct SetKey *sk)
+debug_str_set_key (const struct SetKey *sk)
 {
   static char buf[256];
 
@@ -640,7 +597,7 @@ debug_str_set_key (struct SetKey *sk)
 
 
 static const char *
-debug_str_rfn_key (struct RfnKey *rk)
+debug_str_rfn_key (const struct RfnKey *rk)
 {
   static char buf[256];
 
@@ -818,7 +775,7 @@ static void
 rfn_vote (struct ReferendumEntry *rfn,
           uint16_t voting_peer,
           uint16_t num_peers,
-          int vote,
+          enum ReferendumVote vote,
           const struct GNUNET_SET_Element *element)
 {
   struct RfnElementInfo *ri;
@@ -826,11 +783,15 @@ rfn_vote (struct ReferendumEntry *rfn,
 
   GNUNET_assert (voting_peer < num_peers);
 
+  /* Explicit voting only makes sense with VOTE_ADD or VOTE_REMOTE,
+     since VOTE_KEEP is implicit in not voting. */
+  GNUNET_assert ( (VOTE_ADD == vote) || (VOTE_REMOVE == vote) );
+
+  // XXX: should happen in another place!
   rfn->peer_commited[voting_peer] = GNUNET_YES;
 
   GNUNET_SET_element_hash (element, &hash);
   ri = GNUNET_CONTAINER_multihashmap_get (rfn->rfn_elements, &hash);
-
 
   if (NULL == ri)
   {
@@ -843,7 +804,8 @@ rfn_vote (struct ReferendumEntry *rfn,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   }
 
-  ri->votes[voting_peer] = vote;
+  ri->votes[voting_peer] = GNUNET_YES;
+  ri->proposal = vote;
 }
 
 
@@ -927,10 +889,10 @@ set_result_cb (void *cls,
     GNUNET_assert (NULL != output_rfn);
   }
 
-  if (GNUNET_YES == session->peers_ignored[other_idx])
+  if (GNUNET_YES == session->peers_blacklisted[other_idx])
   {
     /* We should have never started or commited to an operation
-       with an ignored peer. */
+       with a blacklisted peer. */
     GNUNET_break (0);
     return;
   }
@@ -1350,12 +1312,13 @@ rfn_create (uint16_t size)
   rfn = GNUNET_new (struct ReferendumEntry);
   rfn->rfn_elements = GNUNET_CONTAINER_multihashmap_create (8, GNUNET_NO);
   rfn->peer_commited = GNUNET_new_array (size, int);
+  rfn->num_peers = size;
 
   return rfn;
 }
 
 
-static void
+void
 diff_destroy (struct DiffEntry *diff)
 {
   GNUNET_CONTAINER_multihashmap_destroy (diff->changes);
@@ -1364,49 +1327,191 @@ diff_destroy (struct DiffEntry *diff)
 
 
 static void
-task_start_leader_apply (struct TaskEntry *task)
+rfn_majority (const struct ReferendumEntry *rfn,
+              const struct RfnElementInfo *ri,
+              uint16_t *ret_majority,
+              enum ReferendumVote *ret_vote)
 {
-  struct LeaderApplyCls *lacls = &task->cls.leader_apply;
-  struct ConsensusSession *session = task->step->session;
-  struct DiffEntry *diff_1;
-  struct DiffEntry *diff_2;
-  struct DiffEntry *diff_combined;
-  struct ReferendumEntry *rfn;
-
-  diff_1 = lookup_diff (session, &lacls->input_diff_1);
-  GNUNET_assert (NULL != diff_1);
-
-  diff_2 = lookup_diff (session, &lacls->input_diff_2);
-  GNUNET_assert (NULL != diff_2);
-
-  rfn = lookup_rfn (session, &lacls->output_rfn);
+  uint16_t votes_yes = 0;
+  uint16_t num_commited = 0;
+  uint16_t i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "looked up everything\n");
-  
-  if (NULL == rfn)
+              "Computing rfn majority for element %s of rfn {%s}\n",
+              debug_str_element (ri->element),
+              debug_str_rfn_key (&rfn->key));
+
+  for (i = 0; i < rfn->num_peers; i++)
   {
-    rfn = rfn_create (session->num_peers);
-    rfn->key = lacls->output_rfn;
-    put_rfn (session, rfn);
+    if (GNUNET_NO == rfn->peer_commited[i])
+      continue;
+    num_commited++;
+
+    if (GNUNET_YES == ri->votes[i])
+      votes_yes++;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ensured rfn\n");
+  if (votes_yes > (num_commited) / 2)
+  {
+    *ret_vote = ri->proposal;
+    *ret_majority = votes_yes;
+  }
+  else
+  {
+    *ret_vote = VOTE_STAY;
+    *ret_majority = num_commited - votes_yes;
+  }
+}
 
-  diff_combined = diff_compose (diff_1, diff_2);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "composed diffs\n");
+struct SetCopyCls
+{
+  struct TaskEntry *task;
+  struct SetKey dst_set_key;
+};
 
-  apply_diff_to_rfn (diff_combined, rfn, task->key.leader, session->num_peers);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "applied diffs to rfns\n");
+static void
+set_copy_cb (void *cls, struct GNUNET_SET_Handle *copy)
+{
+  struct SetCopyCls *scc = cls;
+  struct TaskEntry *task = scc->task;
+  struct SetKey dst_set_key = scc->dst_set_key;
+  struct SetEntry *set;
 
-  diff_destroy (diff_combined);
+  GNUNET_free (scc);
+  set = GNUNET_new (struct SetEntry);
+  set->h = copy;
+  set->key = dst_set_key;
+  put_set (task->step->session, set);
 
-  finish_task (task);
+  task->start (task);
+}
+
+
+/**
+ * Call the start function of the given
+ * task again after we created a copy of the given set.
+ */
+static void
+create_set_copy_for_task (struct TaskEntry *task,
+                          struct SetKey *src_set_key,
+                          struct SetKey *dst_set_key)
+{
+  struct SetEntry *src_set;
+  struct SetCopyCls *scc = GNUNET_new (struct SetCopyCls);
+
+  scc->task = task;
+  scc->dst_set_key = *dst_set_key;
+  src_set = lookup_set (task->step->session, src_set_key);
+  GNUNET_assert (NULL != src_set);
+  GNUNET_SET_copy_lazy (src_set->h,
+                        set_copy_cb,
+                        scc);
+}
+
+static void
+task_start_apply_round (struct TaskEntry *task)
+{
+  struct ConsensusSession *session = task->step->session;
+  struct SetKey sk_in;
+  struct SetKey sk_out;
+  struct RfnKey rk_in;
+  struct SetEntry *set_out;
+  struct ReferendumEntry *rfn_in;
+  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
+  struct RfnElementInfo *ri;
+
+  sk_in = (struct SetKey) { SET_KIND_CURRENT, task->key.repetition };
+  rk_in = (struct RfnKey) { RFN_KIND_GRADECAST_RESULT, task->key.repetition };
+  sk_out = (struct SetKey) { SET_KIND_CURRENT, task->key.repetition + 1 };
+
+  set_out = lookup_set (session, &sk_out);
+  if (NULL == set_out)
+  {
+    create_set_copy_for_task (task, &sk_in, &sk_out);
+    return;
+  }
+
+  rfn_in = lookup_rfn (session, &rk_in);
+  GNUNET_assert (NULL != rfn_in);
+
+  iter = GNUNET_CONTAINER_multihashmap_iterator_create (rfn_in->rfn_elements);
+
+  while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ri))
+  {
+    uint16_t majority_num;
+    enum ReferendumVote majority_vote;
+
+    rfn_majority (rfn_in, ri, &majority_num, &majority_vote);
+
+    switch (majority_vote)
+    {
+      case VOTE_ADD:
+        // XXX: add to set
+        break;
+      case VOTE_REMOVE:
+        // XXX: remove from set
+        break;
+      case VOTE_STAY:
+        // do nothing
+        break;
+      default:
+        GNUNET_assert (0);
+        break;
+    }
+  }
+}
+
+
+static void
+task_start_grade (struct TaskEntry *task)
+{
+  struct ConsensusSession *session = task->step->session;
+  struct ReferendumEntry *output_rfn;
+  struct ReferendumEntry *input_rfn;
+  struct DiffEntry *input_diff;
+  struct RfnKey rfn_key;
+  struct DiffKey diff_key;
+  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
+  struct RfnElementInfo *ri;
+
+  rfn_key = (struct RfnKey) { RFN_KIND_GRADECAST_RESULT, task->key.repetition };
+  output_rfn = lookup_rfn (session, &rfn_key);
+  if (NULL == output_rfn)
+  {
+    output_rfn = rfn_create (session->num_peers);
+    put_rfn (session, output_rfn);
+  }
+
+  diff_key = (struct DiffKey) { DIFF_KIND_LEADER_PROPOSAL, task->key.repetition, task->key.leader };
+  input_diff = lookup_diff (session, &diff_key);
+  GNUNET_assert (NULL != input_diff);
+
+  rfn_key = (struct RfnKey) { RFN_KIND_ECHO, task->key.repetition, task->key.leader };
+  input_rfn = lookup_rfn (session, &rfn_key);
+  GNUNET_assert (NULL != input_rfn);
+
+  apply_diff_to_rfn (input_diff, output_rfn, task->key.leader, session->num_peers);
+
+  iter = GNUNET_CONTAINER_multihashmap_iterator_create (input_rfn->rfn_elements);
+
+  while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ri))
+  {
+    uint16_t majority_num;
+    enum ReferendumVote majority_vote;
+
+    rfn_majority (input_rfn, ri, &majority_num, &majority_vote);
+
+    
+
+    switch (majority_vote)
+    {
+      default:
+        GNUNET_assert (0);
+        break;
+    }
+  }
 }
 
 
@@ -1535,184 +1640,68 @@ task_start_reconcile (struct TaskEntry *task)
 }
 
 
-static int
-rfn_majority (uint16_t num_peers,
-              struct ReferendumEntry *rfn,
-              struct RfnElementInfo *ri,
-              uint16_t threshold)
-{
-  unsigned int votes_add = 0;
-  unsigned int votes_remove = 0;
-  unsigned int num_commited = 0;
-  unsigned int maj_thresh;
-  unsigned int nv;
-  unsigned int tv;
-  unsigned int i;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Computing rfn majority for element %s of rfn {%s}\n",
-              debug_str_element (ri->element),
-              debug_str_rfn_key (&rfn->key));
-
-  for (i = 0; i < num_peers; i++)
-  {
-    if (GNUNET_NO == rfn->peer_commited[i])
-      continue;
-    num_commited++;
-    if (ri->votes[i] == VOTE_ADD)
-      votes_add++;
-    if (ri->votes[i] == VOTE_REMOVE)
-      votes_remove++;
-  }
-
-  /* Threshold to reach a majority among
-     submitted votes, may not be enough for the
-     global threshold. */
-  maj_thresh = (num_commited + 1) / 2;
-  /* Vote are relative to our local set, so it can only be
-     either all add or all remove */
-  GNUNET_assert ( (0 == votes_add) || (0 == votes_remove) );
-
-  if (votes_add > 0)
-  {
-    nv = votes_add;
-    tv = VOTE_ADD;
-  }
-  else if (votes_remove > 0)
-  {
-    nv = votes_remove;
-    tv = VOTE_REMOVE;
-  }
-  else
-  {
-    nv = 0;
-    tv = VOTE_NONE;
-  }
-
-  if ( (nv >= maj_thresh) && (nv >= threshold) )
-    return tv;
-
-  if ( ((num_commited - nv) >= maj_thresh) && ((num_commited - nv) >= threshold) )
-    return VOTE_NONE;
-
-  return VOTE_CONTESTED;
-}
 
 
-struct SetChangeProgressCls
+struct SetMutationProgressCls
 {
   int num_pending;
+  /**
+   * Task to finish once all changes are through.
+   */
   struct TaskEntry *task;
 };
 
 
 static void
-eval_rfn_done (struct TaskEntry *task)
+set_mutation_done (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "P%u: EVAL_REFERENDUM done for task {%s}\n",
-              task->step->session->local_peer_idx, debug_str_task_key (&task->key));
+  struct SetMutationProgressCls *pc = cls;
 
-  finish_task (task);
-}
+  GNUNET_assert (pc->num_pending > 0);
 
+  pc->num_pending--;
 
-static void
-eval_rfn_progress (void *cls)
-{
-  struct SetChangeProgressCls *erc = cls;
-
-  GNUNET_assert (erc->num_pending > 0);
-
-  erc->num_pending--;
-
-  if (0 == erc->num_pending)
+  if (0 == pc->num_pending)
   {
-    struct TaskEntry *task = erc->task;
-    GNUNET_free (erc);
-    eval_rfn_done (task);
+    struct TaskEntry *task = pc->task;
+    GNUNET_free (pc);
+    finish_task (task);
   }
 }
 
 
+
 static void
-eval_rfn_copy_cb (void *cls, struct GNUNET_SET_Handle *copy)
-{
-  struct TaskEntry *task = (struct TaskEntry *) cls;
-  struct ConsensusSession *session = task->step->session;
-  struct SetEntry *set;
-
-  set = GNUNET_new (struct SetEntry);
-  set->h = copy;
-  set->key = task->cls.eval_rfn.output_set;
-
-  put_set (session, set);
-
-  task_start_eval_rfn (task);
-}
-
-
-/**
- * Take an input set and an input referendum, 
- * apply the referendum with a threshold to the input
- * set and store the result in the output set and/or output diff.
- */
-static void
-task_start_eval_rfn (struct TaskEntry *task)
+task_start_eval_echo (struct TaskEntry *task)
 {
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
   struct ReferendumEntry *input_rfn;
   struct RfnElementInfo *ri;
-  struct SetEntry *output_set = NULL;
-  struct DiffEntry *output_diff = NULL;
-  struct SetChangeProgressCls *progress_cls;
-  struct EvalRfnCls *rcls = &task->cls.eval_rfn;
+  struct SetEntry *output_set;
+  struct SetMutationProgressCls *progress_cls;
   struct ConsensusSession *session = task->step->session;
+  struct SetKey sk_in;
+  struct SetKey sk_out;
+  struct RfnKey rk_in;
 
-  /* Have at least one output */
-  GNUNET_assert ( (rcls->output_set.set_kind != SET_KIND_NONE) ||
-                  (rcls->output_diff.diff_kind != DIFF_KIND_NONE));
-
-  if (SET_KIND_NONE != rcls->output_set.set_kind)
+  sk_in = (struct SetKey) { SET_KIND_LEADER_PROPOSAL, task->key.repetition, task->key.leader };
+  sk_out = (struct SetKey) { SET_KIND_ECHO_RESULT, task->key.repetition, task->key.leader };
+  output_set = lookup_set (session, &sk_out);
+  if (NULL == output_set)
   {
-    /* We have a set output, thus the output set must
-       exist or copy it from the input set */
-    output_set = lookup_set (session, &rcls->output_set);
-    if (NULL == output_set)
-    {
-      struct SetEntry *input_set;
-
-      input_set = lookup_set (session, &rcls->input_set);
-      GNUNET_assert (NULL != input_set);
-      GNUNET_SET_copy_lazy (input_set->h,
-                            eval_rfn_copy_cb,
-                            task);
-      /* We'll be called again, this time with the
-         set ready. */
-      return;
-    }
-  }
-
-  if (DIFF_KIND_NONE != rcls->output_diff.diff_kind)
-  {
-    output_diff = lookup_diff (session, &rcls->output_diff);
-    if (NULL == output_diff)
-    {
-      output_diff = diff_create ();
-      output_diff->key = rcls->output_diff;
-      put_diff (session, output_diff);
-    }
+    create_set_copy_for_task (task, &sk_in, &sk_out);
+    return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Evaluating referendum in Task {%s}\n",
               debug_str_task_key (&task->key));
 
-
-  progress_cls = GNUNET_new (struct SetChangeProgressCls);
+  progress_cls = GNUNET_new (struct SetMutationProgressCls);
   progress_cls->task = task;
 
-  input_rfn = lookup_rfn (session, &rcls->input_rfn);
+  rk_in = (struct RfnKey) { RFN_KIND_ECHO, task->key.repetition, task->key.leader };
+  input_rfn = lookup_rfn (session, &rk_in);
 
   GNUNET_assert (NULL != input_rfn);
 
@@ -1721,77 +1710,36 @@ task_start_eval_rfn (struct TaskEntry *task)
 
   while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ri))
   {
-    int majority_vote = rfn_majority (session->num_peers, input_rfn, ri, rcls->threshold);
+    enum ReferendumVote majority_vote;
+    uint16_t majority_num;
+
+    rfn_majority (input_rfn, ri, &majority_num, &majority_vote);
+
+    if (majority_num < session->num_peers / 3)
+    {
+      majority_vote = VOTE_REMOVE;
+      output_set->is_contested = GNUNET_YES;
+    }
+
     switch (majority_vote)
     {
       case VOTE_ADD:
-#ifdef GNUNET_EXTRA_LOGGING
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "P%u: referendum vote result: VOTE_ADD for element %s in task {%s} with"
-                      "output set {%s} and output diff {%s}\n",
-                      session->local_peer_idx,
-                      debug_str_element (ri->element),
-                      debug_str_task_key (&task->key),
-                      debug_str_set_key (&rcls->output_set),
-                      debug_str_diff_key (&rcls->output_diff));
-#endif
-        if (NULL != output_set)
-        {
-          progress_cls->num_pending++;
-          GNUNET_assert (GNUNET_OK ==
-                         GNUNET_SET_add_element (output_set->h,
-                                                 ri->element,
-                                                 eval_rfn_progress,
-                                                 progress_cls));
-        }
-        if (NULL != output_diff)
-        {
-          diff_insert (output_diff, 1, ri->element);
-        }
+        progress_cls->num_pending++;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_SET_add_element (output_set->h,
+                                               ri->element,
+                                               set_mutation_done,
+                                               progress_cls));
         break;
-      case VOTE_CONTESTED:
-        if (NULL != output_set)
-          output_set->is_contested = GNUNET_YES;
-#ifdef GNUNET_EXTRA_LOGGING
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "P%u: referendum vote result: VOTE_CONTESTED for element %s in task {%s} with"
-                    "output set {%s} and output diff {%s}\n",
-                    session->local_peer_idx,
-                    debug_str_element (ri->element),
-                    debug_str_task_key (&task->key),
-                    debug_str_set_key (&rcls->output_set),
-                    debug_str_diff_key (&rcls->output_diff));
-#endif
-        /* fallthrough */
       case VOTE_REMOVE:
-#ifdef GNUNET_EXTRA_LOGGING
-        if (VOTE_REMOVE == majority_vote)
-          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                      "P%u: referendum vote result: VOTE_REMOVE for element %s in task {%s} with"
-                      "output set {%s} and output diff {%s}\n",
-                      session->local_peer_idx,
-                      debug_str_element (ri->element),
-                      debug_str_task_key (&task->key),
-                      debug_str_set_key (&rcls->output_set),
-                      debug_str_diff_key (&rcls->output_diff));
-#endif
-        if (NULL != output_set)
-        {
-          progress_cls->num_pending++;
-          GNUNET_assert (GNUNET_OK ==
-                         GNUNET_SET_remove_element (output_set->h,
-                                                    ri->element,
-                                                    eval_rfn_progress,
-                                                    progress_cls));
-        }
-        if (NULL != output_diff)
-        {
-          diff_insert (output_diff, -1, ri->element);
-        }
+        progress_cls->num_pending++;
+        GNUNET_assert (GNUNET_OK ==
+                       GNUNET_SET_remove_element (output_set->h,
+                                                  ri->element,
+                                                  set_mutation_done,
+                                                  progress_cls));
         break;
-      case VOTE_NONE:
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "referendum vote result: VOTE_NONE\n");
+      case VOTE_STAY:
         /* Nothing to do. */
         break;
       default:
@@ -1799,122 +1747,6 @@ task_start_eval_rfn (struct TaskEntry *task)
         GNUNET_assert (0);
     }
   }
-  GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
-
-  if (progress_cls->num_pending == 0)
-  {
-    // call closure right now, no pending ops
-    GNUNET_free (progress_cls);
-    eval_rfn_done (task);
-  }
-}
-
-
-static void
-apply_diff_copy_cb (void *cls, struct GNUNET_SET_Handle *copy)
-{
-  struct TaskEntry *task = (struct TaskEntry *) cls;
-  struct ConsensusSession *session = task->step->session;
-  struct SetEntry *set;
-  struct ApplyDiffCls *diffop = &task->cls.apply_diff;
-
-  set = GNUNET_new (struct SetEntry);
-  set->h = copy;
-  set->key = diffop->output_set;
-
-  put_set (session, set);
-
-  task_start_apply_diff (task);
-}
-
-
-static void
-apply_diff_done (struct TaskEntry *task)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "P%u: APPLY_DIFF done for task {%s}\n",
-              task->step->session->local_peer_idx, debug_str_task_key (&task->key));
-  finish_task (task);
-}
-
-
-static void
-apply_diff_progress (void *cls)
-{
-  struct SetChangeProgressCls *erc = cls;
-
-  GNUNET_assert (erc->num_pending > 0);
-
-  erc->num_pending--;
-
-  if (0 == erc->num_pending)
-  {
-    struct TaskEntry *task = erc->task;
-    GNUNET_free (erc);
-    apply_diff_done (task);
-  }
-}
-
-
-static void
-task_start_apply_diff (struct TaskEntry *task)
-{
-  struct SetEntry *output_set;
-  struct DiffEntry *input_diff;
-  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
-  struct DiffElementInfo *di;
-  struct SetChangeProgressCls *progress_cls;
-  struct ApplyDiffCls *diffop = &task->cls.apply_diff;
-  struct ConsensusSession *session = task->step->session;
-
-  GNUNET_assert (diffop->output_set.set_kind != SET_KIND_NONE);
-  GNUNET_assert (diffop->input_diff.diff_kind != DIFF_KIND_NONE);
-
-  input_diff = lookup_diff (session, &diffop->input_diff);
-
-  GNUNET_assert (NULL != input_diff);
-
-  output_set = lookup_set (session, &diffop->output_set);
-
-  if (NULL == output_set)
-  {
-      struct SetEntry *input_set;
-
-      input_set = lookup_set (session, &diffop->input_set);
-      GNUNET_assert (NULL != input_set);
-      GNUNET_SET_copy_lazy (input_set->h,
-                            apply_diff_copy_cb,
-                            task);
-      /* We'll be called again, this time with the
-         set ready. */
-      return;
-  }
-
-  progress_cls = GNUNET_new (struct SetChangeProgressCls);
-
-  iter = GNUNET_CONTAINER_multihashmap_iterator_create (input_diff->changes);
-
-  while (GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &di))
-  {
-    if (di->weight > 0)
-    {
-      progress_cls->num_pending++;
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_SET_remove_element (output_set->h,
-                                 di->element,
-                                 apply_diff_progress,
-                                 progress_cls));
-    }
-    else if (di->weight < 0)
-    {
-      progress_cls->num_pending++;
-      GNUNET_assert (GNUNET_OK ==
-                     GNUNET_SET_add_element (output_set->h,
-                                 di->element,
-                                 apply_diff_progress,
-                                 progress_cls));
-    }
-  }
 
   GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
 
@@ -1922,7 +1754,7 @@ task_start_apply_diff (struct TaskEntry *task)
   {
     // call closure right now, no pending ops
     GNUNET_free (progress_cls);
-    apply_diff_done (task);
+    finish_task (task);
   }
 }
 
@@ -2365,7 +2197,6 @@ step_depend_on (struct Step *step, struct Step *dep)
   GNUNET_assert (step != dep);
   GNUNET_assert (NULL != step);
   GNUNET_assert (NULL != dep);
-  // XXX: make rounds work
   GNUNET_assert (dep->round <= step->round);
 
 #ifdef GNUNET_EXTRA_LOGGING
@@ -2423,8 +2254,6 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
                                 struct Step *step_after)
 {
   uint16_t n = session->num_peers;
-  uint16_t t = n / 3;
-
   uint16_t me = session->local_peer_idx;
 
   uint16_t p1;
@@ -2451,8 +2280,6 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
 #endif
   step_depend_on (step, step_before);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: Considering leader %d\n", session->local_peer_idx, lead);
-
   if (lead == me)
   {
     for (k = 0; k < n; k++)
@@ -2462,7 +2289,6 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
       p1 = me;
       p2 = k;
       arrange_peers (&p1, &p2, n);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: GC LEADER(1): %d %d %d %d\n", session->local_peer_idx, p1, p2, rep, lead);
       task = ((struct TaskEntry) {
         .step = step,
         .start = task_start_reconcile,
@@ -2492,7 +2318,6 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
     p1 = me;
     p2 = lead;
     arrange_peers (&p1, &p2, n);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%d: GC LEADER(2): %d %d %d %d\n", session->local_peer_idx, p1, p2, rep, lead);
     task = ((struct TaskEntry) {
       .step = step,
       .key = (struct TaskKey) { PHASE_KIND_GRADECAST_LEADER, p1, p2, rep, lead},
@@ -2542,12 +2367,8 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
   task = ((struct TaskEntry) {
     .key = (struct TaskKey) { PHASE_KIND_GRADECAST_ECHO_GRADE, -1, -1, rep, lead },
     .step = step,
-    .start = task_start_eval_rfn
+    .start = task_start_eval_echo
   });
-  task.cls.eval_rfn.input_set = (struct SetKey) { SET_KIND_LEADER_PROPOSAL, rep, lead },
-  task.cls.eval_rfn.input_rfn = (struct RfnKey) { RFN_KIND_ECHO, rep, lead },
-  task.cls.eval_rfn.output_set = (struct SetKey) { SET_KIND_ECHO_RESULT, rep, lead },
-  task.cls.eval_rfn.threshold = n - t,
   put_task (session->taskmap, &task);
 
   prev_step = step;
@@ -2572,6 +2393,11 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
     });
     task.cls.setop.input_set = (struct SetKey) { SET_KIND_ECHO_RESULT, rep, lead };
     task.cls.setop.output_rfn = (struct RfnKey) { RFN_KIND_CONFIRM, rep, lead };
+    /* If there was at least one element in the echo round that was
+       contested (i.e. it had no n-t majority), then we let the other peers
+       know, and other peers let us know.  The contested flag for each peer is
+       stored in the rfn. */
+    task.cls.setop.transceive_contested = GNUNET_YES;
     put_task (session->taskmap, &task);
   }
 
@@ -2583,35 +2409,11 @@ construct_task_graph_gradecast (struct ConsensusSession *session,
 #endif
   step_depend_on (step, prev_step);
 
-  // evaluate ConfirmationReferendum and
-  // apply it to the LeaderReferendum
-  // XXX: the diff should contain grading information
   task = ((struct TaskEntry) {
     .step = step,
     .key = (struct TaskKey) { PHASE_KIND_GRADECAST_CONFIRM_GRADE, -1, -1, rep, lead },
-    .start = task_start_eval_rfn,
+    .start = task_start_grade,
   });
-  task.cls.eval_rfn.input_rfn = (struct RfnKey) { RFN_KIND_ECHO, rep, lead };
-  task.cls.eval_rfn.output_diff = (struct DiffKey) { DIFF_KIND_LEADER_CONSENSUS, rep, lead };
-  put_task (session->taskmap, &task);
-
-
-  prev_step = step;
-  /* Same round, since step only has local tasks */
-  step = create_step (session, round);
-#ifdef GNUNET_EXTRA_LOGGING
-  GNUNET_asprintf (&step->debug_name, "gc apply, lead %u rep %u", lead, rep);
-#endif
-  step_depend_on (step, prev_step);
-
-  task = ((struct TaskEntry) {
-    .step = step,
-    .key = (struct TaskKey) { PHASE_KIND_GRADECAST_APPLY_RESULT, -1, -1, rep, lead },
-    .start = task_start_leader_apply,
-  });
-  task.cls.leader_apply.input_diff_1 = (struct DiffKey) { DIFF_KIND_LEADER_PROPOSAL, rep, lead };
-  task.cls.leader_apply.input_diff_2 = (struct DiffKey) { DIFF_KIND_LEADER_CONSENSUS, rep, lead };
-  task.cls.leader_apply.output_rfn = (struct RfnKey) { RFN_KIND_GRADECAST_RESULT, rep };
   put_task (session->taskmap, &task);
 
   step_depend_on (step_after, step);
@@ -2707,16 +2509,13 @@ construct_task_graph (struct ConsensusSession *session)
     for (lead = 0; lead < n; lead++)
       construct_task_graph_gradecast (session, i, lead, step_rep_start, step_rep_end);
 
-    // TODO: add peers to ignore list, either here or
+    // TODO: add peers to blacklisted list, either here or
     // already in the gradecast.
     task = ((struct TaskEntry) {
       .step = step_rep_end,
       .key = (struct TaskKey) { PHASE_KIND_APPLY_REP, -1, -1, i, -1},
-      .start = task_start_eval_rfn,
+      .start = task_start_apply_round,
     });
-    task.cls.eval_rfn.input_set = (struct SetKey) { SET_KIND_CURRENT, i };
-    task.cls.eval_rfn.input_rfn = (struct RfnKey) { RFN_KIND_GRADECAST_RESULT, i };
-    task.cls.eval_rfn.output_set = (struct SetKey) { SET_KIND_CURRENT, i + 1 };
     put_task (session->taskmap, &task);
 
     prev_step = step_rep_end;
@@ -2804,7 +2603,7 @@ initialize_session (struct ConsensusSession *session,
     put_set (session, client_set);
   }
 
-  session->peers_ignored = GNUNET_new_array (session->num_peers, int);
+  session->peers_blacklisted = GNUNET_new_array (session->num_peers, int);
 
   /* Just construct the task graph,
      but don't run anything until the client calls conclude. */
