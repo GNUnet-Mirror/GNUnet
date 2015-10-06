@@ -460,6 +460,12 @@ connection_get (const struct GNUNET_CADET_Hash *cid)
 }
 
 
+/**
+ * Change the connection state. Cannot change a connection marked as destroyed.
+ *
+ * @param c Connection to change.
+ * @param state New state to set.
+ */
 static void
 connection_change_state (struct CadetConnection* c,
                          enum CadetConnectionState state)
@@ -2131,6 +2137,16 @@ GCC_handle_confirm (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  don't know the connection!\n");
     send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
+    GCC_check_connections ();
+    return GNUNET_OK;
+  }
+
+  if (GNUNET_NO != c->destroy)
+  {
+    GNUNET_assert (CADET_CONNECTION_DESTROYED != c->state);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "connection %s being destroyed, ignoring confirm\n",
+         GCC_2s (c));
     GCC_check_connections ();
     return GNUNET_OK;
   }
