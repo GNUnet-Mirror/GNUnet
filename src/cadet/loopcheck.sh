@@ -1,10 +1,12 @@
 #!/bin/sh
 while true; do
-    if [ "$1" == "" ]; then
+    if [ "$1" = "" ]; then
+	echo All
 	taskset 1 make check || break;
     else
+	echo One
 	LOGFILE="test_`date "+%m.%d-%H:%M:%S"`.log"
-	taskset 1 $1 |& tee $LOGFILE | grep -v DEBUG;
+	taskset 01 $1 2>&1 | tee $LOGFILE | grep -v DEBUG;
 	if [ "${PIPESTATUS[0]}" != "0" ]; then
 	    echo "Failed";
 	    date;
