@@ -1149,8 +1149,6 @@ fill_buf (struct CadetPeerQueue *queue, void *buf, size_t size, uint32_t *pid)
 static int
 should_I_drop (struct CadetPeerQueue *q)
 {
-  static int i = 0;
-
   if (0 == drop_percent)
     return GNUNET_NO;
 
@@ -1159,6 +1157,7 @@ should_I_drop (struct CadetPeerQueue *q)
 
   return GNUNET_NO;
 }
+
 
 /**
  * Core callback to write a queued packet to core buffer
