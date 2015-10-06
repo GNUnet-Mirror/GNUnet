@@ -457,7 +457,7 @@ set_external_ipv4 (void *cls,
   {
     GNUNET_break (0);
     /* actually, this should never happen, as the caller already executed just
-     * this check, but for consistency (eg: future changes in the caller) 
+     * this check, but for consistency (eg: future changes in the caller)
      * we still need to report this error...
      */
     ah->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID;
@@ -481,7 +481,7 @@ test_external_ip (struct GNUNET_NAT_AutoHandle *ah)
 {
   if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
     next_phase (ah);
-  
+
   // FIXME: CPS?
   /* try to detect external IP */
   ah->eh = GNUNET_NAT_mini_get_external_ipv4 (TIMEOUT,
@@ -628,7 +628,7 @@ test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
   ah->have_v6 = GNUNET_NO;
   ah->ret = GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO; // reset to success if any of the IFs in below iterator has a valid IP
   GNUNET_OS_network_interfaces_list (&process_if, ah);
-  
+
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "DISABLEV6",
 					 (GNUNET_YES == ah->have_v6) ? "NO" : "YES");
   next_phase (ah);
@@ -705,7 +705,7 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 
   if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
     next_phase (ah);
-  
+
   // test if upnpc is available
   have_upnpc = (GNUNET_SYSERR !=
 		GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL));
@@ -738,7 +738,7 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
   ext_ip = GNUNET_NO;
   nated = GNUNET_NO;
   binary = GNUNET_NO;
-  
+
   tmp = NULL;
   helper = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
   if ((GNUNET_OK ==
@@ -749,7 +749,7 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
   }
   else
     goto err;
-    
+
   if (GNUNET_YES ==
         GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")){
     nated = GNUNET_YES;
@@ -757,7 +757,7 @@ test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
   }
   else
     goto err;
-  
+
   if (GNUNET_YES ==
         GNUNET_OS_check_helper_binary (helper, GNUNET_YES, "-d 127.0.0.1" )){
     binary = GNUNET_OK; // use localhost as source for that one udp-port, ok for testing
@@ -798,14 +798,14 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
   }
   else
     goto err;
-  
+
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")){
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_server not possible, as we are not behind NAT\n"));
   }
   else
     goto err;
-  
+
   if (GNUNET_YES ==
       GNUNET_OS_check_helper_binary (helper, GNUNET_YES, "-d 127.0.0.1 127.0.0.2 42")){
           // none of these parameters are actually used in privilege testing mode
@@ -864,11 +864,11 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
     break;
   case AUTO_DONE:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,"Done with tests\n");
-    if(!ah->internal_ip_is_public)
+    if (!ah->internal_ip_is_public)
     {
       GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "BEHIND_NAT", "YES");
 
-      if(ah->connected_back)
+      if (ah->connected_back)
       {
         GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "PUNCHED_NAT", "YES");
       }
@@ -881,7 +881,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
       {
         GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
                                                ah->stun_ip);
-        if(ah->connected_back)
+        if (ah->connected_back)
         {
           ah->type = GNUNET_NAT_TYPE_STUN_PUNCHED_NAT;
           GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "USE_STUN", "YES");
@@ -893,7 +893,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
         }
 
       }
-      if(ah->stun_port)
+      if (ah->stun_port)
       {
         GNUNET_CONFIGURATION_set_value_number (ah->cfg, "transport-udp",
                                                "ADVERTISED_PORT",
@@ -904,7 +904,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
     else
     {
       //The internal IP is the same as public, but we didn't got a incoming connection
-      if(ah->connected_back)
+      if (ah->connected_back)
       {
         ah->type = GNUNET_NAT_TYPE_NO_NAT;
         GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "BEHIND_NAT", "NO");
@@ -918,7 +918,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
           GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
                                                  ah->stun_ip);
         }
-        if(ah->stun_port)
+        if (ah->stun_port)
         {
           GNUNET_CONFIGURATION_set_value_number (ah->cfg, "transport-udp",
                                                  "ADVERTISED_PORT",

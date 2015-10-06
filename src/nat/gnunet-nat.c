@@ -50,7 +50,7 @@ auto_conf_iter (void *cls,
                 const char *value)
 {
 
-  printf( "%s: %s \n", option, value);
+  PRINTF ( "%s: %s \n", option, value);
 }
 
 
@@ -67,11 +67,11 @@ auto_conf_iter (void *cls,
 
 void
 auto_config_cb(void *cls,
-                                 const struct GNUNET_CONFIGURATION_Handle *diff,
-                                 enum GNUNET_NAT_StatusCode result, enum GNUNET_NAT_Type type)
+               const struct GNUNET_CONFIGURATION_Handle *diff,
+               enum GNUNET_NAT_StatusCode result, enum GNUNET_NAT_Type type)
 {
   char* nat_type;
-
+  char unknown_type[64];
 
   switch (type)
   {
@@ -87,11 +87,13 @@ auto_config_cb(void *cls,
     case GNUNET_NAT_TYPE_UPNP_NAT:
       nat_type = "NAT but UPNP opened the ports";
       break;
-
+    default:
+      SPRINTF (unknown_type, "NAT unknown, type %u", type);
+      nat_type = unknown_type;
   }
 
-  printf("NAT status: %s \n", nat_type );
-  printf("SUGGESTED CHANGES: \n" );
+  PRINTF ("NAT status: %s \n", nat_type );
+  PRINTF ("SUGGESTED CHANGES: \n" );
 
   GNUNET_CONFIGURATION_iterate_section_values (diff,
                                                "nat",
@@ -104,7 +106,7 @@ auto_config_cb(void *cls,
 
 
 
-								 
+
 
 /**
  * Main function that will be run.
@@ -118,10 +120,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  
-
-  GNUNET_NAT_autoconfig_start(c,auto_config_cb, NULL);
-
+  GNUNET_NAT_autoconfig_start (c, auto_config_cb, NULL);
 }
 
 
