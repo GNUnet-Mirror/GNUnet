@@ -25,6 +25,7 @@
  */
 #include "gnunet-service-set.h"
 #include "gnunet-service-set_protocol.h"
+#include "gnunet_statistics_service.h"
 
 /**
  * How long do we hold on to an incoming channel if there is
@@ -136,6 +137,11 @@ static uint32_t lazy_copy_cookie = 1;
  * choose to accept or refuse.
  */
 static uint32_t suggest_id = 1;
+
+/**
+ * Statistics handle.
+ */
+struct GNUNET_STATISTICS_Handle *_GSS_statistics;
 
 
 /**
@@ -1716,6 +1722,7 @@ shutdown_task (void *cls,
     GNUNET_CADET_disconnect (cadet);
     cadet = NULL;
   }
+  GNUNET_STATISTICS_destroy (_GSS_statistics, GNUNET_YES);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "handled shutdown request\n");
 }
@@ -1987,6 +1994,7 @@ run (void *cls,
                                    &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server,
                               server_handlers);
+  _GSS_statistics = GNUNET_STATISTICS_create ("set", cfg);
   cadet = GNUNET_CADET_connect (cfg, NULL,
                                 &channel_new_cb,
                                 &channel_end_cb,

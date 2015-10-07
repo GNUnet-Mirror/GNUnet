@@ -589,6 +589,9 @@ struct Set
 };
 
 
+extern struct GNUNET_STATISTICS_Handle *_GSS_statistics;
+
+
 /**
  * Destroy the given operation.  Call the implementation-specific
  * cancel function of the operation.  Disconnects from the remote

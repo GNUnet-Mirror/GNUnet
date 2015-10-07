@@ -24,6 +24,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet-service-set.h"
 #include "ibf.h"
 #include "gnunet-service-set_union_strata_estimator.h"
@@ -796,10 +797,18 @@ decode_and_send (struct Operation *op)
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "decoding failed, sending larger ibf (size %u)\n",
              1<<next_order);
+        GNUNET_STATISTICS_update (_GSS_statistics,
+                                  "# of IBF retries",
+                                  1,
+                                  GNUNET_NO);
         send_ibf (op, next_order);
       }
       else
       {
+        GNUNET_STATISTICS_update (_GSS_statistics,
+                                  "# of failed union operations (too large)",
+                                  1,
+                                  GNUNET_NO);
         // XXX: Send the whole set, element-by-element
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "set union failed: reached ibf limit\n");
@@ -1094,10 +1103,19 @@ handle_p2p_elements (void *cls,
        (unsigned int) element_size,
        GNUNET_h2s (&ee->element_hash));
 
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# received elements",
+                            1,
+                            GNUNET_NO);
+
   if (GNUNET_YES == op_has_element (op, &ee->element_hash))
   {
     /* Got repeated element.  Should not happen since
      * we track demands. */
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# repeated elements",
+                              1,
+                              GNUNET_NO);
     GNUNET_break (0);
     GNUNET_free (ee);
   }
@@ -1379,6 +1397,10 @@ union_evaluate (struct Operation *op,
   op->state->phase = PHASE_EXPECT_SE;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating union operation evaluation\n");
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# of initiated union operations",
+                            1,
+                            GNUNET_NO);
   ev = GNUNET_MQ_msg_nested_mh (msg,
                                 GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
                                 opaque_context);
@@ -1415,6 +1437,12 @@ union_accept (struct Operation *op)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "accepting set union operation\n");
   GNUNET_assert (NULL == op->state);
+
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# of accepted union operations",
+                            1,
+                            GNUNET_NO);
+
   op->state = GNUNET_new (struct OperationState);
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   op->state->demanded_hashes = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
