@@ -826,8 +826,11 @@ demultiplexer (void *cls,
     }
     GNUNET_break (GNUNET_NO == n->is_ready);
     n->is_ready = GNUNET_YES;
-    GNUNET_SCHEDULER_cancel (n->unready_warn_task);
-    n->unready_warn_task = NULL;
+    if (NULL != n->unready_warn_task)
+    {
+      GNUNET_SCHEDULER_cancel (n->unready_warn_task);
+      n->unready_warn_task = NULL;
+    }
     if ((NULL != n->th) && (NULL == n->hn))
     {
       GNUNET_assert (NULL != n->th->timeout_task);
@@ -1019,52 +1022,55 @@ transport_notify_ready (void *cls,
     n->hn = NULL;
     n->th = NULL;
     GNUNET_assert (size >= sizeof (struct OutboundMessage));
-    mret =
-        th->notify (th->notify_cls, size - sizeof (struct OutboundMessage),
-                    &cbuf[ret + sizeof (struct OutboundMessage)]);
+    mret = th->notify (th->notify_cls,
+                       size - sizeof (struct OutboundMessage),
+                       &cbuf[ret + sizeof (struct OutboundMessage)]);
     GNUNET_assert (mret <= size - sizeof (struct OutboundMessage));
-    if (0 != mret)
+    if (0 == mret)
     {
-      if (NULL != n->unready_warn_task)
-        n->unready_warn_task
-          = GNUNET_SCHEDULER_add_delayed (UNREADY_WARN_TIME,
-                                          &do_warn_unready,
-                                          n);
-      n->last_payload = GNUNET_TIME_absolute_get ();
-      n->is_ready = GNUNET_NO;
-      GNUNET_assert (mret + sizeof (struct OutboundMessage) <
-                     GNUNET_SERVER_MAX_MESSAGE_SIZE);
-      obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
-      obm.header.size = htons (mret + sizeof (struct OutboundMessage));
-      obm.reserved = htonl (0);
-      obm.timeout =
-          GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining
-                                     (th->timeout));
-      obm.peer = n->id;
-      memcpy (&cbuf[ret],
-              &obm,
-              sizeof (struct OutboundMessage));
-      ret += (mret + sizeof (struct OutboundMessage));
-      size -= (mret + sizeof (struct OutboundMessage));
-      GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker,
-                                        mret);
-      delay = GNUNET_TIME_absolute_get_duration (th->request_start);
-      if (delay.rel_value_us > 1000 * 1000)
-        LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Added %u bytes of payload message at %u after %s delay\n",
-             mret,
-             ret,
-             GNUNET_STRINGS_relative_time_to_string (delay,
-                                                     GNUNET_YES));
-      else
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Added %u bytes of payload message at %u after %s delay\n",
-             mret,
-             ret,
-             GNUNET_STRINGS_relative_time_to_string (delay,
-                                                     GNUNET_YES));
+      GNUNET_free (th);
+      continue;
     }
+    if (NULL != n->unready_warn_task)
+      n->unready_warn_task
+        = GNUNET_SCHEDULER_add_delayed (UNREADY_WARN_TIME,
+                                        &do_warn_unready,
+                                        n);
+    n->last_payload = GNUNET_TIME_absolute_get ();
+    n->is_ready = GNUNET_NO;
+    GNUNET_assert (mret + sizeof (struct OutboundMessage) <
+                   GNUNET_SERVER_MAX_MESSAGE_SIZE);
+    obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
+    obm.header.size = htons (mret + sizeof (struct OutboundMessage));
+    obm.reserved = htonl (0);
+    obm.timeout =
+      GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining
+                                 (th->timeout));
+    obm.peer = n->id;
+    memcpy (&cbuf[ret],
+            &obm,
+            sizeof (struct OutboundMessage));
+    ret += (mret + sizeof (struct OutboundMessage));
+    size -= (mret + sizeof (struct OutboundMessage));
+    GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker,
+                                      mret);
+    delay = GNUNET_TIME_absolute_get_duration (th->request_start);
+    if (delay.rel_value_us > 1000 * 1000)
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Added %u bytes of payload message at %u after %s delay\n",
+           mret,
+           ret,
+           GNUNET_STRINGS_relative_time_to_string (delay,
+                                                   GNUNET_YES));
+    else
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Added %u bytes of payload message at %u after %s delay\n",
+           mret,
+           ret,
+           GNUNET_STRINGS_relative_time_to_string (delay,
+                                                   GNUNET_YES));
     GNUNET_free (th);
+    break;
   }
   /* if there are more pending messages, try to schedule those */
   schedule_transmission (h);
