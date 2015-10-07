@@ -1130,7 +1130,8 @@ stun_request_callback (void *cls,
   if (GNUNET_NAT_ERROR_SUCCESS != result)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Error processing a STUN request");
+         "Error processing a STUN request: %d\n",
+         result);
   }
   else
   {
