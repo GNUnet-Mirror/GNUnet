@@ -1734,7 +1734,9 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   if ((GNUNET_YES == h->enable_nat_client) &&
       (GNUNET_YES !=
-       GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d 127.0.0.1 127.0.0.2 42"))) // none of these parameters are actually used in privilege testing mode
+       GNUNET_OS_check_helper_binary (binary,
+                                      GNUNET_YES,
+                                      "-d 127.0.0.1 127.0.0.2 42"))) /* none of these parameters are actually used in privilege testing mode */
   {
     h->enable_nat_client = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1814,7 +1816,7 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     GNUNET_SCHEDULER_cancel (h->dns_task);
     h->dns_task = NULL;
   }
-  if (NULL !=   h->stun_task)
+  if (NULL != h->stun_task)
   {
     GNUNET_SCHEDULER_cancel (h->stun_task);
     h->stun_task = NULL;
