@@ -1057,18 +1057,20 @@ transport_notify_ready (void *cls,
     delay = GNUNET_TIME_absolute_get_duration (th->request_start);
     if (delay.rel_value_us > 1000 * 1000)
       LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Added %u bytes of payload message at %u after %s delay\n",
+           "Added %u bytes of payload message for %s after %s delay at %u b/s\n",
            mret,
-           ret,
+           GNUNET_i2s (&n->id),
            GNUNET_STRINGS_relative_time_to_string (delay,
-                                                   GNUNET_YES));
+                                                   GNUNET_YES),
+           (unsigned int) n->out_tracker.available_bytes_per_s__);
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Added %u bytes of payload message at %u after %s delay\n",
+           "Added %u bytes of payload message for %s after %s delay at %u b/s\n",
            mret,
-           ret,
+           GNUNET_i2s (&n->id),
            GNUNET_STRINGS_relative_time_to_string (delay,
-                                                   GNUNET_YES));
+                                                   GNUNET_YES),
+           (unsigned int) n->out_tracker.available_bytes_per_s__);
     GNUNET_free (th);
     break;
   }
