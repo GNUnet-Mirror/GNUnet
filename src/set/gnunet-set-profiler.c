@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_set_service.h"
 #include "gnunet_testbed_service.h"
 
@@ -34,6 +35,8 @@ static int ret;
 static unsigned int num_a = 5;
 static unsigned int num_b = 5;
 static unsigned int num_c = 20;
+
+static unsigned int dump_statistics;
 
 static char *op_str = "union";
 
@@ -57,6 +60,8 @@ static struct GNUNET_PeerIdentity local_peer;
 
 static struct GNUNET_SET_ListenHandle *set_listener;
 
+static struct GNUNET_STATISTICS_Handle *statistics;
+
 
 static int
 map_remove_iterator (void *cls,
@@ -76,6 +81,37 @@ map_remove_iterator (void *cls,
 }
 
 
+/**
+ * Callback function to process statistic values.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
+ */
+static int
+statistics_result (void *cls,
+                   const char *subsystem,
+                   const char *name,
+                   uint64_t value,
+                   int is_persistent)
+{
+  printf ("stat %s/%s=%lu\n", subsystem, name, (unsigned long) value);
+  return GNUNET_OK;
+}
+
+
+static void
+statistics_done (void *cls,
+                 int success)
+{
+  GNUNET_assert (GNUNET_YES == success);
+  printf("dumped statistics\n");
+  GNUNET_SCHEDULER_shutdown ();
+}
+
 static void
 check_all_done (void)
 {
@@ -88,7 +124,14 @@ check_all_done (void)
   printf ("set a: %d missing elements\n", GNUNET_CONTAINER_multihashmap_size (info1.sent));
   printf ("set b: %d missing elements\n", GNUNET_CONTAINER_multihashmap_size (info2.sent));
 
-  GNUNET_SCHEDULER_shutdown ();
+  if (0 == dump_statistics)
+  {
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
+  GNUNET_STATISTICS_get (statistics, NULL, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
+                         statistics_done, statistics_result, NULL);
 }
 
 
@@ -215,6 +258,7 @@ handle_shutdown (void *cls,
     GNUNET_SET_destroy (info2.set);
     info2.set = NULL;
   }
+  GNUNET_STATISTICS_destroy (statistics, GNUNET_NO);
 }
 
 
@@ -225,7 +269,6 @@ run (void *cls,
 {
   unsigned int i;
   struct GNUNET_HashCode hash;
-  struct GNUNET_HashCode hashhash;
 
   config = cfg;
 
@@ -235,6 +278,8 @@ run (void *cls,
     ret = 0;
     return;
   }
+
+  statistics = GNUNET_STATISTICS_create ("set-profiler", cfg);
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, handle_shutdown, NULL);
 
@@ -251,9 +296,6 @@ run (void *cls,
   for (i = 0; i < num_a; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    GNUNET_CRYPTO_hash (&hash, sizeof (struct GNUNET_HashCode), &hashhash);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set a: Created element %s\n",
-                GNUNET_h2s (&hashhash));
     GNUNET_CONTAINER_multihashmap_put (info1.sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
@@ -261,9 +303,6 @@ run (void *cls,
   for (i = 0; i < num_b; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    GNUNET_CRYPTO_hash (&hash, sizeof (struct GNUNET_HashCode), &hashhash);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set b: Created element %s\n",
-                GNUNET_h2s (&hashhash));
     GNUNET_CONTAINER_multihashmap_put (info2.sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
@@ -271,9 +310,6 @@ run (void *cls,
   for (i = 0; i < num_c; i++)
   {
     GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
-    GNUNET_CRYPTO_hash (&hash, sizeof (struct GNUNET_HashCode), &hashhash);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Set c: Created element %s\n",
-                GNUNET_h2s (&hashhash));
     GNUNET_CONTAINER_multihashmap_put (common_sent, &hash, NULL,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
@@ -328,6 +364,9 @@ main (int argc, char **argv)
       { 'x', "operation", NULL,
         gettext_noop ("operation to execute"),
         GNUNET_YES, &GNUNET_GETOPT_set_string, &op_str },
+      { 's', "statistics", NULL,
+        gettext_noop ("dump statistics to stdout after completion"),
+        GNUNET_NO, &GNUNET_GETOPT_set_one, &dump_statistics },
       GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run2 (argc, argv, "gnunet-set-profiler",

@@ -29,6 +29,7 @@ gnunet_set_profiler_SOURCES = \
  gnunet-set-profiler.c
 gnunet_set_profiler_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   libgnunetset.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)

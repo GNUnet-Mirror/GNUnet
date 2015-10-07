@@ -341,6 +341,10 @@ get_ibf_key (const struct GNUNET_HashCode *src,
 {
   struct IBF_Key key;
 
+  /* FIXME: Ensure that the salt is handled correctly.
+     This is a quick fix so that consensus works for now. */
+  salt = 0;
+
   GNUNET_CRYPTO_kdf (&key, sizeof (key),
                      src, sizeof *src,
                      &salt, sizeof (salt),
@@ -499,7 +503,7 @@ init_key_to_element_iterator (void *cls,
  */
 static void
 prepare_ibf (struct Operation *op,
-             uint16_t size)
+             uint32_t size)
 {
   if (NULL == op->state->key_to_element)
   {
@@ -539,6 +543,12 @@ send_ibf (struct Operation *op,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "sending ibf of size %u\n",
        1<<ibf_order);
+
+  {
+    char name[64] = { 0 };
+    snprintf (name, sizeof (name), "# sent IBF (order %u)", ibf_order);
+    GNUNET_STATISTICS_update (_GSS_statistics, name, 1, GNUNET_NO);
+  }
 
   ibf = op->state->local_ibf;
 
@@ -1116,7 +1126,6 @@ handle_p2p_elements (void *cls,
                               "# repeated elements",
                               1,
                               GNUNET_NO);
-    GNUNET_break (0);
     GNUNET_free (ee);
   }
   else

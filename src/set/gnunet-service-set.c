@@ -827,12 +827,13 @@ execute_add (struct Set *set,
 
   msg = (const struct GNUNET_SET_ElementMessage *) m;
   el.size = ntohs (m->size) - sizeof *msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Client inserts element of size %u\n",
-              el.size);
   el.data = &msg[1];
   el.element_type = ntohs (msg->element_type);
   GNUNET_SET_element_hash (&el, &hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Client inserts element %s of size %u\n",
+              GNUNET_h2s (&hash),
+              el.size);
 
   ee = GNUNET_CONTAINER_multihashmap_get (set->content->elements,
                                           &hash);
