@@ -3889,6 +3889,11 @@ libgnunet_plugin_transport_udp_done (void *cls)
                                  plugin->ppc_dll_tail,
                                  cur);
     GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+    if (NULL != cur->timeout_task)
+    {
+      GNUNET_SCHEDULER_cancel (cur->timeout_task);
+      cur->timeout_task = NULL;
+    }
     GNUNET_free (cur);
   }
   GNUNET_free (plugin);
