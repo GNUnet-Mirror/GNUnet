@@ -65,12 +65,13 @@ GNUNET_DNSSTUB_stop (struct GNUNET_DNSSTUB_Context *ctx);
  * @param cls closure
  * @param rs socket that received the response
  * @param dns dns response, never NULL
- * @param dns_len number of bytes in 'dns'
+ * @param dns_len number of bytes in @a dns
  */
-typedef void (*GNUNET_DNSSTUB_ResultCallback)(void *cls,
-					      struct GNUNET_DNSSTUB_RequestSocket *rs,
-					      const struct GNUNET_TUN_DnsHeader *dns,
-					      size_t dns_len);
+typedef void
+(*GNUNET_DNSSTUB_ResultCallback)(void *cls,
+                                 struct GNUNET_DNSSTUB_RequestSocket *rs,
+                                 const struct GNUNET_TUN_DnsHeader *dns,
+                                 size_t dns_len);
 
 
 /**
@@ -82,7 +83,7 @@ typedef void (*GNUNET_DNSSTUB_ResultCallback)(void *cls,
  * @param request DNS request to transmit
  * @param request_len number of bytes in msg
  * @param rc function to call with result
- * @param rc_cls closure for 'rc'
+ * @param rc_cls closure for @a rc
  * @return socket used for the request, NULL on error
  */
 struct GNUNET_DNSSTUB_RequestSocket *
@@ -102,7 +103,7 @@ GNUNET_DNSSTUB_resolve (struct GNUNET_DNSSTUB_Context *ctx,
  * @param request DNS request to transmit
  * @param request_len number of bytes in msg
  * @param rc function to call with result
- * @param rc_cls closure for 'rc'
+ * @param rc_cls closure for @a rc
  * @return socket used for the request, NULL on error
  */
 struct GNUNET_DNSSTUB_RequestSocket *

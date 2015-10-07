@@ -270,22 +270,27 @@ struct GNUNET_NAT_Handle
   /**
    * ID of select gnunet-helper-nat-server stdout read task
    */
-  struct GNUNET_SCHEDULER_Task * server_read_task;
+  struct GNUNET_SCHEDULER_Task *server_read_task;
 
   /**
    * ID of interface IP-scan task
    */
-  struct GNUNET_SCHEDULER_Task * ifc_task;
+  struct GNUNET_SCHEDULER_Task *ifc_task;
 
   /**
    * ID of hostname DNS lookup task
    */
-  struct GNUNET_SCHEDULER_Task * hostname_task;
+  struct GNUNET_SCHEDULER_Task *hostname_task;
 
   /**
    * ID of DynDNS lookup task
    */
   struct GNUNET_SCHEDULER_Task *dns_task;
+
+  /**
+   * Active STUN request, if any.
+   */
+  struct GNUNET_NAT_STUN_Handle *stun_request;
 
   /**
    * How often do we scan for changes in our IP address from our local
@@ -1109,12 +1114,11 @@ list_interfaces (void *cls,
 }
 
 
-
 /**
- * Callback if the STun request have a error
+ * Callback with the result from the STUN request.
  *
  * @param cls the NAT handle
- * @param result , the status
+ * @param result the status
  */
 static void
 stun_request_callback (void *cls,
@@ -1122,14 +1126,15 @@ stun_request_callback (void *cls,
 {
   struct GNUNET_NAT_Handle *h = cls;
 
-  if (NULL == h)
-    return;
-  h->waiting_stun = GNUNET_NO;
-
-  if(result != GNUNET_OK)
+  h->stun_request = NULL;
+  if (GNUNET_NAT_ERROR_SUCCESS != result)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-       "Error processing a STUN request");
+         "Error processing a STUN request");
+  }
+  else
+  {
+    h->waiting_stun = GNUNET_YES;
   }
 }
 
@@ -1153,7 +1158,7 @@ GNUNET_NAT_is_valid_stun_packet (void *cls,
   struct sockaddr_in answer;
 
   /* We are not expecting a STUN message */
-  if (! h->waiting_stun)
+  if (GNUNET_YES != h->waiting_stun)
     return GNUNET_NO;
 
   /* We dont have STUN installed */
@@ -1166,14 +1171,14 @@ GNUNET_NAT_is_valid_stun_packet (void *cls,
           sizeof(struct sockaddr_in));
 
   /*Lets handle the packet*/
-  int valid = GNUNET_NAT_stun_handle_packet (data,
-                                             len,
-                                             &answer);
-  if (! valid)
+  if (GNUNET_NO ==
+      GNUNET_NAT_stun_handle_packet (data,
+                                     len,
+                                     &answer))
     return GNUNET_NO;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Stun server returned %s:%d\n",
+       "STUN server returned %s:%d\n",
        inet_ntoa (answer.sin_addr),
        ntohs (answer.sin_port));
   /* Remove old IPs from previous STUN calls */
@@ -1208,16 +1213,19 @@ process_stun (void *cls,
        "I will request the stun server %s:%i\n",
        elem->address,
        elem->port);
-  if (GNUNET_OK ==
-      GNUNET_NAT_stun_make_request (elem->address,
+  if (NULL != h->stun_request)
+  {
+    GNUNET_NAT_stun_make_request_cancel (h->stun_request);
+    h->stun_request = NULL;
+  }
+  h->waiting_stun = GNUNET_NO;
+  h->stun_request
+    = GNUNET_NAT_stun_make_request (elem->address,
                                     elem->port,
                                     h->socket,
                                     &stun_request_callback,
-                                    NULL))
-  {
-    h->waiting_stun = GNUNET_YES;
-  }
-  else
+                                    h);
+  if (NULL == h->stun_request)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "STUN request to %s:%i failed\n",
@@ -1226,7 +1234,8 @@ process_stun (void *cls,
   }
   h->stun_task =
     GNUNET_SCHEDULER_add_delayed (h->stun_frequency,
-                                  &process_stun, h);
+                                  &process_stun,
+                                  h);
 
   /* Set actual Server*/
   if (NULL != elem->next)
@@ -1709,7 +1718,6 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       /* Set the actual STUN server*/
       h->actual_stun_server = h->stun_servers_head;
     }
-
     h->stun_task = GNUNET_SCHEDULER_add_now (&process_stun,
                                              h);
   }
@@ -1821,10 +1829,18 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
     GNUNET_SCHEDULER_cancel (h->stun_task);
     h->stun_task = NULL;
   }
+  if (NULL != h->stun_request)
+  {
+    GNUNET_NAT_stun_make_request_cancel (h->stun_request);
+    h->stun_request = NULL;
+  }
   if (NULL != h->server_proc)
   {
-    if (0 != GNUNET_OS_process_kill (h->server_proc, GNUNET_TERM_SIG))
-      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING, "nat", "kill");
+    if (0 != GNUNET_OS_process_kill (h->server_proc,
+                                     GNUNET_TERM_SIG))
+      GNUNET_log_from_strerror (GNUNET_ERROR_TYPE_WARNING,
+                                "nat",
+                                "kill");
     GNUNET_OS_process_wait (h->server_proc);
     GNUNET_OS_process_destroy (h->server_proc);
     h->server_proc = NULL;

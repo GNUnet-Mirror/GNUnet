@@ -154,14 +154,20 @@ encode_message (enum StunClasses msg_class,
 static const char *
 stun_msg2str(int msg)
 {
-  static const struct { enum StunClasses value; const char *name; } classes[] = {
+  static const struct {
+    enum StunClasses value;
+    const char *name;
+  } classes[] = {
     { STUN_REQUEST, "Request" },
     { STUN_INDICATION, "Indication" },
     { STUN_RESPONSE, "Response" },
     { STUN_ERROR_RESPONSE, "Error Response" },
     { 0, NULL }
   };
-  static const struct { enum StunMethods value; const char *name; } methods[] = {
+  static const struct {
+    enum StunMethods value;
+    const char *name;
+  } methods[] = {
     { STUN_BINDING, "Binding" },
     { 0, NULL }
   };
@@ -201,9 +207,12 @@ stun_msg2str(int msg)
  * @return string with the attribute name
  */
 static const char *
-stun_attr2str(int msg)
+stun_attr2str (int msg)
 {
-  const struct { enum StunAttributes value; const char *name; } attrs[] = {
+  static const struct {
+    enum StunAttributes value;
+    const char *name;
+  } attrs[] = {
     { STUN_MAPPED_ADDRESS, "Mapped Address" },
     { STUN_RESPONSE_ADDRESS, "Response Address" },
     { STUN_CHANGE_ADDRESS, "Change Address" },
@@ -242,7 +251,7 @@ stun_attr2str(int msg)
  * @param req, stun header to be filled
  */
 static void
-generate_request_id(struct stun_header *req)
+generate_request_id (struct stun_header *req)
 {
   unsigned int x;
 
@@ -292,7 +301,8 @@ stun_get_mapped (struct StunState *st,
   default:
     return 1;
   }
-  if (ntohs(attr->len) < 8 && returned_addr->family != 1)
+  if ( (ntohs(attr->len) < 8) &&
+       (returned_addr->family != 1) )
   {
     return 1;
   }
@@ -371,10 +381,7 @@ GNUNET_NAT_stun_handle_packet (const void *data,
          (int)len);
     return GNUNET_NO;
   }
-  else
-  {
-    len = advertised_message_size;
-  }
+  len = advertised_message_size;
   memset (&st,0, sizeof(st));
 
   while (len > 0)
@@ -415,15 +422,21 @@ GNUNET_NAT_stun_handle_packet (const void *data,
 
 
 /**
- * Clean-up used memory
+ * Cancel active STUN request. Frees associated resources
+ * and ensures that the callback is no longer invoked.
  *
- * @param handle handle to release memory for
+ * @param rh request to cancel
  */
-static void
-clean (struct GNUNET_NAT_STUN_Handle *handle)
+void
+GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh)
 {
-  GNUNET_free (handle->stun_server);
-  GNUNET_free (handle);
+  if (NULL != rh->dns_active)
+  {
+    GNUNET_RESOLVER_request_cancel (rh->dns_active);
+    rh->dns_active = NULL;
+  }
+  GNUNET_free (rh->stun_server);
+  GNUNET_free (rh);
 }
 
 
@@ -439,32 +452,35 @@ stun_dns_callback (void *cls,
                    const struct sockaddr *addr,
                    socklen_t addrlen)
 {
-  struct GNUNET_NAT_STUN_Handle *request = cls;
+  struct GNUNET_NAT_STUN_Handle *rh = cls;
   struct stun_header *req;
   uint8_t reqdata[1024];
   int reqlen;
   struct sockaddr_in server;
 
+  rh->dns_active = NULL;
   if (NULL == addr)
   {
-    request->dns_active = NULL;
-    if (GNUNET_NO == request->dns_success)
+    if (GNUNET_NO == rh->dns_success)
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
            "Error resolving host %s\n",
-           request->stun_server);
-      request->cb (request->cb_cls,
-                   GNUNET_NAT_ERROR_NOT_ONLINE);
-      clean (request);
+           rh->stun_server);
+      rh->cb (rh->cb_cls,
+              GNUNET_NAT_ERROR_NOT_ONLINE);
+      GNUNET_NAT_stun_make_request_cancel (rh);
     }
     return;
   }
 
-  request->dns_success= GNUNET_YES;
-  memset(&server,0, sizeof(server));
+  rh->dns_success = GNUNET_YES;
+  memset (&server,0, sizeof(server));
   server.sin_family = AF_INET;
   server.sin_addr = ((struct sockaddr_in *)addr)->sin_addr;
-  server.sin_port = htons(request->stun_port);
+  server.sin_port = htons(rh->stun_port);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  server.sin_len = (u_char) sizeof (struct sockaddr_in);
+#endif
 
   /*Craft the simplest possible STUN packet. A request binding*/
   req = (struct stun_header *)reqdata;
@@ -476,7 +492,7 @@ stun_dns_callback (void *cls,
   req->msgtype = htons(encode_message(STUN_REQUEST, STUN_BINDING));
 
   /* Send the packet */
-  if (-1 == GNUNET_NETWORK_socket_sendto (request->sock,
+  if (-1 == GNUNET_NETWORK_socket_sendto (rh->sock,
                                           req,
                                           ntohs(req->msglen) + sizeof(*req),
                                           (const struct sockaddr *) &server,
@@ -484,11 +500,14 @@ stun_dns_callback (void *cls,
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
                          "Fail to sendto");
-    request->cb (request->cb_cls,
-                 GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
-    clean (request);
+    rh->cb (rh->cb_cls,
+            GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
+    GNUNET_NAT_stun_make_request_cancel (rh);
     return;
   }
+  /* sending STUN request done, let's wait for replies... */
+  rh->cb (rh->cb_cls,
+          GNUNET_NAT_ERROR_SUCCESS);
 }
 
 
@@ -503,9 +522,9 @@ stun_dns_callback (void *cls,
  * @param sock the socket used to send the request
  * @param cb callback in case of error
  * @param cb_cls closure for @a cb
- * @return #GNUNET_OK success, #GNUNET_NO on error.
+ * @return NULL on error
  */
-int
+struct GNUNET_NAT_STUN_Handle *
 GNUNET_NAT_stun_make_request (const char *server,
                               uint16_t port,
                               struct GNUNET_NETWORK_Handle *sock,
@@ -529,8 +548,10 @@ GNUNET_NAT_stun_make_request (const char *server,
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR,
                          "Failed DNS");
-    clean (rh);
-    return GNUNET_NO;
+    GNUNET_NAT_stun_make_request_cancel (rh);
+    return NULL;
   }
-  return GNUNET_OK;
+  return rh;
 }
+
+/* end of nat_stun.c */

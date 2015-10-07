@@ -738,9 +738,9 @@ try_connect_using_address (void *cls,
   if (NULL == addr)
   {
     connection->dns_active = NULL;
-    if ((NULL == connection->ap_head) && 
+    if ((NULL == connection->ap_head) &&
         (NULL == connection->sock) &&
-        (NULL == connection->proxy_handshake)) 
+        (NULL == connection->proxy_handshake))
       connect_fail_continuation (connection);
     return;
   }
@@ -991,8 +991,8 @@ GNUNET_CONNECTION_create_from_sockaddr (int af_family,
 int
 GNUNET_CONNECTION_check (struct GNUNET_CONNECTION_Handle *connection)
 {
-  if ((NULL != connection->ap_head) || 
-      (NULL != connection->dns_active) || 
+  if ((NULL != connection->ap_head) ||
+      (NULL != connection->dns_active) ||
       (NULL != connection->proxy_handshake))
     return GNUNET_YES;          /* still trying to connect */
   if ( (0 != connection->destroy_later) ||
@@ -1588,7 +1588,7 @@ GNUNET_CONNECTION_create_proxied_from_handshake (struct GNUNET_CONNECTION_Handle
 
 
 /**
- * Activate proxied connection and destroy initial proxy handshake connection. 
+ * Activate proxied connection and destroy initial proxy handshake connection.
  * There must not be any pending requests for reading or writing to the
  * proxy hadshake connection at this time.
  *

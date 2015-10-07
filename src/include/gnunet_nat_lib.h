@@ -506,46 +506,65 @@ typedef void
 
 
 /**
- * Make Generic STUN request and
- * Send a generic stun request to the server specified using the specified socket.
- * possibly waiting for a reply and filling the 'reply' field with
- * the externally visible address.
- *
+ * Handle to a request given to the resolver.  Can be used to cancel
+ * the request prior to the timeout or successful execution.  Also
+ * used to track our internal state for the request.
+ */
+struct GNUNET_NAT_STUN_Handle;
 
- * @param server, the address of the stun server
- * @param port, port of the stun server
+
+/**
+ * Make generic STUN request.  Sends a generic stun request to the
+ * server specified using the specified socket.  The caller must
+ * wait for a reply on the @a sock and call
+ * #GNUNET_NAT_stun_handle_packet() if a reply is received.
+ *
+ * @param server the address of the stun server
+ * @param port port of the stun server
  * @param sock the socket used to send the request
- * @param cb callback in case of error
- * @return #GNUNET_OK success, #GNUNET_NO on error.
+ * @param cb callback in case of error (or completion)
+ * @param cb_cls closure for @a cb
+ * @return NULL on error
  */
-int
-GNUNET_NAT_stun_make_request(char * server,
-                             int port,
-                             struct GNUNET_NETWORK_Handle * sock, GNUNET_NAT_STUN_ErrorCallback cb,
-                             void *cb_cls);
+struct GNUNET_NAT_STUN_Handle *
+GNUNET_NAT_stun_make_request (const char *server,
+                              uint16_t port,
+                              struct GNUNET_NETWORK_Handle *sock,
+                              GNUNET_NAT_STUN_ErrorCallback cb,
+                              void *cb_cls);
 
 
 /**
+ * Cancel active STUN request. Frees associated resources
+ * and ensures that the callback is no longer invoked.
  *
- * Handle an incoming STUN message, Do some basic sanity checks on packet size and content,
- * try to extract a bit of information, and possibly reply.
- * At the moment this only processes BIND requests, and returns
- * the externally visible address of the request.
- * If a callback is specified, invoke it with the attribute.
- *
- * @param data, the packet
- * @param len, the length of the packet
- * @param arg, sockaddr_in where we will set our discovered packet
- *
- * @return, #GNUNET_OK on OK, #GNUNET_NO if the packet is invalid ( not a stun packet)
+ * @param rh request to cancel
  */
-int
-GNUNET_NAT_stun_handle_packet(const void *data,
-                              size_t len,
-                              struct sockaddr_in *arg);
+void
+GNUNET_NAT_stun_make_request_cancel (struct GNUNET_NAT_STUN_Handle *rh);
+
 
 /**
- * CHECK if is a valid STUN packet sending to GNUNET_NAT_stun_handle_packet.
+ * Handle an incoming STUN message. Do some basic sanity checks on
+ * packet size and content, try to extract a bit of information, and
+ * possibly reply.  At the moment this only processes BIND requests,
+ * and returns the externally visible address of the request.  If a
+ * callback is specified, invoke it with the attribute.
+ *
+ * @param data the packet
+ * @param len the length of the packet
+ * @param arg sockaddr_in where we will set our discovered packet
+ * @return #GNUNET_OK on OK,
+ *          #GNUNET_NO if the packet is not a stun packet
+ */
+int
+GNUNET_NAT_stun_handle_packet (const void *data,
+                               size_t len,
+                               struct sockaddr_in *arg);
+
+
+/**
+ * CHECK if is a valid STUN packet sending to #GNUNET_NAT_stun_handle_packet().
  * It also check if it can handle the packet based on the NAT handler.
  * You don't need to call anything else to check if the packet is valid,
  *
@@ -553,12 +572,12 @@ GNUNET_NAT_stun_handle_packet(const void *data,
  * @param data, packet
  * @param len, packet length
  *
- * @return #GNUNET_NO if it can't decode,# GNUNET_YES if is a packet
+ * @return #GNUNET_NO if it can't decode, #GNUNET_YES if is a packet
  */
 int
-GNUNET_NAT_is_valid_stun_packet(void *cls,
-                                  const void *data,
-                                  size_t len);
+GNUNET_NAT_is_valid_stun_packet (void *cls,
+                                 const void *data,
+                                 size_t len);
 
 
 
