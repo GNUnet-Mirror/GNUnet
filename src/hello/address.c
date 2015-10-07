@@ -143,7 +143,7 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
   if (0 != ret)
     return ret;
   if (a1->local_info != a2->local_info)
-    return (((int) a1->local_info) < ((int) a2->local_info)) -1 : 1;
+    return (((int) a1->local_info) < ((int) a2->local_info)) ? -1 : 1;
   if (a1->address_length < a2->address_length)
     return -1;
   if (a1->address_length > a2->address_length)
