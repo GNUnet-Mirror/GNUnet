@@ -429,6 +429,8 @@ cleanup_validation_entry (void *cls,
   if (GNUNET_YES == ve->known_to_ats)
   {
     GST_ats_expire_address (ve->address);
+    GNUNET_assert (GNUNET_NO ==
+                   GST_ats_is_known_no_session (ve->address));
     ve->known_to_ats = GNUNET_NO;
   }
   GNUNET_HELLO_address_free (ve->address);
@@ -781,6 +783,8 @@ find_validation_entry (const struct GNUNET_HELLO_Address *address)
                                               &validation_entry_match, &vemc);
   if (NULL != (ve = vemc.ve))
     return ve;
+  GNUNET_assert (GNUNET_NO ==
+                 GST_ats_is_known_no_session (address));
   ve = GNUNET_new (struct ValidationEntry);
   ve->in_use = GNUNET_SYSERR; /* not defined */
   ve->address = GNUNET_HELLO_address_copy (address);
@@ -859,6 +863,8 @@ add_valid_address (void *cls,
   {
     ve->known_to_ats = GNUNET_YES;
     GST_ats_add_address (address, &prop);
+    GNUNET_assert (GNUNET_YES ==
+                   GST_ats_is_known_no_session (ve->address));
   }
   return GNUNET_OK;
 }
@@ -1490,6 +1496,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   {
     if (GNUNET_YES == ve->known_to_ats)
     {
+      GNUNET_assert (GNUNET_YES ==
+                     GST_ats_is_known_no_session (ve->address));
       GST_ats_update_delay (ve->address,
                             GNUNET_TIME_relative_divide (ve->latency, 2));
     }
@@ -1500,8 +1508,12 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
       memset (&prop, 0, sizeof (prop));
       prop.scope = ve->network;
       prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
+      GNUNET_assert (GNUNET_NO ==
+                     GST_ats_is_known_no_session (ve->address));
       ve->known_to_ats = GNUNET_YES;
       GST_ats_add_address (ve->address, &prop);
+      GNUNET_assert (GNUNET_YES ==
+                     GST_ats_is_known_no_session (ve->address));
     }
   }
   if (validations_running > 0)

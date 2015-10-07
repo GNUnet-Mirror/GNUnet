@@ -249,17 +249,30 @@ find_ai_no_session (const struct GNUNET_HELLO_Address *address)
 
 
 /**
- * Test if ATS knows about this address.
+ * Test if ATS knows about this @a address and @a session.
  *
  * @param address the address
  * @param session the session
- * @return #GNUNET_YES if address is known, #GNUNET_NO if not.
+ * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
  */
 int
 GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
                   struct Session *session)
 {
   return (NULL != find_ai (address, session)) ? GNUNET_YES : GNUNET_NO;
+}
+
+
+/**
+ * Test if ATS knows about this @a address.
+ *
+ * @param address the address
+ * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
+ */
+int
+GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address)
+{
+  return (NULL != find_ai_no_session (address)) ? GNUNET_YES : GNUNET_NO;
 }
 
 

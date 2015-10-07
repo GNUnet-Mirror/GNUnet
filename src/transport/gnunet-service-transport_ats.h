@@ -42,15 +42,25 @@ GST_ats_done (void);
 
 
 /**
- * Test if ATS knows about this address.
+ * Test if ATS knows about this @a address and @a session.
  *
  * @param address the address
  * @param session the session
- * @return #GNUNET_YES if address is known, #GNUNET_NO if not.
+ * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
  */
 int
 GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
                   struct Session *session);
+
+
+/**
+ * Test if ATS knows about this @a address.
+ *
+ * @param address the address
+ * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
+ */
+int
+GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address);
 
 
 /**
