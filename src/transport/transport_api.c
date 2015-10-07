@@ -1018,7 +1018,6 @@ transport_notify_ready (void *cls,
     GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
     n->hn = NULL;
     n->th = NULL;
-    n->is_ready = GNUNET_NO; // FIXME! move into 'if' below!
     GNUNET_assert (size >= sizeof (struct OutboundMessage));
     mret =
         th->notify (th->notify_cls, size - sizeof (struct OutboundMessage),
@@ -1032,6 +1031,7 @@ transport_notify_ready (void *cls,
                                           &do_warn_unready,
                                           n);
       n->last_payload = GNUNET_TIME_absolute_get ();
+      n->is_ready = GNUNET_NO;
       GNUNET_assert (mret + sizeof (struct OutboundMessage) <
                      GNUNET_SERVER_MAX_MESSAGE_SIZE);
       obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
