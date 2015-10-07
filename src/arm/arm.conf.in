@@ -41,6 +41,8 @@ GLOBAL_PREFIX = @MONKEYPREFIX@
 #
 # USER_ONLY = YES
 
+# File where we should log per-service resource consumption on exit.
+# RESOURCE_DIAGNOSTICS = resource.log
 
 
 # Name of the user that will be used to provide the service

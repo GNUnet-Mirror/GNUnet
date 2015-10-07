@@ -204,6 +204,8 @@ src/identity/gnunet-service-identity.c
 src/identity/identity_api.c
 src/identity/identity_api_lookup.c
 src/identity/plugin_rest_identity.c
+src/identity-token/gnunet-identity-token.c
+src/identity-token/plugin_rest_identity_token.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
@@ -254,7 +256,6 @@ src/psyc/psyc_api.c
 src/psycstore/gnunet-service-psycstore.c
 src/psycstore/plugin_psycstore_sqlite.c
 src/psycstore/psycstore_api.c
-src/psycstore/psyc_util_lib.c
 src/psycstore/psyc_util_lib.c
 src/pt/gnunet-daemon-pt.c
 src/regex/gnunet-daemon-regexprofiler.c

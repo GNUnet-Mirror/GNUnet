@@ -375,7 +375,7 @@ then
   bluetooth=1
 fi
 AM_CONDITIONAL(HAVE_LIBBLUETOOTH, [test "$bluetooth" = 1])
-if test "$bluetooth" = 1	  
+if test "$bluetooth" = 1
 then
   AC_DEFINE([HAVE_LIBBLUETOOTH],[1],[Have bluetooth library])
 else
@@ -781,7 +781,7 @@ postgres=false
 AX_LIB_POSTGRESQL([])
 if test "$found_postgresql" = "yes"; then
   CPPFLAGS="$CPPFLAGS $POSTGRESQL_CPPFLAGS"
-  AC_CHECK_HEADERS([libpq-fe.h], 
+  AC_CHECK_HEADERS([libpq-fe.h],
     postgres=true)
 fi
 
@@ -1002,7 +1002,7 @@ AC_FUNC_VPRINTF
 AC_HEADER_SYS_WAIT
 AC_TYPE_OFF_T
 AC_TYPE_UID_T
-AC_CHECK_FUNCS([atoll stat64 strnlen mremap getrlimit setrlimit sysconf initgroups strndup gethostbyname2 getpeerucred getpeereid setresuid $funcstocheck getifaddrs freeifaddrs getresgid mallinfo malloc_size malloc_usable_size getrusage random srandom stat statfs statvfs])
+AC_CHECK_FUNCS([atoll stat64 strnlen mremap getrlimit setrlimit sysconf initgroups strndup gethostbyname2 getpeerucred getpeereid setresuid $funcstocheck getifaddrs freeifaddrs getresgid mallinfo malloc_size malloc_usable_size getrusage random srandom stat statfs statvfs wait4])
 
 # restore LIBS
 LIBS=$SAVE_LIBS

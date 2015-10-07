@@ -29,6 +29,19 @@
 #include "gnunet_protocols.h"
 #include "arm.h"
 
+#if HAVE_WAIT4
+/**
+ * Name of the file for writing resource utilization summaries to.
+ */
+static char *wait_filename;
+
+/**
+ * Handle for the file for writing resource summaries.
+ */
+static FILE *wait_file;
+#endif
+
+
 /**
  * How many messages do we queue up at most for optional
  * notifications to a client?  (this can cause notifications
@@ -81,7 +94,7 @@ struct ServiceListeningInfo
   /**
    * Task doing the accepting.
    */
-  struct GNUNET_SCHEDULER_Task * accept_task;
+  struct GNUNET_SCHEDULER_Task *accept_task;
 
 };
 
@@ -1193,12 +1206,76 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	  free_service (pos);
 	continue;
       }
+#if HAVE_WAIT4
+      if (NULL != wait_file)
+      {
+        /* need to use 'wait4()' to obtain and log performance data */
+        struct rusage ru;
+        int status;
+        pid_t pid;
+
+        pid = GNUNET_OS_process_get_pid (pos->proc);
+        ret = wait4 (pid,
+                     &status,
+                     WNOHANG,
+                     &ru);
+        if (ret <= 0)
+          continue; /* no process done */
+        if (WIFEXITED (status))
+        {
+          statusType = GNUNET_OS_PROCESS_EXITED;
+          statusCode = WEXITSTATUS (status);
+        }
+        else if (WIFSIGNALED (status))
+        {
+          statusType = GNUNET_OS_PROCESS_SIGNALED;
+          statusCode = WTERMSIG (status);
+        }
+        else if (WIFSTOPPED (status))
+        {
+          statusType = GNUNET_OS_PROCESS_SIGNALED;
+          statusCode = WSTOPSIG (status);
+        }
+#ifdef WIFCONTINUED
+        else if (WIFCONTINUED (status))
+        {
+          statusType = GNUNET_OS_PROCESS_RUNNING;
+          statusCode = 0;
+        }
+#endif
+        else
+        {
+          statusType = GNUNET_OS_PROCESS_UNKNOWN;
+          statusCode = 0;
+        }
+        if ( (GNUNET_OS_PROCESS_EXITED == statusType) ||
+             (GNUNET_OS_PROCESS_SIGNALED == statusType) )
+        {
+          fprintf (wait_file,
+                   "%s(%u) %llu.%llu %llu.%llu %llu %llu %llu %llu %llu\n",
+                   pos->binary,
+                   (unsigned int) pid,
+                   (unsigned long long) ru.ru_utime.tv_sec,
+                   (unsigned long long) ru.ru_utime.tv_usec,
+                   (unsigned long long) ru.ru_stime.tv_sec,
+                   (unsigned long long) ru.ru_stime.tv_usec,
+                   (unsigned long long) ru.ru_maxrss,
+                   (unsigned long long) ru.ru_inblock,
+                   (unsigned long long) ru.ru_oublock,
+                   (unsigned long long) ru.ru_nvcsw,
+                   (unsigned long long) ru.ru_nivcsw);
+        }
+      }
+      else /* continue with #else */
+#else
       if ((GNUNET_SYSERR ==
 	   (ret =
-	    GNUNET_OS_process_status (pos->proc, &statusType, &statusCode)))
-	  || ((ret == GNUNET_NO) || (statusType == GNUNET_OS_PROCESS_STOPPED)
-	      || (statusType == GNUNET_OS_PROCESS_RUNNING)))
+	    GNUNET_OS_process_status (pos->proc, &statusType, &statusCode))) ||
+          ((ret == GNUNET_NO) ||
+           (statusType == GNUNET_OS_PROCESS_STOPPED) ||
+           (statusType == GNUNET_OS_PROCESS_RUNNING) ) )
 	continue;
+#endif
       if (statusType == GNUNET_OS_PROCESS_EXITED)
       {
 	statstr = _( /* process termination method */ "exit");
@@ -1501,7 +1578,23 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
 				    GNUNET_DISK_pipe_handle (sigpipe,
 							     GNUNET_DISK_PIPE_END_READ),
 				    &maint_child_death, NULL);
-
+#if HAVE_WAIT4
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_filename (cfg,
+                                               "ARM",
+                                               "RESOURCE_DIAGNOSTICS",
+                                               &wait_filename))
+  {
+    wait_file = fopen (wait_filename,
+                       "w");
+    if (NULL == wait_file)
+    {
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
+                                "fopen",
+                                wait_filename);
+    }
+  }
+#endif
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "ARM", "GLOBAL_PREFIX",
 					     &prefix_command))
@@ -1560,6 +1653,18 @@ main (int argc, char *const *argv)
     (GNUNET_OK ==
      GNUNET_SERVICE_run (argc, argv, "arm",
 			 GNUNET_SERVICE_OPTION_MANUAL_SHUTDOWN, &run, NULL)) ? 0 : 1;
+#if HAVE_WAIT4
+  if (NULL != wait_file)
+  {
+    fclose (wait_file);
+    wait_file = NULL;
+  }
+  if (NULL != wait_filename)
+  {
+    GNUNET_free (wait_filename);
+    wait_filename = NULL;
+  }
+#endif
   GNUNET_SIGNAL_handler_uninstall (shc_chld);
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
