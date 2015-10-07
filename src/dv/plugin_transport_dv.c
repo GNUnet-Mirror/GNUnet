@@ -990,7 +990,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->query_keepalive_factor = &dv_plugin_query_keepalive_factor;
   api->get_session = &dv_get_session;
   api->get_network = &dv_get_network;
-  api->get_network_for_address = &dv_get_network_for_address;
+  api->get_network_for_address = &dv_plugin_get_network_for_address;
   api->update_session_timeout = &dv_plugin_update_session_timeout;
   api->setup_monitor = &dv_plugin_setup_monitor;
   return api;
