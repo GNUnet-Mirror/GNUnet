@@ -247,4 +247,17 @@ http_common_cmp_addresses (const void *addr1,
                            const void *addr2,
                            size_t addrlen2);
 
+
+/**
+ * Function obtain the network type for an address.
+ *
+ * @param env the environment
+ * @param address the address
+ * @return the network type
+ */
+enum GNUNET_ATS_Network_Type
+http_common_get_network_for_address (struct GNUNET_TRANSPORT_PluginEnvironment *env,
+                                     const struct GNUNET_HELLO_Address *address);
+
+
 /* end of plugin_transport_http_common.h */

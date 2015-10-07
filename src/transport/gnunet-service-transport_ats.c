@@ -478,6 +478,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
   ai = find_ai_no_session (address);
   GNUNET_assert (NULL == ai);
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Notifying ATS about peer `%s''s new address `%s'\n",
        GNUNET_i2s (&address->peer),

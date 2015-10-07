@@ -3251,7 +3251,7 @@ http_server_plugin_address_to_string (void *cls,
 /**
  * Function obtain the network type for a session
  *
- * @param cls closure ('struct HTTP_Server_Plugin*')
+ * @param cls closure (`struct HTTP_Server_Plugin *`)
  * @param session the session
  * @return the network type in HBO or #GNUNET_SYSERR
  */
@@ -3260,6 +3260,24 @@ http_server_plugin_get_network (void *cls,
                                 struct Session *session)
 {
   return session->scope;
+}
+
+
+/**
+ * Function obtain the network type for an address.
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type
+http_server_plugin_get_network_for_address (void *cls,
+                                            const struct GNUNET_HELLO_Address *address)
+{
+  struct HTTP_Server_Plugin *plugin = cls;
+
+  return http_common_get_network_for_address (plugin->env,
+                                              address);
 }
 
 
@@ -3393,6 +3411,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->string_to_address = &http_common_plugin_string_to_address;
   api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
   api->get_network = &http_server_plugin_get_network;
+  api->get_network_for_address = &http_server_plugin_get_network_for_address;
   api->update_session_timeout = &http_server_plugin_update_session_timeout;
   api->update_inbound_delay = &http_server_plugin_update_inbound_delay;
   api->setup_monitor = &http_server_plugin_setup_monitor;

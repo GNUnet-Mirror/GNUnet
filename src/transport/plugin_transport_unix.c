@@ -805,6 +805,22 @@ unix_plugin_get_network (void *cls,
 
 
 /**
+ * Function obtain the network type for a session
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type
+unix_plugin_get_network_for_address (void *cls,
+                                     const struct GNUNET_HELLO_Address *address)
+
+{
+  return GNUNET_ATS_NET_LOOPBACK;
+}
+
+
+/**
  * Creates a new outbound session the transport service will use to send data to the
  * peer
  *
@@ -1798,6 +1814,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->check_address = &unix_plugin_check_address;
   api->string_to_address = &unix_plugin_string_to_address;
   api->get_network = &unix_plugin_get_network;
+  api->get_network_for_address = &unix_plugin_get_network_for_address;
   api->update_session_timeout = &unix_plugin_update_session_timeout;
   api->setup_monitor = &unix_plugin_setup_monitor;
   sockets_created = unix_transport_server_start (plugin);

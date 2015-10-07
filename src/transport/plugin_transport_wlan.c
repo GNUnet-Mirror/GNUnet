@@ -1292,6 +1292,25 @@ wlan_plugin_get_network (void *cls,
 
 
 /**
+ * Function obtain the network type for an address.
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type
+wlan_plugin_get_network_for_address (void *cls,
+                                    const struct GNUNET_HELLO_Address *address)
+{
+#if BUILD_WLAN
+  return GNUNET_ATS_NET_WLAN;
+#else
+  return GNUNET_ATS_NET_BT;
+#endif
+}
+
+
+/**
  * Creates a new outbound session the transport service will use to
  * send data to the peer
  *
@@ -2332,6 +2351,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->address_to_string = &wlan_plugin_address_to_string;
   api->string_to_address = &wlan_plugin_string_to_address;
   api->get_network = &wlan_plugin_get_network;
+  api->get_network_for_address = &wlan_plugin_get_network_for_address;
   api->update_session_timeout = &wlan_plugin_update_session_timeout;
   api->update_inbound_delay = &wlan_plugin_update_inbound_delay;
   api->setup_monitor = &wlan_plugin_setup_monitor;

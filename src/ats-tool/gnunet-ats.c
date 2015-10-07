@@ -647,7 +647,7 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
                GNUNET_ATS_print_network_type (c));
       GNUNET_asprintf (&quota_out_str, "-");
     }
-    GNUNET_free(entry_out);
+    GNUNET_free (entry_out);
 
     /* quota in */
     if (GNUNET_OK ==
@@ -660,7 +660,7 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
           || (GNUNET_SYSERR ==
               GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &quota_in)))
         quota_in = UINT32_MAX;
-      GNUNET_free(quota_in_str);
+      GNUNET_free (quota_in_str);
       GNUNET_asprintf (&quota_in_str, "%llu", quota_in);
     }
     else

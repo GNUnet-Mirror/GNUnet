@@ -176,6 +176,7 @@ GAS_handle_address_add (void *cls,
                             GNUNET_NO);
   GNUNET_ATS_properties_ntoh (&prop,
                               &m->properties);
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop.scope);
   GAS_addresses_add (&m->peer,
                      plugin_name,
                      address,

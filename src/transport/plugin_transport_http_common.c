@@ -854,8 +854,10 @@ http_common_address_get_size (const struct HttpAddress * addr)
  * @return #GNUNET_YES if equal, #GNUNET_NO if not, #GNUNET_SYSERR on error
  */
 size_t
-http_common_cmp_addresses (const void *addr1, size_t addrlen1,
-    const void *addr2, size_t addrlen2)
+http_common_cmp_addresses (const void *addr1,
+                           size_t addrlen1,
+                           const void *addr2,
+                           size_t addrlen2)
 {
   const char *a1 = addr1;
   const char *a2 = addr2;
@@ -887,5 +889,50 @@ http_common_cmp_addresses (const void *addr1, size_t addrlen1,
     return GNUNET_YES;
   return GNUNET_NO;
 }
+
+
+/**
+ * Function obtain the network type for an address.
+ *
+ * @param env the environment
+ * @param address the address
+ * @return the network type
+ */
+enum GNUNET_ATS_Network_Type
+http_common_get_network_for_address (struct GNUNET_TRANSPORT_PluginEnvironment *env,
+                                     const struct GNUNET_HELLO_Address *address)
+{
+
+  struct sockaddr *sa;
+  enum GNUNET_ATS_Network_Type net_type;
+  size_t salen = 0;
+  int res;
+
+  net_type = GNUNET_ATS_NET_UNSPECIFIED;
+  sa = http_common_socket_from_address (address->address,
+                                        address->address_length,
+                                        &res);
+  if (GNUNET_SYSERR == res)
+    return net_type;
+  if (GNUNET_YES == res)
+  {
+    GNUNET_assert (NULL != sa);
+    if (AF_INET == sa->sa_family)
+    {
+      salen = sizeof (struct sockaddr_in);
+    }
+    else if (AF_INET6 == sa->sa_family)
+    {
+      salen = sizeof (struct sockaddr_in6);
+    }
+    net_type = env->get_address_type (env->cls,
+                                      sa,
+                                      salen);
+    GNUNET_free (sa);
+  }
+  return net_type;
+}
+
+
 
 /* end of plugin_transport_http_common.c */

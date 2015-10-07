@@ -499,6 +499,7 @@ typedef void
                                         struct Session *session,
                                         struct GNUNET_TIME_Relative delay);
 
+
 /**
  * Function called for a quick conversion of the binary address to
  * a numeric address.  Note that the caller must not free the
@@ -546,6 +547,18 @@ typedef int
 typedef enum GNUNET_ATS_Network_Type
 (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
                                     struct Session *session);
+
+
+/**
+ * Function to obtain the network type for an address.
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+typedef enum GNUNET_ATS_Network_Type
+(*GNUNET_TRANSPORT_GetNetworkTypeForAddress) (void *cls,
+                                              const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -678,6 +691,11 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * Function to obtain the network type for a session
    */
   GNUNET_TRANSPORT_GetNetworkType get_network;
+
+  /**
+   * Function to obtain the network type for an address
+   */
+  GNUNET_TRANSPORT_GetNetworkTypeForAddress get_network_for_address;
 
   /**
    * Function to monitor the sessions managed by the plugin.

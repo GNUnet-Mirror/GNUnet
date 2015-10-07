@@ -3530,7 +3530,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 
   if ( ( (GNUNET_TRANSPORT_PS_SYN_RECV_ACK != n->state) &&
 	 (ACK_SEND_ACK != n->ack_state) ) ||
-       (NULL == n->primary_address.address) ) 
+       (NULL == n->primary_address.address) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received unexpected ACK message from peer `%s' in state %s/%s\n",
@@ -3850,10 +3850,11 @@ neighbours_iterate (void *cls,
  * Iterate over all connected neighbours.
  *
  * @param cb function to call
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  */
 void
-GST_neighbours_iterate (GST_NeighbourIterator cb, void *cb_cls)
+GST_neighbours_iterate (GST_NeighbourIterator cb,
+                        void *cb_cls)
 {
   struct IteratorContext ic;
 
@@ -3930,7 +3931,7 @@ GST_neighbours_start (unsigned int max_fds)
  *
  * @param cls unused
  * @param key hash of neighbour's public key (not used)
- * @param value the 'struct NeighbourMapEntry' of the neighbour
+ * @param value the `struct NeighbourMapEntry` of the neighbour
  * @return #GNUNET_OK (continue to iterate)
  */
 static int

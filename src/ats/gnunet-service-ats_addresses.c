@@ -225,6 +225,7 @@ GAS_addresses_add (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
   new_address = create_address (peer,
                                 plugin_name,
                                 plugin_addr,
@@ -294,7 +295,7 @@ GAS_addresses_update (const struct GNUNET_PeerIdentity *peer,
               "Received ADDRESS_UPDATE for peer `%s' slot %u\n",
               GNUNET_i2s (peer),
               (unsigned int) session_id);
-
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
   /* Update address */
   aa->t_last_activity = GNUNET_TIME_absolute_get();
   aa->properties = *prop;

@@ -614,10 +614,70 @@ udp_query_keepalive_factor (void *cls)
  * @return the network type
  */
 static enum GNUNET_ATS_Network_Type
-udp_get_network (void *cls,
-                 struct Session *session)
+udp_plugin_get_network (void *cls,
+                        struct Session *session)
 {
   return session->scope;
+}
+
+
+/**
+ * Function obtain the network type for an address.
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type
+udp_plugin_get_network_for_address (void *cls,
+                                    const struct GNUNET_HELLO_Address *address)
+{
+  struct Plugin *plugin = cls;
+  size_t addrlen;
+  struct sockaddr_in a4;
+  struct sockaddr_in6 a6;
+  const struct IPv4UdpAddress *u4;
+  const struct IPv6UdpAddress *u6;
+  const void *sb;
+  size_t sbs;
+
+  addrlen = address->address_length;
+  if (addrlen == sizeof(struct IPv6UdpAddress))
+  {
+    GNUNET_assert (NULL != address->address); /* make static analysis happy */
+    u6 = address->address;
+    memset (&a6, 0, sizeof(a6));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    a6.sin6_len = sizeof (a6);
+#endif
+    a6.sin6_family = AF_INET6;
+    a6.sin6_port = u6->u6_port;
+    memcpy (&a6.sin6_addr, &u6->ipv6_addr, sizeof(struct in6_addr));
+    sb = &a6;
+    sbs = sizeof(a6);
+  }
+  else if (addrlen == sizeof(struct IPv4UdpAddress))
+  {
+    GNUNET_assert (NULL != address->address); /* make static analysis happy */
+    u4 = address->address;
+    memset (&a4, 0, sizeof(a4));
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    a4.sin_len = sizeof (a4);
+#endif
+    a4.sin_family = AF_INET;
+    a4.sin_port = u4->u4_port;
+    a4.sin_addr.s_addr = u4->ipv4_addr;
+    sb = &a4;
+    sbs = sizeof(a4);
+  }
+  else
+  {
+    GNUNET_break (0);
+    return GNUNET_ATS_NET_UNSPECIFIED;
+  }
+  return plugin->env->get_address_type (plugin->env->cls,
+                                        sb,
+                                        sbs);
 }
 
 
@@ -3766,7 +3826,8 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->check_address = &udp_plugin_check_address;
   api->get_session = &udp_plugin_get_session;
   api->send = &udp_plugin_send;
-  api->get_network = &udp_get_network;
+  api->get_network = &udp_plugin_get_network;
+  api->get_network_for_address = &udp_plugin_get_network_for_address;
   api->update_session_timeout = &udp_plugin_update_session_timeout;
   api->setup_monitor = &udp_plugin_setup_monitor;
   return api;

@@ -789,7 +789,9 @@ find_validation_entry (const struct GNUNET_HELLO_Address *address)
   ve->in_use = GNUNET_SYSERR; /* not defined */
   ve->address = GNUNET_HELLO_address_copy (address);
   ve->pong_sig_valid_until = GNUNET_TIME_UNIT_ZERO_ABS;
-  memset (&ve->pong_sig_cache, '\0', sizeof (struct GNUNET_CRYPTO_EddsaSignature));
+  memset (&ve->pong_sig_cache,
+          '\0',
+          sizeof (struct GNUNET_CRYPTO_EddsaSignature));
   ve->latency = GNUNET_TIME_UNIT_FOREVER_REL;
   ve->challenge =
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -828,6 +830,7 @@ add_valid_address (void *cls,
   struct ValidationEntry *ve;
   struct GNUNET_PeerIdentity pid;
   struct GNUNET_ATS_Properties prop;
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
     return GNUNET_OK;           /* expired */
@@ -836,14 +839,26 @@ add_valid_address (void *cls,
     GNUNET_break (0);
     return GNUNET_OK;           /* invalid HELLO !? */
   }
-  if (NULL == GST_plugins_find (address->transport_name))
+  if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     /* might have been valid in the past, but we don't have that
        plugin loaded right now */
     return GNUNET_OK;
   }
+  if (NULL ==
+      papi->address_to_string (papi->cls,
+                               address->address,
+                               address->address_length))
+  {
+    /* Why do we try to add an ill-formed address? */
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
 
   ve = find_validation_entry (address);
+  ve->network = papi->get_network_for_address (papi->cls,
+                                               address);
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
   ve->valid_until = GNUNET_TIME_absolute_max (ve->valid_until,
                                               expiration);
   if (NULL == ve->revalidation_task)
@@ -857,6 +872,7 @@ add_valid_address (void *cls,
   validation_entry_changed (ve,
                             GNUNET_TRANSPORT_VS_UPDATE);
   memset (&prop, 0, sizeof (prop));
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
   prop.scope = ve->network;
   prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
   if (GNUNET_YES != ve->known_to_ats)
@@ -1506,6 +1522,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
       struct GNUNET_ATS_Properties prop;
 
       memset (&prop, 0, sizeof (prop));
+      GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != ve->network);
       prop.scope = ve->network;
       prop.delay = GNUNET_TIME_relative_divide (ve->latency, 2);
       GNUNET_assert (GNUNET_NO ==

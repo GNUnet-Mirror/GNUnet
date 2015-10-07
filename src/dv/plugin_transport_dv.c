@@ -860,6 +860,21 @@ dv_get_network (void *cls,
 
 
 /**
+ * Function obtain the network type for an address.
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type
+dv_plugin_get_network_for_address (void *cls,
+                                   const struct GNUNET_HELLO_Address *address)
+{
+  return GNUNET_ATS_NET_WAN; /* FOR NOW */
+}
+
+
+/**
  * Function that is called to get the keepalive factor.
  * #GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
  * calculate the interval between keepalive packets.
@@ -975,6 +990,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->query_keepalive_factor = &dv_plugin_query_keepalive_factor;
   api->get_session = &dv_get_session;
   api->get_network = &dv_get_network;
+  api->get_network_for_address = &dv_get_network_for_address;
   api->update_session_timeout = &dv_plugin_update_session_timeout;
   api->setup_monitor = &dv_plugin_setup_monitor;
   return api;
