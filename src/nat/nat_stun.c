@@ -445,18 +445,6 @@ stun_dns_callback (void *cls,
   int reqlen;
   struct sockaddr_in server;
 
-  if (NULL == request)
-  {
-    if (GNUNET_NO == request->dns_success)
-    {
-      LOG (GNUNET_ERROR_TYPE_INFO,
-           "Empty request\n");
-      request->cb (request->cb_cls,
-                   GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR);
-      clean (request);
-    }
-    return;
-  }
   if (NULL == addr)
   {
     request->dns_active = NULL;
