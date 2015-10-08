@@ -36,6 +36,45 @@
 /* add error and config prototypes */
 #include "gnunet_crypto_lib.h"
 
+
+/**
+ * Try to compress the given block of data using libz.  Only returns
+ * the compressed block if compression worked and the new block is
+ * actually smaller.  Decompress using #GNUNET_decompress().
+ *
+ * @param data block to compress; if compression
+ *        resulted in a smaller block, the first
+ *        bytes of data are updated to the compressed
+ *        data
+ * @param old_size number of bytes in data
+ * @param[out] result set to the compressed data, if compression worked
+ * @param[out] new_size set to size of result, if compression worked
+ * @return #GNUNET_YES if compression reduce the size,
+ *         #GNUNET_NO if compression did not help
+ */
+int
+GNUNET_try_compression (const char *data,
+                        size_t old_size,
+                        char **result,
+                        size_t *new_size);
+
+
+/**
+ * Decompress input, return the decompressed data as output.  Dual to
+ * #GNUNET_try_compression(). Caller must set @a output_size to the
+ * number of bytes that were originally compressed.
+ *
+ * @param input compressed data
+ * @param input_size number of bytes in input
+ * @param output_size expected size of the output
+ * @return NULL on error, buffer of @a output_size decompressed bytes otherwise
+ */
+char *
+GNUNET_decompress (const char *input,
+                   size_t input_size,
+                   size_t output_size);
+
+
 #if HAVE_EXTRACTOR_H && HAVE_LIBEXTRACTOR
 
 #include <extractor.h>

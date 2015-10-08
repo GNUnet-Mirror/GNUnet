@@ -33,6 +33,91 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
+
+
+/**
+ * Try to compress the given block of data using libz.  Only returns
+ * the compressed block if compression worked and the new block is
+ * actually smaller.  Decompress using #GNUNET_decompress().
+ *
+ * @param data block to compress; if compression
+ *        resulted in a smaller block, the first
+ *        bytes of data are updated to the compressed
+ *        data
+ * @param old_size number of bytes in data
+ * @param[out] result set to the compressed data, if compression worked
+ * @param[out] new_size set to size of result, if compression worked
+ * @return #GNUNET_YES if compression reduce the size,
+ *         #GNUNET_NO if compression did not help
+ */
+int
+GNUNET_try_compression (const char *data,
+                        size_t old_size,
+                        char **result,
+                        size_t *new_size)
+{
+  char *tmp;
+  uLongf dlen;
+
+  *result = NULL;
+  *new_size = 0;
+#ifdef compressBound
+  dlen = compressBound (old_size);
+#else
+  dlen = old_size + (old_size / 100) + 20;
+  /* documentation says 100.1% oldSize + 12 bytes, but we
+   * should be able to overshoot by more to be safe */
+#endif
+  tmp = GNUNET_malloc (dlen);
+  if (Z_OK ==
+      compress2 ((Bytef *) tmp,
+                 &dlen,
+                 (const Bytef *) data,
+                 old_size, 9))
+  {
+    if (dlen < old_size)
+    {
+      *result = tmp;
+      *new_size = dlen;
+      return GNUNET_YES;
+    }
+  }
+  GNUNET_free (tmp);
+  return GNUNET_NO;
+}
+
+
+/**
+ * Decompress input, return the decompressed data as output.  Dual to
+ * #GNUNET_try_compression(). Caller must set @a output_size to the
+ * number of bytes that were originally compressed.
+ *
+ * @param input compressed data
+ * @param input_size number of bytes in input
+ * @param output_size expected size of the output
+ * @return NULL on error, buffer of @a output_size decompressed bytes otherwise
+ */
+char *
+GNUNET_decompress (const char *input,
+                   size_t input_size,
+                   size_t output_size)
+{
+  char *output;
+  uLongf olen;
+
+  olen = output_size;
+  output = GNUNET_malloc (olen);
+  if (Z_OK ==
+      uncompress ((Bytef *) output,
+                  &olen,
+                  (const Bytef *) input,
+                  input_size))
+    return output;
+  GNUNET_free (output);
+  return NULL;
+}
+
+
 /**
  * Meta data item.
  */
@@ -600,50 +685,6 @@ GNUNET_CONTAINER_meta_data_duplicate (const struct GNUNET_CONTAINER_MetaData
 }
 
 
-
-/**
- * Try to compress the given block of data.
- *
- * @param data block to compress; if compression
- *        resulted in a smaller block, the first
- *        bytes of data are updated to the compressed
- *        data
- * @param oldSize number of bytes in data
- * @param result set to the compressed data
- * @param newSize set to size of result
- * @return #GNUNET_YES if compression reduce the size,
- *         #GNUNET_NO if compression did not help
- */
-static int
-try_compression (const char *data, size_t oldSize, char **result,
-                 size_t * newSize)
-{
-  char *tmp;
-  uLongf dlen;
-
-#ifdef compressBound
-  dlen = compressBound (oldSize);
-#else
-  dlen = oldSize + (oldSize / 100) + 20;
-  /* documentation says 100.1% oldSize + 12 bytes, but we
-   * should be able to overshoot by more to be safe */
-#endif
-  tmp = GNUNET_malloc (dlen);
-  if (Z_OK ==
-      compress2 ((Bytef *) tmp, &dlen, (const Bytef *) data, oldSize, 9))
-  {
-    if (dlen < oldSize)
-    {
-      *result = tmp;
-      *newSize = dlen;
-      return GNUNET_YES;
-    }
-  }
-  GNUNET_free (tmp);
-  return GNUNET_NO;
-}
-
-
 /**
  * Flag in 'version' that indicates compressed meta-data.
  */
@@ -846,7 +887,10 @@ GNUNET_CONTAINER_meta_data_serialize (const struct GNUNET_CONTAINER_MetaData
   {
     comp = GNUNET_NO;
     if (0 == (opt & GNUNET_CONTAINER_META_DATA_SERIALIZE_NO_COMPRESS))
-      comp = try_compression ((const char *) &ent[i], left, &cdata, &clen);
+      comp = GNUNET_try_compression ((const char *) &ent[i],
+                                     left,
+                                     &cdata,
+                                     &clen);
 
     if ((NULL == md->sbuf) && (0 == i))
     {
@@ -978,32 +1022,6 @@ GNUNET_CONTAINER_meta_data_get_serialized_size (const struct
 
 
 /**
- * Decompress input, return the decompressed data
- * as output, set outputSize to the number of bytes
- * that were found.
- *
- * @param input compressed data
- * @param inputSize number of bytes in input
- * @param outputSize expected size of the output
- * @return NULL on error
- */
-static char *
-decompress (const char *input, size_t inputSize, size_t outputSize)
-{
-  char *output;
-  uLongf olen;
-
-  olen = outputSize;
-  output = GNUNET_malloc (olen);
-  if (Z_OK ==
-      uncompress ((Bytef *) output, &olen, (const Bytef *) input, inputSize))
-    return output;
-  GNUNET_free (output);
-  return NULL;
-}
-
-
-/**
  * Deserialize meta-data.  Initializes md.
  *
  * @param input buffer with the serialized metadata
@@ -1068,8 +1086,9 @@ GNUNET_CONTAINER_meta_data_deserialize (const char *input, size_t size)
       return NULL;
     }
     data =
-        decompress ((const char *) &input[sizeof (struct MetaDataHeader)],
-                    size - sizeof (struct MetaDataHeader), dataSize);
+      GNUNET_decompress ((const char *) &input[sizeof (struct MetaDataHeader)],
+                         size - sizeof (struct MetaDataHeader),
+                         dataSize);
     if (NULL == data)
     {
       GNUNET_break_op (0);
