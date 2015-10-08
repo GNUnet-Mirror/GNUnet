@@ -689,8 +689,7 @@ handle_p2p_strata_estimator (void *cls,
   }
   len = ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader);
   if ( (GNUNET_NO == is_compressed) &&
-       (len !=
-        SE_STRATA_COUNT * SE_IBF_SIZE * IBF_BUCKET_SIZE) )
+       (len != SE_STRATA_COUNT * SE_IBF_SIZE * IBF_BUCKET_SIZE) )
   {
     fail_union_operation (op);
     GNUNET_break (0);

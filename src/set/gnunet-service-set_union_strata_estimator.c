@@ -33,7 +33,7 @@
  * Should we try compressing the strata estimator? This will
  * break compatibility with the 0.10.1-network.
  */
-#define FAIL_10_1_COMPATIBILTIY 1
+#define FAIL_10_1_COMPATIBILTIY 0
 
 
 /**
@@ -123,6 +123,7 @@ strata_estimator_read (const void *buf,
     GNUNET_free_non_null (dbuf);
     return GNUNET_SYSERR;
   }
+
   for (i = 0; i < se->strata_count; i++)
   {
     ibf_read_slice (buf, 0, se->ibf_size, se->strata[i]);
@@ -202,6 +203,8 @@ strata_estimator_create (unsigned int strata_count,
     se->strata[i] = ibf_create (ibf_size, ibf_hashnum);
     if (NULL == se->strata[i])
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to allocate memory for strata estimator\n");
       for (j = 0; j < i; j++)
         ibf_destroy (se->strata[i]);
       GNUNET_free (se);
@@ -277,7 +280,8 @@ strata_estimator_dup (struct StrataEstimator *se)
   c = GNUNET_new (struct StrataEstimator);
   c->strata_count = se->strata_count;
   c->ibf_size = se->ibf_size;
-  c->strata = GNUNET_malloc (sizeof (struct InvertibleBloomFilter *) * se->strata_count);
+  c->strata = GNUNET_new_array (se->strata_count,
+                                struct InvertibleBloomFilter *);
   for (i = 0; i < se->strata_count; i++)
     c->strata[i] = ibf_dup (se->strata[i]);
   return c;
