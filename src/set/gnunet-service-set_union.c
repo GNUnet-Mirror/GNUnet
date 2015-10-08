@@ -39,10 +39,12 @@
  * Number of IBFs in a strata estimator.
  */
 #define SE_STRATA_COUNT 32
+
 /**
  * Size of the IBFs in the strata estimator.
  */
 #define SE_IBF_SIZE 80
+
 /**
  * The hash num parameter for the difference digests and strata estimators.
  */
@@ -119,7 +121,7 @@ enum UnionOperationPhase
    * In the ultimate phase, we wait until
    * our demands are satisfied and then
    * quit (sending another DONE message). */
-  PHASE_DONE,
+  PHASE_DONE
 };
 
 
@@ -216,7 +218,7 @@ struct SendElementClosure
 /**
  * Extra state required for efficient set union.
  */
-  struct SetState
+struct SetState
 {
   /**
    * The strata estimator is only generated once for
@@ -500,8 +502,9 @@ init_key_to_element_iterator (void *cls,
  *
  * @param op the union operation
  * @param size size of the ibf to create
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
-static void
+static int
 prepare_ibf (struct Operation *op,
              uint32_t size)
 {
@@ -517,9 +520,16 @@ prepare_ibf (struct Operation *op,
   if (NULL != op->state->local_ibf)
     ibf_destroy (op->state->local_ibf);
   op->state->local_ibf = ibf_create (size, SE_IBF_HASH_NUM);
+  if (NULL == op->state->local_ibf)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to allocate local IBF\n");
+    return GNUNET_SYSERR;
+  }
   GNUNET_CONTAINER_multihashmap32_iterate (op->state->key_to_element,
                                            &prepare_ibf_iterator,
                                            op);
+  return GNUNET_OK;
 }
 
 
@@ -530,15 +540,21 @@ prepare_ibf (struct Operation *op,
  *
  * @param op the union operation
  * @param ibf_order order of the ibf to send, size=2^order
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
-static void
+static int
 send_ibf (struct Operation *op,
           uint16_t ibf_order)
 {
   unsigned int buckets_sent = 0;
   struct InvertibleBloomFilter *ibf;
 
-  prepare_ibf (op, 1<<ibf_order);
+  if (GNUNET_OK !=
+      prepare_ibf (op, 1<<ibf_order))
+  {
+    /* allocation failed */
+    return GNUNET_SYSERR;
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "sending ibf of size %u\n",
@@ -583,6 +599,7 @@ send_ibf (struct Operation *op,
   /* The other peer must decode the IBF, so
    * we're passive. */
   op->state->phase = PHASE_INVENTORY_PASSIVE;
+  return GNUNET_OK;
 }
 
 
@@ -594,13 +611,27 @@ send_ibf (struct Operation *op,
 static void
 send_strata_estimator (struct Operation *op)
 {
+  const struct StrataEstimator *se = op->state->se;
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_MessageHeader *strata_msg;
+  char *buf;
+  size_t len;
+  uint16_t type;
 
+  buf = GNUNET_malloc (se->strata_count * IBF_BUCKET_SIZE * se->ibf_size);
+  len = strata_estimator_write (op->state->se,
+                                buf);
+  if (len < se->strata_count * IBF_BUCKET_SIZE * se->ibf_size)
+    type = GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC;
+  else
+    type = GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE;
   ev = GNUNET_MQ_msg_header_extra (strata_msg,
-                                   SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
-                                   GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE);
-  strata_estimator_write (op->state->se, &strata_msg[1]);
+                                   len,
+                                   type);
+  memcpy (&strata_msg[1],
+          buf,
+          len);
+  GNUNET_free (buf);
   GNUNET_MQ_send (op->mq,
                   ev);
   op->state->phase = PHASE_EXPECT_IBF;
@@ -636,16 +667,19 @@ get_order_from_difference (unsigned int diff)
  *
  * @param cls the union operation
  * @param mh the message
+ * @param is_compressed #GNUNET_YES if the estimator is compressed
  * @return #GNUNET_SYSERR if the tunnel should be disconnected,
  *         #GNUNET_OK otherwise
  */
 static int
 handle_p2p_strata_estimator (void *cls,
-                             const struct GNUNET_MessageHeader *mh)
+                             const struct GNUNET_MessageHeader *mh,
+                             int is_compressed)
 {
   struct Operation *op = cls;
   struct StrataEstimator *remote_se;
   int diff;
+  size_t len;
 
   if (op->state->phase != PHASE_EXPECT_SE)
   {
@@ -653,9 +687,10 @@ handle_p2p_strata_estimator (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  if (ntohs (mh->size) !=
-      SE_STRATA_COUNT * SE_IBF_SIZE * IBF_BUCKET_SIZE +
-      sizeof (struct GNUNET_MessageHeader))
+  len = ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader);
+  if ( (GNUNET_NO == is_compressed) &&
+       (len !=
+        SE_STRATA_COUNT * SE_IBF_SIZE * IBF_BUCKET_SIZE) )
   {
     fail_union_operation (op);
     GNUNET_break (0);
@@ -664,7 +699,22 @@ handle_p2p_strata_estimator (void *cls,
   remote_se = strata_estimator_create (SE_STRATA_COUNT,
                                        SE_IBF_SIZE,
                                        SE_IBF_HASH_NUM);
-  strata_estimator_read (&mh[1], remote_se);
+  if (NULL == remote_se)
+  {
+    /* insufficient resources, fail */
+    fail_union_operation (op);
+    return GNUNET_SYSERR;
+  }
+  if (GNUNET_OK !=
+      strata_estimator_read (&mh[1],
+                             len,
+                             is_compressed,
+                             remote_se))
+  {
+    /* decompression failed */
+    fail_union_operation (op);
+    return GNUNET_SYSERR;
+  }
   GNUNET_assert (NULL != op->state->se);
   diff = strata_estimator_difference (remote_se,
                                       op->state->se);
@@ -675,8 +725,16 @@ handle_p2p_strata_estimator (void *cls,
        "got se diff=%d, using ibf size %d\n",
        diff,
        1<<get_order_from_difference (diff));
-  send_ibf (op,
-            get_order_from_difference (diff));
+  if (GNUNET_OK !=
+      send_ibf (op,
+                get_order_from_difference (diff)))
+  {
+    /* Internal error, best we can do is shut the connection */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to send IBF, closing connection\n");
+    fail_union_operation (op);
+    return GNUNET_SYSERR;
+  }
   return GNUNET_OK;
 }
 
@@ -744,8 +802,9 @@ send_offers_for_key (struct Operation *op,
  * send the appropriate offers and inquiries.
  *
  * @param op union operation
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
-static void
+static int
 decode_and_send (struct Operation *op)
 {
   struct IBF_Key key;
@@ -756,7 +815,12 @@ decode_and_send (struct Operation *op)
 
   GNUNET_assert (PHASE_INVENTORY_ACTIVE == op->state->phase);
 
-  prepare_ibf (op, op->state->remote_ibf->size);
+  if (GNUNET_OK !=
+      prepare_ibf (op, op->state->remote_ibf->size))
+  {
+    /* allocation failed */
+    return GNUNET_SYSERR;
+  }
   diff_ibf = ibf_dup (op->state->local_ibf);
   ibf_subtract (diff_ibf, op->state->remote_ibf);
 
@@ -811,7 +875,16 @@ decode_and_send (struct Operation *op)
                                   "# of IBF retries",
                                   1,
                                   GNUNET_NO);
-        send_ibf (op, next_order);
+        if (GNUNET_OK !=
+            send_ibf (op, next_order))
+        {
+          /* Internal error, best we can do is shut the connection */
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      "Failed to send IBF, closing connection\n");
+          fail_union_operation (op);
+          ibf_destroy (diff_ibf);
+          return GNUNET_SYSERR;
+        }
       }
       else
       {
@@ -822,6 +895,9 @@ decode_and_send (struct Operation *op)
         // XXX: Send the whole set, element-by-element
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "set union failed: reached ibf limit\n");
+        fail_union_operation (op);
+        ibf_destroy (diff_ibf);
+        return GNUNET_SYSERR;
       }
       break;
     }
@@ -867,6 +943,7 @@ decode_and_send (struct Operation *op)
     }
   }
   ibf_destroy (diff_ibf);
+  return GNUNET_OK;
 }
 
 
@@ -905,6 +982,13 @@ handle_p2p_ibf (void *cls,
          "Creating new ibf of size %u\n",
          1 << msg->order);
     op->state->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
+    if (NULL == op->state->remote_ibf)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to parse remote IBF, closing connection\n");
+      fail_union_operation (op);
+      return GNUNET_SYSERR;
+    }
     op->state->ibf_buckets_received = 0;
     if (0 != ntohs (msg->offset))
     {
@@ -957,7 +1041,14 @@ handle_p2p_ibf (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "received full ibf\n");
     op->state->phase = PHASE_INVENTORY_ACTIVE;
-    decode_and_send (op);
+    if (GNUNET_OK !=
+        decode_and_send (op))
+    {
+      /* Internal error, best we can do is shut down */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Failed to decode IBF, closing connection\n");
+      return GNUNET_SYSERR;
+    }
   }
   return GNUNET_OK;
 }
@@ -1080,7 +1171,6 @@ handle_p2p_elements (void *cls,
     fail_union_operation (op);
     return;
   }
-
   if (ntohs (mh->size) < sizeof (struct GNUNET_SET_ElementMessage))
   {
     GNUNET_break_op (0);
@@ -1088,7 +1178,7 @@ handle_p2p_elements (void *cls,
     return;
   }
 
-  emsg = (struct GNUNET_SET_ElementMessage *) mh;
+  emsg = (const struct GNUNET_SET_ElementMessage *) mh;
 
   element_size = ntohs (mh->size) - sizeof (struct GNUNET_SET_ElementMessage);
   ee = GNUNET_malloc (sizeof (struct ElementEntry) + element_size);
@@ -1099,7 +1189,10 @@ handle_p2p_elements (void *cls,
   ee->remote = GNUNET_YES;
   GNUNET_SET_element_hash (&ee->element, &ee->element_hash);
 
-  if (GNUNET_NO == GNUNET_CONTAINER_multihashmap_remove (op->state->demanded_hashes, &ee->element_hash, NULL))
+  if (GNUNET_NO ==
+      GNUNET_CONTAINER_multihashmap_remove (op->state->demanded_hashes,
+                                            &ee->element_hash,
+                                            NULL))
   {
     /* We got something we didn't demand, since it's not in our map. */
     GNUNET_break_op (0);
@@ -1194,10 +1287,12 @@ handle_p2p_inquiry (void *cls,
 }
 
 
-
+/**
+ * FIXME
+ */
 static void
 handle_p2p_demand (void *cls,
-                    const struct GNUNET_MessageHeader *mh)
+                   const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   struct ElementEntry *ee;
@@ -1303,12 +1398,16 @@ handle_p2p_offer (void *cls,
     struct ElementEntry *ee;
     struct GNUNET_MessageHeader *demands;
     struct GNUNET_MQ_Envelope *ev;
-    ee = GNUNET_CONTAINER_multihashmap_get (op->spec->set->content->elements, hash);
+
+    ee = GNUNET_CONTAINER_multihashmap_get (op->spec->set->content->elements,
+                                            hash);
     if (NULL != ee)
       if (GNUNET_YES == _GSS_is_element_of_operation (ee, op))
         continue;
 
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (op->state->demanded_hashes, hash))
+    if (GNUNET_YES ==
+        GNUNET_CONTAINER_multihashmap_contains (op->state->demanded_hashes,
+                                                hash))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Skipped sending duplicate demand\n");
@@ -1324,7 +1423,9 @@ handle_p2p_offer (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "[OP %x] Requesting element (hash %s)\n",
          (void *) op, GNUNET_h2s (hash));
-    ev = GNUNET_MQ_msg_header_extra (demands, sizeof (struct GNUNET_HashCode), GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND);
+    ev = GNUNET_MQ_msg_header_extra (demands,
+                                     sizeof (struct GNUNET_HashCode),
+                                     GNUNET_MESSAGE_TYPE_SET_UNION_P2P_DEMAND);
     *(struct GNUNET_HashCode *) &demands[1] = *hash;
     GNUNET_MQ_send (op->mq, ev);
   }
@@ -1466,7 +1567,7 @@ union_accept (struct Operation *op)
  * We maintain one strata estimator per set and then manipulate it over the
  * lifetime of the set, as recreating a strata estimator would be expensive.
  *
- * @return the newly created set
+ * @return the newly created set, NULL on error
  */
 static struct SetState *
 union_set_create (void)
@@ -1478,6 +1579,13 @@ union_set_create (void)
   set_state = GNUNET_new (struct SetState);
   set_state->se = strata_estimator_create (SE_STRATA_COUNT,
                                            SE_IBF_SIZE, SE_IBF_HASH_NUM);
+  if (NULL == set_state->se)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to allocate strata estimator\n");
+    GNUNET_free (set_state);
+    return NULL;
+  }
   return set_state;
 }
 
@@ -1549,7 +1657,9 @@ union_handle_p2p_message (struct Operation *op,
     case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF:
       return handle_p2p_ibf (op, mh);
     case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE:
-      return handle_p2p_strata_estimator (op, mh);
+      return handle_p2p_strata_estimator (op, mh, GNUNET_NO);
+    case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC:
+      return handle_p2p_strata_estimator (op, mh, GNUNET_YES);
     case GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS:
       handle_p2p_elements (op, mh);
       break;

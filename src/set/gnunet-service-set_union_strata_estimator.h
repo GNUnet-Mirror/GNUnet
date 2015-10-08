@@ -66,9 +66,10 @@ struct StrataEstimator
  * Write the given strata estimator to the buffer.
  *
  * @param se strata estimator to serialize
- * @param buf buffer to write to, must be of appropriate size
+ * @param[out] buf buffer to write to, must be of appropriate size
+ * @return number of bytes written to @a buf
  */
-void
+size_t
 strata_estimator_write (const struct StrataEstimator *se,
                         void *buf);
 
@@ -78,10 +79,15 @@ strata_estimator_write (const struct StrataEstimator *se,
  * estimator.  The strata estimator must already be allocated.
  *
  * @param buf buffer to read from
- * @param se strata estimator to write to
+ * @param buf_len number of bytes in @a buf
+ * @param is_compressed is the data compressed?
+ * @param[out] se strata estimator to write to
+ * @return #GNUNET_OK on success
  */
-void
+int
 strata_estimator_read (const void *buf,
+                       size_t buf_len,
+                       int is_compressed,
                        struct StrataEstimator *se);
 
 
@@ -91,7 +97,7 @@ strata_estimator_read (const void *buf,
  * @param strata_count number of stratas, that is, number of ibfs in the estimator
  * @param ibf_size size of each ibf stratum
  * @param ibf_hashnum hashnum parameter of each ibf
- * @return a freshly allocated, empty strata estimator
+ * @return a freshly allocated, empty strata estimator, NULL on error
  */
 struct StrataEstimator *
 strata_estimator_create (unsigned int strata_count,
@@ -161,4 +167,3 @@ strata_estimator_dup (struct StrataEstimator *se);
 #endif
 
 #endif
-

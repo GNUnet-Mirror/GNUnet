@@ -975,7 +975,7 @@ again:
     GNUNET_CONTAINER_multihashmap_iterator_destroy (set->iter);
     set->iter = NULL;
     set->iteration_id++;
-    
+
     GNUNET_assert (set->content->iterator_count > 0);
     set->content->iterator_count -= 1;
 
@@ -1113,6 +1113,13 @@ handle_client_create_set (void *cls,
   }
   set->operation = ntohl (msg->operation);
   set->state = set->vt->create ();
+  if (NULL == set->state)
+  {
+    /* initialization failed (i.e. out of memory) */
+    GNUNET_free (set);
+    GNUNET_SERVER_client_disconnect (client);
+    return;
+  }
   set->content = GNUNET_new (struct SetContent);
   set->content->refcount = 1;
   set->content->elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
@@ -1497,7 +1504,7 @@ handle_client_copy_lazy_connect (void *cls,
     {
       found = GNUNET_YES;
       break;
-    } 
+    }
   }
 
   if (GNUNET_NO == found)

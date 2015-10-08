@@ -123,7 +123,10 @@ struct InvertibleBloomFilter
  * @param buf buffer to write the data to
  */
 void
-ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32_t count, void *buf);
+ibf_write_slice (const struct InvertibleBloomFilter *ibf,
+                 uint32_t start,
+                 uint32_t count,
+                 void *buf);
 
 
 /**
@@ -132,10 +135,13 @@ ibf_write_slice (const struct InvertibleBloomFilter *ibf, uint32_t start, uint32
  * @param buf pointer to the buffer to read from
  * @param start which bucket to start at
  * @param count how many buckets to read
- * @param ibf the ibf to read from
+ * @param ibf the ibf to write to
  */
 void
-ibf_read_slice (const void *buf, uint32_t start, uint32_t count, struct InvertibleBloomFilter *ibf);
+ibf_read_slice (const void *buf,
+                uint32_t start,
+                uint32_t count,
+                struct InvertibleBloomFilter *ibf);
 
 
 /**
@@ -164,7 +170,7 @@ ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst);
  *
  * @param size number of IBF buckets
  * @param hash_num number of buckets one element is hashed in, usually 3 or 4
- * @return the newly created invertible bloom filter
+ * @return the newly created invertible bloom filter, NULL on error
  */
 struct InvertibleBloomFilter *
 ibf_create (uint32_t size, uint8_t hash_num);
@@ -198,7 +204,8 @@ ibf_remove (struct InvertibleBloomFilter *ibf, struct IBF_Key key);
  * @param ibf2 IBF that will be subtracted from ibf1
  */
 void
-ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFilter *ibf2);
+ibf_subtract (struct InvertibleBloomFilter *ibf1,
+              const struct InvertibleBloomFilter *ibf2);
 
 
 /**
@@ -209,12 +216,14 @@ ibf_subtract (struct InvertibleBloomFilter *ibf1, const struct InvertibleBloomFi
  *                 A negative sign indicates that the element was recovered
  *                 resides in an IBF that was previously subtracted from.
  * @param ret_id receives the hash code of the decoded element, if successful
- * @return GNUNET_YES if decoding an element was successful,
- *         GNUNET_NO if the IBF is empty,
- *         GNUNET_SYSERR if the decoding has failed
+ * @return #GNUNET_YES if decoding an element was successful,
+ *         #GNUNET_NO if the IBF is empty,
+ *         #GNUNET_SYSERR if the decoding has failed
  */
 int
-ibf_decode (struct InvertibleBloomFilter *ibf, int *ret_side, struct IBF_Key *ret_id);
+ibf_decode (struct InvertibleBloomFilter *ibf,
+            int *ret_side,
+            struct IBF_Key *ret_id);
 
 
 /**
@@ -244,4 +253,3 @@ ibf_destroy (struct InvertibleBloomFilter *ibf);
 #endif
 
 #endif
-

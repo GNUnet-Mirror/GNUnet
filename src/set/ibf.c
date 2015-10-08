@@ -41,7 +41,6 @@
 struct IBF_Key
 ibf_key_from_hashcode (const struct GNUNET_HashCode *hash)
 {
-  /* FIXME: endianess */
   return *(struct IBF_Key *) hash;
 }
 
@@ -53,11 +52,13 @@ ibf_key_from_hashcode (const struct GNUNET_HashCode *hash)
  * @param dst hashcode to store the result in
  */
 void
-ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst)
+ibf_hashcode_from_key (struct IBF_Key key,
+                       struct GNUNET_HashCode *dst)
 {
   struct IBF_Key *p;
   unsigned int i;
   const unsigned int keys_per_hashcode = sizeof (struct GNUNET_HashCode) / sizeof (struct IBF_Key);
+
   p = (struct IBF_Key *) dst;
   for (i = 0; i < keys_per_hashcode; i++)
     *p++ = key;
@@ -69,7 +70,7 @@ ibf_hashcode_from_key (struct IBF_Key key, struct GNUNET_HashCode *dst)
  *
  * @param size number of IBF buckets
  * @param hash_num number of buckets one element is hashed in
- * @return the newly created invertible bloom filter
+ * @return the newly created invertible bloom filter, NULL on error
  */
 struct InvertibleBloomFilter *
 ibf_create (uint32_t size, uint8_t hash_num)
@@ -80,20 +81,40 @@ ibf_create (uint32_t size, uint8_t hash_num)
 
   ibf = GNUNET_new (struct InvertibleBloomFilter);
   ibf->count = GNUNET_malloc_large (size * sizeof (uint8_t));
+  if (NULL == ibf->count)
+  {
+    GNUNET_free (ibf);
+    return NULL;
+  }
   ibf->key_sum = GNUNET_malloc_large (size * sizeof (struct IBF_Key));
+  if (NULL == ibf->key_sum)
+  {
+    GNUNET_free (ibf->count);
+    GNUNET_free (ibf);
+    return NULL;
+  }
   ibf->key_hash_sum = GNUNET_malloc_large (size * sizeof (struct IBF_KeyHash));
+  if (NULL == ibf->key_hash_sum)
+  {
+    GNUNET_free (ibf->key_sum);
+    GNUNET_free (ibf->count);
+    GNUNET_free (ibf);
+    return NULL;
+  }
   ibf->size = size;
   ibf->hash_num = hash_num;
 
   return ibf;
 }
 
+
 /**
  * Store unique bucket indices for the specified key in dst.
  */
-static inline void
+static void
 ibf_get_indices (const struct InvertibleBloomFilter *ibf,
-                 struct IBF_Key key, int *dst)
+                 struct IBF_Key key,
+                 int *dst)
 {
   uint32_t filled;
   uint32_t i;
@@ -371,4 +392,3 @@ ibf_destroy (struct InvertibleBloomFilter *ibf)
   GNUNET_free (ibf->count);
   GNUNET_free (ibf);
 }
-

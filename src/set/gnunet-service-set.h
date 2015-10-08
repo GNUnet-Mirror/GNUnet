@@ -126,7 +126,7 @@ struct OperationSpecification
  * Signature of functions that create the implementation-specific
  * state for a set supporting a specific operation.
  *
- * @return a set state specific to the supported operation
+ * @return a set state specific to the supported operation, NULL on error
  */
 typedef struct SetState *
 (*CreateImpl) (void);

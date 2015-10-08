@@ -59,6 +59,7 @@ enum IntersectionOperationPhase
    * client.
    */
   PHASE_FINISHED
+
 };
 
 

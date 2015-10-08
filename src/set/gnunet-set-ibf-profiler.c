@@ -102,7 +102,9 @@ remove_iterator (void *cls,
 
 
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_HashCode id;
@@ -171,6 +173,15 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   ibf_a = ibf_create (ibf_size, hash_num);
   ibf_b = ibf_create (ibf_size, hash_num);
+  if ( (NULL == ibf_a) ||
+       (NULL == ibf_b) )
+  {
+    /* insufficient memory */
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+
 
   printf ("generated sets\n");
 
@@ -229,6 +240,7 @@ run (void *cls, char *const *args, const char *cfgfile,
          asize + bsize);
 }
 
+
 int
 main (int argc, char **argv)
 {
@@ -255,4 +267,3 @@ main (int argc, char **argv)
                       options, &run, NULL, GNUNET_YES);
   return 0;
 }
-

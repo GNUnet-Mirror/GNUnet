@@ -1925,6 +1925,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_ITER_DONE 589
 
 /**
+ * Compressed strata estimator.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SEC 590
+
+/**
  * Information about the element count for intersection
  */
 #define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO 591

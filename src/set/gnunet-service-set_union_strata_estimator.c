@@ -21,6 +21,7 @@
  * @file set/gnunet-service-set_union_strata_estimator.c
  * @brief invertible bloom filter
  * @author Florian Dold
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -29,12 +30,20 @@
 
 
 /**
+ * Should we try compressing the strata estimator? This will
+ * break compatibility with the 0.10.1-network.
+ */
+#define FAIL_10_1_COMPATIBILTIY 0
+
+
+/**
  * Write the given strata estimator to the buffer.
  *
  * @param se strata estimator to serialize
- * @param buf buffer to write to, must be of appropriate size
+ * @param[out] buf buffer to write to, must be of appropriate size
+ * @return number of bytes written to @a buf
  */
-void
+size_t
 strata_estimator_write (const struct StrataEstimator *se,
                         void *buf)
 {
@@ -43,9 +52,32 @@ strata_estimator_write (const struct StrataEstimator *se,
   GNUNET_assert (NULL != se);
   for (i = 0; i < se->strata_count; i++)
   {
-    ibf_write_slice (se->strata[i], 0, se->ibf_size, buf);
+    ibf_write_slice (se->strata[i],
+                     0,
+                     se->ibf_size,
+                     buf);
     buf += se->ibf_size * IBF_BUCKET_SIZE;
   }
+  osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
+#if FAIL_10_1_COMPATIBILTIY
+  {
+    size_t osize;
+    char *cbuf;
+    size_t nsize;
+
+    if (GNUNET_YES ==
+        GNUNET_try_compression (buf,
+                                osize,
+                                &cbuf,
+                                &nsize))
+    {
+      memcpy (buf, cbuf, nsize);
+      osize = nsize;
+      GNUNET_free (cbuf);
+    }
+  }
+#endif
+  return osize;
 }
 
 
@@ -54,19 +86,50 @@ strata_estimator_write (const struct StrataEstimator *se,
  * estimator.  The strata estimator must already be allocated.
  *
  * @param buf buffer to read from
- * @param se strata estimator to write to
+ * @param buf_len number of bytes in @a buf
+ * @param is_compressed is the data compressed?
+ * @param[out] se strata estimator to write to
+ * @return #GNUNET_OK on success
  */
-void
+int
 strata_estimator_read (const void *buf,
+                       size_t buf_len,
+                       int is_compressed,
                        struct StrataEstimator *se)
 {
   unsigned int i;
+  size_t osize;
+  char *dbuf;
 
+  dbuf = NULL;
+  if (GNUNET_YES == is_compressed)
+  {
+    osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
+    dbuf = GNUNET_decompress (buf,
+                              buf_len,
+                              osize);
+    if (NULL == dbuf)
+    {
+      GNUNET_break_op (0); /* bad compressed input data */
+      return GNUNET_SYSERR;
+    }
+    buf = dbuf;
+    buf_len = osize;
+  }
+
+  if (buf_len != se->strata_count * se->ibf_size * IBF_BUCKET_SIZE)
+  {
+    GNUNET_break (0); /* very odd error */
+    GNUNET_free_non_null (dbuf);
+    return GNUNET_SYSERR;
+  }
   for (i = 0; i < se->strata_count; i++)
   {
     ibf_read_slice (buf, 0, se->ibf_size, se->strata[i]);
     buf += se->ibf_size * IBF_BUCKET_SIZE;
   }
+  GNUNET_free_non_null (dbuf);
+  return GNUNET_OK;
 }
 
 
@@ -118,7 +181,7 @@ strata_estimator_remove (struct StrataEstimator *se,
  * @param strata_count number of stratas, that is, number of ibfs in the estimator
  * @param ibf_size size of each ibf stratum
  * @param ibf_hashnum hashnum parameter of each ibf
- * @return a freshly allocated, empty strata estimator
+ * @return a freshly allocated, empty strata estimator, NULL on error
  */
 struct StrataEstimator *
 strata_estimator_create (unsigned int strata_count,
@@ -127,14 +190,24 @@ strata_estimator_create (unsigned int strata_count,
 {
   struct StrataEstimator *se;
   unsigned int i;
+  unsigned int j;
 
-  /* fixme: allocate everything in one chunk */
   se = GNUNET_new (struct StrataEstimator);
   se->strata_count = strata_count;
   se->ibf_size = ibf_size;
-  se->strata = GNUNET_malloc (sizeof (struct InvertibleBloomFilter *) * strata_count);
+  se->strata = GNUNET_new_array (strata_count,
+                                 struct InvertibleBloomFilter *);
   for (i = 0; i < strata_count; i++)
+  {
     se->strata[i] = ibf_create (ibf_size, ibf_hashnum);
+    if (NULL == se->strata[i])
+    {
+      for (j = 0; j < i; j++)
+        ibf_destroy (se->strata[i]);
+      GNUNET_free (se);
+      return NULL;
+    }
+  }
   return se;
 }
 
@@ -226,4 +299,3 @@ strata_estimator_destroy (struct StrataEstimator *se)
   GNUNET_free (se->strata);
   GNUNET_free (se);
 }
-
