@@ -309,7 +309,7 @@ GNUNET_TIME_absolute_get_difference (struct GNUNET_TIME_Absolute start,
  * Get the duration of an operation as the
  * difference of the current time and the given start time "whence".
  *
- * @return aborts if whence==FOREVER, 0 if whence > now, otherwise now-whence.
+ * @return 0 if whence > now, otherwise now-whence.
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_absolute_get_duration (struct GNUNET_TIME_Absolute whence)
@@ -318,7 +318,6 @@ GNUNET_TIME_absolute_get_duration (struct GNUNET_TIME_Absolute whence)
   struct GNUNET_TIME_Relative ret;
 
   now = GNUNET_TIME_absolute_get ();
-  GNUNET_assert (whence.abs_value_us != UINT64_MAX);
   if (whence.abs_value_us > now.abs_value_us)
     return GNUNET_TIME_UNIT_ZERO;
   ret.rel_value_us = now.abs_value_us - whence.abs_value_us;

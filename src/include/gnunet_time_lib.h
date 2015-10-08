@@ -349,7 +349,7 @@ GNUNET_TIME_absolute_get_difference (struct GNUNET_TIME_Absolute start,
  * difference of the current time and the given start time "hence".
  *
  * @param whence some absolute time, typically in the past
- * @return aborts if hence==FOREVER, 0 if hence > now, otherwise now-hence.
+ * @return 0 if hence > now, otherwise now-hence.
  */
 struct GNUNET_TIME_Relative
 GNUNET_TIME_absolute_get_duration (struct GNUNET_TIME_Absolute whence);
