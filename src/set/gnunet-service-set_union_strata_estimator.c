@@ -47,8 +47,8 @@ size_t
 strata_estimator_write (const struct StrataEstimator *se,
                         void *buf)
 {
+  char *sbuf = buf;
   unsigned int i;
-  void *sbuf = buf;
   size_t osize;
 
   GNUNET_assert (NULL != se);
@@ -57,8 +57,7 @@ strata_estimator_write (const struct StrataEstimator *se,
     ibf_write_slice (se->strata[i],
                      0,
                      se->ibf_size,
-                     buf);
-    buf += se->ibf_size * IBF_BUCKET_SIZE;
+                     &sbuf[se->ibf_size * IBF_BUCKET_SIZE * i]);
   }
   osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
 #if FAIL_10_1_COMPATIBILTIY
@@ -67,12 +66,12 @@ strata_estimator_write (const struct StrataEstimator *se,
     size_t nsize;
 
     if (GNUNET_YES ==
-        GNUNET_try_compression (sbuf,
+        GNUNET_try_compression (buf,
                                 osize,
                                 &cbuf,
                                 &nsize))
     {
-      memcpy (sbuf, cbuf, nsize);
+      memcpy (buf, cbuf, nsize);
       osize = nsize;
       GNUNET_free (cbuf);
     }
