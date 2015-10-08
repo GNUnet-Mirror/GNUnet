@@ -238,6 +238,7 @@ host_processor (void *cls,
     builder->pitr = NULL;
     GNUNET_free_non_null (builder->data);
     GNUNET_free (builder);
+    builder = NULL;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Error in communication with PEERINFO service: %s\n"),
                 err_msg);
@@ -955,6 +956,7 @@ GNUNET_HOSTLIST_server_stop ()
     }
     GNUNET_free_non_null (builder->data);
     GNUNET_free (builder);
+    builder = NULL;
   }
   if (NULL != peerinfo)
   {
