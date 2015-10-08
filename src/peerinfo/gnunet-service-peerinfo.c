@@ -971,7 +971,7 @@ discard_hosts_helper (void *cls,
   char *writebuffer;
 
   read_size = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  if (read_size < sizeof (struct GNUNET_MessageHeader))
+  if (read_size < (int) sizeof (struct GNUNET_MessageHeader))
   {
     if (0 != UNLINK (fn))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
