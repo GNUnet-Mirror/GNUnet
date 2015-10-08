@@ -107,15 +107,20 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car);
 
 
 /**
- * Tell a client that we will never be ready to receive the
- * given message in time (disconnect or timeout).
+ * We will never be ready to transmit the given message in (disconnect
+ * or invalid request).  Frees resources associated with @a car.  We
+ * don't explicitly tell the client, he'll learn with the disconnect
+ * (or violated the protocol).
  *
  * @param car request that now permanently failed; the
  *        responsibility for the handle is now returned
  *        to CLIENTS (SESSIONS is done with it).
+ * @param drop_client #GNUNET_YES if the client violated the protocol
+ *        and we should thus drop the connection
  */
 void
-GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car);
+GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car,
+                            int drop_client);
 
 
 /**

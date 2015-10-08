@@ -462,10 +462,10 @@ handle_client_send (void *cls,
   struct TokenizerContext tc;
   uint16_t msize;
   struct GNUNET_TIME_Relative delay;
+  struct GNUNET_TIME_Relative overdue;
 
   msize = ntohs (message->size);
-  if (msize <
-      sizeof (struct SendMessage) + sizeof (struct GNUNET_MessageHeader))
+  if (msize < sizeof (struct SendMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -501,9 +501,10 @@ handle_client_send (void *cls,
     return;
   }
   delay = GNUNET_TIME_absolute_get_duration (tc.car->received_time);
+  overdue = GNUNET_TIME_absolute_get_duration (tc.car->deadline);
   tc.cork = ntohl (sm->cork);
   tc.priority = (enum GNUNET_CORE_Priority) ntohl (sm->priority);
-  if (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us)
+  if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Client waited %s for transmission of %u bytes to `%s'%s, CORE queue is %u entries\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
@@ -531,11 +532,7 @@ handle_client_send (void *cls,
                              msize,
                              GNUNET_YES,
                              GNUNET_NO);
-  if (0 !=
-      memcmp (&tc.car->target,
-              &GSC_my_identity,
-              sizeof (struct GNUNET_PeerIdentity)))
-    GSC_SESSIONS_dequeue_request (tc.car);
+  GSC_SESSIONS_dequeue_request (tc.car);
   GNUNET_free (tc.car);
   GNUNET_SERVER_receive_done (client,
                               GNUNET_OK);
@@ -702,13 +699,13 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
                            &GSC_my_identity,
                            sizeof (struct GNUNET_PeerIdentity)));
     GSC_SESSIONS_dequeue_request (car);
-    GSC_CLIENTS_reject_request (car);
+    GSC_CLIENTS_reject_request (car,
+                                GNUNET_NO);
     return;
   }
   delay = GNUNET_TIME_absolute_get_duration (car->received_time);
-  left = GNUNET_TIME_absolute_get_remaining (car->deadline);
-  if ( (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us) ||
-       (0 == left.rel_value_us) )
+  left = GNUNET_TIME_absolute_get_duration (car->deadline);
+  if (left.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Client waited %s for permission to transmit to `%s'%s (priority %u)\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
@@ -728,21 +725,28 @@ GSC_CLIENTS_solicit_request (struct GSC_ClientActiveRequest *car)
 
 
 /**
- * Tell a client that we will never be ready to receive the
- * given message in time (disconnect or timeout).
+ * We will never be ready to transmit the given message in (disconnect
+ * or invalid request).  Frees resources associated with @a car.  We
+ * don't explicitly tell the client, he'll learn with the disconnect
+ * (or violated the protocol).
  *
  * @param car request that now permanently failed; the
  *        responsibility for the handle is now returned
  *        to CLIENTS (SESSIONS is done with it).
+ * @param drop_client #GNUNET_YES if the client violated the protocol
+ *        and we should thus drop the connection
  */
 void
-GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
+GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car,
+                            int drop_client)
 {
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (car->
                                                        client_handle->requests,
                                                        &car->target,
                                                        car));
+  if (GNUNET_YES == drop_client)
+    GNUNET_SERVER_client_disconnect (car->client_handle->client_handle);
   GNUNET_free (car);
 }
 

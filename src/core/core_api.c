@@ -63,9 +63,15 @@ struct GNUNET_CORE_TransmitHandle
   void *get_message_cls;
 
   /**
-   * Timeout for this handle.
+   * Deadline for the transmission (the request does not get cancelled
+   * at this time, this is merely how soon the application wants this out).
    */
-  struct GNUNET_TIME_Absolute timeout;
+  struct GNUNET_TIME_Absolute deadline;
+
+  /**
+   * When did this request get queued?
+   */
+  struct GNUNET_TIME_Absolute request_time;
 
   /**
    * How important is this message?
@@ -127,15 +133,9 @@ struct PeerRecord
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * ID of timeout task for the 'pending_head' handle
-   * which is the one with the smallest timeout.
+   * ID of task to run #next_request_transmission().
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;
-
-  /**
-   * ID of task to run 'next_request_transmission'.
-   */
-  struct GNUNET_SCHEDULER_Task * ntr_task;
+  struct GNUNET_SCHEDULER_Task *ntr_task;
 
   /**
    * SendMessageRequest ID generator for this peer.
@@ -369,11 +369,6 @@ disconnect_and_free_peer_entry (void *cls,
   struct GNUNET_CORE_TransmitHandle *th;
   struct PeerRecord *pr = value;
 
-  if (NULL != pr->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (pr->timeout_task);
-    pr->timeout_task = NULL;
-  }
   if (NULL != pr->ntr_task)
   {
     GNUNET_SCHEDULER_cancel (pr->ntr_task);
@@ -401,7 +396,6 @@ disconnect_and_free_peer_entry (void *cls,
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (h->peers, key, pr));
   GNUNET_assert (pr->ch == h);
-  GNUNET_assert (NULL == pr->timeout_task);
   GNUNET_assert (NULL == pr->ntr_task);
   GNUNET_free (pr);
   return GNUNET_YES;
@@ -471,18 +465,6 @@ trigger_next_request (struct GNUNET_CORE_Handle *h,
 
 
 /**
- * The given request hit its timeout.  Remove from the
- * doubly-linked list and call the respective continuation.
- *
- * @param cls the transmit handle of the request that timed out
- * @param tc context, can be NULL (!)
- */
-static void
-transmission_timeout (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
  * Send a control message to the peer asking for transmission
  * of the message in the given peer record.
  *
@@ -496,25 +478,16 @@ request_next_transmission (struct PeerRecord *pr)
   struct SendMessageRequest *smr;
   struct GNUNET_CORE_TransmitHandle *th;
 
-  if (pr->timeout_task != NULL)
-  {
-    GNUNET_SCHEDULER_cancel (pr->timeout_task);
-    pr->timeout_task = NULL;
-  }
   th = &pr->th;
   if (NULL == th->peer)
   {
     trigger_next_request (h, GNUNET_NO);
     return;
   }
-  if (th->cm != NULL)
+  if (NULL != th->cm)
     return;                     /* already done */
-  GNUNET_assert (pr->prev == NULL);
-  GNUNET_assert (pr->next == NULL);
-  pr->timeout_task
-    = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (th->timeout),
-                                    &transmission_timeout,
-                                    pr);
+  GNUNET_assert (NULL == pr->prev);
+  GNUNET_assert (NULL == pr->next);
   cm = GNUNET_malloc (sizeof (struct ControlMessage) +
                       sizeof (struct SendMessageRequest));
   th->cm = cm;
@@ -523,7 +496,7 @@ request_next_transmission (struct PeerRecord *pr)
   smr->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->header.size = htons (sizeof (struct SendMessageRequest));
   smr->priority = htonl ((uint32_t) th->priority);
-  smr->deadline = GNUNET_TIME_absolute_hton (th->timeout);
+  smr->deadline = GNUNET_TIME_absolute_hton (th->deadline);
   smr->peer = pr->peer;
   smr->reserved = htonl (0);
   smr->size = htons (th->msize);
@@ -534,56 +507,6 @@ request_next_transmission (struct PeerRecord *pr)
        "Adding SEND REQUEST for peer `%s' to message queue\n",
        GNUNET_i2s (&pr->peer));
   trigger_next_request (h, GNUNET_NO);
-}
-
-
-/**
- * The given request hit its timeout.  Remove from the
- * doubly-linked list and call the respective continuation.
- *
- * @param cls the transmit handle of the request that timed out
- * @param tc context, can be NULL (!)
- */
-static void
-transmission_timeout (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PeerRecord *pr = cls;
-  struct GNUNET_CORE_Handle *h = pr->ch;
-  struct GNUNET_CORE_TransmitHandle *th;
-
-  pr->timeout_task = NULL;
-  if (NULL != pr->ntr_task)
-  {
-    GNUNET_SCHEDULER_cancel (pr->ntr_task);
-    pr->ntr_task = NULL;
-  }
-  th = &pr->th;
-  th->peer = NULL;
-  if ( (NULL != pr->prev) ||
-       (NULL != pr->next) ||
-       (pr == h->ready_peer_head) )
-  {
-    /* the request that was 'approved' by core was
-     * canceled before it could be transmitted; remove
-     * us from the 'ready' list */
-    GNUNET_CONTAINER_DLL_remove (h->ready_peer_head,
-                                 h->ready_peer_tail,
-                                 pr);
-  }
-  if (NULL != th->cm)
-  {
-     /* we're currently in the control queue, remove */
-    GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
-                                 h->control_pending_tail, th->cm);
-    GNUNET_free (th->cm);
-  }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Signalling timeout of request for transmission to peer `%s' via CORE\n",
-       GNUNET_i2s (&pr->peer));
-  trigger_next_request (h, GNUNET_NO);
-
-  GNUNET_assert (0 == th->get_message (th->get_message_cls, 0, NULL));
 }
 
 
@@ -603,6 +526,8 @@ transmit_message (void *cls,
   struct GNUNET_CORE_Handle *h = cls;
   struct ControlMessage *cm;
   struct GNUNET_CORE_TransmitHandle *th;
+  struct GNUNET_TIME_Relative delay;
+  struct GNUNET_TIME_Relative overdue;
   struct PeerRecord *pr;
   struct SendMessage *sm;
   const struct GNUNET_MessageHeader *hdr;
@@ -657,11 +582,6 @@ transmit_message (void *cls,
                                h->ready_peer_tail,
                                pr);
   th->peer = NULL;
-  if (NULL != pr->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (pr->timeout_task);
-    pr->timeout_task = NULL;
-  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting SEND request to `%s' with %u bytes.\n",
        GNUNET_i2s (&pr->peer),
@@ -669,7 +589,7 @@ transmit_message (void *cls,
   sm = (struct SendMessage *) buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
   sm->priority = htonl ((uint32_t) th->priority);
-  sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
+  sm->deadline = GNUNET_TIME_absolute_hton (th->deadline);
   sm->peer = pr->peer;
   sm->cork = htonl ((uint32_t) th->cork);
   sm->reserved = htonl (0);
@@ -677,24 +597,43 @@ transmit_message (void *cls,
     th->get_message (th->get_message_cls,
 		     size - sizeof (struct SendMessage),
                      &sm[1]);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Transmitting SEND request to `%s' yielded %u bytes.\n",
-       GNUNET_i2s (&pr->peer),
-       ret);
-  if (0 == ret)
+  delay = GNUNET_TIME_absolute_get_duration (th->request_time);
+  overdue = GNUNET_TIME_absolute_get_duration (th->deadline);
+  if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Transmitting overdue %u bytes to `%s' at priority %u with %s delay%s\n",
+         ret,
+         GNUNET_i2s (&pr->peer),
+         (unsigned int) th->priority,
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES),
+         (th->cork) ? " (corked)" : "");
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmitting %u bytes to `%s' at priority %u with %s delay%s\n",
+         ret,
+         GNUNET_i2s (&pr->peer),
+         (unsigned int) th->priority,
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES),
+         (th->cork) ? " (corked)" : "");
+  if ( (0 == ret) &&
+       (GNUNET_CORE_PRIO_BACKGROUND == th->priority) )
   {
+    /* client decided to send nothing; as the priority was
+       BACKGROUND, we can just not send anything to core.
+       For higher-priority messages, we must give an
+       empty message to CORE so that it knows that this
+       message is no longer pending. */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Size of clients message to peer %s is 0!\n",
 	 GNUNET_i2s (&pr->peer));
-    /* client decided to send nothing! */
     request_next_transmission (pr);
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Produced SEND message to core with %u bytes payload\n",
        (unsigned int) ret);
-  GNUNET_assert (ret >= sizeof (struct GNUNET_MessageHeader));
   if (ret + sizeof (struct SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -932,7 +871,7 @@ main_notify_handler (void *cls,
     }
     em = (const struct GNUNET_MessageHeader *) &ntm[1];
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received message of type %u and size %u from peer `%4s'\n",
+         "Received message of type %u and size %u from peer `%s'\n",
          ntohs (em->type), ntohs (em->size), GNUNET_i2s (&ntm->peer));
     if ((GNUNET_NO == h->inbound_hdr_only) &&
         (msize !=
@@ -951,7 +890,7 @@ main_notify_handler (void *cls,
       if ((mh->expected_size != ntohs (em->size)) && (mh->expected_size != 0))
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
-	     "Unexpected message size %u for message of type %u from peer `%4s'\n",
+	     "Unexpected message size %u for message of type %u from peer `%s'\n",
 	     htons (em->size), mh->type, GNUNET_i2s (&ntm->peer));
         GNUNET_break_op (0);
         continue;
@@ -1208,7 +1147,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   h->currently_down = GNUNET_YES;
   h->peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (NULL != handlers)
-    while (handlers[h->hcnt].callback != NULL)
+    while (NULL != handlers[h->hcnt].callback)
       h->hcnt++;
   GNUNET_assert (h->hcnt <
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
@@ -1259,22 +1198,22 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
   GNUNET_CONTAINER_multipeermap_iterate (handle->peers,
                                          &disconnect_and_free_peer_entry,
                                          handle);
-  if (handle->reconnect_task != NULL)
+  if (NULL != handle->reconnect_task)
   {
     GNUNET_SCHEDULER_cancel (handle->reconnect_task);
     handle->reconnect_task = NULL;
   }
   GNUNET_CONTAINER_multipeermap_destroy (handle->peers);
   handle->peers = NULL;
-  GNUNET_break (handle->ready_peer_head == NULL);
+  GNUNET_break (NULL == handle->ready_peer_head);
   GNUNET_free (handle);
 }
 
 
 /**
- * Task that calls 'request_next_transmission'.
+ * Task that calls #request_next_transmission().
  *
- * @param cls the 'struct PeerRecord *'
+ * @param cls the `struct PeerRecord *`
  * @param tc scheduler context
  */
 static void
@@ -1357,7 +1296,11 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
   th->peer = pr;
   th->get_message = notify;
   th->get_message_cls = notify_cls;
-  th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
+  th->request_time = GNUNET_TIME_absolute_get ();
+  if (GNUNET_YES == cork)
+    th->deadline = GNUNET_TIME_relative_to_absolute (maxdelay);
+  else
+    th->deadline = th->request_time;
   th->priority = priority;
   th->msize = notify_size;
   th->cork = cork;
@@ -1373,7 +1316,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 /**
  * Cancel the specified transmission-ready notification.
  *
- * @param th handle that was returned by "notify_transmit_ready".
+ * @param th handle that was returned by #GNUNET_CORE_notify_transmit_ready().
  */
 void
 GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th)

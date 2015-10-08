@@ -229,7 +229,8 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   {
     GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
                                  session->active_client_request_tail, car);
-    GSC_CLIENTS_reject_request (car);
+    GSC_CLIENTS_reject_request (car,
+                                GNUNET_NO);
   }
   while (NULL != (sme = session->sme_head))
   {
@@ -486,13 +487,15 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropped client request for transmission (am disconnected)\n");
     GNUNET_break (0);           /* should have been rejected earlier */
-    GSC_CLIENTS_reject_request (car);
+    GSC_CLIENTS_reject_request (car,
+                                GNUNET_NO);
     return;
   }
   if (car->msize > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     GNUNET_break (0);
-    GSC_CLIENTS_reject_request (car);
+    GSC_CLIENTS_reject_request (car,
+                                GNUNET_YES);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -516,7 +519,8 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car)
   struct Session *session;
 
   if (0 ==
-      memcmp (&car->target, &GSC_my_identity,
+      memcmp (&car->target,
+              &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
     return;
   session = find_session (&car->target);
@@ -524,41 +528,10 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car)
   GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
                                session->active_client_request_tail,
                                car);
-}
-
-
-/**
- * Discard all expired active transmission requests from clients.
- *
- * @param session session to clean up
- */
-static void
-discard_expired_requests (struct Session *session)
-{
-  struct GSC_ClientActiveRequest *pos;
-  struct GSC_ClientActiveRequest *nxt;
-  struct GNUNET_TIME_Absolute now;
-
-  now = GNUNET_TIME_absolute_get ();
-  pos = NULL;
-  nxt = session->active_client_request_head;
-  while (NULL != nxt)
-  {
-    pos = nxt;
-    nxt = pos->next;
-    if ( (pos->deadline.abs_value_us < now.abs_value_us) &&
-         (GNUNET_YES != pos->was_solicited) )
-    {
-      GNUNET_STATISTICS_update (GSC_stats,
-                                gettext_noop
-                                ("# messages discarded (expired prior to transmission)"),
-                                1, GNUNET_NO);
-      GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
-                                   session->active_client_request_tail,
-                                   pos);
-      GSC_CLIENTS_reject_request (pos);
-    }
-  }
+  /* dequeueing of 'high' priority messages may unblock
+     transmission for lower-priority messages, so we also
+     need to try in this case. */
+  try_transmission (session);
 }
 
 
@@ -578,7 +551,6 @@ solicit_messages (struct Session *session,
   size_t so_size;
   enum GNUNET_CORE_Priority pmax;
 
-  discard_expired_requests (session);
   so_size = msize;
   pmax = GNUNET_CORE_PRIO_BACKGROUND;
   for (car = session->active_client_request_head; NULL != car; car = car->next)
@@ -599,6 +571,9 @@ solicit_messages (struct Session *session,
     if (GNUNET_YES == car->was_solicited)
       continue;
     car->was_solicited = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Soliciting message with priority %u\n",
+                car->priority);
     GSC_CLIENTS_solicit_request (car);
   }
 }
@@ -642,7 +617,11 @@ try_transmission (struct Session *session)
   int excess;
 
   if (GNUNET_YES != session->ready_to_transmit)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Already ready to transmit, not evaluating queue\n");
     return;
+  }
   msize = 0;
   min_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
   /* if the peer has excess bandwidth, background traffic is allowed,
@@ -744,6 +723,11 @@ try_transmission (struct Session *session)
           GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_absolute_get_remaining (min_deadline),
                                         &pop_cork_task,
                                         session);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Queue empty, waiting for solicitations\n");
     }
     return;
   }

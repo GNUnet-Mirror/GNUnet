@@ -41,7 +41,7 @@
 /**
  * How long until we give up on transmitting the message?
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 6000)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 600)
 
 /**
  * What delay do we request from the core service for transmission?
@@ -55,9 +55,9 @@ static unsigned long long total_bytes;
 
 static struct GNUNET_TIME_Absolute start_time;
 
-static struct GNUNET_SCHEDULER_Task * err_task;
+static struct GNUNET_SCHEDULER_Task *err_task;
 
-static struct GNUNET_SCHEDULER_Task * connect_task;
+static struct GNUNET_SCHEDULER_Task *connect_task;
 
 
 struct PeerContext
@@ -185,9 +185,9 @@ transmit_ready (void *cls, size_t size, void *buf)
   unsigned int ret;
 
   GNUNET_assert (size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE);
-  if (buf == NULL)
+  if (NULL == buf)
   {
-    if (p1.ch != NULL)
+    if (NULL != p1.ch)
       GNUNET_break (NULL !=
                     GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
                                                        GNUNET_CORE_PRIO_BEST_EFFORT,
@@ -221,7 +221,8 @@ transmit_ready (void *cls, size_t size, void *buf)
   while (size - ret >= s);
   GNUNET_SCHEDULER_cancel (err_task);
   err_task =
-      GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
+      GNUNET_SCHEDULER_add_delayed (TIMEOUT,
+                                    &terminate_task_error, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Returning total message block of size %u\n", ret);
   total_bytes += ret;
@@ -241,10 +242,10 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (pc == &p1)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Encrypted connection established to peer `%4s'\n",
+                "Encrypted connection established to peer `%s'\n",
                 GNUNET_i2s (peer));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Asking core (1) for transmission to peer `%4s'\n",
+                "Asking core (1) for transmission to peer `%s'\n",
                 GNUNET_i2s (&p2.id));
     GNUNET_SCHEDULER_cancel (err_task);
     err_task =
@@ -268,7 +269,7 @@ disconnect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (0 == memcmp (&pc->id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
   pc->connect_status = 0;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted connection to `%4s' cut\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted connection to `%s' cut\n",
               GNUNET_i2s (peer));
 }
 
@@ -278,7 +279,7 @@ inbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                 const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core provides inbound data from `%4s'.\n", GNUNET_i2s (other));
+              "Core provides inbound data from `%s'.\n", GNUNET_i2s (other));
   return GNUNET_OK;
 }
 
@@ -288,7 +289,7 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
                  const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core notifies about outbound data for `%4s'.\n",
+              "Core notifies about outbound data for `%s'.\n",
               GNUNET_i2s (other));
   return GNUNET_OK;
 }
@@ -299,7 +300,8 @@ transmit_ready (void *cls, size_t size, void *buf);
 
 
 static int
-process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
+process_mtype (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
   static int n;
@@ -342,9 +344,11 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (n == tr_n)
       GNUNET_break (NULL !=
-                    GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                    GNUNET_CORE_notify_transmit_ready (p1.ch,
+                                                       GNUNET_NO /* no cork */,
                                                        GNUNET_CORE_PRIO_BEST_EFFORT,
-                                                       FAST_TIMEOUT, &p2.id,
+                                                       FAST_TIMEOUT /* ignored! */,
+                                                       &p2.id,
                                                        get_size (tr_n),
                                                        &transmit_ready, &p1));
   }
@@ -365,7 +369,7 @@ init_notify (void *cls,
   struct PeerContext *p = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection to CORE service of `%4s' established\n",
+              "Connection to CORE service of `%s' established\n",
               GNUNET_i2s (my_identity));
   p->id = *my_identity;
   if (cls == &p1)
@@ -373,9 +377,13 @@ init_notify (void *cls,
     GNUNET_assert (ok == 2);
     OKPP;
     /* connect p2 */
-    GNUNET_assert (NULL != (p2.ch = GNUNET_CORE_connect (p2.cfg, &p2, &init_notify, &connect_notify,
-                         &disconnect_notify, &inbound_notify, GNUNET_YES,
-                         &outbound_notify, GNUNET_YES, handlers)));
+    GNUNET_assert (NULL != (p2.ch = GNUNET_CORE_connect (p2.cfg, &p2,
+                                                         &init_notify,
+                                                         &connect_notify,
+                                                         &disconnect_notify,
+                                                         &inbound_notify, GNUNET_YES,
+                                                         &outbound_notify, GNUNET_YES,
+                                                         handlers)));
   }
   else
   {
@@ -383,7 +391,7 @@ init_notify (void *cls,
     OKPP;
     GNUNET_assert (cls == &p2);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Asking transport (1) to connect to peer `%4s'\n",
+                "Asking transport (1) to connect to peer `%s'\n",
                 GNUNET_i2s (&p2.id));
     connect_task = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
   }
@@ -443,9 +451,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   err_task =
       GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
 
-  GNUNET_assert (NULL != (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1, &init_notify, &connect_notify,
-                       &disconnect_notify, &inbound_notify, GNUNET_YES,
-                       &outbound_notify, GNUNET_YES, handlers)));
+  GNUNET_assert (NULL != (p1.ch = GNUNET_CORE_connect (p1.cfg, &p1,
+                                                       &init_notify,
+                                                       &connect_notify,
+                                                       &disconnect_notify,
+                                                       &inbound_notify, GNUNET_YES,
+                                                       &outbound_notify, GNUNET_YES,
+                                                       handlers)));
 }
 
 
@@ -476,7 +488,7 @@ main (int argc, char *argv1[])
     GNUNET_GETOPT_OPTION_END
   };
   ok = 1;
-  GNUNET_log_setup ("test-core-api",
+  GNUNET_log_setup ("test-core-api-reliability",
                     "WARNING",
                     NULL);
   GNUNET_PROGRAM_run ((sizeof (argv) / sizeof (char *)) - 1, argv,
