@@ -33,7 +33,7 @@
 #include "consensus_protocol.h"
 #include "consensus.h"
 
-
+#define GNUNET_CONSENSUS_ELEMENT_TYPE_USER_MAX 1 // FIXME
 #define ELEMENT_TYPE_CONTESTED_MARKER (GNUNET_CONSENSUS_ELEMENT_TYPE_USER_MAX + 1)
 
 
@@ -875,7 +875,7 @@ set_result_cb (void *cls,
 
   setop = &task->cls.setop;
 
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "P%u: got set result for {%s}, status %u\n",
               session->local_peer_idx,
@@ -1097,7 +1097,7 @@ get_evilness (struct ConsensusSession *session, enum Evilness *ret_type, unsigne
     if (ret != 3)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed field '%s' in EVIL_SPEC, behaving like a good peer.\n",
-                  field); 
+                  field);
       goto not_evil;
     }
 
@@ -1114,7 +1114,7 @@ get_evilness (struct ConsensusSession *session, enum Evilness *ret_type, unsigne
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed field '%s' in EVIL_SPEC (unknown type), behaving like a good peer.\n"); 
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed field '%s' in EVIL_SPEC (unknown type), behaving like a good peer.\n");
         goto not_evil;
       }
       goto cleanup;
@@ -1317,7 +1317,7 @@ diff_create ()
   struct DiffEntry *d = GNUNET_new (struct DiffEntry);
 
   d->changes = GNUNET_CONTAINER_multihashmap_create (8, GNUNET_NO);
-  
+
   return d;
 }
 
@@ -1329,7 +1329,7 @@ diff_compose (struct DiffEntry *diff_1,
   struct DiffEntry *diff_new;
   struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
   struct DiffElementInfo *di;
- 
+
   diff_new = diff_create ();
 
   iter = GNUNET_CONTAINER_multihashmap_iterator_create (diff_1->changes);
@@ -2203,8 +2203,8 @@ set_listen_cb (void *cls,
                                           GNUNET_SET_RESULT_SYMMETRIC,
                                           set_result_cb,
                                           task);
-  
-  /* If the task hasn't been started yet, 
+
+  /* If the task hasn't been started yet,
      we wait for that until we commit. */
 
   if (GNUNET_YES == task->is_started)
@@ -2563,7 +2563,7 @@ construct_task_graph (struct ConsensusSession *session)
   // XXX: introduce first step,
   // where we wait for all insert acks
   // from the set service
-  
+
   /* faster but brittle all-to-all */
 
   // XXX: Not implemented yet
