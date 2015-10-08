@@ -72,6 +72,11 @@ extern "C"
 #define GNUNET_CONSTANTS_MAX_CORK_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 /**
+ * After what amount of latency for a message do we print a warning?
+ */
+#define GNUNET_CONSTANTS_LATENCY_WARN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
+/**
  * Until which load do we consider the peer overly idle
  * (which means that we would like to use more resources).<p>
  *

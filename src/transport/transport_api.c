@@ -976,7 +976,7 @@ transport_notify_ready (void *cls,
                        size,
                        &cbuf[ret]);
     delay = GNUNET_TIME_absolute_get_duration (th->request_start);
-    if (delay.rel_value_us > 1000 * 1000)
+    if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Added %u bytes of control message at %u after %s delay\n",
            nret,
@@ -1055,7 +1055,7 @@ transport_notify_ready (void *cls,
     GNUNET_BANDWIDTH_tracker_consume (&n->out_tracker,
                                       mret);
     delay = GNUNET_TIME_absolute_get_duration (th->request_start);
-    if (delay.rel_value_us > 1000 * 1000)
+    if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Added %u bytes of payload message for %s after %s delay at %u b/s\n",
            mret,
@@ -2058,7 +2058,7 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   n->traffic_overhead = 0;
   if (delay.rel_value_us > timeout.rel_value_us)
     delay.rel_value_us = 0;        /* notify immediately (with failure) */
-  if (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us)
+  if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "At bandwidth %u byte/s next transmission to %s in %s\n",
          (unsigned int) n->out_tracker.available_bytes_per_s__,
