@@ -2117,7 +2117,7 @@ ax_kx_resend (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
 
-  GCT_send_ax_kx (t, GNUNET_YES);
+  GCT_send_ax_kx (t, CADET_TUNNEL_KEY_SENT >= t->estate);
 }
 
 
