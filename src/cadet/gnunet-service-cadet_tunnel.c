@@ -2345,8 +2345,9 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_TIME_Relative duration;
 
   duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " kx started %s ago\n",
-        GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " kx started %s ago\n",
+       GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
 
   // FIXME make duration of old keys configurable
   if (duration.rel_value_us >= GNUNET_TIME_UNIT_MINUTES.rel_value_us)

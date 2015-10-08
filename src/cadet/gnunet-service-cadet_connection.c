@@ -1292,7 +1292,8 @@ schedule_next_keepalive (struct CadetConnection *c, int fwd)
   *task_id = GNUNET_SCHEDULER_add_delayed (delay,
                                            keepalive_task,
                                            c);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "next keepalive in %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "next keepalive in %s\n",
        GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
   GCC_check_connections ();
 }
@@ -1631,7 +1632,8 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
     if (NULL != *ti)
       GNUNET_SCHEDULER_cancel (*ti);
     delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  timing out in %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  timing out in %s\n",
          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_NO));
     f = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
     *ti = GNUNET_SCHEDULER_add_delayed (delay, f, c);
