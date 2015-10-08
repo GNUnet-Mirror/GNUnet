@@ -33,7 +33,7 @@
  * Should we try compressing the strata estimator? This will
  * break compatibility with the 0.10.1-network.
  */
-#define FAIL_10_1_COMPATIBILTIY 0
+#define FAIL_10_1_COMPATIBILTIY 1
 
 
 /**
@@ -48,6 +48,7 @@ strata_estimator_write (const struct StrataEstimator *se,
                         void *buf)
 {
   unsigned int i;
+  void *sbuf = buf;
   size_t osize;
 
   GNUNET_assert (NULL != se);
@@ -66,12 +67,12 @@ strata_estimator_write (const struct StrataEstimator *se,
     size_t nsize;
 
     if (GNUNET_YES ==
-        GNUNET_try_compression (buf,
+        GNUNET_try_compression (sbuf,
                                 osize,
                                 &cbuf,
                                 &nsize))
     {
-      memcpy (buf, cbuf, nsize);
+      memcpy (sbuf, cbuf, nsize);
       osize = nsize;
       GNUNET_free (cbuf);
     }
