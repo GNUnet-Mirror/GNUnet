@@ -233,6 +233,7 @@ transmit_ready (void *cls,
   size_t ret;
   char *cbuf;
   struct GNUNET_TIME_Relative delay;
+  struct GNUNET_TIME_Relative overdue;
 
   n->th = NULL;
   m = n->message_head;
@@ -257,21 +258,22 @@ transmit_ready (void *cls,
     return 0;
   }
   delay = GNUNET_TIME_absolute_get_duration (m->submission_time);
+  overdue = GNUNET_TIME_absolute_get_duration (m->deadline);
   cbuf = buf;
   GNUNET_assert (size >= m->size);
   memcpy (cbuf,
           &m[1],
           m->size);
   ret = m->size;
-  if (delay.rel_value_us > GNUNET_TIME_UNIT_SECONDS.rel_value_us)
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Copied message of type %u and size %u into transport buffer for `%s' with delay of %s\n",
-              (unsigned int)
-              ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
-              (unsigned int) ret,
-              GNUNET_i2s (&n->peer),
-              GNUNET_STRINGS_relative_time_to_string (delay,
-                                                      GNUNET_YES));
+  if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Copied overdue message of type %u and size %u into transport buffer for `%s' with delay of %s\n",
+                (unsigned int)
+                ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
+                (unsigned int) ret,
+                GNUNET_i2s (&n->peer),
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES));
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Copied message of type %u and size %u into transport buffer for `%s' with delay of %s\n",
