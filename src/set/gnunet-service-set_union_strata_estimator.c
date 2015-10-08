@@ -48,6 +48,7 @@ strata_estimator_write (const struct StrataEstimator *se,
                         void *buf)
 {
   unsigned int i;
+  size_t osize;
 
   GNUNET_assert (NULL != se);
   for (i = 0; i < se->strata_count; i++)
@@ -61,7 +62,6 @@ strata_estimator_write (const struct StrataEstimator *se,
   osize = se->ibf_size * IBF_BUCKET_SIZE * se->strata_count;
 #if FAIL_10_1_COMPATIBILTIY
   {
-    size_t osize;
     char *cbuf;
     size_t nsize;
 
