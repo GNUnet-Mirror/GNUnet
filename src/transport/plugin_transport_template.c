@@ -296,6 +296,21 @@ template_plugin_get_network (void *cls,
 
 
 /**
+ * Function obtain the network type for an address.
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param address the address
+ * @return the network type
+ */
+static enum GNUNET_ATS_Network_Type
+template_plugin_get_network_for_address (void *cls,
+                                         const struct GNUNET_HELLO_Address *address)
+{
+  return GNUNET_ATS_NET_WAN; /* FOR NOW */
+}
+
+
+/**
  * Convert the transports address to a nice, human-readable
  * format.
  *
@@ -522,6 +537,7 @@ libgnunet_plugin_transport_template_init (void *cls)
   api->string_to_address = &template_plugin_string_to_address;
   api->get_session = &template_plugin_get_session;
   api->get_network = &template_plugin_get_network;
+  api->get_network_for_address = &template_plugin_get_network_for_address;
   api->update_session_timeout = &template_plugin_update_session_timeout;
   api->setup_monitor = &template_plugin_setup_monitor;
   LOG (GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
