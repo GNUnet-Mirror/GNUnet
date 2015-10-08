@@ -275,7 +275,7 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
 /**
  * Cancel the specified transmission-ready notification.
  *
- * @param th handle that was returned by "notify_transmit_ready".
+ * @param th handle that was returned by #GNUNET_CORE_notify_transmit_ready().
  */
 void
 GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th);
