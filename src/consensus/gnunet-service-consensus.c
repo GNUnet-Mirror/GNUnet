@@ -1611,14 +1611,8 @@ task_start_grade (struct TaskEntry *task)
     // XXX: we need contested votes and non-contested votes here
     rfn_majority (input_rfn, ri, &majority_num, &majority_vote);
 
-    if (majority_num < (session->num_peers / 3) * 2)
-    {
-      gradecast_confidence = GNUNET_MIN(1, gradecast_confidence);
-    }
-    if (majority_num < (session->num_peers / 3) + 1)
-    {
-      gradecast_confidence = 0;
-    }
+    if (majority_num <= session->num_peers / 3)
+      majority_vote = VOTE_REMOVE;
 
     switch (majority_vote)
     {
