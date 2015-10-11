@@ -33,7 +33,6 @@
 #include "consensus_protocol.h"
 #include "consensus.h"
 
-#define GNUNET_CONSENSUS_ELEMENT_TYPE_USER_MAX 1 // FIXME
 #define ELEMENT_TYPE_CONTESTED_MARKER (GNUNET_CONSENSUS_ELEMENT_TYPE_USER_MAX + 1)
 
 
@@ -807,6 +806,7 @@ rfn_noncontested (struct ReferendumEntry *rfn)
 
   return ret;
 }
+
 
 static void
 rfn_vote (struct ReferendumEntry *rfn,
@@ -2258,6 +2258,8 @@ install_step_timeouts (struct ConsensusSession *session)
 {
   /* Given the fully constructed task graph
      with rounds for tasks, we can give the tasks timeouts. */
+
+  // unsigned int max_round;
 
   /* XXX: implement! */
 }

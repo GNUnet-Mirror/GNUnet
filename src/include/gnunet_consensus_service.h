@@ -43,6 +43,14 @@ extern "C"
 
 
 /**
+ * Elements inserted into the consensus set by the client
+ * may not be larger than this constant, since types in
+ * the upper range are used by CONSENSUS internally.
+ */
+#define GNUNET_CONSENSUS_ELEMENT_TYPE_USER_MAX 0xFFF0
+
+
+/**
  * Called when a new element was received from another peer, or an error occured.
  * May deliver duplicate values.
  * Elements given to a consensus operation by the local peer are NOT given

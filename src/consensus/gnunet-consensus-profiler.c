@@ -86,6 +86,44 @@ controller_cb (void *cls,
 
 
 static void
+statistics_done_db (void *cls,
+                    struct
+                    GNUNET_TESTBED_Operation
+                    *op,
+                    const char *emsg)
+{
+  GNUNET_assert (NULL == emsg);
+  GNUNET_TESTBED_operation_done (op);
+  printf ("statistics done\n");
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
+ * Callback function to process statistic values from all peers.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+statistics_cb (void *cls,
+               const struct GNUNET_TESTBED_Peer *peer,
+               const char *subsystem,
+               const char *name,
+               uint64_t value,
+               int is_persistent)
+{
+  printf ("stat P%u: %s/%s=%lu\n", GNUNET_TESTBED_get_index (peer), subsystem, name, (unsigned long) value);
+  return GNUNET_OK;
+}
+
+
+static void
 destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
@@ -104,7 +142,10 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
               i,
               results_for_peer[i],
               num_values);
-    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_TESTBED_get_statistics (num_peers, peers, NULL, NULL,
+                                   statistics_cb,
+                                   statistics_done_db,
+                                   NULL);
   }
 }
 

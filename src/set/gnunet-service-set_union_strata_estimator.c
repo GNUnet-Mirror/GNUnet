@@ -33,7 +33,7 @@
  * Should we try compressing the strata estimator? This will
  * break compatibility with the 0.10.1-network.
  */
-#define FAIL_10_1_COMPATIBILTIY 0
+#define FAIL_10_1_COMPATIBILTIY 1
 
 
 /**
