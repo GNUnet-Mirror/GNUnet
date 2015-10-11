@@ -382,6 +382,16 @@ else
   AC_DEFINE([HAVE_LIBBLUETOOTH],[0],[Lacking bluetooth library])
 fi
 
+# check for jansson library
+jansson=0
+AC_CHECK_HEADER([jansson.h],jansson=1)
+AM_CONDITIONAL(HAVE_REST, [test "$jansson" = 1])
+if test "$jansson" = 1
+then
+  AC_DEFINE([HAVE_REST],[1],[Have jansson library])
+else
+  AC_DEFINE([HAVE_REST],[0],[Lacking jansson library])
+fi
 
 # check for libpulse(audio) library
 pulse=0
@@ -1287,15 +1297,6 @@ AC_ARG_ENABLE([wachs],
    [enable_wachs=no])
 AC_MSG_RESULT($enable_wachs)
 AM_CONDITIONAL([HAVE_WACHS], [test "x$enable_wachs" = "xyes"])
-
-# REST API
-AC_MSG_CHECKING(whether to compile REST API)
-AC_ARG_ENABLE([rest],
-   [AS_HELP_STRING([--enable-rest], [enable REST])],
-   [enable_rest=${enableval}],
-   [enable_rest=no])
-AC_MSG_RESULT($enable_rest)
-AM_CONDITIONAL([HAVE_REST], [test "x$enable_rest" = "xyes"])
 
 # should malicious code be compiled (should only be used for testing)?
 AC_MSG_CHECKING(whether to compile malicious code)

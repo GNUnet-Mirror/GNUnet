@@ -21,11 +21,14 @@ if HAVE_EXPERIMENTAL
   psyc \
   rps \
   social \
-	identity-token \
-  $(CONSENSUS) \
+	$(CONSENSUS) \
   $(SECRETSHARING) \
   $(SENSOR) \
   $(SENSORDASHBOARD)
+endif
+
+if HAVE_REST
+	EXP_DIR += identity-token
 endif
 
 if BUILD_PULSE_HELPERS
