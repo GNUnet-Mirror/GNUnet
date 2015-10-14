@@ -199,7 +199,8 @@ find_ai (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Find matching address info, ignoring sessions.
+ * Find matching address info, ignoring sessions and expired
+ * addresses.
  *
  * @param cls the `struct FindClosure`
  * @param key which peer is this about
@@ -214,6 +215,8 @@ find_ai_no_session_cb (void *cls,
   struct FindClosure *fc = cls;
   struct AddressInfo *ai = value;
 
+  if (ai->expired)
+    return GNUNET_YES; /* expired do not count here */
   if (0 ==
       GNUNET_HELLO_address_cmp (fc->address,
                                 ai->address))
@@ -272,7 +275,11 @@ GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
 int
 GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address)
 {
-  return (NULL != find_ai_no_session (address)) ? GNUNET_YES : GNUNET_NO;
+  struct AddressInfo *ai;
+
+  return (NULL != find_ai_no_session (address))
+    ? GNUNET_YES
+    : GNUNET_NO;
 }
 
 
@@ -538,6 +545,34 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
 
 
 /**
+ * Release memory used by the given address data.
+ *
+ * @param ai the `struct AddressInfo`
+ */ 
+static void
+destroy_ai (struct AddressInfo *ai)
+{
+  GNUNET_assert (NULL == ai->session);
+  GNUNET_assert (NULL == ai->unblock_task);
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (p2a,
+                                                       &ai->address->peer,
+                                                       ai));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Telling ATS to destroy address from peer %s\n",
+       GNUNET_i2s (&ai->address->peer));
+  if (NULL != ai->ar)
+  {
+    GNUNET_ATS_address_destroy (ai->ar);
+    ai->ar = NULL;
+  }
+  publish_p2a_stat_update ();
+  GNUNET_HELLO_address_free (ai->address);
+  GNUNET_free (ai);
+}
+
+
+/**
  * Notify ATS that the session (but not the address) of
  * a given address is no longer relevant.
  *
@@ -575,16 +610,28 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
        "Telling ATS to destroy session %p from peer %s\n",
        session,
        GNUNET_i2s (&address->peer));
+  if (GNUNET_YES == ai->expired) 
+  {
+    /* last reason to keep this 'ai' around is now gone, the
+       session is dead as well, clean up */
+    if (NULL != ai->ar)
+    {
+      GNUNET_break (GNUNET_YES ==
+		    GNUNET_ATS_address_del_session (ai->ar,
+						    session));
+    }
+    destroy_ai (ai);
+    return;
+  }
   if (NULL == ai->ar)
   {
     /* If ATS doesn't know about the address/session, and this was an
-       inbound session or one that expired, then we must forget about
-       the address as well.  Otherwise, we are done as we have set
-       `ai->session` to NULL already. */
-    if ( (GNUNET_YES == ai->expired) ||
-         (GNUNET_YES ==
-          GNUNET_HELLO_address_check_option (address,
-                                             GNUNET_HELLO_ADDRESS_INFO_INBOUND)) )
+       inbound session, so we must forget about the address as well.
+       Otherwise, we are done as we have set `ai->session` to NULL
+       already. */
+    if (GNUNET_YES ==
+	GNUNET_HELLO_address_check_option (address,
+					   GNUNET_HELLO_ADDRESS_INFO_INBOUND))
       GST_ats_expire_address (address);
     return;
   }
@@ -722,36 +769,9 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
   if (NULL != ai->session)
   {
     ai->expired = GNUNET_YES;
-    if (NULL != ai->ar)
-    {
-      GNUNET_ATS_address_destroy (ai->ar);
-      ai->ar = NULL;
-    }
     return;
   }
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (p2a,
-                                                       &address->peer,
-                                                       ai));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Telling ATS to destroy address from peer %s\n",
-       GNUNET_i2s (&address->peer));
-  if (NULL != ai->ar)
-  {
-    /* We usually should not have a session here when we
-       expire an address, but during shutdown a session
-       may be active while validation causes the address
-       to 'expire'.  So clean up both if necessary. */
-    if ( (NULL == ai->session) ||
-         (GNUNET_NO ==
-          GNUNET_ATS_address_del_session (ai->ar,
-                                          ai->session)) )
-      GNUNET_ATS_address_destroy (ai->ar);
-    ai->ar = NULL;
-  }
-  publish_p2a_stat_update ();
-  GNUNET_HELLO_address_free (ai->address);
-  GNUNET_free (ai);
+  destroy_ai (ai);
 }
 
 
@@ -774,29 +794,19 @@ GST_ats_init ()
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-destroy_ai (void *cls,
-            const struct GNUNET_PeerIdentity *key,
-            void *value)
+destroy_ai_cb (void *cls,
+	       const struct GNUNET_PeerIdentity *key,
+	       void *value)
 {
   struct AddressInfo *ai = value;
 
-  GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (p2a,
-                                                       key,
-                                                       ai));
   if (NULL != ai->unblock_task)
   {
     GNUNET_SCHEDULER_cancel (ai->unblock_task);
     ai->unblock_task = NULL;
     num_blocked--;
   }
-  if (NULL != ai->ar)
-  {
-    GNUNET_ATS_address_destroy (ai->ar);
-    ai->ar = NULL;
-  }
-  GNUNET_HELLO_address_free (ai->address);
-  GNUNET_free (ai);
+  destroy_ai (ai);
   return GNUNET_OK;
 }
 
@@ -808,7 +818,7 @@ void
 GST_ats_done ()
 {
   GNUNET_CONTAINER_multipeermap_iterate (p2a,
-                                         &destroy_ai,
+                                         &destroy_ai_cb,
                                          NULL);
   publish_p2a_stat_update ();
   GNUNET_CONTAINER_multipeermap_destroy (p2a);

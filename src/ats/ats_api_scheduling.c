@@ -790,7 +790,6 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_AddressRecord *ar,
 }
 
 
-
 /**
  * An address got destroyed, stop using it as a valid address.
  *
