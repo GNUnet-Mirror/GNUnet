@@ -606,7 +606,7 @@ transmit_ping_if_allowed (void *cls,
                       NULL, NULL);
     if (-1 == ret)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Failed to send PING to `%s' at `%s'\n",
                   GNUNET_i2s (pid),
                   GST_plugins_a2s (ve->address));

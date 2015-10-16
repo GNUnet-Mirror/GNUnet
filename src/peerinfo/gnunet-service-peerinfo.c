@@ -853,13 +853,16 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
 
       if (GNUNET_YES == store_hello)
       {
-	memcpy (buffer, host->hello,
+	memcpy (buffer,
+                host->hello,
                 GNUNET_HELLO_size (host->hello));
 	pos += GNUNET_HELLO_size (host->hello);
       }
       if (GNUNET_YES == store_friend_hello)
       {
-	memcpy (&buffer[pos], host->friend_only_hello, GNUNET_HELLO_size (host->friend_only_hello));
+	memcpy (&buffer[pos],
+                host->friend_only_hello,
+                GNUNET_HELLO_size (host->friend_only_hello));
 	pos += GNUNET_HELLO_size (host->friend_only_hello);
       }
       GNUNET_assert (pos == size);
