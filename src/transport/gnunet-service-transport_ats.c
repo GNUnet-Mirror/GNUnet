@@ -275,8 +275,6 @@ GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
 int
 GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address)
 {
-  struct AddressInfo *ai;
-
   return (NULL != find_ai_no_session (address))
     ? GNUNET_YES
     : GNUNET_NO;
