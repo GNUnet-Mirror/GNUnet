@@ -2299,7 +2299,7 @@ arrange_peers (uint16_t *p1, uint16_t *p2, uint16_t n)
 
 
 /**
- * Record @a dep as a dependency of @step.
+ * Record @a dep as a dependency of @a step.
  */
 static void
 step_depend_on (struct Step *step, struct Step *dep)
@@ -2985,4 +2985,3 @@ main (int argc, char *const *argv)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "exit (%d)\n", GNUNET_OK != ret);
   return (GNUNET_OK == ret) ? 0 : 1;
 }
-

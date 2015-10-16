@@ -167,9 +167,8 @@ struct MulticastReplayRequestMessage
 {
 
   /**
-   * The message type can be either
-   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST or
-   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL.
+   * The message type should be
+   * #GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST.
    */
   struct GNUNET_MessageHeader header;
 

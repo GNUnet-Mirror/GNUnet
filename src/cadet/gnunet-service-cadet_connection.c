@@ -845,7 +845,7 @@ check_neighbours (const struct CadetConnection *c)
 
 
 /**
- * Helper for #check_connections().  Calls #check_neighbours().
+ * Helper for #GCC_check_connections().  Calls #check_neighbours().
  *
  * @param cls NULL
  * @param key ignored

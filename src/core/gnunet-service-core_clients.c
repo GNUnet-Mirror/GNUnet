@@ -446,7 +446,7 @@ struct TokenizerContext
 
 
 /**
- * Handle #GNUNET_MESSAGE_TYPE_CORE_CORE_SEND request.
+ * Handle #GNUNET_MESSAGE_TYPE_CORE_SEND request.
  *
  * @param cls unused
  * @param client the client issuing the request

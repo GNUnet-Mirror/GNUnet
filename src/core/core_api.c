@@ -133,7 +133,7 @@ struct PeerRecord
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * ID of task to run #next_request_transmission().
+   * ID of task to run #run_request_next_transmission().
    */
   struct GNUNET_SCHEDULER_Task *ntr_task;
 
