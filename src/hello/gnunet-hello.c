@@ -166,7 +166,7 @@ main (int argc, char *argv[])
 		   GNUNET_DISK_file_read (fh, buf, fsize));
     GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
     orig = (struct GNUNET_HELLO_Message *) buf;
-    if ( (fsize != GNUNET_HELLO_size (orig)) ||
+    if ( (fsize < GNUNET_HELLO_size (orig)) ||
 	 (GNUNET_OK != GNUNET_HELLO_get_id (orig,
                                             &pid)) )
     {
