@@ -546,12 +546,17 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
  * Release memory used by the given address data.
  *
  * @param ai the `struct AddressInfo`
- */ 
+ */
 static void
 destroy_ai (struct AddressInfo *ai)
 {
   GNUNET_assert (NULL == ai->session);
-  GNUNET_assert (NULL == ai->unblock_task);
+  if (NULL != ai->unblock_task)
+  {
+    GNUNET_SCHEDULER_cancel (ai->unblock_task);
+    ai->unblock_task = NULL;
+    num_blocked--;
+  }
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (p2a,
                                                        &ai->address->peer,
@@ -608,7 +613,7 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
        "Telling ATS to destroy session %p from peer %s\n",
        session,
        GNUNET_i2s (&address->peer));
-  if (GNUNET_YES == ai->expired) 
+  if (GNUNET_YES == ai->expired)
   {
     /* last reason to keep this 'ai' around is now gone, the
        session is dead as well, clean up */
@@ -758,12 +763,6 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
     GNUNET_assert (0);
     return;
   }
-  if (NULL != ai->unblock_task)
-  {
-    GNUNET_SCHEDULER_cancel (ai->unblock_task);
-    ai->unblock_task = NULL;
-    num_blocked--;
-  }
   if (NULL != ai->session)
   {
     ai->expired = GNUNET_YES;
@@ -798,12 +797,6 @@ destroy_ai_cb (void *cls,
 {
   struct AddressInfo *ai = value;
 
-  if (NULL != ai->unblock_task)
-  {
-    GNUNET_SCHEDULER_cancel (ai->unblock_task);
-    ai->unblock_task = NULL;
-    num_blocked--;
-  }
   destroy_ai (ai);
   return GNUNET_OK;
 }
