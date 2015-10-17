@@ -37,6 +37,11 @@
 #include "gnunet_constants.h"
 #include "transport.h"
 
+/**
+ * Experimental option to ignore SessionQuotaMessages from
+ * the other peer.
+ */
+#define IGNORE_INBOUND_QUOTA GNUNET_YES
 
 /**
  * Size of the neighbour hash map.
@@ -1177,7 +1182,8 @@ set_incoming_quota (struct NeighbourMapEntry *n,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Setting inbound quota of %u Bps for peer `%s' to all clients\n",
               ntohl (quota.value__), GNUNET_i2s (&n->id));
-  GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
+  GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker,
+                                         quota);
   if (0 != ntohl (quota.value__))
   {
     struct SessionQuotaMessage sqm;
@@ -1223,6 +1229,8 @@ set_primary_address (struct NeighbourMapEntry *n,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
+
   if (session == n->primary_address.session)
   {
     GST_validation_set_address_use (n->primary_address.address,
@@ -1236,11 +1244,14 @@ set_primary_address (struct NeighbourMapEntry *n,
     if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
     {
       n->primary_address.bandwidth_out = bandwidth_out;
-      // FIXME: this ignores n->neighbour_receive_quota!
-      // -> might get 'unusually' high quota on initial
-      // connect
+#if IGNORE_INBOUND_QUOTA
+      bandwidth_min = bandwidth_out;
+#else
+      bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
+                                                  n->neighbour_receive_quota);
+#endif
       send_outbound_quota_to_clients (&address->peer,
-                                      bandwidth_out);
+                                      bandwidth_min);
     }
     return;
   }
@@ -1277,11 +1288,14 @@ set_primary_address (struct NeighbourMapEntry *n,
                                   GNUNET_YES);
   set_incoming_quota (n,
                       bandwidth_in);
-  // FIXME: this ignores n->neighbour_receive_quota!
-  // -> might get 'unusually' high quota on initial
-  // connect
+#if IGNORE_INBOUND_QUOTA
+  bandwidth_min = bandwidth_out;
+#else
+  bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
+                                              n->neighbour_receive_quota);
+#endif
   send_outbound_quota_to_clients (&address->peer,
-                                  bandwidth_out);
+                                  bandwidth_min);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Neighbour `%s' switched to address `%s'\n",
               GNUNET_i2s (&n->id),
@@ -2558,8 +2572,12 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
   if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
   {
     n->primary_address.bandwidth_out = bandwidth_out;
+#if IGNORE_INBOUND_QUOTA
+    bandwidth_min = bandwidth_out;
+#else
     bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
                                                 n->neighbour_receive_quota);
+#endif
     send_outbound_quota_to_clients (&address->peer,
                                     bandwidth_min);
   }
@@ -3696,9 +3714,12 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
   n->neighbour_receive_quota
     = GNUNET_BANDWIDTH_value_max (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                   GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota)));
-
+#if IGNORE_INBOUND_QUOTA
+  bandwidth_min = n->primary_address.bandwidth_out;
+#else
   bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
                                               n->neighbour_receive_quota);
+#endif
   send_outbound_quota_to_clients (peer,
                                   bandwidth_min);
 }
