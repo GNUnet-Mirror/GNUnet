@@ -674,7 +674,8 @@ try_transmission (struct Session *session)
     {
       if (GNUNET_YES == car->was_solicited)
         continue;
-      maxpc = GNUNET_MAX (maxpc, car->priority);
+      maxpc = GNUNET_MAX (maxpc,
+                          car->priority);
     }
     if (maxpc > maxp)
     {
