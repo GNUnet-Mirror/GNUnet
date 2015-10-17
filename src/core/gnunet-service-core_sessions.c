@@ -575,6 +575,11 @@ solicit_messages (struct Session *session,
                 "Soliciting message with priority %u\n",
                 car->priority);
     GSC_CLIENTS_solicit_request (car);
+    /* The above call may *dequeue* requests and thereby
+       clobber 'nxt'. Hence we need to restart from the
+       head of the list. */
+    nxt = session->active_client_request_head;
+    so_size = msize;
   }
 }
 
