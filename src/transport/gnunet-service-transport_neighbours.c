@@ -862,87 +862,57 @@ set_alternative_address (struct NeighbourMapEntry *n,
 
 
 /**
- * Initialize the primary address of a neighbour
+ * Transmit a message using the current session of the given
+ * neighbour.
  *
- * @param n the neighbour
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
- * @param session session to use (or NULL, in which case an
- *        address must be setup)
- * @param bandwidth_in inbound quota to be used when connection is up
- * @param bandwidth_out outbound quota to be used when connection is up
+ * @param n entry for the recipient
+ * @param msgbuf buffer to transmit
+ * @param msgbuf_size number of bytes in @a msgbuf buffer
+ * @param priority transmission priority
+ * @param timeout transmission timeout
+ * @param use_keepalive_timeout #GNUNET_YES to use plugin-specific keep-alive
+ *        timeout (@a timeout is ignored in that case), #GNUNET_NO otherwise
+ * @param cont continuation to call when finished (can be NULL)
+ * @param cont_cls closure for @a cont
+ * @return timeout (copy of @a timeout or a calculated one if
+ *         @a use_keepalive_timeout is #GNUNET_YES.
  */
-static void
-set_primary_address (struct NeighbourMapEntry *n,
-                     const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
-                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+static struct GNUNET_TIME_Relative
+send_with_session (struct NeighbourMapEntry *n,
+                   const void *msgbuf,
+                   size_t msgbuf_size,
+                   uint32_t priority,
+                   struct GNUNET_TIME_Relative timeout,
+		   unsigned int use_keepalive_timeout,
+                   GNUNET_TRANSPORT_TransmitContinuation cont,
+		   void *cont_cls)
 {
-  if (session == n->primary_address.session)
-  {
-    GST_validation_set_address_use (n->primary_address.address,
-                                    GNUNET_YES);
-    if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
-    {
-      n->primary_address.bandwidth_in = bandwidth_in;
-      GST_neighbours_set_incoming_quota (&address->peer,
-                                         bandwidth_in);
-    }
-    if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
-    {
-      n->primary_address.bandwidth_out = bandwidth_out;
-      send_outbound_quota_to_clients (&address->peer,
-                                      bandwidth_out);
-    }
-    return;
-  }
-  if ( (NULL != n->primary_address.address) &&
-       (0 == GNUNET_HELLO_address_cmp (address,
-                                       n->primary_address.address)) )
-  {
-    GNUNET_break (0);
-    return;
-  }
-  if (NULL == session)
-  {
-    GNUNET_break (0);
-    GST_ats_block_address (address,
-                           session);
-    return;
-  }
-  if (NULL != n->primary_address.address)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Replacing existing primary address with another one\n");
-    free_address (&n->primary_address);
-  }
-  n->primary_address.address = GNUNET_HELLO_address_copy (address);
-  n->primary_address.bandwidth_in = bandwidth_in;
-  n->primary_address.bandwidth_out = bandwidth_out;
-  n->primary_address.session = session;
-  n->primary_address.keep_alive_nonce = 0;
-  GNUNET_assert (GNUNET_YES ==
-                 GST_ats_is_known (n->primary_address.address,
-                                   n->primary_address.session));
-  /* subsystems about address use */
-  GST_validation_set_address_use (n->primary_address.address,
-                                  GNUNET_YES);
-  GST_neighbours_set_incoming_quota (&address->peer,
-                                     bandwidth_in);
-  send_outbound_quota_to_clients (&address->peer,
-                                  bandwidth_out);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Neighbour `%s' switched to address `%s'\n",
-              GNUNET_i2s (&n->id),
-              GST_plugins_a2s(address));
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct GNUNET_TIME_Relative result = GNUNET_TIME_UNIT_FOREVER_REL;
 
-  neighbours_changed_notification (&n->id,
-                                   n->primary_address.address,
-                                   n->state,
-                                   n->timeout,
-                                   n->primary_address.bandwidth_in,
-                                   n->primary_address.bandwidth_out);
+  GNUNET_assert (NULL != n->primary_address.session);
+  if ( ((NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)) ||
+	 (-1 == papi->send (papi->cls,
+			    n->primary_address.session,
+			    msgbuf,
+                            msgbuf_size,
+			    priority,
+			    (result = (GNUNET_NO == use_keepalive_timeout) ? timeout :
+                             GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                          papi->query_keepalive_factor (papi->cls))),
+			    cont,
+                            cont_cls)))) &&
+       (NULL != cont))
+    cont (cont_cls,
+          &n->id,
+          GNUNET_SYSERR,
+          msgbuf_size,
+          0);
+  GST_neighbours_notify_data_sent (n->primary_address.address,
+				   n->primary_address.session,
+				   msgbuf_size);
+  GNUNET_break (NULL != papi);
+  return result;
 }
 
 
@@ -1037,61 +1007,6 @@ free_neighbour (struct NeighbourMapEntry *n)
   }
   /* free rest of memory */
   GNUNET_free (n);
-}
-
-
-/**
- * Transmit a message using the current session of the given
- * neighbour.
- *
- * @param n entry for the recipient
- * @param msgbuf buffer to transmit
- * @param msgbuf_size number of bytes in @a msgbuf buffer
- * @param priority transmission priority
- * @param timeout transmission timeout
- * @param use_keepalive_timeout #GNUNET_YES to use plugin-specific keep-alive
- *        timeout (@a timeout is ignored in that case), #GNUNET_NO otherwise
- * @param cont continuation to call when finished (can be NULL)
- * @param cont_cls closure for @a cont
- * @return timeout (copy of @a timeout or a calculated one if
- *         @a use_keepalive_timeout is #GNUNET_YES.
- */
-static struct GNUNET_TIME_Relative
-send_with_session (struct NeighbourMapEntry *n,
-                   const void *msgbuf,
-                   size_t msgbuf_size,
-                   uint32_t priority,
-                   struct GNUNET_TIME_Relative timeout,
-		   unsigned int use_keepalive_timeout,
-                   GNUNET_TRANSPORT_TransmitContinuation cont,
-		   void *cont_cls)
-{
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct GNUNET_TIME_Relative result = GNUNET_TIME_UNIT_FOREVER_REL;
-
-  GNUNET_assert (NULL != n->primary_address.session);
-  if ( ((NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)) ||
-	 (-1 == papi->send (papi->cls,
-			    n->primary_address.session,
-			    msgbuf,
-                            msgbuf_size,
-			    priority,
-			    (result = (GNUNET_NO == use_keepalive_timeout) ? timeout :
-                             GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                          papi->query_keepalive_factor (papi->cls))),
-			    cont,
-                            cont_cls)))) &&
-       (NULL != cont))
-    cont (cont_cls,
-          &n->id,
-          GNUNET_SYSERR,
-          msgbuf_size,
-          0);
-  GST_neighbours_notify_data_sent (n->primary_address.address,
-				   n->primary_address.session,
-				   msgbuf_size);
-  GNUNET_break (NULL != papi);
-  return result;
 }
 
 
@@ -1244,6 +1159,140 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   n->task = GNUNET_SCHEDULER_add_delayed (DISCONNECT_SENT_TIMEOUT,
 					  &master_task,
                                           n);
+}
+
+
+/**
+ * Change the incoming quota for the given peer.  Updates
+ * our own receive rate and informs the neighbour about
+ * the new quota.
+ *
+ * @param n neighbour entry to change qutoa for
+ * @param quota new quota
+ */
+static void
+set_incoming_quota (struct NeighbourMapEntry *n,
+                    struct GNUNET_BANDWIDTH_Value32NBO quota)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Setting inbound quota of %u Bps for peer `%s' to all clients\n",
+              ntohl (quota.value__), GNUNET_i2s (&n->id));
+  GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
+  if (0 != ntohl (quota.value__))
+  {
+    struct SessionQuotaMessage sqm;
+
+    sqm.header.size = htons (sizeof (struct SessionQuotaMessage));
+    sqm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA);
+    sqm.quota = quota.value__;
+    (void) send_with_session (n,
+                              &sqm,
+                              sizeof (sqm),
+                              UINT32_MAX - 1,
+                              GNUNET_TIME_UNIT_FOREVER_REL,
+                              GNUNET_NO,
+                              NULL, NULL);
+    return;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Disconnecting peer `%4s' due to SET_QUOTA\n",
+              GNUNET_i2s (&n->id));
+  if (GNUNET_YES == test_connected (n))
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# disconnects due to quota of 0"),
+                              1, GNUNET_NO);
+  disconnect_neighbour (n);
+}
+
+
+/**
+ * Initialize the primary address of a neighbour
+ *
+ * @param n the neighbour
+ * @param address address of the other peer, NULL if other peer
+ *                       connected to us
+ * @param session session to use (or NULL, in which case an
+ *        address must be setup)
+ * @param bandwidth_in inbound quota to be used when connection is up
+ * @param bandwidth_out outbound quota to be used when connection is up
+ */
+static void
+set_primary_address (struct NeighbourMapEntry *n,
+                     const struct GNUNET_HELLO_Address *address,
+                     struct Session *session,
+                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+{
+  if (session == n->primary_address.session)
+  {
+    GST_validation_set_address_use (n->primary_address.address,
+                                    GNUNET_YES);
+    if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
+    {
+      n->primary_address.bandwidth_in = bandwidth_in;
+      set_incoming_quota (n,
+                          bandwidth_in);
+    }
+    if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
+    {
+      n->primary_address.bandwidth_out = bandwidth_out;
+      // FIXME: this ignores n->neighbour_receive_quota!
+      // -> might get 'unusually' high quota on initial
+      // connect
+      send_outbound_quota_to_clients (&address->peer,
+                                      bandwidth_out);
+    }
+    return;
+  }
+  if ( (NULL != n->primary_address.address) &&
+       (0 == GNUNET_HELLO_address_cmp (address,
+                                       n->primary_address.address)) )
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (NULL == session)
+  {
+    GNUNET_break (0);
+    GST_ats_block_address (address,
+                           session);
+    return;
+  }
+  if (NULL != n->primary_address.address)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Replacing existing primary address with another one\n");
+    free_address (&n->primary_address);
+  }
+  n->primary_address.address = GNUNET_HELLO_address_copy (address);
+  n->primary_address.bandwidth_in = bandwidth_in;
+  n->primary_address.bandwidth_out = bandwidth_out;
+  n->primary_address.session = session;
+  n->primary_address.keep_alive_nonce = 0;
+  GNUNET_assert (GNUNET_YES ==
+                 GST_ats_is_known (n->primary_address.address,
+                                   n->primary_address.session));
+  /* subsystems about address use */
+  GST_validation_set_address_use (n->primary_address.address,
+                                  GNUNET_YES);
+  set_incoming_quota (n,
+                      bandwidth_in);
+  // FIXME: this ignores n->neighbour_receive_quota!
+  // -> might get 'unusually' high quota on initial
+  // connect
+  send_outbound_quota_to_clients (&address->peer,
+                                  bandwidth_out);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Neighbour `%s' switched to address `%s'\n",
+              GNUNET_i2s (&n->id),
+              GST_plugins_a2s(address));
+
+  neighbours_changed_notification (&n->id,
+                                   n->primary_address.address,
+                                   n->state,
+                                   n->timeout,
+                                   n->primary_address.bandwidth_in,
+                                   n->primary_address.bandwidth_out);
 }
 
 
@@ -2503,8 +2552,8 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
   if (n->primary_address.bandwidth_in.value__ != bandwidth_in.value__)
   {
     n->primary_address.bandwidth_in = bandwidth_in;
-    GST_neighbours_set_incoming_quota (&address->peer,
-                                       bandwidth_in);
+    set_incoming_quota (n,
+                        bandwidth_in);
   }
   if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
   {
@@ -3588,59 +3637,6 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 
 
 /**
- * Change the incoming quota for the given peer.  Updates
- * our own receive rate and informs the neighbour about
- * the new quota.
- *
- * @param neighbour identity of peer to change qutoa for
- * @param quota new quota
- */
-void
-GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
-                                   struct GNUNET_BANDWIDTH_Value32NBO quota)
-{
-  struct NeighbourMapEntry *n;
-
-  if (NULL == (n = lookup_neighbour (neighbour)))
-  {
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# SET QUOTA messages ignored (no such peer)"),
-                              1, GNUNET_NO);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Setting inbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (quota.value__), GNUNET_i2s (&n->id));
-  GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
-  if (0 != ntohl (quota.value__))
-  {
-    struct SessionQuotaMessage sqm;
-
-    sqm.header.size = htons (sizeof (struct SessionQuotaMessage));
-    sqm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA);
-    sqm.quota = quota.value__;
-    (void) send_with_session (n,
-                              &sqm,
-                              sizeof (sqm),
-                              UINT32_MAX - 1,
-                              GNUNET_TIME_UNIT_FOREVER_REL,
-                              GNUNET_NO,
-                              NULL, NULL);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Disconnecting peer `%4s' due to SET_QUOTA\n",
-              GNUNET_i2s (&n->id));
-  if (GNUNET_YES == test_connected (n))
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# disconnects due to quota of 0"),
-                              1, GNUNET_NO);
-  disconnect_neighbour (n);
-}
-
-
-/**
  * Task to asynchronously run #free_neighbour().
  *
  * @param cls the `struct NeighbourMapEntry` to free
@@ -3661,7 +3657,7 @@ delayed_disconnect (void *cls,
 
 
 /**
- * We received a quoat message from the given peer,
+ * We received a quota message from the given peer,
  * validate and process.
  *
  * @param peer sender of the message

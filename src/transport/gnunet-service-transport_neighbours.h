@@ -145,17 +145,6 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
 
 
 /**
- * Change the incoming quota for the given peer.
- *
- * @param neighbour identity of peer to change qutoa for
- * @param quota new quota
- */
-void
-GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
-                                   struct GNUNET_BANDWIDTH_Value32NBO quota);
-
-
-/**
  * If we have an active connection to the given target, it must be shutdown.
  *
  * @param target peer to disconnect from
