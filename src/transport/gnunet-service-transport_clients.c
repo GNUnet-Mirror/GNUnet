@@ -688,6 +688,11 @@ struct SendTransmitContinuationContext
    * Peer that was the target.
    */
   struct GNUNET_PeerIdentity target;
+
+  /**
+   * At what time did we receive the message?
+   */
+  struct GNUNET_TIME_Absolute send_time;
 };
 
 
@@ -708,6 +713,27 @@ handle_send_transmit_continuation (void *cls,
 {
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
+  struct GNUNET_TIME_Relative delay;
+
+  delay = GNUNET_TIME_absolute_get_duration (stcc->send_time);
+  if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "It took us %s to send %u/%u bytes to %s (%d)\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES),
+                (unsigned int) bytes_payload,
+                (unsigned int) bytes_on_wire,
+                GNUNET_i2s (&stcc->target),
+                success);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "It took us %s to send %u/%u bytes to %s (%d)\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES),
+                (unsigned int) bytes_payload,
+                (unsigned int) bytes_on_wire,
+                GNUNET_i2s (&stcc->target),
+                success);
 
   if (GST_neighbours_test_connected (&stcc->target))
   {
@@ -800,6 +826,7 @@ clients_handle_send (void *cls,
   stcc = GNUNET_new (struct SendTransmitContinuationContext);
   stcc->target = obm->peer;
   stcc->client = client;
+  stcc->send_time = GNUNET_TIME_absolute_get ();
   GNUNET_SERVER_client_keep (client);
   GST_manipulation_send (&obm->peer,
                          obmm,
