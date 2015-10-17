@@ -709,15 +709,19 @@ handle_send_transmit_continuation (void *cls,
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
 
-  send_ok_msg.header.size = htons (sizeof (send_ok_msg));
-  send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
-  send_ok_msg.bytes_msg = htonl (bytes_payload);
-  send_ok_msg.bytes_physical = htonl (bytes_on_wire);
-  send_ok_msg.success = htonl (success);
-  send_ok_msg.peer = stcc->target;
-  GST_clients_unicast (stcc->client,
-                       &send_ok_msg.header,
-                       GNUNET_NO);
+  if (GST_neighbours_test_connected (&stcc->target))
+  {
+    /* Only send confirmation if we are still connected */
+    send_ok_msg.header.size = htons (sizeof (send_ok_msg));
+    send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
+    send_ok_msg.bytes_msg = htonl (bytes_payload);
+    send_ok_msg.bytes_physical = htonl (bytes_on_wire);
+    send_ok_msg.success = htonl (success);
+    send_ok_msg.peer = stcc->target;
+    GST_clients_unicast (stcc->client,
+                         &send_ok_msg.header,
+                         GNUNET_NO);
+  }
   GNUNET_SERVER_client_drop (stcc->client);
   GNUNET_free (stcc);
 }

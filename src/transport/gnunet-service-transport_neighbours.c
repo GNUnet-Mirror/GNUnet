@@ -559,28 +559,32 @@ print_ack_state (enum GST_ACK_State s)
 /**
  * Notify our clients that another peer connected to us.
  *
- * @param peer the peer that connected
- * @param bandwidth_in inbound bandwidth in NBO
- * @param bandwidth_out outbound bandwidth in NBO
+ * @param n the peer that connected
  */
 static void
-neighbours_connect_notification (const struct GNUNET_PeerIdentity *peer,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+neighbours_connect_notification (struct NeighbourMapEntry *n)
 {
   size_t len = sizeof(struct ConnectInfoMessage);
   char buf[len] GNUNET_ALIGN;
   struct ConnectInfoMessage *connect_msg = (struct ConnectInfoMessage *) buf;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
 
+#if IGNORE_INBOUND_QUOTA
+  bandwidth_min = n->primary_address.bandwidth_out;
+#else
+  bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
+                                              n->neighbour_receive_quota);
+#endif
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "We are now connected to peer `%s'\n",
-              GNUNET_i2s (peer));
+              GNUNET_i2s (&n->id));
   connect_msg->header.size = htons (sizeof(buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
-  connect_msg->id = *peer;
-  connect_msg->quota_in = bandwidth_in;
-  connect_msg->quota_out = bandwidth_out;
-  GST_clients_broadcast (&connect_msg->header, GNUNET_NO);
+  connect_msg->id = n->id;
+  connect_msg->quota_in = n->primary_address.bandwidth_in;
+  connect_msg->quota_out = bandwidth_min;
+  GST_clients_broadcast (&connect_msg->header,
+                         GNUNET_NO);
 }
 
 
@@ -588,21 +592,21 @@ neighbours_connect_notification (const struct GNUNET_PeerIdentity *peer,
  * Notify our clients (and manipulation) that a peer disconnected from
  * us.
  *
- * @param peer the peer that disconnected
+ * @param n the peer that disconnected
  */
 static void
-neighbours_disconnect_notification (const struct GNUNET_PeerIdentity *peer)
+neighbours_disconnect_notification (struct NeighbourMapEntry *n)
 {
   struct DisconnectInfoMessage disconnect_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer `%s' disconnected\n",
-              GNUNET_i2s (peer));
-  GST_manipulation_peer_disconnect (peer);
+              GNUNET_i2s (&n->id));
+  GST_manipulation_peer_disconnect (&n->id);
   disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));
   disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
   disconnect_msg.reserved = htonl (0);
-  disconnect_msg.peer = *peer;
+  disconnect_msg.peer = n->id;
   GST_clients_broadcast (&disconnect_msg.header,
                          GNUNET_NO);
 }
@@ -676,23 +680,31 @@ test_connected (struct NeighbourMapEntry *n)
  * Note that the outbound quota is enforced client-side (i.e.
  * in libgnunettransport).
  *
- * @param target affected peer
- * @param quota new quota
+ * @param n affected peer
  */
 static void
-send_outbound_quota_to_clients (const struct GNUNET_PeerIdentity *target,
-                                struct GNUNET_BANDWIDTH_Value32NBO quota)
+send_outbound_quota_to_clients (struct NeighbourMapEntry *n)
 {
   struct QuotaSetMessage q_msg;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
+
+  if (! GNUNET_TRANSPORT_is_connected (n->state))
+    return;
+#if IGNORE_INBOUND_QUOTA
+  bandwidth_min = n->primary_address.bandwidth_out;
+#else
+  bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
+                                              n->neighbour_receive_quota);
+#endif
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending outbound quota of %u Bps for peer `%s' to all clients\n",
-              ntohl (quota.value__),
-              GNUNET_i2s (target));
+              ntohl (bandwidth_min.value__),
+              GNUNET_i2s (&n->id));
   q_msg.header.size = htons (sizeof (struct QuotaSetMessage));
   q_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA);
-  q_msg.quota = quota;
-  q_msg.peer = (*target);
+  q_msg.quota = bandwidth_min;
+  q_msg.peer = n->id;
   GST_clients_broadcast (&q_msg.header, GNUNET_NO);
 }
 
@@ -753,9 +765,7 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
   if (GNUNET_TRANSPORT_is_connected (s) &&
       ! GNUNET_TRANSPORT_is_connected (n->state) )
   {
-    neighbours_connect_notification (&n->id,
-                                     n->primary_address.bandwidth_in,
-                                     n->primary_address.bandwidth_out);
+    neighbours_connect_notification (n);
     GNUNET_STATISTICS_set (GST_stats,
 			   gettext_noop ("# peers connected"),
 			   ++neighbours_connected,
@@ -768,7 +778,7 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
 			   gettext_noop ("# peers connected"),
 			   --neighbours_connected,
 			   GNUNET_NO);
-    neighbours_disconnect_notification (&n->id);
+    neighbours_disconnect_notification (n);
   }
   n->state = s;
   if ( (timeout.abs_value_us < n->timeout.abs_value_us) &&
@@ -1229,8 +1239,6 @@ set_primary_address (struct NeighbourMapEntry *n,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
-
   if (session == n->primary_address.session)
   {
     GST_validation_set_address_use (n->primary_address.address,
@@ -1244,14 +1252,7 @@ set_primary_address (struct NeighbourMapEntry *n,
     if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
     {
       n->primary_address.bandwidth_out = bandwidth_out;
-#if IGNORE_INBOUND_QUOTA
-      bandwidth_min = bandwidth_out;
-#else
-      bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
-                                                  n->neighbour_receive_quota);
-#endif
-      send_outbound_quota_to_clients (&address->peer,
-                                      bandwidth_min);
+      send_outbound_quota_to_clients (n);
     }
     return;
   }
@@ -1288,14 +1289,7 @@ set_primary_address (struct NeighbourMapEntry *n,
                                   GNUNET_YES);
   set_incoming_quota (n,
                       bandwidth_in);
-#if IGNORE_INBOUND_QUOTA
-  bandwidth_min = bandwidth_out;
-#else
-  bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
-                                              n->neighbour_receive_quota);
-#endif
-  send_outbound_quota_to_clients (&address->peer,
-                                  bandwidth_min);
+  send_outbound_quota_to_clients (n);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Neighbour `%s' switched to address `%s'\n",
               GNUNET_i2s (&n->id),
@@ -2215,7 +2209,8 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
                          GNUNET_TIME_UNIT_FOREVER_ABS);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (neighbours,
-                                                    &n->id, n,
+                                                    &n->id,
+                                                    n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   n->suggest_handle = GNUNET_ATS_connectivity_suggest (GST_ats_connect,
                                                        peer);
@@ -2544,7 +2539,6 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct NeighbourMapEntry *n;
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
 
   n = lookup_neighbour (&address->peer);
   if ( (NULL == n) ||
@@ -2572,14 +2566,7 @@ try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
   if (n->primary_address.bandwidth_out.value__ != bandwidth_out.value__)
   {
     n->primary_address.bandwidth_out = bandwidth_out;
-#if IGNORE_INBOUND_QUOTA
-    bandwidth_min = bandwidth_out;
-#else
-    bandwidth_min = GNUNET_BANDWIDTH_value_min (bandwidth_out,
-                                                n->neighbour_receive_quota);
-#endif
-    send_outbound_quota_to_clients (&address->peer,
-                                    bandwidth_min);
+    send_outbound_quota_to_clients (n);
   }
   return GNUNET_OK;
 }
@@ -3687,7 +3674,6 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   const struct SessionQuotaMessage *sqm;
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_min;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received QUOTA message from peer `%s'\n",
@@ -3714,14 +3700,7 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
   n->neighbour_receive_quota
     = GNUNET_BANDWIDTH_value_max (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                   GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota)));
-#if IGNORE_INBOUND_QUOTA
-  bandwidth_min = n->primary_address.bandwidth_out;
-#else
-  bandwidth_min = GNUNET_BANDWIDTH_value_min (n->primary_address.bandwidth_out,
-                                              n->neighbour_receive_quota);
-#endif
-  send_outbound_quota_to_clients (peer,
-                                  bandwidth_min);
+  send_outbound_quota_to_clients (n);
 }
 
 

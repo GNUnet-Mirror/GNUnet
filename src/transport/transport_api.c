@@ -743,6 +743,8 @@ demultiplexer (void *cls,
     if (size < sizeof (struct ConnectInfoMessage))
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     cim = (const struct ConnectInfoMessage *) msg;
@@ -750,6 +752,8 @@ demultiplexer (void *cls,
         sizeof (struct ConnectInfoMessage))
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -759,6 +763,8 @@ demultiplexer (void *cls,
     if (NULL != n)
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     n = neighbour_add (h,
@@ -777,6 +783,8 @@ demultiplexer (void *cls,
     if (size != sizeof (struct DisconnectInfoMessage))
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     dim = (const struct DisconnectInfoMessage *) msg;
@@ -788,6 +796,8 @@ demultiplexer (void *cls,
     if (NULL == n)
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     neighbour_delete (h,
@@ -798,6 +808,8 @@ demultiplexer (void *cls,
     if (size != sizeof (struct SendOkMessage))
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     okm = (const struct SendOkMessage *) msg;
@@ -811,9 +823,11 @@ demultiplexer (void *cls,
                         &okm->peer);
     if (NULL == n)
     {
-      /* we should never get a 'SEND_OK' for a peer that we are not
+      /* We should never get a 'SEND_OK' for a peer that we are not
          connected to */
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     if (bytes_physical >= bytes_msg)
@@ -847,6 +861,8 @@ demultiplexer (void *cls,
         sizeof (struct InboundMessage) + sizeof (struct GNUNET_MessageHeader))
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     im = (const struct InboundMessage *) msg;
@@ -854,6 +870,8 @@ demultiplexer (void *cls,
     if (ntohs (imm->size) + sizeof (struct InboundMessage) != size)
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -863,6 +881,8 @@ demultiplexer (void *cls,
     if (NULL == n)
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     if (NULL != h->rec)
@@ -874,12 +894,19 @@ demultiplexer (void *cls,
     if (size != sizeof (struct QuotaSetMessage))
     {
       GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
     }
     qm = (const struct QuotaSetMessage *) msg;
     n = neighbour_find (h, &qm->peer);
     if (NULL == n)
+    {
+      GNUNET_break (0);
+      h->reconnecting = GNUNET_YES;
+      disconnect_and_schedule_reconnect (h);
       break;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Receiving SET_QUOTA message for `%s' with quota %u\n",
          GNUNET_i2s (&qm->peer),
@@ -1305,7 +1332,7 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-  GNUNET_assert (h->reconnect_task == NULL);
+  GNUNET_assert (NULL == h->reconnect_task);
   if (NULL != h->cth)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->cth);
