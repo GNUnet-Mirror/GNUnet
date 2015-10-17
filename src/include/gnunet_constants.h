@@ -74,7 +74,7 @@ extern "C"
 /**
  * After what amount of latency for a message do we print a warning?
  */
-#define GNUNET_CONSTANTS_LATENCY_WARN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define GNUNET_CONSTANTS_LATENCY_WARN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
 /**
  * Until which load do we consider the peer overly idle
