@@ -291,7 +291,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
  * @param peer
  * @return address currently used
  */
-struct GNUNET_HELLO_Address *
+const struct GNUNET_HELLO_Address *
 GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer);
 
 

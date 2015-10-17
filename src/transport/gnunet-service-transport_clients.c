@@ -714,26 +714,30 @@ handle_send_transmit_continuation (void *cls,
   struct SendTransmitContinuationContext *stcc = cls;
   struct SendOkMessage send_ok_msg;
   struct GNUNET_TIME_Relative delay;
+  const struct GNUNET_HELLO_Address *addr;
 
   delay = GNUNET_TIME_absolute_get_duration (stcc->send_time);
+  addr = GST_neighbour_get_current_address (&stcc->target);
   if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "It took us %s to send %u/%u bytes to %s (%d)\n",
+                "It took us %s to send %u/%u bytes to %s (%d, %s)\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
                                                         GNUNET_YES),
                 (unsigned int) bytes_payload,
                 (unsigned int) bytes_on_wire,
                 GNUNET_i2s (&stcc->target),
-                success);
+                success,
+                addr->transport_name);
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "It took us %s to send %u/%u bytes to %s (%d)\n",
+                "It took us %s to send %u/%u bytes to %s (%d, %s)\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
                                                         GNUNET_YES),
                 (unsigned int) bytes_payload,
                 (unsigned int) bytes_on_wire,
                 GNUNET_i2s (&stcc->target),
-                success);
+                success,
+                addr->transport_name);
 
   if (GST_neighbours_test_connected (&stcc->target))
   {

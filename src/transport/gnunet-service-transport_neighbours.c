@@ -3894,7 +3894,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
  * @param peer
  * @return address currently used
  */
-struct GNUNET_HELLO_Address *
+const struct GNUNET_HELLO_Address *
 GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
 {
   struct NeighbourMapEntry *n;
