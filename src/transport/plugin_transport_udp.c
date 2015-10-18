@@ -175,8 +175,8 @@ struct GNUNET_ATS_Session
 
   /**
    * Desired delay for transmissions we received from other peer.
-   * Adjusted to be per fragment (UDP_MTU), even though on the
-   * wire it was for "full messages".
+   * This is for full messages, the value needs to be adjusted for
+   * fragmented messages.
    */
   struct GNUNET_TIME_Relative flow_delay_from_other_peer;
 
@@ -343,10 +343,17 @@ struct UDP_FragmentationContext
 
   /**
    * Transmission time for the next fragment.  Incremented by
-   * the "flow_delay_from_other_peer" for each fragment when
+   * the @e flow_delay_from_other_peer for each fragment when
    * we setup the fragments.
    */
   struct GNUNET_TIME_Absolute next_frag_time;
+
+  /**
+   * Desired delay for transmissions we received from other peer.
+   * Adjusted to be per fragment (UDP_MTU), even though on the
+   * wire it was for "full messages".
+   */
+  struct GNUNET_TIME_Relative flow_delay_from_other_peer;
 
   /**
    * Message timeout
@@ -1874,7 +1881,7 @@ enqueue_fragment (void *cls,
   udpw->transmission_time = frag_ctx->next_frag_time;
   frag_ctx->next_frag_time
     = GNUNET_TIME_absolute_add (frag_ctx->next_frag_time,
-                                session->flow_delay_from_other_peer);
+                                frag_ctx->flow_delay_from_other_peer);
   udpw->frag_ctx = frag_ctx;
   udpw->qc = &qc_fragment_sent;
   udpw->qc_cls = plugin;
@@ -2108,6 +2115,10 @@ udp_plugin_send (void *cls,
     frag_ctx->cont_cls = cont_cls;
     frag_ctx->start_time = GNUNET_TIME_absolute_get ();
     frag_ctx->next_frag_time = s->last_transmit_time;
+    frag_ctx->flow_delay_from_other_peer
+      = GNUNET_TIME_relative_divide (s->flow_delay_from_other_peer,
+                                     1 + (msgbuf_size /
+                                          UDP_MTU));
     frag_ctx->timeout = GNUNET_TIME_relative_to_absolute (to);
     frag_ctx->payload_size = msgbuf_size; /* unfragmented message size without UDP overhead */
     frag_ctx->on_wire_size = 0; /* bytes with UDP and fragmentation overhead */
@@ -2325,7 +2336,7 @@ udp_disconnect_session (void *cls,
 
 
 /**
- * Handle an ACK message.
+ * Handle a #GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK message.
  *
  * @param plugin the UDP plugin
  * @param msg the (presumed) UDP ACK message
@@ -2344,6 +2355,7 @@ read_process_ack (struct Plugin *plugin,
   struct GNUNET_ATS_Session *s;
   struct GNUNET_TIME_Relative flow_delay;
 
+  /* check message format */
   if (ntohs (msg->size)
       < sizeof(struct UDP_ACK_Message) + sizeof(struct GNUNET_MessageHeader))
   {
@@ -2357,6 +2369,8 @@ read_process_ack (struct Plugin *plugin,
     GNUNET_break_op(0);
     return;
   }
+
+  /* Locate session */
   address = GNUNET_HELLO_address_allocate (&udp_ack->sender,
                                            PLUGIN_NAME,
                                            udp_addr,
@@ -2387,9 +2401,13 @@ read_process_ack (struct Plugin *plugin,
   }
   GNUNET_HELLO_address_free (address);
 
+  /* evaluate flow delay: how long should we wait between messages? */
   if (UINT32_MAX == ntohl (udp_ack->delay))
   {
     /* Other peer asked for us to terminate the session */
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Asked to disconnect UDP session of %s\n",
+         GNUNET_i2s (&udp_ack->sender));
     udp_disconnect_session (plugin,
                             s);
     return;
@@ -2409,12 +2427,9 @@ read_process_ack (struct Plugin *plugin,
          GNUNET_i2s (&udp_ack->sender));
   /* Flow delay is for the reassembled packet, however, our delay
      is per packet, so we need to adjust: */
-  flow_delay = GNUNET_TIME_relative_divide (flow_delay,
-                                            1 + (s->frag_ctx->payload_size /
-                                                 UDP_MTU));
   s->flow_delay_from_other_peer = flow_delay;
 
-
+  /* Handle ACK */
   if (GNUNET_OK !=
       GNUNET_FRAGMENT_process_ack (s->frag_ctx->frag,
                                    ack))
@@ -2430,14 +2445,13 @@ read_process_ack (struct Plugin *plugin,
     return;
   }
 
+  /* Remove fragmented message after successful sending */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Message from %s at %s full ACK'ed\n",
        GNUNET_i2s (&udp_ack->sender),
        udp_address_to_string (plugin,
                               udp_addr,
                               udp_addr_len));
-
-  /* Remove fragmented message after successful sending */
   fragmented_message_done (s->frag_ctx,
                            GNUNET_OK);
 }
