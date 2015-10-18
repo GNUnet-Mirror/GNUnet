@@ -79,7 +79,7 @@ struct GNUNET_ATS_AddressRecord
 
   /**
    * Which slot (index) in the session array does
-   * this record correspond to?  FIXME:
+   * this record correspond to?
    * FIXME: a linear search on this is really crappy!
    * Maybe switch to a 64-bit global counter and be
    * done with it?  Or does that then cause too much

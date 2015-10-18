@@ -332,9 +332,12 @@ struct GNUNET_ATS_SchedulingHandle;
  */
 struct Session;
 
+
 /**
  * Signature of a function called by ATS with the current bandwidth
- * and address preferences as determined by ATS.
+ * and address preferences as determined by ATS.  If our connection
+ * to ATS dies and thus all suggestions become invalid, this function
+ * is called ONCE with all arguments (except @a cls) being NULL/0.
  *
  * @param cls closure
  * @param peer for which we suggest an address, NULL if ATS connection died
@@ -415,9 +418,9 @@ GNUNET_ATS_address_add_session (struct GNUNET_ATS_AddressRecord *ar,
 
 
 /**
- * A session was destroyed, disassociate it from the
- * given address record.  If this was an incoming
- * addess, destroy the address as well.
+ * A @a session was destroyed, disassociate it from the given address
+ * record.  If this was an incoming addess, destroys the address as
+ * well.
  *
  * @param ar address record to update information for
  * @param session session handle
