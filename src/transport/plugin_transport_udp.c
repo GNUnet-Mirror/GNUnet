@@ -787,7 +787,7 @@ schedule_select_v4 (struct Plugin *plugin)
                     "Calculated flow delay for UDPv4 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
                                                             GNUNET_YES),
-                    GNUNET_i2s (&udpw->session->target));
+                    GNUNET_i2s (&min_udpw->session->target));
       }
       else
       {
@@ -795,7 +795,7 @@ schedule_select_v4 (struct Plugin *plugin)
                     "Calculated flow delay for UDPv4 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
                                                             GNUNET_YES),
-                    GNUNET_i2s (&udpw->session->target));
+                    GNUNET_i2s (&min_udpw->session->target));
       }
     }
     plugin->select_task_v4
@@ -844,7 +844,7 @@ schedule_select_v6 (struct Plugin *plugin)
                     "Calculated flow delay for UDPv6 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
                                                             GNUNET_YES),
-                    GNUNET_i2s (&udpw->session->target));
+                    GNUNET_i2s (&min_udpw->session->target));
       }
       else
       {
@@ -852,7 +852,7 @@ schedule_select_v6 (struct Plugin *plugin)
                     "Calculated flow delay for UDPv6 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
                                                             GNUNET_YES),
-                    GNUNET_i2s (&udpw->session->target));
+                    GNUNET_i2s (&min_udpw->session->target));
       }
     }
     plugin->select_task_v6
