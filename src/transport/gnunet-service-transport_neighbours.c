@@ -2213,7 +2213,8 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
                                                     n,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   n->suggest_handle = GNUNET_ATS_connectivity_suggest (GST_ats_connect,
-                                                       peer);
+                                                       peer,
+                                                       0);
 
   return n;
 }

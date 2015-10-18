@@ -73,7 +73,7 @@ GAS_connectivity_has_peer (void *cls,
 
 
 /**
- * Handle 'request address' messages from clients.
+ * Handle #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS messages from clients.
  *
  * @param cls unused, NULL
  * @param client client that sent the request
@@ -90,8 +90,8 @@ GAS_handle_request_address (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received `%s' message\n",
-              "REQUEST_ADDRESS");
-  GNUNET_break (0 == ntohl (msg->reserved));
+              "GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS");
+  /* FIXME: should not ignore "msg->strength" */
   cr = GNUNET_new (struct ConnectionRequest);
   cr->client = client;
   (void) GNUNET_CONTAINER_multipeermap_put (connection_requests,
@@ -137,7 +137,8 @@ free_matching_requests (void *cls,
 
 
 /**
- * Handle 'request address cancel' messages from clients.
+ * Handle #GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL messages
+ * from clients.
  *
  * @param cls unused, NULL
  * @param client client that sent the request
@@ -152,9 +153,9 @@ GAS_handle_request_address_cancel (void *cls,
       (const struct RequestAddressMessage *) message;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received REQUEST_ADDRESS_CANCEL message for peer %s\n",
+              "Received GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL message for peer %s\n",
               GNUNET_i2s (&msg->peer));
-  GNUNET_break (0 == ntohl (msg->reserved));
+  GNUNET_break (0 == ntohl (msg->strength));
   GNUNET_CONTAINER_multipeermap_get_multiple (connection_requests,
                                               &msg->peer,
                                               &free_matching_requests,

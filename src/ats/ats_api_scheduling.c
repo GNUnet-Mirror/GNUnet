@@ -247,7 +247,6 @@ find_session (struct GNUNET_ATS_SchedulingHandle *sh,
                    sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break (0);
-    force_reconnect (sh);
     return NULL;
   }
   return ar;

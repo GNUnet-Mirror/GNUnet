@@ -45,6 +45,11 @@ struct GNUNET_ATS_ConnectivitySuggestHandle
    * Connecitivity handle this suggestion handle belongs to.
    */
   struct GNUNET_ATS_ConnectivityHandle *ch;
+
+  /**
+   * How urgent is the request.
+   */
+  uint32_t strength;
 };
 
 
@@ -174,13 +179,14 @@ transmit_suggestion (void *cls,
                      void *value)
 {
   struct GNUNET_ATS_ConnectivityHandle *ch = cls;
+  struct GNUNET_ATS_ConnectivitySuggestHandle *sh = value;
   struct GNUNET_MQ_Envelope *ev;
   struct RequestAddressMessage *m;
 
   if (NULL == ch->mq)
     return GNUNET_SYSERR;
   ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS);
-  m->reserved = htonl (0);
+  m->strength = htonl (sh->strength);
   m->peer = *peer;
   GNUNET_MQ_send (ch->mq, ev);
   return GNUNET_OK;
@@ -244,7 +250,7 @@ GNUNET_ATS_connectivity_init (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Function called to free all `struct GNUNET_ATS_SuggestHandles`
+ * Function called to free all `struct GNUNET_ATS_ConnectivitySuggestHandle`s
  * in the map.
  *
  * @param cls NULL
@@ -303,11 +309,13 @@ GNUNET_ATS_connectivity_done (struct GNUNET_ATS_ConnectivityHandle *ch)
  *
  * @param ch handle
  * @param peer identity of the peer we need an address for
+ * @param strength how urgent is the need for such a suggestion
  * @return suggest handle, NULL if a request is already pending
  */
 struct GNUNET_ATS_ConnectivitySuggestHandle *
 GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
-                                 const struct GNUNET_PeerIdentity *peer)
+                                 const struct GNUNET_PeerIdentity *peer,
+                                 uint32_t strength)
 {
   struct GNUNET_ATS_ConnectivitySuggestHandle *s;
 
@@ -317,6 +325,7 @@ GNUNET_ATS_connectivity_suggest (struct GNUNET_ATS_ConnectivityHandle *ch,
   s = GNUNET_new (struct GNUNET_ATS_ConnectivitySuggestHandle);
   s->ch = ch;
   s->id = *peer;
+  s->strength = strength;
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multipeermap_put (ch->sug_requests,
                                          &s->id,
@@ -360,7 +369,7 @@ GNUNET_ATS_connectivity_suggest_cancel (struct GNUNET_ATS_ConnectivitySuggestHan
     return;
   }
   ev = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_ATS_REQUEST_ADDRESS_CANCEL);
-  m->reserved = htonl (0);
+  m->strength = htonl (0);
   m->peer = sh->id;
   GNUNET_MQ_send (ch->mq, ev);
   GNUNET_free (sh);

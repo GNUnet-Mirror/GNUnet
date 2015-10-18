@@ -82,7 +82,7 @@ struct ClientStartMessage
 
 
 /**
- * Scheduling client to ATS service: we would like to have
+ * Connectivity client to ATS service: we would like to have
  * address suggestions for this peer.
  */
 struct RequestAddressMessage
@@ -95,9 +95,9 @@ struct RequestAddressMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * How "strong" is our need for an address for this peer?
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t strength GNUNET_PACKED;
 
   /**
    * Peer to get address suggestions for.
@@ -107,7 +107,7 @@ struct RequestAddressMessage
 
 
 /**
- * ATS client to ATS service: here is another address you can use.
+ * Scheduling client to ATS service: here is another address you can use.
  */
 struct AddressAddMessage
 {
