@@ -369,7 +369,7 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
  */
 void
 GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
-                                     struct Session *session,
+                                     struct GNUNET_ATS_Session *session,
                                      struct GNUNET_ATS_Properties *prop)
 {
   const struct GNUNET_PeerIdentity *peer = &address->peer;
@@ -395,7 +395,7 @@ GST_manipulation_manipulate_metrics (const struct GNUNET_HELLO_Address *address,
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
                        const struct GNUNET_HELLO_Address *address,
-                       struct Session *session,
+                       struct GNUNET_ATS_Session *session,
                        const struct GNUNET_MessageHeader *message)
 {
   struct TM_Peer *tmp;

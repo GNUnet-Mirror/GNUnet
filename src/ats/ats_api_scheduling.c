@@ -70,7 +70,7 @@ struct GNUNET_ATS_AddressRecord
    * Session handle.  NULL if we have an address but no
    * active session for this address.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Performance data about the address.
@@ -295,7 +295,7 @@ find_empty_session_slot (struct GNUNET_ATS_SchedulingHandle *sh)
  */
 static uint32_t
 find_session_id (struct GNUNET_ATS_SchedulingHandle *sh,
-                 struct Session *session,
+                 struct GNUNET_ATS_Session *session,
                  const struct GNUNET_HELLO_Address *address)
 {
   uint32_t i;
@@ -367,9 +367,9 @@ process_ats_session_release_message (void *cls,
                                      const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
-  const struct SessionReleaseMessage *srm;
+  const struct GNUNET_ATS_SessionReleaseMessage *srm;
 
-  srm = (const struct SessionReleaseMessage *) msg;
+  srm = (const struct GNUNET_ATS_SessionReleaseMessage *) msg;
   /* Note: peer field in srm not necessary right now,
      but might be good to have in the future */
   release_session (sh,
@@ -534,7 +534,7 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh)
   static const struct GNUNET_MQ_MessageHandler handlers[] =
     { { &process_ats_session_release_message,
         GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE,
-        sizeof (struct SessionReleaseMessage) },
+        sizeof (struct GNUNET_ATS_SessionReleaseMessage) },
       { &process_ats_address_suggestion_message,
         GNUNET_MESSAGE_TYPE_ATS_ADDRESS_SUGGESTION,
         sizeof (struct AddressSuggestionMessage) },
@@ -659,7 +659,7 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh)
 struct GNUNET_ATS_AddressRecord *
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_HELLO_Address *address,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_AddressRecord *ar;
@@ -716,7 +716,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_address_add_session (struct GNUNET_ATS_AddressRecord *ar,
-                                struct Session *session)
+                                struct GNUNET_ATS_Session *session)
 {
   GNUNET_break (NULL == ar->session);
   ar->session = session;
@@ -737,7 +737,7 @@ GNUNET_ATS_address_add_session (struct GNUNET_ATS_AddressRecord *ar,
  */
 int
 GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
-                                struct Session *session)
+                                struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (session == ar->session);
   ar->session = NULL;

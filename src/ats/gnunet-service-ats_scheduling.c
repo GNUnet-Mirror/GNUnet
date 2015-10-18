@@ -232,7 +232,7 @@ GAS_handle_address_destroyed (void *cls,
                               const struct GNUNET_MessageHeader *message)
 {
   const struct AddressDestroyedMessage *m;
-  struct SessionReleaseMessage srm;
+  struct GNUNET_ATS_SessionReleaseMessage srm;
 
   m = (const struct AddressDestroyedMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -245,7 +245,7 @@ GAS_handle_address_destroyed (void *cls,
   GAS_addresses_destroy (&m->peer,
                          ntohl (m->session_id));
   srm.header.type = ntohs (GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE);
-  srm.header.size = ntohs (sizeof (struct SessionReleaseMessage));
+  srm.header.size = ntohs (sizeof (struct GNUNET_ATS_SessionReleaseMessage));
   srm.session_id = m->session_id;
   srm.peer = m->peer;
   GNUNET_SERVER_notification_context_unicast (nc,

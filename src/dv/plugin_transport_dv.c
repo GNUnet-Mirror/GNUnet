@@ -80,7 +80,7 @@ struct PendingRequest
   /**
    * Session of this request.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Number of bytes to transmit.
@@ -92,7 +92,7 @@ struct PendingRequest
 /**
  * Session handle for connections.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
    * Pointer to the global plugin struct.
@@ -203,7 +203,7 @@ struct Plugin
  */
 static void
 notify_session_monitor (struct Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -231,7 +231,7 @@ notify_session_monitor (struct Plugin *plugin,
  * @param session session where the distance changed
  */
 static void
-notify_distance_change (struct Session *session)
+notify_distance_change (struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = session->plugin;
 
@@ -247,7 +247,7 @@ notify_distance_change (struct Session *session)
  * Function called by MST on each message from the box.
  *
  * @param cls closure with the `struct Plugin *`
- * @param client identification of the client (with the 'struct Session')
+ * @param client identification of the client (with the 'struct GNUNET_ATS_Session')
  * @param message the actual message
  * @return #GNUNET_OK on success
  */
@@ -257,7 +257,7 @@ unbox_cb (void *cls,
 	  const struct GNUNET_MessageHeader *message)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = client;
+  struct GNUNET_ATS_Session *session = client;
 
   session->active = GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -291,7 +291,7 @@ handle_dv_message_received (void *cls,
 			    const struct GNUNET_MessageHeader *msg)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received DV_MESSAGE_RECEIVED message for peer `%s': new distance %u\n",
@@ -348,7 +348,7 @@ handle_dv_connect (void *cls,
                    enum GNUNET_ATS_Network_Type network)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   /**
@@ -370,7 +370,7 @@ handle_dv_connect (void *cls,
     return; /* nothing to do */
   }
 
-  session = GNUNET_new (struct Session);
+  session = GNUNET_new (struct GNUNET_ATS_Session);
   session->address = GNUNET_HELLO_address_allocate (peer, "dv",
                                                     NULL, 0,
                                                     GNUNET_HELLO_ADDRESS_INFO_NONE);
@@ -419,7 +419,7 @@ handle_dv_distance_changed (void *cls,
                             enum GNUNET_ATS_Network_Type network)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -446,7 +446,7 @@ handle_dv_distance_changed (void *cls,
  * @param session session to clean up
  */
 static void
-free_session (struct Session *session)
+free_session (struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = session->plugin;
   struct PendingRequest *pr;
@@ -500,7 +500,7 @@ handle_dv_disconnect (void *cls,
                       const struct GNUNET_PeerIdentity *peer)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received `%s' message for peer `%s'\n",
@@ -526,7 +526,7 @@ send_finished (void *cls,
 	       int ok)
 {
   struct PendingRequest *pr = cls;
-  struct Session *session = pr->session;
+  struct GNUNET_ATS_Session *session = pr->session;
 
   pr->th = NULL;
   GNUNET_CONTAINER_DLL_remove (session->pr_head,
@@ -562,7 +562,7 @@ send_finished (void *cls,
  */
 static ssize_t
 dv_plugin_send (void *cls,
-		struct Session *session,
+		struct GNUNET_ATS_Session *session,
                 const char *msgbuf,
                 size_t msgbuf_size,
                 unsigned int priority,
@@ -619,7 +619,7 @@ dv_plugin_disconnect_peer (void *cls,
                            const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
   struct PendingRequest *pr;
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
@@ -655,7 +655,7 @@ dv_plugin_disconnect_peer (void *cls,
  */
 static int
 dv_plugin_disconnect_session (void *cls,
-                              struct Session *session)
+                              struct GNUNET_ATS_Session *session)
 {
   struct PendingRequest *pr;
 
@@ -773,12 +773,12 @@ dv_plugin_check_address (void *cls,
  * @param address the address
  * @return the session if the address is valid, NULL otherwise
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 dv_get_session (void *cls,
 		const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   if (0 != address->address_length)
     return NULL;
@@ -832,7 +832,7 @@ dv_plugin_string_to_address (void *cls,
 static void
 dv_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
-                                  struct Session *session)
+                                  struct GNUNET_ATS_Session *session)
 {
   /* DV currently doesn't time out like "normal" plugins,
      so it should be safe to do nothing, right?
@@ -852,7 +852,7 @@ dv_plugin_update_session_timeout (void *cls,
  */
 static enum GNUNET_ATS_Network_Type
 dv_get_network (void *cls,
-		struct Session *session)
+		struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session);
   return session->network;
@@ -895,7 +895,7 @@ dv_plugin_query_keepalive_factor (void *cls)
  *
  * @param cls the `struct Plugin` with the monitor callback (`sic`)
  * @param peer peer we send information about
- * @param value our `struct Session` to send information about
+ * @param value our `struct GNUNET_ATS_Session` to send information about
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -904,7 +904,7 @@ send_session_info_iter (void *cls,
                         void *value)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   if (GNUNET_YES != session->active)
     return GNUNET_OK;
@@ -1010,7 +1010,7 @@ free_session_iterator (void *cls,
 		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   free_session (session);
   return GNUNET_OK;

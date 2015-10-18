@@ -152,7 +152,7 @@ struct HTTP_Message
 /**
  * Session handle for HTTP(S) connections.
  */
-struct Session;
+struct GNUNET_ATS_Session;
 
 
 /**
@@ -174,14 +174,14 @@ struct RequestHandle
   /**
    * The related session
    */
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
 };
 
 
 /**
  * Session handle for connections.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
    * The URL to connect to
@@ -397,7 +397,7 @@ struct HTTP_Client_Plugin
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-http_client_plugin_session_disconnect (void *cls, struct Session *s);
+http_client_plugin_session_disconnect (void *cls, struct GNUNET_ATS_Session *s);
 
 
 /**
@@ -410,7 +410,7 @@ http_client_plugin_session_disconnect (void *cls, struct Session *s);
  */
 static void
 notify_session_monitor (struct HTTP_Client_Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -437,7 +437,7 @@ notify_session_monitor (struct HTTP_Client_Plugin *plugin,
  * @param s the session to delete
  */
 static void
-client_delete_session (struct Session *s)
+client_delete_session (struct GNUNET_ATS_Session *s)
 {
   struct HTTP_Client_Plugin *plugin = s->plugin;
   struct HTTP_Message *pos;
@@ -543,7 +543,7 @@ client_delete_session (struct Session *s)
  * @param s the session
  */
 static void
-client_reschedule_session_timeout (struct Session *s)
+client_reschedule_session_timeout (struct GNUNET_ATS_Session *s)
 {
   GNUNET_assert (NULL != s->timeout_task);
   s->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -708,7 +708,7 @@ client_log (CURL *curl,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 static int
-client_connect_get (struct Session *s);
+client_connect_get (struct GNUNET_ATS_Session *s);
 
 
 /**
@@ -718,7 +718,7 @@ client_connect_get (struct Session *s);
  * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for success
  */
 static int
-client_connect_put (struct Session *s);
+client_connect_put (struct GNUNET_ATS_Session *s);
 
 
 /**
@@ -750,7 +750,7 @@ client_connect_put (struct Session *s);
  */
 static ssize_t
 http_client_plugin_send (void *cls,
-                         struct Session *s,
+                         struct GNUNET_ATS_Session *s,
                          const char *msgbuf,
                          size_t msgbuf_size,
                          unsigned int priority,
@@ -842,7 +842,7 @@ http_client_plugin_send (void *cls,
  */
 static int
 http_client_plugin_session_disconnect (void *cls,
-                                       struct Session *s)
+                                       struct GNUNET_ATS_Session *s)
 {
   struct HTTP_Client_Plugin *plugin = cls;
 
@@ -886,7 +886,7 @@ http_client_query_keepalive_factor (void *cls)
  *
  * @param cls the `struct HTTP_Client_Plugin *`
  * @param peer identity of the peer
- * @param value the `struct Session *`
+ * @param value the `struct GNUNET_ATS_Session *`
  * @return #GNUNET_OK (continue iterating)
  */
 static int
@@ -895,7 +895,7 @@ destroy_session_cb (void *cls,
                     void *value)
 {
   struct HTTP_Client_Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   http_client_plugin_session_disconnect (plugin, session);
   return GNUNET_OK;
@@ -929,7 +929,7 @@ http_client_plugin_peer_disconnect (void *cls,
 /**
  * Closure for #session_lookup_client_by_address().
  */
-struct SessionClientCtx
+struct GNUNET_ATS_SessionClientCtx
 {
   /**
    * Address we are looking for.
@@ -939,16 +939,16 @@ struct SessionClientCtx
   /**
    * Session that was found.
    */
-  struct Session *ret;
+  struct GNUNET_ATS_Session *ret;
 };
 
 
 /**
  * Locate the seession object for a given address.
  *
- * @param cls the `struct SessionClientCtx *`
+ * @param cls the `struct GNUNET_ATS_SessionClientCtx *`
  * @param key peer identity
- * @param value the `struct Session` to check
+ * @param value the `struct GNUNET_ATS_Session` to check
  * @return #GNUNET_NO if found, #GNUNET_OK if not
  */
 static int
@@ -956,8 +956,8 @@ session_lookup_client_by_address (void *cls,
                                   const struct GNUNET_PeerIdentity *key,
                                   void *value)
 {
-  struct SessionClientCtx *sc_ctx = cls;
-  struct Session *s = value;
+  struct GNUNET_ATS_SessionClientCtx *sc_ctx = cls;
+  struct GNUNET_ATS_Session *s = value;
 
   if (0 == GNUNET_HELLO_address_cmp (sc_ctx->address,
                                      s->address))
@@ -976,11 +976,11 @@ session_lookup_client_by_address (void *cls,
  * @param address the address
  * @return the session or NULL
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 client_lookup_session (struct HTTP_Client_Plugin *plugin,
                        const struct GNUNET_HELLO_Address *address)
 {
-  struct SessionClientCtx sc_ctx;
+  struct GNUNET_ATS_SessionClientCtx sc_ctx;
 
   sc_ctx.address = address;
   sc_ctx.ret = NULL;
@@ -996,14 +996,14 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
  * after a while (so that gnurl stops asking).  This task
  * is the delayed task that actually disconnects the PUT.
  *
- * @param cls the `struct Session *` with the put
+ * @param cls the `struct GNUNET_ATS_Session *` with the put
  * @param tc scheduler context
  */
 static void
 client_put_disconnect (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
 
   s->put_disconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1024,7 +1024,7 @@ client_put_disconnect (void *cls,
  * @param stream pointer where to write data
  * @param size size of an individual element
  * @param nmemb count of elements that can be written to the buffer
- * @param cls our `struct Session`
+ * @param cls our `struct GNUNET_ATS_Session`
  * @return bytes written to stream, returning 0 will terminate request!
  */
 static size_t
@@ -1033,7 +1033,7 @@ client_send_cb (void *stream,
                 size_t nmemb,
                 void *cls)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct HTTP_Client_Plugin *plugin = s->plugin;
   struct HTTP_Message *msg = s->msg_head;
   size_t len;
@@ -1134,7 +1134,7 @@ static void
 client_wake_up (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
 
   s->recv_wakeup_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -1170,7 +1170,7 @@ client_receive_mst_cb (void *cls,
                        void *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct HTTP_Client_Plugin *plugin;
   struct GNUNET_TIME_Relative delay;
   char *stat_txt;
@@ -1242,7 +1242,7 @@ client_receive (void *stream,
                 size_t nmemb,
                 void *cls)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct GNUNET_TIME_Absolute now;
   size_t len = size * nmemb;
 
@@ -1322,14 +1322,14 @@ client_run (void *cls,
     while (NULL != (msg = curl_multi_info_read (plugin->curl_multi_handle, &msgs_left)))
     {
       CURL *easy_h = msg->easy_handle;
-      struct Session *s = NULL;
+      struct GNUNET_ATS_Session *s = NULL;
       char *d = NULL; /* curl requires 'd' to be a 'char *' */
 
       GNUNET_assert (NULL != easy_h);
 
       /* Obtain session from easy handle */
       GNUNET_assert (CURLE_OK == curl_easy_getinfo (easy_h, CURLINFO_PRIVATE, &d));
-      s = (struct Session *) d;
+      s = (struct GNUNET_ATS_Session *) d;
       GNUNET_assert (NULL != s);
 
       if (msg->msg != CURLMSG_DONE)
@@ -1450,7 +1450,7 @@ client_run (void *cls,
 /**
  * Open TCP socket with TCP STEALTH enabled.
  *
- * @param clientp our `struct Session *`
+ * @param clientp our `struct GNUNET_ATS_Session *`
  * @param purpose why does curl want to open a socket
  * @param address what kind of socket does curl want to have opened?
  * @return opened socket
@@ -1460,7 +1460,7 @@ open_tcp_stealth_socket_cb (void *clientp,
                             curlsocktype purpose,
                             struct curl_sockaddr *address)
 {
-  struct Session *s = clientp;
+  struct GNUNET_ATS_Session *s = clientp;
   int ret;
 
   switch (purpose)
@@ -1509,7 +1509,7 @@ open_tcp_stealth_socket_cb (void *clientp,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 static int
-client_connect_get (struct Session *s)
+client_connect_get (struct GNUNET_ATS_Session *s)
 {
   CURLMcode mret;
   struct HttpAddress *ha;
@@ -1689,7 +1689,7 @@ client_connect_get (struct Session *s)
  * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for ok
  */
 static int
-client_connect_put (struct Session *s)
+client_connect_put (struct GNUNET_ATS_Session *s)
 {
   CURLMcode mret;
   struct HttpAddress *ha;
@@ -1861,7 +1861,7 @@ client_connect_put (struct Session *s)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 static int
-client_connect (struct Session *s)
+client_connect (struct GNUNET_ATS_Session *s)
 {
   struct HTTP_Client_Plugin *plugin = s->plugin;
   int res = GNUNET_OK;
@@ -1935,7 +1935,7 @@ client_connect (struct Session *s)
  */
 static enum GNUNET_ATS_Network_Type
 http_client_plugin_get_network (void *cls,
-                                struct Session *session)
+                                struct GNUNET_ATS_Session *session)
 {
   return session->scope;
 }
@@ -1962,14 +1962,14 @@ http_client_plugin_get_network_for_address (void *cls,
 /**
  * Session was idle, so disconnect it
  *
- * @param cls the `struct Session` of the idle session
+ * @param cls the `struct GNUNET_ATS_Session` of the idle session
  * @param tc scheduler context
  */
 static void
 client_session_timeout (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct GNUNET_TIME_Relative left;
 
   s->timeout_task = NULL;
@@ -2005,12 +2005,12 @@ client_session_timeout (void *cls,
  * @param address the address
  * @return the session or NULL of max connections exceeded
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 http_client_plugin_get_session (void *cls,
                                 const struct GNUNET_HELLO_Address *address)
 {
   struct HTTP_Client_Plugin *plugin = cls;
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
   struct sockaddr *sa;
   enum GNUNET_ATS_Network_Type net_type;
   size_t salen = 0;
@@ -2066,7 +2066,7 @@ http_client_plugin_get_session (void *cls,
     return NULL;
   }
 
-  s = GNUNET_new (struct Session);
+  s = GNUNET_new (struct GNUNET_ATS_Session);
   s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
   s->scope = net_type;
@@ -2354,7 +2354,7 @@ http_client_plugin_address_to_string (void *cls,
 static void
 http_client_plugin_update_session_timeout (void *cls,
                                            const struct GNUNET_PeerIdentity *peer,
-                                           struct Session *session)
+                                           struct GNUNET_ATS_Session *session)
 {
   client_reschedule_session_timeout (session);
 }
@@ -2373,7 +2373,7 @@ http_client_plugin_update_session_timeout (void *cls,
 static void
 http_client_plugin_update_inbound_delay (void *cls,
                                          const struct GNUNET_PeerIdentity *peer,
-                                         struct Session *s,
+                                         struct GNUNET_ATS_Session *s,
                                          struct GNUNET_TIME_Relative delay)
 {
   s->next_receive = GNUNET_TIME_relative_to_absolute (delay);
@@ -2396,7 +2396,7 @@ http_client_plugin_update_inbound_delay (void *cls,
  *
  * @param cls the `struct Plugin` with the monitor callback (`sic`)
  * @param peer peer we send information about
- * @param value our `struct Session` to send information about
+ * @param value our `struct GNUNET_ATS_Session` to send information about
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -2405,7 +2405,7 @@ send_session_info_iter (void *cls,
                         void *value)
 {
   struct HTTP_Client_Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   notify_session_monitor (plugin,
                           session,

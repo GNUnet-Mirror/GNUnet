@@ -107,7 +107,7 @@ typedef void
 struct GNUNET_TIME_Relative
 GST_receive_callback (void *cls,
                       const struct GNUNET_HELLO_Address *address,
-                      struct Session *session,
+                      struct GNUNET_ATS_Session *session,
                       const struct GNUNET_MessageHeader *message);
 
 

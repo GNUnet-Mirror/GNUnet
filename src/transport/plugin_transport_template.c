@@ -51,7 +51,7 @@ struct Plugin;
 /**
  * Session handle for connections.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
    * To whom are we talking to (set to our identity
@@ -62,7 +62,7 @@ struct Session
   /**
    * Stored in a linked list (or a peer map, or ...)
    */
-  struct Session *next;
+  struct GNUNET_ATS_Session *next;
 
   /**
    * Pointer to the global plugin struct.
@@ -132,7 +132,7 @@ struct Plugin
   /**
    * List of open sessions (or peer map, or...)
    */
-  struct Session *sessions;
+  struct GNUNET_ATS_Session *sessions;
 
   /**
    * Function to call about session status changes.
@@ -162,7 +162,7 @@ struct Plugin
  */
 static void
 notify_session_monitor (struct Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -213,7 +213,7 @@ notify_session_monitor (struct Plugin *plugin,
  */
 static ssize_t
 template_plugin_send (void *cls,
-                      struct Session *session,
+                      struct GNUNET_ATS_Session *session,
                       const char *msgbuf,
                       size_t msgbuf_size,
                       unsigned int priority,
@@ -256,7 +256,7 @@ template_plugin_disconnect_peer (void *cls,
  */
 static int
 template_plugin_disconnect_session (void *cls,
-                                    struct Session *session)
+                                    struct GNUNET_ATS_Session *session)
 {
   // struct Plugin *plugin = cls;
   // FIXME
@@ -288,7 +288,7 @@ template_plugin_query_keepalive_factor (void *cls)
  */
 static enum GNUNET_ATS_Network_Type
 template_plugin_get_network (void *cls,
-			     struct Session *session)
+			     struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session);
   return GNUNET_ATS_NET_UNSPECIFIED; /* Change to correct network type */
@@ -423,7 +423,7 @@ template_plugin_string_to_address (void *cls,
  * @param address pointer to the GNUNET_HELLO_Address
  * @return the session if the address is valid, NULL otherwise
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 template_plugin_get_session (void *cls,
                         const struct GNUNET_HELLO_Address *address)
 {
@@ -435,7 +435,7 @@ template_plugin_get_session (void *cls,
 static void
 template_plugin_update_session_timeout (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
-                                        struct Session *session)
+                                        struct GNUNET_ATS_Session *session)
 {
 
 }
@@ -448,7 +448,7 @@ template_plugin_update_session_timeout (void *cls,
  *
  * @param cls the `struct Plugin` with the monitor callback (`sic`)
  * @param peer peer we send information about
- * @param value our `struct Session` to send information about
+ * @param value our `struct GNUNET_ATS_Session` to send information about
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -457,7 +457,7 @@ send_session_info_iter (void *cls,
                         void *value)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   notify_session_monitor (plugin,
                           session,

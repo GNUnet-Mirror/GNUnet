@@ -328,9 +328,8 @@ struct GNUNET_ATS_SchedulingHandle;
 
 /**
  * Opaque session handle, defined by plugins.  Contents not known to ATS.
- * FIXME: This violates our naming conventions.
  */
-struct Session;
+struct GNUNET_ATS_Session;
 
 
 /**
@@ -353,7 +352,7 @@ typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
                                          const struct GNUNET_PeerIdentity *peer,
                                          const struct GNUNET_HELLO_Address *address,
-                                         struct Session *session,
+                                         struct GNUNET_ATS_Session *session,
                                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
@@ -402,7 +401,7 @@ struct GNUNET_ATS_AddressRecord;
 struct GNUNET_ATS_AddressRecord *
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
                         const struct GNUNET_HELLO_Address *address,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         const struct GNUNET_ATS_Properties *prop);
 
 
@@ -414,7 +413,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_address_add_session (struct GNUNET_ATS_AddressRecord *ar,
-                                struct Session *session);
+                                struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -431,7 +430,7 @@ GNUNET_ATS_address_add_session (struct GNUNET_ATS_AddressRecord *ar,
  */
 int
 GNUNET_ATS_address_del_session (struct GNUNET_ATS_AddressRecord *ar,
-                                struct Session *session);
+                                struct GNUNET_ATS_Session *session);
 
 
 /**

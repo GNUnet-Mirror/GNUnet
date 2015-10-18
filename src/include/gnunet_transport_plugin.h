@@ -48,11 +48,11 @@
  * connection may not have an address that can be used for meaningful
  * distinction between sessions to the same peer.
  *
- * Each 'struct Session' MUST start with the 'struct GNUNET_PeerIdentity'
+ * Each 'struct GNUNET_ATS_Session' MUST start with the 'struct GNUNET_PeerIdentity'
  * of the peer the session is for (which will be used for some error
  * checking by the ATS code).
  */
-struct Session;
+struct GNUNET_ATS_Session;
 
 
 /**
@@ -71,7 +71,7 @@ struct Session;
 typedef void
 (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
                                 const struct GNUNET_HELLO_Address *address,
-                                struct Session *session);
+                                struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -85,7 +85,7 @@ typedef void
 typedef void
 (*GNUNET_TRANSPORT_SessionStart) (void *cls,
                                   const struct GNUNET_HELLO_Address *address,
-                                  struct Session *session,
+                                  struct GNUNET_ATS_Session *session,
                                   enum GNUNET_ATS_Network_Type net);
 
 
@@ -114,7 +114,7 @@ typedef void
 typedef struct GNUNET_TIME_Relative
 (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
                                            const struct GNUNET_HELLO_Address *address,
-                                           struct Session *session,
+                                           struct GNUNET_ATS_Session *session,
                                            const struct GNUNET_MessageHeader *message);
 
 
@@ -334,7 +334,7 @@ typedef void
  */
 typedef ssize_t
 (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-                                      struct Session *session,
+                                      struct GNUNET_ATS_Session *session,
                                       const char *msgbuf,
                                       size_t msgbuf_size,
                                       unsigned int priority,
@@ -357,7 +357,7 @@ typedef ssize_t
  */
 typedef int
 (*GNUNET_TRANSPORT_DisconnectSessionFunction) (void *cls,
-                                               struct Session *session);
+                                               struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -463,7 +463,7 @@ typedef int
  * @param address the hello address
  * @return the session if the address is valid, NULL otherwise
  */
-typedef struct Session *
+typedef struct GNUNET_ATS_Session *
 (*GNUNET_TRANSPORT_CreateSession) (void *cls,
                                    const struct GNUNET_HELLO_Address *address);
 
@@ -480,7 +480,7 @@ typedef struct Session *
 typedef void
 (*GNUNET_TRANSPORT_UpdateSessionTimeout) (void *cls,
                                           const struct GNUNET_PeerIdentity *peer,
-                                          struct Session *session);
+                                          struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -496,7 +496,7 @@ typedef void
 typedef void
 (*GNUNET_TRANSPORT_UpdateInboundDelay) (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
-                                        struct Session *session,
+                                        struct GNUNET_ATS_Session *session,
                                         struct GNUNET_TIME_Relative delay);
 
 
@@ -546,7 +546,7 @@ typedef int
  */
 typedef enum GNUNET_ATS_Network_Type
 (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
-                                    struct Session *session);
+                                    struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -575,7 +575,7 @@ typedef enum GNUNET_ATS_Network_Type
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionInfoCallback) (void *cls,
-                                         struct Session *session,
+                                         struct GNUNET_ATS_Session *session,
                                          const struct GNUNET_TRANSPORT_SessionInfo *info);
 
 

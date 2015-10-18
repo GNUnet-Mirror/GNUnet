@@ -50,7 +50,7 @@ struct AddressInfo
   /**
    * Session (can be NULL)
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Record with ATS API for the address.
@@ -114,7 +114,7 @@ struct FindClosure
   /**
    * Session to look for (only used if the address is inbound).
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Address to look for.
@@ -188,7 +188,7 @@ find_ai_cb (void *cls,
  */
 static struct AddressInfo *
 find_ai (const struct GNUNET_HELLO_Address *address,
-         struct Session *session)
+         struct GNUNET_ATS_Session *session)
 {
   struct FindClosure fc;
 
@@ -267,7 +267,7 @@ find_ai_no_session (const struct GNUNET_HELLO_Address *address)
  */
 int
 GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
-                  struct Session *session)
+                  struct GNUNET_ATS_Session *session)
 {
   return (NULL != find_ai (address, session)) ? GNUNET_YES : GNUNET_NO;
 }
@@ -328,7 +328,7 @@ unblock_address (void *cls,
  */
 void
 GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
-                       struct Session *session)
+                       struct GNUNET_ATS_Session *session)
 {
   struct AddressInfo *ai;
 
@@ -395,7 +395,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session)
+                     struct GNUNET_ATS_Session *session)
 {
   struct AddressInfo *ai;
 
@@ -423,7 +423,7 @@ GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
-                             struct Session *session,
+                             struct GNUNET_ATS_Session *session,
                              const struct GNUNET_ATS_Properties *prop)
 {
   struct GNUNET_ATS_AddressRecord *ar;
@@ -533,7 +533,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session)
+                     struct GNUNET_ATS_Session *session)
 {
   struct AddressInfo *ai;
 
@@ -611,7 +611,7 @@ destroy_ai (struct AddressInfo *ai)
  */
 void
 GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session)
+                     struct GNUNET_ATS_Session *session)
 {
   struct AddressInfo *ai;
 

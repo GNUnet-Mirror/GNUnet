@@ -80,12 +80,12 @@ struct Plugin
   /**
    * Head of linked list of open sessions.
    */
-  struct Session *head;
+  struct GNUNET_ATS_Session *head;
 
   /**
    * Tail of linked list of open sessions.
    */
-  struct Session *tail;
+  struct GNUNET_ATS_Session *tail;
 
   /**
    * NAT handle & address management
@@ -247,14 +247,14 @@ struct Plugin
    * A full session consists of 2 semi-connections: send and receive
    * If not both directions are established the server keeps this sessions here
    */
-  struct Session *server_semi_head;
+  struct GNUNET_ATS_Session *server_semi_head;
 
   /**
    * Tail of server semi connections
    * A full session consists of 2 semi-connections: send and receive
    * If not both directions are established the server keeps this sessions here
    */
-  struct Session *server_semi_tail;
+  struct GNUNET_ATS_Session *server_semi_tail;
 
   /**
    * cURL Multihandle
@@ -335,7 +335,7 @@ struct ServerRequest
   /**
    * The session this server connection belongs to
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * The MHD connection
@@ -347,7 +347,7 @@ struct ServerRequest
 /**
  * Session handle for connections.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
    * To whom are we talking to
@@ -357,12 +357,12 @@ struct Session
   /**
    * Stored in a linked list.
    */
-  struct Session *next;
+  struct GNUNET_ATS_Session *next;
 
   /**
    * Stored in a linked list.
    */
-  struct Session *prev;
+  struct GNUNET_ATS_Session *prev;
 
   /**
    * Pointer to the global plugin struct.
@@ -499,7 +499,7 @@ struct HTTP_Message
 };
 
 
-struct Session *
+struct GNUNET_ATS_Session *
 create_session (struct Plugin *plugin,
                 const struct GNUNET_PeerIdentity *target,
                 const void *addr,
@@ -508,23 +508,23 @@ create_session (struct Plugin *plugin,
 
 int
 exist_session (struct Plugin *plugin,
-               struct Session *s);
+               struct GNUNET_ATS_Session *s);
 
 
 void
-delete_session (struct Session *s);
+delete_session (struct GNUNET_ATS_Session *s);
 
 
 int
 exist_session (struct Plugin *plugin,
-               struct Session *s);
+               struct GNUNET_ATS_Session *s);
 
 
 struct GNUNET_TIME_Relative
 http_plugin_receive (void *cls,
                      const struct GNUNET_PeerIdentity *peer,
                      const struct GNUNET_MessageHeader *message,
-                     struct Session *session,
+                     struct GNUNET_ATS_Session *session,
                      const char *sender_address,
                      uint16_t sender_address_len);
 
@@ -536,15 +536,15 @@ http_plugin_address_to_string (void *cls,
 
 
 int
-client_disconnect (struct Session *s);
+client_disconnect (struct GNUNET_ATS_Session *s);
 
 
 int
-client_connect (struct Session *s);
+client_connect (struct GNUNET_ATS_Session *s);
 
 
 int
-client_send (struct Session *s, struct HTTP_Message *msg);
+client_send (struct GNUNET_ATS_Session *s, struct HTTP_Message *msg);
 
 
 int
@@ -556,11 +556,11 @@ client_stop (struct Plugin *plugin);
 
 
 int
-server_disconnect (struct Session *s);
+server_disconnect (struct GNUNET_ATS_Session *s);
 
 
 int
-server_send (struct Session *s, struct HTTP_Message *msg);
+server_send (struct GNUNET_ATS_Session *s, struct HTTP_Message *msg);
 
 
 int
@@ -574,7 +574,7 @@ server_stop (struct Plugin *plugin);
 void
 notify_session_end (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
-                    struct Session *s);
+                    struct GNUNET_ATS_Session *s);
 
 
 /*#ifndef PLUGIN_TRANSPORT_HTTP_H*/

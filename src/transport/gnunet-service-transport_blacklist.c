@@ -153,7 +153,7 @@ struct GST_BlacklistCheck
   /**
    * Session for #GST_blacklist_abort_matching(), can be NULL.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Current transmission request handle for this client, or NULL if no
@@ -495,7 +495,7 @@ static void
 confirm_or_drop_neighbour (void *cls,
                            const struct GNUNET_PeerIdentity *peer,
 			   const struct GNUNET_HELLO_Address *address,
-			   struct Session *session,
+			   struct GNUNET_ATS_Session *session,
                            int allowed)
 {
   if (GNUNET_OK == allowed)
@@ -744,7 +744,7 @@ GST_blacklist_add_peer (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GST_blacklist_abort_matching (const struct GNUNET_HELLO_Address *address,
-			      struct Session *session)
+			      struct GNUNET_ATS_Session *session)
 {
   struct GST_BlacklistCheck *bc;
   struct GST_BlacklistCheck *n;
@@ -832,7 +832,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
                             GST_BlacklistTestContinuation cont,
                             void *cont_cls,
 			    const struct GNUNET_HELLO_Address *address,
-			    struct Session *session)
+			    struct GNUNET_ATS_Session *session)
 {
   struct GST_BlacklistCheck *bc;
 

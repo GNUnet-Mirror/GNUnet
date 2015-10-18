@@ -151,7 +151,7 @@ struct PrettyPrinterContext
 /**
  * Session with another peer.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
    * Which peer is this session for?
@@ -324,7 +324,7 @@ struct UDP_FragmentationContext
   /**
    * The session this fragmentation context belongs to
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Function to call upon completion of the transmission.
@@ -390,7 +390,7 @@ struct UDP_MessageWrapper
   /**
    * Session this message belongs to
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * DLL of messages, previous element
@@ -506,7 +506,7 @@ GNUNET_NETWORK_STRUCT_END
  */
 static void
 notify_session_monitor (struct Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -538,7 +538,7 @@ notify_session_monitor (struct Plugin *plugin,
  *
  * @param cls the `struct Plugin` with the monitor callback (`sic`)
  * @param peer peer we send information about
- * @param value our `struct Session` to send information about
+ * @param value our `struct GNUNET_ATS_Session` to send information about
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -547,7 +547,7 @@ send_session_info_iter (void *cls,
                         void *value)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   notify_session_monitor (plugin,
                           session,
@@ -602,7 +602,7 @@ udp_plugin_setup_monitor (void *cls,
  * @param s session to free
  */
 static void
-free_session (struct Session *s)
+free_session (struct GNUNET_ATS_Session *s)
 {
   if (NULL != s->address)
   {
@@ -645,7 +645,7 @@ udp_query_keepalive_factor (void *cls)
  */
 static enum GNUNET_ATS_Network_Type
 udp_plugin_get_network (void *cls,
-                        struct Session *session)
+                        struct GNUNET_ATS_Session *session)
 {
   return session->scope;
 }
@@ -1350,12 +1350,12 @@ udp_nat_port_map_callback (void *cls,
 /**
  * Closure for #session_cmp_it().
  */
-struct SessionCompareContext
+struct GNUNET_ATS_SessionCompareContext
 {
   /**
    * Set to session matching the address.
    */
-  struct Session *res;
+  struct GNUNET_ATS_Session *res;
 
   /**
    * Address we are looking for.
@@ -1367,9 +1367,9 @@ struct SessionCompareContext
 /**
  * Find a session with a matching address.
  *
- * @param cls the `struct SessionCompareContext *`
+ * @param cls the `struct GNUNET_ATS_SessionCompareContext *`
  * @param key peer identity (unused)
- * @param value the `struct Session *`
+ * @param value the `struct GNUNET_ATS_Session *`
  * @return #GNUNET_NO if we found the session, #GNUNET_OK if not
  */
 static int
@@ -1377,8 +1377,8 @@ session_cmp_it (void *cls,
                 const struct GNUNET_PeerIdentity *key,
                 void *value)
 {
-  struct SessionCompareContext *cctx = cls;
-  struct Session *s = value;
+  struct GNUNET_ATS_SessionCompareContext *cctx = cls;
+  struct GNUNET_ATS_Session *s = value;
 
   if (0 == GNUNET_HELLO_address_cmp (s->address,
                                      cctx->address))
@@ -1400,14 +1400,14 @@ session_cmp_it (void *cls,
  * @param address the address we should locate the session by
  * @return the session if it exists, or NULL if it is not found
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 udp_plugin_lookup_session (void *cls,
                            const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin *plugin = cls;
   const struct IPv6UdpAddress *udp_a6;
   const struct IPv4UdpAddress *udp_a4;
-  struct SessionCompareContext cctx;
+  struct GNUNET_ATS_SessionCompareContext cctx;
 
   if (NULL == address->address)
   {
@@ -1473,7 +1473,7 @@ udp_plugin_lookup_session (void *cls,
  * @param s session to reschedule timeout activity for
  */
 static void
-reschedule_session_timeout (struct Session *s)
+reschedule_session_timeout (struct GNUNET_ATS_Session *s)
 {
   if (GNUNET_YES == s->in_destroy)
     return;
@@ -1495,7 +1495,7 @@ reschedule_session_timeout (struct Session *s)
 static void
 udp_plugin_update_session_timeout (void *cls,
                                    const struct GNUNET_PeerIdentity *peer,
-                                   struct Session *session)
+                                   struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = cls;
 
@@ -1526,7 +1526,7 @@ static void
 dequeue (struct Plugin *plugin,
          struct UDP_MessageWrapper *udpw)
 {
-  struct Session *session = udpw->session;
+  struct GNUNET_ATS_Session *session = udpw->session;
 
   if (plugin->bytes_in_buffer < udpw->msg_size)
   {
@@ -1578,7 +1578,7 @@ static void
 enqueue (struct Plugin *plugin,
          struct UDP_MessageWrapper *udpw)
 {
-  struct Session *session = udpw->session;
+  struct GNUNET_ATS_Session *session = udpw->session;
 
   if (GNUNET_YES == session->in_destroy)
   {
@@ -1644,7 +1644,7 @@ fragmented_message_done (struct UDP_FragmentationContext *frag_ctx,
                          int result)
 {
   struct Plugin *plugin = frag_ctx->plugin;
-  struct Session *s = frag_ctx->session;
+  struct GNUNET_ATS_Session *s = frag_ctx->session;
   struct UDP_MessageWrapper *udpw;
   struct UDP_MessageWrapper *tmp;
   size_t overhead;
@@ -1834,7 +1834,7 @@ enqueue_fragment (void *cls,
   struct UDP_FragmentationContext *frag_ctx = cls;
   struct Plugin *plugin = frag_ctx->plugin;
   struct UDP_MessageWrapper *udpw;
-  struct Session *session = frag_ctx->session;
+  struct GNUNET_ATS_Session *session = frag_ctx->session;
   size_t msg_len = ntohs (msg->size);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1981,7 +1981,7 @@ qc_message_sent (void *cls,
  */
 static ssize_t
 udp_plugin_send (void *cls,
-                 struct Session *s,
+                 struct GNUNET_ATS_Session *s,
                  const char *msgbuf,
                  size_t msgbuf_size,
                  unsigned int priority,
@@ -2142,7 +2142,7 @@ read_process_ack (struct Plugin *plugin,
   const struct GNUNET_MessageHeader *ack;
   const struct UDP_ACK_Message *udp_ack;
   struct GNUNET_HELLO_Address *address;
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
   struct GNUNET_TIME_Relative flow_delay;
 
   if (ntohs (msg->size)
@@ -2246,7 +2246,7 @@ struct FindReceiveContext
   /**
    * Session associated with this context.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Address to find.
@@ -2297,7 +2297,7 @@ find_receive_context (void *cls,
  * to the service.
  *
  * @param cls the `struct Plugin *`
- * @param client the `struct Session *`
+ * @param client the `struct GNUNET_ATS_Session *`
  * @param hdr the actual message
  * @return #GNUNET_OK (always)
  */
@@ -2307,7 +2307,7 @@ process_inbound_tokenized_messages (void *cls,
                                     const struct GNUNET_MessageHeader *hdr)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = client;
+  struct GNUNET_ATS_Session *session = client;
 
   if (GNUNET_YES == session->in_destroy)
     return GNUNET_OK;
@@ -2331,7 +2331,7 @@ process_inbound_tokenized_messages (void *cls,
  */
 static int
 udp_disconnect_session (void *cls,
-                        struct Session *s)
+                        struct GNUNET_ATS_Session *s)
 {
   struct Plugin *plugin = cls;
   struct UDP_MessageWrapper *udpw;
@@ -2486,14 +2486,14 @@ udp_disconnect (void *cls,
 /**
  * Session was idle, so disconnect it.
  *
- * @param cls the `struct Session` to time out
+ * @param cls the `struct GNUNET_ATS_Session` to time out
  * @param tc scheduler context
  */
 static void
 session_timeout (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative left;
 
@@ -2533,15 +2533,15 @@ session_timeout (void *cls,
  * @param network_type network type the address belongs to
  * @return NULL on error, otherwise session handle
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 udp_plugin_create_session (void *cls,
                            const struct GNUNET_HELLO_Address *address,
                            enum GNUNET_ATS_Network_Type network_type)
 {
   struct Plugin *plugin = cls;
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
 
-  s = GNUNET_new (struct Session);
+  s = GNUNET_new (struct GNUNET_ATS_Session);
   s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
   s->target = address->peer;
@@ -2588,12 +2588,12 @@ udp_plugin_create_session (void *cls,
  * @param address the address
  * @return the session or NULL of max connections exceeded
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 udp_plugin_get_session (void *cls,
                         const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin *plugin = cls;
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
   enum GNUNET_ATS_Network_Type network_type = GNUNET_ATS_NET_UNSPECIFIED;
   const struct IPv4UdpAddress *udp_v4;
   const struct IPv6UdpAddress *udp_v6;
@@ -2669,7 +2669,7 @@ process_udp_message (struct Plugin *plugin,
                      size_t udp_addr_len,
                      enum GNUNET_ATS_Network_Type network_type)
 {
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
   struct GNUNET_HELLO_Address *address;
 
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network_type);
@@ -2806,7 +2806,7 @@ ack_proc (void *cls,
   struct UDP_ACK_Message *udp_ack;
   uint32_t delay;
   struct UDP_MessageWrapper *udpw;
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
   struct GNUNET_HELLO_Address *address;
 
   if (GNUNET_NO == rc->have_sender)
@@ -3161,7 +3161,7 @@ remove_timeout_messages_and_select (struct Plugin *plugin,
 {
   struct UDP_MessageWrapper *udpw;
   struct GNUNET_TIME_Relative remaining;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
   int removed;
 
   removed = GNUNET_NO;

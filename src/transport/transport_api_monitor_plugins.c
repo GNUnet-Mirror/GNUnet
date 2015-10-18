@@ -79,7 +79,7 @@ struct GNUNET_TRANSPORT_PluginMonitor
 
 /**
  * Abstract representation of a plugin's session.
- * Corresponds to the `struct Session` within the TRANSPORT service.
+ * Corresponds to the `struct GNUNET_ATS_Session` within the TRANSPORT service.
  */
 struct GNUNET_TRANSPORT_PluginSession
 {

@@ -137,7 +137,7 @@ struct UNIXMessageWrapper
   /**
    * Session this message belongs to.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Function to call upon transmission.
@@ -174,18 +174,18 @@ struct UNIXMessageWrapper
 /**
  * Handle for a session.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
 
   /**
    * Sessions with pending messages (!) are kept in a DLL.
    */
-  struct Session *next;
+  struct GNUNET_ATS_Session *next;
 
   /**
    * Sessions with pending messages (!) are kept in a DLL.
    */
-  struct Session *prev;
+  struct GNUNET_ATS_Session *prev;
 
   /**
    * To whom are we talking to (set to our identity
@@ -278,7 +278,7 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * Sessions (map from peer identity to `struct Session`)
+   * Sessions (map from peer identity to `struct GNUNET_ATS_Session`)
    */
   struct GNUNET_CONTAINER_MultiPeerMap *session_map;
 
@@ -335,7 +335,7 @@ struct Plugin
  */
 static void
 notify_session_monitor (struct Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -431,7 +431,7 @@ unix_plugin_address_to_string (void *cls,
  */
 static int
 unix_plugin_session_disconnect (void *cls,
-                                struct Session *session)
+                                struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = cls;
   struct UNIXMessageWrapper *msgw;
@@ -497,14 +497,14 @@ unix_plugin_session_disconnect (void *cls,
 /**
  * Session was idle for too long, so disconnect it
  *
- * @param cls the `struct Session *` to disconnect
+ * @param cls the `struct GNUNET_ATS_Session *` to disconnect
  * @param tc scheduler context
  */
 static void
 session_timeout (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *session = cls;
+  struct GNUNET_ATS_Session *session = cls;
   struct GNUNET_TIME_Relative left;
 
   session->timeout_task = NULL;
@@ -538,7 +538,7 @@ session_timeout (void *cls,
  * @param session session for which the timeout should be rescheduled
  */
 static void
-reschedule_session_timeout (struct Session *session)
+reschedule_session_timeout (struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session->timeout_task);
   session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -584,7 +584,7 @@ struct LookupCtx
   /**
    * Location to store the session, if found.
    */
-  struct Session *res;
+  struct GNUNET_ATS_Session *res;
 
   /**
    * Address we are looking for.
@@ -607,7 +607,7 @@ lookup_session_it (void *cls,
 		   void *value)
 {
   struct LookupCtx *lctx = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   if (0 == GNUNET_HELLO_address_cmp (lctx->address,
                                      session->address))
@@ -626,7 +626,7 @@ lookup_session_it (void *cls,
  * @param address the address to find
  * @return NULL if session was not found
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 lookup_session (struct Plugin *plugin,
                 const struct GNUNET_HELLO_Address *address)
 {
@@ -797,7 +797,7 @@ resend:
  */
 static enum GNUNET_ATS_Network_Type
 unix_plugin_get_network (void *cls,
-                         struct Session *session)
+                         struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session);
   return GNUNET_ATS_NET_LOOPBACK;
@@ -828,12 +828,12 @@ unix_plugin_get_network_for_address (void *cls,
  * @param address the address
  * @return the session or NULL of max connections exceeded
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 unix_plugin_get_session (void *cls,
 			 const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
   struct UnixAddress *ua;
   char * addrstr;
   uint32_t addr_str_len;
@@ -886,7 +886,7 @@ unix_plugin_get_session (void *cls,
   }
 
   /* create a new session */
-  session = GNUNET_new (struct Session);
+  session = GNUNET_new (struct GNUNET_ATS_Session);
   session->target = address->peer;
   session->address = GNUNET_HELLO_address_copy (address);
   session->plugin = plugin;
@@ -929,7 +929,7 @@ unix_plugin_get_session (void *cls,
 static void
 unix_plugin_update_session_timeout (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
-                                    struct Session *session)
+                                    struct GNUNET_ATS_Session *session)
 {
   struct Plugin *plugin = cls;
 
@@ -961,7 +961,7 @@ unix_demultiplexer (struct Plugin *plugin,
                     const struct UnixAddress *ua,
                     size_t ua_len)
 {
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
   struct GNUNET_HELLO_Address *address;
 
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
@@ -1103,7 +1103,7 @@ unix_plugin_do_write (struct Plugin *plugin)
 {
   ssize_t sent = 0;
   struct UNIXMessageWrapper *msgw;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
   int did_delete;
 
   session = NULL;
@@ -1301,7 +1301,7 @@ unix_plugin_select_write (void *cls,
  */
 static ssize_t
 unix_plugin_send (void *cls,
-                  struct Session *session,
+                  struct GNUNET_ATS_Session *session,
                   const char *msgbuf,
                   size_t msgbuf_size,
                   unsigned int priority,
@@ -1655,7 +1655,7 @@ address_notification (void *cls,
  *
  * @param cls the plugin
  * @param key peer identity (unused)
- * @param value the `struct Session *` to disconnect
+ * @param value the `struct GNUNET_ATS_Session *` to disconnect
  * @return #GNUNET_YES (always, continue to iterate)
  */
 static int
@@ -1664,7 +1664,7 @@ get_session_delete_it (void *cls,
 		       void *value)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   unix_plugin_session_disconnect (plugin, session);
   return GNUNET_YES;
@@ -1696,7 +1696,7 @@ unix_plugin_peer_disconnect (void *cls,
  *
  * @param cls the `struct Plugin` with the monitor callback (`sic`)
  * @param peer peer we send information about
- * @param value our `struct Session` to send information about
+ * @param value our `struct GNUNET_ATS_Session` to send information about
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -1705,7 +1705,7 @@ send_session_info_iter (void *cls,
                         void *value)
 {
   struct Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   notify_session_monitor (plugin,
                           session,
@@ -1849,7 +1849,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
   struct UNIXMessageWrapper * msgw;
   struct UnixAddress *ua;
   size_t len;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   if (NULL == plugin)
   {

@@ -104,7 +104,7 @@ int
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr,
                             const struct GNUNET_HELLO_Address *sender_address,
-                            struct Session *session);
+                            struct GNUNET_ATS_Session *session);
 
 
 /**

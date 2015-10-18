@@ -148,7 +148,7 @@ struct TransportSynMessage
  * When the keep alive response with type is received, transport service
  * will call the respective plugin to update the session timeout
  */
-struct SessionKeepAliveMessage
+struct GNUNET_ATS_SessionKeepAliveMessage
 {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE or
@@ -168,7 +168,7 @@ struct SessionKeepAliveMessage
  * the other peer should limit transmissions to the indicated
  * quota.
  */
-struct SessionQuotaMessage
+struct GNUNET_ATS_SessionQuotaMessage
 {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA.
@@ -188,7 +188,7 @@ struct SessionQuotaMessage
  * notification, peers must not rely on always receiving disconnect
  * messages.
  */
-struct SessionDisconnectMessage
+struct GNUNET_ATS_SessionDisconnectMessage
 {
   /**
    * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT
@@ -284,7 +284,7 @@ struct NeighbourAddress
   /**
    * Active session for this address.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Network-level address information.
@@ -819,7 +819,7 @@ set_state_and_timeout (struct NeighbourMapEntry *n,
 static void
 set_alternative_address (struct NeighbourMapEntry *n,
                          const struct GNUNET_HELLO_Address *address,
-                         struct Session *session,
+                         struct GNUNET_ATS_Session *session,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
@@ -1063,12 +1063,12 @@ send_disconnect_cont (void *cls,
 static void
 send_disconnect (struct NeighbourMapEntry *n)
 {
-  struct SessionDisconnectMessage disconnect_msg;
+  struct GNUNET_ATS_SessionDisconnectMessage disconnect_msg;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Sending DISCONNECT message to peer `%4s'\n",
               GNUNET_i2s (&n->id));
-  disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
+  disconnect_msg.header.size = htons (sizeof (struct GNUNET_ATS_SessionDisconnectMessage));
   disconnect_msg.header.type =
       htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT);
   disconnect_msg.reserved = htonl (0);
@@ -1196,9 +1196,9 @@ set_incoming_quota (struct NeighbourMapEntry *n,
                                          quota);
   if (0 != ntohl (quota.value__))
   {
-    struct SessionQuotaMessage sqm;
+    struct GNUNET_ATS_SessionQuotaMessage sqm;
 
-    sqm.header.size = htons (sizeof (struct SessionQuotaMessage));
+    sqm.header.size = htons (sizeof (struct GNUNET_ATS_SessionQuotaMessage));
     sqm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_QUOTA);
     sqm.quota = quota.value__;
     (void) send_with_session (n,
@@ -1235,7 +1235,7 @@ set_incoming_quota (struct NeighbourMapEntry *n,
 static void
 set_primary_address (struct NeighbourMapEntry *n,
                      const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
+                     struct GNUNET_ATS_Session *session,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                      struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
@@ -1475,7 +1475,7 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 static void
 send_keepalive (struct NeighbourMapEntry *n)
 {
-  struct SessionKeepAliveMessage m;
+  struct GNUNET_ATS_SessionKeepAliveMessage m;
   struct GNUNET_TIME_Relative timeout;
   uint32_t nonce;
 
@@ -1493,7 +1493,7 @@ send_keepalive (struct NeighbourMapEntry *n)
               "Sending KEEPALIVE to peer `%s' with nonce %u\n",
               GNUNET_i2s (&n->id),
               nonce);
-  m.header.size = htons (sizeof (struct SessionKeepAliveMessage));
+  m.header.size = htons (sizeof (struct GNUNET_ATS_SessionKeepAliveMessage));
   m.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
   m.nonce = htonl (nonce);
 
@@ -1527,16 +1527,16 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
                           const struct GNUNET_MessageHeader *m)
 {
   struct NeighbourMapEntry *n;
-  const struct SessionKeepAliveMessage *msg_in;
-  struct SessionKeepAliveMessage msg;
+  const struct GNUNET_ATS_SessionKeepAliveMessage *msg_in;
+  struct GNUNET_ATS_SessionKeepAliveMessage msg;
 
-  if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
+  if (sizeof (struct GNUNET_ATS_SessionKeepAliveMessage) != ntohs (m->size))
   {
     GNUNET_break_op (0);
     return;
   }
 
-  msg_in = (const struct SessionKeepAliveMessage *) m;
+  msg_in = (const struct GNUNET_ATS_SessionKeepAliveMessage *) m;
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
@@ -1564,12 +1564,12 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
 			    GNUNET_NO);
 
   /* send reply to allow neighbour to measure latency */
-  msg.header.size = htons (sizeof (struct SessionKeepAliveMessage));
+  msg.header.size = htons (sizeof (struct GNUNET_ATS_SessionKeepAliveMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
   msg.nonce = msg_in->nonce;
   (void) send_with_session (n,
                             &msg,
-                            sizeof (struct SessionKeepAliveMessage),
+                            sizeof (struct GNUNET_ATS_SessionKeepAliveMessage),
                             UINT32_MAX /* priority */,
                             GNUNET_TIME_UNIT_FOREVER_REL,
                             GNUNET_YES,
@@ -1590,17 +1590,17 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
                                    const struct GNUNET_MessageHeader *m)
 {
   struct NeighbourMapEntry *n;
-  const struct SessionKeepAliveMessage *msg;
+  const struct GNUNET_ATS_SessionKeepAliveMessage *msg;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_TIME_Relative latency;
 
-  if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
+  if (sizeof (struct GNUNET_ATS_SessionKeepAliveMessage) != ntohs (m->size))
   {
     GNUNET_break_op (0);
     return;
   }
 
-  msg = (const struct SessionKeepAliveMessage *) m;
+  msg = (const struct GNUNET_ATS_SessionKeepAliveMessage *) m;
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
@@ -2080,7 +2080,7 @@ send_syn_ack_message (struct NeighbourAddress *na,
                       struct GNUNET_TIME_Absolute timestamp)
 {
   const struct GNUNET_HELLO_Address *address = na->address;
-  struct Session *session = na->session;
+  struct GNUNET_ATS_Session *session = na->session;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct TransportSynMessage connect_msg;
   struct NeighbourMapEntry *n;
@@ -2267,7 +2267,7 @@ static void
 try_connect_bl_check_cont (void *cls,
                            const struct GNUNET_PeerIdentity *peer,
 			   const struct GNUNET_HELLO_Address *address,
-			   struct Session *session,
+			   struct GNUNET_ATS_Session *session,
                            int result)
 {
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
@@ -2534,7 +2534,7 @@ GST_neighbours_handle_session_syn (const struct GNUNET_MessageHeader *message,
  */
 static int
 try_run_fast_ats_update (const struct GNUNET_HELLO_Address *address,
-                         struct Session *session,
+                         struct GNUNET_ATS_Session *session,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
@@ -2589,7 +2589,7 @@ static void
 switch_address_bl_check_cont (void *cls,
                               const struct GNUNET_PeerIdentity *peer,
 			      const struct GNUNET_HELLO_Address *address,
-			      struct Session *session,
+			      struct GNUNET_ATS_Session *session,
                               int result)
 {
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
@@ -2882,7 +2882,7 @@ switch_address_bl_check_cont (void *cls,
  */
 void
 GST_neighbours_switch_to_address (const struct GNUNET_HELLO_Address *address,
-				  struct Session *session,
+				  struct GNUNET_ATS_Session *session,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
@@ -3042,7 +3042,7 @@ GST_neighbours_notify_data_recv (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
-                                 struct Session *session,
+                                 struct GNUNET_ATS_Session *session,
                                  size_t size)
 {
   struct NeighbourMapEntry *n;
@@ -3240,7 +3240,7 @@ send_session_ack_message (struct NeighbourMapEntry *n)
  * We received a 'SESSION_SYN_ACK' message from the other peer.
  * Consider switching to it.
  *
- * @param message possibly a `struct SessionConnectMessage` (check format)
+ * @param message possibly a `struct GNUNET_ATS_SessionConnectMessage` (check format)
  * @param peer identity of the peer to switch the address for
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
@@ -3250,7 +3250,7 @@ send_session_ack_message (struct NeighbourMapEntry *n)
 int
 GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *message,
 				       const struct GNUNET_HELLO_Address *address,
-				       struct Session *session)
+				       struct GNUNET_ATS_Session *session)
 {
   const struct TransportSynMessage *scm;
   struct GNUNET_TIME_Absolute ts;
@@ -3391,7 +3391,7 @@ GST_neighbours_handle_session_syn_ack (const struct GNUNET_MessageHeader *messag
  */
 int
 GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
-                                   struct Session *session)
+                                   struct GNUNET_ATS_Session *session)
 {
   struct NeighbourMapEntry *n;
   struct BlackListCheckContext *bcc;
@@ -3539,7 +3539,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * If we sent a 'SYN_ACK' last, this means we are now
  * connected.  Otherwise, do nothing.
  *
- * @param message possibly a 'struct SessionConnectMessage' (check format)
+ * @param message possibly a 'struct GNUNET_ATS_SessionConnectMessage' (check format)
  * @param address address of the other peer
  * @param session session to use (or NULL)
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
@@ -3547,7 +3547,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
 int
 GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 				   const struct GNUNET_HELLO_Address *address,
-				   struct Session *session)
+				   struct GNUNET_ATS_Session *session)
 {
   struct NeighbourMapEntry *n;
 
@@ -3673,12 +3673,12 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
                                      const struct GNUNET_MessageHeader *msg)
 {
   struct NeighbourMapEntry *n;
-  const struct SessionQuotaMessage *sqm;
+  const struct GNUNET_ATS_SessionQuotaMessage *sqm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received QUOTA message from peer `%s'\n",
               GNUNET_i2s (peer));
-  if (ntohs (msg->size) != sizeof (struct SessionQuotaMessage))
+  if (ntohs (msg->size) != sizeof (struct GNUNET_ATS_SessionQuotaMessage))
   {
     GNUNET_break_op (0);
     GNUNET_STATISTICS_update (GST_stats,
@@ -3691,7 +3691,7 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
                             gettext_noop
                             ("# QUOTA messages received"),
                             1, GNUNET_NO);
-  sqm = (const struct SessionQuotaMessage *) msg;
+  sqm = (const struct GNUNET_ATS_SessionQuotaMessage *) msg;
   if (NULL == (n = lookup_neighbour (peer)))
   {
     /* gone already */
@@ -3716,12 +3716,12 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
                                           const struct GNUNET_MessageHeader *msg)
 {
   struct NeighbourMapEntry *n;
-  const struct SessionDisconnectMessage *sdm;
+  const struct GNUNET_ATS_SessionDisconnectMessage *sdm;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DISCONNECT message from peer `%s'\n",
               GNUNET_i2s (peer));
-  if (ntohs (msg->size) != sizeof (struct SessionDisconnectMessage))
+  if (ntohs (msg->size) != sizeof (struct GNUNET_ATS_SessionDisconnectMessage))
   {
     GNUNET_break_op (0);
     GNUNET_STATISTICS_update (GST_stats,
@@ -3735,7 +3735,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
                             gettext_noop
                             ("# DISCONNECT messages received"),
                             1, GNUNET_NO);
-  sdm = (const struct SessionDisconnectMessage *) msg;
+  sdm = (const struct GNUNET_ATS_SessionDisconnectMessage *) msg;
   if (NULL == (n = lookup_neighbour (peer)))
   {
     /* gone already */

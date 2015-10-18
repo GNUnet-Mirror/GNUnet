@@ -52,7 +52,7 @@ GST_ats_done (void);
  */
 int
 GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
-                  struct Session *session);
+                  struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -77,7 +77,7 @@ GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address);
  */
 void
 GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
-                       struct Session *session);
+                       struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -90,7 +90,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session);
+                     struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -105,7 +105,7 @@ GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
-                             struct Session *session,
+                             struct GNUNET_ATS_Session *session,
                              const struct GNUNET_ATS_Properties *prop);
 
 
@@ -132,7 +132,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session);
+                     struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -187,7 +187,7 @@ GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
  */
 void
 GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
-                     struct Session *session);
+                     struct GNUNET_ATS_Session *session);
 
 
 /**

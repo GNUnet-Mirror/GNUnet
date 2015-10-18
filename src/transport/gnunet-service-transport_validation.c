@@ -517,7 +517,7 @@ static void
 transmit_ping_if_allowed (void *cls,
                           const struct GNUNET_PeerIdentity *pid,
 			  const struct GNUNET_HELLO_Address *address_null,
-			  struct Session *session_null,
+			  struct GNUNET_ATS_Session *session_null,
                           int result)
 {
   struct ValidationEntry *ve = cls;
@@ -529,7 +529,7 @@ transmit_ping_if_allowed (void *cls,
   size_t tsize;
   size_t slen;
   uint16_t hsize;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   ve->bc = NULL;
   if (GNUNET_OK != result)
@@ -995,7 +995,7 @@ multicast_pong (void *cls,
 {
   struct TransportPongMessage *pong = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   papi = GST_plugins_find (address->transport_name);
   if (NULL == papi)
@@ -1039,7 +1039,7 @@ int
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr,
                             const struct GNUNET_HELLO_Address *sender_address,
-                            struct Session *session)
+                            struct GNUNET_ATS_Session *session)
 {
   const struct TransportPingMessage *ping;
   struct TransportPongMessage *pong;

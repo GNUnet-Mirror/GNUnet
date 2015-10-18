@@ -110,7 +110,7 @@ typedef void
 (*GST_BlacklistTestContinuation) (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
 				  const struct GNUNET_HELLO_Address *address,
-				  struct Session *session,
+				  struct GNUNET_ATS_Session *session,
                                   int result);
 
 
@@ -132,7 +132,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
                             GST_BlacklistTestContinuation cont, 
 			    void *cont_cls,
 			    const struct GNUNET_HELLO_Address *address,
-			    struct Session *session);
+			    struct GNUNET_ATS_Session *session);
 
 
 /**
@@ -143,7 +143,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
  */
 void
 GST_blacklist_abort_matching (const struct GNUNET_HELLO_Address *address,
-			      struct Session *session);
+			      struct GNUNET_ATS_Session *session);
 
 
 

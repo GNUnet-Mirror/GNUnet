@@ -221,7 +221,7 @@ struct PendingMessage
 /**
  * Session handle for connections with other peers.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
    * To whom are we talking to (set to our identity
@@ -233,13 +233,13 @@ struct Session
    * We keep all sessions in a DLL at their respective
    * `struct MACEndpoint *`.
    */
-  struct Session *next;
+  struct GNUNET_ATS_Session *next;
 
   /**
    * We keep all sessions in a DLL at their respective
    * `struct MACEndpoint *`.
    */
-  struct Session *prev;
+  struct GNUNET_ATS_Session *prev;
 
   /**
    * MAC endpoint with the address of this peer.
@@ -364,12 +364,12 @@ struct MacEndpoint
   /**
    * Head of sessions that use this MAC.
    */
-  struct Session *sessions_head;
+  struct GNUNET_ATS_Session *sessions_head;
 
   /**
    * Tail of sessions that use this MAC.
    */
-  struct Session *sessions_tail;
+  struct GNUNET_ATS_Session *sessions_tail;
 
   /**
    * Head of messages we are currently sending to this MAC.
@@ -539,7 +539,7 @@ struct MacAndSession
   /**
    * NULL if the identity of the other peer is not known.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * MAC address of the other peer, NULL if not known.
@@ -616,7 +616,7 @@ wlan_plugin_address_to_string (void *cls,
  */
 static void
 notify_session_monitor (struct Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -780,7 +780,7 @@ wlan_data_message_handler (void *cls,
  */
 static int
 wlan_plugin_disconnect_session (void *cls,
-                                struct Session *session)
+                                struct GNUNET_ATS_Session *session)
 {
   struct MacEndpoint *endpoint = session->mac;
   struct Plugin *plugin = endpoint->plugin;
@@ -834,7 +834,7 @@ static void
 session_timeout (void *cls,
                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *session = cls;
+  struct GNUNET_ATS_Session *session = cls;
   struct GNUNET_TIME_Relative left;
 
   session->timeout_task = NULL;
@@ -860,11 +860,11 @@ session_timeout (void *cls,
  * @param peer peer identity to use for this session
  * @return returns the session or NULL
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 lookup_session (struct MacEndpoint *endpoint,
                 const struct GNUNET_PeerIdentity *peer)
 {
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   for (session = endpoint->sessions_head; NULL != session; session = session->next)
     if (0 == memcmp (peer, &session->target, sizeof (struct GNUNET_PeerIdentity)))
@@ -880,17 +880,17 @@ lookup_session (struct MacEndpoint *endpoint,
  * @param peer peer identity to use for this session
  * @return returns the session or NULL
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 create_session (struct MacEndpoint *endpoint,
                 const struct GNUNET_PeerIdentity *peer)
 {
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
                             _("# Sessions allocated"),
                             1,
                             GNUNET_NO);
-  session = GNUNET_new (struct Session);
+  session = GNUNET_new (struct GNUNET_ATS_Session);
   GNUNET_CONTAINER_DLL_insert_tail (endpoint->sessions_head,
                                     endpoint->sessions_tail,
 				    session);
@@ -928,11 +928,11 @@ create_session (struct MacEndpoint *endpoint,
  * @param peer peer identity to use for this session
  * @return returns the session
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 get_session (struct MacEndpoint *endpoint,
              const struct GNUNET_PeerIdentity *peer)
 {
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   if (NULL != (session = lookup_session (endpoint, peer)))
     return session;
@@ -1165,7 +1165,7 @@ free_macendpoint (struct MacEndpoint *endpoint)
 {
   struct Plugin *plugin = endpoint->plugin;
   struct FragmentMessage *fm;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    _("# MAC endpoints allocated"),
@@ -1281,7 +1281,7 @@ create_macendpoint (struct Plugin *plugin,
  */
 static enum GNUNET_ATS_Network_Type
 wlan_plugin_get_network (void *cls,
-                         struct Session *session)
+                         struct GNUNET_ATS_Session *session)
 {
 #if BUILD_WLAN
   return GNUNET_ATS_NET_WLAN;
@@ -1318,7 +1318,7 @@ wlan_plugin_get_network_for_address (void *cls,
  * @param address the address
  * @return the session or NULL of max connections exceeded
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 wlan_plugin_get_session (void *cls,
 			 const struct GNUNET_HELLO_Address *address)
 {
@@ -1357,7 +1357,7 @@ wlan_plugin_disconnect_peer (void *cls,
                              const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
   struct MacEndpoint *endpoint;
 
   for (endpoint = plugin->mac_head; NULL != endpoint; endpoint = endpoint->next)
@@ -1400,7 +1400,7 @@ wlan_plugin_disconnect_peer (void *cls,
  */
 static ssize_t
 wlan_plugin_send (void *cls,
-                  struct Session *session,
+                  struct GNUNET_ATS_Session *session,
                   const char *msgbuf, size_t msgbuf_size,
                   unsigned int priority,
                   struct GNUNET_TIME_Relative to,
@@ -2143,7 +2143,7 @@ wlan_plugin_setup_monitor (void *cls,
 {
   struct Plugin *plugin = cls;
   struct MacEndpoint *mac;
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   plugin->sic = sic;
   plugin->sic_cls = sic_cls;
@@ -2177,7 +2177,7 @@ wlan_plugin_setup_monitor (void *cls,
 static void
 wlan_plugin_update_session_timeout (void *cls,
                                     const struct GNUNET_PeerIdentity *peer,
-                                    struct Session *session)
+                                    struct GNUNET_ATS_Session *session)
 {
   GNUNET_assert (NULL != session->timeout_task);
   session->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -2197,7 +2197,7 @@ wlan_plugin_update_session_timeout (void *cls,
 static void
 wlan_plugin_update_inbound_delay (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
-                                  struct Session *session,
+                                  struct GNUNET_ATS_Session *session,
                                   struct GNUNET_TIME_Relative delay)
 {
   /* does nothing, as inbound delay is not supported by WLAN */

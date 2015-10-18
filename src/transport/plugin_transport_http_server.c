@@ -63,7 +63,7 @@ struct ServerRequest
    * The session this server request belongs to
    * Can be NULL, when session was disconnected and freed
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * The MHD connection
@@ -174,7 +174,7 @@ struct HTTP_Message
 /**
  * Session handle for connections.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
 
   /**
@@ -466,7 +466,7 @@ struct HTTP_Server_Plugin
  */
 static void
 notify_session_monitor (struct HTTP_Server_Plugin *plugin,
-                        struct Session *session,
+                        struct GNUNET_ATS_Session *session,
                         enum GNUNET_TRANSPORT_SessionState state)
 {
   struct GNUNET_TRANSPORT_SessionInfo info;
@@ -497,7 +497,7 @@ static void
 server_wake_up (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
 
   s->recv_wakeup_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -529,7 +529,7 @@ server_reschedule (struct HTTP_Server_Plugin *plugin,
  * @param s the session to delete
  */
 static void
-server_delete_session (struct Session *s)
+server_delete_session (struct GNUNET_ATS_Session *s)
 {
   struct HTTP_Server_Plugin *plugin = s->plugin;
   struct HTTP_Message *msg;
@@ -630,7 +630,7 @@ server_delete_session (struct Session *s)
  */
 static int
 http_server_plugin_disconnect_session (void *cls,
-                                       struct Session *s)
+                                       struct GNUNET_ATS_Session *s)
 {
   server_delete_session (s);
   return GNUNET_OK;
@@ -647,7 +647,7 @@ static void
 server_session_timeout (void *cls,
                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct GNUNET_TIME_Relative left;
 
   s->timeout_task = NULL;
@@ -679,7 +679,7 @@ server_session_timeout (void *cls,
  * @param s the session
  */
 static void
-server_reschedule_session_timeout (struct Session *s)
+server_reschedule_session_timeout (struct GNUNET_ATS_Session *s)
 {
  GNUNET_assert (NULL != s->timeout_task);
   s->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -715,7 +715,7 @@ server_reschedule_session_timeout (struct Session *s)
  */
 static ssize_t
 http_server_plugin_send (void *cls,
-                         struct Session *session,
+                         struct GNUNET_ATS_Session *session,
                          const char *msgbuf,
                          size_t msgbuf_size,
                          unsigned int priority,
@@ -775,7 +775,7 @@ http_server_plugin_send (void *cls,
  *
  * @param cls the `struct HTTP_Server_Plugin *`
  * @param peer for which this is a session
- * @param value the `struct Session` to clean up
+ * @param value the `struct GNUNET_ATS_Session` to clean up
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -783,7 +783,7 @@ destroy_session_shutdown_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     void *value)
 {
-  struct Session *s = value;
+  struct GNUNET_ATS_Session *s = value;
   struct ServerRequest *sc_send;
   struct ServerRequest *sc_recv;
 
@@ -802,7 +802,7 @@ destroy_session_shutdown_cb (void *cls,
  *
  * @param cls the `struct HTTP_Server_Plugin *`
  * @param peer for which this is a session
- * @param value the `struct Session` to clean up
+ * @param value the `struct GNUNET_ATS_Session` to clean up
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -810,7 +810,7 @@ destroy_session_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     void *value)
 {
-  struct Session *s = value;
+  struct GNUNET_ATS_Session *s = value;
 
   server_delete_session (s);
   return GNUNET_OK;
@@ -897,7 +897,7 @@ http_server_plugin_address_suggested (void *cls,
  * @param address the address
  * @return always NULL
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 http_server_plugin_get_session (void *cls,
                                 const struct GNUNET_HELLO_Address *address)
 {
@@ -1127,7 +1127,7 @@ http_server_query_keepalive_factor (void *cls)
 static void
 http_server_plugin_update_session_timeout (void *cls,
                                            const struct GNUNET_PeerIdentity *peer,
-                                           struct Session *session)
+                                           struct GNUNET_ATS_Session *session)
 {
   server_reschedule_session_timeout (session);
 }
@@ -1142,7 +1142,7 @@ http_server_plugin_update_session_timeout (void *cls,
  */
 static void
 server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
-			       struct Session *s,
+			       struct GNUNET_ATS_Session *s,
 			       unsigned int to)
 {
   /* Setting timeouts for other connections */
@@ -1305,12 +1305,12 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
 /**
  * Closure for #session_tag_it().
  */
-struct SessionTagContext
+struct GNUNET_ATS_SessionTagContext
 {
   /**
    * Set to session matching the tag.
    */
-  struct Session *res;
+  struct GNUNET_ATS_Session *res;
 
   /**
    * Tag we are looking for.
@@ -1322,9 +1322,9 @@ struct SessionTagContext
 /**
  * Find a session with a matching tag.
  *
- * @param cls the `struct SessionTagContext *`
+ * @param cls the `struct GNUNET_ATS_SessionTagContext *`
  * @param key peer identity (unused)
- * @param value the `struct Session *`
+ * @param value the `struct GNUNET_ATS_Session *`
  * @return #GNUNET_NO if we found the session, #GNUNET_OK if not
  */
 static int
@@ -1332,8 +1332,8 @@ session_tag_it (void *cls,
                 const struct GNUNET_PeerIdentity *key,
                 void *value)
 {
-  struct SessionTagContext *stc = cls;
-  struct Session *s = value;
+  struct GNUNET_ATS_SessionTagContext *stc = cls;
+  struct GNUNET_ATS_Session *s = value;
 
   if (s->tag == stc->tag)
   {
@@ -1359,13 +1359,13 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                           const char *url,
                           const char *method)
 {
-  struct Session *s = NULL;
+  struct GNUNET_ATS_Session *s = NULL;
   struct ServerRequest *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
   struct HttpAddress *addr;
   struct GNUNET_PeerIdentity target;
   size_t addr_len;
-  struct SessionTagContext stc;
+  struct GNUNET_ATS_SessionTagContext stc;
   uint32_t options;
   int direction = GNUNET_SYSERR;
   unsigned int to;
@@ -1442,7 +1442,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       /* external host name */
       return NULL;
     }
-    s = GNUNET_new (struct Session);
+    s = GNUNET_new (struct GNUNET_ATS_Session);
     s->target = target;
     s->plugin = plugin;
     s->scope = scope;
@@ -1548,7 +1548,7 @@ server_send_callback (void *cls,
                       size_t max)
 {
   struct ServerRequest *sc = cls;
-  struct Session *s = sc->session;
+  struct GNUNET_ATS_Session *s = sc->session;
   ssize_t bytes_read = 0;
   struct HTTP_Message *msg;
   char *stat_txt;
@@ -1638,7 +1638,7 @@ server_receive_mst_cb (void *cls,
                        void *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct Session *s = cls;
+  struct GNUNET_ATS_Session *s = cls;
   struct HTTP_Server_Plugin *plugin = s->plugin;
   struct GNUNET_TIME_Relative delay;
   char *stat_txt;
@@ -1727,7 +1727,7 @@ server_access_cb (void *cls,
 {
   struct HTTP_Server_Plugin *plugin = cls;
   struct ServerRequest *sc = *httpSessionCache;
-  struct Session *s;
+  struct GNUNET_ATS_Session *s;
   struct MHD_Response *response;
   int res = MHD_YES;
 
@@ -3257,7 +3257,7 @@ http_server_plugin_address_to_string (void *cls,
  */
 static enum GNUNET_ATS_Network_Type
 http_server_plugin_get_network (void *cls,
-                                struct Session *session)
+                                struct GNUNET_ATS_Session *session)
 {
   return session->scope;
 }
@@ -3294,7 +3294,7 @@ http_server_plugin_get_network_for_address (void *cls,
 static void
 http_server_plugin_update_inbound_delay (void *cls,
                                          const struct GNUNET_PeerIdentity *peer,
-                                         struct Session *session,
+                                         struct GNUNET_ATS_Session *session,
                                          struct GNUNET_TIME_Relative delay)
 {
   session->next_receive = GNUNET_TIME_relative_to_absolute (delay);
@@ -3319,7 +3319,7 @@ http_server_plugin_update_inbound_delay (void *cls,
  *
  * @param cls the `struct Plugin` with the monitor callback (`sic`)
  * @param peer peer we send information about
- * @param value our `struct Session` to send information about
+ * @param value our `struct GNUNET_ATS_Session` to send information about
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
@@ -3328,7 +3328,7 @@ send_session_info_iter (void *cls,
                         void *value)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  struct Session *session = value;
+  struct GNUNET_ATS_Session *session = value;
 
   notify_session_monitor (plugin,
                           session,

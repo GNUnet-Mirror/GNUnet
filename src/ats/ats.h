@@ -218,7 +218,7 @@ struct AddressDestroyedMessage
  * Message sent by ATS service to client to confirm that it is done
  * using the given session ID.
  */
-struct SessionReleaseMessage
+struct GNUNET_ATS_SessionReleaseMessage
 {
   /**
    * Type is #GNUNET_MESSAGE_TYPE_ATS_SESSION_RELEASE.

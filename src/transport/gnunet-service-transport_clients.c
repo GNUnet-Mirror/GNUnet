@@ -1430,7 +1430,7 @@ clients_handle_monitor_validation (void *cls,
  */
 static void
 plugin_session_info_cb (void *cls,
-			struct Session *session,
+			struct GNUNET_ATS_Session *session,
 			const struct GNUNET_TRANSPORT_SessionInfo *info)
 {
   struct TransportPluginMonitorMessage *msg;

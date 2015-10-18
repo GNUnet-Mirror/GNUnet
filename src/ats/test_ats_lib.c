@@ -36,7 +36,7 @@ struct AddressSuggestData
   /**
    * Which session were we given?
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * What address was assigned?
@@ -404,10 +404,10 @@ make_address (uint32_t pid,
 /**
  * Our dummy sessions.
  */
-struct Session
+struct GNUNET_ATS_Session
 {
   /**
-   * Field to avoid `0 == sizeof(struct Session)`.
+   * Field to avoid `0 == sizeof(struct GNUNET_ATS_Session)`.
    */
   unsigned int non_empty;
 };
@@ -419,10 +419,10 @@ struct Session
  * @param i which session number to return
  * @return NULL if @a i is 0, otherwise a pointer unique to @a i
  */
-static struct Session *
+static struct GNUNET_ATS_Session *
 make_session (unsigned int i)
 {
-  struct Session *baseptr = NULL;
+  struct GNUNET_ATS_Session *baseptr = NULL;
 
   if (0 == i)
     return NULL;
@@ -618,7 +618,7 @@ interpreter (void *cls,
     case CMD_ADD_ADDRESS:
       {
         struct GNUNET_HELLO_Address *addr;
-        struct Session *session;
+        struct GNUNET_ATS_Session *session;
 
         addr = make_address (cmd->details.add_address.pid,
                              cmd->details.add_address.addr_num,
@@ -781,7 +781,7 @@ interpreter (void *cls,
     case CMD_ADD_SESSION:
       {
         struct Command *add;
-        struct Session *session;
+        struct GNUNET_ATS_Session *session;
 
         add = find_command (CMD_ADD_ADDRESS,
                             cmd->details.add_session.add_label);
@@ -796,7 +796,7 @@ interpreter (void *cls,
       {
         struct Command *add_address;
         struct Command *add_session;
-        struct Session *session;
+        struct GNUNET_ATS_Session *session;
 
         add_session = find_command (CMD_ADD_SESSION,
                                     cmd->details.del_session.add_session_label);
@@ -891,7 +891,7 @@ static void
 address_suggest_cb (void *cls,
                     const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_HELLO_Address *address,
-                    struct Session *session,
+                    struct GNUNET_ATS_Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {

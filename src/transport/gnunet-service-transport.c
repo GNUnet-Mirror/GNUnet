@@ -44,22 +44,22 @@
 /**
  * Information we need for an asynchronous session kill.
  */
-struct SessionKiller
+struct GNUNET_ATS_SessionKiller
 {
   /**
    * Kept in a DLL.
    */
-  struct SessionKiller *next;
+  struct GNUNET_ATS_SessionKiller *next;
 
   /**
    * Kept in a DLL.
    */
-  struct SessionKiller *prev;
+  struct GNUNET_ATS_SessionKiller *prev;
 
   /**
    * Session to kill.
    */
-  struct Session *session;
+  struct GNUNET_ATS_Session *session;
 
   /**
    * Plugin for the session.
@@ -123,12 +123,12 @@ struct GNUNET_TIME_Relative hello_expiration;
 /**
  * Head of DLL of asynchronous tasks to kill sessions.
  */
-static struct SessionKiller *sk_head;
+static struct GNUNET_ATS_SessionKiller *sk_head;
 
 /**
  * Tail of DLL of asynchronous tasks to kill sessions.
  */
-static struct SessionKiller *sk_tail;
+static struct GNUNET_ATS_SessionKiller *sk_tail;
 
 /**
  * Interface scanner determines our LAN address range(s).
@@ -206,7 +206,7 @@ process_hello_update (void *cls,
  */
 static struct GNUNET_TIME_Relative
 process_payload (const struct GNUNET_HELLO_Address *address,
-                 struct Session *session,
+                 struct GNUNET_ATS_Session *session,
                  const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_TIME_Relative ret;
@@ -249,14 +249,14 @@ process_payload (const struct GNUNET_HELLO_Address *address,
 /**
  * Task to asynchronously terminate a session.
  *
- * @param cls the `struct SessionKiller` with the information for the kill
+ * @param cls the `struct GNUNET_ATS_SessionKiller` with the information for the kill
  * @param tc scheduler context
  */
 static void
 kill_session_task (void *cls,
                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct SessionKiller *sk = cls;
+  struct GNUNET_ATS_SessionKiller *sk = cls;
 
   sk->task = NULL;
   GNUNET_CONTAINER_DLL_remove (sk_head, sk_tail, sk);
@@ -274,10 +274,10 @@ kill_session_task (void *cls,
  */
 static void
 kill_session (const char *plugin_name,
-              struct Session *session)
+              struct GNUNET_ATS_Session *session)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *plugin;
-  struct SessionKiller *sk;
+  struct GNUNET_ATS_SessionKiller *sk;
 
   for (sk = sk_head; NULL != sk; sk = sk->next)
     if (sk->session == session)
@@ -289,7 +289,7 @@ kill_session (const char *plugin_name,
     return;
   }
   /* need to issue disconnect asynchronously */
-  sk = GNUNET_new (struct SessionKiller);
+  sk = GNUNET_new (struct GNUNET_ATS_SessionKiller);
   sk->session = session;
   sk->plugin = plugin;
   sk->task = GNUNET_SCHEDULER_add_now (&kill_session_task, sk);
@@ -313,7 +313,7 @@ static void
 connect_bl_check_cont (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
 		       const struct GNUNET_HELLO_Address *address,
-		       struct Session *session,
+		       struct GNUNET_ATS_Session *session,
                        int result)
 {
   struct GNUNET_MessageHeader *msg = cls;
@@ -365,7 +365,7 @@ connect_bl_check_cont (void *cls,
 struct GNUNET_TIME_Relative
 GST_receive_callback (void *cls,
                       const struct GNUNET_HELLO_Address *address,
-                      struct Session *session,
+                      struct GNUNET_ATS_Session *session,
                       const struct GNUNET_MessageHeader *message)
 {
   const char *plugin_name = cls;
@@ -559,9 +559,9 @@ plugin_env_address_change_notification (void *cls,
 static void
 plugin_env_session_end (void *cls,
                         const struct GNUNET_HELLO_Address *address,
-                        struct Session *session)
+                        struct GNUNET_ATS_Session *session)
 {
-  struct SessionKiller *sk;
+  struct GNUNET_ATS_SessionKiller *sk;
 
   if (NULL == address)
   {
@@ -614,7 +614,7 @@ static void
 plugin_env_session_start_bl_check_cont (void *cls,
                                         const struct GNUNET_PeerIdentity *peer,
 					const struct GNUNET_HELLO_Address *address,
-					struct Session *session,
+					struct GNUNET_ATS_Session *session,
                                         int result)
 {
   if (GNUNET_OK != result)
@@ -646,7 +646,7 @@ plugin_env_session_start_bl_check_cont (void *cls,
 static void
 plugin_env_session_start (void *cls,
                           const struct GNUNET_HELLO_Address *address,
-                          struct Session *session,
+                          struct GNUNET_ATS_Session *session,
                           enum GNUNET_ATS_Network_Type scope)
 {
   struct GNUNET_ATS_Properties prop;
@@ -713,7 +713,7 @@ static void
 ats_request_address_change (void *cls,
                             const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_HELLO_Address *address,
-                            struct Session *session,
+                            struct GNUNET_ATS_Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {

@@ -145,7 +145,7 @@ struct Plugin
 
   /**
    * Session of peers with whom we are currently connected,
-   * map of peer identity to `struct Session *`.
+   * map of peer identity to `struct GNUNET_ATS_Session *`.
    */
   struct GNUNET_CONTAINER_MultiPeerMap *sessions;
 

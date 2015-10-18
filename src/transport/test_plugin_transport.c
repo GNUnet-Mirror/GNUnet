@@ -285,7 +285,7 @@ end_badly_now ()
 static struct GNUNET_TIME_Relative
 env_receive (void *cls,
              const struct GNUNET_HELLO_Address *address,
-             struct Session *session,
+             struct GNUNET_ATS_Session *session,
              const struct GNUNET_MessageHeader *message)
 {
   /* do nothing */
@@ -520,7 +520,7 @@ env_get_our_hello ()
 static void
 env_session_end (void *cls,
                  const struct GNUNET_HELLO_Address *address,
-                 struct Session *session)
+                 struct GNUNET_ATS_Session *session)
 {
 
 }
