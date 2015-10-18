@@ -1662,17 +1662,17 @@ fragmented_message_done (struct UDP_FragmentationContext *frag_ctx,
   delay = GNUNET_TIME_absolute_get_duration (frag_ctx->start_time);
   if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Fragmented message acknowledged after %s\n",
-                GNUNET_STRINGS_relative_time_to_string (delay,
-                                                        GNUNET_YES));
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Fragmented message acknowledged after %s\n",
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES));
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Fragmented message acknowledged after %s\n",
-                GNUNET_STRINGS_relative_time_to_string (delay,
-                                                        GNUNET_YES));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Fragmented message acknowledged after %s\n",
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES));
   }
 
   if (NULL != frag_ctx->cont)
@@ -1889,17 +1889,17 @@ qc_message_sent (void *cls,
     delay = GNUNET_TIME_absolute_get_duration (udpw->start_time);
     if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Message sent via UDP with delay of %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (delay,
-                                                          GNUNET_YES));
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Message sent via UDP with delay of %s\n",
+           GNUNET_STRINGS_relative_time_to_string (delay,
+                                                   GNUNET_YES));
     }
     else
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Message sent via UDP with delay of %s\n",
-                  GNUNET_STRINGS_relative_time_to_string (delay,
-                                                          GNUNET_YES));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Message sent via UDP with delay of %s\n",
+           GNUNET_STRINGS_relative_time_to_string (delay,
+                                                   GNUNET_YES));
     }
     udpw->cont (udpw->cont_cls,
                 &udpw->session->target,
