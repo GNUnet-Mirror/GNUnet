@@ -112,7 +112,7 @@ struct Request
   /**
    * Associated session.
    */
-  struct Session *session;
+  // FIXME: struct Session *session;
 
   /**
    * Post processor handling form data (IF this is
