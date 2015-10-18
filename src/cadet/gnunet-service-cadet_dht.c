@@ -154,9 +154,9 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
  * @param exp when will this value expire
  * @param key key of the result
  * @param get_path path of the get request
- * @param get_path_length lenght of get_path
+ * @param get_path_length lenght of @a get_path
  * @param put_path path of the put request
- * @param put_path_length length of the put_path
+ * @param put_path_length length of the @a put_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data
@@ -185,11 +185,15 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   }
 
   s = path_2s (p);
-  LOG (GNUNET_ERROR_TYPE_INFO, "Got path from DHT: %s\n", s);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Got path from DHT: %s\n",
+       s);
   GNUNET_free_non_null (s);
 
   peer = GCP_get_short (p->peers[p->length - 1], GNUNET_YES);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got HELLO for %s\n", GCP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got HELLO for %s\n",
+       GCP_2s (peer));
   h->callback (h->cls, p);
   path_destroy (p);
   hello = (struct GNUNET_HELLO_Message *) data;

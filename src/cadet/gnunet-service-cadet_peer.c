@@ -189,6 +189,11 @@ struct CadetPeer
    * Hello message.
    */
   struct GNUNET_HELLO_Message* hello;
+
+  /**
+   * Handle to us offering the HELLO to the transport.
+   */
+  struct GNUNET_TRANSPORT_OfferHelloHandle *hello_offer;
 };
 
 
@@ -742,7 +747,9 @@ peer_destroy (struct CadetPeer *peer)
   while (NULL != p)
   {
     nextp = p->next;
-    GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, p);
+    GNUNET_CONTAINER_DLL_remove (peer->path_head,
+                                 peer->path_tail,
+                                 p);
     path_destroy (p);
     p = nextp;
   }
@@ -755,6 +762,11 @@ peer_destroy (struct CadetPeer *peer)
   }
   if (NULL != peer->core_transmit)
     GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
+  if (NULL != peer->hello_offer)
+  {
+    GNUNET_TRANSPORT_offer_hello_cancel (peer->hello_offer);
+    peer->hello_offer = NULL;
+  }
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
   return GNUNET_OK;
@@ -1906,10 +1918,12 @@ GCP_get_short (const GNUNET_PEER_Id peer, int create)
  * @param tc TaskContext.
  */
 static void
-try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+try_connect (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetPeer *peer = cls;
 
+  peer->hello_offer = NULL;
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
@@ -1934,8 +1948,9 @@ GCP_connect (struct CadetPeer *peer)
   int rerun_search;
 
   GCC_check_connections ();
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GCP_2s (peer));
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "peer_connect towards %s\n",
+       GCP_2s (peer));
   /* If we have a current hello, try to connect using it. */
   GCP_try_connect (peer);
 
@@ -2539,10 +2554,10 @@ GCP_try_connect (struct CadetPeer *peer)
     return;
 
   mh = GNUNET_HELLO_get_header (hello);
-  GNUNET_TRANSPORT_offer_hello (transport_handle,
-                                mh,
-                                &try_connect,
-                                peer);
+  peer->hello_offer = GNUNET_TRANSPORT_offer_hello (transport_handle,
+                                                    mh,
+                                                    &try_connect,
+                                                    peer);
   GCC_check_connections ();
 }
 
