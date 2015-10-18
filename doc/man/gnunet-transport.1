@@ -1,4 +1,4 @@
-.TH gnunet\-transport "1" "7 Nov 2014" "GNUnet"
+.TH gnunet\-transport "1" "17 Oct 2015" "GNUnet"
 .SH NAME
 gnunet\-transport \- measure and control the transport subsystem
 
@@ -14,8 +14,9 @@ gnunet\-transport is a tool to access various functions of GNUnet's transport su
 \fB\-b\fR, \fB\-\-benchmark\fR
 measure how fast we are receiving data (from all connections).  On exit, the data rate will be reported.  Runs until aborted with CTRL-C.
 .TP
-\fB\-C \fIPEER\fR, \fB\-\-connect=PEER\fR
-peer to connect to (used in conjunction with \-p)
+\fB\-D\fR, \fB\-\-disconnect\fR
+force disconnection from a peer (used in conjunction with \-p).
+Note that you can use the gnunet\-ats command\-line tool to suggest connects.
 .TP
 \fB\-c \fIFILENAME\fR, \fB\-\-config=FILENAME\fR
 configuration file to use
@@ -62,4 +63,4 @@ be verbose
 .SH "REPORTING BUGS"
 Report bugs by using mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-arm\fP(1)
+\fBgnunet\-arm\fP(1), \fBgnunet\-ats\fP(1)

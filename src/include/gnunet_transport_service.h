@@ -190,6 +190,7 @@ typedef void
  * @param cb_cls closure for the callback @a cb
  * @return a `struct GNUNET_TRANSPORT_TryConnectHandle` handle or
  *         NULL on failure (@a cb will not be called)
+ * @deprecated
  */
 struct GNUNET_TRANSPORT_TryConnectHandle *
 GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
@@ -235,6 +236,7 @@ typedef void
  * @param cb_cls closure for the callback @a cb
  * @return a `struct GNUNET_TRANSPORT_TryConnectHandle` handle or
  *         NULL on failure (@a cb will not be called)
+ * @deprecated use blacklisting API instead!
  */
 struct GNUNET_TRANSPORT_TryDisconnectHandle *
 GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,

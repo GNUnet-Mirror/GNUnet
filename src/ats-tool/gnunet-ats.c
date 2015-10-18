@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2009--2013 Christian Grothoff (and other contributing authors)
+ Copyright (C) 2009--2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -22,6 +22,7 @@
  * @file ats-tool/gnunet-ats.c
  * @brief ATS command line tool
  * @author Matthias Wachs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -105,9 +106,24 @@ static int stat_receive_done;
 static int stat_pending;
 
 /**
+ * Which peer should we connect to?
+ */
+static char *cpid_str;
+
+/**
  * ATS performance handle used
  */
 static struct GNUNET_ATS_PerformanceHandle *ph;
+
+/**
+ * Our connectivity handle.
+ */
+static struct GNUNET_ATS_ConnectivityHandle *ats_ch;
+
+/**
+ * Handle for address suggestion request.
+ */
+static struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
 
 /**
  * ATS address list handle used
@@ -234,7 +250,11 @@ free_addr_it (void *cls,
               void *value)
 {
   struct ATSAddress *a = value;
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (addresses, key, value));
+
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (addresses,
+                                                       key,
+                                                       value));
   GNUNET_HELLO_address_free (a->address);
   GNUNET_free (a);
   return GNUNET_OK;
@@ -292,6 +312,17 @@ end (void *cls,
     FPRINTF (stdout,
              _("ATS returned stat_results for %u addresses\n"),
              stat_results);
+
+  if (NULL != ats_sh)
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (ats_sh);
+    ats_sh = NULL;
+  }
+  if (NULL != ats_ch)
+  {
+    GNUNET_ATS_connectivity_done (ats_ch);
+    ats_ch = NULL;
+  }
   ret = 0;
 }
 
@@ -685,38 +716,35 @@ print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 
 /**
- * Function called with the result from the test if ATS is
- * running.  Runs the actual main logic.
+ * Main function that will be run by the scheduler.
  *
- * @param cls the `struct GNUNET_CONFIGURATION_Handle *`
- * @param result result of the test, #GNUNET_YES if ATS is running
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param my_cfg configuration
  */
 static void
-testservice_ats (void *cls,
-                 int result)
+run (void *cls,
+     char * const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *my_cfg)
 {
-  struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_PeerIdentity pid;
+  struct GNUNET_PeerIdentity cpid;
   unsigned int c;
   unsigned int type;
 
+  cfg = (struct GNUNET_CONFIGURATION_Handle *) my_cfg;
   addresses = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-
-  if (GNUNET_YES != result)
-  {
-    FPRINTF (stderr,
-             _("Service `%s' is not running\n"),
-             "ats");
-    return;
-  }
-
   stat_results = 0;
 
+  c = 0;
   if (NULL != opt_pid_str)
   {
-    if (GNUNET_OK
-        != GNUNET_CRYPTO_eddsa_public_key_from_string (opt_pid_str,
-            strlen (opt_pid_str), &pid.public_key))
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_public_key_from_string (opt_pid_str,
+                                                    strlen (opt_pid_str),
+                                                    &pid.public_key))
     {
       FPRINTF (stderr,
                _("Failed to parse peer identity `%s'\n"),
@@ -724,12 +752,27 @@ testservice_ats (void *cls,
       return;
     }
   }
+  if (NULL != cpid_str)
+  {
+    if (GNUNET_OK !=
+        GNUNET_CRYPTO_eddsa_public_key_from_string (cpid_str,
+                                                    strlen (cpid_str),
+                                                    &cpid.public_key))
+    {
+      FPRINTF (stderr,
+               _("Failed to parse peer identity `%s'\n"),
+               cpid_str);
+      return;
+    }
+    c++;
+  }
 
-  c = opt_list_all + opt_list_used + opt_monitor + opt_set_pref;
-  if ((1 < c))
+  c += opt_list_all + opt_list_used + opt_monitor + opt_set_pref;
+
+  if (1 < c)
   {
     FPRINTF (stderr,
-             _("Please select one operation : %s or %s or %s or %s or %s\n"),
+             _("Please select one operation: %s or %s or %s or %s or %s\n"),
              "--used",
              "--all",
              "--monitor",
@@ -737,7 +780,7 @@ testservice_ats (void *cls,
              "--quotas");
     return;
   }
-  if ((0 == c))
+  if (0 == c)
     opt_list_used = GNUNET_YES; /* set default */
   if (opt_print_quotas)
   {
@@ -754,7 +797,6 @@ testservice_ats (void *cls,
                _("Cannot connect to ATS service, exiting...\n"));
       return;
     }
-
     alh = GNUNET_ATS_performance_list_addresses (ph,
                                                  (NULL == opt_pid_str) ? NULL : &pid,
                                                  GNUNET_YES,
@@ -768,10 +810,11 @@ testservice_ats (void *cls,
       return;
     }
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &end,
-                                             NULL);
+                                                  &end,
+                                                  NULL);
+    return;
   }
-  else if (opt_list_used)
+  if (opt_list_used)
   {
     ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
@@ -796,8 +839,9 @@ testservice_ats (void *cls,
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                              &end,
                                              NULL);
+    return;
   }
-  else if (opt_monitor)
+  if (opt_monitor)
   {
     ph = GNUNET_ATS_performance_init (cfg,
                                       &ats_perf_mon_cb,
@@ -807,11 +851,11 @@ testservice_ats (void *cls,
                "%s",
                _("Cannot connect to ATS service, exiting...\n"));
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &end,
-                                             NULL);
-
+                                                  &end,
+                                                  NULL);
+    return;
   }
-  else if (opt_set_pref)
+  if (opt_set_pref)
   {
     if (NULL == opt_type_str)
     {
@@ -860,31 +904,23 @@ testservice_ats (void *cls,
                                               GNUNET_ATS_PREFERENCE_END);
 
     shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                             &end,
-                                             NULL);
+                                                  &end,
+                                                  NULL);
+    return;
+  }
+  if (NULL != cpid_str)
+  {
+    ats_ch = GNUNET_ATS_connectivity_init (cfg);
+    ats_sh = GNUNET_ATS_connectivity_suggest (ats_ch,
+                                              &cpid,
+                                              1000);
+    shutdown_task
+      = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                      &end,
+                                      NULL);
+    return;
   }
   ret = 1;
-}
-
-
-/**
- * Main function that will be run by the scheduler.
- *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param my_cfg configuration
- */
-static void
-run (void *cls,
-     char * const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *my_cfg)
-{
-  cfg = (struct GNUNET_CONFIGURATION_Handle *) my_cfg;
-  GNUNET_CLIENT_service_test ("ats", cfg,
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
-      &testservice_ats, (void *) cfg);
 }
 
 
@@ -910,37 +946,42 @@ main (int argc,
   stat_receive_done = GNUNET_NO;
   opt_type_str = NULL;
 
-  static const struct GNUNET_GETOPT_CommandLineOption options[] =
-  {
-  { 'u', "used", NULL,
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    { 'u', "used", NULL,
       gettext_noop ("get list of active addresses currently used"), 0,
       &GNUNET_GETOPT_set_one, &opt_list_used },
-  { 'a', "all", NULL, gettext_noop ("get list of all active addresses"), 0,
+    { 'a', "all", NULL, gettext_noop ("get list of all active addresses"), 0,
       &GNUNET_GETOPT_set_one, &opt_list_all },
-  { 'n', "numeric", NULL,
+    { 'C', "connect", "PEER",
+      gettext_noop ("connect to PEER"), 1,
+      &GNUNET_GETOPT_set_string, &cpid_str },
+    { 'n', "numeric", NULL,
       gettext_noop ("do not resolve IP addresses to hostnames"), 0,
       &GNUNET_GETOPT_set_one, &opt_resolve_addresses_numeric },
-  { 'm', "monitor", NULL, gettext_noop ("monitor mode"), 0,
+    { 'm', "monitor", NULL, gettext_noop ("monitor mode"), 0,
       &GNUNET_GETOPT_set_one, &opt_monitor },
-  { 'p', "preference", NULL, gettext_noop ("set preference for the given peer"),
+    { 'p', "preference", NULL, gettext_noop ("set preference for the given peer"),
       0, &GNUNET_GETOPT_set_one, &opt_set_pref },
-  { 'q', "quotas", NULL, gettext_noop ("print all configured quotas"), 0,
+    { 'q', "quotas", NULL, gettext_noop ("print all configured quotas"), 0,
       &GNUNET_GETOPT_set_one, &opt_print_quotas },
-  { 'i', "id", "TYPE", gettext_noop ("peer id"), 1, &GNUNET_GETOPT_set_string,
+    { 'i', "id", "TYPE", gettext_noop ("peer id"), 1, &GNUNET_GETOPT_set_string,
       &opt_pid_str },
-  { 't', "type", "TYPE",
+    { 't', "type", "TYPE",
       gettext_noop ("preference type to set: latency | bandwidth"), 1,
       &GNUNET_GETOPT_set_string, &opt_type_str },
-  { 'k', "value", "VALUE", gettext_noop ("preference value"), 1,
+    { 'k', "value", "VALUE", gettext_noop ("preference value"), 1,
       &GNUNET_GETOPT_set_uint, &opt_pref_value },
-  { 'V', "verbose", NULL,
+    { 'V', "verbose", NULL,
       gettext_noop ("verbose output (include ATS address properties)"), 0,
-      &GNUNET_GETOPT_set_one, &opt_verbose }, GNUNET_GETOPT_OPTION_END };
+      &GNUNET_GETOPT_set_one, &opt_verbose },
+    GNUNET_GETOPT_OPTION_END
+  };
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-ats",
+  res = GNUNET_PROGRAM_run (argc, argv,
+                            "gnunet-ats",
                             gettext_noop ("Print information about ATS state"),
                             options,
                             &run, NULL);
@@ -952,7 +993,6 @@ main (int argc,
     return ret;
   else
     return 1;
-
 }
 
 /* end of gnunet-ats.c */

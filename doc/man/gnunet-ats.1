@@ -1,4 +1,4 @@
-.TH GNUNET\-ATS 1 "Oct 31, 2012" "GNUnet"
+.TH GNUNET\-ATS 1 "Oct 16, 2015" "GNUnet"
 
 .SH NAME
 gnunet\-ats \- display information about transport resource allocation
@@ -20,6 +20,10 @@ List all addresses currently known to ats.
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
+.B
+.IP "\-C, \-\-connect=PEERID"
+Ask ATS to suggest an address for PEERID to transport to establish a connection.
+Note that you can use the gnunet\-transport command\-line tool to force disconnects.
 .B
 .IP "\-h, \-\-help"
 Print short help on options.
