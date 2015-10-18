@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009-2013 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009-2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -333,7 +333,7 @@ struct PeerInfo
   /**
    * Task for scheduling preference updates
    */
-  struct GNUNET_SCHEDULER_Task * preference_task;
+  struct GNUNET_SCHEDULER_Task *preference_task;
 
   /**
    * What is the identity of the peer?
@@ -421,7 +421,7 @@ static unsigned int bucket_size = DEFAULT_BUCKET_SIZE;
 /**
  * Task that sends FIND PEER requests.
  */
-static struct GNUNET_SCHEDULER_Task * find_peer_task;
+static struct GNUNET_SCHEDULER_Task *find_peer_task;
 
 /**
  * Identity of this peer.
@@ -439,9 +439,14 @@ static struct GNUNET_HashCode my_identity_hash;
 static struct GNUNET_CORE_Handle *core_api;
 
 /**
- * Handle to ATS.
+ * Handle to ATS performance monitoring.
  */
-static struct GNUNET_ATS_PerformanceHandle *atsAPI;
+static struct GNUNET_ATS_PerformanceHandle *ats_perf;
+
+/**
+ * Handle to ATS connectivity.
+ */
+static struct GNUNET_ATS_ConnectivityHandle *ats_ch;
 
 
 
@@ -513,9 +518,11 @@ update_core_preference (void *cls,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# Preference updates given to core"),
                             1, GNUNET_NO);
-  GNUNET_ATS_performance_change_preference (atsAPI, &peer->id,
-                                GNUNET_ATS_PREFERENCE_BANDWIDTH,
-                                (double) preference, GNUNET_ATS_PREFERENCE_END);
+  GNUNET_ATS_performance_change_preference (ats_perf,
+                                            &peer->id,
+                                            GNUNET_ATS_PREFERENCE_BANDWIDTH,
+                                            (double) preference,
+                                            GNUNET_ATS_PREFERENCE_END);
   peer->preference_task =
       GNUNET_SCHEDULER_add_delayed (DHT_DEFAULT_PREFERENCE_INTERVAL,
                                     &update_core_preference, peer);
@@ -824,7 +831,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     memcpy (&cbuf[off], pending->msg, msize);
     off += msize;
     peer->pending_count--;
-    GNUNET_CONTAINER_DLL_remove (peer->head, 
+    GNUNET_CONTAINER_DLL_remove (peer->head,
 				 peer->tail,
 				 pending);
     GNUNET_free (pending);
@@ -835,13 +842,13 @@ core_transmit_notify (void *cls, size_t size, void *buf)
        avoids bogus gcc warning... */
     msize = ntohs (pending->msg->size);
     peer->th =
-      GNUNET_CORE_notify_transmit_ready (core_api, 
+      GNUNET_CORE_notify_transmit_ready (core_api,
 					 GNUNET_NO,
 					 GNUNET_CORE_PRIO_BEST_EFFORT,
-					 GNUNET_TIME_absolute_get_remaining (pending->timeout), 
+					 GNUNET_TIME_absolute_get_remaining (pending->timeout),
 					 &peer->id,
 					 msize,
-					 &core_transmit_notify, 
+					 &core_transmit_notify,
 					 peer);
     GNUNET_break (NULL != peer->th);
   }
@@ -2057,7 +2064,8 @@ handle_dht_p2p_get (void *cls,
  * @return #GNUNET_YES (do not cut p2p connection)
  */
 static int
-handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
+handle_dht_p2p_result (void *cls,
+                       const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message)
 {
   const struct PeerResultMessage *prm;
@@ -2116,7 +2124,7 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_free (tmp);
   }
   /* if we got a HELLO, consider it for our own routing table */
-  if (type == GNUNET_BLOCK_TYPE_DHT_HELLO)
+  if (GNUNET_BLOCK_TYPE_DHT_HELLO == type)
   {
     const struct GNUNET_MessageHeader *h;
     struct GNUNET_PeerIdentity pid;
@@ -2135,24 +2143,35 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_YES;
     }
     if (GNUNET_OK !=
-        GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) h, &pid))
+        GNUNET_HELLO_get_id ((const struct GNUNET_HELLO_Message *) h,
+                             &pid))
     {
       GNUNET_break_op (0);
       return GNUNET_YES;
     }
-    if ((GNUNET_YES != disable_try_connect) &&
-        0 != memcmp (&my_identity, &pid, sizeof (struct GNUNET_PeerIdentity)))
+    if ( (GNUNET_YES != disable_try_connect) &&
+         (0 != memcmp (&my_identity,
+                       &pid,
+                       sizeof (struct GNUNET_PeerIdentity))) )
     {
       struct GNUNET_HashCode pid_hash;
 
-      GNUNET_CRYPTO_hash (&pid, sizeof (struct GNUNET_PeerIdentity), &pid_hash);
+      GNUNET_CRYPTO_hash (&pid,
+                          sizeof (struct GNUNET_PeerIdentity),
+                          &pid_hash);
       bucket = find_bucket (&pid_hash);
-      if ((bucket >= 0) &&
-          (k_buckets[bucket].peers_size < bucket_size) &&
-          (NULL != GDS_transport_handle))
+      if ( (bucket >= 0) &&
+           (k_buckets[bucket].peers_size < bucket_size) &&
+           (NULL != GDS_transport_handle) )
       {
-        GNUNET_TRANSPORT_offer_hello (GDS_transport_handle, h, NULL, NULL);
-        GNUNET_TRANSPORT_try_connect (GDS_transport_handle, &pid, NULL, NULL); /*FIXME TRY_CONNECT change */
+        GNUNET_TRANSPORT_offer_hello (GDS_transport_handle,
+                                      h,
+                                      NULL,
+                                      NULL);
+        GNUNET_TRANSPORT_try_connect (GDS_transport_handle,
+                                      &pid,
+                                      NULL,
+                                      NULL); /*FIXME TRY_CONNECT change */
       }
     }
   }
@@ -2229,7 +2248,10 @@ GDS_NEIGHBOURS_init ()
 
   log_route_details_stderr =
     (NULL != getenv("GNUNET_DHT_ROUTE_DEBUG")) ? GNUNET_YES : GNUNET_NO;
-  atsAPI = GNUNET_ATS_performance_init (GDS_cfg, NULL, NULL);
+  ats_perf = GNUNET_ATS_performance_init (GDS_cfg,
+                                          NULL,
+                                          NULL);
+  ats_ch = GNUNET_ATS_connectivity_init (GDS_cfg);
   core_api =
       GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
                            &handle_core_disconnect, NULL, GNUNET_NO, NULL,
@@ -2251,8 +2273,10 @@ GDS_NEIGHBOURS_done ()
     return;
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
-  GNUNET_ATS_performance_done (atsAPI);
-  atsAPI = NULL;
+  GNUNET_ATS_performance_done (ats_perf);
+  ats_perf = NULL;
+  GNUNET_ATS_connectivity_done (ats_ch);
+  ats_ch = NULL;
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (all_known_peers));
   GNUNET_CONTAINER_multipeermap_destroy (all_known_peers);
   all_known_peers = NULL;
