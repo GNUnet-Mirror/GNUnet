@@ -1541,7 +1541,8 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
   ret = waitpid (proc->pid, &status, WNOHANG);
   if (ret < 0)
   {
-    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "waitpid");
+    LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                  "waitpid");
     return GNUNET_SYSERR;
   }
   if (0 == ret)
@@ -1590,7 +1591,8 @@ GNUNET_OS_process_status (struct GNUNET_OS_Process *proc,
   ret = proc->pid;
   if (h == NULL || ret == 0)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid process information {%d, %08X}\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Invalid process information {%d, %08X}\n",
          ret, h);
     return GNUNET_SYSERR;
   }
