@@ -1364,12 +1364,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PLUGIN_SYNC 390
 
-/**
- * Message for transport service from a client asking that a
- * connection with another peer be torn down.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_DISCONNECT 391
-
 
 /*******************************************************************************
  * FS-PUBLISH-HELPER IPC Messages
