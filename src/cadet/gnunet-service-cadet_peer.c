@@ -2574,6 +2574,11 @@ GCP_try_connect (struct CadetPeer *peer)
     return;
 
   mh = GNUNET_HELLO_get_header (hello);
+  if (NULL != peer->hello_offer)
+  {
+    GNUNET_TRANSPORT_offer_hello_cancel (peer->hello_offer);
+    peer->hello_offer = NULL;
+  }
   peer->hello_offer = GNUNET_TRANSPORT_offer_hello (transport_handle,
                                                     mh,
                                                     &hello_offer_done,
