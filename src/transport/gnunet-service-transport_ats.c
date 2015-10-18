@@ -697,7 +697,7 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
     /* This was an inbound address, the session is now gone, so we
        need to also forget about the address itself. */
     ai->ar = NULL;
-    destroy_ai (address);
+    destroy_ai (ai);
   }
 }
 
