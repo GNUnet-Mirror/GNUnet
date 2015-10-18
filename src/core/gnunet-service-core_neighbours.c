@@ -401,6 +401,13 @@ handle_transport_notify_disconnect (void *cls,
 {
   struct Neighbour *n;
 
+  if (0 == memcmp (peer,
+                   &GSC_my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
+  {
+    GNUNET_break (0);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' disconnected from us; received notification from transport.\n",
               GNUNET_i2s (peer));
