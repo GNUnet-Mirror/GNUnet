@@ -404,14 +404,15 @@ static unsigned int newly_found_peers;
 static int disable_try_connect;
 
 /**
- * The buckets.  Array of size MAX_BUCKET_SIZE.  Offset 0 means 0 bits matching.
+ * The buckets.  Array of size #MAX_BUCKETS.  Offset 0 means 0 bits matching.
  */
 static struct PeerBucket k_buckets[MAX_BUCKETS];
 
 /**
- * Hash map of all known peers, for easy removal from k_buckets on disconnect.
+ * Hash map of all CORE-connected peers, for easy removal from
+ * #k_buckets on disconnect.
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *all_known_peers;
+static struct GNUNET_CONTAINER_MultiPeerMap *all_connected_peers;
 
 /**
  * Maximum size for each bucket.
@@ -609,7 +610,8 @@ send_find_peer_message (void *cls,
   bcc.bloom =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
-  GNUNET_CONTAINER_multipeermap_iterate (all_known_peers, &add_known_to_bloom,
+  GNUNET_CONTAINER_multipeermap_iterate (all_connected_peers,
+                                         &add_known_to_bloom,
                                          &bcc);
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# FIND PEER messages initiated"), 1,
@@ -645,7 +647,8 @@ send_find_peer_message (void *cls,
  * @param peer peer identity this notification is about
  */
 static void
-handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+handle_core_connect (void *cls,
+                     const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerInfo *ret;
   struct GNUNET_HashCode phash;
@@ -658,7 +661,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 	      "Connected to %s\n",
               GNUNET_i2s (peer));
   if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_contains (all_known_peers,
+      GNUNET_CONTAINER_multipeermap_contains (all_connected_peers,
                                               peer))
   {
     GNUNET_break (0);
@@ -678,7 +681,8 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 #endif
   ret->id = *peer;
   GNUNET_CONTAINER_DLL_insert_tail (k_buckets[peer_bucket].head,
-                                    k_buckets[peer_bucket].tail, ret);
+                                    k_buckets[peer_bucket].tail,
+                                    ret);
   k_buckets[peer_bucket].peers_size++;
   closest_bucket = GNUNET_MAX (closest_bucket, peer_bucket);
   if ((peer_bucket > 0) && (k_buckets[peer_bucket].peers_size <= bucket_size))
@@ -688,14 +692,16 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     newly_found_peers++;
   }
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (all_known_peers,
-                                                    peer, ret,
+                 GNUNET_CONTAINER_multipeermap_put (all_connected_peers,
+                                                    peer,
+                                                    ret,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  if (1 == GNUNET_CONTAINER_multipeermap_size (all_known_peers) &&
+  if (1 == GNUNET_CONTAINER_multipeermap_size (all_connected_peers) &&
       (GNUNET_YES != disable_try_connect))
   {
     /* got a first connection, good time to start with FIND PEER requests... */
-    find_peer_task = GNUNET_SCHEDULER_add_now (&send_find_peer_message, NULL);
+    find_peer_task = GNUNET_SCHEDULER_add_now (&send_find_peer_message,
+                                               NULL);
   }
 }
 
@@ -723,7 +729,8 @@ handle_core_disconnect (void *cls,
 	      "Disconnected %s\n",
               GNUNET_i2s (peer));
   to_remove =
-      GNUNET_CONTAINER_multipeermap_get (all_known_peers, peer);
+      GNUNET_CONTAINER_multipeermap_get (all_connected_peers,
+                                         peer);
   if (NULL == to_remove)
   {
     GNUNET_break (0);
@@ -732,7 +739,7 @@ handle_core_disconnect (void *cls,
   GNUNET_STATISTICS_update (GDS_stats, gettext_noop ("# peers connected"), -1,
                             GNUNET_NO);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_CONTAINER_multipeermap_remove (all_known_peers,
+                 GNUNET_CONTAINER_multipeermap_remove (all_connected_peers,
                                                        peer,
                                                        to_remove));
   if (NULL != to_remove->preference_task)
@@ -1237,9 +1244,12 @@ get_target_peers (const struct GNUNET_HashCode *key,
     GNUNET_CONTAINER_bloomfilter_add (bloom, &nhash);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Selected %u/%u peers at hop %u for %s (target was %u)\n", off,
-              GNUNET_CONTAINER_multipeermap_size (all_known_peers),
-              (unsigned int) hop_count, GNUNET_h2s (key), ret);
+              "Selected %u/%u peers at hop %u for %s (target was %u)\n",
+              off,
+              GNUNET_CONTAINER_multipeermap_size (all_connected_peers),
+              (unsigned int) hop_count,
+              GNUNET_h2s (key),
+              ret);
   if (0 == off)
   {
     GNUNET_free (rtargets);
@@ -1536,12 +1546,13 @@ void
 GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
                              enum GNUNET_BLOCK_Type type,
                              struct GNUNET_TIME_Absolute expiration_time,
-                             const struct GNUNET_HashCode * key,
+                             const struct GNUNET_HashCode *key,
                              unsigned int put_path_length,
                              const struct GNUNET_PeerIdentity *put_path,
                              unsigned int get_path_length,
                              const struct GNUNET_PeerIdentity *get_path,
-                             const void *data, size_t data_size)
+                             const void *data,
+                             size_t data_size)
 {
   struct PeerInfo *pi;
   struct P2PPendingMessage *pending;
@@ -1563,7 +1574,8 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
     GNUNET_break (0);
     return;
   }
-  pi = GNUNET_CONTAINER_multipeermap_get (all_known_peers, target);
+  pi = GNUNET_CONTAINER_multipeermap_get (all_connected_peers,
+                                          target);
   if (NULL == pi)
   {
     /* peer disconnected in the meantime, drop reply */
@@ -2258,7 +2270,8 @@ GDS_NEIGHBOURS_init ()
                            GNUNET_NO, core_handlers);
   if (core_api == NULL)
     return GNUNET_SYSERR;
-  all_known_peers = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
+  all_connected_peers = GNUNET_CONTAINER_multipeermap_create (256,
+                                                          GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -2277,9 +2290,9 @@ GDS_NEIGHBOURS_done ()
   ats_perf = NULL;
   GNUNET_ATS_connectivity_done (ats_ch);
   ats_ch = NULL;
-  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (all_known_peers));
-  GNUNET_CONTAINER_multipeermap_destroy (all_known_peers);
-  all_known_peers = NULL;
+  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (all_connected_peers));
+  GNUNET_CONTAINER_multipeermap_destroy (all_connected_peers);
+  all_connected_peers = NULL;
   if (NULL != find_peer_task)
   {
     GNUNET_SCHEDULER_cancel (find_peer_task);
