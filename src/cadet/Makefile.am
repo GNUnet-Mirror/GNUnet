@@ -62,6 +62,7 @@ gnunet_service_cadet_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
@@ -210,4 +211,3 @@ EXTRA_DIST = \
   cadet.h cadet_protocol.h \
   test_cadet.conf \
   test_cadet_drop.conf
-

@@ -26,6 +26,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "cadet_protocol.h"
@@ -194,6 +195,13 @@ struct CadetPeer
    * Handle to us offering the HELLO to the transport.
    */
   struct GNUNET_TRANSPORT_OfferHelloHandle *hello_offer;
+
+  /**
+   * Handle to our ATS request asking ATS to suggest an address
+   * to TRANSPORT for this peer (to establish a direct link).
+   */
+  struct GNUNET_ATS_ConnectivitySuggestHandle *connectivity_suggestion;
+
 };
 
 
@@ -232,9 +240,14 @@ static unsigned long long max_peers;
 static unsigned long long drop_percent;
 
 /**
- * Handle to communicate with core.
+ * Handle to communicate with CORE.
  */
 static struct GNUNET_CORE_Handle *core_handle;
+
+/**
+ * Handle to communicate with ATS.
+ */
+static struct GNUNET_ATS_ConnectivityHandle *ats_ch;
 
 /**
  * Handle to try to start new connections.
@@ -766,6 +779,11 @@ peer_destroy (struct CadetPeer *peer)
   {
     GNUNET_TRANSPORT_offer_hello_cancel (peer->hello_offer);
     peer->hello_offer = NULL;
+  }
+  if (NULL != peer->connectivity_suggestion)
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (peer->connectivity_suggestion);
+    peer->connectivity_suggestion = NULL;
   }
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
@@ -1790,7 +1808,7 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
     LOG (GNUNET_ERROR_TYPE_WARNING, "Remove DROP_PERCENT from config file.\n");
     LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
   }
-
+  ats_ch = GNUNET_ATS_connectivity_init (c);
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
                                      NULL,      /* Closure passed to CADET functions */
                                      &core_init,        /* Call core_init once connected */
@@ -1835,7 +1853,8 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 void
 GCP_shutdown (void)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down peers\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Shutting down peer subsystem\n");
   in_shutdown = GNUNET_YES;
   GNUNET_CONTAINER_multipeermap_iterate (peers,
                                          &shutdown_peer,
@@ -1849,6 +1868,11 @@ GCP_shutdown (void)
   {
     GNUNET_TRANSPORT_disconnect (transport_handle);
     transport_handle = NULL;
+  }
+  if (NULL != ats_ch)
+  {
+    GNUNET_ATS_connectivity_done (ats_ch);
+    ats_ch = NULL;
   }
   GNUNET_PEER_change_rc (myid, -1);
   GNUNET_CONTAINER_multipeermap_destroy (peers);
@@ -1912,23 +1936,19 @@ GCP_get_short (const GNUNET_PEER_Id peer, int create)
 
 
 /**
- * Try to connect to a peer on transport level.
+ * Function called once #GNUNET_TRANSPORT_offer_hello() is done.
+ * Marks the operation as finished.
  *
- * @param cls Closure (peer).
+ * @param cls Closure (our `struct CadetPeer`).
  * @param tc TaskContext.
  */
 static void
-try_connect (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+hello_offer_done (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetPeer *peer = cls;
 
   peer->hello_offer = NULL;
-  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
-    return;
-
-  GNUNET_TRANSPORT_try_connect (transport_handle,
-                                GNUNET_PEER_resolve2 (peer->id), NULL, NULL);
 }
 
 
@@ -2556,8 +2576,12 @@ GCP_try_connect (struct CadetPeer *peer)
   mh = GNUNET_HELLO_get_header (hello);
   peer->hello_offer = GNUNET_TRANSPORT_offer_hello (transport_handle,
                                                     mh,
-                                                    &try_connect,
+                                                    &hello_offer_done,
                                                     peer);
+  peer->connectivity_suggestion
+    = GNUNET_ATS_connectivity_suggest (ats_ch,
+                                       GNUNET_PEER_resolve2 (peer->id),
+                                       1 /* strength */);
   GCC_check_connections ();
 }
 
