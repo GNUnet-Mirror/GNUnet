@@ -2614,8 +2614,9 @@ switch_address_bl_check_cont (void *cls,
                               "# ATS suggestions ignored (blacklist denied)",
                               1,
                               GNUNET_NO);
-    papi->disconnect_session (papi->cls,
-			      session);
+    if (NULL != session)
+      papi->disconnect_session (papi->cls,
+                                session);
     if (GNUNET_YES !=
 	GNUNET_HELLO_address_check_option (address,
 					   GNUNET_HELLO_ADDRESS_INFO_INBOUND))
