@@ -727,7 +727,7 @@ handle_send_transmit_continuation (void *cls,
                 (unsigned int) bytes_on_wire,
                 GNUNET_i2s (&stcc->target),
                 success,
-                addr->transport_name);
+                (NULL != addr) ? addr->transport_name : "%");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "It took us %s to send %u/%u bytes to %s (%d, %s)\n",
@@ -737,7 +737,7 @@ handle_send_transmit_continuation (void *cls,
                 (unsigned int) bytes_on_wire,
                 GNUNET_i2s (&stcc->target),
                 success,
-                addr->transport_name);
+                (NULL != addr) ? addr->transport_name : "%");
 
   if (GST_neighbours_test_connected (&stcc->target))
   {
