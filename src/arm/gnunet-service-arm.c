@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2011, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1046,7 +1046,7 @@ shutdown_task (void *cls,
       {
 	GNUNET_CONTAINER_DLL_remove (pos->listen_head,
 				     pos->listen_tail, sli);
-	if (sli->accept_task != NULL)
+	if (NULL != sli->accept_task)
 	  {
 	    GNUNET_SCHEDULER_cancel (sli->accept_task);
 	    sli->accept_task = NULL;
@@ -1168,7 +1168,8 @@ delayed_restart_task (void *cls,
  * @param tc context
  */
 static void
-maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+maint_child_death (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceList *pos;
   struct ServiceList *next;
@@ -1184,172 +1185,195 @@ maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   child_death_task = NULL;
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
-    {
-      /* shutdown scheduled us, ignore! */
-      child_death_task =
-	GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-					pr, &maint_child_death, NULL);
-      return;
-    }
+  {
+    /* shutdown scheduled us, ignore! */
+    child_death_task =
+      GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                      pr,
+                                      &maint_child_death,
+                                      NULL);
+    return;
+  }
   /* consume the signal */
   GNUNET_break (0 < GNUNET_DISK_file_read (pr, &c, sizeof (c)));
 
   /* check for services that died (WAITPID) */
   next = running_head;
   while (NULL != (pos = next))
+  {
+    next = pos->next;
+
+    if (NULL == pos->proc)
     {
-      next = pos->next;
-
-      if (pos->proc == NULL)
-      {
-	if (GNUNET_YES == in_shutdown)
-	  free_service (pos);
-	continue;
-      }
-#if HAVE_WAIT4
-      if (NULL != wait_file)
-      {
-        /* need to use 'wait4()' to obtain and log performance data */
-        struct rusage ru;
-        int status;
-        pid_t pid;
-
-        pid = GNUNET_OS_process_get_pid (pos->proc);
-        ret = wait4 (pid,
-                     &status,
-                     WNOHANG,
-                     &ru);
-        if (ret <= 0)
-          continue; /* no process done */
-        if (WIFEXITED (status))
-        {
-          statusType = GNUNET_OS_PROCESS_EXITED;
-          statusCode = WEXITSTATUS (status);
-        }
-        else if (WIFSIGNALED (status))
-        {
-          statusType = GNUNET_OS_PROCESS_SIGNALED;
-          statusCode = WTERMSIG (status);
-        }
-        else if (WIFSTOPPED (status))
-        {
-          statusType = GNUNET_OS_PROCESS_SIGNALED;
-          statusCode = WSTOPSIG (status);
-        }
-#ifdef WIFCONTINUED
-        else if (WIFCONTINUED (status))
-        {
-          statusType = GNUNET_OS_PROCESS_RUNNING;
-          statusCode = 0;
-        }
-#endif
-        else
-        {
-          statusType = GNUNET_OS_PROCESS_UNKNOWN;
-          statusCode = 0;
-        }
-        if ( (GNUNET_OS_PROCESS_EXITED == statusType) ||
-             (GNUNET_OS_PROCESS_SIGNALED == statusType) )
-        {
-          fprintf (wait_file,
-                   "%s(%u) %llu.%llu %llu.%llu %llu %llu %llu %llu %llu\n",
-                   pos->binary,
-                   (unsigned int) pid,
-                   (unsigned long long) ru.ru_utime.tv_sec,
-                   (unsigned long long) ru.ru_utime.tv_usec,
-                   (unsigned long long) ru.ru_stime.tv_sec,
-                   (unsigned long long) ru.ru_stime.tv_usec,
-                   (unsigned long long) ru.ru_maxrss,
-                   (unsigned long long) ru.ru_inblock,
-                   (unsigned long long) ru.ru_oublock,
-                   (unsigned long long) ru.ru_nvcsw,
-                   (unsigned long long) ru.ru_nivcsw);
-        }
-      }
-      else /* continue with #else */
-#else
-      if ((GNUNET_SYSERR ==
-	   (ret =
-	    GNUNET_OS_process_status (pos->proc, &statusType, &statusCode))) ||
-          ((ret == GNUNET_NO) ||
-           (statusType == GNUNET_OS_PROCESS_STOPPED) ||
-           (statusType == GNUNET_OS_PROCESS_RUNNING) ) )
-	continue;
-#endif
-      if (statusType == GNUNET_OS_PROCESS_EXITED)
-      {
-	statstr = _( /* process termination method */ "exit");
-	statcode = statusCode;
-      }
-      else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
-      {
-	statstr = _( /* process termination method */ "signal");
-	statcode = statusCode;
-      }
-      else
-      {
-	statstr = _( /* process termination method */ "unknown");
-	statcode = 0;
-      }
-      if (0 != pos->killed_at.abs_value_us)
-      {
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		    _("Service `%s' took %s to terminate\n"),
-		    pos->name,
-		    GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->killed_at), GNUNET_YES));
-      }
-      GNUNET_OS_process_destroy (pos->proc);
-      pos->proc = NULL;
-      broadcast_status (pos->name, GNUNET_ARM_SERVICE_STOPPED, NULL);
-      if (NULL != pos->killing_client)
-      {
-        signal_result (pos->killing_client, pos->name,
-            pos->killing_client_request_id, GNUNET_ARM_RESULT_STOPPED);
-        GNUNET_SERVER_client_drop (pos->killing_client);
-        pos->killing_client = NULL;
-        pos->killing_client_request_id = 0;
-      }
-      if (GNUNET_YES != in_shutdown)
-      {
-        if ((statusType == GNUNET_OS_PROCESS_EXITED) && (statcode == 0))
-        {
-          /* process terminated normally, allow restart at any time */
-          pos->restart_at.abs_value_us = 0;
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Service `%s' terminated normally, will restart at any time\n"),
-              pos->name);
-          /* process can still be re-started on-demand, ensure it is re-started if there is demand */
-          for (sli = pos->listen_head; NULL != sli; sli = sli->next)
-          {
-            GNUNET_break (NULL == sli->accept_task);
-            sli->accept_task =
-                GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                    sli->listen_socket, &accept_connection, sli);
-          }
-	}
-        else
-        {
-	  if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-	    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	        _("Service `%s' terminated with status %s/%d, will restart in %s\n"),
-                pos->name, statstr, statcode,
-                GNUNET_STRINGS_relative_time_to_string (pos->backoff, GNUNET_YES));
-	  /* schedule restart */
-	  pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
-	  pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
-          if (NULL != child_restart_task)
-            GNUNET_SCHEDULER_cancel (child_restart_task);
-          child_restart_task = GNUNET_SCHEDULER_add_with_priority (
-            GNUNET_SCHEDULER_PRIORITY_IDLE, &delayed_restart_task, NULL);
-        }
-      }
-      else
-      {
+      if (GNUNET_YES == in_shutdown)
         free_service (pos);
+      continue;
+    }
+#if HAVE_WAIT4
+    if (NULL != wait_file)
+    {
+      /* need to use 'wait4()' to obtain and log performance data */
+      struct rusage ru;
+      int status;
+      pid_t pid;
+
+      pid = GNUNET_OS_process_get_pid (pos->proc);
+      ret = wait4 (pid,
+                   &status,
+                   WNOHANG,
+                   &ru);
+      if (ret <= 0)
+        continue; /* no process done */
+      if (WIFEXITED (status))
+      {
+        statusType = GNUNET_OS_PROCESS_EXITED;
+        statusCode = WEXITSTATUS (status);
+      }
+      else if (WIFSIGNALED (status))
+      {
+        statusType = GNUNET_OS_PROCESS_SIGNALED;
+        statusCode = WTERMSIG (status);
+      }
+      else if (WIFSTOPPED (status))
+      {
+        statusType = GNUNET_OS_PROCESS_SIGNALED;
+        statusCode = WSTOPSIG (status);
+      }
+#ifdef WIFCONTINUED
+      else if (WIFCONTINUED (status))
+      {
+        statusType = GNUNET_OS_PROCESS_RUNNING;
+        statusCode = 0;
+      }
+#endif
+      else
+      {
+        statusType = GNUNET_OS_PROCESS_UNKNOWN;
+        statusCode = 0;
+      }
+      if ( (GNUNET_OS_PROCESS_EXITED == statusType) ||
+           (GNUNET_OS_PROCESS_SIGNALED == statusType) )
+      {
+        fprintf (wait_file,
+                 "%s(%u) %llu.%llu %llu.%llu %llu %llu %llu %llu %llu\n",
+                 pos->binary,
+                 (unsigned int) pid,
+                 (unsigned long long) ru.ru_utime.tv_sec,
+                 (unsigned long long) ru.ru_utime.tv_usec,
+                 (unsigned long long) ru.ru_stime.tv_sec,
+                 (unsigned long long) ru.ru_stime.tv_usec,
+                 (unsigned long long) ru.ru_maxrss,
+                 (unsigned long long) ru.ru_inblock,
+                 (unsigned long long) ru.ru_oublock,
+                 (unsigned long long) ru.ru_nvcsw,
+                 (unsigned long long) ru.ru_nivcsw);
       }
     }
+    else /* continue with JUST this "if" as "else" (intentionally no brackets!) */
+#endif
+    if ( (GNUNET_SYSERR ==
+          (ret =
+           GNUNET_OS_process_status (pos->proc,
+                                     &statusType,
+                                     &statusCode))) ||
+         (ret == GNUNET_NO) ||
+         (statusType == GNUNET_OS_PROCESS_STOPPED) ||
+         (statusType == GNUNET_OS_PROCESS_UNKNOWN) ||
+         (statusType == GNUNET_OS_PROCESS_RUNNING) )
+      continue;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Running with %d/%d\n",
+                statusType,
+                statusCode);
+
+    if (statusType == GNUNET_OS_PROCESS_EXITED)
+    {
+      statstr = _( /* process termination method */ "exit");
+      statcode = statusCode;
+    }
+    else if (statusType == GNUNET_OS_PROCESS_SIGNALED)
+    {
+      statstr = _( /* process termination method */ "signal");
+      statcode = statusCode;
+    }
+    else
+    {
+      statstr = _( /* process termination method */ "unknown");
+      statcode = 0;
+    }
+    if (0 != pos->killed_at.abs_value_us)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Service `%s' took %s to terminate\n"),
+                  pos->name,
+                  GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->killed_at),
+                                                          GNUNET_YES));
+    }
+    GNUNET_OS_process_destroy (pos->proc);
+    pos->proc = NULL;
+    broadcast_status (pos->name,
+                      GNUNET_ARM_SERVICE_STOPPED,
+                      NULL);
+    if (NULL != pos->killing_client)
+    {
+      signal_result (pos->killing_client, pos->name,
+                     pos->killing_client_request_id,
+                     GNUNET_ARM_RESULT_STOPPED);
+      GNUNET_SERVER_client_drop (pos->killing_client);
+      pos->killing_client = NULL;
+      pos->killing_client_request_id = 0;
+    }
+    if (GNUNET_YES != in_shutdown)
+    {
+      if ( (statusType == GNUNET_OS_PROCESS_EXITED) &&
+           (statcode == 0) )
+      {
+        /* process terminated normally, allow restart at any time */
+        pos->restart_at.abs_value_us = 0;
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    _("Service `%s' terminated normally, will restart at any time\n"),
+                    pos->name);
+        /* process can still be re-started on-demand, ensure it is re-started if there is demand */
+        for (sli = pos->listen_head; NULL != sli; sli = sli->next)
+        {
+          GNUNET_break (NULL == sli->accept_task);
+          sli->accept_task =
+            GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                           sli->listen_socket,
+                                           &accept_connection,
+                                           sli);
+        }
+      }
+      else
+      {
+        if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                      _("Service `%s' terminated with status %s/%d, will restart in %s\n"),
+                      pos->name,
+                      statstr,
+                      statcode,
+                      GNUNET_STRINGS_relative_time_to_string (pos->backoff,
+                                                              GNUNET_YES));
+        /* schedule restart */
+        pos->restart_at = GNUNET_TIME_relative_to_absolute (pos->backoff);
+        pos->backoff = GNUNET_TIME_STD_BACKOFF (pos->backoff);
+        if (NULL != child_restart_task)
+          GNUNET_SCHEDULER_cancel (child_restart_task);
+        child_restart_task
+          = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
+                                                &delayed_restart_task,
+                                                NULL);
+      }
+    }
+    else
+    {
+      free_service (pos);
+    }
+  }
   child_death_task = GNUNET_SCHEDULER_add_read_file (
-      GNUNET_TIME_UNIT_FOREVER_REL, pr, &maint_child_death, NULL);
+      GNUNET_TIME_UNIT_FOREVER_REL,
+      pr,
+      &maint_child_death, NULL);
   if ((NULL == running_head) && (GNUNET_YES == in_shutdown))
     do_shutdown ();
   else if (GNUNET_YES == in_shutdown)
