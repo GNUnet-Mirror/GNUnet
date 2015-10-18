@@ -2583,10 +2583,11 @@ GCP_try_connect (struct CadetPeer *peer)
                                                     mh,
                                                     &hello_offer_done,
                                                     peer);
-  peer->connectivity_suggestion
-    = GNUNET_ATS_connectivity_suggest (ats_ch,
-                                       GNUNET_PEER_resolve2 (peer->id),
-                                       1 /* strength */);
+  if (NULL == peer->connectivity_suggestion)
+    peer->connectivity_suggestion
+      = GNUNET_ATS_connectivity_suggest (ats_ch,
+                                         GNUNET_PEER_resolve2 (peer->id),
+                                         1 /* strength */);
   GCC_check_connections ();
 }
 
