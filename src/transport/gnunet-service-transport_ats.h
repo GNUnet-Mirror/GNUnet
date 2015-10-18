@@ -43,6 +43,8 @@ GST_ats_done (void);
 
 /**
  * Test if ATS knows about this @a address and @a session.
+ * Note that even if the address is expired, we return
+ * #GNUNET_YES if the respective session matches.
  *
  * @param address the address
  * @param session the session
@@ -54,7 +56,8 @@ GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Test if ATS knows about this @a address.
+ * Test if ATS knows about this @a address.  Note that
+ * expired addresses do not count.
  *
  * @param address the address
  * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
@@ -79,7 +82,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
 
 /**
  * Reset address blocking time.  Resets the exponential
- * back-off timer for this address to zero.  Done when
+ * back-off timer for this address to zero.  Called when
  * an address was used to create a successful connection.
  *
  * @param address the address to reset the blocking timer
@@ -91,10 +94,10 @@ GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about the a new inbound address.  We may already
- * know the address (as this is called each time we receive
- * a message from an inbound connection).  If the address is
- * indeed new, make it available to ATS.
+ * Notify ATS about a new inbound @a address. The @a address in
+ * combination with the @a session must be new, but this function will
+ * perform a santiy check.  If the @a address is indeed new, make it
+ * available to ATS.
  *
  * @param address the address
  * @param session the session
@@ -107,7 +110,7 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about the new address including the network this address is
+ * Notify ATS about a new address including the network this address is
  * located in.  The address must NOT be inbound and must be new to ATS.
  *
  * @param address the address
@@ -119,8 +122,10 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about a new session now existing for the given
- * address.
+ * Notify ATS about a new @a session now existing for the given
+ * @a address.  Essentially, an outbound @a address was used
+ * to establish a @a session.  It is safe to call this function
+ * repeatedly for the same @a address and @a session pair.
  *
  * @param address the address
  * @param session the session
@@ -146,7 +151,8 @@ GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about utilization changes to an address.
+ * Notify ATS about utilization changes to an @a address.
+ * Does nothing if the @a address is not known to us.
  *
  * @param address our information about the address
  * @param bps_in new utilization inbound
@@ -159,7 +165,8 @@ GST_ats_update_utilization (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about property changes to an address's properties.
+ * Notify ATS about @a delay changes to properties of an @a address.
+ * Does nothing if the @a address is not known to us.
  *
  * @param address the address
  * @param session the session
@@ -171,7 +178,8 @@ GST_ats_update_delay (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about property changes to an address's properties.
+ * Notify ATS about DV @a distance change to an @a address.
+ * Does nothing if the @a address is not known to us.
  *
  * @param address the address
  * @param distance new distance value
@@ -182,8 +190,12 @@ GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS that the session (but not the address) of
- * a given address is no longer relevant.
+ * Notify ATS that the @a session (but not the @a address) of
+ * a given @a address is no longer relevant. (The @a session
+ * went down.) This function may be called even if for the
+ * respective outbound address #GST_ats_new_session() was
+ * never called and thus the pair is unknown to ATS. In this
+ * case, the call is simply ignored.
  *
  * @param address the address
  * @param session the session

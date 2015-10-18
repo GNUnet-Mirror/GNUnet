@@ -582,7 +582,8 @@ plugin_env_session_end (void *cls,
               GST_plugins_a2s (address));
 
   GST_neighbours_session_terminated (&address->peer, session);
-  GST_ats_del_session (address, session);
+  GST_ats_del_session (address,
+                       session);
   GST_blacklist_abort_matching (address, session);
 
   for (sk = sk_head; NULL != sk; sk = sk->next)

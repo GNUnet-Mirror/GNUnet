@@ -18,7 +18,7 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file transport/gnunet-service-transport_ats.h
+ * @file transport/gnunet-service-transport_ats.c
  * @brief interfacing between transport and ATS service
  * @author Christian Grothoff
  */
@@ -29,6 +29,9 @@
 #include "gnunet-service-transport_plugins.h"
 #include "gnunet_ats_service.h"
 
+/**
+ * Log convenience function.
+ */
 #define LOG(kind,...) GNUNET_log_from(kind, "transport-ats", __VA_ARGS__)
 
 
@@ -39,7 +42,8 @@ struct AddressInfo
 {
 
   /**
-   * The address (with peer identity).
+   * The address (with peer identity).  Must never change
+   * while this struct is in the #p2a map.
    */
   struct GNUNET_HELLO_Address *address;
 
@@ -100,8 +104,9 @@ static struct GNUNET_CONTAINER_MultiPeerMap *p2a;
  */
 static unsigned int num_blocked;
 
+
 /**
- * Closure for #find_ai().
+ * Closure for #find_ai_cb() and #find_ai_no_session_cb().
  */
 struct FindClosure
 {
@@ -144,7 +149,9 @@ publish_p2a_stat_update ()
 
 
 /**
- * Find matching address info.
+ * Find matching address info.  Both the address and the session
+ * must match; note that expired addresses are still found (as
+ * the session kind-of keeps those alive).
  *
  * @param cls the `struct FindClosure`
  * @param key which peer is this about
@@ -167,15 +174,13 @@ find_ai_cb (void *cls,
     fc->ret = ai;
     return GNUNET_NO;
   }
-  GNUNET_assert ( (fc->session != ai->session) ||
-                  (NULL == ai->session) );
   return GNUNET_YES;
 }
 
 
 /**
  * Find the address information struct for the
- * given address and session.
+ * given @a address and @a session.
  *
  * @param address address to look for
  * @param session session to match for inbound connections
@@ -253,6 +258,8 @@ find_ai_no_session (const struct GNUNET_HELLO_Address *address)
 
 /**
  * Test if ATS knows about this @a address and @a session.
+ * Note that even if the address is expired, we return
+ * #GNUNET_YES if the respective session matches.
  *
  * @param address the address
  * @param session the session
@@ -267,7 +274,8 @@ GST_ats_is_known (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Test if ATS knows about this @a address.
+ * Test if ATS knows about this @a address.  Note that
+ * expired addresses do not count.
  *
  * @param address the address
  * @return #GNUNET_YES if @a address is known, #GNUNET_NO if not.
@@ -324,7 +332,8 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
 {
   struct AddressInfo *ai;
 
-  ai = find_ai (address, session);
+  ai = find_ai (address,
+                session);
   if (NULL == ai)
   {
     GNUNET_assert (0);
@@ -356,7 +365,14 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
        (GNUNET_NO ==
         GNUNET_ATS_address_del_session (ai->ar,
                                         session)) )
+  {
     GNUNET_ATS_address_destroy (ai->ar);
+  }
+  /* "ar" has been freed, regardless how the branch
+     above played out: it was either freed in
+     #GNUNET_ATS_address_del_session() because it was
+     incoming, or explicitly in
+     #GNUNET_ATS_address_del_session(). */
   ai->ar = NULL;
 
   /* determine when the address should come back to life */
@@ -371,7 +387,7 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
 
 /**
  * Reset address blocking time.  Resets the exponential
- * back-off timer for this address to zero.  Done when
+ * back-off timer for this address to zero.  Called when
  * an address was used to create a successful connection.
  *
  * @param address the address to reset the blocking timer
@@ -396,10 +412,10 @@ GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about the a new inbound address. We may already
- * know the address (as this is called each time we receive
- * a message from an inbound connection).  If the address is
- * indeed new, make it available to ATS.
+ * Notify ATS about a new inbound @a address. The @a address in
+ * combination with the @a session must be new, but this function will
+ * perform a santiy check.  If the @a address is indeed new, make it
+ * available to ATS.
  *
  * @param address the address
  * @param session the session
@@ -413,12 +429,13 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
   struct GNUNET_ATS_AddressRecord *ar;
   struct AddressInfo *ai;
 
-  /* valid new address, let ATS know! */
+  /* Sanity checks for a valid inbound address */
   if (NULL == address->transport_name)
   {
     GNUNET_break(0);
     return;
   }
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_HELLO_address_check_option (address,
                                                     GNUNET_HELLO_ADDRESS_INFO_INBOUND));
@@ -431,20 +448,18 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
-  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+  /* Is indeed new, let's tell ATS */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Notifying ATS about peer `%s''s new inbound address `%s' session %p in network %s\n",
        GNUNET_i2s (&address->peer),
-       (0 == address->address_length)
-       ? "<inbound>"
-       : GST_plugins_a2s (address),
+       GST_plugins_a2s (address),
        session,
        GNUNET_ATS_print_network_type (prop->scope));
   ar = GNUNET_ATS_address_add (GST_ats,
                                address,
                                session,
                                prop);
-  GNUNET_break (NULL != ar);
+  GNUNET_assert (NULL != ar);
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->session = session;
@@ -472,7 +487,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   struct GNUNET_ATS_AddressRecord *ar;
   struct AddressInfo *ai;
 
-  /* valid new address, let ATS know! */
+  /* validadte address */
   if (NULL == address->transport_name)
   {
     GNUNET_break(0);
@@ -484,17 +499,17 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   ai = find_ai_no_session (address);
   GNUNET_assert (NULL == ai);
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+
+  /* address seems sane, let's tell ATS */
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Notifying ATS about peer `%s''s new address `%s'\n",
+       "Notifying ATS about peer %s's new address `%s'\n",
        GNUNET_i2s (&address->peer),
-       (0 == address->address_length)
-       ? "<inbound>"
-       : GST_plugins_a2s (address));
+       GST_plugins_a2s (address));
   ar = GNUNET_ATS_address_add (GST_ats,
                                address,
                                NULL,
                                prop);
-  GNUNET_break (NULL != ar);
+  GNUNET_assert (NULL != ar);
   ai = GNUNET_new (struct AddressInfo);
   ai->address = GNUNET_HELLO_address_copy (address);
   ai->ar = ar;
@@ -508,8 +523,10 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about a new session now existing for the given
- * address.
+ * Notify ATS about a new @a session now existing for the given
+ * @a address.  Essentially, an outbound @a address was used
+ * to establish a @a session.  It is safe to call this function
+ * repeatedly for the same @a address and @a session pair.
  *
  * @param address the address
  * @param session the session
@@ -523,22 +540,28 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
   ai = find_ai (address, NULL);
   if (NULL == ai)
   {
-    /* We may already be aware of the session, even if some other part
-       of the code could not tell if it just created a new session or
-       just got one recycled from the plugin; hence, we may be called
-       with "new" session even for an "old" session; in that case,
-       check that this is the case, but just ignore it. */
+    /* We may simply already be aware of the session, even if some
+       other part of the code could not tell if it just created a new
+       session or just got one recycled from the plugin; hence, we may
+       be called with "new" session even for an "old" session; in that
+       case, check that this is the case, but just ignore it. */
     GNUNET_assert (NULL != (find_ai (address, session)));
     return;
   }
-  GNUNET_break (NULL == ai->session);
+  GNUNET_assert (NULL == ai->session);
   ai->session = session;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Telling ATS about new session for peer %s\n",
        GNUNET_i2s (&address->peer));
+  /* Note that the address might currently be blocked; we only
+     tell ATS about the session if the address is currently not
+     blocked; otherwise, ATS will be told about the session on
+     unblock. */
   if (NULL != ai->ar)
     GNUNET_ATS_address_add_session (ai->ar,
                                     session);
+  else
+    GNUNET_assert (NULL != ai->unblock_task);
 }
 
 
@@ -576,8 +599,12 @@ destroy_ai (struct AddressInfo *ai)
 
 
 /**
- * Notify ATS that the session (but not the address) of
- * a given address is no longer relevant.
+ * Notify ATS that the @a session (but not the @a address) of
+ * a given @a address is no longer relevant. (The @a session
+ * went down.)  This function may be called even if for the
+ * respective outbound address #GST_ats_new_session() was
+ * never called and thus the pair is unknown to ATS. In this
+ * case, the call is simply ignored.
  *
  * @param address the address
  * @param session the session
@@ -604,7 +631,6 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (GNUNET_YES !=
                   GNUNET_HELLO_address_check_option (address,
                                                      GNUNET_HELLO_ADDRESS_INFO_INBOUND));
-
     return;
   }
   GNUNET_assert (session == ai->session);
@@ -619,37 +645,66 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
        session is dead as well, clean up */
     if (NULL != ai->ar)
     {
-      GNUNET_break (GNUNET_YES ==
-		    GNUNET_ATS_address_del_session (ai->ar,
-						    session));
+      /* Address expired but not blocked, and thus 'ar' was still
+         live because of the session; deleting just the session
+         will do for an inbound session, but for an outbound we
+         then also need to destroy the address with ATS. */
+      if (GNUNET_NO ==
+          GNUNET_ATS_address_del_session (ai->ar,
+                                          session))
+      {
+        GNUNET_ATS_address_destroy (ai->ar);
+      }
+      /* "ar" has been freed, regardless how the branch
+         above played out: it was either freed in
+         #GNUNET_ATS_address_del_session() because it was
+         incoming, or explicitly in
+         #GNUNET_ATS_address_del_session(). */
+      ai->ar = NULL;
     }
     destroy_ai (ai);
     return;
   }
+
   if (NULL == ai->ar)
   {
-    /* If ATS doesn't know about the address/session, and this was an
-       inbound session, so we must forget about the address as well.
-       Otherwise, we are done as we have set `ai->session` to NULL
-       already. */
+    /* If ATS doesn't know about the address/session, this means
+       this address was blocked. */
     if (GNUNET_YES ==
 	GNUNET_HELLO_address_check_option (address,
 					   GNUNET_HELLO_ADDRESS_INFO_INBOUND))
-      GST_ats_expire_address (address);
+    {
+      /* This was a blocked inbound session, which now lost the
+         session.  But inbound addresses are by themselves useless,
+         so we must forget about the address as well. */
+      destroy_ai (ai);
+      return;
+    }
+    /* Otherwise, we are done as we have set `ai->session` to NULL
+       already and ATS will simply not be told about the session when
+       the connection is unblocked and the outbound address becomes
+       available again. . */
     return;
   }
+
+  /* This is the "simple" case where ATS knows about the session and
+     the address is neither blocked nor expired.  Delete the session,
+     and if it was inbound, free the address as well. */
   if (GNUNET_YES ==
       GNUNET_ATS_address_del_session (ai->ar,
                                       session))
   {
+    /* This was an inbound address, the session is now gone, so we
+       need to also forget about the address itself. */
     ai->ar = NULL;
-    GST_ats_expire_address (address);
+    destroy_ai (address);
   }
 }
 
 
 /**
- * Notify ATS about DV distance change to an address's.
+ * Notify ATS about DV @a distance change to an @a address.
+ * Does nothing if the @a address is not known to us.
  *
  * @param address the address
  * @param distance new distance value
@@ -662,15 +717,21 @@ GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
 
   ai = find_ai_no_session (address);
   if (NULL == ai)
+  {
+    /* We do not know about this address, do nothing. */
     return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updated distance for peer `%s' to %u\n",
        GNUNET_i2s (&address->peer),
        distance);
   ai->properties.distance = distance;
+  /* Give manipulation its chance to change metrics */
   GST_manipulation_manipulate_metrics (address,
                                        ai->session,
                                        &ai->properties);
+  /* Address may be blocked, only give ATS if address is
+     currently active. */
   if (NULL != ai->ar)
     GNUNET_ATS_address_update (ai->ar,
                                &ai->properties);
@@ -678,7 +739,8 @@ GST_ats_update_distance (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about property changes to an address's properties.
+ * Notify ATS about @a delay changes to properties of an @a address.
+ * Does nothing if the @a address is not known to us.
  *
  * @param address the address
  * @param delay new delay value
@@ -691,16 +753,22 @@ GST_ats_update_delay (const struct GNUNET_HELLO_Address *address,
 
   ai = find_ai_no_session (address);
   if (NULL == ai)
+  {
+    /* We do not know about this address, do nothing. */
     return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updated latency for peer `%s' to %s\n",
        GNUNET_i2s (&address->peer),
        GNUNET_STRINGS_relative_time_to_string (delay,
                                                GNUNET_YES));
   ai->properties.delay = delay;
+  /* Give manipulation its chance to change metrics */
   GST_manipulation_manipulate_metrics (address,
                                        ai->session,
                                        &ai->properties);
+  /* Address may be blocked, only give ATS if address is
+     currently active. */
   if (NULL != ai->ar)
     GNUNET_ATS_address_update (ai->ar,
                                &ai->properties);
@@ -708,7 +776,8 @@ GST_ats_update_delay (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about utilization changes to an address.
+ * Notify ATS about utilization changes to an @a address.
+ * Does nothing if the @a address is not known to us.
  *
  * @param address our information about the address
  * @param bps_in new utilization inbound
@@ -723,7 +792,10 @@ GST_ats_update_utilization (const struct GNUNET_HELLO_Address *address,
 
   ai = find_ai_no_session (address);
   if (NULL == ai)
+  {
+    /* We do not know about this address, do nothing. */
     return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Updating utilization for peer `%s' address %s: %u/%u\n",
        GNUNET_i2s (&address->peer),
@@ -732,9 +804,12 @@ GST_ats_update_utilization (const struct GNUNET_HELLO_Address *address,
        (unsigned int) bps_out);
   ai->properties.utilization_in = bps_in;
   ai->properties.utilization_out = bps_out;
+  /* Give manipulation its chance to change metrics */
   GST_manipulation_manipulate_metrics (address,
                                        ai->session,
                                        &ai->properties);
+  /* Address may be blocked, only give ATS if address is
+     currently active. */
   if (NULL != ai->ar)
     GNUNET_ATS_address_update (ai->ar,
                                &ai->properties);
@@ -765,9 +840,12 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
   }
   if (NULL != ai->session)
   {
+    /* Got an active session, just remember the expiration
+       and act upon it when the session goes down. */
     ai->expired = GNUNET_YES;
     return;
   }
+  /* Address expired, no session, free resources */
   destroy_ai (ai);
 }
 
