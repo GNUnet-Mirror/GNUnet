@@ -1859,10 +1859,6 @@ enqueue_fragment (void *cls,
           msg_len);
   enqueue (plugin,
            udpw);
-  if (sizeof (struct IPv4UdpAddress) == session->address->address_length)
-    schedule_select_v4 (plugin);
-  else
-    schedule_select_v6 (plugin);
 }
 
 
@@ -2101,6 +2097,10 @@ udp_plugin_send (void *cls,
                                                      frag_ctx);
     s->frag_ctx = frag_ctx;
     s->last_transmit_time = frag_ctx->next_frag_time;
+    if (sizeof (struct IPv4UdpAddress) == s->address->address_length)
+      schedule_select_v4 (plugin);
+    else
+      schedule_select_v6 (plugin);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented messages active",
                               1,
