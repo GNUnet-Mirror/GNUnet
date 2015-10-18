@@ -2022,6 +2022,7 @@ udp_plugin_send (void *cls,
   struct UDP_MessageWrapper *udpw;
   struct UDPMessage *udp;
   char mbuf[udpmlen] GNUNET_ALIGN;
+  struct GNUNET_TIME_Relative latency;
 
   if ( (sizeof(struct IPv6UdpAddress) == s->address->address_length) &&
        (NULL == plugin->sockv6) )
@@ -2132,6 +2133,22 @@ udp_plugin_send (void *cls,
                                                      frag_ctx);
     s->frag_ctx = frag_ctx;
     s->last_transmit_time = frag_ctx->next_frag_time;
+    latency = GNUNET_TIME_absolute_get_remaining (s->last_transmit_time);
+    if (latency.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Enqueued fragments will take %s for transmission to %s (queue size: %u)\n",
+           GNUNET_STRINGS_relative_time_to_string (latency,
+                                                   GNUNET_YES),
+           GNUNET_i2s (&s->target),
+           (unsigned int) s->msgs_in_queue);
+    else
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Enqueued fragments will take %s for transmission to %s (queue size: %u)\n",
+           GNUNET_STRINGS_relative_time_to_string (latency,
+                                                   GNUNET_YES),
+           GNUNET_i2s (&s->target),
+           (unsigned int) s->msgs_in_queue);
+
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented messages active",
                               1,
