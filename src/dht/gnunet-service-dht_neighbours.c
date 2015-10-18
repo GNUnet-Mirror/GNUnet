@@ -586,7 +586,14 @@ try_connect (const struct GNUNET_PeerIdentity *pid,
     return;
   }
   if (NULL == ci)
+  {
     ci = GNUNET_new (struct ConnectInfo);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (all_desired_peers,
+                                                      pid,
+                                                      ci,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
   if ( (NULL != GDS_transport_handle) &&
        (NULL != ci->oh) &&
        (NULL != h) )
