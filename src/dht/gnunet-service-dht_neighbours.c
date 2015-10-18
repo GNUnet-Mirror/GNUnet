@@ -517,7 +517,7 @@ free_connect_info (void *cls,
                    const struct GNUNET_PeerIdentity *peer,
                    void *value)
 {
-  struct ConnectInfo *ci = cls;
+  struct ConnectInfo *ci = value;
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (all_desired_peers,
