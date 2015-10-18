@@ -1058,11 +1058,17 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
               &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    char sender[9];
-    char peer[9];
+    char sender[5];
+    char peer[5];
 
-    GNUNET_snprintf (sender, sizeof (sender), "%8s", GNUNET_i2s (&kx->peer));
-    GNUNET_snprintf (peer, sizeof (peer), "%8s", GNUNET_i2s (&t.target));
+    GNUNET_snprintf (sender,
+                     sizeof (sender),
+                     "%4s",
+                     GNUNET_i2s (&kx->peer));
+    GNUNET_snprintf (peer,
+                     sizeof (peer),
+                     "%4s",
+                     GNUNET_i2s (&t.target));
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
                 sender,
