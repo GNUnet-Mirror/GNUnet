@@ -748,7 +748,9 @@ static void
 schedule_select_v4 (struct Plugin *plugin)
 {
   struct GNUNET_TIME_Relative min_delay;
+  struct GNUNET_TIME_Relative delay;
   struct UDP_MessageWrapper *udpw;
+  struct UDP_MessageWrapper *min_udpw;
 
   if ( (GNUNET_YES == plugin->enable_ipv4) &&
        (NULL != plugin->sockv4) )
@@ -756,26 +758,35 @@ schedule_select_v4 (struct Plugin *plugin)
     /* Find a message ready to send:
      * Flow delay from other peer is expired or not set (0) */
     min_delay = GNUNET_TIME_UNIT_FOREVER_REL;
+    min_udpw = NULL;
     for (udpw = plugin->ipv4_queue_head; NULL != udpw; udpw = udpw->next)
-      min_delay = GNUNET_TIME_relative_min (min_delay,
-                                            GNUNET_TIME_absolute_get_remaining (udpw->transmission_time));
+    {
+      delay = GNUNET_TIME_absolute_get_remaining (udpw->transmission_time);
+      if (delay.rel_value_us < min_delay.rel_value_us)
+      {
+        min_delay = delay;
+        min_udpw = udpw;
+      }
+    }
     if (NULL != plugin->select_task_v4)
       GNUNET_SCHEDULER_cancel (plugin->select_task_v4);
-    if (NULL != plugin->ipv4_queue_head)
+    if (NULL != min_udpw)
     {
       if (min_delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Calculated flow delay for UDPv4 at %s\n",
+                    "Calculated flow delay for UDPv4 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
-                                                            GNUNET_YES));
+                                                            GNUNET_YES),
+                    GNUNET_i2s (&udpw->session->target));
       }
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Calculated flow delay for UDPv4 at %s\n",
+                    "Calculated flow delay for UDPv4 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
-                                                            GNUNET_YES));
+                                                            GNUNET_YES),
+                    GNUNET_i2s (&udpw->session->target));
       }
     }
     plugin->select_task_v4
@@ -796,32 +807,43 @@ static void
 schedule_select_v6 (struct Plugin *plugin)
 {
   struct GNUNET_TIME_Relative min_delay;
+  struct GNUNET_TIME_Relative delay;
   struct UDP_MessageWrapper *udpw;
+  struct UDP_MessageWrapper *min_udpw;
 
   if ( (GNUNET_YES == plugin->enable_ipv6) &&
        (NULL != plugin->sockv6) )
   {
     min_delay = GNUNET_TIME_UNIT_FOREVER_REL;
+    min_udpw = NULL;
     for (udpw = plugin->ipv6_queue_head; NULL != udpw; udpw = udpw->next)
-      min_delay = GNUNET_TIME_relative_min (min_delay,
-                                            GNUNET_TIME_absolute_get_remaining (udpw->transmission_time));
+    {
+      delay = GNUNET_TIME_absolute_get_remaining (udpw->transmission_time);
+      if (delay.rel_value_us < min_delay.rel_value_us)
+      {
+        min_delay = delay;
+        min_udpw = udpw;
+      }
+    }
     if (NULL != plugin->select_task_v6)
       GNUNET_SCHEDULER_cancel (plugin->select_task_v6);
-    if (NULL != plugin->ipv6_queue_head)
+    if (NULL != min_udpw)
     {
       if (min_delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Calculated flow delay for UDPv6 at %s\n",
+                    "Calculated flow delay for UDPv6 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
-                                                            GNUNET_YES));
+                                                            GNUNET_YES),
+                    GNUNET_i2s (&udpw->session->target));
       }
       else
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Calculated flow delay for UDPv6 at %s\n",
+                    "Calculated flow delay for UDPv6 at %s for %s\n",
                     GNUNET_STRINGS_relative_time_to_string (min_delay,
-                                                            GNUNET_YES));
+                                                            GNUNET_YES),
+                    GNUNET_i2s (&udpw->session->target));
       }
     }
     plugin->select_task_v6
@@ -2097,10 +2119,6 @@ udp_plugin_send (void *cls,
                                                      frag_ctx);
     s->frag_ctx = frag_ctx;
     s->last_transmit_time = frag_ctx->next_frag_time;
-    if (sizeof (struct IPv4UdpAddress) == s->address->address_length)
-      schedule_select_v4 (plugin);
-    else
-      schedule_select_v6 (plugin);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented messages active",
                               1,
@@ -2189,11 +2207,18 @@ read_process_ack (struct Plugin *plugin,
   GNUNET_HELLO_address_free (address);
 
   flow_delay.rel_value_us = (uint64_t) ntohl (udp_ack->delay);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "We received a sending delay of %s for %s\n",
-       GNUNET_STRINGS_relative_time_to_string (flow_delay,
-                                               GNUNET_YES),
-       GNUNET_i2s (&udp_ack->sender));
+  if (flow_delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "We received a sending delay of %s for %s\n",
+         GNUNET_STRINGS_relative_time_to_string (flow_delay,
+                                                 GNUNET_YES),
+         GNUNET_i2s (&udp_ack->sender));
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "We received a sending delay of %s for %s\n",
+         GNUNET_STRINGS_relative_time_to_string (flow_delay,
+                                                 GNUNET_YES),
+         GNUNET_i2s (&udp_ack->sender));
   /* Flow delay is for the reassembled packet, however, our delay
      is per packet, so we need to adjust: */
   flow_delay = GNUNET_TIME_relative_divide (flow_delay,
