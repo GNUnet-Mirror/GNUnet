@@ -409,15 +409,16 @@ struct GNUNET_TRANSPORT_OfferHelloHandle;
  * @param cont continuation to call when HELLO has been sent,
  *      tc reason #GNUNET_SCHEDULER_REASON_TIMEOUT for fail
  *      tc reasong #GNUNET_SCHEDULER_REASON_READ_READY for success
- * @param cls closure for continuation
+ * @param cont_cls closure for @a cont
  * @return a GNUNET_TRANSPORT_OfferHelloHandle handle or NULL on failure,
- *      in case of failure cont will not be called
+ *      in case of failure @a cont will not be called
  *
  */
 struct GNUNET_TRANSPORT_OfferHelloHandle *
 GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
                               const struct GNUNET_MessageHeader *hello,
-                              GNUNET_SCHEDULER_TaskCallback cont, void *cls);
+                              GNUNET_SCHEDULER_TaskCallback cont,
+                              void *cont_cls);
 
 
 /**
