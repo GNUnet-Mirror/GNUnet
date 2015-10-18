@@ -136,21 +136,6 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
 
 
 /**
- * Notify ATS about property changes to an address's properties.
- * FIXME: we probably want to split this one up for the different
- * updatable properties.
- *
- * @param address the address
- * @param session the session
- * @param prop updated performance information
- */
-void
-GST_ats_update_metrics (const struct GNUNET_HELLO_Address *address,
-			struct Session *session,
-			const struct GNUNET_ATS_Properties *prop);
-
-
-/**
  * Notify ATS about utilization changes to an @a address.
  * Does nothing if the @a address is not known to us.
  *
