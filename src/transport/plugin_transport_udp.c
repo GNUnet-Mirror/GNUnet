@@ -1694,16 +1694,18 @@ fragmented_message_done (struct UDP_FragmentationContext *frag_ctx,
   if (delay.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Fragmented message acknowledged after %s\n",
+         "Fragmented message acknowledged after %s (expected at %s)\n",
          GNUNET_STRINGS_relative_time_to_string (delay,
-                                                 GNUNET_YES));
+                                                 GNUNET_YES),
+         GNUNET_STRINGS_absolute_time_to_string (frag_ctx->next_frag_time));
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Fragmented message acknowledged after %s\n",
+         "Fragmented message acknowledged after %s (expected at %s)\n",
          GNUNET_STRINGS_relative_time_to_string (delay,
-                                                 GNUNET_YES));
+                                                 GNUNET_YES),
+         GNUNET_STRINGS_absolute_time_to_string (frag_ctx->next_frag_time));
   }
 
   if (NULL != frag_ctx->cont)
