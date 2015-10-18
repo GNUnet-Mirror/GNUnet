@@ -1960,6 +1960,7 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
   struct LocalAddressList *pos;
   const struct sockaddr_in *in4;
   const struct sockaddr_in6 *in6;
+  char pbuf[INET6_ADDRSTRLEN+1];
 
   if ((addrlen != sizeof (struct in_addr)) &&
       (addrlen != sizeof (struct in6_addr)))
@@ -1990,8 +1991,11 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
   }
   LOG (GNUNET_ERROR_TYPE_WARNING,
        "Asked to validate one of my addresses (%s) and validation failed!\n",
-       GNUNET_a2s (addr,
-                   addrlen));
+       inet_ntop ((addrlen == sizeof(struct in_addr))
+                  ? AF_INET
+                  : AF_INET6,
+                  addr,
+                  pbuf, sizeof (pbuf)));
   return GNUNET_NO;
 }
 
