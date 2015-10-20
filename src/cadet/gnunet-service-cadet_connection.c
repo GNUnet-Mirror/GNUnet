@@ -3759,6 +3759,11 @@ GCC_stop_poll (struct CadetConnection *c, int fwd)
     GNUNET_SCHEDULER_cancel (fc->poll_task);
     fc->poll_task = NULL;
   }
+  if (NULL != fc->poll_msg)
+  {
+    GCC_cancel (fc->poll_msg);
+    fc->poll_msg = NULL;
+  }
 }
 
 
