@@ -1390,7 +1390,7 @@ connection_poll (void *cls,
 /**
  * Callback called when a queued POLL message is sent.
  *
- * @param cls Closure (FC).
+ * @param cls Closure (flow control context).
  * @param c Connection this message was on.
  * @param q Queue handler this call invalidates.
  * @param type Type of message sent.
@@ -1405,6 +1405,8 @@ poll_sent (void *cls,
 {
   struct CadetFlowControl *fc = cls;
 
+  GNUNET_assert (fc->poll_msg == q);
+  fc->poll_msg = NULL;
   if (2 == c->destroy)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL canceled on shutdown\n");
@@ -1412,7 +1414,7 @@ poll_sent (void *cls,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL sent for %s, scheduling new one!\n",
        GCC_2s (c));
-  fc->poll_msg = NULL;
+  GNUNET_assert (NULL == fc->poll_task);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &connection_poll,
@@ -3729,7 +3731,7 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
        GC_f2s (fwd));
   if (NULL != fc->poll_task || NULL != fc->poll_msg)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  POLL not needed (%p, %p)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  POLL already in progress (t: %p, m: %p)\n",
          fc->poll_task, fc->poll_msg);
     return;
   }
