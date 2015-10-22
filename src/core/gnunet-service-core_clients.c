@@ -506,22 +506,20 @@ handle_client_send (void *cls,
   tc.priority = (enum GNUNET_CORE_Priority) ntohl (sm->priority);
   if (overdue.rel_value_us > GNUNET_CONSTANTS_LATENCY_WARN.rel_value_us)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Client waited %s for transmission of %u bytes to `%s'%s, CORE queue is %u entries\n",
+                "Client waited %s for transmission of %u bytes to `%s'%s\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
                                                         GNUNET_YES),
                 msize,
                 GNUNET_i2s (&sm->peer),
-                tc.cork ? "" : " (corked)",
-                GSC_NEIGHBOURS_get_queue_size (&sm->peer));
+                tc.cork ? "" : " (corked)");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Client waited %s for transmission of %u bytes to `%s'%s, CORE queue is %u entries\n",
+                "Client waited %s for transmission of %u bytes to `%s'%s\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
                                                         GNUNET_YES),
                 msize,
                 GNUNET_i2s (&sm->peer),
-                tc.cork ? "" : " (corked)",
-                GSC_NEIGHBOURS_get_queue_size (&sm->peer));
+                tc.cork ? "" : " (corked)");
 
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (c->requests,
