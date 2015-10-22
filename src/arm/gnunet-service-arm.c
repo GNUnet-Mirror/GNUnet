@@ -1281,10 +1281,6 @@ maint_child_death (void *cls,
          (statusType == GNUNET_OS_PROCESS_UNKNOWN) ||
          (statusType == GNUNET_OS_PROCESS_RUNNING) )
       continue;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Running with %d/%d\n",
-                statusType,
-                statusCode);
 
     if (statusType == GNUNET_OS_PROCESS_EXITED)
     {
