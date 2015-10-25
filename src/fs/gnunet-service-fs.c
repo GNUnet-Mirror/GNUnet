@@ -575,7 +575,7 @@ shutdown_task (void *cls,
  * peer connects, giving us a chance to decide about submitting
  * the existing request to the new peer.
  *
- * @param cls the 'struct GSF_ConnectedPeer' of the new peer
+ * @param cls the `struct GSF_ConnectedPeer` of the new peer
  * @param key query for the request
  * @param pr handle to the pending request
  * @return #GNUNET_YES to continue to iterate
@@ -589,10 +589,12 @@ consider_peer_for_forwarding (void *cls,
   struct GNUNET_PeerIdentity pid;
 
   GSF_connected_peer_get_identity_ (cp, &pid);
-  if (GNUNET_YES != GSF_pending_request_test_target_ (pr, &pid))
+  if (GNUNET_YES !=
+      GSF_pending_request_test_target_ (pr, &pid))
   {
     GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# Loopback routes suppressed"), 1,
+                              gettext_noop ("# Loopback routes suppressed"),
+                              1,
                               GNUNET_NO);
     return GNUNET_YES;
   }
@@ -608,11 +610,13 @@ consider_peer_for_forwarding (void *cls,
  * @param cp handle to the newly created connected peer record
  */
 static void
-connected_peer_cb (void *cls, struct GSF_ConnectedPeer *cp)
+connected_peer_cb (void *cls,
+                   struct GSF_ConnectedPeer *cp)
 {
   if (NULL == cp)
     return;
-  GSF_iterate_pending_requests_ (&consider_peer_for_forwarding, cp);
+  GSF_iterate_pending_requests_ (&consider_peer_for_forwarding,
+                                 cp);
 }
 
 

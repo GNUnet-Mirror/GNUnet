@@ -658,8 +658,10 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp->creation_cb = creation_cb;
   cp->creation_cb_cls = creation_cb_cls;
   cp->respect_iterate_req =
-      GNUNET_PEERSTORE_iterate (peerstore, "fs", peer, "respect",
-                                GNUNET_TIME_UNIT_FOREVER_REL, &peer_respect_cb,
+      GNUNET_PEERSTORE_iterate (peerstore, "fs",
+                                peer, "respect",
+                                GNUNET_TIME_UNIT_FOREVER_REL,
+                                &peer_respect_cb,
                                 cp);
 }
 

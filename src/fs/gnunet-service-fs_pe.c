@@ -529,7 +529,9 @@ struct MergeContext
  *         #GNUNET_NO if not (merge success)
  */
 static int
-merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
+merge_pr (void *cls,
+          const struct GNUNET_HashCode *query,
+          void *element)
 {
   struct MergeContext *mpr = cls;
   struct GSF_RequestPlan *rp = element;
@@ -538,18 +540,26 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
   struct GSF_PendingRequest *latest;
 
   if (GNUNET_OK !=
-      GSF_pending_request_is_compatible_ (mpr->pr, rp->pe_head->pr))
+      GSF_pending_request_is_compatible_ (mpr->pr,
+                                          rp->pe_head->pr))
     return GNUNET_YES;
   /* merge new request with existing request plan */
   bi = GNUNET_new (struct GSF_PendingRequestPlanBijection);
   bi->rp = rp;
   bi->pr = mpr->pr;
   prd = GSF_pending_request_get_data_ (mpr->pr);
-  GNUNET_CONTAINER_MDLL_insert (PR, prd->pr_head, prd->pr_tail, bi);
-  GNUNET_CONTAINER_MDLL_insert (PE, rp->pe_head, rp->pe_tail, bi);
+  GNUNET_CONTAINER_MDLL_insert (PR,
+                                prd->pr_head,
+                                prd->pr_tail,
+                                bi);
+  GNUNET_CONTAINER_MDLL_insert (PE,
+                                rp->pe_head,
+                                rp->pe_tail,
+                                bi);
   mpr->merged = GNUNET_YES;
 #if INSANE_STATISTICS
-  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests merged"), 1,
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# requests merged"), 1,
                             GNUNET_NO);
 #endif
   latest = get_latest (rp);
@@ -557,7 +567,8 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
       prd->ttl.abs_value_us)
   {
 #if INSANE_STATISTICS
-    GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# requests refreshed"),
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# requests refreshed"),
                               1, GNUNET_NO);
 #endif
     rp->transmission_counter = 0;       /* reset */
@@ -597,38 +608,45 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
     pp->cp = cp;
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (plans,
-                                                      id, pp,
+                                                      id,
+                                                      pp,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   mpc.merged = GNUNET_NO;
   mpc.pr = pr;
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
                                               &GSF_pending_request_get_data_
-                                              (pr)->query, &merge_pr, &mpc);
-  if (GNUNET_NO != mpc.merged)
-    return;
-  GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
-                                              &GSF_pending_request_get_data_
-                                              (pr)->query, &merge_pr, &mpc);
+                                              (pr)->query,
+                                              &merge_pr, &mpc);
   if (GNUNET_NO != mpc.merged)
     return;
   plan_count++;
-  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# query plan entries"), 1,
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# query plan entries"),
+                            1,
                             GNUNET_NO);
   prd = GSF_pending_request_get_data_ (pr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Planning transmission of query `%s' to peer `%s'\n",
-              GNUNET_h2s (&prd->query), GNUNET_i2s (id));
+              GNUNET_h2s (&prd->query),
+              GNUNET_i2s (id));
   rp = GNUNET_new (struct GSF_RequestPlan);
   bi = GNUNET_new (struct GSF_PendingRequestPlanBijection);
   bi->rp = rp;
   bi->pr = pr;
-  GNUNET_CONTAINER_MDLL_insert (PR, prd->pr_head, prd->pr_tail, bi);
-  GNUNET_CONTAINER_MDLL_insert (PE, rp->pe_head, rp->pe_tail, bi);
+  GNUNET_CONTAINER_MDLL_insert (PR,
+                                prd->pr_head,
+                                prd->pr_tail,
+                                bi);
+  GNUNET_CONTAINER_MDLL_insert (PE,
+                                rp->pe_head,
+                                rp->pe_tail,
+                                bi);
   rp->pp = pp;
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_put (pp->plan_map,
-                                                    get_rp_key (rp), rp,
+                                                    get_rp_key (rp),
+                                                    rp,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   plan (pp, rp);
 }
