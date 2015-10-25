@@ -1495,7 +1495,8 @@ peer_transmit_timeout (void *cls,
     GNUNET_assert (0 < cp->ppd.pending_queries--);
   else if (GNUNET_NO == pth->is_query)
     GNUNET_assert (0 < cp->ppd.pending_replies--);
-  GNUNET_LOAD_update (cp->ppd.transmission_delay, UINT64_MAX);
+  GNUNET_LOAD_update (cp->ppd.transmission_delay,
+                      UINT64_MAX);
   if (NULL != cp->cth)
   {
     GNUNET_CORE_notify_transmit_ready_cancel (cp->cth);

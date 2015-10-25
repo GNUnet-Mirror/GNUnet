@@ -614,10 +614,11 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
   }
   mpc.merged = GNUNET_NO;
   mpc.pr = pr;
+  prd = GSF_pending_request_get_data_ (pr);
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
-                                              &GSF_pending_request_get_data_
-                                              (pr)->query,
-                                              &merge_pr, &mpc);
+                                              &prd->query,
+                                              &merge_pr,
+                                              &mpc);
   if (GNUNET_NO != mpc.merged)
     return;
   plan_count++;
@@ -625,7 +626,6 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
                             gettext_noop ("# query plan entries"),
                             1,
                             GNUNET_NO);
-  prd = GSF_pending_request_get_data_ (pr);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Planning transmission of query `%s' to peer `%s'\n",
               GNUNET_h2s (&prd->query),
@@ -648,7 +648,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
                                                     get_rp_key (rp),
                                                     rp,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  plan (pp, rp);
+  plan (pp,
+        rp);
 }
 
 

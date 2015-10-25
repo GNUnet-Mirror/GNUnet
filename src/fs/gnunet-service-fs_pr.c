@@ -431,7 +431,6 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
 }
 
 
-
 /**
  * Update a given pending request with additional replies
  * that have been seen.
@@ -468,17 +467,22 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
       /* we're not the initiator, but the initiator did not give us
        * any bloom-filter, so we need to create one on-the-fly */
       pr->mingle =
-          GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+          GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    UINT32_MAX);
       pr->bf =
-          GNUNET_BLOCK_construct_bloomfilter (pr->mingle, replies_seen,
+          GNUNET_BLOCK_construct_bloomfilter (pr->mingle,
+                                              replies_seen,
                                               replies_seen_count);
     }
     else
     {
       for (i = 0; i < pr->replies_seen_count; i++)
       {
-        GNUNET_BLOCK_mingle_hash (&replies_seen[i], pr->mingle, &mhash);
-        GNUNET_CONTAINER_bloomfilter_add (pr->bf, &mhash);
+        GNUNET_BLOCK_mingle_hash (&replies_seen[i],
+                                  pr->mingle,
+                                  &mhash);
+        GNUNET_CONTAINER_bloomfilter_add (pr->bf,
+                                          &mhash);
       }
     }
   }
@@ -517,7 +521,8 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   if (buf_size > 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Building request message for `%s' of type %d\n",
-                GNUNET_h2s (&pr->public_data.query), pr->public_data.type);
+                GNUNET_h2s (&pr->public_data.query),
+                pr->public_data.type);
   k = 0;
   bm = 0;
   do_route = (0 == (pr->public_data.options & GSF_PRO_FORWARD_ONLY));
@@ -587,7 +592,9 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_request (void *cls, const struct GNUNET_HashCode *key, void *value)
+clean_request (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
 {
   struct GSF_PendingRequest *pr = value;
   GSF_LocalLookupContinuation cont;
@@ -711,7 +718,7 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
  * Iterate over all pending requests.
  *
  * @param it function to call for each request
- * @param cls closure for it
+ * @param cls closure for @a it
  */
 void
 GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it, void *cls)
@@ -1272,11 +1279,12 @@ GSF_cadet_lookup_ (struct GSF_PendingRequest *pr)
 /**
  * Task that issues a warning if the datastore lookup takes too long.
  *
- * @param cls the 'struct GSF_PendingRequest'
+ * @param cls the `struct GSF_PendingRequest`
  * @param tc task context
  */
 static void
-warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+warn_delay_task (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_PendingRequest *pr = cls;
 
@@ -1294,11 +1302,12 @@ warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Task that issues a warning if the datastore lookup takes too long.
  *
- * @param cls the 'struct GSF_PendingRequest'
+ * @param cls the `struct GSF_PendingRequest`
  * @param tc task context
  */
 static void
-odc_warn_delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+odc_warn_delay_task (void *cls,
+                     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSF_PendingRequest *pr = cls;
 
@@ -1489,7 +1498,7 @@ process_local_reply (void *cls,
                                   /* max queue size */ ,
                                   GNUNET_TIME_UNIT_FOREVER_REL,
                                   &process_local_reply, pr);
-    if (pr->qe == NULL)
+    if (NULL == pr->qe)
     {
       GNUNET_STATISTICS_update (GSF_stats,
                                 gettext_noop
