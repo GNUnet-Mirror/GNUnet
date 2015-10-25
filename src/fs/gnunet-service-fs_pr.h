@@ -179,25 +179,22 @@ struct GSF_PendingRequestData
  * @param eval evaluation of the result
  * @param pr handle to the original pending request
  * @param reply_anonymity_level anonymity level for the reply, UINT32_MAX for "unknown"
- * @param expiration when does 'data' expire?
+ * @param expiration when does @a data expire?
  * @param last_transmission the last time we've tried to get this block (FOREVER if unknown)
  * @param type type of the block
  * @param data response data, NULL on request expiration
- * @param data_len number of bytes in data
+ * @param data_len number of bytes in @a data
  */
-typedef void (*GSF_PendingRequestReplyHandler) (void *cls,
-                                                enum
-                                                GNUNET_BLOCK_EvaluationResult
-                                                eval,
-                                                struct GSF_PendingRequest * pr,
-                                                uint32_t reply_anonymity_level,
-                                                struct GNUNET_TIME_Absolute
-                                                expiration,
-                                                struct GNUNET_TIME_Absolute
-                                                last_transmission,
-                                                enum GNUNET_BLOCK_Type type,
-                                                const void *data,
-                                                size_t data_len);
+typedef void
+(*GSF_PendingRequestReplyHandler) (void *cls,
+                                   enum GNUNET_BLOCK_EvaluationResult eval,
+                                   struct GSF_PendingRequest *pr,
+                                   uint32_t reply_anonymity_level,
+                                   struct GNUNET_TIME_Absolute expiration,
+                                   struct GNUNET_TIME_Absolute last_transmission,
+                                   enum GNUNET_BLOCK_Type type,
+                                   const void *data,
+                                   size_t data_len);
 
 
 /**

@@ -289,7 +289,8 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              enum GNUNET_BLOCK_Type type,
                              const struct GNUNET_HashCode *query,
                              const struct GNUNET_PeerIdentity *target,
-                             const char *bf_data, size_t bf_size,
+                             const char *bf_data,
+                             size_t bf_size,
                              uint32_t mingle,
                              uint32_t anonymity_level,
                              uint32_t priority,
@@ -325,7 +326,9 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
   if (NULL != target)
   {
     pr->public_data.target = (struct GNUNET_PeerIdentity *) eptr;
-    memcpy (eptr, target, sizeof (struct GNUNET_PeerIdentity));
+    memcpy (eptr,
+            target,
+            sizeof (struct GNUNET_PeerIdentity));
   }
   pr->public_data.anonymity_level = anonymity_level;
   pr->public_data.priority = priority;
@@ -397,7 +400,9 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
 		 UINT32_MAX,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
                  GNUNET_TIME_UNIT_FOREVER_ABS,
-                 GNUNET_BLOCK_TYPE_ANY, NULL, 0);
+                 GNUNET_BLOCK_TYPE_ANY,
+                 NULL,
+                 0);
       GSF_pending_request_cancel_ (dpr,
                                    GNUNET_YES);
     }

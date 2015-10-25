@@ -250,7 +250,7 @@ struct GSF_ConnectedPeer
   struct GNUNET_SCHEDULER_Task *rc_delay_task;
 
   /**
-   * Active requests from this neighbour, map of query to 'struct PeerRequest'.
+   * Active requests from this neighbour, map of query to `struct PeerRequest`.
    */
   struct GNUNET_CONTAINER_MultiHashMap *request_map;
 
@@ -646,7 +646,8 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp->rc =
       GNUNET_ATS_reserve_bandwidth (GSF_ats, peer, DBLOCK_SIZE,
                                     &ats_reserve_callback, cp);
-  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128,
+                                                          GNUNET_YES);
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (cp_map,
                GSF_connected_peer_get_identity2_ (cp),
@@ -811,8 +812,10 @@ free_pending_request (struct PeerRequest *peerreq,
     GNUNET_SCHEDULER_cancel (peerreq->kill_task);
     peerreq->kill_task = NULL;
   }
-  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# P2P searches active"),
-                            -1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# P2P searches active"),
+                            -1,
+                            GNUNET_NO);
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
                                                       query,
@@ -1288,6 +1291,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   uint32_t ttl_decrement;
   struct TestExistClosure tec;
   GNUNET_PEER_Id spid;
+  const struct GSF_PendingRequestData *prd;
 
   msize = ntohs (message->size);
   if (msize < sizeof (struct GetMessage))
@@ -1452,20 +1456,25 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                                     spid,
                                     GNUNET_PEER_intern (other),
                                     NULL, 0,        /* replies_seen */
-                                    &handle_p2p_reply, peerreq);
+                                    &handle_p2p_reply,
+                                    peerreq);
   GNUNET_assert (NULL != pr);
+  prd = GSF_pending_request_get_data_ (pr);
   peerreq->pr = pr;
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap_put (cp->request_map,
-                                                   &gm->query,
+                                                   &prd->query,
                                                    peerreq,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_STATISTICS_update (GSF_stats,
                             gettext_noop
-                            ("# P2P query messages received and processed"), 1,
+                            ("# P2P query messages received and processed"),
+                            1,
                             GNUNET_NO);
-  GNUNET_STATISTICS_update (GSF_stats, gettext_noop ("# P2P searches active"),
-                            1, GNUNET_NO);
+  GNUNET_STATISTICS_update (GSF_stats,
+                            gettext_noop ("# P2P searches active"),
+                            1,
+                            GNUNET_NO);
   return pr;
 }
 
