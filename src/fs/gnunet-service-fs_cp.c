@@ -815,7 +815,8 @@ free_pending_request (struct PeerRequest *peerreq,
                             -1, GNUNET_NO);
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
-                                                      query, peerreq));
+                                                      query,
+                                                      peerreq));
   GNUNET_free (peerreq);
 }
 
@@ -1181,6 +1182,83 @@ bound_ttl (int32_t ttl_in, uint32_t prio)
 
 
 /**
+ * Closure for #test_exist_cb().
+ */
+struct TestExistClosure
+{
+
+  /**
+   * Priority of the incoming request.
+   */
+  int32_t priority;
+
+  /**
+   * Relative TTL of the incoming request.
+   */
+  int32_t ttl;
+
+  /**
+   * Type of the incoming request.
+   */
+  enum GNUNET_BLOCK_Type type;
+
+  /**
+   * Set to #GNUNET_YES if we are done handling the query.
+   */
+  int finished;
+
+};
+
+
+/**
+ * Test if the query already exists.  If so, merge it, otherwise
+ * keep `finished` at #GNUNET_NO.
+ *
+ * @param cls our `struct TestExistClosure`
+ * @param hc the key of the query
+ * @param value the existing `struct PeerRequest`.
+ * @return #GNUNET_YES to continue to iterate,
+ *         #GNUNET_NO if we successfully merged
+ */
+static int
+test_exist_cb (void *cls,
+               const struct GNUNET_HashCode *hc,
+               void *value)
+{
+  struct TestExistClosure *tec = cls;
+  struct PeerRequest *peerreq = value;
+  struct GSF_PendingRequest *pr;
+  struct GSF_PendingRequestData *prd;
+
+  pr = peerreq->pr;
+  prd = GSF_pending_request_get_data_ (pr);
+  if (prd->type != tec->type)
+    return GNUNET_YES;
+  if (prd->ttl.abs_value_us >=
+      GNUNET_TIME_absolute_get ().abs_value_us + tec->ttl * 1000LL)
+  {
+    /* existing request has higher TTL, drop new one! */
+    prd->priority += tec->priority;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Have existing request with higher TTL, dropping new request.\n");
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop
+                              ("# requests dropped due to higher-TTL request"),
+                              1, GNUNET_NO);
+    tec->finished = GNUNET_YES;
+    return GNUNET_NO;
+  }
+  /* existing request has lower TTL, drop old one! */
+  tec->priority += prd->priority;
+  GSF_pending_request_cancel_ (pr, GNUNET_YES);
+  free_pending_request (peerreq,
+                        hc);
+  return GNUNET_NO;
+}
+
+
+
+/**
  * Handle P2P "QUERY" message.  Creates the pending request entry
  * and sets up all of the data structures to that we will
  * process replies properly.  Does not initiate forwarding or
@@ -1197,7 +1275,6 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
 {
   struct PeerRequest *peerreq;
   struct GSF_PendingRequest *pr;
-  struct GSF_PendingRequestData *prd;
   struct GSF_ConnectedPeer *cp;
   struct GSF_ConnectedPeer *cps;
   const struct GNUNET_PeerIdentity *target;
@@ -1209,9 +1286,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   uint32_t bm;
   size_t bfsize;
   uint32_t ttl_decrement;
-  int32_t priority;
-  int32_t ttl;
-  enum GNUNET_BLOCK_Type type;
+  struct TestExistClosure tec;
   GNUNET_PEER_Id spid;
 
   msize = ntohs (message->size);
@@ -1226,7 +1301,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                             1,
                             GNUNET_NO);
   gm = (const struct GetMessage *) message;
-  type = ntohl (gm->type);
+  tec.type = ntohl (gm->type);
   bm = ntohl (gm->hash_bitmap);
   bits = 0;
   while (bm > 0)
@@ -1297,9 +1372,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   /* note that we can really only check load here since otherwise
    * peers could find out that we are overloaded by not being
    * disconnected after sending us a malformed query... */
-  priority = bound_priority (ntohl (gm->priority),
-                             cps);
-  if (priority < 0)
+  tec.priority = bound_priority (ntohl (gm->priority),
+                                 cps);
+  if (tec.priority < 0)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropping query from `%s', this peer is too busy.\n",
@@ -1309,7 +1384,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request for `%s' of type %u from peer `%s' with flags %u\n",
               GNUNET_h2s (&gm->query),
-              (unsigned int) type,
+              (unsigned int) tec.type,
               GNUNET_i2s (other),
               (unsigned int) bm);
   target =
@@ -1317,28 +1392,31 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
        (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? (&opt[bits++]) : NULL;
   options = GSF_PRO_DEFAULTS;
   spid = 0;
-  if ((GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + priority))
+  if ((GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + tec.priority))
       || (GNUNET_LOAD_get_average (cp->ppd.transmission_delay) >
           GNUNET_CONSTANTS_MAX_CORK_DELAY.rel_value_us * 2 +
           GNUNET_LOAD_get_average (GSF_rt_entry_lifetime)))
   {
     /* don't have BW to send to peer, or would likely take longer than we have for it,
      * so at best indirect the query */
-    priority = 0;
+    tec.priority = 0;
     options |= GSF_PRO_FORWARD_ONLY;
     spid = GNUNET_PEER_intern (other);
     GNUNET_assert (0 != spid);
   }
-  ttl = bound_ttl (ntohl (gm->ttl), priority);
+  tec.ttl = bound_ttl (ntohl (gm->ttl),
+                       tec.priority);
   /* decrement ttl (always) */
   ttl_decrement =
       2 * TTL_DECREMENT + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                     TTL_DECREMENT);
-  if ((ttl < 0) && (((int32_t) (ttl - ttl_decrement)) > 0))
+  if ((tec.ttl < 0) && (((int32_t) (tec.ttl - ttl_decrement)) > 0))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Dropping query from `%s' due to TTL underflow (%d - %u).\n",
-                GNUNET_i2s (other), ttl, ttl_decrement);
+                GNUNET_i2s (other),
+                tec.ttl,
+                ttl_decrement);
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# requests dropped due TTL underflow"), 1,
@@ -1346,41 +1424,21 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     /* integer underflow => drop (should be very rare)! */
     return NULL;
   }
-  ttl -= ttl_decrement;
+  tec.ttl -= ttl_decrement;
 
   /* test if the request already exists */
-  peerreq = GNUNET_CONTAINER_multihashmap_get (cp->request_map,
-                                               &gm->query);
-  if (NULL != peerreq)
-  {
-    pr = peerreq->pr;
-    prd = GSF_pending_request_get_data_ (pr);
-    if (prd->type == type)
-    {
-      if (prd->ttl.abs_value_us >= GNUNET_TIME_absolute_get ().abs_value_us + ttl * 1000LL)
-      {
-        /* existing request has higher TTL, drop new one! */
-        prd->priority += priority;
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Have existing request with higher TTL, dropping new request.\n",
-                    GNUNET_i2s (other));
-        GNUNET_STATISTICS_update (GSF_stats,
-                                  gettext_noop
-                                  ("# requests dropped due to higher-TTL request"),
-                                  1, GNUNET_NO);
-        return NULL;
-      }
-      /* existing request has lower TTL, drop old one! */
-      priority += prd->priority;
-      GSF_pending_request_cancel_ (pr, GNUNET_YES);
-      free_pending_request (peerreq, &gm->query);
-    }
-  }
+  tec.finished = GNUNET_NO;
+  GNUNET_CONTAINER_multihashmap_get_multiple (cp->request_map,
+                                              &gm->query,
+                                              &test_exist_cb,
+                                              &tec);
+  if (GNUNET_YES == tec.finished)
+    return NULL; /* merged into existing request, we're done */
 
   peerreq = GNUNET_new (struct PeerRequest);
   peerreq->cp = cp;
   pr = GSF_pending_request_create_ (options,
-                                    type,
+                                    tec.type,
                                     &gm->query,
                                     target,
                                     (bfsize > 0)
@@ -1389,8 +1447,8 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                                     bfsize,
                                     ntohl (gm->filter_mutator),
                                     1 /* anonymity */,
-                                    (uint32_t) priority,
-                                    ttl,
+                                    (uint32_t) tec.priority,
+                                    tec.ttl,
                                     spid,
                                     GNUNET_PEER_intern (other),
                                     NULL, 0,        /* replies_seen */
@@ -1398,7 +1456,8 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   GNUNET_assert (NULL != pr);
   peerreq->pr = pr;
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multihashmap_put (cp->request_map, &gm->query,
+                GNUNET_CONTAINER_multihashmap_put (cp->request_map,
+                                                   &gm->query,
                                                    peerreq,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_STATISTICS_update (GSF_stats,
@@ -1672,7 +1731,8 @@ GSF_peer_disconnect_handler_ (void *cls,
     cp->rc_delay_task = NULL;
   }
   GNUNET_CONTAINER_multihashmap_iterate (cp->request_map,
-                                         &cancel_pending_request, cp);
+                                         &cancel_pending_request,
+                                         cp);
   GNUNET_CONTAINER_multihashmap_destroy (cp->request_map);
   cp->request_map = NULL;
   GSF_plan_notify_peer_disconnect_ (cp);

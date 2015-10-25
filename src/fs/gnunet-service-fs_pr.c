@@ -422,10 +422,10 @@ int
 GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
                                     struct GSF_PendingRequest *prb)
 {
-  if ((pra->public_data.type != prb->public_data.type) ||
-      (0 !=
-       memcmp (&pra->public_data.query, &prb->public_data.query,
-               sizeof (struct GNUNET_HashCode))))
+  if ( (pra->public_data.type != prb->public_data.type) ||
+       (0 != memcmp (&pra->public_data.query,
+                     &prb->public_data.query,
+                     sizeof (struct GNUNET_HashCode))))
     return GNUNET_NO;
   return GNUNET_OK;
 }
@@ -656,7 +656,8 @@ clean_request (void *cls, const struct GNUNET_HashCode *key, void *value)
  * @param full_cleanup fully purge the request
  */
 void
-GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
+GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
+                             int full_cleanup)
 {
   GSF_LocalLookupContinuation cont;
 
@@ -677,7 +678,9 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
     if (NULL != (cont = pr->llc_cont))
     {
       pr->llc_cont = NULL;
-      cont (pr->llc_cont_cls, pr, pr->local_result);
+      cont (pr->llc_cont_cls,
+            pr,
+            pr->local_result);
     }
     GSF_plan_notify_request_done_ (pr);
     if (NULL != pr->qe)
@@ -698,7 +701,9 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
     return;
   }
   GNUNET_assert (GNUNET_YES ==
-                 clean_request (NULL, &pr->public_data.query, pr));
+                 clean_request (NULL,
+                                &pr->public_data.query,
+                                pr));
 }
 
 
