@@ -687,6 +687,8 @@ setup_fresh_ping (struct GSC_KeyExchangeInfo *kx)
   struct GNUNET_CRYPTO_SymmetricInitializationVector iv;
 
   pm = &kx->ping;
+  kx->ping_challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                                 UINT32_MAX);
   pm->header.size = htons (sizeof (struct PingMessage));
   pm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_PING);
   pm->iv_seed = calculate_seed (kx);
