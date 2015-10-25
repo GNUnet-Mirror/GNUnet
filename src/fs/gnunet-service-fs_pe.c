@@ -355,18 +355,23 @@ get_latest (const struct GSF_RequestPlan *rp)
 {
   struct GSF_PendingRequest *ret;
   struct GSF_PendingRequestPlanBijection *bi;
+  const struct GSF_PendingRequestData *rprd;
+  const struct GSF_PendingRequestData *prd;
 
   bi = rp->pe_head;
   if (NULL == bi)
     return NULL; /* should never happen */
   ret = bi->pr;
-  bi = bi->next_PE;
-  while (NULL != bi)
+  rprd = GSF_pending_request_get_data_ (ret);
+  for (bi = bi->next_PE; NULL != bi; bi = bi->next_PE)
   {
-    if (GSF_pending_request_get_data_ (bi->pr)->ttl.abs_value_us >
-        GSF_pending_request_get_data_ (ret)->ttl.abs_value_us)
+    prd = GSF_pending_request_get_data_ (bi->pr);
+    if (prd->ttl.abs_value_us >
+        rprd->ttl.abs_value_us)
+    {
       ret = bi->pr;
-    bi = bi->next_PE;
+      rprd = prd;
+    }
   }
   return ret;
 }

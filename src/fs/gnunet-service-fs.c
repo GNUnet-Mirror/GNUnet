@@ -355,7 +355,8 @@ consider_forwarding (void *cls,
 {
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
     return;                     /* we're done... */
-  GSF_iterate_connected_peers_ (&consider_request_for_forwarding, pr);
+  GSF_iterate_connected_peers_ (&consider_request_for_forwarding,
+                                pr);
 }
 
 
@@ -376,12 +377,14 @@ handle_p2p_get (void *cls,
 {
   struct GSF_PendingRequest *pr;
 
-  pr = GSF_handle_p2p_query_ (other, message);
+  pr = GSF_handle_p2p_query_ (other,
+                              message);
   if (NULL == pr)
-    return GNUNET_SYSERR;
+    return GNUNET_OK; /* exists, identical to existing request, or malformed */
   GSF_pending_request_get_data_ (pr)->has_started = GNUNET_YES;
   GSF_local_lookup_ (pr,
-                     &consider_forwarding, NULL);
+                     &consider_forwarding,
+                     NULL);
   return GNUNET_OK;
 }
 

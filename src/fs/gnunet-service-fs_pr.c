@@ -290,13 +290,16 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              const struct GNUNET_HashCode *query,
                              const struct GNUNET_PeerIdentity *target,
                              const char *bf_data, size_t bf_size,
-                             uint32_t mingle, uint32_t anonymity_level,
-                             uint32_t priority, int32_t ttl,
+                             uint32_t mingle,
+                             uint32_t anonymity_level,
+                             uint32_t priority,
+                             int32_t ttl,
                              GNUNET_PEER_Id sender_pid,
                              GNUNET_PEER_Id origin_pid,
                              const struct GNUNET_HashCode *replies_seen,
                              unsigned int replies_seen_count,
-                             GSF_PendingRequestReplyHandler rh, void *rh_cls)
+                             GSF_PendingRequestReplyHandler rh,
+                             void *rh_cls)
 {
   struct GSF_PendingRequest *pr;
   struct GSF_PendingRequest *dpr;
@@ -351,14 +354,16 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
     pr->replies_seen_size = replies_seen_count;
     pr->replies_seen =
         GNUNET_malloc (sizeof (struct GNUNET_HashCode) * pr->replies_seen_size);
-    memcpy (pr->replies_seen, replies_seen,
+    memcpy (pr->replies_seen,
+            replies_seen,
             replies_seen_count * sizeof (struct GNUNET_HashCode));
     pr->replies_seen_count = replies_seen_count;
   }
   if (NULL != bf_data)
   {
     pr->bf =
-        GNUNET_CONTAINER_bloomfilter_init (bf_data, bf_size,
+        GNUNET_CONTAINER_bloomfilter_init (bf_data,
+                                           bf_size,
                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
     pr->mingle = mingle;
   }
@@ -368,26 +373,33 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
     refresh_bloomfilter (pr);
   }
   GNUNET_CONTAINER_multihashmap_put (pr_map,
-				     &pr->public_data.query, pr,
+				     &pr->public_data.query,
+                                     pr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   if (0 == (options & GSF_PRO_REQUEST_NEVER_EXPIRES))
   {
     pr->hnode =
-        GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap, pr,
+        GNUNET_CONTAINER_heap_insert (requests_by_expiration_heap,
+                                      pr,
                                       pr->public_data.ttl.abs_value_us);
     /* make sure we don't track too many requests */
     while (GNUNET_CONTAINER_heap_get_size (requests_by_expiration_heap) >
            max_pending_requests)
     {
       dpr = GNUNET_CONTAINER_heap_peek (requests_by_expiration_heap);
-      GNUNET_assert (dpr != NULL);
+      GNUNET_assert (NULL != dpr);
       if (pr == dpr)
         break;                  /* let the request live briefly... */
       if (NULL != dpr->rh)
-	dpr->rh (dpr->rh_cls, GNUNET_BLOCK_EVALUATION_REQUEST_VALID, dpr,
-		 UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_TIME_UNIT_FOREVER_ABS,
+	dpr->rh (dpr->rh_cls,
+                 GNUNET_BLOCK_EVALUATION_REQUEST_VALID,
+                 dpr,
+		 UINT32_MAX,
+                 GNUNET_TIME_UNIT_FOREVER_ABS,
+                 GNUNET_TIME_UNIT_FOREVER_ABS,
                  GNUNET_BLOCK_TYPE_ANY, NULL, 0);
-      GSF_pending_request_cancel_ (dpr, GNUNET_YES);
+      GSF_pending_request_cancel_ (dpr,
+                                   GNUNET_YES);
     }
   }
   GNUNET_STATISTICS_update (GSF_stats,

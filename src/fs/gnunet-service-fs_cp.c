@@ -1160,11 +1160,12 @@ bound_priority (uint32_t prio_in, struct GSF_ConnectedPeer *cp)
  *
  * @param ttl_in requested ttl
  * @param prio given priority
- * @return ttl_in if ttl_in is below the limit,
- *         otherwise the ttl-limit for the given priority
+ * @return @a ttl_in if @a ttl_in is below the limit,
+ *         otherwise the ttl-limit for the given @a prio
  */
 static int32_t
-bound_ttl (int32_t ttl_in, uint32_t prio)
+bound_ttl (int32_t ttl_in,
+           uint32_t prio)
 {
   unsigned long long allowed;
 
@@ -1255,7 +1256,6 @@ test_exist_cb (void *cls,
                         hc);
   return GNUNET_NO;
 }
-
 
 
 /**
