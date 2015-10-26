@@ -1166,7 +1166,9 @@ GNUNET_DISK_file_write_blocking (const struct GNUNET_DISK_FileHandle * h,
  * @return number of bytes written on success, #GNUNET_SYSERR on error
  */
 ssize_t
-GNUNET_DISK_fn_write (const char *fn, const void *buffer, size_t n,
+GNUNET_DISK_fn_write (const char *fn,
+                      const void *buffer,
+                      size_t n,
                       enum GNUNET_DISK_AccessPermissions mode)
 {
   struct GNUNET_DISK_FileHandle *fh;
