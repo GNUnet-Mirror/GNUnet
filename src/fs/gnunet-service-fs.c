@@ -445,7 +445,8 @@ start_p2p_processing (void *cls,
 
 
 /**
- * Handle START_SEARCH-message (search request from client).
+ * Handle #GNUNET_MESSAGE_TYPE_FS_START_SEARCH-message (search request
+ * from client).
  *
  * @param cls closure
  * @param client identification of the client
