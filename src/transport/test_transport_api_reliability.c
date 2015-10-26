@@ -393,8 +393,10 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 #if VERBOSE
   if (ntohl (hdr->num) % 5 == 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got message %u of size %u\n",
-                ntohl (hdr->num), ntohs (message->size));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Got message %u of size %u\n",
+                ntohl (hdr->num),
+                ntohs (message->size));
   }
 #endif
   n++;
@@ -505,7 +507,8 @@ notify_ready (void *cls, size_t size, void *buf)
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' connected to us (%p)!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%4s' connected to us (%p)!\n",
               GNUNET_i2s (peer), cls);
 }
 
@@ -513,7 +516,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%4s' disconnected (%p)!\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%4s' disconnected (%p)!\n",
               GNUNET_i2s (peer), cls);
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -522,7 +526,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-sendtask ()
+sendtask (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   start_time = GNUNET_TIME_absolute_get ();
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -533,13 +538,17 @@ sendtask ()
                                                NULL);
 }
 
+
 static void
-testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
+testing_connect_cb (struct PeerContext *p1,
+                    struct PeerContext *p2,
+                    void *cls)
 {
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peers connected: %s <-> %s\n", p1_c,
+              "Peers connected: %s <-> %s\n",
+              p1_c,
               GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 

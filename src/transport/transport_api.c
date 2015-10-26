@@ -780,7 +780,7 @@ demultiplexer (void *cls,
     if (bytes_physical >= bytes_msg)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Overhead for %u byte message: %u\n",
+           "Overhead for %u byte message was %u\n",
            bytes_msg,
            bytes_physical - bytes_msg);
       n->traffic_overhead += bytes_physical - bytes_msg;
@@ -799,9 +799,11 @@ demultiplexer (void *cls,
       n->th->timeout_task = NULL;
       /* we've been waiting for this (congestion, not quota,
        * caused delayed transmission) */
-      n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap, n, 0);
-      schedule_transmission (h);
+      n->hn = GNUNET_CONTAINER_heap_insert (h->ready_heap,
+                                            n,
+                                            0);
     }
+    schedule_transmission (h);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_RECV:
     if (size <
@@ -822,8 +824,10 @@ demultiplexer (void *cls,
       break;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Received message of type %u from `%s'.\n",
-         ntohs (imm->type), GNUNET_i2s (&im->peer));
+         "Received message of type %u with %u bytes from `%s'.\n",
+         (unsigned int) ntohs (imm->type),
+         (unsigned int) ntohs (imm->size),
+         GNUNET_i2s (&im->peer));
     n = neighbour_find (h, &im->peer);
     if (NULL == n)
     {
@@ -1102,6 +1106,8 @@ schedule_transmission_task (void *cls,
   }
   else
   {
+    if (GNUNET_YES != n->is_ready)
+      return;                   /* service not ready for another one */
     n = GNUNET_CONTAINER_heap_peek (h->ready_heap);
     if (NULL == n)
       return;                   /* no pending messages */
@@ -1148,7 +1154,11 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
     n->traffic_overhead = 0;
   }
   else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No work to be done, not scheduling transmission.\n");
     return;                     /* no work to be done */
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Scheduling next transmission to service in %s\n",
        GNUNET_STRINGS_relative_time_to_string (delay,
@@ -1364,8 +1374,7 @@ send_try_connect (void *cls,
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Discarding  `%s' request to `%s' due to error in transport service connection.\n",
-         "REQUEST_CONNECT",
+         "Discarding REQUEST_CONNECT request to `%s' due to error in transport service connection.\n",
          GNUNET_i2s (&tch->pid));
     if (NULL != tch->cb)
       tch->cb (tch->cb_cls,

@@ -1825,6 +1825,10 @@ qc_fragment_sent (void *cls,
   GNUNET_assert (NULL != udpw->frag_ctx);
   if (GNUNET_OK == result)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Fragment of message with %u bytes transmitted to %s\n",
+                (unsigned int) udpw->payload_size,
+                GNUNET_i2s (&udpw->session->target));
     GNUNET_FRAGMENT_context_transmission_done (udpw->frag_ctx->frag);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               "# UDP, fragmented msgs, fragments, sent, success",
@@ -1837,6 +1841,10 @@ qc_fragment_sent (void *cls,
   }
   else
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed to transmit fragment of message with %u bytes to %s\n",
+                (unsigned int) udpw->payload_size,
+                GNUNET_i2s (&udpw->session->target));
     fragmented_message_done (udpw->frag_ctx,
                              GNUNET_SYSERR);
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1892,6 +1900,10 @@ enqueue_fragment (void *cls,
           msg_len);
   enqueue (plugin,
            udpw);
+  if (session->address->address_length == sizeof (struct IPv4UdpAddress))
+    schedule_select_v4 (plugin);
+  else
+    schedule_select_v6 (plugin);
 }
 
 
@@ -2102,6 +2114,10 @@ udp_plugin_send (void *cls,
                               "# UDP, unfragmented bytes payload queued total",
                               msgbuf_size,
                               GNUNET_NO);
+    if (s->address->address_length == sizeof (struct IPv4UdpAddress))
+      schedule_select_v4 (plugin);
+    else
+      schedule_select_v6 (plugin);
   }
   else
   {
@@ -2167,10 +2183,6 @@ udp_plugin_send (void *cls,
   notify_session_monitor (s->plugin,
                           s,
                           GNUNET_TRANSPORT_SS_UPDATE);
-  if (s->address->address_length == sizeof (struct IPv4UdpAddress))
-    schedule_select_v4 (plugin);
-  else
-    schedule_select_v6 (plugin);
   return udpmlen;
 }
 
