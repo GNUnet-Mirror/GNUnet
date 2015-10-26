@@ -27,7 +27,7 @@
 #include "gnunet_hello_lib.h"
 
 /**
- * Closure for 'add_to_buf'.
+ * Closure for #add_to_buf().
  */
 struct AddContext
 {
@@ -190,7 +190,7 @@ main (int argc, char *argv[])
                                   GNUNET_HELLO_is_friend_only (orig));
     GNUNET_assert (NULL != result);
      fh = GNUNET_DISK_file_open (argv[1],
-				 GNUNET_DISK_OPEN_WRITE,
+				 GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_TRUNCATE,
 				 GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
      if (NULL == fh)
      {
@@ -215,7 +215,10 @@ main (int argc, char *argv[])
      }
     GNUNET_assert (GNUNET_OK == GNUNET_DISK_file_close (fh));
   }
-  FPRINTF (stderr, _("Modified %u addresses \n"), address_count);
+  FPRINTF (stderr,
+           _("Modified %u addresses, wrote %u bytes\n"),
+           address_count,
+           (unsigned int) fsize);
   return 0;
 }
 
