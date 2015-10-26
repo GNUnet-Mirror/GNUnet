@@ -838,8 +838,8 @@ derive_session_keys (struct GSC_KeyExchangeInfo *kx)
 
 
 /**
- * We received a SET_KEY message.  Validate and update
- * our key material and status.
+ * We received a #GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY message.
+ * Validate and update our key material and status.
  *
  * @param kx key exchange status for the corresponding peer
  * @param msg the set key message we received
