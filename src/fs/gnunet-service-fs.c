@@ -355,6 +355,9 @@ consider_forwarding (void *cls,
 {
   if (GNUNET_BLOCK_EVALUATION_OK_LAST == result)
     return;                     /* we're done... */
+  if (GNUNET_YES !=
+      GSF_pending_request_test_active_ (pr))
+    return; /* request is not actually active, skip! */
   GSF_iterate_connected_peers_ (&consider_request_for_forwarding,
                                 pr);
 }
