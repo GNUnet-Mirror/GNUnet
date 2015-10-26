@@ -1060,6 +1060,11 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
   ssize_t ret;
   struct GNUNET_HELLO_Address address;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              sender,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   if (ntohs (hdr->size) < sizeof (struct TransportPingMessage))
   {
     GNUNET_break_op (0);
@@ -1387,6 +1392,12 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   struct GNUNET_HELLO_Address address;
   int sig_res;
   int do_verify;
+
+  if (0 ==
+      memcmp (&GST_my_identity,
+              sender,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
 
   if (ntohs (hdr->size) < sizeof (struct TransportPongMessage))
   {
