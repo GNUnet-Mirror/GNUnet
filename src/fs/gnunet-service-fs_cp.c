@@ -171,12 +171,12 @@ struct PeerRequest
 {
 
   /**
-   * Handle to generic request.
+   * Handle to generic request (generic: from peer or local client).
    */
   struct GSF_PendingRequest *pr;
 
   /**
-   * Handle to specific peer.
+   * Which specific peer issued this request?
    */
   struct GSF_ConnectedPeer *cp;
 
@@ -644,7 +644,9 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp->ppd.pid = GNUNET_PEER_intern (peer);
   cp->ppd.transmission_delay = GNUNET_LOAD_value_init (GNUNET_TIME_UNIT_ZERO);
   cp->rc =
-      GNUNET_ATS_reserve_bandwidth (GSF_ats, peer, DBLOCK_SIZE,
+      GNUNET_ATS_reserve_bandwidth (GSF_ats,
+                                    peer,
+                                    DBLOCK_SIZE,
                                     &ats_reserve_callback, cp);
   cp->request_map = GNUNET_CONTAINER_multihashmap_create (128,
                                                           GNUNET_YES);
@@ -653,7 +655,8 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
                GSF_connected_peer_get_identity2_ (cp),
                                                    cp,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
+  GNUNET_STATISTICS_set (GSF_stats,
+                         gettext_noop ("# peers connected"),
                          GNUNET_CONTAINER_multipeermap_size (cp_map),
                          GNUNET_NO);
   cp->creation_cb = creation_cb;
@@ -799,14 +802,14 @@ copy_reply (void *cls,
  * Free resources associated with the given peer request.
  *
  * @param peerreq request to free
- * @param query associated key for the request
  */
 static void
-free_pending_request (struct PeerRequest *peerreq,
-		      const struct GNUNET_HashCode *query)
+free_pending_request (struct PeerRequest *peerreq)
 {
   struct GSF_ConnectedPeer *cp = peerreq->cp;
+  struct GSF_PendingRequestData *prd;
 
+  prd = GSF_pending_request_get_data_ (peerreq->pr);
   if (NULL != peerreq->kill_task)
   {
     GNUNET_SCHEDULER_cancel (peerreq->kill_task);
@@ -818,7 +821,7 @@ free_pending_request (struct PeerRequest *peerreq,
                             GNUNET_NO);
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (cp->request_map,
-                                                      query,
+                                                      &prd->query,
                                                       peerreq));
   GNUNET_free (peerreq);
 }
@@ -839,11 +842,10 @@ cancel_pending_request (void *cls,
 {
   struct PeerRequest *peerreq = value;
   struct GSF_PendingRequest *pr = peerreq->pr;
-  struct GSF_PendingRequestData *prd;
 
-  prd = GSF_pending_request_get_data_ (pr);
-  GSF_pending_request_cancel_ (pr, GNUNET_NO);
-  free_pending_request (peerreq, &prd->query);
+  free_pending_request (peerreq);
+  GSF_pending_request_cancel_ (pr,
+                               GNUNET_NO);
   return GNUNET_OK;
 }
 
@@ -864,7 +866,9 @@ peer_request_destroy (void *cls,
 
   peerreq->kill_task = NULL;
   prd = GSF_pending_request_get_data_ (pr);
-  cancel_pending_request (NULL, &prd->query, peerreq);
+  cancel_pending_request (NULL,
+                          &prd->query,
+                          peerreq);
 }
 
 
@@ -968,7 +972,7 @@ handle_p2p_reply (void *cls,
   prd = GSF_pending_request_get_data_ (pr);
   if (NULL == data)
   {
-    free_pending_request (peerreq, &prd->query);
+    free_pending_request (peerreq);
     return;
   }
   GNUNET_break (GNUNET_BLOCK_TYPE_ANY != type);
@@ -1047,9 +1051,11 @@ handle_p2p_reply (void *cls,
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop
                               ("# P2P searches destroyed due to ultimate reply"),
-                              1, GNUNET_NO);
+                              1,
+                              GNUNET_NO);
     peerreq->kill_task =
-        GNUNET_SCHEDULER_add_now (&peer_request_destroy, peerreq);
+        GNUNET_SCHEDULER_add_now (&peer_request_destroy,
+                                  peerreq);
   }
 }
 
@@ -1101,7 +1107,8 @@ change_peer_respect (struct GSF_ConnectedPeer *cp, int value)
  * @return effective priority
  */
 static int32_t
-bound_priority (uint32_t prio_in, struct GSF_ConnectedPeer *cp)
+bound_priority (uint32_t prio_in,
+                struct GSF_ConnectedPeer *cp)
 {
 #define N ((double)128.0)
   uint32_t ret;
@@ -1254,9 +1261,9 @@ test_exist_cb (void *cls,
   }
   /* existing request has lower TTL, drop old one! */
   tec->priority += prd->priority;
-  GSF_pending_request_cancel_ (pr, GNUNET_YES);
-  free_pending_request (peerreq,
-                        hc);
+  free_pending_request (peerreq);
+  GSF_pending_request_cancel_ (pr,
+                               GNUNET_YES);
   return GNUNET_NO;
 }
 
@@ -1467,8 +1474,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
                                                    peerreq,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop
-                            ("# P2P query messages received and processed"),
+                            gettext_noop ("# P2P query messages received and processed"),
                             1,
                             GNUNET_NO);
   GNUNET_STATISTICS_update (GSF_stats,
@@ -1747,8 +1753,11 @@ GSF_peer_disconnect_handler_ (void *cls,
   cp->request_map = NULL;
   GSF_plan_notify_peer_disconnect_ (cp);
   GNUNET_LOAD_value_free (cp->ppd.transmission_delay);
-  GNUNET_PEER_decrement_rcs (cp->ppd.last_p2p_replies, P2P_SUCCESS_LIST_SIZE);
-  memset (cp->ppd.last_p2p_replies, 0, sizeof (cp->ppd.last_p2p_replies));
+  GNUNET_PEER_decrement_rcs (cp->ppd.last_p2p_replies,
+                             P2P_SUCCESS_LIST_SIZE);
+  memset (cp->ppd.last_p2p_replies,
+          0,
+          sizeof (cp->ppd.last_p2p_replies));
   GSF_push_stop_ (cp);
   if (NULL != cp->cth)
   {
