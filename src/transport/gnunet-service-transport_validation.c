@@ -852,6 +852,11 @@ add_valid_address (void *cls,
   {
     /* Why do we try to add an ill-formed address? */
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Address with %u bytes for plugin %s and peer %s is malformed\n",
+                (unsigned int) address->address_length,
+                address->transport_name,
+                GNUNET_i2s (&pid));
     return GNUNET_OK;
   }
 

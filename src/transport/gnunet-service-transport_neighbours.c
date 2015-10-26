@@ -2193,6 +2193,10 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new neighbour entry for `%s'\n",
 	      GNUNET_i2s (peer));
+  GNUNET_assert (0 !=
+                 memcmp (&GST_my_identity,
+                         peer,
+                         sizeof (struct GNUNET_PeerIdentity)));
   n = GNUNET_new (struct NeighbourMapEntry);
   n->id = *peer;
   n->ack_state = ACK_UNDEFINED;
