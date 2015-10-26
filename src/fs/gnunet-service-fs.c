@@ -591,6 +591,9 @@ consider_peer_for_forwarding (void *cls,
   struct GSF_ConnectedPeer *cp = cls;
   struct GNUNET_PeerIdentity pid;
 
+  if (GNUNET_YES !=
+      GSF_pending_request_test_active_ (pr))
+    return GNUNET_YES; /* request is not actually active, skip! */
   GSF_connected_peer_get_identity_ (cp, &pid);
   if (GNUNET_YES !=
       GSF_pending_request_test_target_ (pr, &pid))

@@ -628,7 +628,9 @@ clean_request (void *cls,
   if (NULL != (cont = pr->llc_cont))
   {
     pr->llc_cont = NULL;
-    cont (pr->llc_cont_cls, pr, pr->local_result);
+    cont (pr->llc_cont_cls,
+          pr,
+          pr->local_result);
   }
   GSF_plan_notify_request_done_ (pr);
   GNUNET_free_non_null (pr->replies_seen);
@@ -666,7 +668,8 @@ clean_request (void *cls,
                                                        &pr->public_data.query,
                                                        pr));
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# Pending requests active"), -1,
+                            gettext_noop ("# Pending requests active"),
+                            -1,
                             GNUNET_NO);
   GNUNET_free (pr);
   return GNUNET_YES;
@@ -687,7 +690,7 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
 
   if (NULL == pr_map)
     return;                     /* already cleaned up! */
-  if (GNUNET_YES != full_cleanup)
+  if (GNUNET_NO == full_cleanup)
   {
     /* make request inactive (we're no longer interested in more results),
      * but do NOT remove from our data-structures, we still need it there
@@ -1234,10 +1237,10 @@ cadet_reply_proc (void *cls,
     /* retry -- without delay, as this is non-anonymous
        and cadet/cadet connect will take some time anyway */
     pr->cadet_request = GSF_cadet_query (pr->public_data.target,
-                                       &pr->public_data.query,
-                                       pr->public_data.type,
-                                       &cadet_reply_proc,
-                                       pr);
+                                         &pr->public_data.query,
+                                         pr->public_data.type,
+                                         &cadet_reply_proc,
+                                         pr);
     return;
   }
   if (GNUNET_YES !=
@@ -1286,10 +1289,10 @@ GSF_cadet_lookup_ (struct GSF_PendingRequest *pr)
   if (NULL != pr->cadet_request)
     return;
   pr->cadet_request = GSF_cadet_query (pr->public_data.target,
-				     &pr->public_data.query,
-				     pr->public_data.type,
-				     &cadet_reply_proc,
-				     pr);
+                                       &pr->public_data.query,
+                                       pr->public_data.type,
+                                       &cadet_reply_proc,
+                                       pr);
 }
 
 
@@ -1840,6 +1843,19 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
 
 
 /**
+ * Check if the given request is still active.
+ *
+ * @param pr pending request
+ * @return #GNUNET_YES if the request is still active
+ */
+int
+GSF_pending_request_test_active_ (struct GSF_PendingRequest *pr)
+{
+  return (NULL != pr->rh) ? GNUNET_YES : GNUNET_NO;
+}
+
+
+/**
  * Setup the subsystem.
  */
 void
@@ -1868,7 +1884,9 @@ GSF_pending_request_init_ ()
 void
 GSF_pending_request_done_ ()
 {
-  GNUNET_CONTAINER_multihashmap_iterate (pr_map, &clean_request, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (pr_map,
+                                         &clean_request,
+                                         NULL);
   GNUNET_CONTAINER_multihashmap_destroy (pr_map);
   pr_map = NULL;
   GNUNET_CONTAINER_heap_destroy (requests_by_expiration_heap);

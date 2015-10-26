@@ -371,6 +371,8 @@ get_latest (const struct GSF_RequestPlan *rp)
   rprd = GSF_pending_request_get_data_ (ret);
   for (bi = bi->next_PE; NULL != bi; bi = bi->next_PE)
   {
+    GNUNET_break (GNUNET_YES ==
+                  GSF_pending_request_test_active_ (bi->pr));
     prd = GSF_pending_request_get_data_ (bi->pr);
     if (prd->ttl.abs_value_us > rprd->ttl.abs_value_us)
     {
@@ -433,7 +435,8 @@ transmit_message_callback (void *cls,
     return 0;
   }
   /* remove from root, add again elsewhere... */
-  GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->priority_heap));
+  GNUNET_assert (rp ==
+                 GNUNET_CONTAINER_heap_remove_root (pp->priority_heap));
   rp->hn = NULL;
   rp->last_transmission = GNUNET_TIME_absolute_get ();
   rp->transmission_counter++;
@@ -443,8 +446,8 @@ transmit_message_callback (void *cls,
               rp, rp->transmission_counter);
   plan (pp, rp);
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop
-                            ("# query messages sent to other peers"), 1,
+                            gettext_noop ("# query messages sent to other peers"),
+                            1,
                             GNUNET_NO);
   return msize;
 }
@@ -477,7 +480,9 @@ schedule_peer_transmission (void *cls,
           (rp->earliest_transmission).rel_value_us))
   {
     GNUNET_assert (rp == GNUNET_CONTAINER_heap_remove_root (pp->delay_heap));
-    rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap, rp, rp->priority);
+    rp->hn = GNUNET_CONTAINER_heap_insert (pp->priority_heap,
+                                           rp,
+                                           rp->priority);
   }
   if (0 == GNUNET_CONTAINER_heap_get_size (pp->priority_heap))
   {
@@ -512,7 +517,9 @@ schedule_peer_transmission (void *cls,
 #endif
   /* process from priority heap */
   rp = GNUNET_CONTAINER_heap_peek (pp->priority_heap);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Executing query plan %p\n", rp);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Executing query plan %p\n",
+              rp);
   GNUNET_assert (NULL != rp);
   msize = GSF_pending_request_get_message_ (get_latest (rp), 0, NULL);
   pp->pth =
@@ -565,6 +572,8 @@ merge_pr (void *cls,
   struct GSF_PendingRequestPlanBijection *bi;
   struct GSF_PendingRequest *latest;
 
+  GNUNET_break (GNUNET_YES ==
+                GSF_pending_request_test_active_ (mpr->pr));
   if (GNUNET_OK !=
       GSF_pending_request_is_compatible_ (mpr->pr,
                                           rp->pe_head->pr))
@@ -585,7 +594,8 @@ merge_pr (void *cls,
   mpr->merged = GNUNET_YES;
 #if INSANE_STATISTICS
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# requests merged"), 1,
+                            gettext_noop ("# requests merged"),
+                            1,
                             GNUNET_NO);
 #endif
   latest = get_latest (rp);
@@ -595,7 +605,8 @@ merge_pr (void *cls,
 #if INSANE_STATISTICS
     GNUNET_STATISTICS_update (GSF_stats,
                               gettext_noop ("# requests refreshed"),
-                              1, GNUNET_NO);
+                              1,
+                              GNUNET_NO);
 #endif
     rp->transmission_counter = 0;       /* reset */
   }
@@ -620,6 +631,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
   struct GSF_PendingRequestPlanBijection *bi;
   struct MergeContext mpc;
 
+  GNUNET_assert (GNUNET_YES ==
+                 GSF_pending_request_test_active_ (pr));
   GNUNET_assert (NULL != cp);
   id = GSF_connected_peer_get_identity2_ (cp);
   pp = GNUNET_CONTAINER_multipeermap_get (plans, id);
@@ -715,12 +728,19 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   {
     GNUNET_break (GNUNET_YES ==
                   GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
-                                                        get_rp_key (rp), rp));
+                                                        get_rp_key (rp),
+                                                        rp));
     while (NULL != (bi = rp->pe_head))
     {
-      GNUNET_CONTAINER_MDLL_remove (PE, rp->pe_head, rp->pe_tail, bi);
+      GNUNET_CONTAINER_MDLL_remove (PE,
+                                    rp->pe_head,
+                                    rp->pe_tail,
+                                    bi);
       prd = GSF_pending_request_get_data_ (bi->pr);
-      GNUNET_CONTAINER_MDLL_remove (PR, prd->pr_head, prd->pr_tail, bi);
+      GNUNET_CONTAINER_MDLL_remove (PR,
+                                    prd->pr_head,
+                                    prd->pr_tail,
+                                    bi);
       GNUNET_free (bi);
     }
     plan_count--;
@@ -731,19 +751,28 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
   {
     GNUNET_break (GNUNET_YES ==
                   GNUNET_CONTAINER_multihashmap_remove (pp->plan_map,
-                                                        get_rp_key (rp), rp));
+                                                        get_rp_key (rp),
+                                                        rp));
     while (NULL != (bi = rp->pe_head))
     {
       prd = GSF_pending_request_get_data_ (bi->pr);
-      GNUNET_CONTAINER_MDLL_remove (PE, rp->pe_head, rp->pe_tail, bi);
-      GNUNET_CONTAINER_MDLL_remove (PR, prd->pr_head, prd->pr_tail, bi);
+      GNUNET_CONTAINER_MDLL_remove (PE,
+                                    rp->pe_head,
+                                    rp->pe_tail,
+                                    bi);
+      GNUNET_CONTAINER_MDLL_remove (PR,
+                                    prd->pr_head,
+                                    prd->pr_tail,
+                                    bi);
       GNUNET_free (bi);
     }
     plan_count--;
     GNUNET_free (rp);
   }
-  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# query plan entries"),
-                         plan_count, GNUNET_NO);
+  GNUNET_STATISTICS_set (GSF_stats,
+                         gettext_noop ("# query plan entries"),
+                         plan_count,
+                         GNUNET_NO);
   GNUNET_CONTAINER_heap_destroy (pp->delay_heap);
   GNUNET_CONTAINER_multihashmap_destroy (pp->plan_map);
   GNUNET_free (pp);
@@ -798,23 +827,31 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
   while (NULL != (bi = prd->pr_head))
   {
     rp = bi->rp;
-    GNUNET_CONTAINER_MDLL_remove (PR, prd->pr_head, prd->pr_tail, bi);
-    GNUNET_CONTAINER_MDLL_remove (PE, rp->pe_head, rp->pe_tail, bi);
+    GNUNET_CONTAINER_MDLL_remove (PR,
+                                  prd->pr_head,
+                                  prd->pr_tail,
+                                  bi);
+    GNUNET_CONTAINER_MDLL_remove (PE,
+                                  rp->pe_head,
+                                  rp->pe_tail,
+                                  bi);
+    GNUNET_assert (bi->pr == pr);
     if (NULL == rp->pe_head)
     {
       GNUNET_CONTAINER_heap_remove_node (rp->hn);
       plan_count--;
       GNUNET_break (GNUNET_YES ==
                     GNUNET_CONTAINER_multihashmap_remove (rp->pp->plan_map,
-							  &GSF_pending_request_get_data_
-							  (bi->pr)->query,
+							  &prd->query,
                                                           rp));
       GNUNET_free (rp);
     }
     GNUNET_free (bi);
   }
-  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# query plan entries"),
-                         plan_count, GNUNET_NO);
+  GNUNET_STATISTICS_set (GSF_stats,
+                         gettext_noop ("# query plan entries"),
+                         plan_count,
+                         GNUNET_NO);
 }
 
 
@@ -824,7 +861,8 @@ GSF_plan_notify_request_done_ (struct GSF_PendingRequest *pr)
 void
 GSF_plan_init ()
 {
-  plans = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_YES);
+  plans = GNUNET_CONTAINER_multipeermap_create (256,
+                                                GNUNET_YES);
 }
 
 

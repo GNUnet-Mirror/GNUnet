@@ -222,16 +222,20 @@ typedef void
 struct GSF_PendingRequest *
 GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
                              enum GNUNET_BLOCK_Type type,
-                             const struct GNUNET_HashCode * query,
+                             const struct GNUNET_HashCode *query,
                              const struct GNUNET_PeerIdentity *target,
-                             const char *bf_data, size_t bf_size,
-                             uint32_t mingle, uint32_t anonymity_level,
-                             uint32_t priority, int32_t ttl,
+                             const char *bf_data,
+                             size_t bf_size,
+                             uint32_t mingle,
+                             uint32_t anonymity_level,
+                             uint32_t priority,
+                             int32_t ttl,
                              GNUNET_PEER_Id sender_pid,
                              GNUNET_PEER_Id origin_pid,
-                             const struct GNUNET_HashCode * replies_seen,
+                             const struct GNUNET_HashCode *replies_seen,
                              unsigned int replies_seen_count,
-                             GSF_PendingRequestReplyHandler rh, void *rh_cls);
+                             GSF_PendingRequestReplyHandler rh,
+                             void *rh_cls);
 
 
 /**
@@ -240,11 +244,11 @@ GSF_pending_request_create_ (enum GSF_PendingRequestOptions options,
  *
  * @param pr request to update
  * @param replies_seen hash codes of replies that we've seen
- * @param replies_seen_count size of the replies_seen array
+ * @param replies_seen_count size of the @a replies_seen array
  */
 void
 GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
-                             const struct GNUNET_HashCode * replies_seen,
+                             const struct GNUNET_HashCode *replies_seen,
                              unsigned int replies_seen_count);
 
 
@@ -259,13 +263,23 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr);
 
 
 /**
+ * Check if the given request is still active.
+ *
+ * @param pr pending request
+ * @return #GNUNET_YES if the request is still active
+ */
+int
+GSF_pending_request_test_active_ (struct GSF_PendingRequest *pr);
+
+
+/**
  * Test if two pending requests are compatible (would generate
  * the same query modulo filters and should thus be processed
  * jointly).
  *
  * @param pra a pending request
  * @param prb another pending request
- * @return GNUNET_OK if the requests are compatible
+ * @return #GNUNET_OK if the requests are compatible
  */
 int
 GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
@@ -277,13 +291,14 @@ GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
  * transmission to other peers (or at least determine its size).
  *
  * @param pr request to generate the message for
- * @param buf_size number of bytes available in buf
+ * @param buf_size number of bytes available in @a buf
  * @param buf where to copy the message (can be NULL)
- * @return number of bytes needed (if buf_size too small) or used
+ * @return number of bytes needed (if @a buf_size too small) or used
  */
 size_t
 GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
-                                  size_t buf_size, void *buf);
+                                  size_t buf_size,
+                                  void *buf);
 
 
 /**
@@ -293,7 +308,8 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @param full_cleanup fully purge the request
  */
 void
-GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup);
+GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr,
+                             int full_cleanup);
 
 
 /**
@@ -303,11 +319,12 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup);
  * @param cls closure
  * @param key query for the request
  * @param pr handle to the pending request
- * @return GNUNET_YES to continue to iterate
+ * @return #GNUNET_YES to continue to iterate
  */
-typedef int (*GSF_PendingRequestIterator) (void *cls,
-                                           const struct GNUNET_HashCode * key,
-                                           struct GSF_PendingRequest * pr);
+typedef int
+(*GSF_PendingRequestIterator) (void *cls,
+                               const struct GNUNET_HashCode *key,
+                               struct GSF_PendingRequest *pr);
 
 
 /**
@@ -317,7 +334,8 @@ typedef int (*GSF_PendingRequestIterator) (void *cls,
  * @param cls closure for it
  */
 void
-GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it, void *cls);
+GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it,
+                               void *cls);
 
 
 /**
@@ -329,8 +347,8 @@ GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it, void *cls);
  * @param cp the other peer involved (sender or receiver, NULL
  *        for loopback messages where we are both sender and receiver)
  * @param message the actual message
- * @return GNUNET_OK if the message was well-formed,
- *         GNUNET_SYSERR if the message was malformed (close connection,
+ * @return #GNUNET_OK if the message was well-formed,
+ *         #GNUNET_SYSERR if the message was malformed (close connection,
  *         do not cache under any circumstances)
  */
 int
@@ -364,10 +382,10 @@ GSF_cadet_lookup_ (struct GSF_PendingRequest *pr);
  * @param pr the pending request we were processing
  * @param result final datastore lookup result
  */
-typedef void (*GSF_LocalLookupContinuation) (void *cls,
-                                             struct GSF_PendingRequest * pr,
-                                             enum GNUNET_BLOCK_EvaluationResult
-                                             result);
+typedef void
+(*GSF_LocalLookupContinuation) (void *cls,
+                                struct GSF_PendingRequest *pr,
+                                enum GNUNET_BLOCK_EvaluationResult result);
 
 
 /**
@@ -375,11 +393,12 @@ typedef void (*GSF_LocalLookupContinuation) (void *cls,
  *
  * @param pr the pending request to process
  * @param cont function to call at the end
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  */
 void
 GSF_local_lookup_ (struct GSF_PendingRequest *pr,
-                   GSF_LocalLookupContinuation cont, void *cont_cls);
+                   GSF_LocalLookupContinuation cont,
+                   void *cont_cls);
 
 
 /**
@@ -387,7 +406,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
  *
  * @param pr request
  * @param target
- * @return GNUNET_YES if this request could be forwarded to the given peer
+ * @return #GNUNET_YES if this request could be forwarded to the given peer
  */
 int
 GSF_pending_request_test_target_ (struct GSF_PendingRequest *pr,
