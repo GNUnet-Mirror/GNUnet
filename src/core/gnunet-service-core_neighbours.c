@@ -124,7 +124,7 @@ struct Neighbour
 
 
 /**
- * Map of peer identities to 'struct Neighbour'.
+ * Map of peer identities to `struct Neighbour`.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
 
@@ -368,6 +368,9 @@ handle_transport_notify_connect (void *cls,
   {
     /* duplicate connect notification!? */
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s exists already\n",
+                GNUNET_i2s (peer));
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -415,6 +418,9 @@ handle_transport_notify_disconnect (void *cls,
   if (NULL == n)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s not found\n",
+                GNUNET_i2s (peer));
     return;
   }
   free_neighbour (n);
@@ -452,6 +458,9 @@ handle_transport_receive (void *cls,
   {
     /* received message from peer that is not connected!? */
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s not found\n",
+                GNUNET_i2s (peer));
     return;
   }
   type = ntohs (message->type);
@@ -503,6 +512,9 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
   if (NULL == n)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s not found\n",
+                GNUNET_i2s (target));
     return;
   }
   msize = ntohs (msg->size);
@@ -521,8 +533,7 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
 
 
 /**
- * One of our neighbours has excess bandwidth,
- * remember this.
+ * One of our neighbours has excess bandwidth, remember this.
  *
  * @param cls NULL
  * @param pid identity of the peer with excess bandwidth
@@ -533,15 +544,18 @@ handle_transport_notify_excess_bw (void *cls,
 {
   struct Neighbour *n;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %s has excess bandwidth available\n",
-              GNUNET_i2s (pid));
   n = find_neighbour (pid);
   if (NULL == n)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s not found\n",
+                GNUNET_i2s (pid));
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %s has excess bandwidth available\n",
+              GNUNET_i2s (pid));
   n->has_excess_bandwidth = GNUNET_YES;
   GSC_SESSIONS_solicit (pid);
 }
@@ -562,6 +576,9 @@ GSC_NEIGHBOURS_get_queue_size (const struct GNUNET_PeerIdentity *target)
   if (NULL == n)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s not found\n",
+                GNUNET_i2s (target));
     return UINT_MAX;
   }
   return n->queue_size;
@@ -583,6 +600,9 @@ GSC_NEIGHBOURS_check_excess_bandwidth (const struct GNUNET_PeerIdentity *target)
   if (NULL == n)
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer %s not found\n",
+                GNUNET_i2s (target));
     return GNUNET_SYSERR;
   }
   return n->has_excess_bandwidth;
