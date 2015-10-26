@@ -990,7 +990,8 @@ transport_notify_ready (void *cls,
     if (th->notify_size + sizeof (struct OutboundMessage) > size)
       break;                    /* does not fit */
     if (GNUNET_BANDWIDTH_tracker_get_delay
-        (&n->out_tracker, th->notify_size).rel_value_us > 0)
+        (&n->out_tracker,
+         th->notify_size).rel_value_us > 0)
       break;                    /* too early */
     GNUNET_assert (n == GNUNET_CONTAINER_heap_remove_root (h->ready_heap));
     n->hn = NULL;

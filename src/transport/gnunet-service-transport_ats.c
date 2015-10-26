@@ -332,6 +332,11 @@ GST_ats_block_address (const struct GNUNET_HELLO_Address *address,
 {
   struct AddressInfo *ai;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   ai = find_ai (address,
                 session);
   if (NULL == ai)
@@ -399,6 +404,11 @@ GST_ats_block_reset (const struct GNUNET_HELLO_Address *address,
 {
   struct AddressInfo *ai;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   ai = find_ai (address, session);
   if (NULL == ai)
   {
@@ -428,6 +438,12 @@ GST_ats_add_inbound_address (const struct GNUNET_HELLO_Address *address,
 {
   struct GNUNET_ATS_AddressRecord *ar;
   struct AddressInfo *ai;
+
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
 
   /* Sanity checks for a valid inbound address */
   if (NULL == address->transport_name)
@@ -487,6 +503,11 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   struct GNUNET_ATS_AddressRecord *ar;
   struct AddressInfo *ai;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   /* validadte address */
   if (NULL == address->transport_name)
   {
@@ -537,6 +558,11 @@ GST_ats_new_session (const struct GNUNET_HELLO_Address *address,
 {
   struct AddressInfo *ai;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   ai = find_ai (address, NULL);
   if (NULL == ai)
   {
@@ -615,6 +641,11 @@ GST_ats_del_session (const struct GNUNET_HELLO_Address *address,
 {
   struct AddressInfo *ai;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   if (NULL == session)
   {
     GNUNET_break (0);
@@ -828,6 +859,11 @@ GST_ats_expire_address (const struct GNUNET_HELLO_Address *address)
 {
   struct AddressInfo *ai;
 
+  if (0 ==
+      memcmp (&GST_my_identity,
+              &address->peer,
+              sizeof (struct GNUNET_PeerIdentity)))
+    return; /* our own, ignore! */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Address %s of peer %s expired\n",
        GST_plugins_a2s (address),
