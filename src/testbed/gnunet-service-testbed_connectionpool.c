@@ -975,15 +975,19 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
 {
   struct PooledConnection *entry;
 
+  if (NULL == gh)
+    return;
   entry = gh->entry;
   LOG_DEBUG ("Cleaning up get handle %p for service %u, peer %u\n",
              gh,
              gh->service, entry->index);
-  if (!gh->connection_ready_called)
+  if (! gh->connection_ready_called)
   {
-    GNUNET_CONTAINER_DLL_remove (entry->head_waiting, entry->tail_waiting, gh);
-    if ( (NULL == search_waiting (entry, entry->head_waiting))
-         && (NULL != entry->notify_task) )
+    GNUNET_CONTAINER_DLL_remove (entry->head_waiting,
+                                 entry->tail_waiting,
+                                 gh);
+    if ( (NULL == search_waiting (entry, entry->head_waiting)) &&
+         (NULL != entry->notify_task) )
     {
       GNUNET_SCHEDULER_cancel (entry->notify_task);
       entry->notify_task = NULL;
@@ -991,14 +995,18 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
   }
   if (gh->notify_waiting)
   {
-    GNUNET_CONTAINER_DLL_remove (entry->head_notify, entry->tail_notify, gh);
+    GNUNET_CONTAINER_DLL_remove (entry->head_notify,
+                                 entry->tail_notify,
+                                 gh);
     gh->notify_waiting = 0;
   }
   GNUNET_free (gh);
   gh = NULL;
-  GNUNET_assert (!entry->in_lru);
-  if (!entry->in_pool)
-    GNUNET_CONTAINER_DLL_remove (head_not_pooled, tail_not_pooled, entry);
+  GNUNET_assert (! entry->in_lru);
+  if (! entry->in_pool)
+    GNUNET_CONTAINER_DLL_remove (head_not_pooled,
+                                 tail_not_pooled,
+                                 entry);
   if (NULL != map)
   {
     if (GNUNET_YES == GNUNET_CONTAINER_multihashmap32_contains (map,
