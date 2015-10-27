@@ -256,7 +256,7 @@ if HAVE_BENCHMARKS
   perf_malloc
 endif
 
-if HAVE_SSH_BINARY
+if HAVE_SSH_KEY
  SSH_USING_TESTS = test_socks.nc
 endif
 

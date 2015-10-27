@@ -186,13 +186,12 @@ main (int argc, char *argv[])
   if (pid == 0) 
   {
     execlp ("ssh",
-	    "ssh",
-	    "-D", 
-	    socksport,
-	    "127.0.0.1",
-	    "-N",
-	    NULL);
-    perror ("execlp (\"ssh\",\"ssh\",\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
+            "ssh","-D",socksport,
+            "-o","BatchMode yes",
+            "-o","UserKnownHostsFile /tmp/gnunet_test_socks_ssh_garbage",
+            "-o","StrictHostKeyChecking no",
+            "127.0.0.1","-N",(char*)NULL);
+    perror ("execlp (\"ssh\",\"ssh\",...,\"-D\",\"1081\",\"127.0.0.1\",\"-N\") ");
     printf (""
 "Please ensure you have ssh installed and have sshd installed and running :\n"
 "\tsudo apt-get install openssh-client openssh-server\n"
