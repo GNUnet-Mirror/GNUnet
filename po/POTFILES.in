@@ -312,6 +312,7 @@ src/set/gnunet-service-set_union_strata_estimator.c
 src/set/gnunet-set-ibf-profiler.c
 src/set/gnunet-set-profiler.c
 src/set/ibf.c
+src/set/ibf_sim.c
 src/set/set_api.c
 src/social/gnunet-service-social.c
 src/social/social_api.c
