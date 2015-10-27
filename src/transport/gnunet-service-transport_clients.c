@@ -693,6 +693,11 @@ struct SendTransmitContinuationContext
    * At what time did we receive the message?
    */
   struct GNUNET_TIME_Absolute send_time;
+
+  /**
+   * Unique ID, for logging.
+   */
+  unsigned long long uuid;
 };
 
 
@@ -742,6 +747,9 @@ handle_send_transmit_continuation (void *cls,
   if (GST_neighbours_test_connected (&stcc->target))
   {
     /* Only send confirmation if we are still connected */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending SEND_OK for transmission request %llu\n",
+                stcc->uuid);
     send_ok_msg.header.size = htons (sizeof (send_ok_msg));
     send_ok_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK);
     send_ok_msg.bytes_msg = htonl (bytes_payload);
@@ -769,6 +777,7 @@ clients_handle_send (void *cls,
                      struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *message)
 {
+  static unsigned long long uuid_gen;
   const struct OutboundMessage *obm;
   const struct GNUNET_MessageHeader *obmm;
   struct SendTransmitContinuationContext *stcc;
@@ -821,7 +830,8 @@ clients_handle_send (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received SEND request for `%s' and first message of type %u and total size %u\n",
+              "Received SEND request %llu for `%s' and first message of type %u and total size %u\n",
+              uuid_gen,
               GNUNET_i2s (&obm->peer),
               ntohs (obmm->type),
               msize);
@@ -831,6 +841,7 @@ clients_handle_send (void *cls,
   stcc->target = obm->peer;
   stcc->client = client;
   stcc->send_time = GNUNET_TIME_absolute_get ();
+  stcc->uuid = uuid_gen++;
   GNUNET_SERVER_client_keep (client);
   GST_manipulation_send (&obm->peer,
                          obmm,
