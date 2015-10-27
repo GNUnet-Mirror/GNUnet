@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2008--2013 Christian Grothoff (and other contributing authors)
+  Copyright (C) 2008--2015 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -23,7 +23,9 @@
  * @brief Interface for connection pooling subroutines
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
-
+#include "gnunet_ats_service.h"
+#include "gnunet_core_service.h"
+#include "gnunet_transport_service.h"
 
 /**
  * The request handle for obtaining a pooled connection
@@ -44,7 +46,12 @@ enum GST_ConnectionPool_Service
   /**
    * Core service
    */
-  GST_CONNECTIONPOOL_SERVICE_CORE
+  GST_CONNECTIONPOOL_SERVICE_CORE,
+
+  /**
+   * ATS service
+   */
+  GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY
 };
 
 
@@ -63,7 +70,7 @@ GST_connection_pool_init (unsigned int size);
  * Cleanup the connection pool
  */
 void
-GST_connection_pool_destroy ();
+GST_connection_pool_destroy (void);
 
 /**
  * Functions of this type are called when the needed handle is available for
@@ -75,15 +82,16 @@ GST_connection_pool_destroy ();
  * @param cls the closure passed to GST_connection_pool_get_handle()
  * @param ch the handle to CORE. Can be NULL if it is not requested
  * @param th the handle to TRANSPORT. Can be NULL if it is not requested
+ * @param ac the handle to ATS, can be NULL if it is not requested
  * @param peer_id the identity of the peer. Will be NULL if ch is NULL. In other
  *          cases, its value being NULL means that CORE connection has failed.
  */
 typedef void
 (*GST_connection_pool_connection_ready_cb) (void *cls,
-                                            struct GNUNET_CORE_Handle * ch,
-                                            struct GNUNET_TRANSPORT_Handle * th,
-                                            const struct GNUNET_PeerIdentity *
-                                            peer_id);
+                                            struct GNUNET_CORE_Handle *ch,
+                                            struct GNUNET_TRANSPORT_Handle *th,
+                                            struct GNUNET_ATS_ConnectivityHandle *ac,
+                                            const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**
@@ -96,8 +104,7 @@ typedef void
  */
 typedef void
 (*GST_connection_pool_peer_connect_notify) (void *cls,
-                                            const struct GNUNET_PeerIdentity
-                                            *target);
+                                            const struct GNUNET_PeerIdentity *target);
 
 
 /**

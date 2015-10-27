@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet.
-  Copyright (C) 2008--2013 Christian Grothoff (and other contributing authors)
+  Copyright (C) 2008--2015 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -79,6 +79,11 @@ struct PooledConnection
   struct GNUNET_CORE_Handle *handle_core;
 
   /**
+   * The ATS handle to the peer correspondign to this entry; can be NULL.
+   */
+  struct GNUNET_ATS_ConnectivityHandle *handle_ats_connectivity;
+
+  /**
    * The operation handle for transport handle
    */
   struct GNUNET_TESTBED_Operation *op_transport;
@@ -87,6 +92,11 @@ struct PooledConnection
    * The operation handle for core handle
    */
   struct GNUNET_TESTBED_Operation *op_core;
+
+  /**
+   * The operation handle for ATS handle
+   */
+  struct GNUNET_TESTBED_Operation *op_ats_connectivity;
 
   /**
    * The peer identity of this peer. Will be set upon opening a connection to
@@ -299,12 +309,20 @@ destroy_pooled_connection (struct PooledConnection *entry)
     GNUNET_TESTBED_operation_done (entry->op_transport);
     entry->op_transport = NULL;
   }
+  if (NULL != entry->handle_ats_connectivity)
+    GNUNET_assert (NULL != entry->op_ats_connectivity);
+  if (NULL != entry->op_ats_connectivity)
+  {
+    GNUNET_TESTBED_operation_done (entry->op_ats_connectivity);
+    entry->op_ats_connectivity = NULL;
+  }
   if (NULL != entry->op_core)
   {
     GNUNET_TESTBED_operation_done (entry->op_core);
     entry->op_core = NULL;
   }
   GNUNET_assert (NULL == entry->handle_core);
+  GNUNET_assert (NULL == entry->handle_ats_connectivity);
   GNUNET_assert (NULL == entry->handle_transport);
   GNUNET_CONFIGURATION_destroy (entry->cfg);
   GNUNET_free (entry);
@@ -318,7 +336,8 @@ destroy_pooled_connection (struct PooledConnection *entry)
  * @param tc scheduler task context
  */
 static void
-expire (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+expire (void *cls,
+        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PooledConnection *entry = cls;
 
@@ -392,6 +411,10 @@ search_waiting (const struct PooledConnection *entry,
       if (NULL == entry->handle_transport)
         continue;
       break;
+    case GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY:
+      if (NULL == entry->handle_ats_connectivity)
+        continue;
+      break;
     }
     break;
   }
@@ -422,18 +445,27 @@ connection_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   gh_next = NULL;
   if (NULL != gh->next)
     gh_next = search_waiting (entry, gh->next);
-  GNUNET_CONTAINER_DLL_remove (entry->head_waiting, entry->tail_waiting, gh);
+  GNUNET_CONTAINER_DLL_remove (entry->head_waiting,
+                               entry->tail_waiting,
+                               gh);
   gh->connection_ready_called = 1;
   if (NULL != gh_next)
-    entry->notify_task = GNUNET_SCHEDULER_add_now (&connection_ready, entry);
-  if ( (NULL != gh->target) && (NULL != gh->connect_notify_cb) )
+    entry->notify_task = GNUNET_SCHEDULER_add_now (&connection_ready,
+                                                   entry);
+  if ( (NULL != gh->target) &&
+       (NULL != gh->connect_notify_cb) )
   {
-    GNUNET_CONTAINER_DLL_insert_tail (entry->head_notify, entry->tail_notify,
+    GNUNET_CONTAINER_DLL_insert_tail (entry->head_notify,
+                                      entry->tail_notify,
                                       gh);
     gh->notify_waiting = 1;
   }
-  LOG_DEBUG ("Connection ready for handle type %u\n", gh->service);
-  gh->cb (gh->cb_cls, entry->handle_core, entry->handle_transport,
+  LOG_DEBUG ("Connection ready for handle type %u\n",
+             gh->service);
+  gh->cb (gh->cb_cls,
+          entry->handle_core,
+          entry->handle_transport,
+          entry->handle_ats_connectivity,
           entry->peer_identity);
 }
 
@@ -448,7 +480,8 @@ connection_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param service the service where this notification has originated
  */
 static void
-peer_connect_notify_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
+peer_connect_notify_cb (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
                         const enum GST_ConnectionPool_Service service)
 {
   struct PooledConnection *entry = cls;
@@ -467,7 +500,9 @@ peer_connect_notify_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
       gh = gh->next;
       continue;
     }
-    if (0 != memcmp (gh->target, peer, sizeof (struct GNUNET_PeerIdentity)))
+    if (0 != memcmp (gh->target,
+                     peer,
+                     sizeof (struct GNUNET_PeerIdentity)))
     {
       gh = gh->next;
       continue;
@@ -477,7 +512,9 @@ peer_connect_notify_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
     gh_next = gh->next;
     GNUNET_CONTAINER_DLL_remove (entry->head_notify, entry->tail_notify, gh);
     gh->notify_waiting = 0;
-    LOG_DEBUG ("Peer connected to peer %u at service %u\n", entry->index, gh->service);
+    LOG_DEBUG ("Peer connected to peer %u at service %u\n",
+               entry->index,
+               gh->service);
     gh = gh_next;
     cb (cb_cls, peer);
   }
@@ -497,7 +534,9 @@ transport_peer_connect_notify_cb (void *cls,
 {
   struct PooledConnection *entry = cls;
 
-  peer_connect_notify_cb (entry, peer, GST_CONNECTIONPOOL_SERVICE_TRANSPORT);
+  peer_connect_notify_cb (entry,
+                          peer,
+                          GST_CONNECTIONPOOL_SERVICE_TRANSPORT);
 }
 
 
@@ -637,7 +676,7 @@ opstart_get_handle_core (void *cls)
 
 
 /**
- * Function called when the operation responsible for opening a TRANSPORT
+ * Function called when the operation responsible for opening a CORE
  * connection is marked as done.
  *
  * @param cls the #PooledConnection object
@@ -653,6 +692,40 @@ oprelease_get_handle_core (void *cls)
   entry->handle_core = NULL;
   GNUNET_free_non_null (entry->peer_identity);
   entry->peer_identity = NULL;
+}
+
+
+/**
+ * Function called when resources for opening a connection to ATS are
+ * available.
+ *
+ * @param cls the #PooledConnection object
+ */
+static void
+opstart_get_handle_ats_connectivity (void *cls)
+{
+  struct PooledConnection *entry = cls;
+
+  entry->handle_ats_connectivity =
+    GNUNET_ATS_connectivity_init (entry->cfg);
+}
+
+
+/**
+ * Function called when the operation responsible for opening a ATS
+ * connection is marked as done.
+ *
+ * @param cls the #PooledConnection object
+ */
+static void
+oprelease_get_handle_ats_connectivity (void *cls)
+{
+  struct PooledConnection *entry = cls;
+
+  if (NULL == entry->handle_ats_connectivity)
+    return;
+  GNUNET_ATS_connectivity_done (entry->handle_ats_connectivity);
+  entry->handle_ats_connectivity = NULL;
 }
 
 
@@ -798,6 +871,12 @@ GST_connection_pool_get_handle (unsigned int peer_id,
         LOG_DEBUG ("Found CORE handle for peer %u\n",
                    entry->index);
       break;
+    case GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY:
+      handle = entry->handle_ats_connectivity;
+      if (NULL != handle)
+        LOG_DEBUG ("Found ATS CONNECTIVITY handle for peer %u\n",
+                   entry->index);
+      break;
     }
   }
   else
@@ -862,6 +941,14 @@ GST_connection_pool_get_handle (unsigned int peer_id,
                                            &opstart_get_handle_core,
                                            &oprelease_get_handle_core);
     entry->op_core = op;
+    break;
+  case GST_CONNECTIONPOOL_SERVICE_ATS_CONNECTIVITY:
+    if (NULL != entry->op_ats_connectivity)
+      return gh;                /* Operation pending */
+    op = GNUNET_TESTBED_operation_create_ (entry,
+                                           &opstart_get_handle_ats_connectivity,
+                                           &oprelease_get_handle_ats_connectivity);
+    entry->op_ats_connectivity = op;
     break;
   }
   GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds,

@@ -53,6 +53,7 @@ gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/testing/libgnunettesting.la \
  libgnunettestbed.la \
  $(top_builddir)/src/arm/libgnunetarm.la \
