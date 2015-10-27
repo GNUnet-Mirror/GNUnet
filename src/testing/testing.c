@@ -124,7 +124,7 @@ struct GNUNET_TESTING_System
   char *hostkeys_data;
 
   /**
-   * memory map for 'hostkeys_data'.
+   * memory map for @e hostkeys_data.
    */
   struct GNUNET_DISK_MapHandle *map;
 
@@ -256,7 +256,7 @@ struct GNUNET_TESTING_Peer
  * startup. This function loads such keys into memory from a file.
  *
  * @param system the testing system handle
- * @return GNUNET_OK on success; GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success; #GNUNET_SYSERR on error
  */
 static int
 hostkeys_load (struct GNUNET_TESTING_System *system)
@@ -465,6 +465,7 @@ GNUNET_TESTING_system_create (const char *testdir,
 						      HIGH_PORT);
 }
 
+
 static void
 cleanup_shared_service_instance (struct SharedServiceInstance *i)
 {
@@ -479,6 +480,7 @@ cleanup_shared_service_instance (struct SharedServiceInstance *i)
   GNUNET_break (0 == i->n_refs);
   GNUNET_free (i);
 }
+
 
 static int
 start_shared_service_instance (struct SharedServiceInstance *i)
@@ -660,7 +662,7 @@ GNUNET_TESTING_reserve_port (struct GNUNET_TESTING_System *system)
 
 /**
  * Release reservation of a TCP or UDP port for a peer
- * (used during GNUNET_TESTING_peer_destroy).
+ * (used during #GNUNET_TESTING_peer_destroy()).
  *
  * @param system system to use for reservation tracking
  * @param port reserved port to release
@@ -700,7 +702,7 @@ GNUNET_TESTING_release_port (struct GNUNET_TESTING_System *system,
  * @param system the testing system handle
  * @param key_number desired pre-created hostkey to obtain
  * @param id set to the peer's identity (hash of the public
- *        key; if NULL, GNUNET_SYSERR is returned immediately
+ *        key; if NULL, NULL is returned immediately
  * @return NULL on error (not enough keys)
  */
 struct GNUNET_CRYPTO_EddsaPrivateKey *
@@ -715,7 +717,8 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
   if (key_number >= system->total_hostkeys)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Key number %u does not exist\n"), key_number);
+         _("Key number %u does not exist\n"),
+         key_number);
     return NULL;
   }
   private_key = GNUNET_new (struct GNUNET_CRYPTO_EddsaPrivateKey);
@@ -724,7 +727,7 @@ GNUNET_TESTING_hostkey_get (const struct GNUNET_TESTING_System *system,
 	  (key_number * GNUNET_TESTING_HOSTKEYFILESIZE),
 	  GNUNET_TESTING_HOSTKEYFILESIZE);
   GNUNET_CRYPTO_eddsa_key_get_public (private_key,
-                                                  &id->public_key);
+                                      &id->public_key);
   return private_key;
 }
 
@@ -780,7 +783,9 @@ struct UpdateContext
  * @param value value of the option
  */
 static void
-update_config (void *cls, const char *section, const char *option,
+update_config (void *cls,
+               const char *section,
+               const char *option,
                const char *value)
 {
   struct UpdateContext *uc = cls;
@@ -964,6 +969,7 @@ update_config_sections (void *cls,
   GNUNET_free (allowed_hosts);
 }
 
+
 static struct SharedServiceInstance *
 associate_shared_service (struct GNUNET_TESTING_System *system,
                           struct SharedService *ss,
@@ -1095,14 +1101,14 @@ GNUNET_TESTING_configuration_create_ (struct GNUNET_TESTING_System *system,
  * system. The default configuration will be available in PATHS section under
  * the option DEFAULTCONFIG after the call. GNUNET_HOME is also set in PATHS
  * section to the temporary directory specific to this configuration. If we run
- * out of "*port" numbers, return SYSERR.
+ * out of "*port" numbers, return #GNUNET_SYSERR.
  *
  * This is primarily a helper function used internally
- * by 'GNUNET_TESTING_peer_configure'.
+ * by #GNUNET_TESTING_peer_configure().
  *
  * @param system system to use to coordinate resource usage
  * @param cfg template configuration to update
- * @return GNUNET_OK on success, GNUNET_SYSERR on error - the configuration will
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error - the configuration will
  *           be incomplete and should not be used there upon
  */
 int
@@ -1305,7 +1311,7 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
  * Start the peer.
  *
  * @param peer peer to start
- * @return GNUNET_OK on success, GNUNET_SYSERR on error (i.e. peer already running)
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error (i.e. peer already running)
  */
 int
 GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
@@ -1357,8 +1363,8 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
  *          the service
  * @param cont the callback to call with result and status from ARM API
  * @param cont_cls the closure for the above callback
- * @return GNUNET_OK upon successfully queuing the service start request;
- *           GNUNET_SYSERR upon error
+ * @return #GNUNET_OK upon successfully queuing the service start request;
+ *           #GNUNET_SYSERR upon error
  */
 int
 GNUNET_TESTING_peer_service_start (struct GNUNET_TESTING_Peer *peer,
@@ -1387,8 +1393,8 @@ GNUNET_TESTING_peer_service_start (struct GNUNET_TESTING_Peer *peer,
  *          the service
  * @param cont the callback to call with result and status from ARM API
  * @param cont_cls the closure for the above callback
- * @return GNUNET_OK upon successfully queuing the service stop request;
- *           GNUNET_SYSERR upon error
+ * @return #GNUNET_OK upon successfully queuing the service stop request;
+ *           #GNUNET_SYSERR upon error
  */
 int
 GNUNET_TESTING_peer_service_stop (struct GNUNET_TESTING_Peer *peer,
@@ -1411,7 +1417,7 @@ GNUNET_TESTING_peer_service_stop (struct GNUNET_TESTING_Peer *peer,
  * Sends SIGTERM to the peer's main process
  *
  * @param peer the handle to the peer
- * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ * @return #GNUNET_OK if successful; #GNUNET_SYSERR if the main process is NULL
  *           or upon any error while sending SIGTERM
  */
 int
@@ -1443,7 +1449,7 @@ GNUNET_TESTING_peer_kill (struct GNUNET_TESTING_Peer *peer)
  * Waits for a peer to terminate. The peer's main process will also be destroyed.
  *
  * @param peer the handle to the peer
- * @return GNUNET_OK if successful; GNUNET_SYSERR if the main process is NULL
+ * @return #GNUNET_OK if successful; #GNUNET_SYSERR if the main process is NULL
  *           or upon any error while waiting
  */
 int
@@ -1467,7 +1473,7 @@ GNUNET_TESTING_peer_wait (struct GNUNET_TESTING_Peer *peer)
  * Stop the peer.
  *
  * @param peer peer to stop
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
@@ -1484,8 +1490,8 @@ GNUNET_TESTING_peer_stop (struct GNUNET_TESTING_Peer *peer)
  * Function called whenever we connect to or disconnect from ARM.
  *
  * @param cls closure
- * @param connected GNUNET_YES if connected, GNUNET_NO if disconnected,
- *                  GNUNET_SYSERR on error.
+ * @param connected #GNUNET_YES if connected, #GNUNET_NO if disconnected,
+ *                  #GNUNET_SYSERR on error.
  */
 static void
 disconn_status (void *cls,
@@ -1517,8 +1523,8 @@ disconn_status (void *cls,
  * @param peer the peer to stop
  * @param cb the callback to signal peer shutdown
  * @param cb_cls closure for the above callback
- * @return GNUNET_OK upon successfully giving the request to the ARM API (this
- *           does not mean that the peer is successfully stopped); GNUNET_SYSERR
+ * @return #GNUNET_OK upon successfully giving the request to the ARM API (this
+ *           does not mean that the peer is successfully stopped); #GNUNET_SYSERR
  *           upon any error.
  */
 int
@@ -1595,7 +1601,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
  * Starts a peer using the given configuration and then invokes the
  * given callback.  This function ALSO initializes the scheduler loop
  * and should thus be called directly from "main".  The testcase
- * should self-terminate by invoking 'GNUNET_SCHEDULER_shutdown'.
+ * should self-terminate by invoking #GNUNET_SCHEDULER_shutdown().
  *
  * @param testdir only the directory name without any path. This is used for
  *          all service homes; the directory will be created in a temporary
@@ -1603,7 +1609,7 @@ GNUNET_TESTING_peer_destroy (struct GNUNET_TESTING_Peer *peer)
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
  * @param tm main function of the testcase
- * @param tm_cls closure for 'tm'
+ * @param tm_cls closure for @a tm
  * @return 0 on success, 1 on error
  */
 int
@@ -1666,7 +1672,7 @@ service_run_main (void *cls,
  * Starts a service using the given configuration and then invokes the
  * given callback.  This function ALSO initializes the scheduler loop
  * and should thus be called directly from "main".  The testcase
- * should self-terminate by invoking 'GNUNET_SCHEDULER_shutdown'.
+ * should self-terminate by invoking #GNUNET_SCHEDULER_shutdown().
  *
  * This function is useful if the testcase is for a single service
  * and if that service doesn't itself depend on other services.
@@ -1678,7 +1684,7 @@ service_run_main (void *cls,
  * @param cfgfilename name of the configuration file to use;
  *         use NULL to only run with defaults
  * @param tm main function of the testcase
- * @param tm_cls closure for 'tm'
+ * @param tm_cls closure for @a tm
  * @return 0 on success, 1 on error
  */
 int
