@@ -763,7 +763,8 @@ demultiplexer (void *cls,
     bytes_msg = ntohl (okm->bytes_msg);
     bytes_physical = ntohl (okm->bytes_physical);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Receiving SEND_OK message, transmission %s.\n",
+         "Receiving SEND_OK message, transmission to %s %s.\n",
+         GNUNET_i2s (&okm->peer),
          ntohl (okm->success) == GNUNET_OK ? "succeeded" : "failed");
 
     n = neighbour_find (h,
@@ -1106,8 +1107,6 @@ schedule_transmission_task (void *cls,
   }
   else
   {
-    if (GNUNET_YES != n->is_ready)
-      return;                   /* service not ready for another one */
     n = GNUNET_CONTAINER_heap_peek (h->ready_heap);
     if (NULL == n)
       return;                   /* no pending messages */
@@ -1748,7 +1747,9 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
 
   if (NULL != ghh->notify_task)
     GNUNET_SCHEDULER_cancel (ghh->notify_task);
-  GNUNET_CONTAINER_DLL_remove (handle->hwl_head, handle->hwl_tail, ghh);
+  GNUNET_CONTAINER_DLL_remove (handle->hwl_head,
+                               handle->hwl_tail,
+                               ghh);
   GNUNET_free (ghh);
 }
 
