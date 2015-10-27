@@ -157,7 +157,7 @@ error_handler (void *cls,
 {
   struct GNUNET_ATS_ConnectivityHandle *ch = cls;
 
-  LOG (GNUNET_ERROR_TYPE_WARNING,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "ATS connection died (code %d), reconnecting\n",
        (int) error);
   force_reconnect (ch);
