@@ -161,8 +161,8 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-  if (NULL != prop)
-    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != prop->scope);
+  GNUNET_break ( (NULL == prop) ||
+                 (GNUNET_ATS_NET_UNSPECIFIED != prop->scope) );
   notify_client (NULL,
                  peer,
                  plugin_name,
