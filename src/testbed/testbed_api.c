@@ -484,12 +484,12 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS message from
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_PEERCREATESUCCESS message from
  * controller (testbed service)
  *
  * @param c the controller handle
  * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
  *           not
  */
 static int
@@ -543,12 +543,12 @@ handle_peer_create_success (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT message from
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_PEEREVENT message from
  * controller (testbed service)
  *
  * @param c the controller handler
  * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
  *           not
  */
 static int
@@ -624,12 +624,12 @@ handle_peer_event (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT message from
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_PEERCONEVENT message from
  * controller (testbed service)
  *
  * @param c the controller handler
  * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
  *           not
  */
 static int
@@ -699,7 +699,7 @@ handle_peer_conevent (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG message from
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_PEERCONFIG message from
  * controller (testbed service)
  *
  * @param c the controller handler
@@ -771,12 +771,12 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT message from
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_OPERATIONFAILEVENT message from
  * controller (testbed service)
  *
  * @param c the controller handler
  * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
  *           not
  */
 static int
@@ -931,12 +931,12 @@ GNUNET_TESTBED_generate_slavegetconfig_msg_ (uint64_t op_id, uint32_t slave_id)
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
  * (testbed service)
  *
  * @param c the controller handler
  * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
  *           not
  */
 static int
@@ -978,12 +978,12 @@ handle_slave_config (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_SLAVECONFIG message from controller
  * (testbed service)
  *
  * @param c the controller handler
  * @param msg message received
- * @return GNUNET_YES if we can continue receiving from service; GNUNET_NO if
+ * @return #GNUNET_YES if we can continue receiving from service; #GNUNET_NO if
  *           not
  */
 static int
@@ -1558,8 +1558,7 @@ opc_free_iterator (void *cls, uint32_t key, void *value)
  * @param c handle to controller to stop
  */
 void
-GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller
-                                      *c)
+GNUNET_TESTBED_controller_disconnect (struct GNUNET_TESTBED_Controller *c)
 {
   struct MessageQueue *mq_entry;
 
@@ -1899,11 +1898,11 @@ GNUNET_TESTBED_operation_done (struct GNUNET_TESTBED_Operation *operation)
 /**
  * Generates configuration by uncompressing configuration in given message. The
  * given message should be of the following types:
- * GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION,
- * GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
- * GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST,
- * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS,
- * GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT,
+ * #GNUNET_MESSAGE_TYPE_TESTBED_PEER_INFORMATION,
+ * #GNUNET_MESSAGE_TYPE_TESTBED_SLAVE_CONFIGURATION,
+ * #GNUNET_MESSAGE_TYPE_TESTBED_ADD_HOST,
+ * #GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS,
+ * #GNUNET_MESSAGE_TYPE_TESTBED_LINK_CONTROLLERS_RESULT,
  *
  * @param msg the message containing compressed configuration
  * @return handle to the parsed configuration; NULL upon error while parsing the message

@@ -568,12 +568,12 @@ core_peer_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 /**
- * Function called after GNUNET_CORE_connect has succeeded (or failed
+ * Function called after #GNUNET_CORE_connect() has succeeded (or failed
  * for good).  Note that the private key of the peer is intentionally
  * not exposed here; if you need it, your process should try to read
  * the private key file directly (which should work if you are
  * authorized...).  Implementations of this function must not call
- * GNUNET_CORE_disconnect (other than by scheduling a new task to
+ * #GNUNET_CORE_disconnect() (other than by scheduling a new task to
  * do this later).
  *
  * @param cls the #PooledConnection object
@@ -816,7 +816,9 @@ GST_connection_pool_get_handle (unsigned int peer_id,
     }
     else
     {
-      GNUNET_CONTAINER_DLL_insert_tail (head_not_pooled, tail_not_pooled, entry);
+      GNUNET_CONTAINER_DLL_insert_tail (head_not_pooled,
+                                        tail_not_pooled,
+                                        entry);
     }
     entry->cfg = GNUNET_CONFIGURATION_dup (cfg);
   }
@@ -829,13 +831,16 @@ GST_connection_pool_get_handle (unsigned int peer_id,
   gh->connect_notify_cb = connect_notify_cb;
   gh->connect_notify_cb_cls = connect_notify_cb_cls;
   gh->service = service;
-  GNUNET_CONTAINER_DLL_insert (entry->head_waiting, entry->tail_waiting, gh);
+  GNUNET_CONTAINER_DLL_insert (entry->head_waiting,
+                               entry->tail_waiting,
+                               gh);
   if (NULL != handle)
   {
     if (NULL == entry->notify_task)
     {
       if (NULL != search_waiting (entry, entry->head_waiting))
-        entry->notify_task = GNUNET_SCHEDULER_add_now (&connection_ready, entry);
+        entry->notify_task = GNUNET_SCHEDULER_add_now (&connection_ready,
+                                                       entry);
     }
     return gh;
   }
@@ -845,19 +850,22 @@ GST_connection_pool_get_handle (unsigned int peer_id,
   case GST_CONNECTIONPOOL_SERVICE_TRANSPORT:
     if (NULL != entry->op_transport)
       return gh;                /* Operation pending */
-    op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_transport,
+    op = GNUNET_TESTBED_operation_create_ (entry,
+                                           &opstart_get_handle_transport,
                                            &oprelease_get_handle_transport);
     entry->op_transport = op;
     break;
   case GST_CONNECTIONPOOL_SERVICE_CORE:
     if (NULL != entry->op_core)
       return gh;                /* Operation pending */
-    op = GNUNET_TESTBED_operation_create_ (entry, &opstart_get_handle_core,
+    op = GNUNET_TESTBED_operation_create_ (entry,
+                                           &opstart_get_handle_core,
                                            &oprelease_get_handle_core);
     entry->op_core = op;
     break;
   }
-  GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds, op);
+  GNUNET_TESTBED_operation_queue_insert_ (GST_opq_openfds,
+                                          op);
   GNUNET_TESTBED_operation_begin_wait_ (op);
   return gh;
 }
