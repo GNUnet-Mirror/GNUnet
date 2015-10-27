@@ -203,12 +203,19 @@ transmit_next (void *cls,
   else
     fsize = fc->mtu;
   if (NULL != fc->tracker)
-    delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker, fsize);
+    delay = GNUNET_BANDWIDTH_tracker_get_delay (fc->tracker,
+                                                fsize);
   else
     delay = GNUNET_TIME_UNIT_ZERO;
   if (delay.rel_value_us > 0)
   {
-    fc->task = GNUNET_SCHEDULER_add_delayed (delay, &transmit_next, fc);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Fragmentation logic delays transmission of next fragment by %s\n",
+                GNUNET_STRINGS_relative_time_to_string (delay,
+                                                        GNUNET_YES));
+    fc->task = GNUNET_SCHEDULER_add_delayed (delay,
+                                             &transmit_next,
+                                             fc);
     return;
   }
   fc->next_transmission = (fc->next_transmission + 1) % 64;
@@ -273,7 +280,8 @@ transmit_next (void *cls,
   fc->proc_busy = GNUNET_YES;
   fc->delay_until = GNUNET_TIME_relative_to_absolute (delay);
   fc->num_transmissions++;
-  fc->proc (fc->proc_cls, &fh->header);
+  fc->proc (fc->proc_cls,
+            &fh->header);
 }
 
 
@@ -331,7 +339,8 @@ GNUNET_FRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
   fc->proc = proc;
   fc->proc_cls = proc_cls;
   fc->fragment_id =
-      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+      GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                UINT32_MAX);
   memcpy (&fc[1], msg, size);
   bits =
       (size + mtu - sizeof (struct FragmentHeader) - 1) / (mtu -
