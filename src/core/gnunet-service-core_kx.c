@@ -1060,22 +1060,9 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
               &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    char sender[5];
-    char peer[5];
-
-    GNUNET_snprintf (sender,
-                     sizeof (sender),
-                     "%4s",
-                     GNUNET_i2s (&kx->peer));
-    GNUNET_snprintf (peer,
-                     sizeof (peer),
-                     "%4s",
-                     GNUNET_i2s (&t.target));
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
-                sender,
-                GNUNET_i2s (&GSC_my_identity),
-                peer);
+                "Decryption of PING from peer `%s'\n",
+                GNUNET_i2s (sender));
     GNUNET_break_op (0);
     return;
   }
@@ -1719,6 +1706,8 @@ do_rekey (void *cls,
 					     NULL);
   if (NULL != my_ephemeral_key)
     GNUNET_free (my_ephemeral_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Rekeying\n");
   my_ephemeral_key = GNUNET_CRYPTO_ecdhe_key_create ();
   GNUNET_assert (NULL != my_ephemeral_key);
   sign_ephemeral_key ();
