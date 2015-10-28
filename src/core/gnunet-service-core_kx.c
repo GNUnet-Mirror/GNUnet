@@ -1061,7 +1061,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
               sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Decryption of PING from peer `%s'\n",
+                "We are not the intended target of the PING from peer `%s'\n",
                 GNUNET_i2s (&kx->peer));
     GNUNET_break_op (0);
     return;
