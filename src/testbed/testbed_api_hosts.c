@@ -824,7 +824,8 @@ free_argv (char **argv)
  * should not mention `-p' (port) option and destination address as these will
  * be set locally in the function from its parameteres. If the environmental
  * variable is not found then it defaults to `ssh -o BatchMode=yes -o
- * NoHostAuthenticationForLocalhost=yes'
+ * NoHostAuthenticationForLocalhost=yes -o StrictHostkeyChecking=no -o
+ * PasswordAuthentication=noc'
  *
  * @param port the destination port number
  * @param hostname the hostname of the target host
@@ -840,6 +841,10 @@ gen_rsh_args (const char *port, const char *hostname, const char *username)
     "BatchMode=yes",
     "-o",
     "NoHostAuthenticationForLocalhost=yes",
+    "-o",
+    "StrictHostKeyChecking=no",
+    "-o",
+    "PasswordAuthentication=no",
     "%h",
     NULL
   };
