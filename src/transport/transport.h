@@ -190,29 +190,6 @@ struct TransportRequestConnectMessage
 
 
 /**
- * Message type for sending a request connection to
- * a peer to be torn down.
- */
-struct TransportRequestDisconnectMessage
-{
-  /**
-   *  Message header with type #GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_DISCONNECT
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Reserved (0).
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Identity of the peer we would like to connect to.
-   */
-  struct GNUNET_PeerIdentity peer;
-};
-
-
-/**
  * Message used to set a particular bandwidth quota.  Sent TO the
  * service to set an incoming quota, sent FROM the service to update
  * an outgoing quota.
