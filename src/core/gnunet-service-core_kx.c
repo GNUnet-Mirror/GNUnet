@@ -1062,7 +1062,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Decryption of PING from peer `%s'\n",
-                GNUNET_i2s (sender));
+                GNUNET_i2s (&kx->peer));
     GNUNET_break_op (0);
     return;
   }
