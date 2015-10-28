@@ -172,6 +172,40 @@ struct MonitoringClient
 
 
 /**
+ * Closure for #handle_send_transmit_continuation()
+ */
+struct SendTransmitContinuationContext
+{
+  /**
+   * Client that made the request.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Peer that was the target.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * At what time did we receive the message?
+   */
+  struct GNUNET_TIME_Absolute send_time;
+
+  /**
+   * Unique ID, for logging.
+   */
+  unsigned long long uuid;
+
+  /**
+   * Set to #GNUNET_YES if the connection for @e target goes
+   * down and we thus must no longer send the
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK message.
+   */
+  int down;
+};
+
+
+/**
  * Head of linked list of all clients to this service.
  */
 static struct TransportClient *clients_head;
@@ -180,6 +214,14 @@ static struct TransportClient *clients_head;
  * Tail of linked list of all clients to this service.
  */
 static struct TransportClient *clients_tail;
+
+/**
+ * Map of peer identities to active send transmit continuation
+ * contexts. Used to flag contexts as 'dead' when a connection goes
+ * down. Values are of type `struct SendTransmitContinuationContext
+ * *`.
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *active_stccs;
 
 /**
  * Head of linked list of all pending address iterations
@@ -675,33 +717,6 @@ clients_handle_hello (void *cls,
 
 
 /**
- * Closure for #handle_send_transmit_continuation()
- */
-struct SendTransmitContinuationContext
-{
-  /**
-   * Client that made the request.
-   */
-  struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Peer that was the target.
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
-   * At what time did we receive the message?
-   */
-  struct GNUNET_TIME_Absolute send_time;
-
-  /**
-   * Unique ID, for logging.
-   */
-  unsigned long long uuid;
-};
-
-
-/**
  * Function called after the transmission is done.  Notify the client that it is
  * OK to send the next message.
  *
@@ -744,7 +759,7 @@ handle_send_transmit_continuation (void *cls,
                 success,
                 (NULL != addr) ? addr->transport_name : "%");
 
-  if (GST_neighbours_test_connected (&stcc->target))
+  if (GNUNET_NO == stcc->down)
   {
     /* Only send confirmation if we are still connected */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -761,6 +776,10 @@ handle_send_transmit_continuation (void *cls,
                          GNUNET_NO);
   }
   GNUNET_SERVER_client_drop (stcc->client);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (active_stccs,
+                                                       &stcc->target,
+                                                       stcc));
   GNUNET_free (stcc);
 }
 
@@ -842,6 +861,10 @@ clients_handle_send (void *cls,
   stcc->client = client;
   stcc->send_time = GNUNET_TIME_absolute_get ();
   stcc->uuid = uuid_gen++;
+  (void) GNUNET_CONTAINER_multipeermap_put (active_stccs,
+                                            &stcc->target,
+                                            stcc,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_SERVER_client_keep (client);
   GST_manipulation_send (&obm->peer,
                          obmm,
@@ -1548,6 +1571,8 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      sizeof (struct GNUNET_MessageHeader) },
     {NULL, NULL, 0, 0}
   };
+  active_stccs = GNUNET_CONTAINER_multipeermap_create (128,
+                                                       GNUNET_YES);
   peer_nc = GNUNET_SERVER_notification_context_create (server, 0);
   val_nc = GNUNET_SERVER_notification_context_create (server, 0);
   plugin_nc = GNUNET_SERVER_notification_context_create (server, 0);
@@ -1587,6 +1612,8 @@ GST_clients_stop ()
     GNUNET_SERVER_notification_context_destroy (plugin_nc);
     plugin_nc = NULL;
   }
+  GNUNET_CONTAINER_multipeermap_destroy (active_stccs);
+  active_stccs = NULL;
 }
 
 
@@ -1710,6 +1737,52 @@ GST_clients_broadcast_validation_notification (const struct GNUNET_PeerIdentity 
                                                   &msg->header,
                                                   GNUNET_NO);
   GNUNET_free (msg);
+}
+
+
+/**
+ * Mark the peer as down so we don't call the continuation
+ * context in the future.
+ *
+ * @param cls NULL
+ * @param peer peer that got disconnected
+ * @param value a `struct SendTransmitContinuationContext` to mark
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+mark_peer_down (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                void *value)
+{
+  struct SendTransmitContinuationContext *stcc = value;
+
+  stcc->down = GNUNET_YES;
+  return GNUNET_OK;
+}
+
+
+/**
+ * Notify all clients about a disconnect, and cancel
+ * pending SEND_OK messages for this peer.
+ *
+ * @param peer peer that disconnected
+ */
+void
+GST_clients_broadcast_disconnect (const struct GNUNET_PeerIdentity *peer)
+{
+  struct DisconnectInfoMessage disconnect_msg;
+
+  GNUNET_CONTAINER_multipeermap_get_multiple (active_stccs,
+                                              peer,
+                                              &mark_peer_down,
+                                              NULL);
+  disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));
+  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
+  disconnect_msg.reserved = htonl (0);
+  disconnect_msg.peer = *peer;
+  GST_clients_broadcast (&disconnect_msg.header,
+                         GNUNET_NO);
+
 }
 
 

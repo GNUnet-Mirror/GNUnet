@@ -597,18 +597,11 @@ neighbours_connect_notification (struct NeighbourMapEntry *n)
 static void
 neighbours_disconnect_notification (struct NeighbourMapEntry *n)
 {
-  struct DisconnectInfoMessage disconnect_msg;
-
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer `%s' disconnected\n",
               GNUNET_i2s (&n->id));
   GST_manipulation_peer_disconnect (&n->id);
-  disconnect_msg.header.size = htons (sizeof(struct DisconnectInfoMessage));
-  disconnect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT);
-  disconnect_msg.reserved = htonl (0);
-  disconnect_msg.peer = n->id;
-  GST_clients_broadcast (&disconnect_msg.header,
-                         GNUNET_NO);
+  GST_clients_broadcast_disconnect (&n->id);
 }
 
 

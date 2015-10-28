@@ -88,6 +88,16 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Notify all clients about a disconnect, and cancel
+ * pending SEND_OK messages for this peer.
+ *
+ * @param peer peer that disconnected
+ */
+void
+GST_clients_broadcast_disconnect (const struct GNUNET_PeerIdentity *peer);
+
+
+/**
  * Broadcast the new validation changes to all clients monitoring the peer.
  *
  * @param peer peer this update is about (never NULL)
