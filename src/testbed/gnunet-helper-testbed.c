@@ -463,8 +463,9 @@ tokenizer_cb (void *cls, void *client,
       GNUNET_OS_start_process (PIPE_CONTROL,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ ,
                                NULL, NULL, NULL,
-                               binary,
-                               "gnunet-service-testbed",
+                               "valgrind", "valgrind",
+                               "/home/grothoff/lib/gnunet/libexec/gnunet-service-testbed",
+                               //  binary, "gnunet-service-testbed",
                                "-c", config,
                                NULL);
   GNUNET_free (binary);

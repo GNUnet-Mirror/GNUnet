@@ -460,11 +460,25 @@ static void
 cleanup_occ_lp2c (struct LocalPeer2Context *lp2c)
 {
   if (NULL != lp2c->ohh)
+  {
     GNUNET_TRANSPORT_offer_hello_cancel (lp2c->ohh);
-  GST_connection_pool_get_handle_done (lp2c->tcc.cgh_p2_th);
-  GST_connection_pool_get_handle_done (lp2c->tcc.cgh_p2_ats);
+    lp2c->ohh = NULL;
+  }
+  if (NULL != lp2c->tcc.cgh_p2_th)
+  {
+    GST_connection_pool_get_handle_done (lp2c->tcc.cgh_p2_th);
+    lp2c->tcc.cgh_p2_th = NULL;
+  }
+  if (NULL != lp2c->tcc.cgh_p2_ats)
+  {
+    GST_connection_pool_get_handle_done (lp2c->tcc.cgh_p2_ats);
+    lp2c->tcc.cgh_p2_ats = NULL;
+  }
   if (NULL != lp2c->tcc.csh)
+  {
     GNUNET_ATS_connectivity_suggest_cancel (lp2c->tcc.csh);
+    lp2c->tcc.csh = NULL;
+  }
 }
 
 
@@ -478,11 +492,20 @@ static void
 cleanup_occ_rp2c (struct RemotePeer2Context *rp2c)
 {
   if (NULL != rp2c->opc)
+  {
     GNUNET_TESTBED_forward_operation_msg_cancel_ (rp2c->opc);
+    rp2c->opc = NULL;
+  }
   if (NULL != rp2c->ncn)
+  {
     GST_neighbour_get_connection_cancel (rp2c->ncn);
+    rp2c->ncn = NULL;
+  }
   if ( (NULL != rp2c->p2c) && (NULL != rp2c->p2n) )
+  {
     GST_neighbour_release_connection (rp2c->p2n);
+    rp2c->p2n = NULL;
+  }
 }
 
 /**
@@ -503,7 +526,8 @@ cleanup_occ (struct OverlayConnectContext *occ)
 {
   struct Peer *peer2;
 
-  LOG_DEBUG ("0x%llx: Cleaning up occ\n", occ->op_id);
+  LOG_DEBUG ("0x%llx: Cleaning up occ\n",
+             occ->op_id);
   GNUNET_free_non_null (occ->emsg);
   GNUNET_free_non_null (occ->hello);
   GNUNET_SERVER_client_drop (occ->client);
@@ -579,11 +603,16 @@ timeout_overlay_connect (void *cls,
   /* LOG (GNUNET_ERROR_TYPE_WARNING, */
   /*      "0x%llx: Timeout while connecting peers %u and %u: %s\n", occ->op_id, */
   /*      occ->peer->id, occ->other_peer_id, occ->emsg); */
-  GST_send_operation_fail_msg (occ->client, occ->op_id, occ->emsg);
+  GST_send_operation_fail_msg (occ->client,
+                               occ->op_id,
+                               occ->emsg);
   cleanup_occ (occ);
 }
 
 
+/**
+ * FIXME.
+ */
 static void
 send_overlay_connect_success_msg (struct OverlayConnectContext *occ)
 {
@@ -651,10 +680,21 @@ overlay_connect_notify (void *cls,
   GNUNET_assert (NULL != occ->timeout_task);
   GNUNET_SCHEDULER_cancel (occ->timeout_task);
   occ->timeout_task = NULL;
+  switch (occ->type)
+  {
+  case OCC_TYPE_LOCAL:
+    cleanup_occ_lp2c (&occ->p2ctx.local);
+    break;
+  case OCC_TYPE_REMOTE_SLAVE:
+  case OCC_TYPE_REMOTE_LATERAL:
+    cleanup_occ_rp2c (&occ->p2ctx.remote);
+    break;
+  }
   GNUNET_free_non_null (occ->emsg);
   occ->emsg = NULL;
   send_overlay_connect_success_msg (occ);
-  occ->cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup_occ, occ);
+  occ->cleanup_task = GNUNET_SCHEDULER_add_now (&do_cleanup_occ,
+                                                occ);
 }
 
 
@@ -761,6 +801,7 @@ occ_hello_sent_cb (void *cls,
   struct Peer *peer2;
 
   GNUNET_assert (OCC_TYPE_LOCAL == occ->type);
+  GNUNET_assert (NULL != occ->timeout_task);
   lp2c = &occ->p2ctx.local;
   lp2c->ohh = NULL;
 
@@ -851,6 +892,7 @@ send_hello (void *cls,
   char *other_peer_str;
 
   occ->send_hello_task = NULL;
+  GNUNET_assert (NULL != occ->timeout_task);
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != occ->hello);
