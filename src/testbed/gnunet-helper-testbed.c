@@ -316,13 +316,13 @@ child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Functions with this signature are called whenever a
  * complete message is received by the tokenizer.
  *
- * Do not call GNUNET_SERVER_mst_destroy in callback
+ * Do not call #GNUNET_SERVER_mst_destroy() in this callback
  *
  * @param cls closure
  * @param client identification of the client
  * @param message the actual message
  *
- * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
 tokenizer_cb (void *cls, void *client,
@@ -463,8 +463,10 @@ tokenizer_cb (void *cls, void *client,
       GNUNET_OS_start_process (PIPE_CONTROL,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ ,
                                NULL, NULL, NULL,
-                               binary, "gnunet-service-testbed", "-c",
-                               config, NULL);
+                               binary,
+                               "gnunet-service-testbed",
+                               "-c", config,
+                               NULL);
   GNUNET_free (binary);
   GNUNET_free (config);
   if (NULL == testbed)
