@@ -50,8 +50,6 @@ static struct PeerContext p2;
 
 static struct GNUNET_SCHEDULER_Task *err_task;
 
-static struct GNUNET_SCHEDULER_Task *con_task;
-
 static int ok;
 
 #define OKPP do { ok++; GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Now at stage %u at %s:%u\n", ok, __FILE__, __LINE__); } while (0)
@@ -107,11 +105,6 @@ terminate_task (void *cls,
   GNUNET_assert (ok == 6);
   terminate_peer (&p1);
   terminate_peer (&p2);
-  if (NULL != con_task)
-  {
-    GNUNET_SCHEDULER_cancel (con_task);
-    con_task = NULL;
-  }
   ok = 0;
 }
 
@@ -126,11 +119,6 @@ terminate_task_error (void *cls,
   GNUNET_break (0);
   terminate_peer (&p1);
   terminate_peer (&p2);
-  if (NULL != con_task)
-  {
-    GNUNET_SCHEDULER_cancel (con_task);
-    con_task = NULL;
-  }
   ok = 42;
 }
 
@@ -164,11 +152,6 @@ connect_notify (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Encrypted connection established to peer `%4s'\n",
               GNUNET_i2s (peer));
-  if (NULL != con_task)
-  {
-    GNUNET_SCHEDULER_cancel (con_task);
-    con_task = NULL;
-  }
   pc->connect_status = 1;
   if (pc == &p1)
   {
@@ -249,26 +232,6 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 
 
 static void
-connect_task (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-  {
-    con_task = NULL;
-    return;
-  }
-  con_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                    &connect_task,
-                                    NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asking transport (1) to connect to peer `%4s'\n",
-              GNUNET_i2s (&p2.id));
-  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id, NULL, NULL); /*FIXME TRY_CONNECT change */
-}
-
-
-static void
 init_notify (void *cls,
              const struct GNUNET_PeerIdentity *my_identity)
 {
@@ -293,7 +256,9 @@ init_notify (void *cls,
     GNUNET_assert (ok == 3);
     OKPP;
     GNUNET_assert (cls == &p2);
-    con_task = GNUNET_SCHEDULER_add_now (&connect_task, NULL);
+    p1.ats_sh = GNUNET_ATS_connectivity_suggest (p1.ats,
+                                                 &p2.id,
+                                                 1);
   }
 }
 

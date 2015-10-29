@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -54,8 +54,6 @@ static unsigned long long total_bytes;
 static struct GNUNET_TIME_Absolute start_time;
 
 static struct GNUNET_SCHEDULER_Task *err_task;
-
-static struct GNUNET_SCHEDULER_Task *connect_task;
 
 
 struct PeerContext
@@ -137,11 +135,6 @@ terminate_task (void *cls,
 
   terminate_peer (&p1);
   terminate_peer (&p2);
-  if (NULL != connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
-  }
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
   FPRINTF (stderr,
            "\nThroughput was %llu kb/s\n",
@@ -159,23 +152,7 @@ terminate_task_error (void *cls,
   GNUNET_break (0);
   terminate_peer (&p1);
   terminate_peer (&p2);
-  if (NULL != connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
-  }
   ok = 42;
-}
-
-
-static void
-try_connect (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  connect_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
-                                    NULL);
-  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id, NULL, NULL); /*FIXME TRY_CONNECT change */
 }
 
 
@@ -396,7 +373,9 @@ init_notify (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Asking transport (1) to connect to peer `%s'\n",
                 GNUNET_i2s (&p2.id));
-    connect_task = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
+    p1.ats_sh = GNUNET_ATS_connectivity_suggest (p1.ats,
+                                                 &p2.id,
+                                                 1);
   }
 }
 

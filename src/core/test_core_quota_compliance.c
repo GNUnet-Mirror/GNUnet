@@ -64,8 +64,6 @@ static struct GNUNET_SCHEDULER_Task *err_task;
 
 static struct GNUNET_SCHEDULER_Task *measure_task;
 
-static struct GNUNET_SCHEDULER_Task *connect_task;
-
 
 struct PeerContext
 {
@@ -160,11 +158,6 @@ terminate_task (void *cls,
   err_task = NULL;
   terminate_peer (&p1);
   terminate_peer (&p2);
-  if (NULL != connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
-  }
 }
 
 
@@ -185,24 +178,7 @@ terminate_task_error (void *cls,
     GNUNET_SCHEDULER_cancel (measure_task);
     measure_task = NULL;
   }
-  if (NULL != connect_task)
-  {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
-  }
   ok = 42;
-}
-
-
-static void
-try_connect (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  connect_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
-                                    NULL);
-  GNUNET_TRANSPORT_try_connect (p1.th, &p2.id, NULL, NULL); /*FIXME TRY_CONNECT change */
-  GNUNET_TRANSPORT_try_connect (p2.th, &p1.id, NULL, NULL); /*FIXME TRY_CONNECT change */
 }
 
 
@@ -553,9 +529,14 @@ init_notify (void *cls,
     OKPP;
     GNUNET_assert (cls == &p2);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Asking core (1) to connect to peer `%4s'\n",
+                "Asking core (1) to connect to peer `%s' and vice-versa\n",
                 GNUNET_i2s (&p2.id));
-    connect_task = GNUNET_SCHEDULER_add_now (&try_connect, NULL);
+    p1.ats_sh = GNUNET_ATS_connectivity_suggest (p1.ats,
+                                                 &p2.id,
+                                                 1);
+    p2.ats_sh = GNUNET_ATS_connectivity_suggest (p2.ats,
+                                                 &p1.id,
+                                                 1);
   }
 }
 
