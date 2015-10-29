@@ -66,7 +66,7 @@ char *cfg_file_p2;
 uint32_t max_bps_p1;
 uint32_t max_bps_p2;
 
-static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
 /*
  * Testcase specific declarations

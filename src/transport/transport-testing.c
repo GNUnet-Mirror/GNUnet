@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2006, 2009 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2006, 2009, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -48,12 +48,13 @@ find_peer_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 }
 
 
-static struct ConnectingContext *
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest *
 find_connecting_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                         struct PeerContext *p1, struct PeerContext *p2)
+                         struct PeerContext *p1,
+                         struct PeerContext *p2)
 {
   GNUNET_assert (tth != NULL);
-  struct ConnectingContext *cc = tth->cc_head;
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = tth->cc_head;
 
   while (cc != NULL)
   {
@@ -69,7 +70,8 @@ find_connecting_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 
 
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_connect (void *cls,
+                const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
   char *p2_s;
@@ -93,7 +95,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_free (p2_s);
 
   /* Find ConnectingContext */
-  struct ConnectingContext *cc = find_connecting_context (p->tth, p, p2);
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = find_connecting_context (p->tth, p, p2);
 
   if (cc == NULL)
     return;
@@ -113,7 +115,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_disconnect (void *cls,
+                   const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
 
@@ -149,7 +152,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;
@@ -162,7 +166,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 static void
-get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
+get_hello (void *cb_cls,
+           const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cb_cls;
   struct GNUNET_PeerIdentity hello_id;
@@ -187,9 +192,10 @@ get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
 
 
 static void
-try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+try_connect (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ConnectingContext *cc = cls;
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = cls;
   struct PeerContext *p1 = cc->p1;
   struct PeerContext *p2 = cc->p2;
 
@@ -477,18 +483,16 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
  * @param cls callback cls
  * @return a connect request handle
  */
-GNUNET_TRANSPORT_TESTING_ConnectRequest
+struct GNUNET_TRANSPORT_TESTING_ConnectRequest *
 GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                                         struct PeerContext *p1,
                                         struct PeerContext *p2,
                                         GNUNET_TRANSPORT_TESTING_connect_cb cb,
                                         void *cls)
 {
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_ConnectRequest);
+
   GNUNET_assert (tth != NULL);
-
-  struct ConnectingContext *cc =
-      GNUNET_new (struct ConnectingContext);
-
   GNUNET_assert (p1 != NULL);
   GNUNET_assert (p2 != NULL);
   cc->p1 = p1;
@@ -502,7 +506,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
   cc->th_p2 = p2->th;
   GNUNET_assert (cc->th_p1 != NULL);
   GNUNET_assert (cc->th_p2 != NULL);
-  GNUNET_CONTAINER_DLL_insert (tth->cc_head, tth->cc_tail, cc);
+  GNUNET_CONTAINER_DLL_insert (tth->cc_head,
+                               tth->cc_tail,
+                               cc);
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "New connect request %p\n",
@@ -517,17 +523,12 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
  * Tou MUST cancel the request if you stop the peers before the peers connected succesfully
  *
  * @param tth transport testing handle
- * @param ccr a connect request handle
+ * @param cc a connect request handle
  */
 void
-GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
-                                               GNUNET_TRANSPORT_TESTING_handle
-                                               *tth,
-                                               GNUNET_TRANSPORT_TESTING_ConnectRequest
-                                               ccr)
+GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct GNUNET_TRANSPORT_TESTING_handle *tth,
+                                               struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc)
 {
-  struct ConnectingContext *cc = ccr;
-
   GNUNET_assert (tth != NULL);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -550,8 +551,8 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
 void
 GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
 {
-  struct ConnectingContext *cc = tth->cc_head;
-  struct ConnectingContext *ct = NULL;
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = tth->cc_head;
+  struct GNUNET_TRANSPORT_TESTING_ConnectRequest *ct = NULL;
   struct PeerContext *p = tth->p_head;
   struct PeerContext *t = NULL;
 
@@ -596,11 +597,14 @@ GNUNET_TRANSPORT_TESTING_init ()
   tth = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_handle);
 
   /* Init testing the testing lib */
-  tth->tl_system = GNUNET_TESTING_system_create ("transport-testing", NULL,
-                                                 NULL, NULL);
+  tth->tl_system = GNUNET_TESTING_system_create ("transport-testing",
+                                                 NULL,
+                                                 NULL,
+                                                 NULL);
   if (NULL == tth->tl_system)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to initialize testing library!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to initialize testing library!\n"));
     GNUNET_free (tth);
     return NULL;
   }
@@ -671,7 +675,8 @@ extract_filename (const char *file)
  * @param dest where to store result
  */
 void
-GNUNET_TRANSPORT_TESTING_get_test_name (const char *file, char **dest)
+GNUNET_TRANSPORT_TESTING_get_test_name (const char *file,
+                                        char **dest)
 {
   char *filename = extract_filename (file);
   char *backup = filename;
@@ -708,7 +713,8 @@ suc:
  * @param dest where to store result
  */
 void
-GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file, char **dest)
+GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file,
+                                               char **dest)
 {
   char *src = extract_filename (file);
   char *split;
@@ -732,7 +738,8 @@ GNUNET_TRANSPORT_TESTING_get_test_source_name (const char *file, char **dest)
  */
 void
 GNUNET_TRANSPORT_TESTING_get_test_plugin_name (const char *file,
-                                               const char *test, char **dest)
+                                               const char *test,
+                                               char **dest)
 {
   char *filename;
   char *dotexe;
@@ -776,7 +783,8 @@ suc:
  * @param count peer number
  */
 void
-GNUNET_TRANSPORT_TESTING_get_config_name (const char *file, char **dest,
+GNUNET_TRANSPORT_TESTING_get_config_name (const char *file,
+                                          char **dest,
                                           int count)
 {
   char *filename = extract_filename (file);

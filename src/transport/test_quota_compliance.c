@@ -73,7 +73,7 @@ unsigned long long quota_out_p2;
 
 struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
 
 /*

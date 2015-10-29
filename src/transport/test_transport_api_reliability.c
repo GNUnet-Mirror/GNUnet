@@ -161,7 +161,7 @@ static int test_send_timeout;
  */
 static char bitmap[TOTAL_MSGS / 8];
 
-static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
 /*
  * END Testcase specific declarations

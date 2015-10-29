@@ -108,7 +108,7 @@ static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
-static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
 static int test_connected;
 

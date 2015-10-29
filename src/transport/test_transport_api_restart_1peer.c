@@ -59,7 +59,7 @@ static struct PeerContext *p2;
 
 static int p2_connected;
 
-static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
 
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
