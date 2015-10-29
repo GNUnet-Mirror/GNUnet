@@ -41,8 +41,8 @@ libexec_PROGRAMS = \
 
 if HAVE_REST
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_rest_identity.la
-#  libgnunet_plugin_gnsrecord_identity.la
+  libgnunet_plugin_rest_identity.la \
+  libgnunet_plugin_gnsrecord_identity.la
 endif
 
 
