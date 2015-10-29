@@ -1060,9 +1060,14 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
               &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "We are not the intended target of the PING from peer `%s'\n",
-                GNUNET_i2s (&kx->peer));
+    if (GNUNET_CORE_KX_STATE_REKEY_SENT != kx->status)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Decryption of PING from peer `%s' failed\n",
+                  GNUNET_i2s (&kx->peer));
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Decryption of PING from peer `%s' failed after rekey (harmless)\n",
+                  GNUNET_i2s (&kx->peer));
     GNUNET_break_op (0);
     return;
   }
