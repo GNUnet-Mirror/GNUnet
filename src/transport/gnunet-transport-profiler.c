@@ -122,7 +122,7 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Try_connect handle
  */
-static struct GNUNET_TRANSPORT_TryConnectHandle *tc_handle;
+static struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
 
 static struct Iteration *ihead;
 
@@ -177,17 +177,16 @@ shutdown_task (void *cls,
   float stddev_rate;
   float stddev_duration;
 
-  if (NULL != tc_handle)
+  if (NULL != ats_sh)
   {
-    GNUNET_TRANSPORT_try_connect_cancel (tc_handle);
-    tc_handle = NULL;
+    GNUNET_ATS_connectivity_suggest_cancel (ats_sh);
+    ats_sh = NULL;
   }
   if (NULL != th)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
     th = NULL;
   }
-
   if (NULL != bl_handle )
   {
     GNUNET_TRANSPORT_blacklist_cancel (bl_handle);
@@ -406,10 +405,13 @@ static void
 notify_connect (void *cls,
                 const struct GNUNET_PeerIdentity *peer)
 {
-  if (0 != memcmp (&pid, peer, sizeof(struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (&pid,
+                   peer,
+                   sizeof(struct GNUNET_PeerIdentity)))
   {
     FPRINTF (stdout,
-        _("Connected to different peer `%s'\n"), GNUNET_i2s (&pid));
+             _("Connected to different peer `%s'\n"),
+             GNUNET_i2s (&pid));
     return;
   }
 
@@ -417,13 +419,6 @@ notify_connect (void *cls,
     FPRINTF (stdout,
         _("Successfully connected to `%s'\n"),
         GNUNET_i2s (&pid));
-
-  if (NULL != tc_handle)
-  {
-    GNUNET_TRANSPORT_try_connect_cancel (tc_handle);
-    tc_handle = NULL;
-  }
-
   iteration_start ();
 }
 
@@ -476,49 +471,16 @@ notify_receive (void *cls,
 }
 
 
-static void
-try_connect_cb (void *cls,
-                const int result)
-{
-  static int retries = 0;
-
-  if (GNUNET_OK == result)
-  {
-    tc_handle = NULL;
-    return;
-  }
-
-  retries++;
-  if (retries < 10)
-  {
-    if (verbosity > 0)
-      FPRINTF (stdout, _("Retrying to connect to `%s'\n"), GNUNET_i2s (&pid));
-
-    tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
-        NULL);
-  }
-  else
-  {
-    FPRINTF (stderr,
-             "%s",
-             _("Failed to send connect request to transport service\n"));
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
-    ret = 1;
-    return;
-  }
-}
-
-
 static int
-blacklist_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+blacklist_cb (void *cls,
+              const struct GNUNET_PeerIdentity *peer)
 {
   if (0 != memcmp (&pid, peer, sizeof(struct GNUNET_PeerIdentity)))
   {
     if (verbosity > 0)
       FPRINTF (stdout,
-          _("Denying connection to `%s'\n"), GNUNET_i2s (peer));
+               _("Denying connection to `%s'\n"),
+               GNUNET_i2s (peer));
     return GNUNET_SYSERR;
   }
 
@@ -607,10 +569,9 @@ testservice_task (void *cls, int result)
   bl_handle = GNUNET_TRANSPORT_blacklist (cfg,
                                           &blacklist_cb,
                                           NULL);
-  tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid,
-                                            &try_connect_cb,
-                                            NULL);
-
+  ats_sh = GNUNET_ATS_connectivity_suggest (ats,
+                                            &pid,
+                                            1);
   end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                       &shutdown_task,
                                       NULL);
