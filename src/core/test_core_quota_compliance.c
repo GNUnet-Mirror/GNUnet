@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,10 +24,8 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 
@@ -62,11 +60,11 @@ static unsigned long long total_bytes_recv;
 
 static struct GNUNET_TIME_Absolute start_time;
 
-static struct GNUNET_SCHEDULER_Task * err_task;
+static struct GNUNET_SCHEDULER_Task *err_task;
 
-static struct GNUNET_SCHEDULER_Task * measure_task;
+static struct GNUNET_SCHEDULER_Task *measure_task;
 
-static struct GNUNET_SCHEDULER_Task * connect_task;
+static struct GNUNET_SCHEDULER_Task *connect_task;
 
 
 struct PeerContext
@@ -79,6 +77,8 @@ struct PeerContext
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_STATISTICS_Handle *stats;
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_ATS_ConnectivityHandle *ats;
+  struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
   int connect_status;
   struct GNUNET_OS_Process *arm_proc;
 };
@@ -110,85 +110,93 @@ struct TestMessage
   uint32_t num;
 };
 
-static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message);
 
 static void
-terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_peer (struct PeerContext *p)
 {
-  struct GNUNET_CORE_Handle *ch;
-
-  err_task = NULL;
-  GNUNET_STATISTICS_destroy (p1.stats, GNUNET_NO);
-  GNUNET_STATISTICS_destroy (p2.stats, GNUNET_NO);
-  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-  if (p1.nth != NULL)
+  if (p->nth != NULL)
   {
-    GNUNET_CORE_notify_transmit_ready_cancel (p1.nth);
-    p1.nth = NULL;
+    GNUNET_CORE_notify_transmit_ready_cancel (p->nth);
+    p->nth = NULL;
   }
-  if (connect_task != NULL)
+  if (NULL != p->ch)
   {
-    GNUNET_SCHEDULER_cancel (connect_task);
-    connect_task = NULL;
+    GNUNET_CORE_disconnect (p->ch);
+    p->ch = NULL;
   }
-  ch = p1.ch;
-  p1.ch = NULL;
-  GNUNET_CORE_disconnect (ch);
-  ch = p2.ch;
-  p2.ch = NULL;
-  GNUNET_CORE_disconnect (ch);
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
-  GNUNET_free_non_null (p1.hello);
-  GNUNET_free_non_null (p2.hello);
+  if (NULL != p->th)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_disconnect (p->th);
+    p->th = NULL;
+  }
+  if (NULL != p->ats_sh)
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (p->ats_sh);
+    p->ats_sh = NULL;
+  }
+  if (NULL != p->ats)
+  {
+    GNUNET_ATS_connectivity_done (p->ats);
+    p->ats = NULL;
+  }
+  if (NULL != p->stats)
+  {
+    GNUNET_STATISTICS_destroy (p->stats, GNUNET_NO);
+    p->stats = NULL;
+  }
+  if (NULL != p->hello)
+  {
+    GNUNET_free (p->hello);
+    p->hello = NULL;
+  }
 }
 
 
 static void
-terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   err_task = NULL;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Testcase failed!\n");
-  //GNUNET_break (0);
-  if (p1.nth != NULL)
-  {
-    GNUNET_CORE_notify_transmit_ready_cancel (p1.nth);
-    p1.nth = NULL;
-  }
-  if (measure_task != NULL)
-    GNUNET_SCHEDULER_cancel (measure_task);
-  if (connect_task != NULL)
+  terminate_peer (&p1);
+  terminate_peer (&p2);
+  if (NULL != connect_task)
   {
     GNUNET_SCHEDULER_cancel (connect_task);
     connect_task = NULL;
   }
+}
 
-  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-  if (NULL != p1.ch)
-    GNUNET_CORE_disconnect (p1.ch);
-  p1.ch = NULL;
-  if (NULL != p2.ch)
-    GNUNET_CORE_disconnect (p2.ch);
-  p2.ch = NULL;
-  if (NULL != p1.th)
-    GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  if (NULL != p2.th)
-    GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
+
+static void
+terminate_task_error (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  err_task = NULL;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Testcase failed!\n");
+  terminate_peer (&p1);
+  terminate_peer (&p2);
+  //GNUNET_break (0);
+  if (NULL != measure_task)
+  {
+    GNUNET_SCHEDULER_cancel (measure_task);
+    measure_task = NULL;
+  }
+  if (NULL != connect_task)
+  {
+    GNUNET_SCHEDULER_cancel (connect_task);
+    connect_task = NULL;
+  }
   ok = 42;
 }
 
 
 static void
-try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+try_connect (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   connect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
@@ -197,6 +205,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_TRANSPORT_try_connect (p2.th, &p1.id, NULL, NULL); /*FIXME TRY_CONNECT change */
 }
 
+
 /**
  * Callback function to process statistic values.
  *
@@ -204,24 +213,33 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
-print_stat (void *cls, const char *subsystem, const char *name, uint64_t value,
+print_stat (void *cls,
+            const char *subsystem,
+            const char *name,
+            uint64_t value,
             int is_persistent)
 {
   if (cls == &p1)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer1 %50s = %12llu\n", name,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer1 %50s = %12llu\n",
+                name,
                 (unsigned long long) value);
   if (cls == &p2)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer2 %50s = %12llu\n", name,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer2 %50s = %12llu\n",
+                name,
                 (unsigned long long) value);
   return GNUNET_OK;
 }
 
+
 static void
-measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+measurement_stop (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long long delta;
   unsigned long long throughput_out;
@@ -310,6 +328,7 @@ measurement_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   err_task = GNUNET_SCHEDULER_add_now (&terminate_task, NULL);
 
 }
+
 
 static size_t
 transmit_ready (void *cls, size_t size, void *buf)
@@ -453,6 +472,7 @@ outbound_notify (void *cls, const struct GNUNET_PeerIdentity *other,
 static size_t
 transmit_ready (void *cls, size_t size, void *buf);
 
+
 static int
 process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
@@ -571,7 +591,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-arm");
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, 
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
                              NULL, NULL, NULL,
                              binary,
                              "gnunet-service-arm",
@@ -581,6 +601,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert (p->stats != NULL);
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
+  p->ats = GNUNET_ATS_connectivity_init (p->cfg);
+  GNUNET_assert (NULL != p->ats);
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
   GNUNET_free (binary);
 }

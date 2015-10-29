@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -24,11 +24,9 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_ats_service.h"
 
 #define MTYPE 12345
 
@@ -39,6 +37,8 @@ struct PeerContext
   struct GNUNET_PeerIdentity id;
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_ATS_ConnectivityHandle *ats;
+  struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
   struct GNUNET_MessageHeader *hello;
   int connect_status;
   struct GNUNET_OS_Process *arm_proc;
@@ -48,9 +48,9 @@ static struct PeerContext p1;
 
 static struct PeerContext p2;
 
-static struct GNUNET_SCHEDULER_Task * err_task;
+static struct GNUNET_SCHEDULER_Task *err_task;
 
-static struct GNUNET_SCHEDULER_Task * con_task;
+static struct GNUNET_SCHEDULER_Task *con_task;
 
 static int ok;
 
@@ -74,22 +74,39 @@ process_hello (void *cls,
 
 
 static void
+terminate_peer (struct PeerContext *p)
+{
+  if (NULL != p->ch)
+  {
+    GNUNET_CORE_disconnect (p->ch);
+    p->ch = NULL;
+  }
+  if (NULL != p->th)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_disconnect (p->th);
+    p->th = NULL;
+  }
+  if (NULL != p->ats_sh)
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (p->ats_sh);
+    p->ats_sh = NULL;
+  }
+  if (NULL != p->ats)
+  {
+    GNUNET_ATS_connectivity_done (p->ats);
+    p->ats = NULL;
+  }
+}
+
+
+static void
 terminate_task (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_assert (ok == 6);
-  GNUNET_CORE_disconnect (p1.ch);
-  p1.ch = NULL;
-  GNUNET_CORE_disconnect (p2.ch);
-  p2.ch = NULL;
-  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-  p1.ghh = NULL;
-  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-  p2.ghh = NULL;
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
+  terminate_peer (&p1);
+  terminate_peer (&p2);
   if (NULL != con_task)
   {
     GNUNET_SCHEDULER_cancel (con_task);
@@ -107,28 +124,8 @@ terminate_task_error (void *cls,
 	      "ENDING ANGRILY %u\n",
               ok);
   GNUNET_break (0);
-  if (NULL != p1.ch)
-  {
-    GNUNET_CORE_disconnect (p1.ch);
-    p1.ch = NULL;
-  }
-  if (NULL != p2.ch)
-  {
-    GNUNET_CORE_disconnect (p2.ch);
-    p2.ch = NULL;
-  }
-  if (p1.th != NULL)
-  {
-    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-    GNUNET_TRANSPORT_disconnect (p1.th);
-    p1.th = NULL;
-  }
-  if (p2.th != NULL)
-  {
-    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-    GNUNET_TRANSPORT_disconnect (p2.th);
-    p2.th = NULL;
-  }
+  terminate_peer (&p1);
+  terminate_peer (&p2);
   if (NULL != con_task)
   {
     GNUNET_SCHEDULER_cancel (con_task);
@@ -317,7 +314,9 @@ setup_peer (struct PeerContext *p,
                                "-c", cfgname, NULL);
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
-  GNUNET_assert (p->th != NULL);
+  GNUNET_assert (NULL != p->th);
+  p->ats = GNUNET_ATS_connectivity_init (p->cfg);
+  GNUNET_assert (NULL != p->ats);
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
   GNUNET_free (binary);
 }

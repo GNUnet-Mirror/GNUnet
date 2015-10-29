@@ -24,10 +24,8 @@
 #include "platform.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_os_lib.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_scheduler_lib.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 #include <gauger.h>
 
@@ -68,6 +66,8 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
   struct GNUNET_MessageHeader *hello;
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
+  struct GNUNET_ATS_ConnectivityHandle *ats;
+  struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
   int connect_status;
   struct GNUNET_OS_Process *arm_proc;
 };
@@ -103,30 +103,48 @@ get_size (unsigned int iter)
 
 
 static void
-process_hello (void *cls, const struct GNUNET_MessageHeader *message);
+terminate_peer (struct PeerContext *p)
+{
+  if (NULL != p->ch)
+  {
+    GNUNET_CORE_disconnect (p->ch);
+    p->ch = NULL;
+  }
+  if (NULL != p->th)
+  {
+    GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
+    GNUNET_TRANSPORT_disconnect (p->th);
+    p->th = NULL;
+  }
+  if (NULL != p->ats_sh)
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (p->ats_sh);
+    p->ats_sh = NULL;
+  }
+  if (NULL != p->ats)
+  {
+    GNUNET_ATS_connectivity_done (p->ats);
+    p->ats = NULL;
+  }
+}
 
 
 static void
-terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned long long delta;
 
-  GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-  GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-  GNUNET_CORE_disconnect (p1.ch);
-  p1.ch = NULL;
-  GNUNET_free_non_null (p1.hello);
-  GNUNET_CORE_disconnect (p2.ch);
-  p2.ch = NULL;
-  GNUNET_free_non_null (p2.hello);
-  if (connect_task != NULL)
+  terminate_peer (&p1);
+  terminate_peer (&p2);
+  if (NULL != connect_task)
+  {
     GNUNET_SCHEDULER_cancel (connect_task);
-  GNUNET_TRANSPORT_disconnect (p1.th);
-  p1.th = NULL;
-  GNUNET_TRANSPORT_disconnect (p2.th);
-  p2.th = NULL;
+    connect_task = NULL;
+  }
   delta = GNUNET_TIME_absolute_get_duration (start_time).rel_value_us;
-  FPRINTF (stderr, "\nThroughput was %llu kb/s\n",
+  FPRINTF (stderr,
+           "\nThroughput was %llu kb/s\n",
            total_bytes * 1000000LL / 1024 / delta);
   GAUGER ("CORE", "Core throughput/s", total_bytes * 1000000LL / 1024 / delta,
           "kb/s");
@@ -135,39 +153,24 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-terminate_task_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task_error (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_break (0);
-  if (p1.ch != NULL)
+  terminate_peer (&p1);
+  terminate_peer (&p2);
+  if (NULL != connect_task)
   {
-    GNUNET_CORE_disconnect (p1.ch);
-    p1.ch = NULL;
-  }
-  if (p2.ch != NULL)
-  {
-    GNUNET_CORE_disconnect (p2.ch);
-    p2.ch = NULL;
-  }
-  if (connect_task != NULL)
     GNUNET_SCHEDULER_cancel (connect_task);
-  if (p1.th != NULL)
-  {
-    GNUNET_TRANSPORT_get_hello_cancel (p1.ghh);
-    GNUNET_TRANSPORT_disconnect (p1.th);
-    p1.th = NULL;
-  }
-  if (p2.th != NULL)
-  {
-    GNUNET_TRANSPORT_get_hello_cancel (p2.ghh);
-    GNUNET_TRANSPORT_disconnect (p2.th);
-    p2.th = NULL;
+    connect_task = NULL;
   }
   ok = 42;
 }
 
 
 static void
-try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+try_connect (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   connect_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &try_connect,
@@ -435,6 +438,8 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   p->th = GNUNET_TRANSPORT_connect (p->cfg, NULL, p, NULL, NULL, NULL);
   GNUNET_assert (p->th != NULL);
+  p->ats = GNUNET_ATS_connectivity_init (p->cfg);
+  GNUNET_assert (NULL != p->ats);
   p->ghh = GNUNET_TRANSPORT_get_hello (p->th, &process_hello, p);
   GNUNET_free (binary);
 }
