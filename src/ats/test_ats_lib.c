@@ -718,7 +718,8 @@ interpreter (void *cls,
                    &pid);
         cmd->details.request_connection_start.csh
           = GNUNET_ATS_connectivity_suggest (con_ats,
-                                             &pid);
+                                             &pid,
+                                             1);
         off++;
         break;
       }
