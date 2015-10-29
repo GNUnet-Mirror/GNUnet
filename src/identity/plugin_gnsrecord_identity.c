@@ -19,7 +19,7 @@
 */
 
 /**
- * @file gnsrecord/plugin_gnsrecord_identity.c
+ * @file identity/plugin_gnsrecord_identity.c
  * @brief gnsrecord plugin to provide the API for identity records
  * @author Christian Grothoff
  */
