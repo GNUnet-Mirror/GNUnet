@@ -624,12 +624,14 @@ interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rc->interrupt_task = GNUNET_SCHEDULER_add_delayed
       (GNUNET_TIME_UNIT_FOREVER_REL, &interrupt, rc);
   rc_cleanup_operations (rc);
-  if ( (GNUNET_NO == rc->shutdown)
-       && (NULL != c)
-       && (0 != (size = GNUNET_CONTAINER_multihashmap32_size (c->opc_map))))
+  if ( (GNUNET_NO == rc->shutdown) &&
+       (NULL != c) &&
+       (NULL != c->opc_map) &&
+       (0 != (size = GNUNET_CONTAINER_multihashmap32_size (c->opc_map))))
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Shutdown postponed as there are "
-         "%u operations currently active\n", size);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Shutdown postponed as there are %u operations currently active\n",
+         size);
     c->opcq_empty_cb = &wait_op_completion;
     c->opcq_empty_cls = rc;
     return;
