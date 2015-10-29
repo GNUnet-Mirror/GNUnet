@@ -228,6 +228,7 @@ gnunet_transport_profiler_LDADD = \
   libgnunettransport.la \
   $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 

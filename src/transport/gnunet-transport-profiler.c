@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- Copyright (C) 2011-2014 Christian Grothoff (and other contributing authors)
+ Copyright (C) 2011-2015 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -19,17 +19,18 @@
  */
 
 /**
- * @file src/transport/gnunet-transport.c
- * @brief Tool to help configure, measure and control the transport subsystem.
+ * @file src/transport/gnunet-transport-profiler.c
+ * @brief Tool to help benchmark the transport subsystem.
  * @author Christian Grothoff
  * @author Nathan Evans
  *
- * This utility can be used to test if a transport mechanism for
- * GNUnet is properly configured.
+ * This utility can be used to benchmark a transport mechanism for
+ * GNUnet.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_protocols.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 
 struct Iteration
@@ -109,6 +110,11 @@ static char *cpid;
 static struct GNUNET_TRANSPORT_Handle *handle;
 
 /**
+ * Handle to ATS service.
+ */
+static struct GNUNET_ATS_ConnectivityHandle *ats;
+
+/**
  * Configuration handle
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -116,11 +122,11 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Try_connect handle
  */
-struct GNUNET_TRANSPORT_TryConnectHandle *tc_handle;
+static struct GNUNET_TRANSPORT_TryConnectHandle *tc_handle;
 
+static struct Iteration *ihead;
 
-struct Iteration *ihead;
-struct Iteration *itail;
+static struct Iteration *itail;
 
 /**
  * Global return value (0 success).
@@ -131,7 +137,7 @@ static int ret;
  */
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_Blacklist *bl_handle;
+static struct GNUNET_TRANSPORT_Blacklist *bl_handle;
 
 /**
  * Identity of the peer we transmit to / connect to.
@@ -148,6 +154,7 @@ static struct GNUNET_SCHEDULER_Task * end;
  * Selected level of verbosity.
  */
 static int verbosity;
+
 
 /**
  * Task run in monitor mode when the user presses CTRL-C to abort.
@@ -186,7 +193,11 @@ shutdown_task (void *cls,
     GNUNET_TRANSPORT_blacklist_cancel (bl_handle);
     bl_handle = NULL;
   }
-
+  if (NULL != ats)
+  {
+    GNUNET_ATS_connectivity_done (ats);
+    ats = NULL;
+  }
   if (NULL != handle)
   {
     GNUNET_TRANSPORT_disconnect (handle);
@@ -283,6 +294,7 @@ shutdown_task (void *cls,
 static void
 iteration_done ();
 
+
 /**
  * Function called to notify a client about the socket
  * begin ready to queue more data.  @a buf will be
@@ -360,6 +372,7 @@ iteration_start ()
   }
 }
 
+
 static void
 iteration_done ()
 {
@@ -380,7 +393,6 @@ iteration_done ()
     iteration_start ();
   }
 }
-
 
 
 /**
@@ -437,6 +449,7 @@ notify_disconnect (void *cls,
   }
 }
 
+
 /**
  * Function called by the transport for each received message.
  *
@@ -461,7 +474,6 @@ notify_receive (void *cls,
     return;
   }
 }
-
 
 
 static void
@@ -497,6 +509,7 @@ try_connect_cb (void *cls,
     return;
   }
 }
+
 
 static int
 blacklist_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -543,13 +556,13 @@ testservice_task (void *cls, int result)
     FPRINTF (stderr, _("No peer identity given\n"));
     return;
   }
-  if ((GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string (cpid, strlen (cpid),
-              &pid.public_key)))
+  if ((GNUNET_OK !=
+       GNUNET_CRYPTO_eddsa_public_key_from_string (cpid, strlen (cpid),
+                                                   &pid.public_key)))
   {
     FPRINTF (stderr, _("Failed to parse peer identity `%s'\n"), cpid);
     return;
   }
-
 
   if (1 == benchmark_send)
   {
@@ -570,18 +583,33 @@ testservice_task (void *cls, int result)
     return;
   }
 
-  handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
-      &notify_connect, &notify_disconnect);
-
-  if (NULL == handle)
+  ats = GNUNET_ATS_connectivity_init (cfg);
+  if (NULL == ats)
   {
-    FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
+    FPRINTF (stderr, "%s", _("Failed to connect to ATS service\n"));
     ret = 1;
     return;
   }
 
-  bl_handle = GNUNET_TRANSPORT_blacklist (cfg, blacklist_cb, NULL);
-  tc_handle = GNUNET_TRANSPORT_try_connect(handle, &pid, try_connect_cb, NULL);
+  handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL,
+                                     &notify_receive,
+                                     &notify_connect,
+                                     &notify_disconnect);
+  if (NULL == handle)
+  {
+    FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
+    GNUNET_ATS_connectivity_done (ats);
+    ats = NULL;
+    ret = 1;
+    return;
+  }
+
+  bl_handle = GNUNET_TRANSPORT_blacklist (cfg,
+                                          &blacklist_cb,
+                                          NULL);
+  tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid,
+                                            &try_connect_cb,
+                                            NULL);
 
   end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                       &shutdown_task,
@@ -607,6 +635,7 @@ run (void *cls,
   GNUNET_CLIENT_service_test ("transport", cfg, GNUNET_TIME_UNIT_SECONDS,
       &testservice_task, (void *) cfg);
 }
+
 
 int
 main (int argc, char * const *argv)
@@ -655,4 +684,4 @@ main (int argc, char * const *argv)
   return 1;
 }
 
-/* end of gnunet-transport.c */
+/* end of gnunet-transport-profiler.c */
