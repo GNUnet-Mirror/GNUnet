@@ -41,7 +41,7 @@
  * Experimental option to ignore SessionQuotaMessages from
  * the other peer.
  */
-#define IGNORE_INBOUND_QUOTA GNUNET_NO
+#define IGNORE_INBOUND_QUOTA GNUNET_YES
 
 /**
  * Size of the neighbour hash map.
