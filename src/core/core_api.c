@@ -773,7 +773,7 @@ main_notify_handler (void *cls,
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multipeermap_put (h->peers,
                                                       &h->me, pr,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     if (NULL != h->connects)
       h->connects (h->cls, &pr->peer);
     break;
@@ -816,7 +816,7 @@ main_notify_handler (void *cls,
     GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multipeermap_put (h->peers,
                                                       &cnm->peer, pr,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     if (NULL != h->connects)
       h->connects (h->cls, &pr->peer);
     break;
