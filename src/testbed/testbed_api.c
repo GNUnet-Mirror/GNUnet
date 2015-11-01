@@ -484,7 +484,7 @@ handle_opsuccess (struct GNUNET_TESTBED_Controller *c,
 
 
 /**
- * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_PEER_CREATE_SUCCESS message from
+ * Handler for #GNUNET_MESSAGE_TYPE_TESTBED_CREATE_PEER_SUCCESS message from
  * controller (testbed service)
  *
  * @param c the controller handle

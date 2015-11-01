@@ -778,7 +778,7 @@ demultiplexer (void *cls,
       disconnect_and_schedule_reconnect (h);
       break;
     }
-    if (bytes_physical >= bytes_msg)
+    if (bytes_physical > bytes_msg)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Overhead for %u byte message was %u\n",

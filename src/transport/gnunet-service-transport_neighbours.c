@@ -3673,6 +3673,7 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   const struct GNUNET_ATS_SessionQuotaMessage *sqm;
+  struct GNUNET_BANDWIDTH_Value32NBO last;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received QUOTA message from peer `%s'\n",
@@ -3696,10 +3697,13 @@ GST_neighbours_handle_quota_message (const struct GNUNET_PeerIdentity *peer,
     /* gone already */
     return;
   }
-  n->neighbour_receive_quota
-    = GNUNET_BANDWIDTH_value_max (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
-                                  GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota)));
-  send_outbound_quota_to_clients (n);
+  last = GNUNET_BANDWIDTH_value_max (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+                                     GNUNET_BANDWIDTH_value_init (ntohl (sqm->quota)));
+  if (last.value__ != n->neighbour_receive_quota.value__)
+  {
+    n->neighbour_receive_quota = last;
+    send_outbound_quota_to_clients (n);
+  }
 }
 
 
