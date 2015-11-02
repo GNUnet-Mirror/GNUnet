@@ -275,7 +275,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   rootserver =
-      gethostbyaddr (&rootserver_addr,
+      gethostbyaddr ((const void *) &rootserver_addr,
                      sizeof (rootserver_addr),
                      AF_INET);
   if (NULL == rootserver)
