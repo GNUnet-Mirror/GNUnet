@@ -1266,12 +1266,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_PONG 373
 
 /**
- * Message for transport service from a client asking that a
- * connection be initiated with another peer.
- */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT 374
-
-/**
  * Transport SYN message exchanged between transport services to
  * indicate that a session should be marked as 'connected'.
  */

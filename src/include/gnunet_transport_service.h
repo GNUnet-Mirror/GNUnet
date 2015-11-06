@@ -160,55 +160,6 @@ void
 GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle);
 
 
-/* ************************* Connections *********************** */
-
-/**
- * Opaque handle for a transmission-ready request.
- */
-struct GNUNET_TRANSPORT_TryConnectHandle;
-
-/**
- * Function to call with result of the try connect request.
- *
- * @param cls closure
- * @param result #GNUNET_OK if message was transmitted to transport service
- *               #GNUNET_SYSERR if message was not transmitted to transport service
- */
-typedef void
-(*GNUNET_TRANSPORT_TryConnectCallback) (void *cls,
-                                        int result);
-
-
-/**
- * Ask the transport service to establish a connection to
- * the given peer.
- *
- * @param handle connection to transport service
- * @param target who we should try to connect to
- * @param cb callback to be called when request was transmitted to transport
- *         service
- * @param cb_cls closure for the callback @a cb
- * @return a `struct GNUNET_TRANSPORT_TryConnectHandle` handle or
- *         NULL on failure (@a cb will not be called)
- * @deprecated
- */
-struct GNUNET_TRANSPORT_TryConnectHandle *
-GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
-                              const struct GNUNET_PeerIdentity *target,
-                              GNUNET_TRANSPORT_TryConnectCallback cb,
-                              void *cb_cls);
-
-
-/**
- * Cancel the request to transport to try a connect
- * Callback will not be called
- *
- * @param tch handle to cancel
- */
-void
-GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
-
-
 /* ************************* Sending *************************** */
 
 /**

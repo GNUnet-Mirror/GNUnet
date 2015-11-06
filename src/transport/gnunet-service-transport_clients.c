@@ -876,43 +876,6 @@ clients_handle_send (void *cls,
 
 
 /**
- * Handle request connect message
- *
- * @param cls closure (always NULL)
- * @param client identification of the client
- * @param message the actual message
- */
-static void
-clients_handle_request_connect (void *cls,
-                                struct GNUNET_SERVER_Client *client,
-                                const struct GNUNET_MessageHeader *message)
-{
-  const struct TransportRequestConnectMessage *trcm;
-
-  trcm = (const struct TransportRequestConnectMessage *) message;
-  GNUNET_break (0 == ntohl (trcm->reserved));
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop
-                            ("# REQUEST CONNECT messages received"), 1,
-                            GNUNET_NO);
-  if (0 == memcmp (&trcm->peer,
-                   &GST_my_identity,
-                   sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client,
-                                GNUNET_OK);
-    return;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a request connect message for peer `%s'\n",
-              GNUNET_i2s (&trcm->peer));
-  GST_neighbours_try_connect (&trcm->peer);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
  * Take the given address and append it to the set of results sent back to
  * the client.  This function may be called serveral times for a single
  * conversion.   The last invocation will be with a @a address of
@@ -1546,9 +1509,6 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      GNUNET_MESSAGE_TYPE_HELLO, 0},
     {&clients_handle_send, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_SEND, 0},
-    {&clients_handle_request_connect, NULL,
-     GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT,
-     sizeof (struct TransportRequestConnectMessage)},
     {&clients_handle_address_to_string, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING, 0},
     {&clients_handle_monitor_peers, NULL,
