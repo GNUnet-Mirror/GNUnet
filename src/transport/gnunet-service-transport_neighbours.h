@@ -51,15 +51,6 @@ GST_neighbours_stop (void);
 
 
 /**
- * Try to create a connection to the given target (eventually).
- *
- * @param target peer to try to connect to
- */
-void
-GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target);
-
-
-/**
  * Test if we're connected to the given peer.
  *
  * @param target peer to test

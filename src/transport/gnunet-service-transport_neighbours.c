@@ -1700,16 +1700,12 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity *sender
   }
   if (NULL == (n = lookup_neighbour (sender)))
   {
-    GST_neighbours_try_connect (sender);
-    if (NULL == (n = lookup_neighbour (sender)))
-    {
-      GNUNET_STATISTICS_update (GST_stats,
-                                gettext_noop
-                                ("# messages discarded due to lack of neighbour record"),
-                                1, GNUNET_NO);
-      *do_forward = GNUNET_NO;
-      return GNUNET_TIME_UNIT_ZERO;
-    }
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop ("# messages discarded due to lack of neighbour record"),
+                              1,
+                              GNUNET_NO);
+    *do_forward = GNUNET_NO;
+    return GNUNET_TIME_UNIT_ZERO;
   }
   if (! test_connected (n))
   {
@@ -2247,139 +2243,6 @@ struct BlacklistCheckSwitchContext
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 };
-
-
-/**
- * Black list check result for try_connect call
- * If connection to the peer is allowed request adddress and
- *
- * @param cls blc_ctx bl context
- * @param peer the peer
- * @param address address associated with the request
- * @param session session associated with the request
- * @param result #GNUNET_OK if the connection is allowed,
- *               #GNUNET_NO if not,
- *               #GNUNET_SYSERR if operation was aborted
- */
-static void
-try_connect_bl_check_cont (void *cls,
-                           const struct GNUNET_PeerIdentity *peer,
-			   const struct GNUNET_HELLO_Address *address,
-			   struct GNUNET_ATS_Session *session,
-                           int result)
-{
-  struct BlacklistCheckSwitchContext *blc_ctx = cls;
-  struct NeighbourMapEntry *n;
-
-  GNUNET_CONTAINER_DLL_remove (pending_bc_head,
-                               pending_bc_tail,
-                               blc_ctx);
-  GNUNET_free (blc_ctx);
-  if (GNUNET_OK != result)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Blacklisting disapproved to connect to peer `%s'\n"),
-                GNUNET_i2s (peer));
-    return;
-  }
-
-  /* Setup a new neighbour */
-  if (NULL != lookup_neighbour(peer))
-    return; /* The neighbor was created in the meantime while waited for BL clients */
-
-  n = setup_neighbour (peer);
-
-  /* Request address suggestions for this peer */
-  set_state_and_timeout (n,
-                         GNUNET_TRANSPORT_PS_INIT_ATS,
-                         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-}
-
-
-/**
- * Try to create a connection to the given target (eventually).
- *
- * @param target peer to try to connect to
- */
-void
-GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
-{
-  struct NeighbourMapEntry *n;
-  struct GST_BlacklistCheck *blc;
-  struct BlacklistCheckSwitchContext *blc_ctx;
-
-  if (NULL == neighbours)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Asked to connect to peer `%s' during shutdown\n",
-                GNUNET_i2s (target));
-    return; /* during shutdown, do nothing */
-  }
-  n = lookup_neighbour (target);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Asked to connect to peer `%s' (state: %s)\n",
-              GNUNET_i2s (target),
-              (NULL != n) ? GNUNET_TRANSPORT_ps2s(n->state) : "NEW PEER");
-  if (NULL != n)
-  {
-    switch (n->state)
-    {
-    case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
-      /* this should not be possible */
-      GNUNET_break (0);
-      free_neighbour (n);
-      break;
-    case GNUNET_TRANSPORT_PS_INIT_ATS:
-    case GNUNET_TRANSPORT_PS_SYN_SENT:
-    case GNUNET_TRANSPORT_PS_SYN_RECV_ATS:
-    case GNUNET_TRANSPORT_PS_SYN_RECV_ACK:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Ignoring request to try to connect to `%s', already trying!\n",
-		  GNUNET_i2s (target));
-      return; /* already trying */
-    case GNUNET_TRANSPORT_PS_CONNECTED:
-    case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-    case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-    case GNUNET_TRANSPORT_PS_SWITCH_SYN_SENT:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  "Ignoring request to try to connect, already connected to `%s'!\n",
-		  GNUNET_i2s (target));
-      return; /* already connected */
-    case GNUNET_TRANSPORT_PS_DISCONNECT:
-      /* get rid of remains, ready to re-try immediately */
-      free_neighbour (n);
-      break;
-    case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
-      /* should not be possible */
-      GNUNET_assert (0);
-      return;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unhandled state `%s'\n",
-                  GNUNET_TRANSPORT_ps2s (n->state));
-      GNUNET_break (0);
-      free_neighbour (n);
-      break;
-    }
-  }
-
-  /* Do blacklist check if connecting to this peer is allowed */
-  blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
-  GNUNET_CONTAINER_DLL_insert (pending_bc_head,
-                               pending_bc_tail,
-                               blc_ctx);
-
-  if (NULL !=
-      (blc = GST_blacklist_test_allowed (target,
-                                         NULL,
-                                         &try_connect_bl_check_cont,
-                                         blc_ctx,
-					 NULL,
-					 NULL)))
-  {
-    blc_ctx->blc = blc;
-  }
-}
 
 
 /**
