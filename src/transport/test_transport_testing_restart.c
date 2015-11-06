@@ -82,11 +82,16 @@ restart_cb (struct PeerContext *p, void *cls)
 static void
 restart_task ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') restarting, \n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%s') restarting, \n",
               p->no,
               GNUNET_i2s (&p->id));
-  GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, NULL, restart_cb, p);
+  GNUNET_TRANSPORT_TESTING_restart_peer (p,
+                                         NULL,
+                                         &restart_cb,
+                                         p);
 }
+
 
 static void
 start_cb (struct PeerContext *p, void *cls)

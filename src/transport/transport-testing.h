@@ -93,6 +93,11 @@ struct PeerContext
   struct GNUNET_TRANSPORT_Handle *th;
 
   /**
+   * Peer's ATS handle.
+   */
+  struct GNUNET_ATS_ConnectivityHandle *ats;
+
+  /**
    * Peer's transport get hello handle to retrieve peer's HELLO message
    */
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
@@ -156,10 +161,10 @@ struct GNUNET_TRANSPORT_TESTING_ConnectRequest
   struct PeerContext *p1;
   struct PeerContext *p2;
   struct GNUNET_SCHEDULER_Task *tct;
+  struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
+  struct GNUNET_TRANSPORT_OfferHelloHandle *oh;
   GNUNET_TRANSPORT_TESTING_connect_cb cb;
   void *cb_cls;
-  struct GNUNET_TRANSPORT_Handle *th_p1;
-  struct GNUNET_TRANSPORT_Handle *th_p2;
   int p1_c;
   int p2_c;
 };
@@ -231,7 +236,6 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
 /**
  * Restart the given peer
  *
- * @param tth testing handle
  * @param p the peer
  * @param cfgname the cfg file used to restart
  * @param restart_cb restart callback
@@ -239,8 +243,7 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
  * @return #GNUNET_OK in success otherwise #GNUNET_SYSERR
  */
 int
-GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
-                                       struct PeerContext *p,
+GNUNET_TRANSPORT_TESTING_restart_peer (struct PeerContext *p,
                                        const char *cfgname,
                                        GNUNET_TRANSPORT_TESTING_start_cb restart_cb,
                                        void *cb_cls);

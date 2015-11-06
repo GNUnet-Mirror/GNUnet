@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2009, 2010, 2015 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -45,11 +45,11 @@ static char *test_name;
 
 static int ok;
 
-static struct GNUNET_SCHEDULER_Task * die_task;
+static struct GNUNET_SCHEDULER_Task *die_task;
 
-static struct GNUNET_SCHEDULER_Task * send_task;
+static struct GNUNET_SCHEDULER_Task *send_task;
 
-static struct GNUNET_SCHEDULER_Task * reconnect_task;
+static struct GNUNET_ATS_ConnectivitySuggestHandle *ats_sh;
 
 static struct PeerContext *p1;
 
@@ -59,7 +59,7 @@ static struct PeerContext *p2;
 
 static int p2_connected;
 
-static struct GNUNET_TRANSPORT_TESTING_ConnectRequest * cc;
+static struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc;
 
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
@@ -75,105 +75,101 @@ static int restarted;
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Stopping peers\n");
 
-  if (send_task != NULL)
+  if (NULL != send_task)
+  {
     GNUNET_SCHEDULER_cancel (send_task);
-  send_task = NULL;
-
-  if (reconnect_task != NULL)
-    GNUNET_SCHEDULER_cancel (reconnect_task);
-  reconnect_task = NULL;
-
-  if (die_task != NULL)
+    send_task = NULL;
+  }
+  if (NULL != ats_sh)
+  {
+    GNUNET_ATS_connectivity_suggest_cancel (ats_sh);
+    ats_sh = NULL;
+  }
+  if (NULL != die_task)
+  {
     GNUNET_SCHEDULER_cancel (die_task);
-  die_task = NULL;
-
-  if (th != NULL)
+    die_task = NULL;
+  }
+  if (NULL != th)
+  {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
-  p1 = NULL;
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
-  p2 = NULL;
+    th = NULL;
+  }
+  if (NULL != p1)
+  {
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+    p1 = NULL;
+  }
+  if (NULL != p2)
+  {
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+    p2 = NULL;
+  }
 }
 
+
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = NULL;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Fail! Stopping peers\n");
 
   if (restarted == GNUNET_YES)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was restarted\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer was restarted\n");
 
   if (restarted == GNUNET_NO)
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peer was NOT restarted\n");
-
-  if (reconnect_task != NULL)
-    GNUNET_SCHEDULER_cancel (reconnect_task);
-  reconnect_task = NULL;
-
-  if (send_task != NULL)
-    GNUNET_SCHEDULER_cancel (send_task);
-  send_task = NULL;
-
-  if (cc != NULL)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Peer was NOT restarted\n");
+  if (NULL != cc)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Fail! Could not connect peers\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Fail! Could not connect peers\n"));
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
     cc = NULL;
   }
-
-  if (th != NULL)
-    GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
-
-  if (p1 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
-  if (p2 != NULL)
-    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
-
+  end ();
   ok = GNUNET_SYSERR;
 }
 
-static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PeerContext *p = cls;
-
-  reconnect_task = NULL;
-
-  GNUNET_TRANSPORT_try_connect (p->th, &p2->id, NULL, NULL); /*FIXME TRY_CONNECT change */
-  reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &reconnect, p);
-}
 
 static void
 restart_cb (struct PeerContext *p, void *cls)
 {
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Restarted peer %u (`%4s'), issuing reconnect\n", p->no,
+              "Restarted peer %u (`%4s'), issuing reconnect\n",
+              p->no,
               GNUNET_i2s (&p->id));
-
-  reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, p);
+  ats_sh = GNUNET_ATS_connectivity_suggest (p->ats,
+                                            &p2->id,
+                                            1);
 }
 
+
 static void
-restart (struct PeerContext *p, char *cfg_file)
+restart (struct PeerContext *p,
+         const char *cfg_file)
 {
-  GNUNET_assert (p != NULL);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Restarting peer %u (`%4s')\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Restarting peer %u (`%4s')\n",
+              p->no,
               GNUNET_i2s (&p->id));
-  GNUNET_TRANSPORT_TESTING_restart_peer (tth, p, cfg_file, &restart_cb, p);
-  return;
+  GNUNET_TRANSPORT_TESTING_restart_peer (p,
+                                         cfg_file,
+                                         &restart_cb,
+                                         p);
 }
 
+
 static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message)
 {
   struct PeerContext *p = cls;

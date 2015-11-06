@@ -154,6 +154,7 @@ libgnunettransporttesting_la_SOURCES = \
 libgnunettransporttesting_la_LIBADD = \
   libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)
@@ -791,6 +792,7 @@ test_transport_api_restart_1peer_SOURCES = \
 test_transport_api_restart_1peer_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
@@ -800,7 +802,8 @@ test_transport_api_restart_2peers_SOURCES = \
 test_transport_api_restart_2peers_LDADD = \
  libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
+$(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettransporttesting.la
 
