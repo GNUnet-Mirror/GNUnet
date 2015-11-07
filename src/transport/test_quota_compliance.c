@@ -209,23 +209,29 @@ get_size (unsigned int iter)
 
 
 static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
+notify_receive (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message)
 {
   const struct TestMessage *hdr;
+  struct PeerContext *p = cls;
 
   hdr = (const struct TestMessage *) message;
   if (MTYPE != ntohs (message->type))
     return;
 
-  struct PeerContext *p = cls;
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
-              p->no, ps, ntohl (hdr->num), ntohs (message->size),
-              GNUNET_i2s (peer));
-  GNUNET_free (ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
+                p->no,
+                ps,
+                ntohl (hdr->num),
+                ntohs (message->size),
+                GNUNET_i2s (peer));
+    GNUNET_free (ps);
+  }
 }
 
 
@@ -315,8 +321,10 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   struct PeerContext *p = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') connected to us!\n",
-              p->no, GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%4s') connected to us!\n",
+              p->no,
+              GNUNET_i2s (peer));
 }
 
 
@@ -325,7 +333,9 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%4s') disconnected!\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%4s') disconnected!\n",
+              p->no,
               GNUNET_i2s (peer));
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);

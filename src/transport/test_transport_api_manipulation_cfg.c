@@ -107,6 +107,7 @@ end ()
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
 }
 
+
 static void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
@@ -180,26 +181,31 @@ notify_request_ready (void *cls, size_t size, void *buf)
   }
 
   GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  if (buf != NULL)
+  memset (buf, '\0', TEST_MESSAGE_SIZE);
+  hdr = buf;
+  hdr->size = htons (TEST_MESSAGE_SIZE);
+  hdr->type = htons (TEST_REQUEST_MESSAGE_TYPE);
+
   {
-    memset (buf, '\0', TEST_MESSAGE_SIZE);
-    hdr = buf;
-    hdr->size = htons (TEST_MESSAGE_SIZE);
-    hdr->type = htons (TEST_REQUEST_MESSAGE_TYPE);
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p1->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending request message from peer %u (`%4s') with type %u and size %u bytes to peer %u (`%4s')\n",
+                p1->no, ps,
+                ntohs (hdr->type),
+                ntohs (hdr->size),
+                p->no,
+                GNUNET_i2s (&p->id));
+    GNUNET_free (ps);
   }
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p1->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending request message from peer %u (`%4s') with type %u and size %u bytes to peer %u (`%4s')\n",
-              p1->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_free (ps);
   return TEST_MESSAGE_SIZE;
 }
 
 
 static void
-sendtask_request_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+sendtask_request_task (void *cls,
+                       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   send_task = NULL;
 
@@ -240,42 +246,55 @@ notify_response_ready (void *cls, size_t size, void *buf)
   }
 
   GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  if (buf != NULL)
-  {
-    memset (buf, '\0', TEST_MESSAGE_SIZE);
-    hdr = buf;
-    hdr->size = htons (TEST_MESSAGE_SIZE);
-    hdr->type = htons (TEST_RESPONSE_MESSAGE_TYPE);
-  }
+  memset (buf, '\0', TEST_MESSAGE_SIZE);
+  hdr = buf;
+  hdr->size = htons (TEST_MESSAGE_SIZE);
+  hdr->type = htons (TEST_RESPONSE_MESSAGE_TYPE);
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p1->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending response message from peer %u (`%4s') with type %u and size %u bytes to peer %u (`%4s')\n",
-              p1->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_free (ps);
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p1->id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending response message from peer %u (`%4s') with type %u and size %u bytes to peer %u (`%4s')\n",
+                p1->no,
+                ps,
+                ntohs (hdr->type),
+                ntohs (hdr->size),
+                p->no,
+                GNUNET_i2s (&p->id));
+    GNUNET_free (ps);
+  }
 
   return TEST_MESSAGE_SIZE;
 }
 
+
 static void
-sendtask_response_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+sendtask_response_task (void *cls,
+                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   send_task = NULL;
 
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
-  char *receiver_s = GNUNET_strdup (GNUNET_i2s (&p1->id));
+  {
+    char *receiver_s = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
-              p2->no, GNUNET_i2s (&p2->id), p1->no, receiver_s);
-  GNUNET_free (receiver_s);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending message from peer %u (`%4s') -> peer %u (`%s') !\n",
+                p2->no,
+                GNUNET_i2s (&p2->id),
+                p1->no,
+                receiver_s);
+    GNUNET_free (receiver_s);
+  }
 
   s_sending = GNUNET_YES;
- 	start_response = GNUNET_TIME_absolute_get();
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE,
-                                               TIMEOUT_TRANSMIT, &notify_response_ready,
+  start_response = GNUNET_TIME_absolute_get();
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th,
+                                               &p1->id,
+                                               TEST_MESSAGE_SIZE,
+                                               TIMEOUT_TRANSMIT,
+                                               &notify_response_ready,
                                                p1);
 }
 

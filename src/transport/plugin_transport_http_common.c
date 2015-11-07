@@ -567,7 +567,7 @@ http_common_plugin_address_to_url (void *cls,
     GNUNET_break(0);
     return NULL;
   }
-  if (0 >= addrlen)
+  if (0 == addrlen)
   {
     GNUNET_break(0);
     return NULL;
@@ -611,14 +611,14 @@ http_common_plugin_address_to_string (const char *plugin,
 
   GNUNET_assert(NULL != plugin);
   if (NULL == addr)
-    return NULL ;
+    return NULL;
   if (0 == addrlen)
-    return NULL ;
+    return NULL;
   if (addrlen != http_common_address_get_size (address))
-    return NULL ;
+    return NULL;
   addr_str = (char *) &address[1];
   if (addr_str[ntohl (address->urlen) - 1] != '\0')
-    return NULL ;
+    return NULL;
   GNUNET_asprintf (&res, "%s.%u.%s", plugin, ntohl (address->options),
       &address[1]);
   if (strlen (res) + 1 < 500)
@@ -629,7 +629,7 @@ http_common_plugin_address_to_string (const char *plugin,
   }
   GNUNET_break(0);
   GNUNET_free(res);
-  return NULL ;
+  return NULL;
 }
 
 /**
@@ -772,7 +772,7 @@ http_common_socket_from_address (const void *addr,
     GNUNET_break (0);
     return NULL;
   }
-  if (0 >= addrlen)
+  if (0 == addrlen)
   {
     GNUNET_break (0);
     return NULL;
@@ -868,14 +868,14 @@ http_common_cmp_addresses (const void *addr1,
 
   if (NULL == a1)
     return GNUNET_SYSERR;
-  if (0 >= addrlen1)
+  if (0 == addrlen1)
     return GNUNET_SYSERR;
   if (a1[addrlen1 - 1] != '\0')
     return GNUNET_SYSERR;
 
   if (NULL == a2)
     return GNUNET_SYSERR;
-  if (0 >= addrlen2)
+  if (0 == addrlen2)
     return GNUNET_SYSERR;
   if (a2[addrlen2 - 1] != '\0')
     return GNUNET_SYSERR;

@@ -185,20 +185,24 @@ notify_ready (void *cls, size_t size, void *buf)
   }
 
   GNUNET_assert (size >= 256);
+  hdr = buf;
+  hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
+  hdr->type = htons (MTYPE);
 
-  if (buf != NULL)
   {
-    hdr = buf;
-    hdr->size = htons (sizeof (struct GNUNET_MessageHeader));
-    hdr->type = htons (MTYPE);
-  }
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-              p2->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_free (ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
+                p2->no,
+                ps,
+                ntohs (hdr->type),
+                ntohs (hdr->size),
+                p->no,
+                GNUNET_i2s (&p->id));
+    GNUNET_free (ps);
+  }
+
   return sizeof (struct GNUNET_MessageHeader);
 }
 
@@ -229,7 +233,6 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   static int c;
 
   c++;
-  GNUNET_assert (NULL != cls);
   struct PeerContext *p = cls;
   struct PeerContext *t = NULL;
 
@@ -239,12 +242,17 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     t = p2;
   GNUNET_assert (t != NULL);
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
-              t->no, GNUNET_i2s (peer));
-  GNUNET_free (ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%4s'): peer %u (`%s') connected to me!\n",
+                p->no,
+                ps,
+                t->no,
+                GNUNET_i2s (peer));
+    GNUNET_free (ps);
+  }
 }
 
 
@@ -252,14 +260,17 @@ static void
 notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
-              p->no, ps,
-              GNUNET_i2s (peer));
-  GNUNET_free (ps);
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
+                p->no,
+                ps,
+                GNUNET_i2s (peer));
+    GNUNET_free (ps);
+  }
   if (NULL != send_task)
   {
     GNUNET_SCHEDULER_cancel(send_task);
@@ -277,7 +288,8 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
-	static int connected = GNUNET_NO;
+  static int connected = GNUNET_NO;
+
   if ((cls == cc1) && (NULL != cc2))
   {
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc2);
@@ -290,14 +302,23 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   cc2 = NULL;
 
   if (connected > 0)
-  	return;
-  connected  ++;
-  char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
+    return;
+  connected++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
-              p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
-  GNUNET_free (p1_c);
-  send_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &sendtask, NULL);
+  {
+    char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peers connected: %u (%s) <-> %u (%s)\n",
+                p1->no,
+                p1_c,
+                p2->no,
+                GNUNET_i2s (&p2->id));
+    GNUNET_free (p1_c);
+  }
+  send_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                            &sendtask,
+                                            NULL);
 }
 
 

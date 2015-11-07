@@ -229,39 +229,44 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 static size_t
-notify_ready (void *cls, size_t size, void *buf)
+notify_ready (void *cls,
+              size_t size,
+              void *buf)
 {
   struct PeerContext *p = cls;
   struct GNUNET_MessageHeader *hdr;
 
   th = NULL;
-
-  if (buf == NULL)
+  if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Timeout occurred while waiting for transmit_ready\n");
     if (NULL != die_task)
       GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly,
+                                         NULL);
     ok = 42;
     return 0;
   }
 
   GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  if (buf != NULL)
-  {
-    memset (buf, '\0', TEST_MESSAGE_SIZE);
-    hdr = buf;
-    hdr->size = htons (TEST_MESSAGE_SIZE);
-    hdr->type = htons (TEST_MESSAGE_TYPE);
-  }
+  memset (buf, '\0', TEST_MESSAGE_SIZE);
+  hdr = buf;
+  hdr->size = htons (TEST_MESSAGE_SIZE);
+  hdr->type = htons (TEST_MESSAGE_TYPE);
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-              p2->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_free (ps);
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
+                p2->no,
+                ps,
+                ntohs (hdr->type),
+                ntohs (hdr->size),
+                p->no,
+                GNUNET_i2s (&p->id));
+    GNUNET_free (ps);
+  }
 
   return TEST_MESSAGE_SIZE;
 }
@@ -290,9 +295,13 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 done ()
 {
-  if ((GNUNET_YES == p1_c) && (GNUNET_YES == p2_c) && p1_c_notify && p2_c_notify)
+  if ( (GNUNET_YES == p1_c) &&
+       (GNUNET_YES == p2_c) &&
+       p1_c_notify &&
+       p2_c_notify)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Both peers state to be connected\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Both peers state to be connected\n");
     ok = 0;
     end();
   }
@@ -403,7 +412,7 @@ monitor1_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Monitor 1: %s %s %s\n",
-	      GNUNET_i2s (&address->peer), 
+	      GNUNET_i2s (&address->peer),
 	      GNUNET_TRANSPORT_vs2s (state),
 	      GNUNET_STRINGS_absolute_time_to_string(valid_until));
   if (0 == memcmp (&address->peer,
@@ -427,7 +436,7 @@ monitor2_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Monitor 2: %s %s %s\n",
 	      GNUNET_i2s (&address->peer),
-	      GNUNET_TRANSPORT_vs2s(state), 
+	      GNUNET_TRANSPORT_vs2s(state),
 	      GNUNET_STRINGS_absolute_time_to_string(valid_until));
   if (0 == memcmp (&address->peer,
 		   &p1->id,

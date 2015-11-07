@@ -237,20 +237,24 @@ notify_ready (void *cls, size_t size, void *buf)
   }
 
   GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  if (buf != NULL)
-  {
-    memset (buf, '\0', TEST_MESSAGE_SIZE);
-    hdr = buf;
-    hdr->size = htons (TEST_MESSAGE_SIZE);
-    hdr->type = htons (TEST_MESSAGE_TYPE);
-  }
+  memset (buf, '\0', TEST_MESSAGE_SIZE);
+  hdr = buf;
+  hdr->size = htons (TEST_MESSAGE_SIZE);
+  hdr->type = htons (TEST_MESSAGE_TYPE);
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-              p2->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_free (ps);
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
+                p2->no,
+                ps,
+                ntohs (hdr->type),
+                ntohs (hdr->size),
+                p->no,
+                GNUNET_i2s (&p->id));
+    GNUNET_free (ps);
+  }
 
   return TEST_MESSAGE_SIZE;
 }

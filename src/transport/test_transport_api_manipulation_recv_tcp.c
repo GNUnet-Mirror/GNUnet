@@ -264,27 +264,32 @@ notify_ready (void *cls, size_t size, void *buf)
   }
 
   GNUNET_assert (size >= TEST_MESSAGE_SIZE);
-  if (buf != NULL)
-  {
-    memset (buf, '\0', TEST_MESSAGE_SIZE);
-    hdr = buf;
-    hdr->size = htons (TEST_MESSAGE_SIZE);
-    hdr->type = htons (TEST_MESSAGE_TYPE);
-  }
+  memset (buf, '\0', TEST_MESSAGE_SIZE);
+  hdr = buf;
+  hdr->size = htons (TEST_MESSAGE_SIZE);
+  hdr->type = htons (TEST_MESSAGE_TYPE);
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
-              p2->no, ps, ntohs (hdr->type), ntohs (hdr->size), p->no,
-              GNUNET_i2s (&p->id));
-  GNUNET_free (ps);
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p2->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %u (`%4s') sending message with type %u and size %u bytes to peer %u (`%4s')\n",
+                p2->no,
+                ps,
+                ntohs (hdr->type),
+                ntohs (hdr->size),
+                p->no,
+                GNUNET_i2s (&p->id));
+    GNUNET_free (ps);
+  }
 
   return TEST_MESSAGE_SIZE;
 }
 
 
 static void
-sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+sendtask (void *cls,
+          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   send_task = NULL;
 
@@ -300,22 +305,26 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 == messages_recv)
   {
-  	start_normal = GNUNET_TIME_absolute_get();
+    start_normal = GNUNET_TIME_absolute_get();
   }
   if (1 == messages_recv)
   {
-		start_delayed = GNUNET_TIME_absolute_get();
+    start_delayed = GNUNET_TIME_absolute_get();
   }
 
   s_sending = GNUNET_YES;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE,
-                                               TIMEOUT_TRANSMIT, &notify_ready,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th,
+                                               &p1->id,
+                                               TEST_MESSAGE_SIZE,
+                                               TIMEOUT_TRANSMIT,
+                                               &notify_ready,
                                                p1);
 }
 
 
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_connect (void *cls,
+                const struct GNUNET_PeerIdentity *peer)
 {
   static int c;
 
@@ -329,42 +338,63 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     t = p2;
   GNUNET_assert (t != NULL);
 
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
-              t->no, GNUNET_i2s (peer));
-  GNUNET_free (ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %u (`%4s'): peer %u (`%s') connected to me!\n",
+                p->no,
+                ps,
+                t->no,
+                GNUNET_i2s (peer));
+    GNUNET_free (ps);
+  }
 }
 
 
 static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_disconnect (void *cls,
+                   const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerContext *p = cls;
-  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
-              GNUNET_i2s (peer));
+  {
+    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-  GNUNET_free (ps);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
+                p->no,
+                ps,
+                GNUNET_i2s (peer));
+    GNUNET_free (ps);
+  }
 
   if (th != NULL)
+  {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
+    th = NULL;
+  }
 }
 
 
 static void
-testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
+testing_connect_cb (struct PeerContext *p1,
+                    struct PeerContext *p2,
+                    void *cls)
 {
   cc = NULL;
-  char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
-              p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
-  GNUNET_free (p1_c);
+  {
+    char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peers connected: %u (%s) <-> %u (%s)\n",
+                p1->no,
+                p1_c,
+                p2->no,
+                GNUNET_i2s (&p2->id));
+    GNUNET_free (p1_c);
+  }
 
   s_connected = GNUNET_YES;
   send_task = GNUNET_SCHEDULER_add_now (&sendtask, NULL);
@@ -377,21 +407,31 @@ start_cb (struct PeerContext *p, void *cls)
   static int started;
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %u (`%s') started\n",
+              p->no,
               GNUNET_i2s (&p->id));
 
   if (started != 2)
     return;
   else
     s_started = GNUNET_YES;
-  char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
+  {
+    char *sender_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
-              p1->no, sender_c, p2->no, GNUNET_i2s (&p2->id));
-  GNUNET_free (sender_c);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Test tries to connect peer %u (`%s') -> peer %u (`%s')\n",
+                p1->no,
+                sender_c,
+                p2->no,
+                GNUNET_i2s (&p2->id));
+    GNUNET_free (sender_c);
+  }
 
-  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
+  cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth,
+                                               p1,
+                                               p2,
+                                               &testing_connect_cb,
                                                NULL);
 
 }
