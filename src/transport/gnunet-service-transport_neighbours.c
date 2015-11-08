@@ -462,50 +462,9 @@ struct NeighbourMapEntry
 
 
 /**
- * Context for blacklist checks and the #try_connect_bl_check_cont()
- * function.  Stores information about ongoing blacklist checks.
- */
-struct BlackListCheckContext
-{
-
-  /**
-   * We keep blacklist checks in a DLL.
-   */
-  struct BlackListCheckContext *next;
-
-  /**
-   * We keep blacklist checks in a DLL.
-   */
-  struct BlackListCheckContext *prev;
-
-  /**
-   * Address that is being checked.
-   */
-  struct NeighbourAddress na;
-
-  /**
-   * Handle to the ongoing blacklist check.
-   */
-  struct GST_BlacklistCheck *bc;
-};
-
-
-/**
  * Hash map from peer identities to the respective `struct NeighbourMapEntry`.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *neighbours;
-
-/**
- * We keep blacklist checks in a DLL so that we can find
- * the 'sessions' in their 'struct NeighbourAddress' if
- * a session goes down.
- */
-static struct BlackListCheckContext *bc_head;
-
-/**
- * We keep blacklist checks in a DLL.
- */
-static struct BlackListCheckContext *bc_tail;
 
 /**
  * List of pending blacklist checks: head
@@ -3256,25 +3215,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                                    struct GNUNET_ATS_Session *session)
 {
   struct NeighbourMapEntry *n;
-  struct BlackListCheckContext *bcc;
-  struct BlackListCheckContext *bcc_next;
 
-  /* make sure to cancel all ongoing blacklist checks involving 'session' */
-  bcc_next = bc_head;
-  while (NULL != (bcc = bcc_next))
-  {
-    bcc_next = bcc->next;
-    if (bcc->na.session == session)
-    {
-      if (NULL != bcc->bc)
-        GST_blacklist_test_cancel (bcc->bc);
-      GNUNET_HELLO_address_free (bcc->na.address);
-      GNUNET_CONTAINER_DLL_remove (bc_head,
-				   bc_tail,
-				   bcc);
-      GNUNET_free (bcc);
-    }
-  }
   if (NULL == (n = lookup_neighbour (peer)))
     return GNUNET_NO; /* can't affect us */
   if (session != n->primary_address.session)
@@ -3817,9 +3758,6 @@ disconnect_all_neighbours (void *cls,
 void
 GST_neighbours_stop ()
 {
-  struct BlacklistCheckSwitchContext *cur;
-  struct BlacklistCheckSwitchContext *next;
-
   if (NULL == neighbours)
     return;
   if (NULL != util_transmission_tk)
@@ -3832,21 +3770,6 @@ GST_neighbours_stop ()
                                          NULL);
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);
   neighbours = NULL;
-  next = pending_bc_head;
-  for (cur = next; NULL != cur; cur = next)
-  {
-    next = cur->next;
-    GNUNET_CONTAINER_DLL_remove (pending_bc_head,
-                                 pending_bc_tail,
-                                 cur);
-
-    if (NULL != cur->blc)
-    {
-      GST_blacklist_test_cancel (cur->blc);
-      cur->blc = NULL;
-    }
-    GNUNET_free (cur);
-  }
 }
 
 
