@@ -1582,8 +1582,9 @@ struct GNUNET_FS_ProgressInfo
  *         will be passed to future callbacks in the respective
  *         field in the `struct GNUNET_FS_ProgressInfo`.
  */
-typedef void *(*GNUNET_FS_ProgressCallback) (void *cls,
-                                             const struct GNUNET_FS_ProgressInfo *info);
+typedef void *
+(*GNUNET_FS_ProgressCallback) (void *cls,
+                               const struct GNUNET_FS_ProgressInfo *info);
 
 
 /**
@@ -1703,9 +1704,9 @@ struct GNUNET_FS_Handle;
  */
 struct GNUNET_FS_Handle *
 GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 const char *client_name, 
+                 const char *client_name,
 		 GNUNET_FS_ProgressCallback upcb,
-                 void *upcb_cls, 
+                 void *upcb_cls,
 		 enum GNUNET_FS_Flags flags,
 		 ...);
 
@@ -1738,17 +1739,15 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h);
  *         this entry from the directory, #GNUNET_SYSERR
  *         to abort the iteration
  */
-typedef int (*GNUNET_FS_FileInformationProcessor) (void *cls,
-                                                   struct
-                                                   GNUNET_FS_FileInformation *
-                                                   fi, uint64_t length,
-                                                   struct
-                                                   GNUNET_CONTAINER_MetaData *
-                                                   meta,
-                                                   struct GNUNET_FS_Uri ** uri,
-                                                   struct GNUNET_FS_BlockOptions
-                                                   * bo, int *do_index,
-                                                   void **client_info);
+typedef int
+(*GNUNET_FS_FileInformationProcessor) (void *cls,
+                                       struct GNUNET_FS_FileInformation *fi,
+                                       uint64_t length,
+                                       struct GNUNET_CONTAINER_MetaData *meta,
+                                       struct GNUNET_FS_Uri ** uri,
+                                       struct GNUNET_FS_BlockOptions *bo,
+                                       int *do_index,
+                                       void **client_info);
 
 
 /**
@@ -1805,13 +1804,10 @@ struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
                                              void *client_info,
                                              const char *filename,
-                                             const struct GNUNET_FS_Uri
-                                             *keywords,
-                                             const struct
-                                             GNUNET_CONTAINER_MetaData *meta,
+                                             const struct GNUNET_FS_Uri *keywords,
+                                             const struct GNUNET_CONTAINER_MetaData *meta,
                                              int do_index,
-                                             const struct GNUNET_FS_BlockOptions
-                                             *bo);
+                                             const struct GNUNET_FS_BlockOptions *bo);
 
 
 /**
@@ -1832,15 +1828,13 @@ GNUNET_FS_file_information_create_from_file (struct GNUNET_FS_Handle *h,
  */
 struct GNUNET_FS_FileInformation *
 GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
-                                             void *client_info, uint64_t length,
+                                             void *client_info,
+                                             uint64_t length,
                                              void *data,
-                                             const struct GNUNET_FS_Uri
-                                             *keywords,
-                                             const struct
-                                             GNUNET_CONTAINER_MetaData *meta,
+                                             const struct GNUNET_FS_Uri *keywords,
+                                             const struct GNUNET_CONTAINER_MetaData *meta,
                                              int do_index,
-                                             const struct GNUNET_FS_BlockOptions
-                                             *bo);
+                                             const struct GNUNET_FS_BlockOptions *bo);
 
 
 /**
@@ -1863,8 +1857,12 @@ GNUNET_FS_file_information_create_from_data (struct GNUNET_FS_Handle *h,
  * @param emsg location for the reader to store an error message
  * @return number of bytes written, usually @a max, 0 on error
  */
-typedef size_t (*GNUNET_FS_DataReader) (void *cls, uint64_t offset, size_t max,
-                                        void *buf, char **emsg);
+typedef size_t
+(*GNUNET_FS_DataReader) (void *cls,
+                         uint64_t offset,
+                         size_t max,
+                         void *buf,
+                         char **emsg);
 
 
 /**
@@ -2047,9 +2045,10 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc);
  * @param uri URI under which the block is now available, NULL on error
  * @param emsg error message, NULL on success
  */
-typedef void (*GNUNET_FS_PublishContinuation) (void *cls,
-                                               const struct GNUNET_FS_Uri *uri,
-                                               const char *emsg);
+typedef void
+(*GNUNET_FS_PublishContinuation) (void *cls,
+                                  const struct GNUNET_FS_Uri *uri,
+                                  const char *emsg);
 
 
 /**
@@ -2140,8 +2139,10 @@ GNUNET_FS_publish_sks_cancel (struct GNUNET_FS_PublishSksContext *psc);
  * @param file_id hash of the contents of the indexed file
  * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_FS_IndexedFileProcessor) (void *cls, const char *filename,
-                                               const struct GNUNET_HashCode * file_id);
+typedef int
+(*GNUNET_FS_IndexedFileProcessor) (void *cls,
+                                   const char *filename,
+                                   const struct GNUNET_HashCode *file_id);
 
 
 /**
