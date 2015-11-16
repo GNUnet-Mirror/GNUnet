@@ -460,7 +460,7 @@ tokenizer_cb (void *cls, void *client,
     GNUNET_asprintf (&evar,
                      "%s=%s",
                      ENV_TESTBED_CONFIG,
-                     config));
+                     config);
     GNUNET_assert (0 == putenv (evar));  /* consumes 'evar',
                                             see putenv(): becomes part of envrionment! */
     evstr = NULL;
