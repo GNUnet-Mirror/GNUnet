@@ -837,7 +837,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
     }
     update_active_address (s,
                            aw_min->addr,
-                           &aw->addr->peer);
+                           &aw_min->addr->peer);
   }
   distribute_bandwidth_in_network (s,
                                    asi_best->network);
