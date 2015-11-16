@@ -420,13 +420,16 @@ tokenizer_cb (void *cls, void *client,
   if (NULL != evstr)
   {
 #ifdef WINDOWS
-    GNUNET_assert (0 != SetEnvironmentVariable (GNUNET_TESTING_PREFIX, evstr));
+    GNUNET_assert (0 != SetEnvironmentVariable (GNUNET_TESTING_PREFIX,
+                                                evstr));
 #else
-    static char evar[2* PATH_MAX];
+    char *evar;
 
-    GNUNET_assert (0 < GNUNET_snprintf (evar, sizeof (evar),
-                                        GNUNET_TESTING_PREFIX "=%s", evstr));
-    putenv (evar);
+    GNUNET_asprintf (&evar,
+                     GNUNET_TESTING_PREFIX "=%s",
+                     evstr);
+    putenv (evar); /* consumes 'evar',
+                      see putenv(): becomes part of envrionment! */
 #endif
     GNUNET_free (evstr);
     evstr = NULL;

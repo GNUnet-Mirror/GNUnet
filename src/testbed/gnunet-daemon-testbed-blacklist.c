@@ -212,7 +212,7 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *shome;
-  char fname[PATH_MAX];
+  char *fname;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "PATHS",
                                                             "GNUNET_HOME",
@@ -221,15 +221,21 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_break (0);
     return;
   }
-  GNUNET_assert (0 < GNUNET_snprintf (fname, PATH_MAX, "%s/whitelist", shome));
+  GNUNET_asprintf (&fname,
+                   "%s/whitelist",
+                   shome);
   if (GNUNET_YES == GNUNET_DISK_file_test (fname))
   {
     mode = ACCESS_ALLOW;
     setup_ac (fname, c);
     GNUNET_free (shome);
+    GNUNET_free (fname);
     return;
   }
-  GNUNET_assert (0 < GNUNET_snprintf (fname, PATH_MAX, "%s/blacklist", shome));
+  GNUNET_asprintf (&fname,
+                   "%s/blacklist",
+                   shome);
+  GNUNET_free (fname);
   if (GNUNET_YES == GNUNET_DISK_file_test (fname))
   {
     mode = ACCESS_DENY;
