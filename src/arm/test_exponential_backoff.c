@@ -402,6 +402,14 @@ check ()
 }
 
 
+#ifndef PATH_MAX
+/**
+ * Assumed maximum path length (for the log file name).
+ */
+#define PATH_MAX 4096
+#endif
+
+
 static int
 init ()
 {

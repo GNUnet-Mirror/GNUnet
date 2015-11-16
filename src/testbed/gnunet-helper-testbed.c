@@ -428,8 +428,8 @@ tokenizer_cb (void *cls, void *client,
     GNUNET_asprintf (&evar,
                      GNUNET_TESTING_PREFIX "=%s",
                      evstr);
-    putenv (evar); /* consumes 'evar',
-                      see putenv(): becomes part of envrionment! */
+    GNUNET_assert (0 == putenv (evar)); /* consumes 'evar',
+                                           see putenv(): becomes part of envrionment! */
 #endif
     GNUNET_free (evstr);
     evstr = NULL;
@@ -454,12 +454,15 @@ tokenizer_cb (void *cls, void *client,
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-testbed");
   {
-    static char evar[2 * PATH_MAX];
+    char *evar;
 
     /* expose testbed configuration through env variable */
-    GNUNET_assert (0 < GNUNET_snprintf (evar, sizeof (evar),
-                                        "%s=%s", ENV_TESTBED_CONFIG, config));
-    GNUNET_assert (0 == putenv (evar));
+    GNUNET_asprintf (&evar,
+                     "%s=%s",
+                     ENV_TESTBED_CONFIG,
+                     config));
+    GNUNET_assert (0 == putenv (evar));  /* consumes 'evar',
+                                            see putenv(): becomes part of envrionment! */
     evstr = NULL;
   }
   testbed =
