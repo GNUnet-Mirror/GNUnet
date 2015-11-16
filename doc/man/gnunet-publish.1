@@ -1,4 +1,4 @@
-.TH GNUNET-PUBLISH "1" "25 Feb 2012" "GNUnet"
+.TH GNUNET-PUBLISH "1" "16 Nov 2015" "GNUnet"
 .SH NAME
 gnunet\-publish \- a command line interface for publishing new content into GNUnet
 .SH SYNOPSIS
@@ -56,11 +56,11 @@ For the main file (or directory), set the metadata of the given TYPE to the give
 \fB\-n\fR, \fB\-\-noindex\fR
 Executive summary: You probably don't need it.
 
-Do not index, full publishing.  Note that directories, RBlocks, SBlocks and IBlocks are always published (even without this option).  With this option, every block of the actual files is stored in encrypted form in the block database of the local peer.  While this adds security if the local node is compromised (the adversary snags your machine), it is significantly less efficient compared to on\-demand encryption and is definitely not recommended for large files.
+Do not index, full publishing.  Note that directories, information for keyword search, namespace search and indexing data are always published (even without this option).  With this option, every block of the actual files is stored in encrypted form in the block database of the local peer.  While this adds security if the local node is compromised (the adversary snags your machine), it is significantly less efficient compared to on\-demand encryption and is definitely not recommended for large files.
 
 .TP
 \fB\-N \fIID\fR, \fB\-\-next=\fIID\fR
-Specifies the next ID of a future version of the SBlock.  This option is only valid together with the \-P option.  This option can be used to specify what the identifier of an updated version will look like.  Note that specifying \-i and \-N without \-t is not allowed.
+Specifies the next identifier of a future version of the file to be published under the same pseudonym.  This option is only valid together with the \-P option.  This option can be used to specify what the identifier of an updated version will look like.  Note that specifying \-i and \-N without \-t is not allowed.
 
 .TP
 \fB\-p \fIPRIORITY\fR, \fB\-\-prio=\fIPRIORITY\fR
@@ -70,7 +70,7 @@ Set the priority of the published content (default: 365).  If the local database
 
 .TP
 \fB\-P \fINAME\fR, \fB\-\-pseudonym=\fINAME\fR
-For the top\-level directory or file, create an SBlock that places the file into the namespace specified by the pseudonym NAME.
+For the top\-level directory or file, places the file into the namespace identified by the pseudonym NAME. NAME must be a valid pseudonym managed by gnunet\-identity.
 
 .TP
 \fB\-r \fILEVEL\fR, \fB\-\-replication=\fILEVEL\fR
@@ -82,7 +82,7 @@ When this option is used, gnunet\-publish will not actually publish the file but
 
 .TP
 \fB\-t \fIID\fR, \fB\-\-this=\fIID\fR
-Specifies the ID of the SBlock.  This option is only valid together with the\ \-s option.
+Specifies the identifier under which the file is to be published under a pseudonym.  This option is only valid together with the\ \-P option.
 
 .TP
 \fB\-u \fIURI\fR, \fB\-\-uri=\fIURI\fR
@@ -145,7 +145,7 @@ Publish file COPYING with pseudonym RIAA-2 (\-P) and with identifier \fBgpl\fR (
 
  # gnunet\-publish \-P RIAA-2 \-t gpl COPYING
 
-Recursively index /home/ogg and build a matching directory structure. Publish the top\-level directory into the namespace under the pseudonym RIAA-2 (\-P) under identifier 'MUSIC' (\-t) and promise to provide an update with identifier 'VIDEOS' (\-N):
+Recursively index /home/ogg and build a matching directory structure. Publish the top\-level directory into the namespace under the pseudonym RIAA\-2 (\-P) under identifier 'MUSIC' (\-t) and promise to provide an update with identifier 'VIDEOS' (\-N):
 
  # gnunet\-publish \-P RIAA-2 \-t MUSIC \-N VIDEOS /home/ogg
 
@@ -169,4 +169,4 @@ GNUnet configuration file
 .SH "REPORTING BUGS"
 Report bugs to <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
 .SH "SEE ALSO"
-\fBgnunet\-auto\-share\fP(1), \fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBextract\fP(1)
+\fBgnunet\-auto\-share\fP(1), \fBgnunet\-fs\-gtk\fP(1), \fBgnunet\-search\fP(1), \fBgnunet\-download\fP(1), \fBgnunet.conf\fP(5), \fBextract\fP(1), \fBgnunet\-identity\fP(1)
