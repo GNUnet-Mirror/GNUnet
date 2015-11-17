@@ -349,9 +349,10 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  * @param addr the address, NULL on errors
  * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
-typedef void (*GNUNET_NAT_IPCallback) (void *cls,
-                                       const struct in_addr *addr,
-                                       enum GNUNET_NAT_StatusCode result);
+typedef void
+(*GNUNET_NAT_IPCallback) (void *cls,
+                          const struct in_addr *addr,
+                          enum GNUNET_NAT_StatusCode result);
 
 
 
