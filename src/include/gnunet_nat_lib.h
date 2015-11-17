@@ -355,7 +355,6 @@ typedef void
                           enum GNUNET_NAT_StatusCode result);
 
 
-
 /**
  * Opaque handle to cancel #GNUNET_NAT_mini_get_external_ipv4() operation.
  */
@@ -491,8 +490,6 @@ GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah);
  * Handle for active STUN Requests.
  */
 struct GNUNET_NAT_STUN_Handle;
-
-
 
 
 /**
