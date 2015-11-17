@@ -322,8 +322,8 @@ stun_get_mapped (struct StunState *st,
  * If a callback is specified, invoke it with the attribute.
  *
  * @param data the packet
- * @param len the length of the packet
- * @param arg sockaddr_in where we will set our discovered packet
+ * @param len the length of the packet in @a data
+ * @param[out] arg sockaddr_in where we will set our discovered address
  *
  * @return, #GNUNET_OK on OK, #GNUNET_NO if the packet is invalid (not a stun packet)
  */
@@ -361,7 +361,7 @@ GNUNET_NAT_stun_handle_packet (const void *data,
 
   message_magic_cookie = ntohl(hdr->magic);
   /* Compare if the cookie match */
-  if(STUN_MAGIC_COOKIE != message_magic_cookie)
+  if (STUN_MAGIC_COOKIE != message_magic_cookie)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Invalid magic cookie \n");
@@ -382,7 +382,7 @@ GNUNET_NAT_stun_handle_packet (const void *data,
     return GNUNET_NO;
   }
   len = advertised_message_size;
-  memset (&st,0, sizeof(st));
+  memset (&st, 0, sizeof(st));
 
   while (len > 0)
   {
@@ -408,7 +408,10 @@ GNUNET_NAT_stun_handle_packet (const void *data,
            (int)len);
       break;
     }
-    stun_get_mapped (&st, attr, arg, hdr->magic);
+    stun_get_mapped (&st,
+                     attr,
+                     arg,
+                     hdr->magic);
     /* Clear attribute id: in case previous entry was a string,
      * this will act as the terminator for the string.
      */
@@ -508,6 +511,7 @@ stun_dns_callback (void *cls,
   /* sending STUN request done, let's wait for replies... */
   rh->cb (rh->cb_cls,
           GNUNET_NAT_ERROR_SUCCESS);
+  GNUNET_NAT_stun_make_request_cancel (rh);
 }
 
 

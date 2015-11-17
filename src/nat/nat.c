@@ -804,6 +804,7 @@ process_interfaces (void *cls,
       GNUNET_free (tun_if);
       return GNUNET_OK;
     }
+    GNUNET_free (tun_if);
   }
   /* skip virtual interfaces created by GNUnet-dns */
   if (GNUNET_OK ==
@@ -819,6 +820,7 @@ process_interfaces (void *cls,
       GNUNET_free (tun_if);
       return GNUNET_OK;
     }
+    GNUNET_free (tun_if);
   }
   /* skip virtual interfaces created by GNUnet-exit */
   if (GNUNET_OK ==
@@ -834,8 +836,8 @@ process_interfaces (void *cls,
       GNUNET_free (tun_if);
       return GNUNET_OK;
     }
+    GNUNET_free (tun_if);
   }
-
 
   switch (addr->sa_family)
   {
@@ -1127,15 +1129,23 @@ stun_request_callback (void *cls,
   struct GNUNET_NAT_Handle *h = cls;
 
   h->stun_request = NULL;
-  if (GNUNET_NAT_ERROR_SUCCESS != result)
+  switch (result)
   {
+  case GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR:
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Error processing a STUN request: %d\n",
-         result);
-  }
-  else
-  {
+         "Failed to transmit STUN request\n");
+    break;
+  case GNUNET_NAT_ERROR_NOT_ONLINE:
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Failed to resolve STUN server (are we online?)\n");
+    break;
+  case GNUNET_NAT_ERROR_SUCCESS:
+    /* all good, STUN request active */
     h->waiting_stun = GNUNET_YES;
+    break;
+  default:
+    /* unexpected error code for STUN */
+    GNUNET_break (0);
   }
 }
 
@@ -1171,7 +1181,7 @@ GNUNET_NAT_is_valid_stun_packet (void *cls,
           0,
           sizeof(struct sockaddr_in));
 
-  /*Lets handle the packet*/
+  /* Lets handle the packet*/
   if (GNUNET_NO ==
       GNUNET_NAT_stun_handle_packet (data,
                                      len,
@@ -1638,39 +1648,38 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     char *stun_servers;
     size_t urls;
-    int pos;
+    ssize_t pos;
     size_t pos_port;
 
     h->socket = sock;
     h->actual_stun_server = NULL;
+    stun_servers = NULL;
     /* Lets process the servers*/
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_string (cfg,
-                                               "nat",
-                                               "STUN_SERVERS",
-                                               &stun_servers))
-    {
-      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-                                 "nat",
-                                 "STUN_SERVERS");
-    }
-
+    (void) GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                  "nat",
+                                                  "STUN_SERVERS",
+                                                  &stun_servers);
     urls = 0;
     h->stun_servers_head = NULL;
     h->stun_servers_tail = NULL;
     h->actual_stun_server = NULL;
-    if (strlen (stun_servers) > 0)
+    if ( (NULL != stun_servers) &&
+         (strlen (stun_servers) > 0) )
     {
-      pos = strlen (stun_servers) - 1;
       pos_port = 0;
-      while (pos >= 0)
+      for (pos = strlen (stun_servers) - 1;
+           pos >= 0;
+           pos--)
       {
         if (stun_servers[pos] == ':')
         {
           pos_port = pos + 1;
+          stun_servers[pos] = '\0';
+          continue;
         }
         if ((stun_servers[pos] == ' ') || (0 == pos))
         {
+          struct StunServerList *ml;
 
           /*Check if we do have a port*/
           if((0 == pos_port) || (pos_port <= pos))
@@ -1679,40 +1688,30 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
                  "STUN server format mistake\n");
             break;
           }
-
           urls++;
-
-          struct StunServerList* ml = GNUNET_new (struct StunServerList);
-
+          ml = GNUNET_new (struct StunServerList);
           ml->port = atoi (&stun_servers[pos_port]);
-          stun_servers[pos_port-1] = '\0';
 
           /* Remove trailing space */
           if(stun_servers[pos] == ' ')
             ml->address = GNUNET_strdup (&stun_servers[pos + 1]);
           else
             ml->address = GNUNET_strdup (&stun_servers[pos]);
-
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "Found STUN server %s:%i\n",
                ml->address,
                ml->port);
-
           GNUNET_CONTAINER_DLL_insert (h->stun_servers_head,
                                        h->stun_servers_tail,
                                        ml);
-          /* Make sure that we STOP if is the last one*/
-          if (0 == pos)
-            break;
         }
-
-        pos--;
       }
     }
-    if (urls == 0)
+    if (0 == urls)
     {
       GNUNET_log_config_missing (GNUNET_ERROR_TYPE_WARNING,
-                                 "nat", "STUN_SERVERS");
+                                 "nat",
+                                 "STUN_SERVERS");
     }
     else
     {
@@ -1721,6 +1720,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     h->stun_task = GNUNET_SCHEDULER_add_now (&process_stun,
                                              h);
+    GNUNET_free_non_null (stun_servers);
   }
 
 
