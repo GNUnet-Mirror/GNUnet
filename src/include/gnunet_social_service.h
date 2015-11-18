@@ -35,6 +35,7 @@ extern "C"
 #endif
 #endif
 
+#include <stdint.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_env_lib.h"
 #include "gnunet_identity_service.h"
@@ -72,7 +73,6 @@ struct GNUNET_SOCIAL_Guest;
  * Handle to an implementation of try-and-slice.
  */
 struct GNUNET_SOCIAL_Slicer;
-
 
 /**
  * Function called upon receiving a message indicating a call to a @e method.
@@ -982,8 +982,8 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
  *        Ego.
  * @param name
  *        The name for the PKEY record to put in the zone.
- * @param pub_key
- *        Public key to add.
+ * @param nym_pub_key
+ *        Public key of nym to add.
  * @param expiration_time
  *        Expiration time of the record, use 0 to remove the record.
  * @param result_cb
@@ -995,10 +995,75 @@ void
 GNUNET_SOCIAL_zone_add_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg,
                              const struct GNUNET_IDENTITY_Ego *ego,
                              const char *name,
-                             const struct GNUNET_CRYPTO_EcdsaPublicKey *pub_key,
+                             const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                              struct GNUNET_TIME_Absolute expiration_time,
                              GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
                              void *result_cls);
+
+
+/**
+ * Handle for place notifications.
+ */
+struct GNUNET_SOCIAL_PlaceListenHandle;
+
+
+/**
+ * Notification about a place entered as host.
+ */
+typedef void
+(*GNUNET_SOCIAL_PlaceNotifyHostCallback) (void *cls,
+                                          const struct GNUNET_CRYPTO_EddsaPrivateKey *place_key,
+                                          enum GNUNET_PSYC_Policy policy);
+
+
+/**
+ * Notification about a place entered as guest.
+ */
+typedef void
+(*GNUNET_SOCIAL_PlaceNotifyGuestCallback) (void *cls,
+                                           const struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
+                                           const struct GNUNET_PeerIdentity *origin,
+                                           uint32_t relay_count,
+                                           const struct GNUNET_PeerIdentity *relays,
+                                           const struct GNUNET_PSYC_Message *entry_msg);
+
+
+/**
+ * Start listening for entered places as host or guest.
+ *
+ * The @notify_host and @notify_guest functions are
+ * initially called with the full list of entered places,
+ * then later each time a new place is entered.
+ *
+ * @param cfg
+ *        Configuration.
+ * @param ego
+ *        Listen for places of this ego.
+ * @param notify_host
+ *        Function to notify about a place entered as host.
+ * @param notify_guest
+ *        Function to notify about a place entered as guest..
+ * @param notify_cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle that can be used to stop listening.
+ */
+struct GNUNET_SOCIAL_PlaceListenHandle *
+GNUNET_SOCIAL_place_listen_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                  const struct GNUNET_IDENTITY_Ego *ego,
+                                  GNUNET_SOCIAL_PlaceNotifyHostCallback notify_host,
+                                  GNUNET_SOCIAL_PlaceNotifyGuestCallback notify_guest,
+                                  void *notify_cls);
+
+
+/**
+ * Stop listening for entered places.
+ *
+ * @param h
+ *        Listen handle.
+ */
+void
+GNUNET_SOCIAL_place_listen_stop (struct GNUNET_SOCIAL_PlaceListenHandle *h);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

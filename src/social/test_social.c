@@ -300,6 +300,8 @@ host_left ()
   hst = NULL;
   hst_plc = NULL;
 
+  // TODO: GNUNET_SOCIAL_place_listen_start ()
+
   end ();
 }
 

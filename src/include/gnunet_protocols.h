@@ -2616,6 +2616,10 @@ extern "C"
 /** C->S->P: decision about an entry request */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_DECISION 846
 
+/** C->S: listen for places */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LISTEN 850
+
+
 /*******************************************************************************
  * X-VINE DHT messages
  ******************************************************************************/

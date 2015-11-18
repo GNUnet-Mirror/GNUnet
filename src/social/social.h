@@ -24,7 +24,7 @@
  * @author Gabor X Toth
  */
 
-#ifndef SOCIAL_H      
+#ifndef SOCIAL_H
 #define SOCIAL_H
 
 #include "platform.h"
@@ -85,8 +85,18 @@ struct GuestEnterRequest
 };
 
 
-/**** service -> library ****/
+struct PlaceListenRequest
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LISTEN
+   */
+  struct GNUNET_MessageHeader header;
 
+  struct GNUNET_CRYPTO_EcdsaPrivateKey ego_key;
+};
+
+
+/**** service -> library ****/
 
 #if REMOVE
 struct NymEnterRequest
