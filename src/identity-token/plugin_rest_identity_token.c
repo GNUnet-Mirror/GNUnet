@@ -81,6 +81,16 @@
 #define GNUNET_IDENTITY_TOKEN_ATTR_LIST "requested_attrs"
 
 /**
+ * Token expiration string
+ */
+#define GNUNET_IDENTITY_TOKEN_EXP_STRING "expiration"
+
+/**
+ * Renew token w/ relative expirations
+ */
+#define GNUNET_IDENTITY_TOKEN_RENEW_TOKEN "renew_token"
+
+/**
  * Error messages
  */
 #define GNUNET_REST_ERROR_RESOURCE_INVALID "Resource location invalid"
@@ -328,7 +338,7 @@ do_error (void *cls,
 
   GNUNET_asprintf (&json_error,
                    "{Error while processing request: %s}",
-                   &handle->emsg);
+                   handle->emsg);
 
   resp = GNUNET_REST_create_json_response (json_error);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
@@ -362,11 +372,12 @@ store_token_cont (void *cls,
   handle->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
+    handle->emsg = GNUNET_strdup (emsg);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
   GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
@@ -394,7 +405,10 @@ sign_and_return_token (void *cls,
   char *sig_str;
   char *lbl_str;
   char *token;
+  char *exp_str;
+  char *renew_str;
   uint64_t time;
+  uint64_t exp_time;
   uint64_t lbl;
   json_t *token_str;
   json_t *name_str;
@@ -404,16 +418,93 @@ sign_and_return_token (void *cls,
   struct JsonApiResource *json_resource;
   struct RequestHandle *handle = cls;
   struct GNUNET_GNSRECORD_Data token_record;
+  struct GNUNET_HashCode key;
+  struct GNUNET_TIME_Relative etime_rel;
+  static struct GNUNET_TIME_Absolute etime_abs;
+  int etime_is_rel = GNUNET_SYSERR;
+  int renew_token = GNUNET_NO;
 
   time = GNUNET_TIME_absolute_get().abs_value_us;
   lbl = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG, UINT64_MAX);
   GNUNET_STRINGS_base64_encode ((char*)&lbl, sizeof (uint64_t), &lbl_str);
 
-  json_object_set_new (handle->payload, "lbl", json_string (lbl_str));
+  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_EXP_STRING,
+                      strlen (GNUNET_IDENTITY_TOKEN_EXP_STRING),
+                      &key);
+
+  //Get expiration for token from URL parameter
+  exp_str = NULL;
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                                            &key))
+  {
+    exp_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                   &key);
+  }
+
+  if (NULL == exp_str) {
+    handle->emsg = GNUNET_strdup ("No expiration given!\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+
+  if (0 == strcmp (exp_str, "never"))
+  {
+    etime_abs = GNUNET_TIME_UNIT_FOREVER_ABS;
+    etime_is_rel = GNUNET_NO;
+  }
+  else if (GNUNET_OK ==
+           GNUNET_STRINGS_fancy_time_to_relative (exp_str,
+                                                  &etime_rel))
+  {
+    etime_is_rel = GNUNET_YES;
+  }
+  else if (GNUNET_OK ==
+           GNUNET_STRINGS_fancy_time_to_absolute (exp_str,
+                                                  &etime_abs))
+  {
+    etime_is_rel = GNUNET_NO;
+  }
+  else {
+    handle->emsg = GNUNET_strdup ("Expiration invalid!\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  if (GNUNET_YES == etime_is_rel)
+  {
+    exp_time = time + etime_rel.rel_value_us;
+  }
+  else
+  {
+    exp_time = etime_abs.abs_value_us;
+  }
+  
+  //Get renewal policy for token
+  if (GNUNET_YES == etime_is_rel) 
+  {
+    GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_RENEW_TOKEN,
+                        strlen (GNUNET_IDENTITY_TOKEN_RENEW_TOKEN),
+                        &key);
+
+
+    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                                              &key))
+    {
+      renew_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                     &key);
+      if (0 == strcmp (renew_str, "true"))
+        renew_token = GNUNET_YES;
+    }
+  }
+
+  //json_object_set_new (handle->payload, "lbl", json_string (lbl_str));
   json_object_set_new (handle->payload, "sub", json_string (handle->ego_entry->identifier));
   json_object_set_new (handle->payload, "nbf", json_integer (time));
   json_object_set_new (handle->payload, "iat", json_integer (time));
-  json_object_set_new (handle->payload, "exp", json_integer (time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS));
+  json_object_set_new (handle->payload, "exp", json_integer (exp_time));
+  if (GNUNET_YES == renew_token)
+  {
+    json_object_set_new (handle->payload, "rnl", json_string ("yes"));
+  }
 
   header_str = json_dumps (handle->header, JSON_COMPACT);
   GNUNET_STRINGS_base64_encode (header_str,
@@ -477,9 +568,11 @@ sign_and_return_token (void *cls,
   GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
   token_record.data = token;
   token_record.data_size = strlen (token);
-  token_record.expiration_time = time+GNUNET_GNUID_TOKEN_EXPIRATION_MICROSECONDS;
+  token_record.expiration_time = exp_time;
   token_record.record_type = GNUNET_GNSRECORD_TYPE_ID_TOKEN;
   token_record.flags = GNUNET_GNSRECORD_RF_NONE;
+  if (GNUNET_YES == etime_is_rel)
+    token_record.flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   //Persist token
   handle->ns_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
                                                   priv_key,
@@ -512,7 +605,7 @@ attr_collect (void *cls,
 
   if (NULL == label)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute END: \n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute END: \n");
     handle->ns_it = NULL;
     GNUNET_SCHEDULER_add_now (&sign_and_return_token, handle);
     return;
@@ -533,7 +626,7 @@ attr_collect (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding attribute: %s\n", label);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding attribute: %s\n", label);
 
   if (1 == rd_count)
   {
@@ -542,7 +635,7 @@ attr_collect (void *cls,
       data = GNUNET_GNSRECORD_value_to_string (rd->record_type,
                                                rd->data,
                                                rd->data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding value: %s\n", data);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
       json_object_set_new (handle->payload, label, json_string (data));
       GNUNET_free (data);
     }
@@ -559,7 +652,7 @@ attr_collect (void *cls,
       data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
                                                rd[i].data,
                                                rd[i].data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding value: %s\n", data);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
       json_array_append_new (attr_arr, json_string (data));
       GNUNET_free (data);
     }
@@ -697,7 +790,7 @@ return_token_list (void *cls,
   struct MHD_Response *resp;
 
   GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Result %s\n", result_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   GNUNET_free (result_str);
@@ -736,13 +829,13 @@ token_collect (void *cls,
     if (NULL == handle->ego_head)
     {
       //Done
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding token END\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token END\n");
       handle->ns_it = NULL;
       GNUNET_SCHEDULER_add_now (&return_token_list, handle);
       return;
     }
 
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Next ego: %s\n", handle->ego_head->identifier);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Next ego: %s\n", handle->ego_head->identifier);
     priv_key = GNUNET_IDENTITY_ego_get_private_key (handle->ego_head->ego);
     handle->ns_it = GNUNET_NAMESTORE_zone_iteration_start (handle->ns_handle,
                                                            priv_key,
@@ -758,7 +851,7 @@ token_collect (void *cls,
       data = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
                                                rd[i].data,
                                                rd[i].data_size);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding token: %s\n", data);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding token: %s\n", data);
       json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
                                                         label);
       issuer = json_string (handle->ego_head->identifier);
