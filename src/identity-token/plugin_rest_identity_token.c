@@ -420,8 +420,6 @@ sign_and_return_token (void *cls,
   struct GNUNET_GNSRECORD_Data token_record;
   struct GNUNET_HashCode key;
   struct GNUNET_TIME_Relative etime_rel;
-  static struct GNUNET_TIME_Absolute etime_abs;
-  int etime_is_rel = GNUNET_SYSERR;
   int renew_token = GNUNET_NO;
 
   time = GNUNET_TIME_absolute_get().abs_value_us;
@@ -447,53 +445,29 @@ sign_and_return_token (void *cls,
     return;
   }
 
-  if (0 == strcmp (exp_str, "never"))
-  {
-    etime_abs = GNUNET_TIME_UNIT_FOREVER_ABS;
-    etime_is_rel = GNUNET_NO;
-  }
-  else if (GNUNET_OK ==
+  if (GNUNET_OK !=
            GNUNET_STRINGS_fancy_time_to_relative (exp_str,
                                                   &etime_rel))
   {
-    etime_is_rel = GNUNET_YES;
-  }
-  else if (GNUNET_OK ==
-           GNUNET_STRINGS_fancy_time_to_absolute (exp_str,
-                                                  &etime_abs))
-  {
-    etime_is_rel = GNUNET_NO;
-  }
-  else {
     handle->emsg = GNUNET_strdup ("Expiration invalid!\n");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  if (GNUNET_YES == etime_is_rel)
-  {
-    exp_time = time + etime_rel.rel_value_us;
-  }
-  else
-  {
-    exp_time = etime_abs.abs_value_us;
-  }
+  exp_time = time + etime_rel.rel_value_us;
   
   //Get renewal policy for token
-  if (GNUNET_YES == etime_is_rel) 
+  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_RENEW_TOKEN,
+                      strlen (GNUNET_IDENTITY_TOKEN_RENEW_TOKEN),
+                      &key);
+
+
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                                            &key))
   {
-    GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_RENEW_TOKEN,
-                        strlen (GNUNET_IDENTITY_TOKEN_RENEW_TOKEN),
-                        &key);
-
-
-    if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
-                                                              &key))
-    {
-      renew_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
-                                                     &key);
-      if (0 == strcmp (renew_str, "true"))
-        renew_token = GNUNET_YES;
-    }
+    renew_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                   &key);
+    if (0 == strcmp (renew_str, "true"))
+      renew_token = GNUNET_YES;
   }
 
   //json_object_set_new (handle->payload, "lbl", json_string (lbl_str));
@@ -571,7 +545,7 @@ sign_and_return_token (void *cls,
   token_record.expiration_time = exp_time;
   token_record.record_type = GNUNET_GNSRECORD_TYPE_ID_TOKEN;
   token_record.flags = GNUNET_GNSRECORD_RF_NONE;
-  if (GNUNET_YES == etime_is_rel)
+  if (GNUNET_YES == renew_token)
     token_record.flags |= GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
   //Persist token
   handle->ns_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,

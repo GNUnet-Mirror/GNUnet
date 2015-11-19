@@ -188,13 +188,13 @@ handle_token_update (void *cls,
       json_object_set_new (new_payload_json, key, json_integer (new_iat.abs_value_us));
     }
     else {
-      json_object_set_new (new_payload_json, key, value);
+      json_object_set (new_payload_json, key, value);
     }
   }
-  json_decref (payload_json);
 
   // reassemble and set
   new_payload_str = json_dumps (new_payload_json, JSON_COMPACT);
+  json_decref (payload_json);
   json_decref (new_payload_json);
   GNUNET_STRINGS_base64_encode (new_payload_str,
                                 strlen (new_payload_str),
@@ -271,7 +271,9 @@ token_collect (void *cls,
   //TODO autopurge expired tokens here if set in config
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Found record\n");
   //There should be only a single record for a token under a label
-  if (1 != rd_count || (rd->record_type != GNUNET_GNSRECORD_TYPE_ID_TOKEN))
+  if ((1 != rd_count)
+      || (rd->record_type != GNUNET_GNSRECORD_TYPE_ID_TOKEN)
+      || (0 == (GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION & rd->flags)))
   {
     GNUNET_NAMESTORE_zone_iterator_next (ns_it);
     return;
