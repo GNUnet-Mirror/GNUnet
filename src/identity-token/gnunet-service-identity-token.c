@@ -31,41 +31,113 @@
 #include <jansson.h>
 #include "gnunet_signatures.h"
 
+/**
+ * First pass state
+ */
 #define STATE_INIT 0
 
+/**
+ * Normal operation state
+ */
 #define STATE_POST_INIT 1
 
+/**
+ * Minimum interval between updates
+ */
 #define MIN_WAIT_TIME GNUNET_TIME_UNIT_MINUTES
 
+/**
+ * Service state (to detect initial update pass)
+ */
 static int state;
 
+/**
+ * Head of ego entry DLL
+ */
 static struct EgoEntry *ego_head;
 
+/**
+ * Tail of ego entry DLL
+ */
 static struct EgoEntry *ego_tail;
 
+/**
+ * Identity handle
+ */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
 
+/**
+ * Namestore handle
+ */
 static struct GNUNET_NAMESTORE_Handle *ns_handle;
 
+/**
+ * Namestore qe
+ */
 static struct GNUNET_NAMESTORE_QueueEntry *ns_qe;
 
+/**
+ * Namestore iterator
+ */
 static struct GNUNET_NAMESTORE_ZoneIterator *ns_it;
 
+/**
+ * Timeout task
+ */
 static struct GNUNET_SCHEDULER_Task * timeout_task;
 
+
+/**
+ * Update task
+ */
 static struct GNUNET_SCHEDULER_Task * update_task;
 
+/**
+ * Timeout for next update pass
+ */
 static struct GNUNET_TIME_Relative min_rel_exp;
 
+
+/**
+ * Currently processed token
+ */
 static char* token;
 
+/**
+ * Label for currently processed token
+ */
 static char* label;
 
+/**
+ * DLL for ego handles to egos containing the ID_ATTRS in a map in json_t format
+ *
+ */
 struct EgoEntry
 {
+  /**
+   * DLL
+   */
   struct EgoEntry *next;
+
+  /**
+   * DLL
+   */
   struct EgoEntry *prev;
+
+  /**
+   * Ego handle
+   */
   struct GNUNET_IDENTITY_Ego *ego;
+
+  /**
+   * Attribute map. Contains the attributes as json_t
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *attr_map;
+
+  /**
+   * Attributes are old and should be updated if GNUNET_YES
+   */
+  int attributes_dirty;
 };
 
 /**
@@ -73,6 +145,14 @@ struct EgoEntry
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+
+/**
+ * Continuation for token store call
+ *
+ * @param cls NULL
+ * @param success error code
+ * @param emsg error message
+ */
 static void
 store_token_cont (void *cls,
                   int32_t success,
@@ -86,10 +166,17 @@ store_token_cont (void *cls,
                 emsg);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Next token\n");
   GNUNET_NAMESTORE_zone_iterator_next (ns_it);
 }
 
+
+/**
+ * This function updates the old token with new attributes,
+ * removes deleted attributes and expiration times.
+ *
+ * @param cls the ego entry
+ * @param tc task context
+ */
 static void
 handle_token_update (void *cls,
                      const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -108,6 +195,7 @@ handle_token_update (void *cls,
   struct GNUNET_GNSRECORD_Data token_record;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct GNUNET_CRYPTO_EcdsaSignature sig;
+  struct GNUNET_HashCode key_hash;
   struct GNUNET_TIME_Relative token_rel_exp;
   struct GNUNET_TIME_Relative token_ttl;
   struct GNUNET_TIME_Absolute token_exp;
@@ -117,6 +205,7 @@ handle_token_update (void *cls,
   struct GNUNET_TIME_Absolute new_nbf;
   json_t *payload_json;
   json_t *value;
+  json_t *cur_value;
   json_t *new_payload_json;
   json_t *token_nbf_json;
   json_t *token_exp_json;
@@ -141,8 +230,6 @@ handle_token_update (void *cls,
                                 strlen (token_payload),
                                 &token_payload_json);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Payload: %s\n",
-              token_payload_json);
   payload_json = json_loads (token_payload_json, JSON_DECODE_ANY, &json_err);
   GNUNET_free (token_payload_json);
 
@@ -168,7 +255,7 @@ handle_token_update (void *cls,
     GNUNET_NAMESTORE_zone_iterator_next (ns_it);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Token is expired. Create a new one\n");
   new_exp = GNUNET_TIME_relative_to_absolute (token_rel_exp);
   new_nbf = GNUNET_TIME_absolute_get ();
@@ -187,8 +274,25 @@ handle_token_update (void *cls,
     {
       json_object_set_new (new_payload_json, key, json_integer (new_iat.abs_value_us));
     }
-    else {
+    else if ((0 == strcmp (key, "iss"))
+             || (0 == strcmp (key, "aud"))
+             || (0 == strcmp (key, "sub"))
+             || (0 == strcmp (key, "rnl")))
+    {
       json_object_set (new_payload_json, key, value);
+    }
+    else {
+      GNUNET_CRYPTO_hash (key,
+                          strlen (key),
+                          &key_hash);
+      //Check if attr still exists. omit of not
+      if (GNUNET_NO != GNUNET_CONTAINER_multihashmap_contains (ego_entry->attr_map,
+                                                               &key_hash))
+      {
+        cur_value = GNUNET_CONTAINER_multihashmap_get (ego_entry->attr_map,
+                                                       &key_hash);
+        json_object_set (new_payload_json, key, cur_value);
+      }
     }
   }
 
@@ -238,7 +342,7 @@ handle_token_update (void *cls,
                                           &token_record,
                                           &store_token_cont,
                                           ego_entry);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Updating Token w/ %s\n", new_token);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, ">>> Updating Token w/ %s\n", new_token);
   GNUNET_free (new_token);
   GNUNET_free (token);
   token = NULL;
@@ -250,6 +354,39 @@ static void
 update_identities(void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ *
+ * Cleanup attr_map
+ *
+ * @param cls NULL
+ * @param key the key
+ * @param value the json_t attribute value
+ * @return GNUNET_YES
+ */
+static int
+clear_ego_attrs (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 void *value)
+{
+  json_t *attr_value = value;
+
+  json_decref (attr_value);
+
+  return GNUNET_YES;
+}
+
+
+/**
+ *
+ * Update all ID_TOKEN records for an identity and store them
+ *
+ * @param cls the identity entry
+ * @param zone the identity
+ * @param lbl the name of the record
+ * @param rd_count number of records
+ * @param rd record data
+ *
+ */
 static void
 token_collect (void *cls,
                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
@@ -262,14 +399,17 @@ token_collect (void *cls,
   if (NULL == lbl)
   {
     //Done
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 ">>> Updating Ego finished\n");
+    //Clear attribute map for ego
+    GNUNET_CONTAINER_multihashmap_iterate (ego_entry->attr_map,
+                                           &clear_ego_attrs,
+                                           ego_entry);
+    GNUNET_CONTAINER_multihashmap_clear (ego_entry->attr_map);
     GNUNET_SCHEDULER_add_now (&update_identities, ego_entry->next);
     return;
   }
 
-  //TODO autopurge expired tokens here if set in config
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Found record\n");
   //There should be only a single record for a token under a label
   if ((1 != rd_count)
       || (rd->record_type != GNUNET_GNSRECORD_TYPE_ID_TOKEN)
@@ -282,13 +422,102 @@ token_collect (void *cls,
                                             rd->data,
                                             rd->data_size);
   label = GNUNET_strdup (lbl); 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Got token: %s\n", token);
 
   GNUNET_SCHEDULER_add_now (&handle_token_update, ego_entry);
 }
 
 
+/**
+ *
+ * Collect all ID_ATTR records for an identity and store them
+ *
+ * @param cls the identity entry
+ * @param zone the identity
+ * @param lbl the name of the record
+ * @param rd_count number of records
+ * @param rd record data
+ *
+ */
+static void
+attribute_collect (void *cls,
+                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                   const char *lbl,
+                   unsigned int rd_count,
+                   const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct EgoEntry *ego_entry = cls;
+  json_t *attr_value;
+  struct GNUNET_HashCode key;
+  char* attr;
+  int i;
 
+  if (NULL == lbl)
+  {
+    //Done
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                ">>> Updating Attributes finished\n");
+    ego_entry->attributes_dirty = GNUNET_NO;
+    GNUNET_SCHEDULER_add_now (&update_identities, ego_entry);
+    return;
+  }
+
+  if (0 == rd_count)
+  {
+    GNUNET_NAMESTORE_zone_iterator_next (ns_it);
+    return;
+  }
+  GNUNET_CRYPTO_hash (lbl,
+                      strlen (lbl),
+                      &key);
+  if (1 == rd_count)
+  {
+    if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
+    {
+      attr = GNUNET_GNSRECORD_value_to_string (rd->record_type,
+                                               rd->data,
+                                               rd->data_size);
+      attr_value = json_string (attr);
+      GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
+                                         &key,
+                                         attr_value,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+      GNUNET_free (attr);
+    }
+
+    GNUNET_NAMESTORE_zone_iterator_next (ns_it);
+    return;
+  }
+
+  attr_value = json_array();
+  for (i = 0; i < rd_count; i++)
+  {
+    if (rd[i].record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
+    {
+      attr = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                               rd[i].data,
+                                               rd[i].data_size);
+      json_array_append_new (attr_value, json_string (attr));
+      GNUNET_free (attr);
+    }
+
+  }
+  GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
+                                     &key,
+                                     attr_value,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_NAMESTORE_zone_iterator_next (ns_it);
+  return;
+}
+
+/**
+ *
+ * Update identity information for ego. If attribute map is
+ * dirty, first update the attributes.
+ *
+ * @param cls the ego to update
+ * param tc task context
+ *
+ */
 static void
 update_identities(void *cls,
                   const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -299,33 +528,59 @@ update_identities(void *cls,
   {
     if (min_rel_exp.rel_value_us < MIN_WAIT_TIME.rel_value_us)
       min_rel_exp = MIN_WAIT_TIME;
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Finished. Rescheduling in %d\n", min_rel_exp.rel_value_us);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                ">>> Finished. Rescheduling in %d\n",
+                min_rel_exp.rel_value_us);
     ns_it = NULL;
     //finished -> TODO reschedule
     update_task = GNUNET_SCHEDULER_add_delayed (min_rel_exp,
-                                  &update_identities,
-                                  ego_head);
+                                                &update_identities,
+                                                ego_head);
+    min_rel_exp.rel_value_us = 0;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Updating Ego\n");
   priv_key = GNUNET_IDENTITY_ego_get_private_key (next_ego->ego);
-  ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
-                                                 priv_key,
-                                                 &token_collect,
-                                                 next_ego);
+  if (GNUNET_YES == next_ego->attributes_dirty)
+  {
+    //Starting over. We must update the Attributes for they might have changed.
+    ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
+                                                   priv_key,
+                                                   &attribute_collect,
+                                                   next_ego);
+
+  }
+  else
+  {
+    //Ego will be dirty next time
+    next_ego->attributes_dirty = GNUNET_YES;
+    ns_it = GNUNET_NAMESTORE_zone_iteration_start (ns_handle,
+                                                   priv_key,
+                                                   &token_collect,
+                                                   next_ego);
+  }
 }
 
 
-/* ************************* Global helpers ********************* */
 
+/**
+ * Function called initially to start update task
+ */
 static void
 init_cont ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, ">>> Starting Service\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, ">>> Starting Service\n");
   //Initially iterate all itenties and refresh all tokens
   update_task = GNUNET_SCHEDULER_add_now (&update_identities, ego_head);
 }
 
+/**
+ * Initial ego collection function.
+ *
+ * @param cls NULL
+ * @param ego ego
+ * @param ctx context
+ * @param identifier ego name
+ */
 static void
 list_ego (void *cls,
           struct GNUNET_IDENTITY_Ego *ego,
@@ -342,10 +597,16 @@ list_ego (void *cls,
   if (STATE_INIT == state) {
     new_entry = GNUNET_malloc (sizeof (struct EgoEntry));
     new_entry->ego = ego;
+    new_entry->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
+                                                                GNUNET_NO);
+    new_entry->attributes_dirty = GNUNET_YES;
     GNUNET_CONTAINER_DLL_insert_tail(ego_head, ego_tail, new_entry);
   }
 }
 
+/**
+ * Cleanup task
+ */
 static void
 cleanup()
 {
@@ -375,11 +636,25 @@ cleanup()
        NULL != ego_entry;)
   {
     ego_tmp = ego_entry;
+    if (0 != GNUNET_CONTAINER_multihashmap_size (ego_tmp->attr_map))
+    {
+      GNUNET_CONTAINER_multihashmap_iterate (ego_tmp->attr_map,
+                                             &clear_ego_attrs,
+                                             ego_tmp);
+
+    }
+    GNUNET_CONTAINER_multihashmap_destroy (ego_tmp->attr_map);
     ego_entry = ego_entry->next;
     GNUNET_free (ego_tmp);
   }
 }
 
+/**
+ * Shutdown task
+ *
+ * @param cls NULL
+ * @param tc task context
+ */
 static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -410,7 +685,7 @@ run (void *cls,
   ns_handle = GNUNET_NAMESTORE_connect (cfg);
   if (NULL == ns_handle)
   {
-    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "error connectin to namestore");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "error connecting to namestore");
   }
 
   identity_handle = GNUNET_IDENTITY_connect (cfg,
