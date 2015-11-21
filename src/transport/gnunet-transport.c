@@ -427,11 +427,6 @@ struct GNUNET_OS_Process *resolver;
 static unsigned int address_resolutions;
 
 /**
- * Address resolutions pending in progress
- */
-static unsigned int address_resolution_in_progress;
-
-/**
  * DLL for NAT Test Contexts: head
  */
 struct TestContext *head;
@@ -1446,11 +1441,7 @@ process_peer_iteration_cb (void *cls,
   if (NULL == peer)
   {
     /* done */
-    address_resolution_in_progress = GNUNET_NO;
     pic = NULL;
-    if (NULL != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
 
@@ -1467,7 +1458,7 @@ process_peer_iteration_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received address for peer `%s': %s\n",
               GNUNET_i2s (peer),
-              address->transport_name);
+              address ? address->transport_name : "");
 
   if (NULL != address)
     resolve_peer_address (address,
@@ -1904,7 +1895,6 @@ testservice_task (void *cls,
   }
   else if (iterate_connections) /* -i: List information about peers once */
   {
-    address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
         GNUNET_YES, TIMEOUT, &process_peer_iteration_cb, (void *) cfg);
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
@@ -1915,7 +1905,6 @@ testservice_task (void *cls,
   {
     monitored_peers = GNUNET_CONTAINER_multipeermap_create (10,
 							    GNUNET_NO);
-    address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_monitor_peers (cfg,
 					  (NULL == cpid) ? NULL : &pid,
                                           GNUNET_NO,
