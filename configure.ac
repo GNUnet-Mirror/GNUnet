@@ -203,6 +203,7 @@ AM_CONDITIONAL(HAVE_GETOPT_BINARY, $VAR_GETOPT_BINARY)
 AC_CHECK_PROG(VAR_SSH_BINARY,ssh,true,false)
 AM_CONDITIONAL(HAVE_SSH_BINARY, $VAR_SSH_BINARY)
 AM_CONDITIONAL(HAVE_SSH_KEY,  ssh -D 12345 -o "BatchMode yes" -o "UserKnownHostsFile /tmp/gnunet_test_cosks_ssh_garbage" -o "StrictHostKeyChecking no" 127.0.0.1 echo -n)
+rm -f /tmp/gnunet_test_cosks_ssh_garbage
 
 
 AC_CHECK_MEMBER(struct tm.tm_gmtoff,
