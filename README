@@ -28,7 +28,7 @@ packages.  Hence please make sure to use  the versions listed below.
 
 These are the direct dependencies for running GNUnet:
 
-- libmicrohttpd >= 0.9.40
+- libmicrohttpd >= 0.9.42
 - libgcrypt     >= 1.6
 - libgnurl      >= 7.35.0 (available from https://gnunet.org/gnurl)
 - libunistring  >= 0.9.2
