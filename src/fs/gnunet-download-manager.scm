@@ -82,9 +82,9 @@ exec guile -e main -s "$0" "$@"
 
 ;; Regexps matching GNUnet URIs
 (define *uri-base*
-  "([[:alnum:]]+)\.([[:alnum:]]+)\.([[:alnum:]]+)\.([0-9]+)")
+  "([[:alnum:]]+).([[:alnum:]]+).([[:alnum:]]+).([0-9]+)")
 (define *uri-re*
-  (make-regexp (string-append "^gnunet://afs/" *uri-base* "$")
+  (make-regexp (string-append "^gnunet://fs/chk/" *uri-base* "$")
 	       regexp/extended))
 (define *uri-status-file-re*
   (make-regexp (string-append "^" *uri-base* "$")
@@ -281,7 +281,7 @@ arguments."
 					 "<unknown>"))))
 	    (map (lambda (file)
 		   (uri-status *status-directory*
-			       (string-append "gnunet://afs/" file)))
+			       (string-append "gnunet://fs/chk/" file)))
 		 (uri-status-files *status-directory*))))
 
 (define (resume-command . args)
@@ -297,7 +297,7 @@ arguments."
 			(exit code)))))
 	    (map (lambda (file)
 		   (uri-status *status-directory*
-			       (string-append "gnunet://afs/" file)))
+			       (string-append "gnunet://fs/chk/" file)))
 		 (uri-status-files *status-directory*))))
 
 (define (killall-command . args)
@@ -312,7 +312,7 @@ arguments."
 			 (kill dl-pid 15)))))
 	    (map (lambda (file)
 		   (uri-status *status-directory*
-			       (string-append "gnunet://afs/" file)))
+			       (string-append "gnunet://fs/chk/" file)))
 		 (uri-status-files *status-directory*))))
 
 
