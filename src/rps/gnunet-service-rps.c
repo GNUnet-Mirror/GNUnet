@@ -1133,6 +1133,8 @@ est_request_rate()
         GNUNET_TIME_absolute_get_difference (last_request,
                                              GNUNET_TIME_absolute_get ());
     request_rate = T_relative_avg (request_deltas, req_counter);
+    request_rate = (request_rate.rel_value_us < 1) ?
+      GNUNET_TIME_relative_get_unit_ () : request_rate;
 
     /* Compute the duration a round will maximally take */
     max_round_duration =
