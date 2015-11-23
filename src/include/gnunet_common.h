@@ -524,7 +524,10 @@ GNUNET_log_setup (const char *comp,
 
 /**
  * @ingroup logging
- * Add a custom logger.
+ * Add a custom logger.  Note that installing any custom logger
+ * will disable the standard logger.  When multiple custom loggers
+ * are installed, all will be called.  The standard logger will
+ * only be used if no custom loggers are present.
  *
  * @param logger log function
  * @param logger_cls closure for @a logger

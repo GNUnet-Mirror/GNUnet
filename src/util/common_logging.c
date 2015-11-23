@@ -149,7 +149,7 @@ static struct CustomLogger *loggers;
 /**
  * Number of log calls to ignore.
  */
-int skip_log = 0;
+static int skip_log = 0;
 
 /**
  * File descriptor to use for "stderr", or NULL for none.
@@ -342,10 +342,15 @@ setup_log_file (const struct tm *tm)
   if ( (NULL != leftsquare) && (']' == leftsquare[1]) )
   {
     char *logfile_copy = GNUNET_strdup (fn);
+
     logfile_copy[leftsquare - fn] = '\0';
     logfile_copy[leftsquare - fn + 1] = '\0';
-    snprintf (fn, PATH_MAX, "%s%d%s",
-         logfile_copy, getpid (), &logfile_copy[leftsquare - fn + 2]);
+    snprintf (fn,
+              PATH_MAX,
+              "%s%d%s",
+              logfile_copy,
+              getpid (),
+              &logfile_copy[leftsquare - fn + 2]);
     GNUNET_free (logfile_copy);
   }
   if (0 == strcmp (fn, last_fn))
@@ -405,8 +410,13 @@ setup_log_file (const struct tm *tm)
  * @return 0 on success, regex-specific error otherwise
  */
 static int
-add_definition (char *component, char *file, char *function, int from_line,
-                int to_line, int level, int force)
+add_definition (const char *component,
+                const char *file,
+                const char *function,
+                int from_line,
+                int to_line,
+                int level,
+                int force)
 {
   struct LogDef n;
   int r;
@@ -461,8 +471,11 @@ add_definition (char *component, char *file, char *function, int from_line,
  * @return 0 to disallow the call, 1 to allow it
  */
 int
-GNUNET_get_log_call_status (int caller_level, const char *comp,
-                            const char *file, const char *function, int line)
+GNUNET_get_log_call_status (int caller_level,
+                            const char *comp,
+                            const char *file,
+                            const char *function,
+                            int line)
 {
   struct LogDef *ld;
   int i;
@@ -696,13 +709,17 @@ GNUNET_log_setup (const char *comp,
 
 
 /**
- * Add a custom logger.
+ * Add a custom logger. Note that installing any custom logger
+ * will disable the standard logger.  When multiple custom loggers
+ * are installed, all will be called.  The standard logger will
+ * only be used if no custom loggers are present.
  *
  * @param logger log function
  * @param logger_cls closure for @a logger
  */
 void
-GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
+GNUNET_logger_add (GNUNET_Logger logger,
+                   void *logger_cls)
 {
   struct CustomLogger *entry;
 
@@ -721,7 +738,8 @@ GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
  * @param logger_cls closure for @a logger
  */
 void
-GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
+GNUNET_logger_remove (GNUNET_Logger logger,
+                      void *logger_cls)
 {
   struct CustomLogger *pos;
   struct CustomLogger *prev;
@@ -756,17 +774,26 @@ CRITICAL_SECTION output_message_cs;
  * @param msg the actual message
  */
 static void
-output_message (enum GNUNET_ErrorType kind, const char *comp,
-                const char *datestr, const char *msg)
+output_message (enum GNUNET_ErrorType kind,
+                const char *comp,
+                const char *datestr,
+                const char *msg)
 {
   struct CustomLogger *pos;
+
 #if WINDOWS
   EnterCriticalSection (&output_message_cs);
 #endif
-  if (NULL != GNUNET_stderr)
+  /* only use the standard logger if no custom loggers are present */
+  if ( (NULL != GNUNET_stderr) &&
+       (NULL == loggers) )
   {
-    FPRINTF (GNUNET_stderr, "%s %s %s %s", datestr, comp,
-             GNUNET_error_type_to_string (kind), msg);
+    FPRINTF (GNUNET_stderr,
+             "%s %s %s %s",
+             datestr,
+             comp,
+             GNUNET_error_type_to_string (kind),
+             msg);
     fflush (GNUNET_stderr);
   }
   pos = loggers;
