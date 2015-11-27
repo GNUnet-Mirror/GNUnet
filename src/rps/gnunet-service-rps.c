@@ -29,6 +29,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_nse_service.h"
 #include "rps.h"
+#include "gnunet-service-rps_peers.h"
 #include "rps-test_util.h"
 
 #include "gnunet-service-rps_sampler.h"
@@ -366,29 +367,13 @@ static struct GNUNET_TIME_Relative round_interval;
 
 /**
  * List to store peers received through pushes temporary.
- *
- * TODO -> multipeermap
  */
-static struct GNUNET_PeerIdentity *push_list;
-
-/**
- * Size of the push_list;
- */
-static unsigned int push_list_size;
-//size_t push_list_size;
+static struct CustomPeerMap *push_map;
 
 /**
  * List to store peers received through pulls temporary.
- *
- * TODO -> multipeermap
  */
-static struct GNUNET_PeerIdentity *pull_list;
-
-/**
- * Size of the pull_list;
- */
-static unsigned int pull_list_size;
-//size_t pull_list_size;
+static struct CustomPeerMap *pull_map;
 
 
 /**
@@ -935,27 +920,26 @@ T_relative_avg (const struct GNUNET_TIME_Relative *rel_array, uint32_t arr_size)
 
 
 /**
- * Insert PeerID in #pull_list
+ * Insert PeerID in #pull_map
  *
  * Called once we know a peer is live.
  */
   void
-insert_in_pull_list (void *cls, const struct GNUNET_PeerIdentity *peer)
+insert_in_pull_map (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  if (GNUNET_NO == in_arr (pull_list, pull_list_size, peer))
-    GNUNET_array_append (pull_list, pull_list_size, *peer);
+  CustomPeerMap_put (pull_map, peer);
 }
 
 /**
- * Check whether #insert_in_pull_list was already scheduled
+ * Check whether #insert_in_pull_map was already scheduled
  */
   int
-insert_in_pull_list_scheduled (const struct PeerContext *peer_ctx)
+insert_in_pull_map_scheduled (const struct PeerContext *peer_ctx)
 {
   unsigned int i;
 
   for ( i = 0 ; i < peer_ctx->num_outstanding_ops ; i++ )
-    if (insert_in_pull_list == peer_ctx->outstanding_ops[i].op)
+    if (insert_in_pull_map == peer_ctx->outstanding_ops[i].op)
       return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -1686,12 +1670,8 @@ handle_peer_push (void *cls,
 
   #endif /* ENABLE_MALICIOUS */
 
-  /* Add the sending peer to the push_list */
-  if (GNUNET_NO == in_arr (push_list, push_list_size, peer))
-  {
-    GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer));
-    GNUNET_array_append (push_list, push_list_size, *peer);
-  }
+  /* Add the sending peer to the push_map */
+  CustomPeerMap_put (push_map, peer);
 
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
@@ -1925,12 +1905,11 @@ handle_peer_pull_reply (void *cls,
 
       if (GNUNET_YES == get_peer_flag (peer_ctx, VALID))
       {
-        if (GNUNET_NO == in_arr (pull_list, pull_list_size, &peers[i]))
-          GNUNET_array_append (pull_list, pull_list_size, peers[i]);
+        CustomPeerMap_put (pull_map, &peers[i]);
       }
-      else if (GNUNET_NO == insert_in_pull_list_scheduled (peer_ctx))
+      else if (GNUNET_NO == insert_in_pull_map_scheduled (peer_ctx))
       {
-        out_op.op = insert_in_pull_list;
+        out_op.op = insert_in_pull_map;
         out_op.op_cls = NULL;
         GNUNET_array_append (peer_ctx->outstanding_ops,
                              peer_ctx->num_outstanding_ops,
@@ -2344,6 +2323,7 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   uint32_t second_border;
   struct GNUNET_PeerIdentity peer;
   struct PeerContext *peer_ctx;
+  struct GNUNET_PeerIdentity *update_peer;
 
   do_round_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2414,10 +2394,10 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Update view */
   /* TODO see how many peers are in push-/pull- list! */
 
-  if (push_list_size <= alpha * view_size &&
-      0 < push_list_size &&
-      0 < pull_list_size)
-  {
+  if ((CustomPeerMap_size (push_map) <= alpha * view_size) &&
+      (0 < CustomPeerMap_size (push_map)) &&
+      (0 < CustomPeerMap_size (pull_map)))
+  { /* If conditions for update are fulfilled, update */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Update of the view.\n");
 
     uint32_t final_size;
@@ -2438,10 +2418,10 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
              "--- emptied ---");
 
     first_border  = GNUNET_MIN (ceil (alpha * sampler_size_est_need),
-                                push_list_size);
+                                CustomPeerMap_size (push_map));
     second_border = first_border +
                     GNUNET_MIN (floor (beta  * sampler_size_est_need),
-                                pull_list_size);
+                                CustomPeerMap_size (pull_map));
     final_size    = second_border +
       ceil ((1 - (alpha + beta)) * sampler_size_est_need);
 
@@ -2449,11 +2429,11 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     /* Update view with peers received through PUSHes */
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
-                                           push_list_size);
+                                           CustomPeerMap_size (push_map));
     for (i = 0; i < first_border; i++)
     {
-      view_array[i] = push_list[permut[i]];
-      GNUNET_CONTAINER_multipeermap_put (view, &push_list[permut[i]], NULL,
+      view_array[i] = *CustomPeerMap_get_peer_by_index (push_map, permut[i]);
+      GNUNET_CONTAINER_multipeermap_put (view, &view_array[i], NULL,
           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
       to_file (file_name_view_log,
@@ -2466,13 +2446,12 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     /* Update view with peers received through PULLs */
     permut = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_STRONG,
-                                           pull_list_size);
+                                           CustomPeerMap_size (pull_map));
     for (i = first_border; i < second_border; i++)
     {
-      view_array[i] = pull_list[permut[i - first_border]];
-      GNUNET_CONTAINER_multipeermap_put (view,
-          &pull_list[permut[i - first_border]],
-          NULL,
+      view_array[i] =
+        *CustomPeerMap_get_peer_by_index (pull_map, permut[i - first_border]);
+      GNUNET_CONTAINER_multipeermap_put (view, &view_array[i], NULL,
           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
 
       to_file (file_name_view_log,
@@ -2514,35 +2493,37 @@ do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received %u pushes and %u pulls last round (alpha (%.2f) * view_size (%u) = %.2f)\n",
-       push_list_size,
-       pull_list_size,
+       CustomPeerMap_size (push_map),
+       CustomPeerMap_size (pull_map),
        alpha,
        view_size,
        alpha * view_size);
 
   /* Update samplers */
-  for (i = 0; i < push_list_size; i++)
+  for (i = 0; i < CustomPeerMap_size (push_map); i++)
   {
+    update_peer = CustomPeerMap_get_peer_by_index (push_map, i);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from push list\n",
-         GNUNET_i2s (&push_list[i]));
-    insert_in_sampler (NULL, &push_list[i]);
-    peer_clean (&push_list[i]); /* This cleans only if it is not in the view */
+         GNUNET_i2s (update_peer));
+    insert_in_sampler (NULL, update_peer);
+    peer_clean (update_peer); /* This cleans only if it is not in the view */
   }
 
-  for (i = 0; i < pull_list_size; i++)
+  for (i = 0; i < CustomPeerMap_size (pull_map); i++)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Updating with peer %s from pull list\n",
-         GNUNET_i2s (&pull_list[i]));
-    insert_in_sampler (NULL, &pull_list[i]);
-    peer_clean (&pull_list[i]); /* This cleans only if it is not in the view */
+         GNUNET_i2s (CustomPeerMap_get_peer_by_index (pull_map, i)));
+    insert_in_sampler (NULL, CustomPeerMap_get_peer_by_index (pull_map, i));
+    /* This cleans only if it is not in the view */
+    peer_clean (CustomPeerMap_get_peer_by_index (pull_map, i));
   }
 
 
   /* Empty push/pull lists */
-  GNUNET_array_grow (push_list, push_list_size, 0);
-  GNUNET_array_grow (pull_list, pull_list_size, 0);
+  CustomPeerMap_clear (push_map);
+  CustomPeerMap_clear (pull_map);
 
   struct GNUNET_TIME_Relative time_next_round;
 
@@ -2662,10 +2643,8 @@ peer_remove_cb (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   }
 
   /* Remove from push and pull lists */
-  if (GNUNET_YES == in_arr (push_list, push_list_size, key))
-    rem_from_list (&push_list, &push_list_size, key);
-  if (GNUNET_YES == in_arr (pull_list, pull_list_size, key))
-    rem_from_list (&pull_list, &pull_list_size, key);
+  CustomPeerMap_remove_peer (push_map, key);
+  CustomPeerMap_remove_peer (pull_map, key);
 
   /* Cancle messages that have not been sent yet */
   while (NULL != peer_ctx->pending_messages_head)
@@ -2730,8 +2709,8 @@ peer_clean (const struct GNUNET_PeerIdentity *peer)
 
   if ( (0 == RPS_sampler_count_id (prot_sampler, peer)) &&
        (GNUNET_NO  == GNUNET_CONTAINER_multipeermap_contains (view, peer)) &&
-       (GNUNET_NO  == in_arr (push_list, push_list_size, peer)) &&
-       (GNUNET_NO  == in_arr (pull_list, pull_list_size, peer)) &&
+       (GNUNET_NO  == CustomPeerMap_contains_peer (push_map, peer)) &&
+       (GNUNET_NO  == CustomPeerMap_contains_peer (pull_map, peer)) &&
        (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (peer_map, peer)) )
   {
     peer_ctx = get_peer_ctx (peer);
@@ -2791,8 +2770,8 @@ shutdown_task (void *cls,
   GNUNET_CONTAINER_multipeermap_destroy (peer_map);
   GNUNET_CONTAINER_multipeermap_destroy (view);
   view = NULL;
-  GNUNET_array_grow (push_list, push_list_size, 0);
-  GNUNET_array_grow (pull_list, pull_list_size, 0);
+  CustomPeerMap_destroy (push_map);
+  CustomPeerMap_destroy (pull_map);
   #ifdef ENABLE_MALICIOUS
   struct AttackedPeer *tmp_att_peer;
   GNUNET_array_grow (mal_peers, num_mal_peers, 0);
@@ -3131,10 +3110,8 @@ run (void *cls,
   client_sampler = RPS_sampler_mod_init (sampler_size_est_need, max_round_interval);
 
   /* Initialise push and pull maps */
-  push_list = NULL;
-  push_list_size = 0;
-  pull_list = NULL;
-  pull_list_size = 0;
+  push_map = CustomPeerMap_create (4);
+  pull_map = CustomPeerMap_create (4);
 
 
   num_hist_update_tasks = 0;
