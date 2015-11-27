@@ -199,8 +199,9 @@ type_match (uint16_t type, struct GSC_Client *c)
 {
   unsigned int i;
 
-  if (c->tcnt == 0)
-    return GNUNET_YES;          /* peer without handlers matches ALL */
+  if (c->tcnt == 0 && c->options != 0)
+    return GNUNET_YES;          /* peer without handlers and inbound/outbond
+				   callbacks matches ALL */
   for (i = 0; i < c->tcnt; i++)
     if (type == c->types[i])
       return GNUNET_YES;
