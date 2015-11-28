@@ -858,7 +858,7 @@ put_continuation (void *cls,
                   int status,
 		  const char *msg)
 {
-  struct GNUNET_SERVER_Client *client = cls;
+  struct PutContext *pc = cls;
 
   if (GNUNET_OK == status)
   {
@@ -871,8 +871,9 @@ put_continuation (void *cls,
                 "Successfully stored %u bytes under key `%s'\n",
                 size, GNUNET_h2s (key));
   }
-  transmit_status (client, status, msg);
-  GNUNET_SERVER_client_drop (client);
+  transmit_status (pc->client, status, msg);
+  GNUNET_SERVER_client_drop (pc->client);
+  GNUNET_free (pc);
   if (quota - reserved - cache_size < payload)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -888,19 +889,19 @@ put_continuation (void *cls,
 /**
  * Actually put the data message.
  *
- * @param client sender of the message
- * @param dm message with the data to store
+ * @param pc put context
  */
 static void
-execute_put (struct GNUNET_SERVER_Client *client,
-             const struct DataMessage *dm)
+execute_put (struct PutContext *pc)
 {
-  GNUNET_SERVER_client_keep (client);
+  const struct DataMessage *dm;
+
+  dm = (const struct DataMessage *) &pc[1];
   plugin->api->put (plugin->api->cls, &dm->key, ntohl (dm->size), &dm[1],
                     ntohl (dm->type), ntohl (dm->priority),
                     ntohl (dm->anonymity), ntohl (dm->replication),
                     GNUNET_TIME_absolute_ntoh (dm->expiration),
-                    &put_continuation, client);
+                    &put_continuation, pc);
 }
 
 
@@ -950,9 +951,7 @@ check_present (void *cls,
   dm = (const struct DataMessage *) &pc[1];
   if (key == NULL)
   {
-    execute_put (pc->client, dm);
-    GNUNET_SERVER_client_drop (pc->client);
-    GNUNET_free (pc);
+    execute_put (pc);
     return GNUNET_OK;
   }
   if ((GNUNET_BLOCK_TYPE_FS_DBLOCK == type) ||
@@ -981,9 +980,7 @@ check_present (void *cls,
   }
   else
   {
-    execute_put (pc->client, dm);
-    GNUNET_SERVER_client_drop (pc->client);
-    GNUNET_free (pc);
+    execute_put (pc);
   }
   return GNUNET_OK;
 }
@@ -1037,14 +1034,14 @@ handle_put (void *cls, struct GNUNET_SERVER_Client *client,
                              GNUNET_NO);
     }
   }
+  pc = GNUNET_malloc (sizeof (struct PutContext) + size +
+                      sizeof (struct DataMessage));
+  pc->client = client;
+  GNUNET_SERVER_client_keep (client);
+  memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
   if (GNUNET_YES == GNUNET_CONTAINER_bloomfilter_test (filter, &dm->key))
   {
     GNUNET_CRYPTO_hash (&dm[1], size, &vhash);
-    pc = GNUNET_malloc (sizeof (struct PutContext) + size +
-                        sizeof (struct DataMessage));
-    pc->client = client;
-    GNUNET_SERVER_client_keep (client);
-    memcpy (&pc[1], dm, size + sizeof (struct DataMessage));
     plugin->api->get_key (plugin->api->cls,
 			  0,
 			  &dm->key,
@@ -1054,7 +1051,7 @@ handle_put (void *cls, struct GNUNET_SERVER_Client *client,
 			  pc);
     return;
   }
-  execute_put (client, dm);
+  execute_put (pc);
 }
 
 
