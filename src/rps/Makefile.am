@@ -69,6 +69,7 @@ gnunet_service_rps_LDADD = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
+ test_service_rps_view \
  test_service_rps_peers \
  test_rps_malicious_1 \
  test_rps_malicious_2 \
@@ -94,6 +95,10 @@ if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
 endif
+
+test_service_rps_view_SOURCES = gnunet-service-rps_view.h gnunet-service-rps_view.c \
+																test_service_rps_view.c
+test_service_rps_view_LDADD = $(top_builddir)/src/util/libgnunetutil.la
 
 test_service_rps_peers_SOURCES = gnunet-service-rps_peers.h gnunet-service-rps_peers.c \
 																 test_service_rps_peers.c
