@@ -62,6 +62,8 @@ View_create (uint32_t len)
 /**
  * Change length of view
  *
+ * If size is decreased, peers with higher indices are removed.
+ *
  * @param len the (maximum) length for the view
  */
 void
