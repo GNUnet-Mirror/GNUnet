@@ -177,7 +177,8 @@ int
 View_remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
   uint32_t *index;
-  uint32_t *index_swap;
+  uint32_t *swap_index;
+  uint32_t last_index;
 
   if (GNUNET_NO == View_contains_peer (peer))
   {
@@ -185,11 +186,14 @@ View_remove_peer (const struct GNUNET_PeerIdentity *peer)
   }
   index = GNUNET_CONTAINER_multipeermap_get (mpm, peer);
   GNUNET_assert (NULL != index);
-  if (*index < (View_size () - 1) )
+  last_index = View_size () - 1;
+  if (*index < last_index)
   { /* Fill the 'gap' in the array with the last peer */
-    array[*index] = array[(View_size () - 1)];
-    index_swap = GNUNET_CONTAINER_multipeermap_get (mpm, &array[View_size ()]);
-    *index_swap = *index;
+    array[*index] = array[last_index];
+    GNUNET_assert (GNUNET_YES == View_contains_peer (&array[last_index]));
+    swap_index = GNUNET_CONTAINER_multipeermap_get (mpm, &array[last_index]);
+    GNUNET_assert (NULL != swap_index);
+    *swap_index = *index;
     GNUNET_free (index);
   }
   GNUNET_CONTAINER_multipeermap_remove_all (mpm, peer);
