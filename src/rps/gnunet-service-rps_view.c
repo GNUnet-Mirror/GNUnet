@@ -175,25 +175,23 @@ int
 View_remove_peer (const struct GNUNET_PeerIdentity *peer)
 {
   uint32_t *index;
+  uint32_t *index_swap;
 
-  if (GNUNET_YES == View_contains_peer (peer))
-  {
-    index = GNUNET_CONTAINER_multipeermap_get (mpm, peer);
-    GNUNET_assert (NULL != index);
-    if (*index == GNUNET_CONTAINER_multipeermap_size (mpm) - 1)
-    { /* Last peer in array - simply remove */
-    }
-    else
-    { /* Fill the 'gap' in the array with the last peer */
-      array[*index] = array[View_size ()];
-    }
-    GNUNET_CONTAINER_multipeermap_remove_all (mpm, peer);
-    return GNUNET_OK;
-  }
-  else
+  if (GNUNET_NO == View_contains_peer (peer))
   {
     return GNUNET_NO;
   }
+  index = GNUNET_CONTAINER_multipeermap_get (mpm, peer);
+  GNUNET_assert (NULL != index);
+  if (*index < (View_size () - 1) )
+  { /* Fill the 'gap' in the array with the last peer */
+    array[*index] = array[(View_size () - 1)];
+    index_swap = GNUNET_CONTAINER_multipeermap_get (mpm, &array[View_size ()]);
+    *index_swap = *index;
+    GNUNET_free (index);
+  }
+  GNUNET_CONTAINER_multipeermap_remove_all (mpm, peer);
+  return GNUNET_OK;
 }
 
 /**
@@ -230,14 +228,16 @@ View_clear ()
   uint32_t i;
   uint32_t *index;
 
-  for (i = 0; i < GNUNET_CONTAINER_multipeermap_size (mpm); i++)
+  for (i = 0; 0 < View_size (); i++)
   { /* Need to free indices stored at peers */
+    GNUNET_assert (GNUNET_YES ==
+        GNUNET_CONTAINER_multipeermap_contains (mpm, &array[i]));
     index = GNUNET_CONTAINER_multipeermap_get (mpm, &array[i]);
     GNUNET_assert (NULL != index);
     GNUNET_free (index);
     GNUNET_CONTAINER_multipeermap_remove_all (mpm, &array[i]);
   }
-  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (mpm));
+  GNUNET_assert (0 == View_size ());
 }
 
 /**
