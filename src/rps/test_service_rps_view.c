@@ -105,6 +105,24 @@ check ()
   CHECK (0 == View_size ());
 
   /*View_change_len () */
+  CHECK (GNUNET_OK == View_put (&k1));
+  CHECK (GNUNET_OK == View_put (&k2));
+  CHECK (2 == View_size ());
+  View_change_len (4);
+  CHECK (2 == View_size ());
+  CHECK (GNUNET_YES == View_contains_peer (&k1));
+  CHECK (GNUNET_YES == View_contains_peer (&k2));
+  array = View_get_as_array ();
+  CHECK (0 == memcmp (&array[0], &k1, sizeof (k1)));
+  CHECK (0 == memcmp (&array[1], &k2, sizeof (k2)));
+  View_change_len (1);
+  CHECK (1 == View_size ());
+  CHECK (GNUNET_YES == View_contains_peer (&k1));
+  CHECK (GNUNET_NO  == View_contains_peer (&k2));
+  array = View_get_as_array ();
+  CHECK (0 == memcmp (&array[0], &k1, sizeof (k1)));
+  View_clear ();
+  CHECK (0 == View_size ());
 
   View_destroy ();
 
