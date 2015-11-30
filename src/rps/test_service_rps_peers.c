@@ -21,7 +21,7 @@
  * @file rps/test_service_rps_peers.c
  * @brief testcase for gnunet-service-rps_peers.c
  */
-#include <gnunet/platform.h>
+#include <platform.h>
 #include "gnunet-service-rps_peers.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (NULL != c_m) CustomPeerMap_destroy(c_m); return 1; }

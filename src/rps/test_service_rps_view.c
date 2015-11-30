@@ -21,7 +21,7 @@
  * @file rps/test_service_rps_view.c
  * @brief testcase for gnunet-service-rps_view.c
  */
-#include <gnunet/platform.h>
+#include <platform.h>
 #include "gnunet-service-rps_view.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); View_destroy(); return 1; }
