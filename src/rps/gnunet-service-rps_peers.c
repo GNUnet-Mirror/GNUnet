@@ -290,13 +290,12 @@ CustomPeerMap_remove_peer_by_index (const struct CustomPeerMap *c_peer_map,
 void
 CustomPeerMap_clear (const struct CustomPeerMap *c_peer_map)
 {
-  uint64_t i;
-
-  for (i = 0; i < CustomPeerMap_size (c_peer_map); i++)
+  while (0 < CustomPeerMap_size (c_peer_map))
   {
     GNUNET_assert (GNUNET_YES ==
-        GNUNET_CONTAINER_multihashmap32_contains (c_peer_map->hash_map, i));
-    CustomPeerMap_remove_peer_by_index (c_peer_map, i);
+        GNUNET_CONTAINER_multihashmap32_contains (c_peer_map->hash_map,
+          CustomPeerMap_size (c_peer_map) -1));
+    CustomPeerMap_remove_peer_by_index (c_peer_map, CustomPeerMap_size (c_peer_map) -1);
   }
   GNUNET_assert (0 == CustomPeerMap_size (c_peer_map));
 }
