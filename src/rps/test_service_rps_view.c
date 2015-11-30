@@ -87,14 +87,17 @@ check ()
   CHECK (GNUNET_NO == View_contains_peer (&k1));
   CHECK (GNUNET_YES == View_contains_peer (&k2));
   CHECK (NULL != View_get_peer_by_index (0));
+  CHECK (NULL == View_get_peer_by_index (1));
 
   View_clear ();
   CHECK (0 == View_size ());
 
   CHECK (GNUNET_OK == View_put (&k1));
   CHECK (1 == View_size ());
+  CHECK (GNUNET_YES == View_contains_peer (&k1));
   CHECK (GNUNET_OK == View_put (&k2));
   CHECK (2 == View_size ());
+  CHECK (GNUNET_YES == View_contains_peer (&k2));
   array = View_get_as_array ();
   CHECK (0 == memcmp (&array[0], &k1, sizeof (k1)));
   CHECK (0 == memcmp (&array[1], &k2, sizeof (k2)));

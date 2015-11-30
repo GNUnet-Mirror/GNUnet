@@ -57,9 +57,6 @@ check ()
 
   CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k1));
   CHECK (1 == CustomPeerMap_size (c_m));
-  /*ret = GNUNET_CONTAINER_multipeermap_get (m, &k1);
-  GNUNET_assert (ret != NULL);
-  CHECK (0 == strcmp ("v1", ret));*/
   CHECK (GNUNET_NO == CustomPeerMap_put (c_m, &k1));
   CHECK (1 == CustomPeerMap_size (c_m));
   CHECK (GNUNET_YES == CustomPeerMap_contains_peer (c_m, &k1));
@@ -69,12 +66,14 @@ check ()
   CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k2));
 
   CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
   for (j = 0; j < 16; j++)
   {
     CHECK (GNUNET_NO == CustomPeerMap_put (c_m, &k1));
   }
   CHECK (1 == CustomPeerMap_size (c_m));
   CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k2));
+  CHECK (2 == CustomPeerMap_size (c_m));
   for (j = 0; j < 16; j++)
   {
     CHECK (GNUNET_NO == CustomPeerMap_put (c_m, &k2));
@@ -95,6 +94,16 @@ check ()
   CHECK (GNUNET_NO == CustomPeerMap_contains_peer (c_m, &k1));
   CHECK (GNUNET_YES == CustomPeerMap_contains_peer (c_m, &k2));
   CHECK (NULL != CustomPeerMap_get_peer_by_index (c_m, 0));
+
+  CustomPeerMap_clear (c_m);
+  CHECK (0 == CustomPeerMap_size (c_m));
+
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k1));
+  CHECK (1 == CustomPeerMap_size (c_m));
+  CHECK (GNUNET_OK == CustomPeerMap_put (c_m, &k2));
+  CHECK (2 == CustomPeerMap_size (c_m));
+  CustomPeerMap_clear (c_m);
+  CHECK (0 == CustomPeerMap_size (c_m));
 
   CustomPeerMap_destroy (c_m);
 
