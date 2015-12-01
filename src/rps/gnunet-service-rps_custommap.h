@@ -19,7 +19,7 @@
 */
 
 /**
- * @file rps/gnunet-service-rps_peers.c
+ * @file rps/gnunet-service-rps_custommap.h
  * @brief utilities for managing (information about) peers
  * @author Julius Bünger
  */
@@ -156,4 +156,4 @@ CustomPeerMap_clear (const struct CustomPeerMap *c_peer_map);
 void
 CustomPeerMap_destroy (struct CustomPeerMap *c_peer_map);
 
-/* end of gnunet-service-rps_peers.c */
+/* end of gnunet-service-rps_custommap.h */

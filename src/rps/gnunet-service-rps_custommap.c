@@ -19,13 +19,13 @@
 */
 
 /**
- * @file rps/gnunet-service-rps_peers.c
+ * @file rps/gnunet-service-rps_custommap.c
  * @brief utilities for managing (information about) peers
  * @author Julius Bünger
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet-service-rps_peers.h"
+#include "gnunet-service-rps_custommap.h"
 #include <inttypes.h>
 
 #define LOG(kind, ...) GNUNET_log_from(kind,"rps-peers",__VA_ARGS__)
@@ -314,4 +314,4 @@ CustomPeerMap_destroy (struct CustomPeerMap *c_peer_map)
   GNUNET_free (c_peer_map);
 }
 
-/* end of gnunet-service-rps_peers.c */
+/* end of gnunet-service-rps_custommap.c */

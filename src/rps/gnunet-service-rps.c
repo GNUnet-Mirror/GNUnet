@@ -29,7 +29,7 @@
 #include "gnunet_peerinfo_service.h"
 #include "gnunet_nse_service.h"
 #include "rps.h"
-#include "gnunet-service-rps_peers.h"
+#include "gnunet-service-rps_custommap.h"
 #include "gnunet-service-rps_view.h"
 #include "rps-test_util.h"
 

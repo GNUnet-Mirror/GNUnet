@@ -18,11 +18,11 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file rps/test_service_rps_peers.c
+ * @file rps/test_service_rps_custommap.c
  * @brief testcase for gnunet-service-rps_peers.c
  */
 #include <platform.h>
-#include "gnunet-service-rps_peers.h"
+#include "gnunet-service-rps_custommap.h"
 
 #define ABORT() { fprintf(stderr, "Error at %s:%d\n", __FILE__, __LINE__); if (NULL != c_m) CustomPeerMap_destroy(c_m); return 1; }
 #define CHECK(c) { if (! (c)) ABORT(); }
@@ -120,4 +120,4 @@ main (int argc, char *argv[])
   return check ();
 }
 
-/* end of test_rps_api.c */
+/* end of test_service_rps_custommap.c */
