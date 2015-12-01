@@ -67,11 +67,6 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_PeerIdentity own_identity;
 
 
-  struct GNUNET_PeerIdentity *
-get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list, unsigned int size,
-                           const struct GNUNET_PeerIdentity *ignore_list, unsigned int ignore_size);
-
-
 /***********************************************************************
  * Housekeeping with peers
 ***********************************************************************/
@@ -544,30 +539,6 @@ peer_clean (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
- * Check if peer is already in peer array.
- */
-  int
-in_arr (const struct GNUNET_PeerIdentity *array,
-        unsigned int arr_size,
-        const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_assert (NULL != peer);
-
-  if (0 == arr_size)
-    return GNUNET_NO;
-
-  GNUNET_assert (NULL != array);
-
-  unsigned int i;
-
-  for (i = 0; i < arr_size ; i++)
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&array[i], peer))
-      return GNUNET_YES;
-  return GNUNET_NO;
-}
-
-
-/**
  * Print peerlist to log.
  */
 void
@@ -620,67 +591,6 @@ rem_from_list (struct GNUNET_PeerIdentity **peer_list,
     }
   }
   *peer_list = tmp;
-}
-
-/**
- * Get random peer from the given list but don't return one from the @a ignore_list.
- */
-  struct GNUNET_PeerIdentity *
-get_rand_peer_ignore_list (const struct GNUNET_PeerIdentity *peer_list,
-                           uint32_t list_size,
-                           const struct GNUNET_PeerIdentity *ignore_list,
-                           uint32_t ignore_size)
-{
-  uint32_t r_index;
-  uint32_t tmp_size;
-  struct GNUNET_PeerIdentity *tmp_peer_list;
-  struct GNUNET_PeerIdentity *peer;
-
-  GNUNET_assert (NULL != peer_list);
-  if (0 == list_size)
-    return NULL;
-
-  tmp_size = 0;
-  tmp_peer_list = NULL;
-  GNUNET_array_grow (tmp_peer_list, tmp_size, list_size);
-  memcpy (tmp_peer_list,
-          peer_list,
-          list_size * sizeof (struct GNUNET_PeerIdentity));
-  peer = GNUNET_new (struct GNUNET_PeerIdentity);
-
-  /**;
-   * Choose the r_index of the peer we want to return
-   * at random from the interval of the view
-   */
-  r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                      tmp_size);
-  *peer = tmp_peer_list[r_index];
-
-  while (in_arr (ignore_list, ignore_size, peer))
-  {
-    rem_from_list (&tmp_peer_list, &tmp_size, peer);
-
-    print_peer_list (tmp_peer_list, tmp_size);
-
-    if (0 == tmp_size)
-    {
-      GNUNET_free (peer);
-      return NULL;
-    }
-
-    /**;
-     * Choose the r_index of the peer we want to return
-     * at random from the interval of the view
-     */
-    r_index = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
-                                        tmp_size);
-    *peer = tmp_peer_list[r_index];
-  }
-
-
-  GNUNET_array_grow (tmp_peer_list, tmp_size, 0);
-
-  return peer;
 }
 
 
