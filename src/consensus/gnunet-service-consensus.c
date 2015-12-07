@@ -1056,26 +1056,68 @@ set_result_cb (void *cls,
 
 #ifdef EVIL
 
-enum Evilness
+enum EvilnessType
 {
   EVILNESS_NONE,
-  EVILNESS_CRAM,
+  EVILNESS_CRAM_ALL,
+  EVILNESS_CRAM_LEAD,
+  EVILNESS_CRAM_ECHO,
   EVILNESS_SLACK,
 };
 
+enum EvilnessSubType
+{
+  EVILNESS_SUB_NONE,
+  EVILNESS_SUB_REPLACEMENT,
+  EVILNESS_SUB_NO_REPLACEMENT,
+};
+
+struct Evilness
+{
+  enum EvilnessType type;
+  enum EvilnessSubType subtype;
+  unsigned int num;
+};
+
+
+static int
+parse_evilness_cram_subtype (const char *evil_subtype_str, struct Evilness *evil)
+{
+  if (0 == strcmp ("replace", evil_subtype_str))
+  {
+    evil->subtype = EVILNESS_SUB_REPLACEMENT;
+  }
+  else if (0 == strcmp ("noreplace", evil_subtype_str))
+  {
+    evil->subtype = EVILNESS_SUB_NO_REPLACEMENT;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed field '%s' in EVIL_SPEC (unknown subtype), behaving like a good peer.\n",
+                evil_subtype_str);
+    return GNUNET_SYSERR;
+  }
+  return GNUNET_OK;
+}
+
+
 static void
-get_evilness (struct ConsensusSession *session, enum Evilness *ret_type, unsigned int *ret_num)
+get_evilness (struct ConsensusSession *session, struct Evilness *evil)
 {
   char *evil_spec;
   char *field;
   char *evil_type_str = NULL;
+  char *evil_subtype_str = NULL;
+
+  GNUNET_assert (NULL != evil);
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "consensus", "EVIL_SPEC", &evil_spec))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "P%u: no evilness\n",
                 session->local_peer_idx);
-    *ret_type = EVILNESS_NONE;
+    evil->type = EVILNESS_NONE;
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1091,30 +1133,54 @@ get_evilness (struct ConsensusSession *session, enum Evilness *ret_type, unsigne
     int ret;
 
     evil_type_str = NULL;
+    evil_subtype_str = NULL;
 
-    ret = sscanf (field, "%u;%m[a-z];%u", &peer_num, &evil_type_str, &evil_num);
+    ret = sscanf (field, "%u;%m[a-z-];%m[a-z-];%u", &peer_num, &evil_type_str, &evil_subtype_str, &evil_num);
 
-    if (ret != 3)
+    if (ret != 4)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed field '%s' in EVIL_SPEC, behaving like a good peer.\n",
-                  field);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Malformed field '%s' in EVIL_SPEC (expected 4 components got %d), behaving like a good peer.\n",
+                  field,
+                  ret);
       goto not_evil;
     }
 
     GNUNET_assert (NULL != evil_type_str);
+    GNUNET_assert (NULL != evil_subtype_str);
 
     if (peer_num == session->local_peer_idx)
     {
       if (0 == strcmp ("slack", evil_type_str))
-        *ret_type = EVILNESS_SLACK;
-      else if (0 == strcmp ("cram", evil_type_str))
       {
-        *ret_type = EVILNESS_CRAM;
-        *ret_num = evil_num;
+        evil->type = EVILNESS_SLACK;
+      }
+      else if (0 == strcmp ("cram-all", evil_type_str))
+      {
+        evil->type = EVILNESS_CRAM_ALL;
+        evil->num = evil_num;
+        if (GNUNET_OK != parse_evilness_cram_subtype (evil_subtype_str, evil))
+          goto not_evil;
+      }
+      else if (0 == strcmp ("cram-lead", evil_type_str))
+      {
+        evil->type = EVILNESS_CRAM_LEAD;
+        evil->num = evil_num;
+        if (GNUNET_OK != parse_evilness_cram_subtype (evil_subtype_str, evil))
+          goto not_evil;
+      }
+      else if (0 == strcmp ("cram-echo", evil_type_str))
+      {
+        evil->type = EVILNESS_CRAM_ECHO;
+        evil->num = evil_num;
+        if (GNUNET_OK != parse_evilness_cram_subtype (evil_subtype_str, evil))
+          goto not_evil;
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed field '%s' in EVIL_SPEC (unknown type), behaving like a good peer.\n");
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Malformed field '%s' in EVIL_SPEC (unknown type), behaving like a good peer.\n",
+                    evil_type_str);
         goto not_evil;
       }
       goto cleanup;
@@ -1122,13 +1188,18 @@ get_evilness (struct ConsensusSession *session, enum Evilness *ret_type, unsigne
     /* No GNUNET_free since memory was allocated by libc */
     free (evil_type_str);
     evil_type_str = NULL;
+    evil_subtype_str = NULL;
   }
 not_evil:
-  *ret_type = EVILNESS_NONE;
+  evil->type = EVILNESS_NONE;
 cleanup:
   GNUNET_free (evil_spec);
+  /* no GNUNET_free_non_null since it wasn't
+   * allocated with GNUNET_malloc */
   if (NULL != evil_type_str)
     free (evil_type_str);
+  if (NULL != evil_subtype_str)
+    free (evil_subtype_str);
 }
 
 #endif
@@ -1152,13 +1223,14 @@ commit_set (struct ConsensusSession *session,
 #ifdef EVIL
   {
     unsigned int i;
-    unsigned int evil_num;
-    enum Evilness evilness;
+    struct Evilness evil;
 
-    get_evilness (session, &evilness, &evil_num);
-    switch (evilness)
+    get_evilness (session, &evil);
+    switch (evil.type)
     {
-      case EVILNESS_CRAM:
+      case EVILNESS_CRAM_ALL:
+      case EVILNESS_CRAM_LEAD:
+      case EVILNESS_CRAM_ECHO:
         /* We're not cramming elements in the
            all-to-all round, since that would just
            add more elements to the result set, but
@@ -1168,7 +1240,17 @@ commit_set (struct ConsensusSession *session,
           GNUNET_SET_commit (setop->op, set->h);
           break;
         }
-        for (i = 0; i < evil_num; i++)
+        if ((EVILNESS_CRAM_LEAD == evil.type) && (PHASE_KIND_GRADECAST_LEADER != task->key.kind))
+        {
+          GNUNET_SET_commit (setop->op, set->h);
+          break;
+        }
+        if (EVILNESS_CRAM_ECHO == evil.type && (PHASE_KIND_GRADECAST_ECHO != task->key.kind))
+        {
+          GNUNET_SET_commit (setop->op, set->h);
+          break;
+        }
+        for (i = 0; i < evil.num; i++)
         {
           struct GNUNET_HashCode hash;
           struct GNUNET_SET_Element element;
@@ -1176,7 +1258,20 @@ commit_set (struct ConsensusSession *session,
           element.size = sizeof (struct GNUNET_HashCode);
           element.element_type = 0;
 
-          GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_STRONG, &hash);
+          if (EVILNESS_SUB_REPLACEMENT == evil.subtype)
+          {
+            /* Always generate a new element. */
+            GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &hash);
+          }
+          else if (EVILNESS_SUB_NO_REPLACEMENT == evil.subtype)
+          {
+            /* Always cram the same elements, derived from counter. */
+            GNUNET_CRYPTO_hash (&i, sizeof (i), &hash);
+          }
+          else
+          {
+            GNUNET_assert (0);
+          }
           GNUNET_SET_add_element (set->h, &element, NULL, NULL);
 #ifdef GNUNET_EXTRA_LOGGING
           GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1193,7 +1288,7 @@ commit_set (struct ConsensusSession *session,
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     "P%u: evil peer: slacking\n",
                     session->local_peer_idx,
-                    evil_num);
+                    evil.num);
         /* Do nothing. */
         break;
       case EVILNESS_NONE:
