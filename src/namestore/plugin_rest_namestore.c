@@ -34,7 +34,13 @@
 
 #define GNUNET_REST_API_NS_NAMESTORE "/names"
 
+#define GNUNET_REST_API_NS_NAMESTORE_ZKEY "/names/zkey"
+
 #define GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO "record"
+
+#define GNUNET_REST_JSONAPI_NAMESTORE_NAME "name"
+
+#define GNUNET_REST_JSONAPI_NAMESTORE_REVINFO "revinfo"
 
 #define GNUNET_REST_JSONAPI_NAMESTORE_RECORD GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO
 
@@ -47,6 +53,8 @@
 #define GNUNET_REST_JSONAPI_NAMESTORE_SHADOW "shadow"
 
 #define GNUNET_REST_JSONAPI_NAMESTORE_PKEY "pkey"
+
+#define GNUNET_REST_JSONAPI_NAMESTORE_ZKEY "zkey"
 
 #define GNUNET_REST_JSONAPI_NAMESTORE_EXPIRATION "expiration"
 
@@ -160,6 +168,11 @@ struct RequestHandle
   char *value;
 
   /**
+   * Zkey string
+   */
+  const char* zkey_str;
+
+  /**
    * record type
    */
   uint32_t type;
@@ -174,10 +187,15 @@ struct RequestHandle
    */
   unsigned int rd_count;
 
-    /**
+  /**
    * NAMESTORE Operation
    */
   struct GNUNET_NAMESTORE_QueueEntry *add_qe;
+
+  /**
+   * NAMESTORE Operation
+   */
+  struct GNUNET_NAMESTORE_QueueEntry *reverse_qe;
 
   /**
    * Desired timeout for the lookup (default is no timeout).
@@ -213,7 +231,7 @@ struct RequestHandle
    * the length of the REST data
    */
   size_t data_size;
-  
+
   /**
    * Cfg
    */
@@ -416,7 +434,7 @@ namestore_list_response (void *cls,
     json_array_append (result_array, record_obj);
     json_decref (record_obj);
   }
-  
+
   if (0 < json_array_size(result_array))
   {
     json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_TYPEINFO,
@@ -774,9 +792,87 @@ namestore_create_cont (struct RestConnectionDataHandle *con,
                                                     &create_new_record_cont, handle );
 }
 
+static void
+namestore_zkey_response (void *cls,
+                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                         const char *label,
+                         unsigned int rd_count,
+                         const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct RequestHandle *handle = cls;
+  struct MHD_Response *resp;
+  struct JsonApiObject *json_obj;
+  struct JsonApiResource *json_res;
+  json_t *name_json;
+  char* result;
 
+  handle->reverse_qe = NULL;
+  json_obj = GNUNET_REST_jsonapi_object_new ();
+  if (NULL != label)
+  {
+    name_json = json_string (label);
+    json_res = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_NAMESTORE_REVINFO,
+                                                 handle->zkey_str);
+    GNUNET_REST_jsonapi_resource_add_attr (json_res,
+                                           GNUNET_REST_JSONAPI_NAMESTORE_NAME,
+                                           name_json);
+    GNUNET_REST_jsonapi_object_resource_add (json_obj, json_res);
+    json_decref (name_json);
+  }
+  //Handle response
+  if (GNUNET_SYSERR == GNUNET_REST_jsonapi_data_serialize (json_obj, &result))
+  {
+    GNUNET_REST_jsonapi_object_delete (json_obj);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  resp = GNUNET_REST_create_json_response (result);
+  handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_free (result);
+  GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
+  return;
 
+}
 
+static void
+namestore_zkey_cont (struct RestConnectionDataHandle *con,
+                     const char *url,
+                     void *cls)
+{
+  struct RequestHandle *handle = cls;
+  struct GNUNET_HashCode key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pubkey;
+
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY,
+                      strlen (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY),
+                      &key);
+  if ( GNUNET_NO == 
+       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                               &key) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "No zkey given %s\n", handle->url);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->zkey_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                            &key);
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecdsa_public_key_from_string (handle->zkey_str,
+                                                  strlen (handle->zkey_str),
+                                                  &pubkey))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Zkey invalid %s\n", handle->zkey_str);
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  handle->reverse_qe = GNUNET_NAMESTORE_zone_to_name (handle->ns_handle,
+                                                      &handle->zone_pkey,
+                                                      &pubkey,
+                                                      &namestore_zkey_response,
+                                                      handle);
+}
 
 static void
 namestore_info_cont (struct RestConnectionDataHandle *con,
@@ -837,6 +933,7 @@ testservice_task (void *cls,
 {
   struct RequestHandle *handle = cls;
   static const struct GNUNET_REST_RestConnectionHandler handlers[] = {
+    {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE_ZKEY, &namestore_zkey_cont}, //reverse
     {MHD_HTTP_METHOD_GET, GNUNET_REST_API_NS_NAMESTORE, &namestore_info_cont}, //list
     {MHD_HTTP_METHOD_POST, GNUNET_REST_API_NS_NAMESTORE, &namestore_create_cont}, //create
     //    {MHD_HTTP_METHOD_PUT, GNUNET_REST_API_NS_NAMESTORE, &namestore_edit_cont}, //update. TODO this shoul be PATCH
