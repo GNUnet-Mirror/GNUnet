@@ -57,6 +57,10 @@ static unsigned int peers_done = 0;
 
 static unsigned *results_for_peer;
 
+static char *statistics_filename;
+
+static FILE *statistics_file;
+
 static int verbose;
 
 /**
@@ -94,7 +98,8 @@ statistics_done_db (void *cls,
 {
   GNUNET_assert (NULL == emsg);
   GNUNET_TESTBED_operation_done (op);
-  printf ("statistics done\n");
+  if (NULL != statistics_file)
+    fclose (statistics_file);
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -118,7 +123,10 @@ statistics_cb (void *cls,
                uint64_t value,
                int is_persistent)
 {
-  printf ("stat P%u: %s/%s=%lu\n", GNUNET_TESTBED_get_index (peer), subsystem, name, (unsigned long) value);
+  if (NULL != statistics_file)
+  {
+    fprintf (statistics_file, "P%u\t%s\t%s\t%lu\n", GNUNET_TESTBED_get_index (peer), subsystem, name, (unsigned long) value);
+  }
   return GNUNET_OK;
 }
 
@@ -142,6 +150,8 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
               i,
               results_for_peer[i],
               num_values);
+    if (NULL != statistics_filename)
+      statistics_file = fopen (statistics_filename, "w");
     GNUNET_TESTBED_get_statistics (num_peers, peers, NULL, NULL,
                                    statistics_cb,
                                    statistics_done_db,
@@ -489,6 +499,9 @@ main (int argc, char **argv)
       { 'd', "delay", NULL,
         gettext_noop ("delay until consensus starts"),
         GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &consensus_delay },
+      { 's', "statistics", NULL,
+        gettext_noop ("write statistics to file"),
+        GNUNET_YES, &GNUNET_GETOPT_set_filename, &statistics_filename },
       { 'V', "verbose", NULL,
         gettext_noop ("be more verbose (print received values)"),
         GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
