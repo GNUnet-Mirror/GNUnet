@@ -71,6 +71,7 @@ struct CadetFlowControl
 
   /**
    * How many messages do we accept in the queue.
+   * If 0, the connection is broken in this direction (next hop disconnected).
    */
   unsigned int queue_max;
 
@@ -1410,6 +1411,11 @@ poll_sent (void *cls,
   if (2 == c->destroy)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL canceled on shutdown\n");
+    return;
+  }
+  if (0 == fc->queue_max)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL cancelled: neighbor disconnected\n");
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL sent for %s, scheduling new one!\n",
@@ -3318,6 +3324,7 @@ GCC_allow (struct CadetConnection *c, unsigned int buffer, int fwd)
 void
 GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
 {
+  struct CadetFlowControl *fc;
   struct CadetPeer *hop;
   char peer_name[16];
   int fwd;
@@ -3348,7 +3355,12 @@ GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
     GCC_check_connections ();
     return;
   }
+  /* Mark FlowControl towards the peer as unavaliable. */
+  fc = fwd ? &c->bck_fc : &c->fwd_fc;
+  fc->queue_max = 0;
+
   send_broken (c, &my_full_id, GCP_get_id (peer), fwd);
+
   /* Connection will have at least one pending message
    * (the one we just scheduled), so delay destruction
    * and remove from map so we don't use accidentally. */
@@ -3733,6 +3745,13 @@ GCC_start_poll (struct CadetConnection *c, int fwd)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  POLL already in progress (t: %p, m: %p)\n",
          fc->poll_task, fc->poll_msg);
+    return;
+  }
+  if (0 == fc->queue_max)
+  {
+    /* Should not be needed, traffic should've been cancelled. */
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  POLL not possible, peer disconnected\n");
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL started on request\n");
