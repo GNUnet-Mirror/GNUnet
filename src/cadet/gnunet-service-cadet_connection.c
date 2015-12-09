@@ -3505,6 +3505,11 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
        GC_f2s(fwd), size);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (0 == fc->queue_max)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   droppable = GNUNET_NO == force;
   switch (type)
   {
