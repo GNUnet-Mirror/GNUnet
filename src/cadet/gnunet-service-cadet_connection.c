@@ -2147,7 +2147,7 @@ GCC_handle_confirm (void *cls,
 
   if (GNUNET_NO != c->destroy)
   {
-    GNUNET_assert (CADET_CONNECTION_DESTROYED != c->state);
+    GNUNET_assert (CADET_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "connection %s being destroyed, ignoring confirm\n",
          GCC_2s (c));
