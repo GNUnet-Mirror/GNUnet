@@ -1507,6 +1507,10 @@ union_evaluate (struct Operation *op,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating union operation evaluation\n");
   GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# of total union operations",
+                            1,
+                            GNUNET_NO);
+  GNUNET_STATISTICS_update (_GSS_statistics,
                             "# of initiated union operations",
                             1,
                             GNUNET_NO);
@@ -1549,6 +1553,10 @@ union_accept (struct Operation *op)
 
   GNUNET_STATISTICS_update (_GSS_statistics,
                             "# of accepted union operations",
+                            1,
+                            GNUNET_NO);
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# of total union operations",
                             1,
                             GNUNET_NO);
 
