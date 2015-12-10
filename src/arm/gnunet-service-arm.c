@@ -1254,14 +1254,14 @@ maint_child_death (void *cls,
       if ( (GNUNET_OS_PROCESS_EXITED == statusType) ||
            (GNUNET_OS_PROCESS_SIGNALED == statusType) )
       {
+        double utime = ru.ru_utime.tv_sec + (ru.ru_utime.tv_usec / 10e6);
+        double stime = ru.ru_stime.tv_sec + (ru.ru_stime.tv_usec / 10e6);
         fprintf (wait_file,
-                 "%s(%u) %llu.%llu %llu.%llu %llu %llu %llu %llu %llu\n",
+                 "%s(%u) %.3f %.3f %llu %llu %llu %llu %llu\n",
                  pos->binary,
                  (unsigned int) pid,
-                 (unsigned long long) ru.ru_utime.tv_sec,
-                 (unsigned long long) ru.ru_utime.tv_usec,
-                 (unsigned long long) ru.ru_stime.tv_sec,
-                 (unsigned long long) ru.ru_stime.tv_usec,
+                 utime,
+                 stime,
                  (unsigned long long) ru.ru_maxrss,
                  (unsigned long long) ru.ru_inblock,
                  (unsigned long long) ru.ru_oublock,
