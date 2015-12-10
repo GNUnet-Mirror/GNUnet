@@ -46,6 +46,7 @@ gnunet_service_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/set/libgnunetset.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
 
 gnunet_service_evil_consensus_SOURCES = \
@@ -55,6 +56,7 @@ gnunet_service_evil_consensus_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/set/libgnunetset.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
 gnunet_service_evil_consensus_CFLAGS = -DEVIL
 

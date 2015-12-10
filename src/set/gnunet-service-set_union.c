@@ -1209,6 +1209,10 @@ handle_p2p_elements (void *cls,
                             "# received elements",
                             1,
                             GNUNET_NO);
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# exchanged elements",
+                            1,
+                            GNUNET_NO);
 
   if (GNUNET_YES == op_has_element (op, &ee->element_hash))
   {
@@ -1339,6 +1343,10 @@ handle_p2p_demand (void *cls,
          (unsigned int) ee->element.size,
          GNUNET_h2s (&ee->element_hash));
     GNUNET_MQ_send (op->mq, ev);
+    GNUNET_STATISTICS_update (_GSS_statistics,
+                              "# exchanged elements",
+                              1,
+                              GNUNET_NO);
 
     switch (op->spec->result_mode)
     {

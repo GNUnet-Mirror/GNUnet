@@ -29,6 +29,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_set_service.h"
+#include "gnunet_statistics_service.h"
 #include "gnunet_consensus_service.h"
 #include "consensus_protocol.h"
 #include "consensus.h"
@@ -484,6 +485,11 @@ static struct GNUNET_SERVER_Handle *srv;
  * Peer that runs this service.
  */
 static struct GNUNET_PeerIdentity my_peer;
+
+/**
+ * Statistics handle.
+ */
+struct GNUNET_STATISTICS_Handle *statistics;
 
 
 static void
@@ -1226,6 +1232,14 @@ commit_set (struct ConsensusSession *session,
     struct Evilness evil;
 
     get_evilness (session, &evil);
+    if (EVILNESS_NONE != evil.type)
+    {
+      /* Useful for evaluation */
+      GNUNET_STATISTICS_set (statistics,
+                             "is evil",
+                             1,
+                             GNUNET_NO);
+    }
     switch (evil.type)
     {
       case EVILNESS_CRAM_ALL:
@@ -1240,7 +1254,8 @@ commit_set (struct ConsensusSession *session,
           GNUNET_SET_commit (setop->op, set->h);
           break;
         }
-        if ((EVILNESS_CRAM_LEAD == evil.type) && (PHASE_KIND_GRADECAST_LEADER != task->key.kind))
+        if ((EVILNESS_CRAM_LEAD == evil.type) &&
+            ((PHASE_KIND_GRADECAST_LEADER != task->key.kind) || SET_KIND_CURRENT != set->key.set_kind))
         {
           GNUNET_SET_commit (setop->op, set->h);
           break;
@@ -1282,6 +1297,10 @@ commit_set (struct ConsensusSession *session,
                       debug_str_task_key (&task->key));
 #endif
         }
+        GNUNET_STATISTICS_update (statistics,
+                                  "# stuffed elements",
+                                  evil.num,
+                                  GNUNET_NO);
         GNUNET_SET_commit (setop->op, set->h);
         break;
       case EVILNESS_SLACK:
@@ -1842,12 +1861,7 @@ task_start_reconcile (struct TaskEntry *task)
                                     set_result_cb,
                                     task);
 
-    if (GNUNET_OK != GNUNET_SET_commit (setop->op, input->h))
-    {
-      GNUNET_break (0);
-      /* XXX: cleanup? */
-      return;
-    }
+    commit_set (session, task);
   }
   else if (task->key.peer2 == session->local_peer_idx)
   {
@@ -3006,6 +3020,7 @@ shutdown_task (void *cls,
   while (NULL != sessions_head)
     destroy_session (sessions_head);
 
+  GNUNET_STATISTICS_destroy (statistics, GNUNET_YES);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled shutdown request\n");
 }
 
@@ -3058,6 +3073,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  statistics = GNUNET_STATISTICS_create ("consensus", cfg);
   GNUNET_SERVER_add_handlers (server, server_handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task, NULL);
   GNUNET_SERVER_disconnect_notify (server, handle_client_disconnect, NULL);
