@@ -681,6 +681,11 @@ handle_p2p_strata_estimator (void *cls,
   int diff;
   size_t len;
 
+  GNUNET_STATISTICS_update (_GSS_statistics,
+                            "# bytes of SE received",
+                            ntohs (mh->size),
+                            GNUNET_NO);
+
   if (op->state->phase != PHASE_EXPECT_SE)
   {
     fail_union_operation (op);

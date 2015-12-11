@@ -36,8 +36,6 @@ static unsigned int num_a = 5;
 static unsigned int num_b = 5;
 static unsigned int num_c = 20;
 
-static unsigned int dump_statistics;
-
 static char *op_str = "union";
 
 const static struct GNUNET_CONFIGURATION_Handle *config;
@@ -60,7 +58,22 @@ static struct GNUNET_PeerIdentity local_peer;
 
 static struct GNUNET_SET_ListenHandle *set_listener;
 
+/**
+ * Handle to the statistics service.
+ */
 static struct GNUNET_STATISTICS_Handle *statistics;
+
+/**
+ * The profiler will write statistics
+ * for all peers to the file with this name.
+ */
+static char *statistics_filename;
+
+/**
+ * The profiler will write statistics
+ * for all peers to this file.
+ */
+static FILE *statistics_file;
 
 
 static int
@@ -98,7 +111,10 @@ statistics_result (void *cls,
                    uint64_t value,
                    int is_persistent)
 {
-  printf ("stat %s/%s=%lu\n", subsystem, name, (unsigned long) value);
+  if (NULL != statistics_file)
+  {
+    fprintf (statistics_file, "%s\t%s\t%lu\n", subsystem, name, (unsigned long) value);
+  }
   return GNUNET_OK;
 }
 
@@ -108,9 +124,11 @@ statistics_done (void *cls,
                  int success)
 {
   GNUNET_assert (GNUNET_YES == success);
-  printf("dumped statistics\n");
+  if (NULL != statistics_file)
+    fclose (statistics_file);
   GNUNET_SCHEDULER_shutdown ();
 }
+
 
 static void
 check_all_done (void)
@@ -124,12 +142,13 @@ check_all_done (void)
   printf ("set a: %d missing elements\n", GNUNET_CONTAINER_multihashmap_size (info1.sent));
   printf ("set b: %d missing elements\n", GNUNET_CONTAINER_multihashmap_size (info2.sent));
 
-  if (0 == dump_statistics)
+  if (NULL == statistics_filename)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
+  statistics_file = fopen (statistics_filename, "w");
   GNUNET_STATISTICS_get (statistics, NULL, NULL, GNUNET_TIME_UNIT_FOREVER_REL,
                          statistics_done, statistics_result, NULL);
 }
@@ -137,8 +156,8 @@ check_all_done (void)
 
 static void
 set_result_cb (void *cls,
-                 const struct GNUNET_SET_Element *element,
-                 enum GNUNET_SET_Status status)
+               const struct GNUNET_SET_Element *element,
+               enum GNUNET_SET_Status status)
 {
   struct SetInfo *info = cls;
   struct GNUNET_HashCode hash;
@@ -365,8 +384,8 @@ main (int argc, char **argv)
         gettext_noop ("operation to execute"),
         GNUNET_YES, &GNUNET_GETOPT_set_string, &op_str },
       { 's', "statistics", NULL,
-        gettext_noop ("dump statistics to stdout after completion"),
-        GNUNET_NO, &GNUNET_GETOPT_set_one, &dump_statistics },
+        gettext_noop ("write statistics to file"),
+        GNUNET_YES, &GNUNET_GETOPT_set_filename, &statistics_filename },
       GNUNET_GETOPT_OPTION_END
   };
   GNUNET_PROGRAM_run2 (argc, argv, "gnunet-set-profiler",
