@@ -172,6 +172,16 @@ struct OperationState
    * Hashes for elements that we have demanded from the other peer.
    */
   struct GNUNET_CONTAINER_MultiHashMap *demanded_hashes;
+
+  /**
+   * Salt that we're using for sending IBFs
+   */
+  uint32_t salt_send;
+
+  /**
+   * Salt for the IBF we've received and that we're currently decoding.
+   */
+  uint32_t salt_receive;
 };
 
 
@@ -334,18 +344,13 @@ fail_union_operation (struct Operation *op)
  * a salt.
  *
  * @param src the hash code
- * @param salt salt to use
  * @return the derived IBF key
  */
 static struct IBF_Key
-get_ibf_key (const struct GNUNET_HashCode *src,
-             uint16_t salt)
+get_ibf_key (const struct GNUNET_HashCode *src)
 {
   struct IBF_Key key;
-
-  /* FIXME: Ensure that the salt is handled correctly.
-     This is a quick fix so that consensus works for now. */
-  salt = 0;
+  uint16_t salt = 0;
 
   GNUNET_CRYPTO_kdf (&key, sizeof (key),
                      src, sizeof *src,
@@ -396,7 +401,7 @@ op_has_element (struct Operation *op,
   int ret;
   struct IBF_Key ibf_key;
 
-  ibf_key = get_ibf_key (element_hash, op->spec->salt);
+  ibf_key = get_ibf_key (element_hash);
   ret = GNUNET_CONTAINER_multihashmap32_get_multiple (op->state->key_to_element,
                                                       (uint32_t) ibf_key.key_val,
                                                       op_has_element_iterator,
@@ -429,7 +434,7 @@ op_register_element (struct Operation *op,
   struct IBF_Key ibf_key;
   struct KeyEntry *k;
 
-  ibf_key = get_ibf_key (&ee->element_hash, op->spec->salt);
+  ibf_key = get_ibf_key (&ee->element_hash);
   k = GNUNET_new (struct KeyEntry);
   k->element = ee;
   k->ibf_key = ibf_key;
@@ -438,6 +443,30 @@ op_register_element (struct Operation *op,
                                                       (uint32_t) ibf_key.key_val,
                                                       k,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+}
+
+
+static void
+salt_key (const struct IBF_Key *k_in,
+          uint32_t salt, 
+          struct IBF_Key *k_out)
+{
+  int s = salt % 64;
+  uint64_t x = k_in->key_val;
+  x = (x >> s) | (x << (64 - s));
+  k_out->key_val = x;
+}
+
+
+static void
+unsalt_key (const struct IBF_Key *k_in,
+            uint32_t salt, 
+            struct IBF_Key *k_out)
+{
+  int s = -(salt % 64);
+  uint64_t x = k_in->key_val;
+  x = (x >> s) | (x << (64 - s));
+  k_out->key_val = x;
 }
 
 
@@ -455,13 +484,15 @@ prepare_ibf_iterator (void *cls,
 {
   struct Operation *op = cls;
   struct KeyEntry *ke = value;
+  struct IBF_Key salted_key;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "[OP %x] inserting %lx (hash %s) into ibf\n",
        (void *) op,
        (unsigned long) ke->ibf_key.key_val,
        GNUNET_h2s (&ke->element->element_hash));
-  ibf_insert (op->state->local_ibf, ke->ibf_key);
+  salt_key (&ke->ibf_key, op->state->salt_send, &salted_key);
+  ibf_insert (op->state->local_ibf, salted_key);
   return GNUNET_YES;
 }
 
@@ -585,6 +616,7 @@ send_ibf (struct Operation *op,
     msg->reserved = 0;
     msg->order = ibf_order;
     msg->offset = htons (buckets_sent);
+    msg->salt = htonl (op->state->salt_send);
     ibf_write_slice (ibf, buckets_sent,
                      buckets_in_message, &msg[1]);
     buckets_sent += buckets_in_message;
@@ -879,6 +911,7 @@ decode_and_send (struct Operation *op)
                                   "# of IBF retries",
                                   1,
                                   GNUNET_NO);
+        op->state->salt_send++;
         if (GNUNET_OK !=
             send_ibf (op, next_order))
         {
@@ -920,19 +953,21 @@ decode_and_send (struct Operation *op)
     }
     if (1 == side)
     {
-      send_offers_for_key (op, key);
+      struct IBF_Key unsalted_key;
+      unsalt_key (&key, op->state->salt_receive, &unsalted_key);
+      send_offers_for_key (op, unsalted_key);
     }
     else if (-1 == side)
     {
       struct GNUNET_MQ_Envelope *ev;
-      struct GNUNET_MessageHeader *msg;
+      struct InquiryMessage *msg;
 
       /* It may be nice to merge multiple requests, but with CADET's corking it is not worth
        * the effort additional complexity. */
-      ev = GNUNET_MQ_msg_header_extra (msg,
-                                       sizeof (struct IBF_Key),
-                                       GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY);
-
+      ev = GNUNET_MQ_msg_extra (msg,
+                                sizeof (struct IBF_Key),
+                                GNUNET_MESSAGE_TYPE_SET_UNION_P2P_INQUIRY);
+      msg->salt = htonl (op->state->salt_receive);
       memcpy (&msg[1],
               &key,
               sizeof (struct IBF_Key));
@@ -986,6 +1021,7 @@ handle_p2p_ibf (void *cls,
          "Creating new ibf of size %u\n",
          1 << msg->order);
     op->state->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
+    op->state->salt_receive = ntohl (msg->salt);
     if (NULL == op->state->remote_ibf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1004,7 +1040,8 @@ handle_p2p_ibf (void *cls,
   else if (op->state->phase == PHASE_EXPECT_IBF_CONT)
   {
     if ( (ntohs (msg->offset) != op->state->ibf_buckets_received) ||
-         (1<<msg->order != op->state->remote_ibf->size) )
+         (1<<msg->order != op->state->remote_ibf->size) ||
+         (ntohl (msg->salt) != op->state->salt_receive))
     {
       GNUNET_break_op (0);
       fail_union_operation (op);
@@ -1268,6 +1305,7 @@ handle_p2p_inquiry (void *cls,
   struct Operation *op = cls;
   const struct IBF_Key *ibf_key;
   unsigned int num_keys;
+  struct InquiryMessage *msg;
 
   /* look up elements and send them */
   if (op->state->phase != PHASE_INVENTORY_PASSIVE)
@@ -1276,9 +1314,9 @@ handle_p2p_inquiry (void *cls,
     fail_union_operation (op);
     return;
   }
-  num_keys = (ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader))
+  num_keys = (ntohs (mh->size) - sizeof (struct InquiryMessage))
       / sizeof (struct IBF_Key);
-  if ((ntohs (mh->size) - sizeof (struct GNUNET_MessageHeader))
+  if ((ntohs (mh->size) - sizeof (struct InquiryMessage))
       != num_keys * sizeof (struct IBF_Key))
   {
     GNUNET_break_op (0);
@@ -1286,10 +1324,14 @@ handle_p2p_inquiry (void *cls,
     return;
   }
 
-  ibf_key = (const struct IBF_Key *) &mh[1];
+  msg = (struct InquiryMessage *) mh;
+
+  ibf_key = (const struct IBF_Key *) &msg[1];
   while (0 != num_keys--)
   {
-    send_offers_for_key (op, *ibf_key);
+    struct IBF_Key unsalted_key;
+    unsalt_key (ibf_key, ntohl (msg->salt), &unsalted_key);
+    send_offers_for_key (op, unsalted_key);
     ibf_key++;
   }
 }
@@ -1517,6 +1559,7 @@ union_evaluate (struct Operation *op,
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   /* we started the operation, thus we have to send the operation request */
   op->state->phase = PHASE_EXPECT_SE;
+  op->state->salt_receive = op->state->salt_send = 42;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating union operation evaluation\n");
   GNUNET_STATISTICS_update (_GSS_statistics,
@@ -1576,6 +1619,7 @@ union_accept (struct Operation *op)
   op->state = GNUNET_new (struct OperationState);
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   op->state->demanded_hashes = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
+  op->state->salt_receive = op->state->salt_send = 42;
   /* kick off the operation */
   send_strata_estimator (op);
 }
@@ -1620,7 +1664,7 @@ static void
 union_add (struct SetState *set_state, struct ElementEntry *ee)
 {
   strata_estimator_insert (set_state->se,
-                           get_ibf_key (&ee->element_hash, 0));
+                           get_ibf_key (&ee->element_hash));
 }
 
 
@@ -1635,7 +1679,7 @@ static void
 union_remove (struct SetState *set_state, struct ElementEntry *ee)
 {
   strata_estimator_remove (set_state->se,
-                           get_ibf_key (&ee->element_hash, 0));
+                           get_ibf_key (&ee->element_hash));
 }
 
 

@@ -96,6 +96,27 @@ struct IBFMessage
 };
 
 
+struct InquiryMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Salt used when hashing elements for this inquiry.
+   */
+  uint32_t salt GNUNET_PACKED;
+
+  /**
+   * Reserved, set to 0.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /* rest: inquiry IBF keys */
+};
+
+
 /**
  * During intersection, the first (and possibly second) message
  * send it the number of elements in the set, to allow the peers
