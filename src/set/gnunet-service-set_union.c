@@ -18,7 +18,8 @@
       Boston, MA 02110-1301, USA.
 */
 /**
- * @file set/gnunet-service-set_union.c
+ * @file set/gnunet-service-set_union.c    msg->salt = htonl (op->state->salt_send);
+
  * @brief two-peer set operations
  * @author Florian Dold
  */
@@ -60,7 +61,7 @@
  * Choose this value so that computing the IBF is still cheaper
  * than transmitting all values.
  */
-#define MAX_IBF_ORDER (16)
+#define MAX_IBF_ORDER (18)
 
 /**
  * Number of buckets used in the ibf per estimated
