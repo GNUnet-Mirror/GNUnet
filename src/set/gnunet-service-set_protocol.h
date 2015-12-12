@@ -80,12 +80,17 @@ struct IBFMessage
   /**
    * Padding, must be 0.
    */
-  uint8_t reserved;
+  uint8_t reserved1;
+
+  /**
+   * Padding, must be 0.
+   */
+  uint16_t reserved2 GNUNET_PACKED;
 
   /**
    * Offset of the strata in the rest of the message
    */
-  uint16_t offset GNUNET_PACKED;
+  uint32_t offset GNUNET_PACKED;
 
   /**
    * Salt used when hashing elements for this IBF.

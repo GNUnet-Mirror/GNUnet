@@ -61,7 +61,7 @@
  * Choose this value so that computing the IBF is still cheaper
  * than transmitting all values.
  */
-#define MAX_IBF_ORDER (18)
+#define MAX_IBF_ORDER (20)
 
 /**
  * Number of buckets used in the ibf per estimated
@@ -614,9 +614,10 @@ send_ibf (struct Operation *op,
     ev = GNUNET_MQ_msg_extra (msg,
                               buckets_in_message * IBF_BUCKET_SIZE,
                               GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF);
-    msg->reserved = 0;
+    msg->reserved1 = 0;
+    msg->reserved2 = 0;
     msg->order = ibf_order;
-    msg->offset = htons (buckets_sent);
+    msg->offset = htonl (buckets_sent);
     msg->salt = htonl (op->state->salt_send);
     ibf_write_slice (ibf, buckets_sent,
                      buckets_in_message, &msg[1]);
@@ -855,6 +856,7 @@ decode_and_send (struct Operation *op)
   if (GNUNET_OK !=
       prepare_ibf (op, op->state->remote_ibf->size))
   {
+    GNUNET_break (0);
     /* allocation failed */
     return GNUNET_SYSERR;
   }
@@ -1023,6 +1025,7 @@ handle_p2p_ibf (void *cls,
          1 << msg->order);
     op->state->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
     op->state->salt_receive = ntohl (msg->salt);
+    LOG (GNUNET_ERROR_TYPE_INFO, "Receiving new IBF with salt %u\n", op->state->salt_receive);
     if (NULL == op->state->remote_ibf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1031,7 +1034,7 @@ handle_p2p_ibf (void *cls,
       return GNUNET_SYSERR;
     }
     op->state->ibf_buckets_received = 0;
-    if (0 != ntohs (msg->offset))
+    if (0 != ntohl (msg->offset))
     {
       GNUNET_break_op (0);
       fail_union_operation (op);
@@ -1040,9 +1043,19 @@ handle_p2p_ibf (void *cls,
   }
   else if (op->state->phase == PHASE_EXPECT_IBF_CONT)
   {
-    if ( (ntohs (msg->offset) != op->state->ibf_buckets_received) ||
-         (1<<msg->order != op->state->remote_ibf->size) ||
-         (ntohl (msg->salt) != op->state->salt_receive))
+    if (ntohl (msg->offset) != op->state->ibf_buckets_received)
+    {
+      GNUNET_break_op (0);
+      fail_union_operation (op);
+      return GNUNET_SYSERR;
+    }
+    if (1<<msg->order != op->state->remote_ibf->size)
+    {
+      GNUNET_break_op (0);
+      fail_union_operation (op);
+      return GNUNET_SYSERR;
+    }
+    if (ntohl (msg->salt) != op->state->salt_receive)
     {
       GNUNET_break_op (0);
       fail_union_operation (op);
