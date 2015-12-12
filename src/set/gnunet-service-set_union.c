@@ -1025,7 +1025,6 @@ handle_p2p_ibf (void *cls,
          1 << msg->order);
     op->state->remote_ibf = ibf_create (1<<msg->order, SE_IBF_HASH_NUM);
     op->state->salt_receive = ntohl (msg->salt);
-    LOG (GNUNET_ERROR_TYPE_INFO, "Receiving new IBF with salt %u\n", op->state->salt_receive);
     if (NULL == op->state->remote_ibf)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
