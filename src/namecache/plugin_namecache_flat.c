@@ -148,27 +148,32 @@ database_setup (struct Plugin *plugin)
   }
 
   GNUNET_DISK_file_close (fh);
-
-  line = strtok ("\n", buffer);
-  while (line != NULL) {
-    query = strtok (",", line);
-    block = strtok (NULL, line);
-    line = strtok ("\n", buffer);
-    entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
-    GNUNET_CRYPTO_hash_from_string (query,
-                                    &entry->query);
-    GNUNET_STRINGS_base64_decode (block,
-                                  strlen (block),
-                                  &block_buffer);
-    entry->block = (struct GNUNET_GNSRECORD_Block *) block_buffer;
-    if (GNUNET_OK != 
-        GNUNET_CONTAINER_multihashmap_put (plugin->hm,
-                                           &entry->query,
-                                           entry,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-    {
-      GNUNET_free (entry);
-      GNUNET_break (0);
+  if (0 < size) {
+    line = strtok (buffer, "\n");
+    while (line != NULL) {
+      query = strtok (line, ",");
+      if (NULL == query)
+        break;
+      block = strtok (NULL, ",");
+      if (NULL == block)
+        break;
+      line = strtok (NULL, "\n");
+      entry = GNUNET_malloc (sizeof (struct FlatFileEntry));
+      GNUNET_CRYPTO_hash_from_string (query,
+                                      &entry->query);
+      GNUNET_STRINGS_base64_decode (block,
+                                    strlen (block),
+                                    &block_buffer);
+      entry->block = (struct GNUNET_GNSRECORD_Block *) block_buffer;
+      if (GNUNET_OK != 
+          GNUNET_CONTAINER_multihashmap_put (plugin->hm,
+                                             &entry->query,
+                                             entry,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      {
+        GNUNET_free (entry);
+        GNUNET_break (0);
+      }
     }
   }
   GNUNET_free (buffer);
@@ -295,7 +300,7 @@ namecache_expire_blocks (struct Plugin *plugin)
  */
 static int
 namecache_cache_block (void *cls,
-                              const struct GNUNET_GNSRECORD_Block *block)
+                       const struct GNUNET_GNSRECORD_Block *block)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HashCode query;
@@ -391,7 +396,7 @@ libgnunet_plugin_namecache_flat_init (void *cls)
   api->cache_block = &namecache_cache_block;
   api->lookup_block = &namecache_lookup_block;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-       _("flat plugin running\n"));
+              _("flat plugin running\n"));
   return api;
 }
 
@@ -412,7 +417,7 @@ libgnunet_plugin_namecache_flat_done (void *cls)
   plugin->cfg = NULL;
   GNUNET_free (api);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-       "flat plugin is finished\n");
+              "flat plugin is finished\n");
   return NULL;
 }
 
