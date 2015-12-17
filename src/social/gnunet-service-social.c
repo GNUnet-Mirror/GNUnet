@@ -25,11 +25,16 @@
  */
 
 #include <inttypes.h>
+#include <strings.h>
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
+#include "gnunet_core_service.h"
+#include "gnunet_identity_service.h"
+#include "gnunet_namestore_service.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_psyc_service.h"
 #include "gnunet_psyc_util_lib.h"
@@ -42,10 +47,17 @@
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-/**
- * Handle to the statistics service.
- */
+/* Handles to other services */
+static struct GNUNET_CORE_Handle *core;
+static struct GNUNET_IDENTITY_Handle *id;
+static struct GNUNET_GNS_Handle *gns;
+static struct GNUNET_NAMESTORE_Handle *namestore;
 static struct GNUNET_STATISTICS_Handle *stats;
+
+/**
+ * ID of this peer.
+ */
+static struct GNUNET_PeerIdentity this_peer;
 
 /**
  * Notification context, simplifies client broadcasts.
@@ -66,7 +78,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *guests;
 
 /**
  * Connected guests per place.
- * H(place_pub_key) -> Guest's pub_key -> struct Guest
+ * H(place_pub_key) -> ego_pub_key -> struct Guest
  */
 static struct GNUNET_CONTAINER_MultiHashMap *place_guests;
 
@@ -74,18 +86,43 @@ static struct GNUNET_CONTAINER_MultiHashMap *place_guests;
  * Places entered as host or guest.
  * H(place_pub_key) -> struct HostEnterRequest OR struct GuestEnterRequest
  */
-static struct GNUNET_CONTAINER_MultiHashMap *places_entered;
+static struct GNUNET_CONTAINER_MultiHashMap *places;
 
 /**
- * Place listener clients.
- * H(ego_pub_key) -> struct PlaceListener
+ * Places entered per application.
+ * H(app_id) -> H(place_pub_key) -> NULL
  */
-static struct GNUNET_CONTAINER_MultiHashMap *place_listeners;
+static struct GNUNET_CONTAINER_MultiHashMap *apps_places;
 
 /**
- * Directory for storing places.
+ * Connected applications.
+ * H(app_id) -> struct Application
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *apps;
+
+/**
+ * All egos.
+ * H(ego_pub_key) -> struct Ego
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *egos;
+
+/**
+ * Directory for storing social data.
+ * Default: ~/.local/share/gnunet/social
+ */
+static char *dir_social;
+
+/**
+ * Directory for storing place data.
+ * $dir_social/places
  */
 static char *dir_places;
+
+/**
+ * Directory for storing app data.
+ * $dir_social/apps
+ */
+static char *dir_apps;
 
 
 /**
@@ -157,7 +194,12 @@ struct Place
   struct GNUNET_PSYC_Channel *channel;
 
   /**
-   * Public key of the channel.
+   * Private key of home in case of a host.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey key;
+
+  /**
+   * Public key of place.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
 
@@ -165,6 +207,21 @@ struct Place
    * Hash of @a pub_key.
    */
   struct GNUNET_HashCode pub_key_hash;
+
+  /**
+   * Private key of ego.
+   */
+  struct GNUNET_CRYPTO_EcdsaPrivateKey ego_key;
+
+  /**
+   * Public key of ego.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  /**
+   * Hash of @a ego_pub_key.
+   */
+  struct GNUNET_HashCode ego_pub_hash;
 
   /**
    * Last message ID received for the place.
@@ -202,11 +259,6 @@ struct Host
   struct Place plc;
 
   /**
-   * Private key of the channel.
-   */
-  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
-
-  /**
    * Handle for the multicast origin.
    */
   struct GNUNET_PSYC_Master *master;
@@ -238,21 +290,6 @@ struct Guest
    * Place struct common for Host and Guest.
    */
   struct Place plc;
-
-  /**
-   * Private key of the slave.
-   */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey priv_key;
-
-  /**
-   * Public key of the slave.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
-
-  /**
-   * Hash of @a pub_key.
-   */
-  struct GNUNET_HashCode pub_key_hash;
 
   /**
    * Handle for the PSYC slave.
@@ -293,7 +330,7 @@ struct Guest
 
 
 /**
- * Context for host/guest client.
+ * Context for a client.
  */
 struct Client
 {
@@ -309,16 +346,22 @@ struct Client
   struct MessageTransmitQueue *tmit_msg;
 
   /**
-   * Ego key for listener clients;
+   * ID for application clients.
    */
-  struct GNUNET_CRYPTO_EcdsaPrivateKey ego_key;
+  char *app_id;
 };
 
 
-struct PlaceListener
+struct Application
 {
   struct ClientListItem *clients_head;
   struct ClientListItem *clients_tail;
+};
+
+
+struct Ego {
+  struct GNUNET_CRYPTO_EcdsaPrivateKey key;
+  char *name;
 };
 
 
@@ -335,6 +378,18 @@ static int
 psyc_transmit_message (struct Place *plc);
 
 
+static void
+cleanup_place (struct Place *plc);
+
+
+int
+place_entry_cleanup (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  cleanup_place (value);
+  return GNUNET_YES;
+}
+
+
 /**
  * Task run during shutdown.
  *
@@ -344,10 +399,33 @@ psyc_transmit_message (struct Place *plc);
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_CONTAINER_multihashmap_iterate (hosts, place_entry_cleanup, NULL);
+  GNUNET_CONTAINER_multihashmap_iterate (guests, place_entry_cleanup, NULL);
+
   if (NULL != nc)
   {
     GNUNET_SERVER_notification_context_destroy (nc);
     nc = NULL;
+  }
+  if (NULL != core)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
+  if (NULL != id)
+  {
+    GNUNET_IDENTITY_disconnect (id);
+    id = NULL;
+  }
+  if (NULL != namestore)
+  {
+    GNUNET_NAMESTORE_disconnect (namestore);
+    namestore = NULL;
+  }
+  if (NULL != gns)
+  {
+    GNUNET_GNS_disconnect (gns);
+    gns = NULL;
   }
   if (NULL != stats)
   {
@@ -383,7 +461,7 @@ cleanup_guest (struct Guest *gst)
     plc_gst = GNUNET_CONTAINER_multihashmap_get (place_guests,
                                                 &plc->pub_key_hash);
   GNUNET_assert (NULL != plc_gst); // FIXME
-  GNUNET_CONTAINER_multihashmap_remove (plc_gst, &gst->pub_key_hash, gst);
+  GNUNET_CONTAINER_multihashmap_remove (plc_gst, &plc->ego_pub_hash, gst);
 
   if (0 == GNUNET_CONTAINER_multihashmap_size (plc_gst))
   {
@@ -444,15 +522,20 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
   if (NULL == ctx)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p User context is NULL in client_disconnect()\n", ctx);
-    GNUNET_break (0);
     return;
   }
 
   struct Place *plc = ctx->plc;
+
+  if (NULL != ctx->app_id)
+    GNUNET_free (ctx->app_id);
+
+  GNUNET_free (ctx);
+
   if (NULL == plc)
-    return; // place listener client, nothing to do
+    return; // application client, nothing to do
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client (%s) disconnected from place %s\n",
@@ -470,40 +553,35 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     }
     cli = cli->next;
   }
-
-  if (NULL == plc->clients_head)
-  { /* Last client disconnected. */
-    if (GNUNET_YES != plc->is_disconnected)
-    {
-      plc->is_disconnected = GNUNET_YES;
-      if (NULL != plc->tmit_msgs_head)
-      { /* Send pending messages to PSYC before cleanup. */
-        psyc_transmit_message (plc);
-      }
-      else
-      {
-        cleanup_place (plc);
-      }
-    }
-  }
 }
 
 
 /**
- * Send message to all clients connected to the channel.
+ * Send message to a client.
+ */
+static inline void
+client_send_msg (struct GNUNET_SERVER_Client *client,
+                 const struct GNUNET_MessageHeader *msg)
+{
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc, client, msg, GNUNET_NO);
+}
+
+
+/**
+ * Send message to all clients connected to a place.
  */
 static void
-client_send_msg (const struct Place *plc,
+place_send_msg (const struct Place *plc,
                  const struct GNUNET_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Sending message to clients.\n", plc);
+              "%p Sending message to clients of place.\n", plc);
 
   struct ClientListItem *cli = plc->clients_head;
   while (NULL != cli)
   {
-    GNUNET_SERVER_notification_context_add (nc, cli->client);
-    GNUNET_SERVER_notification_context_unicast (nc, cli->client, msg, GNUNET_NO);
+    client_send_msg (cli->client, msg);
     cli = cli->next;
   }
 }
@@ -542,10 +620,28 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
               "%" PRId64 " (size: %u)\n",
 	      client, GNUNET_ntohll (op_id), result_code, data_size);
 
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &res->header,
-                                              GNUNET_NO);
+  client_send_msg (client, &res->header);
   GNUNET_free (res);
+}
+
+
+static void
+client_send_host_enter_ack (struct GNUNET_SERVER_Client *client,
+                            struct Host *hst, uint32_t result)
+{
+  struct Place *plc = &hst->plc;
+
+  struct HostEnterAck hack;
+  hack.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK);
+  hack.header.size = htons (sizeof (hack));
+  hack.result_code = htonl (result);
+  hack.max_message_id = GNUNET_htonll (plc->max_message_id);
+  hack.place_pub_key = plc->pub_key;
+
+  if (NULL != client)
+    client_send_msg (client, &hack.header);
+  else
+    place_send_msg (plc, &hack.header);
 }
 
 
@@ -560,13 +656,7 @@ psyc_master_started (void *cls, int result, uint64_t max_message_id)
   plc->max_message_id = max_message_id;
   plc->is_ready = GNUNET_YES;
 
-  struct GNUNET_PSYC_CountersResultMessage res;
-  res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK);
-  res.header.size = htons (sizeof (res));
-  res.result_code = htonl (result);
-  res.max_message_id = GNUNET_htonll (plc->max_message_id);
-
-  client_send_msg (plc, &res.header);
+  client_send_host_enter_ack (NULL, hst, result);
 }
 
 
@@ -585,7 +675,7 @@ psyc_recv_join_request (void *cls,
   GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
   GNUNET_CONTAINER_multihashmap_put (hst->join_reqs, &slave_key_hash, jh,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  client_send_msg (&hst->plc, &req->header);
+  place_send_msg (&hst->plc, &req->header);
 }
 
 
@@ -606,7 +696,7 @@ psyc_slave_connected (void *cls, int result, uint64_t max_message_id)
   res.result_code = htonl (result);
   res.max_message_id = GNUNET_htonll (plc->max_message_id);
 
-  client_send_msg (plc, &res.header);
+  place_send_msg (plc, &res.header);
 }
 
 
@@ -620,7 +710,7 @@ psyc_recv_join_dcsn (void *cls,
                      const struct GNUNET_PSYC_Message *join_msg)
 {
   struct Guest *gst = cls;
-  client_send_msg (&gst->plc, &dcsn->header);
+  place_send_msg (&gst->plc, &dcsn->header);
 }
 
 
@@ -641,7 +731,7 @@ psyc_recv_message (void *cls,
               plc, ntohs (msg->header.size), str);
   GNUNET_free (str);
 
-  client_send_msg (plc, &msg->header);
+  place_send_msg (plc, &msg->header);
 
   /* FIXME: further processing */
 }
@@ -656,110 +746,219 @@ place_init (struct Place *plc)
 
 }
 
-
 /**
- * Add place to places_entered hash map.
+ * Add a place to the @e places hash map.
  *
- * @param ego_pub_hash
- *        H(ego_pub_key)
- * @param place_pub_hash
- *        H(place_pub_key)
- * @param msg
- *        Entry message.
+ * @param ereq
+ *        Entry request.
  *
- * @return Return value of GNUNET_CONTAINER_multihashmap_put ()
+ * @return #GNUNET_OK if the place was added
+ *         #GNUNET_NO if the place already exists in the hash map
+ *         #GNUNET_SYSERR on error
  */
 static int
-place_add (const struct GNUNET_HashCode *ego_pub_hash,
-           const struct GNUNET_HashCode *place_pub_hash,
-           const struct GNUNET_MessageHeader *msg)
+place_add (const struct PlaceEnterRequest *ereq)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding place to hashmap:\n");
+
+  struct EgoPlacePublicKey ego_place_pub_key = {
+    .ego_pub_key = ereq->ego_pub_key,
+    .place_pub_key = ereq->place_pub_key,
+  };
+  struct GNUNET_HashCode ego_place_pub_hash;
+  GNUNET_CRYPTO_hash (&ego_place_pub_key, sizeof (ego_place_pub_key), &ego_place_pub_hash);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  ego_pub_hash = %s\n", GNUNET_h2s (ego_pub_hash));
+              "  ego_place_pub_hash = %s\n", GNUNET_h2s (&ego_place_pub_hash));
+
+  struct GNUNET_MessageHeader *
+    place_msg = GNUNET_CONTAINER_multihashmap_get (places, &ego_place_pub_hash);
+  if (NULL != place_msg)
+    return GNUNET_NO;
+
+  place_msg = GNUNET_copy_message (&ereq->header);
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (places, &ego_place_pub_hash, place_msg,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+  {
+    GNUNET_break (0);
+    GNUNET_free (place_msg);
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+}
+
+/**
+ * Add a place to the @e app_places hash map.
+ *
+ * @param app_id
+ *        Application ID.
+ * @param msg
+ *        Entry message.
+ *
+ * @return #GNUNET_OK if the place was added
+ *         #GNUNET_NO if the place already exists in the hash map
+ *         #GNUNET_SYSERR on error
+ */
+static int
+app_place_add (const char *app_id,
+               const struct PlaceEnterRequest *ereq)
+{
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "  place_pub_hash = %s\n", GNUNET_h2s (place_pub_hash));
+              "Adding app place to hashmap:\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  app_id = %s\n", app_id);
+
+  struct GNUNET_HashCode app_id_hash;
+  GNUNET_CRYPTO_hash (app_id, strlen (app_id) + 1, &app_id_hash);
+
+  struct EgoPlacePublicKey ego_place_pub_key = {
+    .ego_pub_key = ereq->ego_pub_key,
+    .place_pub_key = ereq->place_pub_key,
+  };
+  struct GNUNET_HashCode ego_place_pub_hash;
+  GNUNET_CRYPTO_hash (&ego_place_pub_key, sizeof (ego_place_pub_key), &ego_place_pub_hash);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "  ego_place_pub_hash = %s\n", GNUNET_h2s (&ego_place_pub_hash));
 
   struct GNUNET_CONTAINER_MultiHashMap *
-    ego_places = GNUNET_CONTAINER_multihashmap_get (places_entered, ego_pub_hash);
-  if (NULL == ego_places)
+    app_places = GNUNET_CONTAINER_multihashmap_get (apps_places, &app_id_hash);
+  if (NULL == app_places)
   {
-    ego_places = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-    GNUNET_CONTAINER_multihashmap_put (places_entered, ego_pub_hash, ego_places,
+    app_places = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+    GNUNET_CONTAINER_multihashmap_put (apps_places, &app_id_hash, app_places,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
 
-  struct GNUNET_MessageHeader *msg_old, *msg_new;
-  if (NULL != (msg_old = GNUNET_CONTAINER_multihashmap_get (ego_places, place_pub_hash)))
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_contains (app_places, &ego_place_pub_hash))
+    return GNUNET_NO;
+
+  if (GNUNET_SYSERR == place_add (ereq))
+    return GNUNET_SYSERR;
+
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (app_places, &ego_place_pub_hash,
+                                                      NULL, 0))
   {
-    GNUNET_free (msg_old);
-    GNUNET_CONTAINER_multihashmap_remove_all (ego_places, place_pub_hash);
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
 
-  uint16_t msg_size = ntohs (msg->size);
-  msg_new = GNUNET_malloc (msg_size);
-  memcpy (msg_new, msg, msg_size);
-  int ret = GNUNET_CONTAINER_multihashmap_put (ego_places, place_pub_hash, msg_new,
-                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-  if (GNUNET_OK != ret)
-    GNUNET_break (0);
-  return ret;
+  return GNUNET_OK;
 }
 
 
 /**
  * Save place entry message to disk.
  *
- * @param ego_key
- *        Private key of ego.
- * @param place_pub_hash
- *        Hash of public key of place.
+ * @param app_id
+ *        Application ID.
  * @param msg
  *        Entry message.
  */
-static void
-place_save (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ego_key,
-            const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub,
-            const struct GNUNET_MessageHeader *msg)
+static int
+app_place_save (const char *app_id,
+                const struct PlaceEnterRequest *ereq)
 {
+  app_place_add (app_id, ereq);
+
   if (NULL == dir_places)
-    return;
+    return GNUNET_SYSERR;
 
-  struct GNUNET_HashCode place_pub_hash;
-  GNUNET_CRYPTO_hash (place_pub, sizeof (place_pub), &place_pub_hash);
-
-  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub;
   struct GNUNET_HashCode ego_pub_hash;
-  GNUNET_CRYPTO_ecdsa_key_get_public (ego_key, &ego_pub);
-  GNUNET_CRYPTO_hash (&ego_pub, sizeof (ego_pub), &ego_pub_hash);
+  struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (&ereq->ego_pub_key, sizeof (ereq->ego_pub_key),
+                      &ego_pub_hash);
+  GNUNET_CRYPTO_hash (&ereq->place_pub_key, sizeof (ereq->place_pub_key),
+                      &place_pub_hash);
 
-  place_add (&ego_pub_hash, &place_pub_hash, msg);
+  struct GNUNET_CRYPTO_HashAsciiEncoded ego_pub_hash_ascii;
+  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
+  memcpy (&ego_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&ego_pub_hash), sizeof (ego_pub_hash_ascii));
+  memcpy (&place_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&place_pub_hash), sizeof (place_pub_hash_ascii));
 
-  char *ego_pub_hash_str = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1);
-  char *place_pub_hash_str = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1);
-  memcpy (ego_pub_hash_str, GNUNET_h2s_full (&ego_pub_hash), sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
-  memcpy (place_pub_hash_str, GNUNET_h2s_full (&place_pub_hash), sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded));
-
-  char *filename = GNUNET_malloc (strlen (dir_places) + 1
-                                  + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1
-                                  + sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1);
-  GNUNET_asprintf (&filename,
-                   "%s%s%s%s%s",
-                   dir_places, DIR_SEPARATOR_STR,
-                   ego_pub_hash_str, DIR_SEPARATOR_STR,
-                   place_pub_hash_str);
-
-  GNUNET_DISK_directory_create_for_file (filename);
-  if (GNUNET_DISK_fn_write (filename, msg, ntohs (msg->size),
-                            GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE) < 0)
+  char *filename = NULL;
+  GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%s",
+                   dir_social, DIR_SEPARATOR,
+                   "places", DIR_SEPARATOR,
+                   ego_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   place_pub_hash_ascii.encoding);
+  int ret = GNUNET_DISK_directory_create_for_file (filename);
+  if (GNUNET_OK != ret
+      || 0 > GNUNET_DISK_fn_write (filename, ereq, ntohs (ereq->header.size),
+                                   GNUNET_DISK_PERM_USER_READ
+                                   | GNUNET_DISK_PERM_USER_WRITE))
   {
     GNUNET_break (0);
+    ret = GNUNET_SYSERR;
+  }
+  GNUNET_free (filename);
+
+  if (ret == GNUNET_OK)
+  {
+    GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%s%c" "%s",
+                     dir_social, DIR_SEPARATOR,
+                     "apps", DIR_SEPARATOR,
+                     app_id, DIR_SEPARATOR,
+                     ego_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                     place_pub_hash_ascii.encoding);
+    ret = GNUNET_DISK_directory_create_for_file (filename);
+    if (GNUNET_OK != ret
+        || 0 > GNUNET_DISK_fn_write (filename, "", 0,
+                                     GNUNET_DISK_PERM_USER_READ
+                                     | GNUNET_DISK_PERM_USER_WRITE))
+    {
+      GNUNET_break (0);
+      ret = GNUNET_SYSERR;
+    }
+    GNUNET_free (filename);
+  }
+  return ret;
+}
+
+
+int
+app_place_remove (const char *app_id,
+                  const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key)
+{
+  struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (place_pub_key, sizeof (*place_pub_key), &place_pub_hash);
+
+  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
+  memcpy (&place_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&place_pub_hash), sizeof (place_pub_hash_ascii));
+
+  char *app_place_filename = NULL;
+  GNUNET_asprintf (&app_place_filename,
+                   "%s%c" "%s%/",
+                   dir_social, DIR_SEPARATOR,
+                   "apps", DIR_SEPARATOR,
+                   app_id, DIR_SEPARATOR,
+                   place_pub_hash_ascii.encoding);
+
+  struct GNUNET_HashCode app_id_hash;
+  GNUNET_CRYPTO_hash (app_id, strlen (app_id) + 1, &app_id_hash);
+
+  struct GNUNET_CONTAINER_MultiHashMap *
+    app_places = GNUNET_CONTAINER_multihashmap_get (apps_places, &app_id_hash);
+
+  if (NULL != app_places)
+    GNUNET_CONTAINER_multihashmap_remove (app_places, &place_pub_hash, NULL);
+
+  int ret = unlink (app_place_filename);
+  GNUNET_free (app_place_filename);
+  if (0 != ret)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error removing app place: unlink returned %d\n", errno);
+    return GNUNET_SYSERR;
   }
 
-  GNUNET_free (ego_pub_hash_str);
-  GNUNET_free (place_pub_hash_str);
-  GNUNET_free (filename);
+  return GNUNET_OK;
 }
 
 
@@ -772,35 +971,34 @@ place_save (const struct GNUNET_CRYPTO_EcdsaPrivateKey *ego_key,
  *        Returned Host struct.
  *
  * @return #GNUNET_YES if the host entered the place just now,
- *         #GNUNET_NO  if the place is already entered.
+ *         #GNUNET_NO  if the place is already entered,
+ *         #GNUNET_SYSERR if place_pub_key was set
+ *                        but its private key was not found
  */
 static int
 host_enter (const struct HostEnterRequest *hreq, struct Host **ret_hst)
 {
   int ret = GNUNET_NO;
-  struct GNUNET_CRYPTO_EddsaPublicKey place_pub;
   struct GNUNET_HashCode place_pub_hash;
-
-  GNUNET_CRYPTO_eddsa_key_get_public (&hreq->place_key, &place_pub);
-  GNUNET_CRYPTO_hash (&place_pub, sizeof (place_pub), &place_pub_hash);
-
+  GNUNET_CRYPTO_hash (&hreq->place_pub_key, sizeof (hreq->place_pub_key),
+                      &place_pub_hash);
   struct Host *hst = GNUNET_CONTAINER_multihashmap_get (hosts, &place_pub_hash);
+
   if (NULL == hst)
   {
     hst = GNUNET_new (struct Host);
-    hst->policy = ntohl (hreq->policy);
-    hst->priv_key = hreq->place_key;
+    hst->policy = hreq->policy;
     hst->join_reqs = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
 
     struct Place *plc = &hst->plc;
-    plc->is_host = GNUNET_YES;
-    plc->pub_key = place_pub;
-    plc->pub_key_hash = place_pub_hash;
     place_init (plc);
+    plc->is_host = GNUNET_YES;
+    plc->pub_key = hreq->place_pub_key;
+    plc->pub_key_hash = place_pub_hash;
 
     GNUNET_CONTAINER_multihashmap_put (hosts, &plc->pub_key_hash, plc,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    hst->master = GNUNET_PSYC_master_start (cfg, &hst->priv_key, hst->policy,
+    hst->master = GNUNET_PSYC_master_start (cfg, &hreq->place_key, hst->policy,
                                             &psyc_master_started,
                                             &psyc_recv_join_request,
                                             &psyc_recv_message, NULL, hst);
@@ -821,10 +1019,41 @@ static void
 client_recv_host_enter (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *msg)
 {
-  const struct HostEnterRequest *hreq
-    = (const struct HostEnterRequest *) msg;
-  struct Place *plc;
-  struct Host *hst;
+  struct HostEnterRequest *hreq
+    = (struct HostEnterRequest *) GNUNET_copy_message (msg);
+
+  uint8_t app_id_size = ntohs (hreq->header.size) - sizeof (*hreq);
+  const char *app_id = NULL;
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &hreq[1],
+                                                    app_id_size, 1, &app_id);
+  if (0 == offset || offset != app_id_size || app_id == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "offset = %u, app_id_size = %u, app_id = %s\n",
+                offset, app_id_size, app_id);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  struct Host *hst = NULL;
+  struct Place *plc = NULL;
+  int ret = GNUNET_OK;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey empty_pub_key;
+  memset (&empty_pub_key, 0, sizeof (empty_pub_key));
+
+  if (0 == memcmp (&hreq->place_pub_key, &empty_pub_key, sizeof (empty_pub_key)))
+  { // no public key set: create new private key & save the place
+    struct GNUNET_CRYPTO_EddsaPrivateKey *
+      place_key = GNUNET_CRYPTO_eddsa_key_create ();
+    hreq->place_key = *place_key;
+    GNUNET_CRYPTO_eddsa_key_get_public (place_key, &hreq->place_pub_key);
+    GNUNET_CRYPTO_eddsa_key_clear (place_key);
+    GNUNET_free (place_key);
+
+    app_place_save (app_id, (const struct PlaceEnterRequest *) hreq);
+  }
 
   switch (host_enter (hreq, &hst))
   {
@@ -835,40 +1064,32 @@ client_recv_host_enter (void *cls, struct GNUNET_SERVER_Client *client,
   case GNUNET_NO:
   {
     plc = &hst->plc;
-
-    struct GNUNET_PSYC_CountersResultMessage res;
-    res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK);
-    res.header.size = htons (sizeof (res));
-    res.result_code = htonl (GNUNET_OK);
-    res.max_message_id = GNUNET_htonll (plc->max_message_id);
-
-    GNUNET_SERVER_notification_context_add (nc, client);
-    GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
-                                                GNUNET_NO);
+    client_send_host_enter_ack (client, hst, GNUNET_OK);
     break;
   }
   case GNUNET_SYSERR:
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    return;
+    ret = GNUNET_SYSERR;
   }
 
-  struct GNUNET_CRYPTO_EddsaPublicKey place_pub;
-  GNUNET_CRYPTO_eddsa_key_get_public (&hreq->place_key, &place_pub);
+  if (ret != GNUNET_SYSERR)
+  {
 
-  place_save (&hreq->host_key, &place_pub, msg);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "%p Client connected as host to place %s.\n",
+                hst, GNUNET_h2s (&plc->pub_key_hash));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p Client connected as host to place %s.\n",
-              hst, GNUNET_h2s (&plc->pub_key_hash));
+    struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
+    cli->client = client;
+    GNUNET_CONTAINER_DLL_insert (plc->clients_head, plc->clients_tail, cli);
 
-  struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
-  cli->client = client;
-  GNUNET_CONTAINER_DLL_insert (plc->clients_head, plc->clients_tail, cli);
+    struct Client *ctx = GNUNET_new (struct Client);
+    ctx->plc = plc;
+    GNUNET_SERVER_client_set_user_context (client, ctx);
+  }
 
-  struct Client *ctx = GNUNET_new (struct Client);
-  ctx->plc = plc;
-  GNUNET_SERVER_client_set_user_context (client, ctx);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+  GNUNET_CRYPTO_eddsa_key_clear (&hreq->place_key);
+  GNUNET_free (hreq);
+  GNUNET_SERVER_receive_done (client, ret);
 }
 
 
@@ -881,7 +1102,8 @@ client_recv_host_enter (void *cls, struct GNUNET_SERVER_Client *client,
  *        Returned Guest struct.
  *
  * @return #GNUNET_YES if the guest entered the place just now,
- *         #GNUNET_NO  if the place is already entered.
+ *         #GNUNET_NO  if the place is already entered,
+ *         #GNUNET_SYSERR on error.
  */
 static int
 guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
@@ -889,44 +1111,68 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
   int ret = GNUNET_NO;
   uint16_t greq_size = ntohs (greq->header.size);
 
-  struct GNUNET_CRYPTO_EcdsaPublicKey gst_pub_key;
-  struct GNUNET_HashCode place_pub_hash, gst_pub_key_hash;
-  GNUNET_CRYPTO_ecdsa_key_get_public (&greq->guest_key, &gst_pub_key);
-  GNUNET_CRYPTO_hash (&gst_pub_key, sizeof (gst_pub_key), &gst_pub_key_hash);
-  GNUNET_CRYPTO_hash (&greq->place_key, sizeof (greq->place_key), &place_pub_hash);
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key = greq->ego_pub_key;
+  struct GNUNET_HashCode ego_pub_hash;
+  GNUNET_CRYPTO_hash (&ego_pub_key, sizeof (ego_pub_key), &ego_pub_hash);
+  struct Ego *ego = GNUNET_CONTAINER_multihashmap_get (egos, &ego_pub_hash);
+
+  if (NULL == ego)
+    return GNUNET_SYSERR;
+
+  struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (&greq->place_pub_key, sizeof (greq->place_pub_key),
+                      &place_pub_hash);
 
   struct GNUNET_CONTAINER_MultiHashMap *
     plc_gst = GNUNET_CONTAINER_multihashmap_get (place_guests, &place_pub_hash);
   struct Guest *gst = NULL;
-  struct Place *plc;
 
   if (NULL != plc_gst)
-    gst = GNUNET_CONTAINER_multihashmap_get (plc_gst, &gst_pub_key_hash);
+    gst = GNUNET_CONTAINER_multihashmap_get (plc_gst, &ego_pub_hash);
 
   if (NULL == gst || NULL == gst->slave)
   {
     gst = GNUNET_new (struct Guest);
-    gst->priv_key = greq->guest_key;
-    gst->pub_key = gst_pub_key;
-    gst->pub_key_hash = gst_pub_key_hash;
     gst->origin = greq->origin;
     gst->relay_count = ntohl (greq->relay_count);
 
+    uint16_t len;
+    uint16_t remaining = ntohs (greq->header.size) - sizeof (*greq);
+    const char *app_id = (const char *) &greq[1];
+    const char *p = app_id;
+
+    len = strnlen (app_id, remaining);
+    if (len == remaining)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    p += len + 1;
+    remaining -= len + 1;
+
     const struct GNUNET_PeerIdentity *relays = NULL;
     uint16_t relay_size = gst->relay_count * sizeof (*relays);
+    if (remaining < relay_size)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
     if (0 < relay_size)
-      relays = (const struct GNUNET_PeerIdentity *) &greq[1];
+      relays = (const struct GNUNET_PeerIdentity *) p;
+    p += relay_size;
+    remaining -= relay_size;
+
     struct GNUNET_PSYC_Message *join_msg = NULL;
     uint16_t join_msg_size = 0;
 
-    if (sizeof (*greq) + relay_size + sizeof (struct GNUNET_MessageHeader)
-        <= greq_size)
+    if (sizeof (struct GNUNET_MessageHeader) <= remaining)
     {
-      join_msg = (struct GNUNET_PSYC_Message *)
-        (((char *) &greq[1]) + relay_size);
+      join_msg = (struct GNUNET_PSYC_Message *) p;
       join_msg_size = ntohs (join_msg->header.size);
+      p += join_msg_size;
+      remaining -= join_msg_size;
     }
-    if (sizeof (*greq) + relay_size + join_msg_size != greq_size)
+    if (0 != remaining)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "%u + %u + %u != %u\n",
@@ -935,17 +1181,20 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
       GNUNET_free (gst);
       return GNUNET_SYSERR;
     }
-    if (0 < gst->relay_count)
+    if (0 < relay_size)
     {
       gst->relays = GNUNET_malloc (relay_size);
-      memcpy (gst->relays, &greq[1], relay_size);
+      memcpy (gst->relays, relays, relay_size);
     }
 
-    plc = &gst->plc;
-    plc->is_host = GNUNET_NO;
-    plc->pub_key = greq->place_key;
-    plc->pub_key_hash = place_pub_hash;
+    struct Place *plc = &gst->plc;
     place_init (plc);
+    plc->is_host = GNUNET_NO;
+    plc->pub_key = greq->place_pub_key;
+    plc->pub_key_hash = place_pub_hash;
+    plc->ego_pub_key = ego_pub_key;
+    plc->ego_pub_hash = ego_pub_hash;
+    plc->ego_key = ego->key;
 
     if (NULL == plc_gst)
     {
@@ -953,12 +1202,12 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
       (void) GNUNET_CONTAINER_multihashmap_put (place_guests, &plc->pub_key_hash, plc_gst,
                                                 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
-    (void) GNUNET_CONTAINER_multihashmap_put (plc_gst, &gst->pub_key_hash, gst,
+    (void) GNUNET_CONTAINER_multihashmap_put (plc_gst, &plc->ego_pub_hash, gst,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     (void) GNUNET_CONTAINER_multihashmap_put (guests, &plc->pub_key_hash, gst,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     gst->slave
-      = GNUNET_PSYC_slave_join (cfg, &plc->pub_key, &gst->priv_key,
+      = GNUNET_PSYC_slave_join (cfg, &plc->pub_key, &plc->ego_key,
                                 &gst->origin, gst->relay_count, gst->relays,
                                 &psyc_recv_message, NULL, &psyc_slave_connected,
                                 &psyc_recv_join_dcsn, gst, join_msg);
@@ -981,6 +1230,18 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct GuestEnterRequest *
     greq = (const struct GuestEnterRequest *) msg;
+
+  uint16_t remaining = ntohs (greq->header.size) - sizeof (*greq);
+  const char *app_id = NULL;
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &greq[1],
+                                                    remaining, 1, &app_id);
+  if (0 == offset)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
   struct Guest *gst = NULL;
   struct Place *plc = NULL;
 
@@ -988,6 +1249,7 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
   {
   case GNUNET_YES:
     plc = &gst->plc;
+    app_place_save (app_id, (const struct PlaceEnterRequest *) greq);
     break;
 
   case GNUNET_NO:
@@ -1000,28 +1262,21 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
     res.result_code = htonl (GNUNET_OK);
     res.max_message_id = GNUNET_htonll (plc->max_message_id);
 
-    GNUNET_SERVER_notification_context_add (nc, client);
-    GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
-                                                GNUNET_NO);
+    client_send_msg (client, &res.header);
     if (NULL != gst->join_dcsn)
-    {
-      GNUNET_SERVER_notification_context_add (nc, client);
-      GNUNET_SERVER_notification_context_unicast (nc, client,
-                                                  &gst->join_dcsn->header,
-                                                  GNUNET_NO);
-    }
+      client_send_msg (client, &gst->join_dcsn->header);
+
     break;
   }
   case GNUNET_SYSERR:
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
-  place_save (&greq->guest_key, &greq->place_key, msg);
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client connected as guest to place %s.\n",
-              gst, GNUNET_h2s (&gst->plc.pub_key_hash));
+              gst, GNUNET_h2s (&plc->pub_key_hash));
 
   struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
   cli->client = client;
@@ -1034,16 +1289,159 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+struct GuestEnterByNameClosure
+{
+  struct GNUNET_SERVER_Client *client;
+  char *app_id;
+  char *password;
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+  struct GNUNET_MessageHeader *join_msg;
+};
+
+
+/**
+ * Result of a GNS name lookup for entering a place.
+ *
+ * @see GNUNET_SOCIAL_guest_enter_by_name
+ */
+static void
+gns_result_guest_enter (void *cls, uint32_t rd_count,
+                        const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct GuestEnterByNameClosure *gcls = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "%p GNS result: %u records.\n", gcls->client, rd_count);
+
+  const struct GNUNET_GNSRECORD_PlaceData *
+    rec = (const struct GNUNET_GNSRECORD_PlaceData *) rd->data;
+
+  if (0 == rd_count || rd->data_size < sizeof (*rec))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (gcls->client, GNUNET_SYSERR);
+    return;
+  }
+
+  uint16_t relay_count = ntohl (rec->relay_count);
+  struct GNUNET_PeerIdentity *relays = NULL;
+
+  if (0 < relay_count)
+  {
+    if (rd->data_size == sizeof (*rec) + relay_count * sizeof (struct GNUNET_PeerIdentity))
+    {
+      relays = (struct GNUNET_PeerIdentity *) &rec[1];
+    }
+    else
+    {
+      relay_count = 0;
+      GNUNET_break_op (0);
+    }
+  }
+
+  uint16_t app_id_size = strlen (gcls->app_id) + 1;
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  uint16_t join_msg_size = 0;
+  if (NULL != gcls->join_msg)
+    join_msg_size = ntohs (gcls->join_msg->size);
+  uint16_t greq_size = sizeof (struct GuestEnterRequest)
+    + app_id_size + relay_size + join_msg_size;
+  struct GuestEnterRequest *greq = GNUNET_malloc (greq_size);
+  greq->header.size = htons (greq_size);
+  greq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER);
+  greq->ego_pub_key = gcls->ego_pub_key;
+  greq->place_pub_key = rec->place_pub_key;
+  greq->origin = rec->origin;
+  greq->relay_count = rec->relay_count;
+
+  void *p = &greq[1];
+  memcpy (p, gcls->app_id, app_id_size);
+  p += app_id_size;
+  memcpy (p, relays, relay_size);
+  p += relay_size;
+  memcpy (p, gcls->join_msg, join_msg_size);
+
+  client_recv_guest_enter (NULL, gcls->client, &greq->header);
+
+  GNUNET_free (gcls->app_id);
+  if (NULL != gcls->password)
+    GNUNET_free (gcls->password);
+  if (NULL != gcls->join_msg)
+    GNUNET_free (gcls->join_msg);
+  GNUNET_free (gcls);
+  GNUNET_free (greq);
+}
+
+
+/**
+ * Handle a connecting client entering a place as guest using a GNS address.
+ *
+ * Look up GNS address and generate a GuestEnterRequest from that.
+ */
+static void
+client_recv_guest_enter_by_name (void *cls, struct GNUNET_SERVER_Client *client,
+                                 const struct GNUNET_MessageHeader *msg)
+{
+  const struct GuestEnterByNameRequest *
+    greq = (const struct GuestEnterByNameRequest *) msg;
+
+  struct GuestEnterByNameClosure *gcls = GNUNET_malloc (sizeof (*gcls));
+  gcls->client = client;
+  gcls->ego_pub_key = greq->ego_pub_key;
+
+  const char *p = (const char *) &greq[1];
+  const char *app_id = NULL, *password = NULL, *gns_name = NULL;
+  uint16_t remaining = ntohs (greq->header.size) - sizeof (*greq);
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize (p, remaining, 3,
+                                                    &app_id,
+                                                    &gns_name,
+                                                    &password);
+  p += offset;
+  remaining -= offset;
+
+  if (0 != offset && sizeof (*gcls->join_msg) <= remaining)
+  {
+    gcls->join_msg = GNUNET_copy_message ((struct GNUNET_MessageHeader *) p);
+    remaining -= ntohs (gcls->join_msg->size);
+  }
+
+  if (0 == offset || 0 != remaining)
+  {
+    if (NULL != gcls->join_msg)
+      GNUNET_free (gcls->join_msg);
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  uint16_t app_id_size = strlen (app_id) + 1;
+  gcls->app_id = GNUNET_malloc (app_id_size);
+  memcpy (gcls->app_id, app_id, app_id_size);
+
+  uint16_t password_size = strlen (password);
+  if (0 < password_size++)
+  {
+    gcls->password = GNUNET_malloc (password_size);
+    memcpy (gcls->password, password, password_size);
+  }
+
+  GNUNET_GNS_lookup (gns, gns_name, &greq->ego_pub_key,
+                     GNUNET_GNSRECORD_TYPE_PLACE, GNUNET_GNS_LO_DEFAULT,
+                     NULL, gns_result_guest_enter, gcls);
+}
+
+
 void
-place_notify (struct GNUNET_MessageHeader *msg,
-              struct GNUNET_SERVER_Client *client)
+app_notify_place (struct GNUNET_MessageHeader *msg,
+                  struct GNUNET_SERVER_Client *client)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Sending place notification of type %u to client.\n",
               client, ntohs (msg->type));
 
- uint16_t msg_size = ntohs (msg->size);
-  struct GNUNET_CRYPTO_EcdsaPublicKey place_pub;
+  uint16_t msg_size = ntohs (msg->size);
+  struct AppPlaceMessage amsg;
+  amsg.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE);
+  amsg.header.size = htons (sizeof (amsg));
 
   switch (ntohs (msg->type))
   {
@@ -1051,74 +1449,178 @@ place_notify (struct GNUNET_MessageHeader *msg,
     if (msg_size < sizeof (struct HostEnterRequest))
       return;
     struct HostEnterRequest *hreq = (struct HostEnterRequest *) msg;
-    GNUNET_CRYPTO_ecdsa_key_get_public (&hreq->host_key, &place_pub);
+    amsg.is_host = GNUNET_YES;
+    amsg.ego_pub_key = hreq->ego_pub_key;
+    amsg.place_pub_key = hreq->place_pub_key;
     break;
 
   case GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER:
     if (msg_size < sizeof (struct GuestEnterRequest))
       return;
     struct GuestEnterRequest *greq = (struct GuestEnterRequest *) msg;
-    GNUNET_CRYPTO_ecdsa_key_get_public (&greq->guest_key, &place_pub);
+    amsg.is_host = GNUNET_NO;
+    amsg.ego_pub_key = greq->ego_pub_key;
+    amsg.place_pub_key = greq->place_pub_key;
     break;
 
   default:
     return;
   }
 
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc, client, msg,
-                                              GNUNET_NO);
+  client_send_msg (client, &amsg.header);
+}
+
+
+void
+app_notify_ego (struct Ego *ego, struct GNUNET_SERVER_Client *client)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Sending ego notification to client: %s\n",
+              client, ego->name);
+
+  size_t name_size = strlen (ego->name) + 1;
+  struct AppEgoMessage *emsg = GNUNET_malloc (sizeof (*emsg) + name_size);
+  emsg->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO);
+  emsg->header.size = htons (sizeof (*emsg) + name_size);
+
+  GNUNET_CRYPTO_ecdsa_key_get_public (&ego->key, &emsg->ego_pub_key);
+  memcpy (&emsg[1], ego->name, name_size);
+
+  client_send_msg (client, &emsg->header);
+  GNUNET_free (emsg);
 }
 
 
 int
-map_entry_place (void *cls, const struct GNUNET_HashCode *key, void *value)
+app_place_entry (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
-  place_notify (value, cls);
+  struct GNUNET_MessageHeader *
+    msg = GNUNET_CONTAINER_multihashmap_get (places, key);
+  if (NULL != msg)
+    app_notify_place (msg, cls);
+  return GNUNET_YES;
+}
+
+
+int
+ego_entry (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  app_notify_ego (value, cls);
   return GNUNET_YES;
 }
 
 
 /**
- * Handle a connecting client listening for entered places.
+ * Handle application connection.
  */
 static void
-client_recv_place_listen (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *msg)
+client_recv_app_connect (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
 {
-  const struct PlaceListenRequest *req
-    = (const struct PlaceListenRequest *) msg;
+  const struct AppConnectRequest *creq
+    = (const struct AppConnectRequest *) msg;
 
-  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub;
-  struct GNUNET_HashCode ego_pub_hash;
+  uint8_t app_id_size = ntohs (creq->header.size) - sizeof (*creq);
+  const char *app_id = NULL;
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &creq[1],
+                                                    app_id_size, 1, &app_id);
+  if (0 == offset || offset != app_id_size)
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
 
-  GNUNET_CRYPTO_ecdsa_key_get_public (&req->ego_key, &ego_pub);
-  GNUNET_CRYPTO_hash (&ego_pub, sizeof (ego_pub), &ego_pub_hash);
+  struct GNUNET_HashCode app_id_hash;
+  GNUNET_CRYPTO_hash (app_id, app_id_size, &app_id_hash);
+
+  GNUNET_CONTAINER_multihashmap_iterate (egos, ego_entry, client);
 
   struct GNUNET_CONTAINER_MultiHashMap *
-    ego_places = GNUNET_CONTAINER_multihashmap_get (places_entered, &ego_pub_hash);
-  if (NULL != ego_places)
-    GNUNET_CONTAINER_multihashmap_iterate (ego_places, map_entry_place, client);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p Client connected to listen for entered places of ego %s.\n",
-              NULL, GNUNET_h2s (&ego_pub_hash));
+    app_places = GNUNET_CONTAINER_multihashmap_get (apps_places, &app_id_hash);
+  if (NULL != app_places)
+    GNUNET_CONTAINER_multihashmap_iterate (app_places, app_place_entry, client);
 
   struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
   cli->client = client;
-  struct PlaceListener *pl = GNUNET_CONTAINER_multihashmap_get (place_listeners,
-                                                                &ego_pub_hash);
-  if (NULL == pl) {
-    pl = GNUNET_malloc (sizeof (*pl));
-    (void) GNUNET_CONTAINER_multihashmap_put (place_listeners, &ego_pub_hash, pl,
+  struct Application *app = GNUNET_CONTAINER_multihashmap_get (apps,
+                                                               &app_id_hash);
+  if (NULL == app) {
+    app = GNUNET_malloc (sizeof (*app));
+    (void) GNUNET_CONTAINER_multihashmap_put (apps, &app_id_hash, app,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
-  GNUNET_CONTAINER_DLL_insert (pl->clients_head, pl->clients_tail, cli);
+  GNUNET_CONTAINER_DLL_insert (app->clients_head, app->clients_tail, cli);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Application %s connected.\n", app, app_id);
 
   struct Client *ctx = GNUNET_new (struct Client);
-  ctx->ego_key = req->ego_key;
+  ctx->app_id = GNUNET_malloc (app_id_size);
+  memcpy (ctx->app_id, app_id, app_id_size);
+
   GNUNET_SERVER_client_set_user_context (client, ctx);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle application detach request.
+ */
+static void
+client_recv_app_detach (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *
+    ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
+  GNUNET_assert (NULL != ctx);
+
+  const struct AppDetachRequest *req
+    = (const struct AppDetachRequest *) msg;
+
+  int ret = app_place_remove (ctx->app_id, &req->place_pub_key);
+  client_send_result (client, req->op_id, ret, NULL, 0);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle application detach request.
+ */
+static void
+client_recv_place_leave (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *
+    ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
+  GNUNET_assert (NULL != ctx);
+  struct Place *plc = ctx->plc;
+
+  /* Disconnect all clients connected to the place */
+  /* FIXME: disconnect from the network, but keep local connection for history access */
+  struct ClientListItem *cli = plc->clients_head, *next;
+  while (NULL != cli)
+  {
+    GNUNET_CONTAINER_DLL_remove (plc->clients_head, plc->clients_tail, cli);
+    GNUNET_SERVER_client_disconnect (cli->client);
+    next = cli->next;
+    GNUNET_free (cli);
+    cli = next;
+  }
+
+  if (GNUNET_YES != plc->is_disconnected)
+  {
+    plc->is_disconnected = GNUNET_YES;
+    if (NULL != plc->tmit_msgs_head)
+    { /* Send pending messages to PSYC before cleanup. */
+      psyc_transmit_message (plc);
+    }
+    else
+    {
+      cleanup_place (plc);
+    }
+  }
 }
 
 
@@ -1198,9 +1700,7 @@ send_message_ack (struct Place *plc, struct GNUNET_SERVER_Client *client)
   struct GNUNET_MessageHeader res;
   res.size = htons (sizeof (res));
   res.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK);
-
-  GNUNET_SERVER_notification_context_add (nc, client);
-  GNUNET_SERVER_notification_context_unicast (nc, client, &res, GNUNET_NO);
+  client_send_msg (client, &res);
 }
 
 
@@ -1872,7 +2372,7 @@ psyc_recv_history_message (void *cls, uint64_t message_id, uint32_t flags,
   memcpy (&res[1], msg, size);
 
   /** @todo FIXME: send only to requesting client */
-  client_send_msg (plc, &res->header);
+  place_send_msg (plc, &res->header);
 }
 
 
@@ -1977,7 +2477,7 @@ psyc_recv_state_var (void *cls,
   memcpy (&res[1], mod, size);
 
   /** @todo FIXME: send only to requesting client */
-  client_send_msg (plc, &res->header);
+  place_send_msg (plc, &res->header);
 }
 
 
@@ -2059,12 +2559,139 @@ client_recv_state_get (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+static void
+namestore_recv_records_store_result (void *cls, int32_t result,
+                                     const char *err_msg)
+{
+  struct OperationClosure *ocls = cls;
+  client_send_result (ocls->client, ocls->op_id, result, err_msg,
+                      (NULL != err_msg) ? strlen (err_msg) : 0);
+  GNUNET_free (ocls);
+}
+
+
+/**
+ * Handle request to add PLACE record to GNS zone.
+ */
+static void
+client_recv_zone_add_place (void *cls, struct GNUNET_SERVER_Client *client,
+                             const struct GNUNET_MessageHeader *msg)
+{
+  const struct ZoneAddPlaceRequest *preq
+    = (const struct ZoneAddPlaceRequest *) msg;
+
+  uint16_t remaining = ntohs (preq->header.size) - sizeof (*preq);
+  const char *p = (const char *) &preq[1];
+  const char *name = NULL, *password = NULL;
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize (p, remaining, 2,
+                                                    &name, &password);
+  remaining -= offset;
+  p += offset;
+  const struct GNUNET_PeerIdentity *
+    relays = (const struct GNUNET_PeerIdentity *) p;
+  uint16_t relay_size = ntohl (preq->relay_count) * sizeof (*relays);
+
+  if (0 == offset || remaining != relay_size)
+  {
+    GNUNET_break (0);
+    client_send_result (client, preq->op_id, GNUNET_SYSERR, NULL, 0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  struct GNUNET_GNSRECORD_Data rd = { };
+  rd.record_type = GNUNET_GNSRECORD_TYPE_PLACE;
+  rd.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+  rd.expiration_time = GNUNET_ntohll (preq->expiration_time);
+
+  struct GNUNET_GNSRECORD_PlaceData *
+    rec = GNUNET_malloc (sizeof (*rec) + relay_size);
+  rec->place_pub_key = preq->place_pub_key;
+  rec->origin = this_peer;
+  rec->relay_count = preq->relay_count;
+  memcpy (&rec[1], relays, relay_size);
+
+  rd.data = rec;
+  rd.data_size = sizeof (*rec) + relay_size;
+
+  struct GNUNET_HashCode ego_pub_hash;
+  GNUNET_CRYPTO_hash (&preq->ego_pub_key, sizeof (preq->ego_pub_key), &ego_pub_hash);
+  struct Ego *ego = GNUNET_CONTAINER_multihashmap_get (egos, &ego_pub_hash);
+  if (NULL == ego)
+  {
+    client_send_result (client, preq->op_id, GNUNET_SYSERR, NULL, 0);
+  }
+  else
+  {
+    struct OperationClosure *ocls = GNUNET_malloc (sizeof (*ocls));
+    ocls->client = client;
+    ocls->op_id = preq->op_id;
+    GNUNET_NAMESTORE_records_store (namestore, &ego->key,
+                                    name, 1, &rd,
+                                    namestore_recv_records_store_result, ocls);
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle request to add PLACE record to GNS zone.
+ */
+static void
+client_recv_zone_add_nym (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *msg)
+{
+  const struct ZoneAddNymRequest *nreq
+    = (const struct ZoneAddNymRequest *) msg;
+
+  uint16_t name_size = ntohs (nreq->header.size) - sizeof (*nreq);
+  const char *name = NULL;
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &nreq[1],
+                                                    name_size, 1, &name);
+  if (0 == offset || offset != name_size)
+  {
+    GNUNET_break (0);
+    client_send_result (client, nreq->op_id, GNUNET_SYSERR, NULL, 0);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  struct GNUNET_GNSRECORD_Data rd = { };
+  rd.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
+  rd.flags = GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
+  rd.expiration_time = GNUNET_ntohll (nreq->expiration_time);
+  rd.data = &nreq->nym_pub_key;
+  rd.data_size = sizeof (nreq->nym_pub_key);
+
+  struct GNUNET_HashCode ego_pub_hash;
+  GNUNET_CRYPTO_hash (&nreq->ego_pub_key, sizeof (nreq->ego_pub_key), &ego_pub_hash);
+  struct Ego *ego = GNUNET_CONTAINER_multihashmap_get (egos, &ego_pub_hash);
+  if (NULL == ego)
+  {
+    client_send_result (client, nreq->op_id, GNUNET_SYSERR, NULL, 0);
+  }
+  else
+  {
+    struct OperationClosure *ocls = GNUNET_malloc (sizeof (*ocls));
+    ocls->client = client;
+    ocls->op_id = nreq->op_id;
+    GNUNET_NAMESTORE_records_store (namestore, &ego->key,
+                                      name, 1, &rd,
+                                      namestore_recv_records_store_result, ocls);
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
 static const struct GNUNET_SERVER_MessageHandler handlers[] = {
   { &client_recv_host_enter, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER, 0 },
 
   { &client_recv_guest_enter, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER, 0 },
+
+  { &client_recv_guest_enter_by_name, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_BY_NAME, 0 },
 
   { &client_recv_join_decision, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION, 0 },
@@ -2081,50 +2708,79 @@ static const struct GNUNET_SERVER_MessageHandler handlers[] = {
   { &client_recv_state_get, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX, 0 },
 
-  { &client_recv_place_listen, NULL,
-    GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LISTEN, 0 },
+  { &client_recv_zone_add_place, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE, 0 },
+
+  { &client_recv_zone_add_nym, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM, 0 },
+
+  { &client_recv_app_connect, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT, 0 },
+
+  { &client_recv_app_detach, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH, 0 },
+
+  { &client_recv_place_leave, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE, 0 },
 
   { NULL, NULL, 0, 0 }
 };
 
 
+const char *
+path_basename (const char *path)
+{
+  const char *basename = strrchr (path, DIR_SEPARATOR);
+  if (NULL != basename)
+    basename++;
+
+  if (NULL == basename || '\0' == basename)
+    return NULL;
+
+  return basename;
+}
+
+
+struct PlaceLoadClosure
+{
+  const char *app_id;
+  const char *ego_pub_hash_str;
+};
+
+
+/** Load a place file */
 int
 file_place_load (void *cls, const char *filename)
 {
-  uint64_t fsize = 0;
+  char *app_id = cls;
+  uint64_t file_size = 0;
   if (GNUNET_OK !=
-      GNUNET_DISK_file_size (filename, &fsize, GNUNET_YES, GNUNET_YES)
-      || fsize < sizeof (struct HostEnterRequest))
+      GNUNET_DISK_file_size (filename, &file_size, GNUNET_YES, GNUNET_YES)
+      || file_size < sizeof (struct HostEnterRequest))
     return GNUNET_OK;
 
-  struct GNUNET_MessageHeader *msg = GNUNET_malloc (fsize);
-  ssize_t rsize = GNUNET_DISK_fn_read (filename, msg, fsize);
-  if (rsize < 0 || (size_t) rsize < sizeof (*msg))
+  struct PlaceEnterRequest *ereq = GNUNET_malloc (file_size);
+  ssize_t read_size = GNUNET_DISK_fn_read (filename, ereq, file_size);
+  if (read_size < 0 || read_size < sizeof (*ereq))
     return GNUNET_OK;
 
-  uint16_t msg_size = ntohs (msg->size);
-  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub;
-  struct GNUNET_CRYPTO_EddsaPublicKey place_pub;
+  uint16_t ereq_size = ntohs (ereq->header.size);
+  if (read_size != ereq_size)
+    return GNUNET_OK;
 
-  switch (ntohs (msg->type))
+  switch (ntohs (ereq->header.type))
   {
   case GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER:
-    if (msg_size < sizeof (struct HostEnterRequest))
+    if (ereq_size < sizeof (struct HostEnterRequest))
       return GNUNET_OK;
-    struct HostEnterRequest *hreq = (struct HostEnterRequest *) msg;
-    GNUNET_CRYPTO_ecdsa_key_get_public (&hreq->host_key, &ego_pub);
-    GNUNET_CRYPTO_eddsa_key_get_public (&hreq->place_key, &place_pub);
-
+    struct HostEnterRequest *hreq = (struct HostEnterRequest *) ereq;
     host_enter (hreq, NULL);
     break;
 
   case GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER:
-    if (msg_size < sizeof (struct GuestEnterRequest))
+    if (ereq_size < sizeof (struct GuestEnterRequest))
       return GNUNET_OK;
-    struct GuestEnterRequest *greq = (struct GuestEnterRequest *) msg;
-    GNUNET_CRYPTO_ecdsa_key_get_public (&greq->guest_key, &ego_pub);
-    place_pub = greq->place_key;
-
+    struct GuestEnterRequest *greq = (struct GuestEnterRequest *) ereq;
     guest_enter (greq, NULL);
     break;
 
@@ -2132,40 +2788,135 @@ file_place_load (void *cls, const char *filename)
     return GNUNET_OK;
   }
 
-  struct GNUNET_HashCode ego_pub_hash, place_pub_hash;
-  GNUNET_CRYPTO_hash (&ego_pub, sizeof (ego_pub), &ego_pub_hash);
-  GNUNET_CRYPTO_hash (&place_pub, sizeof (place_pub), &place_pub_hash);
-
-  place_add (&ego_pub_hash, &place_pub_hash, msg);
+  app_place_add (app_id, ereq);
   return GNUNET_OK;
 }
 
 
+/** Load an ego place file */
 int
-load_places_of_ego (void *cls, const char *dir_ego)
+file_ego_place_load (void *cls, const char *place_filename)
 {
-  if (GNUNET_YES != GNUNET_DISK_directory_test (dir_ego, GNUNET_YES))
-    return GNUNET_OK;
+  struct PlaceLoadClosure *plcls = cls;
 
-  GNUNET_DISK_directory_scan (dir_ego, file_place_load, NULL);
-  return GNUNET_OK;
-}
-
-
-void
-load_places ()
-{
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "social", "PLACES_DIR",
-                                               &dir_places))
+  const char *place_pub_hash_str = path_basename (place_filename);
+  if (NULL == place_pub_hash_str)
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "social", "PLACES_DIR");
     GNUNET_break (0);
-    return;
+    return GNUNET_OK;
   }
 
-  places_entered = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
-  GNUNET_DISK_directory_scan (dir_places, load_places_of_ego, NULL);
+  char *filename = NULL;
+  GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%s",
+                   dir_social, DIR_SEPARATOR,
+                   "places", DIR_SEPARATOR,
+                   plcls->ego_pub_hash_str, DIR_SEPARATOR,
+                   place_pub_hash_str);
+
+  struct PlaceEnterRequest ereq[GNUNET_SERVER_MAX_MESSAGE_SIZE];
+
+  int read_size = GNUNET_DISK_fn_read (filename, &ereq,
+                                       GNUNET_SERVER_MAX_MESSAGE_SIZE);
+  GNUNET_free (filename);
+
+  if (read_size < (ssize_t) sizeof (ereq))
+    return GNUNET_OK;
+
+  app_place_add (plcls->app_id, ereq);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Read @e place_pub_hash_str entries in @a dir_ego
+ *
+ * @param dir_ego
+ *        Data directory of an application ego.
+ *        e.g. ~/.local/share/gnunet/social/apps/$app_id/$ego_pub_hash_str/
+ */
+int
+scan_app_ego_dir (void *cls, const char *dir_ego)
+{
+  struct PlaceLoadClosure *plcls = cls;
+  plcls->ego_pub_hash_str = path_basename (dir_ego);
+
+  if (NULL != plcls->ego_pub_hash_str)
+    GNUNET_DISK_directory_scan (dir_ego, file_ego_place_load, plcls);
+
+  return GNUNET_OK;
+}
+
+/**
+ * Read @e ego_pub_hash_str entries in @a dir_app
+ *
+ * @param dir_app
+ *        Data directory of an application.
+ *        e.g. ~/.local/share/gnunet/social/apps/$app_id/
+ */
+int
+scan_app_dir (void *cls, const char *dir_app)
+{
+  if (GNUNET_YES != GNUNET_DISK_directory_test (dir_app, GNUNET_YES))
+    return GNUNET_OK;
+
+  struct PlaceLoadClosure plcls;
+  plcls.app_id = path_basename (dir_app);
+
+  if (NULL != plcls.app_id)
+    GNUNET_DISK_directory_scan (dir_app, scan_app_ego_dir, &plcls);
+
+  return GNUNET_OK;
+}
+
+
+static void
+identity_recv_ego (void *cls, struct GNUNET_IDENTITY_Ego *id_ego,
+                   void **ctx, const char *name)
+{
+  if (NULL == id_ego) // end of initial list of egos
+    return;
+
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+  GNUNET_IDENTITY_ego_get_public_key (id_ego, &ego_pub_key);
+
+  struct GNUNET_HashCode ego_pub_hash;
+  GNUNET_CRYPTO_hash (&ego_pub_key, sizeof (ego_pub_key), &ego_pub_hash);
+
+  struct Ego *ego = GNUNET_CONTAINER_multihashmap_get (egos, &ego_pub_hash);
+  if (NULL != ego)
+  {
+    GNUNET_free (ego->name);
+    if (NULL == name) // deleted
+    {
+      GNUNET_CONTAINER_multihashmap_remove (egos, &ego_pub_hash, ego);
+      GNUNET_free (ego);
+      ego = NULL;
+    }
+  }
+  else
+  {
+    ego = GNUNET_malloc (sizeof (*ego));
+  }
+  if (NULL != ego)
+  {
+    ego->key = *(GNUNET_IDENTITY_ego_get_private_key (id_ego));
+    size_t name_size = strlen (name) + 1;
+    ego->name = GNUNET_malloc (name_size);
+    memcpy (ego->name, name, name_size);
+
+    GNUNET_CONTAINER_multihashmap_put (egos, &ego_pub_hash, ego,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  }
+}
+
+
+/**
+ * Connected to core service.
+ */
+static void
+core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
+{
+  this_peer = *my_identity;
 }
 
 
@@ -2181,12 +2932,38 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   cfg = c;
-  stats = GNUNET_STATISTICS_create ("social", cfg);
+
   hosts = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   guests = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   place_guests = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  place_listeners = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  load_places ();
+
+  egos = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+  apps = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+  places = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
+  apps_places = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
+
+  core = GNUNET_CORE_connect (cfg, NULL, core_connected, NULL, NULL,
+                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  id = GNUNET_IDENTITY_connect (cfg, &identity_recv_ego, NULL);
+  gns = GNUNET_GNS_connect (cfg);
+  namestore = GNUNET_NAMESTORE_connect (cfg);
+  stats = GNUNET_STATISTICS_create ("social", cfg);
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "social", "SOCIAL_DATA_DIR",
+                                               &dir_social))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "social", "SOCIAL_DATA_DIR");
+    GNUNET_break (0);
+    return;
+  }
+  GNUNET_asprintf (&dir_places, "%s%c%s",
+                   dir_social, DIR_SEPARATOR, "places");
+  GNUNET_asprintf (&dir_apps, "%s%c%s",
+                   dir_social, DIR_SEPARATOR, "apps");
+
+  GNUNET_DISK_directory_scan (dir_apps, scan_app_dir, NULL);
 
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, handlers);

@@ -25,11 +25,6 @@ libgnunetsocial_la_SOURCES = \
 libgnunetsocial_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/psycstore/libgnunetpsycutil.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/identity/libgnunetidentity.la \
-  $(top_builddir)/src/gns/libgnunetgns.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetsocial_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
@@ -47,6 +42,10 @@ gnunet_service_social_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/psyc/libgnunetpsyc.la \
   $(top_builddir)/src/psycstore/libgnunetpsycutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(GN_LIBINTL)
 
 

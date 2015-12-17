@@ -2607,18 +2607,38 @@ extern "C"
 /** C->S: request to enter a place as a guest */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER 843
 
+/** C->S: request to enter a place as a guest, using a GNS address */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_BY_NAME 844
+
 /** S->C: guest enter acknowledgement */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK 844
+#define GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK 845
 
 /** P->S->C: incoming entry request from PSYC */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_REQUEST 845
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_REQUEST 846
 
 /** C->S->P: decision about an entry request */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_DECISION 846
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_DECISION 847
 
-/** C->S: listen for places */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LISTEN 850
+/** C->S: request to leave a place */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE 848
 
+/** C->S: add place to GNS zone */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE 849
+
+/** C->S: add nym to GNS zone */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM 850
+
+/** C->S: connect application */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT 851
+
+/** C->S: detach a place from application */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH 852
+
+/** S->C: notify about an existing ego */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO 853
+
+/** S->C: notify about an existing place */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 854
 
 /*******************************************************************************
  * X-VINE DHT messages

@@ -195,7 +195,7 @@ struct GNUNET_GNSRECORD_PlaceData
   /**
    * Public key of the place.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey place_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 
   /**
    * Peer identity of the origin.

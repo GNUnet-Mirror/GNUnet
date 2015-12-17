@@ -49,6 +49,37 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**** library -> service ****/
 
 
+struct AppConnectRequest
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* Followed by char *app_id */
+};
+
+
+struct AppDetachRequest
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Public key of place.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+};
+
+
 struct HostEnterRequest
 {
   /**
@@ -58,45 +89,178 @@ struct HostEnterRequest
 
   uint32_t policy GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EcdsaPrivateKey host_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 
   struct GNUNET_CRYPTO_EddsaPrivateKey place_key;
+
+  /* Followed by char *app_id */
 };
 
 
 struct GuestEnterRequest
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ADDR
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER
    */
   struct GNUNET_MessageHeader header;
 
   uint32_t relay_count GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EcdsaPrivateKey guest_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
 
-  struct GNUNET_CRYPTO_EddsaPublicKey place_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 
   struct GNUNET_PeerIdentity origin;
 
+  /* Followed by char *app_id */
   /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
-
-  /* Followed by struct GNUNET_MessageHeader join_msg */
+  /* Followed by struct GNUNET_MessageHeader *join_msg */
 };
 
 
-struct PlaceListenRequest
+/** Compatible parts of HostEnterRequest and GuestEnterRequest */
+struct PlaceEnterRequest
+{
+  struct GNUNET_MessageHeader header;
+
+  uint32_t reserved GNUNET_PACKED;
+
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
+};
+
+
+struct EgoPlacePublicKey
+{
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
+};
+
+
+struct GuestEnterByNameRequest
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LISTEN
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_BY_NAME
    */
   struct GNUNET_MessageHeader header;
 
-  struct GNUNET_CRYPTO_EcdsaPrivateKey ego_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  /* Followed by char *app_id */
+  /* Followed by char *gns_name */
+  /* Followed by char *password */
+  /* Followed by struct GNUNET_MessageHeader *join_msg */
 };
 
 
+struct ZoneAddPlaceRequest
+{
+  struct GNUNET_MessageHeader header;
+
+  uint32_t relay_count GNUNET_PACKED;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id;
+
+  /**
+   * Expiration time: absolute value in us.
+   */
+  uint64_t expiration_time;
+
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
+
+  struct GNUNET_PeerIdentity origin;
+
+  /* Followed by const char *name */
+  /* Followed by const char *password */
+  /* Followed by  struct GNUNET_PeerIdentity *relays[relay_count] */
+};
+
+
+struct ZoneAddNymRequest
+{
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id;
+
+  /**
+   * Expiration time: absolute value in us.
+   */
+  uint64_t expiration_time;
+
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  struct GNUNET_CRYPTO_EcdsaPublicKey nym_pub_key;
+
+  /* Followed by const char *name */
+};
+
 /**** service -> library ****/
+
+
+struct AppEgoMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_APP_EGO
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Public key of ego.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  /* Followed by char *name */
+};
+
+
+struct AppPlaceMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE
+   */
+  struct GNUNET_MessageHeader header;
+
+  struct GNUNET_CRYPTO_EcdsaPublicKey ego_pub_key;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
+
+  uint8_t is_host;
+};
+
+
+struct HostEnterAck {
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Status code for the operation.
+   */
+  uint32_t result_code GNUNET_PACKED;
+
+  /**
+   * Last message ID sent to the channel.
+   */
+  uint64_t max_message_id GNUNET_PACKED;
+
+  /**
+   * Public key of the place.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
+};
+
 
 #if REMOVE
 struct NymEnterRequest
@@ -105,6 +269,7 @@ struct NymEnterRequest
    * Type: GNUNET_MESSAGE_TYPE_SOCIAL_NYM_ENTER
    */
   struct GNUNET_MessageHeader header;
+
   /**
    * Public key of the joining slave.
    */

@@ -48,6 +48,20 @@ extern "C"
  */
 #define GNUNET_SOCIAL_VERSION 0x00000000
 
+/**
+ * Maximum size of client ID including '\0' terminator.
+ */
+#define GNUNET_SOCIAL_APP_MAX_ID_SIZE 256
+
+/**
+ * Handle for an application.
+ */
+struct GNUNET_SOCIAL_App;
+
+/**
+ * Handle for an ego (own identity)
+ */
+struct GNUNET_SOCIAL_Ego;
 
 /**
  * Handle for a pseudonym of another user in the network.
@@ -73,6 +87,144 @@ struct GNUNET_SOCIAL_Guest;
  * Handle to an implementation of try-and-slice.
  */
 struct GNUNET_SOCIAL_Slicer;
+
+
+
+
+/**
+ * Handle that can be used to reconnect to a place as host.
+ */
+struct GNUNET_SOCIAL_HostConnection;
+
+/**
+ * Handle that can be used to reconnect to a place as guest.
+ */
+struct GNUNET_SOCIAL_GuestConnection;
+
+/**
+ * Notification about an available identity.
+ *
+ * @param cls
+ *        Closure.
+ * @param pub_key
+ *        Public key of ego.
+ * @param name
+ *        Name of ego.
+ */
+typedef void
+(*GNUNET_SOCIAL_AppEgoCallback) (void *cls,
+                                 struct GNUNET_SOCIAL_Ego *ego,
+                                 const struct GNUNET_CRYPTO_EcdsaPublicKey *ego_pub_key,
+                                 const char *name);
+
+
+/**
+ * Notification about a place entered.
+ */
+typedef void
+(*GNUNET_SOCIAL_AppHostPlaceCallback) (void *cls,
+                                       struct GNUNET_SOCIAL_HostConnection *hconn,
+                                       struct GNUNET_SOCIAL_Ego *ego,
+                                       const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key);
+
+/**
+h * Notification about a place entered.
+ */
+typedef void
+(*GNUNET_SOCIAL_AppGuestPlaceCallback) (void *cls,
+                                        struct GNUNET_SOCIAL_GuestConnection *gconn,
+                                        struct GNUNET_SOCIAL_Ego *ego,
+                                        const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key);
+
+
+/**
+ * Establish application connection to the social service.
+ *
+ * The @host_place_cb and @guest_place_cb functions are
+ * initially called for each entered places,
+ * then later each time a new place is entered with the current app ID.
+ *
+ * @param cfg
+ *        Configuration.
+ * @param ego_cb
+ *        Function to notify about an available ego.
+ * @param host_cb
+ *        Function to notify about a place entered as host.
+ * @param guest_cb
+ *        Function to notify about a place entered as guest.
+ * @param cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle that can be used to stop listening.
+ */
+struct GNUNET_SOCIAL_App *
+GNUNET_SOCIAL_app_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           const char *id,
+                           GNUNET_SOCIAL_AppEgoCallback ego_cb,
+                           GNUNET_SOCIAL_AppHostPlaceCallback host_cb,
+                           GNUNET_SOCIAL_AppGuestPlaceCallback guest_cb,
+                           void *cls);
+
+
+/**
+ * Disconnect app.
+ *
+ * @param c
+ *        App handle.
+ */
+void
+GNUNET_SOCIAL_app_disconnect (struct GNUNET_SOCIAL_App *app);
+
+
+/**
+ * Get the public key of @a ego.
+ *
+ * @param ego
+ *        Ego.
+ *
+ * @return Public key of ego.
+ */
+const struct GNUNET_CRYPTO_EcdsaPublicKey *
+GNUNET_SOCIAL_ego_get_pub_key (const struct GNUNET_SOCIAL_Ego *ego);
+
+
+/**
+ * Get the name of @a ego.
+ *
+ * @param ego
+ *        Ego.
+ *
+ * @return Public key of @a ego.
+ */
+const char *
+GNUNET_SOCIAL_ego_get_name (const struct GNUNET_SOCIAL_Ego *ego);
+
+
+/**
+ * Get the public key of a @a nym.
+ *
+ * Suitable, for example, to be used with GNUNET_SOCIAL_zone_add_nym().
+ *
+ * @param nym
+ *        Pseudonym to map to a cryptographic identifier.
+ *
+ * @return Public key of nym.
+ */
+const struct GNUNET_CRYPTO_EcdsaPublicKey *
+GNUNET_SOCIAL_nym_get_pub_key (const struct GNUNET_SOCIAL_Nym *nym);
+
+
+/**
+ * Get the hash of the public key of a @a nym.
+ *
+ * @param nym
+ *        Pseudonym to map to a cryptographic identifier.
+ *
+ * @return Hash of the public key of nym.
+ */
+const struct GNUNET_HashCode *
+GNUNET_SOCIAL_nym_get_pub_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
+
 
 /**
  * Function called upon receiving a message indicating a call to a @e method.
@@ -352,19 +504,22 @@ typedef void
 
 
 /**
- * Function called after the host entered the place.
+ * Function called after the host entered a home.
  *
  * @param cls
  *        Closure.
  * @param result
  *        #GNUNET_OK on success, or
  *        #GNUNET_SYSERR on error.
+ * @param place_pub_key
+ *        Public key of home.
  * @param max_message_id
  *        Last message ID sent to the channel.
  *        Or 0 if no messages have been sent to the place yet.
  */
 typedef void
 (*GNUNET_SOCIAL_HostEnterCallback) (void *cls, int result,
+                                    const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                                     uint64_t max_message_id);
 
 
@@ -385,6 +540,8 @@ typedef void
  *        Policy specifying entry and history restrictions for the place.
  * @param slicer
  *        Slicer to handle incoming messages.
+ * @param enter_cb
+ *        Function called when the place is entered and ready to use.
  * @param answer_door_cb
  *        Function to handle new nyms that want to enter.
  * @param farewell_cb
@@ -395,15 +552,42 @@ typedef void
  * @return Handle for the host.
  */
 struct GNUNET_SOCIAL_Host *
-GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const struct GNUNET_IDENTITY_Ego *ego,
-                          const struct GNUNET_CRYPTO_EddsaPrivateKey *place_key,
+GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
+                          const struct GNUNET_SOCIAL_Ego *ego,
                           enum GNUNET_PSYC_Policy policy,
                           struct GNUNET_SOCIAL_Slicer *slicer,
                           GNUNET_SOCIAL_HostEnterCallback enter_cb,
                           GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
                           void *cls);
+
+
+/**
+ * Reconnect to an already entered place as host.
+ *
+ * @param hconn
+ *        Host connection handle.
+ *        @see GNUNET_SOCIAL_app_connect() & GNUNET_SOCIAL_AppHostPlaceCallback()
+ * @param slicer
+ *        Slicer to handle incoming messages.
+ * @param enter_cb
+ *        Function called when the place is entered and ready to use.
+ * @param answer_door_cb
+ *        Function to handle new nyms that want to enter.
+ * @param farewell_cb
+ *        Function to handle departing nyms.
+ * @param cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle for the host.
+ */
+struct GNUNET_SOCIAL_Host *
+GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
+                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    GNUNET_SOCIAL_HostEnterCallback enter_cb,
+                                    GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
+                                    GNUNET_SOCIAL_FarewellCallback farewell_cb,
+                                    void *cls);
 
 
 /**
@@ -438,6 +622,8 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
 /**
  * Throw @a nym out of the place.
  *
+ * Sends a _notice_place_leave announcement to the home.
+ *
  * The @a nym reference will remain valid until the
  * #GNUNET_SOCIAL_FarewellCallback is invoked,
  * which should be very soon after this call.
@@ -446,69 +632,14 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
  *        Host of the place.
  * @param nym
  *        Handle for the entity to be ejected.
+ * @param env
+ *        Environment for the message or NULL.
+ *        _nym is set to @e nym regardless whether an @e env is provided.
  */
 void
 GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
-                          const struct GNUNET_SOCIAL_Nym *nym);
-
-
-/**
- * Get the public key of a @a nym.
- *
- * Suitable, for example, to be used with GNUNET_NAMESTORE_zone_to_name().
- *
- * @param nym
- *        Pseudonym to map to a cryptographic identifier.
- *
- * @return Public key of nym.
- */
-const struct GNUNET_CRYPTO_EcdsaPublicKey *
-GNUNET_SOCIAL_nym_get_key (const struct GNUNET_SOCIAL_Nym *nym);
-
-
-/**
- * Get the hash of the public key of a @a nym.
- *
- * @param nym
- *        Pseudonym to map to a cryptographic identifier.
- *
- * @return Hash of the public key of nym.
- */
-const struct GNUNET_HashCode *
-GNUNET_SOCIAL_nym_get_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
-
-
-/**
- * Advertise the place in the GNS zone of the @e ego of the @a host.
- *
- * @param hst
- *        Host of the place.
- * @param name
- *        The name for the PLACE record to put in the zone.
- * @param peer_count
- *        Number of elements in the @a peers array.
- * @param peers
- *        List of peers to put in the PLACE record to advertise
- *        as entry points to the place in addition to the origin.
- * @param expiration_time
- *        Expiration time of the record, use 0 to remove the record.
- * @param password
- *        Password used to encrypt the record.
- *        FIXME: not implemented yet.
- * @param result_cb
- *        Function called with the result of the operation.
- * @param result_cls
- *        Closure for @a result_cb
- */
-void
-GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *host,
-                              const char *name,
-                              uint32_t peer_count,
-                              const struct GNUNET_PeerIdentity *peers,
-                              struct GNUNET_TIME_Absolute expiration_time,
-                              const char *password,
-                              GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
-                              void *result_cls);
+                          const struct GNUNET_SOCIAL_Nym *nym,
+                          struct GNUNET_ENV_Environment *env);
 
 
 /**
@@ -602,25 +733,44 @@ GNUNET_SOCIAL_host_get_place (struct GNUNET_SOCIAL_Host *host);
 
 
 /**
- * Stop hosting a place.
+ * Disconnect from a home.
  *
  * Invalidates host handle.
  *
- * @param host
- *        Host leaving the place.
- * @param keep_active
- *        Keep the place active after last host disconnected.
- * @param leave_cb
- *        Function called after the host left the place
- *        and disconnected from the social service.
- * @param leave_cls
- *        Closure for @a leave_cb.
+ * @param hst
+ *        The host to disconnect.
+ * @param disconnect_cb
+ *        Function called after disconnected from the service.
+ * @param cls
+ *        Closure for @a disconnect_cb.
  */
 void
-GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *host,
-                          int keep_active,
-                          GNUNET_ContinuationCallback leave_cb,
-                          void *leave_cls);
+GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
+                               GNUNET_ContinuationCallback disconnect_cb,
+                               void *cls);
+
+
+/**
+ * Stop hosting a home.
+ *
+ * Sends a _notice_place_closed announcement to the home.
+ * Invalidates host handle.
+ *
+ * @param hst
+ *        Host leaving.
+ * @param env
+ *        Environment for the message or NULL.
+ * @param disconnect_cb
+ *        Function called after the host left the place
+ *        and disconnected from the service.
+ * @param cls
+ *        Closure for @a disconnect_cb.
+ */
+void
+GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
+                          const struct GNUNET_ENV_Environment *env,
+                          GNUNET_ContinuationCallback disconnect_cb,
+                          void *cls);
 
 
 /**
@@ -689,9 +839,9 @@ typedef void
  * @return NULL on errors, otherwise handle for the guest.
  */
 struct GNUNET_SOCIAL_Guest *
-GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           const struct GNUNET_IDENTITY_Ego *ego,
-                           const struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
+GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
+                           const struct GNUNET_SOCIAL_Ego *ego,
+                           const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                            const struct GNUNET_PeerIdentity *origin,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
@@ -729,14 +879,37 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return NULL on errors, otherwise handle for the guest.
  */
 struct GNUNET_SOCIAL_Guest *
-GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const struct GNUNET_IDENTITY_Ego *ego,
-                                   const char *gns_name, const char *password,
+GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
+                                   const struct GNUNET_SOCIAL_Ego *ego,
+                                   const char *gns_name,
+                                   const char *password,
                                    const struct GNUNET_PSYC_Message *join_msg,
                                    struct GNUNET_SOCIAL_Slicer *slicer,
                                    GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                    GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
                                    void *cls);
+
+
+/**
+ * Reconnect to an already entered place as guest.
+ *
+ * @param gconn
+ *        Guest connection handle.
+ *        @see GNUNET_SOCIAL_app_connect() & GNUNET_SOCIAL_AppGuestPlaceCallback()
+ * @param slicer
+ *        Slicer to use for processing incoming requests from guests.
+ * @param local_enter_cb
+ *        Called upon connection established to the social service.
+ * @param entry_decision_cb
+ *        Called upon receiving entry decision.
+ *
+ * @return NULL on errors, otherwise handle for the guest.
+ */
+struct GNUNET_SOCIAL_Guest *
+GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn,
+                                     struct GNUNET_SOCIAL_Slicer *slicer,
+                                     GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
+                                     void *cls);
 
 
 /**
@@ -803,26 +976,40 @@ GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
 
 
 /**
+ * Disconnect from a place.
+ *
+ * Invalidates guest handle.
+ *
+ * @param gst
+ *        The guest to disconnect.
+ * @param disconnect_cb
+ *        Function called after disconnected from the service.
+ * @param cls
+ *        Closure for @a disconnect_cb.
+ */
+void
+GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
+                                GNUNET_ContinuationCallback disconnect_cb,
+                                void *cls);
+
+
+/**
  * Leave a place temporarily or permanently.
  *
  * Notifies the owner of the place about leaving, and destroys the place handle.
  *
  * @param place
  *        Place to leave.
- * @param keep_active
- *        Keep place active after last application disconnected.
- *        #GNUNET_YES or #GNUNET_NO
  * @param env
  *        Optional environment for the leave message if @a keep_active
  *        is #GNUNET_NO.  NULL if not needed.
- * @param leave_cb
+ * @param disconnect_cb
  *        Called upon disconnecting from the social service.
  */
 void
 GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
-                           int keep_active,
                            struct GNUNET_ENV_Environment *env,
-                           GNUNET_ContinuationCallback leave_cb,
+                           GNUNET_ContinuationCallback disconnect_cb,
                            void *leave_cls);
 
 
@@ -974,6 +1161,48 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
 
 
 /**
+ * Advertise a @e place in the GNS zone of @a ego.
+ *
+ * @param app
+ *        Application handle.
+ * @param ego
+ *        Ego.
+ * @param place_pub_key
+ *        Public key of place to add.
+ * @param name
+ *        The name for the PLACE record to put in the zone.
+ * @param password
+ *        Password used to encrypt the record or NULL to keep it cleartext.
+ * @param relay_count
+ *        Number of elements in the @a relays array.
+ * @param relays
+ *        List of relays to put in the PLACE record to advertise
+ *        as entry points to the place in addition to the origin.
+ * @param expiration_time
+ *        Expiration time of the record, use 0 to remove the record.
+ * @param result_cb
+ *        Function called with the result of the operation.
+ * @param result_cls
+ *        Closure for @a result_cb
+ *
+ * @return #GNUNET_OK if the request was sent,
+ *         #GNUNET_SYSERR on error, e.g. the name/password is too long.
+ */
+int
+GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
+                              const struct GNUNET_SOCIAL_Ego *ego,
+                              const char *name,
+                              const char *password,
+                              const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                              const struct GNUNET_PeerIdentity *origin,
+                              uint32_t relay_count,
+                              const struct GNUNET_PeerIdentity *relays,
+                              struct GNUNET_TIME_Absolute expiration_time,
+                              GNUNET_ResultCallback result_cb,
+                              void *result_cls);
+
+
+/**
  * Add public key to the GNS zone of the @e ego.
  *
  * @param cfg
@@ -990,80 +1219,18 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
  *        Function called with the result of the operation.
  * @param result_cls
  *        Closure for @a result_cb
- */
-void
-GNUNET_SOCIAL_zone_add_pkey (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                             const struct GNUNET_IDENTITY_Ego *ego,
-                             const char *name,
-                             const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
-                             struct GNUNET_TIME_Absolute expiration_time,
-                             GNUNET_NAMESTORE_ContinuationWithStatus result_cb,
-                             void *result_cls);
-
-
-/**
- * Handle for place notifications.
- */
-struct GNUNET_SOCIAL_PlaceListenHandle;
-
-
-/**
- * Notification about a place entered as host.
- */
-typedef void
-(*GNUNET_SOCIAL_PlaceNotifyHostCallback) (void *cls,
-                                          const struct GNUNET_CRYPTO_EddsaPrivateKey *place_key,
-                                          enum GNUNET_PSYC_Policy policy);
-
-
-/**
- * Notification about a place entered as guest.
- */
-typedef void
-(*GNUNET_SOCIAL_PlaceNotifyGuestCallback) (void *cls,
-                                           const struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
-                                           const struct GNUNET_PeerIdentity *origin,
-                                           uint32_t relay_count,
-                                           const struct GNUNET_PeerIdentity *relays,
-                                           const struct GNUNET_PSYC_Message *entry_msg);
-
-
-/**
- * Start listening for entered places as host or guest.
  *
- * The @notify_host and @notify_guest functions are
- * initially called with the full list of entered places,
- * then later each time a new place is entered.
- *
- * @param cfg
- *        Configuration.
- * @param ego
- *        Listen for places of this ego.
- * @param notify_host
- *        Function to notify about a place entered as host.
- * @param notify_guest
- *        Function to notify about a place entered as guest..
- * @param notify_cls
- *        Closure for the callbacks.
- *
- * @return Handle that can be used to stop listening.
+ * @return #GNUNET_OK if the request was sent,
+ *         #GNUNET_SYSERR on error, e.g. the name is too long.
  */
-struct GNUNET_SOCIAL_PlaceListenHandle *
-GNUNET_SOCIAL_place_listen_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                  const struct GNUNET_IDENTITY_Ego *ego,
-                                  GNUNET_SOCIAL_PlaceNotifyHostCallback notify_host,
-                                  GNUNET_SOCIAL_PlaceNotifyGuestCallback notify_guest,
-                                  void *notify_cls);
-
-
-/**
- * Stop listening for entered places.
- *
- * @param h
- *        Listen handle.
- */
-void
-GNUNET_SOCIAL_place_listen_stop (struct GNUNET_SOCIAL_PlaceListenHandle *h);
+int
+GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
+                            const struct GNUNET_SOCIAL_Ego *ego,
+                            const char *name,
+                            const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
+                            struct GNUNET_TIME_Absolute expiration_time,
+                            GNUNET_ResultCallback result_cb,
+                            void *result_cls);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
