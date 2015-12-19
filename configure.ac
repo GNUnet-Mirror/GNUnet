@@ -387,12 +387,12 @@ fi
 # check for jansson library
 jansson=0
 AC_CHECK_HEADER([jansson.h],jansson=1)
-AM_CONDITIONAL(HAVE_REST, [test "$jansson" = 1])
-if test "$jansson" = 1
+AM_CONDITIONAL(HAVE_JANSSON, [test "$jansson" = 1])
+if test "x$jansson" = x1
 then
-  AC_DEFINE([HAVE_REST],[1],[Have jansson library])
+  AC_DEFINE([HAVE_JANSSON],[1],[Have jansson library])
 else
-  AC_DEFINE([HAVE_REST],[0],[Lacking jansson library])
+  AC_DEFINE([HAVE_JANSSON],[0],[Lacking jansson library])
 fi
 
 # check for libpulse(audio) library
@@ -966,6 +966,7 @@ AC_ARG_WITH(microhttpd,
 AM_CONDITIONAL(HAVE_MHD, test x$lmhd = x1)
 AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 
+AM_CONDITIONAL(HAVE_REST, [test x$lmhd = x1 -a x$jansson = x1])
 
 # restore LIBS
 LIBS=$SAVE_LIBS
