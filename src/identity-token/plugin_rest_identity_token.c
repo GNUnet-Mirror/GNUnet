@@ -618,9 +618,11 @@ sign_and_return_token (void *cls,
                                       &token_code_sig))
   {
     handle->emsg = GNUNET_strdup ("Unable to create ref token!\n");
+    GNUNET_free (code_meta_str);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
+  GNUNET_free (code_meta_str);
   GNUNET_STRINGS_base64_encode (token_code_payload,
                                 token_code_payload_len,
                                 &token_code_payload_str);
@@ -632,6 +634,7 @@ sign_and_return_token (void *cls,
   GNUNET_asprintf (&param_str, "{\"meta\": \"%s\", \"ecdh\": \"%s\", \"signature\": \"%s\"}",
                    token_code_payload_str, dh_key_str, token_code_sig_str);
   GNUNET_STRINGS_base64_encode (param_str, strlen (param_str), &token_code_str);
+  GNUNET_free (token_code_sig_str);
   GNUNET_free (param_str);
   GNUNET_free (token_code_payload);
   GNUNET_free (token_code_payload_str);
@@ -758,6 +761,7 @@ sign_and_return_token (void *cls,
   GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
 
   GNUNET_asprintf (&record_data, "%s,%s", dh_key_str, token);
+  GNUNET_free (dh_key_str);
   token_record.data = record_data;
   token_record.data_size = strlen (record_data) + 1;
   token_record.expiration_time = exp_time;
@@ -776,6 +780,7 @@ sign_and_return_token (void *cls,
   GNUNET_free (record_data);
   GNUNET_free (lbl_str);
   GNUNET_free (token);
+  GNUNET_free (ecdh_privkey);
   json_decref (token_str);
 }
 
@@ -1276,6 +1281,7 @@ extract_values_from_token_code (const char *token_code,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaSignature)))
   {
     json_decref (root);
+    GNUNET_free (token_code_decoded);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH signature invalid in metadata\n");
     return GNUNET_SYSERR;
   }
@@ -1295,14 +1301,16 @@ extract_values_from_token_code (const char *token_code,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Metadata decryption failed\n");
     return GNUNET_SYSERR;
   }
+  GNUNET_free (enc_meta);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Metadata: %s\n", meta_str);
   json_decref (root);
+  GNUNET_free (token_code_decoded);
   root = json_loads (meta_str, JSON_DECODE_ANY, &err_json);
   if (!root)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Error parsing metadata: %s\n", err_json.text);
-    GNUNET_free (enc_meta);
+    GNUNET_free (meta_str);
     return GNUNET_SYSERR;
   }
   label_json = json_object_get (root, "label");
@@ -1311,7 +1319,7 @@ extract_values_from_token_code (const char *token_code,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Error parsing metadata: %s\n", err_json.text);
     json_decref (root);
-    GNUNET_free (enc_meta);
+    GNUNET_free (meta_str);
     return GNUNET_SYSERR;
   }
 
@@ -1325,7 +1333,7 @@ extract_values_from_token_code (const char *token_code,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Error parsing metadata: %s\n", err_json.text);
     json_decref (root);
-    GNUNET_free (enc_meta);
+    GNUNET_free (meta_str);
     return GNUNET_SYSERR;
   }
   identity_key_str = json_string_value (identity_json);
@@ -1334,7 +1342,7 @@ extract_values_from_token_code (const char *token_code,
                                  id_pkey,
                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
-  GNUNET_free (enc_meta);
+  GNUNET_free (meta_str);
   json_decref (root);
   return GNUNET_OK;
 
@@ -1350,16 +1358,13 @@ exchange_token_code_cb (void *cls,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
 
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   struct GNUNET_CRYPTO_EcdsaSignature sig;
   struct GNUNET_CRYPTO_EcdhePublicKey echde_pkey;
   struct RequestHandle *handle = cls;
   struct GNUNET_HashCode key;
   char* code;
-  char* code_decoded;
   char* lookup_query;
   char* label;
-  char* pub_key_str;
 
   handle->op = NULL;
 
@@ -1384,15 +1389,8 @@ exchange_token_code_cb (void *cls,
   }
   code = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                             &key);
-  GNUNET_STRINGS_base64_decode (code,
-                                strlen (code),
-                                &code_decoded);
 
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_IDENTITY_ego_get_public_key (ego, &pub_key);
-  pub_key_str = GNUNET_STRINGS_data_to_string_alloc (&pub_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Using private key corresponding to %s for ecdh\n", pub_key_str);
 
   label = NULL;
 
@@ -1410,7 +1408,7 @@ exchange_token_code_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for token under %s\n", label);
   handle->gns_handle = GNUNET_GNS_connect (cfg);
   GNUNET_asprintf (&lookup_query, "%s.gnu", label);
-
+  GNUNET_free (label);
   handle->lookup_request = GNUNET_GNS_lookup (handle->gns_handle,
                                               lookup_query,
                                               &pkey,
