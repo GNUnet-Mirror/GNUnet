@@ -1286,7 +1286,9 @@ extract_values_from_token_code (const char *token_code,
   char* enc_meta;
   char* meta_str;
   char* token_code_decoded;
+  char* write_ptr;
   size_t enc_meta_len;
+  struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
 
   GNUNET_STRINGS_base64_decode (token_code, strlen (token_code), &token_code_decoded);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Token Code: %s\n", token_code_decoded);
@@ -1329,8 +1331,7 @@ extract_values_from_token_code (const char *token_code,
                                                strlen (enc_meta_str),
                                                &enc_meta);
 
-  //TODO: check signature here
-  
+
   if (GNUNET_OK != decrypt_str_ecdhe (priv_key,
                                       ecdhe_pkey,
                                       enc_meta,
@@ -1342,7 +1343,7 @@ extract_values_from_token_code (const char *token_code,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Metadata decryption failed\n");
     return GNUNET_SYSERR;
   }
-  GNUNET_free (enc_meta);
+
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Metadata: %s\n", meta_str);
   json_decref (root);
   GNUNET_free (token_code_decoded);
@@ -1354,20 +1355,7 @@ extract_values_from_token_code (const char *token_code,
     GNUNET_free (meta_str);
     return GNUNET_SYSERR;
   }
-  label_json = json_object_get (root, "label");
-  if (!json_is_string (label_json))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error parsing metadata: %s\n", err_json.text);
-    json_decref (root);
-    GNUNET_free (meta_str);
-    return GNUNET_SYSERR;
-  }
-
-  label_str = json_string_value (label_json);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found label: %s\n", label_str);
-  GNUNET_asprintf (label, "%s", label_str);
-
+  
   identity_json = json_object_get (root, "identity");
   if (!json_is_string (identity_json))
   {
@@ -1383,7 +1371,52 @@ extract_values_from_token_code (const char *token_code,
                                  id_pkey,
                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
-  GNUNET_free (meta_str);
+  //TODO: check signature here
+  purpose = 
+    GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + 
+                   sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) + //E
+                   enc_meta_len); // E_K (code_str)
+  purpose->size = 
+    htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+           sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
+           enc_meta_len);
+  purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN_CODE);
+  write_ptr = (char*) &purpose[1];
+  memcpy (write_ptr, ecdhe_pkey, sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
+  write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
+  memcpy (write_ptr, enc_meta, enc_meta_len);
+
+  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN_CODE,
+                              purpose,
+                              signature,
+                              id_pkey))
+  {
+    json_decref (root);
+    GNUNET_free (meta_str);
+    GNUNET_free (purpose);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error verifying signature for token code\n");
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (purpose);
+
+  GNUNET_free (enc_meta);
+
+  label_json = json_object_get (root, "label");
+  if (!json_is_string (label_json))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error parsing metadata: %s\n", err_json.text);
+    json_decref (root);
+    GNUNET_free (meta_str);
+    return GNUNET_SYSERR;
+  }
+
+  label_str = json_string_value (label_json);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found label: %s\n", label_str);
+  GNUNET_asprintf (label, "%s", label_str);
+
+    GNUNET_free (meta_str);
   json_decref (root);
   return GNUNET_OK;
 
