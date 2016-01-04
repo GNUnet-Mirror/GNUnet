@@ -827,13 +827,13 @@ AC_ARG_WITH(mysql,
     then
       LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql $LDFLAGS $ZLIBS"
       CPPFLAGS="-I$with_mysql/include $CPPFLAGS"
-    fi
-    AC_CHECK_HEADERS(mysql/mysql.h,
-     AC_CHECK_LIB(mysqlclient, mysql_init,
-      MYSQL_LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql"
-      MYSQL_CPPFLAGS="-I$with_mysql/include"
+      AC_CHECK_HEADERS(mysql/mysql.h,
+       AC_CHECK_LIB(mysqlclient, mysql_init,
+        MYSQL_LDFLAGS="-L$with_mysql/lib -L$with_mysql/lib/mysql"
+        MYSQL_CPPFLAGS="-I$with_mysql/include"
 
-      mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
+        mysql=true), [], [$CYGWIN_MYSQL_MAGIC])
+    fi
    fi
   ],
   [AC_MSG_RESULT([--with-mysql not specified])
