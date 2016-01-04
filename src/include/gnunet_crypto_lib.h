@@ -1498,6 +1498,21 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
                           const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
                           struct GNUNET_HashCode *key_material);
 
+/**
+ * @ingroup crypto
+ * Derive key material from a ECDH public key and a private ECDSA key.
+ * Dual to #GNUNET_CRRYPTO_ecdh_ecdsa.
+ *
+ * @param priv private key from ECDSA to use for the ECDH (x)
+ * @param pub public key to use for the ECDH (yG)
+ * @param key_material where to write the key material H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                          struct GNUNET_HashCode *key_material);
+
 
 /**
  * @ingroup crypto
@@ -1512,6 +1527,21 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
 int
 GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
                           const struct GNUNET_CRYPTO_EddsaPublicKey *pub,
+                          struct GNUNET_HashCode *key_material);
+
+/**
+ * @ingroup crypto
+ * Derive key material from a EcDSA public key and a private ECDH key.
+ * Dual to #GNUNET_CRRYPTO_ecdsa_ecdh.
+ *
+ * @param priv private key to use for the ECDH (y)
+ * @param pub public key from ECDSA to use for the ECDH (X=h(x)G)
+ * @param key_material where to write the key material H(yX)=H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
                           struct GNUNET_HashCode *key_material);
 
 

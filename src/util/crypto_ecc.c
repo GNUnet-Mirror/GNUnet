@@ -1298,6 +1298,77 @@ GNUNET_CRYPTO_eddsa_ecdh (const struct GNUNET_CRYPTO_EddsaPrivateKey *priv,
   return GNUNET_OK;
 }
 
+/**
+ * @ingroup crypto
+ * Derive key material from a ECDH public key and a private ECDSA key.
+ * Dual to #GNUNET_CRRYPTO_ecdh_eddsa.
+ *
+ * @param priv private key from ECDSA to use for the ECDH (x)
+ * @param pub public key to use for the ECDH (yG)
+ * @param key_material where to write the key material H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecdsa_ecdh (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EcdhePublicKey *pub,
+                          struct GNUNET_HashCode *key_material)
+{
+  gcry_mpi_point_t result;
+  gcry_mpi_point_t q;
+  gcry_mpi_t d;
+  gcry_ctx_t ctx;
+  gcry_sexp_t pub_sexpr;
+  gcry_mpi_t result_x;
+  unsigned char xbuf[256 / 8];
+  size_t rsize;
+
+  /* first, extract the q = dP value from the public key */
+  if (0 != gcry_sexp_build (&pub_sexpr, NULL,
+                            "(public-key(ecc(curve " CURVE ")(q %b)))",
+                            (int)sizeof (pub->q_y), pub->q_y))
+    return GNUNET_SYSERR;
+  GNUNET_assert (0 == gcry_mpi_ec_new (&ctx, pub_sexpr, NULL));
+  gcry_sexp_release (pub_sexpr);
+  q = gcry_mpi_ec_get_point ("q", ctx, 0);
+
+  /* second, extract the d value from our private key */
+  GNUNET_CRYPTO_mpi_scan_unsigned (&d, priv->d, sizeof (priv->d));
+
+  /* then call the 'multiply' function, to compute the product */
+  result = gcry_mpi_point_new (0);
+  gcry_mpi_ec_mul (result, d, q, ctx);
+  gcry_mpi_point_release (q);
+  gcry_mpi_release (d);
+
+  /* finally, convert point to string for hashing */
+  result_x = gcry_mpi_new (256);
+  if (gcry_mpi_ec_get_affine (result_x, NULL, result, ctx))
+  {
+    LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "get_affine failed", 0);
+    gcry_mpi_point_release (result);
+    gcry_ctx_release (ctx);
+    return GNUNET_SYSERR;
+  }
+  gcry_mpi_point_release (result);
+  gcry_ctx_release (ctx);
+
+  rsize = sizeof (xbuf);
+  GNUNET_assert (! gcry_mpi_get_flag (result_x, GCRYMPI_FLAG_OPAQUE));
+  /* result_x can be negative here, so we do not use 'GNUNET_CRYPTO_mpi_print_unsigned'
+     as that does not include the sign bit; x should be a 255-bit
+     value, so with the sign it should fit snugly into the 256-bit
+     xbuf */
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
+                                 result_x));
+  GNUNET_CRYPTO_hash (xbuf,
+                      rsize,
+                      key_material);
+  gcry_mpi_release (result_x);
+  return GNUNET_OK;
+}
+
+
 
 /**
  * @ingroup crypto
@@ -1369,6 +1440,24 @@ GNUNET_CRYPTO_ecdh_eddsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   return GNUNET_OK;
 }
 
-
+/**
+ * @ingroup crypto
+ * Derive key material from a ECDSA public key and a private ECDH key.
+ * Dual to #GNUNET_CRRYPTO_eddsa_ecdh.
+ *
+ * @param priv private key to use for the ECDH (y)
+ * @param pub public key from ECDSA to use for the ECDH (X=h(x)G)
+ * @param key_material where to write the key material H(yX)=H(h(x)yG)
+ * @return #GNUNET_SYSERR on error, #GNUNET_OK on success
+ */
+int
+GNUNET_CRYPTO_ecdh_ecdsa (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
+                          const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+                          struct GNUNET_HashCode *key_material)
+{
+  return GNUNET_CRYPTO_ecdh_eddsa (priv,
+                                   (const struct GNUNET_CRYPTO_EddsaPublicKey *)pub,
+                                   key_material);
+}
 
 /* end of crypto_ecc.c */

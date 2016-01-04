@@ -181,7 +181,10 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN 26
 
-
+/**
+ * Signature for a GNUid Token Reference
+ */
+#define GNUNET_SIGNATURE_PURPOSE_GNUID_TOKEN_CODE 27
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

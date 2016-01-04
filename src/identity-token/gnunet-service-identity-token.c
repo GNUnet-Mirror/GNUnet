@@ -188,7 +188,7 @@ handle_token_update (void *cls,
   char *new_payload_str;
   char *new_payload_base64;
   char *sig_str;
-  char *key;
+  const char *key;
   char *padding;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct EgoEntry *ego_entry = cls;
