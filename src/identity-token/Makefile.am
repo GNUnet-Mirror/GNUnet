@@ -42,7 +42,8 @@ gnunet_service_identity_token_LDADD = \
  -ljansson
 
 libgnunet_plugin_rest_identity_token_la_SOURCES = \
-  plugin_rest_identity_token.c
+  plugin_rest_identity_token.c \
+	identity-token.c
 libgnunet_plugin_rest_identity_token_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
