@@ -535,7 +535,8 @@ origin_to_all ()
   *tmit = (struct TransmitClosure) {};
   tmit->data[0] = "ABC DEF";
   tmit->data[1] =  GNUNET_malloc (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD + 1);
-  for (uint16_t i = 0; i < GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD; i++)
+  uint16_t i;
+  for (i = 0; i < GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD; i++)
     tmit->data[1][i] = (0 == i % 10000) ? '0' + i / 10000 : '_';
   tmit->data[2] = "GHI JKL MNO";
   tmit->data_delay[2] = 2;
