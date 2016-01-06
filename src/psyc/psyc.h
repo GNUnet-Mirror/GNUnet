@@ -93,11 +93,13 @@ struct SlaveJoinRequest
 
   uint32_t relay_count GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
 
   struct GNUNET_CRYPTO_EcdsaPrivateKey slave_key;
 
   struct GNUNET_PeerIdentity origin;
+
+  uint32_t flags GNUNET_PACKED;
 
   /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
 

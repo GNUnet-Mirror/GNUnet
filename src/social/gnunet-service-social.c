@@ -95,6 +95,12 @@ static struct GNUNET_CONTAINER_MultiHashMap *places;
 static struct GNUNET_CONTAINER_MultiHashMap *apps_places;
 
 /**
+ * Application subscriptions per place.
+ * H(place_pub_key) -> H(app_id)
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *places_apps;
+
+/**
  * Connected applications.
  * H(app_id) -> struct Application
  */
@@ -108,7 +114,7 @@ static struct GNUNET_CONTAINER_MultiHashMap *egos;
 
 /**
  * Directory for storing social data.
- * Default: ~/.local/share/gnunet/social
+ * Default: $GNUNET_DATA_HOME/social
  */
 static char *dir_social;
 
@@ -223,6 +229,11 @@ struct Place
    */
   struct GNUNET_HashCode ego_pub_hash;
 
+  uint64_t file_message_id;
+  uint64_t file_fragment_offset;
+  uint64_t file_size;
+  uint64_t file_offset;
+
   /**
    * Last message ID received for the place.
    * 0 if there is no such message.
@@ -326,6 +337,10 @@ struct Guest
    */
   struct GNUNET_PSYC_JoinDecisionMessage *join_dcsn;
 
+  /**
+   * Join flags for the PSYC service.
+   */
+  enum GNUNET_PSYC_SlaveJoinFlags join_flags;
 };
 
 
@@ -713,6 +728,51 @@ psyc_recv_join_dcsn (void *cls,
   place_send_msg (&gst->plc, &dcsn->header);
 }
 
+/**
+ * Save _file data to disk.
+ */
+void
+psyc_recv_file (struct Place *plc, const struct GNUNET_PSYC_MessageHeader *msg,
+                uint32_t flags, uint64_t message_id, uint64_t fragment_offset,
+                const char *method_name, struct GNUNET_ENV_Environment *env,
+                const void *data, uint16_t data_size)
+{
+  if (plc->file_message_id != message_id)
+  {
+    if (0 != fragment_offset)
+    {
+      /* unexpected message ID */
+      GNUNET_break (0);
+      return;
+    }
+
+    /* new file */
+    plc->file_offset = 0;
+  }
+
+  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
+  memcpy (&place_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
+
+  char *filename = NULL;
+  GNUNET_asprintf (&filename, "%s%c%s%c%s%c%" PRIu64,
+                   dir_social, DIR_SEPARATOR,
+                   "files", DIR_SEPARATOR,
+                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   message_id);
+  GNUNET_DISK_directory_create_for_file (filename);
+  struct GNUNET_DISK_FileHandle *
+    fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE,
+                                GNUNET_DISK_PERM_USER_READ
+                                | GNUNET_DISK_PERM_USER_WRITE);
+  GNUNET_free (filename);
+
+  GNUNET_DISK_file_seek (fh, plc->file_offset, GNUNET_DISK_SEEK_SET);
+  GNUNET_DISK_file_write (fh, data, data_size);
+  GNUNET_DISK_file_close (fh);
+  plc->file_offset += data_size;
+}
+
 
 /**
  * Called when a PSYC master or slave receives a message.
@@ -731,9 +791,33 @@ psyc_recv_message (void *cls,
               plc, ntohs (msg->header.size), str);
   GNUNET_free (str);
 
-  place_send_msg (plc, &msg->header);
+  /* process message */
+  /* FIXME: use slicer */
+  const char *method_name = NULL;
+  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  const void *data = NULL;
+  uint16_t data_size = 0;
 
-  /* FIXME: further processing */
+  if (GNUNET_SYSERR == GNUNET_PSYC_message_parse (msg, &method_name, env, &data, &data_size))
+  {
+    GNUNET_break (0);
+  }
+  else
+  {
+    char *method_found = strstr (method_name, "_file");
+    if (method_name == method_found)
+    {
+      method_found += strlen ("_file");
+      if (('\0' == *method_found) || ('_' == *method_found))
+      {
+        psyc_recv_file (plc, msg, flags, message_id, GNUNET_ntohll (msg->fragment_offset),
+                        method_name, env, data, data_size);
+      }
+    }
+  }
+  GNUNET_ENV_environment_destroy (env);
+
+  place_send_msg (plc, &msg->header);
 }
 
 
@@ -838,11 +922,37 @@ app_place_add (const char *app_id,
   if (GNUNET_SYSERR == place_add (ereq))
     return GNUNET_SYSERR;
 
-  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (app_places, &ego_place_pub_hash,
-                                                      NULL, 0))
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (app_places, &ego_place_pub_hash, NULL,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
     return GNUNET_SYSERR;
+  }
+
+  struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (&ereq->place_pub_key, sizeof (ereq->place_pub_key), &place_pub_hash);
+
+  struct GNUNET_CONTAINER_MultiHashMap *
+    place_apps = GNUNET_CONTAINER_multihashmap_get (places_apps, &place_pub_hash);
+  if (NULL == place_apps)
+  {
+    place_apps = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+    if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (places_apps, &place_pub_hash, place_apps,
+                                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
+    {
+      GNUNET_break (0);
+    }
+  }
+
+
+  size_t app_id_size = strlen (app_id);
+  void *app_id_value = GNUNET_malloc (app_id_size);
+  memcpy (app_id_value, app_id, app_id_size);
+
+  if (GNUNET_OK != GNUNET_CONTAINER_multihashmap_put (place_apps, &app_id_hash, app_id_value,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+  {
+    GNUNET_break (0);
   }
 
   return GNUNET_OK;
@@ -947,6 +1057,19 @@ app_place_remove (const char *app_id,
 
   if (NULL != app_places)
     GNUNET_CONTAINER_multihashmap_remove (app_places, &place_pub_hash, NULL);
+
+  struct GNUNET_CONTAINER_MultiHashMap *
+    place_apps = GNUNET_CONTAINER_multihashmap_get (places_apps, &place_pub_hash);
+  if (NULL != place_apps)
+  {
+    void *app_id_value = GNUNET_CONTAINER_multihashmap_get (place_apps, &app_id_hash);
+    if (NULL != app_id_value)
+    {
+      GNUNET_free (app_id_value);
+      GNUNET_CONTAINER_multihashmap_remove_all (place_apps, &app_id_hash);
+    }
+  }
+
 
   int ret = unlink (app_place_filename);
   GNUNET_free (app_place_filename);
@@ -1187,6 +1310,8 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
       memcpy (gst->relays, relays, relay_size);
     }
 
+    gst->join_flags = ntohl (greq->flags);
+
     struct Place *plc = &gst->plc;
     place_init (plc);
     plc->is_host = GNUNET_NO;
@@ -1208,9 +1333,12 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     gst->slave
       = GNUNET_PSYC_slave_join (cfg, &plc->pub_key, &plc->ego_key,
-                                &gst->origin, gst->relay_count, gst->relays,
-                                &psyc_recv_message, NULL, &psyc_slave_connected,
-                                &psyc_recv_join_dcsn, gst, join_msg);
+                                gst->join_flags, &gst->origin,
+                                gst->relay_count, gst->relays,
+                                &psyc_recv_message, NULL,
+                                &psyc_slave_connected,
+                                &psyc_recv_join_dcsn,
+                                gst, join_msg);
     gst->plc.channel = GNUNET_PSYC_slave_get_channel (gst->slave);
     ret = GNUNET_YES;
   }
@@ -1442,6 +1570,8 @@ app_notify_place (struct GNUNET_MessageHeader *msg,
   struct AppPlaceMessage amsg;
   amsg.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE);
   amsg.header.size = htons (sizeof (amsg));
+  // FIXME: also notify about not entered places
+  amsg.place_state = GNUNET_SOCIAL_PLACE_STATE_ENTERED;
 
   switch (ntohs (msg->type))
   {
@@ -1492,7 +1622,7 @@ app_notify_ego (struct Ego *ego, struct GNUNET_SERVER_Client *client)
 
 
 int
-app_place_entry (void *cls, const struct GNUNET_HashCode *key, void *value)
+app_place_entry_notify (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_MessageHeader *
     msg = GNUNET_CONTAINER_multihashmap_get (places, key);
@@ -1539,7 +1669,7 @@ client_recv_app_connect (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_CONTAINER_MultiHashMap *
     app_places = GNUNET_CONTAINER_multihashmap_get (apps_places, &app_id_hash);
   if (NULL != app_places)
-    GNUNET_CONTAINER_multihashmap_iterate (app_places, app_place_entry, client);
+    GNUNET_CONTAINER_multihashmap_iterate (app_places, app_place_entry_notify, client);
 
   struct ClientListItem *cli = GNUNET_new (struct ClientListItem);
   cli->client = client;
@@ -1585,6 +1715,14 @@ client_recv_app_detach (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+int
+app_places_entry_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  app_place_remove (value, cls);
+  return GNUNET_YES;
+}
+
+
 /**
  * Handle application detach request.
  */
@@ -1597,8 +1735,18 @@ client_recv_place_leave (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (NULL != ctx);
   struct Place *plc = ctx->plc;
 
-  /* Disconnect all clients connected to the place */
+  /* FIXME: remove all app subscriptions and leave this place  */
+
+  struct GNUNET_CONTAINER_MultiHashMap *
+    place_apps = GNUNET_CONTAINER_multihashmap_get (places_apps, &plc->pub_key_hash);
+  if (NULL != place_apps)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate (place_apps, app_places_entry_remove, &plc->pub_key);
+  }
+
   /* FIXME: disconnect from the network, but keep local connection for history access */
+
+  /* Disconnect all clients connected to the place */
   struct ClientListItem *cli = plc->clients_head, *next;
   while (NULL != cli)
   {
@@ -2832,7 +2980,7 @@ file_ego_place_load (void *cls, const char *place_filename)
  *
  * @param dir_ego
  *        Data directory of an application ego.
- *        e.g. ~/.local/share/gnunet/social/apps/$app_id/$ego_pub_hash_str/
+ *        $GNUNET_DATA_HOME/social/apps/$app_id/$ego_pub_hash_str/
  */
 int
 scan_app_ego_dir (void *cls, const char *dir_ego)
@@ -2851,7 +2999,7 @@ scan_app_ego_dir (void *cls, const char *dir_ego)
  *
  * @param dir_app
  *        Data directory of an application.
- *        e.g. ~/.local/share/gnunet/social/apps/$app_id/
+ *        $GNUNET_DATA_HOME/social/apps/$app_id/
  */
 int
 scan_app_dir (void *cls, const char *dir_app)
@@ -2941,6 +3089,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   apps = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   places = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
   apps_places = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
+  places_apps = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_NO);
 
   core = GNUNET_CORE_connect (cfg, NULL, core_connected, NULL, NULL,
                               NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
@@ -2950,11 +3099,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   stats = GNUNET_STATISTICS_create ("social", cfg);
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "social", "SOCIAL_DATA_DIR",
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "social", "DATA_HOME",
                                                &dir_social))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
-                               "social", "SOCIAL_DATA_DIR");
+                               "social", "DATA_HOME");
     GNUNET_break (0);
     return;
   }

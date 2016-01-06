@@ -843,7 +843,9 @@ slave_join (int t)
   struct GNUNET_PSYC_Message *
     join_msg = GNUNET_PSYC_message_create ("_request_join", env, "some data", 9);
 
-  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin, 0, NULL,
+  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key,
+                                GNUNET_PSYC_SLAVE_JOIN_NONE,
+                                &origin, 0, NULL,
                                 &slave_message_cb, &slave_message_part_cb,
                                 &slave_connect_cb, &join_decision_cb, NULL,
                                 join_msg);

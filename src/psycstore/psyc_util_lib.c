@@ -1264,12 +1264,15 @@ GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_MessageHeader *msg,
 
   struct GNUNET_PSYC_ReceiveHandle *
     recv = GNUNET_PSYC_receive_create (NULL, parse_message_part_cb, &cls);
-  GNUNET_PSYC_receive_message (recv, msg);
+  int ret = GNUNET_PSYC_receive_message (recv, msg);
   GNUNET_PSYC_receive_destroy (recv);
+
+  if (GNUNET_OK != ret)
+    return GNUNET_SYSERR;
 
   return (GNUNET_PSYC_MESSAGE_STATE_END == cls.msg_state)
     ? GNUNET_OK
-    : GNUNET_SYSERR;
+    : GNUNET_NO;
 }
 
 

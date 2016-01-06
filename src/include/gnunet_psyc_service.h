@@ -887,6 +887,19 @@ typedef void
                                      int is_admitted,
                                      const struct GNUNET_PSYC_Message *join_msg);
 
+/**
+ * Flags for GNUNET_PSYC_slave_join()
+ */
+enum GNUNET_PSYC_SlaveJoinFlags
+{
+  GNUNET_PSYC_SLAVE_JOIN_NONE	= 0,
+
+  /**
+   * Local join for history access, no network connection is established.
+   */
+  GNUNET_PSYC_SLAVE_JOIN_LOCAL	= 1,
+};
+
 
 /**
  * Join a PSYC channel.
@@ -926,6 +939,7 @@ struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key,
+                        enum GNUNET_PSYC_SlaveJoinFlags flags,
                         const struct GNUNET_PeerIdentity *origin,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,

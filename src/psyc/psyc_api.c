@@ -847,7 +847,8 @@ GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master)
  * notification on failure (as the channel may simply take days to approve,
  * and disapproval is simply being ignored).
  *
- * @param cfg  Configuration to use.
+ * @param cfg
+ *        Configuration to use.
  * @param channel_key  ECC public key that identifies the channel we wish to join.
  * @param slave_key  ECC private-public key pair that identifies the slave, and
  *        used by multicast to sign the join request and subsequent unicast
@@ -873,8 +874,9 @@ GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master)
  */
 struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_pub_key,
                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key,
+                        enum GNUNET_PSYC_SlaveJoinFlags flags,
                         const struct GNUNET_PeerIdentity *origin,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
@@ -898,10 +900,11 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   req = GNUNET_malloc (sizeof (*req) + relay_size + join_msg_size);
   req->header.size = htons (sizeof (*req) + relay_size + join_msg_size);
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN);
-  req->channel_key = *channel_key;
+  req->channel_pub_key = *channel_pub_key;
   req->slave_key = *slave_key;
   req->origin = *origin;
   req->relay_count = htonl (relay_count);
+  req->flags = htonl (flags);
 
   if (0 < relay_size)
     memcpy (&req[1], relays, relay_size);

@@ -402,7 +402,8 @@ static void
 app_recv_host (void *cls,
                struct GNUNET_SOCIAL_HostConnection *hconn,
                struct GNUNET_SOCIAL_Ego *ego,
-               const struct GNUNET_CRYPTO_EddsaPublicKey *host_pub_key)
+               const struct GNUNET_CRYPTO_EddsaPublicKey *host_pub_key,
+               enum GNUNET_SOCIAL_PlaceState place_state)
 {
   struct GNUNET_HashCode host_pub_hash;
   GNUNET_CRYPTO_hash (host_pub_key, sizeof (*host_pub_key), &host_pub_hash);
@@ -424,9 +425,10 @@ app_recv_host (void *cls,
 
 static void
 app_recv_guest (void *cls,
-               struct GNUNET_SOCIAL_GuestConnection *gconn,
-               struct GNUNET_SOCIAL_Ego *ego,
-               const struct GNUNET_CRYPTO_EddsaPublicKey *guest_pub_key)
+                struct GNUNET_SOCIAL_GuestConnection *gconn,
+                struct GNUNET_SOCIAL_Ego *ego,
+                const struct GNUNET_CRYPTO_EddsaPublicKey *guest_pub_key,
+                enum GNUNET_SOCIAL_PlaceState place_state)
 {
   struct GNUNET_HashCode guest_pub_hash;
   GNUNET_CRYPTO_hash (guest_pub_key, sizeof (*guest_pub_key), &guest_pub_hash);
@@ -439,8 +441,8 @@ app_recv_guest (void *cls,
   {
     if (0 == memcmp (&place_pub_key, guest_pub_key, sizeof (*guest_pub_key)))
     {
-      gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn, guest_slicer,
-                                                 guest_reconnected, NULL);
+      gst = GNUNET_SOCIAL_guest_enter_reconnect (gconn, GNUNET_PSYC_SLAVE_JOIN_NONE,
+                                                 guest_slicer, guest_reconnected, NULL);
     }
   }
 }
@@ -1122,6 +1124,7 @@ guest_enter ()
                                           emsg->data, emsg->data_size);
 
   gst = GNUNET_SOCIAL_guest_enter (app, guest_ego, &place_pub_key,
+                                   GNUNET_PSYC_SLAVE_JOIN_NONE,
                                    &this_peer, 0, NULL, emsg->msg, guest_slicer,
                                    guest_recv_local_enter,
                                    guest_recv_entry_decision, NULL);

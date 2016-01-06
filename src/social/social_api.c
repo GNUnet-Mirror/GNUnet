@@ -1558,14 +1558,14 @@ app_recv_place (void *cls,
     struct GNUNET_SOCIAL_HostConnection *hconn = GNUNET_malloc (sizeof (*hconn));
     hconn->app = app;
     hconn->plc_msg = *pmsg;
-    app->host_cb (app->cb_cls, hconn, ego, &pmsg->place_pub_key);
+    app->host_cb (app->cb_cls, hconn, ego, &pmsg->place_pub_key, pmsg->place_state);
   }
   else
   {
     struct GNUNET_SOCIAL_GuestConnection *gconn = GNUNET_malloc (sizeof (*gconn));
     gconn->app = app;
     gconn->plc_msg = *pmsg;
-    app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key);
+    app->guest_cb (app->cb_cls, gconn, ego, &pmsg->place_pub_key, pmsg->place_state);
   }
 }
 
@@ -1717,8 +1717,8 @@ guest_cleanup (void *cls)
  * A place is created upon first entering, and it is active until permanently
  * left using GNUNET_SOCIAL_host_leave().
  *
- * @param cfg
- *        Configuration to contact the social service.
+ * @param app
+ *        Application handle.
  * @param ego
  *        Identity of the host.
  * @param place_key
@@ -1808,7 +1808,7 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
  *
  * @return Handle for the host.
  */
-struct GNUNET_SOCIAL_Host *
+ struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
                                     struct GNUNET_SOCIAL_Slicer *slicer,
                                     GNUNET_SOCIAL_HostEnterCallback enter_cb,
@@ -2202,20 +2202,34 @@ guest_enter_request_create (const char *app_id,
   return greq;
 }
 
+
 /**
  * Request entry to a place as a guest.
  *
- * @param cfg Configuration to contact the social service.
- * @param ego  Identity of the guest.
- * @param crypto_address Public key of the place to enter.
- * @param origin Peer identity of the origin of the underlying multicast group.
- * @param relay_count Number of elements in the @a relays array.
- * @param relays Relays for the underlying multicast group.
- * @param method_name Method name for the message.
- * @param env Environment containing variables for the message, or NULL.
- * @param data Payload for the message to give to the enter callback.
- * @param data_size Number of bytes in @a data.
- * @param slicer Slicer to use for processing incoming requests from guests.
+ * @param app
+ *        Application handle.
+ * @param ego
+ *        Identity of the guest.
+ * @param place_pub_key
+ *        Public key of the place to enter.
+ * @param flags
+ *        Flags for the entry.
+ * @param origin
+ *        Peer identity of the origin of the underlying multicast group.
+ * @param relay_count
+ *        Number of elements in the @a relays array.
+ * @param relays
+ *        Relays for the underlying multicast group.
+ * @param method_name
+ *        Method name for the message.
+ * @param env
+ *        Environment containing variables for the message, or NULL.
+ * @param data
+ *        Payload for the message to give to the enter callback.
+ * @param data_size
+ *        Number of bytes in @a data.
+ * @param slicer
+ *        Slicer to use for processing incoming requests from guests.
  *
  * @return NULL on errors, otherwise handle for the guest.
  */
@@ -2223,6 +2237,7 @@ struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
                            const struct GNUNET_SOCIAL_Ego *ego,
                            const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                           enum GNUNET_PSYC_SlaveJoinFlags flags,
                            const struct GNUNET_PeerIdentity *origin,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
@@ -2263,8 +2278,8 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
 /**
  * Request entry to a place by name as a guest.
  *
- * @param cfg
- *        Configuration to contact the social service.
+ * @param app
+ *        Application handle.
  * @param ego
  *        Identity of the guest.
  * @param gns_name
@@ -2356,6 +2371,8 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
  * @param gconn
  *        Guest connection handle.
  *        @see GNUNET_SOCIAL_app_connect() & GNUNET_SOCIAL_AppGuestPlaceCallback()
+ * @param flags
+ *        Flags for the entry.
  * @param slicer
  *        Slicer to use for processing incoming requests from guests.
  * @param local_enter_cb
@@ -2367,6 +2384,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
  */
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn,
+                                     enum GNUNET_PSYC_SlaveJoinFlags flags,
                                      struct GNUNET_SOCIAL_Slicer *slicer,
                                      GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                      void *cls)
@@ -2381,6 +2399,7 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   greq->header.size = htons (greq_size);
   greq->ego_pub_key = gconn->plc_msg.ego_pub_key;
   greq->place_pub_key = gconn->plc_msg.place_pub_key;
+  greq->flags = htonl (flags);
 
   memcpy (&greq[1], gconn->app->id, app_id_size);
 

@@ -114,6 +114,8 @@ struct GuestEnterRequest
 
   struct GNUNET_PeerIdentity origin;
 
+  uint32_t flags GNUNET_PACKED;
+
   /* Followed by char *app_id */
   /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
   /* Followed by struct GNUNET_MessageHeader *join_msg */
@@ -236,6 +238,8 @@ struct AppPlaceMessage
   struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 
   uint8_t is_host;
+
+  uint8_t place_state;
 };
 
 

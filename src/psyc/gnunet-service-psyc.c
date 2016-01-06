@@ -409,6 +409,11 @@ struct Slave
    * Maximum request ID for this channel.
    */
   uint64_t max_request_id;
+
+  /**
+   * Join flags.
+   */
+  enum GNUNET_PSYC_SlaveJoinFlags join_flags;
 };
 
 
@@ -812,7 +817,8 @@ mcast_recv_join_decision (void *cls, int is_admitted,
 
   client_send_msg (chn, &dcsn->header);
 
-  if (GNUNET_YES == is_admitted)
+  if (GNUNET_YES == is_admitted
+      && ! (GNUNET_PSYC_SLAVE_JOIN_LOCAL & slv->join_flags))
   {
     chn->is_ready = GNUNET_YES;
   }
@@ -1189,11 +1195,15 @@ fragment_queue_insert (struct Channel *chn,
  * Send fragments of a message in order to client, after all modifiers arrived
  * from multicast.
  *
- * @param chn      Channel.
- * @param msg_id  ID of the message @a fragq belongs to.
- * @param fragq   Fragment queue of the message.
- * @param drop    Drop message without delivering to client?
- *                #GNUNET_YES or #GNUNET_NO.
+ * @param chn
+ *        Channel.
+ * @param msg_id
+ *        ID of the message @a fragq belongs to.
+ * @param fragq
+ *        Fragment queue of the message.
+ * @param drop
+ *        Drop message without delivering to client?
+ *        #GNUNET_YES or #GNUNET_NO.
  */
 static void
 fragment_queue_run (struct Channel *chn, uint64_t msg_id,
@@ -1739,7 +1749,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_CRYPTO_ecdsa_key_get_public (&req->slave_key, &slv_pub_key);
   GNUNET_CRYPTO_hash (&slv_pub_key, sizeof (slv_pub_key), &slv_pub_key_hash);
-  GNUNET_CRYPTO_hash (&req->channel_key, sizeof (req->channel_key), &pub_key_hash);
+  GNUNET_CRYPTO_hash (&req->channel_pub_key, sizeof (req->channel_pub_key), &pub_key_hash);
 
   struct GNUNET_CONTAINER_MultiHashMap *
     chn_slv = GNUNET_CONTAINER_multihashmap_get (channel_slaves, &pub_key_hash);
@@ -1758,6 +1768,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     slv->pub_key_hash = slv_pub_key_hash;
     slv->origin = req->origin;
     slv->relay_count = ntohl (req->relay_count);
+    slv->join_flags = ntohl (req->flags);
 
     const struct GNUNET_PeerIdentity *
       relays = (const struct GNUNET_PeerIdentity *) &req[1];
@@ -1791,7 +1802,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
 
     chn = &slv->chn;
     chn->is_master = GNUNET_NO;
-    chn->pub_key = req->channel_key;
+    chn->pub_key = req->channel_pub_key;
     chn->pub_key_hash = pub_key_hash;
     channel_init (chn);
 
@@ -1822,7 +1833,12 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_notification_context_unicast (nc, client, &res.header,
                                                 GNUNET_NO);
 
-    if (NULL == slv->member)
+    if (GNUNET_PSYC_SLAVE_JOIN_LOCAL & slv->join_flags)
+    {
+      mcast_recv_join_decision (slv, GNUNET_YES,
+                                NULL, 0, NULL, NULL);
+    }
+    else if (NULL == slv->member)
     {
       slv->member
         = GNUNET_MULTICAST_member_join (cfg, &chn->pub_key, &slv->priv_key,
