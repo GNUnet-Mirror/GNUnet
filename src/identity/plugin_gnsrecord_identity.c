@@ -44,11 +44,31 @@ value_to_string (void *cls,
                  const void *data,
                  size_t data_size)
 {
+  const struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
+  const struct GNUNET_CRYPTO_EcdsaPublicKey *audience_pubkey;
+  const char *scopes;
+  char *ecdhe_str;
+  char *aud_str;
+  char *result;
+
   switch (type)
   {
     case GNUNET_GNSRECORD_TYPE_ID_ATTR:
     case GNUNET_GNSRECORD_TYPE_ID_TOKEN:
       return GNUNET_strndup (data, data_size);
+    case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
+        ecdhe_privkey = data;
+        audience_pubkey = data+sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
+        scopes =  (char*) audience_pubkey+(sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+        ecdhe_str = GNUNET_STRINGS_data_to_string_alloc (ecdhe_privkey,
+                                                        sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+        aud_str = GNUNET_STRINGS_data_to_string_alloc (audience_pubkey,
+                                                       sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+        GNUNET_asprintf (&result,
+                         "%s;%s;%s",
+                         ecdhe_str, aud_str, scopes);
+        return result;
+
     default:
       return NULL;
   }
@@ -73,6 +93,12 @@ string_to_value (void *cls,
                  void **data,
                  size_t *data_size)
 {
+  char* ecdhe_str;
+  char* aud_keystr;
+  char* write_ptr;
+  char* tmp_tok;
+  char* str;
+
   if (NULL == s)
     return GNUNET_SYSERR;
   switch (type)
@@ -82,6 +108,46 @@ string_to_value (void *cls,
       *data = GNUNET_strdup (s);
       *data_size = strlen (s);
       return GNUNET_OK;
+    case GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA:
+            tmp_tok = GNUNET_strdup (s);
+      ecdhe_str = strtok (tmp_tok, ";");
+      if (NULL == ecdhe_str)
+      {
+        GNUNET_free (tmp_tok);
+        return GNUNET_SYSERR;
+      }
+      aud_keystr = strtok (NULL, ";");
+      if (NULL == aud_keystr)
+      {
+        GNUNET_free (tmp_tok);
+        return GNUNET_SYSERR;
+      }
+      str = strtok (NULL, ";");
+      if (NULL == str)
+      {
+        GNUNET_free (tmp_tok);
+        return GNUNET_SYSERR;
+      }
+      *data_size = strlen (str) + 1
+        +sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey)
+        +sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
+      *data = GNUNET_malloc (*data_size);
+
+      write_ptr = *data;
+      GNUNET_STRINGS_string_to_data (ecdhe_str,
+                                     strlen (ecdhe_str),
+                                     write_ptr,
+                                     sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+      write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
+      GNUNET_STRINGS_string_to_data (aud_keystr,
+                                     strlen (aud_keystr),
+                                     write_ptr,
+                                     sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+      write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
+      memcpy (write_ptr, str, strlen (str) + 1); //with 0-Terminator
+      GNUNET_free (tmp_tok);
+      return GNUNET_OK;
+
     default:
       return GNUNET_SYSERR;
   }
@@ -92,14 +158,15 @@ string_to_value (void *cls,
  * Mapping of record type numbers to human-readable
  * record type names.
  */
-static struct {
-  const char *name;
-  uint32_t number;
-} name_map[] = {
-  { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
-  { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
-  { NULL, UINT32_MAX }
-};
+        static struct {
+          const char *name;
+          uint32_t number;
+        } name_map[] = {
+          { "ID_ATTR", GNUNET_GNSRECORD_TYPE_ID_ATTR },
+          { "ID_TOKEN", GNUNET_GNSRECORD_TYPE_ID_TOKEN },
+          { "ID_TOKEN_METADATA", GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA },
+          { NULL, UINT32_MAX }
+        };
 
 
 /**

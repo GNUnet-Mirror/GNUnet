@@ -464,15 +464,8 @@ schedule_httpd ()
   }
   if (NULL != httpd_task)
     GNUNET_SCHEDULER_cancel (httpd_task);
-  if ( (MHD_YES != haveto) &&
-       (-1 == max))
-  {
-    /* daemon is idle, kill after timeout */
-    httpd_task = GNUNET_SCHEDULER_add_delayed (MHD_CACHE_TIMEOUT,
-                                               &kill_httpd_task,
-                                               NULL);
-  }
-  else
+  if ( (MHD_YES == haveto) ||
+       (-1 != max))
   {
     httpd_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,

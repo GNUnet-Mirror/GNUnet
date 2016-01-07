@@ -28,7 +28,7 @@ if HAVE_EXPERIMENTAL
 endif
 
 if HAVE_REST
-	EXP_DIR += identity-token
+	EXP_DIR += identity-provider
 endif
 
 if BUILD_PULSE_HELPERS
