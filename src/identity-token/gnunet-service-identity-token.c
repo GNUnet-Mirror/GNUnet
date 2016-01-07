@@ -30,7 +30,7 @@
 #include "gnunet_namestore_service.h"
 #include <jansson.h>
 #include "gnunet_signatures.h"
-#include "identity-token.h"
+#include "gnunet_identity_provider_lib.h"
 
 /**
  * First pass state
@@ -102,7 +102,7 @@ static struct GNUNET_TIME_Relative min_rel_exp;
 /**
  * Currently processed token
  */
-static struct IdentityToken *token;
+static struct GNUNET_IDENTITY_PROVIDER_Token *token;
 
 /**
  * Label for currently processed token
@@ -201,9 +201,8 @@ handle_token_update (void *cls,
   char *write_ptr;
   char *enc_token_str;
   const char *key;
-  const char *iss;
-  const char *aud;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   struct GNUNET_CRYPTO_EcdhePrivateKey *new_ecdhe_privkey;
   struct EgoEntry *ego_entry = cls;
   struct GNUNET_GNSRECORD_Data token_record[2];
@@ -215,7 +214,7 @@ handle_token_update (void *cls,
   struct GNUNET_TIME_Absolute new_exp;
   struct GNUNET_TIME_Absolute new_iat;
   struct GNUNET_TIME_Absolute new_nbf;
-  struct IdentityToken *new_token;
+  struct GNUNET_IDENTITY_PROVIDER_Token *new_token;
   json_t *payload_json;
   json_t *value;
   json_t *cur_value;
@@ -224,6 +223,8 @@ handle_token_update (void *cls,
   size_t token_metadata_len;
 
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
+  GNUNET_IDENTITY_ego_get_public_key (ego_entry->ego,
+                                      &pub_key);
 
   //Note: We need the token expiration time here. Not the record expiration
   //time.
@@ -262,9 +263,8 @@ handle_token_update (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Token is expired. Create a new one\n");
-  iss = json_string_value (json_object_get (payload_json, "iss"));
-  aud = json_string_value (json_object_get (payload_json, "aud"));
-  new_token = identity_token_create (iss, aud);
+  new_token = GNUNET_IDENTITY_PROVIDER_token_create (&pub_key,
+                                                     &token->aud_key);
   new_exp = GNUNET_TIME_relative_to_absolute (token_rel_exp);
   new_nbf = GNUNET_TIME_absolute_get ();
   new_iat = new_nbf;
@@ -272,15 +272,15 @@ handle_token_update (void *cls,
   json_object_foreach(payload_json, key, value) {
     if (0 == strcmp (key, "exp"))
     {
-      identity_token_add_json (new_token, key, json_integer (new_exp.abs_value_us));
+      GNUNET_IDENTITY_PROVIDER_token_add_json (new_token, key, json_integer (new_exp.abs_value_us));
     }
     else if (0 == strcmp (key, "nbf"))
     {
-      identity_token_add_json (new_token, key, json_integer (new_nbf.abs_value_us));
+      GNUNET_IDENTITY_PROVIDER_token_add_json (new_token, key, json_integer (new_nbf.abs_value_us));
     }
     else if (0 == strcmp (key, "iat"))
     {
-      identity_token_add_json (new_token, key, json_integer (new_iat.abs_value_us));
+      GNUNET_IDENTITY_PROVIDER_token_add_json (new_token, key, json_integer (new_iat.abs_value_us));
     }
     else if ((0 == strcmp (key, "iss"))
              || (0 == strcmp (key, "aud")))
@@ -290,7 +290,7 @@ handle_token_update (void *cls,
     else if ((0 == strcmp (key, "sub"))
              || (0 == strcmp (key, "rnl")))
     {
-      identity_token_add_json (new_token, key, value);
+      GNUNET_IDENTITY_PROVIDER_token_add_json (new_token, key, value);
     }
     else {
       GNUNET_CRYPTO_hash (key,
@@ -302,16 +302,16 @@ handle_token_update (void *cls,
       {
         cur_value = GNUNET_CONTAINER_multihashmap_get (ego_entry->attr_map,
                                                        &key_hash);
-        identity_token_add_json (new_token, key, cur_value);
+        GNUNET_IDENTITY_PROVIDER_token_add_json (new_token, key, cur_value);
       }
     }
   }
 
   // reassemble and set
-  GNUNET_assert (identity_token_serialize (new_token,
-                                           priv_key,
-                                           &new_ecdhe_privkey,
-                                           &enc_token_str));
+  GNUNET_assert (GNUNET_IDENTITY_PROVIDER_token_serialize (new_token,
+                                                           priv_key,
+                                                           &new_ecdhe_privkey,
+                                                           &enc_token_str));
 
   json_decref (payload_json);
 
@@ -347,10 +347,10 @@ handle_token_update (void *cls,
                                           &store_token_cont,
                                           ego_entry);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, ">>> Updating Token w/ %s\n", new_token);
-  identity_token_destroy (new_token);
+  GNUNET_IDENTITY_PROVIDER_token_destroy (new_token);
+  GNUNET_IDENTITY_PROVIDER_token_destroy (token);
   GNUNET_free (new_ecdhe_privkey);
   GNUNET_free (enc_token_str);
-  GNUNET_free (token);
   token = NULL;
   GNUNET_free (label);
   label = NULL;
@@ -438,16 +438,16 @@ token_collect (void *cls,
   }
   GNUNET_assert (token_metadata_record->record_type == GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA);
   GNUNET_assert (token_record->record_type == GNUNET_GNSRECORD_TYPE_ID_TOKEN);
-  
+
   //Get metadata and decrypt token
   ecdhe_privkey = *((struct GNUNET_CRYPTO_EcdhePrivateKey *)token_metadata_record->data);
   aud_key = (struct GNUNET_CRYPTO_EcdsaPublicKey *)&ecdhe_privkey+sizeof(struct GNUNET_CRYPTO_EcdhePrivateKey);
   scopes = GNUNET_strdup ((char*) aud_key+sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
-  identity_token_parse2 (token_record->data,
-                         &ecdhe_privkey,
-                         aud_key,
-                         &token);
+  GNUNET_IDENTITY_PROVIDER_token_parse2 (token_record->data,
+                                         &ecdhe_privkey,
+                                         aud_key,
+                                         &token);
 
   //token = GNUNET_GNSRECORD_value_to_string (rd->record_type,
   //                                          rd->data,

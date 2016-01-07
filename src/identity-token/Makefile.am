@@ -19,10 +19,10 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   identity-token.conf
 
-if HAVE_REST
 plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_identity_token.la
-endif
+lib_LTLIBRARIES = \
+	libgnunetidentityprovider.la
 
 bin_PROGRAMS = \
  gnunet-identity-token
@@ -31,9 +31,9 @@ libexec_PROGRAMS = \
  gnunet-service-identity-token
 
 gnunet_service_identity_token_SOURCES = \
- gnunet-service-identity-token.c \
- identity-token.c
+ gnunet-service-identity-token.c
 gnunet_service_identity_token_LDADD = \
+ libgnunetidentityprovider.la \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
@@ -41,9 +41,14 @@ gnunet_service_identity_token_LDADD = \
  $(GN_LIBINTL) \
  -ljansson
 
+libgnunetidentityprovider_la_SOURCES = \
+  identity-token.c
+libgnunetidentityprovider_la_LIBADD = \
+	$(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+	$(LTLIBINTL) -ljansson
+
 libgnunet_plugin_rest_identity_token_la_SOURCES = \
-  plugin_rest_identity_token.c \
-	identity-token.c
+  plugin_rest_identity_token.c
 libgnunet_plugin_rest_identity_token_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
