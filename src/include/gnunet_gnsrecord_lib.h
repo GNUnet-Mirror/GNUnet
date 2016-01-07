@@ -91,11 +91,14 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_ID_ATTR 65544
 
 /**
- * Record type for an identity token (of IDENTITY).
+ * Record type for an identity token (of IDENTITY-TOKEN).
  */
 #define GNUNET_GNSRECORD_TYPE_ID_TOKEN 65545
 
-
+/**
+ * Record type for the private metadata of an identity token (of IDENTITY-TOKEN).
+ */
+#define GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA 65546
 
 
 /**

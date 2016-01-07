@@ -447,9 +447,10 @@ sign_and_return_token (void *cls,
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   struct GNUNET_CRYPTO_EcdsaPublicKey aud_pkey;
+  struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct JsonApiResource *json_resource;
   struct RequestHandle *handle = cls;
-  struct GNUNET_GNSRECORD_Data token_record;
+  struct GNUNET_GNSRECORD_Data token_record[2];
   struct GNUNET_HashCode key;
   struct GNUNET_TIME_Relative etime_rel;
   json_t *token_str;
@@ -461,9 +462,13 @@ sign_and_return_token (void *cls,
   char *audience;
   char *nonce_str;
   char *enc_token_str;
+  char *token_metadata;
+  char *scopes;
+  char* write_ptr;
   uint64_t time;
   uint64_t exp_time;
   uint64_t rnd_key;
+  size_t token_metadata_len;
 
   //Remote nonce 
   nonce_str = NULL;
@@ -564,11 +569,7 @@ sign_and_return_token (void *cls,
   identity_token_add_json (handle->token, "exp", json_integer (exp_time));
   identity_token_add_attr (handle->token, "nonce", nonce_str);
 
-  GNUNET_assert (identity_token_serialize (handle->token,
-                                           priv_key,
-                                           &enc_token_str));
-
-
+  
   handle->resp_object = GNUNET_REST_jsonapi_object_new ();
 
   json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_TOKEN,
@@ -589,17 +590,62 @@ sign_and_return_token (void *cls,
   GNUNET_free (token_code_str);
   json_decref (token_code_json);
   GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
-  token_record.data = enc_token_str;
-  token_record.data_size = strlen (enc_token_str) + 1;
-  token_record.expiration_time = exp_time;
-  token_record.record_type = GNUNET_GNSRECORD_TYPE_ID_TOKEN;
-  token_record.flags = GNUNET_GNSRECORD_RF_NONE;
+  //Token in a serialized encrypted format 
+  GNUNET_assert (identity_token_serialize (handle->token,
+                                           priv_key,
+                                           &ecdhe_privkey,
+                                           &enc_token_str));
+
+  //Token record E,E_K (Token)
+  token_record[0].data = enc_token_str;
+  token_record[0].data_size = strlen (enc_token_str) + 1;
+  token_record[0].expiration_time = exp_time;
+  token_record[0].record_type = GNUNET_GNSRECORD_TYPE_ID_TOKEN;
+  token_record[0].flags = GNUNET_GNSRECORD_RF_NONE;
+
+
+  //Meta info
+  GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_ATTR_LIST,
+                      strlen (GNUNET_IDENTITY_TOKEN_ATTR_LIST),
+                      &key);
+
+  scopes = NULL;
+  if ( GNUNET_YES !=
+       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                               &key) )
+  {
+    handle->emsg = GNUNET_strdup ("Scopes missing!\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  scopes = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                              &key);
+
+  token_metadata_len = sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey)
+    + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)
+    + strlen (scopes) + 1; //With 0-Terminator
+  token_metadata = GNUNET_malloc (token_metadata_len);
+  write_ptr = token_metadata;
+  memcpy (token_metadata, ecdhe_privkey, sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey));
+  write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
+  memcpy (write_ptr, &aud_pkey, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+  write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
+  memcpy (write_ptr, scopes, strlen (scopes) + 1); //with 0-Terminator;
+
+  GNUNET_free (ecdhe_privkey);
+
+  token_record[1].data = token_metadata;
+  token_record[1].data_size = token_metadata_len;
+  token_record[1].expiration_time = exp_time;
+  token_record[1].record_type = GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA;
+  token_record[1].flags = GNUNET_GNSRECORD_RF_PRIVATE;
+
   //Persist token
   handle->ns_qe = GNUNET_NAMESTORE_records_store (handle->ns_handle,
                                                   priv_key,
                                                   lbl_str,
-                                                  1,
-                                                  &token_record,
+                                                  2,
+                                                  token_record,
                                                   &store_token_cont,
                                                   handle);
   GNUNET_free (lbl_str);
@@ -970,12 +1016,12 @@ process_lookup_result (void *cls, uint32_t rd_count,
   char* record_str;
 
   handle->lookup_request = NULL;
-  if (1 != rd_count)
+  if (2 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Number of tokens %d != 1.",
+                "Number of tokens %d != 2.",
                 rd_count);
-    handle->emsg = GNUNET_strdup ("Number of tokens != 1.");
+    handle->emsg = GNUNET_strdup ("Number of tokens != 2.");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -985,12 +1031,12 @@ process_lookup_result (void *cls, uint32_t rd_count,
     GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_ID_TOKEN,
                                       rd->data,
                                       rd->data_size);
-  
+
   //Decrypt and parse
   GNUNET_assert (GNUNET_OK ==  identity_token_parse (record_str,
                                                      handle->priv_key,
                                                      &handle->token));
-  
+
   //Readable
   GNUNET_assert (GNUNET_OK == identity_token_to_string (handle->token,
                                                         handle->priv_key,

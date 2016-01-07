@@ -93,12 +93,19 @@ identity_token_add_json (const struct IdentityToken *token,
 int 
 identity_token_serialize (const struct IdentityToken *token,
                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                          struct GNUNET_CRYPTO_EcdhePrivateKey **ecdhe_privkey,
                           char **result);
 
 int
 identity_token_parse (const char* raw_data,
                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                       struct IdentityToken **result);
+
+int
+identity_token_parse2 (const char* raw_data,
+                       const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
+                       struct IdentityToken **result);
 
 int
 identity_token_to_string (const struct IdentityToken *token,

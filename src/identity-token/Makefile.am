@@ -31,8 +31,8 @@ libexec_PROGRAMS = \
  gnunet-service-identity-token
 
 gnunet_service_identity_token_SOURCES = \
- gnunet-service-identity-token.c
-
+ gnunet-service-identity-token.c \
+ identity-token.c
 gnunet_service_identity_token_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \
