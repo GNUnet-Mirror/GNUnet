@@ -97,11 +97,6 @@ struct GNUNET_IDENTITY_PROVIDER_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Function to call when we receive updates.
-   */
-  GNUNET_IDENTITY_PROVIDER_Callback cb;
-
-  /**
    * Closure for 'cb'.
    */
   void *cb_cls;
@@ -156,7 +151,7 @@ reconnect (void *cls,
  * @param h transport service to reconnect
  */
 static void
-reschedule_connect (struct GNUNET_IDENTITY_Handle *h)
+reschedule_connect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
 {
   GNUNET_assert (h->reconnect_task == NULL);
 
@@ -196,12 +191,9 @@ message_handler (void *cls,
   struct GNUNET_IDENTITY_PROVIDER_Token token;
   struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
   const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
-  const struct GNUNET_IDENTITY_ExchangeResultMessage *erm;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-  struct GNUNET_HashCode id;
+  const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
   const char *str;
   uint16_t size;
-  uint16_t name_len;
 
   if (NULL == msg)
   {
@@ -215,22 +207,22 @@ message_handler (void *cls,
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT:
-    if (size < sizeof (struct GNUNET_IDENTITY_IssueResultMessage))
+    if (size < sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage))
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    irm = (const struct GNUNET_IDENTITY_IssueResultMessage *) msg;
+    irm = (const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *) msg;
     str = (const char *) &irm[1];
-    if ( (size > sizeof (struct GNUNET_IDENTITY_IssueResultMessage)) &&
-	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_IssueResultMessage) - 1]) )
+    if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)) &&
+	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) - 1]) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    if (size == sizeof (struct GNUNET_IDENTITY_IssueResultMessage))
+    if (size == sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage))
       str = NULL;
 
     op = h->op_head;
@@ -239,28 +231,28 @@ message_handler (void *cls,
 				 op);
     GNUNET_CLIENT_receive (h->client, &message_handler, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    ticket->data = str;
+    ticket.data = str;
     if (NULL != op->iss_cb)
       op->iss_cb (op->cls, &ticket);
     GNUNET_free (op);
     break;
    case GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT:
-    if (size < sizeof (struct GNUNET_IDENTITY_ExchangeResultMessage))
+    if (size < sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage))
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    erm = (const struct GNUNET_IDENTITY_ExchangeResultMessage *) msg;
+    erm = (const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *) msg;
     str = (const char *) &erm[1];
-    if ( (size > sizeof (struct GNUNET_IDENTITY_ExchangeResultMessage)) &&
-	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_ExchangeResultMessage) - 1]) )
+    if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)) &&
+	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage) - 1]) )
     {
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
-    if (size == sizeof (struct GNUNET_IDENTITY_ExchangeResultMessage))
+    if (size == sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage))
       str = NULL;
 
     op = h->op_head;
@@ -269,9 +261,9 @@ message_handler (void *cls,
 				 op);
     GNUNET_CLIENT_receive (h->client, &message_handler, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    token->data = str;
+    token.data = str;
     if (NULL != op->ex_cb)
-      op->ex_cb (op->cls, token);
+      op->ex_cb (op->cls, &token);
     GNUNET_free (op);
     break;
   
@@ -322,8 +314,8 @@ send_next_message (void *cls,
        "Sending message of type %d to identity provider service\n",
        ntohs (op->msg->type));
   memcpy (buf, op->msg, ret);
-  if ( (NULL == op->cont) &&
-       (NULL == op->cb) )
+  if ( (NULL == op->iss_cb) &&
+       (NULL == op->ex_cb) )
   {
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
@@ -375,9 +367,7 @@ transmit_next (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
 static void
 reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_IDENTITY_Handle *h = cls;
-  struct GNUNET_IDENTITY_Operation *op;
-  struct GNUNET_MessageHeader msg;
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
 
   h->reconnect_task = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -385,20 +375,6 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_assert (NULL == h->client);
   h->client = GNUNET_CLIENT_connect ("identity-provider", h->cfg);
   GNUNET_assert (NULL != h->client);
-  if ( (NULL == h->op_head) ||
-       (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_START != ntohs (h->op_head->msg->type)) )
-  {
-    op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Operation) +
-			sizeof (struct GNUNET_MessageHeader));
-    op->h = h;
-    op->msg = (const struct GNUNET_MessageHeader *) &op[1];
-    msg.size = htons (sizeof (msg));
-    msg.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_START);
-    memcpy (&op[1], &msg, sizeof (msg));
-    GNUNET_CONTAINER_DLL_insert (h->op_head,
-				 h->op_tail,
-				 op);
-  }
   transmit_next (h);
   GNUNET_assert (NULL != h->th);
 }
@@ -417,9 +393,6 @@ GNUNET_IDENTITY_PROVIDER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
   h = GNUNET_new (struct GNUNET_IDENTITY_PROVIDER_Handle);
   h->cfg = cfg;
-  h->cb = cb;
-  h->cb_cls = cb_cls;
-  h->egos = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
   h->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   h->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, h);
   return h;
@@ -440,7 +413,8 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
 		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss_key,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
          const char* scopes,
-         const struct GNUNET_TIME_Absolute exp,
+         struct GNUNET_TIME_Absolute expiration,
+         uint64_t nonce,
 		     GNUNET_IDENTITY_PROVIDER_IssueCallback cb,
 		     void *cb_cls)
 {
@@ -455,18 +429,19 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
     return NULL;
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Operation) +
-		      sizeof (struct GNUNET_IDENTITY_IssueMessage) +
+		      sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage) +
 		      slen);
   op->h = id;
-  op->cb = cb;
+  op->iss_cb = cb;
   op->cls = cb_cls;
-  im = (struct GNUNET_IDENTITY_GetDefaultMessage *) &op[1];
+  im = (struct GNUNET_IDENTITY_PROVIDER_IssueMessage *) &op[1];
   im->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE);
   im->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueMessage) +
 			    slen);
   im->iss_key = *iss_key;
-  im->aud_key = *aud_ley;
-  im->exp = exp.abs_value_ul;
+  im->aud_key = *aud_key;
+  im->nonce = htonl (nonce);
+  im->expiration = GNUNET_TIME_absolute_hton (expiration);
   memcpy (&im[1], scopes, slen);
   op->msg = &im->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
@@ -488,36 +463,41 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
  * @return handle to abort the operation
  */
 struct GNUNET_IDENTITY_PROVIDER_Operation *
-GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_Handle *id,
-		     const char *ticket,
-		     GNUNET_IDENTITY_PROVIDER_ExchangeCallback cont,
-		     void *cont_cls)
+GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle *id,
+                                          const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *aud_privkey,
+                                          GNUNET_IDENTITY_PROVIDER_ExchangeCallback cont,
+                                          void *cont_cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Operation *op;
   struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage *em;
   size_t slen;
+  char *ticket_str;
 
-  slen = strlen (ticket) + 1;
-  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_ExchangeMessage))
+  ticket_str = GNUNET_IDENTITY_PROVIDER_ticket_to_string (ticket);
+
+  slen = strlen (ticket_str) + 1;
+  if (slen >= GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage))
   {
     GNUNET_break (0);
     return NULL;
   }
   op = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Operation) +
-		      sizeof (struct GNUNET_IDENTITY_ExchangeMessage) +
-		      slen);
+                      sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage) +
+                      slen);
   op->h = id;
-  op->cont = cont;
+  op->ex_cb = cont;
   op->cls = cont_cls;
-  em = (struct GNUNET_IDENTITY_ExchangeMessage *) &op[1];
+  em = (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage *) &op[1];
   em->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE);
-  em->header.size = htons (sizeof (struct GNUNET_IDENTITY_ExchangeMessage) +
-			    slen);
-  memcpy (&em[1], ticket, slen);
+  em->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage) +
+                           slen);
+  em->aud_privkey = *aud_privkey;
+  memcpy (&em[1], ticket_str, slen);
   op->msg = &em->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
-				    id->op_tail,
-				    op);
+                                    id->op_tail,
+                                    op);
   if (NULL == id->th)
     transmit_next (id);
   return op;
@@ -535,7 +515,7 @@ GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_Handle *id,
 void
 GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op)
 {
-  struct GNUNET_IDENTITY_Handle *h = op->h;
+  struct GNUNET_IDENTITY_PROVIDER_Handle *h = op->h;
 
   if ( (h->op_head != op) ||
        (NULL == h->client) )
@@ -544,8 +524,8 @@ GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Client aborted non-head operation, simply removing it\n");
     GNUNET_CONTAINER_DLL_remove (h->op_head,
-				 h->op_tail,
-				 op);
+                                 h->op_tail,
+                                 op);
     GNUNET_free (op);
     return;
   }
@@ -557,8 +537,8 @@ GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op)
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
     GNUNET_CONTAINER_DLL_remove (h->op_head,
-				 h->op_tail,
-				 op);
+                                 h->op_tail,
+                                 op);
     GNUNET_free (op);
     transmit_next (h);
     return;
@@ -594,10 +574,9 @@ GNUNET_IDENTITY_PROVIDER_disconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
   }
   while (NULL != (op = h->op_head))
   {
-    GNUNET_break (NULL == op->cont);
     GNUNET_CONTAINER_DLL_remove (h->op_head,
-				 h->op_tail,
-				 op);
+                                 h->op_tail,
+                                 op);
     GNUNET_free (op);
   }
   if (NULL != h->client)

@@ -20,7 +20,8 @@ pkgcfg_DATA = \
   identity-token.conf
 
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_rest_identity_token.la
+	libgnunet_plugin_rest_identity_token.la \
+	libgnunetidentityprovider.la
 
 bin_PROGRAMS = \
  gnunet-identity-token
@@ -39,6 +40,16 @@ gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL) \
  -ljansson
+
+libgnunetidentityprovider_la_SOURCES = \
+ identity_provider_api.c \
+ identity_provider.h
+libgnunetidentityprovider_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+	$(GN_LIBINTL) $(XLIB)
+libgnunetidentityprovider_la_LDFLAGS = \
+	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+	-version-info 0:0:0
 
 libgnunet_plugin_rest_identity_token_la_SOURCES = \
   plugin_rest_identity_token.c

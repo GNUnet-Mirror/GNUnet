@@ -128,7 +128,7 @@ GNUNET_IDENTITY_PROVIDER_issue_token (struct GNUNET_IDENTITY_PROVIDER_Handle *id
 		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *iss_key,
          const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
          const char* scope,
-         struct GNUNET_TIME_Absolute *expiration,
+         struct GNUNET_TIME_Absolute expiration,
          uint64_t nonce,
 		     GNUNET_IDENTITY_PROVIDER_IssueCallback cb,
 		     void *cb_cls);

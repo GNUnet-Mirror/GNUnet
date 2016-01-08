@@ -41,7 +41,7 @@ struct GNUNET_IDENTITY_PROVIDER_Token
   /**
    * The JWT representation of the identity token
    */
-  char *data;
+  const char *data;
 };
 
 /**
@@ -52,7 +52,7 @@ struct GNUNET_IDENTITY_PROVIDER_Ticket
   /**
    * The Base64 representation of the ticket
    */
-  char *data;
+  const char *data;
 };
 
 /**
@@ -142,17 +142,6 @@ struct GNUNET_IDENTITY_PROVIDER_ExchangeMessage
    * Audience identity private key
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey aud_privkey;
-
-
-  /**
-   * Number of bytes in ticket string including 0-termination, in NBO.
-   */
-  uint16_t name_len GNUNET_PACKED;
-
-  /**
-   * Always zero.
-   */
-  uint16_t reserved GNUNET_PACKED;
 
   /* followed by 0-terminated ticket string */
 

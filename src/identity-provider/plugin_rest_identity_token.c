@@ -619,7 +619,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
                                                          priv_key,
                                                          aud_key,
                                                          scopes,
-                                                         &exp_time,
+                                                         exp_time,
                                                          nonce,
                                                          &token_creat_cont,
                                                          handle);

@@ -903,7 +903,6 @@ static void
 sign_and_return_token (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   struct GNUNET_CRYPTO_EcdsaPublicKey aud_pkey;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
@@ -914,7 +913,6 @@ sign_and_return_token (void *cls,
   char *nonce_str;
   char *enc_token_str;
   char *token_metadata;
-  char *scopes;
   char* write_ptr;
   uint64_t time;
   uint64_t exp_time;
@@ -980,7 +978,7 @@ sign_and_return_token (void *cls,
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePrivateKey);
   memcpy (write_ptr, &handle->aud_key, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
-  memcpy (write_ptr, scopes, strlen (scopes) + 1); //with 0-Terminator;
+  memcpy (write_ptr, handle->scopes, strlen (handle->scopes) + 1); //with 0-Terminator;
 
   GNUNET_free (ecdhe_privkey);
 
@@ -992,7 +990,7 @@ sign_and_return_token (void *cls,
 
   //Persist token
   handle->ns_qe = GNUNET_NAMESTORE_records_store (ns_handle,
-                                                  priv_key,
+                                                  &handle->iss_key,
                                                   lbl_str,
                                                   2,
                                                   token_record,
@@ -1207,7 +1205,6 @@ handle_issue_message (void *cls,
   const char *scopes;
   char *scopes_tmp;
   char *scope;
-  char *attr_list_tmp;
   struct GNUNET_HashCode key;
   struct IssueHandle *issue_handle;
 
@@ -1227,7 +1224,7 @@ handle_issue_message (void *cls,
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
   scopes_tmp = GNUNET_strdup (scopes);
-  scope = strtok(attr_list_tmp, ",");
+  scope = strtok(scopes_tmp, ",");
   for (; NULL != scope; scope = strtok (NULL, ","))
   {
     GNUNET_CRYPTO_hash (scope,
