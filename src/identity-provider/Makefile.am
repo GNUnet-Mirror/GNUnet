@@ -21,31 +21,24 @@ pkgcfg_DATA = \
 
 plugin_LTLIBRARIES = \
 	libgnunet_plugin_rest_identity_token.la
-lib_LTLIBRARIES = \
-	libgnunetidentityprovider.la
 
 bin_PROGRAMS = \
  gnunet-identity-token
 
 libexec_PROGRAMS = \
- gnunet-service-identity-token
+ gnunet-service-identity-provider
 
-gnunet_service_identity_token_SOURCES = \
- gnunet-service-identity-token.c
-gnunet_service_identity_token_LDADD = \
- libgnunetidentityprovider.la \
+gnunet_service_identity_provider_SOURCES = \
+ gnunet-service-identity-provider.c \
+ identity_token.c
+gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/identity/libgnunetidentity.la \
+ $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL) \
  -ljansson
-
-libgnunetidentityprovider_la_SOURCES = \
-  identity-token.c
-libgnunetidentityprovider_la_LIBADD = \
-	$(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
-	$(LTLIBINTL) -ljansson
 
 libgnunet_plugin_rest_identity_token_la_SOURCES = \
   plugin_rest_identity_token.c
@@ -53,7 +46,6 @@ libgnunet_plugin_rest_identity_token_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
-	$(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_identity_token_la_LDFLAGS = \

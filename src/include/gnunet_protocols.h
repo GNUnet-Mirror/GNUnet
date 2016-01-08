@@ -2822,8 +2822,23 @@ extern "C"
 
 /*******************************************************************************/
 
+
+/**************************************************
+ *
+ * IDENTITY PROVIDER MESSAGE TYPES
+ */
+#define GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE     961
+
+#define GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE  962
+
+#define GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT     963
+
+#define GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT  964
+
+/*******************************************************************************/
+
 /**
- * Next available: 960
+ * Next available: 970
  */
 
 /**

@@ -19,14 +19,14 @@
  */
 
 /**
- * @file identity-token/identity-token.c
+ * @file identity-token/identity_token.c
  * @brief helper library to manage identity tokens
  * @author Martin Schanzenbach
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
-#include "gnunet_identity_provider_lib.h"
+#include "identity_token.h"
 #include <jansson.h>
 
 
@@ -189,11 +189,11 @@ encrypt_str_ecdhe (const char *plaintext,
  * @param id the JSON API resource id
  * @return a new JSON API resource or NULL on error.
  */
-struct GNUNET_IDENTITY_PROVIDER_Token*
-GNUNET_IDENTITY_PROVIDER_token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey* iss,
+struct IdentityToken*
+token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey* iss,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey* aud)
 {
-  struct GNUNET_IDENTITY_PROVIDER_Token *token;
+  struct IdentityToken *token;
   char* audience;
   char* issuer;
 
@@ -204,7 +204,7 @@ GNUNET_IDENTITY_PROVIDER_token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey
 
 
 
-  token = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Token));
+  token = GNUNET_malloc (sizeof (struct IdentityToken));
 
   token->header = json_object();
   token->payload = json_object();
@@ -214,6 +214,7 @@ GNUNET_IDENTITY_PROVIDER_token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey
 
   json_object_set_new (token->payload, "iss", json_string (issuer));
   json_object_set_new (token->payload, "aud", json_string (audience));
+  json_object_set_new (token->payload, "sub", json_string (issuer));
 
   token->aud_key = *aud;
   GNUNET_free (issuer);
@@ -222,7 +223,7 @@ GNUNET_IDENTITY_PROVIDER_token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey
 }
 
 void
-GNUNET_IDENTITY_PROVIDER_token_destroy (struct GNUNET_IDENTITY_PROVIDER_Token *token)
+token_destroy (struct IdentityToken *token)
 {
   json_decref (token->header);
   json_decref (token->payload);
@@ -230,7 +231,7 @@ GNUNET_IDENTITY_PROVIDER_token_destroy (struct GNUNET_IDENTITY_PROVIDER_Token *t
 }
 
 void
-GNUNET_IDENTITY_PROVIDER_token_add_attr (const struct GNUNET_IDENTITY_PROVIDER_Token *token,
+token_add_attr (const struct IdentityToken *token,
                                          const char* key,
                                          const char* value)
 {
@@ -241,7 +242,7 @@ GNUNET_IDENTITY_PROVIDER_token_add_attr (const struct GNUNET_IDENTITY_PROVIDER_T
 }
 
 void
-GNUNET_IDENTITY_PROVIDER_token_add_json (const struct GNUNET_IDENTITY_PROVIDER_Token *token,
+token_add_json (const struct IdentityToken *token,
                                          const char* key,
                                          json_t* value)
 {
@@ -253,10 +254,10 @@ GNUNET_IDENTITY_PROVIDER_token_add_json (const struct GNUNET_IDENTITY_PROVIDER_T
 
 
 int
-GNUNET_IDENTITY_PROVIDER_token_parse2 (const char* raw_data,
+token_parse2 (const char* raw_data,
                                        const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
-                                       struct GNUNET_IDENTITY_PROVIDER_Token **result)
+                                       struct IdentityToken **result)
 {
   char *enc_token_str;
   char *tmp_buf;
@@ -299,7 +300,7 @@ GNUNET_IDENTITY_PROVIDER_token_parse2 (const char* raw_data,
   //TODO signature
 
 
-  *result = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Token));
+  *result = GNUNET_malloc (sizeof (struct IdentityToken));
   (*result)->aud_key =  *aud_key;
   (*result)->header = json_loads (header, JSON_DECODE_ANY, &err_json);
   (*result)->payload = json_loads (payload, JSON_DECODE_ANY, &err_json);
@@ -312,9 +313,9 @@ GNUNET_IDENTITY_PROVIDER_token_parse2 (const char* raw_data,
 }
 
 int
-GNUNET_IDENTITY_PROVIDER_token_parse (const char* raw_data,
+token_parse (const char* raw_data,
                                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                      struct GNUNET_IDENTITY_PROVIDER_Token **result)
+                                      struct IdentityToken **result)
 {
   char *ecdh_pubkey_str;
   char *enc_token_str;
@@ -363,7 +364,7 @@ GNUNET_IDENTITY_PROVIDER_token_parse (const char* raw_data,
   //TODO signature and aud key
 
 
-  *result = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Token));
+  *result = GNUNET_malloc (sizeof (struct IdentityToken));
   (*result)->header = json_loads (header, JSON_DECODE_ANY, &err_json);
   (*result)->payload = json_loads (payload, JSON_DECODE_ANY, &err_json);
   GNUNET_free (enc_token);
@@ -375,7 +376,7 @@ GNUNET_IDENTITY_PROVIDER_token_parse (const char* raw_data,
 }
 
 int
-GNUNET_IDENTITY_PROVIDER_token_to_string (const struct GNUNET_IDENTITY_PROVIDER_Token *token,
+token_to_string (const struct IdentityToken *token,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                                           char **result)
 {
@@ -443,7 +444,7 @@ GNUNET_IDENTITY_PROVIDER_token_to_string (const struct GNUNET_IDENTITY_PROVIDER_
 }
 
 int
-GNUNET_IDENTITY_PROVIDER_token_serialize (const struct GNUNET_IDENTITY_PROVIDER_Token *token,
+token_serialize (const struct IdentityToken *token,
                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                                           struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
                                           char **result)
@@ -454,7 +455,7 @@ GNUNET_IDENTITY_PROVIDER_token_serialize (const struct GNUNET_IDENTITY_PROVIDER_
   char *enc_token_base64;
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
 
-  GNUNET_assert (GNUNET_OK == GNUNET_IDENTITY_PROVIDER_token_to_string (token,
+  GNUNET_assert (GNUNET_OK == token_to_string (token,
                                                                         priv_key,
                                                                         &token_str));
 
@@ -476,14 +477,14 @@ GNUNET_IDENTITY_PROVIDER_token_serialize (const struct GNUNET_IDENTITY_PROVIDER_
   return GNUNET_OK;
 }
 
-struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload*
-GNUNET_IDENTITY_PROVIDER_ticket_payload_create (const char* nonce,
+struct TokenTicketPayload*
+ticket_payload_create (const char* nonce,
                                                 const struct GNUNET_CRYPTO_EcdsaPublicKey* identity_pkey,
                                                 const char* lbl_str)
 {
-  struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload* payload;
+  struct TokenTicketPayload* payload;
 
-  payload = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload));
+  payload = GNUNET_malloc (sizeof (struct TokenTicketPayload));
   GNUNET_asprintf (&payload->nonce, nonce, strlen (nonce));
   payload->identity_key = *identity_pkey;
   GNUNET_asprintf (&payload->label, lbl_str, strlen (lbl_str));
@@ -491,7 +492,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_payload_create (const char* nonce,
 }
 
 void
-GNUNET_IDENTITY_PROVIDER_ticket_payload_destroy (struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload* payload)
+ticket_payload_destroy (struct TokenTicketPayload* payload)
 {
   GNUNET_free (payload->nonce);
   GNUNET_free (payload->label);
@@ -499,7 +500,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_payload_destroy (struct GNUNET_IDENTITY_PROVIDER
 }
 
 void
-GNUNET_IDENTITY_PROVIDER_ticket_payload_serialize (struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload *payload,
+ticket_payload_serialize (struct TokenTicketPayload *payload,
                                                    char **result)
 {
   char* identity_key_str;
@@ -522,17 +523,17 @@ GNUNET_IDENTITY_PROVIDER_ticket_payload_serialize (struct GNUNET_IDENTITY_PROVID
  * The ticket also contains E (ecdh_pubkey) and a signature over the
  * metadata and E
  */
-struct GNUNET_IDENTITY_PROVIDER_TokenTicket*
-GNUNET_IDENTITY_PROVIDER_ticket_create (const char* nonce_str,
+struct TokenTicket*
+ticket_create (const char* nonce_str,
                                         const struct GNUNET_CRYPTO_EcdsaPublicKey* identity_pkey,
                                         const char* lbl_str,
                                         const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key)
 {
-  struct GNUNET_IDENTITY_PROVIDER_TokenTicket *ticket;
-  struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload *code_payload;
+  struct TokenTicket *ticket;
+  struct TokenTicketPayload *code_payload;
 
-  ticket = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_TokenTicket));
-  code_payload = GNUNET_IDENTITY_PROVIDER_ticket_payload_create (nonce_str,
+  ticket = GNUNET_malloc (sizeof (struct TokenTicket));
+  code_payload = ticket_payload_create (nonce_str,
                                                                  identity_pkey,
                                                                  lbl_str);
   ticket->aud_key = *aud_key;
@@ -543,14 +544,14 @@ GNUNET_IDENTITY_PROVIDER_ticket_create (const char* nonce_str,
 }
 
 void
-GNUNET_IDENTITY_PROVIDER_ticket_destroy (struct GNUNET_IDENTITY_PROVIDER_TokenTicket *ticket)
+ticket_destroy (struct TokenTicket *ticket)
 {
-  GNUNET_IDENTITY_PROVIDER_ticket_payload_destroy (ticket->payload);
+  ticket_payload_destroy (ticket->payload);
   GNUNET_free (ticket);
 }
 
 int
-GNUNET_IDENTITY_PROVIDER_ticket_serialize (struct GNUNET_IDENTITY_PROVIDER_TokenTicket *ticket,
+ticket_serialize (struct TokenTicket *ticket,
                                            const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                                            char **result)
 {
@@ -565,7 +566,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_serialize (struct GNUNET_IDENTITY_PROVIDER_Token
 
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
 
-  GNUNET_IDENTITY_PROVIDER_ticket_payload_serialize (ticket->payload,
+  ticket_payload_serialize (ticket->payload,
                                                      &code_payload_str);
 
   GNUNET_assert (GNUNET_OK == encrypt_str_ecdhe (code_payload_str,
@@ -617,11 +618,11 @@ GNUNET_IDENTITY_PROVIDER_ticket_serialize (struct GNUNET_IDENTITY_PROVIDER_Token
 }
 
 int
-GNUNET_IDENTITY_PROVIDER_ticket_payload_parse(const char *raw_data,
+ticket_payload_parse(const char *raw_data,
                                               ssize_t data_len,
                                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                                               const struct GNUNET_CRYPTO_EcdhePublicKey *ecdhe_pkey,
-                                              struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload **result)
+                                              struct TokenTicketPayload **result)
 {
   const char* label_str;
   const char* nonce_str;
@@ -697,7 +698,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_payload_parse(const char *raw_data,
   nonce_str = json_string_value (nonce_json);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found nonce: %s\n", nonce_str);
 
-  *result = GNUNET_IDENTITY_PROVIDER_ticket_payload_create (nonce_str,
+  *result = ticket_payload_create (nonce_str,
                                                             (const struct GNUNET_CRYPTO_EcdsaPublicKey*)&id_pkey,
                                                             label_str);
   GNUNET_free (meta_str);
@@ -707,9 +708,9 @@ GNUNET_IDENTITY_PROVIDER_ticket_payload_parse(const char *raw_data,
 }
 
 int
-GNUNET_IDENTITY_PROVIDER_ticket_parse (const char *raw_data,
+ticket_parse (const char *raw_data,
                                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                       struct GNUNET_IDENTITY_PROVIDER_TokenTicket **result)
+                                       struct TokenTicket **result)
 {
   const char* enc_meta_str;
   const char* ecdh_enc_str;
@@ -725,8 +726,8 @@ GNUNET_IDENTITY_PROVIDER_ticket_parse (const char *raw_data,
   char* write_ptr;
   size_t enc_meta_len;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
-  struct GNUNET_IDENTITY_PROVIDER_TokenTicket *ticket;
-  struct GNUNET_IDENTITY_PROVIDER_TokenTicketPayload *ticket_payload;
+  struct TokenTicket *ticket;
+  struct TokenTicketPayload *ticket_payload;
 
   ticket_decoded = NULL;
   GNUNET_STRINGS_base64_decode (raw_data, strlen (raw_data), &ticket_decoded);
@@ -747,7 +748,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_parse (const char *raw_data,
   ecdh_enc_str = json_string_value (ecdh_json);
   enc_meta_str = json_string_value (enc_meta_json);
 
-  ticket = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_TokenTicket));
+  ticket = GNUNET_malloc (sizeof (struct TokenTicket));
 
   if (GNUNET_OK != GNUNET_STRINGS_string_to_data (ecdh_enc_str,
                                                   strlen (ecdh_enc_str),
@@ -777,7 +778,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_parse (const char *raw_data,
                                                &enc_meta);
 
 
-  GNUNET_IDENTITY_PROVIDER_ticket_payload_parse (enc_meta,
+  ticket_payload_parse (enc_meta,
                                                  enc_meta_len,
                                                  priv_key,
                                                  (const struct GNUNET_CRYPTO_EcdhePublicKey*)&ticket->ecdh_pubkey,
@@ -804,7 +805,7 @@ GNUNET_IDENTITY_PROVIDER_ticket_parse (const char *raw_data,
                                                &ticket->signature,
                                                &ticket_payload->identity_key))
   {
-    GNUNET_IDENTITY_PROVIDER_ticket_destroy (ticket);
+    ticket_destroy (ticket);
     GNUNET_free (ticket_decoded);
     json_decref (root);
     GNUNET_free (purpose);
@@ -824,4 +825,4 @@ GNUNET_IDENTITY_PROVIDER_ticket_parse (const char *raw_data,
 
 
 
-/* end of identity-token.c */
+/* end of identity_token.c */
