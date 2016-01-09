@@ -41,7 +41,7 @@ struct GNUNET_IDENTITY_PROVIDER_Token
   /**
    * The JWT representation of the identity token
    */
-  const char *data;
+  char *data;
 };
 
 /**
@@ -52,7 +52,7 @@ struct GNUNET_IDENTITY_PROVIDER_Ticket
   /**
    * The Base64 representation of the ticket
    */
-  const char *data;
+  char *data;
 };
 
 /**

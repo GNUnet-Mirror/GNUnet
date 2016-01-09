@@ -167,7 +167,8 @@ encrypt_str_ecdhe (const char *plaintext,
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Encrypting string %s\n (len=%d)",
               plaintext,
               strlen (plaintext));
-  enc_size = GNUNET_CRYPTO_symmetric_encrypt (plaintext, strlen (plaintext),
+  enc_size = GNUNET_CRYPTO_symmetric_encrypt (plaintext,
+                                              strlen (plaintext),
                                               &skey, &iv,
                                               *cyphertext);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Encrypted (len=%d)", enc_size);
@@ -494,14 +495,16 @@ ticket_payload_create (const char* nonce,
 void
 ticket_payload_destroy (struct TokenTicketPayload* payload)
 {
-  GNUNET_free (payload->nonce);
-  GNUNET_free (payload->label);
+  if (NULL != payload->nonce)
+    GNUNET_free (payload->nonce);
+  if (NULL != payload->label)
+    GNUNET_free (payload->label);
   GNUNET_free (payload);
 }
 
 void
 ticket_payload_serialize (struct TokenTicketPayload *payload,
-                                                   char **result)
+                          char **result)
 {
   char* identity_key_str;
 
@@ -525,17 +528,17 @@ ticket_payload_serialize (struct TokenTicketPayload *payload,
  */
 struct TokenTicket*
 ticket_create (const char* nonce_str,
-                                        const struct GNUNET_CRYPTO_EcdsaPublicKey* identity_pkey,
-                                        const char* lbl_str,
-                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key)
+               const struct GNUNET_CRYPTO_EcdsaPublicKey* identity_pkey,
+               const char* lbl_str,
+               const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key)
 {
   struct TokenTicket *ticket;
   struct TokenTicketPayload *code_payload;
 
   ticket = GNUNET_malloc (sizeof (struct TokenTicket));
   code_payload = ticket_payload_create (nonce_str,
-                                                                 identity_pkey,
-                                                                 lbl_str);
+                                        identity_pkey,
+                                        lbl_str);
   ticket->aud_key = *aud_key;
   ticket->payload = code_payload;
 
@@ -552,8 +555,8 @@ ticket_destroy (struct TokenTicket *ticket)
 
 int
 ticket_serialize (struct TokenTicket *ticket,
-                                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                           char **result)
+                  const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                  char **result)
 {
   char *code_payload_str;
   char *enc_ticket_payload;
@@ -567,7 +570,7 @@ ticket_serialize (struct TokenTicket *ticket,
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
 
   ticket_payload_serialize (ticket->payload,
-                                                     &code_payload_str);
+                            &code_payload_str);
 
   GNUNET_assert (GNUNET_OK == encrypt_str_ecdhe (code_payload_str,
                                                  &ticket->aud_key,
@@ -594,7 +597,7 @@ ticket_serialize (struct TokenTicket *ticket,
   memcpy (write_ptr, enc_ticket_payload, strlen (code_payload_str));
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecdsa_sign (priv_key,
                                                         purpose,
-                                                       &ticket->signature));
+                                                        &ticket->signature));
   GNUNET_STRINGS_base64_encode (enc_ticket_payload,
                                 strlen (code_payload_str),
                                 &ticket_payload_str);
@@ -619,10 +622,10 @@ ticket_serialize (struct TokenTicket *ticket,
 
 int
 ticket_payload_parse(const char *raw_data,
-                                              ssize_t data_len,
-                                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                              const struct GNUNET_CRYPTO_EcdhePublicKey *ecdhe_pkey,
-                                              struct TokenTicketPayload **result)
+                     ssize_t data_len,
+                     const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                     const struct GNUNET_CRYPTO_EcdhePublicKey *ecdhe_pkey,
+                     struct TokenTicketPayload **result)
 {
   const char* label_str;
   const char* nonce_str;
@@ -699,8 +702,8 @@ ticket_payload_parse(const char *raw_data,
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found nonce: %s\n", nonce_str);
 
   *result = ticket_payload_create (nonce_str,
-                                                            (const struct GNUNET_CRYPTO_EcdsaPublicKey*)&id_pkey,
-                                                            label_str);
+                                   (const struct GNUNET_CRYPTO_EcdsaPublicKey*)&id_pkey,
+                                   label_str);
   GNUNET_free (meta_str);
   json_decref (root);
   return GNUNET_OK;
@@ -709,8 +712,8 @@ ticket_payload_parse(const char *raw_data,
 
 int
 ticket_parse (const char *raw_data,
-                                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                       struct TokenTicket **result)
+              const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+              struct TokenTicket **result)
 {
   const char* enc_meta_str;
   const char* ecdh_enc_str;
@@ -778,11 +781,18 @@ ticket_parse (const char *raw_data,
                                                &enc_meta);
 
 
-  ticket_payload_parse (enc_meta,
-                                                 enc_meta_len,
-                                                 priv_key,
-                                                 (const struct GNUNET_CRYPTO_EcdhePublicKey*)&ticket->ecdh_pubkey,
-                                                 &ticket_payload);
+  if (GNUNET_OK != ticket_payload_parse (enc_meta,
+                                         enc_meta_len,
+                                         priv_key,
+                                         (const struct GNUNET_CRYPTO_EcdhePublicKey*)&ticket->ecdh_pubkey,
+                                         &ticket_payload))
+  {
+    json_decref (root);
+    GNUNET_free (enc_meta);
+    GNUNET_free (ticket_decoded);
+    GNUNET_free (ticket);
+    return GNUNET_SYSERR;
+  }
 
   ticket->payload = ticket_payload;
   //TODO: check signature here

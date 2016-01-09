@@ -17,10 +17,10 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfg_DATA = \
-  identity-token.conf
+  identity-provider.conf
 
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_rest_identity_token.la \
+	libgnunet_plugin_rest_identity_provider.la \
 	libgnunetidentityprovider.la
 
 bin_PROGRAMS = \
@@ -51,15 +51,16 @@ libgnunetidentityprovider_la_LDFLAGS = \
 	$(GN_LIB_LDFLAGS)  $(WINFLAGS) \
 	-version-info 0:0:0
 
-libgnunet_plugin_rest_identity_token_la_SOURCES = \
-  plugin_rest_identity_token.c
-libgnunet_plugin_rest_identity_token_la_LIBADD = \
+libgnunet_plugin_rest_identity_provider_la_SOURCES = \
+  plugin_rest_identity_provider.c
+libgnunet_plugin_rest_identity_provider_la_LIBADD = \
 	$(top_builddir)/src/identity/libgnunetidentity.la \
+	libgnunetidentityprovider.la \
 	$(top_builddir)/src/rest/libgnunetrest.la \
 	$(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
-libgnunet_plugin_rest_identity_token_la_LDFLAGS = \
+libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
 
 

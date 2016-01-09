@@ -177,16 +177,51 @@ GNUNET_IDENTITY_PROVIDER_cancel (struct GNUNET_IDENTITY_PROVIDER_Operation *op);
 /**
  * Convenience API
  */
+
+/**
+ * Destroy token
+ *
+ * @param token the token
+ */
+void
+GNUNET_IDENTITY_PROVIDER_token_destroy(struct GNUNET_IDENTITY_PROVIDER_Token *token);
+
+/**
+ * Returns string representation of token. A JSON-Web-Token.
+ *
+ * @param token the token
+ * @return The JWT (must be freed)
+ */
 char *
 GNUNET_IDENTITY_PROVIDER_token_to_string (const struct GNUNET_IDENTITY_PROVIDER_Token *token);
 
+/**
+ * Returns string representation of ticket. Base64-Encoded
+ *
+ * @param ticket the ticket
+ * @return the Base64-Encoded ticket
+ */
 char *
 GNUNET_IDENTITY_PROVIDER_ticket_to_string (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
 
-
+/**
+ * Created a ticket from a string (Base64 encoded ticket)
+ *
+ * @param input Base64 encoded ticket
+ * @param ticket pointer where the ticket is stored
+ * @return GNUNET_OK
+ */
 int
 GNUNET_IDENTITY_PROVIDER_string_to_ticket (const char* input,
                                            struct GNUNET_IDENTITY_PROVIDER_Ticket **ticket);
+
+/**
+ * Destroys a ticket
+ *
+ * @param ticket the ticket to destroy
+ */
+void
+GNUNET_IDENTITY_PROVIDER_ticket_destroy(struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

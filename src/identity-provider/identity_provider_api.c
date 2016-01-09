@@ -192,7 +192,7 @@ message_handler (void *cls,
   struct GNUNET_IDENTITY_PROVIDER_Ticket ticket;
   const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
   const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
-  const char *str;
+  char *str;
   uint16_t size;
 
   if (NULL == msg)
@@ -214,7 +214,7 @@ message_handler (void *cls,
       return;
     }
     irm = (const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *) msg;
-    str = (const char *) &irm[1];
+    str = (char *) &irm[1];
     if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)) &&
 	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) - 1]) )
     {
@@ -244,7 +244,7 @@ message_handler (void *cls,
       return;
     }
     erm = (const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *) msg;
-    str = (const char *) &erm[1];
+    str = (char *) &erm[1];
     if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)) &&
 	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage) - 1]) )
     {
@@ -494,6 +494,7 @@ GNUNET_IDENTITY_PROVIDER_exchange_ticket (struct GNUNET_IDENTITY_PROVIDER_Handle
                            slen);
   em->aud_privkey = *aud_privkey;
   memcpy (&em[1], ticket_str, slen);
+  GNUNET_free (ticket_str);
   op->msg = &em->header;
   GNUNET_CONTAINER_DLL_insert_tail (id->op_head,
                                     id->op_tail,
@@ -586,5 +587,83 @@ GNUNET_IDENTITY_PROVIDER_disconnect (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
   }
   GNUNET_free (h);
 }
+
+/**
+ * Convenience API
+ */
+
+
+/**
+ * Destroy token
+ *
+ * @param token the token
+ */
+void
+GNUNET_IDENTITY_PROVIDER_token_destroy(struct GNUNET_IDENTITY_PROVIDER_Token *token)
+{
+  GNUNET_assert (NULL != token);
+  if (NULL != token->data)
+    GNUNET_free (token->data);
+  GNUNET_free (token);
+}
+
+/**
+ * Returns string representation of token. A JSON-Web-Token.
+ *
+ * @param token the token
+ * @return The JWT (must be freed)
+ */
+char *
+GNUNET_IDENTITY_PROVIDER_token_to_string (const struct GNUNET_IDENTITY_PROVIDER_Token *token)
+{
+  return GNUNET_strdup (token->data);
+}
+
+/**
+ * Returns string representation of ticket. Base64-Encoded
+ *
+ * @param ticket the ticket
+ * @return the Base64-Encoded ticket
+ */
+char *
+GNUNET_IDENTITY_PROVIDER_ticket_to_string (const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+{
+  return GNUNET_strdup (ticket->data);
+}
+
+/**
+ * Created a ticket from a string (Base64 encoded ticket)
+ *
+ * @param input Base64 encoded ticket
+ * @param ticket pointer where the ticket is stored
+ * @return GNUNET_OK
+ */
+int
+GNUNET_IDENTITY_PROVIDER_string_to_ticket (const char* input,
+                                           struct GNUNET_IDENTITY_PROVIDER_Ticket **ticket)
+{
+  *ticket = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_Ticket));
+  (*ticket)->data = GNUNET_strdup (input);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Destroys a ticket
+ *
+ * @param ticket the ticket to destroy
+ */
+void
+GNUNET_IDENTITY_PROVIDER_ticket_destroy(struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+{
+  GNUNET_assert (NULL != ticket);
+  if (NULL != ticket->data)
+    GNUNET_free (ticket->data);
+  GNUNET_free (ticket);
+}
+
+
+
+
 
 /* end of identity_provider_api.c */
