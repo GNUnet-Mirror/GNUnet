@@ -19,7 +19,7 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file src/identity/gnunet-service-identity-provider.c
+ * @file src/identity-provider/gnunet-service-identity-provider.c
  * @brief Identity Token Service
  *
  */
@@ -53,6 +53,11 @@
 #define MIN_WAIT_TIME GNUNET_TIME_UNIT_MINUTES
 
 /**
+ * Standard token expiration time
+ */
+#define DEFAULT_TOKEN_EXPIRATION_INTERVAL GNUNET_TIME_UNIT_HOURS
+
+/**
  * Service state (to detect initial update pass)
  */
 static int state;
@@ -71,6 +76,11 @@ static struct EgoEntry *ego_tail;
  * Identity handle
  */
 static struct GNUNET_IDENTITY_Handle *identity_handle;
+
+/**
+ * Token expiration interval
+ */
+static struct GNUNET_TIME_Relative token_expiration_interval;
 
 /**
  * Namestore handle
@@ -143,6 +153,12 @@ static struct GNUNET_STATISTICS_Handle *stats;
  * Notification context, simplifies client broadcasts.
  */
 static struct GNUNET_SERVER_NotificationContext *nc;
+
+/**
+ * Our configuration.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
 
 struct ExchangeHandle
 {
@@ -275,18 +291,12 @@ struct EgoEntry
 };
 
 /**
- * Our configuration.
+ * Continuation for token store call
+ *
+ * @param cls NULL
+ * @param success error code
+ * @param emsg error message
  */
-  static const struct GNUNET_CONFIGURATION_Handle *cfg;
-
-
-  /**
-   * Continuation for token store call
-   *
-   * @param cls NULL
-   * @param success error code
-   * @param emsg error message
-   */
 static void
 store_token_cont (void *cls,
                   int32_t success,
@@ -576,9 +586,6 @@ token_collect (void *cls,
                 aud_key,
                 &token);
 
-  //token = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-  //                                          rd->data,
-  //                                          rd->data_size);
   label = GNUNET_strdup (lbl); 
   rd_exp = token_record->expiration_time;
 
@@ -692,7 +699,7 @@ update_identities(void *cls,
                 ">>> Finished. Rescheduling in %d\n",
                 min_rel_exp.rel_value_us);
     ns_it = NULL;
-    //finished -> TODO reschedule
+    //finished -> reschedule
     update_task = GNUNET_SCHEDULER_add_delayed (min_rel_exp,
                                                 &update_identities,
                                                 ego_head);
@@ -866,7 +873,21 @@ create_issue_result_message (const char* ticket)
   return irm;
 }
 
-void
+static void
+cleanup_issue_handle (struct IssueHandle *handle)
+{
+  if (NULL != handle->attr_map)
+    GNUNET_CONTAINER_multihashmap_destroy (handle->attr_map);
+  if (NULL != handle->scopes)
+    GNUNET_free (handle->scopes);
+  if (NULL != handle->token)
+    token_destroy (handle->token);
+  if (NULL != handle->ticket)
+    ticket_destroy (handle->ticket);
+  GNUNET_free (handle);
+}
+
+static void
 store_token_issue_cont (void *cls,
                         int32_t success,
                         const char *emsg)
@@ -877,16 +898,19 @@ store_token_issue_cont (void *cls,
   handle->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
-    //TODO err msg
+    cleanup_issue_handle (handle);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
+                "Unknown Error\n");
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   if (GNUNET_OK != ticket_serialize (handle->ticket,
                                      &handle->iss_key,
                                      &token_ticket_str))
   {
-    GNUNET_CONTAINER_multihashmap_destroy (handle->attr_map);
-    ticket_destroy (handle->ticket);
-    GNUNET_free (handle);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
+                "Error serializing ticket\n");
+    cleanup_issue_handle (handle);
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL); 
     return;
   }
@@ -896,11 +920,7 @@ store_token_issue_cont (void *cls,
                                               &irm->header,
                                               GNUNET_NO);
   GNUNET_SERVER_client_set_user_context (handle->client, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (handle->attr_map);
-  GNUNET_free (handle->scopes);
-  token_destroy (handle->token);
-  ticket_destroy (handle->ticket);
-  GNUNET_free (handle);
+  cleanup_issue_handle (handle);
   GNUNET_free (irm);
   GNUNET_free (token_ticket_str);
 }
@@ -922,7 +942,6 @@ sign_and_return_token (void *cls,
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
   struct IssueHandle *handle = cls;
   struct GNUNET_GNSRECORD_Data token_record[2];
-  struct GNUNET_TIME_Relative etime_rel;
   char *lbl_str;
   char *nonce_str;
   char *enc_token_str;
@@ -946,30 +965,18 @@ sign_and_return_token (void *cls,
                                 &lbl_str);
   GNUNET_CRYPTO_ecdsa_key_get_public (&handle->iss_key,
                                       &pub_key);
-
   handle->ticket = ticket_create (nonce_str,
                                   &pub_key,
                                   lbl_str,
                                   &handle->aud_key);
 
-
-  if (GNUNET_OK !=
-      GNUNET_STRINGS_fancy_time_to_relative ("1d", //TODO
-                                             &etime_rel))
-  {
-    ticket_destroy (handle->ticket);
-    GNUNET_free (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, handle);
-    return;
-  }
   time = GNUNET_TIME_absolute_get().abs_value_us;
-  exp_time = time + etime_rel.rel_value_us;
+  exp_time = time + token_expiration_interval.rel_value_us;
 
   token_add_json (handle->token, "nbf", json_integer (time));
   token_add_json (handle->token, "iat", json_integer (time));
   token_add_json (handle->token, "exp", json_integer (exp_time));
   token_add_attr (handle->token, "nonce", nonce_str);
-
 
   //Token in a serialized encrypted format 
   GNUNET_assert (token_serialize (handle->token,
@@ -996,8 +1003,6 @@ sign_and_return_token (void *cls,
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
   memcpy (write_ptr, handle->scopes, strlen (handle->scopes) + 1); //with 0-Terminator;
 
-  GNUNET_free (ecdhe_privkey);
-
   token_record[1].data = token_metadata;
   token_record[1].data_size = token_metadata_len;
   token_record[1].expiration_time = exp_time;
@@ -1010,8 +1015,9 @@ sign_and_return_token (void *cls,
                                                   lbl_str,
                                                   2,
                                                   token_record,
-                                                       &store_token_issue_cont,
+                                                  &store_token_issue_cont,
                                                   handle);
+  GNUNET_free (ecdhe_privkey);
   GNUNET_free (lbl_str);
   GNUNET_free (nonce_str);
   GNUNET_free (enc_token_str);
@@ -1100,6 +1106,16 @@ attr_collect (void *cls,
 }
 
 static void
+cleanup_exchange_handle (struct ExchangeHandle *handle)
+{
+  if (NULL != handle->ticket) 
+    ticket_destroy (handle->ticket);
+  if (NULL != handle->token)
+    token_destroy (handle->token);
+  GNUNET_free (handle);
+}
+
+static void
 process_lookup_result (void *cls, uint32_t rd_count,
                        const struct GNUNET_GNSRECORD_Data *rd)
 {
@@ -1114,8 +1130,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Number of tokens %d != 2.",
                 rd_count);
-    GNUNET_free (handle->label);
-    GNUNET_free (handle);
+    cleanup_exchange_handle (handle);
     GNUNET_SCHEDULER_add_now (&do_shutdown, handle);
     return;
   }
@@ -1142,11 +1157,10 @@ process_lookup_result (void *cls, uint32_t rd_count,
                                               &erm->header,
                                               GNUNET_NO);
   GNUNET_SERVER_client_set_user_context (handle->client, NULL);
-  ticket_destroy (handle->ticket);
-  token_destroy (handle->token);
+
+  cleanup_exchange_handle (handle);
   GNUNET_free (record_str);
   GNUNET_free (token_str);
-  GNUNET_free (handle);
   GNUNET_free (erm);
 
 }
@@ -1184,7 +1198,7 @@ handle_exchange_message (void *cls,
               ticket);
   xchange_handle = GNUNET_malloc (sizeof (struct ExchangeHandle));
   xchange_handle->aud_privkey = em->aud_privkey;
-  
+
   if (GNUNET_SYSERR == ticket_parse (ticket,
                                      &xchange_handle->aud_privkey,
                                      &xchange_handle->ticket))
@@ -1228,8 +1242,9 @@ handle_issue_message (void *cls,
                       const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_IDENTITY_PROVIDER_IssueMessage *im;
-  uint16_t size;
   const char *scopes;
+
+  uint16_t size;
   char *scopes_tmp;
   char *scope;
   struct GNUNET_HashCode key;
@@ -1282,8 +1297,6 @@ handle_issue_message (void *cls,
                                                                &im->iss_key,
                                                                &attr_collect,
                                                                issue_handle);
-
-
 }
 
 /**
@@ -1329,6 +1342,20 @@ run (void *cls,
   identity_handle = GNUNET_IDENTITY_connect (cfg,
                                              &list_ego,
                                              NULL);
+  
+  if (GNUNET_OK == 
+      GNUNET_CONFIGURATION_get_value_time (cfg,
+                                             "identity-provider",
+                                            "TOKEN_EXPIRATION_INTERVAL",
+                                            &token_expiration_interval))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Time window for zone iteration: %s\n",
+                GNUNET_STRINGS_relative_time_to_string (token_expiration_interval,
+                                                                     GNUNET_YES));
+  } else {
+    token_expiration_interval = DEFAULT_TOKEN_EXPIRATION_INTERVAL;
+  }
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown, NULL);
