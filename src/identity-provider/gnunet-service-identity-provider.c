@@ -32,7 +32,6 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_gns_service.h"
-#include <jansson.h>
 #include "gnunet_signatures.h"
 #include "identity_provider.h"
 #include "identity_token.h"
@@ -328,7 +327,7 @@ handle_token_update (void *cls,
   char *token_metadata;
   char *write_ptr;
   char *enc_token_str;
-  const char *key;
+  char *val_str;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   struct GNUNET_CRYPTO_EcdhePrivateKey *new_ecdhe_privkey;
@@ -343,11 +342,8 @@ handle_token_update (void *cls,
   struct GNUNET_TIME_Absolute new_iat;
   struct GNUNET_TIME_Absolute new_nbf;
   struct IdentityToken *new_token;
-  json_t *payload_json;
-  json_t *value;
-  json_t *cur_value;
-  json_t *token_nbf_json;
-  json_t *token_exp_json;
+  struct TokenAttr *cur_value;
+  struct TokenAttr *attr;
   size_t token_metadata_len;
 
   priv_key = GNUNET_IDENTITY_ego_get_private_key (ego_entry->ego);
@@ -363,12 +359,19 @@ handle_token_update (void *cls,
   //but this service will reissue new tokens that can be retrieved from GNS
   //automatically.
 
-  payload_json = token->payload;
-
-  token_exp_json = json_object_get (payload_json, "exp");
-  token_nbf_json = json_object_get (payload_json, "nbf");
-  token_exp.abs_value_us = json_integer_value(token_exp_json);
-  token_nbf.abs_value_us = json_integer_value(token_nbf_json);
+  for (attr = token->attr_head; NULL != attr; attr = attr->next)
+  {
+    if (0 == strcmp (attr->name, "exp"))
+    {
+      sscanf (attr->val_head->value,
+              "%lu",
+              &token_exp.abs_value_us);
+    } else if (0 == strcmp (attr->name, "nbf")) {
+      sscanf (attr->val_head->value,
+              "%lu",
+              &token_nbf.abs_value_us);
+    }
+  }
   token_rel_exp = GNUNET_TIME_absolute_get_difference (token_nbf, token_exp);
 
   token_ttl = GNUNET_TIME_absolute_get_remaining (token_exp);
@@ -379,7 +382,6 @@ handle_token_update (void *cls,
     {
       min_rel_exp = token_ttl;
     }
-    json_decref (payload_json);
     GNUNET_free (token);
     token = NULL;
     GNUNET_free (label);
@@ -396,41 +398,52 @@ handle_token_update (void *cls,
   new_exp = GNUNET_TIME_relative_to_absolute (token_rel_exp);
   new_nbf = GNUNET_TIME_absolute_get ();
   new_iat = new_nbf;
-
-  json_object_foreach(payload_json, key, value) {
-    if (0 == strcmp (key, "exp"))
+  for (attr = token->attr_head; NULL != attr; attr = attr->next)
+  {
+    if (0 == strcmp (attr->name, "exp"))
     {
-      token_add_json (new_token, key, json_integer (new_exp.abs_value_us));
+      GNUNET_asprintf (&val_str, "%ul", new_exp.abs_value_us);
+      token_add_attr (new_token, attr->name, val_str);
+      GNUNET_free (val_str);
     }
-    else if (0 == strcmp (key, "nbf"))
+    else if (0 == strcmp (attr->name, "nbf"))
     {
-      token_add_json (new_token, key, json_integer (new_nbf.abs_value_us));
+      GNUNET_asprintf (&val_str, "%ul", new_nbf.abs_value_us);
+      token_add_attr (new_token, attr->name, val_str);
+      GNUNET_free (val_str);
     }
-    else if (0 == strcmp (key, "iat"))
+    else if (0 == strcmp (attr->name, "iat"))
     {
-      token_add_json (new_token, key, json_integer (new_iat.abs_value_us));
+      GNUNET_asprintf (&val_str, "%ul", new_iat.abs_value_us);
+      token_add_attr (new_token, attr->name, val_str);
+      GNUNET_free (val_str);
     }
-    else if ((0 == strcmp (key, "iss"))
-             || (0 == strcmp (key, "aud")))
+    else if ((0 == strcmp (attr->name, "iss"))
+             || (0 == strcmp (attr->name, "aud")))
     {
       //Omit
     }
-    else if ((0 == strcmp (key, "sub"))
-             || (0 == strcmp (key, "rnl")))
+    else if (0 == strcmp (attr->name, "sub"))
     {
-      token_add_json (new_token, key, value);
+      token_add_attr (new_token,
+                      attr->name,
+                      attr->val_head->value);
     }
-    else {
-      GNUNET_CRYPTO_hash (key,
-                          strlen (key),
+    else 
+    {
+      GNUNET_CRYPTO_hash (attr->name,
+                          strlen (attr->name),
                           &key_hash);
       //Check if attr still exists. omit of not
-      if (GNUNET_NO != GNUNET_CONTAINER_multihashmap_contains (ego_entry->attr_map,
-                                                               &key_hash))
+      if (GNUNET_NO != 
+          GNUNET_CONTAINER_multihashmap_contains (ego_entry->attr_map,
+                                                  &key_hash))
       {
         cur_value = GNUNET_CONTAINER_multihashmap_get (ego_entry->attr_map,
                                                        &key_hash);
-        token_add_json (new_token, key, cur_value);
+        GNUNET_CONTAINER_DLL_insert (new_token->attr_head,
+                                     new_token->attr_tail,
+                                     cur_value);
       }
     }
   }
@@ -440,8 +453,6 @@ handle_token_update (void *cls,
                                   priv_key,
                                   &new_ecdhe_privkey,
                                   &enc_token_str));
-
-  json_decref (payload_json);
 
   token_record[0].data = enc_token_str;
   token_record[0].data_size = strlen (enc_token_str) + 1;
@@ -504,9 +515,21 @@ clear_ego_attrs (void *cls,
                  const struct GNUNET_HashCode *key,
                  void *value)
 {
-  json_t *attr_value = value;
-
-  json_decref (attr_value);
+  struct TokenAttr *attr = value;
+  struct TokenAttrValue *val;
+  struct TokenAttrValue *tmp_val;
+  for (val = attr->val_head; NULL != val;)
+  {
+    tmp_val = val->next;
+    GNUNET_CONTAINER_DLL_remove (attr->val_head,
+                                 attr->val_tail,
+                                 val);
+    GNUNET_free (val->value);
+    GNUNET_free (val);
+    val = tmp_val;
+  }
+  GNUNET_free (attr->name);
+  GNUNET_free (attr);
 
   return GNUNET_YES;
 }
@@ -612,9 +635,10 @@ attribute_collect (void *cls,
                    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct EgoEntry *ego_entry = cls;
-  json_t *attr_value;
   struct GNUNET_HashCode key;
-  char* attr;
+  struct TokenAttr *attr;
+  struct TokenAttrValue *val;
+  char *val_str;
   int i;
 
   if (NULL == lbl)
@@ -639,37 +663,45 @@ attribute_collect (void *cls,
   {
     if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
     {
-      attr = GNUNET_GNSRECORD_value_to_string (rd->record_type,
-                                               rd->data,
-                                               rd->data_size);
-      attr_value = json_string (attr);
+      val_str = GNUNET_GNSRECORD_value_to_string (rd->record_type,
+                                              rd->data,
+                                              rd->data_size);
+      attr = GNUNET_malloc (sizeof (struct TokenAttr));
+      attr->name = GNUNET_strdup (lbl);
+      val = GNUNET_malloc (sizeof (struct TokenAttrValue));
+      val->value = val_str;
+      GNUNET_CONTAINER_DLL_insert (attr->val_head,
+                                   attr->val_tail,
+                                   val);
       GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
                                          &key,
-                                         attr_value,
+                                         attr,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-      GNUNET_free (attr);
     }
 
     GNUNET_NAMESTORE_zone_iterator_next (ns_it);
     return;
   }
 
-  attr_value = json_array();
+  attr = GNUNET_malloc (sizeof (struct TokenAttr));
+  attr->name = GNUNET_strdup (lbl);
   for (i = 0; i < rd_count; i++)
   {
     if (rd[i].record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
     {
-      attr = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
-                                               rd[i].data,
-                                               rd[i].data_size);
-      json_array_append_new (attr_value, json_string (attr));
-      GNUNET_free (attr);
+      val_str = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                                  rd[i].data,
+                                                  rd[i].data_size);
+      val = GNUNET_malloc (sizeof (struct TokenAttrValue));
+      val->value = val_str;
+      GNUNET_CONTAINER_DLL_insert (attr->val_head,
+                                   attr->val_tail,
+                                   val);
     }
-
   }
   GNUNET_CONTAINER_multihashmap_put (ego_entry->attr_map,
                                      &key,
-                                     attr_value,
+                                     attr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   GNUNET_NAMESTORE_zone_iterator_next (ns_it);
   return;
@@ -947,6 +979,7 @@ sign_and_return_token (void *cls,
   char *enc_token_str;
   char *token_metadata;
   char* write_ptr;
+  char* attr_val;
   uint64_t time;
   uint64_t exp_time;
   uint64_t rnd_key;
@@ -973,9 +1006,13 @@ sign_and_return_token (void *cls,
   time = GNUNET_TIME_absolute_get().abs_value_us;
   exp_time = time + token_expiration_interval.rel_value_us;
 
-  token_add_json (handle->token, "nbf", json_integer (time));
-  token_add_json (handle->token, "iat", json_integer (time));
-  token_add_json (handle->token, "exp", json_integer (exp_time));
+  GNUNET_asprintf (&attr_val, "%ul", time);
+  token_add_attr (handle->token, "nbf", attr_val);
+  token_add_attr (handle->token, "iat", attr_val);
+  GNUNET_free (attr_val);
+  GNUNET_asprintf (&attr_val, "%ul", exp_time);
+  token_add_attr (handle->token, "exp", attr_val);
+  GNUNET_free (attr_val);
   token_add_attr (handle->token, "nonce", nonce_str);
 
   //Token in a serialized encrypted format 
@@ -1036,7 +1073,6 @@ attr_collect (void *cls,
 {
   int i;
   char* data;
-  json_t *attr_arr;
   struct IssueHandle *handle = cls;
   struct GNUNET_HashCode key;
 
@@ -1073,9 +1109,9 @@ attr_collect (void *cls,
                                                rd->data,
                                                rd->data_size);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-      token_add_json (handle->token,
+      token_add_attr (handle->token,
                       label,
-                      json_string (data));
+                      data);
       GNUNET_free (data);
     }
     GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
@@ -1083,7 +1119,6 @@ attr_collect (void *cls,
   }
 
   i = 0;
-  attr_arr = json_array();
   for (; i < rd_count; i++)
   {
     if (rd->record_type == GNUNET_GNSRECORD_TYPE_ID_ATTR)
@@ -1092,16 +1127,11 @@ attr_collect (void *cls,
                                                rd[i].data,
                                                rd[i].data_size);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding value: %s\n", data);
-      json_array_append_new (attr_arr, json_string (data));
+      token_add_attr (handle->token, label, data);
       GNUNET_free (data);
     }
   }
 
-  if (0 < json_array_size (attr_arr))
-  {
-    token_add_json (handle->token, label, attr_arr);
-  }
-  json_decref (attr_arr);
   GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);
 }
 
@@ -1342,17 +1372,17 @@ run (void *cls,
   identity_handle = GNUNET_IDENTITY_connect (cfg,
                                              &list_ego,
                                              NULL);
-  
+
   if (GNUNET_OK == 
       GNUNET_CONFIGURATION_get_value_time (cfg,
-                                             "identity-provider",
-                                            "TOKEN_EXPIRATION_INTERVAL",
-                                            &token_expiration_interval))
+                                           "identity-provider",
+                                           "TOKEN_EXPIRATION_INTERVAL",
+                                           &token_expiration_interval))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Time window for zone iteration: %s\n",
                 GNUNET_STRINGS_relative_time_to_string (token_expiration_interval,
-                                                                     GNUNET_YES));
+                                                        GNUNET_YES));
   } else {
     token_expiration_interval = DEFAULT_TOKEN_EXPIRATION_INTERVAL;
   }

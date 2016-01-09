@@ -32,14 +32,14 @@
 struct IdentityToken
 {
   /**
-   * JSON header
+   * DLL
    */
-  json_t *header;
+  struct TokenAttr *attr_head;
 
   /**
-   * JSON Payload
+   * DLL
    */
-  json_t *payload;
+  struct TokenAttr *attr_tail;
 
   /**
    * Token Signature
@@ -50,6 +50,53 @@ struct IdentityToken
    * Audience Pubkey
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey aud_key;
+};
+
+struct TokenAttr
+{
+  /**
+   * DLL
+   */
+  struct TokenAttr *next;
+
+  /**
+   * DLL
+   */
+  struct TokenAttr *prev;
+
+  /**
+   * Attribute name
+   */
+  char *name;
+
+  /**
+   * Attribute value DLL
+   */
+  struct TokenAttrValue *val_head;
+
+  /**
+   * Attribute value DLL
+   */
+  struct TokenAttrValue *val_tail;
+
+};
+
+struct TokenAttrValue
+{
+  /**
+   * DLL
+   */
+  struct TokenAttrValue *next;
+
+  /**
+   * DLL
+   */
+  struct TokenAttrValue *prev;
+
+  /**
+   * Attribute value
+   */
+  char *value;
 };
 
 struct TokenTicketPayload
@@ -124,9 +171,19 @@ token_destroy (struct IdentityToken*token);
  * @param value the value
  */
 void
-token_add_attr (const struct IdentityToken *token,
-                                         const char* key,
-                                         const char* value);
+token_add_attr (struct IdentityToken *token,
+                const char* key,
+                const char* value);
+
+/**
+ * Add a value to a TokenAttribute
+ *
+ * @param attr the token attribute
+ * @param value value to add
+ */
+  void
+  token_attr_add_value (const struct TokenAttr *attr,
+                        const char *value);
 
 /**
  * Add a new key value pair to the token with the value as json
@@ -138,8 +195,8 @@ token_add_attr (const struct IdentityToken *token,
  */
 void
 token_add_json (const struct IdentityToken *token,
-                         const char* key,
-                         json_t* value);
+                const char* key,
+                json_t* value);
 
 /**
  * Serialize a token. The token will be signed and base64 according to the
@@ -159,9 +216,9 @@ token_add_json (const struct IdentityToken *token,
  */
 int 
 token_serialize (const struct IdentityToken*token,
-                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                          struct GNUNET_CRYPTO_EcdhePrivateKey **ecdhe_privkey,
-                          char **result);
+                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                 struct GNUNET_CRYPTO_EcdhePrivateKey **ecdhe_privkey,
+                 char **result);
 
 /**
  * Parses the serialized token and returns a token
@@ -172,10 +229,10 @@ token_serialize (const struct IdentityToken*token,
  *
  * @return GNUNET_OK on success
  */
-int
-token_parse (const char* data,
-             const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-             struct IdentityToken **result);
+  int
+  token_parse (const char* data,
+               const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+               struct IdentityToken **result);
 
 /**
  * Parses the serialized token and returns a token
@@ -189,11 +246,11 @@ token_parse (const char* data,
  *
  * @return GNUNET_OK on success
  */
-  int
-  token_parse2 (const char* data,
-                const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key,
-                const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
-                struct IdentityToken **result);
+int
+token_parse2 (const char* data,
+              const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
+              struct IdentityToken **result);
 
 
 /**
@@ -206,10 +263,10 @@ token_parse (const char* data,
  *
  * @return GNUNET_OK on success
  */
-  int
-  token_to_string (const struct IdentityToken *token,
-                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                   char **result);
+int
+token_to_string (const struct IdentityToken *token,
+                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                 char **result);
 
 /**
  *
@@ -261,9 +318,9 @@ ticket_destroy (struct TokenTicket *ticket);
  *
  * @return GNUNET_OK on success
  */
-  int
-  ticket_parse (const char* raw_data,
-                const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                struct TokenTicket **ticket);
+int
+ticket_parse (const char* raw_data,
+              const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+              struct TokenTicket **ticket);
 
 #endif

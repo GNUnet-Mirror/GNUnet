@@ -29,6 +29,13 @@
 #include "identity_token.h"
 #include <jansson.h>
 
+#define JWT_ALG "alg"
+
+#define JWT_ALG_VALUE "ED512"
+
+#define JWT_TYP "typ"
+
+#define JWT_TYP_VALUE "jwt"
 
 /**
  * Crypto helper functions
@@ -176,8 +183,6 @@ encrypt_str_ecdhe (const char *plaintext,
 }
 
 
-
-
 /**
  * Identity Token API
  */
@@ -203,20 +208,10 @@ token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey* iss,
   audience = GNUNET_STRINGS_data_to_string_alloc (aud,
                                                   sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
-
-
   token = GNUNET_malloc (sizeof (struct IdentityToken));
-
-  token->header = json_object();
-  token->payload = json_object();
-
-  json_object_set_new (token->header, "alg", json_string ("ED512"));
-  json_object_set_new (token->header, "typ", json_string ("JWT"));
-
-  json_object_set_new (token->payload, "iss", json_string (issuer));
-  json_object_set_new (token->payload, "aud", json_string (audience));
-  json_object_set_new (token->payload, "sub", json_string (issuer));
-
+  token_add_attr (token, "iss", issuer);
+  token_add_attr (token, "aud", audience);
+  token_add_attr (token, "sub", issuer);
   token->aud_key = *aud;
   GNUNET_free (issuer);
   GNUNET_free (audience);
@@ -226,50 +221,115 @@ token_create (const struct GNUNET_CRYPTO_EcdsaPublicKey* iss,
 void
 token_destroy (struct IdentityToken *token)
 {
-  json_decref (token->header);
-  json_decref (token->payload);
+  struct TokenAttr *attr;
+  struct TokenAttr *tmp_attr;
+  struct TokenAttrValue *val;
+  struct TokenAttrValue *tmp_val;
+
+  for (attr = token->attr_head; NULL != attr;)
+  {
+    tmp_attr = attr->next;
+    GNUNET_CONTAINER_DLL_remove (token->attr_head,
+                                 token->attr_tail,
+                                 attr);
+    for (val = attr->val_head; NULL != val;)
+    {
+      tmp_val = val->next;
+      GNUNET_CONTAINER_DLL_remove (attr->val_head,
+                                   attr->val_tail,
+                                   val);
+      GNUNET_free (val->value);
+      GNUNET_free (val);
+      val = tmp_val;
+    }
+    GNUNET_free (attr->name);
+    GNUNET_free (attr);
+    attr = tmp_attr;
+  }
+
+  
   GNUNET_free (token);
 }
 
 void
-token_add_attr (const struct IdentityToken *token,
-                                         const char* key,
-                                         const char* value)
+token_add_attr (struct IdentityToken *token,
+                const char* key,
+                const char* value)
 {
+  struct TokenAttr *attr;
+  struct TokenAttrValue *new_val;
   GNUNET_assert (NULL != token);
-  GNUNET_assert (NULL != token->payload);
 
-  json_object_set_new (token->payload, key, json_string (value));
+  new_val = GNUNET_malloc (sizeof (struct TokenAttrValue));
+  new_val->value = GNUNET_strdup (value);
+  for (attr = token->attr_head; NULL != attr; attr = attr->next)
+  {
+    if (0 == strcmp (key, attr->name))
+      break;
+  }
+
+  if (NULL == attr)
+  {
+    attr = GNUNET_malloc (sizeof (struct TokenAttr));
+    attr->name = GNUNET_strdup (key);
+    GNUNET_CONTAINER_DLL_insert (token->attr_head,
+                                 token->attr_tail,
+                                 attr);
+  }
+
+  GNUNET_CONTAINER_DLL_insert (attr->val_head,
+                               attr->val_tail,
+                               new_val);
 }
 
-void
-token_add_json (const struct IdentityToken *token,
-                                         const char* key,
-                                         json_t* value)
+static void
+parse_json_payload(const char* payload_base64,
+                   struct IdentityToken *token) 
 {
-  GNUNET_assert (NULL != token);
-  GNUNET_assert (NULL != token->payload);
+  const char *key;
+  const json_t *value;
+  const json_t *arr_value;
+  char *payload;
+  int idx;
+  json_t *payload_json;
+  json_error_t err_json;
 
-  json_object_set_new (token->payload, key, value);
+  GNUNET_STRINGS_base64_decode (payload_base64,
+                                strlen (payload_base64),
+                                &payload);
+  //TODO signature and aud key
+  payload_json = json_loads (payload, JSON_DECODE_ANY, &err_json);
+
+  json_object_foreach (payload_json, key, value)
+  {
+    if (json_is_array (value))
+    {
+      json_array_foreach (value, idx, arr_value)
+      {
+        token_add_attr (token,
+                        key,
+                        json_string_value (arr_value));
+      }
+    } else {
+      token_add_attr (token, key, json_string_value (value));
+    }
+  }
+
+  GNUNET_free (payload);
 }
-
 
 int
 token_parse2 (const char* raw_data,
-                                       const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key,
-                                       const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
-                                       struct IdentityToken **result)
+              const struct GNUNET_CRYPTO_EcdhePrivateKey *priv_key,
+              const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key,
+              struct IdentityToken **result)
 {
   char *enc_token_str;
   char *tmp_buf;
   char *token_str;
   char *enc_token;
-  char *header;
-  char *header_base64;
-  char *payload;
   char *payload_base64;
   size_t enc_token_len;
-  json_error_t err_json;
 
   GNUNET_asprintf (&tmp_buf, "%s", raw_data);
   strtok (tmp_buf, ",");
@@ -289,46 +349,31 @@ token_parse2 (const char* raw_data,
     return GNUNET_SYSERR;
   }
 
-  header_base64 = strtok (token_str, ".");
+  GNUNET_assert (NULL != strtok (token_str, "."));
   payload_base64 = strtok (NULL, ".");
 
-  GNUNET_STRINGS_base64_decode (header_base64,
-                                strlen (header_base64),
-                                &header);
-  GNUNET_STRINGS_base64_decode (payload_base64,
-                                strlen (payload_base64),
-                                &payload);
-  //TODO signature
-
-
   *result = GNUNET_malloc (sizeof (struct IdentityToken));
+  parse_json_payload (payload_base64, *result);
+
   (*result)->aud_key =  *aud_key;
-  (*result)->header = json_loads (header, JSON_DECODE_ANY, &err_json);
-  (*result)->payload = json_loads (payload, JSON_DECODE_ANY, &err_json);
   GNUNET_free (enc_token);
   GNUNET_free (token_str);
   GNUNET_free (tmp_buf);
-  GNUNET_free (payload);
-  GNUNET_free (header);
   return GNUNET_OK;
 }
 
 int
 token_parse (const char* raw_data,
-                                      const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                      struct IdentityToken **result)
+             const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+             struct IdentityToken **result)
 {
   char *ecdh_pubkey_str;
   char *enc_token_str;
   char *tmp_buf;
   char *token_str;
   char *enc_token;
-  char *header;
-  char *header_base64;
-  char *payload;
   char *payload_base64;
   size_t enc_token_len;
-  json_error_t err_json;
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
 
   GNUNET_asprintf (&tmp_buf, "%s", raw_data);
@@ -353,33 +398,60 @@ token_parse (const char* raw_data,
     return GNUNET_SYSERR;
   }
 
-  header_base64 = strtok (token_str, ".");
+  GNUNET_assert (NULL != strtok (token_str, "."));
   payload_base64 = strtok (NULL, ".");
 
-  GNUNET_STRINGS_base64_decode (header_base64,
-                                strlen (header_base64),
-                                &header);
-  GNUNET_STRINGS_base64_decode (payload_base64,
-                                strlen (payload_base64),
-                                &payload);
-  //TODO signature and aud key
-
-
   *result = GNUNET_malloc (sizeof (struct IdentityToken));
-  (*result)->header = json_loads (header, JSON_DECODE_ANY, &err_json);
-  (*result)->payload = json_loads (payload, JSON_DECODE_ANY, &err_json);
+  parse_json_payload (payload_base64, *result);
+
   GNUNET_free (enc_token);
   GNUNET_free (token_str);
   GNUNET_free (tmp_buf);
-  GNUNET_free (payload);
-  GNUNET_free (header);
   return GNUNET_OK;
+}
+
+static char*
+create_json_payload (const struct IdentityToken *token)
+{
+  struct TokenAttr *attr;
+  struct TokenAttrValue *val;
+  json_t *root;
+  char *json_str;
+
+  root = json_object();
+  for (attr = token->attr_head; NULL != attr; attr = attr->next)
+  {
+    for (val = attr->val_head; NULL != val; val = val->next)
+    {
+      json_object_set_new (root,
+                           attr->name,
+                           json_string (val->value)); 
+    }
+  }
+  json_str = json_dumps (root, JSON_INDENT(1));
+  json_decref (root);
+  return json_str;
+}
+
+static char*
+create_json_header(void)
+{
+  json_t *root;
+  char *json_str;
+
+  root = json_object ();
+  json_object_set_new (root, JWT_ALG, json_string (JWT_ALG_VALUE));
+  json_object_set_new (root, JWT_TYP, json_string (JWT_TYP_VALUE));
+
+  json_str = json_dumps (root, JSON_INDENT(1));
+  json_decref (root);
+  return json_str;
 }
 
 int
 token_to_string (const struct IdentityToken *token,
-                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                          char **result)
+                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                 char **result)
 {
   char *payload_str;
   char *header_str;
@@ -389,7 +461,7 @@ token_to_string (const struct IdentityToken *token,
   char *signature_target;
   char *signature_str;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
-  header_str = json_dumps (token->header, JSON_COMPACT);
+  header_str = create_json_header();
   GNUNET_STRINGS_base64_encode (header_str,
                                 strlen (header_str),
                                 &header_base64);
@@ -398,7 +470,7 @@ token_to_string (const struct IdentityToken *token,
   while (NULL != padding)
     padding = strtok(NULL, "=");
 
-  payload_str = json_dumps (token->payload, JSON_COMPACT);
+  payload_str = create_json_payload (token);
   GNUNET_STRINGS_base64_encode (payload_str,
                                 strlen (payload_str),
                                 &payload_base64);
@@ -422,9 +494,7 @@ token_to_string (const struct IdentityToken *token,
   {
     GNUNET_free (signature_target);
     GNUNET_free (payload_str);
-    GNUNET_free (header_str);
     GNUNET_free (payload_base64);
-    GNUNET_free (header_base64);
     GNUNET_free (purpose);
     return GNUNET_SYSERR;
   }
@@ -446,9 +516,9 @@ token_to_string (const struct IdentityToken *token,
 
 int
 token_serialize (const struct IdentityToken *token,
-                                          const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
-                                          struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
-                                          char **result)
+                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
+                 struct GNUNET_CRYPTO_EcdhePrivateKey **ecdh_privkey,
+                 char **result)
 {
   char *token_str;
   char *enc_token;
@@ -457,8 +527,8 @@ token_serialize (const struct IdentityToken *token,
   struct GNUNET_CRYPTO_EcdhePublicKey ecdh_pubkey;
 
   GNUNET_assert (GNUNET_OK == token_to_string (token,
-                                                                        priv_key,
-                                                                        &token_str));
+                                               priv_key,
+                                               &token_str));
 
   GNUNET_assert (GNUNET_OK == encrypt_str_ecdhe (token_str,
                                                  &token->aud_key,
@@ -480,8 +550,8 @@ token_serialize (const struct IdentityToken *token,
 
 struct TokenTicketPayload*
 ticket_payload_create (const char* nonce,
-                                                const struct GNUNET_CRYPTO_EcdsaPublicKey* identity_pkey,
-                                                const char* lbl_str)
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey* identity_pkey,
+                       const char* lbl_str)
 {
   struct TokenTicketPayload* payload;
 
