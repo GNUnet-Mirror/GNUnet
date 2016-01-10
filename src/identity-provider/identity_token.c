@@ -238,7 +238,8 @@ token_destroy (struct IdentityToken *token)
       GNUNET_CONTAINER_DLL_remove (attr->val_head,
                                    attr->val_tail,
                                    val);
-      GNUNET_free (val->value);
+      if (NULL != val->value)
+        GNUNET_free (val->value);
       GNUNET_free (val);
       val = tmp_val;
     }
@@ -262,6 +263,37 @@ token_add_attr (struct IdentityToken *token,
 
   new_val = GNUNET_malloc (sizeof (struct TokenAttrValue));
   new_val->value = GNUNET_strdup (value);
+  for (attr = token->attr_head; NULL != attr; attr = attr->next)
+  {
+    if (0 == strcmp (key, attr->name))
+      break;
+  }
+
+  if (NULL == attr)
+  {
+    attr = GNUNET_malloc (sizeof (struct TokenAttr));
+    attr->name = GNUNET_strdup (key);
+    GNUNET_CONTAINER_DLL_insert (token->attr_head,
+                                 token->attr_tail,
+                                 attr);
+  }
+
+  GNUNET_CONTAINER_DLL_insert (attr->val_head,
+                               attr->val_tail,
+                               new_val);
+}
+
+void
+token_add_attr_int (struct IdentityToken *token,
+                    const char* key,
+                    uint64_t value)
+{
+  struct TokenAttr *attr;
+  struct TokenAttrValue *new_val;
+  GNUNET_assert (NULL != token);
+
+  new_val = GNUNET_malloc (sizeof (struct TokenAttrValue));
+  new_val->int_value = value;
   for (attr = token->attr_head; NULL != attr; attr = attr->next)
   {
     if (0 == strcmp (key, attr->name))
@@ -306,15 +338,24 @@ parse_json_payload(const char* payload_base64,
     {
       json_array_foreach (value, idx, arr_value)
       {
-        token_add_attr (token,
-                        key,
-                        json_string_value (arr_value));
+        if (json_is_integer (arr_value))
+          token_add_attr_int (token, key,
+                              json_integer_value (arr_value));
+        else
+          token_add_attr (token,
+                          key,
+                          json_string_value (arr_value));
       }
     } else {
-      token_add_attr (token, key, json_string_value (value));
+      if (json_is_integer (value))
+        token_add_attr_int (token, key,
+                            json_integer_value (value));
+      else
+        token_add_attr (token, key, json_string_value (value));
     }
   }
 
+  json_decref (payload_json);
   GNUNET_free (payload);
 }
 
@@ -423,9 +464,16 @@ create_json_payload (const struct IdentityToken *token)
   {
     for (val = attr->val_head; NULL != val; val = val->next)
     {
-      json_object_set_new (root,
-                           attr->name,
-                           json_string (val->value)); 
+      if (NULL != val->value)
+      {
+        json_object_set_new (root,
+                             attr->name,
+                             json_string (val->value)); 
+      } else {
+        json_object_set_new (root,
+                             attr->name,
+                             json_integer (val->int_value));
+      }
     }
   }
   json_str = json_dumps (root, JSON_INDENT(1));

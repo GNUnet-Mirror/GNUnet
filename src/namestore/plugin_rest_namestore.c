@@ -561,7 +561,7 @@ del_cont (void *cls,
           const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RequestHandle *handle = cls;
-
+  handle->add_qe = NULL;
   if (0 == rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -828,6 +828,7 @@ namestore_zkey_response (void *cls,
   }
   resp = GNUNET_REST_create_json_response (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
+  GNUNET_REST_jsonapi_object_delete (json_obj);
   GNUNET_free (result);
   GNUNET_SCHEDULER_add_now (&cleanup_handle_delayed, handle);
   return;

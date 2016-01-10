@@ -67,6 +67,8 @@ value_to_string (void *cls,
         GNUNET_asprintf (&result,
                          "%s;%s;%s",
                          ecdhe_str, aud_str, scopes);
+        GNUNET_free (aud_str);
+        GNUNET_free (ecdhe_str);
         return result;
 
     default:
