@@ -1248,7 +1248,7 @@ handle_exchange_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Looking for token under %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Looking for token under %s\n",
               xchange_handle->ticket->payload->label);
   GNUNET_asprintf (&lookup_query,
                    "%s.gnu",
@@ -1349,7 +1349,7 @@ find_existing_token (void *cls,
     char *tmp = GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA,
                                                   token_metadata_record->data,
                                                   token_metadata_record->data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Token does not match audience %s vs %s. Moving on\n",
                 tmp2,
                 tmp);
@@ -1369,7 +1369,7 @@ find_existing_token (void *cls,
     if ((NULL != handle->attr_map) &&
         (GNUNET_YES != GNUNET_CONTAINER_multihashmap_contains (handle->attr_map, &key)))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Issued token does not include `%s'. Moving on\n", scope);
       GNUNET_free (tmp_scopes);
       GNUNET_NAMESTORE_zone_iterator_next (handle->ns_it);

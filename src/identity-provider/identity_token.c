@@ -50,7 +50,7 @@ create_sym_key_from_ecdh(const struct GNUNET_HashCode *new_key_hash,
 
   GNUNET_CRYPTO_hash_to_enc (new_key_hash,
                              &new_key_hash_str);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Creating symmetric rsa key from %s\n", (char*)&new_key_hash_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating symmetric rsa key from %s\n", (char*)&new_key_hash_str);
   static const char ctx_key[] = "gnuid-aes-ctx-key";
   GNUNET_CRYPTO_kdf (skey, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                      new_key_hash, sizeof (struct GNUNET_HashCode),
@@ -97,7 +97,7 @@ decrypt_str_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
                                               &enc_key,
                                               &enc_iv,
                                               str_buf);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Decrypted bytes: %d Expected bytes: %d\n", str_size, cyphertext_len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Decrypted bytes: %d Expected bytes: %d\n", str_size, cyphertext_len);
   if (-1 == str_size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH invalid\n");
@@ -171,14 +171,14 @@ encrypt_str_ecdhe (const char *plaintext,
                                                         pub_key,
                                                         &new_key_hash));
   create_sym_key_from_ecdh(&new_key_hash, &skey, &iv);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Encrypting string %s\n (len=%d)",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypting string %s\n (len=%d)",
               plaintext,
               strlen (plaintext));
   enc_size = GNUNET_CRYPTO_symmetric_encrypt (plaintext,
                                               strlen (plaintext),
                                               &skey, &iv,
                                               *cyphertext);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Encrypted (len=%d)", enc_size);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Encrypted (len=%d)", enc_size);
   return GNUNET_OK;
 }
 
@@ -724,7 +724,7 @@ ticket_serialize (struct TokenTicket *ticket,
 
   dh_key_str = GNUNET_STRINGS_data_to_string_alloc (&ticket->ecdh_pubkey,
                                                     sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Using ECDH pubkey %s to encrypt\n", dh_key_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using ECDH pubkey %s to encrypt\n", dh_key_str);
   GNUNET_asprintf (&ticket_str, "{\"meta\": \"%s\", \"ecdh\": \"%s\", \"signature\": \"%s\"}",
                    ticket_payload_str, dh_key_str, ticket_sig_str);
   GNUNET_STRINGS_base64_encode (ticket_str, strlen (ticket_str), result);
@@ -767,7 +767,7 @@ ticket_payload_parse(const char *raw_data,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Metadata: %s\n", meta_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Metadata: %s\n", meta_str);
   root = json_loads (meta_str, JSON_DECODE_ANY, &err_json);
   if (!root)
   {
@@ -804,7 +804,7 @@ ticket_payload_parse(const char *raw_data,
   }
 
   label_str = json_string_value (label_json);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found label: %s\n", label_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found label: %s\n", label_str);
 
   nonce_json = json_object_get (root, "nonce");
   if (!json_is_string (label_json))
@@ -817,7 +817,7 @@ ticket_payload_parse(const char *raw_data,
   }
 
   nonce_str = json_string_value (nonce_json);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Found nonce: %s\n", nonce_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found nonce: %s\n", nonce_str);
 
   *result = ticket_payload_create (nonce_str,
                                    (const struct GNUNET_CRYPTO_EcdsaPublicKey*)&id_pkey,
@@ -852,7 +852,7 @@ ticket_parse (const char *raw_data,
 
   ticket_decoded = NULL;
   GNUNET_STRINGS_base64_decode (raw_data, strlen (raw_data), &ticket_decoded);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Token Code: %s\n", ticket_decoded);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ticket: %s\n", ticket_decoded);
   root = json_loads (ticket_decoded, JSON_DECODE_ANY, &err_json);
   if (!root)
   {
@@ -881,7 +881,7 @@ ticket_parse (const char *raw_data,
     GNUNET_free (ticket);
     return GNUNET_SYSERR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Using ECDH pubkey %s for metadata decryption\n", ecdh_enc_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using ECDH pubkey %s for metadata decryption\n", ecdh_enc_str);
   if (GNUNET_OK != GNUNET_STRINGS_string_to_data (signature_enc_str,
                                                   strlen (signature_enc_str),
                                                   &ticket->signature,
@@ -938,7 +938,7 @@ ticket_parse (const char *raw_data,
     json_decref (root);
     GNUNET_free (purpose);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error verifying signature for token code\n");
+                "Error verifying signature for ticket\n");
     return GNUNET_SYSERR;
   }
   *result = ticket;

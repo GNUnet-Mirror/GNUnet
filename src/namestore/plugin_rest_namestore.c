@@ -499,9 +499,6 @@ create_new_record_cont (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Received %u records for name `%s'\n",
-              rd_count, rec_name);
   if (0 != rd_count)
   {
     handle->proc (handle->proc_cls,
@@ -1087,10 +1084,8 @@ testservice_id_task (void *cls, int result)
     GNUNET_asprintf (&handle->ego_name, "%s", ego);
   if (NULL != name)
     GNUNET_asprintf (&handle->name, "%s", name);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", handle->ego_name);
   if (NULL == handle->ego_name)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", handle->ego_name);
     handle->identity_handle = GNUNET_IDENTITY_connect (handle->cfg, &id_connect_cb, handle);
     if (NULL == handle->identity_handle)
     {

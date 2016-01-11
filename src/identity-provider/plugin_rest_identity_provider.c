@@ -66,7 +66,6 @@
  */
 #define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TOKEN "token"
 
-
 /**
  * The URL parameter name in which the nonce must be provided
  */
@@ -783,7 +782,6 @@ exchange_cont (void *cls,
   GNUNET_free (token_str);
 
   result = json_dumps (root, JSON_INDENT(1));
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n", result);
   resp = GNUNET_REST_create_json_response (result);
   GNUNET_free (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
