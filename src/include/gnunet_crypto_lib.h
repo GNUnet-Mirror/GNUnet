@@ -28,8 +28,10 @@
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
  *
- * @defgroup crypto Cryptographic operations
- * @defgroup hash Hashing and operations on hashes
+ * @defgroup crypto  Crypto library: cryptographic operations
+ *
+ * @defgroup hash  Crypto library: hash operations
+ * Hashing and operations on hashes
  */
 
 #ifndef GNUNET_CRYPTO_LIB_H

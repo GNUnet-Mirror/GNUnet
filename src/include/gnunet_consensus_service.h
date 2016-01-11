@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_consensus_service.h
- * @brief multi-peer set reconciliation
  * @author Florian Dold
+ *
+ * @file
+ * Multi-peer set reconciliation
+ *
+ * @defgroup consensus  Consensus service
+ * Multi-peer set reconciliation
+ * @{
  */
 
 #ifndef GNUNET_CONSENSUS_SERVICE_H
@@ -166,6 +171,7 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 void
 GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

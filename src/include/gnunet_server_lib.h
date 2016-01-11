@@ -22,7 +22,7 @@
  * @file include/gnunet_server_lib.h
  * @brief library for building GNUnet network servers
  * @author Christian Grothoff
- * @defgroup server functions for a server that communicates with clients
+ * @defgroup server  Functions for a server that communicates with clients
  * @{
  */
 

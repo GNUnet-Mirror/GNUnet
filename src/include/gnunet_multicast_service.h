@@ -19,10 +19,15 @@
 */
 
 /**
- * @file include/gnunet_multicast_service.h
- * @brief multicast service; establish tunnels to distant peers
- * @author Christian Grothoff
  * @author Gabor X Toth
+ * @author Christian Grothoff
+ *
+ * @file
+ * Multicast service; multicast messaging via CADET
+ *
+ * @defgroup multicast  Multicast service
+ * Multicast messaging via CADET.
+ * @{
  */
 
 #ifndef GNUNET_MULTICAST_SERVICE_H
@@ -897,6 +902,7 @@ GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmit
 void
 GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmitHandle *th);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -19,10 +19,15 @@
  */
 
 /**
- * @file include/gnunet_dnsparser_lib.h
- * @brief API for helper library to parse DNS packets.
  * @author Philipp Toelke
  * @author Christian Grothoff
+ *
+ * @file
+ * API for helper library to parse DNS packets.
+ *
+ * @defgroup dns-parser  DNS parser library
+ * Helper library to parse DNS packets.
+ * @{
  */
 #ifndef GNUNET_DNSPARSER_LIB_H
 #define GNUNET_DNSPARSER_LIB_H
@@ -883,5 +888,6 @@ size_t
 GNUNET_DNSPARSER_hex_to_bin (const char *hex,
                              void *data);
 
+/** @} */  /* end of group */
 
 #endif

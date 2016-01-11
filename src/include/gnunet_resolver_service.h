@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_resolver_service.h
- * @brief functions related to doing DNS lookups
  * @author Christian Grothoff
- * @defgroup resolver asynchronous standard DNS lookups
+ *
+ * @file
+ * Functions related to doing DNS lookups
+ *
+ * @defgroup resolver  Resolver service
+ * Asynchronous standard DNS lookups
  * @{
  */
 

@@ -18,11 +18,16 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_fragmentation_lib.h
- * @brief library to help fragment messages
  * @author Christian Grothoff
  *
- * TODO: consider additional flow-control for sending from
+ * @file
+ * Library to help fragment messages
+ *
+ * @defgroup fragmentation  Fragmentation library
+ * Library to help fragment messages
+ * @{
+ *
+ * @todo Consider additional flow-control for sending from
  *       fragmentation based on continuations.
  */
 
@@ -212,6 +217,8 @@ int
 GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
                                     const struct GNUNET_MessageHeader *msg);
 
+
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

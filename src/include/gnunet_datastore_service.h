@@ -19,13 +19,21 @@
 */
 
 /**
- * @file include/gnunet_datastore_service.h
- * @brief API that can be used manage the
- *   datastore for files stored on a GNUnet node;
- *   note that the datastore is NOT responsible for
- *   on-demand encoding, that is achieved using
- *   a special kind of entry.
  * @author Christian Grothoff
+ *
+ * @file
+ * datastore service
+ *
+ * @defgroup datastore  Datastore service
+ * Data store for files stored on a GNUnet node.
+ *
+ * Provides an API that can be used manage the
+ * datastore for files stored on a GNUnet node.
+ * Note that the datastore is NOT responsible for
+ * on-demand encoding, that is achieved using
+ * a special kind of entry.
+ *
+ * @{
  */
 
 #ifndef GNUNET_DATASTORE_SERVICE_H
@@ -389,6 +397,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 void
 GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

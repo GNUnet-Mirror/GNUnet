@@ -19,9 +19,13 @@
 */
 
 /**
- * @file include/gnunet_identity_service.h
- * @brief Identity service; implements identity management for GNUnet
  * @author Christian Grothoff
+ *
+ * @file
+ * Identity service; implements identity management for GNUnet
+ *
+ * @defgroup identity  Identity service
+ * Identity management.
  *
  * Egos in GNUnet are ECDSA keys.  You assume an ego by using (signing
  * with) a particular private key.  As GNUnet users are expected to
@@ -31,7 +35,6 @@
  * (public keys).  For giving names to other users and manage their
  * public keys securely, we use GNS.
  *
- * @defgroup identity identity management service
  * @{
  */
 #ifndef GNUNET_IDENTITY_SERVICE_H

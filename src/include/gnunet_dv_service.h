@@ -20,8 +20,15 @@
 
 /**
  * @author Christian Grothoff
- * @file include/gnunet_dv_service.h
- * @brief DV service API (should only be used by the DV plugin)
+ *
+ * @file
+ * DV service API (should only be used by the DV plugin)
+ *
+ * @defgroup dv  DV service
+ * Distance vector routing
+ *
+ * The DV service API should only be used by the DV plugin.
+ * @{
  */
 #ifndef GNUNET_SERVICE_DV_H
 #define GNUNET_SERVICE_DV_H
@@ -165,5 +172,6 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 void
 GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th);
 
+/** @} */  /* end of group */
 
 #endif

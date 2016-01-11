@@ -18,10 +18,20 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_cadet_service.h
- * @brief cadet service; establish channels to distant peers
  * @author Christian Grothoff
  * @author Bart Polot
+ *
+ * @file
+ * CADET service; establish channels to distant peers
+ *
+ * @defgroup cadet  CADET service
+ * Confidential Ad-hoc Decentralized End-to-End Transport
+ *
+ * See also:
+ * - [CADET documentation](https://gnunet.org/cadet-subsystem)
+ * - [CADET paper](https://gnunet.org/cadet)
+ *
+ * @{
  */
 #ifndef GNUNET_CADET_SERVICE_H
 #define GNUNET_CADET_SERVICE_H
@@ -631,6 +641,8 @@ GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel);
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */  /* end of group */
 
 /* ifndef GNUNET_CADET_SERVICE_H */
 #endif

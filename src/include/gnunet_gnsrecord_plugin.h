@@ -19,11 +19,15 @@
 */
 
 /**
- * @file include/gnunet_gnsrecord_plugin.h
- * @brief plugin API for GNS record types
  * @author Christian Grothoff
- * @defgroup gnsrecordplugin API to be implemented by applications defining new GNS record types
- * @{ */
+ *
+ * @file
+ * Plugin API for GNS record types
+ *
+ * @defgroup gns-record-plugin  GNS record plugin API
+ * To be implemented by applications defining new record types.
+ * @{
+ */
 #ifndef GNUNET_GNSRECORD_PLUGIN_H
 #define GNUNET_GNSRECORD_PLUGIN_H
 
@@ -129,8 +133,7 @@ struct GNUNET_GNSRECORD_PluginFunctions
 
 };
 
-
-/** @} */ /* end of group gnsrecordplugin */
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

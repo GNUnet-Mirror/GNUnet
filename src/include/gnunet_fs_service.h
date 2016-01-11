@@ -18,9 +18,14 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_fs_service.h
- * @brief API for file-sharing via GNUnet
  * @author Christian Grothoff
+ *
+ * @file
+ * API for file sharing via GNUnet
+ *
+ * @defgroup fs FS service
+ * File sharing
+ * @{
  */
 #ifndef GNUNET_FS_LIB_H
 #define GNUNET_FS_LIB_H
@@ -2746,7 +2751,7 @@ struct GNUNET_FS_ShareTreeItem
 
 
 /**
- * Opaqe handle to an asynchronous directory scanning activity.
+ * Opaque handle to an asynchronous directory scanning activity.
  */
 struct GNUNET_FS_DirScanner;
 
@@ -2809,6 +2814,7 @@ GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel);
 void
 GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

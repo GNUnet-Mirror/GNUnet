@@ -19,10 +19,13 @@
  */
 
 /**
- * @file include/gnunet_dht_service.h
- * @brief API to the DHT service
  * @author Christian Grothoff
- * @defgroup dht Distributed Hash Table
+ *
+ * @file
+ * API to the DHT service
+ *
+ * @defgroup dht  DHT service
+ * Distributed Hash Table
  * @{
  */
 
@@ -414,8 +417,8 @@ typedef void (*GNUNET_DHT_ActMaliciousContinuation)(void *cls,
           FIXME: perhaps make this an enum of known malicious behaviors?
  */
 struct GNUNET_DHT_ActMaliciousHandle *
-GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle, 
-                      unsigned int action, 
+GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle,
+                      unsigned int action,
                       GNUNET_DHT_PutContinuation cont,
                       void *cont_cls);
 #endif

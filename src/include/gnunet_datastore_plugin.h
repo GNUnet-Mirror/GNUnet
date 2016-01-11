@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_datastore_plugin.h
- * @brief API for the database backend plugins.
  * @author Christian Grothoff
+ *
+ * @file
+ * API for the database backend plugins.
+ *
+ * @defgroup datastore-plugin  Datastore service plugin API
+ * API for the database backend plugins.
+ * @{
  */
 #ifndef PLUGIN_DATASTORE_H
 #define PLUGIN_DATASTORE_H
@@ -48,8 +53,8 @@
  * @param delta change in disk utilization,
  *        0 for "reset to empty"
  */
-typedef void 
-(*GNUNET_DATASTORE_DiskUtilizationChange) (void *cls, 
+typedef void
+(*GNUNET_DATASTORE_DiskUtilizationChange) (void *cls,
 					   int delta);
 
 
@@ -93,13 +98,13 @@ struct GNUNET_DATASTORE_PluginEnvironment
  * @return #GNUNET_OK to keep the item
  *         #GNUNET_NO to delete the item
  */
-typedef int 
-(*PluginDatumProcessor) (void *cls, 
+typedef int
+(*PluginDatumProcessor) (void *cls,
 			 const struct GNUNET_HashCode *key,
-			 uint32_t size, 
+			 uint32_t size,
 			 const void *data,
 			 enum GNUNET_BLOCK_Type type,
-			 uint32_t priority, 
+			 uint32_t priority,
 			 uint32_t anonymity,
 			 struct GNUNET_TIME_Absolute expiration,
 			 uint64_t uid);
@@ -130,11 +135,11 @@ typedef void
  * @param status #GNUNET_OK or #GNUNET_SYSERROR
  * @param msg error message on error
  */
-typedef void 
-(*PluginPutCont) (void *cls, 
+typedef void
+(*PluginPutCont) (void *cls,
 		  const struct GNUNET_HashCode *key,
 		  uint32_t size,
-		  int status, 
+		  int status,
 		  const char *msg);
 
 
@@ -155,16 +160,16 @@ typedef void
  * @param cont continuation called with success or failure status
  * @param cont_cls continuation closure for @a cont
  */
-typedef void 
+typedef void
 (*PluginPut) (void *cls, const struct GNUNET_HashCode *key,
 	      uint32_t size,
 	      const void *data,
 	      enum GNUNET_BLOCK_Type type,
-	      uint32_t priority, 
+	      uint32_t priority,
 	      uint32_t anonymity,
 	      uint32_t replication,
 	      struct GNUNET_TIME_Absolute expiration,
-	      PluginPutCont cont, 
+	      PluginPutCont cont,
 	      void *cont_cls);
 
 
@@ -175,7 +180,7 @@ typedef void
  * @param key key in the data store, if NULL iteration is finished
  * @param count how many values are stored under this key in the datastore
  */
-typedef void 
+typedef void
 (*PluginKeyProcessor) (void *cls,
 		       const struct GNUNET_HashCode *key,
 		       unsigned int count);
@@ -211,8 +216,8 @@ typedef void
  *        proc should be called with NULL if there is no result
  * @param proc_cls closure for @a proc
  */
-typedef void 
-(*PluginGetKey) (void *cls, 
+typedef void
+(*PluginGetKey) (void *cls,
 		 uint64_t offset,
 		 const struct GNUNET_HashCode *key,
 		 const struct GNUNET_HashCode *vhash,
@@ -231,8 +236,8 @@ typedef void
  * @param proc function to call the value (once only).
  * @param proc_cls closure for @a proc
  */
-typedef void 
-(*PluginGetRandom) (void *cls, 
+typedef void
+(*PluginGetRandom) (void *cls,
 		    PluginDatumProcessor proc,
 		    void *proc_cls);
 
@@ -244,8 +249,8 @@ typedef void
  * @param status #GNUNET_OK or #GNUNET_SYSERROR
  * @param msg error message on error
  */
-typedef void 
-(*PluginUpdateCont) (void *cls, 
+typedef void
+(*PluginUpdateCont) (void *cls,
 		     int status,
 		     const char *msg);
 
@@ -270,12 +275,12 @@ typedef void
  * @param cont continuation called with success or failure status
  * @param cons_cls continuation closure
  */
-typedef void 
+typedef void
 (*PluginUpdate) (void *cls,
 		 uint64_t uid,
 		 int delta,
 		 struct GNUNET_TIME_Absolute expire,
-		 PluginUpdateCont cont, 
+		 PluginUpdateCont cont,
 		 void *cont_cls);
 
 
@@ -291,7 +296,7 @@ typedef void
  * @param proc function to call on the matching value
  * @param proc_cls closure for @a proc
  */
-typedef void 
+typedef void
 (*PluginGetType) (void *cls,
 		  uint64_t offset,
 		  enum GNUNET_BLOCK_Type type,
@@ -304,7 +309,7 @@ typedef void
  *
  * @param cls closure
  */
-typedef void 
+typedef void
 (*PluginDrop) (void *cls);
 
 
@@ -384,5 +389,6 @@ struct GNUNET_DATASTORE_PluginFunctions
 
 };
 
+/** @} */  /* end of group */
 
 #endif

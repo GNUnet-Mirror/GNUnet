@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_configuration_lib.h
- * @brief configuration API
  * @author Christian Grothoff
- * @defgroup configuration Configuration management
+ *
+ * @file
+ * Configuration API
+ *
+ * @defgroup configuration  Configuration library
+ * Configuration management
  * @{
  */
 #ifndef GNUNET_CONFIGURATION_LIB_H

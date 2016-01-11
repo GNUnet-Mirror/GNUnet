@@ -18,9 +18,14 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_disk_lib.h
- * @brief disk IO apis
  * @author Christian Grothoff
+ *
+ * @file
+ * Disk IO APIs
+ *
+ * @defgroup disk  Disk library
+ * Disk IO APIs
+ * @{
  */
 #ifndef GNUNET_DISK_LIB_H
 #define GNUNET_DISK_LIB_H
@@ -861,6 +866,7 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h);
 }
 #endif
 
+/** @} */  /* end of group */
 
 /* ifndef GNUNET_DISK_LIB_H */
 #endif

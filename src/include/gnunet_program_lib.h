@@ -19,10 +19,11 @@
 */
 
 /**
- * @file include/gnunet_program_lib.h
- * @brief functions related to starting programs
+ * @file
+ * Functions related to starting programs
+ *
  * @author Christian Grothoff
- * @defgroup program functions for writing command-line programs
+ * @defgroup program  Functions for writing command-line programs
  * @{
  */
 

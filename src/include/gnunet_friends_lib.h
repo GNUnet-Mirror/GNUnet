@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_friends_lib.h
- * @brief library to read and write the FRIENDS file
  * @author Christian Grothoff
+ *
+ * @file
+ * Library to read and write the FRIENDS file
+ *
+ * @defgroup friends  Friends library
+ * Library to read and write the FRIENDS file
+ * @{
  */
 #ifndef GNUNET_FRIENDS_LIB_H
 #define GNUNET_FRIENDS_LIB_H
@@ -99,8 +104,9 @@ int
 GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
                       const struct GNUNET_PeerIdentity *friend_id);
 
+/** @} */  /* end of group */
 
-					  #if 0                           /* keep Emacsens' auto-indent happy */
+#if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
 #ifdef __cplusplus

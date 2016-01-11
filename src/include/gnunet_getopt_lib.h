@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_getopt_lib.h
- * @brief command line parsing and --help formatting
  * @author Christian Grothoff
- * @defgroup getopt command-line parsing
+ *
+ * @file
+ * Command line parsing and --help formatting
+ *
+ * @defgroup getopt  Getopt library
+ * Command line parsing and --help formatting
  * @{
  */
 

@@ -18,9 +18,14 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_mysql_lib.h
- * @brief library to help with access to a MySQL database
  * @author Christian Grothoff
+ *
+ * @file
+ * Helper library to access a MySQL database
+ *
+ * @defgroup mysql  MySQL library
+ * Helper library to access a MySQL database.
+ * @{
  */
 #ifndef GNUNET_MYSQL_LIB_H
 #define GNUNET_MYSQL_LIB_H
@@ -202,6 +207,7 @@ GNUNET_MYSQL_statement_run_prepared (struct GNUNET_MYSQL_Context *mc,
 				     struct GNUNET_MYSQL_StatementHandle *sh,
 				     unsigned long long *insert_id, ...);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

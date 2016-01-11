@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_bandwidth_lib.h
- * @brief functions related to bandwidth (unit)
  * @author Christian Grothoff
+ *
+ * @file
+ * Functions related to bandwidth (unit)
+ *
+ * @defgroup bandwidth  Bandwidth library
+ * Functions related to bandwidth (unit)
+ * @{
  */
 
 #ifndef GNUNET_BANDWIDTH_LIB_H
@@ -326,6 +331,8 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */  /* end of group */
 
 /* ifndef GNUNET_BANDWIDTH_LIB_H */
 #endif

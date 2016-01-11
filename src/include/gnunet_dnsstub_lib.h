@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_dnsstub_lib.h
- * @brief API for helper library to send DNS requests to DNS resolver
  * @author Christian Grothoff
+ *
+ * @file
+ * API for helper library to send DNS requests to DNS resolver
+ *
+ * @defgroup dns-stub  DNS stub library
+ * Helper library to send DNS requests to DNS resolver
+ * @{
  */
 #ifndef GNUNET_DNSSTUB_LIB_H
 #define GNUNET_DNSSTUB_LIB_H
@@ -121,5 +126,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
  */
 void
 GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs);
+
+/** @} */  /* end of group */
 
 #endif

@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_gns_service.h
- * @brief API to the GNS service
  * @author Martin Schanzenbach
+ *
+ * @file
+ * API to the GNS service
+ *
+ * @defgroup gns  GNS service
+ * GNU Name System
+ * @{
  */
 #ifndef GNUNET_GNS_SERVICE_H
 #define GNUNET_GNS_SERVICE_H
@@ -101,7 +106,7 @@ enum GNUNET_GNS_LocalOptions
    * Never look in the DHT, keep request to local cache.
    */
   GNUNET_GNS_LO_NO_DHT = 1,
-  
+
   /**
    * For the rightmost label, only look in the cache (it
    * is our master zone), for the others, the DHT is OK.
@@ -147,6 +152,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 void
 GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

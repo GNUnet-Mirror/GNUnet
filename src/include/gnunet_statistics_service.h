@@ -24,7 +24,7 @@
  *        the operation of GNUnet; all statistical values
  *        must be of type `unsigned long long`.
  * @author Christian Grothoff
- * @defgroup statistics track statistics or provide access to statistics
+ * @defgroup statistics  Track statistics or provide access to statistics
  * @{
  */
 

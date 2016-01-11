@@ -19,13 +19,19 @@
 */
 
 /**
- * @file include/gnunet_datacache_lib.h
- * @brief datacache is a simple, transient hash table
- *        of bounded size with content expiration.
- *        In contrast to the sqstore there is
- *        no prioritization, deletion or iteration.
- *        All of the data is discarded when the peer shuts down!
  * @author Christian Grothoff
+ *
+ * @file
+ * datacache API
+ *
+ * @defgroup datacache  Datacache library
+ * Simple, transient hash table of bounded size with content expiration.
+ *
+ * In contrast to the sqstore there is
+ * no prioritization, deletion or iteration.
+ * All of the data is discarded when the peer shuts down!
+ *
+ * @{
  */
 
 #ifndef GNUNET_DATACACHE_LIB_H
@@ -171,6 +177,7 @@ GNUNET_DATACACHE_get_closest (struct GNUNET_DATACACHE_Handle *h,
                               GNUNET_DATACACHE_Iterator iter,
                               void *iter_cls);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

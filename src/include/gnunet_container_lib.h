@@ -19,15 +19,25 @@
 */
 
 /**
- * @file include/gnunet_container_lib.h
- * @brief container classes for GNUnet
  * @author Christian Grothoff
  * @author Nils Durner
- * @defgroup hashmap multi hash-map
- * @defgroup heap min- or max-heap with arbitrary element removal
- * @defgroup bloomfilter Bloom filter (probabilistic set tests)
- * @defgroup dll Doubly-linked list
- * @defgroup metadata Meta data (GNU libextractor key-value pairs)
+ *
+ * @file
+ * Container classes for GNUnet
+ *
+ * @defgroup hashmap  Container library: MultiHashMap
+ * Hash map with multiple values per key.
+ *
+ * @defgroup heap  Container library: Heap
+ * Min- or max-heap with arbitrary element removal
+ *
+ * @defgroup bloomfilter  Container library: Bloom filter
+ * Probabilistic set tests
+ *
+ * @defgroup dll  Container library: Doubly-linked list
+ *
+ * @defgroup metadata  Container library: Metadata
+ * GNU libextractor key-value pairs
  */
 
 #ifndef GNUNET_CONTAINER_LIB_H

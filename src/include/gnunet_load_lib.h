@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_load_lib.h
- * @brief functions related to load calculations
  * @author Christian Grothoff
+ *
+ * @file
+ * Functions related to load calculations
+ *
+ * @defgroup load  Load library
+ * Load calculations.
+ * @{
  */
 
 #ifndef GNUNET_LOAD_LIB_H
@@ -106,6 +111,7 @@ GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
 void
 GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

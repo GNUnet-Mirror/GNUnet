@@ -2640,6 +2640,9 @@ extern "C"
 /** S->C: notify about an existing place */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 854
 
+/** S->C:  */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_HOST_RELAY 855
+
 /*******************************************************************************
  * X-VINE DHT messages
  ******************************************************************************/

@@ -19,19 +19,12 @@
 */
 
 /**
- * @file include/gnunet_identity_provider_service.h
- * @brief Identity provider service; implements identity provider for GNUnet
  * @author Martin Schanzenbach
  *
- * Egos in GNUnet are ECDSA keys.  You assume an ego by using (signing
- * with) a particular private key.  As GNUnet users are expected to
- * have many egos, we need an identity service to allow users to
- * manage their egos.  The identity service manages the egos (private
- * keys) of the local user; it does NOT manage egos of other users
- * (public keys).  For giving names to other users and manage their
- * public keys securely, we use GNS.
+ * @file
+ * Identity provider service; implements identity provider for GNUnet
  *
- * @defgroup identity-provider service
+ * @defgroup identity-provider  Identity provider service
  * @{
  */
 #ifndef GNUNET_IDENTITY_PROVIDER_SERVICE_H

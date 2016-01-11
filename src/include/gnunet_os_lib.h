@@ -19,8 +19,9 @@
 */
 
 /**
- * @file include/gnunet_os_lib.h
- * @brief low level process routines
+ * @file
+ * Low level process routines
+ *
  * @author Christian Grothoff
  * @author Krista Bennett
  * @author Gerd Knorr <kraxel@bytesex.org>

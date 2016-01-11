@@ -19,11 +19,16 @@
  */
 
 /**
- * @file include/gnunet_microphone_lib.h
- * @brief API to access an audio microphone; provides access to hardware microphones
  * @author Simon Dieterle
  * @author Andreas Fuchs
  * @author Christian Grothoff
+ *
+ * @file
+ * API to access an audio microphone; provides access to hardware microphones
+ *
+ * @defgroup microphone  Microphone library
+ * Provides access to hardware microphones.
+ * @{
  */
 #ifndef GNUNET_MICROPHONE_SERVICE_H
 #define GNUNET_MICROPHONE_SERVICE_H
@@ -124,6 +129,7 @@ GNUNET_MICROPHONE_create_from_hardware (const struct GNUNET_CONFIGURATION_Handle
 void
 GNUNET_MICROPHONE_destroy (struct GNUNET_MICROPHONE_Handle *microphone);
 
+/** @} */  /* end of group */
 
 #if 0				/* keep Emacsens' auto-indent happy */
 {

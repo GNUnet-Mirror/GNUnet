@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_bio_lib.h
- * @brief buffered IO API
  * @author Christian Grothoff
- * @defgroup bio Buffered binary disk IO (with endianess conversion)
+ *
+ * @file
+ * Buffered IO library
+ *
+ * @defgroup bio  BIO library
+ * Buffered binary disk IO (with endianess conversion)
  * @{
  */
 

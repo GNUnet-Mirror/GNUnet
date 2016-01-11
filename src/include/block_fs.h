@@ -19,8 +19,9 @@
 */
 
 /**
- * @file include/block_fs.h
- * @brief fs block formats (shared between fs and block)
+ * @file
+ * FS block formats (shared between FS and Block)
+ *
  * @author Christian Grothoff
  */
 #ifndef BLOCK_FS_H

@@ -20,9 +20,12 @@
 
 /**
  * @author Florian Dold
- * @file include/gnunet_mq_lib.h
- * @brief general purpose message queue
- * @defgroup mq general purpose message queue
+ *
+ * @file
+ * General-purpose message queue
+ *
+ * @defgroup mq  MQ library
+ * General-purpose message queue
  * @{
  */
 #ifndef GNUNET_MQ_H

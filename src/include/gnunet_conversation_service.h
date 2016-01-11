@@ -19,12 +19,15 @@
  */
 
 /**
- * @file include/gnunet_conversation_service.h
- * @brief API to the conversation service
  * @author Simon Dieterle
  * @author Andreas Fuchs
  * @author Christian Grothoff
  *
+ * @file
+ * API to the conversation service
+ *
+ * @defgroup conversation  Conversation service
+ * One-to-one voice communication over CADET
  *
  * NOTE: This API is deliberately deceptively simple; the idea
  * is that advanced features (such as answering machines) will
@@ -41,6 +44,8 @@
  * course provided as part of the basic implementation, as only the
  * CONVERSATION service can know for sure who it is that we are
  * talking to.
+ *
+ * @{
  */
 #ifndef GNUNET_CONVERSATION_SERVICE_H
 #define GNUNET_CONVERSATION_SERVICE_H
@@ -417,6 +422,7 @@ GNUNET_CONVERSATION_call_resume (struct GNUNET_CONVERSATION_Call *call,
 void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call);
 
+/** @} */  /* end of group */
 
 #if 0				/* keep Emacsens' auto-indent happy */
 {

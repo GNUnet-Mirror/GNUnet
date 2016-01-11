@@ -19,10 +19,18 @@
  */
 
 /**
- * @file include/gnunet_env_lib.h
- * @brief Library providing operations for the @e environment of
- *        PSYC and Social messages, and for (de)serializing variable values.
  * @author Gabor X Toth
+ *
+ * @file
+ * Environment library
+ *
+ * @defgroup env  Environment library
+ * Environment data structure for PSYC and Social messages.
+ *
+ * Library providing operations for the @e environment of
+ * PSYC and Social messages, and for (de)serializing variable values.
+ *
+ * @{
  */
 
 
@@ -325,6 +333,8 @@ GNUNET_ENV_value_from_dict (struct GNUNET_CONTAINER_MultiHashMap *dict, size_t *
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */  /* end of group */
 
 /* ifndef GNUNET_ENV_LIB_H */
 #endif

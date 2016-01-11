@@ -19,8 +19,9 @@
 */
 
 /**
- * @file include/block_regex.h
- * @brief regex block formats
+ * @file
+ * regex block formats
+ *
  * @author Bartlomiej Polot
  */
 #ifndef BLOCK_REGEX_H

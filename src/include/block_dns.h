@@ -19,7 +19,9 @@
 */
 
 /**
- * @file include/block_dns.h
+ * @file
+ * DNS network structs
+ *
  * @author Christian Grothoff
  */
 #ifndef BLOCK_DNS_H

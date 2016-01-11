@@ -19,11 +19,17 @@
 */
 
 /**
- * @file include/gnunet_client_manager_lib.h
- * @brief Client manager; higher level client API with transmission queue
- * and message handler registration.
  * @author Gabor X Toth
- * @defgroup client_manager  Higher level client-side communication with services.
+ *
+ * @file
+ * Client manager; higher level client API with transmission queue
+ * and message handler registration.
+ *
+ * @defgroup client-manager  Client manager library
+ * Higher level client-side communication with services.
+ *
+ * Provides a higher level client API
+ * with transmission queue and message handler registration.
  * @{
  */
 #ifndef GNUNET_CLIENT_MANAGER_LIB_H
@@ -347,7 +353,7 @@ GNUNET_CLIENT_MANAGER_op_cancel (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
 }
 #endif
 
-/** @} */ /* end of group client_manager */
+/** @} */ /* end of group */
 
 /* ifndef GNUNET_CLIENT_MANAGER_LIB_H */
 #endif

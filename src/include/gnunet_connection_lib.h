@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_connection_lib.h
- * @brief basic, low-level TCP networking interface
  * @author Christian Grothoff
+ *
+ * @file include/gnunet_connection_lib.h
+ * Basic, low-level TCP networking interface
+ *
+ * @defgroup connection  Connection library
+ * Basic, low-level TCP networking interface
+ * @{
  */
 #ifndef GNUNET_CONNECTION_LIB_H
 #define GNUNET_CONNECTION_LIB_H
@@ -370,7 +375,7 @@ GNUNET_CONNECTION_create_proxied_from_handshake (struct GNUNET_CONNECTION_Handle
 
 
 /**
- * Activate proxied connection and destroy initial proxy handshake connection. 
+ * Activate proxied connection and destroy initial proxy handshake connection.
  * There must not be any pending requests for reading or writing to the
  * proxy hadshake connection at this time.
  *
@@ -387,6 +392,7 @@ GNUNET_CONNECTION_acivate_proxied (struct GNUNET_CONNECTION_Handle *proxied);
 }
 #endif
 
+/** @} */  /* end of group */
 
 /* ifndef GNUNET_CONNECTION_LIB_H */
 #endif

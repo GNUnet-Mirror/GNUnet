@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_arm_service.h
- * @brief API to access gnunet-arm
  * @author Christian Grothoff
+ *
+ * @file
+ * API to access gnunet-arm
+ *
+ * @defgroup arm  ARM service
+ * Automatic Restart Manager
+ * @{
  */
 
 #ifndef GNUNET_ARM_SERVICE_H
@@ -342,6 +347,7 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h);
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

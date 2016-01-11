@@ -18,11 +18,13 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_core_service.h
- * @brief core service; this is the main API for encrypted P2P
- *        communications
  * @author Christian Grothoff
- * @defgroup core encrypted direct communication between peers
+ *
+ * @file include/gnunet_core_service.h
+ * Core service; the main API for encrypted P2P communications
+ *
+ * @defgroup core  Core service
+ * Encrypted direct communication between peers
  * @{
  */
 #ifndef GNUNET_CORE_SERVICE_H

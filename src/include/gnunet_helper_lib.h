@@ -19,11 +19,19 @@
 */
 
 /**
- * @file include/gnunet_helper_lib.h
- * @brief API for dealing with (SUID) helper processes that communicate via
- *          GNUNET_MessageHeaders on stdin/stdout
  * @author Philipp Toelke
  * @author Christian Grothoff
+ *
+ * @file
+ * API for dealing with SUID helper processes
+ *
+ * @defgroup helper  Helper library
+ * Dealing with SUID helper processes.
+ *
+ * Provides an API for dealing with (SUID) helper processes
+ * that communicate via GNUNET_MessageHeaders on STDIN/STDOUT.
+ *
+ * @{
  */
 
 #ifndef GNUNET_HELPER_LIB_H
@@ -165,6 +173,8 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
  */
 void
 GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh);
+
+/** @} */  /* end of group */
 
 #endif
 /* end of include guard: GNUNET_HELPER_LIB_H */

@@ -18,10 +18,15 @@
  Boston, MA 02110-1301, USA.
  */
 /**
- * @file include/gnunet_ats_service.h
- * @brief automatic transport selection and outbound bandwidth determination
+ * @file
+ * Automatic transport selection and outbound bandwidth determination
+ *
  * @author Christian Grothoff
  * @author Matthias Wachs
+ *
+ * @defgroup ats  ATS service
+ * Automatic transport selection and outbound bandwidth determination
+ * @{
  */
 #ifndef GNUNET_ATS_SERVICE_H
 #define GNUNET_ATS_SERVICE_H
@@ -694,6 +699,8 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
 				      const struct GNUNET_PeerIdentity *peer,
 				      const struct GNUNET_TIME_Relative scope,
 				      ...);
+
+/** @} */  /* end of group */
 
 #endif
 /* end of file gnunet-service-transport_ats.h */

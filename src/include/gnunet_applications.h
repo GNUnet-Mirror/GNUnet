@@ -19,8 +19,9 @@
 */
 
 /**
- * @file include/gnunet_applications.h
- * @brief constants for network applications operating on top of the CADET service
+ * @file
+ * Constants for network applications operating on top of the CADET service
+ *
  * @author Christian Grothoff
  */
 

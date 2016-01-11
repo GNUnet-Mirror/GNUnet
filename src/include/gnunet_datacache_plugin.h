@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_datacache_plugin.h
- * @brief API for database backends for the datacache
  * @author Christian Grothoff
+ *
+ * @file
+ * API for database backends for the datacache
+ *
+ * @defgroup datacache-plugin  Datacache plugin API
+ * API for database backends for the datacache
+ * @{
  */
 #ifndef PLUGIN_DATACACHE_H
 #define PLUGIN_DATACACHE_H
@@ -181,6 +186,7 @@ struct GNUNET_DATACACHE_PluginFunctions
 
 };
 
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

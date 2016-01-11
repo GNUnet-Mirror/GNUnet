@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_block_lib.h
- * @brief library for data block manipulation
  * @author Christian Grothoff
+ *
+ * @file
+ * Library for data block manipulation
+ *
+ * @defgroup block  Block library
+ * Library for data block manipulation
+ * @{
  */
 #ifndef GNUNET_BLOCK_LIB_H
 #define GNUNET_BLOCK_LIB_H
@@ -300,6 +305,8 @@ GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
 #ifdef __cplusplus
 }
 #endif
+
+/** @} */  /* end of group */
 
 
 /* ifndef GNUNET_BLOCK_LIB_H */

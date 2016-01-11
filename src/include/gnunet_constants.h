@@ -19,9 +19,10 @@
 */
 
 /**
- * @file include/gnunet_constants.h
- * @brief "global" constants for performance tuning
  * @author Christian Grothoff
+ *
+ * @file
+ * "Global" constants for performance tuning
  */
 
 #ifndef GNUNET_CONSTANTS_H

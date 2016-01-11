@@ -19,9 +19,13 @@
 */
 
 /**
- * @file include/gnunet_hello_lib.h
- * @brief helper library for handling HELLOs
  * @author Christian Grothoff
+ * @file
+ * Helper library for handling HELLOs
+ *
+ * @defgroup hello  Hello library
+ * Helper library for handling HELLOs
+ * @{
  */
 
 #ifndef GNUNET_HELLO_LIB_H
@@ -438,6 +442,8 @@ GNUNET_HELLO_parse_uri (const char *uri,
                         struct GNUNET_CRYPTO_EddsaPublicKey *pubkey,
                         struct GNUNET_HELLO_Message **hello,
                         GNUNET_HELLO_TransportPluginsFind plugins_find);
+
+/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

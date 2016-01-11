@@ -19,14 +19,20 @@
  */
 
 /**
- * @file include/gnunet_ats_plugin.h
- * @brief API for the ATS solvers.  This header
- *        specifies the struct that is given to the plugin's entry
- *        method and the other struct that must be returned.
- *        Note that the destructors of ATS plugins will
- *        be given the value returned by the constructor
- *        and is expected to return a NULL pointer.
  * @author Christian Grothoff
+ *
+ * @file
+ * API for the ATS solvers.
+ *
+ * @defgroup ats-plugin  ATS service plugin API
+ * Plugin API for the ATS service.
+ *
+ * Specifies the struct that is given to the plugin's entry method and the other
+ * struct that must be returned.  Note that the destructors of ATS plugins will
+ * be given the value returned by the constructor and is expected to return a
+ * NULL pointer.
+ *
+ * @{
  */
 #ifndef PLUGIN_ATS_H
 #define PLUGIN_ATS_H
@@ -471,5 +477,7 @@ struct GNUNET_ATS_PluginEnvironment
    */
   unsigned long long in_quota[GNUNET_ATS_NetworkTypeCount];
 };
+
+/** @} */  /* end of group */
 
 #endif

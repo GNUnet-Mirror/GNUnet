@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_client_lib.h
- * @brief functions related to accessing services
  * @author Christian Grothoff
- * @defgroup client Generic client-side communication with services
+ *
+ * @file
+ * Functions related to accessing services
+
+ * @defgroup client  Client library
+ * Generic client-side communication with services
  * @{
  */
 

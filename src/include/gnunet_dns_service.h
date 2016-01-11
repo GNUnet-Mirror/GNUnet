@@ -19,9 +19,13 @@
  */
 
 /**
- * @file include/gnunet_dns_service.h
- * @brief API to access the DNS service.
  * @author Christian Grothoff
+ *
+ * @file
+ * API to access the DNS service.
+ *
+ * @defgroup dns  DNS service
+ * @{
  */
 #ifndef GNUNET_DNS_SERVICE_H
 #define GNUNET_DNS_SERVICE_H
@@ -153,7 +157,7 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh);
  * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,		
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
 			   uint16_t reply_length,
 			   const char *reply);
 
@@ -181,5 +185,7 @@ GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh);
+
+/** @} */  /* end of group */
 
 #endif

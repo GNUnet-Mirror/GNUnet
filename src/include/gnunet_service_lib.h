@@ -22,7 +22,7 @@
  * @file include/gnunet_service_lib.h
  * @brief functions related to starting services
  * @author Christian Grothoff
- * @defgroup service generic functions for implementing service processes
+ * @defgroup service  Generic functions for implementing service processes
  * @{
  */
 

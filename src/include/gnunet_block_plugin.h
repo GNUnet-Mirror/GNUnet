@@ -19,13 +19,19 @@
 */
 
 /**
- * @file include/gnunet_block_plugin.h
- * @brief API for block plugins.  Each block plugin must conform to
- *        the API specified by this header.
  * @author Christian Grothoff
- * @defgroup block API to be implemented by applications storing data in the DHT
+ *
+ * @file
+ * API for block plugins.  Each block plugin must conform to the API specified by this header.
+ *
+ * @defgroup block-plugin  Block plugin API
+ * To be implemented by applications storing data in the DHT.
+ *
+ * Each block plugin must conform to the API specified by this header.
+ *
  * @{
  */
+
 #ifndef PLUGIN_BLOCK_H
 #define PLUGIN_BLOCK_H
 

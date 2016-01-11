@@ -25,7 +25,7 @@
  * @file include/gnunet_revocation_service.h
  * @brief API to perform and access key revocations
  * @author Christian Grothoff
- * @defgroup revocation key revocation service
+ * @defgroup revocation  Key revocation service
  * @{
  */
 

@@ -19,11 +19,191 @@
 */
 
 /**
- * @file include/gnunet_social_service.h
- * @brief Social service; implements social interactions using the PSYC service.
  * @author Gabor X Toth
  * @author Christian Grothoff
+ *
+ * @file
+ * Social service; implements social interactions through the PSYC service.
  */
+
+/** @defgroup social Social service
+Social interactions through the PSYC service.
+
+# Overview
+
+The social service provides an API for social interactions based on a one-to-many messaging model.
+It manages subscriptions of applications to places, provides messaging functionality in places,
+allows access to the local message history and manages the GNS zone of _egos_ (user identities).
+
+The service stores private and public keys of subscribed places, as well as files received in subscribed places.
+
+# Concepts and terminology
+
+## Ego, Nym
+
+An _ego_ is an identity of a user, a private-public key pair.
+A _nym_ is an identity of another user in the network, identified by its public key.
+Each user can have multiple identities.
+
+struct GNUNET_SOCIAL_Ego and struct GNUNET_SOCIAL_Nym represents one of these identities.
+
+## Place, Host, Guest
+
+A _place_ is where social interactions happen.  It is owned and created by an _ego_.
+Creating a new place happens by an _ego_ entering a new place as a _host_,
+where _guests_ can enter later to receive messages sent to the place.
+
+A place is identified by its public key.
+
+- struct GNUNET_SOCIAL_Host represents a place entered as host,
+- struct GNUNET_SOCIAL_Guest is used for a place entered as guest.
+- A struct GNUNET_SOCIAL_Place can be obtained for both a host and guest place
+  using GNUNET_SOCIAL_host_get_place() and GNUNET_SOCIAL_guest_get_place()
+  and can be used with API functions common to hosts and guests.
+
+## History
+
+Messages sent to places are stored locally by the PSYCstore service, and can be queried any time.
+GNUNET_SOCIAL_history_replay_latest() retrieves the latest N messages sent to the place,
+while GNUNET_SOCIAL_history_replay() is used to query a given message ID range.
+
+## GNU Name System
+
+The GNU Name System is used for assigning human-readable names to nyms and places.
+There's a _GNS zone_ corresponding to each _nym_.
+An _ego_ can publish PKEY and PLACE records in its own zone, pointing to nyms and places, respectively.
+
+## Announcement, talk request
+
+The host can _announce_ messages to the place, using GNUNET_SOCIAL_host_announce().
+Guests can send _talk_ requests to the host, using GNUNET_SOCIAL_guest_talk().
+The host receives talk requests of guests and can _relay_ them to the place,
+or process it using a message handler function.
+
+# Using the API
+
+## Connecting to the service
+
+A client first establishes an _application connection_ to the service using
+GNUNET_SOCIAL_app_connect() providing its _application ID_, then receives the
+public keys of subscribed places and available egos and in response.
+
+## Reconnecting to places
+
+Then the application can reconnect to its subscribed places by establishing
+_place connections_ with GNUNET_SOCIAL_host_enter_reconnect() and
+GNUNET_SOCIAL_guest_enter_reconnect().
+
+## Subscribing to a place
+
+Entering and subscribing a new host or guest place is done using
+GNUNET_SOCIAL_host_enter() and GNUNET_SOCIAL_guest_enter().
+
+## Disconnecting from a place
+
+An application can disconnect from a place while the social service keeps its
+network connection active, using GNUNET_SOCIAL_host_disconnect() and
+GNUNET_SOCIAL_guest_disconnect().
+
+## Leaving a place
+
+To permanently leave a place, see GNUNET_SOCIAL_host_leave() and GNUNET_SOCIAL_guest_leave().
+When leaving a place its network connections are closed and all applications are unsubscribed from the place.
+
+# Methods
+
+## _message
+
+A message sent to the place.
+
+### Environment
+
+#### _id_reply_to
+message ID this message is in reply to.
+
+#### _id_thread
+
+thread ID, the first message ID in the thread.
+
+#### _nym_author__
+nym of the author.
+
+#### _sig_author
+signature of the message body and its variables by the author.
+
+## Data
+
+Message body.
+
+## _notice_place
+
+Notification about a place.
+
+TODO: Applications can decide to auto-subscribe to certain places,
+e.g. files under a given size.
+
+### Environment
+
+#### Using GNS
+
+##### _gns_place
+GNS name of the place in a globally unique .zkey zone
+
+#### Without GNS
+
+##### _key_pub_place
+public key of place
+
+##### _peer_origin
+peer ID of origin
+
+##### _list_peer_relays
+list of peer IDs of relays
+
+## _notice_place_file
+
+Notification about a place hosting a file.
+
+### Environment
+
+The environment of _notice_place above, plus the following:
+
+#### _size_file
+size of file
+
+#### _mime_file
+MIME type of file
+
+#### _name_file
+name of file
+
+#### _description_file
+description of file
+
+## _file
+
+Messages with a _file method contain a file,
+which is saved to disk upon receipt at the following location:
+$GNUNET_DATA_HOME/social/files/<H(place_pub)>/<message_id>
+
+### Environment
+
+#### _size_file
+size of file
+
+#### _mime_file
+MIME type of file
+
+#### _name_file
+name of file
+
+#### _description_file
+description
+
+@{
+*/
+
+
 #ifndef GNUNET_SOCIAL_SERVICE_H
 #define GNUNET_SOCIAL_SERVICE_H
 
@@ -371,7 +551,7 @@ typedef void
  *        Message part, as it arrived from the network.
  * @param message_id
  *        Message ID this data fragment belongs to.
- * @param cancelled.
+ * @param cancelled
  *        #GNUNET_YES if the message was cancelled,
  *        #GNUNET_NO  if the message is complete.
  */
@@ -1334,6 +1514,7 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
                             GNUNET_ResultCallback result_cb,
                             void *result_cls);
 
+/** @} */  /* end of group social */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
