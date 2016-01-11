@@ -40,6 +40,7 @@ gnunet_service_social_SOURCES = \
 gnunet_service_social_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/env/libgnunetenv.la \
   $(top_builddir)/src/psyc/libgnunetpsyc.la \
   $(top_builddir)/src/psycstore/libgnunetpsycutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
