@@ -65,7 +65,7 @@ struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by 0-terminated ticket */
+  /* followed by 0-terminated label,ticket,token */
 
 };
 

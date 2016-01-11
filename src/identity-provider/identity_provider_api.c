@@ -193,6 +193,9 @@ message_handler (void *cls,
   const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
   const struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
   char *str;
+  char *ticket_str;
+  char *token_str;
+  char *label_str;
   uint16_t size;
 
   if (NULL == msg)
@@ -214,26 +217,56 @@ message_handler (void *cls,
       return;
     }
     irm = (const struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *) msg;
-    str = (char *) &irm[1];
+    str = GNUNET_strdup ((char *) &irm[1]);
     if ( (size > sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)) &&
 	 ('\0' != str[size - sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) - 1]) )
     {
+      GNUNET_free (str);
       GNUNET_break (0);
       reschedule_connect (h);
       return;
     }
     if (size == sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage))
+    {
+      GNUNET_free (str);
       str = NULL;
-
+    }
+    label_str = strtok (str, ",");
+    
+    if (NULL == label_str)
+    {
+      GNUNET_free (str);
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    ticket_str = strtok (NULL, ",");
+    if (NULL == ticket_str)
+    {
+      GNUNET_free (str);
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    token_str = strtok (NULL, ",");
+    if (NULL == token_str)
+    {
+      GNUNET_free (str);
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
     op = h->op_head;
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
     GNUNET_CLIENT_receive (h->client, &message_handler, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
-    ticket.data = str;
+    ticket.data = ticket_str;
+    token.data = token_str;
     if (NULL != op->iss_cb)
-      op->iss_cb (op->cls, &ticket);
+      op->iss_cb (op->cls, label_str, &ticket, &token);
+    GNUNET_free (str);
     GNUNET_free (op);
     break;
    case GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT:

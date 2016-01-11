@@ -90,14 +90,18 @@ typedef void
  * token
  *
  * @param cls closure
+ * @param grant the label in GNS pointing to the token
  * @param ticket the ticket
+ * @param token the issued token
  * @param name name assigned by the user for this ego,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
 typedef void
 (*GNUNET_IDENTITY_PROVIDER_IssueCallback)(void *cls,
-                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket);
+                            const char *grant,
+                            const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                            const struct GNUNET_IDENTITY_PROVIDER_Token *token);
 
 
 /**

@@ -891,14 +891,25 @@ create_exchange_result_message (const char* token,
 
 
 static struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage*
-create_issue_result_message (const char* ticket)
+create_issue_result_message (const char* label,
+                             const char* ticket,
+                             const char* token)
 {
   struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
+  char *tmp_str;
 
-  irm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) + strlen(ticket) + 1);
+  irm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) 
+                       + strlen (label) + 1
+                       + strlen (ticket) + 1
+                       + strlen (token) + 1);
   irm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT);
-  irm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) + strlen (ticket) + 1);
-  memcpy (&irm[1], ticket, strlen (ticket) + 1);
+  irm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) 
+                            + strlen (label) + 1
+                            + strlen (ticket) + 1
+                            + strlen (token) + 1);
+  GNUNET_asprintf (&tmp_str, "%s,%s,%s", label, ticket, token);
+  memcpy (&irm[1], tmp_str, strlen (tmp_str) + 1);
+  GNUNET_free (tmp_str);
   return irm;
 }
 
@@ -925,7 +936,8 @@ store_token_issue_cont (void *cls,
 {
   struct IssueHandle *handle = cls;
   struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
-  char* token_ticket_str;
+  char *ticket_str;
+  char *token_str;
   handle->ns_qe = NULL;
   if (GNUNET_SYSERR == success)
   {
@@ -937,7 +949,7 @@ store_token_issue_cont (void *cls,
   }
   if (GNUNET_OK != ticket_serialize (handle->ticket,
                                      &handle->iss_key,
-                                     &token_ticket_str))
+                                     &ticket_str))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
                 "Error serializing ticket\n");
@@ -945,7 +957,18 @@ store_token_issue_cont (void *cls,
     GNUNET_SCHEDULER_add_now (&do_shutdown, NULL); 
     return;
   }
-  irm = create_issue_result_message (token_ticket_str);
+  if (GNUNET_OK != token_to_string (handle->token,
+                                    &handle->iss_key,
+                                    &token_str))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
+                "Error serializing token\n");
+    GNUNET_free (ticket_str);
+    cleanup_issue_handle (handle);
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL); 
+    return;
+  }
+  irm = create_issue_result_message (handle->label, ticket_str, token_str);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               handle->client,
                                               &irm->header,
@@ -953,7 +976,8 @@ store_token_issue_cont (void *cls,
   GNUNET_SERVER_client_set_user_context (handle->client, NULL);
   cleanup_issue_handle (handle);
   GNUNET_free (irm);
-  GNUNET_free (token_ticket_str);
+  GNUNET_free (ticket_str);
+  GNUNET_free (token_str);
 }
 
 /**
@@ -1320,11 +1344,11 @@ find_existing_token (void *cls,
                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
   {
     char *tmp2 = GNUNET_STRINGS_data_to_string_alloc (aud_key,
-                                                    sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
+                                                      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
     //Audience does not match!
     char *tmp = GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_ID_TOKEN_METADATA,
-                                                                     token_metadata_record->data,
-                                                                     token_metadata_record->data_size);
+                                                  token_metadata_record->data,
+                                                  token_metadata_record->data_size);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Token does not match audience %s vs %s. Moving on\n",
                 tmp2,

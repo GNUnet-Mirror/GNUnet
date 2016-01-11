@@ -57,9 +57,15 @@
 #define GNUNET_REST_API_NS_IDENTITY_OAUTH2_TOKEN "/idp/token"
 
 /**
- * The URL parameter name in which the ticket must be provided
+ * The parameter name in which the ticket must be provided
  */
 #define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET "ticket"
+
+/**
+ * The parameter name in which the ticket must be provided
+ */
+#define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TOKEN "token"
+
 
 /**
  * The URL parameter name in which the nonce must be provided
@@ -354,13 +360,17 @@ do_cleanup_handle_delayed (void *cls,
  */
 static void
 token_creat_cont (void *cls,
-                  const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket)
+                  const char *label,
+                  const struct GNUNET_IDENTITY_PROVIDER_Ticket *ticket,
+                  const struct GNUNET_IDENTITY_PROVIDER_Token *token)
 {
   struct JsonApiResource *json_resource;
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
-  json_t *token_ticket_json;
+  json_t *ticket_json;
+  json_t *token_json;
   char *ticket_str;
+  char *token_str;
   char *result_str;
   
   if (NULL == ticket)
@@ -369,18 +379,26 @@ token_creat_cont (void *cls,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-    
+
   handle->resp_object = GNUNET_REST_jsonapi_object_new ();
   json_resource = GNUNET_REST_jsonapi_resource_new (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
-                                                    "tmpid"); //TODO
+                                                    label);
   ticket_str = GNUNET_IDENTITY_PROVIDER_ticket_to_string (ticket);
-  token_ticket_json = json_string (ticket_str);
+  token_str = GNUNET_IDENTITY_PROVIDER_token_to_string (token);
+  ticket_json = json_string (ticket_str);
+  token_json = json_string (token_str);
   GNUNET_REST_jsonapi_resource_add_attr (json_resource,
                                          GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
-                                         token_ticket_json);
+                                         ticket_json);
+  GNUNET_REST_jsonapi_resource_add_attr (json_resource,
+                                         GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TOKEN,
+                                         token_json);
   GNUNET_free (ticket_str);
-  json_decref (token_ticket_json);
+  GNUNET_free (token_str);
+  json_decref (ticket_json);
+  json_decref (token_json);
   GNUNET_REST_jsonapi_object_resource_add (handle->resp_object, json_resource);
+
   GNUNET_REST_jsonapi_data_serialize (handle->resp_object, &result_str);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Result %s\n", result_str);
   resp = GNUNET_REST_create_json_response (result_str);
@@ -405,7 +423,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
   const char *egoname;
-  
+
   struct RequestHandle *handle = cls;
   struct EgoEntry *ego_entry;
   struct GNUNET_HashCode key;
@@ -436,7 +454,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST,
                       strlen (GNUNET_REST_JSONAPI_IDENTITY_ISS_REQUEST),
                       &key);
-  if ( GNUNET_YES ==
+  if ( GNUNET_YES !=
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {
@@ -760,7 +778,7 @@ exchange_cont (void *cls,
 
   root = json_object ();
   token_str = GNUNET_IDENTITY_PROVIDER_token_to_string (token);
-  json_object_set_new (root, "identity_token", json_string (token_str));
+  json_object_set_new (root, "token", json_string (token_str));
   json_object_set_new (root, "token_type", json_string ("jwt"));
   GNUNET_free (token_str);
 
@@ -1016,7 +1034,7 @@ rest_identity_process_request(struct RestConnectionDataHandle *conndata_handle,
  * @return NULL on error, otherwise the plugin context
  */
 void *
-libgnunet_plugin_rest_identity_token_init (void *cls)
+libgnunet_plugin_rest_identity_provider_init (void *cls)
 {
   static struct Plugin plugin;
   struct GNUNET_REST_Plugin *api;
@@ -1051,7 +1069,7 @@ libgnunet_plugin_rest_identity_token_init (void *cls)
  * @return always NULL
  */
 void *
-libgnunet_plugin_rest_identity_token_done (void *cls)
+libgnunet_plugin_rest_identity_provider_done (void *cls)
 {
   struct GNUNET_REST_Plugin *api = cls;
   struct Plugin *plugin = api->cls;
