@@ -24,7 +24,7 @@
  * @file
  * API that can be used to manipulate GNS record data
  *
- * @defgroup gns-record  GNS Record library
+ * @defgroup gnsrecord  GNS Record library
  * Manipulate GNS record data
  * @{
  */

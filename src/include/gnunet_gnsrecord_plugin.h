@@ -24,7 +24,7 @@
  * @file
  * Plugin API for GNS record types
  *
- * @defgroup gns-record-plugin  GNS record plugin API
+ * @defgroup gnsrecord-plugin  GNS Record plugin API
  * To be implemented by applications defining new record types.
  * @{
  */

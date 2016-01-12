@@ -119,17 +119,16 @@ A message sent to the place.
 ### Environment
 
 #### _id_reply_to
-message ID this message is in reply to.
+Message ID this message is in reply to.
 
 #### _id_thread
-
-thread ID, the first message ID in the thread.
+Thread ID, the first message ID in the thread.
 
 #### _nym_author__
-nym of the author.
+Nym of the author.
 
 #### _sig_author
-signature of the message body and its variables by the author.
+Signature of the message body and its variables by the author.
 
 ## Data
 
@@ -152,13 +151,13 @@ GNS name of the place in a globally unique .zkey zone
 #### Without GNS
 
 ##### _key_pub_place
-public key of place
+Public key of place
 
 ##### _peer_origin
-peer ID of origin
+Peer ID of origin
 
 ##### _list_peer_relays
-list of peer IDs of relays
+List of peer IDs of relays
 
 ## _notice_place_file
 
@@ -169,16 +168,16 @@ Notification about a place hosting a file.
 The environment of _notice_place above, plus the following:
 
 #### _size_file
-size of file
+Size of file
 
 #### _mime_file
 MIME type of file
 
 #### _name_file
-name of file
+Name of file
 
 #### _description_file
-description of file
+Description of file
 
 ## _file
 
@@ -189,16 +188,16 @@ $GNUNET_DATA_HOME/social/files/<H(place_pub)>/<message_id>
 ### Environment
 
 #### _size_file
-size of file
+Size of file
 
 #### _mime_file
 MIME type of file
 
 #### _name_file
-name of file
+Name of file
 
 #### _description_file
-description
+Description of file
 
 @{
 */
