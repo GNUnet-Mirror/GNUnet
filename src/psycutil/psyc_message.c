@@ -28,9 +28,8 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_env_lib.h"
-#include "gnunet_psyc_service.h"
 #include "gnunet_psyc_util_lib.h"
+#include "gnunet_psyc_service.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "psyc-util",__VA_ARGS__)
 
@@ -70,7 +69,7 @@ struct GNUNET_PSYC_TransmitHandle
   /**
    * Modifier of the environment that is currently being transmitted.
    */
-  struct GNUNET_ENV_Modifier *mod;
+  struct GNUNET_PSYC_Modifier *mod;
 
   /**
    *
@@ -180,18 +179,18 @@ struct GNUNET_PSYC_ReceiveHandle
  */
 struct GNUNET_PSYC_Message *
 GNUNET_PSYC_message_create (const char *method_name,
-                            const struct GNUNET_ENV_Environment *env,
+                            const struct GNUNET_PSYC_Environment *env,
                             const void *data,
                             size_t data_size)
 {
-  struct GNUNET_ENV_Modifier *mod = NULL;
+  struct GNUNET_PSYC_Modifier *mod = NULL;
   struct GNUNET_PSYC_MessageMethod *pmeth = NULL;
   struct GNUNET_PSYC_MessageModifier *pmod = NULL;
   struct GNUNET_MessageHeader *pmsg = NULL;
   uint16_t env_size = 0;
   if (NULL != env)
   {
-    mod = GNUNET_ENV_environment_head (env);
+    mod = GNUNET_PSYC_env_head (env);
     while (NULL != mod)
     {
       env_size += sizeof (*pmod) + strlen (mod->name) + 1 + mod->value_size;
@@ -221,7 +220,7 @@ GNUNET_PSYC_message_create (const char *method_name,
   uint16_t p = sizeof (*msg) + sizeof (*pmeth) + method_name_size;
   if (NULL != env)
   {
-    mod = GNUNET_ENV_environment_head (env);
+    mod = GNUNET_PSYC_env_head (env);
     while (NULL != mod)
     {
       uint16_t mod_name_size = strlen (mod->name) + 1;
@@ -694,7 +693,7 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 int
 GNUNET_PSYC_transmit_message (struct GNUNET_PSYC_TransmitHandle *tmit,
                               const char *method_name,
-                              const struct GNUNET_ENV_Environment *env,
+                              const struct GNUNET_PSYC_Environment *env,
                               GNUNET_PSYC_TransmitNotifyModifier notify_mod,
                               GNUNET_PSYC_TransmitNotifyData notify_data,
                               void *notify_cls,
@@ -720,14 +719,14 @@ GNUNET_PSYC_transmit_message (struct GNUNET_PSYC_TransmitHandle *tmit,
     tmit->notify_mod_cls = tmit;
     if (NULL != env)
     {
-      struct GNUNET_ENV_Modifier mod = {};
-      mod.next = GNUNET_ENV_environment_head (env);
+      struct GNUNET_PSYC_Modifier mod = {};
+      mod.next = GNUNET_PSYC_env_head (env);
       tmit->mod = &mod;
 
-      struct GNUNET_ENV_Modifier *m = tmit->mod;
+      struct GNUNET_PSYC_Modifier *m = tmit->mod;
       while (NULL != (m = m->next))
       {
-        if (m->oper != GNUNET_ENV_OP_SET)
+        if (m->oper != GNUNET_PSYC_OP_SET)
           flags |= GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY;
       }
     }
@@ -1171,7 +1170,7 @@ GNUNET_PSYC_receive_check_parts (uint16_t data_size, const char *data,
 
 struct ParseMessageClosure
 {
-  struct GNUNET_ENV_Environment *env;
+  struct GNUNET_PSYC_Environment *env;
   const char **method_name;
   const void **data;
   uint16_t *data_size;
@@ -1210,8 +1209,8 @@ parse_message_part_cb (void *cls,
 
     const char *name = (const char *) &pmod[1];
     const void *value = name + ntohs (pmod->name_size);
-    GNUNET_ENV_environment_add (pmc->env, pmod->oper, name, value,
-                                ntohl (pmod->value_size));
+    GNUNET_PSYC_env_add (pmc->env, pmod->oper, name, value,
+                         ntohl (pmod->value_size));
     pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_MODIFIER;
     break;
   }
@@ -1252,7 +1251,7 @@ parse_message_part_cb (void *cls,
 int
 GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_MessageHeader *msg,
                            const char **method_name,
-                           struct GNUNET_ENV_Environment *env,
+                           struct GNUNET_PSYC_Environment *env,
                            const void **data,
                            uint16_t *data_size)
 {

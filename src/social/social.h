@@ -80,6 +80,19 @@ struct AppDetachRequest
 };
 
 
+struct HostRelayRequest
+{
+  /**
+   * Types:
+   * - GNUNET_MESSAGE_TYPE_SOCIAL_HOST_RELAY_START
+   * - GNUNET_MESSAGE_TYPE_SOCIAL_HOST_RELAY_STOP
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* Followed by char *method_name */
+};
+
+
 struct HostEnterRequest
 {
   /**
@@ -207,6 +220,7 @@ struct ZoneAddNymRequest
   /* Followed by const char *name */
 };
 
+
 /**** service -> library ****/
 
 
@@ -264,24 +278,6 @@ struct HostEnterAck {
    */
   struct GNUNET_CRYPTO_EddsaPublicKey place_pub_key;
 };
-
-
-#if REMOVE
-struct NymEnterRequest
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_NYM_ENTER
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Public key of the joining slave.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey nym_key;
-
-  /* Followed by struct GNUNET_MessageHeader join_request */
-};
-#endif
 
 
 GNUNET_NETWORK_STRUCT_END

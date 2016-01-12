@@ -19,9 +19,10 @@
  */
 
 /**
- * @file social/social_api.c
- * @brief Social service; implements social interactions using the PSYC service.
  * @author Gabor X Toth
+ *
+ * @file
+ * Social service; implements social interactions using the PSYC service.
  */
 
 #include <inttypes.h>
@@ -29,7 +30,6 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_env_lib.h"
 #include "gnunet_psyc_service.h"
 #include "gnunet_psyc_util_lib.h"
 #include "gnunet_social_service.h"
@@ -156,7 +156,7 @@ struct GNUNET_SOCIAL_Place
   /**
    * Slicer for processing incoming methods.
    */
-  struct GNUNET_SOCIAL_Slicer *slicer;
+  struct GNUNET_PSYC_Slicer *slicer;
 
   /**
    * Message to send on reconnect.
@@ -211,7 +211,7 @@ struct GNUNET_SOCIAL_Host
   /**
    * Slicer for processing incoming methods.
    */
-  struct GNUNET_SOCIAL_Slicer *slicer;
+  struct GNUNET_PSYC_Slicer *slicer;
 
   GNUNET_SOCIAL_HostEnterCallback enter_cb;
 
@@ -225,7 +225,7 @@ struct GNUNET_SOCIAL_Host
   void *cb_cls;
 
   struct GNUNET_SOCIAL_Nym *notice_place_leave_nym;
-  struct GNUNET_ENV_Environment *notice_place_leave_env;
+  struct GNUNET_PSYC_Environment *notice_place_leave_env;
 };
 
 
@@ -244,7 +244,7 @@ struct GNUNET_SOCIAL_Guest
   /**
    * Slicer for processing incoming methods.
    */
-  struct GNUNET_SOCIAL_Slicer *slicer;
+  struct GNUNET_PSYC_Slicer *slicer;
 
   GNUNET_SOCIAL_GuestEnterCallback enter_cb;
 
@@ -262,120 +262,6 @@ struct GNUNET_SOCIAL_Guest
  * pub_key_hash -> struct GNUNET_SOCIAL_Nym *
  */
 struct GNUNET_CONTAINER_MultiHashMap *nyms;
-
-
-/**
- * Handle for a try-and-slice instance.
- */
-struct GNUNET_SOCIAL_Slicer
-{
-  /**
-   * Method handlers: method_name -> SlicerMethodCallbacks
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *method_handlers;
-
-  /**
-   * Modifier handlers: modifier name -> SlicerModifierCallbacks
-   */
-  struct GNUNET_CONTAINER_MultiHashMap *modifier_handlers;
-
-  /**
-   * Currently being processed message part.
-   */
-  const struct GNUNET_MessageHeader *msg;
-
-  /**
-   * ID of currently being received message.
-   */
-  uint64_t message_id;
-
-  /**
-   * Method name of currently being received message.
-   */
-  char *method_name;
-
-  /**
-   * Name of currently processed modifier.
-   */
-  char *mod_name;
-
-  /**
-   * Value of currently processed modifier.
-   */
-  char *mod_value;
-
-  /**
-   * Public key of the nym the current message originates from.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey nym_key;
-
-  /**
-   * Size of @a method_name (including terminating \0).
-   */
-  uint16_t method_name_size;
-
-  /**
-   * Size of @a modifier_name (including terminating \0).
-   */
-  uint16_t mod_name_size;
-
-  /**
-   * Size of modifier value fragment.
-   */
-  uint16_t mod_value_size;
-
-  /**
-   * Full size of modifier value.
-   */
-  uint16_t mod_full_value_size;
-
-  /**
-   * Remaining bytes from the value of the current modifier.
-   */
-  uint16_t mod_value_remaining;
-
-  /**
-   * Operator of currently processed modifier.
-   */
-  uint8_t mod_oper;
-};
-
-
-/**
- * Callbacks for a slicer method handler.
- */
-struct SlicerMethodCallbacks
-{
-  GNUNET_SOCIAL_MethodCallback method_cb;
-  GNUNET_SOCIAL_ModifierCallback modifier_cb;
-  GNUNET_SOCIAL_DataCallback data_cb;
-  GNUNET_SOCIAL_EndOfMessageCallback eom_cb;
-  void *cls;
-};
-
-
-struct SlicerMethodRemoveClosure
-{
-  struct GNUNET_SOCIAL_Slicer *slicer;
-  struct SlicerMethodCallbacks rm_cbs;
-};
-
-
-/**
- * Callbacks for a slicer method handler.
- */
-struct SlicerModifierCallbacks
-{
-  GNUNET_SOCIAL_ModifierCallback modifier_cb;
-  void *cls;
-};
-
-
-struct SlicerModifierRemoveClosure
-{
-  struct GNUNET_SOCIAL_Slicer *slicer;
-  struct SlicerModifierCallbacks rm_cbs;
-};
 
 
 /**
@@ -535,20 +421,23 @@ host_recv_notice_place_leave_method (void *cls,
                                      const struct GNUNET_PSYC_MessageMethod *meth,
                                      uint64_t message_id,
                                      uint32_t flags,
-                                     const struct GNUNET_SOCIAL_Nym *nym,
+                                     const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                                      const char *method_name)
 {
   struct GNUNET_SOCIAL_Host *hst = cls;
+
   if (0 == memcmp (&(struct GNUNET_CRYPTO_EcdsaPublicKey) {},
-                   &nym->pub_key, sizeof (nym->pub_key)))
+                   nym_pub_key, sizeof (*nym_pub_key)))
     return;
+
+  struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (nym_pub_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Host received method for message ID %" PRIu64 " from nym %s: %s\n",
               message_id, GNUNET_h2s (&nym->pub_key_hash), method_name);
 
   hst->notice_place_leave_nym = (struct GNUNET_SOCIAL_Nym *) nym;
-  hst->notice_place_leave_env = GNUNET_ENV_environment_create ();
+  hst->notice_place_leave_env = GNUNET_PSYC_env_create ();
 
   char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&hst->notice_place_leave_nym->pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -561,7 +450,7 @@ static void
 host_recv_notice_place_leave_modifier (void *cls,
                                        const struct GNUNET_MessageHeader *msg,
                                        uint64_t message_id,
-                                       enum GNUNET_ENV_Operator oper,
+                                       enum GNUNET_PSYC_Operator oper,
                                        const char *name,
                                        const void *value,
                                        uint16_t value_size,
@@ -581,8 +470,8 @@ host_recv_notice_place_leave_modifier (void *cls,
       || 0 == memcmp (name, "_nym_", sizeof ("_nym_") - 1))
     return;
 
-  GNUNET_ENV_environment_add (hst->notice_place_leave_env,
-                              GNUNET_ENV_OP_SET, name, value, value_size);
+  GNUNET_PSYC_env_add (hst->notice_place_leave_env,
+                       GNUNET_PSYC_OP_SET, name, value, value_size);
 }
 
 
@@ -607,481 +496,18 @@ host_recv_notice_place_leave_eom (void *cls,
       hst->farewell_cb (hst->cb_cls, hst->notice_place_leave_nym,
                         hst->notice_place_leave_env);
     /* announce leaving guest to place */
-    GNUNET_ENV_environment_add (hst->notice_place_leave_env, GNUNET_ENV_OP_SET,
-                                "_nym", hst->notice_place_leave_nym,
-                                sizeof (*hst->notice_place_leave_nym));
+    GNUNET_PSYC_env_add (hst->notice_place_leave_env, GNUNET_PSYC_OP_SET,
+                         "_nym", hst->notice_place_leave_nym,
+                         sizeof (*hst->notice_place_leave_nym));
     GNUNET_SOCIAL_host_announce (hst, "_notice_place_leave",
                                  hst->notice_place_leave_env,
                                  NULL, NULL, GNUNET_SOCIAL_ANNOUNCE_NONE);
     nym_destroy (hst->notice_place_leave_nym);
   }
-  GNUNET_ENV_environment_destroy (hst->notice_place_leave_env);
+  GNUNET_PSYC_env_destroy (hst->notice_place_leave_env);
   hst->notice_place_leave_env = NULL;
 }
 
-
-/*** SLICER ***/
-
-/**
- * Call a method handler for an incoming message part.
- */
-int
-slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
-                              void *value)
-{
-  struct GNUNET_SOCIAL_Slicer *slicer = cls;
-  const struct GNUNET_MessageHeader *msg = slicer->msg;
-  struct SlicerMethodCallbacks *cbs = value;
-  uint16_t ptype = ntohs (msg->type);
-
-  switch (ptype)
-  {
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
-  {
-    if (NULL == cbs->method_cb)
-      break;
-    struct GNUNET_PSYC_MessageMethod *
-      meth = (struct GNUNET_PSYC_MessageMethod *) msg;
-    cbs->method_cb (cbs->cls, meth, slicer->message_id,
-                    ntohl (meth->flags),
-                    nym_get_or_create (&slicer->nym_key),
-                    slicer->method_name);
-    break;
-  }
-
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
-  {
-    if (NULL == cbs->modifier_cb)
-      break;
-    struct GNUNET_PSYC_MessageModifier *
-      mod = (struct GNUNET_PSYC_MessageModifier *) msg;
-    cbs->modifier_cb (cbs->cls, &mod->header, slicer->message_id,
-                      mod->oper, (const char *) &mod[1],
-                      (const void *) &mod[1] + ntohs (mod->name_size),
-                      ntohs (mod->header.size) - sizeof (*mod) - ntohs (mod->name_size),
-                      ntohs (mod->value_size));
-    break;
-  }
-
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
-  {
-    if (NULL == cbs->modifier_cb)
-      break;
-    cbs->modifier_cb (cbs->cls, msg, slicer->message_id,
-                      slicer->mod_oper, slicer->mod_name, &msg[1],
-                      ntohs (msg->size) - sizeof (*msg),
-                      slicer->mod_full_value_size);
-    break;
-  }
-
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
-  {
-    if (NULL == cbs->data_cb)
-      break;
-    uint64_t data_offset = 0; // FIXME
-    cbs->data_cb (cbs->cls, msg, slicer->message_id,
-                  data_offset, &msg[1], ntohs (msg->size) - sizeof (*msg));
-    break;
-  }
-
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
-    if (NULL == cbs->eom_cb)
-      break;
-    cbs->eom_cb (cbs->cls, msg, slicer->message_id, GNUNET_NO);
-    break;
-
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
-    if (NULL == cbs->eom_cb)
-      break;
-    cbs->eom_cb (cbs->cls, msg, slicer->message_id, GNUNET_YES);
-    break;
-  }
-  return GNUNET_YES;
-}
-
-
-/**
- * Call a method handler for an incoming message part.
- */
-int
-slicer_modifier_handler_notify (void *cls, const struct GNUNET_HashCode *key,
-                                void *value)
-{
-  struct GNUNET_SOCIAL_Slicer *slicer = cls;
-  struct SlicerModifierCallbacks *cbs = value;
-
-  cbs->modifier_cb (cbs->cls, slicer->msg, slicer->message_id, slicer->mod_oper,
-                    slicer->mod_name, slicer->mod_value,
-                    slicer->mod_value_size, slicer->mod_full_value_size);
-  return GNUNET_YES;
-}
-
-
-/**
- * Process an incoming message part and call matching handlers.
- *
- * @param cls
- *        Closure.
- * @param message_id
- *        ID of the message.
- * @param flags
- *        Flags for the message.
- *        @see enum GNUNET_PSYC_MessageFlags
- * @param msg
- *        The message part. as it arrived from the network.
- */
-static void
-slicer_message (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                uint64_t message_id, uint32_t flags, uint64_t fragment_offset,
-                const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_SOCIAL_Slicer *slicer = cls;
-  slicer->nym_key = *slave_key;
-
-  uint16_t ptype = ntohs (msg->type);
-  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == ptype)
-  {
-    struct GNUNET_PSYC_MessageMethod *
-      meth = (struct GNUNET_PSYC_MessageMethod *) msg;
-    slicer->method_name_size = ntohs (meth->header.size) - sizeof (*meth);
-    slicer->method_name = GNUNET_malloc (slicer->method_name_size);
-    memcpy (slicer->method_name, &meth[1], slicer->method_name_size);
-    slicer->message_id = message_id;
-  }
-  else
-  {
-    GNUNET_assert (message_id == slicer->message_id);
-  }
-
-  char *nym_str = GNUNET_CRYPTO_ecdsa_public_key_to_string (slave_key);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Slicer received message of type %u and size %u, "
-       "with ID %" PRIu64 " and method %s from %s\n",
-       ptype, ntohs (msg->size), message_id, slicer->method_name, nym_str);
-  GNUNET_free (nym_str);
-
-  slicer->msg = msg;
-
-  /* try-and-slice modifier */
-
-  switch (ptype)
-  {
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
-  {
-    struct GNUNET_PSYC_MessageModifier *
-      mod = (struct GNUNET_PSYC_MessageModifier *) msg;
-    slicer->mod_oper = mod->oper;
-    slicer->mod_name_size = ntohs (mod->name_size);
-    slicer->mod_name = GNUNET_malloc (slicer->mod_name_size);
-    memcpy (slicer->mod_name, &mod[1], slicer->mod_name_size);
-    slicer->mod_value = (char *) &mod[1] + slicer->mod_name_size;
-    slicer->mod_full_value_size = ntohs (mod->value_size);
-    slicer->mod_value_remaining = slicer->mod_full_value_size;
-    slicer->mod_value_size
-      = ntohs (mod->header.size) - sizeof (*mod) - slicer->mod_name_size;
-  }
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
-    if (ptype == GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT)
-    {
-      slicer->mod_value = (char *) &msg[1];
-      slicer->mod_value_size = ntohs (msg->size) - sizeof (*msg);
-    }
-    slicer->mod_value_remaining -= slicer->mod_value_size;
-    char *name = GNUNET_malloc (slicer->mod_name_size);
-    memcpy (name, slicer->mod_name, slicer->mod_name_size);
-    do
-    {
-      struct GNUNET_HashCode key;
-      uint16_t name_len = strlen (name);
-      GNUNET_CRYPTO_hash (name, name_len, &key);
-      GNUNET_CONTAINER_multihashmap_get_multiple (slicer->modifier_handlers, &key,
-                                                  slicer_modifier_handler_notify,
-                                                  slicer);
-      char *p = strrchr (name, '_');
-      if (NULL == p)
-        break;
-      *p = '\0';
-    } while (1);
-    GNUNET_free (name);
-  }
-
-  /* try-and-slice method */
-
-  char *name = GNUNET_malloc (slicer->method_name_size);
-  memcpy (name, slicer->method_name, slicer->method_name_size);
-  do
-  {
-    struct GNUNET_HashCode key;
-    uint16_t name_len = strlen (name);
-    GNUNET_CRYPTO_hash (name, name_len, &key);
-    GNUNET_CONTAINER_multihashmap_get_multiple (slicer->method_handlers, &key,
-                                                slicer_method_handler_notify,
-                                                slicer);
-    char *p = strrchr (name, '_');
-    if (NULL == p)
-      break;
-    *p = '\0';
-  } while (1);
-  GNUNET_free (name);
-
-  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END <= ptype)
-    GNUNET_free (slicer->method_name);
-
-  if (0 == slicer->mod_value_remaining && NULL != slicer->mod_name)
-  {
-    GNUNET_free (slicer->mod_name);
-    slicer->mod_name = NULL;
-    slicer->mod_name_size = 0;
-    slicer->mod_value_size = 0;
-    slicer->mod_full_value_size = 0;
-    slicer->mod_oper = 0;
-  }
-
-  slicer->msg = NULL;
-}
-
-
-/**
- * Create a try-and-slice instance.
- *
- * A slicer processes incoming messages and notifies callbacks about matching
- * methods or modifiers encountered.
- *
- * @return A new try-and-slice construct.
- */
-struct GNUNET_SOCIAL_Slicer *
-GNUNET_SOCIAL_slicer_create (void)
-{
-  struct GNUNET_SOCIAL_Slicer *slicer = GNUNET_malloc (sizeof (*slicer));
-  slicer->method_handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  slicer->modifier_handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
-  return slicer;
-}
-
-
-/**
- * Add a method to the try-and-slice instance.
- *
- * The callbacks are called for messages with a matching @a method_name prefix.
- *
- * @param slicer
- *        The try-and-slice instance to extend.
- * @param method_name
- *        Name of the given method, use empty string to match all.
- * @param method_cb
- *        Method handler invoked upon a matching message.
- * @param modifier_cb
- *        Modifier handler, invoked after @a method_cb
- *        for each modifier in the message.
- * @param data_cb
- *        Data handler, invoked after @a modifier_cb for each data fragment.
- * @param eom_cb
- *        Invoked upon reaching the end of a matching message.
- * @param cls
- *        Closure for the callbacks.
- */
-void
-GNUNET_SOCIAL_slicer_method_add (struct GNUNET_SOCIAL_Slicer *slicer,
-                                 const char *method_name,
-                                 GNUNET_SOCIAL_MethodCallback method_cb,
-                                 GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                                 GNUNET_SOCIAL_DataCallback data_cb,
-                                 GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
-                                 void *cls)
-{
-  struct GNUNET_HashCode key;
-  GNUNET_CRYPTO_hash (method_name, strlen (method_name), &key);
-
-  struct SlicerMethodCallbacks *cbs = GNUNET_malloc (sizeof (*cbs));
-  cbs->method_cb = method_cb;
-  cbs->modifier_cb = modifier_cb;
-  cbs->data_cb = data_cb;
-  cbs->eom_cb = eom_cb;
-  cbs->cls = cls;
-
-  GNUNET_CONTAINER_multihashmap_put (slicer->method_handlers, &key, cbs,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-}
-
-
-int
-slicer_method_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
-{
-  struct SlicerMethodRemoveClosure *rm_cls = cls;
-  struct GNUNET_SOCIAL_Slicer *slicer = rm_cls->slicer;
-  struct SlicerMethodCallbacks *rm_cbs = &rm_cls->rm_cbs;
-  struct SlicerMethodCallbacks *cbs = value;
-
-  if (cbs->method_cb == rm_cbs->method_cb
-      && cbs->modifier_cb == rm_cbs->modifier_cb
-      && cbs->data_cb == rm_cbs->data_cb
-      && cbs->eom_cb == rm_cbs->eom_cb)
-  {
-    GNUNET_CONTAINER_multihashmap_remove (slicer->method_handlers, key, cbs);
-    GNUNET_free (cbs);
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
-/**
- * Remove a registered method from the try-and-slice instance.
- *
- * Removes one matching handler registered with the given
- * @a method_name and  callbacks.
- *
- * @param slicer
- *        The try-and-slice instance.
- * @param method_name
- *        Name of the method to remove.
- * @param method_cb
- *        Method handler.
- * @param modifier_cb
- *        Modifier handler.
- * @param data_cb
- *        Data handler.
- * @param eom_cb
- *        End of message handler.
- *
- * @return #GNUNET_OK if a method handler was removed,
- *         #GNUNET_NO if no handler matched the given method name and callbacks.
- */
-int
-GNUNET_SOCIAL_slicer_method_remove (struct GNUNET_SOCIAL_Slicer *slicer,
-                                    const char *method_name,
-                                    GNUNET_SOCIAL_MethodCallback method_cb,
-                                    GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                                    GNUNET_SOCIAL_DataCallback data_cb,
-                                    GNUNET_SOCIAL_EndOfMessageCallback eom_cb)
-{
-  struct GNUNET_HashCode key;
-  GNUNET_CRYPTO_hash (method_name, strlen (method_name), &key);
-
-  struct SlicerMethodRemoveClosure rm_cls;
-  rm_cls.slicer = slicer;
-  struct SlicerMethodCallbacks *rm_cbs = &rm_cls.rm_cbs;
-  rm_cbs->method_cb = method_cb;
-  rm_cbs->modifier_cb = modifier_cb;
-  rm_cbs->data_cb = data_cb;
-  rm_cbs->eom_cb = eom_cb;
-
-  return
-    (GNUNET_SYSERR
-     == GNUNET_CONTAINER_multihashmap_get_multiple (slicer->method_handlers, &key,
-                                                    slicer_method_remove,
-                                                    &rm_cls))
-    ? GNUNET_NO
-    : GNUNET_OK;
-}
-
-
-/**
- * Watch a place for changed objects.
- *
- * @param slicer
- *        The try-and-slice instance.
- * @param object_filter
- *        Object prefix to match.
- * @param modifier_cb
- *        Function to call when encountering a state modifier.
- * @param cls
- *        Closure for callback.
- */
-void
-GNUNET_SOCIAL_slicer_modifier_add (struct GNUNET_SOCIAL_Slicer *slicer,
-                                   const char *object_filter,
-                                   GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                                   void *cls)
-{
-  struct SlicerModifierCallbacks *cbs = GNUNET_malloc (sizeof *cbs);
-  cbs->modifier_cb = modifier_cb;
-  cbs->cls = cls;
-
-  struct GNUNET_HashCode key;
-  GNUNET_CRYPTO_hash (object_filter, strlen (object_filter), &key);
-  GNUNET_CONTAINER_multihashmap_put (slicer->modifier_handlers, &key, cbs,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-}
-
-
-int
-slicer_modifier_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
-{
-  struct SlicerModifierRemoveClosure *rm_cls = cls;
-  struct GNUNET_SOCIAL_Slicer *slicer = rm_cls->slicer;
-  struct SlicerModifierCallbacks *rm_cbs = &rm_cls->rm_cbs;
-  struct SlicerModifierCallbacks *cbs = value;
-
-  if (cbs->modifier_cb == rm_cbs->modifier_cb)
-  {
-    GNUNET_CONTAINER_multihashmap_remove (slicer->modifier_handlers, key, cbs);
-    GNUNET_free (cbs);
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
-/**
- * Remove a registered modifier from the try-and-slice instance.
- *
- * Removes one matching handler registered with the given
- * @a object_filter and @a modifier_cb.
- *
- * @param slicer
- *        The try-and-slice instance.
- * @param object_filter
- *        Object prefix to match.
- * @param modifier_cb
- *        Function to call when encountering a state modifier changes.
- */
-int
-GNUNET_SOCIAL_slicer_modifier_remove (struct GNUNET_SOCIAL_Slicer *slicer,
-                                      const char *object_filter,
-                                      GNUNET_SOCIAL_ModifierCallback modifier_cb)
-{
-  struct GNUNET_HashCode key;
-  GNUNET_CRYPTO_hash (object_filter, strlen (object_filter), &key);
-
-  struct SlicerModifierRemoveClosure rm_cls;
-  rm_cls.slicer = slicer;
-  struct SlicerModifierCallbacks *rm_cbs = &rm_cls.rm_cbs;
-  rm_cbs->modifier_cb = modifier_cb;
-
-  return
-    (GNUNET_SYSERR
-     == GNUNET_CONTAINER_multihashmap_get_multiple (slicer->modifier_handlers, &key,
-                                                    slicer_modifier_remove,
-                                                    &rm_cls))
-    ? GNUNET_NO
-    : GNUNET_OK;
- }
-
-
-int
-slicer_method_free (void *cls, const struct GNUNET_HashCode *key, void *value)
-{
-  struct SlicerMethodCallbacks *cbs = value;
-  GNUNET_free (cbs);
-  return GNUNET_YES;
-}
-
-
-/**
- * Destroy a given try-and-slice instance.
- *
- * @param slicer
- *        Slicer to destroy
- */
-void
-GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer)
-{
-  GNUNET_CONTAINER_multihashmap_iterate (slicer->method_handlers,
-                                         slicer_method_free, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy (slicer->method_handlers);
-  GNUNET_free (slicer);
-}
 
 /*** CLIENT ***/
 
@@ -1405,7 +831,7 @@ host_recv_enter_request (void *cls,
      return;
 
   const char *method_name = NULL;
-  struct GNUNET_ENV_Environment *env = NULL;
+  struct GNUNET_PSYC_Environment *env = NULL;
   struct GNUNET_PSYC_MessageHeader *entry_pmsg = NULL;
   const void *data = NULL;
   uint16_t data_size = 0;
@@ -1423,7 +849,7 @@ host_recv_enter_request (void *cls,
            "Received join_msg of type %u and size %u.\n",
            ntohs (join_msg->header.type), ntohs (join_msg->header.size));
 
-      env = GNUNET_ENV_environment_create ();
+      env = GNUNET_PSYC_env_create ();
       entry_pmsg = GNUNET_PSYC_message_header_create_from_psyc (join_msg);
       if (GNUNET_OK != GNUNET_PSYC_message_parse (entry_pmsg, &method_name, env,
                                                   &data, &data_size))
@@ -1444,7 +870,7 @@ host_recv_enter_request (void *cls,
   } while (0);
 
   if (NULL != env)
-    GNUNET_ENV_environment_destroy (env);
+    GNUNET_PSYC_env_destroy (env);
   if (NULL != entry_pmsg)
     GNUNET_free (entry_pmsg);
 }
@@ -1693,7 +1119,7 @@ host_cleanup (void *cls)
   }
   if (NULL != hst->slicer)
   {
-    GNUNET_SOCIAL_slicer_destroy (hst->slicer);
+    GNUNET_PSYC_slicer_destroy (hst->slicer);
     hst->slicer = NULL;
   }
   GNUNET_free (hst);
@@ -1743,7 +1169,7 @@ struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
                           const struct GNUNET_SOCIAL_Ego *ego,
                           enum GNUNET_PSYC_Policy policy,
-                          struct GNUNET_SOCIAL_Slicer *slicer,
+                          struct GNUNET_PSYC_Slicer *slicer,
                           GNUNET_SOCIAL_HostEnterCallback enter_cb,
                           GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
@@ -1765,14 +1191,14 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
   GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, hst, sizeof (*plc));
 
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc->slicer);
+  plc->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, plc->slicer);
 
-  hst->slicer = GNUNET_SOCIAL_slicer_create ();
-  GNUNET_SOCIAL_slicer_method_add (hst->slicer, "_notice_place_leave",
-                                   host_recv_notice_place_leave_method,
-                                   host_recv_notice_place_leave_modifier,
-                                   NULL, host_recv_notice_place_leave_eom, hst);
-  hst->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, hst->slicer);
+  hst->slicer = GNUNET_PSYC_slicer_create ();
+  GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave",
+                                 host_recv_notice_place_leave_method,
+                                 host_recv_notice_place_leave_modifier,
+                                 NULL, host_recv_notice_place_leave_eom, hst);
+  hst->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, hst->slicer);
 
   uint16_t app_id_size = strlen (app->id) + 1;
   struct HostEnterRequest *hreq = GNUNET_malloc (sizeof (*hreq) + app_id_size);
@@ -1810,7 +1236,7 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
  */
  struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
-                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    struct GNUNET_PSYC_Slicer *slicer,
                                     GNUNET_SOCIAL_HostEnterCallback enter_cb,
                                     GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
                                     GNUNET_SOCIAL_FarewellCallback farewell_cb,
@@ -1837,14 +1263,14 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
   GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, hst, sizeof (*plc));
 
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc->slicer);
+  plc->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, plc->slicer);
 
-  hst->slicer = GNUNET_SOCIAL_slicer_create ();
-  GNUNET_SOCIAL_slicer_method_add (hst->slicer, "_notice_place_leave",
-                                   host_recv_notice_place_leave_method,
-                                   host_recv_notice_place_leave_modifier,
-                                   NULL, host_recv_notice_place_leave_eom, hst);
-  hst->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, hst->slicer);
+  hst->slicer = GNUNET_PSYC_slicer_create ();
+  GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave",
+                                 host_recv_notice_place_leave_method,
+                                 host_recv_notice_place_leave_modifier,
+                                 NULL, host_recv_notice_place_leave_eom, hst);
+  hst->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, hst->slicer);
 
   hreq->header.size = htons (sizeof (*hreq) + app_id_size);
   hreq->header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER);
@@ -1926,12 +1352,12 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
 void
 GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *hst,
                           const struct GNUNET_SOCIAL_Nym *nym,
-                          struct GNUNET_ENV_Environment *env)
+                          struct GNUNET_PSYC_Environment *env)
 {
   if (NULL == env)
-    env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_SET,
-                              "_nym", &nym->pub_key, sizeof (nym->pub_key));
+    env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
+                       "_nym", &nym->pub_key, sizeof (nym->pub_key));
   GNUNET_SOCIAL_host_announce (hst, "_notice_place_leave", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
 }
@@ -2033,7 +1459,7 @@ GNUNET_SOCIAL_nym_get_pub_key_hash (const struct GNUNET_SOCIAL_Nym *nym)
 struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *hst,
                              const char *method_name,
-                             const struct GNUNET_ENV_Environment *env,
+                             const struct GNUNET_PSYC_Environment *env,
                              GNUNET_PSYC_TransmitNotifyData notify_data,
                              void *notify_data_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags)
@@ -2152,7 +1578,7 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
  */
 void
 GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
-                          const struct GNUNET_ENV_Environment *env,
+                          const struct GNUNET_PSYC_Environment *env,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls)
 {
@@ -2242,7 +1668,7 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
                            const struct GNUNET_PSYC_Message *entry_msg,
-                           struct GNUNET_SOCIAL_Slicer *slicer,
+                           struct GNUNET_PSYC_Slicer *slicer,
                            GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                            GNUNET_SOCIAL_EntryDecisionCallback entry_dcsn_cb,
                            void *cls)
@@ -2264,7 +1690,7 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
   GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, gst, sizeof (*plc));
 
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc->slicer);
+  plc->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, plc->slicer);
 
   struct GuestEnterRequest *
     greq = guest_enter_request_create (app->id, &ego->pub_key, &plc->pub_key,
@@ -2307,7 +1733,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
                                    const char *gns_name,
                                    const char *password,
                                    const struct GNUNET_PSYC_Message *join_msg,
-                                   struct GNUNET_SOCIAL_Slicer *slicer,
+                                   struct GNUNET_PSYC_Slicer *slicer,
                                    GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                    GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
                                    void *cls)
@@ -2356,7 +1782,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
   GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, gst, sizeof (*plc));
 
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc->slicer);
+  plc->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, plc->slicer);
 
   plc->connect_msg = &greq->header;
   place_send_connect_msg (plc);
@@ -2385,7 +1811,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn,
                                      enum GNUNET_PSYC_SlaveJoinFlags flags,
-                                     struct GNUNET_SOCIAL_Slicer *slicer,
+                                     struct GNUNET_PSYC_Slicer *slicer,
                                      GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                      void *cls)
 {
@@ -2416,7 +1842,7 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
   GNUNET_CLIENT_MANAGER_set_user_context_ (plc->client, gst, sizeof (*plc));
 
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
-  plc->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, plc->slicer);
+  plc->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, plc->slicer);
 
   plc->connect_msg = &greq->header;
   place_send_connect_msg (plc);
@@ -2448,7 +1874,7 @@ GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn
 struct GNUNET_SOCIAL_TalkRequest *
 GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *gst,
                           const char *method_name,
-                          const struct GNUNET_ENV_Environment *env,
+                          const struct GNUNET_PSYC_Environment *env,
                           GNUNET_PSYC_TransmitNotifyData notify_data,
                           void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags)
@@ -2526,7 +1952,7 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
  */
 void
 GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
-                           struct GNUNET_ENV_Environment *env,
+                           struct GNUNET_PSYC_Environment *env,
                            GNUNET_ContinuationCallback disconnect_cb,
                            void *cls)
 {
@@ -2575,14 +2001,14 @@ place_history_replay (struct GNUNET_SOCIAL_Place *plc,
                       uint64_t message_limit,
                       const char *method_prefix,
                       uint32_t flags,
-                      struct GNUNET_SOCIAL_Slicer *slicer,
+                      struct GNUNET_PSYC_Slicer *slicer,
                       GNUNET_ResultCallback result_cb,
                       void *cls)
 {
   struct GNUNET_PSYC_HistoryRequestMessage *req;
   struct GNUNET_SOCIAL_HistoryRequest *hist = GNUNET_malloc (sizeof (*hist));
   hist->plc = plc;
-  hist->recv = GNUNET_PSYC_receive_create (NULL, slicer_message, slicer);
+  hist->recv = GNUNET_PSYC_receive_create (NULL, GNUNET_PSYC_slicer_message, slicer);
   hist->result_cb = result_cb;
   hist->cls = cls;
   hist->op_id = GNUNET_CLIENT_MANAGER_op_add (plc->client,
@@ -2638,7 +2064,7 @@ GNUNET_SOCIAL_place_history_replay (struct GNUNET_SOCIAL_Place *plc,
                                     uint64_t end_message_id,
                                     const char *method_prefix,
                                     uint32_t flags,
-                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    struct GNUNET_PSYC_Slicer *slicer,
                                     GNUNET_ResultCallback result_cb,
                                     void *cls)
 {
@@ -2674,7 +2100,7 @@ GNUNET_SOCIAL_place_history_replay_latest (struct GNUNET_SOCIAL_Place *plc,
                                            uint64_t message_limit,
                                            const char *method_prefix,
                                            uint32_t flags,
-                                           struct GNUNET_SOCIAL_Slicer *slicer,
+                                           struct GNUNET_PSYC_Slicer *slicer,
                                            GNUNET_ResultCallback result_cb,
                                            void *cls)
 {

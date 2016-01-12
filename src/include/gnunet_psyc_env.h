@@ -22,10 +22,10 @@
  * @author Gabor X Toth
  *
  * @file
- * Environment library
+ * PSYC Environment library
  *
- * @defgroup env  Environment library
- * Environment data structure for PSYC and Social messages.
+ * @defgroup psyc-util-env  PSYC Utilities library: Environment
+ * Environment data structure operations for PSYC and Social messages.
  *
  * Library providing operations for the @e environment of
  * PSYC and Social messages, and for (de)serializing variable values.
@@ -34,8 +34,8 @@
  */
 
 
-#ifndef GNUNET_ENV_LIB_H
-#define GNUNET_ENV_LIB_H
+#ifndef GNUNET_PSYC_ENV_H
+#define GNUNET_PSYC_ENV_H
 
 #ifdef __cplusplus
 extern "C"
@@ -49,64 +49,64 @@ extern "C"
 /**
  * Possible operations on PSYC state (persistent) and transient variables (per message).
  */
-enum GNUNET_ENV_Operator
+enum GNUNET_PSYC_Operator
 {
   /**
    * Set value of a transient variable.
    */
-  GNUNET_ENV_OP_SET = ':',
+  GNUNET_PSYC_OP_SET = ':',
 
   /**
    * Assign value for a persistent state variable.
    *
    * If an assigned value is NULL, the variable is deleted.
    */
-  GNUNET_ENV_OP_ASSIGN = '=',
+  GNUNET_PSYC_OP_ASSIGN = '=',
 
   /**
    * Augment state variable.
    *
    * Used for appending strings, adding numbers, and adding new items to a list or dictionary.
    */
-  GNUNET_ENV_OP_AUGMENT = '+',
+  GNUNET_PSYC_OP_AUGMENT = '+',
 
   /**
    * Diminish state variable.
    *
    * Used for subtracting numbers, and removing items from a list or dictionary.
    */
-  GNUNET_ENV_OP_DIMINISH = '-',
+  GNUNET_PSYC_OP_DIMINISH = '-',
 
   /**
    * Update state variable.
    *
    * Used for modifying a single item of a list or dictionary.
    */
-  GNUNET_ENV_OP_UPDATE = '@',
+  GNUNET_PSYC_OP_UPDATE = '@',
 };
 
 
 /**
  * PSYC variable types.
  */
-enum GNUNET_ENV_Type
+enum GNUNET_PSYC_Type
 {
-  GNUNET_ENV_TYPE_DATA = 0,
-  GNUNET_ENV_TYPE_NUMBER,
-  GNUNET_ENV_TYPE_LIST,
-  GNUNET_ENV_TYPE_DICT
+  GNUNET_PSYC_TYPE_DATA = 0,
+  GNUNET_PSYC_TYPE_NUMBER,
+  GNUNET_PSYC_TYPE_LIST,
+  GNUNET_PSYC_TYPE_DICT
 };
 
 
 /**
  * PSYC state modifier.
  */
-struct GNUNET_ENV_Modifier
+struct GNUNET_PSYC_Modifier
 {
   /**
    * State operation.
    */
-  enum GNUNET_ENV_Operator oper;
+  enum GNUNET_PSYC_Operator oper;
 
   /**
    * Variable name.
@@ -126,12 +126,12 @@ struct GNUNET_ENV_Modifier
   /**
    * Next modifier.
    */
-  struct GNUNET_ENV_Modifier *next;
+  struct GNUNET_PSYC_Modifier *next;
 
   /**
    * Previous modifier.
    */
-  struct GNUNET_ENV_Modifier *prev;
+  struct GNUNET_PSYC_Modifier *prev;
 };
 
 
@@ -140,7 +140,7 @@ struct GNUNET_ENV_Modifier
  *
  * Contains modifiers.
  */
-struct GNUNET_ENV_Environment;
+struct GNUNET_PSYC_Environment;
 
 
 /**
@@ -148,8 +148,8 @@ struct GNUNET_ENV_Environment;
  *
  * @return A newly allocated environment.
  */
-struct GNUNET_ENV_Environment *
-GNUNET_ENV_environment_create ();
+struct GNUNET_PSYC_Environment *
+GNUNET_PSYC_env_create ();
 
 
 /**
@@ -162,40 +162,40 @@ GNUNET_ENV_environment_create ();
  * @param value_size Size of @a value.
  */
 void
-GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
-                            enum GNUNET_ENV_Operator oper, const char *name,
+GNUNET_PSYC_env_add (struct GNUNET_PSYC_Environment *env,
+                            enum GNUNET_PSYC_Operator oper, const char *name,
                             const void *value, size_t value_size);
 
 
 /**
  * Get the first modifier of the environment.
  */
-struct GNUNET_ENV_Modifier *
-GNUNET_ENV_environment_head (const struct GNUNET_ENV_Environment *env);
+struct GNUNET_PSYC_Modifier *
+GNUNET_PSYC_env_head (const struct GNUNET_PSYC_Environment *env);
 
 
 
 /**
  * Get the last modifier of the environment.
  */
-struct GNUNET_ENV_Modifier *
-GNUNET_ENV_environment_tail (const struct GNUNET_ENV_Environment *env);
+struct GNUNET_PSYC_Modifier *
+GNUNET_PSYC_env_tail (const struct GNUNET_PSYC_Environment *env);
 
 
 /**
  * Remove a modifier from the environment.
  */
 void
-GNUNET_ENV_environment_remove (struct GNUNET_ENV_Environment *env,
-                               struct GNUNET_ENV_Modifier *mod);
+GNUNET_PSYC_env_remove (struct GNUNET_PSYC_Environment *env,
+                               struct GNUNET_PSYC_Modifier *mod);
 
 
 /**
  * Remove a modifier at the beginning of the environment.
  */
 int
-GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
-                              enum GNUNET_ENV_Operator *oper, const char **name,
+GNUNET_PSYC_env_shift (struct GNUNET_PSYC_Environment *env,
+                              enum GNUNET_PSYC_Operator *oper, const char **name,
                               const void **value, size_t *value_size);
 
 
@@ -209,7 +209,7 @@ GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
  *         #GNUNET_NO to stop.
  */
 typedef int
-(*GNUNET_ENV_Iterator) (void *cls, enum GNUNET_ENV_Operator oper,
+(*GNUNET_PSYC_Iterator) (void *cls, enum GNUNET_PSYC_Operator oper,
                         const char *name, const char *value,
                         uint32_t value_size);
 
@@ -222,8 +222,8 @@ typedef int
  * @param it_cls Closure for iterator.
  */
 void
-GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
-                                GNUNET_ENV_Iterator it, void *it_cls);
+GNUNET_PSYC_env_iterate (const struct GNUNET_PSYC_Environment *env,
+                                GNUNET_PSYC_Iterator it, void *it_cls);
 
 
 /**
@@ -234,7 +234,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
  * @return Number of modifiers.
  */
 size_t
-GNUNET_ENV_environment_get_count (const struct GNUNET_ENV_Environment *env);
+GNUNET_PSYC_env_get_count (const struct GNUNET_PSYC_Environment *env);
 
 
 /**
@@ -243,7 +243,7 @@ GNUNET_ENV_environment_get_count (const struct GNUNET_ENV_Environment *env);
  * @param env The environment to destroy.
  */
 void
-GNUNET_ENV_environment_destroy (struct GNUNET_ENV_Environment *env);
+GNUNET_PSYC_env_destroy (struct GNUNET_PSYC_Environment *env);
 
 
 /**
@@ -253,8 +253,8 @@ GNUNET_ENV_environment_destroy (struct GNUNET_ENV_Environment *env);
  *
  * @return Variable type.
  */
-enum GNUNET_ENV_Type
-GNUNET_ENV_var_get_type (char *name);
+enum GNUNET_PSYC_Type
+GNUNET_PSYC_var_get_type (char *name);
 
 
 /**
@@ -272,8 +272,8 @@ GNUNET_ENV_var_get_type (char *name);
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 int
-GNUNET_ENV_operation (char *name, void *current_value, size_t current_value_size,
-                      enum GNUNET_ENV_Operator oper, void *args, size_t args_size,
+GNUNET_PSYC_operation (char *name, void *current_value, size_t current_value_size,
+                      enum GNUNET_PSYC_Operator oper, void *args, size_t args_size,
                       void **return_value, size_t *return_value_size);
 
 
@@ -287,7 +287,7 @@ GNUNET_ENV_operation (char *name, void *current_value, size_t current_value_size
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_ENV_value_to_number (size_t size, const void *value, int64_t *number);
+GNUNET_PSYC_value_to_number (size_t size, const void *value, int64_t *number);
 
 
 /**
@@ -300,7 +300,7 @@ GNUNET_ENV_value_to_number (size_t size, const void *value, int64_t *number);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if an error occurred (e.g. the value is invalid).
  */
 int
-GNUNET_ENV_value_to_dict (size_t size, const void *value, struct GNUNET_CONTAINER_MultiHashMap **dict);
+GNUNET_PSYC_value_to_dict (size_t size, const void *value, struct GNUNET_CONTAINER_MultiHashMap **dict);
 
 
 /**
@@ -312,7 +312,7 @@ GNUNET_ENV_value_to_dict (size_t size, const void *value, struct GNUNET_CONTAINE
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_ENV_value_from_number (int64_t number, size_t *value_size);
+GNUNET_PSYC_value_from_number (int64_t number, size_t *value_size);
 
 
 /**
@@ -324,7 +324,7 @@ GNUNET_ENV_value_from_number (int64_t number, size_t *value_size);
  * @return A newly allocated value or NULL on error.
  */
 void *
-GNUNET_ENV_value_from_dict (struct GNUNET_CONTAINER_MultiHashMap *dict, size_t *value_size);
+GNUNET_PSYC_value_from_dict (struct GNUNET_CONTAINER_MultiHashMap *dict, size_t *value_size);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -334,7 +334,7 @@ GNUNET_ENV_value_from_dict (struct GNUNET_CONTAINER_MultiHashMap *dict, size_t *
 }
 #endif
 
-/* ifndef GNUNET_ENV_LIB_H */
+/* ifndef GNUNET_PSYC_ENV_H */
 #endif
 
 /** @} */  /* end of group */

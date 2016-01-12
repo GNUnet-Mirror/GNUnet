@@ -30,7 +30,6 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_env_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "gnunet_social_service.h"
 #include "gnunet_core_service.h"
@@ -75,8 +74,8 @@ struct GNUNET_HashCode place_pub_hash;
 struct GNUNET_CRYPTO_EcdsaPublicKey guest_pub_key;
 struct GNUNET_CRYPTO_EcdsaPublicKey host_pub_key;
 
-struct GNUNET_SOCIAL_Slicer *host_slicer;
-struct GNUNET_SOCIAL_Slicer *guest_slicer;
+struct GNUNET_PSYC_Slicer *host_slicer;
+struct GNUNET_PSYC_Slicer *guest_slicer;
 
 struct GNUNET_SOCIAL_Host *hst;
 struct GNUNET_SOCIAL_Guest *gst;
@@ -90,7 +89,7 @@ struct GuestEnterMessage
 {
   struct GNUNET_PSYC_Message *msg;
   const char *method_name;
-  struct GNUNET_ENV_Environment *env;
+  struct GNUNET_PSYC_Environment *env;
   void *data;
   uint16_t data_size;
 } guest_enter_msg;
@@ -99,7 +98,7 @@ struct TransmitClosure
 {
   struct GNUNET_SOCIAL_Announcement *host_ann;
   struct GNUNET_SOCIAL_TalkRequest *guest_talk;
-  struct GNUNET_ENV_Environment *env;
+  struct GNUNET_PSYC_Environment *env;
   char *data[16];
   uint8_t data_delay[16];
   uint8_t data_count;
@@ -156,7 +155,7 @@ static void
 host_answer_door (void *cls,
                   struct GNUNET_SOCIAL_Nym *nym,
                   const char *method_name,
-                  struct GNUNET_ENV_Environment *env,
+                  struct GNUNET_PSYC_Environment *env,
                   size_t data_size,
                   const void *data);
 
@@ -199,13 +198,13 @@ cleanup ()
 
   if (NULL != guest_slicer)
   {
-    GNUNET_SOCIAL_slicer_destroy (guest_slicer);
+    GNUNET_PSYC_slicer_destroy (guest_slicer);
     guest_slicer = NULL;
   }
 
   if (NULL != host_slicer)
   {
-    GNUNET_SOCIAL_slicer_destroy (host_slicer);
+    GNUNET_PSYC_slicer_destroy (host_slicer);
     host_slicer = NULL;
   }
 
@@ -292,7 +291,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
   struct TransmitClosure *tmit = cls;
   if (NULL != tmit->env)
   {
-    GNUNET_ENV_environment_destroy (tmit->env);
+    GNUNET_PSYC_env_destroy (tmit->env);
     tmit->env = NULL;
   }
   if (0 == tmit->data_count)
@@ -355,7 +354,7 @@ schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 host_farewell2 (void *cls,
                const struct GNUNET_SOCIAL_Nym *nym,
-               struct GNUNET_ENV_Environment *env)
+               struct GNUNET_PSYC_Environment *env)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Nym left the place again.\n");
@@ -526,7 +525,7 @@ zone_add_place ()
 static void
 host_farewell (void *cls,
                const struct GNUNET_SOCIAL_Nym *nym,
-               struct GNUNET_ENV_Environment *env)
+               struct GNUNET_PSYC_Environment *env)
 {
   const struct GNUNET_CRYPTO_EcdsaPublicKey *
     nym_key = GNUNET_SOCIAL_nym_get_pub_key (nym);
@@ -536,7 +535,7 @@ host_farewell (void *cls,
               "Farewell: nym %s (%s) has left the place.\n",
               GNUNET_h2s (GNUNET_SOCIAL_nym_get_pub_key_hash (nym)), str);
   GNUNET_free (str);
-  GNUNET_assert (1 == GNUNET_ENV_environment_get_count (env));
+  GNUNET_assert (1 == GNUNET_PSYC_env_get_count (env));
   if (0 != memcmp (&guest_pub_key, nym_key, sizeof (*nym_key)))
   {
     str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&guest_pub_key);
@@ -565,11 +564,11 @@ guest_leave()
   else
     test = TEST_GUEST_LEAVE2;
 
-  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_SET,
-                              "_message", DATA2ARG ("Leaving."));
+  struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_SET,
+                       "_message", DATA2ARG ("Leaving."));
   GNUNET_SOCIAL_guest_leave (gst, env, &guest_left, NULL);
-  GNUNET_ENV_environment_destroy (env);
+  GNUNET_PSYC_env_destroy (env);
   gst = NULL;
   gst_plc = NULL;
 }
@@ -723,7 +722,7 @@ guest_recv_method (void *cls,
                   const struct GNUNET_PSYC_MessageMethod *meth,
                   uint64_t message_id,
                   uint32_t flags,
-                  const struct GNUNET_SOCIAL_Nym *nym,
+                  const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                   const char *method_name)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -738,7 +737,7 @@ static void
 guest_recv_modifier (void *cls,
                      const struct GNUNET_MessageHeader *msg,
                      uint64_t message_id,
-                     enum GNUNET_ENV_Operator oper,
+                     enum GNUNET_PSYC_Operator oper,
                      const char *name,
                      const void *value,
                      uint16_t value_size,
@@ -755,7 +754,7 @@ static void
 guest_recv_mod_foo_bar (void *cls,
                         const struct GNUNET_MessageHeader *msg,
                         uint64_t message_id,
-                        enum GNUNET_ENV_Operator oper,
+                        enum GNUNET_PSYC_Operator oper,
                         const char *name,
                         const void *value,
                         uint16_t value_size,
@@ -833,7 +832,7 @@ host_recv_method (void *cls,
                   const struct GNUNET_PSYC_MessageMethod *meth,
                   uint64_t message_id,
                   uint32_t flags,
-                  const struct GNUNET_SOCIAL_Nym *nym,
+                  const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                   const char *method_name)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -848,7 +847,7 @@ static void
 host_recv_modifier (void *cls,
                     const struct GNUNET_MessageHeader *msg,
                     uint64_t message_id,
-                    enum GNUNET_ENV_Operator oper,
+                    enum GNUNET_PSYC_Operator oper,
                     const char *name,
                     const void *value,
                     uint16_t value_size,
@@ -924,11 +923,11 @@ guest_talk ()
   test = TEST_GUEST_TALK;
 
   tmit = (struct TransmitClosure) {};
-  tmit.env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_bar_foo", DATA2ARG ("one two three"));
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_bar_baz", DATA2ARG ("four five"));
+  tmit.env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_bar_foo", DATA2ARG ("one two three"));
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_bar_baz", DATA2ARG ("four five"));
   tmit.data[0] = "zzz xxx yyy";
   tmit.data[1] = "zyx wvu tsr qpo";
   tmit.data_delay[1] = 1;
@@ -951,13 +950,13 @@ host_announce ()
               "Test #%u: Host announcement.\n", test);
 
   tmit = (struct TransmitClosure) {};
-  tmit.env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo", DATA2ARG ("bar baz"));
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo_bar", DATA2ARG ("foo bar"));
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo_bar_baz", DATA2ARG ("foo bar baz"));
+  tmit.env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_foo", DATA2ARG ("bar baz"));
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_foo_bar", DATA2ARG ("foo bar"));
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_foo_bar_baz", DATA2ARG ("foo bar baz"));
   tmit.data[0] = "aaa bbb ccc";
   tmit.data[1] = "abc def ghi jkl";
   tmit.data_delay[1] = 1;
@@ -976,8 +975,8 @@ static void
 host_announce2 ()
 {
   GNUNET_assert (2 == mod_foo_bar_rcls.n);
-  GNUNET_SOCIAL_slicer_modifier_remove (guest_slicer, "_foo_bar",
-                                        guest_recv_mod_foo_bar);
+  GNUNET_PSYC_slicer_modifier_remove (guest_slicer, "_foo_bar",
+                                      guest_recv_mod_foo_bar);
 
   test = TEST_HOST_ANNOUNCE2;
 
@@ -985,13 +984,13 @@ host_announce2 ()
               "Test #%u: Host announcement 2.\n", test);
 
   tmit = (struct TransmitClosure) {};
-  tmit.env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo2", DATA2ARG ("BAR BAZ"));
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo2_bar", DATA2ARG ("FOO BAR"));
-  GNUNET_ENV_environment_add (tmit.env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo2_bar", DATA2ARG ("FOO BAR BAZ"));
+  tmit.env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_foo2", DATA2ARG ("BAR BAZ"));
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_foo2_bar", DATA2ARG ("FOO BAR"));
+  GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
+                       "_foo2_bar", DATA2ARG ("FOO BAR BAZ"));
   tmit.data[0] = "AAA BBB CCC";
   tmit.data[1] = "ABC DEF GHI JKL";
   tmit.data[2] = "TESTING ONE TWO THREE";
@@ -1015,7 +1014,7 @@ guest_recv_entry_decision (void *cls,
 
   if (NULL != entry_msg)
   {
-    struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+    struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
     const char *method_name = NULL;
     const void *data = NULL;
     uint16_t data_size = 0;
@@ -1057,7 +1056,7 @@ static void
 host_answer_door (void *cls,
                   struct GNUNET_SOCIAL_Nym *nym,
                   const char *method_name,
-                  struct GNUNET_ENV_Environment *env,
+                  struct GNUNET_PSYC_Environment *env,
                   size_t data_size,
                   const void *data)
 {
@@ -1113,11 +1112,11 @@ guest_enter ()
   struct GuestEnterMessage *emsg = &guest_enter_msg;
 
   emsg->method_name = "_request_enter";
-  emsg->env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (emsg->env, GNUNET_ENV_OP_ASSIGN,
-                              "_abc", "abc def", 7);
-  GNUNET_ENV_environment_add (emsg->env, GNUNET_ENV_OP_ASSIGN,
-                              "_abc_def", "abc def ghi", 11);
+  emsg->env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (emsg->env, GNUNET_PSYC_OP_ASSIGN,
+                       "_abc", "abc def", 7);
+  GNUNET_PSYC_env_add (emsg->env, GNUNET_PSYC_OP_ASSIGN,
+                       "_abc_def", "abc def ghi", 11);
   emsg->data = "let me in";
   emsg->data_size = strlen (emsg->data) + 1;
   emsg->msg = GNUNET_PSYC_message_create (emsg->method_name, emsg->env,
@@ -1142,11 +1141,11 @@ guest_enter_by_name ()
   struct GuestEnterMessage *emsg = &guest_enter_msg;
 
   emsg->method_name = "_request_enter";
-  emsg->env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (emsg->env, GNUNET_ENV_OP_ASSIGN,
-                              "_abc", "abc def", 7);
-  GNUNET_ENV_environment_add (emsg->env, GNUNET_ENV_OP_ASSIGN,
-                              "_abc_def", "abc def ghi", 11);
+  emsg->env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (emsg->env, GNUNET_PSYC_OP_ASSIGN,
+                       "_abc", "abc def", 7);
+  GNUNET_PSYC_env_add (emsg->env, GNUNET_PSYC_OP_ASSIGN,
+                       "_abc_def", "abc def ghi", 11);
   emsg->data = "let me in";
   emsg->data_size = strlen (emsg->data) + 1;
   emsg->msg = GNUNET_PSYC_message_create (emsg->method_name, emsg->env,
@@ -1175,12 +1174,12 @@ guest_init ()
 {
   guest_pub_key = *(GNUNET_SOCIAL_ego_get_pub_key (guest_ego));
 
-  guest_slicer = GNUNET_SOCIAL_slicer_create ();
-  GNUNET_SOCIAL_slicer_method_add (guest_slicer, "",
-                                   guest_recv_method, guest_recv_modifier,
-                                   guest_recv_data, guest_recv_eom, NULL);
-  GNUNET_SOCIAL_slicer_modifier_add (guest_slicer, "_foo_bar",
-                                     guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
+  guest_slicer = GNUNET_PSYC_slicer_create ();
+  GNUNET_PSYC_slicer_method_add (guest_slicer, "",
+                                 guest_recv_method, guest_recv_modifier,
+                                 guest_recv_data, guest_recv_eom, NULL);
+  GNUNET_PSYC_slicer_modifier_add (guest_slicer, "_foo_bar",
+                                   guest_recv_mod_foo_bar, &mod_foo_bar_rcls);
   test = TEST_HOST_ANSWER_DOOR_ADMIT;
 
   GNUNET_SOCIAL_zone_add_nym (app, guest_ego, "host", &host_pub_key,
@@ -1224,10 +1223,10 @@ host_entered (void *cls, int result,
 static void
 host_enter ()
 {
-  host_slicer = GNUNET_SOCIAL_slicer_create ();
-  GNUNET_SOCIAL_slicer_method_add (host_slicer, "",
-                                   &host_recv_method, &host_recv_modifier,
-                                   &host_recv_data, &host_recv_eom, NULL);
+  host_slicer = GNUNET_PSYC_slicer_create ();
+  GNUNET_PSYC_slicer_method_add (host_slicer, "",
+                                 &host_recv_method, &host_recv_modifier,
+                                 &host_recv_data, &host_recv_eom, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Entering to place as host.\n");
   test = TEST_HOST_ENTER;

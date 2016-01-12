@@ -1303,7 +1303,7 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
                              uint64_t max_state_message_id,
                              uint64_t state_hash_message_id,
                              size_t modifier_count,
-                             const struct GNUNET_ENV_Modifier *modifiers,
+                             const struct GNUNET_PSYC_Modifier *modifiers,
                              GNUNET_PSYCSTORE_ResultCallback rcb,
                              void *rcb_cls)
 {

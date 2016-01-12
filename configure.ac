@@ -1537,7 +1537,6 @@ src/dns/Makefile
 src/dns/dns.conf
 src/dv/Makefile
 src/dv/dv.conf
-src/env/Makefile
 src/exit/Makefile
 src/fragmentation/Makefile
 src/fs/Makefile
@@ -1568,6 +1567,7 @@ src/peerinfo-tool/Makefile
 src/peerstore/Makefile
 src/peerstore/peerstore.conf
 src/postgres/Makefile
+src/psycutil/Makefile
 src/psyc/Makefile
 src/psyc/psyc.conf
 src/psycstore/Makefile

@@ -35,7 +35,7 @@
 #include "gnunet_psycstore_service.h"
 #include "gnunet_multicast_service.h"
 #include "gnunet_crypto_lib.h"
-#include "gnunet_env_lib.h"
+#include "gnunet_psyc_util_lib.h"
 #include "psycstore.h"
 #include <sqlite3.h>
 
@@ -1564,7 +1564,7 @@ state_modify_begin (void *cls,
 static int
 state_modify_op (void *cls,
                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                 enum GNUNET_ENV_Operator op,
+                 enum GNUNET_PSYC_Operator op,
                  const char *name, const void *value, size_t value_size)
 {
   struct Plugin *plugin = cls;
@@ -1572,7 +1572,7 @@ state_modify_op (void *cls,
 
   switch (op)
   {
-  case GNUNET_ENV_OP_ASSIGN:
+  case GNUNET_PSYC_OP_ASSIGN:
     return state_assign (plugin, plugin->insert_state_current, channel_key,
                          name, value, value_size);
 

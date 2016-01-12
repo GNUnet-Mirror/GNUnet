@@ -19,25 +19,26 @@
  */
 
 /**
- * @file env/env.c
- * @brief Library providing operations for the @e environment of
- *        PSYC and Social messages, and for (de)serializing variable values.
  * @author Gabor X Toth
+ *
+ * @file
+ * Library providing operations for the @e environment of
+ * PSYC and Social messages.
  */
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_env_lib.h"
+#include "gnunet_psyc_env.h"
 
 /**
  * Environment for a message.
  *
  * Contains modifiers.
  */
-struct GNUNET_ENV_Environment
+struct GNUNET_PSYC_Environment
 {
-  struct GNUNET_ENV_Modifier *mod_head;
-  struct GNUNET_ENV_Modifier *mod_tail;
+  struct GNUNET_PSYC_Modifier *mod_head;
+  struct GNUNET_PSYC_Modifier *mod_tail;
   size_t mod_count;
 };
 
@@ -47,10 +48,10 @@ struct GNUNET_ENV_Environment
  *
  * @return A newly allocated environment.
  */
-struct GNUNET_ENV_Environment *
-GNUNET_ENV_environment_create ()
+struct GNUNET_PSYC_Environment *
+GNUNET_PSYC_env_create ()
 {
-  return GNUNET_new (struct GNUNET_ENV_Environment);
+  return GNUNET_new (struct GNUNET_PSYC_Environment);
 }
 
 
@@ -64,11 +65,11 @@ GNUNET_ENV_environment_create ()
  * @param value_size Size of @a value.
  */
 void
-GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
-                            enum GNUNET_ENV_Operator oper, const char *name,
+GNUNET_PSYC_env_add (struct GNUNET_PSYC_Environment *env,
+                            enum GNUNET_PSYC_Operator oper, const char *name,
                             const void *value, size_t value_size)
 {
-  struct GNUNET_ENV_Modifier *mod = GNUNET_new (struct GNUNET_ENV_Modifier);
+  struct GNUNET_PSYC_Modifier *mod = GNUNET_new (struct GNUNET_PSYC_Modifier);
   mod->oper = oper;
   mod->name = name;
   mod->value = value;
@@ -81,8 +82,8 @@ GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
 /**
  * Get the first modifier of the environment.
  */
-struct GNUNET_ENV_Modifier *
-GNUNET_ENV_environment_head (const struct GNUNET_ENV_Environment *env)
+struct GNUNET_PSYC_Modifier *
+GNUNET_PSYC_env_head (const struct GNUNET_PSYC_Environment *env)
 {
   return env->mod_head;
 }
@@ -91,8 +92,8 @@ GNUNET_ENV_environment_head (const struct GNUNET_ENV_Environment *env)
 /**
  * Get the last modifier of the environment.
  */
-struct GNUNET_ENV_Modifier *
-GNUNET_ENV_environment_tail (const struct GNUNET_ENV_Environment *env)
+struct GNUNET_PSYC_Modifier *
+GNUNET_PSYC_env_tail (const struct GNUNET_PSYC_Environment *env)
 {
   return env->mod_tail;
 }
@@ -102,8 +103,8 @@ GNUNET_ENV_environment_tail (const struct GNUNET_ENV_Environment *env)
  * Remove a modifier from the environment.
  */
 void
-GNUNET_ENV_environment_remove (struct GNUNET_ENV_Environment *env,
-                               struct GNUNET_ENV_Modifier *mod)
+GNUNET_PSYC_env_remove (struct GNUNET_PSYC_Environment *env,
+                               struct GNUNET_PSYC_Modifier *mod)
 {
   GNUNET_CONTAINER_DLL_remove (env->mod_head, env->mod_tail, mod);
 }
@@ -121,14 +122,14 @@ GNUNET_ENV_environment_remove (struct GNUNET_ENV_Environment *env,
  * @return
  */
 int
-GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
-                              enum GNUNET_ENV_Operator *oper, const char **name,
+GNUNET_PSYC_env_shift (struct GNUNET_PSYC_Environment *env,
+                              enum GNUNET_PSYC_Operator *oper, const char **name,
                               const void **value, size_t *value_size)
 {
   if (NULL == env->mod_head)
     return GNUNET_NO;
 
-  struct GNUNET_ENV_Modifier *mod = env->mod_head;
+  struct GNUNET_PSYC_Modifier *mod = env->mod_head;
   *oper = mod->oper;
   *name = mod->name;
   *value = mod->value;
@@ -150,10 +151,10 @@ GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
  * @param it_cls Closure for iterator.
  */
 void
-GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
-                                GNUNET_ENV_Iterator it, void *it_cls)
+GNUNET_PSYC_env_iterate (const struct GNUNET_PSYC_Environment *env,
+                                GNUNET_PSYC_Iterator it, void *it_cls)
 {
-  struct GNUNET_ENV_Modifier *mod;
+  struct GNUNET_PSYC_Modifier *mod;
   for (mod = env->mod_head; NULL != mod; mod = mod->next)
     it (it_cls, mod->oper, mod->name, mod->value, mod->value_size);
 }
@@ -167,7 +168,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
  * @return Number of modifiers.
  */
 size_t
-GNUNET_ENV_environment_get_count (const struct GNUNET_ENV_Environment *env)
+GNUNET_PSYC_env_get_count (const struct GNUNET_PSYC_Environment *env)
 {
   return env->mod_count;
 }
@@ -179,9 +180,9 @@ GNUNET_ENV_environment_get_count (const struct GNUNET_ENV_Environment *env)
  * @param env The environment to destroy.
  */
 void
-GNUNET_ENV_environment_destroy (struct GNUNET_ENV_Environment *env)
+GNUNET_PSYC_env_destroy (struct GNUNET_PSYC_Environment *env)
 {
-  struct GNUNET_ENV_Modifier *mod, *prev = NULL;
+  struct GNUNET_PSYC_Modifier *mod, *prev = NULL;
   for (mod = env->mod_head; NULL != mod; mod = mod->next)
   {
     if (NULL != prev)

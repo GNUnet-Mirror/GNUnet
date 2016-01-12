@@ -16,7 +16,7 @@ if HAVE_EXPERIMENTAL
  EXP_DIR = \
   dv \
   multicast \
-  env \
+  psycutil \
   psycstore \
   psyc \
   rps \

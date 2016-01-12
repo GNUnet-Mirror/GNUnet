@@ -27,17 +27,7 @@ SQLITE_TESTS = test_plugin_psycstore_sqlite
 endif
 endif
 
-lib_LTLIBRARIES = libgnunetpsycutil.la libgnunetpsycstore.la
-
-libgnunetpsycutil_la_SOURCES = \
-  psyc_util_lib.c
-libgnunetpsycutil_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/env/libgnunetenv.la \
-  $(GN_LIBINTL) $(XLIB)
-libgnunetpsycutil_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
-  -version-info 0:0:0
+lib_LTLIBRARIES = libgnunetpsycstore.la
 
 libgnunetpsycstore_la_SOURCES = \
   psycstore_api.c \
@@ -59,7 +49,7 @@ gnunet_service_psycstore_SOURCES = \
 gnunet_service_psycstore_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  libgnunetpsycutil.la \
+  $(top_builddir)/src/psycutil/libgnunetpsycutil.la \
   $(GN_LIBINTL)
 
 plugin_LTLIBRARIES = \

@@ -216,7 +216,7 @@ extern "C"
 
 #include <stdint.h>
 #include "gnunet_util_lib.h"
-#include "gnunet_env_lib.h"
+#include "gnunet_psyc_util_lib.h"
 #include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_psyc_service.h"
@@ -261,14 +261,6 @@ struct GNUNET_SOCIAL_Host;
  * Guest handle for place that we entered.
  */
 struct GNUNET_SOCIAL_Guest;
-
-/**
- * Handle to an implementation of try-and-slice.
- */
-struct GNUNET_SOCIAL_Slicer;
-
-
-
 
 /**
  * Handle that can be used to reconnect to a place as host.
@@ -450,239 +442,6 @@ GNUNET_SOCIAL_nym_get_pub_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
 
 
 /**
- * Function called upon receiving a message indicating a call to a @e method.
- *
- * This function is called one or more times for each message until all data
- * fragments arrive from the network.
- *
- * @param cls
- *        Closure.
- * @param msg
- *        Message part, as it arrived from the network.
- * @param message_id
- *        Message counter, monotonically increasing from 1.
- * @param nym
- *        The sender of the message.
- *        Can be NULL if the message is not connected to a pseudonym.
- * @param flags
- *        OR'ed GNUNET_PSYC_MessageFlags
- * @param method_name
- *        Original method name from PSYC.
- *        May be more specific than the registered method name due to
- *        try-and-slice matching.
- */
-typedef void
-(*GNUNET_SOCIAL_MethodCallback) (void *cls,
-                                 const struct GNUNET_PSYC_MessageMethod *msg,
-                                 uint64_t message_id,
-                                 uint32_t flags,
-                                 const struct GNUNET_SOCIAL_Nym *nym,
-                                 const char *method_name);
-
-
-/**
- * Function called upon receiving a modifier of a message.
- *
- * @param cls
- *        Closure.
- * @param message_id
- *        Message ID this data fragment belongs to.
- * @param msg
- *        Message part, as it arrived from the network.
- * @param oper
- *        Operation to perform.
- *        0 in case of a modifier continuation.
- * @param name
- *        Name of the modifier.
- *        NULL in case of a modifier continuation.
- * @param value
- *        Value of the modifier.
- * @param value_size
- *        Size of @value.
- */
-typedef void
-(*GNUNET_SOCIAL_ModifierCallback) (void *cls,
-                                   const struct GNUNET_MessageHeader *msg,
-                                   uint64_t message_id,
-                                   enum GNUNET_ENV_Operator oper,
-                                   const char *name,
-                                   const void *value,
-                                   uint16_t value_size,
-                                   uint16_t full_value_size);
-
-
-/**
- * Function called upon receiving a data fragment of a message.
- *
- * @param cls
- *        Closure.
- * @param message_id
- *        Message ID this data fragment belongs to.
- * @param msg
- *        Message part, as it arrived from the network.
- * @param data_offset
- *        Byte offset of @a data in the overall data of the method.
- * @param data_size
- *        Number of bytes in @a data.
- * @param data
- *        Data stream given to the method.
- * @param end
- *        End of message?
- *        #GNUNET_NO     if there are further fragments,
- *        #GNUNET_YES    if this is the last fragment,
- *        #GNUNET_SYSERR indicates the message was cancelled by the sender.
- */
-typedef void
-(*GNUNET_SOCIAL_DataCallback) (void *cls,
-                               const struct GNUNET_MessageHeader *msg,
-                               uint64_t message_id,
-                               uint64_t data_offset,
-                               const void *data,
-                               uint16_t data_size);
-
-
-/**
- * End of message.
- *
- * @param cls
- *        Closure.
- * @param msg
- *        Message part, as it arrived from the network.
- * @param message_id
- *        Message ID this data fragment belongs to.
- * @param cancelled
- *        #GNUNET_YES if the message was cancelled,
- *        #GNUNET_NO  if the message is complete.
- */
-typedef void
-(*GNUNET_SOCIAL_EndOfMessageCallback) (void *cls,
-                                       const struct GNUNET_MessageHeader *msg,
-                                       uint64_t message_id,
-                                       uint8_t cancelled);
-
-
-/**
- * Create a try-and-slice instance.
- *
- * A slicer processes incoming messages and notifies callbacks about matching
- * methods or modifiers encountered.
- *
- * @return A new try-and-slice construct.
- */
-struct GNUNET_SOCIAL_Slicer *
-GNUNET_SOCIAL_slicer_create (void);
-
-
-/**
- * Add a method to the try-and-slice instance.
- *
- * The callbacks are called for messages with a matching @a method_name prefix.
- *
- * @param slicer
- *        The try-and-slice instance to extend.
- * @param method_name
- *        Name of the given method, use empty string to match all.
- * @param method_cb
- *        Method handler invoked upon a matching message.
- * @param modifier_cb
- *        Modifier handler, invoked after @a method_cb
- *        for each modifier in the message.
- * @param data_cb
- *        Data handler, invoked after @a modifier_cb for each data fragment.
- * @param eom_cb
- *        Invoked upon reaching the end of a matching message.
- * @param cls
- *        Closure for the callbacks.
- */
-void
-GNUNET_SOCIAL_slicer_method_add (struct GNUNET_SOCIAL_Slicer *slicer,
-                                 const char *method_name,
-                                 GNUNET_SOCIAL_MethodCallback method_cb,
-                                 GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                                 GNUNET_SOCIAL_DataCallback data_cb,
-                                 GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
-                                 void *cls);
-
-/**
- * Remove a registered method from the try-and-slice instance.
- *
- * Removes one matching handler registered with the given
- * @a method_name and callbacks.
- *
- * @param slicer
- *        The try-and-slice instance.
- * @param method_name
- *        Name of the method to remove.
- * @param method_cb
- *        Method handler.
- * @param modifier_cb
- *        Modifier handler.
- * @param data_cb
- *        Data handler.
- * @param eom_cb
- *        End of message handler.
- *
- * @return #GNUNET_OK if a method handler was removed,
- *         #GNUNET_NO if no handler matched the given method name and callbacks.
- */
-int
-GNUNET_SOCIAL_slicer_method_remove (struct GNUNET_SOCIAL_Slicer *slicer,
-                                    const char *method_name,
-                                    GNUNET_SOCIAL_MethodCallback method_cb,
-                                    GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                                    GNUNET_SOCIAL_DataCallback data_cb,
-                                    GNUNET_SOCIAL_EndOfMessageCallback eom_cb);
-
-
-/**
- * Watch a place for changed objects.
- *
- * @param slicer
- *        The try-and-slice instance.
- * @param object_filter
- *        Object prefix to match.
- * @param modifier_cb
- *        Function to call when encountering a state modifier.
- * @param cls
- *        Closure for callback.
- */
-void
-GNUNET_SOCIAL_slicer_modifier_add (struct GNUNET_SOCIAL_Slicer *slicer,
-                                   const char *object_filter,
-                                   GNUNET_SOCIAL_ModifierCallback modifier_cb,
-                                   void *cls);
-
-
-/**
- * Remove a registered modifier from the try-and-slice instance.
- *
- * Removes one matching handler registered with the given
- * @a object_filter and callback.
- *
- * @param slicer
- *        The try-and-slice instance.
- * @param object_filter
- *        Object prefix to match.
- * @param modifier_cb
- *        Function to call when encountering a state modifier changes.
- */
-int
-GNUNET_SOCIAL_slicer_modifier_remove (struct GNUNET_SOCIAL_Slicer *slicer,
-                                      const char *object_filter,
-                                      GNUNET_SOCIAL_ModifierCallback modifier_cb);
-
-
-/**
- * Destroy a given try-and-slice instance.
- *
- * @param slicer
- *        Slicer to destroy
- */
-void
-GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
-
-
-/**
  * Function called asking for nym to be admitted to the place.
  *
  * Should call either GNUNET_SOCIAL_host_admit() or
@@ -704,7 +463,7 @@ typedef void
 (*GNUNET_SOCIAL_AnswerDoorCallback) (void *cls,
                                      struct GNUNET_SOCIAL_Nym *nym,
                                      const char *method_name,
-                                     struct GNUNET_ENV_Environment *env,
+                                     struct GNUNET_PSYC_Environment *env,
                                      size_t data_size,
                                      const void *data);
 
@@ -723,7 +482,7 @@ typedef void
 typedef void
 (*GNUNET_SOCIAL_FarewellCallback) (void *cls,
                                    const struct GNUNET_SOCIAL_Nym *nym,
-                                   struct GNUNET_ENV_Environment *env);
+                                   struct GNUNET_PSYC_Environment *env);
 
 
 /**
@@ -778,7 +537,7 @@ struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
                           const struct GNUNET_SOCIAL_Ego *ego,
                           enum GNUNET_PSYC_Policy policy,
-                          struct GNUNET_SOCIAL_Slicer *slicer,
+                          struct GNUNET_PSYC_Slicer *slicer,
                           GNUNET_SOCIAL_HostEnterCallback enter_cb,
                           GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
@@ -806,7 +565,7 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
  */
 struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
-                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    struct GNUNET_PSYC_Slicer *slicer,
                                     GNUNET_SOCIAL_HostEnterCallback enter_cb,
                                     GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
                                     GNUNET_SOCIAL_FarewellCallback farewell_cb,
@@ -862,7 +621,7 @@ GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
 void
 GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
                           const struct GNUNET_SOCIAL_Nym *nym,
-                          struct GNUNET_ENV_Environment *env);
+                          struct GNUNET_PSYC_Environment *env);
 
 
 /**
@@ -915,7 +674,7 @@ struct GNUNET_SOCIAL_Announcement;
 struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *host,
                              const char *method_name,
-                             const struct GNUNET_ENV_Environment *env,
+                             const struct GNUNET_PSYC_Environment *env,
                              GNUNET_PSYC_TransmitNotifyData notify_data,
                              void *notify_data_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags);
@@ -1032,7 +791,7 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
  */
 void
 GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
-                          const struct GNUNET_ENV_Environment *env,
+                          const struct GNUNET_PSYC_Environment *env,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls);
 
@@ -1062,22 +821,12 @@ typedef void
  * Function called upon a guest receives a decision about entry to the place.
  *
  * @param is_admitted
- *   Is the guest admitted to the place?
- *   #GNUNET_YES    if admitted,
- *   #GNUNET_NO     if refused entry
- *   #GNUNET_SYSERR if the request could not be answered.
- * @param method_name
- *   Method for the message sent along with the decision.
- *   NULL if no message was sent.
- * @param env
- *   Environment with variables for the message.
- *   NULL if there are no variables.
- *   It has to be freed using GNUNET_ENV_environment_destroy()
- *   when it is not needed anymore.
- * @param data_size
- *   Size of @data.
+ *        Is the guest admitted to the place?
+ *        #GNUNET_YES    if admitted,
+ *        #GNUNET_NO     if refused entry,
+ *        #GNUNET_SYSERR if the request could not be answered.
  * @param data
- *   Payload of the message.
+ *        Entry response message.
  */
 typedef void
 (*GNUNET_SOCIAL_EntryDecisionCallback) (void *cls,
@@ -1124,7 +873,7 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
                            const struct GNUNET_PSYC_Message *entry_msg,
-                           struct GNUNET_SOCIAL_Slicer *slicer,
+                           struct GNUNET_PSYC_Slicer *slicer,
                            GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                            GNUNET_SOCIAL_EntryDecisionCallback entry_dcsn_cb,
                            void *cls);
@@ -1162,7 +911,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
                                    const char *gns_name,
                                    const char *password,
                                    const struct GNUNET_PSYC_Message *join_msg,
-                                   struct GNUNET_SOCIAL_Slicer *slicer,
+                                   struct GNUNET_PSYC_Slicer *slicer,
                                    GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                    GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
                                    void *cls);
@@ -1188,7 +937,7 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_SOCIAL_App *app,
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_reconnect (struct GNUNET_SOCIAL_GuestConnection *gconn,
                                      enum GNUNET_PSYC_SlaveJoinFlags flags,
-                                     struct GNUNET_SOCIAL_Slicer *slicer,
+                                     struct GNUNET_PSYC_Slicer *slicer,
                                      GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                      void *cls);
 
@@ -1230,7 +979,7 @@ struct GNUNET_SOCIAL_TalkRequest;
 struct GNUNET_SOCIAL_TalkRequest *
 GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *guest,
                           const char *method_name,
-                          const struct GNUNET_ENV_Environment *env,
+                          const struct GNUNET_PSYC_Environment *env,
                           GNUNET_PSYC_TransmitNotifyData notify_data,
                           void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags);
@@ -1289,7 +1038,7 @@ GNUNET_SOCIAL_guest_disconnect (struct GNUNET_SOCIAL_Guest *gst,
  */
 void
 GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *gst,
-                           struct GNUNET_ENV_Environment *env,
+                           struct GNUNET_PSYC_Environment *env,
                            GNUNET_ContinuationCallback disconnect_cb,
                            void *leave_cls);
 
@@ -1343,7 +1092,7 @@ GNUNET_SOCIAL_place_history_replay (struct GNUNET_SOCIAL_Place *plc,
                                     uint64_t end_message_id,
                                     const char *method_prefix,
                                     uint32_t flags,
-                                    struct GNUNET_SOCIAL_Slicer *slicer,
+                                    struct GNUNET_PSYC_Slicer *slicer,
                                     GNUNET_ResultCallback result_cb,
                                     void *cls);
 
@@ -1371,7 +1120,7 @@ GNUNET_SOCIAL_place_history_replay_latest (struct GNUNET_SOCIAL_Place *plc,
                                            uint64_t message_limit,
                                            const char *method_prefix,
                                            uint32_t flags,
-                                           struct GNUNET_SOCIAL_Slicer *slicer,
+                                           struct GNUNET_PSYC_Slicer *slicer,
                                            GNUNET_ResultCallback result_cb,
                                            void *cls);
 
@@ -1524,4 +1273,4 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
 /* ifndef GNUNET_SOCIAL_SERVICE_H */
 #endif
 
-/** @} */  /* end of group social */
+/** @} */  /* end of group */

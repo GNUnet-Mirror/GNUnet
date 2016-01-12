@@ -551,7 +551,7 @@ recv_state_message_part (void *cls,
     const char *name = (const char *) &pmod[1];
     const void *value = name + name_size;
 
-    if (GNUNET_ENV_OP_SET != pmod->oper)
+    if (GNUNET_PSYC_OP_SET != pmod->oper)
     { // Apply non-transient operation.
       if (psize == sizeof (*pmod) + name_size + value_size)
       {
@@ -576,7 +576,7 @@ recv_state_message_part (void *cls,
   }
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
-    if (GNUNET_ENV_OP_SET != scls->mod_oper)
+    if (GNUNET_PSYC_OP_SET != scls->mod_oper)
     {
       if (scls->mod_value_remaining == 0)
       {

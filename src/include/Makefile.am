@@ -55,7 +55,6 @@ gnunetinclude_HEADERS = \
   gnunet_dnsstub_lib.h \
   gnunet_dns_service.h \
   gnunet_dv_service.h \
-  gnunet_env_lib.h \
   gnunet_fragmentation_lib.h \
   gnunet_friends_lib.h \
   gnunet_fs_service.h \
@@ -90,6 +89,9 @@ gnunetinclude_HEADERS = \
   gnunet_psycstore_service.h \
   gnunet_psyc_service.h \
   gnunet_psyc_util_lib.h \
+  gnunet_psyc_env.h \
+  gnunet_psyc_message.h \
+  gnunet_psyc_slicer.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \
   gnunet_resolver_service.h \

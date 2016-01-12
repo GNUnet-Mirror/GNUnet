@@ -18,11 +18,12 @@
  * Boston, MA 02110-1301, USA.
  */
 
-/*
- * @file psycstore/test_plugin_psycstore.c
- * @brief Test for the PSYCstore plugins.
+/**
  * @author Gabor X Toth
  * @author Christian Grothoff
+ *
+ * @file
+ * Test for the PSYCstore plugins.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -309,12 +310,12 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                       message_id, 0));
 
   GNUNET_assert (GNUNET_OK == db->state_modify_op (db->cls, &channel_pub_key,
-                                                   GNUNET_ENV_OP_ASSIGN,
+                                                   GNUNET_PSYC_OP_ASSIGN,
                                                    "_foo",
                                                    C2ARG("one two three")));
 
   GNUNET_assert (GNUNET_OK == db->state_modify_op (db->cls, &channel_pub_key,
-                                                   GNUNET_ENV_OP_ASSIGN,
+                                                   GNUNET_PSYC_OP_ASSIGN,
                                                    "_foo_bar", slave_key,
                                                    sizeof (*slave_key)));
 
@@ -401,7 +402,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                       message_id - max_state_msg_id));
 
   GNUNET_assert (GNUNET_OK == db->state_modify_op (db->cls, &channel_pub_key,
-                                                   GNUNET_ENV_OP_ASSIGN,
+                                                   GNUNET_PSYC_OP_ASSIGN,
                                                    "_sync_foo",
                                                    C2ARG("five six seven")));
 

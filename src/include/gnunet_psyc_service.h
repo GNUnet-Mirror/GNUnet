@@ -92,7 +92,6 @@ extern "C"
 #endif
 
 #include "gnunet_util_lib.h"
-#include "gnunet_env_lib.h"
 #include "gnunet_multicast_service.h"
 //Mingw work around
 #ifdef MINGW
@@ -917,33 +916,41 @@ enum GNUNET_PSYC_SlaveJoinFlags
  * notification on failure (as the channel may simply take days to approve,
  * and disapproval is simply being ignored).
  *
- * @param cfg  Configuration to use.
- * @param channel_key  ECC public key that identifies the channel we wish to join.
- * @param slave_key  ECC private-public key pair that identifies the slave, and
+ * @param cfg
+ *        Configuration to use.
+ * @param channel_pub_key
+ *        ECC public key that identifies the channel we wish to join.
+ * @param slave_key
+ *        ECC private-public key pair that identifies the slave, and
  *        used by multicast to sign the join request and subsequent unicast
  *        requests sent to the master.
- * @param origin  Peer identity of the origin.
- * @param relay_count  Number of peers in the @a relays array.
- * @param relays  Peer identities of members of the multicast group, which serve
+ * @param flags
+ *        Join flags.
+ * @param origin
+ *        Peer identity of the origin.
+ * @param relay_count
+ *        Number of peers in the @a relays array.
+ * @param relays
+ *        Peer identities of members of the multicast group, which serve
  *        as relays and used to join the group at.
- * @param message_cb  Function to invoke on message parts received from the
- *        channel, typically at least contains method handlers for @e join and
- *        @e part.
- * @param slave_connect_cb  Function invoked once we have connected to the
- *        PSYC service.
- * @param join_decision_cb  Function invoked once we have received a join
- *	  decision.
- * @param cls  Closure for @a message_cb and @a slave_joined_cb.
- * @param method_name  Method name for the join request.
- * @param env  Environment containing transient variables for the request, or NULL.
- * @param data  Payload for the join message.
- * @param data_size  Number of bytes in @a data.
+ * @param message_cb
+ *        Function to invoke on message fragments received from the channel.
+ * @param message_part_cb
+ *        Function to invoke on message parts received from the channel.
+ * @param slave_connect_cb
+ *        Function invoked once we have connected to the PSYC service.
+ * @param join_decision_cb
+ *        Function invoked once we have received a join decision.
+ * @param cls
+ *        Closure for @a message_cb and @a slave_joined_cb.
+ * @param join_msg
+ *        Join message.
  *
  * @return Handle for the slave, NULL on error.
  */
 struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_pub_key,
                         const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key,
                         enum GNUNET_PSYC_SlaveJoinFlags flags,
                         const struct GNUNET_PeerIdentity *origin,

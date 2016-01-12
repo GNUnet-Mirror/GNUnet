@@ -734,7 +734,7 @@ psyc_recv_join_dcsn (void *cls,
 void
 psyc_recv_file (struct Place *plc, const struct GNUNET_PSYC_MessageHeader *msg,
                 uint32_t flags, uint64_t message_id, uint64_t fragment_offset,
-                const char *method_name, struct GNUNET_ENV_Environment *env,
+                const char *method_name, struct GNUNET_PSYC_Environment *env,
                 const void *data, uint16_t data_size)
 {
   if (plc->file_message_id != message_id)
@@ -794,7 +794,7 @@ psyc_recv_message (void *cls,
   /* process message */
   /* FIXME: use slicer */
   const char *method_name = NULL;
-  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
   const void *data = NULL;
   uint16_t data_size = 0;
 
@@ -815,7 +815,7 @@ psyc_recv_message (void *cls,
       }
     }
   }
-  GNUNET_ENV_environment_destroy (env);
+  GNUNET_PSYC_env_destroy (env);
 
   place_send_msg (plc, &msg->header);
 }

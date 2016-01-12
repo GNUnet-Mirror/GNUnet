@@ -248,7 +248,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   int
   (*state_modify_op) (void *cls,
                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                      enum GNUNET_ENV_Operator op,
+                      enum GNUNET_PSYC_Operator op,
                       const char *name, const void *value, size_t value_size);
 
 

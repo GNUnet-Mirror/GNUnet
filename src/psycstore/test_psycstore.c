@@ -77,7 +77,7 @@ struct StateClosure {
   size_t value_size[16];
 } scls;
 
-static struct GNUNET_ENV_Modifier modifiers[16];
+static struct GNUNET_PSYC_Modifier modifiers[16];
 
 /**
  * Clean up all resources used.
@@ -328,13 +328,13 @@ message_get_latest_result (void *cls, int64_t result,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_latest:\t%d\n", result);
   GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
-  modifiers[0] = (struct GNUNET_ENV_Modifier) {
+  modifiers[0] = (struct GNUNET_PSYC_Modifier) {
     .oper = '=',
     .name = "_sync_foo",
     .value = "three two one",
     .value_size = sizeof ("three two one") - 1
   };
-  modifiers[1] = (struct GNUNET_ENV_Modifier) {
+  modifiers[1] = (struct GNUNET_PSYC_Modifier) {
     .oper = '=',
     .name = "_sync_bar",
     .value = "ten eleven twelve",

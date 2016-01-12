@@ -34,7 +34,6 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_env_lib.h"
 #include "gnunet_multicast_service.h"
 #include "gnunet_psyc_service.h"
 #include "gnunet_psyc_util_lib.h"

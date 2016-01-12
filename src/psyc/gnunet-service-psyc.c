@@ -2477,7 +2477,7 @@ store_recv_state_var (void *cls, const char *name,
     mod->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER);
     mod->name_size = htons (name_size);
     mod->value_size = htonl (value_size);
-    mod->oper = htons (GNUNET_ENV_OP_ASSIGN);
+    mod->oper = htons (GNUNET_PSYC_OP_ASSIGN);
     memcpy (&mod[1], name, name_size);
     memcpy (((char *) &mod[1]) + name_size, value, value_size);
   }

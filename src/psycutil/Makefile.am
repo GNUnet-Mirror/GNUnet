@@ -14,20 +14,22 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-lib_LTLIBRARIES = libgnunetenv.la
+lib_LTLIBRARIES = libgnunetpsycutil.la
 
-libgnunetenv_la_SOURCES = \
-  env.c
-libgnunetenv_la_LIBADD = \
+libgnunetpsycutil_la_SOURCES = \
+  psyc_env.c \
+  psyc_message.c \
+  psyc_slicer.c
+libgnunetpsycutil_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
-libgnunetenv_la_LDFLAGS = \
+libgnunetpsycutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_env
+ test_psyc_env
 endif
 
 if ENABLE_TEST_RUN
@@ -35,9 +37,9 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_PROGRAMS)
 endif
 
-test_env_SOURCES = \
- test_env.c
-test_env_LDADD = \
-  libgnunetenv.la \
+test_psyc_env_SOURCES = \
+ test_psyc_env.c
+test_psyc_env_LDADD = \
+  libgnunetpsycutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la

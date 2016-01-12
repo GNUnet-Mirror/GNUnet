@@ -19,24 +19,25 @@
  */
 
 /**
- * @file env/test_env.c
- * @brief Tests for the environment library.
  * @author Gabor X Toth
+ *
+ * @file
+ * Tests for the environment library.
  */
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_env_lib.h"
+#include "gnunet_psyc_util_lib.h"
 
-struct GNUNET_ENV_Modifier mods[] = {
-  { .oper = GNUNET_ENV_OP_SET,
+struct GNUNET_PSYC_Modifier mods[] = {
+  { .oper = GNUNET_PSYC_OP_SET,
     .name = "_foo", .value = "foo", .value_size = 3 },
 
-  { .oper = GNUNET_ENV_OP_ASSIGN,
+  { .oper = GNUNET_PSYC_OP_ASSIGN,
     .name = "_foo_bar", .value = "foo bar", .value_size = 7 },
 
-  { .oper = GNUNET_ENV_OP_AUGMENT,
+  { .oper = GNUNET_PSYC_OP_AUGMENT,
     .name = "_foo_bar_baz", .value = "foo bar baz", .value_size = 11 }
 };
 
@@ -46,11 +47,11 @@ struct ItCls
 };
 
 int
-iterator (void *cls, enum GNUNET_ENV_Operator oper,
+iterator (void *cls, enum GNUNET_PSYC_Operator oper,
           const char *name, const char *value, uint32_t value_size)
 {
   struct ItCls *it_cls = cls;
-  struct GNUNET_ENV_Modifier *m = &mods[it_cls->n++];
+  struct GNUNET_PSYC_Modifier *m = &mods[it_cls->n++];
 
   GNUNET_assert (oper == m->oper);
   GNUNET_assert (value_size == m->value_size);
@@ -65,31 +66,31 @@ main (int argc, char *argv[])
 {
   GNUNET_log_setup ("test-env", "WARNING", NULL);
 
-  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
   GNUNET_assert (NULL != env);
   int i, len = 3;
 
   for (i = 0; i < len; i++)
   {
-    GNUNET_ENV_environment_add (env, mods[i].oper, mods[i].name,
-                                mods[i].value, mods[i].value_size);
+    GNUNET_PSYC_env_add (env, mods[i].oper, mods[i].name,
+                         mods[i].value, mods[i].value_size);
   }
 
   struct ItCls it_cls = { .n = 0 };
-  GNUNET_ENV_environment_iterate (env, iterator, &it_cls);
+  GNUNET_PSYC_env_iterate (env, iterator, &it_cls);
   GNUNET_assert (len == it_cls.n);
 
   for (i = 0; i < len; i++)
   {
-    enum GNUNET_ENV_Operator oper;
+    enum GNUNET_PSYC_Operator oper;
     const char *name;
     const void *value;
     size_t value_size;
-    GNUNET_ENV_environment_shift (env, &oper, &name, &value, &value_size);
-    GNUNET_assert (len - i - 1 == GNUNET_ENV_environment_get_count (env));
+    GNUNET_PSYC_env_shift (env, &oper, &name, &value, &value_size);
+    GNUNET_assert (len - i - 1 == GNUNET_PSYC_env_get_count (env));
   }
 
-  GNUNET_ENV_environment_destroy (env);
+  GNUNET_PSYC_env_destroy (env);
 
   return 0;
 }

@@ -32,7 +32,6 @@
 #include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_env_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "gnunet_psyc_service.h"
 #include "gnunet_core_service.h"
@@ -69,8 +68,8 @@ struct TransmitClosure
 {
   struct GNUNET_PSYC_MasterTransmitHandle *mst_tmit;
   struct GNUNET_PSYC_SlaveTransmitHandle *slv_tmit;
-  struct GNUNET_ENV_Environment *env;
-  struct GNUNET_ENV_Modifier *mod;
+  struct GNUNET_PSYC_Environment *env;
+  struct GNUNET_PSYC_Modifier *mod;
   char *data[16];
   const char *mod_value;
   size_t mod_value_size;
@@ -116,7 +115,7 @@ void master_stopped (void *cls)
 {
   if (NULL != tmit)
   {
-    GNUNET_ENV_environment_destroy (tmit->env);
+    GNUNET_PSYC_env_destroy (tmit->env);
     GNUNET_free (tmit);
     tmit = NULL;
   }
@@ -617,7 +616,7 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%d: Transmit notify modifier: %lu bytes available, "
               "%u modifiers left to process.\n",
-              test, *data_size, GNUNET_ENV_environment_get_count (tmit->env));
+              test, *data_size, GNUNET_PSYC_env_get_count (tmit->env));
 
   uint16_t name_size = 0;
   size_t value_size = 0;
@@ -697,12 +696,12 @@ slave_transmit ()
               "Test #%d: Slave sending request to master.\n", test);
 
   tmit = GNUNET_new (struct TransmitClosure);
-  tmit->env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+  tmit->env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (tmit->env, GNUNET_PSYC_OP_ASSIGN,
                               "_abc", "abc def", 7);
-  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+  GNUNET_PSYC_env_add (tmit->env, GNUNET_PSYC_OP_ASSIGN,
                               "_abc_def", "abc def ghi", 11);
-  tmit->mod = GNUNET_ENV_environment_head (tmit->env);
+  tmit->mod = GNUNET_PSYC_env_head (tmit->env);
   tmit->n = 0;
   tmit->data[0] = "slave test";
   tmit->data_count = 1;
@@ -835,10 +834,10 @@ slave_join (int t)
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test #%d: Joining slave.\n");
 
   struct GNUNET_PeerIdentity origin = this_peer;
-  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
+  struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_ASSIGN,
                               "_foo", "bar baz", 7);
-  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
+  GNUNET_PSYC_env_add (env, GNUNET_PSYC_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
   struct GNUNET_PSYC_Message *
     join_msg = GNUNET_PSYC_message_create ("_request_join", env, "some data", 9);
@@ -851,7 +850,7 @@ slave_join (int t)
                                 join_msg);
   GNUNET_free (join_msg);
   slv_chn = GNUNET_PSYC_slave_get_channel (slv);
-  GNUNET_ENV_environment_destroy (env);
+  GNUNET_PSYC_env_destroy (env);
 }
 
 
@@ -881,20 +880,20 @@ master_transmit ()
     val_cont[i] = (0 == j % 10000) ? '0' + j / 10000 : '!';
 
   tmit = GNUNET_new (struct TransmitClosure);
-  tmit->env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+  tmit->env = GNUNET_PSYC_env_create ();
+  GNUNET_PSYC_env_add (tmit->env, GNUNET_PSYC_OP_ASSIGN,
                               "_foo", "bar baz", 7);
-  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+  GNUNET_PSYC_env_add (tmit->env, GNUNET_PSYC_OP_ASSIGN,
                               name_max, val_max,
                               GNUNET_PSYC_MODIFIER_MAX_PAYLOAD
                               - name_max_size);
-  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+  GNUNET_PSYC_env_add (tmit->env, GNUNET_PSYC_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
-  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+  GNUNET_PSYC_env_add (tmit->env, GNUNET_PSYC_OP_ASSIGN,
                               name_cont, val_cont,
                               GNUNET_PSYC_MODIFIER_MAX_PAYLOAD - name_cont_size
                               + GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD);
-  tmit->mod = GNUNET_ENV_environment_head (tmit->env);
+  tmit->mod = GNUNET_PSYC_env_head (tmit->env);
   tmit->data[0] = "foo";
   tmit->data[1] =  GNUNET_malloc (GNUNET_PSYC_DATA_MAX_PAYLOAD + 1);
   for (i = 0; i < GNUNET_PSYC_DATA_MAX_PAYLOAD; i++)
