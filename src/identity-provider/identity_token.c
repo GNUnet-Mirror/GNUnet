@@ -67,7 +67,7 @@ create_sym_key_from_ecdh(const struct GNUNET_HashCode *new_key_hash,
 
 
 /**
- * Decrypts metainfo part from a token code
+ * Decrypts data part from a token code
  */
 static int
 decrypt_str_ecdhe (const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
@@ -639,10 +639,10 @@ ticket_payload_serialize (struct TokenTicketPayload *payload,
 
 /**
  * Create the token code
- * The metadata is encrypted with a share ECDH derived secret using B (aud_key)
+ * The data is encrypted with a share ECDH derived secret using B (aud_key)
  * and e (ecdh_privkey)
  * The ticket also contains E (ecdh_pubkey) and a signature over the
- * metadata and E
+ * data and E
  */
 struct TokenTicket*
 ticket_create (const char* nonce_str,
@@ -725,7 +725,7 @@ ticket_serialize (struct TokenTicket *ticket,
   dh_key_str = GNUNET_STRINGS_data_to_string_alloc (&ticket->ecdh_pubkey,
                                                     sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using ECDH pubkey %s to encrypt\n", dh_key_str);
-  GNUNET_asprintf (&ticket_str, "{\"meta\": \"%s\", \"ecdh\": \"%s\", \"signature\": \"%s\"}",
+  GNUNET_asprintf (&ticket_str, "{\"data\": \"%s\", \"ecdh\": \"%s\", \"signature\": \"%s\"}",
                    ticket_payload_str, dh_key_str, ticket_sig_str);
   GNUNET_STRINGS_base64_encode (ticket_str, strlen (ticket_str), result);
   GNUNET_free (dh_key_str);
@@ -754,26 +754,26 @@ ticket_payload_parse(const char *raw_data,
   json_t *identity_json;
   json_t *nonce_json;
   json_error_t err_json;
-  char* meta_str;
+  char* data_str;
   struct GNUNET_CRYPTO_EcdsaPublicKey id_pkey;
 
   if (GNUNET_OK != decrypt_str_ecdhe (priv_key,
                                       ecdhe_pkey,
                                       raw_data,
                                       data_len,
-                                      &meta_str))
+                                      &data_str))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Metadata decryption failed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Data decryption failed\n");
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Metadata: %s\n", meta_str);
-  root = json_loads (meta_str, JSON_DECODE_ANY, &err_json);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data: %s\n", data_str);
+  root = json_loads (data_str, JSON_DECODE_ANY, &err_json);
   if (!root)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error parsing metadata: %s\n", err_json.text);
-    GNUNET_free (meta_str);
+                "Error parsing data: %s\n", err_json.text);
+    GNUNET_free (data_str);
     return GNUNET_SYSERR;
   }
 
@@ -781,9 +781,9 @@ ticket_payload_parse(const char *raw_data,
   if (!json_is_string (identity_json))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error parsing metadata: %s\n", err_json.text);
+                "Error parsing data: %s\n", err_json.text);
     json_decref (root);
-    GNUNET_free (meta_str);
+    GNUNET_free (data_str);
     return GNUNET_SYSERR;
   }
   identity_key_str = json_string_value (identity_json);
@@ -797,9 +797,9 @@ ticket_payload_parse(const char *raw_data,
   if (!json_is_string (label_json))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error parsing metadata: %s\n", err_json.text);
+                "Error parsing data: %s\n", err_json.text);
     json_decref (root);
-    GNUNET_free (meta_str);
+    GNUNET_free (data_str);
     return GNUNET_SYSERR;
   }
 
@@ -810,9 +810,9 @@ ticket_payload_parse(const char *raw_data,
   if (!json_is_string (label_json))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error parsing metadata: %s\n", err_json.text);
+                "Error parsing data: %s\n", err_json.text);
     json_decref (root);
-    GNUNET_free (meta_str);
+    GNUNET_free (data_str);
     return GNUNET_SYSERR;
   }
 
@@ -822,7 +822,7 @@ ticket_payload_parse(const char *raw_data,
   *result = ticket_payload_create (nonce_str,
                                    (const struct GNUNET_CRYPTO_EcdsaPublicKey*)&id_pkey,
                                    label_str);
-  GNUNET_free (meta_str);
+  GNUNET_free (data_str);
   json_decref (root);
   return GNUNET_OK;
 
@@ -833,19 +833,19 @@ ticket_parse (const char *raw_data,
               const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key,
               struct TokenTicket **result)
 {
-  const char* enc_meta_str;
+  const char* enc_data_str;
   const char* ecdh_enc_str;
   const char* signature_enc_str;
 
   json_t *root;
   json_t *signature_json;
   json_t *ecdh_json;
-  json_t *enc_meta_json;
+  json_t *enc_data_json;
   json_error_t err_json;
-  char* enc_meta;
+  char* enc_data;
   char* ticket_decoded;
   char* write_ptr;
-  size_t enc_meta_len;
+  size_t enc_data_len;
   struct GNUNET_CRYPTO_EccSignaturePurpose *purpose;
   struct TokenTicket *ticket;
   struct TokenTicketPayload *ticket_payload;
@@ -863,11 +863,11 @@ ticket_parse (const char *raw_data,
 
   signature_json = json_object_get (root, "signature");
   ecdh_json = json_object_get (root, "ecdh");
-  enc_meta_json = json_object_get (root, "meta");
+  enc_data_json = json_object_get (root, "data");
 
   signature_enc_str = json_string_value (signature_json);
   ecdh_enc_str = json_string_value (ecdh_json);
-  enc_meta_str = json_string_value (enc_meta_json);
+  enc_data_str = json_string_value (enc_data_json);
 
   ticket = GNUNET_malloc (sizeof (struct TokenTicket));
 
@@ -876,12 +876,12 @@ ticket_parse (const char *raw_data,
                                                   &ticket->ecdh_pubkey,
                                                   sizeof  (struct GNUNET_CRYPTO_EcdhePublicKey)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH PKEY %s invalid in metadata\n", ecdh_enc_str);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH PKEY %s invalid in data\n", ecdh_enc_str);
     json_decref (root);
     GNUNET_free (ticket);
     return GNUNET_SYSERR;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using ECDH pubkey %s for metadata decryption\n", ecdh_enc_str);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Using ECDH pubkey %s for data decryption\n", ecdh_enc_str);
   if (GNUNET_OK != GNUNET_STRINGS_string_to_data (signature_enc_str,
                                                   strlen (signature_enc_str),
                                                   &ticket->signature,
@@ -890,43 +890,42 @@ ticket_parse (const char *raw_data,
     json_decref (root);
     GNUNET_free (ticket_decoded);
     GNUNET_free (ticket);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH signature invalid in metadata\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ECDH signature invalid in data\n");
     return GNUNET_SYSERR;
   }
 
-  enc_meta_len = GNUNET_STRINGS_base64_decode (enc_meta_str,
-                                               strlen (enc_meta_str),
-                                               &enc_meta);
+  enc_data_len = GNUNET_STRINGS_base64_decode (enc_data_str,
+                                               strlen (enc_data_str),
+                                               &enc_data);
 
 
-  if (GNUNET_OK != ticket_payload_parse (enc_meta,
-                                         enc_meta_len,
+  if (GNUNET_OK != ticket_payload_parse (enc_data,
+                                         enc_data_len,
                                          priv_key,
                                          (const struct GNUNET_CRYPTO_EcdhePublicKey*)&ticket->ecdh_pubkey,
                                          &ticket_payload))
   {
     json_decref (root);
-    GNUNET_free (enc_meta);
+    GNUNET_free (enc_data);
     GNUNET_free (ticket_decoded);
     GNUNET_free (ticket);
     return GNUNET_SYSERR;
   }
 
   ticket->payload = ticket_payload;
-  //TODO: check signature here
   purpose = 
     GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + 
                    sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) + //E
-                   enc_meta_len); // E_K (code_str)
+                   enc_data_len); // E_K (code_str)
   purpose->size = 
     htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
            sizeof (struct GNUNET_CRYPTO_EcdhePublicKey) +
-           enc_meta_len);
+           enc_data_len);
   purpose->purpose = htonl(GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET);
   write_ptr = (char*) &purpose[1];
   memcpy (write_ptr, &ticket->ecdh_pubkey, sizeof (struct GNUNET_CRYPTO_EcdhePublicKey));
   write_ptr += sizeof (struct GNUNET_CRYPTO_EcdhePublicKey);
-  memcpy (write_ptr, enc_meta, enc_meta_len);
+  memcpy (write_ptr, enc_data, enc_data_len);
 
   if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_GNUID_TICKET,
                                                purpose,
@@ -944,7 +943,7 @@ ticket_parse (const char *raw_data,
   *result = ticket;
   GNUNET_free (purpose);
 
-  GNUNET_free (enc_meta);
+  GNUNET_free (enc_data);
   GNUNET_free (ticket_decoded);
   json_decref (root);
   return GNUNET_OK;
