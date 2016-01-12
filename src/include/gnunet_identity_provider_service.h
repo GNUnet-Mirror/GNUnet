@@ -24,7 +24,7 @@
  * @file
  * Identity provider service; implements identity provider for GNUnet
  *
- * @defgroup identity-provider  Identity provider service
+ * @defgroup identity-provider  Identity Provider service
  * @{
  */
 #ifndef GNUNET_IDENTITY_PROVIDER_SERVICE_H
@@ -227,8 +227,10 @@ GNUNET_IDENTITY_PROVIDER_ticket_destroy(struct GNUNET_IDENTITY_PROVIDER_Ticket *
 }
 #endif
 
-/** @} */ /* end of group identity */
 
 /* ifndef GNUNET_IDENTITY_PROVIDER_SERVICE_H */
 #endif
+
+/** @} */ /* end of group identity */
+
 /* end of gnunet_identity_provider_service.h */

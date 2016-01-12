@@ -218,7 +218,6 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
                                     const struct GNUNET_MessageHeader *msg);
 
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -227,5 +226,6 @@ GNUNET_DEFRAGMENT_process_fragment (struct GNUNET_DEFRAGMENT_Context *dc,
 }
 #endif
 
-/* end of gnunet_fragmentation_lib.h */
 #endif
+
+/** @} */  /* end of group */

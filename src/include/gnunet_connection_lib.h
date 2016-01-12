@@ -392,8 +392,9 @@ GNUNET_CONNECTION_acivate_proxied (struct GNUNET_CONNECTION_Handle *proxied);
 }
 #endif
 
-/** @} */  /* end of group */
-
 /* ifndef GNUNET_CONNECTION_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_connection_lib.h */

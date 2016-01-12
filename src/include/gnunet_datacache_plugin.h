@@ -24,7 +24,7 @@
  * @file
  * API for database backends for the datacache
  *
- * @defgroup datacache-plugin  Datacache plugin API
+ * @defgroup datacache-plugin  Data Cache plugin API
  * API for database backends for the datacache
  * @{
  */
@@ -186,7 +186,6 @@ struct GNUNET_DATACACHE_PluginFunctions
 
 };
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -195,5 +194,6 @@ struct GNUNET_DATACACHE_PluginFunctions
 }
 #endif
 
-/* end of gnunet_datacache_plugin.h */
 #endif
+
+/** @} */  /* end of group */

@@ -19,9 +19,12 @@
    */
 /**
  * @author Martin Schanzenbach
- * @file include/gnunet_rest_plugin.h
- * @brief GNUnet service REST plugin header
  *
+ * @file
+ * GNUnet service REST plugin header
+ *
+ * @defgroup rest-plugin  REST plugin for GNUnet services
+ * @{
  */
 #ifndef GNUNET_REST_PLUGIN_H
 #define GNUNET_REST_PLUGIN_H
@@ -60,7 +63,7 @@ struct GNUNET_REST_Plugin
 
   /**
    * Function to process a REST call
-   * 
+   *
    * @param method the HTTP method called
    * @param url the relative url accessed
    * @param data the REST data (can be NULL)
@@ -82,6 +85,6 @@ struct GNUNET_REST_Plugin
 }
 #endif
 
-/* end of gnunet_rest_plugin.h */
 #endif
 
+/** @} */  /* end of group */

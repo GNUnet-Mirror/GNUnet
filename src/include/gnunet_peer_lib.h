@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_peer_lib.h
- * @brief helper library for interning of peer identifiers
  * @author Christian Grothoff
+ *
+ * @file
+ * Helper library for interning of peer identifiers
+ *
+ * @defgroup peer  Peer library
+ * Helper library for interning of peer identifiers
+ * @{
  */
 
 #ifndef GNUNET_PEER_LIB_H
@@ -116,7 +121,9 @@ GNUNET_PEER_resolve2 (GNUNET_PEER_Id id);
 }
 #endif
 
-
 /* ifndef GNUNET_PEER_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_peer_lib.h */

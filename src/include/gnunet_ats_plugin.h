@@ -478,6 +478,6 @@ struct GNUNET_ATS_PluginEnvironment
   unsigned long long in_quota[GNUNET_ATS_NetworkTypeCount];
 };
 
-/** @} */  /* end of group */
-
 #endif
+
+/** @} */  /* end of group */

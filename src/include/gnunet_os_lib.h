@@ -19,15 +19,18 @@
 */
 
 /**
- * @file
- * Low level process routines
- *
  * @author Christian Grothoff
  * @author Krista Bennett
  * @author Gerd Knorr <kraxel@bytesex.org>
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
  * @author Milan
+ *
+ * @file
+ * Low level process routines
+ *
+ * @defgroup os  OS library
+ * Low level process routines.
  *
  * This code manages child processes.  We can communicate with child
  * processes using signals.  Because signals are not supported on W32
@@ -38,6 +41,8 @@
  * termination via signals, and not as a replacement for SIGKILL.
  * Thus using pipes to communicate signals should only be enabled if
  * the child is a Java process OR if we are on Windoze.
+ *
+ * @{
  */
 
 #ifndef GNUNET_OS_LIB_H
@@ -528,7 +533,9 @@ GNUNET_OS_check_helper_binary (const char *binary,
 }
 #endif
 
-
 /* ifndef GNUNET_OS_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_os_lib.h */

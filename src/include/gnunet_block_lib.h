@@ -306,9 +306,9 @@ GNUNET_BLOCK_construct_bloomfilter (int32_t bf_mutator,
 }
 #endif
 
-/** @} */  /* end of group */
-
-
 /* ifndef GNUNET_BLOCK_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_block_lib.h */

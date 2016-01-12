@@ -174,7 +174,8 @@ GNUNET_HELPER_send (struct GNUNET_HELPER_Handle *h,
 void
 GNUNET_HELPER_send_cancel (struct GNUNET_HELPER_SendHandle *sh);
 
-/** @} */  /* end of group */
 
 #endif
 /* end of include guard: GNUNET_HELPER_LIB_H */
+
+/** @} */  /* end of group */

@@ -1514,7 +1514,6 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
                             GNUNET_ResultCallback result_cb,
                             void *result_cls);
 
-/** @} */  /* end of group social */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -1525,4 +1524,5 @@ GNUNET_SOCIAL_zone_add_nym (const struct GNUNET_SOCIAL_App *app,
 
 /* ifndef GNUNET_SOCIAL_SERVICE_H */
 #endif
-/* end of gnunet_social_service.h */
+
+/** @} */  /* end of group social */

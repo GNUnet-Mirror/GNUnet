@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_rest_lib.h
- * @brief API for helper library to parse/create REST
  * @author Martin Schanzenbach
+ *
+ * @file
+ * API for helper library to parse/create REST
+ *
+ * @defgroup rest  REST library
+ * Helper library to parse/create REST
+ * @{
  */
 #ifndef GNUNET_REST_LIB_H
 #define GNUNET_REST_LIB_H
@@ -159,7 +164,7 @@ int
 GNUNET_REST_jsonapi_resource_check_type (const struct JsonApiResource *resource,
                                          const char* type);
 
-  
+
 /**
  * Create a JSON API primary data
  *
@@ -180,7 +185,7 @@ GNUNET_REST_jsonapi_object_new ();
 struct JsonApiObject*
 GNUNET_REST_jsonapi_object_parse (const char* data);
 
-  
+
 /**
  * Delete a JSON API primary data
  *
@@ -268,4 +273,7 @@ GNUNET_REST_handle_request (struct RestConnectionDataHandle *conn,
                             const struct GNUNET_REST_RestConnectionHandler *handlers,
                             void *cls);
 
+
 #endif
+
+/** @} */  /* end of group */

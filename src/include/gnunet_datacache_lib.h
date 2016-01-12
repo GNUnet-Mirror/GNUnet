@@ -24,7 +24,7 @@
  * @file
  * datacache API
  *
- * @defgroup datacache  Datacache library
+ * @defgroup datacache  Data Cache library
  * Simple, transient hash table of bounded size with content expiration.
  *
  * In contrast to the sqstore there is
@@ -177,7 +177,6 @@ GNUNET_DATACACHE_get_closest (struct GNUNET_DATACACHE_Handle *h,
                               GNUNET_DATACACHE_Iterator iter,
                               void *iter_cls);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -186,5 +185,6 @@ GNUNET_DATACACHE_get_closest (struct GNUNET_DATACACHE_Handle *h,
 }
 #endif
 
-/* end of gnunet_datacache_lib.h */
 #endif
+
+/** @} */  /* end of group */

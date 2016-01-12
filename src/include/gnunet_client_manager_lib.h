@@ -353,8 +353,7 @@ GNUNET_CLIENT_MANAGER_op_cancel (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
 }
 #endif
 
-/** @} */ /* end of group */
-
 /* ifndef GNUNET_CLIENT_MANAGER_LIB_H */
 #endif
-/* end of gnunet_client_manager_lib.h */
+
+/** @} */ /* end of group */

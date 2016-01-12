@@ -7,5 +7,5 @@
  *
  * Some additional documentation can be found under [Files](files.html), in the src/include/ directory.
  *
- * See also the [handbooks](https://gnunet.org/handbooks) for installation, users, and developers.
+ * See also the [handbooks](https://gnunet.org/handbooks) on installation, and for user and developer documentation.
  */

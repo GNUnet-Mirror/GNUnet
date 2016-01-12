@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_vpn_service.h
- * @brief API to access the VPN service.
  * @author Christian Grothoff
+ *
+ * @file
+ * API to access the VPN service.
+ *
+ * @defgroup vpn  VPN service
+ *
+ * @{
  */
 #ifndef GNUNET_VPN_SERVICE_H
 #define GNUNET_VPN_SERVICE_H
@@ -99,7 +104,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
 			     GNUNET_VPN_AllocationCallback cb,
 			     void *cb_cls);
 
-		
+
 /**
  * Tell the VPN that forwarding to the Internet via some exit node is
  * requested.  Note that both UDP and TCP traffic will be forwarded,
@@ -152,3 +157,5 @@ void
 GNUNET_VPN_disconnect (struct GNUNET_VPN_Handle *vh);
 
 #endif
+
+/** @} */  /* end of group */

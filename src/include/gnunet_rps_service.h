@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 
+      Copyright (C)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_rps_service.h
- * @brief API to the rps service
  * @author Julius Bünger
+ *
+ * @file
+ * API to the rps service
+ *
+ * @defgroup rps  RPS service
+ * Random Peer Sampling
+ * @{
  */
 #ifndef GNUNET_RPS_SERVICE_H
 #define GNUNET_RPS_SERVICE_H
@@ -140,6 +145,7 @@ GNUNET_RPS_act_malicious (struct GNUNET_RPS_Handle *h,
   void
 GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h);
 
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -148,3 +154,5 @@ GNUNET_RPS_disconnect (struct GNUNET_RPS_Handle *h);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

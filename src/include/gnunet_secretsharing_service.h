@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_secretsharing_service.h
- * @brief verifiable additive secret sharing and cooperative decryption
  * @author Florian Dold
+ *
+ * @file
+ * Verifiable additive secret sharing and cooperative decryption
+ *
+ * @defgroup secretsharing  Secret Sharing service
+ * Verifiable additive secret sharing and cooperative decryption.
+ * @{
  */
 
 #ifndef GNUNET_SECRETSHARING_SERVICE_H
@@ -319,8 +324,6 @@ GNUNET_SECRETSHARING_plaintext_generate_i (struct GNUNET_SECRETSHARING_Plaintext
                                            int64_t exponent);
 
 
-
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -329,3 +332,5 @@ GNUNET_SECRETSHARING_plaintext_generate_i (struct GNUNET_SECRETSHARING_Plaintext
 #endif
 
 #endif
+
+/** @} */  /* end of group */

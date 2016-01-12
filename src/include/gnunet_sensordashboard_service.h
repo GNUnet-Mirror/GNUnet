@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 
+      Copyright (C)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_sensordashboard_service.h
- * @brief API to the sensordashboard service
  * @author Omar Tarabai
+ *
+ * @file
+ * API to the sensordashboard service
+ *
+ * @defgroup sensordashboard  Sensor Dashboard service
+ *
+ * @{
  */
 #ifndef GNUNET_SENSORDASHBOARD_SERVICE_H
 #define GNUNET_SENSORDASHBOARD_SERVICE_H
@@ -46,3 +51,5 @@ extern "C"
 #endif
 
 #endif
+
+/** @} */  /* end of group */

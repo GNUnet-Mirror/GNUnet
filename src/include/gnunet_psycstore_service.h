@@ -19,10 +19,15 @@
 */
 
 /**
- * @file include/gnunet_psycstore_service.h
- * @brief PSYCstore service; implements persistent storage for the PSYC service
  * @author Gabor X Toth
  * @author Christian Grothoff
+ *
+ * @file
+ * PSYCstore service; implements persistent storage for the PSYC service
+ *
+ * @defgroup psycstore  PSYC Store service
+ * Persistent storage for the PSYC service.
+ * @{
  */
 #ifndef GNUNET_PSYCSTORE_SERVICE_H
 #define GNUNET_PSYCSTORE_SERVICE_H
@@ -692,4 +697,5 @@ GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op);
 
 /* ifndef GNUNET_PSYCSTORE_SERVICE_H */
 #endif
-/* end of gnunet_psycstore_service.h */
+
+/** @} */  /* end of group */

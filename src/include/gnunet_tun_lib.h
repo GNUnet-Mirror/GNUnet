@@ -19,10 +19,15 @@
 */
 
 /**
- * @file include/gnunet_tun_lib.h
- * @brief standard TCP/IP network structs and IP checksum calculations for TUN interaction
  * @author Philipp Toelke
  * @author Christian Grothoff
+ *
+ * @file
+ * Standard TCP/IP network structs and IP checksum calculations for TUN interaction
+ *
+ * @defgroup tun  TUN library
+ * Standard TCP/IP network structs and IP checksum calculations for TUN interaction
+ * @{
  */
 #ifndef GNUNET_TUN_LIB_H
 #define GNUNET_TUN_LIB_H
@@ -912,3 +917,5 @@ GNUNET_TUN_service_name_to_hash (const char *service_name,
                                  struct GNUNET_HashCode *hc);
 
 #endif
+
+/** @} */  /* end of group */

@@ -326,8 +326,9 @@ GNUNET_IDENTITY_ego_lookup_cancel (struct GNUNET_IDENTITY_EgoLookup *el);
 }
 #endif
 
-/** @} */ /* end of group identity */
-
 /* ifndef GNUNET_IDENTITY_SERVICE_H */
 #endif
+
+/** @} */ /* end of group identity */
+
 /* end of gnunet_identity_service.h */

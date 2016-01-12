@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_plugin_lib.h
- * @brief plugin loading and unloading
  * @author Christian Grothoff
+ *
+ * @file
+ * Plugin loading and unloading
+ *
+ * @defgroup plugin  Plugin library
+ * Plugin loading and unloading
+ * @{
  */
 
 #ifndef GNUNET_PLUGIN_LIB_H
@@ -131,7 +136,9 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg);
 }
 #endif
 
-
 /* ifndef GNUNET_PLUGIN_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_plugin_lib.h */

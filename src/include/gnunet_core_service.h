@@ -450,8 +450,9 @@ GNUNET_CORE_mq_create (struct GNUNET_CORE_Handle *h,
 }
 #endif
 
-/** @} */ /* end of group core */
-
 /* ifndef GNUNET_CORE_SERVICE_H */
 #endif
+
+/** @} */  /* end of group core */
+
 /* end of gnunet_core_service.h */

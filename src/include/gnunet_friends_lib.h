@@ -104,7 +104,6 @@ int
 GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
                       const struct GNUNET_PeerIdentity *friend_id);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -114,3 +113,5 @@ GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
 #endif
 
 #endif
+
+/** @} */  /* end of group */

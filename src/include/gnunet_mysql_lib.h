@@ -207,7 +207,6 @@ GNUNET_MYSQL_statement_run_prepared (struct GNUNET_MYSQL_Context *mc,
 				     struct GNUNET_MYSQL_StatementHandle *sh,
 				     unsigned long long *insert_id, ...);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -216,5 +215,6 @@ GNUNET_MYSQL_statement_run_prepared (struct GNUNET_MYSQL_Context *mc,
 }
 #endif
 
-/* end of gnunet_mysql_lib.h */
 #endif
+
+/** @} */  /* end of group */

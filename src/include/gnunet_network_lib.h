@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_network_lib.h
- * @brief basic low-level networking interface
  * @author Nils Durner
+ *
+ * @file
+ * Basic low-level networking interface
+ *
+ * @defgroup network  Network library
+ * Basic low-level networking interface
+ * @{
  */
 #ifndef GNUNET_NETWORK_LIB_H
 #define GNUNET_NETWORK_LIB_H
@@ -591,3 +596,5 @@ GNUNET_NETWORK_fdset_destroy (struct GNUNET_NETWORK_FDSet *fds);
 #endif
 
 #endif /* GNUNET_NETWORK_LIB_H */
+
+/** @} */  /* end of group */

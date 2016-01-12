@@ -19,10 +19,15 @@
  */
 
 /**
- * @file include/gnunet_scalarproduct_service.h
- * @brief API to the scalarproduct service
  * @author Christian M. Fuchs
  * @author Gaurav Kukreja
+ *
+ * @file
+ * API to the scalarproduct service
+ *
+ * @defgroup scalarproduct  Scalar Product service
+ *
+ * @{
  */
 #ifndef GNUNET_SCALARPRODUCT_SERVICE_H
 #define GNUNET_SCALARPRODUCT_SERVICE_H
@@ -183,6 +188,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
 void
 GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
 
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -191,3 +197,5 @@ GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

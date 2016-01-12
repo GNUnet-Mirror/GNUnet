@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_psycstore_plugin.h
- * @brief plugin API for the PSYCstore database backend
  * @author Gabor X Toth
+ *
+ * @file
+ * Plugin API for the PSYCstore database backend
+ *
+ * @defgroup psycstore-plugin  PSYC Store plugin API
+ * Plugin API for the PSYC Store database backend
+ * @{
  */
 #ifndef GNUNET_PSYCSTORE_PLUGIN_H
 #define GNUNET_PSYCSTORE_PLUGIN_H
@@ -373,5 +378,6 @@ struct GNUNET_PSYCSTORE_PluginFunctions
 }
 #endif
 
-/* end of gnunet_psycstore_plugin.h */
 #endif
+
+/** @} */  /* end of group */

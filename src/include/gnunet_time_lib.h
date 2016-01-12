@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_time_lib.h
- * @brief functions related to time
  * @author Christian Grothoff
- * @defgroup time Time and time calculations
+ *
+ * @file
+ * Functions related to time
+ *
+ * @defgroup time  Time library
+ * Time and time calculations.
  * @{
  */
 
@@ -521,9 +524,9 @@ GNUNET_TIME_time_to_year (struct GNUNET_TIME_Absolute at);
 }
 #endif
 
-/** @} */ /* end of group time */
-
-
 /* ifndef GNUNET_TIME_LIB_H */
 #endif
+
+/** @} */ /* end of group time */
+
 /* end of gnunet_time_lib.h */

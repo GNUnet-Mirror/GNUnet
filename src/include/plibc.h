@@ -18,10 +18,12 @@
 */
 
 /**
- * @file include/plibc.h
- * @brief PlibC header
+ * @file
+ * PlibC header
+ *
  * @attention This file is usually not installed under Unix,
  *            so ship it with your application
+ *
  * @version $Revision: 158 $
  */
 

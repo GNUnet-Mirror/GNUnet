@@ -19,12 +19,19 @@
 */
 
 /**
- * @file include/gnunet_namestore_service.h
- * @brief API that can be used to store naming information on a GNUnet node;
- *        Naming information can either be records for which this peer/user
- *        is authoritative, or blocks which are cached, encrypted naming
- *        data from other peers.
  * @author Christian Grothoff
+ *
+ * @file
+ * API that can be used to store naming information on a GNUnet node;
+ *
+ * @defgroup namestore  Name Store service
+ * Store naming information on a GNUnet node.
+ *
+ * Naming information can either be records for which this peer/user is
+ * authoritative, or blocks which are cached, encrypted naming data from other
+ * peers.
+ *
+ * @{
  */
 #ifndef GNUNET_NAMESTORE_SERVICE_H
 #define GNUNET_NAMESTORE_SERVICE_H
@@ -305,7 +312,6 @@ void
 GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
 
 
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -313,5 +319,6 @@ GNUNET_NAMESTORE_zone_monitor_stop (struct GNUNET_NAMESTORE_ZoneMonitor *zm);
 }
 #endif
 
-/* end of gnunet_namestore_service.h */
 #endif
+
+/** @} */  /* end of group */

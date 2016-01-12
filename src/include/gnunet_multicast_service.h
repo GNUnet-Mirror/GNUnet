@@ -902,7 +902,6 @@ GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmit
 void
 GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmitHandle *th);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -913,4 +912,5 @@ GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmit
 
 /* ifndef GNUNET_MULTICAST_SERVICE_H */
 #endif
-/* end of gnunet_multicast_service.h */
+
+/** @} */  /* end of group */

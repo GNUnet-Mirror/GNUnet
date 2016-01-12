@@ -111,7 +111,6 @@ GNUNET_LOAD_get_average (struct GNUNET_LOAD_Value *load);
 void
 GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -122,4 +121,7 @@ GNUNET_LOAD_update (struct GNUNET_LOAD_Value *load, uint64_t data);
 
 /* ifndef GNUNET_LOAD_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_load_lib.h */

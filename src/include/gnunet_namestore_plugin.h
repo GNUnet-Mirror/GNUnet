@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_namestore_plugin.h
- * @brief plugin API for the namestore database backend
  * @author Christian Grothoff
+ *
+ * @file
+ * Plugin API for the namestore database backend
+ *
+ * @defgroup namestore-plugin  Name Store service plugin API
+ * Plugin API for the namestore database backend
+ * @{
  */
 #ifndef GNUNET_NAMESTORE_PLUGIN_H
 #define GNUNET_NAMESTORE_PLUGIN_H
@@ -143,5 +148,6 @@ struct GNUNET_NAMESTORE_PluginFunctions
 }
 #endif
 
-/* end of gnunet_namestore_plugin.h */
 #endif
+
+/** @} */  /* end of group */

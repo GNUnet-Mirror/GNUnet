@@ -228,8 +228,9 @@ GNUNET_CLIENT_service_test_cancel (struct GNUNET_CLIENT_TestHandle *th);
 }
 #endif
 
-/** @} */ /* end of group client */
-
 /* ifndef GNUNET_CLIENT_LIB_H */
 #endif
+
+/** @} */ /* end of group client */
+
 /* end of gnunet_client_lib.h */

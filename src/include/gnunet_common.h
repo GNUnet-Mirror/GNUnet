@@ -1142,7 +1142,4 @@ enum GNUNET_SCHEDULER_Priority
 }
 #endif
 
-
-
-
-#endif /*GNUNET_COMMON_H_ */
+#endif /* GNUNET_COMMON_H */

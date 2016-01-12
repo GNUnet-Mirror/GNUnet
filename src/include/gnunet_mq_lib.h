@@ -518,6 +518,6 @@ void *
 GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
 
 
-/** @} */ /* end of group mq */
-
 #endif
+
+/** @} */ /* end of group mq */

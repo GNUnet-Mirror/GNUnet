@@ -888,6 +888,7 @@ size_t
 GNUNET_DNSPARSER_hex_to_bin (const char *hex,
                              void *data);
 
-/** @} */  /* end of group */
 
 #endif
+
+/** @} */  /* end of group */

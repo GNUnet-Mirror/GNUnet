@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_signal_lib.h
- * @brief functions related to signals
  * @author Christian Grothoff
+ *
+ * @file
+ * Functions related to signals
+ *
+ * @defgroup signal  Signal library
+ * Manage signal handlers.
+ * @{
  */
 
 #ifndef GNUNET_SIGNAL_LIB_H
@@ -97,4 +102,7 @@ GNUNET_SIGNAL_raise (const int sig);
 
 /* ifndef GNUNET_SIGNAL_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_signal_lib.h */

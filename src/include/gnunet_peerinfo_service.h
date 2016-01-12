@@ -18,10 +18,17 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_peerinfo_service.h
- * @brief Code to maintain the list of currently known hosts
- *   (in memory structure of data/hosts).
  * @author Christian Grothoff
+ *
+ * @file
+ * Maintain the list of currently known hosts
+ *
+ * @defgroup peerinfo  Peer Info service
+ * Maintain the list of currently known hosts.
+ *
+ * Holds an in-memory structure of data/hosts.
+ *
+ * @{
  */
 
 #ifndef GNUNET_PEERINFO_SERVICE_H
@@ -223,6 +230,6 @@ GNUNET_PEERINFO_notify_cancel (struct GNUNET_PEERINFO_NotifyContext *nc);
 }
 #endif
 
-
-/* end of gnunet_peerinfo_service.h */
 #endif
+
+/** @} */  /* end of group */

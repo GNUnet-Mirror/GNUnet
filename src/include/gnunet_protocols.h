@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_protocols.h
- * @brief constants for network protocols
  * @author Christian Grothoff
- * @defgroup protocols Types of messages used in GNUnet
+ *
+ * @file
+ * Constants for network protocols
+ *
+ * @defgroup protocols  Network protocol definitions
+ * Types of messages used in GNUnet.
  * @{
  */
 
@@ -2857,8 +2860,9 @@ extern "C"
 }
 #endif
 
-/** @} */ /* end of group protocols */
-
 /* ifndef GNUNET_PROTOCOLS_H */
 #endif
+
+/** @} */ /* end of group protocols */
+
 /* end of gnunet_protocols.h */

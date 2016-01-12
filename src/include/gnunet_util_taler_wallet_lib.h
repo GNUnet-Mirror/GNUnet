@@ -19,15 +19,16 @@
  */
 
 /**
- * @file include/gnunet_util_taler_wallet_lib.h
- * @brief convenience header including all headers of subsystems in
- *        gnunet_util_taler_wallet library.  Note that (due to the
- *        structure of the original headers), not all symbols declared
- *        by the included headers are actually included in the
- *        gnunet_util_taler_wallet library!  The library excludes anything
- *        relating to the GNUnet installation location, scheduler, networking
- *        or OS-specific logic that would not apply to Apps/Browser extensions.
  * @author Christian Grothoff
+ *
+ * @file
+ * Convenience header including all headers of subsystems in
+ * gnunet_util_taler_wallet library.  Note that (due to the structure of the
+ * original headers), not all symbols declared by the included headers are
+ * actually included in the gnunet_util_taler_wallet library!  The library
+ * excludes anything relating to the GNUnet installation location, scheduler,
+ * networking or OS-specific logic that would not apply to Apps/Browser
+ * extensions.
  */
 
 #ifndef GNUNET_UTIL_TALER_WALLET_LIB_H

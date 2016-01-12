@@ -24,7 +24,7 @@
  * @file
  * API that can be used to manipulate GNS record data
  *
- * @defgroup gns-record  GNS record library
+ * @defgroup gns-record  GNS Record library
  * Manipulate GNS record data
  * @{
  */
@@ -563,7 +563,6 @@ struct GNUNET_TIME_Absolute
 GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
 					     const struct GNUNET_GNSRECORD_Data *rd);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -573,3 +572,5 @@ GNUNET_GNSRECORD_record_get_expiration_time (unsigned int rd_count,
 #endif
 
 #endif
+
+/** @} */  /* end of group */

@@ -22,10 +22,13 @@
 #define GNUNET_REVOCATION_SERVICE_H_
 
 /**
- * @file include/gnunet_revocation_service.h
- * @brief API to perform and access key revocations
  * @author Christian Grothoff
- * @defgroup revocation  Key revocation service
+ *
+ * @file
+ * API to perform and access key revocations
+ *
+ * @defgroup revocation  Revocation service
+ * Perform and access key revocations.
  * @{
  */
 
@@ -157,6 +160,6 @@ GNUNET_REVOCATION_sign_revocation (const struct GNUNET_CRYPTO_EcdsaPrivateKey *k
 }
 #endif
 
-/** @} */ /* end of group revocation */
-
 #endif /* GNUNET_REVOCATION_SERVICE_H_ */
+
+/** @} */ /* end of group revocation */

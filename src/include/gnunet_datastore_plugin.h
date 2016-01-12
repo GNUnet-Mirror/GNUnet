@@ -24,7 +24,7 @@
  * @file
  * API for the database backend plugins.
  *
- * @defgroup datastore-plugin  Datastore service plugin API
+ * @defgroup datastore-plugin  Data Store service plugin API
  * API for the database backend plugins.
  * @{
  */
@@ -389,6 +389,6 @@ struct GNUNET_DATASTORE_PluginFunctions
 
 };
 
-/** @} */  /* end of group */
-
 #endif
+
+/** @} */  /* end of group */

@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_namecache_plugin.h
- * @brief plugin API for the namecache database backend
  * @author Christian Grothoff
+ *
+ * @file
+ * Plugin API for the namecache database backend
+ *
+ * @defgroup namecache-plugin  Name Cache service plugin API
+ * Plugin API for the namecache database backend.
+ * @{
  */
 #ifndef GNUNET_NAMECACHE_PLUGIN_H
 #define GNUNET_NAMECACHE_PLUGIN_H
@@ -97,5 +102,6 @@ struct GNUNET_NAMECACHE_PluginFunctions
 }
 #endif
 
-/* end of gnunet_namecache_plugin.h */
 #endif
+
+/** @} */  /* end of group */

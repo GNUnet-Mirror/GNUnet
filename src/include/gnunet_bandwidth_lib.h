@@ -332,8 +332,9 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
 }
 #endif
 
-/** @} */  /* end of group */
-
 /* ifndef GNUNET_BANDWIDTH_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_bandwidth_lib.h */

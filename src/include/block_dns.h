@@ -19,10 +19,13 @@
 */
 
 /**
+ * @author Christian Grothoff
+ *
  * @file
  * DNS network structs
  *
- * @author Christian Grothoff
+ * @defgroup block-dns  DNS Service network protocol definitions
+ * @{
  */
 #ifndef BLOCK_DNS_H
 #define BLOCK_DNS_H
@@ -61,3 +64,5 @@ struct GNUNET_DNS_Advertisement
 GNUNET_NETWORK_STRUCT_END
 
 #endif
+
+/** @} */  /* end of group */

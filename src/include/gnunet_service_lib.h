@@ -19,10 +19,13 @@
 */
 
 /**
- * @file include/gnunet_service_lib.h
- * @brief functions related to starting services
  * @author Christian Grothoff
- * @defgroup service  Generic functions for implementing service processes
+ *
+ * @file
+ * Functions related to starting services
+ *
+ * @defgroup service  Service library
+ * Start service processes.
  * @{
  */
 
@@ -186,10 +189,9 @@ GNUNET_SERVICE_stop (struct GNUNET_SERVICE_Context *sctx);
 }
 #endif
 
-
-/** @} */ /* end of group service */
-
-
 /* ifndef GNUNET_SERVICE_LIB_H */
 #endif
+
+/** @} */  /* end of group service */
+
 /* end of gnunet_service_lib.h */

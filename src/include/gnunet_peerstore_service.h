@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_peerstore_service.h
- * @brief API to the peerstore service
  * @author Omar Tarabai
+ *
+ * @file
+ * API to the peerstore service
+ *
+ * @defgroup peerstore  Peer Store service
+ *
+ * @{
  */
 #ifndef GNUNET_PEERSTORE_SERVICE_H
 #define GNUNET_PEERSTORE_SERVICE_H
@@ -253,6 +258,7 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
 void
 GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
 
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -261,3 +267,5 @@ GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

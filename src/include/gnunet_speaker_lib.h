@@ -19,11 +19,16 @@
  */
 
 /**
- * @file include/gnunet_speaker_lib.h
- * @brief API to access an audio speaker; provides access to hardware speakers
  * @author Simon Dieterle
  * @author Andreas Fuchs
  * @author Christian Grothoff
+ *
+ * @file
+ * API to access an audio speaker; provides access to hardware speakers
+ *
+ * @defgroup speaker  Speaker service
+ * Access hardware audio speakers.
+ * @{
  */
 #ifndef GNUNET_SPEAKER_SERVICE_H
 #define GNUNET_SPEAKER_SERVICE_H
@@ -135,4 +140,7 @@ GNUNET_SPEAKER_destroy (struct GNUNET_SPEAKER_Handle *speaker);
 #endif
 
 #endif
+
+/** @} */ /* end of group */
+
 /* end of gnunet_speaker_lib.h */

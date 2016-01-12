@@ -173,8 +173,9 @@ GNUNET_RESOLVER_request_cancel (struct GNUNET_RESOLVER_RequestHandle *rh);
 }
 #endif
 
-/** @} */ /* end of group resolver */
-
 /* ifndef GNUNET_RESOLVER_SERVICE_H */
 #endif
+
+/** @} */  /* end of group resolver */
+
 /* end of gnunet_resolver_service.h */

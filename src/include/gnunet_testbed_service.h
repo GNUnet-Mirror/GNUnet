@@ -19,10 +19,14 @@
  */
 
 /**
- * @file include/gnunet_testbed_service.h
- * @brief API for writing tests and creating large-scale
- *        emulation testbeds for GNUnet.
  * @author Christian Grothoff
+ *
+ * @file
+ * API for writing tests and creating large-scale emulation testbeds for GNUnet.
+ *
+ * @defgroup testbed  Testbed service
+ * Writing tests and creating large-scale emulation testbeds for GNUnet.
+ * @{
  */
 
 #ifndef GNUNET_TESTBED_SERVICE_H
@@ -1716,3 +1720,5 @@ GNUNET_TESTBED_underlaylinkmodel_free (struct GNUNET_TESTBED_UnderlayLinkModel *
 #endif
 
 #endif
+
+/** @} */  /* end of group */

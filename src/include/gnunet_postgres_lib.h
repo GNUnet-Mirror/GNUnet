@@ -18,9 +18,14 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_postgres_lib.h
- * @brief library to help with access to a Postgres database
  * @author Christian Grothoff
+ *
+ * @file
+ * Helper library to access a PostgreSQL database
+ *
+ * @defgroup postgres  PostgreSQL library
+ * Helper library to access a PostgreSQL database.
+ * @{
  */
 #ifndef GNUNET_POSTGRES_LIB_H
 #define GNUNET_POSTGRES_LIB_H
@@ -151,7 +156,6 @@ GNUNET_POSTGRES_delete_by_rowid (PGconn *dbh,
                                  uint32_t rowid);
 
 
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -159,5 +163,6 @@ GNUNET_POSTGRES_delete_by_rowid (PGconn *dbh,
 }
 #endif
 
-/* end of gnunet_postgres_lib.h */
 #endif
+
+/** @} */  /* end of group */

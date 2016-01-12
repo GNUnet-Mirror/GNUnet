@@ -543,8 +543,6 @@ GNUNET_CONFIGURATION_append_value_filename (struct GNUNET_CONFIGURATION_Handle *
                                             const char *option,
                                             const char *value);
 
-/** @} */ /* end of group configuration */
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -553,3 +551,5 @@ GNUNET_CONFIGURATION_append_value_filename (struct GNUNET_CONFIGURATION_Handle *
 #endif
 
 #endif
+
+/** @} */ /* end of group configuration */

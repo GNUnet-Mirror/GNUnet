@@ -422,7 +422,6 @@ GNUNET_CONVERSATION_call_resume (struct GNUNET_CONVERSATION_Call *call,
 void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call);
 
-/** @} */  /* end of group */
 
 #if 0				/* keep Emacsens' auto-indent happy */
 {
@@ -432,3 +431,5 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

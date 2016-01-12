@@ -43,7 +43,6 @@ extern "C"
 #endif
 
 /**
- * @ingroup bio
  * Handle for buffered reading.
  */
 struct GNUNET_BIO_ReadHandle;
@@ -314,8 +313,9 @@ GNUNET_BIO_write_int64 (struct GNUNET_BIO_WriteHandle *h, int64_t i);
 }
 #endif
 
-/** @} */ /* end of group bio */
-
 /* ifndef GNUNET_BIO_LIB_H */
 #endif
+
+/** @} */  /* end of group bio */
+
 /* end of gnunet_bio_lib.h */

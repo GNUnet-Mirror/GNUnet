@@ -19,11 +19,18 @@
 */
 
 /**
- * @file include/gnunet_nat_lib.h
- * @brief Library handling UPnP and NAT-PMP port forwarding and
- *     external IP address retrieval
  * @author Christian Grothoff
  * @author Milan Bouchet-Valat
+ *
+ * @file
+ * Library handling UPnP and NAT-PMP port forwarding
+ * and external IP address retrieval
+ *
+ * @defgroup nat  NAT library
+ * Library handling UPnP and NAT-PMP port forwarding
+ * and external IP address retrieval
+ *
+ * @{
  */
 
 #ifndef GNUNET_NAT_LIB_H
@@ -578,7 +585,8 @@ GNUNET_NAT_is_valid_stun_packet (void *cls,
                                  size_t len);
 
 
-
 #endif
+
+/** @} */  /* end of group */
 
 /* end of gnunet_nat_lib.h */

@@ -19,10 +19,14 @@
 */
 
 /**
+ * @author Christian Grothoff
+ *
  * @file
  * Constants for network applications operating on top of the CADET service
  *
- * @author Christian Grothoff
+ * @defgroup applications  CADET application definitions
+ * Constants for network applications operating on top of the CADET service.
+ * @{
  */
 
 #ifndef GNUNET_APPLICATIONS_H
@@ -131,4 +135,7 @@ extern "C"
 
 /* ifndef GNUNET_APPLICATIONS_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_applications.h */

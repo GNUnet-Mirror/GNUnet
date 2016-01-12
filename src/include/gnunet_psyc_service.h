@@ -19,20 +19,24 @@
 */
 
 /**
- * @file include/gnunet_psyc_service.h
- * @brief PSYC service; high-level access to the PSYC protocol
- *        note that clients of this API are NOT expected to
- *        understand the PSYC message format, only the semantics!
- *        Parsing (and serializing) the PSYC stream format is done
- *        within the implementation of the libgnunetpsyc library,
- *        and this API deliberately exposes as little as possible
- *        of the actual data stream format to the application!
- * @author Christian Grothoff
  * @author Gabor X Toth
+ * @author Christian Grothoff
+ *
+ * @file
+ * PSYC service
+ *
+ * @defgroup psyc  PSYC service
+ * Send/receive messages in PSYC channels and access the PSYC Store.
+ *
+ * Note that clients of this API are NOT expected to understand the PSYC message
+ * format, only the semantics!  Parsing (and serializing) the PSYC stream format
+ * is done within the implementation of the libgnunetpsyc library, and this API
+ * deliberately exposes as little as possible of the actual data stream format
+ * to the application!
  *
  * NOTE:
- * - this API does not know about psyc's "root" and "places";
- *   there is no 'root' in GNUnet-Psyc as we're decentralized;
+ * - this API does not know about PSYC's "root" and "places";
+ *   there is no 'root' in GNUnet-PSYC as we're decentralized;
  *   'places' and 'persons' are combined within the same
  *   abstraction, that of a "channel".  Channels are identified
  *   and accessed in this API using a public/private key.
@@ -72,6 +76,8 @@
  *   be called 'PSYC-low', whereas a higher-level API
  *   implementing defaults for standard methods and
  *   variables might be called 'PSYC-std' or 'PSYC-high'.
+ *
+ * @{
  */
 
 #ifndef GNUNET_PSYC_SERVICE_H
@@ -1331,4 +1337,5 @@ GNUNET_PSYC_channel_state_get_cancel (struct GNUNET_PSYC_StateRequest *sr);
 
 /* ifndef GNUNET_PSYC_SERVICE_H */
 #endif
-/* end of gnunet_psyc_service.h */
+
+/** @} */  /* end of group */

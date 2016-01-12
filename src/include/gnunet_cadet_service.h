@@ -642,8 +642,9 @@ GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel);
 }
 #endif
 
-/** @} */  /* end of group */
-
 /* ifndef GNUNET_CADET_SERVICE_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_cadet_service.h */

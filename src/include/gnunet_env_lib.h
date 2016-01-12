@@ -334,8 +334,7 @@ GNUNET_ENV_value_from_dict (struct GNUNET_CONTAINER_MultiHashMap *dict, size_t *
 }
 #endif
 
-/** @} */  /* end of group */
-
 /* ifndef GNUNET_ENV_LIB_H */
 #endif
-/* end of gnunet_env_lib.h */
+
+/** @} */  /* end of group */

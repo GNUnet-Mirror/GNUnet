@@ -384,8 +384,9 @@ GNUNET_GETOPT_print_version_ (struct GNUNET_GETOPT_CommandLineProcessorContext
 }
 #endif
 
-/** @} */ /* end of group getopt */
-
 /* ifndef GNUNET_GETOPT_LIB_H */
 #endif
+
+/** @} */ /* end of group getopt */
+
 /* end of gnunet_getopt_lib.h */

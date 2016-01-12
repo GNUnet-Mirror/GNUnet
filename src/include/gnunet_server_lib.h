@@ -19,10 +19,16 @@
 */
 
 /**
- * @file include/gnunet_server_lib.h
- * @brief library for building GNUnet network servers
  * @author Christian Grothoff
- * @defgroup server  Functions for a server that communicates with clients
+ *
+ * @file
+ * Library for building GNUnet network servers
+
+ * @defgroup server  Server library
+ * Library for building GNUnet network servers
+ *
+ * Provides functions for a server that communicates with clients.
+ *
  * @{
  */
 
@@ -851,8 +857,9 @@ GNUNET_SERVER_set_callbacks (struct GNUNET_SERVER_Handle *server,
 }
 #endif
 
-/** @} */ /* end of group server */
-
 /* ifndef GNUNET_SERVER_LIB_H */
 #endif
+
+/** @} */  /* end of group server */
+
 /* end of gnunet_server_lib.h */

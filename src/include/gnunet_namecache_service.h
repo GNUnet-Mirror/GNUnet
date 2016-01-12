@@ -19,12 +19,19 @@
 */
 
 /**
- * @file include/gnunet_namecache_service.h
- * @brief API that can be used to store naming information on a GNUnet node;
- *        Naming information can either be records for which this peer/user
- *        is authoritative, or blocks which are cached, encrypted naming
- *        data from other peers.
  * @author Christian Grothoff
+ *
+ * @file
+ * API that can be used to store naming information on a GNUnet node.
+ *
+ * @defgroup namecache  Name Cache service
+ * Store naming information on a GNUnet node.
+ *
+ * Naming information can either be records for which this peer/user is
+ * authoritative, or blocks which are cached, encrypted naming data from other
+ * peers.
+ *
+ * @{
  */
 #ifndef GNUNET_NAMECACHE_SERVICE_H
 #define GNUNET_NAMECACHE_SERVICE_H
@@ -159,5 +166,6 @@ GNUNET_NAMECACHE_cancel (struct GNUNET_NAMECACHE_QueueEntry *qe);
 }
 #endif
 
-/* end of gnunet_namecache_service.h */
 #endif
+
+/** @} */  /* end of group */

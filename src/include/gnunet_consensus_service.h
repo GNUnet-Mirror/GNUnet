@@ -171,7 +171,6 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 void
 GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -181,3 +180,5 @@ GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

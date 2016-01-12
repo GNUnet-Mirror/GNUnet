@@ -2814,7 +2814,6 @@ GNUNET_FS_share_tree_trim (struct GNUNET_FS_ShareTreeItem *toplevel);
 void
 GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -2823,5 +2822,6 @@ GNUNET_FS_share_tree_free (struct GNUNET_FS_ShareTreeItem *toplevel);
 }
 #endif
 
-
 #endif
+
+/** @} */  /* end of group */

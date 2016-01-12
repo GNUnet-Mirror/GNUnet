@@ -19,10 +19,12 @@
 */
 
 /**
- * @file include/platform.h
- * @brief plaform specific includes and defines
  * @author Nils Durner
  * @author Christian Grothoff
+ *
+ * @file
+ * Plaform specific includes and defines.
+ *
  * This file should never be included by installed
  * header files (those starting with "gnunet_").
  */

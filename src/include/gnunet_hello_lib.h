@@ -443,7 +443,6 @@ GNUNET_HELLO_parse_uri (const char *uri,
                         struct GNUNET_HELLO_Message **hello,
                         GNUNET_HELLO_TransportPluginsFind plugins_find);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -452,7 +451,9 @@ GNUNET_HELLO_parse_uri (const char *uri,
 }
 #endif
 
-
 /* ifndef GNUNET_HELLO_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_hello_lib.h */

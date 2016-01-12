@@ -22,7 +22,11 @@
  * @author Christian Grothoff
  *
  * @file
- * "Global" constants for performance tuning
+ * Global constants for performance tuning
+ *
+ * @defgroup constants  Constant definitions
+ * Global constants for performance tuning
+ * @{
  */
 
 #ifndef GNUNET_CONSTANTS_H
@@ -165,3 +169,5 @@ extern "C"
 #endif
 
 #endif
+
+/** @} */  /* end of group */

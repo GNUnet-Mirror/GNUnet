@@ -19,10 +19,10 @@
  */
 
 /**
- * @file include/gnunet_util_lib.h
- * @brief convenience header including all headers of subsystems in
- *        gnunet_util library
  * @author Christian Grothoff
+ *
+ * @file
+ * Convenience header including all headers of subsystems in the gnunet_util library
  */
 
 #ifndef GNUNET_UTIL_LIB_H

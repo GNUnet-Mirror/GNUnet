@@ -19,15 +19,18 @@
 */
 
 /**
- * @file include/gnunet_strings_lib.h
- * @brief strings and string handling functions (including malloc
- *        and string tokenizing)
- *
  * @author Christian Grothoff
  * @author Krista Bennett
  * @author Gerd Knorr <kraxel@bytesex.org>
  * @author Ioana Patrascu
  * @author Tzvetan Horozov
+ *
+ * @file
+ * Strings and string handling functions
+ *
+ * @defgroup strings  Strings library
+ * Strings and string handling functions, including malloc and string tokenizing.
+ * @{
  */
 
 #ifndef GNUNET_STRINGS_LIB_H
@@ -615,7 +618,9 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX);
 }
 #endif
 
-
 /* ifndef GNUNET_UTIL_STRING_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_util_string.h */

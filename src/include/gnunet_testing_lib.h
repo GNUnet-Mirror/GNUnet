@@ -19,15 +19,21 @@
  */
 
 /**
- * @file include/gnunet_testing_lib.h
- * @brief convenience API for writing testcases for GNUnet;
- *        can start/stop one or more peers on a system;
- *        testing is responsible for managing private keys,
- *        ports and paths; it is a low-level library that
- *        does not support higher-level functions such as
- *        P2P connection, topology management or distributed
- *        testbed maintenance (those are in gnunet_testbed_service.h)
  * @author Christian Grothoff
+ *
+ * @file
+ * Convenience API for writing testcases for GNUnet
+ *
+ * @defgroup testing  Testing library
+ * Library for writing testcases for GNUnet.
+ *
+ * It can start/stop one or more peers on a system; testing is responsible for
+ * managing private keys, ports and paths; it is a low-level library that does
+ * not support higher-level functions such as P2P connection, topology
+ * management or distributed testbed maintenance (those are provided by the
+ * [Testbed service](@ref testbed))
+ *
+ * @{
  */
 
 #ifndef GNUNET_TESTING_LIB_H
@@ -460,3 +466,5 @@ GNUNET_TESTING_get_testname_from_underscore (const char *argv0);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

@@ -19,10 +19,15 @@
  */
 
 /**
- * @file include/gnunet_set_service.h
- * @brief two-peer set operations
  * @author Florian Dold
  * @author Christian Grothoff
+ *
+ * @file
+ * Two-peer set operations
+ *
+ * @defgroup set  Set service
+ * Two-peer set operations
+ * @{
  */
 
 #ifndef GNUNET_SET_SERVICE_H
@@ -161,7 +166,7 @@ enum GNUNET_SET_ResultMode
    * Client gets notified of the required changes
    * for both the local and the remote set.
    *
-   * Only supported for set 
+   * Only supported for set
    */
   GNUNET_SET_RESULT_SYMMETRIC,
 
@@ -499,3 +504,5 @@ GNUNET_SET_element_hash (const struct GNUNET_SET_Element *element, struct GNUNET
 #endif
 
 #endif
+
+/** @} */  /* end of group */

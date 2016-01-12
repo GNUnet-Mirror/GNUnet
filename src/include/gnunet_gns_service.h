@@ -152,7 +152,6 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 void
 GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -161,6 +160,6 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr);
 }
 #endif
 
-
 #endif
-/* gnunet_gns_service.h */
+
+/** @} */  /* end of group */

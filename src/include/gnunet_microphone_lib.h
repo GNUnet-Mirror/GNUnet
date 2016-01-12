@@ -129,7 +129,6 @@ GNUNET_MICROPHONE_create_from_hardware (const struct GNUNET_CONFIGURATION_Handle
 void
 GNUNET_MICROPHONE_destroy (struct GNUNET_MICROPHONE_Handle *microphone);
 
-/** @} */  /* end of group */
 
 #if 0				/* keep Emacsens' auto-indent happy */
 {
@@ -139,4 +138,7 @@ GNUNET_MICROPHONE_destroy (struct GNUNET_MICROPHONE_Handle *microphone);
 #endif
 
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_microphone_lib.h */

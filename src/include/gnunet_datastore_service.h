@@ -24,7 +24,7 @@
  * @file
  * datastore service
  *
- * @defgroup datastore  Datastore service
+ * @defgroup datastore  Data Store service
  * Data store for files stored on a GNUnet node.
  *
  * Provides an API that can be used manage the
@@ -397,7 +397,6 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
 void
 GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe);
 
-/** @} */  /* end of group */
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -406,5 +405,6 @@ GNUNET_DATASTORE_cancel (struct GNUNET_DATASTORE_QueueEntry *qe);
 }
 #endif
 
-/* end of gnunet_datastore_service.h */
 #endif
+
+/** @} */  /* end of group */

@@ -431,8 +431,6 @@ GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle,
 }
 #endif
 
-/** @} */ /* end of group dht */
-
-
 #endif
-/* gnunet_dht_service.h */
+
+/** @} */  /* end of group dht */

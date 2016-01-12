@@ -186,6 +186,7 @@ GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_DNS_disconnect (struct GNUNET_DNS_Handle *dh);
 
-/** @} */  /* end of group */
 
 #endif
+
+/** @} */  /* end of group */

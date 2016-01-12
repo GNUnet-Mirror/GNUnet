@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 
+      Copyright (C)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -19,10 +19,16 @@
  */
 
 /**
- * @file include/gnunet_sensor_service.h
- * @brief API to the sensor service
  * @author Omar Tarabai
+ *
+ * @file
+ * API to the sensor service
+ *
+ * @defgroup sensor  Sensor service
+ *
+ * @{
  */
+
 #ifndef GNUNET_SENSOR_SERVICE_H
 #define GNUNET_SENSOR_SERVICE_H
 
@@ -180,6 +186,7 @@ GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h, char *sensor_name,
                              int anomalous, GNUNET_SENSOR_Continuation cont,
                              void *cont_cls);
 
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -188,3 +195,5 @@ GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h, char *sensor_name,
 #endif
 
 #endif
+
+/** @} */  /* end of group */

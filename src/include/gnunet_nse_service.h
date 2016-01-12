@@ -22,13 +22,18 @@
 #define GNUNET_NSE_SERVICE_H_
 
 /**
+ * @author Nathan Evans
+ *
  * @file
- * API to retrieve the current network size estimate,
+ * API to retrieve the current network size estimate
+ *
+ * @defgroup nse  NSE service
+ * Network Size Estimation
+ *
+ * Provides an API to retrieve the current network size estimate,
  * also to register for notifications whenever a new
  * network size estimate is calculated.
  *
- * @author Nathan Evans
- * @defgroup nse  Network size estimation service
  * @{
  */
 

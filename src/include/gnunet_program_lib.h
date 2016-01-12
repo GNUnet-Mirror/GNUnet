@@ -19,11 +19,13 @@
 */
 
 /**
+ * @author Christian Grothoff
+ *
  * @file
  * Functions related to starting programs
  *
- * @author Christian Grothoff
- * @defgroup program  Functions for writing command-line programs
+ * @defgroup program  Program library
+ * Start command-line programs.
  * @{
  */
 
@@ -104,7 +106,6 @@ GNUNET_PROGRAM_run (int argc,
                     GNUNET_PROGRAM_Main task, void *task_cls);
 
 
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -112,8 +113,9 @@ GNUNET_PROGRAM_run (int argc,
 }
 #endif
 
-/** @} */ /* end of group program */
-
 /* ifndef GNUNET_PROGRAM_LIB_H */
 #endif
+
+/** @} */  /* end of group program */
+
 /* end of gnunet_program_lib.h */

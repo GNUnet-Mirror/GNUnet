@@ -866,8 +866,9 @@ GNUNET_DISK_file_sync (const struct GNUNET_DISK_FileHandle *h);
 }
 #endif
 
-/** @} */  /* end of group */
-
 /* ifndef GNUNET_DISK_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_disk_lib.h */

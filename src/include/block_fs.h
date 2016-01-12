@@ -19,10 +19,14 @@
 */
 
 /**
+ * @author Christian Grothoff
+ *
  * @file
  * FS block formats (shared between FS and Block)
  *
- * @author Christian Grothoff
+ * @defgroup block-fs  FS block formats
+ * Shared between the [FS service](@ref fs) and the [Block library](@ref block).
+ * @{
  */
 #ifndef BLOCK_FS_H
 #define BLOCK_FS_H
@@ -96,3 +100,5 @@ struct OnDemandBlock
 GNUNET_NETWORK_STRUCT_END
 
 #endif
+
+/** @} */  /* end of group */

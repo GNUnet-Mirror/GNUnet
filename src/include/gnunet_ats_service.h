@@ -25,7 +25,7 @@
  * @author Matthias Wachs
  *
  * @defgroup ats  ATS service
- * Automatic transport selection and outbound bandwidth determination
+ * Automatic Transport Selection and outbound bandwidth determination
  * @{
  */
 #ifndef GNUNET_ATS_SERVICE_H
@@ -700,7 +700,8 @@ GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
 				      const struct GNUNET_TIME_Relative scope,
 				      ...);
 
+#endif
+
 /** @} */  /* end of group */
 
-#endif
 /* end of file gnunet-service-transport_ats.h */

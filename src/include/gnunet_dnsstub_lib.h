@@ -24,7 +24,7 @@
  * @file
  * API for helper library to send DNS requests to DNS resolver
  *
- * @defgroup dns-stub  DNS stub library
+ * @defgroup dns-stub  DNS Stub library
  * Helper library to send DNS requests to DNS resolver
  * @{
  */
@@ -127,6 +127,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
 void
 GNUNET_DNSSTUB_resolve_cancel (struct GNUNET_DNSSTUB_RequestSocket *rs);
 
-/** @} */  /* end of group */
 
 #endif
+
+/** @} */  /* end of group */

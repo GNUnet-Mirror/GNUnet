@@ -19,14 +19,19 @@
 */
 
 /**
- * @file include/gnunet_transport_plugin.h
- * @brief API for the transport services.  This header
- *        specifies the struct that is given to the plugin's entry
- *        method and the other struct that must be returned.
- *        Note that the destructors of transport plugins will
- *        be given the value returned by the constructor
- *        and is expected to return a NULL pointer.
  * @author Christian Grothoff
+ *
+ * @file
+ * Transport service plugin API
+ *
+ * @defgroup transport-plugin  Transport Service plugin API
+ *
+ * Specifies the struct that is given to the plugin's entry method and the other
+ * struct that must be returned.  Note that the destructors of transport plugins
+ * will be given the value returned by the constructor and is expected to return
+ * a NULL pointer.
+ *
+ * @{
  */
 #ifndef PLUGIN_TRANSPORT_H
 #define PLUGIN_TRANSPORT_H
@@ -706,4 +711,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
 
 /*#ifndef PLUGIN_TRANSPORT_H*/
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_transport_plugin.h */

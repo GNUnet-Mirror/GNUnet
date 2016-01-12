@@ -18,11 +18,18 @@
      Boston, MA 02110-1301, USA.
 */
 /**
- * @file include/gnunet_regex_service.h
- * @brief access regex service to advertise capabilities via regex and discover
- *        respective peers using matching strings
  * @author Maximilian Szengel
  * @author Christian Grothoff
+ *
+ * @file
+ * API to access regex service to advertise capabilities via regex and discover
+ * respective peers using matching strings
+ *
+ * @defgroup regex  RegEx service
+ * Advertise capabilities via RegEx and discover
+ * respective peers using matching strings.
+ *
+ * @{
  */
 #ifndef GNUNET_REGEX_SERVICE_H
 #define GNUNET_REGEX_SERVICE_H
@@ -136,5 +143,6 @@ GNUNET_REGEX_search_cancel (struct GNUNET_REGEX_Search *s);
 }
 #endif
 
-/* end of gnunet_regex_service.h */
 #endif
+
+/** @} */  /* end of group */

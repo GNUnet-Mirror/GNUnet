@@ -22,7 +22,7 @@
  * @author Christian Grothoff
  *
  * @file
- * API for block plugins.  Each block plugin must conform to the API specified by this header.
+ * API for block plugins.
  *
  * @defgroup block-plugin  Block plugin API
  * To be implemented by applications storing data in the DHT.
@@ -123,6 +123,6 @@ struct GNUNET_BLOCK_PluginFunctions
 
 };
 
-/** @} */ /* end of group block */
-
 #endif
+
+/** @} */  /* end of group */

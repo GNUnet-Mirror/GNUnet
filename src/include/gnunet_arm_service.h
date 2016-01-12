@@ -347,8 +347,6 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h);
 
-/** @} */  /* end of group */
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -357,3 +355,5 @@ GNUNET_ARM_monitor_disconnect_and_free (struct GNUNET_ARM_MonitorHandle *h);
 #endif
 
 #endif
+
+/** @} */  /* end of group */

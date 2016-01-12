@@ -19,9 +19,14 @@
 */
 
 /**
- * @file sensor/sensor_util_lib.c
- * @brief sensor utilities
  * @author Omar Tarabai
+ *
+ * @file
+ * Sensor utilities
+ *
+ * @defgroup sensor  Sensor Utilities library
+ *
+ * @{
  */
 
 #ifndef GNUNET_SENSOR_UTIL_LIB_H
@@ -509,4 +514,7 @@ GNUNET_SENSOR_crypto_verify_pow_sign (struct GNUNET_SENSOR_crypto_pow_block *
 
 /* ifndef GNUNET_SENSOR_UTIL_LIB_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_sensor_util_lib.h */

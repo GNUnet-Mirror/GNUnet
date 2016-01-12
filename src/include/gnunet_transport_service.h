@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_transport_service.h
- * @brief low-level P2P IO
  * @author Christian Grothoff
+ *
+ * @file
+ * Low-level P2P IO
+ *
+ * @defgroup transport  Transport service
+ * Low-level P2P IO
+ * @{
  */
 
 #ifndef GNUNET_TRANSPORT_SERVICE_H
@@ -950,4 +955,7 @@ GNUNET_TRANSPORT_monitor_plugins_cancel (struct GNUNET_TRANSPORT_PluginMonitor *
 
 /* ifndef GNUNET_TRANSPORT_SERVICE_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_transport_service.h */

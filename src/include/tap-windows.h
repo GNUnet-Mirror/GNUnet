@@ -22,8 +22,9 @@
  *  51 Franklin Street, Fifth Floor, Boston, MA  02110-1301 USA
  */
 /**
- * @file include/tap-windows.h
- * @brief TAP32 virtual network driver defines
+ * @file
+ * TAP32 virtual network driver defines
+ *
  * @attention This file is part of openvpn and for kept
  *            as a separate file to allow easier upgrading.
  */

@@ -19,9 +19,13 @@
 */
 
 /**
- * @file include/gnunet_signatures.h
- * @brief constants for network signatures
  * @author Christian Grothoff
+ *
+ * @file
+ * Constants for network signatures
+ *
+ * @defgroup signatures  Network signature definitions
+ * @{
  */
 
 #ifndef GNUNET_SIGNATURES_H
@@ -195,4 +199,7 @@ extern "C"
 
 /* ifndef GNUNET_SIGNATURES_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_signatures.h */

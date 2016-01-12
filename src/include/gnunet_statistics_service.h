@@ -19,12 +19,18 @@
  */
 
 /**
- * @file include/gnunet_statistics_service.h
- * @brief API to create, modify and access statistics about
- *        the operation of GNUnet; all statistical values
- *        must be of type `unsigned long long`.
  * @author Christian Grothoff
- * @defgroup statistics  Track statistics or provide access to statistics
+ *
+ * @file
+ * API to create, modify and access statistics.
+ *
+ * @defgroup statistics  Statistics service
+ * Track statistics or provide access to statistics.
+ *
+ * Create, modify and access statistics about the operation of GNUnet.
+ *
+ * All statistical values must be of type `unsigned long long`.
+ *
  * @{
  */
 

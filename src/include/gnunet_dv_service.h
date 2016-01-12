@@ -25,7 +25,7 @@
  * DV service API (should only be used by the DV plugin)
  *
  * @defgroup dv  DV service
- * Distance vector routing
+ * Distance Vector routing
  *
  * The DV service API should only be used by the DV plugin.
  * @{
@@ -172,6 +172,7 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 void
 GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th);
 
-/** @} */  /* end of group */
 
 #endif
+
+/** @} */  /* end of group */

@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_socks.h
- * @brief SOCKS proxy for connections
  * @author Jeffrey Burdges
+ *
+ * @file
+ * SOCKS proxy for connections
+ *
+ * @defgroup socks  SOCKS proxy
+ * SOCKS proxy for connections.
+ * @{
  */
 
 #ifndef GNUNET_SOCKS_H
@@ -71,7 +76,9 @@ GNUNET_SOCKS_do_connect (const char *service_name,
 }
 #endif
 
-
 /* ifndef GNUNET_SOCKS_H */
 #endif
+
+/** @} */  /* end of group */
+
 /* end of gnunet_socks.h */

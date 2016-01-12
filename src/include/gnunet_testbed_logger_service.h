@@ -19,9 +19,14 @@
  */
 
 /**
- * @file include/gnunet_testbed_logger_service.h
- * @brief API for submitting data to the testbed logger service
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
+ *
+ * @file
+ * API for submitting data to the testbed logger service
+ *
+ * @defgroup testbed-logger  Testbed Logger service
+ * Submit data to the testbed logger service.
+ * @{
  */
 
 #ifndef GNUNET_TESTBED_LOGGER_SERVICE_H
@@ -121,5 +126,7 @@ GNUNET_TESTBED_LOGGER_flush_cancel (struct GNUNET_TESTBED_LOGGER_Handle *h);
 #endif
 
 #endif  /* GNUNET_TESTBED_LOGGER_SERVICE_H */
+
+/** @} */  /* end of group */
 
 /* End of gnunet_testbed_logger_service.h */

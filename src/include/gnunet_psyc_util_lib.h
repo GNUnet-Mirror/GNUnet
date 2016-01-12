@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_psyc_service.h
- * @brief PSYC utilities; receiving/transmitting/logging PSYC messages.
  * @author Gabor X Toth
+ *
+ * @file
+ * PSYC utilities; receiving/transmitting/logging PSYC messages
+ *
+ * @defgroup psyc-util  PSYC Utilities library
+ * Receiving, transmitting, logging PSYC messages.
+ * @{
  */
 
 #ifndef GNUNET_PSYC_UTIL_LIB_H
@@ -263,4 +268,5 @@ GNUNET_PSYC_message_header_create_from_psyc (const struct GNUNET_PSYC_Message *m
 
 /* ifndef GNUNET_PSYC_UTIL_LIB_H */
 #endif
-/* end of gnunet_psyc_util_lib.h */
+
+/** @} */  /* end of group */

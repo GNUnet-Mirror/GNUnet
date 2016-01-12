@@ -19,9 +19,14 @@
 */
 
 /**
- * @file include/gnunet_peerstore_plugin.h
- * @brief plugin API for the peerstore database backend
  * @author Omar Tarabai
+ *
+ * @file
+ * Plugin API for the peerstore database backend
+ *
+ * @defgroup peerstore-plugin  Peer Store service plugin API
+ * Plugin API for the peerstore database backend
+ * @{
  */
 #ifndef GNUNET_PEERSTORE_PLUGIN_H
 #define GNUNET_PEERSTORE_PLUGIN_H
@@ -124,5 +129,6 @@ struct GNUNET_PEERSTORE_PluginFunctions
 }
 #endif
 
-/* end of gnunet_peerstore_plugin.h */
 #endif
+
+/** @} */  /* end of group */

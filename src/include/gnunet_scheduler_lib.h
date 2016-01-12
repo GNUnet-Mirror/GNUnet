@@ -19,10 +19,16 @@
  */
 
 /**
- * @file include/gnunet_scheduler_lib.h
- * @brief API to schedule computations using continuation passing style
  * @author Christian Grothoff
- * @defgroup scheduler Event loop (scheduler)
+ *
+ * @file
+ * API to schedule computations using continuation passing style
+ *
+ * @defgroup scheduler  Scheduler library
+ * Event loop (scheduler)
+ *
+ * Schedule computations using continuation passing style.
+ *
  * @{
  */
 
@@ -537,8 +543,6 @@ GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,
                              void *new_select_cls);
 
 
-/** @} */ /* end of group scheduler */
-
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
@@ -547,3 +551,5 @@ GNUNET_SCHEDULER_set_select (GNUNET_SCHEDULER_select new_select,
 #endif
 
 #endif
+
+/** @} */ /* end of group scheduler */
