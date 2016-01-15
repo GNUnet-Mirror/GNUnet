@@ -148,7 +148,7 @@ struct GNUNET_PSYC_Slave
 struct GNUNET_PSYC_JoinHandle
 {
   struct GNUNET_PSYC_Master *mst;
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 };
 
 
@@ -470,10 +470,10 @@ master_recv_join_request (void *cls,
 
   struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
   jh->mst = mst;
-  jh->slave_key = req->slave_key;
+  jh->slave_pub_key = req->slave_pub_key;
 
   if (NULL != mst->join_req_cb)
-    mst->join_req_cb (mst->cb_cls, req, &req->slave_key, join_msg, jh);
+    mst->join_req_cb (mst->cb_cls, req, &req->slave_pub_key, join_msg, jh);
 }
 
 
@@ -756,7 +756,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
   dcsn->header.size = htons (sizeof (*dcsn) + relay_size + join_resp_size);
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
   dcsn->is_admitted = htonl (is_admitted);
-  dcsn->slave_key = jh->slave_key;
+  dcsn->slave_pub_key = jh->slave_pub_key;
 
   if (0 < join_resp_size)
     memcpy (&dcsn[1], join_resp, join_resp_size);
@@ -1045,7 +1045,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slv)
  *
  * @param chn
  *        Channel handle.
- * @param slave_key
+ * @param slave_pub_key
  *        Identity of channel slave to add.
  * @param announced_at
  *        ID of the message that announced the membership change.
@@ -1061,7 +1061,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slv)
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
-                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                                uint64_t announced_at,
                                uint64_t effective_since,
                                GNUNET_ResultCallback result_cb,
@@ -1070,7 +1070,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
   struct ChannelMembershipStoreRequest *req = GNUNET_malloc (sizeof (*req));
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE);
   req->header.size = htons (sizeof (*req));
-  req->slave_key = *slave_key;
+  req->slave_pub_key = *slave_pub_key;
   req->announced_at = GNUNET_htonll (announced_at);
   req->effective_since = GNUNET_htonll (effective_since);
   req->did_join = GNUNET_YES;
@@ -1100,7 +1100,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
  *
  * @param chn
  *        Channel handle.
- * @param slave_key
+ * @param slave_pub_key
  *        Identity of channel slave to remove.
  * @param announced_at
  *        ID of the message that announced the membership change.
@@ -1114,7 +1114,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
-                                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                                   uint64_t announced_at,
                                   GNUNET_ResultCallback result_cb,
                                   void *cls)
@@ -1122,7 +1122,7 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
   struct ChannelMembershipStoreRequest *req = GNUNET_malloc (sizeof (*req));
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE);
   req->header.size = htons (sizeof (*req));
-  req->slave_key = *slave_key;
+  req->slave_pub_key = *slave_pub_key;
   req->announced_at = GNUNET_htonll (announced_at);
   req->did_join = GNUNET_NO;
   req->op_id = GNUNET_htonll (GNUNET_CLIENT_MANAGER_op_add (chn->client,

@@ -315,7 +315,7 @@ struct Master
 
   /**
    * Incoming join requests from multicast.
-   * member_key -> struct GNUNET_MULTICAST_JoinHandle *
+   * member_pub_key -> struct GNUNET_MULTICAST_JoinHandle *
    */
   struct GNUNET_CONTAINER_MultiHashMap *join_reqs;
 
@@ -697,7 +697,7 @@ client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
  */
 struct JoinMemTestClosure
 {
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
   struct Channel *chn;
   struct GNUNET_MULTICAST_JoinHandle *jh;
   struct GNUNET_PSYC_JoinRequestMessage *join_msg;
@@ -716,10 +716,10 @@ join_mem_test_cb (void *cls, int64_t result,
   if (GNUNET_NO == result && GNUNET_YES == jcls->chn->is_master)
   { /* Pass on join request to client if this is a master channel */
     struct Master *mst = (struct Master *) jcls->chn;
-    struct GNUNET_HashCode slave_key_hash;
-    GNUNET_CRYPTO_hash (&jcls->slave_key, sizeof (jcls->slave_key),
-                        &slave_key_hash);
-    GNUNET_CONTAINER_multihashmap_put (mst->join_reqs, &slave_key_hash, jcls->jh,
+    struct GNUNET_HashCode slave_pub_hash;
+    GNUNET_CRYPTO_hash (&jcls->slave_pub_key, sizeof (jcls->slave_pub_key),
+                        &slave_pub_hash);
+    GNUNET_CONTAINER_multihashmap_put (mst->join_reqs, &slave_pub_hash, jcls->jh,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     client_send_msg (jcls->chn, &jcls->join_msg->header);
   }
@@ -744,7 +744,7 @@ join_mem_test_cb (void *cls, int64_t result,
  */
 static void
 mcast_recv_join_request (void *cls,
-                         const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                          const struct GNUNET_MessageHeader *join_msg,
                          struct GNUNET_MULTICAST_JoinHandle *jh)
 {
@@ -770,17 +770,17 @@ mcast_recv_join_request (void *cls,
     req = GNUNET_malloc (sizeof (*req) + join_msg_size);
   req->header.size = htons (sizeof (*req) + join_msg_size);
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST);
-  req->slave_key = *slave_key;
+  req->slave_pub_key = *slave_pub_key;
   if (0 < join_msg_size)
     memcpy (&req[1], join_msg, join_msg_size);
 
   struct JoinMemTestClosure *jcls = GNUNET_malloc (sizeof (*jcls));
-  jcls->slave_key = *slave_key;
+  jcls->slave_pub_key = *slave_pub_key;
   jcls->chn = chn;
   jcls->jh = jh;
   jcls->join_msg = req;
 
-  GNUNET_PSYCSTORE_membership_test (store, &chn->pub_key, slave_key,
+  GNUNET_PSYCSTORE_membership_test (store, &chn->pub_key, slave_pub_key,
                                     chn->max_message_id, 0,
                                     &join_mem_test_cb, jcls);
 }
@@ -878,13 +878,13 @@ store_recv_fragment_replay_result (void *cls, int64_t result,
  */
 static void
 mcast_recv_replay_fragment (void *cls,
-                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                             uint64_t fragment_id, uint64_t flags,
                             struct GNUNET_MULTICAST_ReplayHandle *rh)
 
 {
   struct Channel *chn = cls;
-  GNUNET_PSYCSTORE_fragment_get (store, &chn->pub_key, slave_key,
+  GNUNET_PSYCSTORE_fragment_get (store, &chn->pub_key, slave_pub_key,
                                  fragment_id, fragment_id,
                                  &store_recv_fragment_replay,
                                  &store_recv_fragment_replay_result, rh);
@@ -896,14 +896,14 @@ mcast_recv_replay_fragment (void *cls,
  */
 static void
 mcast_recv_replay_message (void *cls,
-                           const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                            uint64_t message_id,
                            uint64_t fragment_offset,
                            uint64_t flags,
                            struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
   struct Channel *chn = cls;
-  GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, slave_key,
+  GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, slave_pub_key,
                                 message_id, message_id, 1, NULL,
                                 &store_recv_fragment_replay,
                                 &store_recv_fragment_replay_result, rh);
@@ -1029,7 +1029,7 @@ client_send_mcast_req (struct Master *mst,
   pmsg->message_id = req->request_id;
   pmsg->fragment_offset = req->fragment_offset;
   pmsg->flags = htonl (GNUNET_PSYC_MESSAGE_REQUEST);
-  pmsg->slave_key = req->member_key;
+  pmsg->slave_pub_key = req->member_pub_key;
 
   memcpy (&pmsg[1], &req[1], size - sizeof (*req));
   client_send_msg (chn, &pmsg->header);
@@ -1535,7 +1535,7 @@ mcast_recv_request (void *cls,
   struct Master *mst = cls;
   uint16_t size = ntohs (req->header.size);
 
-  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->member_key);
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&req->member_pub_key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Received multicast request of size %u from %s.\n",
               mst, size, str);
@@ -1745,10 +1745,10 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
   uint16_t req_size = ntohs (req->header.size);
 
   struct GNUNET_CRYPTO_EcdsaPublicKey slv_pub_key;
-  struct GNUNET_HashCode pub_key_hash, slv_pub_key_hash;
+  struct GNUNET_HashCode pub_key_hash, slv_pub_hash;
 
   GNUNET_CRYPTO_ecdsa_key_get_public (&req->slave_key, &slv_pub_key);
-  GNUNET_CRYPTO_hash (&slv_pub_key, sizeof (slv_pub_key), &slv_pub_key_hash);
+  GNUNET_CRYPTO_hash (&slv_pub_key, sizeof (slv_pub_key), &slv_pub_hash);
   GNUNET_CRYPTO_hash (&req->channel_pub_key, sizeof (req->channel_pub_key), &pub_key_hash);
 
   struct GNUNET_CONTAINER_MultiHashMap *
@@ -1758,14 +1758,14 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
 
   if (NULL != chn_slv)
   {
-    slv = GNUNET_CONTAINER_multihashmap_get (chn_slv, &slv_pub_key_hash);
+    slv = GNUNET_CONTAINER_multihashmap_get (chn_slv, &slv_pub_hash);
   }
   if (NULL == slv)
   {
     slv = GNUNET_new (struct Slave);
     slv->priv_key = req->slave_key;
     slv->pub_key = slv_pub_key;
-    slv->pub_key_hash = slv_pub_key_hash;
+    slv->pub_key_hash = slv_pub_hash;
     slv->origin = req->origin;
     slv->relay_count = ntohl (req->relay_count);
     slv->join_flags = ntohl (req->flags);
@@ -1928,20 +1928,20 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
     ? (struct GNUNET_MessageHeader *) &dcsn[1]
     : NULL;
 
-  struct GNUNET_HashCode slave_key_hash;
-  GNUNET_CRYPTO_hash (&dcsn->slave_key, sizeof (dcsn->slave_key),
-                      &slave_key_hash);
+  struct GNUNET_HashCode slave_pub_hash;
+  GNUNET_CRYPTO_hash (&dcsn->slave_pub_key, sizeof (dcsn->slave_pub_key),
+                      &slave_pub_hash);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Got join decision (%d) from client for channel %s..\n",
               mst, jcls.is_admitted, GNUNET_h2s (&chn->pub_key_hash));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p ..and slave %s.\n",
-              mst, GNUNET_h2s (&slave_key_hash));
+              mst, GNUNET_h2s (&slave_pub_hash));
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (mst->join_reqs, &slave_key_hash,
+  GNUNET_CONTAINER_multihashmap_get_multiple (mst->join_reqs, &slave_pub_hash,
                                               &mcast_send_join_decision, &jcls);
-  GNUNET_CONTAINER_multihashmap_remove_all (mst->join_reqs, &slave_key_hash);
+  GNUNET_CONTAINER_multihashmap_remove_all (mst->join_reqs, &slave_pub_hash);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2326,7 +2326,7 @@ client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
               "%p did_join: %u, announced_at: %" PRIu64 ", effective_since: %" PRIu64 "\n",
               chn, req->did_join, announced_at, effective_since);
 
-  GNUNET_PSYCSTORE_membership_store (store, &chn->pub_key, &req->slave_key,
+  GNUNET_PSYCSTORE_membership_store (store, &chn->pub_key, &req->slave_pub_key,
                                      req->did_join, announced_at, effective_since,
                                      0, /* FIXME: group_generation */
                                      &store_recv_membership_store_result, op);

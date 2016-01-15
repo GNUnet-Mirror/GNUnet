@@ -258,7 +258,7 @@ struct GNUNET_PSYC_MessageHeader
    * Sending slave's public key.
    * Not set if the message is from the master.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
   /* Followed by concatenated PSYC message parts:
    * messages with GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_* types
@@ -351,7 +351,7 @@ struct GNUNET_PSYC_JoinRequestMessage
   /**
    * Public key of the joining slave.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
   /* Followed by struct GNUNET_MessageHeader join_request */
 };
@@ -377,7 +377,7 @@ struct GNUNET_PSYC_JoinDecisionMessage
    * Only set when the master is sending the decision,
    * not set when a slave is receiving it.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
   /* Followed by struct GNUNET_MessageHeader join_response */
 };
@@ -544,7 +544,7 @@ typedef void
  *
  * @param cls
  *        Closure.
- * @param slave_key
+ * @param slave_pub_key
  *        Public key of the slave sending the message.
  *        Only set for channel master.
  * @param message_id
@@ -564,7 +564,7 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_MessagePartCallback) (void *cls,
-                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                                     uint64_t message_id,
                                     uint32_t flags,
                                     uint64_t data_offset,
@@ -576,7 +576,7 @@ typedef void
  *
  * @param cls
  *        Closure.
- * @param slave_key
+ * @param slave_pub_key
  *        Public key of the slave requesting join.
  * @param join_msg
  *        Join message sent along with the request.
@@ -586,7 +586,7 @@ typedef void
 typedef void
 (*GNUNET_PSYC_JoinRequestCallback) (void *cls,
                                     const struct GNUNET_PSYC_JoinRequestMessage *req,
-                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                                     const struct GNUNET_PSYC_Message *join_msg,
                                     struct GNUNET_PSYC_JoinHandle *jh);
 
@@ -920,7 +920,7 @@ enum GNUNET_PSYC_SlaveJoinFlags
  *        Configuration to use.
  * @param channel_pub_key
  *        ECC public key that identifies the channel we wish to join.
- * @param slave_key
+ * @param slave_pub_key
  *        ECC private-public key pair that identifies the slave, and
  *        used by multicast to sign the join request and subsequent unicast
  *        requests sent to the master.
@@ -951,7 +951,7 @@ enum GNUNET_PSYC_SlaveJoinFlags
 struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_pub_key,
-                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_pub_key,
                         enum GNUNET_PSYC_SlaveJoinFlags flags,
                         const struct GNUNET_PeerIdentity *origin,
                         uint32_t relay_count,
@@ -1085,7 +1085,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  *
  * @param channel
  *        Channel handle.
- * @param slave_key
+ * @param slave_pub_key
  *        Identity of channel slave to add.
  * @param announced_at
  *        ID of the message that announced the membership change.
@@ -1101,7 +1101,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
-                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                                uint64_t announced_at,
                                uint64_t effective_since,
                                GNUNET_ResultCallback result_cb,
@@ -1127,7 +1127,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
  *
  * @param channel
  *        Channel handle.
- * @param slave_key
+ * @param slave_pub_key
  *        Identity of channel slave to remove.
  * @param announced_at
  *        ID of the message that announced the membership change.
@@ -1142,7 +1142,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
                                   const struct GNUNET_CRYPTO_EcdsaPublicKey
-                                  *slave_key,
+                                  *slave_pub_key,
                                   uint64_t announced_at,
                                   GNUNET_ResultCallback result_cb,
                                   void *cls);

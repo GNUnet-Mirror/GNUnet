@@ -135,7 +135,7 @@ struct GNUNET_PSYC_ReceiveHandle
   /**
    * Public key of the slave from which a message is being received.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
   /**
    * State of the currently being received message from the PSYC service.
@@ -913,7 +913,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
   {
     recv->message_id = GNUNET_ntohll (msg->message_id);
     recv->flags = flags;
-    recv->slave_key = msg->slave_key;
+    recv->slave_pub_key = msg->slave_pub_key;
     recv->mod_value_size = 0;
     recv->mod_value_size_expected = 0;
   }
@@ -1099,7 +1099,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     }
 
     if (NULL != recv->message_part_cb)
-      recv->message_part_cb (recv->cb_cls, &recv->slave_key,
+      recv->message_part_cb (recv->cb_cls, &recv->slave_pub_key,
                              recv->message_id, recv->flags,
                              0, // FIXME: data_offset
                              pmsg);
@@ -1180,7 +1180,7 @@ struct ParseMessageClosure
 
 static void
 parse_message_part_cb (void *cls,
-                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                        uint64_t message_id, uint32_t flags, uint64_t data_offset,
                        const struct GNUNET_MessageHeader *msg)
 {

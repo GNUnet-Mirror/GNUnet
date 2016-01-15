@@ -157,17 +157,17 @@ struct Channel
   /**
    * Public key of the target group.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 
   /**
-   * Hash of @a group_key.
+   * Hash of @a group_pub_key.
    */
-  struct GNUNET_HashCode group_key_hash;
+  struct GNUNET_HashCode group_pub_hash;
 
   /**
    * Public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_pub_key;
 
   /**
    * Remote peer identity.
@@ -735,7 +735,7 @@ cadet_notify_transmit_ready (void *cls, size_t buf_size, void *buf)
   }
   else if (0 == --chn->msgs_pending)
   {
-    client_send_ack (&chn->group_key_hash);
+    client_send_ack (&chn->group_pub_hash);
   }
   return msg_size;
 }
@@ -770,10 +770,10 @@ cadet_send_channel (struct Channel *chn, const struct GNUNET_MessageHeader *msg)
  *
  * @param peer
  *        Peer to connect to.
- * @param group_key
+ * @param group_pub_key
  *        Public key of group the channel belongs to.
- * @param group_key_hash
- *        Hash of @a group_key.
+ * @param group_pub_hash
+ *        Hash of @a group_pub_key.
  *
  * @return Channel.
  */
@@ -782,15 +782,15 @@ cadet_channel_create (struct Group *grp, struct GNUNET_PeerIdentity *peer)
 {
   struct Channel *chn = GNUNET_malloc (sizeof (*chn));
   chn->grp = grp;
-  chn->group_key = grp->pub_key;
-  chn->group_key_hash = grp->pub_key_hash;
+  chn->group_pub_key = grp->pub_key;
+  chn->group_pub_hash = grp->pub_key_hash;
   chn->peer = *peer;
   chn->direction = DIR_OUTGOING;
   chn->join_status = JOIN_WAITING;
   chn->channel = GNUNET_CADET_channel_create (cadet, chn, &chn->peer,
                                               GNUNET_APPLICATION_TYPE_MULTICAST,
                                               GNUNET_CADET_OPTION_RELIABLE);
-  GNUNET_CONTAINER_multihashmap_put (channels_out, &chn->group_key_hash, chn,
+  GNUNET_CONTAINER_multihashmap_put (channels_out, &chn->group_pub_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   return chn;
 }
@@ -817,13 +817,13 @@ cadet_send_join_request (struct Member *mem)
 
 static int
 cadet_send_join_decision_cb (void *cls,
-                             const struct GNUNET_HashCode *group_key_hash,
+                             const struct GNUNET_HashCode *group_pub_hash,
                              void *channel)
 {
   const struct MulticastJoinDecisionMessageHeader *hdcsn = cls;
   struct Channel *chn = channel;
 
-  if (0 == memcmp (&hdcsn->member_key, &chn->member_key, sizeof (chn->member_key))
+  if (0 == memcmp (&hdcsn->member_pub_key, &chn->member_pub_key, sizeof (chn->member_pub_key))
       && 0 == memcmp (&hdcsn->peer, &chn->peer, sizeof (chn->peer)))
   {
     cadet_send_channel (chn, &hdcsn->header);
@@ -958,7 +958,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_CRYPTO_ecdsa_key_get_public (&msg->member_key, &mem_pub_key);
   GNUNET_CRYPTO_hash (&mem_pub_key, sizeof (mem_pub_key), &mem_pub_key_hash);
-  GNUNET_CRYPTO_hash (&msg->group_key, sizeof (msg->group_key), &pub_key_hash);
+  GNUNET_CRYPTO_hash (&msg->group_pub_key, sizeof (msg->group_pub_key), &pub_key_hash);
 
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_mem = GNUNET_CONTAINER_multihashmap_get (group_members, &pub_key_hash);
@@ -979,7 +979,7 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
 
     grp = &mem->grp;
     grp->is_origin = GNUNET_NO;
-    grp->pub_key = msg->group_key;
+    grp->pub_key = msg->group_pub_key;
     grp->pub_key_hash = pub_key_hash;
 
     if (NULL == grp_mem)
@@ -1046,13 +1046,13 @@ client_recv_member_join (void *cls, struct GNUNET_SERVER_Client *client,
       req = GNUNET_malloc (sizeof (*req) + join_msg_size);
     req->header.size = htons (sizeof (*req) + join_msg_size);
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
-    req->group_key = grp->pub_key;
+    req->group_pub_key = grp->pub_key;
     req->peer = this_peer;
-    GNUNET_CRYPTO_ecdsa_key_get_public (&mem->priv_key, &req->member_key);
+    GNUNET_CRYPTO_ecdsa_key_get_public (&mem->priv_key, &req->member_pub_key);
     if (0 < join_msg_size)
       memcpy (&req[1], join_msg, join_msg_size);
 
-    req->member_key = mem->pub_key;
+    req->member_pub_key = mem->pub_key;
     req->purpose.size = htonl (msg_size
                                - sizeof (req->header)
                                - sizeof (req->reserved)
@@ -1128,7 +1128,7 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL != grp_mem)
   {
     struct GNUNET_HashCode member_key_hash;
-    GNUNET_CRYPTO_hash (&hdcsn->member_key, sizeof (hdcsn->member_key),
+    GNUNET_CRYPTO_hash (&hdcsn->member_pub_key, sizeof (hdcsn->member_pub_key),
                         &member_key_hash);
     mem = GNUNET_CONTAINER_multihashmap_get (grp_mem, &member_key_hash);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1215,11 +1215,11 @@ client_recv_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* FIXME: yucky, should use separate message structs for P2P and CS! */
   out = (struct GNUNET_MULTICAST_RequestHeader *) GNUNET_copy_message (m);
-  out->member_key = mem->pub_key;
+  out->member_pub_key = mem->pub_key;
   out->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
   out->purpose.size = htonl (ntohs (out->header.size)
                              - sizeof (out->header)
-                             - sizeof (out->member_key)
+                             - sizeof (out->member_pub_key)
                              - sizeof (out->signature));
   out->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
 
@@ -1551,26 +1551,26 @@ cadet_recv_join_request (void *cls,
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST,
                                   &req->purpose, &req->signature,
-                                  &req->member_key))
+                                  &req->member_pub_key))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
 
-  struct GNUNET_HashCode group_key_hash;
-  GNUNET_CRYPTO_hash (&req->group_key, sizeof (req->group_key), &group_key_hash);
+  struct GNUNET_HashCode group_pub_hash;
+  GNUNET_CRYPTO_hash (&req->group_pub_key, sizeof (req->group_pub_key), &group_pub_hash);
 
   struct Channel *chn = GNUNET_malloc (sizeof *chn);
   chn->channel = channel;
-  chn->group_key = req->group_key;
-  chn->group_key_hash = group_key_hash;
-  chn->member_key = req->member_key;
+  chn->group_pub_key = req->group_pub_key;
+  chn->group_pub_hash = group_pub_hash;
+  chn->member_pub_key = req->member_pub_key;
   chn->peer = req->peer;
   chn->join_status = JOIN_WAITING;
-  GNUNET_CONTAINER_multihashmap_put (channels_in, &chn->group_key_hash, chn,
+  GNUNET_CONTAINER_multihashmap_put (channels_in, &chn->group_pub_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  client_send_all (&group_key_hash, m);
+  client_send_all (&group_pub_hash, m);
   return GNUNET_OK;
 }
 
@@ -1670,13 +1670,13 @@ cadet_recv_message (void *cls,
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE,
                                   &msg->purpose, &msg->signature,
-                                  &chn->group_key))
+                                  &chn->group_pub_key))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
 
-  client_send_all (&chn->group_key_hash, m);
+  client_send_all (&chn->group_pub_hash, m);
   return GNUNET_OK;
 }
 
@@ -1706,7 +1706,7 @@ cadet_recv_request (void *cls,
   }
   if (ntohl (req->purpose.size) != (size
                                     - sizeof (req->header)
-                                    - sizeof (req->member_key)
+                                    - sizeof (req->member_pub_key)
                                     - sizeof (req->signature)))
   {
     GNUNET_break_op (0);
@@ -1715,13 +1715,13 @@ cadet_recv_request (void *cls,
   if (GNUNET_OK !=
       GNUNET_CRYPTO_ecdsa_verify (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST,
                                   &req->purpose, &req->signature,
-                                  &req->member_key))
+                                  &req->member_pub_key))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
 
-  client_send_origin (&chn->group_key_hash, m);
+  client_send_origin (&chn->group_pub_hash, m);
   return GNUNET_OK;
 }
 
@@ -1745,7 +1745,7 @@ cadet_recv_replay_request (void *cls,
   struct Channel *chn = *ctx;
 
   memcpy (&rep, m, sizeof (rep));
-  memcpy (&rep.member_key, &chn->member_key, sizeof (chn->member_key));
+  memcpy (&rep.member_pub_key, &chn->member_pub_key, sizeof (chn->member_pub_key));
 
   struct GNUNET_CONTAINER_MultiHashMap *
     grp_replay_req = GNUNET_CONTAINER_multihashmap_get (replay_req_cadet,
@@ -1763,7 +1763,7 @@ cadet_recv_replay_request (void *cls,
   GNUNET_CONTAINER_multihashmap_put (grp_replay_req, &key_hash, chn,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  client_send_random (&chn->group_key_hash, &rep.header);
+  client_send_random (&chn->group_pub_hash, &rep.header);
   return GNUNET_OK;
 }
 

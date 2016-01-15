@@ -432,7 +432,7 @@ origin_recv_request (void *cls,
   if (++ocls->n != ocls->msgs_expected)
     return;
 
-  GNUNET_assert (0 == memcmp (&req->member_key,
+  GNUNET_assert (0 == memcmp (&req->member_pub_key,
                               &member_pub_key, sizeof (member_pub_key)));
 
 

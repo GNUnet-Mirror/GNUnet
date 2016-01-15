@@ -63,12 +63,12 @@ struct MulticastJoinRequestMessage
   /**
    * Public key of the target group.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 
   /**
    * Public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_pub_key;
 
   /**
    * Peer identity of the joining member.
@@ -128,7 +128,7 @@ struct MulticastJoinDecisionMessageHeader
    * C->S: Public key of the member requesting join.
    * S->C: Unused.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_pub_key;
 
   /* Followed by struct MulticastJoinDecisionMessage */
 };
@@ -176,7 +176,7 @@ struct MulticastReplayRequestMessage
    * S->C: Public key of the member requesting replay.
    * C->S: Unused.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_pub_key;
 
   /**
    * ID of the message that is being requested.
@@ -286,7 +286,7 @@ struct MulticastMemberJoinMessage
 
   uint32_t relay_count GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 
   struct GNUNET_CRYPTO_EcdsaPrivateKey member_key;
 
@@ -354,7 +354,7 @@ struct MulticastJoinMessage
   /**
    * Public non-ephemeral key of the mutlicast group.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey group_pub_key;
 
   /**
    * Our private key for the group.

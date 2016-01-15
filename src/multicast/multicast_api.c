@@ -163,7 +163,7 @@ struct GNUNET_MULTICAST_JoinHandle
   /**
    * Public key of the member requesting join.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_pub_key;
 
   /**
    * Peer identity of the member requesting join.
@@ -254,9 +254,9 @@ group_recv_join_request (void *cls,
     jmsg = NULL;
   jh = GNUNET_malloc (sizeof (*jh));
   jh->group = grp;
-  jh->member_key = jreq->member_key;
+  jh->member_pub_key = jreq->member_pub_key;
   jh->peer = jreq->peer;
-  grp->join_req_cb (grp->cb_cls, &jreq->member_key, jmsg, jh);
+  grp->join_req_cb (grp->cb_cls, &jreq->member_pub_key, jmsg, jh);
 }
 
 
@@ -366,7 +366,7 @@ group_recv_replay_request (void *cls,
       struct GNUNET_MULTICAST_ReplayHandle * rh = GNUNET_malloc (sizeof (*rh));
       rh->grp = grp;
       rh->req = *rep;
-      grp->replay_frag_cb (grp->cb_cls, &rep->member_key,
+      grp->replay_frag_cb (grp->cb_cls, &rep->member_pub_key,
                            GNUNET_ntohll (rep->fragment_id),
                            GNUNET_ntohll (rep->flags), rh);
     }
@@ -378,7 +378,7 @@ group_recv_replay_request (void *cls,
       struct GNUNET_MULTICAST_ReplayHandle * rh = GNUNET_malloc (sizeof (*rh));
       rh->grp = grp;
       rh->req = *rep;
-      grp->replay_msg_cb (grp->cb_cls, &rep->member_key,
+      grp->replay_msg_cb (grp->cb_cls, &rep->member_pub_key,
                           GNUNET_ntohll (rep->message_id),
                           GNUNET_ntohll (rep->fragment_offset),
                           GNUNET_ntohll (rep->flags), rh);
@@ -615,7 +615,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *join,
   hdcsn->header.size = htons (sizeof (*hdcsn) + sizeof (*dcsn)
                               + relay_size + join_resp_size);
   hdcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
-  hdcsn->member_key = join->member_key;
+  hdcsn->member_pub_key = join->member_pub_key;
   hdcsn->peer = join->peer;
 
   dcsn = (struct MulticastJoinDecisionMessage *) &hdcsn[1];
@@ -995,7 +995,7 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  */
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_CRYPTO_EddsaPublicKey *group_key,
+                              const struct GNUNET_CRYPTO_EddsaPublicKey *group_pub_key,
                               const struct GNUNET_CRYPTO_EcdsaPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
                               uint16_t relay_count,
@@ -1017,7 +1017,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
     join = GNUNET_malloc (sizeof (*join) + relay_size + join_msg_size);
   join->header.size = htons (sizeof (*join) + relay_size + join_msg_size);
   join->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN);
-  join->group_key = *group_key;
+  join->group_pub_key = *group_pub_key;
   join->member_key = *member_key;
   join->origin = *origin;
   join->relay_count = ntohl (relay_count);
@@ -1122,6 +1122,7 @@ GNUNET_MULTICAST_member_replay_fragment (struct GNUNET_MULTICAST_Member *mem,
                                          uint64_t flags)
 {
   member_replay_request (mem, fragment_id, 0, 0, flags);
+  // FIXME: return
 }
 
 
@@ -1150,6 +1151,7 @@ GNUNET_MULTICAST_member_replay_message (struct GNUNET_MULTICAST_Member *mem,
                                         uint64_t flags)
 {
   member_replay_request (mem, 0, message_id, fragment_offset, flags);
+  // FIXME: return
 }
 
 

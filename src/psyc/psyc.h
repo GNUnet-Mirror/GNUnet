@@ -118,7 +118,7 @@ struct ChannelMembershipStoreRequest
 
   uint64_t op_id GNUNET_PACKED;
 
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
   uint64_t announced_at GNUNET_PACKED;
 

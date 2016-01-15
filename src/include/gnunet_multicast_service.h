@@ -179,7 +179,7 @@ struct GNUNET_MULTICAST_RequestHeader
   /**
    * Public key of the sending member.
    */
-  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_pub_key;
 
   /**
    * ECC signature of the request fragment.
@@ -285,7 +285,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  *
  * @param cls
  *        Closure.
- * @param member_key
+ * @param member_pub_key
  *        Public key of the member requesting join.
  * @param join_msg
  *        Application-dependent join message from the new member.
@@ -294,7 +294,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  */
 typedef void
 (*GNUNET_MULTICAST_JoinRequestCallback) (void *cls,
-                                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                                         const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
                                          const struct GNUNET_MessageHeader *join_msg,
                                          struct GNUNET_MULTICAST_JoinHandle *jh);
 
@@ -398,7 +398,7 @@ struct GNUNET_MULTICAST_ReplayHandle;
  * @param cls
  *        Closure (set from GNUNET_MULTICAST_origin_start()
  *        or GNUNET_MULTICAST_member_join()).
- * @param member_key
+ * @param member_pub_key
  *        The member requesting replay.
  * @param fragment_id
  *        Which message fragment should be replayed.
@@ -409,7 +409,7 @@ struct GNUNET_MULTICAST_ReplayHandle;
  */
 typedef void
 (*GNUNET_MULTICAST_ReplayFragmentCallback) (void *cls,
-                                            const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                                            const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
                                             uint64_t fragment_id,
                                             uint64_t flags,
                                             struct GNUNET_MULTICAST_ReplayHandle *rh);
@@ -425,7 +425,7 @@ typedef void
  * @param cls
  *        Closure (set from GNUNET_MULTICAST_origin_start()
  *        or GNUNET_MULTICAST_member_join()).
- * @param member_key
+ * @param member_pub_key
  *        The member requesting replay.
  * @param message_id
  *        Which message should be replayed.
@@ -438,7 +438,7 @@ typedef void
  */
 typedef void
 (*GNUNET_MULTICAST_ReplayMessageCallback) (void *cls,
-                                           const struct GNUNET_CRYPTO_EcdsaPublicKey *member_key,
+                                           const struct GNUNET_CRYPTO_EcdsaPublicKey *member_pub_key,
                                            uint64_t message_id,
                                            uint64_t fragment_offset,
                                            uint64_t flags,
@@ -697,7 +697,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin,
  *        Configuration to use.
  * @param group_key
  *        ECC public key that identifies the group to join.
- * @param member_key
+ * @param member_pub_key
  *        ECC key that identifies the member
  *        and used to sign requests sent to the origin.
  * @param origin
@@ -736,7 +736,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin,
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_CRYPTO_EddsaPublicKey *group_key,
-                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *member_key,
+                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *member_pub_key,
                               const struct GNUNET_PeerIdentity *origin,
                               uint16_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
