@@ -232,6 +232,12 @@ extern "C"
  */
 #define GNUNET_SOCIAL_APP_MAX_ID_SIZE 256
 
+enum GNUNET_SOCIAL_MsgProcFlags {
+  GNUNET_SOCIAL_MSG_PROC_NONE = 0,
+  GNUNET_SOCIAL_MSG_PROC_RELAY = 1,
+  GNUNET_SOCIAL_MSG_PROC_SAVE= 2,
+};
+
 /**
  * Handle for an application.
  */
@@ -1060,6 +1066,28 @@ GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *guest);
  * A history request.
  */
 struct GNUNET_SOCIAL_HistoryRequest;
+
+
+/**
+ * Set message processing @a flags for a @a method_prefix.
+ *
+ * @param plc
+ *        Place.
+ * @param method_prefix
+ *        Method prefix @a flags apply to.
+ * @param flags
+ *        The flags that apply to a matching @a method_prefix.
+ */
+void
+GNUNET_SOCIAL_place_msg_proc_set (struct GNUNET_SOCIAL_Place *plc,
+                                  const char *method_prefix,
+                                  enum GNUNET_SOCIAL_MsgProcFlags flags);
+
+/**
+ * Clear all message processing flags previously set for this place.
+ */
+void
+GNUNET_SOCIAL_place_msg_proc_clear (struct GNUNET_SOCIAL_Place *plc);
 
 
 /**

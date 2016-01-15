@@ -229,16 +229,26 @@ struct Place
    */
   struct GNUNET_HashCode ego_pub_hash;
 
-  uint64_t file_message_id;
-  uint64_t file_fragment_offset;
-  uint64_t file_size;
-  uint64_t file_offset;
+  /**
+   * Slicer for processing incoming messages.
+   */
+  struct GNUNET_PSYC_Slicer *slicer;
 
   /**
    * Last message ID received for the place.
    * 0 if there is no such message.
    */
   uint64_t max_message_id;
+
+  /**
+   * Offset where the file is currently being written.
+   */
+  uint64_t file_offset;
+
+  /**
+   * Whether or not to save the file (#GNUNET_YES or #GNUNET_NO)
+   */
+  uint8_t file_save;
 
   /**
    * Is this a host (#GNUNET_YES), or guest (#GNUNET_NO)?
@@ -509,6 +519,8 @@ cleanup_place (struct Place *plc)
   (GNUNET_YES == plc->is_host)
     ? cleanup_host ((struct Host *) plc)
     : cleanup_guest ((struct Guest *) plc);
+
+  GNUNET_PSYC_slicer_destroy (plc->slicer);
   GNUNET_free (plc);
 }
 
@@ -728,34 +740,132 @@ psyc_recv_join_dcsn (void *cls,
   place_send_msg (&gst->plc, &dcsn->header);
 }
 
-/**
- * Save _file data to disk.
- */
-void
-psyc_recv_file (struct Place *plc, const struct GNUNET_PSYC_MessageHeader *msg,
-                uint32_t flags, uint64_t message_id, uint64_t fragment_offset,
-                const char *method_name, struct GNUNET_PSYC_Environment *env,
-                const void *data, uint16_t data_size)
-{
-  if (plc->file_message_id != message_id)
-  {
-    if (0 != fragment_offset)
-    {
-      /* unexpected message ID */
-      GNUNET_break (0);
-      return;
-    }
 
-    /* new file */
-    plc->file_offset = 0;
-  }
+/**
+ * Called when a PSYC master or slave receives a message.
+ */
+static void
+psyc_recv_message (void *cls,
+                   uint64_t message_id,
+                   uint32_t flags,
+                   const struct GNUNET_PSYC_MessageHeader *msg)
+{
+  struct Place *plc = cls;
+
+  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&msg->slave_pub_key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received PSYC message of size %u from %s.\n",
+              plc, ntohs (msg->header.size), str);
+  GNUNET_free (str);
+
+  GNUNET_PSYC_slicer_message (plc->slicer, msg);
+
+  place_send_msg (plc, &msg->header);
+}
+
+
+static void
+place_recv_relay_method (void *cls,
+                         const struct GNUNET_PSYC_MessageMethod *meth,
+                         uint64_t message_id,
+                         uint32_t flags,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
+                         const char *method_name)
+{
+  struct Host *hst = cls;
+  struct Place *plc = &hst->plc;
+
+  // FIXME: relay message
+}
+
+
+static void
+place_recv_relay_modifier (void *cls,
+                           const struct GNUNET_MessageHeader *msg,
+                           uint64_t message_id,
+                           enum GNUNET_PSYC_Operator oper,
+                           const char *name,
+                           const void *value,
+                           uint16_t value_size,
+                           uint16_t full_value_size)
+{
+
+}
+
+
+static void
+place_recv_relay_eom (void *cls,
+                      const struct GNUNET_MessageHeader *msg,
+                      uint64_t message_id,
+                      uint8_t cancelled)
+{
+
+}
+
+
+static void
+place_recv_relay_data (void *cls,
+                       const struct GNUNET_MessageHeader *msg,
+                       uint64_t message_id,
+                       uint64_t data_offset,
+                       const void *data,
+                       uint16_t data_size)
+{
+
+}
+
+
+static void
+place_recv_save_method (void *cls,
+                        const struct GNUNET_PSYC_MessageMethod *meth,
+                        uint64_t message_id,
+                        uint32_t flags,
+                        const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
+                        const char *method_name)
+{
+  struct Place *plc = cls;
+  plc->file_offset = 0;
+  plc->file_save = GNUNET_NO;
 
   struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
   memcpy (&place_pub_hash_ascii.encoding,
           GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
 
   char *filename = NULL;
-  GNUNET_asprintf (&filename, "%s%c%s%c%s%c%" PRIu64,
+  GNUNET_asprintf (&filename, "%s%c%s%c%s%c%.part" PRIu64,
+                   dir_social, DIR_SEPARATOR,
+                   "files", DIR_SEPARATOR,
+                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   message_id);
+
+  /* save if does not already exist */
+  if (GNUNET_NO == GNUNET_DISK_file_test (filename))
+  {
+    plc->file_save = GNUNET_YES;
+  }
+
+  GNUNET_free (filename);
+}
+
+
+static void
+place_recv_save_data (void *cls,
+                      const struct GNUNET_MessageHeader *msg,
+                      uint64_t message_id,
+                      uint64_t data_offset,
+                      const void *data,
+                      uint16_t data_size)
+{
+  struct Place *plc = cls;
+  if (GNUNET_YES != plc->file_save)
+    return;
+
+  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
+  memcpy (&place_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
+
+  char *filename = NULL;
+  GNUNET_asprintf (&filename, "%s%c%s%c%s%c%.part" PRIu64,
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
                    place_pub_hash_ascii.encoding, DIR_SEPARATOR,
@@ -774,50 +884,38 @@ psyc_recv_file (struct Place *plc, const struct GNUNET_PSYC_MessageHeader *msg,
 }
 
 
-/**
- * Called when a PSYC master or slave receives a message.
- */
 static void
-psyc_recv_message (void *cls,
-                   uint64_t message_id,
-                   uint32_t flags,
-                   const struct GNUNET_PSYC_MessageHeader *msg)
+place_recv_save_eom (void *cls,
+                     const struct GNUNET_MessageHeader *msg,
+                     uint64_t message_id,
+                     uint8_t cancelled)
 {
   struct Place *plc = cls;
+  if (GNUNET_YES != plc->file_save)
+    return;
 
-  char *str = GNUNET_CRYPTO_ecdsa_public_key_to_string (&msg->slave_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Received PSYC message of size %u from %s.\n",
-              plc, ntohs (msg->header.size), str);
-  GNUNET_free (str);
+  struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
+  memcpy (&place_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
 
-  /* process message */
-  /* FIXME: use slicer */
-  const char *method_name = NULL;
-  struct GNUNET_PSYC_Environment *env = GNUNET_PSYC_env_create ();
-  const void *data = NULL;
-  uint16_t data_size = 0;
+  char *fn_part = NULL;
+  GNUNET_asprintf (&fn_part, "%s%c%s%c%s%c%.part" PRIu64,
+                   dir_social, DIR_SEPARATOR,
+                   "files", DIR_SEPARATOR,
+                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   message_id);
 
-  if (GNUNET_SYSERR == GNUNET_PSYC_message_parse (msg, &method_name, env, &data, &data_size))
-  {
-    GNUNET_break (0);
-  }
-  else
-  {
-    char *method_found = strstr (method_name, "_file");
-    if (method_name == method_found)
-    {
-      method_found += strlen ("_file");
-      if (('\0' == *method_found) || ('_' == *method_found))
-      {
-        psyc_recv_file (plc, msg, flags, message_id, GNUNET_ntohll (msg->fragment_offset),
-                        method_name, env, data, data_size);
-      }
-    }
-  }
-  GNUNET_PSYC_env_destroy (env);
+  char *fn = NULL;
+  GNUNET_asprintf (&fn, "%s%c%s%c%s%c%" PRIu64,
+                   dir_social, DIR_SEPARATOR,
+                   "files", DIR_SEPARATOR,
+                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
+                   message_id);
 
-  place_send_msg (plc, &msg->header);
+  rename (fn_part, fn);
+
+  GNUNET_free (fn);
+  GNUNET_free (fn_part);
 }
 
 
@@ -1118,6 +1216,7 @@ host_enter (const struct HostEnterRequest *hreq, struct Host **ret_hst)
     plc->is_host = GNUNET_YES;
     plc->pub_key = hreq->place_pub_key;
     plc->pub_key_hash = place_pub_hash;
+    plc->slicer = GNUNET_PSYC_slicer_create ();
 
     GNUNET_CONTAINER_multihashmap_put (hosts, &plc->pub_key_hash, plc,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -1125,13 +1224,122 @@ host_enter (const struct HostEnterRequest *hreq, struct Host **ret_hst)
                                             &psyc_master_started,
                                             &psyc_recv_join_request,
                                             &psyc_recv_message, NULL, hst);
-    hst->plc.channel = GNUNET_PSYC_master_get_channel (hst->master);
+    plc->channel = GNUNET_PSYC_master_get_channel (hst->master);
     ret = GNUNET_YES;
   }
 
   if (NULL != ret_hst)
     *ret_hst = hst;
   return ret;
+}
+
+
+const struct MsgProcRequest *
+relay_req_parse (const struct GNUNET_MessageHeader *msg,
+                 uint32_t *flags,
+                 const char **method_prefix,
+                 struct GNUNET_HashCode *method_hash)
+{
+  const struct MsgProcRequest *mpreq = (const struct MsgProcRequest *) msg;
+  uint8_t method_size = ntohs (mpreq->header.size) - sizeof (*mpreq);
+  uint16_t offset = GNUNET_STRINGS_buffer_tokenize ((const char *) &mpreq[1],
+                                                    method_size, 1, method_prefix);
+
+  if (0 == offset || offset != method_size || *method_prefix == NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "offset = %u, method_size = %u, method_name = %s\n",
+                offset, method_size, *method_prefix);
+    return NULL;
+  }
+
+  GNUNET_CRYPTO_hash (*method_prefix, method_size, method_hash);
+  *flags = ntohl (mpreq->flags);
+  return mpreq;
+}
+
+
+/**
+ * Handle a client setting message proccesing flags for a method prefix.
+ */
+static void
+client_recv_msg_proc_set (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *
+    ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
+  GNUNET_assert (NULL != ctx);
+  struct Place *plc = ctx->plc;
+
+  const char *method_prefix = NULL;
+  uint32_t flags = 0;
+  struct GNUNET_HashCode method_hash;
+  const struct MsgProcRequest *
+    mpreq = relay_req_parse (msg, &flags, &method_prefix, &method_hash);
+
+  if (NULL == mpreq) {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  GNUNET_PSYC_slicer_method_remove (plc->slicer, method_prefix,
+                                    place_recv_relay_method,
+                                    place_recv_relay_modifier,
+                                    place_recv_relay_data,
+                                    place_recv_relay_eom);
+  GNUNET_PSYC_slicer_method_remove (plc->slicer, method_prefix,
+                                    place_recv_save_method,
+                                    NULL,
+                                    place_recv_save_data,
+                                    place_recv_save_eom);
+
+  if (flags & GNUNET_SOCIAL_MSG_PROC_RELAY)
+  {
+    GNUNET_PSYC_slicer_method_add (plc->slicer, method_prefix,
+                                   place_recv_relay_method,
+                                   place_recv_relay_modifier,
+                                   place_recv_relay_data,
+                                   place_recv_relay_eom,
+                                   plc);
+  }
+  if (flags & GNUNET_SOCIAL_MSG_PROC_SAVE)
+  {
+    GNUNET_PSYC_slicer_method_add (plc->slicer, method_prefix,
+                                   place_recv_save_method,
+                                   NULL,
+                                   place_recv_save_data,
+                                   place_recv_save_eom,
+                                   plc);
+  }
+
+  /** @todo Save flags to be able to resume relaying/saving after restart */
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Handle a connecting client requesting to clear all relay rules.
+ */
+static void
+client_recv_msg_proc_clear (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *msg)
+{
+  struct Client *
+    ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
+  GNUNET_assert (NULL != ctx);
+  struct Place *plc = ctx->plc;
+  if (GNUNET_YES != plc->is_host) {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+  struct Host *hst = (struct Host *) plc;
+
+  GNUNET_PSYC_slicer_clear (plc->slicer);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -1320,6 +1528,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     plc->ego_pub_key = ego_pub_key;
     plc->ego_pub_hash = ego_pub_hash;
     plc->ego_key = ego->key;
+    plc->slicer = GNUNET_PSYC_slicer_create ();
 
     if (NULL == plc_gst)
     {
@@ -1339,7 +1548,7 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
                                 &psyc_slave_connected,
                                 &psyc_recv_join_dcsn,
                                 gst, join_msg);
-    gst->plc.channel = GNUNET_PSYC_slave_get_channel (gst->slave);
+    plc->channel = GNUNET_PSYC_slave_get_channel (gst->slave);
     ret = GNUNET_YES;
   }
 
@@ -1805,7 +2014,11 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
     ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
   GNUNET_assert (NULL != ctx);
   struct Place *plc = ctx->plc;
-  GNUNET_assert (GNUNET_YES == plc->is_host);
+  if (GNUNET_YES != plc->is_host) {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   struct Host *hst = (struct Host *) plc;
 
   struct GNUNET_PSYC_JoinDecisionMessage *
@@ -1817,20 +2030,20 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
     ? (struct GNUNET_PSYC_Message *) &dcsn[1]
     : NULL;
 
-  struct GNUNET_HashCode slave_key_hash;
-  GNUNET_CRYPTO_hash (&dcsn->slave_key, sizeof (dcsn->slave_key),
-                      &slave_key_hash);
+  struct GNUNET_HashCode slave_pub_hash;
+  GNUNET_CRYPTO_hash (&dcsn->slave_pub_key, sizeof (dcsn->slave_pub_key),
+                      &slave_pub_hash);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Got join decision (%d) from client for place %s..\n",
               hst, jcls.is_admitted, GNUNET_h2s (&plc->pub_key_hash));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p ..and slave %s.\n",
-              hst, GNUNET_h2s (&slave_key_hash));
+              hst, GNUNET_h2s (&slave_pub_hash));
 
-  GNUNET_CONTAINER_multihashmap_get_multiple (hst->join_reqs, &slave_key_hash,
+  GNUNET_CONTAINER_multihashmap_get_multiple (hst->join_reqs, &slave_pub_hash,
                                               &psyc_send_join_decision, &jcls);
-  GNUNET_CONTAINER_multihashmap_remove_all (hst->join_reqs, &slave_key_hash);
+  GNUNET_CONTAINER_multihashmap_remove_all (hst->join_reqs, &slave_pub_hash);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -2832,44 +3045,50 @@ client_recv_zone_add_nym (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-  { &client_recv_host_enter, NULL,
+  { client_recv_host_enter, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER, 0 },
 
-  { &client_recv_guest_enter, NULL,
+  { client_recv_guest_enter, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER, 0 },
 
-  { &client_recv_guest_enter_by_name, NULL,
+  { client_recv_guest_enter_by_name, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_BY_NAME, 0 },
 
-  { &client_recv_join_decision, NULL,
+  { client_recv_join_decision, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION, 0 },
 
-  { &client_recv_psyc_message, NULL,
+  { client_recv_psyc_message, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 },
 
-  { &client_recv_history_replay, NULL,
+  { client_recv_history_replay, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY, 0 },
 
-  { &client_recv_state_get, NULL,
+  { client_recv_state_get, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STATE_GET, 0 },
 
-  { &client_recv_state_get, NULL,
+  { client_recv_state_get, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX, 0 },
 
-  { &client_recv_zone_add_place, NULL,
+  { client_recv_zone_add_place, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_PLACE, 0 },
 
-  { &client_recv_zone_add_nym, NULL,
+  { client_recv_zone_add_nym, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_ZONE_ADD_NYM, 0 },
 
-  { &client_recv_app_connect, NULL,
+  { client_recv_app_connect, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_APP_CONNECT, 0 },
 
-  { &client_recv_app_detach, NULL,
+  { client_recv_app_detach, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_APP_DETACH, 0 },
 
-  { &client_recv_place_leave, NULL,
+  { client_recv_place_leave, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_LEAVE, 0 },
+
+  { client_recv_msg_proc_set, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET, 0 },
+
+  { client_recv_msg_proc_clear, NULL,
+    GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR, 0 },
 
   { NULL, NULL, 0, 0 }
 };

@@ -250,9 +250,9 @@ GNUNET_PSYC_slicer_method_remove (struct GNUNET_PSYC_Slicer *slicer,
  */
 void
 GNUNET_PSYC_slicer_modifier_add (struct GNUNET_PSYC_Slicer *slicer,
-                                   const char *object_filter,
-                                   GNUNET_PSYC_ModifierCallback modifier_cb,
-                                   void *cls);
+                                 const char *object_filter,
+                                 GNUNET_PSYC_ModifierCallback modifier_cb,
+                                 void *cls);
 
 
 /**
@@ -270,30 +270,75 @@ GNUNET_PSYC_slicer_modifier_add (struct GNUNET_PSYC_Slicer *slicer,
  */
 int
 GNUNET_PSYC_slicer_modifier_remove (struct GNUNET_PSYC_Slicer *slicer,
-                                      const char *object_filter,
-                                      GNUNET_PSYC_ModifierCallback modifier_cb);
+                                    const char *object_filter,
+                                    GNUNET_PSYC_ModifierCallback modifier_cb);
+
+
+/**
+ * Process an incoming message and call matching handlers.
+ *
+ * @param slicer
+ *        The slicer to use.
+ * @param msg
+ *        The message as it arrived from the network.
+ */
+void
+GNUNET_PSYC_slicer_message (struct GNUNET_PSYC_Slicer *slicer,
+                            const struct GNUNET_PSYC_MessageHeader *msg);
 
 
 /**
  * Process an incoming message part and call matching handlers.
  *
- * @param cls
- *        Closure.
+ * @param slicer
+ *        The slicer to use.
  * @param message_id
  *        ID of the message.
  * @param flags
  *        Flags for the message.
  *        @see enum GNUNET_PSYC_MessageFlags
+ * @param fragment offset
+ *        Fragment offset of the message.
  * @param msg
- *        The message part. as it arrived from the network.
+ *        The message part as it arrived from the network.
  */
 void
-GNUNET_PSYC_slicer_message (void *cls,
-                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
-                            uint64_t message_id,
-                            uint32_t flags,
-                            uint64_t fragment_offset,
-                            const struct GNUNET_MessageHeader *msg);
+GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
+                                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
+                                 uint64_t message_id,
+                                 uint32_t flags,
+                                 uint64_t fragment_offset,
+                                 const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Remove all registered method handlers.
+ *
+ * @param slicer
+ *        Slicer to clear.
+ */
+void
+GNUNET_PSYC_slicer_method_clear (struct GNUNET_PSYC_Slicer *slicer);
+
+
+/**
+ * Remove all registered modifier handlers.
+ *
+ * @param slicer
+ *        Slicer to clear.
+ */
+void
+GNUNET_PSYC_slicer_modifier_clear (struct GNUNET_PSYC_Slicer *slicer);
+
+
+/**
+ * Remove all registered method & modifier handlers.
+ *
+ * @param slicer
+ *        Slicer to clear.
+ */
+void
+GNUNET_PSYC_slicer_clear (struct GNUNET_PSYC_Slicer *slicer);
 
 
 /**

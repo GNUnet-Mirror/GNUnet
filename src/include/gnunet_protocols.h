@@ -2646,8 +2646,11 @@ extern "C"
 /** S->C: notify about an existing place */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_APP_PLACE 854
 
-/** S->C:  */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_HOST_RELAY 855
+/** C->S: set message processing flags */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET 860
+
+/** C->S: clear message processing flags */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR 860
 
 /*******************************************************************************
  * X-VINE DHT messages

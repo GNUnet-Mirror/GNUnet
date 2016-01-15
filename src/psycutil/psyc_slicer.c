@@ -50,6 +50,11 @@ struct GNUNET_PSYC_Slicer
   struct GNUNET_CONTAINER_MultiHashMap *modifier_handlers;
 
   /**
+   * Receive handle for incoming messages.
+   */
+  struct GNUNET_PSYC_ReceiveHandle *recv;
+
+  /**
    * Currently being processed message part.
    */
   const struct GNUNET_MessageHeader *msg;
@@ -151,7 +156,7 @@ struct SlicerModifierRemoveClosure
 /**
  * Call a method handler for an incoming message part.
  */
-int
+static int
 slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
                               void *value)
 {
@@ -229,7 +234,7 @@ slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
 /**
  * Call a method handler for an incoming message part.
  */
-int
+static int
 slicer_modifier_handler_notify (void *cls, const struct GNUNET_HashCode *key,
                                 void *value)
 {
@@ -240,6 +245,22 @@ slicer_modifier_handler_notify (void *cls, const struct GNUNET_HashCode *key,
                     slicer->mod_name, slicer->mod_value,
                     slicer->mod_value_size, slicer->mod_full_value_size);
   return GNUNET_YES;
+}
+
+
+/**
+ * Process an incoming message and call matching handlers.
+ *
+ * @param slicer
+ *        The slicer to use.
+ * @param msg
+ *        The message as it arrived from the network.
+ */
+void
+GNUNET_PSYC_slicer_message (struct GNUNET_PSYC_Slicer *slicer,
+                            const struct GNUNET_PSYC_MessageHeader *msg)
+{
+  GNUNET_PSYC_receive_message (slicer->recv, msg);
 }
 
 
@@ -257,11 +278,13 @@ slicer_modifier_handler_notify (void *cls, const struct GNUNET_HashCode *key,
  *        The message part. as it arrived from the network.
  */
 void
-GNUNET_PSYC_slicer_message (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
-                            uint64_t message_id, uint32_t flags, uint64_t fragment_offset,
-                            const struct GNUNET_MessageHeader *msg)
+GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
+                                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
+                                 uint64_t message_id,
+                                 uint32_t flags,
+                                 uint64_t fragment_offset,
+                                 const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_PSYC_Slicer *slicer = cls;
   slicer->nym_pub_key = *slave_pub_key;
 
   uint16_t ptype = ntohs (msg->type);
@@ -381,6 +404,10 @@ GNUNET_PSYC_slicer_create (void)
   struct GNUNET_PSYC_Slicer *slicer = GNUNET_malloc (sizeof (*slicer));
   slicer->method_handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   slicer->modifier_handlers = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+  slicer->recv = GNUNET_PSYC_receive_create (NULL,
+                                             (GNUNET_PSYC_MessagePartCallback)
+                                             GNUNET_PSYC_slicer_message_part,
+                                             slicer);
   return slicer;
 }
 
@@ -430,7 +457,7 @@ GNUNET_PSYC_slicer_method_add (struct GNUNET_PSYC_Slicer *slicer,
 }
 
 
-int
+static int
 slicer_method_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct SlicerMethodRemoveClosure *rm_cls = cls;
@@ -531,7 +558,7 @@ GNUNET_PSYC_slicer_modifier_add (struct GNUNET_PSYC_Slicer *slicer,
 }
 
 
-int
+static int
 slicer_modifier_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct SlicerModifierRemoveClosure *rm_cls = cls;
@@ -585,12 +612,63 @@ GNUNET_PSYC_slicer_modifier_remove (struct GNUNET_PSYC_Slicer *slicer,
  }
 
 
-int
+static int
 slicer_method_free (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct SlicerMethodCallbacks *cbs = value;
   GNUNET_free (cbs);
   return GNUNET_YES;
+}
+
+
+static int
+slicer_modifier_free (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  struct SlicerModifierCallbacks *cbs = value;
+  GNUNET_free (cbs);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Remove all registered method handlers.
+ *
+ * @param slicer
+ *        Slicer to clear.
+ */
+void
+GNUNET_PSYC_slicer_method_clear (struct GNUNET_PSYC_Slicer *slicer)
+{
+  GNUNET_CONTAINER_multihashmap_iterate (slicer->method_handlers,
+                                         slicer_method_free, NULL);
+}
+
+
+/**
+ * Remove all registered modifier handlers.
+ *
+ * @param slicer
+ *        Slicer to clear.
+ */
+void
+GNUNET_PSYC_slicer_modifier_clear (struct GNUNET_PSYC_Slicer *slicer)
+{
+  GNUNET_CONTAINER_multihashmap_iterate (slicer->modifier_handlers,
+                                         slicer_modifier_free, NULL);
+}
+
+
+/**
+ * Remove all registered method & modifier handlers.
+ *
+ * @param slicer
+ *        Slicer to clear.
+ */
+void
+GNUNET_PSYC_slicer_clear (struct GNUNET_PSYC_Slicer *slicer)
+{
+  GNUNET_PSYC_slicer_method_clear (slicer);
+  GNUNET_PSYC_slicer_modifier_clear (slicer);
 }
 
 
@@ -603,8 +681,9 @@ slicer_method_free (void *cls, const struct GNUNET_HashCode *key, void *value)
 void
 GNUNET_PSYC_slicer_destroy (struct GNUNET_PSYC_Slicer *slicer)
 {
-  GNUNET_CONTAINER_multihashmap_iterate (slicer->method_handlers,
-                                         slicer_method_free, NULL);
+  GNUNET_PSYC_slicer_clear (slicer);
   GNUNET_CONTAINER_multihashmap_destroy (slicer->method_handlers);
+  GNUNET_CONTAINER_multihashmap_destroy (slicer->modifier_handlers);
+  GNUNET_PSYC_receive_destroy (slicer->recv);
   GNUNET_free (slicer);
 }

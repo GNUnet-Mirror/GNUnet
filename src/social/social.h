@@ -80,16 +80,19 @@ struct AppDetachRequest
 };
 
 
-struct HostRelayRequest
+struct MsgProcRequest
 {
   /**
-   * Types:
-   * - GNUNET_MESSAGE_TYPE_SOCIAL_HOST_RELAY_START
-   * - GNUNET_MESSAGE_TYPE_SOCIAL_HOST_RELAY_STOP
+   * Type: GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET
    */
   struct GNUNET_MessageHeader header;
 
-  /* Followed by char *method_name */
+  /**
+   * @see enum GNUNET_SOCIAL_MsgProcFlags
+   */
+  uint32_t flags;
+
+  /* Followed by char *method_prefix */
 };
 
 
