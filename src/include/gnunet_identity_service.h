@@ -35,6 +35,8 @@
  * (public keys).  For giving names to other users and manage their
  * public keys securely, we use GNS.
  *
+ * @see [Documentation](https://gnunet.org/identity-subsystem)
+ *
  * @{
  */
 #ifndef GNUNET_IDENTITY_SERVICE_H

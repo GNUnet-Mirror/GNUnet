@@ -26,6 +26,9 @@
  *
  * @defgroup gnsrecord  GNS Record library
  * Manipulate GNS record data
+ *
+ * @see [Documentation](https://gnunet.org/gns-plugins)
+ *
  * @{
  */
 #ifndef GNUNET_GNSRECORD_LIB_H

@@ -31,6 +31,8 @@
  *
  * All statistical values must be of type `unsigned long long`.
  *
+ * @see [Documentation](https://gnunet.org/gnunet-statistics-subsystem)
+ *
  * @{
  */
 

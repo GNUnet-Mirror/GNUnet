@@ -31,6 +31,8 @@
  * authoritative, or blocks which are cached, encrypted naming data from other
  * peers.
  *
+ * @see [Documentation](https://gnunet.org/namecache-subsystem)
+ *
  * @{
  */
 #ifndef GNUNET_NAMECACHE_SERVICE_H

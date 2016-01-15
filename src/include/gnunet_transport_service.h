@@ -26,6 +26,9 @@
  *
  * @defgroup transport  Transport service
  * Low-level P2P IO
+ *
+ * @see [Documentation](https://gnunet.org/transport-service)
+ *
  * @{
  */
 

@@ -26,6 +26,9 @@
  *
  * @defgroup ats  ATS service
  * Automatic Transport Selection and outbound bandwidth determination
+ *
+ * @see [Documentation](https://gnunet.org/ats-subsystem)
+ *
  * @{
  */
 #ifndef GNUNET_ATS_SERVICE_H

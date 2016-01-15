@@ -25,6 +25,9 @@
  *
  * @defgroup fs FS service
  * File sharing
+ *
+ * @see [Documentation](https://gnunet.org/file-sharing-service)
+ *
  * @{
  */
 #ifndef GNUNET_FS_LIB_H

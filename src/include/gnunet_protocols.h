@@ -26,6 +26,9 @@
  *
  * @defgroup protocols  Network protocol definitions
  * Types of messages used in GNUnet.
+ *
+ * @see [Documentation](https://gnunet.org/ipc)
+ *
  * @{
  */
 

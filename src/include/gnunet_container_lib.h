@@ -28,6 +28,8 @@
  * @defgroup hashmap  Container library: MultiHashMap
  * Hash map with multiple values per key.
  *
+ * @see [Documentation](https://gnunet.org/util_multihashmap)
+ *
  * @defgroup heap  Container library: Heap
  * Min- or max-heap with arbitrary element removal
  *
@@ -35,6 +37,8 @@
  * Probabilistic set tests
  *
  * @defgroup dll  Container library: Doubly-linked list
+ *
+ * @see [Documentation](https://gnunet.org/mdll-api)
  *
  * @defgroup metadata  Container library: Metadata
  * GNU libextractor key-value pairs

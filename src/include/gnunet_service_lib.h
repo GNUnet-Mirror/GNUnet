@@ -26,6 +26,9 @@
  *
  * @defgroup service  Service library
  * Start service processes.
+ *
+ * @see [Documentation](https://gnunet.org/developer-handbook-util-services)
+ *
  * @{
  */
 

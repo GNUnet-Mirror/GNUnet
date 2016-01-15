@@ -25,6 +25,9 @@
  * API to access the DNS service.
  *
  * @defgroup dns  DNS service
+ *
+ * @see [Documentation](https://gnunet.org/gnunet-service-dns)
+ *
  * @{
  */
 #ifndef GNUNET_DNS_SERVICE_H

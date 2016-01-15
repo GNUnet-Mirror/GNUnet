@@ -26,6 +26,9 @@
  *
  * @defgroup namecache-plugin  Name Cache service plugin API
  * Plugin API for the namecache database backend.
+ *
+ * @see [Documentation](https://gnunet.org/namecache-plugin-api)
+ *
  * @{
  */
 #ifndef GNUNET_NAMECACHE_PLUGIN_H

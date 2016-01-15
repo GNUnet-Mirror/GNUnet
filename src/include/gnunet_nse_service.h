@@ -34,6 +34,8 @@
  * also to register for notifications whenever a new
  * network size estimate is calculated.
  *
+ * @see [Documentation](https://gnunet.org/gnunet-nse-subsystem)
+ *
  * @{
  */
 

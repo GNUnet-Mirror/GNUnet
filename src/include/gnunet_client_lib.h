@@ -26,6 +26,9 @@
 
  * @defgroup client  Client library
  * Generic client-side communication with services
+ *
+ * @see [Documentation](https://gnunet.org/ipc)
+ *
  * @{
  */
 

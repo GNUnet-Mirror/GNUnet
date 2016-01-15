@@ -28,6 +28,8 @@
  * @author Nils Durner
  *
  * @defgroup logging Logging
+ * @see [Documentation](https://gnunet.org/logging)
+ *
  * @defgroup memory Memory management
  */
 #ifndef GNUNET_COMMON_H

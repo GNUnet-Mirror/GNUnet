@@ -25,6 +25,9 @@
  *
  * @defgroup core  Core service
  * Encrypted direct communication between peers
+ *
+ * @see [Documentation](https://gnunet.org/gnunet-core-subsystem)
+ *
  * @{
  */
 #ifndef GNUNET_CORE_SERVICE_H

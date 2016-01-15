@@ -29,9 +29,14 @@
  * @author Tzvetan Horozov
  *
  * @defgroup crypto  Crypto library: cryptographic operations
+ * Provides cryptographic primitives.
+ *
+ * @see [Documentation](https://gnunet.org/crypto-api)
  *
  * @defgroup hash  Crypto library: hash operations
- * Hashing and operations on hashes
+ * Provides hashing and operations on hashes.
+ *
+ * @see [Documentation](https://gnunet.org/crypto-api)
  */
 
 #ifndef GNUNET_CRYPTO_LIB_H

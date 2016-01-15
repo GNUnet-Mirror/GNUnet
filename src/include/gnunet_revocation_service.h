@@ -29,6 +29,9 @@
  *
  * @defgroup revocation  Revocation service
  * Perform and access key revocations.
+ *
+ * @see [Documentation](https://gnunet.org/revocation-subsystem)
+ *
  * @{
  */
 

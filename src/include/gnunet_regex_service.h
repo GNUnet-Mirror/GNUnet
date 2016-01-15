@@ -29,6 +29,8 @@
  * Advertise capabilities via RegEx and discover
  * respective peers using matching strings.
  *
+ * @see [Documentation](https://gnunet.org/regex)
+ *
  * @{
  */
 #ifndef GNUNET_REGEX_SERVICE_H

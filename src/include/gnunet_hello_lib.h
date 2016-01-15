@@ -25,6 +25,9 @@
  *
  * @defgroup hello  Hello library
  * Helper library for handling HELLOs
+ *
+ * @see [Documentation](https://gnunet.org/gnunets-hostlist-subsystem)
+ *
  * @{
  */
 

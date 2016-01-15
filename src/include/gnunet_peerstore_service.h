@@ -26,6 +26,8 @@
  *
  * @defgroup peerstore  Peer Store service
  *
+ * @see [Documentation](https://gnunet.org/gnunets-peerstore-subsystem)
+ *
  * @{
  */
 #ifndef GNUNET_PEERSTORE_SERVICE_H

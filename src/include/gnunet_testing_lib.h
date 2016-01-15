@@ -33,6 +33,8 @@
  * management or distributed testbed maintenance (those are provided by the
  * [Testbed service](@ref testbed))
  *
+ * @see [Documentation](https://gnunet.org/writing_testcases)
+ *
  * @{
  */
 

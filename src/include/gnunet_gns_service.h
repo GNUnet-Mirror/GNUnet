@@ -26,6 +26,9 @@
  *
  * @defgroup gns  GNS service
  * GNU Name System
+ *
+ * @see [Documentation](https://gnunet.org/gns-implementation)
+ *
  * @{
  */
 #ifndef GNUNET_GNS_SERVICE_H

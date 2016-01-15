@@ -26,6 +26,9 @@
  *
  * @defgroup arm  ARM service
  * Automatic Restart Manager
+ *
+ * @see [Documentation](https://gnunet.org/arm)
+ *
  * @{
  */
 

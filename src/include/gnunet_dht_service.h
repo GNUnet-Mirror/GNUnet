@@ -26,6 +26,9 @@
  *
  * @defgroup dht  DHT service
  * Distributed Hash Table
+ *
+ * @see [Documentation](https://gnunet.org/developer-handbook-dht)
+ *
  * @{
  */
 

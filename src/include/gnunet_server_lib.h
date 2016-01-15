@@ -29,6 +29,8 @@
  *
  * Provides functions for a server that communicates with clients.
  *
+ * @see [Documentation](https://gnunet.org/ipc)
+ *
  * @{
  */
 

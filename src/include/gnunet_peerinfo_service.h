@@ -28,6 +28,8 @@
  *
  * Holds an in-memory structure of data/hosts.
  *
+ * @see [Documentation](https://gnunet.org/gnunets-peerinfo-subsystem)
+ *
  * @{
  */
 

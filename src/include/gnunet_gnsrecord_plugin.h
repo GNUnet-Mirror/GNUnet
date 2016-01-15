@@ -26,6 +26,9 @@
  *
  * @defgroup gnsrecord-plugin  GNS Record plugin API
  * To be implemented by applications defining new record types.
+ *
+ * @see [Documentation](https://gnunet.org/gns-plugins)
+ *
  * @{
  */
 #ifndef GNUNET_GNSRECORD_PLUGIN_H

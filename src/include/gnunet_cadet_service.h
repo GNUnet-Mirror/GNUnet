@@ -27,9 +27,8 @@
  * @defgroup cadet  CADET service
  * Confidential Ad-hoc Decentralized End-to-End Transport
  *
- * See also:
- * - [CADET documentation](https://gnunet.org/cadet-subsystem)
- * - [CADET paper](https://gnunet.org/cadet)
+ * @see [Documentation](https://gnunet.org/cadet-subsystem)
+ * @see [Paper](https://gnunet.org/cadet)
  *
  * @{
  */

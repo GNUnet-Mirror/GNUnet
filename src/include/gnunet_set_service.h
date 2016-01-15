@@ -27,6 +27,9 @@
  *
  * @defgroup set  Set service
  * Two-peer set operations
+ *
+ * @see [Documentation](https://gnunet.org/set-subsystem)
+ *
  * @{
  */
 

@@ -23,6 +23,8 @@
  *
  * @file
  * Convenience header including all headers of subsystems in the gnunet_util library
+ *
+ * @see [Documentation](https://gnunet.org/libgnuneutil)
  */
 
 #ifndef GNUNET_UTIL_LIB_H
