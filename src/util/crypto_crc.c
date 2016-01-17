@@ -165,5 +165,35 @@ GNUNET_CRYPTO_crc16_n (const void *buf, size_t len)
 }
 
 
+/**
+ * @ingroup hash
+ * Calculate the checksum of a buffer in one step.
+ *
+ * @param buf buffer to calculate CRC over
+ * @param len number of bytes in @a buf
+ * @return crc8 value
+ */
+uint8_t
+GNUNET_CRYPTO_crc8_n (const void *buf,
+                      size_t len)
+{
+  const uint8_t *data = buf;
+  unsigned int crc = 0;
+  int i;
+  int j;
+
+  for (j = len; 0 != j; j--)
+  {
+    crc ^= (*data++ << 8);
+    for (i = 8; 0 != i; i--)
+    {
+      if (0 != (crc & 0x8000))
+        crc ^= (0x1070 << 3);
+      crc <<= 1;
+    }
+  }
+  return (uint8_t) (crc >> 8);
+}
+
 
 /* end of crypto_crc.c */

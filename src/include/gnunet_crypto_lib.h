@@ -403,6 +403,19 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed);
 
 
 /**
+ * @ingroup hash
+ * Calculate the checksum of a buffer in one step.
+ *
+ * @param buf buffer to calculate CRC over
+ * @param len number of bytes in @a buf
+ * @return crc8 value
+ */
+uint8_t
+GNUNET_CRYPTO_crc8_n (const void *buf,
+                      size_t len);
+
+
+/**
  * Perform an incremental step in a CRC16 (for TCP/IP) calculation.
  *
  * @param sum current sum, initially 0
@@ -437,6 +450,8 @@ GNUNET_CRYPTO_crc16_finish (uint32_t sum);
 uint16_t
 GNUNET_CRYPTO_crc16_n (const void *buf,
                        size_t len);
+
+
 
 
 /**
