@@ -1,6 +1,6 @@
 /*
    This file is part of GNUnet.
-   Copyright (C) 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+   Copyright (C) 2010, 2011, 2012 GNUnet e.V.
    Copyright (c) 2007, 2008, Andy Green <andy@warmcat.com>
    Copyright Copyright (C) 2009 Thomas d'Otreppe
 

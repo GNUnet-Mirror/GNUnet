@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2009 Christian Grothoff Jeff Burdges, and other contributing authors
+     Copyright (C) 2015 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -99,7 +99,7 @@ recv_bounce (void *cls, const struct GNUNET_MessageHeader *got)
   struct GNUNET_MessageHeader msg;
 
   GNUNET_assert (got != NULL);  /* timeout */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Receiving bounce, checking content\n");
   msg.type = htons (MY_TYPE);
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -183,7 +183,7 @@ main (int argc, char *argv[])
 
   pid_t pid = fork();
   GNUNET_assert (pid >= 0);
-  if (pid == 0) 
+  if (pid == 0)
   {
     execlp ("ssh",
             "ssh","-D",socksport,

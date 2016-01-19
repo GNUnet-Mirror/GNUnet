@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     Copyright (C) 2001, 2002, 2003, 2005, 2006 Christian Grothoff (and other contributing authors)
+     Copyright (C) 2001, 2002, 2003, 2005, 2006 GNUnet e.V.
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
