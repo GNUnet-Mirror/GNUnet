@@ -499,8 +499,10 @@ shutdown_op (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   in_shutdown = GNUNET_YES;
   if (NULL != churn_task)
+  {
     GNUNET_SCHEDULER_cancel (churn_task);
-
+    churn_task = NULL;
+  }
   for (i = 0; i < num_peers; i++)
     if (NULL != rps_peers[i].op)
       GNUNET_TESTBED_operation_done (rps_peers[i].op);
@@ -1520,7 +1522,9 @@ main (int argc, char *argv[])
        (3 == mal_type))
     target_peer = &rps_peer_ids[num_peers - 2];
   if (profiler_eval == cur_test_run.eval_cb)
-    eval_peer = &rps_peers[num_peers - 1];
+    eval_peer = &rps_peers[num_peers - 1];    /* FIXME: eval_peer could be a
+                                                 malicious peer if not careful
+                                                 with the malicious portion */
 
   ok = 1;
   (void) GNUNET_TESTBED_test_run (cur_test_run.name,
