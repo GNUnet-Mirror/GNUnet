@@ -1028,9 +1028,10 @@ derive_h (const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
 {
   gcry_mpi_t h;
   struct GNUNET_HashCode hc;
+  static const char *const salt = "key-derivation";
 
   GNUNET_CRYPTO_kdf (&hc, sizeof (hc),
-		     "key-derivation", strlen ("key-derivation"),
+		     salt, strlen (salt),
 		     pub, sizeof (*pub),
 		     label, strlen (label),
 		     context, strlen (context),
