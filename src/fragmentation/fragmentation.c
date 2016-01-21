@@ -262,7 +262,7 @@ transmit_next (void *cls,
     delay = GNUNET_TIME_UNIT_ZERO;
   delay = GNUNET_TIME_relative_max (delay,
 				    GNUNET_TIME_relative_multiply (fc->msg_delay,
-								   (1 << fc->num_rounds)));
+								   (1ULL << fc->num_rounds)));
   if (wrap)
   {
     /* full round transmitted wait 2x delay for ACK before going again */
@@ -420,10 +420,10 @@ GNUNET_FRAGMENT_process_ack (struct GNUNET_FRAGMENT_Context *fc,
     snd_cnt = 0;
     for (i=0;i<64;i++)
     {
-      if (1 == (fc->acks_mask & (1 << i)))
+      if (1 == (fc->acks_mask & (1ULL << i)))
       {
 	snd_cnt++;
-	if (0 == (abits & (1 << i)))
+	if (0 == (abits & (1ULL << i)))
 	  ack_cnt++;
       }
     }
