@@ -20,8 +20,8 @@ pkgcfg_DATA = \
   identity-provider.conf
 
 plugin_LTLIBRARIES = \
-	libgnunet_plugin_rest_identity_provider.la \
-	libgnunetidentityprovider.la
+  libgnunetidentityprovider.la \
+	libgnunet_plugin_rest_identity_provider.la 
 
 bin_PROGRAMS = \
  gnunet-identity-token
