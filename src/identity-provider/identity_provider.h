@@ -81,10 +81,10 @@ struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of bytes in token string including 0-termination, in NBO;
+   * Nonce found in ticket. NBO
    * 0 on error.
    */
-  uint16_t name_len GNUNET_PACKED;
+  uint64_t ticket_nonce GNUNET_PACKED;
 
   /* followed by 0-terminated token */
 

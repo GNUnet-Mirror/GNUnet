@@ -110,7 +110,7 @@ struct TokenTicketPayload
   /**
    * Nonce
    */
-  char* nonce;
+  uint64_t nonce;
 
   /**
    * Label
@@ -293,7 +293,7 @@ token_parse2 (const char* data,
  * Creates a ticket that can be exchanged by the audience for 
  * the token. The token must be placed under the label
  *
- * @param nonce_str nonce provided by the audience that requested the ticket
+ * @param nonce nonce provided by the audience that requested the ticket
  * @param iss_pkey the issuer pubkey used to sign the ticket
  * @param label the label encoded in the ticket
  * @param aud_ley the audience pubkey used to encrypt the ticket payload
@@ -301,7 +301,7 @@ token_parse2 (const char* data,
  * @return the ticket
  */
 struct TokenTicket*
-ticket_create (const char* nonce_str,
+ticket_create (uint64_t nonce,
                const struct GNUNET_CRYPTO_EcdsaPublicKey* iss_pkey,
                const char* lbl_str,
                const struct GNUNET_CRYPTO_EcdsaPublicKey *aud_key);

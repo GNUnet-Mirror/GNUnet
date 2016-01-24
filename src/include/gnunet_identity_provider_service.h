@@ -75,7 +75,8 @@ struct GNUNET_IDENTITY_PROVIDER_Operation;
  */
 typedef void
 (*GNUNET_IDENTITY_PROVIDER_ExchangeCallback)(void *cls,
-                            const struct GNUNET_IDENTITY_PROVIDER_Token *token);
+                            const struct GNUNET_IDENTITY_PROVIDER_Token *token,
+                            uint64_t ticket_nonce);
 
 /**
  * Method called when a token has been issued.

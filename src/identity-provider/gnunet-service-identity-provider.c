@@ -876,7 +876,8 @@ do_shutdown (void *cls,
 
 static struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage*
 create_exchange_result_message (const char* token,
-                                const char* label)
+                                const char* label,
+                                uint64_t ticket_nonce)
 {
   struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
   uint16_t token_len = strlen (token) + 1;
@@ -885,6 +886,7 @@ create_exchange_result_message (const char* token,
   erm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT);
   erm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage) 
                             + token_len);
+  erm->ticket_nonce = htonl (ticket_nonce);
   memcpy (&erm[1], token, token_len);
   return erm;
 }
@@ -1007,12 +1009,12 @@ sign_and_return_token (void *cls,
 
   //Remote nonce 
   nonce_str = NULL;
-  GNUNET_asprintf (&nonce_str, "%d", handle->nonce);
+  GNUNET_asprintf (&nonce_str, "%lu", handle->nonce);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Request nonce: %s\n", nonce_str);
 
   GNUNET_CRYPTO_ecdsa_key_get_public (&handle->iss_key,
                                       &pub_key);
-  handle->ticket = ticket_create (nonce_str,
+  handle->ticket = ticket_create (handle->nonce,
                                   &pub_key,
                                   handle->label,
                                   &handle->aud_key);
@@ -1190,7 +1192,8 @@ process_lookup_result (void *cls, uint32_t rd_count,
                                                &token_str));
 
   erm = create_exchange_result_message (token_str,
-                                        handle->label);
+                                        handle->label,
+                                        handle->ticket->payload->nonce);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               handle->client,
                                               &erm->header,

@@ -62,6 +62,11 @@
 #define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET "ticket"
 
 /**
+ * The parameter name in which the expected nonce must be provided
+ */
+#define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE "expected_nonce"
+
+/**
  * The parameter name in which the ticket must be provided
  */
 #define GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TOKEN "token"
@@ -767,13 +772,44 @@ list_token_cont (struct RestConnectionDataHandle *con_handle,
  */
 static void
 exchange_cont (void *cls,
-               const struct GNUNET_IDENTITY_PROVIDER_Token *token)
+               const struct GNUNET_IDENTITY_PROVIDER_Token *token,
+               uint64_t ticket_nonce)
 {
   json_t *root;
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
+  struct GNUNET_HashCode key;
   char* result;
   char* token_str;
+  char* nonce_str;
+  uint64_t expected_nonce;
+  
+  //Get nonce
+  GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE,
+                      strlen (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE),
+                      &key);
+
+  if ( GNUNET_NO ==
+       GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
+                                               &key) )
+  {
+    handle->emsg = GNUNET_strdup ("No nonce given.");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
+  nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
+                                                  &key);
+  GNUNET_assert (1 == sscanf (nonce_str, "%lu", &expected_nonce));
+
+  if (ticket_nonce != expected_nonce)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Ticket nonce %lu does not match expected nonce %lu\n",
+                ticket_nonce, expected_nonce);
+    handle->emsg = GNUNET_strdup ("Ticket nonce does not match expected nonce\n");
+    GNUNET_SCHEDULER_add_now (&do_error, handle);
+    return;
+  }
 
   root = json_object ();
   token_str = GNUNET_IDENTITY_PROVIDER_token_to_string (token);
@@ -820,6 +856,7 @@ exchange_token_ticket_cb (void *cls,
     return;
   }
 
+  //Get ticket
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET,
                       strlen (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_TICKET),
                       &key);
@@ -834,7 +871,6 @@ exchange_token_ticket_cb (void *cls,
   }
   ticket_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                   &key);
-
   handle->priv_key = GNUNET_IDENTITY_ego_get_private_key (ego);
   GNUNET_IDENTITY_PROVIDER_string_to_ticket (ticket_str,
                                              &ticket);

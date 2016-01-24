@@ -197,6 +197,7 @@ message_handler (void *cls,
   char *token_str;
   char *label_str;
   uint16_t size;
+  uint64_t ticket_nonce;
 
   if (NULL == msg)
   {
@@ -295,8 +296,9 @@ message_handler (void *cls,
     GNUNET_CLIENT_receive (h->client, &message_handler, h,
 			   GNUNET_TIME_UNIT_FOREVER_REL);
     token.data = str;
+    ticket_nonce = ntohl (erm->ticket_nonce);
     if (NULL != op->ex_cb)
-      op->ex_cb (op->cls, &token);
+      op->ex_cb (op->cls, &token, ticket_nonce);
     GNUNET_free (op);
     break;
   
