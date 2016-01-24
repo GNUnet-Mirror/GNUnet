@@ -35,6 +35,7 @@
 #include "gnunet_signatures.h"
 #include "identity_provider.h"
 #include "identity_token.h"
+#include <inttypes.h>
 
 /**
  * First pass state
@@ -368,11 +369,11 @@ handle_token_update (void *cls,
     if (0 == strcmp (attr->name, "exp"))
     {
       sscanf (attr->val_head->value,
-              "%lu",
+              "%"SCNu64,
               &token_exp.abs_value_us);
     } else if (0 == strcmp (attr->name, "nbf")) {
       sscanf (attr->val_head->value,
-              "%lu",
+              "%"SCNu64,
               &token_nbf.abs_value_us);
     }
   }

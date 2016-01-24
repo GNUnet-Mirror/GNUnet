@@ -28,6 +28,7 @@
 #include "gnunet_signatures.h"
 #include "identity_token.h"
 #include <jansson.h>
+#include <inttypes.h>
 
 #define JWT_ALG "alg"
 
@@ -628,7 +629,7 @@ ticket_payload_serialize (struct TokenTicketPayload *payload,
                                                           sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
   GNUNET_asprintf (result, 
-                   "{\"nonce\": \"%lu\",\"identity\": \"%s\",\"label\": \"%s\"}",
+                   "{\"nonce\": \""SCNu64"\",\"identity\": \"%s\",\"label\": \"%s\"}",
                    payload->nonce, identity_key_str, payload->label);
   GNUNET_free (identity_key_str);
 
@@ -818,7 +819,7 @@ ticket_payload_parse(const char *raw_data,
   nonce_str = json_string_value (nonce_json);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Found nonce: %s\n", nonce_str);
   
-  GNUNET_assert (0 != sscanf (nonce_str, "%lu", &nonce));
+  GNUNET_assert (0 != sscanf (nonce_str, "%"SCNu64, &nonce));
 
   *result = ticket_payload_create (nonce,
                                    (const struct GNUNET_CRYPTO_EcdsaPublicKey*)&id_pkey,

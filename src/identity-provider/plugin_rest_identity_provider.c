@@ -33,6 +33,7 @@
 #include "gnunet_rest_lib.h"
 #include "microhttpd.h"
 #include <jansson.h>
+#include <inttypes.h>
 #include "gnunet_signatures.h"
 #include "gnunet_identity_provider_service.h"
 
@@ -551,7 +552,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                  &key);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Request nonce: %s\n", nonce_str);
-  sscanf (nonce_str, "%lu", &nonce);
+  sscanf (nonce_str, "%"SCNu64, &nonce);
 
   //Get expiration for token from URL parameter
   GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_EXP_STRING,
@@ -799,7 +800,7 @@ exchange_cont (void *cls,
   }
   nonce_str = GNUNET_CONTAINER_multihashmap_get (handle->conndata_handle->url_param_map,
                                                   &key);
-  GNUNET_assert (1 == sscanf (nonce_str, "%lu", &expected_nonce));
+  GNUNET_assert (1 == sscanf (nonce_str, "%"SCNu64, &expected_nonce));
 
   if (ticket_nonce != expected_nonce)
   {
