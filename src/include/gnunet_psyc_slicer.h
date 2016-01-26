@@ -63,11 +63,15 @@ struct GNUNET_PSYC_Slicer;
  *        Message part, as it arrived from the network.
  * @param message_id
  *        Message counter, monotonically increasing from 1.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_MessageFlags
+ * @param fragment_offset
+ *        Multicast message fragment offset.
+ * @param tmit_flags
+ *        OR'ed GNUNET_PSYC_MasterTransmitFlags
  * @param nym
  *        The sender of the message.
  *        Can be NULL if the message is not connected to a pseudonym.
- * @param flags
- *        OR'ed GNUNET_PSYC_MessageFlags
  * @param method_name
  *        Original method name from PSYC.
  *        May be more specific than the registered method name due to
@@ -78,6 +82,8 @@ typedef void
                                const struct GNUNET_PSYC_MessageMethod *msg,
                                uint64_t message_id,
                                uint32_t flags,
+                               uint64_t fragment_offset,
+                               uint32_t tmit_flags,
                                const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                                const char *method_name);
 
@@ -89,6 +95,10 @@ typedef void
  *        Closure.
  * @param message_id
  *        Message ID this data fragment belongs to.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_MessageFlags
+ * @param fragment_offset
+ *        Multicast message fragment offset.
  * @param msg
  *        Message part, as it arrived from the network.
  * @param oper
@@ -106,6 +116,8 @@ typedef void
 (*GNUNET_PSYC_ModifierCallback) (void *cls,
                                  const struct GNUNET_MessageHeader *msg,
                                  uint64_t message_id,
+                                 uint32_t flags,
+                                 uint64_t fragment_offset,
                                  enum GNUNET_PSYC_Operator oper,
                                  const char *name,
                                  const void *value,
@@ -118,16 +130,18 @@ typedef void
  *
  * @param cls
  *        Closure.
- * @param message_id
- *        Message ID this data fragment belongs to.
  * @param msg
  *        Message part, as it arrived from the network.
- * @param data_offset
- *        Byte offset of @a data in the overall data of the method.
- * @param data_size
- *        Number of bytes in @a data.
+ * @param message_id
+ *        Message ID this data fragment belongs to.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_MessageFlags
+ * @param fragment_offset
+ *        Multicast message fragment offset.
  * @param data
  *        Data stream given to the method.
+ * @param data_size
+ *        Number of bytes in @a data.
  * @param end
  *        End of message?
  *        #GNUNET_NO     if there are further fragments,
@@ -138,7 +152,8 @@ typedef void
 (*GNUNET_PSYC_DataCallback) (void *cls,
                              const struct GNUNET_MessageHeader *msg,
                              uint64_t message_id,
-                             uint64_t data_offset,
+                             uint32_t flags,
+                             uint64_t fragment_offset,
                              const void *data,
                              uint16_t data_size);
 
@@ -152,6 +167,10 @@ typedef void
  *        Message part, as it arrived from the network.
  * @param message_id
  *        Message ID this data fragment belongs to.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_MessageFlags
+ * @param fragment_offset
+ *        Multicast message fragment offset.
  * @param cancelled
  *        #GNUNET_YES if the message was cancelled,
  *        #GNUNET_NO  if the message is complete.
@@ -160,6 +179,8 @@ typedef void
 (*GNUNET_PSYC_EndOfMessageCallback) (void *cls,
                                      const struct GNUNET_MessageHeader *msg,
                                      uint64_t message_id,
+                                     uint32_t flags,
+                                     uint64_t fragment_offset,
                                      uint8_t cancelled);
 
 

@@ -1101,7 +1101,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     if (NULL != recv->message_part_cb)
       recv->message_part_cb (recv->cb_cls, &recv->slave_pub_key,
                              recv->message_id, recv->flags,
-                             0, // FIXME: data_offset
+                             GNUNET_ntohll (msg->fragment_offset),
                              pmsg);
 
     switch (ptype)
@@ -1181,7 +1181,7 @@ struct ParseMessageClosure
 static void
 parse_message_part_cb (void *cls,
                        const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
-                       uint64_t message_id, uint32_t flags, uint64_t data_offset,
+                       uint64_t message_id, uint32_t flags, uint64_t fragment_offset,
                        const struct GNUNET_MessageHeader *msg)
 {
   struct ParseMessageClosure *pmc = cls;

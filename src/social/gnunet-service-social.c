@@ -769,13 +769,15 @@ place_recv_relay_method (void *cls,
                          const struct GNUNET_PSYC_MessageMethod *meth,
                          uint64_t message_id,
                          uint32_t flags,
+                         uint64_t fragment_offset,
+                         uint32_t tmit_flags,
                          const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                          const char *method_name)
 {
   struct Host *hst = cls;
   struct Place *plc = &hst->plc;
 
-  // FIXME: relay message
+
 }
 
 
@@ -783,6 +785,8 @@ static void
 place_recv_relay_modifier (void *cls,
                            const struct GNUNET_MessageHeader *msg,
                            uint64_t message_id,
+                           uint32_t flags,
+                           uint64_t fragment_offset,
                            enum GNUNET_PSYC_Operator oper,
                            const char *name,
                            const void *value,
@@ -797,6 +801,8 @@ static void
 place_recv_relay_eom (void *cls,
                       const struct GNUNET_MessageHeader *msg,
                       uint64_t message_id,
+                      uint32_t flags,
+                      uint64_t fragment_offset,
                       uint8_t cancelled)
 {
 
@@ -807,7 +813,8 @@ static void
 place_recv_relay_data (void *cls,
                        const struct GNUNET_MessageHeader *msg,
                        uint64_t message_id,
-                       uint64_t data_offset,
+                       uint32_t flags,
+                       uint64_t fragment_offset,
                        const void *data,
                        uint16_t data_size)
 {
@@ -820,6 +827,8 @@ place_recv_save_method (void *cls,
                         const struct GNUNET_PSYC_MessageMethod *meth,
                         uint64_t message_id,
                         uint32_t flags,
+                        uint64_t fragment_offset,
+                        uint32_t tmit_flags,
                         const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                         const char *method_name)
 {
@@ -852,7 +861,8 @@ static void
 place_recv_save_data (void *cls,
                       const struct GNUNET_MessageHeader *msg,
                       uint64_t message_id,
-                      uint64_t data_offset,
+                      uint32_t flags,
+                      uint64_t fragment_offset,
                       const void *data,
                       uint16_t data_size)
 {
@@ -888,6 +898,8 @@ static void
 place_recv_save_eom (void *cls,
                      const struct GNUNET_MessageHeader *msg,
                      uint64_t message_id,
+                     uint32_t flags,
+                     uint64_t fragment_offset,
                      uint8_t cancelled)
 {
   struct Place *plc = cls;
@@ -1235,10 +1247,10 @@ host_enter (const struct HostEnterRequest *hreq, struct Host **ret_hst)
 
 
 const struct MsgProcRequest *
-relay_req_parse (const struct GNUNET_MessageHeader *msg,
-                 uint32_t *flags,
-                 const char **method_prefix,
-                 struct GNUNET_HashCode *method_hash)
+msg_proc_parse (const struct GNUNET_MessageHeader *msg,
+                uint32_t *flags,
+                const char **method_prefix,
+                struct GNUNET_HashCode *method_hash)
 {
   const struct MsgProcRequest *mpreq = (const struct MsgProcRequest *) msg;
   uint8_t method_size = ntohs (mpreq->header.size) - sizeof (*mpreq);
@@ -1275,7 +1287,7 @@ client_recv_msg_proc_set (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t flags = 0;
   struct GNUNET_HashCode method_hash;
   const struct MsgProcRequest *
-    mpreq = relay_req_parse (msg, &flags, &method_prefix, &method_hash);
+    mpreq = msg_proc_parse (msg, &flags, &method_prefix, &method_hash);
 
   if (NULL == mpreq) {
     GNUNET_break (0);

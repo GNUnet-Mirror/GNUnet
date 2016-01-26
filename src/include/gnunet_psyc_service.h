@@ -250,7 +250,6 @@ struct GNUNET_PSYC_MessageHeader
 
   /**
    * Byte offset of this @e fragment of the @e message.
-   * FIXME: use data_offset instead
    */
   uint64_t fragment_offset GNUNET_PACKED;
 
@@ -551,9 +550,8 @@ typedef void
  *        Sequence number of the message.
  * @param flags
  *        OR'ed GNUNET_PSYC_MessageFlags
- * @param data_offset
- *        Byte offset of data, only set if @a msg has a type
- *        #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
+ * @param fragment_offset
+ *        Multicast message fragment offset.
  * @param msg  Message part, one of the following types:
  * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER
  * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
@@ -567,7 +565,7 @@ typedef void
                                     const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
                                     uint64_t message_id,
                                     uint32_t flags,
-                                    uint64_t data_offset,
+                                    uint64_t fragment_offset,
                                     const struct GNUNET_MessageHeader *msg);
 
 

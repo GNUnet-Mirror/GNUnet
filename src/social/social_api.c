@@ -401,6 +401,8 @@ host_recv_notice_place_leave_method (void *cls,
                                      const struct GNUNET_PSYC_MessageMethod *meth,
                                      uint64_t message_id,
                                      uint32_t flags,
+                                     uint64_t fragment_offset,
+                                     uint32_t tmit_flags,
                                      const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                                      const char *method_name)
 {
@@ -430,6 +432,8 @@ static void
 host_recv_notice_place_leave_modifier (void *cls,
                                        const struct GNUNET_MessageHeader *msg,
                                        uint64_t message_id,
+                                       uint32_t flags,
+                                       uint64_t fragment_offset,
                                        enum GNUNET_PSYC_Operator oper,
                                        const char *name,
                                        const void *value,
@@ -459,6 +463,8 @@ static void
 host_recv_notice_place_leave_eom (void *cls,
                                   const struct GNUNET_MessageHeader *msg,
                                   uint64_t message_id,
+                                  uint32_t flags,
+                                  uint64_t fragment_offset,
                                   uint8_t cancelled)
 {
   struct GNUNET_SOCIAL_Host *hst = cls;

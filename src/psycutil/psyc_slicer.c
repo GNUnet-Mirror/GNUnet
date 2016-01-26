@@ -65,6 +65,16 @@ struct GNUNET_PSYC_Slicer
   uint64_t message_id;
 
   /**
+   * Fragment offset of currently being received message.
+   */
+  uint64_t fragment_offset;
+
+  /**
+   * Flags of currently being received message.
+   */
+  uint32_t flags;
+
+  /**
    * Method name of currently being received message.
    */
   char *method_name;
@@ -174,6 +184,7 @@ slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
     struct GNUNET_PSYC_MessageMethod *
       meth = (struct GNUNET_PSYC_MessageMethod *) msg;
     cbs->method_cb (cbs->cls, meth, slicer->message_id,
+                    slicer->flags, slicer->fragment_offset,
                     ntohl (meth->flags),
                     &slicer->nym_pub_key,
                     slicer->method_name);
@@ -187,6 +198,7 @@ slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
     struct GNUNET_PSYC_MessageModifier *
       mod = (struct GNUNET_PSYC_MessageModifier *) msg;
     cbs->modifier_cb (cbs->cls, &mod->header, slicer->message_id,
+                      slicer->flags, slicer->fragment_offset,
                       mod->oper, (const char *) &mod[1],
                       (const void *) &mod[1] + ntohs (mod->name_size),
                       ntohs (mod->header.size) - sizeof (*mod) - ntohs (mod->name_size),
@@ -199,6 +211,7 @@ slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
     if (NULL == cbs->modifier_cb)
       break;
     cbs->modifier_cb (cbs->cls, msg, slicer->message_id,
+                      slicer->flags, slicer->fragment_offset,
                       slicer->mod_oper, slicer->mod_name, &msg[1],
                       ntohs (msg->size) - sizeof (*msg),
                       slicer->mod_full_value_size);
@@ -209,22 +222,24 @@ slicer_method_handler_notify (void *cls, const struct GNUNET_HashCode *key,
   {
     if (NULL == cbs->data_cb)
       break;
-    uint64_t data_offset = 0; // FIXME
     cbs->data_cb (cbs->cls, msg, slicer->message_id,
-                  data_offset, &msg[1], ntohs (msg->size) - sizeof (*msg));
+                  slicer->flags, slicer->fragment_offset,
+                  &msg[1], ntohs (msg->size) - sizeof (*msg));
     break;
   }
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
     if (NULL == cbs->eom_cb)
       break;
-    cbs->eom_cb (cbs->cls, msg, slicer->message_id, GNUNET_NO);
+    cbs->eom_cb (cbs->cls, msg, slicer->message_id,
+                 slicer->flags, slicer->fragment_offset, GNUNET_NO);
     break;
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
     if (NULL == cbs->eom_cb)
       break;
-    cbs->eom_cb (cbs->cls, msg, slicer->message_id, GNUNET_YES);
+    cbs->eom_cb (cbs->cls, msg, slicer->message_id,
+                 slicer->flags, slicer->fragment_offset, GNUNET_YES);
     break;
   }
   return GNUNET_YES;
@@ -241,8 +256,9 @@ slicer_modifier_handler_notify (void *cls, const struct GNUNET_HashCode *key,
   struct GNUNET_PSYC_Slicer *slicer = cls;
   struct SlicerModifierCallbacks *cbs = value;
 
-  cbs->modifier_cb (cbs->cls, slicer->msg, slicer->message_id, slicer->mod_oper,
-                    slicer->mod_name, slicer->mod_value,
+  cbs->modifier_cb (cbs->cls, slicer->msg,
+                    slicer->message_id, slicer->flags, slicer->fragment_offset,
+                    slicer->mod_oper, slicer->mod_name, slicer->mod_value,
                     slicer->mod_value_size, slicer->mod_full_value_size);
   return GNUNET_YES;
 }
@@ -296,6 +312,8 @@ GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
     slicer->method_name = GNUNET_malloc (slicer->method_name_size);
     memcpy (slicer->method_name, &meth[1], slicer->method_name_size);
     slicer->message_id = message_id;
+    slicer->flags = flags;
+    slicer->fragment_offset = fragment_offset;
   }
   else
   {
