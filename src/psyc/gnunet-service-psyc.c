@@ -1030,9 +1030,12 @@ client_send_mcast_req (struct Master *mst,
   pmsg->fragment_offset = req->fragment_offset;
   pmsg->flags = htonl (GNUNET_PSYC_MESSAGE_REQUEST);
   pmsg->slave_pub_key = req->member_pub_key;
-
   memcpy (&pmsg[1], &req[1], size - sizeof (*req));
+
   client_send_msg (chn, &pmsg->header);
+
+  /* FIXME: save req to PSYCstore so that it can be resent later to clients */
+
   GNUNET_free (pmsg);
 }
 
@@ -2057,12 +2060,14 @@ slave_transmit_notify (void *cls, size_t *data_size, void *data)
 static void
 master_transmit_message (struct Master *mst)
 {
-  if (NULL == mst->chn.tmit_head)
+  struct Channel *chn = &mst->chn;
+  struct TransmitMessage *tmit_msg = chn->tmit_head;
+  if (NULL == tmit_msg)
     return;
   if (NULL == mst->tmit_handle)
   {
     mst->tmit_handle
-      = GNUNET_MULTICAST_origin_to_all (mst->origin, mst->chn.tmit_head->id,
+      = GNUNET_MULTICAST_origin_to_all (mst->origin, tmit_msg->id,
                                         mst->max_group_generation,
                                         master_transmit_notify, mst);
   }
@@ -2167,12 +2172,18 @@ slave_queue_message (struct Slave *slv, struct TransmitMessage *tmit_msg)
 /**
  * Queue PSYC message parts for sending to multicast.
  *
- * @param chn           Channel to send to.
- * @param client       Client the message originates from.
- * @param data_size    Size of @a data.
- * @param data         Concatenated message parts.
- * @param first_ptype  First message part type in @a data.
- * @param last_ptype   Last message part type in @a data.
+ * @param chn
+ *        Channel to send to.
+ * @param client
+ *        Client the message originates from.
+ * @param data_size
+ *        Size of @a data.
+ * @param data
+ *        Concatenated message parts.
+ * @param first_ptype
+ *        First message part type in @a data.
+ * @param last_ptype
+ *        Last message part type in @a data.
  */
 static struct TransmitMessage *
 queue_message (struct Channel *chn,

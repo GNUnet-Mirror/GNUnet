@@ -60,6 +60,8 @@ extern "C"
  *
  * @return Message header with size information,
  *         followed by the message parts.
+ *
+ * FIXME: arg order
  */
 struct GNUNET_PSYC_Message *
 GNUNET_PSYC_message_create (const char *method_name,
@@ -83,6 +85,8 @@ GNUNET_PSYC_message_create (const char *method_name,
  *
  * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR on parse error.
+ *
+ * FIXME: arg order
  */
 int
 GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_MessageHeader *msg,
@@ -95,11 +99,6 @@ GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_MessageHeader *msg,
 void
 GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
                          const struct GNUNET_MessageHeader *msg);
-
-
-int
-GNUNET_PSYC_check_message_parts (uint16_t data_size, const char *data,
-                                 uint16_t *first_ptype, uint16_t *last_ptype);
 
 
 struct GNUNET_PSYC_TransmitHandle;

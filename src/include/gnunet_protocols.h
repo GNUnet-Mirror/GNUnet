@@ -2650,7 +2650,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_SET 860
 
 /** C->S: clear message processing flags */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR 860
+#define GNUNET_MESSAGE_TYPE_SOCIAL_MSG_PROC_CLEAR 861
 
 /*******************************************************************************
  * X-VINE DHT messages

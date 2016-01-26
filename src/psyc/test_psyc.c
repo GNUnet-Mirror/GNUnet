@@ -203,34 +203,29 @@ end ()
 
 
 void
-master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
-                   const struct GNUNET_PSYC_MessageHeader *msg)
+master_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_assert (NULL != msg);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%d: Master got PSYC message fragment of size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
-              test, ntohs (msg->header.size), message_id, flags);
+              test, ntohs (msg->header.size),
+              GNUNET_ntohll (msg->message_id), ntohl (msg->flags));
   // FIXME
 }
 
 
 void
-master_message_part_cb (void *cls,
-                        const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                        uint64_t message_id, uint32_t flags, uint64_t data_offset,
-                        const struct GNUNET_MessageHeader *msg)
+master_message_part_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg,
+                        const struct GNUNET_MessageHeader *pmsg)
 {
-  if (NULL == msg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Test #%d: Error while master is receiving part of message #%" PRIu64 ".\n",
-                test, message_id);
-    return;
-  }
+  GNUNET_assert (NULL != msg && NULL != pmsg);
 
-  uint16_t type = ntohs (msg->type);
-  uint16_t size = ntohs (msg->size);
+  uint64_t message_id = GNUNET_ntohll (msg->message_id);
+  uint32_t flags = ntohl (msg->flags);
+
+  uint16_t type = ntohs (pmsg->type);
+  uint16_t size = ntohs (pmsg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%d: Master got message part of type %u and size %u "
@@ -278,33 +273,30 @@ master_message_part_cb (void *cls,
 
 
 void
-slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
-                  const struct GNUNET_PSYC_MessageHeader *msg)
+slave_message_cb (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
+  GNUNET_assert (NULL != msg);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%d: Slave got PSYC message fragment of size %u "
               "belonging to message ID %" PRIu64 " with flags %x\n",
-              test, ntohs (msg->header.size), message_id, flags);
+              test, ntohs (msg->header.size),
+              GNUNET_ntohll (msg->message_id), ntohl (msg->flags));
   // FIXME
 }
 
 
 void
 slave_message_part_cb (void *cls,
-                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                       uint64_t message_id, uint32_t flags, uint64_t data_offset,
-                       const struct GNUNET_MessageHeader *msg)
+                       const struct GNUNET_PSYC_MessageHeader *msg,
+                       const struct GNUNET_MessageHeader *pmsg)
 {
-  if (NULL == msg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Test #%d: Error while slave is receiving part of message #%" PRIu64 ".\n",
-                test, message_id);
-    return;
-  }
+  GNUNET_assert (NULL != msg && NULL != pmsg);
 
-  uint16_t type = ntohs (msg->type);
-  uint16_t size = ntohs (msg->size);
+  uint64_t message_id = GNUNET_ntohll (msg->message_id);
+  uint32_t flags = ntohl (msg->flags);
+
+  uint16_t type = ntohs (pmsg->type);
+  uint16_t size = ntohs (pmsg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%d: Slave got message part of type %u and size %u "

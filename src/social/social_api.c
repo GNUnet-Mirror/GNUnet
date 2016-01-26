@@ -398,21 +398,18 @@ nym_destroy (struct GNUNET_SOCIAL_Nym *nym)
 
 static void
 host_recv_notice_place_leave_method (void *cls,
+                                     const struct GNUNET_PSYC_MessageHeader *msg,
                                      const struct GNUNET_PSYC_MessageMethod *meth,
                                      uint64_t message_id,
-                                     uint32_t flags,
-                                     uint64_t fragment_offset,
-                                     uint32_t tmit_flags,
-                                     const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                                      const char *method_name)
 {
   struct GNUNET_SOCIAL_Host *hst = cls;
 
   if (0 == memcmp (&(struct GNUNET_CRYPTO_EcdsaPublicKey) {},
-                   nym_pub_key, sizeof (*nym_pub_key)))
+                   &msg->slave_pub_key, sizeof (msg->slave_pub_key)))
     return;
 
-  struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (nym_pub_key);
+  struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (&msg->slave_pub_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Host received method for message ID %" PRIu64 " from nym %s: %s\n",
@@ -430,10 +427,9 @@ host_recv_notice_place_leave_method (void *cls,
 
 static void
 host_recv_notice_place_leave_modifier (void *cls,
-                                       const struct GNUNET_MessageHeader *msg,
+                                       const struct GNUNET_PSYC_MessageHeader *msg,
+                                       const struct GNUNET_MessageHeader *pmsg,
                                        uint64_t message_id,
-                                       uint32_t flags,
-                                       uint64_t fragment_offset,
                                        enum GNUNET_PSYC_Operator oper,
                                        const char *name,
                                        const void *value,
@@ -461,11 +457,10 @@ host_recv_notice_place_leave_modifier (void *cls,
 
 static void
 host_recv_notice_place_leave_eom (void *cls,
-                                  const struct GNUNET_MessageHeader *msg,
+                                  const struct GNUNET_PSYC_MessageHeader *msg,
+                                  const struct GNUNET_MessageHeader *pmsg,
                                   uint64_t message_id,
-                                  uint32_t flags,
-                                  uint64_t fragment_offset,
-                                  uint8_t cancelled)
+                                  uint8_t is_cancelled)
 {
   struct GNUNET_SOCIAL_Host *hst = cls;
   if (NULL == hst->notice_place_leave_env)
@@ -476,7 +471,7 @@ host_recv_notice_place_leave_eom (void *cls,
               "_notice_place_leave: got EOM from nym %s (%s).\n",
               GNUNET_h2s (&hst->notice_place_leave_nym->pub_key_hash), str);
 
-  if (GNUNET_YES != cancelled)
+  if (GNUNET_YES != is_cancelled)
   {
     if (NULL != hst->farewell_cb)
       hst->farewell_cb (hst->cb_cls, hst->notice_place_leave_nym,
@@ -1059,7 +1054,6 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler guest_handlers[] =
 };
 
 
-
 static struct GNUNET_CLIENT_MANAGER_MessageHandler app_handlers[] =
 {
   { app_recv_ego, NULL,
@@ -1083,6 +1077,13 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler app_handlers[] =
 static void
 place_cleanup (struct GNUNET_SOCIAL_Place *plc)
 {
+  struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (&plc->pub_key, sizeof (plc->pub_key), &place_pub_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%s place cleanup: %s\n",
+              GNUNET_YES == plc->is_host ? "host" : "guest",
+              GNUNET_h2s (&place_pub_hash));
+
   if (NULL != plc->tmit)
     GNUNET_PSYC_transmit_destroy (plc->tmit);
   if (NULL != plc->connect_msg)
@@ -1173,7 +1174,7 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_SOCIAL_App *app,
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
 
   hst->slicer = GNUNET_PSYC_slicer_create ();
-  GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave",
+  GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave", NULL,
                                  host_recv_notice_place_leave_method,
                                  host_recv_notice_place_leave_modifier,
                                  NULL, host_recv_notice_place_leave_eom, hst);
@@ -1243,7 +1244,7 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
   plc->tmit = GNUNET_PSYC_transmit_create (plc->client);
 
   hst->slicer = GNUNET_PSYC_slicer_create ();
-  GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave",
+  GNUNET_PSYC_slicer_method_add (hst->slicer, "_notice_place_leave", NULL,
                                  host_recv_notice_place_leave_method,
                                  host_recv_notice_place_leave_modifier,
                                  NULL, host_recv_notice_place_leave_eom, hst);
@@ -1492,7 +1493,6 @@ GNUNET_SOCIAL_host_get_place (struct GNUNET_SOCIAL_Host *hst)
 }
 
 
-
 void
 place_leave (struct GNUNET_SOCIAL_Place *plc)
 {
@@ -1656,7 +1656,7 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_SOCIAL_App *app,
   plc->ego_pub_key = ego->pub_key;
   plc->pub_key = *place_pub_key;
   plc->cfg = app->cfg;
-  plc->is_host = GNUNET_YES;
+  plc->is_host = GNUNET_NO;
   plc->slicer = slicer;
 
   gst->enter_cb = local_enter_cb;
@@ -2335,7 +2335,6 @@ GNUNET_SOCIAL_zone_add_place (const struct GNUNET_SOCIAL_App *app,
                                                              op_recv_zone_add_place_result,
                                                              add_plc));
   GNUNET_CLIENT_MANAGER_transmit_now (app->client, &preq->header);
-  GNUNET_free (preq);
   return GNUNET_OK;
 }
 

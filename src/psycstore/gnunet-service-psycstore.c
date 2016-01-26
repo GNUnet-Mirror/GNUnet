@@ -514,25 +514,26 @@ struct StateModifyClosure
 
 static void
 recv_state_message_part (void *cls,
-                         const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                         uint64_t message_id, uint32_t flags, uint64_t data_offset,
-                         const struct GNUNET_MessageHeader *msg)
+                         const struct GNUNET_PSYC_MessageHeader *msg,
+                         const struct GNUNET_MessageHeader *pmsg)
 {
   struct StateModifyClosure *scls = cls;
   uint16_t psize;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "recv_state_message_part()  message_id: %" PRIu64
-              ", data_offset: %" PRIu64 ", flags: %u\n",
-              message_id, data_offset, flags);
+              ", fragment_offset: %" PRIu64 ", flags: %u\n",
+              GNUNET_ntohll (msg->message_id),
+              GNUNET_ntohll (msg->fragment_offset),
+              ntohl (msg->flags));
 
-  if (NULL == msg)
+  if (NULL == pmsg)
   {
     scls->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
     return;
   }
 
-  switch (ntohs (msg->type))
+  switch (ntohs (pmsg->type))
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
   {
@@ -543,7 +544,7 @@ recv_state_message_part (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
   {
     struct GNUNET_PSYC_MessageModifier *
-      pmod = (struct GNUNET_PSYC_MessageModifier *) msg;
+      pmod = (struct GNUNET_PSYC_MessageModifier *) pmsg;
     psize = ntohs (pmod->header.size);
     uint16_t name_size = ntohs (pmod->name_size);
     uint32_t value_size = ntohl (pmod->value_size);
@@ -583,10 +584,10 @@ recv_state_message_part (void *cls,
         GNUNET_break_op (0);
         scls->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
       }
-      psize = ntohs (msg->size);
+      psize = ntohs (pmsg->size);
       memcpy (scls->mod_value + (scls->mod_value_size - scls->mod_value_remaining),
-              &msg[1], psize - sizeof (*msg));
-      scls->mod_value_remaining -= psize - sizeof (*msg);
+              &pmsg[1], psize - sizeof (*pmsg));
+      scls->mod_value_remaining -= psize - sizeof (*pmsg);
       if (0 == scls->mod_value_remaining)
       {
         db->state_modify_op (db->cls, &scls->channel_key,

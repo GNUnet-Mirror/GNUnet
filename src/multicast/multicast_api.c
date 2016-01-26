@@ -904,6 +904,7 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *orig,
   struct GNUNET_MULTICAST_OriginTransmitHandle *tmit = &orig->tmit;
   tmit->origin = orig;
   tmit->message_id = message_id;
+  tmit->fragment_offset = 0;
   tmit->group_generation = group_generation;
   tmit->notify = notify;
   tmit->notify_cls = notify_cls;
@@ -1226,6 +1227,7 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *mem,
   struct GNUNET_MULTICAST_MemberTransmitHandle *tmit = &mem->tmit;
   tmit->member = mem;
   tmit->request_id = request_id;
+  tmit->fragment_offset = 0;
   tmit->notify = notify;
   tmit->notify_cls = notify_cls;
 

@@ -311,7 +311,7 @@ struct GNUNET_PSYC_MessageModifier
   uint16_t name_size GNUNET_PACKED;
 
   /**
-   * enum GNUNET_ENV_Operator
+   * enum GNUNET_PSYC_Operator
    */
   uint8_t oper;
 
@@ -533,8 +533,6 @@ struct GNUNET_PSYC_JoinHandle;
  */
 typedef void
 (*GNUNET_PSYC_MessageCallback) (void *cls,
-                                uint64_t message_id,
-                                uint32_t flags,
                                 const struct GNUNET_PSYC_MessageHeader *msg);
 
 
@@ -562,11 +560,8 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_MessagePartCallback) (void *cls,
-                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
-                                    uint64_t message_id,
-                                    uint32_t flags,
-                                    uint64_t fragment_offset,
-                                    const struct GNUNET_MessageHeader *msg);
+                                    const struct GNUNET_PSYC_MessageHeader *msg,
+                                    const struct GNUNET_MessageHeader *pmsg);
 
 
 /**
@@ -826,6 +821,22 @@ GNUNET_PSYC_master_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th)
  */
 void
 GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th);
+
+
+/**
+ * Relay a message
+ *
+ * @param master Handle to the PSYC channel.
+ * @param method_name Which method should be invoked.
+ * @param notify_mod Function to call to obtain modifiers.
+ * @param notify_data Function to call to obtain fragments of the data.
+ * @param notify_cls Closure for @a notify_mod and @a notify_data.
+ * @param flags Flags for the message being transmitted.
+ * @return Transmission handle, NULL on error (i.e. more than one request queued).
+ */
+struct GNUNET_PSYC_MasterTransmitHandle *
+GNUNET_PSYC_master_relay (struct GNUNET_PSYC_Master *master,
+                          uint64_t message_id);
 
 
 /**

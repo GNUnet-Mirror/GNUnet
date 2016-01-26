@@ -879,11 +879,10 @@ static void
 recv_error (struct GNUNET_PSYC_ReceiveHandle *recv)
 {
   if (NULL != recv->message_part_cb)
-    recv->message_part_cb (recv->cb_cls, NULL, recv->message_id, recv->flags,
-                           0, NULL);
+    recv->message_part_cb (recv->cb_cls, NULL, NULL);
 
   if (NULL != recv->message_cb)
-    recv->message_cb (recv->cb_cls, recv->message_id, recv->flags, NULL);
+    recv->message_cb (recv->cb_cls, NULL);
 
   GNUNET_PSYC_receive_reset (recv);
 }
@@ -904,7 +903,6 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
 {
   uint16_t size = ntohs (msg->header.size);
   uint32_t flags = ntohl (msg->flags);
-  uint64_t message_id;
 
   GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG,
                            (struct GNUNET_MessageHeader *) msg);
@@ -936,7 +934,6 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     recv_error (recv);
     return GNUNET_SYSERR;
   }
-  message_id = recv->message_id;
 
   uint16_t pos = 0, psize = 0, ptype, size_eq, size_min;
 
@@ -1099,10 +1096,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     }
 
     if (NULL != recv->message_part_cb)
-      recv->message_part_cb (recv->cb_cls, &recv->slave_pub_key,
-                             recv->message_id, recv->flags,
-                             GNUNET_ntohll (msg->fragment_offset),
-                             pmsg);
+      recv->message_part_cb (recv->cb_cls, msg, pmsg);
 
     switch (ptype)
     {
@@ -1114,7 +1108,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
   }
 
   if (NULL != recv->message_cb)
-    recv->message_cb (recv->cb_cls, message_id, flags, msg);
+    recv->message_cb (recv->cb_cls, msg);
   return GNUNET_OK;
 }
 
@@ -1180,23 +1174,22 @@ struct ParseMessageClosure
 
 static void
 parse_message_part_cb (void *cls,
-                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
-                       uint64_t message_id, uint32_t flags, uint64_t fragment_offset,
-                       const struct GNUNET_MessageHeader *msg)
+                       const struct GNUNET_PSYC_MessageHeader *msg,
+                       const struct GNUNET_MessageHeader *pmsg)
 {
   struct ParseMessageClosure *pmc = cls;
-  if (NULL == msg)
+  if (NULL == pmsg)
   {
     pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
     return;
   }
 
-  switch (ntohs (msg->type))
+  switch (ntohs (pmsg->type))
   {
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
   {
     struct GNUNET_PSYC_MessageMethod *
-      pmeth = (struct GNUNET_PSYC_MessageMethod *) msg;
+      pmeth = (struct GNUNET_PSYC_MessageMethod *) pmsg;
     *pmc->method_name = (const char *) &pmeth[1];
     pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_METHOD;
     break;
@@ -1205,7 +1198,7 @@ parse_message_part_cb (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
   {
     struct GNUNET_PSYC_MessageModifier *
-      pmod = (struct GNUNET_PSYC_MessageModifier *) msg;
+      pmod = (struct GNUNET_PSYC_MessageModifier *) pmsg;
 
     const char *name = (const char *) &pmod[1];
     const void *value = name + ntohs (pmod->name_size);
@@ -1216,8 +1209,8 @@ parse_message_part_cb (void *cls,
   }
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
-    *pmc->data = &msg[1];
-    *pmc->data_size = ntohs (msg->size) - sizeof (*msg);
+    *pmc->data = &pmsg[1];
+    *pmc->data_size = ntohs (pmsg->size) - sizeof (*pmsg);
     pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_DATA;
     break;
 
@@ -1241,7 +1234,7 @@ parse_message_part_cb (void *cls,
  * @param env
  *        The environment for the message with a list of modifiers.
  * @param[out] data
- *        Pointer to data inside @a pmsg.
+ *        Pointer to data inside @a msg.
  * @param[out] data_size
  *        Size of @data is written here.
  *

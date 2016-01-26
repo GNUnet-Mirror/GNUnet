@@ -296,6 +296,11 @@ struct Host
   struct GNUNET_CONTAINER_MultiHashMap *join_reqs;
 
   /**
+   * Messages being relayed.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *relay_msgs;
+
+  /**
    * @see enum GNUNET_PSYC_Policy
    */
   enum GNUNET_PSYC_Policy policy;
@@ -407,6 +412,15 @@ static void
 cleanup_place (struct Place *plc);
 
 
+static struct MessageTransmitQueue *
+psyc_transmit_queue_message (struct Place *plc,
+                             struct GNUNET_SERVER_Client *client,
+                             size_t data_size,
+                             const void *data,
+                             uint16_t first_ptype, uint16_t last_ptype,
+                             struct MessageTransmitQueue *tmit_msg);
+
+
 int
 place_entry_cleanup (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
@@ -471,6 +485,7 @@ cleanup_host (struct Host *hst)
   if (NULL != hst->master)
     GNUNET_PSYC_master_stop (hst->master, GNUNET_NO, NULL, NULL); // FIXME
   GNUNET_CONTAINER_multihashmap_destroy (hst->join_reqs);
+  GNUNET_CONTAINER_multihashmap_destroy (hst->relay_msgs);
   GNUNET_CONTAINER_multihashmap_remove (hosts, &plc->pub_key_hash, plc);
 }
 
@@ -746,8 +761,6 @@ psyc_recv_join_dcsn (void *cls,
  */
 static void
 psyc_recv_message (void *cls,
-                   uint64_t message_id,
-                   uint32_t flags,
                    const struct GNUNET_PSYC_MessageHeader *msg)
 {
   struct Place *plc = cls;
@@ -765,71 +778,122 @@ psyc_recv_message (void *cls,
 
 
 static void
+host_relay_message_part (struct Host *hst,
+                         const struct GNUNET_MessageHeader *pmsg,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key)
+{
+  /* separate queue per nym */
+  struct GNUNET_HashCode nym_pub_hash;
+  GNUNET_CRYPTO_hash (nym_pub_key, sizeof (*nym_pub_key), &nym_pub_hash);
+
+  struct MessageTransmitQueue *
+    tmit_msg = GNUNET_CONTAINER_multihashmap_get (hst->relay_msgs, &nym_pub_hash);
+
+  uint16_t ptype = ntohs (pmsg->type);
+
+  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == ptype)
+  {
+    /* FIXME: last message was unfinished, cancel & remove from queue */
+  }
+
+  tmit_msg = psyc_transmit_queue_message (&hst->plc, NULL, ntohs (pmsg->size),
+                                          pmsg, ptype, ptype, tmit_msg);
+
+  switch (ptype)
+  {
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
+    GNUNET_CONTAINER_multihashmap_put (hst->relay_msgs, &nym_pub_hash, tmit_msg,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    break;
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
+    GNUNET_CONTAINER_multihashmap_remove (hst->relay_msgs, &nym_pub_hash, tmit_msg);
+    break;
+  }
+}
+
+
+static void
 place_recv_relay_method (void *cls,
+                         const struct GNUNET_PSYC_MessageHeader *msg,
                          const struct GNUNET_PSYC_MessageMethod *meth,
                          uint64_t message_id,
-                         uint32_t flags,
-                         uint64_t fragment_offset,
-                         uint32_t tmit_flags,
-                         const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                          const char *method_name)
 {
-  struct Host *hst = cls;
-  struct Place *plc = &hst->plc;
+  struct Place *plc = cls;
 
-
+  if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
+      && GNUNET_YES == plc->is_host);
+  {
+    struct Host *hst = cls;
+    host_relay_message_part (hst, &meth->header, &msg->slave_pub_key);
+  }
 }
 
 
 static void
 place_recv_relay_modifier (void *cls,
-                           const struct GNUNET_MessageHeader *msg,
+                           const struct GNUNET_PSYC_MessageHeader *msg,
+                           const struct GNUNET_MessageHeader *pmsg,
                            uint64_t message_id,
-                           uint32_t flags,
-                           uint64_t fragment_offset,
                            enum GNUNET_PSYC_Operator oper,
                            const char *name,
                            const void *value,
                            uint16_t value_size,
                            uint16_t full_value_size)
 {
+  struct Place *plc = cls;
 
+  if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
+      && GNUNET_YES == plc->is_host);
+  {
+    struct Host *hst = cls;
+    host_relay_message_part (hst, pmsg, &msg->slave_pub_key);
+  }
+}
+
+static void
+place_recv_relay_data (void *cls,
+                       const struct GNUNET_PSYC_MessageHeader *msg,
+                       const struct GNUNET_MessageHeader *pmsg,
+                       uint64_t message_id,
+                       const void *data,
+                       uint16_t data_size)
+{
+  struct Place *plc = cls;
+
+  if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
+      && GNUNET_YES == plc->is_host);
+  {
+    struct Host *hst = cls;
+    host_relay_message_part (hst, pmsg, &msg->slave_pub_key);
+  }
 }
 
 
 static void
 place_recv_relay_eom (void *cls,
-                      const struct GNUNET_MessageHeader *msg,
+                      const struct GNUNET_PSYC_MessageHeader *msg,
+                      const struct GNUNET_MessageHeader *pmsg,
                       uint64_t message_id,
-                      uint32_t flags,
-                      uint64_t fragment_offset,
-                      uint8_t cancelled)
+                      uint8_t is_cancelled)
 {
+  struct Place *plc = cls;
 
-}
-
-
-static void
-place_recv_relay_data (void *cls,
-                       const struct GNUNET_MessageHeader *msg,
-                       uint64_t message_id,
-                       uint32_t flags,
-                       uint64_t fragment_offset,
-                       const void *data,
-                       uint16_t data_size)
-{
-
+  if (GNUNET_PSYC_MESSAGE_REQUEST & ntohs (msg->flags)
+      && GNUNET_YES == plc->is_host);
+  {
+    struct Host *hst = cls;
+    host_relay_message_part (hst, pmsg, &msg->slave_pub_key);
+  }
 }
 
 
 static void
 place_recv_save_method (void *cls,
+                        const struct GNUNET_PSYC_MessageHeader *msg,
                         const struct GNUNET_PSYC_MessageMethod *meth,
                         uint64_t message_id,
-                        uint32_t flags,
-                        uint64_t fragment_offset,
-                        uint32_t tmit_flags,
-                        const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                         const char *method_name)
 {
   struct Place *plc = cls;
@@ -841,28 +905,26 @@ place_recv_save_method (void *cls,
           GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
 
   char *filename = NULL;
-  GNUNET_asprintf (&filename, "%s%c%s%c%s%c%.part" PRIu64,
+  GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%" PRIu64 ".part",
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
                    place_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                   message_id);
+                   GNUNET_ntohll (msg->message_id));
 
   /* save if does not already exist */
-  if (GNUNET_NO == GNUNET_DISK_file_test (filename))
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
     plc->file_save = GNUNET_YES;
   }
-
   GNUNET_free (filename);
 }
 
 
 static void
 place_recv_save_data (void *cls,
-                      const struct GNUNET_MessageHeader *msg,
+                      const struct GNUNET_PSYC_MessageHeader *msg,
+                      const struct GNUNET_MessageHeader *pmsg,
                       uint64_t message_id,
-                      uint32_t flags,
-                      uint64_t fragment_offset,
                       const void *data,
                       uint16_t data_size)
 {
@@ -875,11 +937,11 @@ place_recv_save_data (void *cls,
           GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
 
   char *filename = NULL;
-  GNUNET_asprintf (&filename, "%s%c%s%c%s%c%.part" PRIu64,
+  GNUNET_asprintf (&filename, "%s%c" "%s%c" "%s%c" "%" PRIu64 ".part",
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
                    place_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                   message_id);
+                   GNUNET_ntohll (msg->message_id));
   GNUNET_DISK_directory_create_for_file (filename);
   struct GNUNET_DISK_FileHandle *
     fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE,
@@ -896,11 +958,10 @@ place_recv_save_data (void *cls,
 
 static void
 place_recv_save_eom (void *cls,
-                     const struct GNUNET_MessageHeader *msg,
+                     const struct GNUNET_PSYC_MessageHeader *msg,
+                     const struct GNUNET_MessageHeader *pmsg,
                      uint64_t message_id,
-                     uint32_t flags,
-                     uint64_t fragment_offset,
-                     uint8_t cancelled)
+                     uint8_t is_cancelled)
 {
   struct Place *plc = cls;
   if (GNUNET_YES != plc->file_save)
@@ -910,19 +971,14 @@ place_recv_save_eom (void *cls,
   memcpy (&place_pub_hash_ascii.encoding,
           GNUNET_h2s_full (&plc->pub_key_hash), sizeof (place_pub_hash_ascii));
 
-  char *fn_part = NULL;
-  GNUNET_asprintf (&fn_part, "%s%c%s%c%s%c%.part" PRIu64,
-                   dir_social, DIR_SEPARATOR,
-                   "files", DIR_SEPARATOR,
-                   place_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                   message_id);
-
   char *fn = NULL;
   GNUNET_asprintf (&fn, "%s%c%s%c%s%c%" PRIu64,
                    dir_social, DIR_SEPARATOR,
                    "files", DIR_SEPARATOR,
                    place_pub_hash_ascii.encoding, DIR_SEPARATOR,
-                   message_id);
+                   GNUNET_ntohll (msg->message_id));
+  char *fn_part = NULL;
+  GNUNET_asprintf (&fn_part, "%s.part", fn);
 
   rename (fn_part, fn);
 
@@ -937,8 +993,9 @@ place_recv_save_eom (void *cls,
 static void
 place_init (struct Place *plc)
 {
-
+  plc->slicer = GNUNET_PSYC_slicer_create ();
 }
+
 
 /**
  * Add a place to the @e places hash map.
@@ -1054,8 +1111,7 @@ app_place_add (const char *app_id,
     }
   }
 
-
-  size_t app_id_size = strlen (app_id);
+  size_t app_id_size = strlen (app_id) + 1;
   void *app_id_value = GNUNET_malloc (app_id_size);
   memcpy (app_id_value, app_id, app_id_size);
 
@@ -1142,21 +1198,28 @@ app_place_save (const char *app_id,
 
 int
 app_place_remove (const char *app_id,
+                  const struct GNUNET_CRYPTO_EcdsaPublicKey *ego_pub_key,
                   const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key)
 {
+  struct GNUNET_HashCode ego_pub_hash;
   struct GNUNET_HashCode place_pub_hash;
+  GNUNET_CRYPTO_hash (ego_pub_key, sizeof (*ego_pub_key), &ego_pub_hash);
   GNUNET_CRYPTO_hash (place_pub_key, sizeof (*place_pub_key), &place_pub_hash);
 
+  struct GNUNET_CRYPTO_HashAsciiEncoded ego_pub_hash_ascii;
   struct GNUNET_CRYPTO_HashAsciiEncoded place_pub_hash_ascii;
+  memcpy (&ego_pub_hash_ascii.encoding,
+          GNUNET_h2s_full (&ego_pub_hash), sizeof (ego_pub_hash_ascii));
   memcpy (&place_pub_hash_ascii.encoding,
           GNUNET_h2s_full (&place_pub_hash), sizeof (place_pub_hash_ascii));
 
   char *app_place_filename = NULL;
   GNUNET_asprintf (&app_place_filename,
-                   "%s%c" "%s%/",
+                   "%s%c" "%s%c" "%s%c" "%s%c" "%s",
                    dir_social, DIR_SEPARATOR,
                    "apps", DIR_SEPARATOR,
                    app_id, DIR_SEPARATOR,
+                   ego_pub_hash_ascii.encoding, DIR_SEPARATOR,
                    place_pub_hash_ascii.encoding);
 
   struct GNUNET_HashCode app_id_hash;
@@ -1175,23 +1238,24 @@ app_place_remove (const char *app_id,
     void *app_id_value = GNUNET_CONTAINER_multihashmap_get (place_apps, &app_id_hash);
     if (NULL != app_id_value)
     {
+      GNUNET_CONTAINER_multihashmap_remove (place_apps, &app_id_hash, app_id_value);
       GNUNET_free (app_id_value);
-      GNUNET_CONTAINER_multihashmap_remove_all (place_apps, &app_id_hash);
     }
   }
 
+  int ret = GNUNET_OK;
 
-  int ret = unlink (app_place_filename);
-  GNUNET_free (app_place_filename);
-  if (0 != ret)
+  if (0 != unlink (app_place_filename))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error removing app place: unlink returned %d\n", errno);
-    return GNUNET_SYSERR;
+                "Error removing app place file: %s: %s\n",
+                app_place_filename, strerror (errno), errno);
+    ret = GNUNET_SYSERR;
   }
+  GNUNET_free (app_place_filename);
 
-  return GNUNET_OK;
+  return ret;
 }
 
 
@@ -1222,13 +1286,13 @@ host_enter (const struct HostEnterRequest *hreq, struct Host **ret_hst)
     hst = GNUNET_new (struct Host);
     hst->policy = hreq->policy;
     hst->join_reqs = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+    hst->relay_msgs = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
 
     struct Place *plc = &hst->plc;
     place_init (plc);
     plc->is_host = GNUNET_YES;
     plc->pub_key = hreq->place_pub_key;
     plc->pub_key_hash = place_pub_hash;
-    plc->slicer = GNUNET_PSYC_slicer_create ();
 
     GNUNET_CONTAINER_multihashmap_put (hosts, &plc->pub_key_hash, plc,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -1294,7 +1358,7 @@ client_recv_msg_proc_set (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-
+#if 0
   GNUNET_PSYC_slicer_method_remove (plc->slicer, method_prefix,
                                     place_recv_relay_method,
                                     place_recv_relay_modifier,
@@ -1305,10 +1369,10 @@ client_recv_msg_proc_set (void *cls, struct GNUNET_SERVER_Client *client,
                                     NULL,
                                     place_recv_save_data,
                                     place_recv_save_eom);
-
+#endif
   if (flags & GNUNET_SOCIAL_MSG_PROC_RELAY)
   {
-    GNUNET_PSYC_slicer_method_add (plc->slicer, method_prefix,
+    GNUNET_PSYC_slicer_method_add (plc->slicer, method_prefix, NULL,
                                    place_recv_relay_method,
                                    place_recv_relay_modifier,
                                    place_recv_relay_data,
@@ -1317,7 +1381,7 @@ client_recv_msg_proc_set (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (flags & GNUNET_SOCIAL_MSG_PROC_SAVE)
   {
-    GNUNET_PSYC_slicer_method_add (plc->slicer, method_prefix,
+    GNUNET_PSYC_slicer_method_add (plc->slicer, method_prefix, NULL,
                                    place_recv_save_method,
                                    NULL,
                                    place_recv_save_data,
@@ -1540,7 +1604,6 @@ guest_enter (const struct GuestEnterRequest *greq, struct Guest **ret_gst)
     plc->ego_pub_key = ego_pub_key;
     plc->ego_pub_hash = ego_pub_hash;
     plc->ego_key = ego->key;
-    plc->slicer = GNUNET_PSYC_slicer_create ();
 
     if (NULL == plc_gst)
     {
@@ -1920,16 +1983,18 @@ client_recv_app_connect (void *cls, struct GNUNET_SERVER_Client *client,
  */
 static void
 client_recv_app_detach (void *cls, struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *msg)
+                        const struct GNUNET_MessageHeader *msg)
 {
   struct Client *
     ctx = GNUNET_SERVER_client_get_user_context (client, struct Client);
   GNUNET_assert (NULL != ctx);
 
+  struct Place *plc = ctx->plc;
+
   const struct AppDetachRequest *req
     = (const struct AppDetachRequest *) msg;
 
-  int ret = app_place_remove (ctx->app_id, &req->place_pub_key);
+  int ret = app_place_remove (ctx->app_id, &plc->ego_pub_key, &req->place_pub_key);
   client_send_result (client, req->op_id, ret, NULL, 0);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1939,7 +2004,9 @@ client_recv_app_detach (void *cls, struct GNUNET_SERVER_Client *client,
 int
 app_places_entry_remove (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
-  app_place_remove (value, cls);
+  struct Place *plc = cls;
+  const char *app_id = value;
+  app_place_remove (app_id, &plc->ego_pub_key, &plc->pub_key);
   return GNUNET_YES;
 }
 
@@ -1962,7 +2029,7 @@ client_recv_place_leave (void *cls, struct GNUNET_SERVER_Client *client,
     place_apps = GNUNET_CONTAINER_multihashmap_get (places_apps, &plc->pub_key_hash);
   if (NULL != place_apps)
   {
-    GNUNET_CONTAINER_multihashmap_iterate (place_apps, app_places_entry_remove, &plc->pub_key);
+    GNUNET_CONTAINER_multihashmap_iterate (place_apps, app_places_entry_remove, plc);
   }
 
   /* FIXME: disconnect from the network, but keep local connection for history access */
@@ -2459,15 +2526,14 @@ guest_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
  * @param tmit_msg
  *        Next item in message transmission queue.
  * @param[out] pmeth
- *        The message method is returned here.
+ *        The malloc'd message method is returned here.
  *
  * @return #GNUNET_OK on success
  *         #GNUNET_NO if there are no more messages in queue.
  *         #GNUNET_SYSERR if the next message is malformed.
  */
-static int
-psyc_transmit_queue_next_method (struct Place *plc,
-                                 struct GNUNET_PSYC_MessageMethod **pmeth)
+static struct GNUNET_PSYC_MessageMethod *
+psyc_transmit_queue_next_method (struct Place *plc)
 {
   struct MessageTransmitQueue *tmit_msg = plc->tmit_msgs_head;
   if (NULL == tmit_msg)
@@ -2488,25 +2554,28 @@ psyc_transmit_queue_next_method (struct Place *plc,
                 "%p psyc_transmit_queue_next_method: unexpected message part of type %u.\n",
                 plc, NULL != pmsg ? ntohs (pmsg->type) : 0);
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    return NULL;
   }
 
   uint16_t psize = ntohs (pmsg->size);
-  *pmeth = (struct GNUNET_PSYC_MessageMethod *) pmsg;
-  if (psize < sizeof (**pmeth) + 1 || '\0' != *((char *) *pmeth + psize - 1))
+  struct GNUNET_PSYC_MessageMethod *
+    pmeth = (struct GNUNET_PSYC_MessageMethod *) GNUNET_copy_message (pmsg);
+
+  if (psize < sizeof (*pmeth) + 1 || '\0' != *((char *) pmeth + psize - 1))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%p psyc_transmit_queue_next_method: invalid method name.\n",
                 plc, ntohs (pmsg->type));
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "%u <= %u || NUL != %u\n",
-                sizeof (**pmeth), psize, *((char *) *pmeth + psize - 1));
+                sizeof (*pmeth), psize, *((char *) pmeth + psize - 1));
     GNUNET_break (0);
-    return GNUNET_SYSERR;
+    GNUNET_free (pmeth);
+    return NULL;
   }
 
   psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
-  return GNUNET_OK;
+  return pmeth;
 }
 
 
@@ -2516,19 +2585,21 @@ psyc_transmit_queue_next_method (struct Place *plc,
 static int
 psyc_master_transmit_message (struct Host *hst)
 {
+  struct Place *plc = &hst->plc;
 
   if (NULL == hst->tmit_handle)
   {
-    struct GNUNET_PSYC_MessageMethod *pmeth = NULL;
-    int ret = psyc_transmit_queue_next_method (&hst->plc, &pmeth);
-    if (GNUNET_OK != ret)
-      return ret;
+    struct GNUNET_PSYC_MessageMethod *
+      pmeth = psyc_transmit_queue_next_method (plc);
+    if (NULL == pmeth)
+      return GNUNET_SYSERR;
 
     hst->tmit_handle
       = GNUNET_PSYC_master_transmit (hst->master, (const char *) &pmeth[1],
                                      &host_transmit_notify_mod,
                                      &host_transmit_notify_data, hst,
                                      pmeth->flags);
+    GNUNET_free (pmeth);
   }
   else
   {
@@ -2544,18 +2615,21 @@ psyc_master_transmit_message (struct Host *hst)
 static int
 psyc_slave_transmit_message (struct Guest *gst)
 {
+  struct Place *plc = &gst->plc;
+
   if (NULL == gst->tmit_handle)
   {
-    struct GNUNET_PSYC_MessageMethod *pmeth = NULL;
-    int ret = psyc_transmit_queue_next_method (&gst->plc, &pmeth);
-    if (GNUNET_OK != ret)
-      return ret;
+    struct GNUNET_PSYC_MessageMethod *
+      pmeth = psyc_transmit_queue_next_method (plc);
+    if (NULL == pmeth)
+      return GNUNET_SYSERR;
 
     gst->tmit_handle
       = GNUNET_PSYC_slave_transmit (gst->slave, (const char *) &pmeth[1],
                                     &guest_transmit_notify_mod,
                                     &guest_transmit_notify_data, gst,
                                     pmeth->flags);
+    GNUNET_free (pmeth);
   }
   else
   {
@@ -2723,15 +2797,14 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
  * A historic message arrived from PSYC.
  */
 static void
-psyc_recv_history_message (void *cls, uint64_t message_id, uint32_t flags,
-                           const struct GNUNET_PSYC_MessageHeader *msg)
+psyc_recv_history_message (void *cls, const struct GNUNET_PSYC_MessageHeader *msg)
 {
   struct OperationClosure *opcls = cls;
   struct Place *plc = opcls->plc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Received historic message #%" PRId64 " (flags: %x)\n",
-              plc, message_id, flags);
+              plc, GNUNET_ntohll (msg->message_id), ntohl (msg->flags));
 
   uint16_t size = ntohs (msg->header.size);
 
@@ -2807,14 +2880,14 @@ client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
                                         GNUNET_ntohll (req->start_message_id),
                                         GNUNET_ntohll (req->end_message_id),
                                         method_prefix, opcls->flags,
-                                        &psyc_recv_history_message, NULL,
-                                        &psyc_recv_history_result, opcls);
+                                        psyc_recv_history_message, NULL,
+                                        psyc_recv_history_result, opcls);
   else
     GNUNET_PSYC_channel_history_replay_latest (plc->channel,
                                                GNUNET_ntohll (req->message_limit),
                                                method_prefix, opcls->flags,
-                                               &psyc_recv_history_message, NULL,
-                                               &psyc_recv_history_result, opcls);
+                                               psyc_recv_history_message, NULL,
+                                               psyc_recv_history_result, opcls);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

@@ -79,12 +79,9 @@ struct GNUNET_PSYC_Slicer;
  */
 typedef void
 (*GNUNET_PSYC_MethodCallback) (void *cls,
-                               const struct GNUNET_PSYC_MessageMethod *msg,
+                               const struct GNUNET_PSYC_MessageHeader *msg,
+                               const struct GNUNET_PSYC_MessageMethod *meth,
                                uint64_t message_id,
-                               uint32_t flags,
-                               uint64_t fragment_offset,
-                               uint32_t tmit_flags,
-                               const struct GNUNET_CRYPTO_EcdsaPublicKey *nym_pub_key,
                                const char *method_name);
 
 
@@ -114,10 +111,9 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_ModifierCallback) (void *cls,
-                                 const struct GNUNET_MessageHeader *msg,
+                                 const struct GNUNET_PSYC_MessageHeader *msg,
+                                 const struct GNUNET_MessageHeader *pmsg,
                                  uint64_t message_id,
-                                 uint32_t flags,
-                                 uint64_t fragment_offset,
                                  enum GNUNET_PSYC_Operator oper,
                                  const char *name,
                                  const void *value,
@@ -150,10 +146,9 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_DataCallback) (void *cls,
-                             const struct GNUNET_MessageHeader *msg,
+                             const struct GNUNET_PSYC_MessageHeader *msg,
+                             const struct GNUNET_MessageHeader *pmsg,
                              uint64_t message_id,
-                             uint32_t flags,
-                             uint64_t fragment_offset,
                              const void *data,
                              uint16_t data_size);
 
@@ -177,11 +172,10 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_EndOfMessageCallback) (void *cls,
-                                     const struct GNUNET_MessageHeader *msg,
+                                     const struct GNUNET_PSYC_MessageHeader *msg,
+                                     const struct GNUNET_MessageHeader *pmsg,
                                      uint64_t message_id,
-                                     uint32_t flags,
-                                     uint64_t fragment_offset,
-                                     uint8_t cancelled);
+                                     uint8_t is_cancelled);
 
 
 /**
@@ -220,6 +214,7 @@ GNUNET_PSYC_slicer_create (void);
 void
 GNUNET_PSYC_slicer_method_add (struct GNUNET_PSYC_Slicer *slicer,
                                const char *method_name,
+                               GNUNET_PSYC_MessageCallback msg_cb,
                                GNUNET_PSYC_MethodCallback method_cb,
                                GNUNET_PSYC_ModifierCallback modifier_cb,
                                GNUNET_PSYC_DataCallback data_cb,
@@ -237,13 +232,13 @@ GNUNET_PSYC_slicer_method_add (struct GNUNET_PSYC_Slicer *slicer,
  * @param method_name
  *        Name of the method to remove.
  * @param method_cb
- *        Method handler.
+ *        Only remove matching method handler, or NULL.
  * @param modifier_cb
- *        Modifier handler.
+ *        Only remove matching modifier handler, or NULL.
  * @param data_cb
- *        Data handler.
+ *        Only remove matching data handler, or NULL.
  * @param eom_cb
- *        End of message handler.
+ *        Only remove matching End of Message handler, or NULL.
  *
  * @return #GNUNET_OK if a method handler was removed,
  *         #GNUNET_NO if no handler matched the given method name and callbacks.
@@ -251,6 +246,7 @@ GNUNET_PSYC_slicer_method_add (struct GNUNET_PSYC_Slicer *slicer,
 int
 GNUNET_PSYC_slicer_method_remove (struct GNUNET_PSYC_Slicer *slicer,
                                   const char *method_name,
+                                  GNUNET_PSYC_MessageCallback msg_cb,
                                   GNUNET_PSYC_MethodCallback method_cb,
                                   GNUNET_PSYC_ModifierCallback modifier_cb,
                                   GNUNET_PSYC_DataCallback data_cb,
@@ -325,11 +321,8 @@ GNUNET_PSYC_slicer_message (struct GNUNET_PSYC_Slicer *slicer,
  */
 void
 GNUNET_PSYC_slicer_message_part (struct GNUNET_PSYC_Slicer *slicer,
-                                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_pub_key,
-                                 uint64_t message_id,
-                                 uint32_t flags,
-                                 uint64_t fragment_offset,
-                                 const struct GNUNET_MessageHeader *msg);
+                                 const struct GNUNET_PSYC_MessageHeader *msg,
+                                 const struct GNUNET_MessageHeader *pmsg);
 
 
 /**
