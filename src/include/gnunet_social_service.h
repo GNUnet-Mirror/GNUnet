@@ -110,7 +110,7 @@ GNUNET_SOCIAL_guest_disconnect().
 To permanently leave a place, see GNUNET_SOCIAL_host_leave() and GNUNET_SOCIAL_guest_leave().
 When leaving a place its network connections are closed and all applications are unsubscribed from the place.
 
-# Methods
+# Message methods
 
 ## _message
 
@@ -124,7 +124,7 @@ Message ID this message is in reply to.
 #### _id_thread
 Thread ID, the first message ID in the thread.
 
-#### _nym_author__
+#### _nym_author
 Nym of the author.
 
 #### _sig_author
