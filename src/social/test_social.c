@@ -382,7 +382,9 @@ host_reconnected (void *cls, int result,
 
 
 static void
-guest_reconnected (void *cls, int result, uint64_t max_message_id)
+guest_reconnected (void *cls, int result,
+                   const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                   uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest reconnected to place: %d\n",
@@ -1098,7 +1100,9 @@ host_answer_door (void *cls,
 
 
 static void
-guest_recv_local_enter (void *cls, int result, uint64_t max_message_id)
+guest_recv_local_enter (void *cls, int result,
+                        const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
+                        uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Test #%u: Guest entered to local place: %d\n",

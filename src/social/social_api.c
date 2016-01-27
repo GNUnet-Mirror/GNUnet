@@ -871,7 +871,8 @@ guest_recv_enter_ack (void *cls,
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
   int32_t result = ntohl (cres->result_code);
   if (NULL != gst->enter_cb)
-    gst->enter_cb (gst->cb_cls, result, GNUNET_ntohll (cres->max_message_id));
+    gst->enter_cb (gst->cb_cls, result, &gst->plc.pub_key,
+                   GNUNET_ntohll (cres->max_message_id));
 }
 
 
@@ -1962,7 +1963,7 @@ GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *gst)
  * @return Public key of the place.
  */
 const struct GNUNET_CRYPTO_EddsaPublicKey *
-GNUNET_SOCIAL_place_get_key (struct GNUNET_SOCIAL_Place *plc)
+GNUNET_SOCIAL_place_get_pub_key (const struct GNUNET_SOCIAL_Place *plc)
 {
   return &plc->pub_key;
 }

@@ -814,12 +814,15 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
  *        #GNUNET_OK on success, or
  *        #GNUNET_SYSERR on error, e.g. could not connect to the service, or
  *        could not resolve GNS name.
+ * @param place_pub_key
+ *        Public key of place.
  * @param max_message_id
  *        Last message ID sent to the place.
  *        Or 0 if no messages have been sent to the place yet.
  */
 typedef void
 (*GNUNET_SOCIAL_GuestEnterCallback) (void *cls, int result,
+                                     const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
                                      uint64_t max_message_id);
 
 
@@ -1066,6 +1069,18 @@ GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *guest);
  * A history request.
  */
 struct GNUNET_SOCIAL_HistoryRequest;
+
+
+/**
+ * Get the public key of a place.
+ *
+ * @param plc
+ *        Place.
+ *
+ * @return Public key of the place.
+ */
+const struct GNUNET_CRYPTO_EddsaPublicKey *
+GNUNET_SOCIAL_place_get_pub_key (const struct GNUNET_SOCIAL_Place *plc);
 
 
 /**
