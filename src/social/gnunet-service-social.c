@@ -914,7 +914,16 @@ place_recv_save_method (void *cls,
   /* save if does not already exist */
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
-    plc->file_save = GNUNET_YES;
+    if (0 == GNUNET_DISK_fn_write (filename, NULL, 0,
+                                   GNUNET_DISK_PERM_USER_READ
+                                   | GNUNET_DISK_PERM_USER_WRITE))
+    {
+      plc->file_save = GNUNET_YES;
+    }
+    else
+    {
+      GNUNET_break (0);
+    }
   }
   GNUNET_free (filename);
 }
@@ -945,13 +954,20 @@ place_recv_save_data (void *cls,
   GNUNET_DISK_directory_create_for_file (filename);
   struct GNUNET_DISK_FileHandle *
     fh = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_WRITE,
-                                GNUNET_DISK_PERM_USER_READ
-                                | GNUNET_DISK_PERM_USER_WRITE);
+                                GNUNET_DISK_PERM_NONE);
   GNUNET_free (filename);
 
-  GNUNET_DISK_file_seek (fh, plc->file_offset, GNUNET_DISK_SEEK_SET);
-  GNUNET_DISK_file_write (fh, data, data_size);
-  GNUNET_DISK_file_close (fh);
+  if (NULL != fh)
+  {
+    GNUNET_DISK_file_seek (fh, plc->file_offset, GNUNET_DISK_SEEK_SET);
+    GNUNET_DISK_file_write (fh, data, data_size);
+    GNUNET_DISK_file_close (fh);
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+
   plc->file_offset += data_size;
 }
 

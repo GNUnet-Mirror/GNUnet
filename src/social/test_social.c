@@ -300,7 +300,7 @@ notify_data (void *cls, uint16_t *data_size, void *data)
     return GNUNET_YES;
   }
 
-  uint16_t size = strlen (tmit->data[tmit->n]) + 1;
+  uint16_t size = strlen (tmit->data[tmit->n]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmit notify data: %u bytes available, "
               "processing fragment %u/%u (size %u).\n",
@@ -932,10 +932,10 @@ guest_talk ()
                        "_bar_foo", DATA2ARG ("one two three"));
   GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
                        "_bar_baz", DATA2ARG ("four five"));
-  tmit.data[0] = "zzz xxx yyy";
-  tmit.data[1] = "zyx wvu tsr qpo";
+  tmit.data[0] = "zzz xxx yyy ";
+  tmit.data[1] = "zyx wvu tsr qpo.\n";
   tmit.data_delay[1] = 1;
-  tmit.data[2] = "testing ten nine eight";
+  tmit.data[2] = "testing ten nine eight.\n";
   tmit.data_count = 3;
 
   tmit.guest_talk
@@ -961,11 +961,11 @@ host_announce ()
                        "_foo_bar", DATA2ARG ("foo bar"));
   GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
                        "_foo_bar_baz", DATA2ARG ("foo bar baz"));
-  tmit.data[0] = "aaa bbb ccc";
-  tmit.data[1] = "abc def ghi jkl";
+  tmit.data[0] = "aaa bbb ccc ";
+  tmit.data[1] = "abc def ghi jkl.\n";
   tmit.data_delay[1] = 1;
-  tmit.data[2] = "testing one two three";
-  tmit.data[3] = "four five";
+  tmit.data[2] = "testing one two three ";
+  tmit.data[3] = "four five.\n";
   tmit.data_count = 4;
 
   tmit.host_ann
@@ -995,9 +995,9 @@ host_announce2 ()
                        "_foo2_bar", DATA2ARG ("FOO BAR"));
   GNUNET_PSYC_env_add (tmit.env, GNUNET_PSYC_OP_ASSIGN,
                        "_foo2_bar", DATA2ARG ("FOO BAR BAZ"));
-  tmit.data[0] = "AAA BBB CCC";
-  tmit.data[1] = "ABC DEF GHI JKL";
-  tmit.data[2] = "TESTING ONE TWO THREE";
+  tmit.data[0] = "AAA BBB CCC ";
+  tmit.data[1] = "ABC DEF GHI JKL.\n";
+  tmit.data[2] = "TESTING ONE TWO THREE.\n";
   tmit.data_count = 3;
 
   tmit.host_ann
