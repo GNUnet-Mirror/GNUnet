@@ -825,7 +825,7 @@ GNUNET_ntoh_double (double d);
 /**
  * @ingroup memory
  * Wrapper around free. Frees the memory referred to by ptr.
- * Note that is is generally better to free memory that was
+ * Note that it is generally better to free memory that was
  * allocated with #GNUNET_array_grow using #GNUNET_array_grow(mem, size, 0) instead of #GNUNET_free.
  *
  * @param ptr location where to free the memory. ptr must have
