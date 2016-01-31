@@ -1,4 +1,4 @@
-.TH GNUNET-DOWNLOAD "1" "25 Feb 2012" "GNUnet"
+.TH GNUNET-DOWNLOAD "1" "31 Jan 2016" "GNUnet"
 .SH NAME
 gnunet\-download \- a command line interface for downloading files from GNUnet
 .SH SYNOPSIS
@@ -47,7 +47,7 @@ set the maximum number of parallel requests that is allowed.  If multiple files 
 
 .TP
 \fB\-R\fR, \fB\-\-recursive\fR
-download directories recursively (and in parallel); note that the URI must belong to a GNUnet directory and that the filename given must end with a '/' \-\- otherwise, only the file corresponding to the URI will be downloaded.  Note that in addition to using '\-R', you must also specify a filename ending in '.gnd' so that the code realizes that the top-level file is a directory (since we have no meta data).
+download directories recursively (and in parallel). Note that the URI must belong to a GNUnet directory and that the filename given to "\-o" must end in '.gnd' \-\- otherwise, you will receive an error.  You may want to use "DIRNAME/.gnd" for the filename, this way a directory "DIRNAME/" will be created, and GNUnet's internal directory information will be stored in "DIRNAME/.gnd". However, it is also possible to specify "DIRNAME.gnd", in which case the files from the directory will end up in "DIRNAME/", while GNUnet's directory meta data will be in "DIRNAME.gnd".
 
 .TP
 \fB\-v\fR, \fB\-\-version\fR
