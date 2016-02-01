@@ -208,8 +208,10 @@ GNUNET_PSYC_receive_reset (struct GNUNET_PSYC_ReceiveHandle *recv);
 /**
  * Handle incoming PSYC message.
  *
- * @param recv  Receive handle.
- * @param msg   The message.
+ * @param recv
+ *        Receive handle.
+ * @param msg
+ *        The message.
  *
  * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR on receive error.
@@ -222,10 +224,14 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
 /**
  * Check if @a data contains a series of valid message parts.
  *
- * @param      data_size    Size of @a data.
- * @param      data	    Data.
- * @param[out] first_ptype  Type of first message part.
- * @param[out] last_ptype   Type of last message part.
+ * @param data_size
+ *        Size of @a data.
+ * @param data
+ *        Data.
+ * @param[out] first_ptype
+ *        Type of first message part.
+ * @param[out] last_ptype
+ *        Type of last message part.
  *
  * @return Number of message parts found in @a data.
  *         or GNUNET_SYSERR if the message contains invalid parts.

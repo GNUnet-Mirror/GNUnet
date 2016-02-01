@@ -3375,6 +3375,8 @@ identity_recv_ego (void *cls, struct GNUNET_IDENTITY_Ego *id_ego,
     GNUNET_CONTAINER_multihashmap_put (egos, &ego_pub_hash, ego,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
+
+  // FIXME: notify clients about changed ego
 }
 
 

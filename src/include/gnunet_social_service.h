@@ -457,21 +457,28 @@ GNUNET_SOCIAL_nym_get_pub_key_hash (const struct GNUNET_SOCIAL_Nym *nym);
  * reference remains valid until the #GNUNET_SOCIAL_FarewellCallback is invoked
  * for it.
  *
- * @param cls Closure.
- * @param nym Handle for the user who wants to enter.
- * @param method_name Method name in the entry request.
- * @param variable_count Number of elements in the @a variables array.
- * @param variables Variables present in the message.
- * @param data_size Number of bytes in @a data.
- * @param data Payload given on enter (e.g. a password).
+ * @param cls
+ *        Closure.
+ * @param nym
+ *        Handle for the user who wants to enter.
+ * @param method_name
+ *        Method name in the entry request.
+ * @param variable_count
+ *        Number of elements in the @a variables array.
+ * @param variables
+ *        Variables present in the message.
+ * @param data
+ *        Payload given on enter (e.g. a password).
+ * @param data_size
+ *        Number of bytes in @a data.
  */
 typedef void
 (*GNUNET_SOCIAL_AnswerDoorCallback) (void *cls,
                                      struct GNUNET_SOCIAL_Nym *nym,
                                      const char *method_name,
                                      struct GNUNET_PSYC_Environment *env,
-                                     size_t data_size,
-                                     const void *data);
+                                     const void *data,
+                                     size_t data_size);
 
 
 /**
@@ -589,14 +596,8 @@ GNUNET_SOCIAL_host_enter_reconnect (struct GNUNET_SOCIAL_HostConnection *hconn,
  *        #GNUNET_YES    if @a nym is admitted,
  *        #GNUNET_NO     if @a nym is refused entry,
  *        #GNUNET_SYSERR if we cannot answer the request.
- * @param method_name
- *        Method name for the rejection message.
- * @param env
- *        Environment containing variables for the message, or NULL.
- * @param data
- *        Data for the rejection message to send back.
- * @param data_size
- *        Number of bytes in @a data for method.
+ * @param entry_resp
+ *        Entry response message, or NULL.
  * @return #GNUNET_OK on success,
  *         #GNUNET_SYSERR if the message is too large.
  */
@@ -860,14 +861,8 @@ typedef void
  *        Number of elements in the @a relays array.
  * @param relays
  *        Relays for the underlying multicast group.
- * @param method_name
- *        Method name for the message.
- * @param env
- *        Environment containing variables for the message, or NULL.
- * @param data
- *        Payload for the message to give to the enter callback.
- * @param data_size
- *        Number of bytes in @a data.
+ * @param entry_msg
+ *        Entry message.
  * @param slicer
  *        Slicer to use for processing incoming requests from guests.
  *
@@ -1190,8 +1185,6 @@ struct GNUNET_SOCIAL_LookHandle;
  *        The place to look the object at.
  * @param full_name
  *        Full name of the object.
- * @param value_size
- *        Set to the size of the returned value.
  *
  * @return NULL if there is no such object at this place.
  */

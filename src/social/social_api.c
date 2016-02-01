@@ -848,7 +848,7 @@ host_recv_enter_request (void *cls,
 
     struct GNUNET_SOCIAL_Nym *nym = nym_get_or_create (&req->slave_pub_key);
     hst->answer_door_cb (hst->cb_cls, nym, method_name, env,
-                         data_size, data);
+                         data, data_size);
   } while (0);
 
   if (NULL != env)

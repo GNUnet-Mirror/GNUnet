@@ -156,8 +156,8 @@ host_answer_door (void *cls,
                   struct GNUNET_SOCIAL_Nym *nym,
                   const char *method_name,
                   struct GNUNET_PSYC_Environment *env,
-                  size_t data_size,
-                  const void *data);
+                  const void *data,
+                  size_t data_size);
 
 static void
 host_enter ();
@@ -1063,8 +1063,8 @@ host_answer_door (void *cls,
                   struct GNUNET_SOCIAL_Nym *nym,
                   const char *method_name,
                   struct GNUNET_PSYC_Environment *env,
-                  size_t data_size,
-                  const void *data)
+                  const void *data,
+                  size_t data_size)
 {
   join_req_count++;
 
