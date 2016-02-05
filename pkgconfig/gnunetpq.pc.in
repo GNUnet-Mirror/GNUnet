@@ -1,0 +1,12 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: GNUnet PQ
+Description: API with common functions for interacting with libpq
+URL: http://gnunet.org
+Version: @VERSION@
+Requires:
+Libs: -L${libdir} -lgnunetpq
+Cflags: -I${includedir}

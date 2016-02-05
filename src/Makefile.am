@@ -44,7 +44,7 @@ if HAVE_MYSQL
 endif
 
 if HAVE_POSTGRESQL
- POSTGRES_DIR = postgres
+ POSTGRES_DIR = pq postgres
 endif
 
 if HAVE_REST

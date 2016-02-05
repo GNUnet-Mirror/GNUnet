@@ -1,5 +1,5 @@
 # This file is part of GNUnet.
-# (C) 2001--2015 Christian Grothoff (and other contributing authors)
+# (C) 2001--2016 Christian Grothoff (and other contributing authors)
 #
 # GNUnet is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published
@@ -1566,6 +1566,7 @@ src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
 src/peerstore/Makefile
 src/peerstore/peerstore.conf
+src/pq/Makefile
 src/postgres/Makefile
 src/psycutil/Makefile
 src/psyc/Makefile
@@ -1635,6 +1636,7 @@ pkgconfig/gnunetnamestore.pc
 pkgconfig/gnunetnat.pc
 pkgconfig/gnunetnse.pc
 pkgconfig/gnunetpeerinfo.pc
+pkgconfig/gnunetpq.pc
 pkgconfig/gnunetpostgres.pc
 pkgconfig/gnunetpsyc.pc
 pkgconfig/gnunetpsycstore.pc

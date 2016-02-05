@@ -38,12 +38,16 @@
  * @param args arguments given to the command
  * @param filename name of the source file where the command was run
  * @param line line number in the source file
- * @return GNUNET_OK if the result is acceptable
+ * @return #GNUNET_OK if the result is acceptable
  */
 int
-GNUNET_POSTGRES_check_result_ (PGconn * dbh, PGresult * ret,
-                               int expected_status, const char *command,
-                               const char *args, const char *filename, int line)
+GNUNET_POSTGRES_check_result_ (PGconn *dbh,
+			       PGresult *ret,
+                               int expected_status, 
+			       const char *command,
+                               const char *args, 
+			       const char *filename, 
+			       int line)
 {
   if (ret == NULL)
   {
@@ -72,10 +76,12 @@ GNUNET_POSTGRES_check_result_ (PGconn * dbh, PGresult * ret,
  * @param sql statement to run
  * @param filename filename for error reporting
  * @param line code line for error reporting
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_exec_ (PGconn * dbh, const char *sql, const char *filename,
+GNUNET_POSTGRES_exec_ (PGconn * dbh, 
+		       const char *sql, 
+		       const char *filename,
                        int line)
 {
   PGresult *ret;
@@ -99,18 +105,30 @@ GNUNET_POSTGRES_exec_ (PGconn * dbh, const char *sql, const char *filename,
  * @param nparams number of parameters in sql
  * @param filename filename for error reporting
  * @param line code line for error reporting
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_prepare_ (PGconn * dbh, const char *name, const char *sql,
-                          int nparams, const char *filename, int line)
+GNUNET_POSTGRES_prepare_ (PGconn *dbh,
+			  const char *name, 
+			  const char *sql,
+                          int nparams, 
+			  const char *filename, 
+			  int line)
 {
   PGresult *ret;
 
-  ret = PQprepare (dbh, name, sql, nparams, NULL);
+  ret = PQprepare (dbh,
+		   name, 
+		   sql, 
+		   nparams, NULL);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK, "PQprepare",
-                                     sql, filename, line))
+      GNUNET_POSTGRES_check_result_ (dbh, 
+				     ret, 
+				     PGRES_COMMAND_OK,
+				     "PQprepare",
+                                     sql, 
+				     filename, 
+				     line))
     return GNUNET_SYSERR;
   PQclear (ret);
   return GNUNET_OK;
@@ -161,10 +179,12 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle * cfg,
  * @param dbh database handle
  * @param stmt name of the prepared statement
  * @param rowid which row to delete
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh, const char *stmt, uint32_t rowid)
+GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh, 
+				 const char *stmt,
+				 uint32_t rowid)
 {
   uint32_t brow = htonl (rowid);
   const char *paramValues[] = { (const char *) &brow };
@@ -173,10 +193,17 @@ GNUNET_POSTGRES_delete_by_rowid (PGconn * dbh, const char *stmt, uint32_t rowid)
   PGresult *ret;
 
   ret =
-      PQexecPrepared (dbh, stmt, 1, paramValues, paramLengths, paramFormats, 1);
+      PQexecPrepared (dbh, stmt, 1, 
+		      paramValues, 
+		      paramLengths, 
+		      paramFormats, 
+		      1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (dbh, ret, PGRES_COMMAND_OK,
-                                     "PQexecPrepared", "delrow", __FILE__,
+      GNUNET_POSTGRES_check_result_ (dbh, ret, 
+				     PGRES_COMMAND_OK,
+                                     "PQexecPrepared", 
+				     "delrow",
+				     __FILE__,
                                      __LINE__))
   {
     return GNUNET_SYSERR;

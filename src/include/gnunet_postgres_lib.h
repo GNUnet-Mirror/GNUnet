@@ -45,7 +45,7 @@ extern "C"
 /**
  * Check if the result obtained from Postgres has
  * the desired status code.  If not, log an error, clear the
- * result and return GNUNET_SYSERR.
+ * result and return #GNUNET_SYSERR.
  *
  * @param dbh database handle
  * @param ret return value from database operation to check
@@ -54,25 +54,29 @@ extern "C"
  * @param args arguments given to the command
  * @param filename name of the source file where the command was run
  * @param line line number in the source file
- * @return GNUNET_OK if the result is acceptable
+ * @return #GNUNET_OK if the result is acceptable
  */
 int
-GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
-                               const char *command, const char *args,
-                               const char *filename, int line);
+GNUNET_POSTGRES_check_result_ (PGconn *dbh, 
+			       PGresult *ret,
+			       int expected_status,
+                               const char *command, 
+			       const char *args,
+                               const char *filename, 
+			       int line);
 
 
 /**
  * Check if the result obtained from Postgres has
  * the desired status code.  If not, log an error, clear the
- * result and return GNUNET_SYSERR.
+ * result and return #GNUNET_SYSERR.
  *
  * @param dbh database handle
  * @param ret return value from database operation to check
  * @param expected_status desired status
  * @param command description of the command that was run
  * @param args arguments given to the command
- * @return GNUNET_OK if the result is acceptable
+ * @return #GNUNET_OK if the result is acceptable
  */
 #define GNUNET_POSTGRES_check_result(dbh,ret,expected_status,command,args) GNUNET_POSTGRES_check_result_(dbh,ret,expected_status,command,args,__FILE__,__LINE__)
 
@@ -84,10 +88,13 @@ GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
  * @param sql statement to run
  * @param filename filename for error reporting
  * @param line code line for error reporting
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql, const char *filename, int line);
+GNUNET_POSTGRES_exec_ (PGconn *dbh, 
+		       const char *sql, 
+		       const char *filename, 
+		       int line);
 
 
 /**
@@ -95,7 +102,7 @@ GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql, const char *filename, int l
  *
  * @param dbh database handle
  * @param sql statement to run
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 #define GNUNET_POSTGRES_exec(dbh,sql) GNUNET_POSTGRES_exec_(dbh,sql,__FILE__,__LINE__)
 
@@ -109,12 +116,15 @@ GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql, const char *filename, int l
  * @param nparams number of parameters in sql
  * @param filename filename for error reporting
  * @param line code line for error reporting
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
-GNUNET_POSTGRES_prepare_ (PGconn *dbh, const char *name, const char *sql,
+GNUNET_POSTGRES_prepare_ (PGconn *dbh, 
+			  const char *name, 
+			  const char *sql,
                           int nparams,
-                          const char *filename, int line);
+                          const char *filename, 
+			  int line);
 
 
 /**
@@ -124,7 +134,7 @@ GNUNET_POSTGRES_prepare_ (PGconn *dbh, const char *name, const char *sql,
  * @param name name for the prepared SQL statement
  * @param sql SQL code to prepare
  * @param nparams number of parameters in sql
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 #define GNUNET_POSTGRES_prepare(dbh,name,sql,nparams) GNUNET_POSTGRES_prepare_(dbh,name,sql,nparams,__FILE__,__LINE__)
 
@@ -148,7 +158,7 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param dbh database handle
  * @param stmt name of the prepared statement
  * @param rowid which row to delete
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_POSTGRES_delete_by_rowid (PGconn *dbh,
