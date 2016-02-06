@@ -179,6 +179,7 @@ libgnunet_plugin_namestore_postgres_la_SOURCES = \
 libgnunet_plugin_namestore_postgres_la_LIBADD = \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la  \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \
+  $(top_builddir)/src/pq/libgnunetpq.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \
   $(LTLIBINTL)
@@ -189,8 +190,8 @@ libgnunet_plugin_rest_namestore_la_SOURCES = \
   plugin_rest_namestore.c
 libgnunet_plugin_rest_namestore_la_LIBADD = \
   libgnunetnamestore.la \
-	$(top_builddir)/src/rest/libgnunetrest.la \
-	$(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/rest/libgnunetrest.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
   $(LTLIBINTL) -ljansson -lmicrohttpd
 libgnunet_plugin_rest_namestore_la_LDFLAGS = \

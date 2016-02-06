@@ -1,6 +1,6 @@
  /*
   * This file is part of GNUnet
-  * Copyright (C) 2009-2013 GNUnet e.V.
+  * Copyright (C) 2009-2013, 2016 GNUnet e.V.
   *
   * GNUnet is free software; you can redistribute it and/or modify
   * it under the terms of the GNU General Public License as published
@@ -28,6 +28,7 @@
 #include "gnunet_namestore_service.h"
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_postgres_lib.h"
+#include "gnunet_pq_lib.h"
 #include "namestore.h"
 
 
@@ -241,6 +242,7 @@ namestore_postgres_store_records (void *cls,
   }
   {
     char data[data_size];
+    // FIXME: use libgnunetpq!
     const char *paramValues[] = {
       (const char *) zone_key,
       (const char *) &pkey,
