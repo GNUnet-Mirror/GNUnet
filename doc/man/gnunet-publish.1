@@ -32,6 +32,10 @@ Use alternate config file (if this option is not specified, the default is ~/.co
 Disable use of GNU libextractor for finding additional keywords and metadata.
 
 .TP
+\fB\-d\fR, \fB\-\-disable\-creation\-time\fR
+Disable use of creation time timestamp in metadata.  Useful to make created directories deterministic and to avoid leaking information about the time at which a file was made available.
+
+.TP
 \fB\-e\fR, \fB\-\-extract\fR
 Print the list of keywords that will be used for each file given the current options.  Do not perform any indexing or publishing.
 
