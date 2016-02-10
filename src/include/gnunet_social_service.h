@@ -783,7 +783,7 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
 /**
  * Stop hosting a home.
  *
- * Sends a _notice_place_closed announcement to the home.
+ * Sends a _notice_place_closing announcement to the home.
  * Invalidates host handle.
  *
  * @param hst

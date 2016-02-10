@@ -73,7 +73,7 @@ struct GNUNET_SOCIAL_App
    */
   struct GNUNET_CLIENT_MANAGER_Connection *client;
 
-  /**
+  /*e
    * Message to send on reconnect.
    */
   struct GNUNET_MessageHeader *connect_msg;
@@ -1540,7 +1540,7 @@ GNUNET_SOCIAL_host_disconnect (struct GNUNET_SOCIAL_Host *hst,
 /**
  * Stop hosting the home.
  *
- * Sends a _notice_place_closed announcement to the home.
+ * Sends a _notice_place_closing announcement to the home.
  * Invalidates host handle.
  *
  * @param hst
@@ -1560,7 +1560,7 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *hst,
                           GNUNET_ContinuationCallback disconnect_cb,
                           void *cls)
 {
-  GNUNET_SOCIAL_host_announce (hst, "_notice_place_closed", env, NULL, NULL,
+  GNUNET_SOCIAL_host_announce (hst, "_notice_place_closing", env, NULL, NULL,
                                GNUNET_SOCIAL_ANNOUNCE_NONE);
   place_leave (&hst->plc);
   GNUNET_SOCIAL_host_disconnect (hst, disconnect_cb, cls);
