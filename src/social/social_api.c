@@ -73,7 +73,7 @@ struct GNUNET_SOCIAL_App
    */
   struct GNUNET_CLIENT_MANAGER_Connection *client;
 
-  /*e
+  /**
    * Message to send on reconnect.
    */
   struct GNUNET_MessageHeader *connect_msg;
