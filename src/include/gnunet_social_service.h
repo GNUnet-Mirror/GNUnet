@@ -86,7 +86,7 @@ or process it using a message handler function.
 
 A client first establishes an _application connection_ to the service using
 GNUNET_SOCIAL_app_connect() providing its _application ID_, then receives the
-public keys of subscribed places and available egos and in response.
+public keys of subscribed places and available egos in response.
 
 ## Reconnecting to places
 
@@ -112,13 +112,13 @@ When leaving a place its network connections are closed and all applications are
 
 # Message methods
 
-## _message
+## _converse
 
-A message sent to the place.
+Human conversation in a private or public place.
 
 ### Environment
 
-#### _id_reply_to
+#### _id_reply
 Message ID this message is in reply to.
 
 #### _id_thread
@@ -127,10 +127,14 @@ Thread ID, the first message ID in the thread.
 #### _nym_author
 Nym of the author.
 
+FIXME: Are nyms a different data type from egos and person entities?
+Do they have a different format than any other entity address?
+Questions and thoughts on how to fix this in "questions.org"
+
 #### _sig_author
 Signature of the message body and its variables by the author.
 
-## Data
+### Data
 
 Message body.
 
@@ -148,10 +152,17 @@ e.g. files under a given size.
 ##### _gns_place
 GNS name of the place in a globally unique .zkey zone
 
+FIXME: A custom _gns PSYC data type should be avoidable by parsing
+and interpreting PSYC uniforms appropriately.
+Thoughts on this in "questions.org"
+
 #### Without GNS
 
 ##### _key_pub_place
 Public key of place
+
+FIXME: _key_pub can't be the data type for GNUnet-specific cryptographic
+addressing. Questions and thoughts on how to fix this in "questions.org"
 
 ##### _peer_origin
 Peer ID of origin
@@ -170,7 +181,7 @@ The environment of _notice_place above, plus the following:
 #### _size_file
 Size of file
 
-#### _mime_file
+#### _type_file
 MIME type of file
 
 #### _name_file
@@ -182,7 +193,7 @@ Description of file
 ## _file
 
 Messages with a _file method contain a file,
-which is saved to disk upon receipt at the following location:
+which is saved to disk upon reception at the following location:
 $GNUNET_DATA_HOME/social/files/<H(place_pub)>/<message_id>
 
 ### Environment
@@ -190,7 +201,7 @@ $GNUNET_DATA_HOME/social/files/<H(place_pub)>/<message_id>
 #### _size_file
 Size of file
 
-#### _mime_file
+#### _type_file
 MIME type of file
 
 #### _name_file
@@ -297,6 +308,10 @@ typedef void
 
 /**
  * Entry status of a place.
+ *
+ * Note: The intermediate status of having entered a place without
+ * being subscribed to it may be obsoleted in future unless we find a
+ * compelling reason for it to exist. FIXME: See questions.org.
  */
 enum GNUNET_SOCIAL_PlaceState
 {
