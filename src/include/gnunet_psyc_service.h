@@ -57,11 +57,11 @@
  * - PSYC defines standard variables, methods, etc.  This
  *   library deliberately abstracts over all of these; a
  *   higher-level API should combine the naming system (GNS)
- *   and standard methods (message, join, part, warn,
- *   fail, error) and variables (action, color, time,
- *   tag, etc.).  However, this API does take over the
- *   routing variables, specifically 'context' (channel),
- *   and 'source'.  We only kind-of support 'target', as
+ *   and standard methods (_converse, _notice, _request,
+ *   _warning, _error etc) and variables (_action, _color,
+ *   _time, etc).  However, this API does take over the
+ *   routing variables, specifically '_context' (channel),
+ *   and '_source'.  We only kind-of support '_target', as
  *   the target is either everyone in the group or the
  *   origin, and never just a single member of the group;
  *   for such individual messages, an application needs to
@@ -76,6 +76,13 @@
  *   be called 'PSYC-low', whereas a higher-level API
  *   implementing defaults for standard methods and
  *   variables might be called 'PSYC-std' or 'PSYC-high'.
+ *
+ *   In PSYC terminology this is simply called the "PSYC
+ *   routing layer" and the abstractions, for instance in
+ *   psyced, are quite similar. The higher one is called
+ *   "PSYC entity layer." In the text rendering of the
+ *   protocol the two are separated by an empty line. See
+ *   http://about.psyc.eu/Spec:Packet and related.  --lynX
  *
  * @{
  */
