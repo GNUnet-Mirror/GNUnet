@@ -777,6 +777,16 @@ psyc_recv_message (void *cls,
 }
 
 
+/**
+ * Relay a message part received from a guest to the the place.
+ *
+ * @param hst
+ *        Host.
+ * @param pmsg
+ *        Message part.
+ * @param nym_pub_key
+ *        Nym the message is received from.
+ */
 static void
 host_relay_message_part (struct Host *hst,
                          const struct GNUNET_MessageHeader *pmsg,
@@ -813,6 +823,9 @@ host_relay_message_part (struct Host *hst,
 }
 
 
+/**
+ * Received a method to be relayed from a guest.
+ */
 static void
 place_recv_relay_method (void *cls,
                          const struct GNUNET_PSYC_MessageHeader *msg,
@@ -831,6 +844,9 @@ place_recv_relay_method (void *cls,
 }
 
 
+/**
+ * Received a modifier to be relayed from a guest.
+ */
 static void
 place_recv_relay_modifier (void *cls,
                            const struct GNUNET_PSYC_MessageHeader *msg,
@@ -852,6 +868,9 @@ place_recv_relay_modifier (void *cls,
   }
 }
 
+/**
+ * Received a data fragment to be relayed from a guest.
+ */
 static void
 place_recv_relay_data (void *cls,
                        const struct GNUNET_PSYC_MessageHeader *msg,
@@ -871,6 +890,9 @@ place_recv_relay_data (void *cls,
 }
 
 
+/**
+ * Received end of message to be relayed from a guest.
+ */
 static void
 place_recv_relay_eom (void *cls,
                       const struct GNUNET_PSYC_MessageHeader *msg,
@@ -889,6 +911,12 @@ place_recv_relay_eom (void *cls,
 }
 
 
+/**
+ * Received a method to be saved to disk.
+ *
+ * Create a new file for writing the data part of the message into,
+ * if the file does not yet exist.
+ */
 static void
 place_recv_save_method (void *cls,
                         const struct GNUNET_PSYC_MessageHeader *msg,
@@ -929,6 +957,11 @@ place_recv_save_method (void *cls,
 }
 
 
+/**
+ * Received a data fragment to be saved to disk.
+ *
+ * Append data fragment to the file.
+ */
 static void
 place_recv_save_data (void *cls,
                       const struct GNUNET_PSYC_MessageHeader *msg,
@@ -972,6 +1005,11 @@ place_recv_save_data (void *cls,
 }
 
 
+/**
+ * Received end of message to be saved to disk.
+ *
+ * Remove .part ending from the filename.
+ */
 static void
 place_recv_save_eom (void *cls,
                      const struct GNUNET_PSYC_MessageHeader *msg,
