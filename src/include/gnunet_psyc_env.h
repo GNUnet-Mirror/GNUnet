@@ -163,8 +163,8 @@ GNUNET_PSYC_env_create ();
  */
 void
 GNUNET_PSYC_env_add (struct GNUNET_PSYC_Environment *env,
-                            enum GNUNET_PSYC_Operator oper, const char *name,
-                            const void *value, size_t value_size);
+                     enum GNUNET_PSYC_Operator oper, const char *name,
+                     const void *value, size_t value_size);
 
 
 /**
@@ -187,7 +187,7 @@ GNUNET_PSYC_env_tail (const struct GNUNET_PSYC_Environment *env);
  */
 void
 GNUNET_PSYC_env_remove (struct GNUNET_PSYC_Environment *env,
-                               struct GNUNET_PSYC_Modifier *mod);
+                        struct GNUNET_PSYC_Modifier *mod);
 
 
 /**
@@ -195,8 +195,8 @@ GNUNET_PSYC_env_remove (struct GNUNET_PSYC_Environment *env,
  */
 int
 GNUNET_PSYC_env_shift (struct GNUNET_PSYC_Environment *env,
-                              enum GNUNET_PSYC_Operator *oper, const char **name,
-                              const void **value, size_t *value_size);
+                       enum GNUNET_PSYC_Operator *oper, const char **name,
+                       const void **value, size_t *value_size);
 
 
 /**
@@ -210,8 +210,8 @@ GNUNET_PSYC_env_shift (struct GNUNET_PSYC_Environment *env,
  */
 typedef int
 (*GNUNET_PSYC_Iterator) (void *cls, enum GNUNET_PSYC_Operator oper,
-                        const char *name, const char *value,
-                        uint32_t value_size);
+                         const char *name, const char *value,
+                         uint32_t value_size);
 
 
 /**
@@ -223,7 +223,7 @@ typedef int
  */
 void
 GNUNET_PSYC_env_iterate (const struct GNUNET_PSYC_Environment *env,
-                                GNUNET_PSYC_Iterator it, void *it_cls);
+                         GNUNET_PSYC_Iterator it, void *it_cls);
 
 
 /**
@@ -273,8 +273,8 @@ GNUNET_PSYC_var_get_type (char *name);
  */
 int
 GNUNET_PSYC_operation (char *name, void *current_value, size_t current_value_size,
-                      enum GNUNET_PSYC_Operator oper, void *args, size_t args_size,
-                      void **return_value, size_t *return_value_size);
+                       enum GNUNET_PSYC_Operator oper, void *args, size_t args_size,
+                       void **return_value, size_t *return_value_size);
 
 
 /**

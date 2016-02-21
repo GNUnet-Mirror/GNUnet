@@ -66,8 +66,8 @@ GNUNET_PSYC_env_create ()
  */
 void
 GNUNET_PSYC_env_add (struct GNUNET_PSYC_Environment *env,
-                            enum GNUNET_PSYC_Operator oper, const char *name,
-                            const void *value, size_t value_size)
+                     enum GNUNET_PSYC_Operator oper, const char *name,
+                     const void *value, size_t value_size)
 {
   struct GNUNET_PSYC_Modifier *mod = GNUNET_new (struct GNUNET_PSYC_Modifier);
   mod->oper = oper;
@@ -104,7 +104,7 @@ GNUNET_PSYC_env_tail (const struct GNUNET_PSYC_Environment *env)
  */
 void
 GNUNET_PSYC_env_remove (struct GNUNET_PSYC_Environment *env,
-                               struct GNUNET_PSYC_Modifier *mod)
+                        struct GNUNET_PSYC_Modifier *mod)
 {
   GNUNET_CONTAINER_DLL_remove (env->mod_head, env->mod_tail, mod);
 }
@@ -123,8 +123,8 @@ GNUNET_PSYC_env_remove (struct GNUNET_PSYC_Environment *env,
  */
 int
 GNUNET_PSYC_env_shift (struct GNUNET_PSYC_Environment *env,
-                              enum GNUNET_PSYC_Operator *oper, const char **name,
-                              const void **value, size_t *value_size)
+                       enum GNUNET_PSYC_Operator *oper, const char **name,
+                       const void **value, size_t *value_size)
 {
   if (NULL == env->mod_head)
     return GNUNET_NO;
@@ -152,7 +152,7 @@ GNUNET_PSYC_env_shift (struct GNUNET_PSYC_Environment *env,
  */
 void
 GNUNET_PSYC_env_iterate (const struct GNUNET_PSYC_Environment *env,
-                                GNUNET_PSYC_Iterator it, void *it_cls)
+                         GNUNET_PSYC_Iterator it, void *it_cls)
 {
   struct GNUNET_PSYC_Modifier *mod;
   for (mod = env->mod_head; NULL != mod; mod = mod->next)
