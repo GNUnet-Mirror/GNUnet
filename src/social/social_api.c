@@ -103,12 +103,6 @@ struct GNUNET_SOCIAL_App
   GNUNET_SOCIAL_AppHostPlaceCallback host_cb;
   GNUNET_SOCIAL_AppGuestPlaceCallback guest_cb;
   void *cb_cls;
-
-  /**
-   * Is this place in the process of disconnecting from the service?
-   * #GNUNET_YES or #GNUNET_NO
-   */
-  uint8_t is_disconnecting;
 };
 
 
@@ -182,12 +176,6 @@ struct GNUNET_SOCIAL_Place
    * Does this place belong to a host (#GNUNET_YES) or guest (#GNUNET_NO)?
    */
   uint8_t is_host;
-
-  /**
-   * Is this place in the process of disconnecting from the service?
-   * #GNUNET_YES or #GNUNET_NO
-   */
-  uint8_t is_disconnecting;
 };
 
 
@@ -1509,7 +1497,6 @@ place_disconnect (struct GNUNET_SOCIAL_Place *plc,
                   GNUNET_ContinuationCallback disconnect_cb,
                   void *disconnect_cls)
 {
-  plc->is_disconnecting = GNUNET_YES;
   plc->disconnect_cb = disconnect_cb;
   plc->disconnect_cls = disconnect_cls;
 

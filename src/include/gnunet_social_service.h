@@ -307,24 +307,27 @@ typedef void
 
 
 /**
- * Entry status of a place.
- *
- * Note: The intermediate status of having entered a place without
- * being subscribed to it may be obsoleted in future unless we find a
- * compelling reason for it to exist. FIXME: See questions.org.
+ * Entry status of a place per application.
  */
-enum GNUNET_SOCIAL_PlaceState
+enum GNUNET_SOCIAL_AppPlaceState
 {
   /**
-   * Place was once entered but left since.
+   * The place was once entered by the ego, but left since.
+   * It's possible to establish a local connection to the place
+   * without re-entering to fetch history from the PSYCstore.
+   * @see enum GNUNET_PSYC_SlaveJoinFlags and GNUNET_SOCIAL_guest_enter()
    */
   GNUNET_SOCIAL_PLACE_STATE_ARCHIVED = 0,
+
   /**
-   * Place is entered but not subscribed.
+   * The place is entered by the ego,
+   * but this application is not subscribed to it.
    */
   GNUNET_SOCIAL_PLACE_STATE_ENTERED = 1,
+
   /**
-   * Place is entered and subscribed.
+   * The place is entered by the ego and
+   * and this application is subscribed to it.
    */
   GNUNET_SOCIAL_PLACE_STATE_SUBSCRIBED = 2,
 };
@@ -342,14 +345,14 @@ enum GNUNET_SOCIAL_PlaceState
  * @param place_pub_key
  *        Public key of the place.
  * @param place_state
- *        @see enum GNUNET_SOCIAL_PlaceState
+ *        @see enum GNUNET_SOCIAL_AppPlaceState
  */
 typedef void
 (*GNUNET_SOCIAL_AppHostPlaceCallback) (void *cls,
                                        struct GNUNET_SOCIAL_HostConnection *hconn,
                                        struct GNUNET_SOCIAL_Ego *ego,
                                        const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
-                                       enum GNUNET_SOCIAL_PlaceState place_state);
+                                       enum GNUNET_SOCIAL_AppPlaceState place_state);
 
 /**
  * Notification about a place.
@@ -363,14 +366,14 @@ typedef void
  * @param place_pub_key
  *        Public key of the place.
  * @param place_state
- *        @see enum GNUNET_SOCIAL_PlaceState
+ *        @see enum GNUNET_SOCIAL_AppPlaceState
  */
 typedef void
 (*GNUNET_SOCIAL_AppGuestPlaceCallback) (void *cls,
                                         struct GNUNET_SOCIAL_GuestConnection *gconn,
                                         struct GNUNET_SOCIAL_Ego *ego,
                                         const struct GNUNET_CRYPTO_EddsaPublicKey *place_pub_key,
-                                        enum GNUNET_SOCIAL_PlaceState place_state);
+                                        enum GNUNET_SOCIAL_AppPlaceState place_state);
 
 
 /**
