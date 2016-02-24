@@ -21,7 +21,7 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
-#include <gnunet/gnunet_util_lib.h>
+#include "gnunet_util_lib.h"
 #include "gnunet_pq_lib.h"
 
 
