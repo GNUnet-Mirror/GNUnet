@@ -419,6 +419,7 @@ start_process (struct ServiceList *sl,
   char *optend;
   const char *next;
   int use_debug;
+  int is_simple_service;
   char b;
   char *val;
   struct ServiceListeningInfo *sli;
@@ -493,46 +494,80 @@ start_process (struct ServiceList *sl,
     }
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
-  /* actually start process */
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting service `%s' using binary `%s' and configuration `%s'\n",
-	      sl->name, sl->binary, sl->config);
-  binary = GNUNET_OS_get_libexec_binary_path (sl->binary);
-  GNUNET_asprintf (&quotedbinary,
-		   "\"%s\"",
-		   binary);
+  {
+    const char *service_type = NULL;
+    const char *choices[] = { "GNUNET", "SIMPLE", NULL };
+    is_simple_service = GNUNET_NO;
+    if ( (GNUNET_OK ==
+            GNUNET_CONFIGURATION_get_value_choice (cfg,
+                                                   sl->name,
+                                                   "TYPE",
+                                                   choices,
+                                                   &service_type)) &&
+         (0 == strcasecmp (service_type, "SIMPLE")) )
+      is_simple_service = GNUNET_YES;
+  }
 
   GNUNET_assert (NULL == sl->proc);
-  if (GNUNET_YES == use_debug)
+  if (GNUNET_YES == is_simple_service)
   {
-    if (NULL == sl->config)
-      sl->proc =
-	GNUNET_OS_start_process_s (sl->pipe_control,
-                                   GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                   lsocks, loprefix, quotedbinary, "-L",
-                                   "DEBUG", options, NULL);
-    else
-      sl->proc =
-          GNUNET_OS_start_process_s (sl->pipe_control,
-                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                     lsocks, loprefix, quotedbinary, "-c",
-                                     sl->config, "-L",
-                                     "DEBUG", options, NULL);
+    /* A simple service will receive no GNUnet specific
+       command line options. */
+    binary = GNUNET_strdup (sl->binary);
+    GNUNET_asprintf (&quotedbinary,
+                     "\"%s\"",
+                     sl->binary);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting simple service `%s' using binary `%s'\n",
+                sl->name, sl->binary);
+    sl->proc =
+      GNUNET_OS_start_process_s (sl->pipe_control,
+                                 GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 lsocks, loprefix, quotedbinary,
+                                 options, NULL);
   }
   else
   {
-    if (NULL == sl->config)
-      sl->proc =
+    /* actually start process */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting service `%s' using binary `%s' and configuration `%s'\n",
+                sl->name, sl->binary, sl->config);
+    binary = GNUNET_OS_get_libexec_binary_path (sl->binary);
+    GNUNET_asprintf (&quotedbinary,
+                     "\"%s\"",
+                     binary);
+
+    if (GNUNET_YES == use_debug)
+    {
+      if (NULL == sl->config)
+        sl->proc =
           GNUNET_OS_start_process_s (sl->pipe_control,
                                      GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                     lsocks, loprefix, quotedbinary,
-                                     options, NULL);
+                                     lsocks, loprefix, quotedbinary, "-L",
+                                     "DEBUG", options, NULL);
+      else
+        sl->proc =
+            GNUNET_OS_start_process_s (sl->pipe_control,
+                                       GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                       lsocks, loprefix, quotedbinary, "-c",
+                                       sl->config, "-L",
+                                       "DEBUG", options, NULL);
+    }
     else
-      sl->proc =
-          GNUNET_OS_start_process_s (sl->pipe_control,
-                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                     lsocks, loprefix, quotedbinary, "-c",
-                                     sl->config, options, NULL);
+    {
+      if (NULL == sl->config)
+        sl->proc =
+            GNUNET_OS_start_process_s (sl->pipe_control,
+                                       GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                       lsocks, loprefix, quotedbinary,
+                                       options, NULL);
+      else
+        sl->proc =
+            GNUNET_OS_start_process_s (sl->pipe_control,
+                                       GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                       lsocks, loprefix, quotedbinary, "-c",
+                                       sl->config, options, NULL);
+    }
   }
   GNUNET_free (binary);
   GNUNET_free (quotedbinary);
