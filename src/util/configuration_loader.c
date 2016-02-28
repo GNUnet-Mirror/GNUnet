@@ -29,7 +29,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
 
-#define LOG_STRERROR_FILE(kind,syscall,filename) GNUNET_log_from_strerror_file (kind, "util", syscall, filename)
+
 /**
  * Load configuration (starts with defaults, then loads
  * system-specific configuration).
@@ -43,14 +43,21 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
                            const char *filename)
 {
   char *baseconfig;
-  char *ipath;
 
-  ipath = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  if (NULL == ipath)
-    return GNUNET_SYSERR;
-  baseconfig = NULL;
-  GNUNET_asprintf (&baseconfig, "%s%s", ipath, "config.d");
-  GNUNET_free (ipath);
+  if (NULL != (baseconfig = getenv ("GNUNET_BASE_CONFIG")))
+  {
+    baseconfig = GNUNET_strdup (baseconfig);
+  }
+  else
+  {
+    char *ipath;
+
+    ipath = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
+    if (NULL == ipath)
+      return GNUNET_SYSERR;
+    GNUNET_asprintf (&baseconfig, "%s%s", ipath, "config.d");
+    GNUNET_free (ipath);
+  }
 
   if (GNUNET_SYSERR ==
       GNUNET_CONFIGURATION_load_from (cfg,

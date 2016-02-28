@@ -171,8 +171,11 @@ struct GNUNET_RESOLVER_RequestHandle
 /**
  * Check that the resolver service runs on localhost
  * (or equivalent).
+ *
+ * @return #GNUNET_OK if the resolver is properly configured,
+ *         #GNUNET_SYSERR otherwise.
  */
-static void
+static int
 check_config ()
 {
   char *hostname;
@@ -197,32 +200,32 @@ check_config ()
                                              "HOSTNAME",
                                              &hostname))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Must specify `%s' for `%s' in configuration!\n"),
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         _("Missing `%s' for `%s' in configuration, DNS resolution will be unavailable.\n"),
          "HOSTNAME",
          "resolver");
-    GNUNET_assert (0);
+    return GNUNET_SYSERR;
   }
   if ((1 != inet_pton (AF_INET, hostname, &v4)) ||
       (1 != inet_pton (AF_INET6, hostname, &v6)))
   {
     GNUNET_free (hostname);
-    return;
+    return GNUNET_SYSERR;
   }
   i = 0;
   while (NULL != loopback[i])
     if (0 == strcasecmp (loopback[i++], hostname))
     {
       GNUNET_free (hostname);
-      return;
+      return GNUNET_OK;
     }
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       _("Must specify `%s' or numeric IP address for `%s' of `%s' in configuration!\n"),
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _("Missing `%s' or numeric IP address for `%s' of `%s' in configuration, DNS resolution will be unavailable.\n"),
        "localhost",
        "HOSTNAME",
        "resolver");
   GNUNET_free (hostname);
-  GNUNET_assert (0);
+  return GNUNET_SYSERR;
 }
 
 
@@ -237,7 +240,7 @@ GNUNET_RESOLVER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_assert (NULL != cfg);
   backoff = GNUNET_TIME_UNIT_MILLISECONDS;
   resolver_cfg = cfg;
-  check_config ();
+  (void) check_config ();
 }
 
 
@@ -951,7 +954,13 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
   size_t ip_len;
   const void *ip;
 
-  check_config ();
+  if (GNUNET_OK != check_config ())
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Resolver not configured correctly.\n"));
+    return NULL;
+  }
+
   switch (sa->sa_family)
   {
   case AF_INET:
