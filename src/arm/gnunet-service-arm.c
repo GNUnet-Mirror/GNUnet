@@ -520,6 +520,10 @@ start_process (struct ServiceList *sl,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting simple service `%s' using binary `%s'\n",
                 sl->name, sl->binary);
+    /* FIXME: dollar expansion should only be done outside
+     * of ''-quoted strings, escaping should be considered. */
+    if (NULL != options)
+      options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
     sl->proc =
       GNUNET_OS_start_process_s (sl->pipe_control,
                                  GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
