@@ -3129,6 +3129,7 @@ client_recv_zone_add_place (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_NAMESTORE_records_store (namestore, &ego->key,
                                     name, 1, &rd,
                                     namestore_recv_records_store_result, ocls);
+    /** @todo refresh stored records later */
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -3176,8 +3177,9 @@ client_recv_zone_add_nym (void *cls, struct GNUNET_SERVER_Client *client,
     ocls->client = client;
     ocls->op_id = nreq->op_id;
     GNUNET_NAMESTORE_records_store (namestore, &ego->key,
-                                      name, 1, &rd,
-                                      namestore_recv_records_store_result, ocls);
+                                    name, 1, &rd,
+                                    namestore_recv_records_store_result, ocls);
+    /** @todo refresh stored records later */
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
