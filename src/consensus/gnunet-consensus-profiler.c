@@ -57,8 +57,16 @@ static unsigned int peers_done = 0;
 
 static unsigned *results_for_peer;
 
+/**
+ * The profiler will write statistics
+ * for all peers to the file with this name.
+ */
 static char *statistics_filename;
 
+/**
+ * The profiler will write statistics
+ * for all peers to this file.
+ */
 static FILE *statistics_file;
 
 static int verbose;
