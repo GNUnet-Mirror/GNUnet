@@ -18,7 +18,7 @@
       Boston, MA 02110-1301, USA.
 */
 /**
- * @file set/gnunet-service-set_union.c    msg->salt = htonl (op->state->salt_send);
+ * @file set/gnunet-service-set_union.c
 
  * @brief two-peer set operations
  * @author Florian Dold
@@ -454,6 +454,7 @@ salt_key (const struct IBF_Key *k_in,
 {
   int s = salt % 64;
   uint64_t x = k_in->key_val;
+  /* rotate ibf key */
   x = (x >> s) | (x << (64 - s));
   k_out->key_val = x;
 }
@@ -464,9 +465,9 @@ unsalt_key (const struct IBF_Key *k_in,
             uint32_t salt, 
             struct IBF_Key *k_out)
 {
-  int s = -(salt % 64);
+  int s = salt % 64;
   uint64_t x = k_in->key_val;
-  x = (x >> s) | (x << (64 - s));
+  x = (x << s) | (x >> (64 - s));
   k_out->key_val = x;
 }
 
@@ -914,8 +915,7 @@ decode_and_send (struct Operation *op)
                                   "# of IBF retries",
                                   1,
                                   GNUNET_NO);
-        // FIXME: make salt work
-        // op->state->salt_send++;
+        op->state->salt_send++;
         if (GNUNET_OK !=
             send_ibf (op, next_order))
         {
