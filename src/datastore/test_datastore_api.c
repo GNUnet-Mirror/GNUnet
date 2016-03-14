@@ -197,7 +197,7 @@ check_success (void *cls,
   if (GNUNET_OK != success)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Operation %d/%d not successfull: `%s'\n",
+                "Operation %d/%d not successful: `%s'\n",
                 crc->phase,
                 crc->i,
                 msg);
@@ -410,8 +410,7 @@ run_continuation (void *cls,
   {
   case RP_PUT:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Executing `%s' number %u\n",
-                "PUT",
+                "Executing PUT number %u\n",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_put (datastore, 0, &crc->key, get_size (crc->i),
@@ -426,19 +425,17 @@ run_continuation (void *cls,
   case RP_GET:
     crc->i--;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Executing `%s' number %u\n",
-                "GET",
+                "Executing GET number %u\n",
                 crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,
-                              get_type (crc->i), 1, 1, TIMEOUT, &check_value,
-                              crc);
+                              get_type (crc->i), 1, 1, TIMEOUT,
+                              &check_value, crc);
     break;
   case RP_DEL:
     crc->i--;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Executing `%s' number %u\n",
-                "DEL",
+                "Executing DEL number %u\n",
                 crc->i);
     crc->data = NULL;
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
@@ -449,8 +446,7 @@ run_continuation (void *cls,
     break;
   case RP_DO_DEL:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Executing `%s' number %u\n",
-                "DO_DEL",
+                "Executing DO_DEL number %u\n",
                 crc->i);
     if (crc->i == 0)
     {
@@ -469,8 +465,8 @@ run_continuation (void *cls,
   case RP_DELVALIDATE:
     crc->i--;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Executing `%s' number %u\n",
-                "DEL-VALIDATE", crc->i);
+                "Executing DELVALIDATE number %u\n",
+                crc->i);
     GNUNET_CRYPTO_hash (&crc->i, sizeof (int), &crc->key);
     GNUNET_assert (NULL !=
                    GNUNET_DATASTORE_get_key (datastore, crc->offset, &crc->key,

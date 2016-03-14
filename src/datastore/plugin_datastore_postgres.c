@@ -78,7 +78,7 @@ init_connection (struct Plugin *plugin)
 
   ret =
       PQexec (plugin->dbh,
-              "CREATE TABLE gn090 (" 
+              "CREATE TABLE gn090 ("
 	      "  repl INTEGER NOT NULL DEFAULT 0,"
               "  type INTEGER NOT NULL DEFAULT 0,"
               "  prio INTEGER NOT NULL DEFAULT 0,"
@@ -87,7 +87,7 @@ init_connection (struct Plugin *plugin)
               "  rvalue BIGINT NOT NULL DEFAULT 0,"
               "  hash BYTEA NOT NULL DEFAULT '',"
               "  vhash BYTEA NOT NULL DEFAULT '',"
-              "  value BYTEA NOT NULL DEFAULT '')" 
+              "  value BYTEA NOT NULL DEFAULT '')"
 	      "WITH OIDS");
   if ( (NULL == ret) ||
        ((PQresultStatus (ret) != PGRES_COMMAND_OK) &&
@@ -257,10 +257,10 @@ postgres_plugin_estimate_size (void *cls, unsigned long long *estimate)
                     "SELECT SUM(LENGTH(value))+256*COUNT(*) FROM gn090", 0,
                     NULL, NULL, NULL, NULL, 1);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, 
-				    ret, 
-				    PGRES_TUPLES_OK, 
-				    "PQexecParams", 
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+				    ret,
+				    PGRES_TUPLES_OK,
+				    "PQexecParams",
 				    "get_size"))
   {
     *estimate = 0;
@@ -302,15 +302,15 @@ postgres_plugin_estimate_size (void *cls, unsigned long long *estimate)
  * @param cont_cls continuation closure
  */
 static void
-postgres_plugin_put (void *cls, 
+postgres_plugin_put (void *cls,
 		     const struct GNUNET_HashCode *key,
 		     uint32_t size,
-                     const void *data, 
+                     const void *data,
 		     enum GNUNET_BLOCK_Type type,
-                     uint32_t priority, 
+                     uint32_t priority,
 		     uint32_t anonymity,
                      uint32_t replication,
-                     struct GNUNET_TIME_Absolute expiration, 
+                     struct GNUNET_TIME_Absolute expiration,
 		     PluginPutCont cont,
                      void *cont_cls)
 {
@@ -335,22 +335,22 @@ postgres_plugin_put (void *cls,
 				 "put",
 				 params);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, 
-				    ret, 
-				    PGRES_COMMAND_OK, 
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+				    ret,
+				    PGRES_COMMAND_OK,
 				    "PQexecPrepared", "put"))
   {
-    cont (cont_cls, key, size, 
-	  GNUNET_SYSERR, 
+    cont (cont_cls, key, size,
+	  GNUNET_SYSERR,
 	  _("Postgress exec failure"));
     return;
   }
   PQclear (ret);
-  plugin->env->duc (plugin->env->cls, 
+  plugin->env->duc (plugin->env->cls,
 		    size + GNUNET_DATASTORE_ENTRY_OVERHEAD);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "datastore-postgres",
-                   "Stored %u bytes in database\n", 
+                   "Stored %u bytes in database\n",
 		   (unsigned int) size);
   cont (cont_cls, key, size, GNUNET_OK, NULL);
 }
@@ -367,7 +367,7 @@ postgres_plugin_put (void *cls,
  * @param line line number for error messages
  */
 static void
-process_result (struct Plugin *plugin, 
+process_result (struct Plugin *plugin,
 		PluginDatumProcessor proc,
                 void *proc_cls,
 		PGresult * res,
@@ -394,9 +394,9 @@ process_result (struct Plugin *plugin,
   };
 
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result_ (plugin->dbh, 
-				     res, 
-				     PGRES_TUPLES_OK, 
+      GNUNET_POSTGRES_check_result_ (plugin->dbh,
+				     res,
+				     PGRES_TUPLES_OK,
 				     "PQexecPrepared",
 				     "select",
 				     filename, line))
@@ -404,7 +404,7 @@ process_result (struct Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		     "datastore-postgres",
                      "Ending iteration (postgres error)\n");
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
 	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
@@ -412,15 +412,15 @@ process_result (struct Plugin *plugin,
   if (0 == PQntuples (res))
   {
     /* no result */
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		     "datastore-postgres",
                      "Ending iteration (no more results)\n");
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
 	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
     PQclear (res);
     return;
   }
-  if (1 != PQntuples (res)) 
+  if (1 != PQntuples (res))
   {
     GNUNET_break (0);
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
@@ -436,23 +436,23 @@ process_result (struct Plugin *plugin,
     GNUNET_break (0);
     PQclear (res);
     GNUNET_POSTGRES_delete_by_rowid (plugin->dbh,
-				     "delrow", 
+				     "delrow",
 				     rowid);
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
 	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   "datastore-postgres",
                    "Found result of size %u bytes and type %u in database\n",
-                   (unsigned int) size, 
+                   (unsigned int) size,
 		   (unsigned int) utype);
   iret = proc (proc_cls,
 	       &key,
 	       size,
 	       data,
-	       (enum GNUNET_BLOCK_Type) utype, 
+	       (enum GNUNET_BLOCK_Type) utype,
 	       priority,
 	       anonymity,
 	       expiration_time,
@@ -461,20 +461,20 @@ process_result (struct Plugin *plugin,
   if (iret == GNUNET_NO)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Processor asked for item %u to be removed.\n", 
+                "Processor asked for item %u to be removed.\n",
 		(unsigned int) rowid);
-    if (GNUNET_OK == 
-	GNUNET_POSTGRES_delete_by_rowid (plugin->dbh, 
-					 "delrow", 
+    if (GNUNET_OK ==
+	GNUNET_POSTGRES_delete_by_rowid (plugin->dbh,
+					 "delrow",
 					 rowid))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "datastore-postgres",
                        "Deleting %u bytes from database\n",
                        (unsigned int) size);
       plugin->env->duc (plugin->env->cls,
                         - (size + GNUNET_DATASTORE_ENTRY_OVERHEAD));
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, 
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		       "datastore-postgres",
                        "Deleted %u bytes from database\n",
 		       (unsigned int) size);
@@ -503,7 +503,7 @@ process_result (struct Plugin *plugin,
  * @param proc_cls closure for iter
  */
 static void
-postgres_plugin_get_key (void *cls, 
+postgres_plugin_get_key (void *cls,
 			 uint64_t offset,
                          const struct GNUNET_HashCode *key,
                          const struct GNUNET_HashCode *vhash,
@@ -521,7 +521,7 @@ postgres_plugin_get_key (void *cls,
   {
     if (NULL != vhash)
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
 	GNUNET_PQ_query_param_auto_from_type (vhash),
 	GNUNET_PQ_query_param_uint32 (&utype),
@@ -533,7 +533,7 @@ postgres_plugin_get_key (void *cls,
     }
     else
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
 	GNUNET_PQ_query_param_uint32 (&utype),
 	GNUNET_PQ_query_param_end
@@ -547,7 +547,7 @@ postgres_plugin_get_key (void *cls,
   {
     if (NULL != vhash)
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
 	GNUNET_PQ_query_param_auto_from_type (vhash),
 	GNUNET_PQ_query_param_end
@@ -558,7 +558,7 @@ postgres_plugin_get_key (void *cls,
     }
     else
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
 	GNUNET_PQ_query_param_end
       };
@@ -569,23 +569,23 @@ postgres_plugin_get_key (void *cls,
   }
 
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, 
+      GNUNET_POSTGRES_check_result (plugin->dbh,
 				    ret,
-				    PGRES_TUPLES_OK, 
-				    "PQexecParams", 
+				    PGRES_TUPLES_OK,
+				    "PQexecParams",
 				    "count"))
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
 	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
-  if ( (PQntuples (ret) != 1) || 
+  if ( (PQntuples (ret) != 1) ||
        (PQnfields (ret) != 1) ||
        (PQgetlength (ret, 0, 0) != sizeof (uint64_t)))
   {
     GNUNET_break (0);
     PQclear (ret);
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
 	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
@@ -593,7 +593,7 @@ postgres_plugin_get_key (void *cls,
   PQclear (ret);
   if (0 == total)
   {
-    proc (proc_cls, NULL, 0, NULL, 0, 0, 0, 
+    proc (proc_cls, NULL, 0, NULL, 0, 0, 0,
 	  GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
   }
@@ -603,9 +603,9 @@ postgres_plugin_get_key (void *cls,
   {
     if (NULL != vhash)
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_auto_from_type (&vhash),
+	GNUNET_PQ_query_param_auto_from_type (vhash),
 	GNUNET_PQ_query_param_uint32 (&utype),
 	GNUNET_PQ_query_param_uint64 (&limit_off),
 	GNUNET_PQ_query_param_end
@@ -616,7 +616,7 @@ postgres_plugin_get_key (void *cls,
     }
     else
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
 	GNUNET_PQ_query_param_uint32 (&utype),
 	GNUNET_PQ_query_param_uint64 (&limit_off),
@@ -631,9 +631,9 @@ postgres_plugin_get_key (void *cls,
   {
     if (NULL != vhash)
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
-	GNUNET_PQ_query_param_auto_from_type (&vhash),
+	GNUNET_PQ_query_param_auto_from_type (vhash),
 	GNUNET_PQ_query_param_uint64 (&limit_off),
 	GNUNET_PQ_query_param_end
       };
@@ -643,7 +643,7 @@ postgres_plugin_get_key (void *cls,
     }
     else
     {
-      struct GNUNET_PQ_QueryParam params[] = { 
+      struct GNUNET_PQ_QueryParam params[] = {
 	GNUNET_PQ_query_param_auto_from_type (key),
 	GNUNET_PQ_query_param_uint64 (&limit_off),
 	GNUNET_PQ_query_param_end
@@ -655,8 +655,8 @@ postgres_plugin_get_key (void *cls,
   }
   process_result (plugin,
 		  proc,
-		  proc_cls, 
-		  ret, 
+		  proc_cls,
+		  ret,
 		  __FILE__, __LINE__);
 }
 
@@ -675,15 +675,15 @@ postgres_plugin_get_key (void *cls,
  * @param proc_cls closure for @a proc
  */
 static void
-postgres_plugin_get_zero_anonymity (void *cls, 
+postgres_plugin_get_zero_anonymity (void *cls,
 				    uint64_t offset,
                                     enum GNUNET_BLOCK_Type type,
-                                    PluginDatumProcessor proc, 
+                                    PluginDatumProcessor proc,
 				    void *proc_cls)
 {
   struct Plugin *plugin = cls;
   uint32_t utype = type;
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&utype),
     GNUNET_PQ_query_param_uint64 (&offset),
     GNUNET_PQ_query_param_end
@@ -694,7 +694,7 @@ postgres_plugin_get_zero_anonymity (void *cls,
 				 "select_non_anonymous",
 				 params);
 
-  process_result (plugin, 
+  process_result (plugin,
 		  proc, proc_cls,
 		  ret,
 		  __FILE__, __LINE__);
@@ -739,7 +739,7 @@ struct ReplCtx
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- * @return #GNUNET_SYSERR to abort the iteration, 
+ * @return #GNUNET_SYSERR to abort the iteration,
  *         #GNUNET_OK to continue
  *         (continue on call to "next", of course),
  *         #GNUNET_NO to delete the item and continue (if supported)
@@ -749,9 +749,9 @@ repl_proc (void *cls,
 	   const struct GNUNET_HashCode *key,
 	   uint32_t size,
            const void *data,
-	   enum GNUNET_BLOCK_Type type, 
+	   enum GNUNET_BLOCK_Type type,
 	   uint32_t priority,
-           uint32_t anonymity, 
+           uint32_t anonymity,
 	   struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
 {
@@ -759,17 +759,17 @@ repl_proc (void *cls,
   struct Plugin *plugin = rc->plugin;
   int ret;
   uint32_t oid = (uint32_t) uid;
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&oid),
     GNUNET_PQ_query_param_end
   };
   PGresult *qret;
 
-  ret = rc->proc (rc->proc_cls, 
-		  key, 
-		  size, data, 
+  ret = rc->proc (rc->proc_cls,
+		  key,
+		  size, data,
 		  type,
-		  priority, 
+		  priority,
 		  anonymity,
 		  expiration, uid);
   if (NULL == key)
@@ -778,9 +778,9 @@ repl_proc (void *cls,
 				  "decrepl",
 				  params);
   if (GNUNET_OK !=
-      GNUNET_POSTGRES_check_result (plugin->dbh, 
-				    qret, 
-				    PGRES_COMMAND_OK, 
+      GNUNET_POSTGRES_check_result (plugin->dbh,
+				    qret,
+				    PGRES_COMMAND_OK,
 				    "PQexecPrepared",
 				    "decrepl"))
     return GNUNET_SYSERR;
@@ -801,7 +801,7 @@ repl_proc (void *cls,
  * @param proc_cls closure for @a proc
  */
 static void
-postgres_plugin_get_replication (void *cls, 
+postgres_plugin_get_replication (void *cls,
 				 PluginDatumProcessor proc,
                                  void *proc_cls)
 {
@@ -812,13 +812,13 @@ postgres_plugin_get_replication (void *cls,
   rc.plugin = plugin;
   rc.proc = proc;
   rc.proc_cls = proc_cls;
-  ret = PQexecPrepared (plugin->dbh, 
+  ret = PQexecPrepared (plugin->dbh,
 			"select_replication_order", 0, NULL, NULL,
 			NULL, 1);
-  process_result (plugin, 
-		  &repl_proc, 
-		  &rc, 
-		  ret, 
+  process_result (plugin,
+		  &repl_proc,
+		  &rc,
+		  ret,
 		  __FILE__, __LINE__);
 }
 
@@ -832,13 +832,13 @@ postgres_plugin_get_replication (void *cls,
  * @param proc_cls closure for @a proc
  */
 static void
-postgres_plugin_get_expiration (void *cls, 
+postgres_plugin_get_expiration (void *cls,
 				PluginDatumProcessor proc,
                                 void *proc_cls)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_TIME_Absolute now;
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_absolute_time (&now),
     GNUNET_PQ_query_param_end
   };
@@ -879,8 +879,8 @@ postgres_plugin_get_expiration (void *cls,
  * @param cons_cls continuation closure
  */
 static void
-postgres_plugin_update (void *cls, 
-			uint64_t uid, 
+postgres_plugin_update (void *cls,
+			uint64_t uid,
 			int delta,
                         struct GNUNET_TIME_Absolute expire,
                         PluginUpdateCont cont,
@@ -889,7 +889,7 @@ postgres_plugin_update (void *cls,
   struct Plugin *plugin = cls;
   uint32_t idelta = delta;
   uint32_t oid = (uint32_t) uid;
-  struct GNUNET_PQ_QueryParam params[] = { 
+  struct GNUNET_PQ_QueryParam params[] = {
     GNUNET_PQ_query_param_uint32 (&idelta),
     GNUNET_PQ_query_param_absolute_time (&expire),
     GNUNET_PQ_query_param_uint32 (&oid),
@@ -902,22 +902,21 @@ postgres_plugin_update (void *cls,
 				 params);
   if (GNUNET_OK !=
       GNUNET_POSTGRES_check_result (plugin->dbh,
-				    ret, 
-				    PGRES_COMMAND_OK, 
-				    "PQexecPrepared", 
+				    ret,
+				    PGRES_COMMAND_OK,
+				    "PQexecPrepared",
 				    "update"))
   {
-    cont (cont_cls, 
-	  GNUNET_SYSERR, 
+    cont (cont_cls,
+	  GNUNET_SYSERR,
 	  NULL);
     return;
   }
   PQclear (ret);
-  cont (cont_cls, 
-	GNUNET_OK, 
+  cont (cont_cls,
+	GNUNET_OK,
 	NULL);
 }
-
 
 
 /**
@@ -938,17 +937,17 @@ postgres_plugin_get_keys (void *cls,
   struct GNUNET_HashCode key;
   PGresult * res;
 
-  res = PQexecPrepared (plugin->dbh, 
-			"get_keys", 
+  res = PQexecPrepared (plugin->dbh,
+			"get_keys",
 			0, NULL, NULL, NULL, 1);
   ret = PQntuples (res);
   for (i=0;i<ret;i++)
   {
-    if (sizeof (struct GNUNET_HashCode) != 
+    if (sizeof (struct GNUNET_HashCode) !=
 	PQgetlength (res, i, 0))
     {
-      memcpy (&key, 
-	      PQgetvalue (res, i, 0), 
+      memcpy (&key,
+	      PQgetvalue (res, i, 0),
 	      sizeof (struct GNUNET_HashCode));
       proc (proc_cls, &key, 1);
     }
@@ -956,7 +955,6 @@ postgres_plugin_get_keys (void *cls,
   PQclear (res);
   proc (proc_cls, NULL, 0);
 }
-
 
 
 /**
@@ -969,10 +967,11 @@ postgres_plugin_drop (void *cls)
 {
   struct Plugin *plugin = cls;
 
-  if (GNUNET_OK != 
-      GNUNET_POSTGRES_exec (plugin->dbh, "DROP TABLE gn090"))
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, 
-		     "postgres", 
+  if (GNUNET_OK !=
+      GNUNET_POSTGRES_exec (plugin->dbh,
+                            "DROP TABLE gn090"))
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING,
+		     "postgres",
 		     _("Failed to drop table from database.\n"));
 }
 
@@ -1008,7 +1007,8 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
   api->get_zero_anonymity = &postgres_plugin_get_zero_anonymity;
   api->get_keys = &postgres_plugin_get_keys;
   api->drop = &postgres_plugin_drop;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, "datastore-postgres",
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO,
+                   "datastore-postgres",
                    _("Postgres database running\n"));
   return api;
 }

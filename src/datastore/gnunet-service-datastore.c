@@ -681,7 +681,8 @@ handle_reserve (void *cls, struct GNUNET_SERVER_Client *client,
   uint64_t amount;
   uint32_t entries;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s' request\n", "RESERVE");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Processing RESERVE request\n");
   amount = GNUNET_ntohll (msg->amount);
   entries = ntohl (msg->entries);
   used = payload + reserved;
@@ -757,8 +758,7 @@ handle_release_reserve (void *cls,
   unsigned long long rem;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' request\n",
-              "RELEASE_RESERVE");
+              "Processing RELEASE_RESERVE request\n");
   next = reservations;
   prev = NULL;
   while (NULL != (pos = next))
@@ -905,6 +905,12 @@ execute_put (struct PutContext *pc)
 }
 
 
+/**
+ *
+ * @param cls closure
+ * @param status #GNUNET_OK or #GNUNET_SYSERR
+ * @param msg error message on error
+ */
 static void
 check_present_continuation (void *cls,
 			    int status,
@@ -954,10 +960,10 @@ check_present (void *cls,
     execute_put (pc);
     return GNUNET_OK;
   }
-  if ((GNUNET_BLOCK_TYPE_FS_DBLOCK == type) ||
-      (GNUNET_BLOCK_TYPE_FS_IBLOCK == type) || ((size == ntohl (dm->size)) &&
-                                                (0 ==
-                                                 memcmp (&dm[1], data, size))))
+  if ( (GNUNET_BLOCK_TYPE_FS_DBLOCK == type) ||
+       (GNUNET_BLOCK_TYPE_FS_IBLOCK == type) ||
+       ( (size == ntohl (dm->size)) &&
+         (0 == memcmp (&dm[1], data, size)) ) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Result already present in datastore\n");
@@ -994,7 +1000,8 @@ check_present (void *cls,
  * @param message the actual message
  */
 static void
-handle_put (void *cls, struct GNUNET_SERVER_Client *client,
+handle_put (void *cls,
+            struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   const struct DataMessage *dm = check_data (message);
@@ -1011,8 +1018,9 @@ handle_put (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' request for `%s' of type %u\n", "PUT",
-              GNUNET_h2s (&dm->key), ntohl (dm->type));
+              "Processing PUT request for `%s' of type %u\n",
+              GNUNET_h2s (&dm->key),
+              ntohl (dm->type));
   rid = ntohl (dm->rid);
   size = ntohl (dm->size);
   if (rid > 0)
@@ -1063,7 +1071,8 @@ handle_put (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 static void
-handle_get (void *cls, struct GNUNET_SERVER_Client *client,
+handle_get (void *cls,
+            struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   const struct GetMessage *msg;
@@ -1079,20 +1088,21 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   }
   msg = (const struct GetMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' request for `%s' of type %u\n", "GET",
-              GNUNET_h2s (&msg->key), ntohl (msg->type));
+              "Processing GET request for `%s' of type %u\n",
+              GNUNET_h2s (&msg->key),
+              ntohl (msg->type));
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("# GET requests received"),
                             1,
                             GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  if ((size == sizeof (struct GetMessage)) &&
-      (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter, &msg->key)))
+  if ( (size == sizeof (struct GetMessage)) &&
+       (GNUNET_YES != GNUNET_CONTAINER_bloomfilter_test (filter, &msg->key)) )
   {
     /* don't bother database... */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Empty result set for `%s' request for `%s' (bloomfilter).\n",
-                "GET", GNUNET_h2s (&msg->key));
+                "Empty result set for GET request for `%s' (bloomfilter).\n",
+                GNUNET_h2s (&msg->key));
     GNUNET_STATISTICS_update (stats,
                               gettext_noop
                               ("# requests filtered by bloomfilter"),
@@ -1109,6 +1119,13 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+/**
+ * Function called with the result of an update operation.
+ *
+ * @param cls closure
+ * @param status #GNUNET_OK or #GNUNET_SYSERR
+ * @param msg error message on error
+ */
 static void
 update_continuation (void *cls,
 		     int status,
@@ -1129,7 +1146,8 @@ update_continuation (void *cls,
  * @param message the actual message
  */
 static void
-handle_update (void *cls, struct GNUNET_SERVER_Client *client,
+handle_update (void *cls,
+               struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct UpdateMessage *msg;
@@ -1139,13 +1157,15 @@ handle_update (void *cls, struct GNUNET_SERVER_Client *client,
                             1,
                             GNUNET_NO);
   msg = (const struct UpdateMessage *) message;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Processing `%s' request for %llu\n",
-              "UPDATE", (unsigned long long) GNUNET_ntohll (msg->uid));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Processing UPDATE request for %llu\n",
+              (unsigned long long) GNUNET_ntohll (msg->uid));
   GNUNET_SERVER_client_keep (client);
-  plugin->api->update (plugin->api->cls, GNUNET_ntohll (msg->uid),
+  plugin->api->update (plugin->api->cls,
+                       GNUNET_ntohll (msg->uid),
                        (int32_t) ntohl (msg->priority),
                        GNUNET_TIME_absolute_ntoh (msg->expiration),
-                       update_continuation, client);
+                       &update_continuation, client);
 }
 
 
@@ -1157,7 +1177,8 @@ handle_update (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 static void
-handle_get_replication (void *cls, struct GNUNET_SERVER_Client *client,
+handle_get_replication (void *cls,
+                        struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1168,7 +1189,8 @@ handle_get_replication (void *cls, struct GNUNET_SERVER_Client *client,
                             1,
                             GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  plugin->api->get_replication (plugin->api->cls, &transmit_item, client);
+  plugin->api->get_replication (plugin->api->cls,
+                                &transmit_item, client);
 }
 
 
@@ -1180,7 +1202,8 @@ handle_get_replication (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 static void
-handle_get_zero_anonymity (void *cls, struct GNUNET_SERVER_Client *client,
+handle_get_zero_anonymity (void *cls,
+                           struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct GetZeroAnonymityMessage *msg =
@@ -1203,28 +1226,45 @@ handle_get_zero_anonymity (void *cls, struct GNUNET_SERVER_Client *client,
                             GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
   plugin->api->get_zero_anonymity (plugin->api->cls,
-                                   GNUNET_ntohll (msg->offset), type,
+                                   GNUNET_ntohll (msg->offset),
+                                   type,
                                    &transmit_item, client);
 }
 
 
 /**
  * Callback function that will cause the item that is passed
- * in to be deleted (by returning GNUNET_NO).
+ * in to be deleted (by returning #GNUNET_NO).
+ *
+ * @param cls closure
+ * @param key key for the content
+ * @param size number of bytes in data
+ * @param data content stored
+ * @param type type of the content
+ * @param priority priority of the content
+ * @param anonymity anonymity-level for the content
+ * @param expiration expiration time for the content
+ * @param uid unique identifier for the datum
+ * @return #GNUNET_OK to keep the item
+ *         #GNUNET_NO to delete the item
  */
 static int
-remove_callback (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                 const void *data, enum GNUNET_BLOCK_Type type,
-                 uint32_t priority, uint32_t anonymity,
-                 struct GNUNET_TIME_Absolute expiration, uint64_t uid)
+remove_callback (void *cls,
+                 const struct GNUNET_HashCode *key,
+                 uint32_t size,
+                 const void *data,
+                 enum GNUNET_BLOCK_Type type,
+                 uint32_t priority,
+                 uint32_t anonymity,
+                 struct GNUNET_TIME_Absolute expiration,
+                 uint64_t uid)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
-  if (key == NULL)
+  if (NULL == key)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No further matches for `%s' request.\n",
-                "REMOVE");
+                "No further matches for REMOVE request.\n");
     transmit_status (client,
                      GNUNET_NO,
                      _("Content not found"));
@@ -1232,9 +1272,8 @@ remove_callback (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
     return GNUNET_OK;           /* last item */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Item %llu matches `%s' request for key `%s' and type %u.\n",
+              "Item %llu matches REMOVE request for key `%s' and type %u.\n",
               (unsigned long long) uid,
-              "REMOVE",
               GNUNET_h2s (key),
               type);
   GNUNET_STATISTICS_update (stats,
@@ -1256,26 +1295,34 @@ remove_callback (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
  * @param message the actual message
  */
 static void
-handle_remove (void *cls, struct GNUNET_SERVER_Client *client,
+handle_remove (void *cls,
+               struct GNUNET_SERVER_Client *client,
                const struct GNUNET_MessageHeader *message)
 {
   const struct DataMessage *dm = check_data (message);
   struct GNUNET_HashCode vhash;
 
-  if (dm == NULL)
+  if (NULL == dm)
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' request for `%s' of type %u\n", "REMOVE",
-              GNUNET_h2s (&dm->key), ntohl (dm->type));
-  GNUNET_STATISTICS_update (stats, gettext_noop ("# REMOVE requests received"),
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("# REMOVE requests received"),
                             1, GNUNET_NO);
   GNUNET_SERVER_client_keep (client);
-  GNUNET_CRYPTO_hash (&dm[1], ntohl (dm->size), &vhash);
-  plugin->api->get_key (plugin->api->cls, 0, &dm->key, &vhash,
+  GNUNET_CRYPTO_hash (&dm[1],
+                      ntohl (dm->size),
+                      &vhash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Processing REMOVE request for `%s' of type %u\n",
+              GNUNET_h2s (&dm->key),
+              ntohl (dm->type));
+  plugin->api->get_key (plugin->api->cls,
+                        0,
+                        &dm->key,
+                        &vhash,
                         (enum GNUNET_BLOCK_Type) ntohl (dm->type),
                         &remove_callback, client);
 }
@@ -1289,12 +1336,12 @@ handle_remove (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the actual message
  */
 static void
-handle_drop (void *cls, struct GNUNET_SERVER_Client *client,
+handle_drop (void *cls,
+             struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Processing `%s' request\n",
-              "DROP");
+              "Processing DROP request\n");
   do_drop = GNUNET_YES;
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
