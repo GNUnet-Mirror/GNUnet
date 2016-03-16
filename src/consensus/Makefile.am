@@ -22,11 +22,9 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
  gnunet-service-consensus
 
-if HAVE_EXPERIMENTAL
 if ENABLE_MALICIOUS
 libexec_PROGRAMS += \
  gnunet-service-evil-consensus
-endif
 endif
 
 lib_LTLIBRARIES = \
