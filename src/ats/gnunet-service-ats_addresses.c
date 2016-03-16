@@ -405,7 +405,9 @@ GAS_addresses_done ()
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
              "Shutting down addresses\n");
+  GAS_plugin_solver_lock ();
   GAS_addresses_destroy_all ();
+  GAS_plugin_solver_unlock ();
   GNUNET_CONTAINER_multipeermap_destroy (GSA_addresses);
   GSA_addresses = NULL;
 }

@@ -130,6 +130,8 @@ static void
 cleanup_task (void *cls,
               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS shutdown initiated\n");
   GAS_connectivity_done ();
   GAS_addresses_done ();
   GAS_plugin_done ();

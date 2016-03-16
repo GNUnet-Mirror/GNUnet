@@ -217,9 +217,11 @@ free_request (void *cls,
 void
 GAS_connectivity_done ()
 {
+  GAS_plugin_solver_lock ();
   GNUNET_CONTAINER_multipeermap_iterate (connection_requests,
                                          &free_request,
                                          NULL);
+  GAS_plugin_solver_unlock ();
   GNUNET_CONTAINER_multipeermap_destroy (connection_requests);
   connection_requests = NULL;
 }
