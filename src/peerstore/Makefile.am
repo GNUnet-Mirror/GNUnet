@@ -51,6 +51,8 @@ libgnunetpeerstore_la_LIBADD = \
 libgnunetpeerstore_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
+if HAVE_SQLITE
+
 plugin_LTLIBRARIES = \
   libgnunet_plugin_peerstore_sqlite.la
 
@@ -62,6 +64,9 @@ libgnunet_plugin_peerstore_sqlite_la_LIBADD = \
   $(LTLIBINTL)
 libgnunet_plugin_peerstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
+end
+
+endif
 
 check_PROGRAMS = \
  test_peerstore_api_store \
