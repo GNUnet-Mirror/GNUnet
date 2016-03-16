@@ -195,7 +195,8 @@ typedef void
  */
 typedef void
 (*PluginGetKeys) (void *cls,
-		  PluginKeyProcessor proc, void *proc_cls);
+		  PluginKeyProcessor proc,
+                  void *proc_cls);
 
 
 /**
@@ -246,7 +247,7 @@ typedef void
  * Update continuation.
  *
  * @param cls closure
- * @param status #GNUNET_OK or #GNUNET_SYSERROR
+ * @param status #GNUNET_OK or #GNUNET_SYSERR
  * @param msg error message on error
  */
 typedef void
