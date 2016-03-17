@@ -209,6 +209,9 @@ src/identity-provider/gnunet-service-identity-provider.c
 src/identity-provider/identity_provider_api.c
 src/identity-provider/identity_token.c
 src/identity-provider/plugin_rest_identity_provider.c
+src/json/json.c
+src/json/json_generator.c
+src/json/json_helper.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c

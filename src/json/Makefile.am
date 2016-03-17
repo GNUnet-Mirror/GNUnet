@@ -17,7 +17,7 @@ libgnunetjson_la_SOURCES = \
   json_generator.c \
   json_helper.c
 libgnunetjson_la_LIBADD = \
-  -lgnunetutil \
+  $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson \
   $(XLIB)
 

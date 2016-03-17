@@ -20,7 +20,9 @@
  * @author Benedikt Mueller
  * @author Christian Grothoff
  */
-#include "platform.h"
+#ifndef GNUNET_JSON_LIB_H
+#define GNUNET_JSON_LIB_H
+
 #include <gnunet/gnunet_util_lib.h>
 #include <jansson.h>
 
@@ -349,6 +351,6 @@ json_t *
 GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_rsa_Signature *sig);
 
 
-
+#endif
 
 /* end of gnunet_json_lib.h */

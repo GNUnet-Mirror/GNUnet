@@ -4,7 +4,7 @@ AM_CPPFLAGS = -I$(top_srcdir)/src/include
  plugindir = $(libdir)/gnunet
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -21,7 +21,7 @@ pkgcfg_DATA = \
 
 plugin_LTLIBRARIES = \
   libgnunetidentityprovider.la \
-	libgnunet_plugin_rest_identity_provider.la 
+	libgnunet_plugin_rest_identity_provider.la
 
 bin_PROGRAMS = \
  gnunet-identity-token
@@ -37,6 +37,7 @@ gnunet_service_identity_provider_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/namestore/libgnunetnamestore.la \
  $(top_builddir)/src/identity/libgnunetidentity.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/gns/libgnunetgns.la \
  $(GN_LIBINTL) \
  -ljansson
@@ -65,10 +66,8 @@ libgnunet_plugin_rest_identity_provider_la_LDFLAGS = \
 
 
 gnunet_identity_token_SOURCES = \
- gnunet-identity-token.c         
+ gnunet-identity-token.c
 gnunet_identity_token_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson -lmicrohttpd \
   $(GN_LIBINTL)
-
-

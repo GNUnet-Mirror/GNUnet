@@ -968,6 +968,8 @@ AC_DEFINE_UNQUOTED([HAVE_MHD], $lmhd, [We have libmicrohttpd])
 
 AM_CONDITIONAL(HAVE_REST, [test x$lmhd = x1 -a x$jansson = x1])
 
+AM_CONDITIONAL(HAVE_JSON, [test x$jansson = x1])
+
 # restore LIBS
 LIBS=$SAVE_LIBS
 
@@ -1550,6 +1552,7 @@ src/identity/Makefile
 src/identity/identity.conf
 src/include/Makefile
 src/integration-tests/Makefile
+src/json/Makefile
 src/hostlist/Makefile
 src/multicast/Makefile
 src/multicast/multicast.conf
