@@ -65,6 +65,7 @@ gnunetinclude_HEADERS = \
   gnunet_hello_lib.h \
   gnunet_helper_lib.h \
   gnunet_identity_service.h \
+  gnunet_json_lib.h \
   gnunet_load_lib.h \
   gnunet_cadet_service.h \
   gnunet_microphone_lib.h \

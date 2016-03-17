@@ -58,8 +58,7 @@ struct GNUNET_PQ_QueryParam
 {
 
   /**
-   * Format of the rest of the entry, determines the data
-   * type that is being added to the query.
+   * Function for how to handle this type of entry.
    */
   GNUNET_PQ_QueryConverter conv;
 

@@ -21,14 +21,18 @@ if HAVE_EXPERIMENTAL
   psyc \
   rps \
   social \
-	$(CONSENSUS) \
+  $(CONSENSUS) \
   $(SECRETSHARING) \
   $(SENSOR) \
   $(SENSORDASHBOARD)
 endif
 
 if HAVE_REST
-	EXP_DIR += identity-provider
+  PROVIDER_DIR = identity-provider
+endif
+
+if HAVE_JSON
+  JSON_DIR = json
 endif
 
 if BUILD_PULSE_HELPERS
@@ -60,7 +64,8 @@ else
 SUBDIRS = \
   include $(INTLEMU_SUBDIRS) \
   util \
-	$(REST_DIR) \
+  $(JSON_DIR) \
+  $(REST_DIR) \
   hello \
   tun \
   block \
@@ -104,6 +109,7 @@ SUBDIRS = \
   exit \
   pt \
   integration-tests \
-  $(EXP_DIR)
+  $(EXP_DIR) \
+  $(PROVIDER_DIR)
 
 endif

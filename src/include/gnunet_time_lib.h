@@ -259,6 +259,30 @@ GNUNET_TIME_relative_to_absolute (struct GNUNET_TIME_Relative rel);
 
 
 /**
+ * Round a time value so that it is suitable for transmission
+ * via JSON encodings.
+ *
+ * @param at time to round
+ * @return #GNUNET_OK if time was already rounded, #GNUNET_NO if
+ *         it was just now rounded
+ */
+int
+GNUNET_TIME_round_abs (struct GNUNET_TIME_Absolute *at);
+
+
+/**
+ * Round a time value so that it is suitable for transmission
+ * via JSON encodings.
+ *
+ * @param rt time to round
+ * @return #GNUNET_OK if time was already rounded, #GNUNET_NO if
+ *         it was just now rounded
+ */
+int
+GNUNET_TIME_round_rel (struct GNUNET_TIME_Relative *rt);
+
+
+/**
  * Return the minimum of two relative time values.
  *
  * @param t1 first timestamp
