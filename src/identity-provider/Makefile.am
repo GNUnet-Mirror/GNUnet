@@ -19,7 +19,7 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   identity-provider.conf
 
-plugin_LTLIBRARIES = \
+lib_LTLIBRARIES = \
   libgnunetidentityprovider.la \
 	libgnunet_plugin_rest_identity_provider.la
 
