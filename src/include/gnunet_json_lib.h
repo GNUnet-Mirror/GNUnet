@@ -23,7 +23,7 @@
 #ifndef GNUNET_JSON_LIB_H
 #define GNUNET_JSON_LIB_H
 
-#include <gnunet/gnunet_util_lib.h>
+#include "gnunet_util_lib.h"
 #include <jansson.h>
 
 
