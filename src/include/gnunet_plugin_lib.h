@@ -52,7 +52,8 @@ extern "C"
  *         shutdown or if there was an error, otherwise
  *         the plugin's API on success
  */
-typedef void *(*GNUNET_PLUGIN_Callback) (void *arg);
+typedef void *
+(*GNUNET_PLUGIN_Callback) (void *arg);
 
 
 /**
@@ -81,7 +82,8 @@ GNUNET_PLUGIN_test (const char *library_name);
  * @return whatever the initialization function returned, NULL on error
  */
 void *
-GNUNET_PLUGIN_load (const char *library_name, void *arg);
+GNUNET_PLUGIN_load (const char *library_name,
+                    void *arg);
 
 
 /**
@@ -94,9 +96,10 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg);
  *        of the library (same as what #GNUNET_PLUGIN_load would
  *        have returned for the given library name)
  */
-typedef void (*GNUNET_PLUGIN_LoaderCallback) (void *cls,
-                                              const char *library_name,
-                                              void *lib_ret);
+typedef void
+(*GNUNET_PLUGIN_LoaderCallback) (void *cls,
+                                 const char *library_name,
+                                 void *lib_ret);
 
 
 /**
@@ -112,8 +115,10 @@ typedef void (*GNUNET_PLUGIN_LoaderCallback) (void *cls,
  * @param cb_cls closure for @a cb
  */
 void
-GNUNET_PLUGIN_load_all (const char *basename, void *arg,
-                        GNUNET_PLUGIN_LoaderCallback cb, void *cb_cls);
+GNUNET_PLUGIN_load_all (const char *basename,
+                        void *arg,
+                        GNUNET_PLUGIN_LoaderCallback cb,
+                        void *cb_cls);
 
 
 /**
@@ -126,7 +131,8 @@ GNUNET_PLUGIN_load_all (const char *basename, void *arg,
  *         or a "char *" representing the error message
  */
 void *
-GNUNET_PLUGIN_unload (const char *library_name, void *arg);
+GNUNET_PLUGIN_unload (const char *library_name,
+                      void *arg);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
