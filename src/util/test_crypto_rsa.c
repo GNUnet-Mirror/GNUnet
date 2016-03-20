@@ -20,9 +20,17 @@
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 #include "platform.h"
+#include <gcrypt.h>
 #include "gnunet_util_lib.h"
 
 #define KEY_SIZE 1024
+
+
+gcry_error_t
+rsa_full_domain_hash (gcry_mpi_t *r,
+                      const struct GNUNET_HashCode *hash,
+                      const struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                      size_t *rsize);
 
 
 int
@@ -42,6 +50,7 @@ main (int argc,
   struct GNUNET_HashCode hash;
   char *blind_buf;
   size_t bsize;
+  gcry_mpi_t v;
 
   GNUNET_log_setup ("test-rsa", "WARNING", NULL);
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -55,11 +64,13 @@ main (int argc,
   GNUNET_assert (NULL != priv_copy);
   GNUNET_assert (0 == GNUNET_CRYPTO_rsa_private_key_cmp (priv, priv_copy));
   pub = GNUNET_CRYPTO_rsa_private_key_get_public (priv);
+
   /* Encoding */
   size_t size;
   char *enc;
   enc = NULL;
   size = GNUNET_CRYPTO_rsa_private_key_encode (priv, &enc);
+
   /* Decoding */
   GNUNET_CRYPTO_rsa_private_key_free (priv);
   priv = NULL;
@@ -71,10 +82,17 @@ main (int argc,
   (void) fprintf (stderr, "The above warning is expected.\n");
   GNUNET_free (enc);
 
+  /* test full domain hash size */
+  GNUNET_assert (0 == rsa_full_domain_hash (&v, &hash, pub, NULL));
+  GNUNET_assert (gcry_mpi_get_nbits(v) < KEY_SIZE);
+  gcry_mpi_clear_highbit (v, gcry_mpi_get_nbits(v)-1); /* clear the set high bit */
+  GNUNET_assert (gcry_mpi_get_nbits(v) > 3*KEY_SIZE/4);
+  /* This test necessarily randomly fails with probability 2^(3 - KEY_SIZE/4) */
+  gcry_mpi_release(v);
+
   /* try ordinary sig first */
-  sig = GNUNET_CRYPTO_rsa_sign (priv,
-                        &hash,
-                        sizeof (hash));
+  sig = GNUNET_CRYPTO_rsa_sign_fdh (priv,
+                                    &hash);
   sig_copy = GNUNET_CRYPTO_rsa_signature_dup (sig);
   GNUNET_assert (NULL != sig);
   GNUNET_assert (0 == GNUNET_CRYPTO_rsa_signature_cmp (sig, sig_copy));
@@ -91,7 +109,6 @@ main (int argc,
   (void) fprintf (stderr, "The above warning is expected.\n");
   GNUNET_CRYPTO_rsa_signature_free (sig);
 
-
   /* test blind signing */
   bkey = GNUNET_CRYPTO_rsa_blinding_key_create (KEY_SIZE);
   bsize = GNUNET_CRYPTO_rsa_blind (&hash,
@@ -99,16 +116,16 @@ main (int argc,
                            pub,
                            &blind_buf);
   GNUNET_assert (0 != bsize);
-  bsig = GNUNET_CRYPTO_rsa_sign (priv,
-                        blind_buf,
-                        bsize);
+  bsig = GNUNET_CRYPTO_rsa_sign_blinded (priv,
+                                         blind_buf,
+                                         bsize);
   GNUNET_free (blind_buf);
   sig = GNUNET_CRYPTO_rsa_unblind (bsig,
                            bkey,
                            pub);
   GNUNET_CRYPTO_rsa_signature_free (bsig);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));
+                 GNUNET_CRYPTO_rsa_verify (&hash, sig, pub));  
   GNUNET_CRYPTO_rsa_signature_free (sig);
   GNUNET_CRYPTO_rsa_signature_free (sig_copy);
   GNUNET_CRYPTO_rsa_private_key_free (priv);

@@ -566,6 +566,38 @@ GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey)
 
 
 /**
+ * Print an MPI to a newly created buffer
+ *
+ * @param v MPI to print.
+ * @param[out] buffer set to a buffer with the result
+ * @return number of bytes stored in @a buffer
+ */
+size_t
+GNUNET_CRYPTO_mpi_print (gcry_mpi_t v,
+                         char **buffer)
+{
+  size_t n;
+  char *b;
+  size_t rsize;
+
+  gcry_mpi_print (GCRYMPI_FMT_USG,
+                  NULL,
+                  0,
+                  &n,
+                  v);
+  b = GNUNET_malloc (n);
+  GNUNET_assert (0 ==
+                 gcry_mpi_print (GCRYMPI_FMT_USG,
+                                 (unsigned char *) b,
+                                 n,
+                                 &rsize,
+                                 v));
+  *buffer = b;
+  return n;
+}
+
+
+/**
  * Encode the blinding key in a format suitable for
  * storing it into a file.
  *
@@ -577,24 +609,7 @@ size_t
 GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
                                        char **buffer)
 {
-  size_t n;
-  char *b;
-  size_t rsize;
-
-  gcry_mpi_print (GCRYMPI_FMT_USG,
-                  NULL,
-                  0,
-                  &n,
-                  bkey->r);
-  b = GNUNET_malloc (n);
-  GNUNET_assert (0 ==
-                 gcry_mpi_print (GCRYMPI_FMT_USG,
-                                 (unsigned char *) b,
-                                 n,
-                                 &rsize,
-                                 bkey->r));
-  *buffer = b;
-  return n;
+  return GNUNET_CRYPTO_mpi_print (bkey->r, buffer);
 }
 
 
@@ -630,6 +645,95 @@ GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
 
 
 /**
+ * Computes a full domain hash seeded by the given public key.  
+ * This gives a measure of provable security to the Taler exchange
+ * against one-more forgery attacks.  See:
+ *   https://eprint.iacr.org/2001/002.pdf
+ *   http://www.di.ens.fr/~pointche/Documents/Papers/2001_fcA.pdf
+ *
+ * @param hash initial hash of the message to sign
+ * @param pkey the public key of the signer
+ * @return libgcrypt error that to represent an allocation failure
+ */
+gcry_error_t
+rsa_full_domain_hash (gcry_mpi_t *r,
+                      const struct GNUNET_HashCode *hash,
+                      const struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                      size_t *rsize)
+{
+  int i,nbits,nhashes;
+  gcry_error_t rc;
+  char *buf;
+  size_t buf_len;
+  gcry_md_hd_t h,h0;
+  struct GNUNET_HashCode *hs;
+
+  /* Uncomment the following to debug without using the full domain hash */
+  /*
+  rc = gcry_mpi_scan (r,
+                      GCRYMPI_FMT_USG,
+                      (const unsigned char *)hash,
+                      sizeof(struct GNUNET_HashCode),
+                      rsize);
+  return rc; 
+  */
+
+  nbits = GNUNET_CRYPTO_rsa_public_key_len (pkey);
+  // calls gcry_mpi_get_nbits(.. pkey->sexp ..)
+  if (nbits < 512)
+    nbits = 512;
+
+  // Already almost an HMAC since we consume a hash, so no GCRY_MD_FLAG_HMAC.
+  rc = gcry_md_open (&h,GCRY_MD_SHA512,0);
+  if (0 != rc)  return rc;
+
+  // We seed with the public denomination key as a homage to RSA-PSS by 
+  // Mihir Bellare and Phillip Rogaway.  Doing this lowers the degree
+  // of the hypothetical polyomial-time attack on RSA-KTI created by a 
+  // polynomial-time one-more forgary attack.  Yey seeding!
+  buf_len = GNUNET_CRYPTO_rsa_public_key_encode (pkey, &buf);
+  gcry_md_write (h, buf,buf_len);
+  GNUNET_free (buf);
+
+  nhashes = (nbits-1) / (8 * sizeof(struct GNUNET_HashCode)) + 1;
+  hs = (struct GNUNET_HashCode *)GNUNET_malloc (nhashes * sizeof(struct GNUNET_HashCode));
+  for (i=0; i<nhashes; i++) 
+  {
+    gcry_md_write (h, hash, sizeof(struct GNUNET_HashCode));
+    rc = gcry_md_copy (&h0, h);
+    if (0 != rc)  break;
+    gcry_md_putc (h0, i % 256);
+    // gcry_md_final (&h0);
+    memcpy (&hs[i], 
+            gcry_md_read (h0,GCRY_MD_SHA512), 
+            sizeof(struct GNUNET_HashCode));
+    gcry_md_close (h0);
+  }
+  gcry_md_close (h);
+  if (0 != rc) {
+    GNUNET_free (hs);
+    return rc;
+  }
+
+  rc = gcry_mpi_scan (r,
+                      GCRYMPI_FMT_USG,
+                      (const unsigned char *)hs,
+                      nhashes * sizeof(struct GNUNET_HashCode),
+                      rsize);
+  GNUNET_free (hs);
+  if (0 != rc)  return rc;
+
+  // Do not allow *r to exceed n or signatures fail to verify unpredictably. 
+  // This happening with  gcry_mpi_clear_highbit (*r, nbits-1)  so maybe     
+  // gcry_mpi_clear_highbit  is broken, but setting the highbit sounds good. 
+  // (void) fprintf (stderr, "%d %d %d",nbits,nhashes, gcry_mpi_get_nbits(*r)); 
+  gcry_mpi_set_highbit (*r, nbits-2);
+  // (void) fprintf (stderr, " %d\n",gcry_mpi_get_nbits(*r)); 
+  return rc;
+}
+
+
+/**
  * Blinds the given message with the given blinding key
  *
  * @param hash hash of the message to sign
@@ -651,7 +755,6 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   size_t rsize;
   size_t n;
   gcry_error_t rc;
-  char *b;
   int ret;
 
   ret = key_from_sexp (ne, pkey->sexp, "public-key", "ne");
@@ -663,11 +766,9 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
     *buffer = NULL;
     return 0;
   }
-  if (0 != (rc = gcry_mpi_scan (&data,
-                                GCRYMPI_FMT_USG,
-                                (const unsigned char *) hash,
-                                sizeof (struct GNUNET_HashCode),
-                                &rsize)))
+
+  rc = rsa_full_domain_hash(&data, hash, pkey, &rsize);
+  if (0 != rc)  // Allocation error in libgcrypt
   {
     GNUNET_break (0);
     gcry_mpi_release (ne[0]);
@@ -690,75 +791,50 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_release (ne[1]);
   gcry_mpi_release (r_e);
 
-  gcry_mpi_print (GCRYMPI_FMT_USG,
-                  NULL,
-                  0,
-                  &n,
-                  data_r_e);
-  b = GNUNET_malloc (n);
-  rc = gcry_mpi_print (GCRYMPI_FMT_USG,
-                       (unsigned char *) b,
-                       n,
-                       &rsize,
-                       data_r_e);
+  n = GNUNET_CRYPTO_mpi_print (data_r_e, buffer);
   gcry_mpi_release (data_r_e);
-  *buffer = b;
   return n;
 }
 
 
 /**
- * Convert the data specified in the given purpose argument to an
- * S-expression suitable for signature operations.
+ * Convert an MPI to an S-expression suitable for signature operations.
  *
- * @param ptr pointer to the data to convert
- * @param size the size of the data
+ * @param value pointer to the data to convert
  * @return converted s-expression
  */
 static gcry_sexp_t
-data_to_sexp (const void *ptr, size_t size)
+mpi_to_sexp (gcry_mpi_t value)
 {
-  gcry_mpi_t value;
-  gcry_sexp_t data;
+  gcry_sexp_t data = NULL;
 
-  value = NULL;
-  data = NULL;
-  GNUNET_assert (0 ==
-                 gcry_mpi_scan (&value,
-                                GCRYMPI_FMT_USG,
-                                ptr,
-                                size,
-                                NULL));
   GNUNET_assert (0 ==
                  gcry_sexp_build (&data,
                                   NULL,
                                   "(data (flags raw) (value %M))",
                                   value));
-  gcry_mpi_release (value);
   return data;
 }
 
 
 /**
- * Sign the given message.
+ * Sign and release the given MPI.
  *
  * @param key private key to use for the signing
- * @param msg the message to sign
- * @param msg_len number of bytes in @a msg to sign
+ * @param value the MPI to sign
  * @return NULL on error, signature on success
  */
 struct GNUNET_CRYPTO_rsa_Signature *
-GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
-			const void *msg,
-			size_t msg_len)
+rsa_sign_mpi (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+              gcry_mpi_t value)
 {
   struct GNUNET_CRYPTO_rsa_Signature *sig;
   struct GNUNET_CRYPTO_rsa_PublicKey *public_key;
-  gcry_sexp_t result;
-  gcry_sexp_t data;
+  gcry_sexp_t data,result;
 
-  data = data_to_sexp (msg,
-                       msg_len);
+  data = mpi_to_sexp (value);
+  gcry_mpi_release (value);
+
   if (0 !=
       gcry_pk_sign (&result,
                     data,
@@ -775,7 +851,7 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
                       data,
                       public_key->sexp))
   {
-    GNUNET_break (0);
+    GNUNET_break (0);  
     GNUNET_CRYPTO_rsa_public_key_free (public_key);
     gcry_sexp_release (data);
     gcry_sexp_release (result);
@@ -788,6 +864,56 @@ GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
   sig = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
   sig->sexp = result;
   return sig;
+}
+
+
+/**
+ * Sign a blinded value, which must be a full domain hash of a message.
+ *
+ * @param key private key to use for the signing
+ * @param msg the message to sign
+ * @param msg_len number of bytes in @a msg to sign
+ * @return NULL on error, signature on success
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+                                const void *msg,
+                                size_t msg_len)
+{
+  gcry_mpi_t v = NULL;
+
+  GNUNET_assert (0 == 
+                 gcry_mpi_scan (&v,
+                                GCRYMPI_FMT_USG,
+                                msg,
+                                msg_len,
+                                NULL));
+
+  return rsa_sign_mpi (key,v);
+}
+
+
+/**
+ * Create and sign a full domain hash of a message.
+ *
+ * @param key private key to use for the signing
+ * @param hash the hash of the message to sign
+ * @return NULL on error, signature on success
+ */
+struct GNUNET_CRYPTO_rsa_Signature *
+GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+			    const struct GNUNET_HashCode *hash)
+{
+  struct GNUNET_CRYPTO_rsa_PublicKey *pkey;
+  gcry_mpi_t v = NULL;
+  gcry_error_t rc;
+
+  pkey = GNUNET_CRYPTO_rsa_private_key_get_public (key);
+  rc = rsa_full_domain_hash (&v, hash, pkey, NULL);
+  GNUNET_CRYPTO_rsa_public_key_free (pkey);
+  GNUNET_assert (0 == rc);
+
+  return rsa_sign_mpi (key,v);
 }
 
 
@@ -976,22 +1102,26 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
  *
  * @param hash hash of the message to verify to match the @a sig
  * @param sig signature that is being validated
- * @param public_key public key of the signer
+ * @param pkey public key of the signer
  * @returns #GNUNET_OK if ok, #GNUNET_SYSERR if invalid
  */
 int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
                           const struct GNUNET_CRYPTO_rsa_Signature *sig,
-                          const struct GNUNET_CRYPTO_rsa_PublicKey *public_key)
+                          const struct GNUNET_CRYPTO_rsa_PublicKey *pkey)
 {
   gcry_sexp_t data;
+  gcry_mpi_t r;
   int rc;
 
-  data = data_to_sexp (hash,
-                       sizeof (struct GNUNET_HashCode));
+  rc = rsa_full_domain_hash (&r, hash, pkey, NULL);
+  GNUNET_assert (0 == rc);  // Allocation error in libgcrypt
+  data = mpi_to_sexp(r);
+  gcry_mpi_release (r);
+
   rc = gcry_pk_verify (sig->sexp,
                        data,
-                       public_key->sexp);
+                       pkey->sexp);
   gcry_sexp_release (data);
   if (0 != rc)
   {

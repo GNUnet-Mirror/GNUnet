@@ -483,7 +483,7 @@ test_crypto_random_LDADD = \
 test_crypto_rsa_SOURCES = \
  test_crypto_rsa.c
 test_crypto_rsa_LDADD = \
- libgnunetutil.la
+ libgnunetutil.la -lgcrypt
 
 test_disk_SOURCES = \
  test_disk.c
