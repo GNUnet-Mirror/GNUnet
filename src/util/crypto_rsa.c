@@ -827,7 +827,7 @@ mpi_to_sexp (gcry_mpi_t value)
 
 
 /**
- * Sign and release the given MPI.
+ * Sign the given MPI.
  *
  * @param key private key to use for the signing
  * @param value the MPI to sign
@@ -843,7 +843,6 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   gcry_sexp_t result;
 
   data = mpi_to_sexp (value);
-  gcry_mpi_release (value);
 
   if (0 !=
       gcry_pk_sign (&result,
@@ -891,6 +890,7 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                                 size_t msg_len)
 {
   gcry_mpi_t v = NULL;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
 
   GNUNET_assert (0 ==
                  gcry_mpi_scan (&v,
@@ -899,7 +899,9 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                                 msg_len,
                                 NULL));
 
-  return rsa_sign_mpi (key, v);
+  sig = rsa_sign_mpi (key, v);
+  gcry_mpi_release (value);
+  return sig; 
 }
 
 
@@ -917,13 +919,17 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   struct GNUNET_CRYPTO_RsaPublicKey *pkey;
   gcry_mpi_t v = NULL;
   gcry_error_t rc;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
 
   pkey = GNUNET_CRYPTO_rsa_private_key_get_public (key);
   rc = rsa_full_domain_hash (&v, hash, pkey, NULL);
   GNUNET_CRYPTO_rsa_public_key_free (pkey);
   GNUNET_assert (0 == rc);
 
-  return rsa_sign_mpi (key,v);
+  sig = rsa_sign_mpi (key, v);
+  gcry_mpi_release (value);
+  return sig; 
+
 }
 
 
