@@ -569,11 +569,11 @@ GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey)
  * Print an MPI to a newly created buffer
  *
  * @param v MPI to print.
- * @param[out] buffer set to a buffer with the result
+ * @param[out] newly allocated buffer containing the result
  * @return number of bytes stored in @a buffer
  */
 static size_t
-mpi_print (gcry_mpi_t v,
+numeric_mpi_alloc_n_print (gcry_mpi_t v,
            char **buffer)
 {
   size_t n;
@@ -609,7 +609,7 @@ size_t
 GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
                                        char **buffer)
 {
-  return mpi_print (bkey->r, buffer);
+  return numeric_mpi_alloc_n_print (bkey->r, buffer);
 }
 
 
@@ -654,7 +654,7 @@ GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
  * @param[out] r MPI value set to the FDH
  * @param hash initial hash of the message to sign
  * @param pkey the public key of the signer
- * @param rsize FIXME JEFF
+ * @param rsize If not NULL, the number of bytes actually stored in buffer
  * @return libgcrypt error that to represent an allocation failure
  */
 gcry_error_t
@@ -800,7 +800,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_release (ne[1]);
   gcry_mpi_release (r_e);
 
-  n = mpi_print (data_r_e, buffer);
+  n = numeric_mpi_alloc_n_print (data_r_e, buffer);
   gcry_mpi_release (data_r_e);
   return n;
 }
