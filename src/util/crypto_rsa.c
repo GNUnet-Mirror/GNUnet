@@ -901,7 +901,7 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                                 NULL));
 
   sig = rsa_sign_mpi (key, v);
-  gcry_mpi_release (value);
+  gcry_mpi_release (v);
   return sig; 
 }
 
@@ -928,7 +928,7 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
   GNUNET_assert (0 == rc);
 
   sig = rsa_sign_mpi (key, v);
-  gcry_mpi_release (value);
+  gcry_mpi_release (v);
   return sig; 
 
 }
