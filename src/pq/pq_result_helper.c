@@ -233,7 +233,7 @@ extract_rsa_public_key (void *cls,
 			size_t *dst_size,
 			void *dst)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey **pk = dst;
+  struct GNUNET_CRYPTO_RsaPublicKey **pk = dst;
   size_t len;
   const char *res;
   int fnum;
@@ -285,7 +285,7 @@ static void
 clean_rsa_public_key (void *cls,
 		      void *rd)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey **pk = rd;
+  struct GNUNET_CRYPTO_RsaPublicKey **pk = rd;
   
   if (NULL != *pk)
   {
@@ -304,7 +304,7 @@ clean_rsa_public_key (void *cls,
  */
 struct GNUNET_PQ_ResultSpec
 GNUNET_PQ_result_spec_rsa_public_key (const char *name,
-				      struct GNUNET_CRYPTO_rsa_PublicKey **rsa)
+				      struct GNUNET_CRYPTO_RsaPublicKey **rsa)
 {
   struct GNUNET_PQ_ResultSpec res =
     { &extract_rsa_public_key,
@@ -337,7 +337,7 @@ extract_rsa_signature (void *cls,
 		       size_t *dst_size,
 		       void *dst)
 {
-  struct GNUNET_CRYPTO_rsa_Signature **sig = dst;
+  struct GNUNET_CRYPTO_RsaSignature **sig = dst;
   size_t len;
   const char *res;
   int fnum;
@@ -389,7 +389,7 @@ static void
 clean_rsa_signature (void *cls,
 		     void *rd)
 {
-  struct GNUNET_CRYPTO_rsa_Signature **sig = rd;
+  struct GNUNET_CRYPTO_RsaSignature **sig = rd;
 
   if (NULL != *sig)
   {
@@ -408,7 +408,7 @@ clean_rsa_signature (void *cls,
  */
 struct GNUNET_PQ_ResultSpec
 GNUNET_PQ_result_spec_rsa_signature (const char *name,
-				    struct GNUNET_CRYPTO_rsa_Signature **sig)
+				    struct GNUNET_CRYPTO_RsaSignature **sig)
 {
   struct GNUNET_PQ_ResultSpec res =
     { &extract_rsa_signature,

@@ -150,19 +150,19 @@ test_raw ()
 static int
 test_rsa ()
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub;
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub2;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub2;
   struct GNUNET_JSON_Specification pspec[] = {
     GNUNET_JSON_spec_rsa_public_key (NULL, &pub2),
     GNUNET_JSON_spec_end()
   };
-  struct GNUNET_CRYPTO_rsa_Signature *sig;
-  struct GNUNET_CRYPTO_rsa_Signature *sig2;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_RsaSignature *sig2;
   struct GNUNET_JSON_Specification sspec[] = {
     GNUNET_JSON_spec_rsa_signature (NULL, &sig2),
     GNUNET_JSON_spec_end()
   };
-  struct GNUNET_CRYPTO_rsa_PrivateKey *priv;
+  struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   char msg[] = "Hello";
   json_t *jp;
   json_t *js;

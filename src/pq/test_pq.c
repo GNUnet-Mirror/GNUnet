@@ -89,10 +89,10 @@ postgres_prepare (PGconn *db_conn)
 static int
 run_queries (PGconn *conn)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub;
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub2 = NULL;
-  struct GNUNET_CRYPTO_rsa_Signature *sig;
-  struct GNUNET_CRYPTO_rsa_Signature *sig2 = NULL;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub2 = NULL;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_RsaSignature *sig2 = NULL;
   struct GNUNET_TIME_Absolute abs_time = GNUNET_TIME_absolute_get ();
   struct GNUNET_TIME_Absolute abs_time2;
   struct GNUNET_TIME_Absolute forever = GNUNET_TIME_UNIT_FOREVER_ABS;
@@ -101,7 +101,7 @@ run_queries (PGconn *conn)
   struct GNUNET_HashCode hc2;
   PGresult *result;
   int ret;
-  struct GNUNET_CRYPTO_rsa_PrivateKey *priv;
+  struct GNUNET_CRYPTO_RsaPrivateKey *priv;
   char msg[] = "Hello";
   void *msg2;
   size_t msg2_len;

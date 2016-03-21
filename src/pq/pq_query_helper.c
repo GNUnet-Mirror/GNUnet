@@ -265,7 +265,7 @@ qconv_rsa_public_key (void *cls,
 		      void *scratch[],
 		      unsigned int scratch_length)
 {
-  const struct GNUNET_CRYPTO_rsa_PublicKey *rsa = data;
+  const struct GNUNET_CRYPTO_RsaPublicKey *rsa = data;
   char *buf;
   size_t buf_size;
 
@@ -290,7 +290,7 @@ qconv_rsa_public_key (void *cls,
  * @return array entry for the query parameters to use
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_rsa_PublicKey *x)
+GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x)
 {
   struct GNUNET_PQ_QueryParam res =
     { &qconv_rsa_public_key, NULL, (x), 0, 1 };
@@ -323,7 +323,7 @@ qconv_rsa_signature (void *cls,
 		     void *scratch[],
 		     unsigned int scratch_length)
 {
-  const struct GNUNET_CRYPTO_rsa_Signature *sig = data;
+  const struct GNUNET_CRYPTO_RsaSignature *sig = data;
   char *buf;
   size_t buf_size;
 
@@ -348,7 +348,7 @@ qconv_rsa_signature (void *cls,
  * @return array entry for the query parameters to use
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_rsa_Signature *x)
+GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x)
 {
   struct GNUNET_PQ_QueryParam res =
     { &qconv_rsa_signature, NULL, (x), 0, 1 };

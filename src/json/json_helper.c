@@ -690,7 +690,7 @@ parse_rsa_public_key (void *cls,
                       json_t *root,
                       struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey **pk = spec->ptr;
+  struct GNUNET_CRYPTO_RsaPublicKey **pk = spec->ptr;
   const char *enc;
   char *buf;
   size_t len;
@@ -736,7 +736,7 @@ static void
 clean_rsa_public_key (void *cls,
                       struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey **pk = spec->ptr;
+  struct GNUNET_CRYPTO_RsaPublicKey **pk = spec->ptr;
 
   if (NULL != *pk)
   {
@@ -754,7 +754,7 @@ clean_rsa_public_key (void *cls,
  */
 struct GNUNET_JSON_Specification
 GNUNET_JSON_spec_rsa_public_key (const char *name,
-                                 struct GNUNET_CRYPTO_rsa_PublicKey **pk)
+                                 struct GNUNET_CRYPTO_RsaPublicKey **pk)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_rsa_public_key,
@@ -782,7 +782,7 @@ parse_rsa_signature (void *cls,
                      json_t *root,
                      struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_CRYPTO_rsa_Signature **sig = spec->ptr;
+  struct GNUNET_CRYPTO_RsaSignature **sig = spec->ptr;
   size_t size;
   const char *str;
   int res;
@@ -828,7 +828,7 @@ static void
 clean_rsa_signature (void *cls,
                      struct GNUNET_JSON_Specification *spec)
 {
-  struct GNUNET_CRYPTO_rsa_Signature  **sig = spec->ptr;
+  struct GNUNET_CRYPTO_RsaSignature  **sig = spec->ptr;
 
   if (NULL != *sig)
   {
@@ -846,7 +846,7 @@ clean_rsa_signature (void *cls,
  */
 struct GNUNET_JSON_Specification
 GNUNET_JSON_spec_rsa_signature (const char *name,
-                                struct GNUNET_CRYPTO_rsa_Signature **sig)
+                                struct GNUNET_CRYPTO_RsaSignature **sig)
 {
   struct GNUNET_JSON_Specification ret = {
     .parser = &parse_rsa_signature,

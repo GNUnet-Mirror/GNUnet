@@ -37,10 +37,10 @@ static void
 eval (unsigned int len)
 {
   struct GNUNET_TIME_Absolute start;
-  struct GNUNET_CRYPTO_rsa_Signature *sig;
-  struct GNUNET_CRYPTO_rsa_Signature *rsig;
-  struct GNUNET_CRYPTO_rsa_PublicKey *public_key;
-  struct GNUNET_CRYPTO_rsa_PrivateKey *private_key;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_RsaSignature *rsig;
+  struct GNUNET_CRYPTO_RsaPublicKey *public_key;
+  struct GNUNET_CRYPTO_RsaPrivateKey *private_key;
   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
   unsigned int i;
   char sbuf[128];

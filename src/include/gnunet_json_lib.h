@@ -281,7 +281,7 @@ GNUNET_JSON_spec_relative_time (const char *name,
  */
 struct GNUNET_JSON_Specification
 GNUNET_JSON_spec_rsa_public_key (const char *name,
-                                 struct GNUNET_CRYPTO_rsa_PublicKey **pk);
+                                 struct GNUNET_CRYPTO_RsaPublicKey **pk);
 
 
 /**
@@ -292,7 +292,7 @@ GNUNET_JSON_spec_rsa_public_key (const char *name,
  */
 struct GNUNET_JSON_Specification
 GNUNET_JSON_spec_rsa_signature (const char *name,
-                                struct GNUNET_CRYPTO_rsa_Signature **sig);
+                                struct GNUNET_CRYPTO_RsaSignature **sig);
 
 
 /* ****************** Generic generator interface ******************* */
@@ -338,7 +338,7 @@ GNUNET_JSON_from_time_rel (struct GNUNET_TIME_Relative stamp);
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_rsa_PublicKey *pk);
+GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *pk);
 
 
 /**
@@ -348,7 +348,7 @@ GNUNET_JSON_from_rsa_public_key (const struct GNUNET_CRYPTO_rsa_PublicKey *pk);
  * @return corresponding JSON encoding
  */
 json_t *
-GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_rsa_Signature *sig);
+GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig);
 
 
 #endif

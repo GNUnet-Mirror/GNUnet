@@ -30,7 +30,7 @@
 /**
  * The private information of an RSA key pair.
  */
-struct GNUNET_CRYPTO_rsa_PrivateKey
+struct GNUNET_CRYPTO_RsaPrivateKey
 {
   /**
    * Libgcrypt S-expression for the RSA private key.
@@ -42,7 +42,7 @@ struct GNUNET_CRYPTO_rsa_PrivateKey
 /**
  * The public information of an RSA key pair.
  */
-struct GNUNET_CRYPTO_rsa_PublicKey
+struct GNUNET_CRYPTO_RsaPublicKey
 {
   /**
    * Libgcrypt S-expression for the RSA public key.
@@ -54,7 +54,7 @@ struct GNUNET_CRYPTO_rsa_PublicKey
 /**
  * @brief an RSA signature
  */
-struct GNUNET_CRYPTO_rsa_Signature
+struct GNUNET_CRYPTO_RsaSignature
 {
   /**
    * Libgcrypt S-expression for the RSA signature.
@@ -140,10 +140,10 @@ key_from_sexp (gcry_mpi_t *array,
  * @param len length of the key in bits (i.e. 2048)
  * @return fresh private key
  */
-struct GNUNET_CRYPTO_rsa_PrivateKey *
+struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_private_key_create (unsigned int len)
 {
-  struct GNUNET_CRYPTO_rsa_PrivateKey *ret;
+  struct GNUNET_CRYPTO_RsaPrivateKey *ret;
   gcry_sexp_t s_key;
   gcry_sexp_t s_keyparam;
 
@@ -160,7 +160,7 @@ GNUNET_CRYPTO_rsa_private_key_create (unsigned int len)
   GNUNET_assert (0 ==
                  gcry_pk_testkey (s_key));
 #endif
-  ret = GNUNET_new (struct GNUNET_CRYPTO_rsa_PrivateKey);
+  ret = GNUNET_new (struct GNUNET_CRYPTO_RsaPrivateKey);
   ret->sexp = s_key;
   return ret;
 }
@@ -172,7 +172,7 @@ GNUNET_CRYPTO_rsa_private_key_create (unsigned int len)
  * @param key pointer to the memory to free
  */
 void
-GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_rsa_PrivateKey *key)
+GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
   gcry_sexp_release (key->sexp);
   GNUNET_free (key);
@@ -188,7 +188,7 @@ GNUNET_CRYPTO_rsa_private_key_free (struct GNUNET_CRYPTO_rsa_PrivateKey *key)
  * @return size of memory allocated in @a buffer
  */
 size_t
-GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                                       char **buffer)
 {
   size_t n;
@@ -217,12 +217,12 @@ GNUNET_CRYPTO_rsa_private_key_encode (const struct GNUNET_CRYPTO_rsa_PrivateKey 
  * @param len the length of the data in @a buf
  * @return NULL on error
  */
-struct GNUNET_CRYPTO_rsa_PrivateKey *
+struct GNUNET_CRYPTO_RsaPrivateKey *
 GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
                                       size_t len)
 {
-  struct GNUNET_CRYPTO_rsa_PrivateKey *key;
-  key = GNUNET_new (struct GNUNET_CRYPTO_rsa_PrivateKey);
+  struct GNUNET_CRYPTO_RsaPrivateKey *key;
+  key = GNUNET_new (struct GNUNET_CRYPTO_RsaPrivateKey);
   if (0 !=
       gcry_sexp_new (&key->sexp,
                      buf,
@@ -251,10 +251,10 @@ GNUNET_CRYPTO_rsa_private_key_decode (const char *buf,
  * @param priv the private key
  * @retur NULL on error, otherwise the public key
  */
-struct GNUNET_CRYPTO_rsa_PublicKey *
-GNUNET_CRYPTO_rsa_private_key_get_public (const struct GNUNET_CRYPTO_rsa_PrivateKey *priv)
+struct GNUNET_CRYPTO_RsaPublicKey *
+GNUNET_CRYPTO_rsa_private_key_get_public (const struct GNUNET_CRYPTO_RsaPrivateKey *priv)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub;
   gcry_mpi_t ne[2];
   int rc;
   gcry_sexp_t result;
@@ -276,7 +276,7 @@ GNUNET_CRYPTO_rsa_private_key_get_public (const struct GNUNET_CRYPTO_rsa_Private
                         ne[1]);
   gcry_mpi_release (ne[0]);
   gcry_mpi_release (ne[1]);
-  pub = GNUNET_new (struct GNUNET_CRYPTO_rsa_PublicKey);
+  pub = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
   pub->sexp = result;
   return pub;
 }
@@ -288,7 +288,7 @@ GNUNET_CRYPTO_rsa_private_key_get_public (const struct GNUNET_CRYPTO_rsa_Private
  * @param key pointer to the memory to free
  */
 void
-GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_rsa_PublicKey *key)
+GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_RsaPublicKey *key)
 {
   gcry_sexp_release (key->sexp);
   GNUNET_free (key);
@@ -304,7 +304,7 @@ GNUNET_CRYPTO_rsa_public_key_free (struct GNUNET_CRYPTO_rsa_PublicKey *key)
  * @return size of memory allocated in @a buffer
  */
 size_t
-GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
+GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_RsaPublicKey *key,
                                      char **buffer)
 {
   size_t n;
@@ -332,7 +332,7 @@ GNUNET_CRYPTO_rsa_public_key_encode (const struct GNUNET_CRYPTO_rsa_PublicKey *k
  * @param hc where to store the hash code
  */
 void
-GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_rsa_PublicKey *key,
+GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_RsaPublicKey *key,
                                    struct GNUNET_HashCode *hc)
 {
   char *buf;
@@ -355,15 +355,15 @@ GNUNET_CRYPTO_rsa_public_key_hash (const struct GNUNET_CRYPTO_rsa_PublicKey *key
  * @param len the length of the data in @a buf
  * @return NULL on error
  */
-struct GNUNET_CRYPTO_rsa_PublicKey *
+struct GNUNET_CRYPTO_RsaPublicKey *
 GNUNET_CRYPTO_rsa_public_key_decode (const char *buf,
                                      size_t len)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey *key;
+  struct GNUNET_CRYPTO_RsaPublicKey *key;
   gcry_mpi_t n;
   int ret;
 
-  key = GNUNET_new (struct GNUNET_CRYPTO_rsa_PublicKey);
+  key = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
   if (0 !=
       gcry_sexp_new (&key->sexp,
                      buf,
@@ -435,8 +435,8 @@ GNUNET_CRYPTO_rsa_blinding_key_cmp (struct GNUNET_CRYPTO_rsa_BlindingKey *b1,
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_rsa_Signature *s1,
-				 struct GNUNET_CRYPTO_rsa_Signature *s2)
+GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_RsaSignature *s1,
+				 struct GNUNET_CRYPTO_RsaSignature *s2)
 {
   char *b1;
   char *b2;
@@ -468,8 +468,8 @@ GNUNET_CRYPTO_rsa_signature_cmp (struct GNUNET_CRYPTO_rsa_Signature *s1,
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
-				  struct GNUNET_CRYPTO_rsa_PublicKey *p2)
+GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_RsaPublicKey *p1,
+				  struct GNUNET_CRYPTO_RsaPublicKey *p2)
 {
   char *b1;
   char *b2;
@@ -501,8 +501,8 @@ GNUNET_CRYPTO_rsa_public_key_cmp (struct GNUNET_CRYPTO_rsa_PublicKey *p1,
  * @return 0 if the two are equal
  */
 int
-GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_rsa_PrivateKey *p1,
-                                   struct GNUNET_CRYPTO_rsa_PrivateKey *p2)
+GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_RsaPrivateKey *p1,
+                                   struct GNUNET_CRYPTO_RsaPrivateKey *p2)
 {
   char *b1;
   char *b2;
@@ -533,7 +533,7 @@ GNUNET_CRYPTO_rsa_private_key_cmp (struct GNUNET_CRYPTO_rsa_PrivateKey *p1,
  * @return length of the key in bits
  */
 unsigned int
-GNUNET_CRYPTO_rsa_public_key_len (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
+GNUNET_CRYPTO_rsa_public_key_len (const struct GNUNET_CRYPTO_RsaPublicKey *key)
 {
   gcry_mpi_t n;
   int ret;
@@ -645,27 +645,32 @@ GNUNET_CRYPTO_rsa_blinding_key_decode (const char *buf,
 
 
 /**
- * Computes a full domain hash seeded by the given public key.  
+ * Computes a full domain hash seeded by the given public key.
  * This gives a measure of provable security to the Taler exchange
  * against one-more forgery attacks.  See:
  *   https://eprint.iacr.org/2001/002.pdf
  *   http://www.di.ens.fr/~pointche/Documents/Papers/2001_fcA.pdf
  *
+ * @param[out] r MPI value set to the FDH
  * @param hash initial hash of the message to sign
  * @param pkey the public key of the signer
+ * @param rsize FIXME JEFF
  * @return libgcrypt error that to represent an allocation failure
  */
 gcry_error_t
 rsa_full_domain_hash (gcry_mpi_t *r,
                       const struct GNUNET_HashCode *hash,
-                      const struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                      const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                       size_t *rsize)
 {
-  int i,nbits,nhashes;
+  unsigned int i;
+  unsigned int nbits;
+  unsigned int nhashes;
   gcry_error_t rc;
   char *buf;
   size_t buf_len;
-  gcry_md_hd_t h,h0;
+  gcry_md_hd_t h;
+  gcry_md_hd_t h0;
   struct GNUNET_HashCode *hs;
 
   /* Uncomment the following to debug without using the full domain hash */
@@ -675,60 +680,64 @@ rsa_full_domain_hash (gcry_mpi_t *r,
                       (const unsigned char *)hash,
                       sizeof(struct GNUNET_HashCode),
                       rsize);
-  return rc; 
+  return rc;
   */
 
   nbits = GNUNET_CRYPTO_rsa_public_key_len (pkey);
-  // calls gcry_mpi_get_nbits(.. pkey->sexp ..)
   if (nbits < 512)
     nbits = 512;
 
-  // Already almost an HMAC since we consume a hash, so no GCRY_MD_FLAG_HMAC.
-  rc = gcry_md_open (&h,GCRY_MD_SHA512,0);
-  if (0 != rc)  return rc;
+  /* Already almost an HMAC since we consume a hash, so no GCRY_MD_FLAG_HMAC. */
+  rc = gcry_md_open (&h, GCRY_MD_SHA512, 0);
+  if (0 != rc)
+    return rc;
 
-  // We seed with the public denomination key as a homage to RSA-PSS by 
+  // We seed with the public denomination key as a homage to RSA-PSS by
   // Mihir Bellare and Phillip Rogaway.  Doing this lowers the degree
-  // of the hypothetical polyomial-time attack on RSA-KTI created by a 
+  // of the hypothetical polyomial-time attack on RSA-KTI created by a
   // polynomial-time one-more forgary attack.  Yey seeding!
   buf_len = GNUNET_CRYPTO_rsa_public_key_encode (pkey, &buf);
-  gcry_md_write (h, buf,buf_len);
+  gcry_md_write (h, buf, buf_len);
   GNUNET_free (buf);
 
   nhashes = (nbits-1) / (8 * sizeof(struct GNUNET_HashCode)) + 1;
-  hs = (struct GNUNET_HashCode *)GNUNET_malloc (nhashes * sizeof(struct GNUNET_HashCode));
-  for (i=0; i<nhashes; i++) 
+  hs = GNUNET_new_array (nhashes,
+                         struct GNUNET_HashCode);
+  for (i=0; i<nhashes; i++)
   {
     gcry_md_write (h, hash, sizeof(struct GNUNET_HashCode));
     rc = gcry_md_copy (&h0, h);
-    if (0 != rc)  break;
+    if (0 != rc)
+    {
+      gcry_md_close (h0);
+      break;
+    }
     gcry_md_putc (h0, i % 256);
-    // gcry_md_final (&h0);
-    memcpy (&hs[i], 
-            gcry_md_read (h0,GCRY_MD_SHA512), 
+    memcpy (&hs[i],
+            gcry_md_read (h0, GCRY_MD_SHA512),
             sizeof(struct GNUNET_HashCode));
     gcry_md_close (h0);
   }
   gcry_md_close (h);
-  if (0 != rc) {
+  if (0 != rc)
+  {
     GNUNET_free (hs);
     return rc;
   }
 
   rc = gcry_mpi_scan (r,
                       GCRYMPI_FMT_USG,
-                      (const unsigned char *)hs,
+                      (const unsigned char *) hs,
                       nhashes * sizeof(struct GNUNET_HashCode),
                       rsize);
   GNUNET_free (hs);
-  if (0 != rc)  return rc;
+  if (0 != rc)
+    return rc;
 
-  // Do not allow *r to exceed n or signatures fail to verify unpredictably. 
-  // This happening with  gcry_mpi_clear_highbit (*r, nbits-1)  so maybe     
-  // gcry_mpi_clear_highbit  is broken, but setting the highbit sounds good. 
-  // (void) fprintf (stderr, "%d %d %d",nbits,nhashes, gcry_mpi_get_nbits(*r)); 
+  // Do not allow *r to exceed n or signatures fail to verify unpredictably.
+  // This happening with  gcry_mpi_clear_highbit (*r, nbits-1) so maybe
+  // gcry_mpi_clear_highbit is broken, but setting the highbit sounds good.
   gcry_mpi_set_highbit (*r, nbits-2);
-  // (void) fprintf (stderr, " %d\n",gcry_mpi_get_nbits(*r)); 
   return rc;
 }
 
@@ -745,7 +754,7 @@ rsa_full_domain_hash (gcry_mpi_t *r,
 size_t
 GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
                          struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                         struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                         struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                          char **buffer)
 {
   gcry_mpi_t data;
@@ -767,7 +776,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
     return 0;
   }
 
-  rc = rsa_full_domain_hash(&data, hash, pkey, &rsize);
+  rc = rsa_full_domain_hash (&data, hash, pkey, &rsize);
   if (0 != rc)  // Allocation error in libgcrypt
   {
     GNUNET_break (0);
@@ -824,13 +833,14 @@ mpi_to_sexp (gcry_mpi_t value)
  * @param value the MPI to sign
  * @return NULL on error, signature on success
  */
-struct GNUNET_CRYPTO_rsa_Signature *
-rsa_sign_mpi (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+static struct GNUNET_CRYPTO_RsaSignature *
+rsa_sign_mpi (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
               gcry_mpi_t value)
 {
-  struct GNUNET_CRYPTO_rsa_Signature *sig;
-  struct GNUNET_CRYPTO_rsa_PublicKey *public_key;
-  gcry_sexp_t data,result;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_RsaPublicKey *public_key;
+  gcry_sexp_t data;
+  gcry_sexp_t result;
 
   data = mpi_to_sexp (value);
   gcry_mpi_release (value);
@@ -851,7 +861,7 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
                       data,
                       public_key->sexp))
   {
-    GNUNET_break (0);  
+    GNUNET_break (0);
     GNUNET_CRYPTO_rsa_public_key_free (public_key);
     gcry_sexp_release (data);
     gcry_sexp_release (result);
@@ -861,7 +871,7 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
 
   /* return signature */
   gcry_sexp_release (data);
-  sig = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
+  sig = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
   sig->sexp = result;
   return sig;
 }
@@ -875,21 +885,21 @@ rsa_sign_mpi (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
  * @param msg_len number of bytes in @a msg to sign
  * @return NULL on error, signature on success
  */
-struct GNUNET_CRYPTO_rsa_Signature *
-GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
                                 const void *msg,
                                 size_t msg_len)
 {
   gcry_mpi_t v = NULL;
 
-  GNUNET_assert (0 == 
+  GNUNET_assert (0 ==
                  gcry_mpi_scan (&v,
                                 GCRYMPI_FMT_USG,
                                 msg,
                                 msg_len,
                                 NULL));
 
-  return rsa_sign_mpi (key,v);
+  return rsa_sign_mpi (key, v);
 }
 
 
@@ -900,11 +910,11 @@ GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
  * @param hash the hash of the message to sign
  * @return NULL on error, signature on success
  */
-struct GNUNET_CRYPTO_rsa_Signature *
-GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
 			    const struct GNUNET_HashCode *hash)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey *pkey;
+  struct GNUNET_CRYPTO_RsaPublicKey *pkey;
   gcry_mpi_t v = NULL;
   gcry_error_t rc;
 
@@ -923,7 +933,7 @@ GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_rsa_PrivateKey *key,
  * @param sig memory to freee
  */
 void
-GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig)
+GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_RsaSignature *sig)
 {
   gcry_sexp_release (sig->sexp);
   GNUNET_free (sig);
@@ -938,7 +948,7 @@ GNUNET_CRYPTO_rsa_signature_free (struct GNUNET_CRYPTO_rsa_Signature *sig)
  * @return size of memory allocated in @a buffer
  */
 size_t
-GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *sig,
+GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_RsaSignature *sig,
 				    char **buffer)
 {
   size_t n;
@@ -967,15 +977,15 @@ GNUNET_CRYPTO_rsa_signature_encode (const struct GNUNET_CRYPTO_rsa_Signature *si
  * @param len the length of the data in @a buf
  * @return NULL on error
  */
-struct GNUNET_CRYPTO_rsa_Signature *
+struct GNUNET_CRYPTO_RsaSignature *
 GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
                                     size_t len)
 {
-  struct GNUNET_CRYPTO_rsa_Signature *sig;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
   int ret;
   gcry_mpi_t s;
 
-  sig = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
+  sig = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
   if (0 !=
       gcry_sexp_new (&sig->sexp,
                      buf,
@@ -1009,10 +1019,10 @@ GNUNET_CRYPTO_rsa_signature_decode (const char *buf,
  * @param key the public key to duplicate
  * @return the duplicate key; NULL upon error
  */
-struct GNUNET_CRYPTO_rsa_PublicKey *
-GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
+struct GNUNET_CRYPTO_RsaPublicKey *
+GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_RsaPublicKey *key)
 {
-  struct GNUNET_CRYPTO_rsa_PublicKey *dup;
+  struct GNUNET_CRYPTO_RsaPublicKey *dup;
   gcry_sexp_t dup_sexp;
   size_t erroff;
 
@@ -1022,7 +1032,7 @@ GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
   gcry_sexp_release (dup_sexp);
   /* copy the sexp */
   GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", key->sexp));
-  dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_PublicKey);
+  dup = GNUNET_new (struct GNUNET_CRYPTO_RsaPublicKey);
   dup->sexp = dup_sexp;
   return dup;
 }
@@ -1038,17 +1048,17 @@ GNUNET_CRYPTO_rsa_public_key_dup (const struct GNUNET_CRYPTO_rsa_PublicKey *key)
  * @param pkey the public key of the signer
  * @return unblinded signature on success, NULL on error
  */
-struct GNUNET_CRYPTO_rsa_Signature *
-GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_RsaSignature *sig,
                            struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
-                           struct GNUNET_CRYPTO_rsa_PublicKey *pkey)
+                           struct GNUNET_CRYPTO_RsaPublicKey *pkey)
 {
   gcry_mpi_t n;
   gcry_mpi_t s;
   gcry_mpi_t r_inv;
   gcry_mpi_t ubsig;
   int ret;
-  struct GNUNET_CRYPTO_rsa_Signature *sret;
+  struct GNUNET_CRYPTO_RsaSignature *sret;
 
   ret = key_from_sexp (&n, pkey->sexp, "public-key", "n");
   if (0 != ret)
@@ -1085,7 +1095,7 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
   gcry_mpi_release (r_inv);
   gcry_mpi_release (s);
 
-  sret = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
+  sret = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
   GNUNET_assert (0 ==
                  gcry_sexp_build (&sret->sexp,
                                   NULL,
@@ -1107,8 +1117,8 @@ GNUNET_CRYPTO_rsa_unblind (struct GNUNET_CRYPTO_rsa_Signature *sig,
  */
 int
 GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
-                          const struct GNUNET_CRYPTO_rsa_Signature *sig,
-                          const struct GNUNET_CRYPTO_rsa_PublicKey *pkey)
+                          const struct GNUNET_CRYPTO_RsaSignature *sig,
+                          const struct GNUNET_CRYPTO_RsaPublicKey *pkey)
 {
   gcry_sexp_t data;
   gcry_mpi_t r;
@@ -1142,10 +1152,10 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
  * @param key the private key to duplicate
  * @return the duplicate key; NULL upon error
  */
-struct GNUNET_CRYPTO_rsa_PrivateKey *
-GNUNET_CRYPTO_rsa_private_key_dup (const struct GNUNET_CRYPTO_rsa_PrivateKey *key)
+struct GNUNET_CRYPTO_RsaPrivateKey *
+GNUNET_CRYPTO_rsa_private_key_dup (const struct GNUNET_CRYPTO_RsaPrivateKey *key)
 {
-  struct GNUNET_CRYPTO_rsa_PrivateKey *dup;
+  struct GNUNET_CRYPTO_RsaPrivateKey *dup;
   gcry_sexp_t dup_sexp;
   size_t erroff;
 
@@ -1155,7 +1165,7 @@ GNUNET_CRYPTO_rsa_private_key_dup (const struct GNUNET_CRYPTO_rsa_PrivateKey *ke
   gcry_sexp_release (dup_sexp);
   /* copy the sexp */
   GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", key->sexp));
-  dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_PrivateKey);
+  dup = GNUNET_new (struct GNUNET_CRYPTO_RsaPrivateKey);
   dup->sexp = dup_sexp;
   return dup;
 }
@@ -1167,10 +1177,10 @@ GNUNET_CRYPTO_rsa_private_key_dup (const struct GNUNET_CRYPTO_rsa_PrivateKey *ke
  * @param key the private key to duplicate
  * @return the duplicate key; NULL upon error
  */
-struct GNUNET_CRYPTO_rsa_Signature *
-GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_rsa_Signature *sig)
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_RsaSignature *sig)
 {
-  struct GNUNET_CRYPTO_rsa_Signature *dup;
+  struct GNUNET_CRYPTO_RsaSignature *dup;
   gcry_sexp_t dup_sexp;
   size_t erroff;
   gcry_mpi_t s;
@@ -1184,7 +1194,7 @@ GNUNET_CRYPTO_rsa_signature_dup (const struct GNUNET_CRYPTO_rsa_Signature *sig)
   gcry_mpi_release (s);
   /* copy the sexp */
   GNUNET_assert (0 == gcry_sexp_build (&dup_sexp, &erroff, "%S", sig->sexp));
-  dup = GNUNET_new (struct GNUNET_CRYPTO_rsa_Signature);
+  dup = GNUNET_new (struct GNUNET_CRYPTO_RsaSignature);
   dup->sexp = dup_sexp;
   return dup;
 }

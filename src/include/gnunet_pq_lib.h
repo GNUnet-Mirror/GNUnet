@@ -118,7 +118,7 @@ GNUNET_PQ_query_param_fixed_size (const void *ptr,
  * @param x the query parameter to pass.
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_rsa_PublicKey *x);
+GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_RsaPublicKey *x);
 
 
 /**
@@ -128,7 +128,7 @@ GNUNET_PQ_query_param_rsa_public_key (const struct GNUNET_CRYPTO_rsa_PublicKey *
  * @param x the query parameter to pass
  */
 struct GNUNET_PQ_QueryParam
-GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_rsa_Signature *x);
+GNUNET_PQ_query_param_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *x);
 
 
 /**
@@ -330,7 +330,7 @@ GNUNET_PQ_result_spec_variable_size (const char *name,
  */
 struct GNUNET_PQ_ResultSpec
 GNUNET_PQ_result_spec_rsa_public_key (const char *name,
-				      struct GNUNET_CRYPTO_rsa_PublicKey **rsa);
+				      struct GNUNET_CRYPTO_RsaPublicKey **rsa);
 
 
 /**
@@ -342,7 +342,7 @@ GNUNET_PQ_result_spec_rsa_public_key (const char *name,
  */
 struct GNUNET_PQ_ResultSpec
 GNUNET_PQ_result_spec_rsa_signature (const char *name,
-				     struct GNUNET_CRYPTO_rsa_Signature **sig);
+				     struct GNUNET_CRYPTO_RsaSignature **sig);
 
 
 /**

@@ -29,7 +29,7 @@
 gcry_error_t
 rsa_full_domain_hash (gcry_mpi_t *r,
                       const struct GNUNET_HashCode *hash,
-                      const struct GNUNET_CRYPTO_rsa_PublicKey *pkey,
+                      const struct GNUNET_CRYPTO_RsaPublicKey *pkey,
                       size_t *rsize);
 
 
@@ -39,14 +39,14 @@ main (int argc,
 {
 #define RND_BLK_SIZE 4096
   unsigned char rnd_blk[RND_BLK_SIZE];
-  struct GNUNET_CRYPTO_rsa_PrivateKey *priv;
-  struct GNUNET_CRYPTO_rsa_PrivateKey *priv_copy;
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub;
-  struct GNUNET_CRYPTO_rsa_PublicKey *pub_copy;
+  struct GNUNET_CRYPTO_RsaPrivateKey *priv;
+  struct GNUNET_CRYPTO_RsaPrivateKey *priv_copy;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub;
+  struct GNUNET_CRYPTO_RsaPublicKey *pub_copy;
   struct GNUNET_CRYPTO_rsa_BlindingKey *bkey;
-  struct GNUNET_CRYPTO_rsa_Signature *sig;
-  struct GNUNET_CRYPTO_rsa_Signature *sig_copy;
-  struct GNUNET_CRYPTO_rsa_Signature *bsig;
+  struct GNUNET_CRYPTO_RsaSignature *sig;
+  struct GNUNET_CRYPTO_RsaSignature *sig_copy;
+  struct GNUNET_CRYPTO_RsaSignature *bsig;
   struct GNUNET_HashCode hash;
   char *blind_buf;
   size_t bsize;
