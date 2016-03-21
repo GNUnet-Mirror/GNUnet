@@ -572,9 +572,9 @@ GNUNET_CRYPTO_rsa_blinding_key_free (struct GNUNET_CRYPTO_rsa_BlindingKey *bkey)
  * @param[out] buffer set to a buffer with the result
  * @return number of bytes stored in @a buffer
  */
-size_t
-GNUNET_CRYPTO_mpi_print (gcry_mpi_t v,
-                         char **buffer)
+static size_t
+mpi_print (gcry_mpi_t v,
+           char **buffer)
 {
   size_t n;
   char *b;
@@ -609,7 +609,7 @@ size_t
 GNUNET_CRYPTO_rsa_blinding_key_encode (const struct GNUNET_CRYPTO_rsa_BlindingKey *bkey,
                                        char **buffer)
 {
-  return GNUNET_CRYPTO_mpi_print (bkey->r, buffer);
+  return mpi_print (bkey->r, buffer);
 }
 
 
@@ -800,7 +800,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   gcry_mpi_release (ne[1]);
   gcry_mpi_release (r_e);
 
-  n = GNUNET_CRYPTO_mpi_print (data_r_e, buffer);
+  n = mpi_print (data_r_e, buffer);
   gcry_mpi_release (data_r_e);
   return n;
 }
