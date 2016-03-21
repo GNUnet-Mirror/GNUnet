@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  Copyright (C) 2014 GNUnet e.V.
+  Copyright (C) 2016 GNUnet e.V.
 
   GNUnet is free software; you can redistribute it and/or modify it under the
   terms of the GNU General Public License as published by the Free Software
@@ -19,6 +19,7 @@
  * @brief Chaum-style Blind signatures based on RSA
  * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  * @author Christian Grothoff
+ * @author Jeffrey Burdges <burdges@gnunet.org>
  */
 #include "platform.h"
 #include <gcrypt.h>
@@ -692,10 +693,10 @@ rsa_full_domain_hash (gcry_mpi_t *r,
   if (0 != rc)
     return rc;
 
-  // We seed with the public denomination key as a homage to RSA-PSS by
-  // Mihir Bellare and Phillip Rogaway.  Doing this lowers the degree
-  // of the hypothetical polyomial-time attack on RSA-KTI created by a
-  // polynomial-time one-more forgary attack.  Yey seeding!
+  /* We seed with the public denomination key as a homage to RSA-PSS by  *
+   * Mihir Bellare and Phillip Rogaway.  Doing this lowers the degree    *
+   * of the hypothetical polyomial-time attack on RSA-KTI created by a   *
+   * polynomial-time one-more forgary attack.  Yey seeding!              */
   buf_len = GNUNET_CRYPTO_rsa_public_key_encode (pkey, &buf);
   gcry_md_write (h, buf, buf_len);
   GNUNET_free (buf);
@@ -734,9 +735,9 @@ rsa_full_domain_hash (gcry_mpi_t *r,
   if (0 != rc)
     return rc;
 
-  // Do not allow *r to exceed n or signatures fail to verify unpredictably.
-  // This happening with  gcry_mpi_clear_highbit (*r, nbits-1) so maybe
-  // gcry_mpi_clear_highbit is broken, but setting the highbit sounds good.
+  /* Do not allow *r to exceed n or signatures fail to verify unpredictably. *
+   * This happening with  gcry_mpi_clear_highbit (*r, nbits-1) so maybe      *
+   * gcry_mpi_clear_highbit is broken, but setting the highbit sounds good.  */
   gcry_mpi_set_highbit (*r, nbits-2);
   return rc;
 }
@@ -777,7 +778,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
   }
 
   rc = rsa_full_domain_hash (&data, hash, pkey, &rsize);
-  if (0 != rc)  // Allocation error in libgcrypt
+  if (0 != rc)  /* Allocation error in libgcrypt */
   {
     GNUNET_break (0);
     gcry_mpi_release (ne[0]);
@@ -1131,7 +1132,7 @@ GNUNET_CRYPTO_rsa_verify (const struct GNUNET_HashCode *hash,
   int rc;
 
   rc = rsa_full_domain_hash (&r, hash, pkey, NULL);
-  GNUNET_assert (0 == rc);  // Allocation error in libgcrypt
+  GNUNET_assert (0 == rc);  /* Allocation error in libgcrypt */
   data = mpi_to_sexp(r);
   gcry_mpi_release (r);
 
