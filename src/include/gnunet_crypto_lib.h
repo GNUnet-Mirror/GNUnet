@@ -2037,7 +2037,7 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
 
 
 /**
- * Sign the given message.
+ * Sign a blinded value, which must be a full domain hash of a message.
  *
  * @param key private key to use for the signing
  * @param msg the (blinded) message to sign
@@ -2045,9 +2045,22 @@ GNUNET_CRYPTO_rsa_blind (const struct GNUNET_HashCode *hash,
  * @return NULL on error, signature on success
  */
 struct GNUNET_CRYPTO_RsaSignature *
-GNUNET_CRYPTO_rsa_sign (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
-                        const void *msg,
-                        size_t msg_len);
+GNUNET_CRYPTO_rsa_sign_blinded (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+                                const void *msg,
+                                size_t msg_len);
+
+
+/**
+ * Create and sign a full domain hash of a message.
+ *
+ * @param key private key to use for the signing
+ * @param msg the (blinded) message to sign
+ * @param msg_len number of bytes in @a msg to sign
+ * @return NULL on error, signature on success
+ */
+struct GNUNET_CRYPTO_RsaSignature *
+GNUNET_CRYPTO_rsa_sign_fdh (const struct GNUNET_CRYPTO_RsaPrivateKey *key,
+			    const struct GNUNET_HashCode *hash);
 
 
 /**
