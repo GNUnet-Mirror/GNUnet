@@ -88,6 +88,12 @@ if BUILD_GST_HELPERS
 AUDIO_HELPER_RECD=gnunet-helper-audio-record
 AUDIO_HELPER_PLAY=gnunet-helper-audio-playback
 AUDIO_TESTS=$(check_PROGRAMS)
+else
+if BUILD_EXPERIMENTAL_HELPERS
+AUDIO_HELPER_RECD=gnunet-helper-audio-record
+AUDIO_HELPER_PLAY=gnunet-helper-audio-playback
+AUDIO_TESTS=$(check_PROGRAMS)
+endif
 endif
 endif
 
@@ -132,7 +138,7 @@ gnunet_helper_audio_record_CFLAGS = \
  $(GST_CFLAGS)
 
 gnunet_helper_audio_playback_SOURCES = \
-  gnunet-helper-audio-playback-gst.c
+    gnunet_gst_test.c gnunet_gst.c
 gnunet_helper_audio_playback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GST_LIBS) \
@@ -140,7 +146,31 @@ gnunet_helper_audio_playback_LDADD = \
 gnunet_helper_audio_playback_LDFLAGS = \
   $(WINFLAGS) $(GST_LDFLAGS)
 gnunet_helper_audio_playback_CFLAGS = \
- $(GST_CFLAGS)
+ $(GST_CFLAGS) -DIS_SPEAKER
+else
+if BUILD_EXPERIMENTAL_HELPERS
+gnunet_helper_audio_record_SOURCES = \
+  gnunet_gst_test.c gnunet_gst.c
+gnunet_helper_audio_record_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GST_LIBS) \
+  $(INTLLIBS)
+gnunet_helper_audio_record_LDFLAGS = \
+  $(WINFLAGS) $(GST_LDFLAGS)
+gnunet_helper_audio_record_CFLAGS = \
+ $(GST_CFLAGS) -DIS_MIC
+
+gnunet_helper_audio_playback_SOURCES = \
+    gnunet_gst_test.c gnunet_gst.c
+gnunet_helper_audio_playback_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GST_LIBS) \
+  $(INTLLIBS)
+gnunet_helper_audio_playback_LDFLAGS = \
+  $(WINFLAGS) $(GST_LDFLAGS)
+gnunet_helper_audio_playback_CFLAGS = \
+ $(GST_CFLAGS) -DIS_SPEAKER
+endif
 endif
 endif
 
