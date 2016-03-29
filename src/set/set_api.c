@@ -1041,7 +1041,13 @@ int
 GNUNET_SET_commit (struct GNUNET_SET_OperationHandle *oh,
                    struct GNUNET_SET_Handle *set)
 {
-  GNUNET_assert (NULL == oh->set);
+  if (NULL != oh->set)
+  {
+    /* Some other set was already commited for this
+     * operation, there is a logic bug in the client of this API */
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
   if (GNUNET_YES == set->invalid)
     return GNUNET_SYSERR;
   GNUNET_assert (NULL != oh->conclude_mqm);
