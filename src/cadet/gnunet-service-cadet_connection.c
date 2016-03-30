@@ -464,20 +464,6 @@ connection_get (const struct GNUNET_CADET_Hash *cid)
 
 
 /**
- * Mark a connection as "destroyed", to send all pending traffic and freeing
- * all associated resources, without accepting new status changes on it.
- *
- * @param c Connection to mark as destroyed.
- */
-static void
-mark_destroyed (struct CadetConnection *c)
-{
-  c->destroy = GNUNET_YES;
-  connection_change_state (c, CADET_CONNECTION_DESTROYED);
-}
-
-
-/**
  * Change the connection state. Cannot change a connection marked as destroyed.
  *
  * @param c Connection to change.
@@ -498,6 +484,20 @@ connection_change_state (struct CadetConnection* c,
   c->state = state;
   if (CADET_CONNECTION_READY == state)
     c->create_retry = 1;
+}
+
+
+/**
+ * Mark a connection as "destroyed", to send all pending traffic and freeing
+ * all associated resources, without accepting new status changes on it.
+ *
+ * @param c Connection to mark as destroyed.
+ */
+static void
+mark_destroyed (struct CadetConnection *c)
+{
+  c->destroy = GNUNET_YES;
+  connection_change_state (c, CADET_CONNECTION_DESTROYED);
 }
 
 

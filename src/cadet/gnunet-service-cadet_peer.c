@@ -1091,6 +1091,21 @@ get_core_size (size_t message_size)
   return message_size + sizeof (struct GNUNET_CADET_ACK);
 }
 
+/**
+ * Test if a message type is connection management traffic
+ * or regular payload traffic.
+ *
+ * @param type Message type.
+ *
+ * @return #GNUNET_YES if connection management, #GNUNET_NO otherwise.
+ */
+static int
+is_connection_management (uint16_t type)
+{
+  return type == GNUNET_MESSAGE_TYPE_CADET_ACK ||
+         type == GNUNET_MESSAGE_TYPE_CADET_POLL;
+}
+
 
 /**
  * Fill a core buffer with the appropriate data for the queued message.
@@ -1410,8 +1425,7 @@ GCP_queue_destroy (struct CadetPeerQueue *queue,
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
 
-  if (queue->type != GNUNET_MESSAGE_TYPE_CADET_ACK &&
-      queue->type != GNUNET_MESSAGE_TYPE_CADET_POLL)
+  if (!is_connection_management (queue->type))
   {
     peer->queue_n--;
   }
@@ -1497,16 +1511,13 @@ GCP_queue_add (struct CadetPeer *peer,
   }
 
   priority = 0;
-
-  if (GNUNET_MESSAGE_TYPE_CADET_POLL == type ||
-      GNUNET_MESSAGE_TYPE_CADET_ACK == type)
+  if (is_connection_management (type))
   {
     priority = 100;
   }
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
 
-  call_core = (NULL == c || type == GNUNET_MESSAGE_TYPE_CADET_KX) ?
+  call_core = (NULL == c || GNUNET_MESSAGE_TYPE_CADET_KX == type) ?
                GNUNET_YES : GCC_is_sendable (c, fwd);
   q = GNUNET_new (struct CadetPeerQueue);
   q->cls = cls;
