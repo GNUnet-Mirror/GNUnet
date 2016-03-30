@@ -1564,7 +1564,7 @@ connection_timeout (struct CadetConnection *c, int fwd)
   }
 
   /* If dest, salvage queued traffic. */
-  if (GCC_is_origin (c, !fwd))
+  if (GCC_is_terminal (c, fwd))
   {
     const struct GNUNET_PeerIdentity *next_hop;
 
