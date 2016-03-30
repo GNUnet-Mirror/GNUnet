@@ -464,6 +464,20 @@ connection_get (const struct GNUNET_CADET_Hash *cid)
 
 
 /**
+ * Mark a connection as "destroyed", to send all pending traffic and freeing
+ * all associated resources, without accepting new status changes on it.
+ *
+ * @param c Connection to mark as destroyed.
+ */
+static void
+mark_destroyed (struct CadetConnection *c)
+{
+  c->destroy = GNUNET_YES;
+  connection_change_state (c, CADET_CONNECTION_DESTROYED);
+}
+
+
+/**
  * Change the connection state. Cannot change a connection marked as destroyed.
  *
  * @param c Connection to change.
@@ -1487,8 +1501,7 @@ resend_messages_and_destroy (struct CadetConnection *c, int fwd)
   int destroyed;
 
   GCC_check_connections ();
-  c->state = CADET_CONNECTION_DESTROYED;
-  c->destroy = GNUNET_YES;
+  mark_destroyed (c);
 
   destroyed = GNUNET_NO;
   neighbor = get_hop (c, fwd);
@@ -1675,8 +1688,8 @@ check_path (void *cls, struct CadetConnection *c)
       && CADET_CONNECTION_DESTROYED != c->state
       && path_equivalent (path, c->path))
   {
-    new_conn->destroy = GNUNET_YES;
-    new_conn->path->c = c;
+    new_conn->destroy = GNUNET_YES; /* Do not mark_destroyed, */
+    new_conn->path->c = c;          /* this is only a flag for the Iterator. */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  MATCH!\n");
   }
 }
@@ -2291,7 +2304,7 @@ GCC_handle_broken (void* cls,
   t = c->t;
 
   fwd = is_fwd (c, id);
-  c->destroy = GNUNET_YES;
+  mark_destroyed (c);
   if (GCC_is_terminal (c, fwd))
   {
     struct CadetPeer *endpoint;
@@ -2384,8 +2397,7 @@ GCC_handle_destroy (void *cls,
     GCC_check_connections ();
     return GNUNET_OK;
   }
-  c->destroy = GNUNET_YES;
-  c->state = CADET_CONNECTION_DESTROYED;
+  mark_destroyed (c);
   if (NULL != c->t)
   {
     GCT_remove_connection (c->t, c);
@@ -3366,8 +3378,7 @@ GCC_neighbor_disconnected (struct CadetConnection *c, struct CadetPeer *peer)
   /* Connection will have at least one pending message
    * (the one we just scheduled), so delay destruction
    * and remove from map so we don't use accidentally. */
-  c->destroy = GNUNET_YES;
-  c->state = CADET_CONNECTION_DESTROYED;
+  mark_destroyed (c);
   GNUNET_assert (GNUNET_NO == c->was_removed);
   c->was_removed = GNUNET_YES;
   GNUNET_break (GNUNET_YES ==
@@ -3724,8 +3735,7 @@ GCC_send_destroy (struct CadetConnection *c)
     GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg.header, UINT16_MAX,
                                                       0, c, GNUNET_NO,
                                                       GNUNET_YES, NULL, NULL));
-  c->destroy = GNUNET_YES;
-  c->state = CADET_CONNECTION_DESTROYED;
+  mark_destroyed (c);
   GCC_check_connections ();
 }
 
