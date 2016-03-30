@@ -785,6 +785,10 @@ peer_destroy (struct CadetPeer *peer)
     GNUNET_ATS_connectivity_suggest_cancel (peer->connectivity_suggestion);
     peer->connectivity_suggestion = NULL;
   }
+  while (NULL != peer->queue_head)
+  {
+    GCP_queue_destroy (peer->queue_head, GNUNET_YES, GNUNET_NO, 0);
+  }
   GNUNET_free_non_null (peer->hello);
   GNUNET_free (peer);
   return GNUNET_OK;
