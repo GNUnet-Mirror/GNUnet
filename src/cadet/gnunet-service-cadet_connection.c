@@ -453,6 +453,8 @@ fc_init (struct CadetFlowControl *fc)
  * Find a connection.
  *
  * @param cid Connection ID.
+ *
+ * @return conntection with the given ID @cid or NULL if not found.
  */
 static struct CadetConnection *
 connection_get (const struct GNUNET_CADET_Hash *cid)
