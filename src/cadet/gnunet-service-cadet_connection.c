@@ -2321,7 +2321,7 @@ GCC_handle_broken (void* cls,
       path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
 
-    c->state = CADET_CONNECTION_BROKEN;
+    connection_change_state (c, CADET_CONNECTION_BROKEN);
     GCT_remove_connection (t, c);
     c->t = NULL;
 
