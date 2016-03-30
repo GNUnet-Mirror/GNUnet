@@ -1053,6 +1053,7 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
                      const struct GNUNET_PeerIdentity *peer_id)
 {
   struct GNUNET_CADET_ConnectionBroken *msg;
+  struct CadetPeerQueue *q;
   struct CadetPeer *neighbor;
 
   GCC_check_connections ();
@@ -1070,10 +1071,12 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
     memset (&msg->peer2, 0, sizeof (msg->peer2));
   neighbor = GCP_get (peer_id, GNUNET_NO); /* We MUST know neighbor. */
   GNUNET_assert (NULL != neighbor);
-  GCP_queue_add (neighbor, msg, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-                 UINT16_MAX, 2, sizeof (struct GNUNET_CADET_ConnectionBroken),
-                 NULL, GNUNET_SYSERR, /* connection, fwd */
-                 NULL, NULL); /* continuation */
+  q = GCP_queue_add (neighbor, msg, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+                     UINT16_MAX, 2,
+                     sizeof (struct GNUNET_CADET_ConnectionBroken),
+                     NULL, GNUNET_SYSERR, /* connection, fwd */
+                     NULL, NULL); /* continuation */
+  GNUNET_assert (NULL != q);
   GCC_check_connections ();
 }
 
