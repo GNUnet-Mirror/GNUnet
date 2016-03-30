@@ -2011,8 +2011,8 @@ GCCH_handle_data (struct CadetChannel *ch,
     {
       GNUNET_break_op (0);
       LOG (GNUNET_ERROR_TYPE_INFO,
-          "MID %u on channel %s not expected (window: %u - %u). Dropping!\n",
-          mid, GCCH_2s (ch), rel->mid_recv, rel->mid_recv + 63);
+           "MID %u on channel %s not expected (window: %u - %u). Dropping!\n",
+           mid, GCCH_2s (ch), rel->mid_recv, rel->mid_recv + 63);
     }
     else
     {
@@ -2022,8 +2022,8 @@ GCCH_handle_data (struct CadetChannel *ch,
       if (NULL != rel->uniq)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-            "We are trying to send an ACK, but don't seem have the "
-            "bandwidth. Try to increase your [ats] QUOTA in you config file\n");
+             "We are trying to send an ACK, but don't seem have the "
+             "bandwidth. Have you set enough [ats] QUOTA in your config?\n");
       }
 
     }
