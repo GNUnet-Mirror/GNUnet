@@ -1652,7 +1652,7 @@ connection_reset_timeout (struct CadetConnection *c, int fwd)
 /**
  * Iterator to compare each connection's path with the path of a new connection.
  *
- * If the connection conincides, the c member of path is set to the connection
+ * If the connection coincides, the c member of path is set to the connection
  * and the destroy flag of the connection is set.
  *
  * @param cls Closure (new path).
@@ -1668,9 +1668,9 @@ check_path (void *cls, struct CadetConnection *c)
        GCC_2s (c), c, c->path->length);
 
   if (c != new_conn
-      && c->destroy == GNUNET_NO
-      && c->state != CADET_CONNECTION_BROKEN
-      && c->state != CADET_CONNECTION_DESTROYED
+      && GNUNET_NO == c->destroy
+      && CADET_CONNECTION_BROKEN != c->state
+      && CADET_CONNECTION_DESTROYED != c->state
       && path_equivalent (path, c->path))
   {
     new_conn->destroy = GNUNET_YES;
