@@ -1738,7 +1738,7 @@ does_connection_exist (struct CadetConnection *conn)
     if (CADET_CONNECTION_READY == c->state)
     {
       /* The other peer confirmed a live connection with this path,
-       * why is it trying to duplicate it. */
+       * why are they trying to duplicate it? */
       GNUNET_STATISTICS_update (stats, "# duplicate connections", 1, GNUNET_NO);
       return GNUNET_YES;
     }
