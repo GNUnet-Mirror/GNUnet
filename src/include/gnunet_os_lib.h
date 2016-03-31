@@ -200,6 +200,66 @@ enum GNUNET_OS_ProcessStatusType
 
 
 /**
+ * Project-specific data used to help the OS subsystem
+ * find installation paths.
+ */
+struct GNUNET_OS_ProjectData
+{
+  /**
+   * Name of a library that is installed in the "lib/" directory of
+   * the project, such as "libgnunetutil".  Used to locate the
+   * installation by scanning dependencies of the current process.
+   */
+  const char *libname;
+
+  /**
+   * Name of the project that is used in the "libexec" prefix, For
+   * example, "gnunet".  Certain helper binaries are then expected to
+   * be installed in "$PREFIX/libexec/gnunet/" and resources in
+   * "$PREFIX/share/gnunet/".
+   */
+  const char *project_dirname;
+
+  /**
+   * Name of a project-specific binary that should be in "$PREFIX/bin/".
+   * Used to determine installation path from $PATH variable.
+   * For example "gnunet-arm".  On W32, ".exe" should be omitted.
+   */
+  const char *binary_name;
+
+  /**
+   * Name of an environment variable that can be used to override
+   * installation path detection, for example "GNUNET_PREFIX".
+   */
+  const char *env_varname;
+
+  /**
+   * Alternative name of an environment variable that can be used to
+   * override installation path detection, if "env_varname" is not
+   * set. Again, for example, "GNUNET_PREFIX".
+   */
+  const char *env_varname_alt;
+
+};
+
+
+/**
+ * Return default project data used by 'libgnunetutil' for GNUnet.
+ */
+const struct GNUNET_OS_ProjectData *
+GNUNET_OS_project_data_default (void);
+
+
+/**
+ * Setup OS subsystem with project data.
+ *
+ * @param pd project data used to determine paths.
+ */
+void
+GNUNET_OS_init (const struct GNUNET_OS_ProjectData *pd);
+
+
+/**
  * Get the path to a specific GNUnet installation directory or, with
  * #GNUNET_OS_IPK_SELF_PREFIX, the current running apps installation
  * directory.
