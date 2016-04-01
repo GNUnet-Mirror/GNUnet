@@ -54,6 +54,8 @@ src/conversation/conversation_api.c
 src/conversation/conversation_api_call.c
 src/conversation/gnunet-conversation.c
 src/conversation/gnunet-conversation-test.c
+src/conversation/gnunet_gst.c
+src/conversation/gnunet_gst_test.c
 src/conversation/gnunet-helper-audio-playback.c
 src/conversation/gnunet-helper-audio-playback-gst.c
 src/conversation/gnunet-helper-audio-record.c

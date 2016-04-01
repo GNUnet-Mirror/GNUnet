@@ -244,6 +244,7 @@ GNUNET_JSON_spec_string (const char *name,
     .ptr_size = 0,
     .size_ptr = NULL
   };
+  *strptr = NULL;
   return ret;
 }
 
@@ -283,6 +284,7 @@ clean_object (void *cls,
               struct GNUNET_JSON_Specification *spec)
 {
   json_t **ptr = (json_t **) spec->ptr;
+
   if (NULL != *ptr)
   {
     json_decref (*ptr);
@@ -310,6 +312,7 @@ GNUNET_JSON_spec_json (const char *name,
     .ptr_size = 0,
     .size_ptr = NULL
   };
+  *jsonp = NULL;
   return ret;
 }
 
@@ -765,6 +768,7 @@ GNUNET_JSON_spec_rsa_public_key (const char *name,
     .ptr_size = 0,
     .size_ptr = NULL
   };
+  *pk = NULL;
   return ret;
 }
 
@@ -857,6 +861,7 @@ GNUNET_JSON_spec_rsa_signature (const char *name,
     .ptr_size = 0,
     .size_ptr = NULL
   };
+  *sig = NULL;
   return ret;
 }
 
