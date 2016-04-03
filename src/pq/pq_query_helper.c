@@ -76,6 +76,18 @@ GNUNET_PQ_query_param_fixed_size (const void *ptr,
 
 
 /**
+ * Generate query parameter for a string.
+ *
+ * @param ptr pointer to the string query parameter to pass
+ */
+struct GNUNET_PQ_QueryParam
+GNUNET_PQ_query_param_string (const char *ptr)
+{
+  return GNUNET_PQ_query_param_fixed_size (ptr, strlen (ptr));
+}
+
+
+/**
  * Function called to convert input argument into SQL parameters.
  *
  * @param cls closure
@@ -254,7 +266,7 @@ GNUNET_PQ_query_param_uint64 (const uint64_t *x)
  * @param scratch_length number of entries left in @a scratch
  * @return -1 on error, number of offsets used in @a scratch otherwise
  */
-static int 
+static int
 qconv_rsa_public_key (void *cls,
 		      const void *data,
 		      size_t data_len,

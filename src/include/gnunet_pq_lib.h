@@ -102,6 +102,16 @@ GNUNET_PQ_query_param_fixed_size (const void *ptr,
 				  size_t ptr_size);
 
 
+
+/**
+ * Generate query parameter for a string.
+ *
+ * @param ptr pointer to the string query parameter to pass
+ */
+struct GNUNET_PQ_QueryParam
+GNUNET_PQ_query_param_string (const char *ptr);
+
+
 /**
  * Generate fixed-size query parameter with size determined
  * by variable type.
