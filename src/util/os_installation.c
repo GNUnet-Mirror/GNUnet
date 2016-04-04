@@ -740,6 +740,7 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
                    "%s%s",
                    execpath,
                    dirname);
+  GNUNET_free (dirname);
   GNUNET_free (execpath);
   return tmp;
 }
