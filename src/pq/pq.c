@@ -151,11 +151,9 @@ GNUNET_PQ_extract_result (PGresult *result,
 		      &spec->dst_size,
 		      spec->dst);
     if (GNUNET_SYSERR == ret)
-      return GNUNET_SYSERR;
-    if (GNUNET_NO == ret)
     {
-      had_null = GNUNET_YES;
-      continue;
+      GNUNET_PQ_cleanup_result (rs);
+      return GNUNET_SYSERR;
     }
     if (NULL != spec->result_size)
       *spec->result_size = spec->dst_size;

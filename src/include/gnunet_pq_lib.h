@@ -199,8 +199,7 @@ GNUNET_PQ_query_param_uint64 (const uint64_t *x);
  * @param[out] dst where to store the result
  * @return
  *   #GNUNET_YES if all results could be extracted
- *   #GNUNET_NO if at least one result was NULL
- *   #GNUNET_SYSERR if a result was invalid (non-existing field)
+ *   #GNUNET_SYSERR if a result was invalid (non-existing field or NULL)
  */
 typedef int
 (*GNUNET_PQ_ResultConverter)(void *cls,
