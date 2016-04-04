@@ -14,6 +14,7 @@ libgnunetjson_la_LDFLAGS = \
   -no-undefined
 libgnunetjson_la_SOURCES = \
   json.c \
+  json_mhd.c \ 
   json_generator.c \
   json_helper.c
 libgnunetjson_la_LIBADD = \
