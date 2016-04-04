@@ -213,13 +213,13 @@ static char *final_option;
 /**
  * ID of task called whenever we get a SIGCHILD.
  */
-static struct GNUNET_SCHEDULER_Task * child_death_task;
+static struct GNUNET_SCHEDULER_Task *child_death_task;
 
 /**
  * ID of task called whenever the timeout for restarting a child
  * expires.
  */
-static struct GNUNET_SCHEDULER_Task * child_restart_task;
+static struct GNUNET_SCHEDULER_Task *child_restart_task;
 
 /**
  * Pipe used to communicate shutdown via signal.

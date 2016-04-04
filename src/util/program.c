@@ -129,10 +129,10 @@ cmd_sorter (const void *a1, const void *a2)
  */
 int
 GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
-                    const char *binaryHelp,
-                    const struct GNUNET_GETOPT_CommandLineOption *options,
-                    GNUNET_PROGRAM_Main task, void *task_cls,
-                    int run_without_scheduler)
+                     const char *binaryHelp,
+                     const struct GNUNET_GETOPT_CommandLineOption *options,
+                     GNUNET_PROGRAM_Main task, void *task_cls,
+                     int run_without_scheduler)
 {
   struct CommandContext cc;
 #if ENABLE_NLS

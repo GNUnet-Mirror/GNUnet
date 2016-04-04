@@ -351,6 +351,72 @@ json_t *
 GNUNET_JSON_from_rsa_signature (const struct GNUNET_CRYPTO_RsaSignature *sig);
 
 
+/* ******************* Helpers for MHD upload handling ******************* */
+
+/**
+ * Return codes from #GNUNET_JSON_post_parser().
+ */
+enum GNUNET_JSON_PostResult {
+  /**
+   * Parsing successful, JSON result is in `*json`.
+   */
+  GNUNET_JSON_PR_SUCCESS,
+
+  /**
+   * Parsing continues, call again soon!
+   */
+  GNUNET_JSON_PR_CONTINUE,
+
+  /**
+   * Sorry, memory allocation (malloc()) failed.
+   */
+  GNUNET_JSON_PR_OUT_OF_MEMORY,
+
+  /**
+   * Request size exceeded `buffer_max` argument.
+   */
+  GNUNET_JSON_PR_REQUEST_TOO_LARGE,
+
+  /**
+   * JSON parsing failed. This was not a JSON upload.
+   */
+  GNUNET_JSON_PR_JSON_INVALID
+};
+
+
+/**
+ * Process a POST request containing a JSON object.  This function
+ * realizes an MHD POST processor that will (incrementally) process
+ * JSON data uploaded to the HTTP server.  It will store the required
+ * state in the @a con_cls, which must be cleaned up using
+ * #GNUNET_JSON_post_parser_callback().
+ *
+ * @param buffer_max maximum allowed size for the buffer
+ * @param con_cls the closure (will point to a `struct Buffer *`)
+ * @param upload_data the POST data
+ * @param upload_data_size number of bytes in @a upload_data
+ * @param json the JSON object for a completed request
+ * @return result code indicating the status of the operation
+ */
+enum GNUNET_JSON_PostResult
+GNUNET_JSON_post_parser (size_t buffer_max,
+                         void **con_cls,
+                         const char *upload_data,
+                         size_t *upload_data_size,
+                         json_t **json);
+
+
+/**
+ * Function called whenever we are done with a request
+ * to clean up our state.
+ *
+ * @param con_cls value as it was left by
+ *        #GNUNET_JSON_post_parser(), to be cleaned up
+ */
+void
+GNUNET_JSON_post_parser_cleanup (void *con_cls);
+
+
 #endif
 
 /* end of gnunet_json_lib.h */
