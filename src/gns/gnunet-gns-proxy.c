@@ -360,7 +360,7 @@ struct MhdHttpList
   /**
    * The task ID
    */
-  struct GNUNET_SCHEDULER_Task * httpd_task;
+  struct GNUNET_SCHEDULER_Task *httpd_task;
 
   /**
    * is this an ssl daemon?
