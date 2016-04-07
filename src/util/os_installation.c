@@ -101,7 +101,6 @@ GNUNET_OS_init (const struct GNUNET_OS_ProjectData *pd)
 }
 
 
-
 #if LINUX
 /**
  * Try to determine path by reading /proc/PID/exe
