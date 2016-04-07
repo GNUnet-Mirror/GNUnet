@@ -240,6 +240,16 @@ struct GNUNET_OS_ProjectData
    */
   const char *env_varname_alt;
 
+  /**
+   * E-mail address for reporting bugs.
+   */
+  const char *bug_email;
+
+  /**
+   * Project homepage.
+   */
+  const char *homepage;
+
 };
 
 
@@ -248,6 +258,13 @@ struct GNUNET_OS_ProjectData
  */
 const struct GNUNET_OS_ProjectData *
 GNUNET_OS_project_data_default (void);
+
+
+/**
+ * @return current (actual) project data.
+ */
+const struct GNUNET_OS_ProjectData *
+GNUNET_OS_project_data_get (void);
 
 
 /**

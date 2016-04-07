@@ -58,6 +58,8 @@ static const struct GNUNET_OS_ProjectData default_pd = {
   .project_dirname = "gnunet",
   .binary_name = "gnunet-arm",
   .env_varname = "GNUNET_PREFIX",
+  .bug_email = "gnunet-developers@gnu.org",
+  .homepage = "http://www.gnu.org/s/gnunet/",
 };
 
 /**
@@ -73,6 +75,16 @@ const struct GNUNET_OS_ProjectData *
 GNUNET_OS_project_data_default (void)
 {
   return &default_pd;
+}
+
+
+/**
+ * @return current project data.
+ */
+const struct GNUNET_OS_ProjectData *
+GNUNET_OS_project_data_get ()
+{
+  return current_pd;
 }
 
 

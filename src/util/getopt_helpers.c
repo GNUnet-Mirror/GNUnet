@@ -82,6 +82,7 @@ GNUNET_GETOPT_format_help_ (struct GNUNET_GETOPT_CommandLineProcessorContext *ct
   char *scp;
   const char *trans;
   const struct GNUNET_GETOPT_CommandLineOption *opt;
+  const struct GNUNET_OS_ProjectData *pd;
 
   if (NULL != about)
   {
@@ -153,9 +154,12 @@ OUTER:
       printf ("\n");
     i++;
   }
-  printf ("Report bugs to gnunet-developers@gnu.org.\n"
-          "GNUnet home page: http://www.gnu.org/software/gnunet/\n"
-          "General help using GNU software: http://www.gnu.org/gethelp/\n");
+  pd = GNUNET_OS_project_data_get ();
+  printf ("Report bugs to %s.\n"
+          "GNUnet home page: %s\n"
+          "General help using GNU software: http://www.gnu.org/gethelp/\n",
+          pd->bug_email,
+          pd->homepage);
   return GNUNET_NO;
 }
 

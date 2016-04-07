@@ -80,6 +80,7 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
 
 };
 
+
 /**
  * @brief Process a command line option
  *
@@ -89,11 +90,12 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
  * @param value argument, NULL if none was given
  * @return #GNUNET_OK to continue processing other options, #GNUNET_SYSERR to abort
  */
-typedef int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
-                                                         GNUNET_GETOPT_CommandLineProcessorContext *ctx,
-                                                         void *scls,
-                                                         const char *option,
-                                                         const char *value);
+typedef int
+(*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
+                                             GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                                             void *scls,
+                                             const char *option,
+                                             const char *value);
 
 /**
  * @brief Definition of a command line option.
@@ -122,7 +124,8 @@ struct GNUNET_GETOPT_CommandLineOption
   const char *description;
 
   /**
-   * Is an argument required?  0: #GNUNET_NO (includes optional), 1: #GNUNET_YES.
+   * Is an argument required?  #GNUNET_NO (includes optional) or
+   * #GNUNET_YES (required)
    */
   int require_argument;
 
