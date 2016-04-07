@@ -833,7 +833,7 @@ main (int argc, char *const *argv)
   shc_chld = NULL;
   GNUNET_DISK_pipe_close (sigpipe);
   sigpipe = NULL;
-  GNUNET_free (cfg_filename);
+  GNUNET_free_non_null (cfg_filename);
   cfg_filename = NULL;
   GNUNET_free ((void*) argv);
   return ok;
