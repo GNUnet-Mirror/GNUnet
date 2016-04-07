@@ -210,7 +210,7 @@ check_config ()
       (1 != inet_pton (AF_INET6, hostname, &v6)))
   {
     GNUNET_free (hostname);
-    return GNUNET_SYSERR;
+    return GNUNET_OK;
   }
   i = 0;
   while (NULL != loopback[i])
