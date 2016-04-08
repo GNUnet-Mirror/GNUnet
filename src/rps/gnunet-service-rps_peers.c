@@ -38,32 +38,34 @@
 /**
  * Set a peer flag of given peer context.
  */
-#define set_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags |= mask)
+#define set_peer_flag(peer_ctx, mask) ((peer_ctx->peer_flags) |= (mask))
 
 /**
  * Get peer flag of given peer context.
  */
-#define check_peer_flag_set(peer_ctx, mask) (peer_ctx->peer_flags & mask ? GNUNET_YES : GNUNET_NO)
+#define check_peer_flag_set(peer_ctx, mask)\
+  ((peer_ctx->peer_flags) & (mask) ? GNUNET_YES : GNUNET_NO)
 
 /**
  * Unset flag of given peer context.
  */
-#define unset_peer_flag(peer_ctx, mask) (peer_ctx->peer_flags &= (~mask))
+#define unset_peer_flag(peer_ctx, mask) ((peer_ctx->peer_flags) &= ~(mask))
 
 /**
  * Set a channel flag of given channel context.
  */
-#define set_channel_flag(channel_flags, mask) ((*channel_flags) |= mask)
+#define set_channel_flag(channel_flags, mask) ((*channel_flags) |= (mask))
 
 /**
  * Get channel flag of given channel context.
  */
-#define check_channel_flag_set(channel_flags, mask) ((*channel_flags) & mask ? GNUNET_YES : GNUNET_NO)
+#define check_channel_flag_set(channel_flags, mask)\
+  ((*channel_flags) & (mask) ? GNUNET_YES : GNUNET_NO)
 
 /**
  * Unset flag of given channel context.
  */
-#define unset_channel_flag(channel_flags, mask) ((*channel_flags) &= (~mask))
+#define unset_channel_flag(channel_flags, mask) ((*channel_flags) &= ~(mask))
 
 
 
@@ -304,7 +306,7 @@ set_peer_live (struct PeerContext *peer_ctx)
 
   peer = &peer_ctx->peer_id;
   set_peer_flag (peer_ctx, Peers_VALID);
-  // TODO LIVE/ONLINE
+  set_peer_flag (peer_ctx, Peers_ONLINE);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Peer %s is live and valid\n",
       GNUNET_i2s (peer));
