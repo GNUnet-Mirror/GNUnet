@@ -604,20 +604,44 @@ Peers_terminate ()
 int
 Peers_insert_peer (const struct GNUNET_PeerIdentity *peer)
 {
-  struct PeerContext *peer_ctx;
-
   if ( (GNUNET_YES == Peers_check_peer_known (peer)) ||
        (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, own_identity)) )
   {
     return GNUNET_NO; /* We already know this peer - nothing to do */
   }
-  peer_ctx = create_peer_ctx (peer);
-  // TODO LIVE
+  (void) create_peer_ctx (peer);
+  return GNUNET_YES;
+}
+
+
+/**
+ * @brief Add peer to known peers and check for liveliness.
+ *
+ * This function is called on new peer_ids from 'external' sources
+ * (client seed, cadet get_peers(), ...)
+ *
+ * @param peer the new #GNUNET_PeerIdentity
+ *
+ * @return #GNUNET_YES if peer was inserted
+ *         #GNUNET_NO  if peer was already known
+ */
+int
+Peers_insert_peer_check_liveliness (const struct GNUNET_PeerIdentity *peer)
+{
+  struct PeerContext *peer_ctx;
+  int ret;
+
+  ret = Peers_insert_peer (peer);
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, own_identity))
+  {
+    return ret;
+  }
+  peer_ctx = get_peer_ctx (peer);
   if (GNUNET_NO == check_peer_flag_set (peer_ctx, Peers_VALID))
   {
     check_peer_live (peer_ctx);
   }
-  return GNUNET_YES;
+  return ret;
 }
 
 /**

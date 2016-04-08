@@ -678,7 +678,7 @@ insert_in_sampler (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (0 < RPS_sampler_count_id (prot_sampler, peer))
   {
     /* Make sure we 'know' about this peer */
-    (void) Peers_insert_peer (peer);
+    (void) Peers_insert_peer_check_liveliness (peer);
     /* Establish a channel towards that peer to indicate we are going to send
      * messages to it */
     Peers_indicate_sending_intention (peer);
@@ -1123,7 +1123,7 @@ handle_client_seed (void *cls,
          i,
          GNUNET_i2s (&peers[i]));
 
-    if (GNUNET_YES == Peers_insert_peer (&peers[i]))
+    if (GNUNET_YES == Peers_insert_peer_check_liveliness (&peers[i]))
     {
       Peers_schedule_operation (&peers[i], insert_in_sampler);
       Peers_schedule_operation (&peers[i], insert_in_view);
@@ -1371,7 +1371,7 @@ handle_peer_pull_reply (void *cls,
                                               &peers[i]))
     {
       /* Make sure we 'know' about this peer */
-      (void) Peers_insert_peer (&peers[i]);
+      (void) Peers_insert_peer_check_liveliness (&peers[i]);
 
       if (GNUNET_YES == Peers_check_peer_flag (&peers[i], Peers_VALID))
       {
@@ -1589,7 +1589,7 @@ handle_client_act_malicious (void *cls,
     /* Set the flag of the attacked peer to valid to avoid problems */
     if (GNUNET_NO == Peers_check_peer_known (&attacked_peer))
     {
-      Peers_insert_peer (&attacked_peer);
+      Peers_insert_peer_check_liveliness (&attacked_peer);
       Peers_issue_peer_liveliness_check (&attacked_peer);
     }
 
@@ -1679,7 +1679,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
      * Send as many pushes to the attacked peer as possible
      * That is one push per round as it will ignore more.
      */
-    Peers_insert_peer (&attacked_peer);
+    Peers_insert_peer_check_liveliness (&attacked_peer);
     if (GNUNET_YES == Peers_check_peer_flag (&attacked_peer, Peers_VALID))
       send_push (&attacked_peer);
   }
@@ -1691,7 +1691,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* Send PUSH to attacked peers */
     if (GNUNET_YES == Peers_check_peer_known (&attacked_peer))
     {
-      Peers_insert_peer (&attacked_peer);
+      Peers_insert_peer_check_liveliness (&attacked_peer);
       if (GNUNET_YES == Peers_check_peer_flag (&attacked_peer, Peers_VALID))
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1703,7 +1703,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         Peers_issue_peer_liveliness_check (&attacked_peer);
     }
     else
-      Peers_insert_peer (&attacked_peer);
+      Peers_insert_peer_check_liveliness (&attacked_peer);
     Peers_issue_peer_liveliness_check (&attacked_peer);
 
     /* The maximum of pushes we're going to send this round */
@@ -1995,7 +1995,7 @@ init_peer_cb (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got peer_id %s from cadet\n",
          GNUNET_i2s (peer));
-    Peers_insert_peer (peer);
+    Peers_insert_peer_check_liveliness (peer);
     Peers_schedule_operation (peer, insert_in_sampler);
     Peers_schedule_operation (peer, insert_in_view);
   }
@@ -2021,7 +2021,7 @@ process_peerinfo_peers (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Got peer_id %s from peerinfo\n",
          GNUNET_i2s (peer));
-    Peers_insert_peer (peer);
+    Peers_insert_peer_check_liveliness (peer);
     Peers_schedule_operation (peer, insert_in_sampler);
     Peers_schedule_operation (peer, insert_in_view);
   }

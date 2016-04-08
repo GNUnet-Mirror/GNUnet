@@ -135,6 +135,20 @@ int
 Peers_insert_peer (const struct GNUNET_PeerIdentity *peer);
 
 /**
+ * @brief Add peer to known peers and check for liveliness.
+ *
+ * This function is called on new peer_ids from 'external' sources
+ * (client seed, cadet get_peers(), ...)
+ *
+ * @param peer the new #GNUNET_PeerIdentity
+ *
+ * @return #GNUNET_YES if peer was inserted
+ *         #GNUNET_NO  if peer was already known
+ */
+int
+Peers_insert_peer_check_liveliness (const struct GNUNET_PeerIdentity *peer);
+
+/**
  * @brief Remove unecessary data
  * 
  * If the other peer is not intending to send messages, we have messages pending
