@@ -206,8 +206,8 @@ check_config ()
          "resolver");
     return GNUNET_SYSERR;
   }
-  if ((1 != inet_pton (AF_INET, hostname, &v4)) ||
-      (1 != inet_pton (AF_INET6, hostname, &v6)))
+  if ((1 == inet_pton (AF_INET, hostname, &v4)) ||
+      (1 == inet_pton (AF_INET6, hostname, &v6)))
   {
     GNUNET_free (hostname);
     return GNUNET_OK;
