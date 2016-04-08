@@ -126,7 +126,7 @@ Peers_terminate ();
  * This function is called on new peer_ids from 'external' sources
  * (client seed, cadet get_peers(), ...)
  *
- * @param peer the new peer
+ * @param peer the new #GNUNET_PeerIdentity
  *
  * @return #GNUNET_YES if peer was inserted
  *         #GNUNET_NO  if peer was already known

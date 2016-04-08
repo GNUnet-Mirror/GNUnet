@@ -66,7 +66,7 @@ static struct GNUNET_PeerIdentity own_identity;
 
 
 /***********************************************************************
- * Housekeeping with peers
+ * Housekeeping with clients
 ***********************************************************************/
 
 /**
@@ -128,7 +128,7 @@ struct ClientContext *cli_ctx_head;
 struct ClientContext *cli_ctx_tail;
 
 /***********************************************************************
- * /Housekeeping with peers
+ * /Housekeeping with clients
 ***********************************************************************/
 
 
@@ -236,6 +236,7 @@ struct GNUNET_PEERINFO_NotifyContext *peerinfo_notify_handle;
 /**
  * Request counter.
  *
+ * Counts how many requets clients already issued.
  * Only needed in the beginning to check how many of the 64 deltas
  * we already have
  */
