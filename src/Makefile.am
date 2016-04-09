@@ -8,8 +8,6 @@ if HAVE_TESTING
  TESTBED = testbed
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
- SENSOR = sensor
- SENSORDASHBOARD = sensordashboard
 endif
 
 if HAVE_EXPERIMENTAL
@@ -22,9 +20,7 @@ if HAVE_EXPERIMENTAL
   rps \
   social \
   $(CONSENSUS) \
-  $(SECRETSHARING) \
-  $(SENSOR) \
-  $(SENSORDASHBOARD)
+  $(SECRETSHARING) 
 endif
 
 if HAVE_REST
