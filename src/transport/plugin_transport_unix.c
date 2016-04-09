@@ -498,11 +498,9 @@ unix_plugin_session_disconnect (void *cls,
  * Session was idle for too long, so disconnect it
  *
  * @param cls the `struct GNUNET_ATS_Session *` to disconnect
- * @param tc scheduler context
  */
 static void
-session_timeout (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *session = cls;
   struct GNUNET_TIME_Relative left;
@@ -1225,14 +1223,14 @@ unix_plugin_do_write (struct Plugin *plugin)
  * Then reschedule this function to be called again once more is available.
  *
  * @param cls the plugin handle
- * @param tc the scheduling context
  */
 static void
-unix_plugin_select_read (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+unix_plugin_select_read (void *cls)
 {
   struct Plugin *plugin = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   plugin->read_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -1250,14 +1248,14 @@ unix_plugin_select_read (void *cls,
  * Then reschedule this function to be called again once more is available.
  *
  * @param cls the plugin handle
- * @param tc the scheduling context
  */
 static void
-unix_plugin_select_write (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+unix_plugin_select_write (void *cls)
 {
   struct Plugin *plugin = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   plugin->write_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -1617,11 +1615,9 @@ unix_plugin_string_to_address (void *cls,
  * Notify transport service about address
  *
  * @param cls the plugin
- * @param tc unused
  */
 static void
-address_notification (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+address_notification (void *cls)
 {
   struct Plugin *plugin = cls;
   struct GNUNET_HELLO_Address *address;

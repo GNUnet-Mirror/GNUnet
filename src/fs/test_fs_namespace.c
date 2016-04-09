@@ -49,7 +49,7 @@ static int err;
 
 
 static void
-abort_ksk_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_ksk_search_task (void *cls)
 {
   if (ksk_search != NULL)
   {
@@ -66,7 +66,7 @@ abort_ksk_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_sks_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_sks_search_task (void *cls)
 {
   if (sks_search == NULL)
     return;
@@ -82,13 +82,13 @@ abort_sks_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-do_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_timeout (void *cls)
 {
   err = 1;
   FPRINTF (stderr, "%s",  "Operation timed out\n");
   kill_task = NULL;
-  abort_sks_search_task (NULL, tc);
-  abort_ksk_search_task (NULL, tc);
+  abort_sks_search_task (NULL);
+  abort_ksk_search_task (NULL);
 }
 
 

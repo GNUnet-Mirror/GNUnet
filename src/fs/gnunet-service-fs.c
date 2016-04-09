@@ -184,11 +184,9 @@ static struct GNUNET_PeerIdentity my_id;
  * Task that periodically ages our cover traffic statistics.
  *
  * @param cls unused closure
- * @param tc task context
  */
 static void
-age_cover_counters (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+age_cover_counters (void *cls)
 {
   GSF_cover_content_count = (GSF_cover_content_count * 15) / 16;
   GSF_cover_query_count = (GSF_cover_query_count * 15) / 16;
@@ -531,11 +529,9 @@ handle_loc_sign (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GSF_cadet_stop_client ();
   GSF_cadet_stop_server ();
@@ -821,7 +817,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       (GNUNET_OK != main_init (server, cfg)))
   {
     GNUNET_SCHEDULER_shutdown ();
-    shutdown_task (NULL, NULL);
+    shutdown_task (NULL);
     return;
   }
 }

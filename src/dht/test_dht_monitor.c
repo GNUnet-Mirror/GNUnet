@@ -108,11 +108,9 @@ static unsigned int monitor_counter;
  * the testbed.
  *
  * @param cls the 'struct GNUNET_DHT_TestContext'
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct GNUNET_DHT_TEST_Context *ctx = cls;
   unsigned int i;
@@ -197,11 +195,9 @@ dht_get_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * Task to put the id of each peer into the DHT.
  *
  * @param cls array with NUM_PEERS DHT handles
- * @param tc Task context
  */
 static void
-do_puts (void *cls,
-	 const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_puts (void *cls)
 {
   struct GNUNET_DHT_Handle **hs = cls;
   struct GNUNET_HashCode key;

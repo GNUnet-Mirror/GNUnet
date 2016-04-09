@@ -60,12 +60,12 @@ static struct GNUNET_SERVER_Handle *GSC_server;
  * the transport.
  *
  * @param cls NULL, unused
- * @param tc scheduler context, unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Core service shutting down.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Core service shutting down.\n");
   GSC_CLIENTS_done ();
   GSC_NEIGHBOURS_done ();
   GSC_SESSIONS_done ();

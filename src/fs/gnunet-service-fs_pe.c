@@ -244,11 +244,9 @@ get_rp_key (struct GSF_RequestPlan *rp)
  * Figure out when and how to transmit to the given peer.
  *
  * @param cls the `struct GSF_ConnectedPeer` for transmission
- * @param tc scheduler context
  */
 static void
-schedule_peer_transmission (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc);
+schedule_peer_transmission (void *cls);
 
 
 /**
@@ -457,11 +455,9 @@ transmit_message_callback (void *cls,
  * Figure out when and how to transmit to the given peer.
  *
  * @param cls the `struct PeerPlan`
- * @param tc scheduler context
  */
 static void
-schedule_peer_transmission (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_peer_transmission (void *cls)
 {
   struct PeerPlan *pp = cls;
   struct GSF_RequestPlan *rp;

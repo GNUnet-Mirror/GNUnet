@@ -106,10 +106,9 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
 
@@ -137,15 +136,16 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Announce a previously announced regex re-using cached data.
  *
  * @param cls Closure (regex to announce if needed).
- * @param tc TaskContext.
  */
 static void
-reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reannounce_regex (void *cls)
 {
-  struct GNUNET_TIME_Relative random_delay;
   char *regex = cls;
+  struct GNUNET_TIME_Relative random_delay;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   reannounce_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_free (regex);

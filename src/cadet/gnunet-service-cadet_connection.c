@@ -1221,13 +1221,14 @@ connection_keepalive (struct CadetConnection *c, int fwd, int shutdown)
  * Keep the connection alive in the FWD direction.
  *
  * @param cls Closure (connection to keepalive).
- * @param tc TaskContext.
  */
 static void
-connection_fwd_keepalive (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_fwd_keepalive (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   GCC_check_connections ();
+  tc = GNUNET_SCHEDULER_get_task_context ();
   connection_keepalive ((struct CadetConnection *) cls,
                         GNUNET_YES,
                         tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN);
@@ -1239,13 +1240,14 @@ connection_fwd_keepalive (void *cls,
  * Keep the connection alive in the BCK direction.
  *
  * @param cls Closure (connection to keepalive).
- * @param tc TaskContext.
  */
 static void
-connection_bck_keepalive (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_bck_keepalive (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   GCC_check_connections ();
+  tc = GNUNET_SCHEDULER_get_task_context ();
   connection_keepalive ((struct CadetConnection *) cls,
                         GNUNET_NO,
                         tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN);
@@ -1400,11 +1402,9 @@ connection_cancel_queues (struct CadetConnection *c,
  * possibly due to a missed ACK. Poll the neighbor about its ACK status.
  *
  * @param cls Closure (poll ctx).
- * @param tc TaskContext.
  */
 static void
-connection_poll (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc);
+connection_poll (void *cls);
 
 
 /**
@@ -1453,18 +1453,19 @@ poll_sent (void *cls,
  * possibly due to a missed ACK. Poll the neighbor about its ACK status.
  *
  * @param cls Closure (poll ctx).
- * @param tc TaskContext.
  */
 static void
-connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_poll (void *cls)
 {
   struct CadetFlowControl *fc = cls;
   struct GNUNET_CADET_Poll msg;
   struct CadetConnection *c;
   int fwd;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   fc->poll_task = NULL;
   GCC_check_connections ();
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
@@ -1586,15 +1587,15 @@ connection_timeout (struct CadetConnection *c, int fwd)
  * Destroys connection if called.
  *
  * @param cls Closure (connection to destroy).
- * @param tc TaskContext.
  */
 static void
-connection_fwd_timeout (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_fwd_timeout (void *cls)
 {
   struct CadetConnection *c = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   c->fwd_maintenance_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GCC_check_connections ();
@@ -1608,15 +1609,15 @@ connection_fwd_timeout (void *cls,
  * Destroys connection if called.
  *
  * @param cls Closure (connection to destroy).
- * @param tc TaskContext
  */
 static void
-connection_bck_timeout (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_bck_timeout (void *cls)
 {
   struct CadetConnection *c = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   c->bck_maintenance_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GCC_check_connections ();
@@ -1761,14 +1762,15 @@ does_connection_exist (struct CadetConnection *conn)
  * connection with the same path, and destroy one if so.
  *
  * @param cls Closure (connection to check).
- * @param tc Task context.
  */
 static void
-check_duplicates (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+check_duplicates (void *cls)
 {
   struct CadetConnection *c = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   c->check_duplicates_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 

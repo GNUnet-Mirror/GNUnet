@@ -271,10 +271,9 @@ free_meter (struct ProgressMeter *meter)
  * Shutdown task.
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != abort_task)
@@ -292,10 +291,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * abort task to run on test timed out
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
   abort_task = NULL;
@@ -564,10 +562,9 @@ policy_filename_cb (void *cls, const char *filename)
  * Iterate over files contained in policy_dir.
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_directory_scan (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_directory_scan (void *cls)
 {
   struct GNUNET_TIME_Absolute start_time;
   struct GNUNET_TIME_Relative duration;

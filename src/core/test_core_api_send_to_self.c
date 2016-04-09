@@ -55,7 +55,7 @@ struct GNUNET_CORE_Handle *core;
  * Function scheduled as very last function, cleans up after us
  */
 static void
-cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tskctx)
+cleanup (void *cls)
 {
   die_task = NULL;
 

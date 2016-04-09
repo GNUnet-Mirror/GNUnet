@@ -65,7 +65,7 @@ addr_callback (void *cls, int add_remove, const struct sockaddr *addr,
  * Function that terminates the test.
  */
 static void
-stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stop (void *cls)
 {
   struct GNUNET_NAT_Handle *nat = cls;
 

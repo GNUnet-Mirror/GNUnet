@@ -70,8 +70,7 @@ static struct GNUNET_DATASTORE_QueueEntry *qe;
 
 
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != qe)
     GNUNET_DATASTORE_cancel (qe);

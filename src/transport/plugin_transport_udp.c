@@ -728,11 +728,9 @@ udp_plugin_get_network_for_address (void *cls,
  * Then reschedule this function to be called again once more is available.
  *
  * @param cls the plugin handle
- * @param tc the scheduling context (for rescheduling this function again)
  */
 static void
-udp_plugin_select_v4 (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc);
+udp_plugin_select_v4 (void *cls);
 
 
 /**
@@ -741,11 +739,9 @@ udp_plugin_select_v4 (void *cls,
  * Then reschedule this function to be called again once more is available.
  *
  * @param cls the plugin handle
- * @param tc the scheduling context (for rescheduling this function again)
  */
 static void
-udp_plugin_select_v6 (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc);
+udp_plugin_select_v6 (void *cls);
 
 
 /**
@@ -2566,11 +2562,9 @@ udp_disconnect (void *cls,
  * Session was idle, so disconnect it.
  *
  * @param cls the `struct GNUNET_ATS_Session` to time out
- * @param tc scheduler context
  */
 static void
-session_timeout (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
   struct Plugin *plugin = s->plugin;
@@ -3516,14 +3510,14 @@ udp_select_send (struct Plugin *plugin,
  * Then reschedule this function to be called again once more is available.
  *
  * @param cls the plugin handle
- * @param tc the scheduling context
  */
 static void
-udp_plugin_select_v4 (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+udp_plugin_select_v4 (void *cls)
 {
   struct Plugin *plugin = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   plugin->select_task_v4 = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -3546,14 +3540,14 @@ udp_plugin_select_v4 (void *cls,
  * Then reschedule this function to be called again once more is available.
  *
  * @param cls the plugin handle
- * @param tc the scheduling context
  */
 static void
-udp_plugin_select_v6 (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+udp_plugin_select_v6 (void *cls)
 {
   struct Plugin *plugin = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   plugin->select_task_v6 = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;

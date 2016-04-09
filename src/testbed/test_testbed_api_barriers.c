@@ -62,10 +62,9 @@ static int result;
  * Shutdown this test case when it takes too long
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != barrier)

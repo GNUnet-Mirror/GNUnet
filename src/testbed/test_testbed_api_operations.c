@@ -262,10 +262,9 @@ release_cb (void *cls);
  * Task to simulate artificial delay and change the test stage
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-step (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+step (void *cls)
 {
   GNUNET_assert (NULL != step_task);
   step_task = NULL;

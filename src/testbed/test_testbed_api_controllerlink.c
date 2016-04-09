@@ -300,7 +300,7 @@ static enum Stage result;
       if (NULL != abort_task)               \
         GNUNET_SCHEDULER_cancel (abort_task);                   \
       abort_task = NULL;                    \
-      GNUNET_SCHEDULER_add_now (do_shutdown, NULL);             \
+      GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);             \
       return;                                                   \
     }                                                          \
   } while (0)
@@ -310,10 +310,9 @@ static enum Stage result;
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -349,14 +348,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * abort task to run on test timed out
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
   abort_task = NULL;
-  do_shutdown (cls, tc);
+  do_shutdown (cls);
 }
 
 
@@ -392,7 +390,7 @@ registration_cont (void *cls, const char *emsg);
  * @return
  */
 static void
-delay_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delay_task (void *cls)
 {
   delay_task_id = NULL;
   switch (result)
@@ -644,8 +642,8 @@ controller_cb (void *cls, const struct GNUNET_TESTBED_EventInformation *event)
     result = SUCCESS;
     GNUNET_TESTBED_operation_done (op);
     op = NULL;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1), &do_shutdown,
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &do_shutdown,
                                   NULL);
     break;
   default:

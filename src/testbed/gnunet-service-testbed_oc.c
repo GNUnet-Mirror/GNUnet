@@ -362,12 +362,9 @@ GST_cleanup_focc (struct ForwardedOverlayConnectContext *focc)
  * Timeout task for cancelling a forwarded overlay connect connect
  *
  * @param cls the ForwardedOverlayConnectContext
- * @param tc the task context from the scheduler
  */
 static void
-forwarded_overlay_connect_timeout (void *cls,
-                                   const struct GNUNET_SCHEDULER_TaskContext
-                                   *tc)
+forwarded_overlay_connect_timeout (void *cls)
 {
   struct ForwardedOperationContext *fopc = cls;
   struct RegisteredHostContext *rhc;
@@ -379,7 +376,7 @@ forwarded_overlay_connect_timeout (void *cls,
   LOG_DEBUG ("Overlay linking between peers %u and %u failed\n", focc->peer1,
              focc->peer2);
   GST_cleanup_focc (focc);
-  GST_forwarded_operation_timeout (fopc, tc);
+  GST_forwarded_operation_timeout (fopc);
   if (NULL != rhc->focc_dll_head)
     GST_process_next_focc (rhc);
 }
@@ -573,11 +570,9 @@ cleanup_occ (struct OverlayConnectContext *occ)
  * Task for cleaing up overlay connect context structure
  *
  * @param cls the overlay connect context
- * @param tc the task context
  */
 static void
-do_cleanup_occ (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_cleanup_occ (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
 
@@ -590,11 +585,9 @@ do_cleanup_occ (void *cls,
  * Task which will be run when overlay connect request has been timed out
  *
  * @param cls the OverlayConnectContext
- * @param tc the TaskContext
  */
 static void
-timeout_overlay_connect (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_overlay_connect (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
 
@@ -777,29 +770,27 @@ occ_cache_get_handle_ats_rocc_cb (void *cls,
  * peer 1.
  *
  * @param cls the OverlayConnectContext
- * @param tc the TaskContext from scheduler
  */
 static void
-send_hello (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc);
+send_hello (void *cls);
 
 
 /**
- * Task that is run when hello has been sent
+ * Task that is run when hello has been sent If tc->reason =
+ * #GNUNET_SCHEDULER_REASON_TIMEOUT then sending HELLO failed; if
+ * #GNUNET_SCHEDULER_REASON_READ_READY is succeeded
  *
  * @param cls the overlay connect context
- * @param tc the scheduler task context; if tc->reason =
- *          #GNUNET_SCHEDULER_REASON_TIMEOUT then sending HELLO failed; if
- *          #GNUNET_SCHEDULER_REASON_READ_READY is succeeded
  */
 static void
-occ_hello_sent_cb (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+occ_hello_sent_cb (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
   struct Peer *peer2;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   GNUNET_assert (OCC_TYPE_LOCAL == occ->type);
   GNUNET_assert (NULL != occ->timeout_task);
   lp2c = &occ->p2ctx.local;
@@ -881,18 +872,18 @@ send_hello_thru_rocc (struct OverlayConnectContext *occ)
  * send_hello_thru_rocc()
  *
  * @param cls the OverlayConnectContext
- * @param tc the TaskContext from scheduler
  */
 static void
-send_hello (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_hello (void *cls)
 {
   struct OverlayConnectContext *occ = cls;
   struct LocalPeer2Context *lp2c;
   char *other_peer_str;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   occ->send_hello_task = NULL;
   GNUNET_assert (NULL != occ->timeout_task);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != occ->hello);
@@ -1652,11 +1643,9 @@ cleanup_rocc (struct RemoteOverlayConnectCtx *rocc)
  * Task to timeout rocc and cleanit up
  *
  * @param cls the RemoteOverlayConnectCtx
- * @param tc the TaskContext from scheduler
  */
 static void
-timeout_rocc_task (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_rocc_task (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 
@@ -1698,26 +1687,23 @@ cache_transport_peer_connect_notify (void *cls,
  * whose identity is in RemoteOverlayConnectCtx
  *
  * @param cls the RemoteOverlayConnectCtx
- * @param tc the TaskContext from scheduler
  */
 static void
-attempt_connect_task (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc);
+attempt_connect_task (void *cls);
 
 
 /**
- * Task that is run when hello has been sent
+ * Task that is run when hello has been sent If tc->reason =
+ * #GNUNET_SCHEDULER_REASON_TIMEOUT then sending HELLO failed; if
+ * #GNUNET_SCHEDULER_REASON_READ_READY is succeeded
  *
  * @param cls the overlay connect context
- * @param tc the scheduler task context; if tc->reason =
- *          #GNUNET_SCHEDULER_REASON_TIMEOUT then sending HELLO failed; if
- *          #GNUNET_SCHEDULER_REASON_READ_READY is succeeded
  */
 static void
-rocc_hello_sent_cb (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+rocc_hello_sent_cb (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rocc->ohh = NULL;
   GNUNET_assert (NULL == rocc->attempt_connect_task_id);
@@ -1725,6 +1711,7 @@ rocc_hello_sent_cb (void *cls,
              rocc->op_id,
              GNUNET_i2s (&rocc->a_id),
              rocc->peer->id);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (GNUNET_SCHEDULER_REASON_TIMEOUT == tc->reason)
   {
     GNUNET_break (0);
@@ -1754,11 +1741,9 @@ rocc_hello_sent_cb (void *cls,
  * whose identity is in RemoteOverlayConnectCtx
  *
  * @param cls the RemoteOverlayConnectCtx
- * @param tc the TaskContext from scheduler
  */
 static void
-attempt_connect_task (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+attempt_connect_task (void *cls)
 {
   struct RemoteOverlayConnectCtx *rocc = cls;
 

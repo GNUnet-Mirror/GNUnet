@@ -119,7 +119,7 @@ static char* allow_origin;
 static char* allow_headers;
 
 /**
- * MHD Connection handle 
+ * MHD Connection handle
  */
 struct MhdConnectionHandle
 {
@@ -143,11 +143,9 @@ struct MhdConnectionHandle
  * Task run whenever HTTP server operations are pending.
  *
  * @param cls NULL
- * @param tc sched context
  */
 static void
-do_httpd (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_httpd (void *cls);
 
 
 /**
@@ -179,7 +177,7 @@ plugin_callback (void *cls,
   struct MhdConnectionHandle *handle = cls;
   handle->status = status;
   handle->response = resp;
-  run_mhd_now(); 
+  run_mhd_now();
 }
 
 
@@ -222,7 +220,7 @@ url_iterator (void *cls,
   struct RestConnectionDataHandle *handle = cls;
   struct GNUNET_HashCode hkey;
   char *val;
-  
+
   GNUNET_CRYPTO_hash (key, strlen (key), &hkey);
   GNUNET_asprintf (&val, "%s", value);
   if (GNUNET_OK !=
@@ -394,7 +392,7 @@ kill_httpd ()
     httpd = NULL;
   }
   if (NULL != httpd_task)
-  { 
+  {
     GNUNET_SCHEDULER_cancel (httpd_task);
     httpd_task = NULL;
   }
@@ -405,11 +403,9 @@ kill_httpd ()
  * Task run whenever HTTP server is idle for too long. Kill it.
  *
  * @param cls NULL
- * @param tc sched context
  */
 static void
-kill_httpd_task (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+kill_httpd_task (void *cls)
 {
   httpd_task = NULL;
   kill_httpd ();
@@ -482,11 +478,9 @@ schedule_httpd ()
  * Task run whenever HTTP server operations are pending.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-do_httpd (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_httpd (void *cls)
 {
   httpd_task = NULL;
   MHD_run (httpd);
@@ -501,10 +495,10 @@ do_httpd (void *cls,
  * @param tc the scheduler context
  */
 static void
-do_accept (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_accept (void *cls)
 {
   struct GNUNET_NETWORK_Handle *lsock = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_NETWORK_Handle *s;
   int fd;
   const struct sockaddr *addr;
@@ -514,8 +508,9 @@ do_accept (void *cls,
     ltask4 = NULL;
   else
     ltask6 = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return; 
+    return;
   if (lsock == lsock4)
     ltask4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                             lsock,
@@ -550,11 +545,9 @@ do_accept (void *cls,
  * Task run on shutdown
  *
  * @param cls closure
- * @param tc task context
  */
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
@@ -581,7 +574,7 @@ bind_v4 ()
   sa4.sin_port = htons (port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa4.sin_len = sizeof (sa4);
-#endif 
+#endif
   ls = GNUNET_NETWORK_socket_create (AF_INET,
                                      SOCK_STREAM,
                                      0);
@@ -617,7 +610,7 @@ bind_v6 ()
   sa6.sin6_port = htons (port);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   sa6.sin6_len = sizeof (sa6);
-#endif 
+#endif
   ls = GNUNET_NETWORK_socket_create (AF_INET6,
                                      SOCK_STREAM,
                                      0);
@@ -685,8 +678,8 @@ load_plugin (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, 
-     char *const *args, 
+run (void *cls,
+     char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -756,7 +749,7 @@ run (void *cls,
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
-  } 
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Service listens on port %u\n",
               port);

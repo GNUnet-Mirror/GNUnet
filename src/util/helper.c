@@ -138,7 +138,7 @@ struct GNUNET_HELPER_Handle
    * NULL-terminated list of command-line arguments.
    */
   char **binary_argv;
-		
+
   /**
    * Task to read from the helper.
    */
@@ -305,28 +305,26 @@ stop_helper (struct GNUNET_HELPER_Handle *h,
  * Restart the helper process.
  *
  * @param cls handle to the helper process
- * @param tc scheduler context
  */
 static void
-restart_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc);
+restart_task (void *cls);
 
 
 /**
  * Read from the helper-process
  *
  * @param cls handle to the helper process
- * @param tc scheduler context
  */
 static void
-helper_read (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+helper_read (void *cls)
 {
   struct GNUNET_HELPER_Handle *h = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE] GNUNET_ALIGN;
   ssize_t t;
 
   h->read_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* try again */
@@ -458,17 +456,15 @@ start_helper (struct GNUNET_HELPER_Handle *h)
  * Restart the helper process.
  *
  * @param cls handle to the helper process
- * @param tc scheduler context
  */
 static void
-restart_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_task (void *cls)
 {
   struct GNUNET_HELPER_Handle*h = cls;
 
   h->restart_task = NULL;
   h->retry_back_off++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Restarting helper with back-off %u\n",
               h->retry_back_off);
   start_helper (h);
@@ -582,18 +578,18 @@ GNUNET_HELPER_stop (struct GNUNET_HELPER_Handle *h,
  * Write to the helper-process
  *
  * @param cls handle to the helper process
- * @param tc scheduler context
  */
 static void
-helper_write (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+helper_write (void *cls)
 {
   struct GNUNET_HELPER_Handle *h = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_HELPER_SendHandle *sh;
   const char *buf;
   ssize_t t;
 
   h->write_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* try again */

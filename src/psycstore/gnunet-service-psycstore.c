@@ -1,4 +1,4 @@
-/*
+/**
  * This file is part of GNUnet
  * Copyright (C) 2013 GNUnet e.V.
  *
@@ -68,10 +68,9 @@ static char *db_lib_name;
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != nc)
   {

@@ -68,11 +68,9 @@ static int ret;
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != qe)
   {

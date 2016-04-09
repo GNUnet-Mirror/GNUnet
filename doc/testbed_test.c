@@ -37,7 +37,7 @@ static int result;
  * Cleans up.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   shutdown_tid = NULL;
   if (NULL != dht_op)

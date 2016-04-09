@@ -58,7 +58,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   GNUNET_FS_publish_stop (publish);
   publish = NULL;
@@ -66,7 +66,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_unindex_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_unindex_task (void *cls)
 {
   if (unindex != NULL)
   {
@@ -87,7 +87,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event);
 
 
 static void
-restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_fs_task (void *cls)
 {
   GNUNET_FS_stop (fs);
   fs = GNUNET_FS_start (cfg, "test-fs-unindex-persistence", &progress_cb, NULL,

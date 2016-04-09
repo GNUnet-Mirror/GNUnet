@@ -462,11 +462,9 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
  * We've waited long enough, reconnect now.
  *
  * @param cls the `struct GNUNET_STATISTICS_Handle` to reconnect
- * @param tc scheduler context (unused)
  */
 static void
-reconnect_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
@@ -479,11 +477,9 @@ reconnect_task (void *cls,
  * Task used by 'reconnect_later' to shutdown the handle
  *
  * @param cls the statistics handle
- * @param tc scheduler context
  */
 static void
-do_destroy (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_destroy (void *cls)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
@@ -627,11 +623,9 @@ process_watch_value (struct GNUNET_STATISTICS_Handle *h,
  * Task used to destroy the statistics handle.
  *
  * @param cls the `struct GNUNET_STATISTICS_Handle`
- * @param tc the scheduler context
  */
 static void
-destroy_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+destroy_task (void *cls)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
@@ -1159,11 +1153,9 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
  * call the continuation.
  *
  * @param cls the `struct GNUNET_STATISTICS_GetHandle`
- * @param tc scheduler context
  */
 static void
-run_get_timeout (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_get_timeout (void *cls)
 {
   struct GNUNET_STATISTICS_GetHandle *gh = cls;
   GNUNET_STATISTICS_Callback cont = gh->cont;

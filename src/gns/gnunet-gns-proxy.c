@@ -1257,10 +1257,9 @@ curl_upload_cb (void *buf, size_t size, size_t nmemb, void *cls)
  * from curl
  *
  * @param cls closure
- * @param tc task context
  */
 static void
-curl_task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+curl_task_download (void *cls);
 
 
 /**
@@ -1328,11 +1327,9 @@ curl_download_prepare ()
  * Task that is run when we are ready to receive more data from curl.
  *
  * @param cls closure, NULL
- * @param tc task context
  */
 static void
-curl_task_download (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+curl_task_download (void *cls)
 {
   int running;
   int msgnum;
@@ -1821,11 +1818,9 @@ kill_httpd (struct MhdHttpList *hd)
  * Task run whenever HTTP server is idle for too long. Kill it.
  *
  * @param cls the `struct MhdHttpList *`
- * @param tc sched context
  */
 static void
-kill_httpd_task (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+kill_httpd_task (void *cls)
 {
   struct MhdHttpList *hd = cls;
 
@@ -1838,11 +1833,9 @@ kill_httpd_task (void *cls,
  * Task run whenever HTTP server operations are pending.
  *
  * @param cls the `struct MhdHttpList *` of the daemon that is being run
- * @param tc sched context
  */
 static void
-do_httpd (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_httpd (void *cls);
 
 
 /**
@@ -1920,11 +1913,9 @@ schedule_httpd (struct MhdHttpList *hd)
  * Task run whenever HTTP server operations are pending.
  *
  * @param cls the `struct MhdHttpList` of the daemon that is being run
- * @param tc scheduler context
  */
 static void
-do_httpd (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_httpd (void *cls)
 {
   struct MhdHttpList *hd = cls;
 
@@ -2171,11 +2162,9 @@ lookup_ssl_httpd (const char* domain)
  * the SOCKS5 handshake).  Clean up.
  *
  * @param cls the `struct Socks5Request *`
- * @param tc sched context
  */
 static void
-timeout_s5r_handshake (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_s5r_handshake (void *cls)
 {
   struct Socks5Request *s5r = cls;
 
@@ -2245,11 +2234,9 @@ setup_data_transfer (struct Socks5Request *s5r)
  * Write data from buffer to socks5 client, then continue with state machine.
  *
  * @param cls the closure with the `struct Socks5Request`
- * @param tc scheduler context
  */
 static void
-do_write (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_write (void *cls)
 {
   struct Socks5Request *s5r = cls;
   ssize_t len;
@@ -2502,11 +2489,9 @@ clear_from_s5r_rbuf (struct Socks5Request *s5r,
  * Read data from incoming Socks5 connection
  *
  * @param cls the closure with the `struct Socks5Request`
- * @param tc the scheduler context
  */
 static void
-do_s5r_read (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_s5r_read (void *cls)
 {
   struct Socks5Request *s5r = cls;
   const struct Socks5ClientHelloMessage *c_hello;
@@ -2514,8 +2499,10 @@ do_s5r_read (void *cls,
   const struct Socks5ClientRequestMessage *c_req;
   ssize_t rlen;
   size_t alen;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   s5r->rtask = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ( (NULL != tc->read_ready) &&
        (GNUNET_NETWORK_fdset_isset (tc->read_ready, s5r->sock)) )
   {
@@ -2721,17 +2708,18 @@ do_s5r_read (void *cls,
  * @param tc the scheduler context
  */
 static void
-do_accept (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_accept (void *cls)
 {
   struct GNUNET_NETWORK_Handle *lsock = cls;
   struct GNUNET_NETWORK_Handle *s;
   struct Socks5Request *s5r;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   if (lsock == lsock4)
     ltask4 = NULL;
   else
     ltask6 = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (lsock == lsock4)
@@ -2769,11 +2757,9 @@ do_accept (void *cls,
  * Task run on shutdown
  *
  * @param cls closure
- * @param tc task context
  */
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");

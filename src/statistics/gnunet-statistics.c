@@ -158,11 +158,9 @@ cleanup (void *cls, int success)
  * Function run on shutdown to clean up.
  *
  * @param cls the statistics handle
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct GNUNET_STATISTICS_Handle *h = cls;
 
@@ -185,8 +183,7 @@ shutdown_task (void *cls,
  * @param tc schedueler context
  */
 static void
-main_task (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+main_task (void *cls)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_STATISTICS_Handle *h;

@@ -246,11 +246,9 @@ reset_cadet (struct CadetHandle *mh)
  * Task called when it is time to destroy an inactive cadet channel.
  *
  * @param cls the `struct CadetHandle` to tear down
- * @param tc scheduler context, unused
  */
 static void
-cadet_timeout (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+cadet_timeout (void *cls)
 {
   struct CadetHandle *mh = cls;
   struct GNUNET_CADET_Channel *tun;
@@ -270,11 +268,9 @@ cadet_timeout (void *cls,
  * Task called when it is time to reset an cadet.
  *
  * @param cls the `struct CadetHandle` to tear down
- * @param tc scheduler context, unused
  */
 static void
-reset_cadet_task (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+reset_cadet_task (void *cls)
 {
   struct CadetHandle *mh = cls;
 

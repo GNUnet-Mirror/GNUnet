@@ -58,7 +58,7 @@ runone (void);
 
 
 static void
-end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending phase %d, ok is %d\n", phase,
               ok);
@@ -215,7 +215,7 @@ static int bytes;
 
 
 static void
-read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_call (void *cls)
 {
   const struct GNUNET_DISK_FileHandle *stdout_read_handle = cls;
   char level[8];
@@ -425,7 +425,7 @@ runone ()
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   phase = 0;
   runone ();

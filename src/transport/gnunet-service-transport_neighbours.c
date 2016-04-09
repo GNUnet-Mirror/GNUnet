@@ -695,11 +695,9 @@ free_address (struct NeighbourAddress *na)
  * clean up after disconnect).
  *
  * @param cls the `struct NeighbourMapEntry` for which we are running
- * @param tc scheduler context (unused)
  */
 static void
-master_task (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc);
+master_task (void *cls);
 
 
 /**
@@ -2814,11 +2812,9 @@ send_utilization_data (void *cls,
  * Task transmitting utilization in a regular interval
  *
  * @param cls the 'struct NeighbourMapEntry' for which we are running
- * @param tc scheduler context (unused)
  */
 static void
-utilization_transmission (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+utilization_transmission (void *cls)
 {
   util_transmission_tk = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (neighbours,
@@ -2883,11 +2879,9 @@ GST_neighbours_notify_data_sent (const struct GNUNET_HELLO_Address *address,
  * clean up after disconnect).
  *
  * @param cls the 'struct NeighbourMapEntry' for which we are running
- * @param tc scheduler context (unused)
  */
 static void
-master_task (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+master_task (void *cls)
 {
   struct NeighbourMapEntry *n = cls;
   struct GNUNET_TIME_Relative delay;
@@ -3448,11 +3442,9 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
  * Task to asynchronously run #free_neighbour().
  *
  * @param cls the `struct NeighbourMapEntry` to free
- * @param tc unused
  */
 static void
-delayed_disconnect (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext* tc)
+delayed_disconnect (void *cls)
 {
   struct NeighbourMapEntry *n = cls;
 

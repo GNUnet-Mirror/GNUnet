@@ -94,10 +94,9 @@ cleanup ()
  * Re-establish the connection to the service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   if (NULL != delayed_lookup_task)
   {
@@ -120,7 +119,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   cleanup ();
   res = 0;
@@ -244,8 +243,9 @@ name_lookup_active_proc (void *cls,
   		&pubkey, TEST_NAME, &rd_decrypt_cb, expected_rd));
 }
 
+
 static void
-name_lookup_shadow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+name_lookup_shadow (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Performing lookup for shadow record \n");

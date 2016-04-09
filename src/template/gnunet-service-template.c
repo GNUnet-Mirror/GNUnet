@@ -31,10 +31,9 @@
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   /* FIXME: do clean up here */
 }

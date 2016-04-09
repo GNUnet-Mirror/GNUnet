@@ -156,10 +156,9 @@ static int status;
  * Task to shut down cleanly
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   LOG_DEBUG ("Shutting down\n");
   shutdown_task_id = NULL;
@@ -219,16 +218,17 @@ shutdown_now (void)
  * Task to write to the standard out
  *
  * @param cls the WriteContext
- * @param tc the TaskContext
  */
 static void
-write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+write_task (void *cls)
 {
   struct WriteContext *wc = cls;
   ssize_t bytes_wrote;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_assert (NULL != wc);
   write_task_id = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     GNUNET_free (wc->data);
@@ -263,19 +263,20 @@ write_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * process died).
  *
  * @param cls closure, NULL if we need to self-restart
- * @param tc context
  */
 static void
-child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+child_death_task (void *cls)
 {
   const struct GNUNET_DISK_FileHandle *pr;
   char c[16];
   enum GNUNET_OS_ProcessStatusType type;
   unsigned long code;
   int ret;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   child_death_task_id = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     child_death_task_id =
@@ -518,15 +519,16 @@ error:
  * Task to read from stdin
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-read_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_task (void *cls)
 {
   char buf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   ssize_t sread;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   read_task_id = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   sread = GNUNET_DISK_file_read (stdin_fd, buf, sizeof (buf));

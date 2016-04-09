@@ -72,7 +72,7 @@ static int ok;
  * Task run on timeout to shut everything down.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   unsigned int i;
 

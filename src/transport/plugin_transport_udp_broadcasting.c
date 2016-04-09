@@ -232,8 +232,7 @@ prepare_beacon (struct Plugin *plugin,
 
 
 static void
-udp_ipv4_broadcast_send (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+udp_ipv4_broadcast_send (void *cls)
 {
   struct BroadcastAddress *baddr = cls;
   struct Plugin *plugin = baddr->plugin;
@@ -308,8 +307,7 @@ udp_ipv4_broadcast_send (void *cls,
 
 
 static void
-udp_ipv6_broadcast_send (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+udp_ipv6_broadcast_send (void *cls)
 {
   struct BroadcastAddress *baddr = cls;
   struct Plugin *plugin = baddr->plugin;

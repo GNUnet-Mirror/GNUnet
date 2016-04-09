@@ -358,10 +358,9 @@ rewatch_it (void *cls, const struct GNUNET_HashCode *key, void *value)
  * Called when the iterate request is timedout
  *
  * @param cls a `struct GNUNET_PEERSTORE_IterateContext *`
- * @param tc Scheduler task context (unused)
  */
 static void
-iterate_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+iterate_timeout (void *cls)
 {
   struct GNUNET_PEERSTORE_IterateContext *ic = cls;
   GNUNET_PEERSTORE_Processor callback;

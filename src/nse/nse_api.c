@@ -81,10 +81,9 @@ struct GNUNET_NSE_Handle
  * Try again to connect to network size estimation service.
  *
  * @param cls the handle to the transport service
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls);
 
 
 /**
@@ -198,11 +197,9 @@ send_start (void *cls, size_t size, void *buf)
  * Try again to connect to network size estimation service.
  *
  * @param cls the `struct GNUNET_NSE_Handle *`
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_NSE_Handle *h = cls;
 

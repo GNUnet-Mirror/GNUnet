@@ -170,11 +170,9 @@ static struct GNUNET_IDENTITY_Operation *id_op;
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != t4)
     GNUNET_SCHEDULER_cancel (t4);
@@ -252,12 +250,10 @@ send_response (struct Request *request)
 /**
  * Task run on timeout.  Cleans up request.
  *
- * @param cls 'struct Request' of the request to clean up
- * @param tc scheduler context
+ * @param cls `struct Request *` of the request to clean up
  */
 static void
-do_timeout (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_timeout (void *cls)
 {
   struct Request *request = cls;
 
@@ -507,21 +503,21 @@ handle_request (struct GNUNET_NETWORK_Handle *lsock,
  * Task to read IPv4 DNS packets.
  *
  * @param cls the 'listen_socket4'
- * @param tc scheduler context
  */
 static void
-read_dns4 (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_dns4 (void *cls)
 {
   struct sockaddr_in v4;
   socklen_t addrlen;
   ssize_t size;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_assert (listen_socket4 == cls);
   t4 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				      listen_socket4,
 				      &read_dns4,
 				      listen_socket4);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason))
     return; /* shutdown? */
   size = GNUNET_NETWORK_socket_recvfrom_amount (listen_socket4);
@@ -550,21 +546,21 @@ read_dns4 (void *cls,
  * Task to read IPv6 DNS packets.
  *
  * @param cls the 'listen_socket6'
- * @param tc scheduler context
  */
 static void
-read_dns6 (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_dns6 (void *cls)
 {
   struct sockaddr_in6 v6;
   socklen_t addrlen;
   ssize_t size;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_assert (listen_socket6 == cls);
   t6 = GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
 				      listen_socket6,
 				      &read_dns6,
 				      listen_socket6);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason))
     return; /* shutdown? */
   size = GNUNET_NETWORK_socket_recvfrom_amount (listen_socket6);

@@ -2674,11 +2674,9 @@ compute_finger_identity_value (unsigned int finger_index)
  * finger identity through this random friend.
  *
  * @param cls closure for this task
- * @param tc the context under which the task is running
  */
 static void
-send_find_finger_trail_message (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_find_finger_trail_message (void *cls)
 {
   struct FriendInfo *target_friend;
   struct GNUNET_HashCode trail_id;
@@ -3219,12 +3217,11 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
  * Periodic task to verify current successor. There can be multiple trails to reach
  * to successor, choose the shortest one and send verify successor message
  * across that trail.
+ *
  * @param cls closure for this task
- * @param tc the context under which the task is running
  */
 static void
-send_verify_successor_message (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_verify_successor_message (void *cls)
 {
   struct FriendInfo *target_friend;
   struct GNUNET_HashCode trail_id;
@@ -5077,10 +5074,10 @@ struct SendNotifyContext
   unsigned int num_retries_scheduled;
 };
 
+
 void
-send_notify_new_successor (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext
-                           * tc);
+send_notify_new_successor (void *cls);
+
 
 /**
  * Check if the peer which sent us verify successor result message is still ours
@@ -5250,11 +5247,9 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
 
 void
-send_notify_new_successor (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext
-                           * tc)
+send_notify_new_successor (void *cls)
 {
-  struct SendNotifyContext *ctx = (struct SendNotifyContext *) cls;
+  struct SendNotifyContext *ctx = cls;
 
   GDS_NEIGHBOURS_send_notify_new_successor (ctx->source_peer,
                                             ctx->successor,

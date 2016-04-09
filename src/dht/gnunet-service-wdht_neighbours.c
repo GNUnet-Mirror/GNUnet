@@ -931,11 +931,9 @@ pick_random_friend ()
  * possibly initiate cleanup.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-trail_timeout_callback (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+trail_timeout_callback (void *cls)
 {
   struct Trail *trail;
   struct GNUNET_TIME_Relative left;
@@ -974,11 +972,9 @@ get_desired_finger_array_size ()
  * Initiate a random walk.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-do_random_walk (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_random_walk (void *cls)
 {
   static unsigned int walk_layer;
   struct FriendInfo *friend;

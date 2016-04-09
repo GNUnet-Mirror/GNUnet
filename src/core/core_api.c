@@ -339,8 +339,7 @@ reconnect (struct GNUNET_CORE_Handle *h);
  * @param tc task context
  */
 static void
-reconnect_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
   struct GNUNET_CORE_Handle *h = cls;
 
@@ -1214,11 +1213,9 @@ GNUNET_CORE_disconnect (struct GNUNET_CORE_Handle *handle)
  * Task that calls #request_next_transmission().
  *
  * @param cls the `struct PeerRecord *`
- * @param tc scheduler context
  */
 static void
-run_request_next_transmission (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_request_next_transmission (void *cls)
 {
   struct PeerRecord *pr = cls;
 

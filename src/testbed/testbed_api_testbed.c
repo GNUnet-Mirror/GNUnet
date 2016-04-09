@@ -611,10 +611,9 @@ wait_op_completion (void *cls)
  * Task run upon interrupts (SIGINT, SIGTERM) and upon scheduler shutdown.
  *
  * @param cls the RunContext which has to be acted upon
- * @param tc the scheduler task context
  */
 static void
-interrupt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+interrupt (void *cls)
 {
   struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct GNUNET_TESTBED_Controller *c = rc->c;
@@ -661,10 +660,9 @@ prof_time (struct GNUNET_TESTBED_RunHandle *rc)
  * Task for starting peers
  *
  * @param cls the RunHandle
- * @param tc the task context from scheduler
  */
 static void
-start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_peers_task (void *cls)
 {
   struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop;
@@ -966,10 +964,9 @@ call_cc:
  * Task to register all hosts available in the global host list
  *
  * @param cls the RunContext
- * @param tc the scheduler task context
  */
 static void
-register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+register_hosts (void *cls);
 
 
 /**
@@ -999,10 +996,9 @@ host_registration_completion (void *cls, const char *emsg)
  * Task to register all hosts available in the global host list
  *
  * @param cls RunContext
- * @param tc the scheduler task context
  */
 static void
-register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+register_hosts (void *cls)
 {
   struct GNUNET_TESTBED_RunHandle *rc = cls;
   struct RunContextOperation *rcop;
@@ -1194,15 +1190,15 @@ host_habitable_cb (void *cls, const struct GNUNET_TESTBED_Host *host,
  * Task run upon timeout while setting up the testbed
  *
  * @param cls the RunContext
- * @param tc the task context
  */
 static void
-timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_task (void *cls)
 {
   struct GNUNET_TESTBED_RunHandle *rc = cls;
 
   rc->timeout_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_ERROR, _("Shutting down testbed due to timeout while setup.\n"));
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       _("Shutting down testbed due to timeout while setup.\n"));
    GNUNET_SCHEDULER_shutdown ();
    if (NULL != rc->test_master)
      rc->test_master (rc->test_master_cls, rc, 0, NULL, 0, 0);

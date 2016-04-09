@@ -74,7 +74,7 @@ static struct GNUNET_SCHEDULER_Task * child_death_task_id;
  * The shutdown task
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   shutdown_task_id = NULL;
   if (0 != child_exit_code)
@@ -96,7 +96,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls)
 {
   static int hard_kill;
 
@@ -131,16 +131,18 @@ terminate_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * process died).
  *
  * @param cls closure, NULL if we need to self-restart
- * @param tc context
  */
 static void
-child_death_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+child_death_task (void *cls)
 {
   const struct GNUNET_DISK_FileHandle *pr;
   char c[16];
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   child_death_task_id = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     child_death_task_id =
@@ -179,10 +181,9 @@ destroy_hosts(struct GNUNET_TESTBED_Host **hosts, unsigned int nhosts)
  * The main scheduler run task
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run (void *cls)
 {
   struct GNUNET_TESTBED_Host **hosts;
   const struct GNUNET_CONFIGURATION_Handle *null_cfg;

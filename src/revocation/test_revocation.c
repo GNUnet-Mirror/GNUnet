@@ -57,8 +57,7 @@ static int ok;
 
 
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   unsigned int c;
 
@@ -94,8 +93,7 @@ do_shutdown (void *cls,
 
 
 static void
-check_revocation (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc);
+check_revocation (void *cls);
 
 
 static void
@@ -128,8 +126,7 @@ revocation_remote_cb (void *cls,
 
 
 static void
-check_revocation (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+check_revocation (void *cls)
 {
   GNUNET_REVOCATION_query (testpeers[0].cfg,
                            &testpeers[1].pubkey,
@@ -146,7 +143,7 @@ revocation_cb (void *cls,
   {
     fprintf (stderr,
              "Revocation successful\n");
-    check_revocation (NULL, NULL);
+    check_revocation (NULL);
   }
 }
 

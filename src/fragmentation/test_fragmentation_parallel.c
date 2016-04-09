@@ -60,10 +60,11 @@ static struct GNUNET_BANDWIDTH_Tracker trackers[NUM_MSGS];
 
 static struct GNUNET_FRAGMENT_Context *frags[NUM_MSGS];
 
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *shutdown_task;
+
 
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   unsigned int i;
 

@@ -49,7 +49,7 @@ static struct GNUNET_TESTBED_Operation *op;
  * @param tc scheduler task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != op)
     GNUNET_TESTBED_operation_done (op);

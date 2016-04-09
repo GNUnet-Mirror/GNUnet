@@ -166,8 +166,7 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
 
 
 static void
-comm_schedule_send (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+comm_schedule_send (void *cls)
 {
   struct BenchmarkPartner *p = cls;
 
@@ -431,4 +430,3 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ()
 }
 
 /* end of file ats-testing-traffic.c */
-

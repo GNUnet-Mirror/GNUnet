@@ -757,11 +757,9 @@ GNUNET_FS_search_probe_progress_ (void *cls,
  * Main function that performs the upload.
  *
  * @param cls `struct GNUNET_FS_PublishContext` identifies the upload
- * @param tc task context
  */
 void
-GNUNET_FS_publish_main_ (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+GNUNET_FS_publish_main_ (void *cls);
 
 
 /**
@@ -828,11 +826,9 @@ GNUNET_FS_download_make_status_ (struct GNUNET_FS_ProgressInfo *pi,
  * request for the file.
  *
  * @param cls the 'struct GNUNET_FS_DownloadContext'
- * @param tc scheduler context
  */
 void
-GNUNET_FS_download_start_task_ (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc);
+GNUNET_FS_download_start_task_ (void *cls);
 
 
 

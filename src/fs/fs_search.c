@@ -215,11 +215,9 @@ signal_probe_result (struct GNUNET_FS_SearchResult *sr)
  * Handle the case where we have failed to receive a response for our probe.
  *
  * @param cls our `struct GNUNET_FS_SearchResult *`
- * @param tc scheduler context
  */
 static void
-probe_failure_handler (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+probe_failure_handler (void *cls)
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
@@ -241,11 +239,9 @@ probe_failure_handler (void *cls,
  * Handle the case where we have gotten a response for our probe.
  *
  * @param cls our `struct GNUNET_FS_SearchResult *`
- * @param tc scheduler context
  */
 static void
-probe_success_handler (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+probe_success_handler (void *cls)
 {
   struct GNUNET_FS_SearchResult *sr = cls;
 
@@ -364,11 +360,9 @@ GNUNET_FS_search_probe_progress_ (void *cls,
  * Task run periodically to remind clients that a probe is active.
  *
  * @param cls the `struct GNUNET_FS_SearchResult` that we are probing for
- * @param tc scheduler context
  */
 static void
-probe_ping_task_cb (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+probe_ping_task_cb (void *cls)
 {
   struct GNUNET_FS_Handle *h = cls;
   struct GNUNET_FS_SearchResult *sr;
@@ -1245,10 +1239,9 @@ schedule_transmit_search_request (struct GNUNET_FS_SearchContext *sc)
  * our queries NOW.
  *
  * @param cls our search context
- * @param tc unused
  */
 static void
-do_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_reconnect (void *cls)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_CLIENT_Connection *client;
@@ -1637,7 +1630,7 @@ GNUNET_FS_search_continue (struct GNUNET_FS_SearchContext *sc)
 
   GNUNET_assert (NULL == sc->client);
   GNUNET_assert (NULL == sc->task);
-  do_reconnect (sc, NULL);
+  do_reconnect (sc);
   GNUNET_FS_search_sync_ (sc);
   pi.status = GNUNET_FS_STATUS_SEARCH_CONTINUED;
   sc->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);

@@ -44,11 +44,9 @@ static struct GNUNET_CORE_MonitorHandle *mh;
  * Stops monitoring activity.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != mh)
   {

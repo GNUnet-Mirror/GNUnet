@@ -216,7 +216,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
 
 
 static void
-logging_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+logging_task (void *cls)
 {
   struct LoggingHandle *l = cls;
 
@@ -590,7 +590,7 @@ get_property (struct PropertyGenerator *pg)
 
 
 static void
-set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_prop_task (void *cls)
 {
   struct PropertyGenerator *pg = cls;
   struct TestPeer *p;
@@ -858,9 +858,9 @@ get_preference (struct PreferenceGenerator *pg)
   return pref_value;
 }
 
+
 static void
-set_feedback_task (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_feedback_task (void *cls)
 {
   struct PreferenceGenerator *pg = cls;
   struct TestPeer *p;
@@ -934,8 +934,7 @@ set_feedback_task (void *cls,
 
 
 static void
-set_pref_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_pref_task (void *cls)
 {
   struct PreferenceGenerator *pg = cls;
   struct TestPeer *p;
@@ -2124,10 +2123,12 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
   return e_counter;
 }
 
+
 static void
-timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
+timeout_experiment (void *cls)
 {
   struct Experiment *e = cls;
+
   e->experiment_timeout_task = NULL;
   fprintf (stderr, "Experiment timeout!\n");
 
@@ -2487,10 +2488,12 @@ static void enforce_episode (struct Episode *ep)
   }
 }
 
+
 static void
-timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
+timeout_episode (void *cls)
 {
   struct Experiment *e = cls;
+
   e->episode_timeout_task = NULL;
   if (NULL != e->ep_done_cb)
     e->ep_done_cb (e->cur);

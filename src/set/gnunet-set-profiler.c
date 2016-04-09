@@ -247,8 +247,7 @@ set_insert_iterator (void *cls,
 
 
 static void
-handle_shutdown (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down set profiler\n");
@@ -393,4 +392,3 @@ main (int argc, char **argv)
 		      options, &pre_run, NULL, GNUNET_YES);
   return ret;
 }
-

@@ -264,11 +264,9 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
  * (Done periodically until the typemap is confirmed).
  *
  * @param cls the `struct Session *`
- * @param tc unused
  */
 static void
-transmit_typemap_task (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_typemap_task (void *cls)
 {
   struct Session *session = cls;
   struct GNUNET_MessageHeader *hdr;
@@ -589,11 +587,9 @@ solicit_messages (struct Session *session,
  * Send them now.
  *
  * @param cls `struct Session` with the messages to transmit now
- * @param tc scheduler context (unused)
  */
 static void
-pop_cork_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+pop_cork_task (void *cls)
 {
   struct Session *session = cls;
 

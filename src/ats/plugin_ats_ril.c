@@ -1513,10 +1513,9 @@ ril_step (struct GAS_RIL_Handle *solver);
  * no further step is scheduled.
  *
  * @param cls the solver handle
- * @param tc the task context for the scheduler
  */
 static void
-ril_step_scheduler_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ril_step_scheduler_task (void *cls)
 {
   struct GAS_RIL_Handle *solver = cls;
 

@@ -294,11 +294,9 @@ GST_ats_is_known_no_session (const struct GNUNET_HELLO_Address *address)
  * suggest it again.
  *
  * @param cls the `struct AddressInfo` of the address to unblock
- * @param tc unused
  */
 static void
-unblock_address (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+unblock_address (void *cls)
 {
   struct AddressInfo *ai = cls;
 

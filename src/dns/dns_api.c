@@ -162,8 +162,7 @@ queue_reply (struct GNUNET_DNS_Handle *dh,
  * @param tc scheduler context (unused)
  */
 static void
-reconnect (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_DNS_Handle *dh = cls;
   struct ReplyQueueEntry *qe;
@@ -440,7 +439,7 @@ GNUNET_DNS_request_drop (struct GNUNET_DNS_RequestHandle *rh)
  * @param reply reply data
  */
 void
-GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,	
+GNUNET_DNS_request_answer (struct GNUNET_DNS_RequestHandle *rh,
 			   uint16_t reply_length,
 			   const char *reply)
 {

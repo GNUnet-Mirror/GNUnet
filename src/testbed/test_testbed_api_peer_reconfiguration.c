@@ -89,10 +89,9 @@ enum {
  * Abort task
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Aborting\n");
   abort_task = NULL;

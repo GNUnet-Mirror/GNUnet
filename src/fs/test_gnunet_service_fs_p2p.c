@@ -54,7 +54,7 @@ static struct GNUNET_TIME_Absolute start_time;
 
 
 static void
-do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop (void *cls)
 {
   char *fn = cls;
   struct GNUNET_TIME_Relative del;

@@ -87,10 +87,9 @@ static int ret;
  * Task run to clean up on timeout.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   if (NULL != get_handle)
   {

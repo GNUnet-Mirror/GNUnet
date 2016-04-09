@@ -120,8 +120,9 @@ end ()
   GNUNET_TRANSPORT_TESTING_done (tth);
 }
 
+
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   die_task = NULL;
 
@@ -181,12 +182,13 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-timer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timer (void *cls)
 {
   static int percentage;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   timer_task = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 

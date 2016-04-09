@@ -421,8 +421,10 @@ psyc_transmit_queue_message (struct Place *plc,
                              struct MessageTransmitQueue *tmit_msg);
 
 
-int
-place_entry_cleanup (void *cls, const struct GNUNET_HashCode *key, void *value)
+static int
+place_entry_cleanup (void *cls,
+                     const struct GNUNET_HashCode *key,
+                     void *value)
 {
   cleanup_place (value);
   return GNUNET_YES;
@@ -433,10 +435,9 @@ place_entry_cleanup (void *cls, const struct GNUNET_HashCode *key, void *value)
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_CONTAINER_multihashmap_iterate (hosts, place_entry_cleanup, NULL);
   GNUNET_CONTAINER_multihashmap_iterate (guests, place_entry_cleanup, NULL);
@@ -541,7 +542,7 @@ cleanup_place (struct Place *plc)
 
 
 static void
-schedule_cleanup_place (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_cleanup_place (void *cls)
 {
   cleanup_place (cls);
 }

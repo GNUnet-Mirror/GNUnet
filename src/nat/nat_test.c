@@ -205,15 +205,15 @@ reversal_cb (void *cls,
  * incoming connection.
  *
  * @param cls the `struct GNUNET_NAT_Test`
- * @param tc scheduler context
  */
 static void
-do_udp_read (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_udp_read (void *cls)
 {
   struct GNUNET_NAT_Test *tst = cls;
   uint16_t data;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   tst->ltask =
       GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
                                      tst->lsock,
@@ -240,16 +240,16 @@ do_udp_read (void *cls,
  * incoming connection.
  *
  * @param cls the `struct NatActivity`
- * @param tc scheduler context
  */
 static void
-do_read (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_read (void *cls)
 {
   struct NatActivity *na = cls;
   struct GNUNET_NAT_Test *tst;
   uint16_t data;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   na->rtask = NULL;
   tst = na->h;
   GNUNET_CONTAINER_DLL_remove (tst->na_head, tst->na_tail, na);
@@ -277,17 +277,17 @@ do_read (void *cls,
  * incoming connection.
  *
  * @param cls the `struct GNUNET_NAT_Test`
- * @param tc scheduler context
  */
 static void
-do_accept (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_accept (void *cls)
 {
   struct GNUNET_NAT_Test *tst = cls;
   struct GNUNET_NETWORK_Handle *s;
   struct NatActivity *wl;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   tst->ltask = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   tst->ltask =
@@ -378,11 +378,9 @@ addr_cb (void *cls,
  * Destroys the nat handle after the callback has been processed.
  *
  * @param cls handle to the timed out NAT test
- * @param tc not used
  */
 static void
-do_timeout (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_timeout (void *cls)
 {
   struct GNUNET_NAT_Test *nh = cls;
 
@@ -440,8 +438,8 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nh->status = GNUNET_NAT_ERROR_SUCCESS;
   if (0 == bnd_port)
   {
-    nh->nat 
-      = GNUNET_NAT_register (cfg, is_tcp, 0, 0, 
+    nh->nat
+      = GNUNET_NAT_register (cfg, is_tcp, 0, 0,
 			     NULL, NULL,
 			     &addr_cb,
                              &reversal_cb, nh, NULL);

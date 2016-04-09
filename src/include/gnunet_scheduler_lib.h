@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      Copyright (C) 2009-2015 GNUnet e.V.
+      Copyright (C) 2009-2016 GNUnet e.V.
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -131,8 +131,7 @@ struct GNUNET_SCHEDULER_TaskContext
  * @param tc context information (why was this task triggered now)
  */
 typedef void
-(*GNUNET_SCHEDULER_TaskCallback) (void *cls,
-                                  const struct GNUNET_SCHEDULER_TaskContext *tc);
+(*GNUNET_SCHEDULER_TaskCallback) (void *cls);
 
 
 /**
@@ -200,14 +199,13 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p);
 
 
 /**
- * Obtain the reason code for why the current task was
- * started.  Will return the same value as
- * the GNUNET_SCHEDULER_TaskContext's reason field.
+ * Obtain the reasoning why the current task was
+ * started.
  *
- * @return reason(s) why the current task is run
+ * @return task context with information why the current task is run
  */
-enum GNUNET_SCHEDULER_Reason
-GNUNET_SCHEDULER_get_reason (void);
+const struct GNUNET_SCHEDULER_TaskContext *
+GNUNET_SCHEDULER_get_task_context (void);
 
 
 /**

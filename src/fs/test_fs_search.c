@@ -58,7 +58,7 @@ static int err;
 
 
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   if (NULL != publish)
   {
@@ -74,7 +74,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_error (void *cls)
 {
   fprintf (stderr,
 	   "Timeout\n");
@@ -94,7 +94,7 @@ abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_search_task (void *cls)
 {
   if (NULL != search)
   {

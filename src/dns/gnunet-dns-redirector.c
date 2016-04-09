@@ -177,7 +177,7 @@ modify_request (void *cls,
  * Shutdown.
  */
 static void
-do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_disconnect (void *cls)
 {
   if (NULL != handle)
   {

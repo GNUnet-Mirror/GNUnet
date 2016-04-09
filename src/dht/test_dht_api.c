@@ -82,7 +82,7 @@ static struct GNUNET_SCHEDULER_Task * die_task;
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   GNUNET_SCHEDULER_cancel (die_task);
   die_task = NULL;
@@ -116,11 +116,9 @@ end_badly ()
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-test_get_stop (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_get_stop (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Called test_get_stop!\n");

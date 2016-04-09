@@ -866,11 +866,9 @@ reconnect (struct GNUNET_NAMESTORE_Handle *h)
  * Re-establish the connection to the service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-reconnect_task (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
   struct GNUNET_NAMESTORE_Handle *h = cls;
 

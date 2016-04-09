@@ -63,9 +63,13 @@ end ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Exiting\n");
 }
 
+
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
 
   timeout_task = NULL;

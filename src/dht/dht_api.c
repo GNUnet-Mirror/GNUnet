@@ -362,7 +362,7 @@ struct GNUNET_DHT_Handle
    * Did we start our receive loop yet?
    */
   int in_receive;
-  
+
 #if ENABLE_MALICIOUS
   /**
    * Handle of act malicious request.
@@ -496,11 +496,9 @@ process_pending_messages (struct GNUNET_DHT_Handle *handle);
  * Try reconnecting to the dht service.
  *
  * @param cls a `struct GNUNET_DHT_Handle`
- * @param tc scheduler context
  */
 static void
-try_reconnect (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+try_reconnect (void *cls)
 {
   struct GNUNET_DHT_Handle *handle = cls;
 
@@ -650,7 +648,7 @@ transmit_pending (void *cls,
   head->in_pending_queue = GNUNET_NO;
   if (NULL != head->cont)
   {
-    head->cont (head->cont_cls, NULL);
+    head->cont (head->cont_cls);
     head->cont = NULL;
     head->cont_cls = NULL;
   }
@@ -663,7 +661,7 @@ transmit_pending (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting to process replies from DHT\n");
     handle->in_receive = GNUNET_YES;
-    
+
     GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
@@ -899,7 +897,7 @@ process_act_malicious_confirmation_message (struct GNUNET_DHT_Handle *handle,
    struct GNUNET_DHT_ActMaliciousHandle *mh;
    GNUNET_DHT_PutContinuation cont;
    void *cont_cls;
-   
+
    mh = handle->mh;
    if (NULL == mh)
     return GNUNET_OK;
@@ -907,7 +905,7 @@ process_act_malicious_confirmation_message (struct GNUNET_DHT_Handle *handle,
   cont_cls = mh->cont_cls;
   if (NULL != cont)
     cont (cont_cls, GNUNET_OK);
-  
+
   return GNUNET_OK;
 }
 #endif
@@ -1110,7 +1108,7 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
     pm->in_pending_queue = GNUNET_NO;
     GNUNET_assert (GNUNET_YES == pm->free_on_send);
     if (NULL != pm->cont)
-      pm->cont (pm->cont_cls, NULL);
+      pm->cont (pm->cont_cls);
     GNUNET_free (pm);
   }
   while (NULL != (ph = handle->put_head))
@@ -1137,11 +1135,9 @@ GNUNET_DHT_disconnect (struct GNUNET_DHT_Handle *handle)
  * Timeout for the transmission of a fire&forget-request.  Clean it up.
  *
  * @param cls the `struct GNUNET_DHT_PutHandle *`
- * @param tc scheduler context
  */
 static void
-timeout_put_request (void *cls,
-		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_put_request (void *cls)
 {
   struct GNUNET_DHT_PutHandle *ph = cls;
   struct GNUNET_DHT_Handle *handle = ph->dht_handle;
@@ -1168,11 +1164,9 @@ timeout_put_request (void *cls,
  * the message pointer in the put handle to NULL.
  *
  * @param cls the `struct GNUNET_DHT_PutHandle`
- * @param tc unused
  */
 static void
-mark_put_message_gone (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+mark_put_message_gone (void *cls)
 {
   struct GNUNET_DHT_PutHandle *ph = cls;
 
@@ -1570,10 +1564,10 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
  * @param handle the DHT handle
  * @param action 1 to make the service malicious; 0 to make it benign
  * @param cont continuation to call when done (transmitting request to service)
- * @param cont_cls closure for @a cont        
+ * @param cont_cls closure for @a cont
  */
 struct GNUNET_DHT_ActMaliciousHandle *
-GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle, 
+GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle,
                           unsigned int action,
                           GNUNET_DHT_PutContinuation cont,
                           void *cont_cls)
@@ -1582,7 +1576,7 @@ GNUNET_DHT_act_malicious (struct GNUNET_DHT_Handle *handle,
   struct GNUNET_DHT_ActMaliciousHandle *mh;
   struct PendingMessage *pending;
   size_t msize;
-  
+
   msize = sizeof(struct GNUNET_DHT_ActMaliciousMessage);
   if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {

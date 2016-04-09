@@ -606,10 +606,9 @@ connect_fail_continuation (struct GNUNET_CONNECTION_Handle *connection)
  * We are ready to transmit (or got a timeout).
  *
  * @param cls our connection handle
- * @param tc task context describing why we are here
  */
 static void
-transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+transmit_ready (void *cls);
 
 
 /**
@@ -617,10 +616,9 @@ transmit_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * to read.
  *
  * @param cls connection to read from
- * @param tc scheduler context
  */
 static void
-receive_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+receive_ready (void *cls);
 
 
 /**
@@ -668,15 +666,14 @@ connect_success_continuation (struct GNUNET_CONNECTION_Handle *connection)
  * Scheduler let us know that we're either ready to write on the
  * socket OR connect timed out.  Do the right thing.
  *
- * @param cls the "struct AddressProbe*" with the address that we are probing
- * @param tc success or failure info about the connect attempt.
+ * @param cls the `struct AddressProbe *` with the address that we are probing
  */
 static void
-connect_probe_continuation (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_probe_continuation (void *cls)
 {
   struct AddressProbe *ap = cls;
   struct GNUNET_CONNECTION_Handle *connection = ap->connection;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct AddressProbe *pos;
   int error;
   socklen_t len;
@@ -686,6 +683,7 @@ connect_probe_continuation (void *cls,
   len = sizeof (error);
   errno = 0;
   error = 0;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((0 == (tc->reason & GNUNET_SCHEDULER_REASON_WRITE_READY)) ||
       (GNUNET_OK !=
        GNUNET_NETWORK_socket_getsockopt (ap->sock, SOL_SOCKET, SO_ERROR, &error,
@@ -1095,18 +1093,18 @@ GNUNET_CONNECTION_destroy (struct GNUNET_CONNECTION_Handle *connection)
  * or have data ready to read.
  *
  * @param cls connection to read from
- * @param tc scheduler context
  */
 static void
-receive_ready (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+receive_ready (void *cls)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   char buffer[connection->max];
   ssize_t ret;
   GNUNET_CONNECTION_Receiver receiver;
 
   connection->read_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* ignore shutdown request, go again immediately */
@@ -1296,11 +1294,9 @@ process_notify (struct GNUNET_CONNECTION_Handle *connection)
  * This task notifies the client about the timeout.
  *
  * @param cls the `struct GNUNET_CONNECTION_Handle`
- * @param tc scheduler context
  */
 static void
-transmit_timeout (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_timeout (void *cls)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
@@ -1327,11 +1323,9 @@ transmit_timeout (void *cls,
  * This task notifies the client about the error.
  *
  * @param cls the `struct GNUNET_CONNECTION_Handle`
- * @param tc scheduler context
  */
 static void
-connect_error (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_error (void *cls)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
@@ -1353,14 +1347,13 @@ connect_error (void *cls,
  * We are ready to transmit (or got a timeout).
  *
  * @param cls our connection handle
- * @param tc task context describing why we are here
  */
 static void
-transmit_ready (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_ready (void *cls)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
   GNUNET_CONNECTION_TransmitReadyNotify notify;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   ssize_t ret;
   size_t have;
 
@@ -1370,6 +1363,7 @@ transmit_ready (void *cls,
   GNUNET_assert (NULL != connection->write_task);
   connection->write_task = NULL;
   GNUNET_assert (NULL == connection->nth.timeout_task);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     if (NULL != connection->sock)

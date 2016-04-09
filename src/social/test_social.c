@@ -149,7 +149,8 @@ enum
 
 
 static void
-schedule_guest_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+schedule_guest_leave (void *cls);
+
 
 static void
 host_answer_door (void *cls,
@@ -229,10 +230,9 @@ cleanup ()
  * Terminate the test case (failure).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   res = 1;
   cleanup ();
@@ -244,10 +244,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Terminate the test case (success).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_normally (void *cls)
 {
   res = 0;
   cleanup ();
@@ -274,7 +273,7 @@ end ()
 
 
 static void
-transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_resume (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
   struct TransmitClosure *tmit = cls;
@@ -342,7 +341,7 @@ host_left ()
 
 
 static void
-schedule_host_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_host_leave (void *cls)
 {
   test = TEST_HOST_LEAVE;
   GNUNET_SOCIAL_host_leave (hst, NULL, &host_left, NULL);
@@ -478,7 +477,7 @@ app_recv_ego (void *cls,
 
 
 static void
-schedule_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_reconnect (void *cls)
 {
   test = TEST_RECONNECT;
 
@@ -577,7 +576,7 @@ guest_leave()
 
 
 static void
-schedule_guest_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_guest_leave (void *cls)
 {
   guest_leave ();
 }

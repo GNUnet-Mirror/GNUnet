@@ -62,7 +62,7 @@ static int err;
 
 
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   GNUNET_FS_publish_stop (publish);
   publish = NULL;
@@ -76,8 +76,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-list_indexed_task (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+list_indexed_task (void *cls)
 {
   GNUNET_SCHEDULER_add_now (&abort_publish_task, NULL);
 }

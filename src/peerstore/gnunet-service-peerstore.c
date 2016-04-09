@@ -125,10 +125,9 @@ do_shutdown ()
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   in_shutdown = GNUNET_YES;
   if (NULL == client_head)      /* Only when no connected clients. */
@@ -145,11 +144,12 @@ expire_records_continuation (void *cls, int success);
  * Deletes any expired records from storage
  */
 static void
-cleanup_expired_records (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_expired_records (void *cls)
 {
   int ret;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (NULL != db);

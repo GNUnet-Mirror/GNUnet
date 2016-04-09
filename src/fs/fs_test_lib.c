@@ -183,8 +183,7 @@ struct TestDownloadOperation
  * @param tc scheduler context (unused)
  */
 static void
-report_uri (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+report_uri (void *cls)
 {
   struct TestPublishOperation *po = cls;
 
@@ -208,10 +207,9 @@ report_uri (void *cls,
  * Task scheduled to run when publish operation times out.
  *
  * @param cls the publish operation context
- * @param tc scheduler context (unused)
  */
 static void
-publish_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+publish_timeout (void *cls)
 {
   struct TestPublishOperation *po = cls;
 
@@ -480,10 +478,9 @@ GNUNET_FS_TEST_publish (struct GNUNET_TESTBED_Peer *peer,
  * Task scheduled to run when download operation times out.
  *
  * @param cls the download operation context
- * @param tc scheduler context (unused)
  */
 static void
-download_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+download_timeout (void *cls)
 {
   struct TestDownloadOperation *dop = cls;
 
@@ -504,11 +501,9 @@ download_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task scheduled to report on the completion of our download operation.
  *
  * @param cls the download operation context
- * @param tc scheduler context (unused)
  */
 static void
-report_success (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+report_success (void *cls)
 {
   struct TestDownloadOperation *dop = cls;
 

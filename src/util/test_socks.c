@@ -126,7 +126,7 @@ make_msg (void *cls, size_t size, void *buf)
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   struct sockaddr_in sa;
   struct sockaddr *sap[2];

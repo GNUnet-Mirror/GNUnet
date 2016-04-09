@@ -74,11 +74,9 @@ static int ok;
  * Final task invoked to clean up.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-finish_up (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_up (void *cls)
 {
   GNUNET_assert (7 == ok);
   ok = 0;
@@ -262,11 +260,9 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
  * server.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-task (void *cls,
-      const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   struct sockaddr_in sa;
   struct sockaddr *sap[2];

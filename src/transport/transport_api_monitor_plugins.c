@@ -133,11 +133,9 @@ send_plugin_mon_request (struct GNUNET_TRANSPORT_PluginMonitor *pm)
  * Task run to re-establish the connection.
  *
  * @param cls our `struct GNUNET_TRANSPORT_PluginMonitor *`
- * @param tc scheduler context, unused
  */
 static void
-do_plugin_connect (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_plugin_connect (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginMonitor *pm = cls;
 

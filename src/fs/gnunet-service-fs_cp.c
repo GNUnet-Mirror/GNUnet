@@ -522,11 +522,9 @@ peer_transmit_ready_cb (void *cls,
  * (re)try to reserve bandwidth from the given peer.
  *
  * @param cls the `struct GSF_ConnectedPeer` to reserve from
- * @param tc scheduler context
  */
 static void
-retry_reservation (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+retry_reservation (void *cls)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct GNUNET_PeerIdentity target;
@@ -675,11 +673,9 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
  * peer.  Check, and if so, restart migration.
  *
  * @param cls the `struct GSF_ConnectedPeer`
- * @param tc scheduler context
  */
 static void
-revive_migration (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+revive_migration (void *cls)
 {
   struct GSF_ConnectedPeer *cp = cls;
   struct GNUNET_TIME_Relative bt;
@@ -854,11 +850,9 @@ cancel_pending_request (void *cls,
  * Free the given request.
  *
  * @param cls the request to free
- * @param tc task context
  */
 static void
-peer_request_destroy (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+peer_request_destroy (void *cls)
 {
   struct PeerRequest *peerreq = cls;
   struct GSF_PendingRequest *pr = peerreq->pr;
@@ -876,19 +870,19 @@ peer_request_destroy (void *cls,
  * The artificial delay is over, transmit the message now.
  *
  * @param cls the `struct GSF_DelayedHandle` with the message
- * @param tc scheduler context
  */
 static void
-transmit_delayed_now (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_delayed_now (void *cls)
 {
   struct GSF_DelayedHandle *dh = cls;
   struct GSF_ConnectedPeer *cp = dh->cp;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_CONTAINER_DLL_remove (cp->delayed_head,
                                cp->delayed_tail,
                                dh);
   cp->delay_queue_size--;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     GNUNET_free (dh->pm);
@@ -1490,11 +1484,9 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
  * a transmission request.
  *
  * @param cls the `struct GSF_PeerTransmitHandle` of the request
- * @param tc scheduler context
  */
 static void
-peer_transmit_timeout (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+peer_transmit_timeout (void *cls)
 {
   struct GSF_PeerTransmitHandle *pth = cls;
   struct GSF_ConnectedPeer *cp;
@@ -1981,18 +1973,17 @@ GSF_connected_peer_change_preference_ (struct GSF_ConnectedPeer *cp,
  * Call this method periodically to flush respect information to disk.
  *
  * @param cls closure, not used
- * @param tc task context, not used
  */
 static void
-cron_flush_respect (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+cron_flush_respect (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   if (NULL == cp_map)
     return;
   GNUNET_CONTAINER_multipeermap_iterate (cp_map,
                                          &flush_respect, NULL);
-  if (NULL == tc)
-    return;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_SCHEDULER_add_delayed_with_priority (RESPECT_FLUSH_FREQ,
@@ -2038,7 +2029,9 @@ clean_peer (void *cls,
 void
 GSF_connected_peer_done_ ()
 {
-  cron_flush_respect (NULL, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (cp_map,
+                                         &flush_respect,
+                                         NULL);
   GNUNET_CONTAINER_multipeermap_iterate (cp_map,
                                          &clean_peer, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (cp_map);

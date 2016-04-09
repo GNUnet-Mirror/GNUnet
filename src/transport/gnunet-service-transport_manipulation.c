@@ -224,11 +224,9 @@ GST_manipulation_set_metric (void *cls,
  * message.
  *
  * @param cls the `struct DelayQueueEntry` to transmit
- * @param tc unused
  */
 static void
-send_delayed (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_delayed (void *cls)
 {
   struct DelayQueueEntry *dqe = cls;
   struct DelayQueueEntry *next;

@@ -45,12 +45,11 @@ static struct GNUNET_REGEX_Search *s;
 
 static int ok = 1;
 
-static struct GNUNET_SCHEDULER_Task * die_task;
+static struct GNUNET_SCHEDULER_Task *die_task;
 
 
 static void
-end (void *cls,
-     const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   die_task = NULL;
   GNUNET_REGEX_announce_cancel (a);

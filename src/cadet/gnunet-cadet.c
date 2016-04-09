@@ -191,11 +191,9 @@ conn_2s (uint16_t status)
  * Stops monitoring activity.
  *
  * @param cls Closure (unused).
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
   if (NULL != th)
@@ -268,14 +266,14 @@ data_ready (void *cls, size_t size, void *buf)
  * Task run in stdio mode, after some data is available at stdin.
  *
  * @param cls Closure (unused).
- * @param tc scheduler context
  */
 static void
-read_stdio (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_stdio (void *cls)
 {
   static char buf[60000];
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
@@ -406,11 +404,13 @@ channel_incoming (void *cls,
  * @brief Send an echo request to the remote peer.
  *
  * @param cls Closure (NULL).
- * @param tc Task context.
  */
 static void
-send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_echo (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) || NULL == ch)
     return;
 
@@ -426,10 +426,9 @@ send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's monitor API, request debug dump on the service.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-request_dump (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+request_dump (void *cls)
 {
   GNUNET_CADET_request_dump (mh);
   GNUNET_SCHEDULER_cancel (sd);
@@ -441,10 +440,9 @@ request_dump (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's monitor API, get info of one connection.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+create_channel (void *cls)
 {
   struct GNUNET_PeerIdentity pid;
   enum GNUNET_CADET_ChannelOption opt;
@@ -703,11 +701,13 @@ tunnel_callback (void *cls,
  * Call CADET's meta API, get all peers known to a peer.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-get_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+get_peers (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
@@ -721,18 +721,17 @@ get_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's monitor API, get info of one peer.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-show_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+show_peer (void *cls)
 {
   struct GNUNET_PeerIdentity pid;
 
   if (GNUNET_OK !=
-    GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
-                                                strlen (peer_id),
-                                                &pid.public_key))
-  {
+      GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
+                                                  strlen (peer_id),
+                                                  &pid.public_key))
+    {
     fprintf (stderr,
              _("Invalid peer ID `%s'\n"),
              peer_id);
@@ -746,11 +745,13 @@ show_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's meta API, get all tunnels known to a peer.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+get_tunnels (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
@@ -764,10 +765,9 @@ get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's monitor API, get info of one tunnel.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+show_tunnel (void *cls)
 {
   struct GNUNET_PeerIdentity pid;
 
@@ -790,10 +790,9 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's monitor API, get info of one channel.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-show_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+show_channel (void *cls)
 {
 
 }
@@ -803,10 +802,9 @@ show_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Call CADET's monitor API, get info of one connection.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext
  */
 static void
-show_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+show_connection (void *cls)
 {
 
 }

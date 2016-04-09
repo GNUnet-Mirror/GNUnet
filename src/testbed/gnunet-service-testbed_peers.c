@@ -211,16 +211,14 @@ peer_list_remove (struct Peer *peer)
  * timed out
  *
  * @param cls the FowardedOperationContext
- * @param tc the TaskContext from the scheduler
  */
 static void
-peer_create_forward_timeout (void *cls,
-                             const struct GNUNET_SCHEDULER_TaskContext *tc)
+peer_create_forward_timeout (void *cls)
 {
   struct ForwardedOperationContext *fopc = cls;
 
   GNUNET_free (fopc->cls);
-  GST_forwarded_operation_timeout (fopc, tc);
+  GST_forwarded_operation_timeout (fopc);
 }
 
 

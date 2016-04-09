@@ -97,7 +97,7 @@ shutdown_now ()
 
 
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Aborting\n");
   abort_task = NULL;
@@ -173,7 +173,7 @@ flush_comp (void *cls, size_t size)
 
 
 static void
-do_write (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_write (void *cls)
 {
   static int i;
   char buf[BSIZE];

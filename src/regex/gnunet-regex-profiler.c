@@ -384,10 +384,9 @@ stats_connect_cb (void *cls,
  * Start announcing the next regex in the DHT.
  *
  * @param cls Index of the next peer in the peers array.
- * @param tc TaskContext.
  */
 static void
-announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+announce_next_regex (void *cls);
 
 
 /******************************************************************************/
@@ -399,10 +398,9 @@ announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   struct RegexPeer *peer;
   unsigned int peer_cnt;
@@ -471,10 +469,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * abort task to run on test timed out
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   unsigned long i = (unsigned long) cls;
 
@@ -664,10 +661,9 @@ stats_connect_cb (void *cls,
  * profiler, when done.
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_collect_stats (void *cls)
 {
   struct RegexPeer *peer = &peers[0];
 
@@ -694,10 +690,9 @@ do_collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Start searching for the next string in the DHT.
  *
  * @param cls Index of the next peer in the peers array.
- * @param tc TaskContext.
  */
 static void
-find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+find_string (void *cls);
 
 
 /**
@@ -808,10 +803,9 @@ regex_found_handler (void *cls,
  * specified timeout 'search_timeout'.
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-search_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
+search_timed_out (void *cls)
 {
   unsigned int i;
 
@@ -846,15 +840,15 @@ search_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
  * but we should start another one.
  *
  * @param cls Index of the next peer in the peers array.
- * @param tc TaskContext.
  */
 static void
-find_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_timed_out (void *cls)
 {
   struct RegexPeer *p = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   p->timeout = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -870,13 +864,14 @@ find_timed_out (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Start searching for a string in the DHT.
  *
  * @param cls Index of the next peer in the peers array.
- * @param tc TaskContext.
  */
 static void
-find_string (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_string (void *cls)
 {
   unsigned int search_peer = (unsigned int) (long) cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) ||
       search_peer >= num_peers ||
       GNUNET_YES == in_shutdown)
@@ -962,7 +957,7 @@ daemon_started (void *cls, struct GNUNET_TESTBED_Operation *op,
  * @param tc the task context
  */
 static void
-do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_announce (void *cls)
 {
   unsigned int i;
 
@@ -982,13 +977,14 @@ do_announce (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Start announcing the next regex in the DHT.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext.
  */
 static void
-announce_next_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+announce_next_regex (void *cls)
 {
   struct RegexPeer *peer;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (next_search >= num_peers)

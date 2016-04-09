@@ -182,7 +182,7 @@ struct ExchangeHandle
    * LookupRequest
    */
   struct GNUNET_GNS_LookupRequest *lookup_request;
-  
+
   /**
    * Audience Key
    */
@@ -324,11 +324,9 @@ store_token_cont (void *cls,
  * removes deleted attributes and expiration times.
  *
  * @param cls the ego entry
- * @param tc task context
  */
 static void
-handle_token_update (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_token_update (void *cls)
 {
   char *token_metadata;
   char *write_ptr;
@@ -428,13 +426,13 @@ handle_token_update (void *cls,
                       attr->name,
                       attr->val_head->value);
     }
-    else 
+    else
     {
       GNUNET_CRYPTO_hash (attr->name,
                           strlen (attr->name),
                           &key_hash);
       //Check if attr still exists. omit of not
-      if (GNUNET_NO != 
+      if (GNUNET_NO !=
           GNUNET_CONTAINER_multihashmap_contains (ego_entry->attr_map,
                                                   &key_hash))
       {
@@ -497,8 +495,7 @@ handle_token_update (void *cls,
 }
 
 static void
-update_identities(void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc);
+update_identities(void *cls);
 
 /**
  *
@@ -568,7 +565,7 @@ token_collect (void *cls,
     GNUNET_CONTAINER_multihashmap_clear (ego_entry->attr_map);
     update_task = GNUNET_SCHEDULER_add_now (&update_identities,
                                             ego_entry->next);
-    return; 
+    return;
   }
 
   //There should be only a single record for a token under a label
@@ -607,7 +604,7 @@ token_collect (void *cls,
                 aud_key,
                 &token);
 
-  label = GNUNET_strdup (lbl); 
+  label = GNUNET_strdup (lbl);
   rd_exp = token_record->expiration_time;
 
   GNUNET_SCHEDULER_add_now (&handle_token_update, ego_entry);
@@ -711,12 +708,9 @@ attribute_collect (void *cls,
  * dirty, first update the attributes.
  *
  * @param cls the ego to update
- * param tc task context
- *
  */
 static void
-update_identities(void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+update_identities(void *cls)
 {
   struct EgoEntry *next_ego = cls;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv_key;
@@ -866,8 +860,7 @@ cleanup()
  * @param tc task context
  */
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Shutting down...\n");
@@ -882,10 +875,10 @@ create_exchange_result_message (const char* token,
 {
   struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage *erm;
   uint16_t token_len = strlen (token) + 1;
-  erm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage) 
+  erm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)
                        + token_len);
   erm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_EXCHANGE_RESULT);
-  erm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage) 
+  erm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_ExchangeResultMessage)
                             + token_len);
   erm->ticket_nonce = htonl (ticket_nonce);
   memcpy (&erm[1], token, token_len);
@@ -901,12 +894,12 @@ create_issue_result_message (const char* label,
   struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage *irm;
   char *tmp_str;
 
-  irm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) 
+  irm = GNUNET_malloc (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)
                        + strlen (label) + 1
                        + strlen (ticket) + 1
                        + strlen (token) + 1);
   irm->header.type = htons (GNUNET_MESSAGE_TYPE_IDENTITY_PROVIDER_ISSUE_RESULT);
-  irm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage) 
+  irm->header.size = htons (sizeof (struct GNUNET_IDENTITY_PROVIDER_IssueResultMessage)
                             + strlen (label) + 1
                             + strlen (ticket) + 1
                             + strlen (token) + 1);
@@ -957,7 +950,7 @@ store_token_issue_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s\n",
                 "Error serializing ticket\n");
     cleanup_issue_handle (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL); 
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   if (GNUNET_OK != token_to_string (handle->token,
@@ -968,7 +961,7 @@ store_token_issue_cont (void *cls,
                 "Error serializing token\n");
     GNUNET_free (ticket_str);
     cleanup_issue_handle (handle);
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL); 
+    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
     return;
   }
   irm = create_issue_result_message (handle->label, ticket_str, token_str);
@@ -983,8 +976,12 @@ store_token_issue_cont (void *cls,
   GNUNET_free (token_str);
 }
 
+
 /**
  * Build a GNUid token for identity
+ *
+ * FIXME: doxygen is very wrong here!
+ *
  * @param handle the handle
  * @param ego_entry the ego to build the token for
  * @param name name of the ego
@@ -993,8 +990,7 @@ store_token_issue_cont (void *cls,
  * @return identifier string of token (label)
  */
 static void
-sign_and_return_token (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+sign_and_return_token (void *cls)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
   struct GNUNET_CRYPTO_EcdhePrivateKey *ecdhe_privkey;
@@ -1008,7 +1004,7 @@ sign_and_return_token (void *cls,
   uint64_t exp_time;
   size_t token_metadata_len;
 
-  //Remote nonce 
+  //Remote nonce
   nonce_str = NULL;
   GNUNET_asprintf (&nonce_str, "%lu", handle->nonce);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Request nonce: %s\n", nonce_str);
@@ -1028,7 +1024,7 @@ sign_and_return_token (void *cls,
   token_add_attr_int (handle->token, "exp", exp_time);
   token_add_attr (handle->token, "nonce", nonce_str);
 
-  //Token in a serialized encrypted format 
+  //Token in a serialized encrypted format
   GNUNET_assert (token_serialize (handle->token,
                                   &handle->iss_key,
                                   &ecdhe_privkey,
@@ -1150,7 +1146,7 @@ attr_collect (void *cls,
 static void
 cleanup_exchange_handle (struct ExchangeHandle *handle)
 {
-  if (NULL != handle->ticket) 
+  if (NULL != handle->ticket)
     ticket_destroy (handle->ticket);
   if (NULL != handle->token)
     token_destroy (handle->token);
@@ -1177,7 +1173,7 @@ process_lookup_result (void *cls, uint32_t rd_count,
     return;
   }
 
-  record_str = 
+  record_str =
     GNUNET_GNSRECORD_value_to_string (GNUNET_GNSRECORD_TYPE_ID_TOKEN,
                                       rd->data,
                                       rd->data_size);
@@ -1307,7 +1303,7 @@ find_existing_token (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 ">>> No existing token found\n");
     //Label
-    rnd_key = 
+    rnd_key =
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_STRONG,
                                 UINT64_MAX);
     GNUNET_STRINGS_base64_encode ((char*)&rnd_key,
@@ -1318,7 +1314,7 @@ find_existing_token (void *cls,
                                                            &handle->iss_key,
                                                            &attr_collect,
                                                            handle);
-    return; 
+    return;
   }
 
   //There should be only a single record for a token under a label
@@ -1340,7 +1336,7 @@ find_existing_token (void *cls,
     return;
   }
   ecdhe_privkey = *((struct GNUNET_CRYPTO_EcdhePrivateKey *)token_metadata_record->data);
-  aud_key = 
+  aud_key =
     (struct GNUNET_CRYPTO_EcdsaPublicKey *)(token_metadata_record->data+sizeof(struct GNUNET_CRYPTO_EcdhePrivateKey));
   tmp_scopes = GNUNET_strdup ((char*) aud_key+sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
@@ -1435,12 +1431,11 @@ handle_issue_message (void *cls,
   }
   im = (const struct GNUNET_IDENTITY_PROVIDER_IssueMessage *) message;
   scopes = (const char *) &im[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received ISSUE of `%s' from client\n",
-              scope);
   issue_handle = GNUNET_malloc (sizeof (struct IssueHandle));
   issue_handle->attr_map = GNUNET_CONTAINER_multihashmap_create (5,
                                                                  GNUNET_NO);
+  /* FIXME: check that scopes is 0-termianted, Out-of-bounds access
+     possible here!!! */
   scopes_tmp = GNUNET_strdup (scopes);
   scope = strtok(scopes_tmp, ",");
   for (; NULL != scope; scope = strtok (NULL, ","))
@@ -1484,7 +1479,7 @@ handle_issue_message (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, 
+run (void *cls,
      struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
@@ -1519,7 +1514,7 @@ run (void *cls,
                                              &list_ego,
                                              NULL);
 
-  if (GNUNET_OK == 
+  if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_time (cfg,
                                            "identity-provider",
                                            "TOKEN_EXPIRATION_INTERVAL",

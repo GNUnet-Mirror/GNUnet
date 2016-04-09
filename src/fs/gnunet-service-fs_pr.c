@@ -1300,11 +1300,9 @@ GSF_cadet_lookup_ (struct GSF_PendingRequest *pr)
  * Task that issues a warning if the datastore lookup takes too long.
  *
  * @param cls the `struct GSF_PendingRequest`
- * @param tc task context
  */
 static void
-warn_delay_task (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+warn_delay_task (void *cls)
 {
   struct GSF_PendingRequest *pr = cls;
 
@@ -1323,11 +1321,9 @@ warn_delay_task (void *cls,
  * Task that issues a warning if the datastore lookup takes too long.
  *
  * @param cls the `struct GSF_PendingRequest`
- * @param tc task context
  */
 static void
-odc_warn_delay_task (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+odc_warn_delay_task (void *cls)
 {
   struct GSF_PendingRequest *pr = cls;
 

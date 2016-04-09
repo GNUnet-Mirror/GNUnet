@@ -3139,8 +3139,7 @@ free_iterate (void *cls,
  * @param tc scheduler context
  */
 static void
-dummy_task (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+dummy_task (void *cls)
 {
   /* just terminate */
 }
@@ -3153,8 +3152,7 @@ dummy_task (void *cls,
  * @param tc scheduler context
  */
 static void
-cleanup (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup (void *cls)
 {
   unsigned int i;
 
@@ -3428,11 +3426,9 @@ read_service_conf (void *cls,
  * DHT.  This task is run periodically to do the DHT PUT.
  *
  * @param cls closure
- * @param tc scheduler context
  */
 static void
-do_dht_put (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_dht_put (void *cls);
 
 
 /**
@@ -3458,11 +3454,9 @@ dht_put_cont (void *cls,
  * DHT.  This task is run periodically to do the DHT PUT.
  *
  * @param cls closure
- * @param tc scheduler context
  */
 static void
-do_dht_put (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_dht_put (void *cls)
 {
   struct GNUNET_TIME_Absolute expiration;
 

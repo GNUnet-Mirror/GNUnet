@@ -432,11 +432,9 @@ find_content (struct MigrationReadyPeer *mrp)
  * migration
  *
  * @param cls unused
- * @param tc scheduler context (also unused)
  */
 static void
-gather_migration_blocks (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc);
+gather_migration_blocks (void *cls);
 
 
 /**
@@ -569,11 +567,9 @@ process_migration_content (void *cls,
  * migration
  *
  * @param cls unused
- * @param tc scheduler context (also unused)
  */
 static void
-gather_migration_blocks (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+gather_migration_blocks (void *cls)
 {
   mig_task = NULL;
   if (mig_size >= MAX_MIGRATION_QUEUE)

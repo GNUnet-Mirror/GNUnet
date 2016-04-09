@@ -91,11 +91,9 @@ cleanup ()
  * Re-establish the connection to the service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-endbadly (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   if (NULL != nsqe)
   {
@@ -113,8 +111,7 @@ endbadly (void *cls,
 
 
 static void
-end (void *cls,
-     const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   cleanup ();
   res = 0;

@@ -119,11 +119,9 @@ message_cb (void *cls,
  * Task run on shutdown.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_DV_service_disconnect (sh);
   sh = NULL;

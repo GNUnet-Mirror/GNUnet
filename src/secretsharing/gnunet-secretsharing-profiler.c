@@ -480,11 +480,9 @@ peer_info_cb (void *cb_cls,
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-handle_shutdown (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_shutdown (void *cls)
 {
   in_shutdown = GNUNET_YES;
 
@@ -633,4 +631,3 @@ main (int argc, char **argv)
 		      options, &run, NULL, GNUNET_YES);
   return 0;
 }
-

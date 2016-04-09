@@ -41,11 +41,9 @@ static unsigned long long cumDelta;
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context
  */
 static void
-test_task (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_task (void *cls)
 {
   struct GNUNET_TIME_Absolute now;
 

@@ -63,10 +63,9 @@ static char *directory;
  * Re-establish the connection to the service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
@@ -79,7 +78,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   if (endbadly_task != NULL)
   {

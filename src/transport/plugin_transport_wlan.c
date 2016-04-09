@@ -828,11 +828,9 @@ wlan_plugin_query_keepalive_factor (void *cls)
  * A session is timing out.  Clean up.
  *
  * @param cls pointer to the Session
- * @param tc unused
  */
 static void
-session_timeout (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *session = cls;
   struct GNUNET_TIME_Relative left;
@@ -1072,11 +1070,9 @@ free_fragment_message (struct FragmentMessage *fm)
  * A FragmentMessage has timed out.  Remove it.
  *
  * @param cls pointer to the 'struct FragmentMessage'
- * @param tc unused
  */
 static void
-fragmentmessage_timeout (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+fragmentmessage_timeout (void *cls)
 {
   struct FragmentMessage *fm = cls;
 
@@ -1200,11 +1196,9 @@ free_macendpoint (struct MacEndpoint *endpoint)
  * A MAC endpoint is timing out.  Clean up.
  *
  * @param cls pointer to the `struct MacEndpoint *`
- * @param tc pointer to the GNUNET_SCHEDULER_TaskContext
  */
 static void
-macendpoint_timeout (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+macendpoint_timeout (void *cls)
 {
   struct MacEndpoint *endpoint = cls;
   struct GNUNET_TIME_Relative timeout;
@@ -1681,11 +1675,9 @@ process_data (void *cls,
  * Task to (periodically) send a HELLO beacon
  *
  * @param cls pointer to the plugin struct
- * @param tc scheduler context
  */
 static void
-send_hello_beacon (void *cls,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_hello_beacon (void *cls)
 {
   struct Plugin *plugin = cls;
   uint16_t size;

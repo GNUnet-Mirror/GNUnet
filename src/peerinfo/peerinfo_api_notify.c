@@ -99,11 +99,10 @@ receive_notifications (struct GNUNET_PEERINFO_NotifyContext *nc);
 /**
  * Task to re-try connecting to peerinfo.
  *
- * @param cls the 'struct GNUNET_PEERINFO_NotifyContext'
- * @param tc scheduler context
+ * @param cls the `struct GNUNET_PEERINFO_NotifyContext *`
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_PEERINFO_NotifyContext *nc = cls;
 
@@ -138,7 +137,7 @@ process_notification (void *cls, const struct GNUNET_MessageHeader *msg)
   if (msg == NULL)
   {
     GNUNET_CLIENT_disconnect (nc->client);
-    reconnect (nc, NULL);
+    reconnect (nc);
     return;
   }
   ms = ntohs (msg->size);

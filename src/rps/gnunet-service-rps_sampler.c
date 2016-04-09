@@ -107,8 +107,7 @@ struct GetPeerCls
  * Sampler.
  */
 typedef void
-(*RPS_get_peers_type) (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+(*RPS_get_peers_type) (void *cls);
 
 /**
  * Get one random peer out of the sampled peers.
@@ -118,8 +117,8 @@ typedef void
  * Only used internally
  */
 static void
-sampler_get_rand_peer (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc);
+sampler_get_rand_peer (void *cls);
+
 
 /**
  * Get one random peer out of the sampled peers.
@@ -128,8 +127,7 @@ sampler_get_rand_peer (void *cls,
  * corrsponding peer to the client.
  */
 static void
-sampler_mod_get_rand_peer (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+sampler_mod_get_rand_peer (void *cls);
 
 
 /**
@@ -530,14 +528,15 @@ RPS_sampler_reinitialise_by_value (struct RPS_Sampler *sampler,
  * Only used internally
  */
 static void
-sampler_get_rand_peer (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+sampler_get_rand_peer (void *cls)
 {
   struct GetPeerCls *gpc = cls;
   uint32_t r_index;
   struct RPS_Sampler *sampler;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   gpc->get_peer_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   sampler = gpc->req_handle->sampler;
@@ -583,15 +582,16 @@ sampler_get_rand_peer (void *cls,
  * corrsponding peer to the client.
  */
 static void
-sampler_mod_get_rand_peer (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+sampler_mod_get_rand_peer (void *cls)
 {
   struct GetPeerCls *gpc = cls;
   struct RPS_SamplerElement *s_elem;
   struct GNUNET_TIME_Relative last_request_diff;
   struct RPS_Sampler *sampler;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   gpc->get_peer_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   sampler = gpc->req_handle->sampler;

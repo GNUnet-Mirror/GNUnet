@@ -204,11 +204,9 @@ send_peer_mon_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
  * Task run to re-establish the connection.
  *
  * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
- * @param tc scheduler context, unused
  */
 static void
-do_peer_connect (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_peer_connect (void *cls)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 

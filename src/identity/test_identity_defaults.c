@@ -77,10 +77,9 @@ cleanup ()
  * Termiante the testcase (failure).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   cleanup ();
   res = 1;
@@ -91,10 +90,9 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Termiante the testcase (success).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_normally (void *cls)
 {
   cleanup ();
   res = 0;

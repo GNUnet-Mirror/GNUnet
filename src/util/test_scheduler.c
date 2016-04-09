@@ -31,7 +31,7 @@ static const struct GNUNET_DISK_FileHandle *fds[2];
 
 
 static void
-task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task2 (void *cls)
 {
   int *ok = cls;
 
@@ -44,7 +44,7 @@ task2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task3 (void *cls)
 {
   int *ok = cls;
 
@@ -54,11 +54,13 @@ task3 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-taskWrt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskWrt (void *cls)
 {
   static char c;
   int *ok = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   GNUNET_assert (6 == *ok);
   GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->write_ready, fds[1]));
   (*ok) = 7;
@@ -67,14 +69,14 @@ taskWrt (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-taskNeverRun (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskNeverRun (void *cls)
 {
   GNUNET_assert (0);
 }
 
 
 static void
-taskLast (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskLast (void *cls)
 {
   int *ok = cls;
 
@@ -85,11 +87,13 @@ taskLast (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskRd (void *cls)
 {
   static char c;
   int *ok = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   GNUNET_assert (7 == *ok);
   GNUNET_assert (GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, fds[0]));
   GNUNET_assert (1 == GNUNET_DISK_file_read (fds[0], &c, 1));
@@ -101,7 +105,7 @@ taskRd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-task4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task4 (void *cls)
 {
   int *ok = cls;
 
@@ -119,7 +123,7 @@ task4 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-task1 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task1 (void *cls)
 {
   int *ok = cls;
 
@@ -148,7 +152,7 @@ check ()
 
 
 static void
-taskShutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskShutdown (void *cls)
 {
   int *ok = cls;
 
@@ -176,7 +180,7 @@ checkShutdown ()
 
 #ifndef MINGW
 static void
-taskSig (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskSig (void *cls)
 {
   int *ok = cls;
 
@@ -204,7 +208,7 @@ checkSignal ()
 
 
 static void
-taskCancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+taskCancel (void *cls)
 {
   int *ok = cls;
 

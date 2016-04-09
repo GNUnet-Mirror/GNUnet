@@ -564,8 +564,7 @@ sendtask ()
 
 
 static void
-progress_indicator (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+progress_indicator (void *cls)
 {
   static int counter;
 

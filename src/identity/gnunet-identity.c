@@ -84,11 +84,9 @@ static struct GNUNET_IDENTITY_Operation *delete_op;
  * Task run on shutdown.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != set_op)
   {

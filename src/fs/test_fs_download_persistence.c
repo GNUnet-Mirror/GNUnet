@@ -62,7 +62,7 @@ static int err;
 
 
 static void
-timeout_kill_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_kill_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Timeout downloading file\n");
   if (download != NULL)
@@ -81,7 +81,7 @@ timeout_kill_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   if (publish != NULL)
   {
@@ -92,7 +92,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_download_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_download_task (void *cls)
 {
   uint64_t size;
 
@@ -116,7 +116,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event);
 
 
 static void
-restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_fs_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Restarting FS.\n");
   GNUNET_FS_stop (fs);

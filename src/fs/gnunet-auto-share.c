@@ -317,17 +317,15 @@ save_state ()
  * Task run on shutdown.  Serializes our current state to disk.
  *
  * @param cls closure, unused
- * @param tc scheduler context, unused
  */
 static void
-do_stop_task (void *cls, 
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop_task (void *cls)
 {
   kill_task = NULL;
   do_shutdown = GNUNET_YES;
   if (NULL != publish_proc)
   {
-    GNUNET_OS_process_kill (publish_proc, 
+    GNUNET_OS_process_kill (publish_proc,
 			    SIGKILL);
     return;
   }
@@ -351,11 +349,9 @@ schedule_next_task (void);
  * process died).
  *
  * @param cls the `struct WorkItem` we were working on
- * @param tc context
  */
 static void
-maint_child_death (void *cls, 
-		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+maint_child_death (void *cls)
 {
   struct WorkItem *wi = cls;
   struct GNUNET_HashCode key;
@@ -364,10 +360,12 @@ maint_child_death (void *cls,
   int ret;
   char c;
   const struct GNUNET_DISK_FileHandle *pr;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   run_task = NULL;
   pr = GNUNET_DISK_pipe_handle (sigpipe,
 				GNUNET_DISK_PIPE_END_READ);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     /* shutdown scheduled us, someone else will kill child,
@@ -389,7 +387,7 @@ maint_child_death (void *cls,
   {
     /* process still running? Then where did the SIGCHLD come from?
        Well, let's declare it spurious (kernel bug?) and keep rolling.
-    */  
+    */
     GNUNET_break (0);
     run_task =
       GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -398,7 +396,7 @@ maint_child_death (void *cls,
     return;
   }
   GNUNET_assert (GNUNET_OK == ret);
-  
+
   GNUNET_OS_process_destroy (publish_proc);
   publish_proc = NULL;
 
@@ -457,11 +455,9 @@ sighandler_child_death ()
  * Function called to process work items.
  *
  * @param cls closure, NULL
- * @param tc scheduler context (unused)
  */
 static void
-work (void *cls,
-      const struct GNUNET_SCHEDULER_TaskContext *tc)
+work (void *cls)
 {
   static char *argv[14];
   static char anon_level[20];
@@ -521,7 +517,7 @@ work (void *cls,
 					     NULL);
     return;
   }
-  pr = GNUNET_DISK_pipe_handle (sigpipe, 
+  pr = GNUNET_DISK_pipe_handle (sigpipe,
 				GNUNET_DISK_PIPE_END_READ);
   run_task =
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -549,13 +545,13 @@ determine_id (void *cls,
 
   if (0 != STAT (filename, &sbuf))
   {
-    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, 
-			      "stat", 
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+			      "stat",
 			      filename);
     return GNUNET_OK;
   }
-  GNUNET_CRYPTO_hash (filename, 
-		      strlen (filename), 
+  GNUNET_CRYPTO_hash (filename,
+		      strlen (filename),
 		      &fx[0]);
   if (!S_ISDIR (sbuf.st_mode))
   {
@@ -564,8 +560,8 @@ determine_id (void *cls,
     fattr[0] = GNUNET_htonll (sbuf.st_size);
     fattr[0] = GNUNET_htonll (sbuf.st_mtime);
 
-    GNUNET_CRYPTO_hash (fattr, 
-			sizeof (fattr), 
+    GNUNET_CRYPTO_hash (fattr,
+			sizeof (fattr),
 			&fx[1]);
   }
   else
@@ -579,7 +575,7 @@ determine_id (void *cls,
   }
   /* use hash here to make hierarchical structure distinct from
      all files on the same level */
-  GNUNET_CRYPTO_hash (fx, 
+  GNUNET_CRYPTO_hash (fx,
 		      sizeof (fx),
 		      &ft);
   /* use XOR here so that order of the files in the directory
@@ -653,11 +649,9 @@ add_file (void *cls,
  * Periodically run task to update our view of the directory to share.
  *
  * @param cls NULL
- * @param tc scheduler context, unused
  */
 static void
-scan (void *cls, 
-      const struct GNUNET_SCHEDULER_TaskContext *tc)
+scan (void *cls)
 {
   run_task = NULL;
   start_time = GNUNET_TIME_absolute_get ();
@@ -695,7 +689,7 @@ schedule_next_task ()
   }
   else
   {
-    run_task = GNUNET_SCHEDULER_add_now (&work, 
+    run_task = GNUNET_SCHEDULER_add_now (&work,
 					 NULL);
   }
 }
@@ -710,15 +704,15 @@ schedule_next_task ()
  * @param c configuration
  */
 static void
-run (void *cls, 
-     char *const *args, 
+run (void *cls,
+     char *const *args,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   /* check arguments */
-  if ( (NULL == args[0]) || 
+  if ( (NULL == args[0]) ||
        (NULL != args[1]) ||
-       (GNUNET_YES != 
+       (GNUNET_YES !=
 	GNUNET_DISK_directory_test (args[0],
 				    GNUNET_YES)) )
   {
@@ -729,14 +723,14 @@ run (void *cls,
   cfg_filename = GNUNET_strdup (cfgfile);
   cfg = c;
   dir_name = args[0];
-  work_finished = GNUNET_CONTAINER_multihashmap_create (1024, 
+  work_finished = GNUNET_CONTAINER_multihashmap_create (1024,
 							GNUNET_NO);
   load_state ();
   run_task = GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
-						 &scan, 
+						 &scan,
 						 NULL);
   kill_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				    &do_stop_task,
                                     NULL);
 }
@@ -799,17 +793,17 @@ main (int argc, char *const *argv)
   int ok;
   struct GNUNET_SIGNAL_Context *shc_chld;
 
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, 
+  sigpipe = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO,
 			      GNUNET_NO, GNUNET_NO);
   GNUNET_assert (NULL != sigpipe);
   shc_chld =
     GNUNET_SIGNAL_handler_install (GNUNET_SIGCHLD,
 				   &sighandler_child_death);
   ok = (GNUNET_OK ==
-	GNUNET_PROGRAM_run (argc, argv, 
+	GNUNET_PROGRAM_run (argc, argv,
 			    "gnunet-auto-share [OPTIONS] FILENAME",
 			    gettext_noop
 			    ("Automatically publish files from a directory on GNUnet"),
@@ -823,7 +817,7 @@ main (int argc, char *const *argv)
   }
   while (NULL != (wi = work_head))
   {
-    GNUNET_CONTAINER_DLL_remove (work_head, 
+    GNUNET_CONTAINER_DLL_remove (work_head,
 				 work_tail,
 				 wi);
     GNUNET_free (wi->filename);

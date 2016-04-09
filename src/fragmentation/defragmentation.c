@@ -258,11 +258,9 @@ GNUNET_DEFRAGMENT_context_destroy (struct GNUNET_DEFRAGMENT_Context *dc)
  * Send acknowledgement to the other peer now.
  *
  * @param cls the message context
- * @param tc the scheduler context
  */
 static void
-send_ack (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_ack (void *cls)
 {
   struct MessageContext *mc = cls;
   struct GNUNET_DEFRAGMENT_Context *dc = mc->dc;

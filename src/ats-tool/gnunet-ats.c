@@ -265,11 +265,9 @@ free_addr_it (void *cls,
  * Task run on shutdown.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-end (void *cls,
-     const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   struct PendingResolutions * pr;
   struct PendingResolutions * next;

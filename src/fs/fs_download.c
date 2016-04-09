@@ -1372,10 +1372,9 @@ transmit_download_request (void *cls, size_t size, void *buf)
  * Reconnect to the FS service and transmit our queries NOW.
  *
  * @param cls our download context
- * @param tc unused
  */
 static void
-do_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_reconnect (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_CLIENT_Connection *client;
@@ -1625,10 +1624,9 @@ create_download_request (struct DownloadRequest *parent,
  * the current IBlock from the existing file.
  *
  * @param cls the 'struct ReconstructContext'
- * @param tc scheduler context
  */
 static void
-reconstruct_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconstruct_cont (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
 
@@ -1655,10 +1653,9 @@ reconstruct_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task requesting the next block from the tree encoder.
  *
  * @param cls the 'struct GNUJNET_FS_DownloadContext' we're processing
- * @param tc task context
  */
 static void
-get_next_block (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+get_next_block (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
 
@@ -1855,11 +1852,9 @@ fh_reader (void *cls, uint64_t offset, size_t max, void *buf, char **emsg)
  * request for the file.
  *
  * @param cls the 'struct GNUNET_FS_DownloadContext'
- * @param tc scheduler context
  */
 void
-GNUNET_FS_download_start_task_ (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc)
+GNUNET_FS_download_start_task_ (void *cls)
 {
   struct GNUNET_FS_DownloadContext *dc = cls;
   struct GNUNET_FS_ProgressInfo pi;

@@ -388,11 +388,9 @@ age_values (void *cls,
  * Reduce absolute preferences since they got old.
  *
  * @param cls unused
- * @param tc context
  */
 static void
-preference_aging (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+preference_aging (void *cls)
 {
   struct AgeContext ac;
 

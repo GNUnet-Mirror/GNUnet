@@ -333,11 +333,9 @@ destroy_pooled_connection (struct PooledConnection *entry)
  * Expire a #PooledConnection object
  *
  * @param cls the #PooledConnection object
- * @param tc scheduler task context
  */
 static void
-expire (void *cls,
-        const struct GNUNET_SCHEDULER_TaskContext *tc)
+expire (void *cls)
 {
   struct PooledConnection *entry = cls;
 
@@ -429,10 +427,9 @@ search_waiting (const struct PooledConnection *entry,
  * further schedules itself if there are similar waiting objects which can be notified.
  *
  * @param cls the #PooledConnection object
- * @param tc the task context from scheduler
  */
 static void
-connection_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_ready (void *cls)
 {
   struct PooledConnection *entry = cls;
   struct GST_ConnectionPool_GetHandle *gh;

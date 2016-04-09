@@ -405,11 +405,9 @@ GST_forwarded_operation_reply_relay (void *cls,
  * Task to free resources when forwarded operation has been timedout
  *
  * @param cls the ForwardedOperationContext
- * @param tc the task context from scheduler
  */
 void
-GST_forwarded_operation_timeout (void *cls,
-                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+GST_forwarded_operation_timeout (void *cls)
 {
   struct ForwardedOperationContext *fopc = cls;
 
@@ -776,10 +774,9 @@ GST_clear_fopcq ()
  * Task to clean up and shutdown nicely
  *
  * @param cls NULL
- * @param tc the TaskContext from scheduler
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct MessageQueue *mq_entry;
   uint32_t id;

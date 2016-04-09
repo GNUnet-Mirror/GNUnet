@@ -124,11 +124,9 @@ client_disconnect_handler (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup_task (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS shutdown initiated\n");

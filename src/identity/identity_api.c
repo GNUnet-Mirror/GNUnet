@@ -195,11 +195,9 @@ GNUNET_IDENTITY_ego_get_anonymous ()
  * Try again to connect to the identity service.
  *
  * @param cls handle to the identity service.
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls);
 
 
 /**
@@ -533,10 +531,9 @@ transmit_next (struct GNUNET_IDENTITY_Handle *h)
  * Try again to connect to the identity service.
  *
  * @param cls handle to the identity service.
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_IDENTITY_Handle *h = cls;
   struct GNUNET_IDENTITY_Operation *op;

@@ -34,16 +34,17 @@ static struct GNUNET_TIME_Relative interval;
 
 static struct GNUNET_TIME_Relative delta;
 
-static struct GNUNET_SCHEDULER_Task * speedup_task;
+static struct GNUNET_SCHEDULER_Task *speedup_task;
 
 
 static void
-do_speedup (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_speedup (void *cls)
 {
   static long long current_offset;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   speedup_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   current_offset += delta.rel_value_us;

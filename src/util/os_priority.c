@@ -70,18 +70,19 @@ static struct GNUNET_OS_Process current_process;
  * This handler is called when there are control data to be read on the pipe
  *
  * @param cls the 'struct GNUNET_DISK_FileHandle' of the control pipe
- * @param tc scheduler context
  */
 static void
-parent_control_handler (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+parent_control_handler (void *cls)
 {
   struct GNUNET_DISK_FileHandle *control_pipe = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   char sig;
   char *pipe_fd;
   ssize_t ret;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "`%s' invoked because of %d\n", __FUNCTION__,
+  tc = GNUNET_SCHEDULER_get_task_context ();
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "`%s' invoked because of %d\n", __FUNCTION__,
        tc->reason);
   if (0 != (tc->reason &
 	    (GNUNET_SCHEDULER_REASON_SHUTDOWN | GNUNET_SCHEDULER_REASON_TIMEOUT)))
@@ -118,12 +119,9 @@ parent_control_handler (void *cls,
  * variable) and raise those signals.
  *
  * @param cls closure (unused)
- * @param tc scheduler context (unused)
  */
 void
-GNUNET_OS_install_parent_control_handler (void *cls,
-                                          const struct
-                                          GNUNET_SCHEDULER_TaskContext *tc)
+GNUNET_OS_install_parent_control_handler (void *cls)
 {
   const char *env_buf;
   char *env_buf_end;
@@ -1751,18 +1749,19 @@ GNUNET_OS_command_stop (struct GNUNET_OS_CommandHandle *cmd)
 /**
  * Read from the process and call the line processor.
  *
- * @param cls the 'struct GNUNET_OS_CommandHandle'
- * @param tc scheduler context
+ * @param cls the `struct GNUNET_OS_CommandHandle *`
  */
 static void
-cmd_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cmd_read (void *cls)
 {
   struct GNUNET_OS_CommandHandle *cmd = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   GNUNET_OS_LineProcessor proc;
   char *end;
   ssize_t ret;
 
   cmd->rtask = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (GNUNET_YES != GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, cmd->r))
   {
     /* timeout, shutdown, etc. */

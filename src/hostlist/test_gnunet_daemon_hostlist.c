@@ -52,7 +52,7 @@ static struct PeerContext p2;
 
 
 static void
-clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+clean_up (void *cls)
 {
   if (p1.th != NULL)
   {
@@ -81,12 +81,12 @@ clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Timeout, give up.
  */
 static void
-timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_error (void *cls)
 {
   timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Timeout trying to connect peers, test failed.\n");
-  clean_up (NULL, tc);
+  clean_up (NULL);
 }
 
 
@@ -150,7 +150,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
-waitpid_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+waitpid_task (void *cls)
 {
   struct PeerContext *p = cls;
 
@@ -179,7 +179,7 @@ stop_arm (struct PeerContext *p)
  * Try again to connect to transport service.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   stop_arm (&p1);
   stop_arm (&p2);

@@ -105,7 +105,7 @@ unsigned char * SOCK5_proto_string(unsigned char * b, const char * s)
 /**
  * State of the SOCKS5 handshake.
  */
-struct GNUNET_SOCKS_Handshake 
+struct GNUNET_SOCKS_Handshake
 {
 
   /**
@@ -124,7 +124,7 @@ struct GNUNET_SOCKS_Handshake
   struct GNUNET_CONNECTION_TransmitHandle *th;
 
   /**
-   * Our stage in the SOCKS5 handshake 
+   * Our stage in the SOCKS5 handshake
    */
   int step;
 
@@ -199,7 +199,7 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
   GNUNET_assert (SOCKS5_step_done > ih->step && ih->step >= 0);
   switch (ih->step) {
     case SOCKS5_step_greet:  /* SOCKS5 server's greeting */
-      if (b[0] != 5) 
+      if (b[0] != 5)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "Not a SOCKS5 server\n");
@@ -234,7 +234,7 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
       b += 2;
       break;
     case SOCKS5_step_cmd:  /* SOCKS5 server's responce to command */
-      if (b[0] != 5) 
+      if (b[0] != 5)
       {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "SOCKS5 protocol error\n");
@@ -271,11 +271,11 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
       ih->instart = b;
       SOCKS5_handshake_done (ih);
       return;
-    case SOCKS5_step_done: 
+    case SOCKS5_step_done:
       GNUNET_assert (0);
   }
   ih->instart = b;
-  /* Do not reschedule the sender unless we're done reading. 
+  /* Do not reschedule the sender unless we're done reading.
    * I imagine this lets us avoid ever cancelling the transmit handle. */
   register_sender (ih);
 }
@@ -289,7 +289,7 @@ SOCKS5_handshake_step (struct GNUNET_SOCKS_Handshake *ih)
  * @param handler_cls closure for @a handler
  */
 void
-reciever (void *cls, 
+reciever (void *cls,
           const void *buf, size_t available,
           const struct sockaddr * addr,
           socklen_t addrlen, int errCode)
@@ -330,7 +330,7 @@ register_reciever (struct GNUNET_SOCKS_Handshake *ih, int want)
  */
 
 size_t
-transmit_ready (void *cls, 
+transmit_ready (void *cls,
                 size_t size,
                 void *buf)
 {
@@ -345,23 +345,28 @@ transmit_ready (void *cls,
    * GNUNET_CONNECTION_notify_transmit_ready() can schedule :
    *   transmit_timeout() - DNS still working
    *   connect_error() - DNS done but no socket?
-   * transmit_ready() - scheduler shutdown or timeout, or signal_transmit_error() 
+   * transmit_ready() - scheduler shutdown or timeout, or signal_transmit_error()
    * We'd need to dig into the scheduler to guess at the reason, as
    * connection.c tells us nothing itself, but mostly its timouts.
    * Initially, we'll simply ignore this and leave massive timeouts, but
    * maybe that should change for error handling pruposes.  It appears that
    * successful operations, including DNS resolution, do not use this.  */
-  if (NULL==buf)
+  if (NULL == buf)
   {
-    enum GNUNET_SCHEDULER_Reason reason = GNUNET_SCHEDULER_get_reason ();
-    if (0 != (reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+    tc = GNUNET_SCHEDULER_get_task_context ();
+    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
       return 0;
-    if (0 != (reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) {
-      if (0==ih->step) {
+    if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_TIMEOUT)) {
+      if (0==ih->step)
+      {
         LOG (GNUNET_ERROR_TYPE_WARNING,
              "Timeout contacting SOCKS server, retrying indefinitely, but probably hopeless.\n");
         register_sender (ih);
-      } else {
+      }
+      else
+      {
         LOG (GNUNET_ERROR_TYPE_ERROR,
              "Timeout during mid SOCKS handshake (step %u), probably not a SOCKS server.\n",
              ih->step);
@@ -418,7 +423,7 @@ register_sender (struct GNUNET_SOCKS_Handshake *ih)
 /**
  * Initialize a SOCKS5 handshake for authentication via username and
  * password.  Tor uses SOCKS username and password authentication to assign
- * programs unique circuits. 
+ * programs unique circuits.
  *
  * @param user username for the proxy
  * @param pass password for the proxy
@@ -435,7 +440,7 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
   unsigned char * n = b++;
   *n = 1; /* Number of authentication methods */
   /* We support no authentication even when requesting authentication,
-   * but this appears harmless, given the way that Tor uses authentication. 
+   * but this appears harmless, given the way that Tor uses authentication.
    * And some SOCKS5 servers might require this.  */
   *(b++) = SOCKS5_AUTH_NOAUTH;
   if (NULL != user) {
@@ -445,7 +450,7 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
   /* There is no apperent reason to support authentication methods beyond
    * username and password since afaik Tor does not support them. */
 
-  /* We authenticate with an empty username and password if the server demands 
+  /* We authenticate with an empty username and password if the server demands
    * them but we do not have any. */
   if (user == NULL)
     user = "";
@@ -466,7 +471,7 @@ GNUNET_SOCKS_init_handshake (const char *user, const char *pass)
 
 
 /**
- * Initialize a SOCKS5 handshake without authentication, thereby possibly 
+ * Initialize a SOCKS5 handshake without authentication, thereby possibly
  * sharing a Tor circuit with another process.
  *
  * @return Valid SOCKS5 hanbdshake handle
@@ -480,11 +485,11 @@ GNUNET_SOCKS_init_handshake_noauth ()
 
 /**
  * Build request that the SOCKS5 proxy open a TCP/IP stream to the given host
- * and port.  
+ * and port.
  *
  * @param ih SOCKS5 handshake
- * @param hostname 
- * @param port 
+ * @param hostname
+ * @param port
  */
 void
 GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
@@ -529,7 +534,7 @@ GNUNET_SOCKS_set_handshake_destination (struct GNUNET_SOCKS_Handshake *ih,
  * @param c open unused connection, consumed here.
  * @return Connection handle that becomes usable when the SOCKS5 handshake completes.
  */
-struct GNUNET_CONNECTION_Handle * 
+struct GNUNET_CONNECTION_Handle *
 GNUNET_SOCKS_run_handshake(struct GNUNET_SOCKS_Handshake *ih,
                             struct GNUNET_CONNECTION_Handle *c)
 {
@@ -580,7 +585,7 @@ GNUNET_SOCKS_do_connect (const char *service_name,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, service_name, "SOCKSPORT", &port0))
     port0 = 9050;
-  /* A typical Tor client should usually try port 9150 for the TBB too, but 
+  /* A typical Tor client should usually try port 9150 for the TBB too, but
    * GUNNet can probably assume a system Tor instalation. */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, service_name, "SOCKSHOST", &host0))

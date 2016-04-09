@@ -303,11 +303,9 @@ static struct GNUNET_SERVER_Handle *server;
  * content quickly.
  *
  * @param cls not used
- * @param tc task context
  */
 static void
-delete_expired (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc);
+delete_expired (void *cls);
 
 
 /**
@@ -388,10 +386,9 @@ expired_processor (void *cls,
  * content quickly.
  *
  * @param cls not used
- * @param tc task context
  */
 static void
-delete_expired (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delete_expired (void *cls)
 {
   expired_kill_task = NULL;
   plugin->api->get_expiration (plugin->api->cls, &expired_processor, NULL);
@@ -1579,8 +1576,7 @@ process_stat_done (void *cls,
  * Task run during shutdown.
  */
 static void
-cleaning_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls)
 {
   struct TransmitCallbackContext *tcc;
 

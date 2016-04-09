@@ -107,12 +107,12 @@ struct EgoEntry
    * DLL
    */
   struct EgoEntry *next;
-  
+
   /**
    * DLL
    */
   struct EgoEntry *prev;
-  
+
   /**
    * Ego Identifier
    */
@@ -122,7 +122,7 @@ struct EgoEntry
    * Public key string
    */
   char *keystring;
-  
+
   /**
    * The Ego
    */
@@ -146,7 +146,7 @@ struct RequestHandle
    * Handle to the rest connection
    */
   struct RestConnectionDataHandle *conndata_handle;
-  
+
   /**
    * The processing state
    */
@@ -170,7 +170,7 @@ struct RequestHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;    
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * The plugin result processor
@@ -260,11 +260,9 @@ cleanup_handle (struct RequestHandle *handle)
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_error (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
@@ -528,7 +526,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
   egoname_json = GNUNET_REST_jsonapi_resource_read_attr (json_res, GNUNET_REST_JSONAPI_IDENTITY_NAME);
   if (!json_is_string (egoname_json))
   {
-    GNUNET_REST_jsonapi_object_delete (json_obj); 
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     handle->emsg = GNUNET_strdup ("No name provided");
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
@@ -563,7 +561,7 @@ ego_create_cont (struct RestConnectionDataHandle *con,
  * @param url the url that is requested
  * @param cls the RequestHandle
  */
-static void 
+static void
 ego_edit_cont (struct RestConnectionDataHandle *con,
                const char *url,
                void *cls)
@@ -633,7 +631,7 @@ ego_edit_cont (struct RestConnectionDataHandle *con,
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
-  json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0); 
+  json_res = GNUNET_REST_jsonapi_object_get_resource (json_obj, 0);
 
   if (GNUNET_NO == GNUNET_REST_jsonapi_resource_check_type (json_res, GNUNET_REST_JSONAPI_IDENTITY_EGO))
   {
@@ -692,7 +690,7 @@ ego_edit_cont (struct RestConnectionDataHandle *con,
   GNUNET_SCHEDULER_add_now (&do_error, handle);
 }
 
-void 
+void
 ego_delete_cont (struct RestConnectionDataHandle *con_handle,
                  const char* url,
                  void *cls)
@@ -836,7 +834,7 @@ list_ego (void *cls,
   if (ID_REST_STATE_INIT == handle->state) {
     ego_entry = GNUNET_new (struct EgoEntry);
     GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
-    ego_entry->keystring = 
+    ego_entry->keystring =
       GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
     ego_entry->ego = ego;
     GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);

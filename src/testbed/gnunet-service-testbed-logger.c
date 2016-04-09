@@ -119,10 +119,9 @@ handle_log_msg (void *cls, struct GNUNET_SERVER_Client *client,
  * Task to clean up and shutdown nicely
  *
  * @param cls NULL
- * @param tc the TaskContext from scheduler
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct MessageQueue *mq_entry;
 
@@ -155,7 +154,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param client identification of the client; NULL
  *        for the last call when the server is destroyed
  */
-static void 
+static void
 client_disconnected (void *cls, struct GNUNET_SERVER_Client *client)
 {
   if (NULL == client)

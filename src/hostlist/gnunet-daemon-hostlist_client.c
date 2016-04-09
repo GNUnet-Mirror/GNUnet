@@ -774,8 +774,7 @@ clean_up ()
  * @param tc task context, unused
  */
 static void
-task_download (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc);
+task_download (void *cls);
 
 
 /**
@@ -841,17 +840,17 @@ download_prepare ()
  * server.
  *
  * @param cls closure, unused
- * @param tc task context, unused
  */
 static void
-task_download (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_download (void *cls)
 {
   int running;
   struct CURLMsg *msg;
   CURLMcode mret;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   ti_download = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1046,10 +1045,12 @@ download_hostlist ()
 
 
 static void
-task_download_dispatcher (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_download_dispatcher (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   ti_download_dispatcher_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Download is initiated...\n");
@@ -1075,12 +1076,14 @@ task_download_dispatcher (void *cls,
  * this task again for a later time.
  */
 static void
-task_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_check (void *cls)
 {
   static int once;
   struct GNUNET_TIME_Relative delay;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   ti_check_download = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (stats == NULL)
@@ -1125,13 +1128,14 @@ task_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * This tasks sets hostlist testing to allowed after intervall between to testings is reached
  *
  * @param cls closure
- * @param tc TaskContext
  */
 static void
-task_testing_intervall_reset (void *cls,
-                              const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_testing_intervall_reset (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   ti_testing_intervall_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   stat_testing_allowed = GNUNET_OK;
@@ -1144,12 +1148,14 @@ task_testing_intervall_reset (void *cls,
  * Task that writes hostlist entries to a file on a regular base
  *
  * @param cls closure
- * @param tc TaskContext
  */
 static void
-task_hostlist_saving (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_hostlist_saving (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   ti_saving_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   save_hostlist_file (GNUNET_NO);

@@ -138,11 +138,9 @@ struct GNUNET_IDENTITY_PROVIDER_Handle
  * Try again to connect to the service.
  *
  * @param cls handle to the service.
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls);
 
 
 /**
@@ -233,7 +231,7 @@ message_handler (void *cls,
       str = NULL;
     }
     label_str = strtok (str, ",");
-    
+
     if (NULL == label_str)
     {
       GNUNET_free (str);
@@ -301,7 +299,7 @@ message_handler (void *cls,
       op->ex_cb (op->cls, &token, ticket_nonce);
     GNUNET_free (op);
     break;
-  
+
   default:
     GNUNET_break (0);
     reschedule_connect (h);
@@ -397,10 +395,9 @@ transmit_next (struct GNUNET_IDENTITY_PROVIDER_Handle *h)
  * Try again to connect to the service.
  *
  * @param cls handle to the identity provider service.
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_IDENTITY_PROVIDER_Handle *h = cls;
 

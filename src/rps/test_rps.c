@@ -430,7 +430,7 @@ tofile_ (const char *file_name, char *line)
 
 
 /**
- * Write the ids and their according index in the given array to a file 
+ * Write the ids and their according index in the given array to a file
  * Unused
  */
 /* static void
@@ -493,7 +493,7 @@ make_oplist_entry ()
  * Task run on timeout to shut everything down.
  */
 static void
-shutdown_op (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_op (void *cls)
 {
   unsigned int i;
 
@@ -513,11 +513,11 @@ shutdown_op (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Seed peers.
  */
-  void
-seed_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+seed_peers (void *cls)
 {
+  struct RPSPeer *peer = cls;
   unsigned int amount;
-  struct RPSPeer *peer = (struct RPSPeer *) cls;
   unsigned int i;
 
   // TODO if malicious don't seed mal peers
@@ -532,13 +532,14 @@ seed_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_RPS_seed_ids (peer->rps_handle, amount, rps_peer_ids);
 }
 
+
 /**
  * Seed peers.
  */
-  void
-seed_peers_big (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+seed_peers_big (void *cls)
 {
-  struct RPSPeer *peer = (struct RPSPeer *) cls;
+  struct RPSPeer *peer = cls;
   unsigned int seed_msg_size;
   uint32_t num_peers_max;
   unsigned int amount;
@@ -740,7 +741,7 @@ default_reply_handle (void *cls,
               "[%s] got %" PRIu64 " peers:\n",
               GNUNET_i2s (rps_peer->peer_id),
               n);
-  
+
   for (i = 0; i < n; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -762,11 +763,10 @@ default_reply_handle (void *cls,
  * Request random peers.
  */
 static void
-request_peers (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+request_peers (void *cls)
 {
+  struct PendingRequest *pending_req = cls;
   struct RPSPeer *rps_peer;
-  struct PendingRequest *pending_req = (struct PendingRequest *) cls;
   struct PendingReply *pending_rep;
 
   if (GNUNET_YES == in_shutdown)
@@ -827,11 +827,10 @@ cancel_request (struct PendingReply *pending_rep)
  * Cancel a request.
  */
 static void
-cancel_request_cb (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+cancel_request_cb (void *cls)
 {
+  struct RPSPeer *rps_peer = cls;
   struct PendingReply *pending_rep;
-  struct RPSPeer *rps_peer = (struct RPSPeer *) cls;
 
   if (GNUNET_YES == in_shutdown)
     return;
@@ -1137,8 +1136,9 @@ manage_service_wrapper (unsigned int i, unsigned int j, int delta,
   }
 }
 
+
 static void
-churn (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+churn (void *cls)
 {
   unsigned int i;
   unsigned int j;

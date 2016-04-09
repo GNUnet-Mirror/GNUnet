@@ -637,17 +637,19 @@ collect_log_now (void)
 }
 
 static void
-collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+collect_log_task (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   log_task = NULL;
 
   collect_log_now();
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
   log_task = GNUNET_SCHEDULER_add_delayed (frequency,
-      &collect_log_task, NULL);
+                                           &collect_log_task, NULL);
 }
 
 
@@ -655,7 +657,6 @@ void
 perf_logging_stop ()
 {
   int c_m;
-  struct GNUNET_SCHEDULER_TaskContext tc;
   struct PeerLoggingTimestep *cur;
 
   if (GNUNET_YES!= running)
@@ -664,8 +665,7 @@ perf_logging_stop ()
   if (NULL != log_task)
     GNUNET_SCHEDULER_cancel (log_task);
   log_task = NULL;
-  tc.reason = GNUNET_SCHEDULER_REASON_SHUTDOWN;
-  collect_log_task (NULL, &tc);
+  collect_log_task (NULL);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Stop logging\n"));
@@ -684,6 +684,7 @@ perf_logging_stop ()
 
   GNUNET_free (lp);
 }
+
 
 void
 perf_logging_start (struct GNUNET_TIME_Relative log_frequency,
@@ -710,4 +711,3 @@ perf_logging_start (struct GNUNET_TIME_Relative log_frequency,
   running = GNUNET_YES;
 }
 /* end of file perf_ats_logging.c */
-

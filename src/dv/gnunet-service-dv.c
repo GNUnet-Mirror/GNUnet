@@ -398,11 +398,9 @@ static int in_shutdown;
  *
  * @param cls the 'struct DirectNeighbor' of the peer we're building
  *        a routing consensus with
- * @param tc scheduler context
  */
 static void
-initiate_set_union (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc);
+initiate_set_union (void *cls);
 
 
 /**
@@ -1132,11 +1130,9 @@ refresh_routes (void *cls,
  * Task to run #refresh_routes() on all direct neighbours.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-refresh_routes_task (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+refresh_routes_task (void *cls)
 {
   rr_task = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
@@ -1692,11 +1688,9 @@ listen_set_union (void *cls,
  *
  * @param cls the `struct DirectNeighbor *` of the peer we're building
  *        a routing consensus with
- * @param tc scheduler context
  */
 static void
-initiate_set_union (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+initiate_set_union (void *cls)
 {
   struct DirectNeighbor *neighbor = cls;
 
@@ -2082,11 +2076,9 @@ free_direct_neighbors (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   unsigned int i;
 

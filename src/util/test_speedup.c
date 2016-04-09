@@ -47,7 +47,7 @@ static unsigned int cycles;
  * @param tc scheduler context, unused
  */
 static void
-run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run (void *cls)
 {
   cycles++;
   fprintf (stderr, "..%u", cycles);

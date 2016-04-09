@@ -46,10 +46,9 @@ struct GNUNET_TESTBED_BarrierWaitHandle *wh;
  * Dummy task callback to keep us running forever
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != wh)
     GNUNET_TESTBED_barrier_wait_cancel (wh);
@@ -80,12 +79,14 @@ barrier_wait_cb (void *cls, const char *name, int status)
  * Task to wait for the barrier
  *
  * @param cls NULL
- * @param tc scheduler task context
  * @return
  */
 static void
-do_wait (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_wait (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   wh = GNUNET_TESTBED_barrier_wait (TEST_BARRIER_NAME, &barrier_wait_cb, NULL);

@@ -152,11 +152,9 @@ handle_client_disconnect (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup_task (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   struct ClientEntry *ce;
 
@@ -177,13 +175,11 @@ cleanup_task (void *cls,
 /**
  * Periodic task to refresh our announcement of the regex.
  *
- * @param cls the 'struct ClientEntry' of the client that triggered the
+ * @param cls the `struct ClientEntry *` of the client that triggered the
  *        announcement
- * @param tc scheduler context
  */
 static void
-reannounce (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+reannounce (void *cls)
 {
   struct ClientEntry *ce = cls;
 

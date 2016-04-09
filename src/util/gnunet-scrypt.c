@@ -110,8 +110,7 @@ count_leading_zeroes (const struct GNUNET_HashCode *hash)
  * @param tc task context
  */
 static void
-find_proof (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_proof (void *cls)
 {
   #define ROUND_SIZE 10
   uint64_t counter;
@@ -121,7 +120,9 @@ find_proof (void *cls,
   unsigned int i;
   struct GNUNET_TIME_Absolute timestamp;
   struct GNUNET_TIME_Relative elapsed;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     write_proof ();

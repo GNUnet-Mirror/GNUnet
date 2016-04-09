@@ -146,11 +146,9 @@ static struct GNUNET_IDENTITY_Handle *identity;
  * FS state.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-do_stop_task (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop_task (void *cls)
 {
   struct GNUNET_FS_PublishContext *p;
 

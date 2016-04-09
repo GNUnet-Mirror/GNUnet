@@ -541,11 +541,9 @@ translate_dot_plus (struct GNS_ResolverHandle *rh,
  * Task scheduled to asynchronously fail a resolution.
  *
  * @param cls the 'struct GNS_ResolverHandle' of the resolution to fail
- * @param tc task context
  */
 static void
-fail_resolution (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+fail_resolution (void *cls)
 {
   struct GNS_ResolverHandle *rh = cls;
 
@@ -808,8 +806,7 @@ handle_dns_result (void *cls,
  * @param tc task context
  */
 static void
-recursive_resolution (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc);
+recursive_resolution (void *cls);
 
 
 /**
@@ -2229,11 +2226,9 @@ recursive_gns_resolution_revocation (struct GNS_ResolverHandle *rh)
  * Task scheduled to continue with the resolution process.
  *
  * @param cls the `struct GNS_ResolverHandle` of the resolution
- * @param tc task context
  */
 static void
-recursive_resolution (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+recursive_resolution (void *cls)
 {
   struct GNS_ResolverHandle *rh = cls;
 

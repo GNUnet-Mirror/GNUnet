@@ -110,17 +110,17 @@ struct GNUNET_NAT_ExternalHandle
  * address and call our callback.
  *
  * @param cls the `struct GNUNET_NAT_ExternalHandle`
- * @param tc scheduler context
  */
 static void
-read_external_ipv4 (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_external_ipv4 (void *cls)
 {
   struct GNUNET_NAT_ExternalHandle *eh = cls;
   ssize_t ret;
   struct in_addr addr;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   eh->task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (GNUNET_YES == GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, eh->r))
     ret =
         GNUNET_DISK_file_read (eh->r, &eh->buf[eh->off],
@@ -162,11 +162,9 @@ read_external_ipv4 (void *cls,
  * (Asynchronously) signal error invoking "external-ip" to client.
  *
  * @param cls the `struct GNUNET_NAT_ExternalHandle` (freed)
- * @param tc scheduler context
  */
 static void
-signal_external_ip_error (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+signal_external_ip_error (void *cls)
 {
   struct GNUNET_NAT_ExternalHandle *eh = cls;
 
@@ -329,10 +327,9 @@ struct GNUNET_NAT_MiniHandle
  * Run "upnpc -l" to find out if our mapping changed.
  *
  * @param cls the `struct GNUNET_NAT_MiniHandle`
- * @param tc scheduler context
  */
 static void
-do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_refresh (void *cls);
 
 
 /**
@@ -478,10 +475,9 @@ process_refresh_output (void *cls, const char *line)
  * Run "upnpc -l" to find out if our mapping changed.
  *
  * @param cls the 'struct GNUNET_NAT_MiniHandle'
- * @param tc scheduler context
  */
 static void
-do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_refresh (void *cls)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
   int ac;

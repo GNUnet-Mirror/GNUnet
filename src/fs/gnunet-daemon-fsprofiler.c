@@ -267,10 +267,9 @@ make_file (uint64_t length,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct Pattern *p;
 
@@ -313,10 +312,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task run when a publish operation should be stopped.
  *
  * @param cls the 'struct Pattern' of the publish operation to stop
- * @param tc unused
  */
 static void
-publish_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+publish_stop_task (void *cls)
 {
   struct Pattern *p = cls;
 
@@ -329,10 +327,9 @@ publish_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task run when a download operation should be stopped.
  *
  * @param cls the 'struct Pattern' of the download operation to stop
- * @param tc unused
  */
 static void
-download_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+download_stop_task (void *cls)
 {
   struct Pattern *p = cls;
 
@@ -345,10 +342,9 @@ download_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task run when a download operation should be stopped.
  *
  * @param cls the 'struct Pattern' of the download operation to stop
- * @param tc unused
  */
 static void
-search_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+search_stop_task (void *cls)
 {
   struct Pattern *p = cls;
 
@@ -498,16 +494,16 @@ progress_cb (void *cls,
  * Start publish operation.
  *
  * @param cls the 'struct Pattern' specifying the operation to perform
- * @param tc scheduler context
  */
 static void
-start_publish (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_publish (void *cls)
 {
   struct Pattern *p = cls;
   struct GNUNET_FS_FileInformation *fi;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   p->task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   fi = make_file (p->x, p->y, p);
@@ -523,16 +519,16 @@ start_publish (void *cls,
  * Start download operation.
  *
  * @param cls the 'struct Pattern' specifying the operation to perform
- * @param tc scheduler context
  */
 static void
-start_download (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_download (void *cls)
 {
   struct Pattern *p = cls;
   struct GNUNET_FS_Uri *keywords;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   p->task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   keywords = make_keywords (p->x);

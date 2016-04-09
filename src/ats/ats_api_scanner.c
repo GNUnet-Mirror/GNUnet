@@ -297,11 +297,9 @@ interface_proc (void *cls,
  * Periodically get list of network addresses from our interfaces.
  *
  * @param cls closure
- * @param tc Task context
  */
 static void
-get_addresses (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+get_addresses (void *cls)
 {
   struct GNUNET_ATS_InterfaceScanner *is = cls;
 

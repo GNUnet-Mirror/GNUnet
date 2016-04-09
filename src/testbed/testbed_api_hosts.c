@@ -1259,10 +1259,9 @@ struct GNUNET_TESTBED_HostHabitableCheckHandle
  * Task for checking whether a host is habitable or not
  *
  * @param cls GNUNET_TESTBED_HostHabitableCheckHandle
- * @param tc the scheduler task context
  */
 static void
-habitability_check (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+habitability_check (void *cls)
 {
   struct GNUNET_TESTBED_HostHabitableCheckHandle *h = cls;
   void *cb_cls;

@@ -557,8 +557,7 @@ client_reschedule_session_timeout (struct GNUNET_ATS_Session *s)
  * @param tc gnunet scheduler task context
  */
 static void
-client_run (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc);
+client_run (void *cls);
 
 
 /**
@@ -997,11 +996,9 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
  * is the delayed task that actually disconnects the PUT.
  *
  * @param cls the `struct GNUNET_ATS_Session *` with the put
- * @param tc scheduler context
  */
 static void
-client_put_disconnect (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_put_disconnect (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
 
@@ -1128,15 +1125,15 @@ client_send_cb (void *stream,
  * Wake up a curl handle which was suspended
  *
  * @param cls the session
- * @param tc task context
  */
 static void
-client_wake_up (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_wake_up (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   s->recv_wakeup_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1293,11 +1290,9 @@ client_receive (void *stream,
  * Task performing curl operations
  *
  * @param cls plugin as closure
- * @param tc scheduler task context
  */
 static void
-client_run (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_run (void *cls)
 {
   struct HTTP_Client_Plugin *plugin = cls;
   int running;
@@ -1306,8 +1301,10 @@ client_run (void *cls,
   CURLMsg *msg;
   int put_request; /* GNUNET_YES if easy handle is put, GNUNET_NO for get */
   int msgs_left;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->client_perform_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -1963,11 +1960,9 @@ http_client_plugin_get_network_for_address (void *cls,
  * Session was idle, so disconnect it
  *
  * @param cls the `struct GNUNET_ATS_Session` of the idle session
- * @param tc scheduler context
  */
 static void
-client_session_timeout (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_session_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
   struct GNUNET_TIME_Relative left;

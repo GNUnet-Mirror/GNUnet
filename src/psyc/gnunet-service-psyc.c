@@ -428,10 +428,10 @@ message_queue_drop (struct Channel *chn);
 
 
 static void
-schedule_transmit_message (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_transmit_message (void *cls)
 {
   struct Channel *chn = cls;
+
   transmit_message (chn);
 }
 
@@ -440,10 +440,9 @@ schedule_transmit_message (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != nc)
   {

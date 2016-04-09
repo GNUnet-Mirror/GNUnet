@@ -279,11 +279,9 @@ reconnect (struct GNUNET_PEERINFO_Handle *h);
  * Task scheduled to re-try connecting to the peerinfo service.
  *
  * @param cls the `struct GNUNET_PEERINFO_Handle *`
- * @param tc scheduler context
  */
 static void
-reconnect_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
   struct GNUNET_PEERINFO_Handle *h = cls;
 
@@ -698,11 +696,9 @@ iterator_start_receive (void *cls,
  * Peerinfo iteration request has timed out.
  *
  * @param cls the `struct GNUNET_PEERINFO_IteratorContext *`
- * @param tc scheduler context
  */
 static void
-signal_timeout (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+signal_timeout (void *cls)
 {
   struct GNUNET_PEERINFO_IteratorContext *ic = cls;
   GNUNET_PEERINFO_Processor cb;

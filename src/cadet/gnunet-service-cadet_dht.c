@@ -206,17 +206,18 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
  * Periodically announce self id in the DHT
  *
  * @param cls closure
- * @param tc task context
  */
 static void
-announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+announce_id (void *cls)
 {
   struct GNUNET_HashCode phash;
   const struct GNUNET_HELLO_Message *hello;
   size_t size;
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative retry_time;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     announce_id_task = NULL;

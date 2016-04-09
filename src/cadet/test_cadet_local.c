@@ -53,17 +53,16 @@ static struct GNUNET_CADET_TransmitHandle *mth;
  * Connect to other client and send data
  *
  * @param cls Closue (unused).
- * @param tc TaskContext.
  */
 static void
-do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_connect (void *cls);
 
 
 /**
  * Shutdown nicely
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
   if (NULL != abort_task)
@@ -91,7 +90,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Something went wrong and timed out. Kill everything and set error flag
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ABORT\n");
   result = GNUNET_SYSERR;
@@ -101,7 +100,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (shutdown_task);
     shutdown_task = NULL;
   }
-  do_shutdown (cls, tc);
+  do_shutdown (cls);
 }
 
 
@@ -126,7 +125,8 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                  &do_shutdown,
                                   NULL);
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
@@ -146,9 +146,11 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
  *         (can be NULL -- that's not an error)
  */
 static void *
-inbound_channel (void *cls, struct GNUNET_CADET_Channel *channel,
-                const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port, enum GNUNET_CADET_ChannelOption options)
+inbound_channel (void *cls,
+                 struct GNUNET_CADET_Channel *channel,
+                 const struct GNUNET_PeerIdentity *initiator,
+                 uint32_t port,
+                 enum GNUNET_CADET_ChannelOption options)
 {
   long id = (long) cls;
 
@@ -247,13 +249,14 @@ do_send (void *cls, size_t size, void *buf)
  * Connect to other client and send data
  *
  * @param cls Closue (unused).
- * @param tc TaskContext.
  */
 static void
-do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect (void *cls)
 {
   struct GNUNET_PeerIdentity id;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 

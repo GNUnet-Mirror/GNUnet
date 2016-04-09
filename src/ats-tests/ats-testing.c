@@ -52,14 +52,14 @@ struct GNUNET_CONFIGURATION_Handle *cfg;
 
 struct GNUNET_ATS_TEST_Topology *top;
 
+
 /**
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   int c_m;
   int c_s;
@@ -437,7 +437,7 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
 }
 
 static void
-do_connect_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect_peers (void *cls)
 {
   int c_m;
   int c_s;
@@ -506,7 +506,7 @@ comm_connect_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 }
 
 static void
-do_comm_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_comm_connect (void *cls)
 {
   int c_s;
   int c_m;
@@ -649,7 +649,7 @@ ats_connect_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
 
 
 static void
-do_connect_ats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect_ats (void *cls)
 {
   int c_m;
   int c_s;

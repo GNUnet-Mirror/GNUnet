@@ -150,10 +150,9 @@ static struct OperationQueue *no_wait_queue;
  * get_statistics operation.
  *
  * @param cls the GetStatsContext
- * @param tc the scheduler task context
  */
 static void
-call_completion_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+call_completion_task (void *cls)
 {
   struct GetStatsContext *sc = cls;
 
@@ -169,10 +168,9 @@ call_completion_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * as we cannot destroy the statistics handle in iteration_completion_cb()
  *
  * @param cls the PeerGetStatsContext
- * @param tc the scheduler task context
  */
 static void
-op_done_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+op_done_task (void *cls)
 {
   struct PeerGetStatsContext *peer_sc = cls;
   struct GetStatsContext *sc;

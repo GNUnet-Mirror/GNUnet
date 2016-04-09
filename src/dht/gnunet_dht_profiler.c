@@ -406,28 +406,30 @@ static int in_shutdown = 0;
  */
 static unsigned int tries;
 
+
 /**
  * Task that collects successor statistics from all the peers.
+ *
  * @param cls
- * @param tc
  */
 static void
-collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+collect_stats (void *cls);
+
 
 /**
  * Connect to DHT services of active peers
  */
 static void
-start_profiling();
+start_profiling (void);
+
 
 /**
  * Shutdown task.  Cleanup all resources and operations.
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   struct ActiveContext *ac;
   unsigned int cnt;
@@ -546,10 +548,9 @@ summarize ()
  * Task to cancel DHT GET.
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cancel_get (void *cls)
 {
   struct ActiveContext *ac = cls;
   struct Context *ctx = ac->ctx;
@@ -637,10 +638,9 @@ get_iter (void *cls,
  * Task to do DHT GETs
  *
  * @param cls the active context
- * @param tc the scheduler task context
  */
 static void
-delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_get (void *cls)
 {
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac;
@@ -681,14 +681,15 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * clear the operation during shutdown.
  *
  * @param cls the context
- * @return tc scheduler task context.
  */
 static void
-teardown_dht_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+teardown_dht_connection (void *cls)
 {
   struct Context *ctx = cls;
   struct GNUNET_TESTBED_Operation *op;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   GNUNET_assert (NULL != ctx);
@@ -725,13 +726,12 @@ put_cont (void *cls, int success)
 
 
 /**
- * Task to do DHT PUTS
+ * Task to do DHT PUTs
  *
  * @param cls the active context
- * @param tc the scheduler task context
  */
 static void
-delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_put (void *cls)
 {
   struct ActiveContext *ac = cls;
 
@@ -1210,15 +1210,18 @@ successor_stats_iterator (void *cls,
  * Task that collects peer and its corresponding successors.
  *
  * @param cls Closure (NULL).
- * @param tc Task Context.
  */
 static void
-collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+collect_stats (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Start collecting statistics...\n");
   GNUNET_assert(NULL != testbed_handles);
 
   if (0 != max_searches)

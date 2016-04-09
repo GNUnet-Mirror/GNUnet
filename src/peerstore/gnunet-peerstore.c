@@ -32,16 +32,16 @@ static int ret;
 /*
  * Handle to PEERSTORE service
  */
-struct GNUNET_PEERSTORE_Handle *peerstore_handle;
+static struct GNUNET_PEERSTORE_Handle *peerstore_handle;
+
 
 /**
  * Run on shutdown
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != peerstore_handle)
   {

@@ -39,18 +39,19 @@
  * Removes the path from the peer (except for direct paths).
  *
  * @param cls Closure (path to destroy).
- * @param tc Task context.
  */
 static void
-path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+path_destroy_delayed (void *cls)
 {
   struct CadetPeerPath *path = cls;
   struct CadetPeer *peer;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "Destroy delayed %p (%u)\n", path, path->length);
   path->path_delete = NULL;
 
   /* During shutdown, the peers peermap might not exist anymore. */
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) == 0)
   {
     if (2 >= path->length)

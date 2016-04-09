@@ -526,8 +526,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-sendtask (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+sendtask (void *cls)
 {
   start_time = GNUNET_TIME_absolute_get ();
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

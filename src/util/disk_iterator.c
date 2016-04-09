@@ -77,8 +77,7 @@ struct GNUNET_DISK_DirectoryIterator
  * Task used by the directory iterator.
  */
 static void
-directory_iterator_task (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+directory_iterator_task (void *cls)
 {
   struct GNUNET_DISK_DirectoryIterator *iter = cls;
   char *name;

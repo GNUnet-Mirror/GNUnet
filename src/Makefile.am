@@ -13,14 +13,9 @@ endif
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   dv \
-  multicast \
-  psycutil \
-  psycstore \
-  psyc \
   rps \
-  social \
   $(CONSENSUS) \
-  $(SECRETSHARING) 
+  $(SECRETSHARING)
 endif
 
 if HAVE_REST
@@ -105,6 +100,11 @@ SUBDIRS = \
   exit \
   pt \
   integration-tests \
+  multicast \
+  psycutil \
+  psycstore \
+  psyc \
+  social \
   $(EXP_DIR) \
   $(PROVIDER_DIR)
 

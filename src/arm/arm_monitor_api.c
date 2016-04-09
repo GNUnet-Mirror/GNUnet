@@ -85,25 +85,29 @@ struct GNUNET_ARM_MonitorHandle
   struct GNUNET_SCHEDULER_Task * init_timeout_task_id;
 };
 
+
 static void
-monitor_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg);
+monitor_notify_handler (void *cls,
+                        const struct GNUNET_MessageHeader *msg);
+
 
 static int
 reconnect_arm_monitor (struct GNUNET_ARM_MonitorHandle *h);
+
 
 /**
  * Task scheduled to try to re-connect to arm.
  *
  * @param cls the 'struct GNUNET_ARM_MonitorHandle'
- * @param tc task context
  */
 static void
-reconnect_arm_monitor_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_arm_monitor_task (void *cls)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
 
   h->reconnect_task = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to ARM service for monitoring after delay\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to ARM service for monitoring after delay\n");
   reconnect_arm_monitor (h);
 }
 
@@ -147,15 +151,14 @@ reconnect_arm_monitor_later (struct GNUNET_ARM_MonitorHandle *h)
  * Init message timed out. Disconnect and try again.
  *
  * @param cls arm monitor handle
- * @param tc task context
  */
 static void
-init_timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+init_timeout_task (void *cls)
 {
   struct GNUNET_ARM_MonitorHandle *h = cls;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Init message timed out\n");
-
   h->init_timeout_task_id = NULL;
   reconnect_arm_monitor_later (h);
 }

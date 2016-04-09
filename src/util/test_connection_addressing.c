@@ -102,7 +102,7 @@ receive_check (void *cls, const void *buf, size_t available,
 
 
 static void
-run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_accept (void *cls)
 {
   void *addr;
   size_t alen;
@@ -142,7 +142,7 @@ make_hello (void *cls, size_t size, void *buf)
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   struct sockaddr_in v4;
 

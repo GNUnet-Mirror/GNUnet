@@ -73,8 +73,7 @@ static struct GNUNET_SCHEDULER_Task * call_task;
 
 
 static void
-phone_send (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+phone_send (void *cls)
 {
   static unsigned int i;
   char buf[32];
@@ -88,8 +87,7 @@ phone_send (void *cls,
 
 
 static void
-call_send (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+call_send (void *cls)
 {
   static unsigned int i;
   char buf[32];
@@ -272,10 +270,9 @@ static struct GNUNET_MICROPHONE_Handle phone_mic = {
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_test (void *cls)
 {
   GNUNET_SCHEDULER_shutdown ();
   if (NULL != op)

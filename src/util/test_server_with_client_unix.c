@@ -39,7 +39,7 @@ static int ok;
 
 
 static void
-send_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_done (void *cls)
 {
   struct GNUNET_SERVER_Client *argclient = cls;
 
@@ -74,7 +74,7 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
 
 
 static void
-clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+clean_up (void *cls)
 {
   GNUNET_SERVER_destroy (server);
   server = NULL;
@@ -126,7 +126,7 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   struct sockaddr_un un;
   const char *unixpath = "/tmp/testsock";

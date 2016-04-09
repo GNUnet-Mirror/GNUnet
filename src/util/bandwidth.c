@@ -142,11 +142,9 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
  * Task run whenever we hit the bandwidth limit for a tracker.
  *
  * @param cls the `struct GNUNET_BANDWIDTH_Tracker`
- * @param tc scheduler context
  */
 static void
-excess_trigger (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+excess_trigger (void *cls)
 {
   struct GNUNET_BANDWIDTH_Tracker *av = cls;
 

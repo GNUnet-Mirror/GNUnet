@@ -579,11 +579,9 @@ receive_helper (void *cls,
  * Continuation to call the receive callback.
  *
  * @param cls  our handle to the client connection
- * @param tc scheduler context
  */
 static void
-receive_task (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+receive_task (void *cls)
 {
   struct GNUNET_CLIENT_Connection *client = cls;
   GNUNET_CLIENT_MessageHandler handler = client->receiver_handler;
@@ -746,11 +744,9 @@ GNUNET_CLIENT_service_test_cancel (struct GNUNET_CLIENT_TestHandle *th)
  * and then cleans up.
  *
  * @param cls the `struct GNUNET_CLIENT_TestHandle`
- * @param tc scheduler context
  */
 static void
-report_result (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+report_result (void *cls)
 {
   struct GNUNET_CLIENT_TestHandle *th = cls;
 
@@ -1080,16 +1076,16 @@ client_notify (void *cls, size_t size, void *buf);
  * service after a while.
  *
  * @param cls our `struct GNUNET_CLIENT_TransmitHandle` of the request
- * @param tc unused
  */
 static void
-client_delayed_retry (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_delayed_retry (void *cls)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_TIME_Relative delay;
 
   th->reconnect_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* give up, was shutdown */
@@ -1153,11 +1149,14 @@ client_notify (void *cls,
   struct GNUNET_CLIENT_Connection *client = th->client;
   size_t ret;
   struct GNUNET_TIME_Relative delay;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "client_notify is running\n");
   th->th = NULL;
   client->th = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (NULL == buf)
   {
     delay = GNUNET_TIME_absolute_get_remaining (th->timeout);
@@ -1165,7 +1164,7 @@ client_notify (void *cls,
     if ( (GNUNET_YES != th->auto_retry) ||
          (0 == --th->attempts_left) ||
          (delay.rel_value_us < 1)||
-         (0 != (GNUNET_SCHEDULER_get_reason() & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
+         (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Transmission failed %u times, giving up.\n",

@@ -195,11 +195,9 @@ get_hello (void *cb_cls,
  * Offer the current HELLO of P2 to P1.
  *
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectRequest `
- * @param tc scheduler context
  */
 static void
-offer_hello (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc);
+offer_hello (void *cls);
 
 
 /**
@@ -207,8 +205,7 @@ offer_hello (void *cls,
  * transport service.
  */
 static void
-hello_offered (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+hello_offered (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = cls;
 
@@ -224,17 +221,17 @@ hello_offered (void *cls,
  * Offer the current HELLO of P2 to P1.
  *
  * @param cls our `struct GNUNET_TRANSPORT_TESTING_ConnectRequest `
- * @param tc scheduler context
  */
 static void
-offer_hello (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+offer_hello (void *cls)
 {
   struct GNUNET_TRANSPORT_TESTING_ConnectRequest *cc = cls;
   struct PeerContext *p1 = cc->p1;
   struct PeerContext *p2 = cc->p2;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   cc->tct = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   {

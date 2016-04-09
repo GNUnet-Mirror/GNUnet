@@ -703,7 +703,7 @@ keygen_session_destroy (struct KeygenSession *ks)
  * @param tc unused
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   while (NULL != decrypt_sessions_head)
     decrypt_session_destroy (decrypt_sessions_head);
@@ -2274,4 +2274,3 @@ main (int argc, char *const *argv)
           GNUNET_SERVICE_run (argc, argv, "secretsharing",
                               GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
-

@@ -83,7 +83,7 @@ struct TestingContext
 
 
 static void
-do_shutdown2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown2 (void *cls)
 {
   struct TestingContext *test_ctx = cls;
 
@@ -102,10 +102,9 @@ do_shutdown2 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Task for shutdown
  *
  * @param cls the testing context
- * @param tc the tast context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_shutdown (void *cls);
 
 
 static void
@@ -133,10 +132,9 @@ peer_status_cb (void *cls, struct GNUNET_TESTING_Peer *peer, int success)
  * Task for shutdown
  *
  * @param cls the testing context
- * @param tc the tast context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   struct TestingContext *test_ctx = cls;
 
@@ -149,7 +147,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                test_ctx));
   }
   else
-    do_shutdown2 (test_ctx, tc);
+    do_shutdown2 (test_ctx);
 }
 
 

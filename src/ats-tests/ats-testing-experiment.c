@@ -415,8 +415,9 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
   return e_counter;
 }
 
+
 static void
-timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
+timeout_experiment (void *cls)
 {
   struct Experiment *e = cls;
   e->experiment_timeout_task = NULL;
@@ -431,6 +432,7 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
   e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time),
       GNUNET_SYSERR);
 }
+
 
 static void
 enforce_start_send (struct GNUNET_ATS_TEST_Operation *op)
@@ -573,10 +575,12 @@ static void enforce_episode (struct Episode *ep)
   }
 }
 
+
 static void
-timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
+timeout_episode (void *cls)
 {
   struct Experiment *e = cls;
+
   e->episode_timeout_task = NULL;
   if (NULL != e->ep_done_cb)
     e->ep_done_cb (e->cur);
@@ -741,4 +745,3 @@ GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e)
 }
 
 /* end of file ats-testing-experiment.c*/
-

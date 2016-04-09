@@ -92,13 +92,14 @@ struct TcpContext
  * (or once we failed to connect...).
  *
  * @param cls the 'struct TcpContext'
- * @param tc scheduler context
  */
 static void
-tcp_send (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+tcp_send (void *cls)
 {
   struct TcpContext *ctx = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((NULL != tc->write_ready) &&
       (GNUNET_NETWORK_fdset_isset (tc->write_ready, ctx->s)))
   {
@@ -228,10 +229,9 @@ test (void *cls, struct GNUNET_SERVER_Client *client,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_SERVER_destroy (server);
   server = NULL;

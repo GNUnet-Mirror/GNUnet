@@ -1713,8 +1713,7 @@ handle_client_accept (void *cls,
  * @param tc context information (why was this task triggered now)
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   while (NULL != incoming_head)
     incoming_destroy (incoming_head);
@@ -1747,13 +1746,14 @@ shutdown_task (void *cls,
  * @param tc context information (why was this task triggered now)
  */
 static void
-incoming_timeout_cb (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+incoming_timeout_cb (void *cls)
 {
   struct Operation *incoming = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   incoming->timeout_task = NULL;
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

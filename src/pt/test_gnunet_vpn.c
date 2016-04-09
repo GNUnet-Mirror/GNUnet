@@ -171,8 +171,7 @@ do_shutdown ()
  * Function to run the HTTP client.
  */
 static void
-curl_main (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+curl_main (void *cls)
 {
   fd_set rs;
   fd_set ws;
@@ -304,7 +303,7 @@ mhd_main (void);
 
 
 static void
-mhd_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+mhd_task (void *cls)
 {
   mhd_task_id = NULL;
   MHD_run (mhd);
@@ -313,7 +312,7 @@ mhd_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-ctrl_c_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ctrl_c_shutdown (void *cls)
 {
   ctrl_c_task_id = NULL;
   do_shutdown ();

@@ -98,10 +98,9 @@ process_hello (void *cls, const struct GNUNET_MessageHeader *message)
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != ghh)
   {
@@ -159,10 +158,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_CLIENTS_init (server);
   if (GNUNET_OK != GDS_NEIGHBOURS_init ())
   {
-    shutdown_task (NULL, NULL);
+    shutdown_task (NULL);
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
                                 NULL);
   GDS_transport_handle =
       GNUNET_TRANSPORT_connect (GDS_cfg, NULL, NULL, NULL, NULL, NULL);

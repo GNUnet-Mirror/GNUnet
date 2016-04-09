@@ -799,20 +799,23 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
   }
 }
 
+
 static void
-collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+collect_log_task (void *cls)
 {
   struct LoggingHandle *l = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   l->log_task = NULL;
-
   GNUNET_ATS_TEST_logging_now (l);
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
-
   l->log_task = GNUNET_SCHEDULER_add_delayed (l->frequency,
-      &collect_log_task, l);
+                                              &collect_log_task,
+                                              l);
 }
+
 
 /**
  * Stop logging
@@ -905,4 +908,3 @@ GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
   return l;
 }
 /* end of file ats-testing-log.c */
-

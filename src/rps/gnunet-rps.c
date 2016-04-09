@@ -92,11 +92,9 @@ GNUNET_GETOPT_set_peerid (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * Cancels pending request and disconnects.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-do_shutdown (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != req_handle)

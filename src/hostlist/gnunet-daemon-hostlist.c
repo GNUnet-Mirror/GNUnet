@@ -212,11 +212,9 @@ disconnect_handler (void *cls,
  * the other services.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-cleaning_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist daemon is shutting down\n");

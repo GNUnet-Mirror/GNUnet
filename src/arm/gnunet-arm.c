@@ -179,10 +179,9 @@ delete_files ()
  * jobs that we've been asked to do in order.
  *
  * @param cls closure, unused
- * @param tc context, unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != h)
   {
@@ -269,10 +268,9 @@ ret_string (enum GNUNET_ARM_Result result)
  * Main task that runs our various operations in order.
  *
  * @param cls closure
- * @param tc scheudler context
  */
 static void
-action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+action_loop (void *cls);
 
 
 /**
@@ -539,11 +537,13 @@ list_callback (void *cls,
  * do, in order.
  *
  * @param cls closure, unused
- * @param tc context, unused
  */
 static void
-action_loop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+action_loop (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Running requested actions\n");

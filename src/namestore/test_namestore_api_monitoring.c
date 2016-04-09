@@ -126,10 +126,9 @@ do_shutdown ()
  * Re-establish the connection to the service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   do_shutdown ();
   res = 1;
@@ -137,7 +136,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   do_shutdown ();
   res = 0;

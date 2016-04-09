@@ -275,12 +275,12 @@ handle_copy_lazy (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling response to lazy copy\n");
-  
+
   GNUNET_CONTAINER_DLL_remove (set->copy_req_head,
                                set->copy_req_tail,
                                req);
 
-  
+
   // We pass none as operation here, since it doesn't matter when
   // cloning.
   new_set = create_internal (set->cfg, GNUNET_SET_OPERATION_NONE, &msg->cookie);
@@ -790,11 +790,9 @@ GNUNET_SET_prepare (const struct GNUNET_PeerIdentity *other_peer,
  * Connect to the set service in order to listen for requests.
  *
  * @param cls the `struct GNUNET_SET_ListenHandle *` to connect
- * @param tc task context if invoked as a task, NULL otherwise
  */
 static void
-listen_connect (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc);
+listen_connect (void *cls);
 
 
 /**
@@ -882,11 +880,9 @@ handle_client_listener_error (void *cls,
  * Connect to the set service in order to listen for requests.
  *
  * @param cls the `struct GNUNET_SET_ListenHandle *` to connect
- * @param tc task context if invoked as a task, NULL otherwise
  */
 static void
-listen_connect (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+listen_connect (void *cls)
 {
   static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     { &handle_request, GNUNET_MESSAGE_TYPE_SET_REQUEST },
@@ -895,9 +891,10 @@ listen_connect (void *cls,
   struct GNUNET_SET_ListenHandle *lh = cls;
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_ListenMessage *msg;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-  if ( (NULL != tc) &&
-       (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN)) )
+  tc = GNUNET_SCHEDULER_get_task_context ();
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Listener not reconnecting due to shutdown\n");
@@ -947,7 +944,7 @@ GNUNET_SET_listen (const struct GNUNET_CONFIGURATION_Handle *cfg,
   lh->operation = operation;
   lh->app_id = *app_id;
   lh->reconnect_backoff = GNUNET_TIME_UNIT_MILLISECONDS;
-  listen_connect (lh, NULL);
+  listen_connect (lh);
   if (NULL == lh->client)
   {
     GNUNET_free (lh);

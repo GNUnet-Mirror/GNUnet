@@ -154,11 +154,9 @@ static unsigned long long sc_count_max;
  * Task run to asynchronously terminate the cadet due to timeout.
  *
  * @param cls the 'struct CadetClient'
- * @param tc scheduler context
  */
 static void
-timeout_cadet_task (void *cls,
-		     const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_cadet_task (void *cls)
 {
   struct CadetClient *sc = cls;
   struct GNUNET_CADET_Channel *tun;
@@ -324,7 +322,7 @@ continue_writing (struct CadetClient *sc)
 static void
 handle_datastore_reply (void *cls,
 			const struct GNUNET_HashCode *key,
-			size_t size, 
+			size_t size,
 			const void *data,
 			enum GNUNET_BLOCK_Type type,
 			uint32_t priority,

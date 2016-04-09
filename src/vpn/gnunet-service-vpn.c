@@ -2866,11 +2866,9 @@ cleanup_channel (void *cls,
  * Function scheduled as very last function, cleans up after us
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup (void *cls)
 {
   unsigned int i;
 

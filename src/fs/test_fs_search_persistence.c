@@ -60,7 +60,7 @@ static int err;
 
 
 static void
-abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_error (void *cls)
 {
   timeout_task = NULL;
   fprintf (stderr,
@@ -78,8 +78,9 @@ abort_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   err = 1;
 }
 
+
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   if (NULL != publish)
   {
@@ -95,7 +96,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_search_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_search_task (void *cls)
 {
   if (NULL != search)
   {
@@ -110,7 +111,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *event);
 
 
 static void
-restart_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_fs_task (void *cls)
 {
   GNUNET_FS_stop (fs);
   fs = GNUNET_FS_start (cfg, "test-fs-search-persistence", &progress_cb, NULL,

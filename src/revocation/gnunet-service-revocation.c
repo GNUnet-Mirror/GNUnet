@@ -521,11 +521,9 @@ add_revocation (void *cls,
  * run the set operation on the revocation certificates.
  *
  * @param cls NULL
- * @param tc scheduler context (unused)
  */
 static void
-transmit_task_cb (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_task_cb (void *cls)
 {
   struct PeerEntry *peer_entry = cls;
 
@@ -662,11 +660,9 @@ free_entry (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != revocation_set)
   {

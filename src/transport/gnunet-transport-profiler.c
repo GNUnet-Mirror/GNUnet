@@ -161,11 +161,9 @@ static int verbosity;
  * Stops monitoring activity.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct Iteration *icur;
   struct Iteration *inext;

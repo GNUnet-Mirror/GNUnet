@@ -41,7 +41,7 @@ static struct GNUNET_CLIENT_Connection *client;
 
 
 static void
-do_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop (void *cls)
 {
   if (NULL != client)
   {

@@ -117,10 +117,9 @@ file_hash_finish (struct GNUNET_CRYPTO_FileHashContext *fhc,
  * File hashing task.
  *
  * @param cls closure
- * @param tc context
  */
 static void
-file_hash_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+file_hash_task (void *cls)
 {
   struct GNUNET_CRYPTO_FileHashContext *fhc = cls;
   struct GNUNET_HashCode *res;

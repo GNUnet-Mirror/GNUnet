@@ -140,8 +140,7 @@ mhd_ahc (void *cls,
 
 
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *c)
+do_shutdown (void *cls)
 {
   if (mhd_task_id != NULL)
   {
@@ -181,8 +180,7 @@ curl_main (void);
 
 
 static void
-curl_task (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+curl_task (void *cls)
 {
   curl_task_id = NULL;
   curl_main ();
@@ -264,7 +262,7 @@ curl_main ()
 
 
 static void
-start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_curl (void *cls)
 {
   GNUNET_asprintf (&url,
 		   "http://%s/hello_world",
@@ -289,7 +287,7 @@ start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-disco_ns (void* cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+disco_ns (void* cls)
 {
   GNUNET_NAMESTORE_disconnect (namestore);
   namestore = NULL;
@@ -340,8 +338,7 @@ mhd_main (void);
 
 
 static void
-mhd_task (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+mhd_task (void *cls)
 {
   mhd_task_id = NULL;
   MHD_run (mhd);

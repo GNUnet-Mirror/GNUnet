@@ -250,11 +250,9 @@ process_payload (const struct GNUNET_HELLO_Address *address,
  * Task to asynchronously terminate a session.
  *
  * @param cls the `struct GNUNET_ATS_SessionKiller` with the information for the kill
- * @param tc scheduler context
  */
 static void
-kill_session_task (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+kill_session_task (void *cls)
 {
   struct GNUNET_ATS_SessionKiller *sk = cls;
 
@@ -756,11 +754,9 @@ ats_request_address_change (void *cls,
  * and cancels pending validations.
  *
  * @param cls closure, unused
- * @param tc task context (unused)
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GST_neighbours_stop ();
   GST_plugins_unload ();

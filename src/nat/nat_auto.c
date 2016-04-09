@@ -258,18 +258,17 @@ stop_stun ()
  * incoming connection.
  *
  * @param cls
- * @param tc scheduler context
  */
 static void
-do_udp_read (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_udp_read (void *cls)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
   unsigned char reply_buf[1024];
   ssize_t rlen;
   struct sockaddr_in answer;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((0 != (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) &&
       (GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                    lsock4)))
@@ -402,11 +401,9 @@ result_callback (void *cls,
  * Main function for the connection reversal test.
  *
  * @param cls the `struct GNUNET_NAT_AutoHandle`
- * @param tc scheduler context
  */
 static void
-reversal_test (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+reversal_test (void *cls)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 

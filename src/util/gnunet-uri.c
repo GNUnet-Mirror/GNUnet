@@ -47,10 +47,9 @@ static struct GNUNET_DISK_PipeHandle *sigpipe;
  * process died) or when user presses CTRL-C.
  *
  * @param cls closure, NULL
- * @param tc scheduler context
  */
 static void
-maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+maint_child_death (void *cls)
 {
   enum GNUNET_OS_ProcessStatusType type;
   if ( (GNUNET_OK !=

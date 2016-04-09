@@ -487,11 +487,9 @@ destroy_it (void *cls,
  * Stops monitoring activity.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct GNUNET_TIME_Relative duration;
   struct ValidationResolutionContext *cur;
@@ -598,8 +596,7 @@ shutdown_task (void *cls,
  * We are done, shut down.
  */
 static void
-operation_timeout (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+operation_timeout (void *cls)
 {
   struct PeerResolutionContext *cur;
   struct PeerResolutionContext *next;

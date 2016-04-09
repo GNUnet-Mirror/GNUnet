@@ -646,7 +646,7 @@ get_nproc ()
 
 
 static void
-sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+sample_load_task (void *cls)
 {
   struct GNUNET_TIME_Absolute now;
   char *str;
@@ -655,8 +655,10 @@ sample_load_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int ld_disk;
   unsigned int mem_usage;
   unsigned int nproc;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   sample_load_task_id = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   ld_cpu = cpu_get_load ();

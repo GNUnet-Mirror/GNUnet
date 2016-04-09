@@ -110,11 +110,9 @@ struct GNUNET_FS_PublishKskContext
  * of the keywords).
  *
  * @param cls closure of type `struct PublishKskContext *`
- * @param tc unused
  */
 static void
-publish_ksk_cont (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc);
+publish_ksk_cont (void *cls);
 
 
 /**
@@ -148,11 +146,9 @@ kb_put_cont (void *cls,
  * publishing operation (iterating over all of the keywords).
  *
  * @param cls closure of type `struct GNUNET_FS_PublishKskContext *`
- * @param tc unused
  */
 static void
-publish_ksk_cont (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+publish_ksk_cont (void *cls)
 {
   struct GNUNET_FS_PublishKskContext *pkc = cls;
   const char *keyword;

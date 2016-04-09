@@ -85,11 +85,13 @@ static struct GNUNET_SCHEDULER_Task * stage_task;
 #define OKPP do { ok++; } while (0)
 #endif
 
-static void
-run_stage(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 static void
-end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_stage(void *cls);
+
+
+static void
+end (void *cls)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Stopping\n");
 
@@ -129,8 +131,9 @@ end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
 static void
-end_badly(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   die_task = NULL;
 
@@ -172,17 +175,20 @@ testing_connect_cb(struct PeerContext *p1, struct PeerContext *p2, void *cls)
   stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL );
 }
 
+
 static void
-connect_timeout(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_timeout(void *cls)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peers not connected, next stage\n");
   timeout_task = NULL;
-  stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL );
+  stage_task = GNUNET_SCHEDULER_add_now (&run_stage, NULL);
 }
+
 
 static int started;
 
-void
+
+static void
 start_cb(struct PeerContext *p, void *cls)
 {
 
@@ -243,8 +249,9 @@ static int check_blacklist_config (char *cfg_file,
   return GNUNET_OK;
 }
 
+
 static void
-run_stage(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_stage (void *cls)
 {
   stage_task = NULL;
   if (NULL != die_task)

@@ -47,9 +47,9 @@ static void secret_ready_cb (void *cls,
   GNUNET_SCHEDULER_shutdown ();
 }
 
+
 static void
-handle_shutdown (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext * tc)
+handle_shutdown (void *cls)
 {
   if (NULL != keygen)
   {
@@ -58,12 +58,13 @@ handle_shutdown (void *cls,
   }
 }
 
+
 static void
 run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  struct GNUNET_HashCode session_id; 
+  struct GNUNET_HashCode session_id;
   struct GNUNET_TIME_Absolute start;
   struct GNUNET_TIME_Absolute deadline;
 
@@ -100,4 +101,3 @@ main (int argc, char **argv)
     return ret;
   return (GNUNET_YES == success) ? 0 : 1;
 }
-

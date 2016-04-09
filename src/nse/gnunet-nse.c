@@ -21,7 +21,7 @@
 /**
  * @file nse/gnunet-nse.c
  * @brief Program to display network size estimates from the NSE service
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -57,10 +57,9 @@ static int status;
  * Task to shutdown and clean up all state
  *
  * @param cls NULL
- * @param tc the scheduler task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != test)
@@ -160,7 +159,7 @@ main (int argc, char *const *argv)
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
     GNUNET_GETOPT_OPTION_END
   };
-  
+
   status = 1;
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv, "gnunet-nse",

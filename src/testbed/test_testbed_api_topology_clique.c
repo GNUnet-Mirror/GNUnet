@@ -63,10 +63,9 @@ static unsigned int overlay_connects;
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != op)

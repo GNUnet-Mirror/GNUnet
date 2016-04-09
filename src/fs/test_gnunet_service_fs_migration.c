@@ -64,8 +64,7 @@ struct DownloadContext
 
 
 static void
-do_stop (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop (void *cls)
 {
   struct GNUNET_TIME_Relative del;
   char *fancy;
@@ -140,11 +139,12 @@ do_download (void *cls,
 
 
 static void
-stop_source_peer (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+stop_source_peer (void *cls)
 {
   struct DownloadContext *dc = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   /* Do not interact with testbed when shutting down */
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;

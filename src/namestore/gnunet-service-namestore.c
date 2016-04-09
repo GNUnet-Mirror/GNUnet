@@ -270,10 +270,9 @@ static struct GNUNET_SERVER_NotificationContext *monitor_nc;
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   struct ZoneIteration *no;
   struct NamestoreClient *nc;
@@ -1525,11 +1524,9 @@ monitor_sync (struct ZoneMonitor *zm)
  * Obtain the next datum during the zone monitor's zone intiial iteration.
  *
  * @param cls zone monitor that does its initial iteration
- * @param tc scheduler context
  */
 static void
-monitor_next (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc);
+monitor_next (void *cls);
 
 
 /**
@@ -1606,11 +1603,9 @@ handle_monitor_start (void *cls,
  * Obtain the next datum during the zone monitor's zone intiial iteration.
  *
  * @param cls zone monitor that does its initial iteration
- * @param tc scheduler context
  */
 static void
-monitor_next (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+monitor_next (void *cls)
 {
   struct ZoneMonitor *zm = cls;
   int ret;

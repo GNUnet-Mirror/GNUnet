@@ -358,12 +358,10 @@ queue_request (struct GNUNET_VPN_RedirectionRequest *rr)
 /**
  * Connect to the VPN service and start again to transmit our requests.
  *
- * @param cls the 'struct GNUNET_VPN_Handle *'
- * @param tc scheduler context
+ * @param cls the `struct GNUNET_VPN_Handle *`
  */
 static void
-connect_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+connect_task (void *cls)
 {
   struct GNUNET_VPN_Handle *vh = cls;
 

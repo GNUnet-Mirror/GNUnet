@@ -354,7 +354,7 @@ sendtask ()
 
 
 static void
-measure (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+measure (void *cls)
 {
   static int counter;
 

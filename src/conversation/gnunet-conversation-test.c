@@ -96,11 +96,9 @@ static struct Recording *rec_tail;
  * Terminate test.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   struct Recording *rec;
 
@@ -126,11 +124,9 @@ do_shutdown (void *cls,
  * Terminate recording process and switch to playback.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-switch_to_speaker (void *cls,
-		   const struct GNUNET_SCHEDULER_TaskContext *tc)
+switch_to_speaker (void *cls)
 {
   struct Recording *rec;
 

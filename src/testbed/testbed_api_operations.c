@@ -549,10 +549,9 @@ rq_remove (struct GNUNET_TESTBED_Operation *op)
  * the ready queue.
  *
  * @param cls NULL
- * @param tc scheduler task context.  Not used.
  */
 static void
-process_rq_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_rq_task (void *cls)
 {
   struct GNUNET_TESTBED_Operation *op;
   struct OperationQueue *queue;

@@ -185,10 +185,9 @@ evaluate ()
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
 
   if (GNUNET_YES == logging)
@@ -223,8 +222,9 @@ print_progress ()
       &print_progress, NULL );
 }
 
+
 static void
-ats_pref_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ats_pref_task (void *cls)
 {
   struct BenchmarkPeer *me = cls;
 

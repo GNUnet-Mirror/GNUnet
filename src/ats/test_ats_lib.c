@@ -279,11 +279,9 @@ find_address_information (const struct GNUNET_HELLO_Address *addr)
  * Task run to terminate the testcase.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-end (void *cls,
-     const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   if (0 != ret)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -335,11 +333,9 @@ end (void *cls,
  * Main interpreter loop. Runs the steps of the test.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-interpreter (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc);
+interpreter (void *cls);
 
 
 /**
@@ -591,11 +587,9 @@ reservation_cb (void *cls,
  * Main interpreter loop. Runs the steps of the test.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-interpreter (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+interpreter (void *cls)
 
 {
   struct Command *cmd;

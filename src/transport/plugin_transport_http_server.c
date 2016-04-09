@@ -491,14 +491,14 @@ notify_session_monitor (struct HTTP_Server_Plugin *plugin,
  * Wake up an MHD connection which was suspended
  *
  * @param cls the session
- * @param tc task context
  */
 static void
-server_wake_up (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_wake_up (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   s->recv_wakeup_task = NULL;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -641,11 +641,9 @@ http_server_plugin_disconnect_session (void *cls,
  * Session was idle, so disconnect it
  *
  * @param cls the session
- * @param tc task context
  */
 static void
-server_session_timeout (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_session_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
   struct GNUNET_TIME_Relative left;
@@ -910,15 +908,15 @@ http_server_plugin_get_session (void *cls,
  * and schedule the next run.
  *
  * @param cls plugin as closure
- * @param tc task context
  */
 static void
-server_v4_run (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_v4_run (void *cls)
 {
   struct HTTP_Server_Plugin *plugin = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->server_v4_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   plugin->server_v4_immediately = GNUNET_NO;
@@ -932,15 +930,15 @@ server_v4_run (void *cls,
  * and schedule the next run.
  *
  * @param cls plugin as closure
- * @param tc task context
  */
 static void
-server_v6_run (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_v6_run (void *cls)
 {
   struct HTTP_Server_Plugin *plugin = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->server_v6_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   plugin->server_v6_immediately = GNUNET_NO;
@@ -2844,19 +2842,19 @@ server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
  * Notify server about our external hostname
  *
  * @param cls plugin
- * @param tc task context (unused)
  */
 static void
-server_notify_external_hostname (void *cls,
-                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_notify_external_hostname (void *cls)
 {
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddress *ext_addr;
   size_t ext_addr_len;
   unsigned int urlen;
   char *url;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   plugin->notify_ext_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 

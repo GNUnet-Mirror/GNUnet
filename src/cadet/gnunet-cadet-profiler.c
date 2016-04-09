@@ -249,10 +249,9 @@ static int test_finished;
  * on callback funtion ch.
  *
  * @param cls Closure (unsued).
- * @param tc Task Context.
  */
 static void
-start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+start_test (void *cls);
 
 
 /**
@@ -314,10 +313,9 @@ show_end_data (void)
  * Shut down peergroup, clean up.
  *
  * @param cls Closure (unused).
- * @param tc Task Context.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Ending test.\n");
   shutdown_handle = NULL;
@@ -328,10 +326,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Disconnect from cadet services af all peers, call shutdown.
  *
  * @param cls Closure (unused).
- * @param tc Task Context.
  */
 static void
-disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_cadet_peers (void *cls)
 {
   long line = (long) cls;
   unsigned int i;
@@ -443,11 +440,13 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
  * Task check that keepalives were sent and received.
  *
  * @param cls Closure (NULL).
- * @param tc Task Context.
  */
 static void
-collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+collect_stats (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -462,11 +461,13 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @brief Finish profiler normally. Signal finish and start collecting stats.
  *
  * @param cls Closure (unused).
- * @param tc Task context.
  */
 static void
-finish_profiler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_profiler (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -542,11 +543,13 @@ adjust_running_peers (unsigned int target)
  * @brief Move to next round.
  *
  * @param cls Closure (round #).
- * @param tc Task context.
  */
 static void
-next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+next_rnd (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -608,15 +611,15 @@ tmt_rdy_pong (void *cls, size_t size, void *buf)
  * @brief Send a ping to destination
  *
  * @param cls Closure (peer).
- * @param tc Task context.
  */
 static void
-ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ping (void *cls)
 {
-  struct CadetPeer *peer = (struct CadetPeer *) cls;
+  struct CadetPeer *peer = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   peer->ping_task = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)
       || GNUNET_YES == test_finished)
     return;
@@ -865,15 +868,16 @@ select_random_peer (struct CadetPeer *peer)
  * on callback funtion ch.
  *
  * @param cls Closure (unsued).
- * @param tc Task Context.
  */
 static void
-start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+start_test (void *cls)
 {
   enum GNUNET_CADET_ChannelOption flags;
   unsigned long i;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   test_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -1089,4 +1093,3 @@ main (int argc, char *argv[])
 }
 
 /* end of gnunet-cadet-profiler.c */
-

@@ -41,7 +41,7 @@ static int ok;
 
 
 static void
-finish_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_up (void *cls)
 {
   GNUNET_assert (ok == 5);
   ok = 0;
@@ -52,9 +52,10 @@ finish_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-notify_disconnect (void *cls, struct GNUNET_SERVER_Client *clientarg)
+notify_disconnect (void *cls,
+                   struct GNUNET_SERVER_Client *clientarg)
 {
-  if (clientarg == NULL)
+  if (NULL == clientarg)
     return;
   GNUNET_assert (ok == 4);
   ok = 5;
@@ -63,7 +64,7 @@ notify_disconnect (void *cls, struct GNUNET_SERVER_Client *clientarg)
 
 
 static void
-server_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_disconnect (void *cls)
 {
   struct GNUNET_SERVER_Client *argclient = cls;
 
@@ -110,7 +111,7 @@ transmit_initial_message (void *cls, size_t size, void *buf)
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   struct sockaddr_in sa;
   struct sockaddr *sap[2];

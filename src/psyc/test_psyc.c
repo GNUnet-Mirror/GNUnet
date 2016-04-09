@@ -158,10 +158,9 @@ cleanup ()
  * Terminate the test case (failure).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
-void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+end_badly (void *cls)
 {
   res = 1;
   cleanup ();
@@ -173,10 +172,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Terminate the test case (success).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
-void
-end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+end_normally (void *cls)
 {
   res = 0;
   cleanup ();
@@ -545,8 +543,8 @@ master_history_replay_latest ()
 }
 
 
-void
-transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+transmit_resume (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
   struct TransmitClosure *tmit = cls;
@@ -753,8 +751,8 @@ void first_slave_parted (void *cls)
 }
 
 
-void
-schedule_slave_part (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+schedule_slave_part (void *cls)
 {
   GNUNET_PSYC_slave_part (slv, GNUNET_NO, first_slave_parted, NULL);
 }
@@ -925,8 +923,9 @@ master_start ()
   mst_chn = GNUNET_PSYC_master_get_channel (mst);
 }
 
-void
-schedule_master_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+
+static void
+schedule_master_start (void *cls)
 {
   master_start ();
 }

@@ -120,8 +120,8 @@ statistics_done_db (void *cls,
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 static int
 statistics_cb (void *cls,
@@ -140,7 +140,7 @@ statistics_cb (void *cls,
 
 
 static void
-destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
+destroy (void *cls)
 {
   struct GNUNET_CONSENSUS_Handle *consensus = cls;
 
@@ -521,4 +521,3 @@ main (int argc, char **argv)
 		      options, &run, NULL, GNUNET_YES);
   return 0;
 }
-

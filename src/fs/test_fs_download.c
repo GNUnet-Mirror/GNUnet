@@ -67,7 +67,7 @@ static int err;
 
 
 static void
-timeout_kill_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_kill_task (void *cls)
 {
   if (NULL != download)
   {
@@ -86,7 +86,7 @@ timeout_kill_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   if (NULL != publish)
   {
@@ -97,7 +97,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-stop_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stop_fs_task (void *cls)
 {
   GNUNET_FS_stop (fs);
   fs = NULL;
@@ -105,7 +105,7 @@ stop_fs_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_download_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_download_task (void *cls)
 {
   uint64_t size;
 

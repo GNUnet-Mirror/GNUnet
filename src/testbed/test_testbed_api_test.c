@@ -70,10 +70,9 @@ static int result;
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != abort_task)
@@ -93,7 +92,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_SCHEDULER_cancel (abort_task);                           \
       abort_task = NULL;                            \
       if (NULL == shutdown_task)                    \
-        shutdown_task = GNUNET_SCHEDULER_add_now (do_shutdown, NULL);   \
+        shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);   \
       return;                                                           \
     }                                                                   \
   } while (0)
@@ -103,16 +102,15 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * abort task to run on test timed out
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = NULL;
   if (NULL != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
-  do_shutdown (cls, tc);
+  do_shutdown (cls);
 }
 
 

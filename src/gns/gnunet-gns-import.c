@@ -344,11 +344,9 @@ get_ego (void *cls,
  * Task run on shutdown.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_free_non_null (master_zone_pkey);
   master_zone_pkey = NULL;

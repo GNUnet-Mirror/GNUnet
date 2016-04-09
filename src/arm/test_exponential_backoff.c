@@ -141,11 +141,9 @@ service_shutdown_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * Shutting down took too long, cancel receive and return error.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-service_shutdown_cancel (void *cls,
-			 const struct GNUNET_SCHEDULER_TaskContext *tc)
+service_shutdown_cancel (void *cls)
 {
   struct ShutdownContext *shutdown_ctx = cls;
 
@@ -227,7 +225,7 @@ do_nothing_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
 
 
 static void
-kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc);
+kill_task (void *cbData);
 
 
 static void
@@ -246,7 +244,7 @@ shutdown_cont (void *cls, int reason)
 
 
 static void
-kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
+kill_task (void *cbData)
 {
   static struct GNUNET_CLIENT_Connection *doNothingConnection = NULL;
 
@@ -284,7 +282,7 @@ kill_task (void *cbData, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+trigger_disconnect (void *cls)
 {
   GNUNET_ARM_disconnect_and_free (arm);
   GNUNET_ARM_monitor_disconnect_and_free (mon);

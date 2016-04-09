@@ -58,7 +58,7 @@ struct read_context
 struct read_context rc;
 
 static void
-end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_task (void *cls)
 {
   if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
   {
@@ -73,7 +73,7 @@ end_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_call (void *cls)
 {
   int bytes;
 
@@ -110,7 +110,7 @@ read_call (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_task (void *cls)
 {
   char *fn;
   const struct GNUNET_DISK_FileHandle *stdout_read_handle;

@@ -57,7 +57,7 @@ static char *fn;
 
 
 static void
-abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_publish_task (void *cls)
 {
   GNUNET_FS_publish_stop (publish);
   publish = NULL;
@@ -65,7 +65,7 @@ abort_publish_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-abort_unindex_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+abort_unindex_task (void *cls)
 {
   GNUNET_FS_unindex_stop (unindex);
   unindex = NULL;

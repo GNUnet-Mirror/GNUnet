@@ -273,11 +273,9 @@ cleanup_rr (struct RequestRecord *rr)
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-cleanup_task (void *cls GNUNET_UNUSED,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls GNUNET_UNUSED)
 {
   unsigned int i;
 

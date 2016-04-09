@@ -84,11 +84,9 @@ static unsigned long long matching_bits;
  * Function run if the user aborts with CTRL-C.
  *
  * @param cls closure
- * @param tc scheduler context
  */
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != el)
   {
@@ -231,15 +229,15 @@ perform_revocation (const struct RevocationData *rd)
  * Perform the proof-of-work calculation.
  *
  * @param cls the `struct RevocationData`
- * @param tc scheduler context
  */
 static void
-calculate_pow (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+calculate_pow (void *cls)
 {
   struct RevocationData *rd = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   /* store temporary results */
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ( (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason)) ||
        (0 == (rd->pow % 128) ) )
   {

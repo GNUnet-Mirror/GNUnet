@@ -262,7 +262,7 @@ show_end_data (void)
  * @param tc Task Context.
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
   shutdown_handle = NULL;
@@ -276,12 +276,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc Task Context.
  */
 static void
-disconnect_cadet_peers (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_cadet_peers (void *cls)
 {
   long line = (long) cls;
   unsigned int i;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "disconnecting cadet peers due to SHUTDOWN! called from %ld\n",
@@ -387,16 +388,16 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
  * Task to gather all statistics.
  *
  * @param cls Closure (NULL).
- * @param tc Task Context.
  */
 static void
-gather_stats_and_exit (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+gather_stats_and_exit (void *cls)
 {
-  disconnect_task = NULL;
   long l = (long) cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  disconnect_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "gathering statistics from line %d\n", l);
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
   {
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
@@ -456,18 +457,17 @@ tmt_rdy (void *cls, size_t size, void *buf);
  * Task to request a new data transmission.
  *
  * @param cls Closure (peer #).
- * @param tc Task Context.
  */
 static void
-data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+data_task (void *cls)
 {
   struct GNUNET_CADET_Channel *channel;
   static struct GNUNET_CADET_TransmitHandle **pth;
-
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   long src;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -837,13 +837,14 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
  * on callback function ch.
  *
  * @param cls Closure (unused).
- * @param tc Task Context.
  */
 static void
-do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_test (void *cls)
 {
   enum GNUNET_CADET_ChannelOption flags;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -1084,4 +1085,3 @@ main (int argc, char *argv[])
 }
 
 /* end of test_cadet.c */
-

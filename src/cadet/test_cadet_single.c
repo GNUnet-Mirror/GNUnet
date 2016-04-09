@@ -59,7 +59,7 @@ do_send (void *cls, size_t size, void *buf);
  * Shutdown nicely
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutdown\n");
   if (NULL != abort_task)
@@ -88,7 +88,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Something went wrong and timed out. Kill everything and set error flag
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ABORT\n");
   result = GNUNET_SYSERR;
@@ -98,7 +98,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (shutdown_task);
     shutdown_task = NULL;
   }
-  do_shutdown (cls, tc);
+  do_shutdown (cls);
 }
 
 
@@ -247,14 +247,15 @@ do_send (void *cls, size_t size, void *buf)
  * Connect to other client and send data
  *
  * @param cls Closue (unused).
- * @param tc TaskContext.
  */
 static void
-do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_connect (void *cls)
 {
   struct GNUNET_PeerIdentity id;
   size_t size = sizeof (struct GNUNET_MessageHeader) + DATA_SIZE;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 

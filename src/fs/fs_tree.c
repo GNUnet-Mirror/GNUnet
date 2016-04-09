@@ -352,7 +352,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
     te->uri->data.chk.chk = te->chk_tree[off];
     te->uri->data.chk.file_length = GNUNET_htonll (te->size);
     te->in_next = GNUNET_NO;
-    te->cont (te->cls, NULL);
+    te->cont (te->cls);
     return;
   }
   if (0 == te->current_depth)
@@ -363,7 +363,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
         te->reader (te->cls, te->publish_offset, pt_size, iob, &te->emsg))
     {
       te->in_next = GNUNET_NO;
-      te->cont (te->cls, NULL);
+      te->cont (te->cls);
       return;
     }
     pt_block = iob;

@@ -109,11 +109,9 @@ process_stats (void *cls,
  * all statistics.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-terminate_task (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls)
 {
   terminate_taskid = NULL;
   GNUNET_TESTBED_get_statistics (0, NULL,

@@ -172,11 +172,9 @@ address_generator (void *cls,
  * all of the transports.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-refresh_hello_task (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+refresh_hello_task (void *cls)
 {
   struct GeneratorContext gc;
 
@@ -243,7 +241,7 @@ GST_hello_start (int friend_only,
   hello_cb = cb;
   hello_cb_cls = cb_cls;
   friend_option = friend_only;
-  refresh_hello_task (NULL, NULL);
+  refresh_hello_task (NULL);
 }
 
 

@@ -93,7 +93,7 @@ send_kilo (void *cls, size_t size, void *buf)
 
 
 static void
-task_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_timeout (void *cls)
 {
 
   ls = open_listen_socket ();

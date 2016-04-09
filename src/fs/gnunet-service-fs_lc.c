@@ -184,11 +184,9 @@ GSF_local_client_lookup_ (struct GNUNET_SERVER_Client *client)
  * Free the given client request.
  *
  * @param cls the client request to free
- * @param tc task context
  */
 static void
-client_request_destroy (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+client_request_destroy (void *cls)
 {
   struct ClientRequest *cr = cls;
   struct GSF_LocalClient *lc;
@@ -510,7 +508,7 @@ GSF_client_disconnect_handler_ (void *cls,
   {
     if (NULL != cr->kill_task)
       GNUNET_SCHEDULER_cancel (cr->kill_task);
-    client_request_destroy (cr, NULL);
+    client_request_destroy (cr);
   }
   while (NULL != (res = pos->res_head))
   {

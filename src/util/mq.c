@@ -297,15 +297,15 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
  * results in undefined behavior if not used carefully.
  *
  * @param cls message queue to send the next message with
- * @param tc scheduler context
  */
 static void
-impl_send_continue (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+impl_send_continue (void *cls)
 {
   struct GNUNET_MQ_Handle *mq = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_MQ_Envelope *current_envelope;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 

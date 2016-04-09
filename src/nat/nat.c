@@ -463,11 +463,9 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h);
  * Call task to process STUN
  *
  * @param cls handle to NAT
- * @param tc TaskContext
  */
 static void
-process_stun (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc);
+process_stun (void *cls);
 
 
 /**
@@ -662,10 +660,9 @@ add_ip_to_address_list (struct GNUNET_NAT_Handle *h,
  * get DynDNS-IP addresses.
  *
  * @param cls the NAT handle
- * @param tc scheduler context
  */
 static void
-resolve_dns (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+resolve_dns (void *cls);
 
 
 /**
@@ -716,11 +713,9 @@ process_external_ip (void *cls,
  * Task to do a lookup on our hostname for IP addresses.
  *
  * @param cls the NAT handle
- * @param tc scheduler context
  */
 static void
-resolve_hostname (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc);
+resolve_hostname (void *cls);
 
 
 /**
@@ -938,14 +933,15 @@ process_interfaces (void *cls,
  * after a certain delay.
  *
  * @param cls the `struct GNUNET_NAT_Handle`
- * @param tc scheduler context
  */
 static void
-restart_nat_server (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_nat_server (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->server_read_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   start_gnunet_nat_server (h);
@@ -958,11 +954,9 @@ restart_nat_server (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * function to be called again once more is available.
  *
  * @param cls the NAT handle
- * @param tc the scheduling context
  */
 static void
-nat_server_read (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+nat_server_read (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
   char mybuf[40];
@@ -971,8 +965,10 @@ nat_server_read (void *cls,
   int port;
   const char *port_start;
   struct sockaddr_in sin_addr;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->server_read_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   memset (mybuf, 0, sizeof (mybuf));
@@ -1099,11 +1095,9 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
  * Task to scan the local network interfaces for IP addresses.
  *
  * @param cls the NAT handle
- * @param tc scheduler context
  */
 static void
-list_interfaces (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+list_interfaces (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
 
@@ -1209,11 +1203,9 @@ GNUNET_NAT_is_valid_stun_packet (void *cls,
  * Task to do a STUN request
  *
  * @param cls the NAT handle
- * @param tc scheduler context
  */
 static void
-process_stun (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_stun (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct StunServerList* elem = h->actual_stun_server;
@@ -1264,11 +1256,9 @@ process_stun (void *cls,
  * Task to do a lookup on our hostname for IP addresses.
  *
  * @param cls the NAT handle
- * @param tc scheduler context
  */
 static void
-resolve_hostname (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+resolve_hostname (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
 
@@ -1285,11 +1275,9 @@ resolve_hostname (void *cls,
  * get DynDNS-IP addresses.
  *
  * @param cls the NAT handle
- * @param tc scheduler context
  */
 static void
-resolve_dns (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+resolve_dns (void *cls)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct LocalAddressList *pos;

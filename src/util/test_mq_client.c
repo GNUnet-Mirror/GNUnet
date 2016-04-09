@@ -62,7 +62,7 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
 
 
 static void
-clean_up (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+clean_up (void *cls)
 {
   GNUNET_SERVER_destroy (server);
   server = NULL;
@@ -134,7 +134,7 @@ test_mq (struct GNUNET_CLIENT_Connection *client)
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   struct sockaddr_in sa;
   struct sockaddr *sap[2];
@@ -181,4 +181,3 @@ main (int argc, char *argv[])
   GNUNET_assert (GNUNET_YES == notify);
   return ok;
 }
-

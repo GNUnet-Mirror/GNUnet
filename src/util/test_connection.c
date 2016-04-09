@@ -98,7 +98,7 @@ receive_check (void *cls, const void *buf, size_t available,
 
 
 static void
-run_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_accept (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Test accepts connection\n");
   asock = GNUNET_CONNECTION_create_from_accept (NULL, NULL, ls);
@@ -128,7 +128,7 @@ make_hello (void *cls, size_t size, void *buf)
 
 
 static void
-task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task (void *cls)
 {
   ls = open_listen_socket ();
   lsock = GNUNET_CONNECTION_create_from_existing (ls);

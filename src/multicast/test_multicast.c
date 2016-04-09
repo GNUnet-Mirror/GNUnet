@@ -132,10 +132,9 @@ cleanup ()
  * Terminate the test case (failure).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   res = 1;
   cleanup ();
@@ -147,10 +146,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Terminate the test case (success).
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_normally (void *cls)
 {
   res = 0;
   cleanup ();
@@ -176,8 +174,8 @@ end ()
 }
 
 
-void
-tmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+tmit_resume (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
   struct TransmitClosure *tmit = cls;
@@ -254,7 +252,7 @@ origin_stopped (void *cls)
 
 
 static void
-schedule_origin_stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_origin_stop (void *cls)
 {
   test = TEST_ORIGIN_STOP;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -290,7 +288,7 @@ member_parted (void *cls)
 
 
 static void
-schedule_member_part (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_member_part (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Test #%u: schedule_member_part()\n", test);

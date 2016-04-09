@@ -102,7 +102,7 @@ end ()
 }
 
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   die_task = NULL;
 
@@ -194,11 +194,14 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   th = NULL;
 }
 
-static void
-sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  send_task = NULL;
 
+static void
+sendtask (void *cls)
+{
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  send_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
@@ -354,4 +357,3 @@ main (int argc, char *argv[])
 #endif
 
 /* end of test_transport_api_limited_sockets.c */
-

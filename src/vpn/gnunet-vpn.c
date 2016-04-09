@@ -95,7 +95,7 @@ static struct GNUNET_TIME_Relative duration = { 5 * 60 * 1000} ;
  * Shutdown.
  */
 static void
-do_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_disconnect (void *cls)
 {
   if (NULL != request)
   {

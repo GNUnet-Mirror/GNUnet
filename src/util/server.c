@@ -389,17 +389,17 @@ GNUNET_SERVER_client_set_user_context_ (struct GNUNET_SERVER_Client *client,
  *
  * @param cls handle to our server for which we are processing the listen
  *        socket
- * @param tc reason why we are running right now
  */
 static void
-process_listen_socket (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_listen_socket (void *cls)
 {
   struct GNUNET_SERVER_Handle *server = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct GNUNET_CONNECTION_Handle *sock;
   unsigned int i;
 
   server->listen_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* ignore shutdown, someone else will take care of it! */
@@ -655,12 +655,10 @@ GNUNET_SERVER_client_mark_monitor (struct GNUNET_SERVER_Client *client)
  * Helper function for #test_monitor_clients() to trigger
  * #GNUNET_SERVER_destroy() after the stack has unwound.
  *
- * @param cls the 'struct GNUNET_SERVER_Handle' to destroy
- * @param tc unused
+ * @param cls the `struct GNUNET_SERVER_Handle *` to destroy
  */
 static void
-do_destroy (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_destroy (void *cls)
 {
   struct GNUNET_SERVER_Handle *server = cls;
 
@@ -887,18 +885,18 @@ GNUNET_SERVER_set_callbacks (struct GNUNET_SERVER_Handle *server,
  * Task run to warn about missing calls to #GNUNET_SERVER_receive_done.
  *
  * @param cls our `struct GNUNET_SERVER_Client *` to process more requests from
- * @param tc scheduler context (unused)
  */
 static void
-warn_no_receive_done (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+warn_no_receive_done (void *cls)
 {
   struct GNUNET_SERVER_Client *client = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   GNUNET_break (0 != client->warn_type); /* type should never be 0 here, as we don't use 0 */
   client->warn_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                     &warn_no_receive_done, client);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Processing code for message of type %u did not call `GNUNET_SERVER_receive_done' after %s\n"),
@@ -1199,11 +1197,9 @@ process_incoming (void *cls,
  * and process requests.
  *
  * @param cls our `struct GNUNET_SERVER_Client *` to process more requests from
- * @param tc scheduler context (unused)
  */
 static void
-restart_processing (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+restart_processing (void *cls)
 {
   struct GNUNET_SERVER_Client *client = cls;
 
@@ -1497,11 +1493,9 @@ GNUNET_SERVER_connect_notify_cancel (struct GNUNET_SERVER_Handle *server,
  * 'connection.c' is not allowed (see #2329).
  *
  * @param cls connection to destroy
- * @param tc scheduler context (unused)
  */
 static void
-destroy_connection (void *cls,
-		    const struct GNUNET_SCHEDULER_TaskContext *tc)
+destroy_connection (void *cls)
 {
   struct GNUNET_CONNECTION_Handle *connection = cls;
 

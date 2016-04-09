@@ -76,10 +76,9 @@ static int ret;
  * Stop monitoring request and start shutdown
  *
  * @param cls closure (unused)
- * @param tc Task Context
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   if (verbose)
     FPRINTF (stderr, "%s",  "Cleaning up!\n");

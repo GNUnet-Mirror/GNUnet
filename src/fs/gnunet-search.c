@@ -96,7 +96,7 @@ item_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
 
 
 static void
-clean_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+clean_task (void *cls)
 {
   size_t dsize;
   void *ddata;
@@ -210,7 +210,7 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 
 
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (sc != NULL)
   {

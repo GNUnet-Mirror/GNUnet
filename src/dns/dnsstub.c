@@ -185,11 +185,9 @@ open_socket (int af)
  * Read a DNS response from the (unhindered) UDP-Socket
  *
  * @param cls socket to read from
- * @param tc scheduler context (must be shutdown or read ready)
  */
 static void
-read_response (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc);
+read_response (void *cls);
 
 
 /**
@@ -466,16 +464,16 @@ do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
  * Read a DNS response from the (unhindered) UDP-Socket
  *
  * @param cls socket to read from
- * @param tc scheduler context (must be shutdown or read ready)
  */
 static void
-read_response (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+read_response (void *cls)
 {
   struct GNUNET_DNSSTUB_RequestSocket *rs = cls;
   struct GNUNET_NETWORK_FDSet *rset;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rs->read_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     /* timeout or shutdown */

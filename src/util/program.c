@@ -73,10 +73,12 @@ struct CommandContext
  * program.  Runs the program-specific main task.
  */
 static void
-program_main (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+program_main (void *cls)
 {
   struct CommandContext *cc = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   GNUNET_SPEEDUP_start_(cc->cfg);

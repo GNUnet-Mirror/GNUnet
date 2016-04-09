@@ -240,7 +240,7 @@ transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
 
 
 static void
-schedule_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_disconnect (void *cls)
 {
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
   GNUNET_CLIENT_MANAGER_disconnect (mgr, GNUNET_NO,
@@ -341,11 +341,9 @@ transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
  *
  * @param cls
  *        Channel handle.
- * @param tc
- *        Scheduler context.
  */
 static void
-schedule_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_reconnect (void *cls)
 {
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
   mgr->reconnect_task = NULL;

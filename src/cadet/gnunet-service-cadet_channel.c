@@ -721,19 +721,19 @@ send_client_nack (struct CadetChannel *ch)
  * We haven't received an ACK after a certain time: restransmit the message.
  *
  * @param cls Closure (CadetChannelReliability with the message to restransmit)
- * @param tc TaskContext.
  */
 static void
-channel_retransmit_message (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+channel_retransmit_message (void *cls)
 {
   struct CadetChannelReliability *rel = cls;
   struct CadetReliableMessage *copy;
   struct CadetChannel *ch;
   struct GNUNET_CADET_Data *payload;
   int fwd;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rel->retry_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -760,14 +760,15 @@ channel_retransmit_message (void *cls,
  * We haven't received an Channel ACK after a certain time: resend the CREATE.
  *
  * @param cls Closure (CadetChannelReliability of the channel to recreate)
- * @param tc TaskContext.
  */
 static void
-channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+channel_recreate (void *cls)
 {
   struct CadetChannelReliability *rel = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rel->retry_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 

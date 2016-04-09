@@ -463,11 +463,9 @@ cleanup_validation_entry (void *cls,
  * longer valid and then possibly triggers its removal.
  *
  * @param cls the `struct ValidationEntry`
- * @param tc scheduler context (unused)
  */
 static void
-timeout_hello_validation (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_hello_validation (void *cls)
 {
   struct ValidationEntry *ve = cls;
   struct GNUNET_TIME_Absolute max;
@@ -652,11 +650,9 @@ transmit_ping_if_allowed (void *cls,
  * Do address validation again to keep address valid.
  *
  * @param cls the `struct ValidationEntry`
- * @param tc scheduler context (unused)
  */
 static void
-revalidate_address (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+revalidate_address (void *cls)
 {
   struct ValidationEntry *ve = cls;
   struct GNUNET_TIME_Relative canonical_delay;

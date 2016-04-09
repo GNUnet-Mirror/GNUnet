@@ -1126,11 +1126,9 @@ write_pid_file (struct GNUNET_SERVICE_Context *sctx, pid_t pid)
  * Task run during shutdown.  Stops the server/service.
  *
  * @param cls the `struct GNUNET_SERVICE_Context`
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct GNUNET_SERVICE_Context *service = cls;
   struct GNUNET_SERVER_Handle *server = service->server;
@@ -1147,14 +1145,15 @@ shutdown_task (void *cls,
  * Initial task for the service.
  *
  * @param cls service context
- * @param tc unused
  */
 static void
-service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+service_task (void *cls)
 {
   struct GNUNET_SERVICE_Context *sctx = cls;
   unsigned int i;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   (void) GNUNET_SPEEDUP_start_ (sctx->cfg);

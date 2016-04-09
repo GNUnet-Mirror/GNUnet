@@ -238,8 +238,7 @@ stat_run (void *cls,
 
 
 static void
-do_report (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_report (void *cls)
 {
   char *fn = cls;
   struct GNUNET_TIME_Relative del;

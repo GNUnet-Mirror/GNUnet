@@ -166,11 +166,9 @@ reconnect (struct GNUNET_ATS_SchedulingHandle *sh);
  * Re-establish the connection to the ATS service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-reconnect_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
   struct GNUNET_ATS_SchedulingHandle *sh = cls;
 

@@ -80,7 +80,7 @@ static const char *val = "test_peerstore_api_store_val";
  * @return #GNUNET_YES (all good, continue)
  */
 static int
-iterate_cb (void *cls, 
+iterate_cb (void *cls,
 	    const struct GNUNET_PEERSTORE_Record *record,
             const char *emsg)
 {
@@ -89,7 +89,7 @@ iterate_cb (void *cls,
   GNUNET_break (NULL == emsg);
   if (NULL == record)
   {
-    GNUNET_PEERSTORE_disconnect (h, 
+    GNUNET_PEERSTORE_disconnect (h,
 				 GNUNET_NO);
     GNUNET_SCHEDULER_shutdown ();
     return GNUNET_YES;
@@ -106,17 +106,15 @@ iterate_cb (void *cls,
  * data that should have been stored.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-test_cont (void *cls,
-	   const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_cont (void *cls)
 {
   h = GNUNET_PEERSTORE_connect (cfg);
-  GNUNET_PEERSTORE_iterate (h, 
-			    subsystem, 
+  GNUNET_PEERSTORE_iterate (h,
+			    subsystem,
 			    &pid, key,
-                            GNUNET_TIME_UNIT_FOREVER_REL, 
+                            GNUNET_TIME_UNIT_FOREVER_REL,
 			    &iterate_cb, NULL);
 }
 
@@ -128,15 +126,15 @@ static void
 test1 ()
 {
   h = GNUNET_PEERSTORE_connect (cfg);
-  GNUNET_PEERSTORE_store (h, 
+  GNUNET_PEERSTORE_store (h,
 			  subsystem,
-			  &pid, 
-			  key, 
+			  &pid,
+			  key,
 			  val, strlen (val) + 1,
                           GNUNET_TIME_UNIT_FOREVER_ABS,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, 
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE,
 			  NULL, NULL);
-  GNUNET_PEERSTORE_disconnect (h, 
+  GNUNET_PEERSTORE_disconnect (h,
 			       GNUNET_YES);
   h = NULL;
   /* We need to wait a little bit to give the disconnect
@@ -158,7 +156,7 @@ test1 ()
  * @param peer handle to our peer (unused)
  */
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c,
      struct GNUNET_TESTING_Peer *peer)
 {
@@ -173,7 +171,7 @@ int
 main (int argc, char *argv[])
 {
   if (0 !=
-      GNUNET_TESTING_service_run ("test-gnunet-peerstore-sync", 
+      GNUNET_TESTING_service_run ("test-gnunet-peerstore-sync",
 				  "peerstore",
                                   "test_peerstore_api_data.conf",
 				  &run, NULL))

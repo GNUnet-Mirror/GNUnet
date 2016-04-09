@@ -154,11 +154,9 @@ send_val_mon_request (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_c
  * Task run to re-establish the connection.
  *
  * @param cls our `struct GNUNET_TRANSPORT_ValidationMonitoringContext *`
- * @param tc scheduler context, unused
  */
 static void
-do_val_connect (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_val_connect (void *cls)
 {
   struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx = cls;
 
@@ -293,7 +291,7 @@ val_response_processor (void *cls,
   }
   addr = (const char *) &vr_msg[1];
   transport_name = &addr[alen];
-  
+
   if (transport_name[tlen - 1] != '\0')
   {
     /* Corrupt plugin name */
@@ -314,7 +312,7 @@ val_response_processor (void *cls,
     }
     return;
   }
-  
+
   /* notify client */
   address = GNUNET_HELLO_address_allocate (&vr_msg->peer,
 					   transport_name,

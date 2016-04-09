@@ -401,11 +401,9 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h);
  * A neighbour has not gotten a SEND_OK in a  while. Print a warning.
  *
  * @param cls the `struct Neighbour`
- * @param tc scheduler context
  */
 static void
-do_warn_unready (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_warn_unready (void *cls)
 {
   struct Neighbour *n = cls;
   struct GNUNET_TIME_Relative delay;
@@ -830,11 +828,9 @@ demultiplexer (void *cls,
  * network congestion.  Notify the initiator and clean up.
  *
  * @param cls the `struct GNUNET_TRANSPORT_TransmitHandle`
- * @param tc scheduler context
  */
 static void
-timeout_request_due_to_congestion (void *cls,
-                                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_request_due_to_congestion (void *cls)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th = cls;
   struct Neighbour *n = th->neighbour;
@@ -1015,11 +1011,9 @@ transport_notify_ready (void *cls,
  * list or the peer message queues  to the service.
  *
  * @param cls transport service to schedule a transmission for
- * @param tc scheduler context
  */
 static void
-schedule_transmission_task (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_transmission_task (void *cls)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
   size_t size;
@@ -1197,15 +1191,15 @@ send_start (void *cls,
  * Try again to connect to transport service.
  *
  * @param cls the handle to the transport service
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_TRANSPORT_Handle *h = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->reconnect_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     /* shutdown, just give up */
@@ -1315,19 +1309,14 @@ send_hello (void *cls,
   struct GNUNET_TRANSPORT_OfferHelloHandle *ohh = cls;
   struct GNUNET_MessageHeader *msg = ohh->msg;
   uint16_t ssize;
-  struct GNUNET_SCHEDULER_TaskContext tc;
 
-  tc.read_ready = NULL;
-  tc.write_ready = NULL;
-  tc.reason = GNUNET_SCHEDULER_REASON_TIMEOUT;
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Timeout while trying to transmit `%s' request.\n",
          "HELLO");
     if (NULL != ohh->cont)
-      ohh->cont (ohh->cls,
-                 &tc);
+      ohh->cont (ohh->cls);
     GNUNET_free (msg);
     GNUNET_CONTAINER_DLL_remove (ohh->th->oh_head,
                                  ohh->th->oh_tail,
@@ -1344,10 +1333,8 @@ send_hello (void *cls,
           msg,
           ssize);
   GNUNET_free (msg);
-  tc.reason = GNUNET_SCHEDULER_REASON_READ_READY;
   if (NULL != ohh->cont)
-    ohh->cont (ohh->cls,
-               &tc);
+    ohh->cont (ohh->cls);
   GNUNET_CONTAINER_DLL_remove (ohh->th->oh_head,
                                ohh->th->oh_tail,
                                ohh);
@@ -1529,11 +1516,9 @@ GNUNET_TRANSPORT_check_peer_connected (struct GNUNET_TRANSPORT_Handle *handle,
  * Task to call the HelloUpdateCallback of the GetHelloHandle
  *
  * @param cls the `struct GNUNET_TRANSPORT_GetHelloHandle`
- * @param tc the scheduler task context
  */
 static void
-call_hello_update_cb_async (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+call_hello_update_cb_async (void *cls)
 {
   struct GNUNET_TRANSPORT_GetHelloHandle *ghh = cls;
 

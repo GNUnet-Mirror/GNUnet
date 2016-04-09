@@ -651,15 +651,15 @@ hosts_directory_scan_callback (void *cls,
  * Call this method periodically to scan data/hosts for new hosts.
  *
  * @param cls unused
- * @param tc scheduler context, aborted if reason is shutdown
  */
 static void
-cron_scan_directory_data_hosts (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc)
+cron_scan_directory_data_hosts (void *cls)
 {
   static unsigned int retries;
   struct DirScanContext dsc;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (GNUNET_SYSERR == GNUNET_DISK_directory_create (networkIdDirectory))
@@ -1041,14 +1041,14 @@ discard_hosts_helper (void *cls,
  * HELLOs to expire.
  *
  * @param cls unused
- * @param tc scheduler context, aborted if reason is shutdown
  */
 static void
-cron_clean_data_hosts (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+cron_clean_data_hosts (void *cls)
 {
   struct GNUNET_TIME_Absolute now;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   now = GNUNET_TIME_absolute_get ();
@@ -1277,11 +1277,9 @@ free_host_entry (void *cls,
  * Clean up our state.  Called during shutdown.
  *
  * @param cls unused
- * @param tc scheduler task context, unused
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct NotificationContext *cur;
   struct NotificationContext *next;

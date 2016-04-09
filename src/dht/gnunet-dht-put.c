@@ -87,8 +87,9 @@ static int ret;
  */
 static char *data;
 
+
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != dht_handle)
   {
@@ -101,9 +102,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param success GNUNET_OK if the PUT was transmitted,
- *                GNUNET_NO on timeout,
- *                GNUNET_SYSERR on disconnect from service
+ * @param success #GNUNET_OK if the PUT was transmitted,
+ *                #GNUNET_NO on timeout,
+ *                #GNUNET_SYSERR on disconnect from service
  *                after the PUT message was transmitted
  *                (so we don't know if it was received or not)
  */

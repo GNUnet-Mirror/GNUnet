@@ -226,11 +226,9 @@ static unsigned long long port;
  * Task run whenever HTTP server operations are pending.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_httpd (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_httpd (void *cls);
 
 
 /**
@@ -840,11 +838,9 @@ run_httpd ()
  * Task run whenever HTTP server operations are pending.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_httpd (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_httpd (void *cls)
 {
   httpd_task = NULL;
   MHD_run (httpd);
@@ -856,11 +852,9 @@ do_httpd (void *cls,
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != httpd_task)
   {

@@ -96,8 +96,7 @@ handle_test (void *cls,
 
 
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutting down\n");
   GNUNET_MQ_destroy (mq);

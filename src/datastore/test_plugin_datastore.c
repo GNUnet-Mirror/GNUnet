@@ -84,8 +84,7 @@ disk_utilization_change_cb (void *cls, int delta)
 
 
 static void
-test (void *cls,
-      const struct GNUNET_SCHEDULER_TaskContext *tc);
+test (void *cls);
 
 
 /**
@@ -98,10 +97,10 @@ test (void *cls,
  * @param msg error message on error
  */
 static void
-put_continuation (void *cls, 
+put_continuation (void *cls,
 		  const struct GNUNET_HashCode *key,
-                  uint32_t size, 
-		  int status, 
+                  uint32_t size,
+		  int status,
 		  const char *msg)
 {
   struct CpsRunContext *crc = cls;
@@ -241,7 +240,7 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
  * the transport and core.
  */
 static void
-cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls)
 {
   struct CpsRunContext *crc = cls;
 
@@ -251,7 +250,7 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-update_continuation (void *cls, 
+update_continuation (void *cls,
 		     int status,
 		     const char *msg)
 {
@@ -264,11 +263,13 @@ update_continuation (void *cls,
 
 
 static void
-test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+test (void *cls)
 {
   struct CpsRunContext *crc = cls;
   struct GNUNET_HashCode key;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test aborted.\n");
@@ -302,9 +303,9 @@ test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   case RP_UPDATE:
     crc->api->update (crc->api->cls,
 		      guid,
-		      1, 
+		      1,
 		      GNUNET_TIME_UNIT_ZERO_ABS,
-                      &update_continuation, 
+                      &update_continuation,
 		      crc);
     break;
 
@@ -344,8 +345,8 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
   char *libname;
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, 
-					     "DATASTORE", 
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+					     "DATASTORE",
 					     "DATABASE",
                                              &name))
   {
@@ -366,7 +367,7 @@ load_plugin (const struct GNUNET_CONFIGURATION_Handle *cfg)
     FPRINTF (stderr, "Failed to load plugin `%s'!\n", name);
     GNUNET_free (libname);
     GNUNET_free (name);
-    ok = 77; /* mark test as skipped */    
+    ok = 77; /* mark test as skipped */
     return NULL;
   }
   GNUNET_free (libname);

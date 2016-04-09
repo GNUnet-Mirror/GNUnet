@@ -38,7 +38,7 @@ not_run (void *cls, size_t size, void *buf)
 
 
 static void
-task_transmit_cancel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_transmit_cancel (void *cls)
 {
   int *ok = cls;
   struct GNUNET_CONNECTION_TransmitHandle *th;

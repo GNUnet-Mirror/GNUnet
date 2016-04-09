@@ -413,11 +413,9 @@ block_reader (void *cls,
  * the final result.
  *
  * @param cls our publishing context
- * @param tc scheduler's task context (not used)
  */
 static void
-encode_cont (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+encode_cont (void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_FileInformation *p;
@@ -960,11 +958,9 @@ create_loc_uri (struct GNUNET_FS_PublishContext *pc)
  * Main function that performs the upload.
  *
  * @param cls `struct GNUNET_FS_PublishContext *` identifies the upload
- * @param tc task context
  */
 void
-GNUNET_FS_publish_main_ (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+GNUNET_FS_publish_main_ (void *cls)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
   struct GNUNET_FS_ProgressInfo pi;

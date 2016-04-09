@@ -170,10 +170,9 @@ cancel_timeout_flush (struct GNUNET_TESTBED_LOGGER_Handle *h)
  * Task to call the flush completion notification
  *
  * @param cls the logger handle
- * @param tc the scheduler task context
  */
 static void
-call_flush_completion (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+call_flush_completion (void *cls)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
   GNUNET_TESTBED_LOGGER_FlushCompletion cb;
@@ -416,10 +415,9 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
  * be called with 0 as the amount of data sent.
  *
  * @param cls the logger handle
- * @param tc scheduler task context
  */
 static void
-timeout_flush (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_flush (void *cls)
 {
   struct GNUNET_TESTBED_LOGGER_Handle *h = cls;
   GNUNET_TESTBED_LOGGER_FlushCompletion cb;

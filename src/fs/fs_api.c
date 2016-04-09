@@ -108,11 +108,9 @@ stop_job (struct GNUNET_FS_QueueEntry *qe)
  * and stopping others.
  *
  * @param cls the `struct GNUNET_FS_Handle *`
- * @param tc scheduler context
  */
 static void
-process_job_queue (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_job_queue (void *cls)
 {
   struct GNUNET_FS_Handle *h = cls;
   struct GNUNET_FS_QueueEntry *qe;

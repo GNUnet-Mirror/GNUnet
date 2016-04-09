@@ -36,10 +36,9 @@ static struct GNUNET_SCHEDULER_Task * die_task;
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_test (void *cls)
 {
   if (h != NULL)
   {

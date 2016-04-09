@@ -1654,11 +1654,9 @@ struct ServiceContext
  * Callback to be called when SCHEDULER has been started
  *
  * @param cls the ServiceContext
- * @param tc the TaskContext
  */
 static void
-service_run_main (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+service_run_main (void *cls)
 {
   struct ServiceContext *sc = cls;
 

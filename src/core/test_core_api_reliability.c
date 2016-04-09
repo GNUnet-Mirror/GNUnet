@@ -128,8 +128,7 @@ terminate_peer (struct PeerContext *p)
 
 
 static void
-terminate_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls)
 {
   unsigned long long delta;
 
@@ -146,8 +145,7 @@ terminate_task (void *cls,
 
 
 static void
-terminate_task_error (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task_error (void *cls)
 {
   GNUNET_break (0);
   terminate_peer (&p1);

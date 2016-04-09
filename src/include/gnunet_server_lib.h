@@ -453,8 +453,9 @@ GNUNET_SERVER_client_get_address (struct GNUNET_SERVER_Client *client,
  * @param client identification of the client; NULL
  *        for the last call when the server is destroyed
  */
-typedef void (*GNUNET_SERVER_DisconnectCallback) (void *cls,
-                                                  struct GNUNET_SERVER_Client *client);
+typedef void
+(*GNUNET_SERVER_DisconnectCallback) (void *cls,
+                                     struct GNUNET_SERVER_Client *client);
 
 
 /**
@@ -464,8 +465,9 @@ typedef void (*GNUNET_SERVER_DisconnectCallback) (void *cls,
  * @param cls closure
  * @param client identification of the client
  */
-typedef void (*GNUNET_SERVER_ConnectCallback) (void *cls,
-					       struct GNUNET_SERVER_Client *client);
+typedef void
+(*GNUNET_SERVER_ConnectCallback) (void *cls,
+                                  struct GNUNET_SERVER_Client *client);
 
 
 /**
@@ -799,8 +801,9 @@ GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst);
  * @param client handle to client the tokenzier will be used for
  * @return handle to custom tokenizer ('mst')
  */
-typedef void* (*GNUNET_SERVER_MstCreateCallback) (void *cls,
-                                                  struct GNUNET_SERVER_Client *client);
+typedef void*
+(*GNUNET_SERVER_MstCreateCallback) (void *cls,
+                                    struct GNUNET_SERVER_Client *client);
 
 
 /**
@@ -809,7 +812,9 @@ typedef void* (*GNUNET_SERVER_MstCreateCallback) (void *cls,
  * @param cls closure from #GNUNET_SERVER_set_callbacks
  * @param mst custom tokenizer handle
  */
-typedef void (*GNUNET_SERVER_MstDestroyCallback) (void *cls, void *mst);
+typedef void
+(*GNUNET_SERVER_MstDestroyCallback) (void *cls,
+                                     void *mst);
 
 
 /**
@@ -828,10 +833,13 @@ typedef void (*GNUNET_SERVER_MstDestroyCallback) (void *cls, void *mst);
  *         #GNUNET_NO if one_shot was set and we have another message ready
  *         #GNUNET_SYSERR if the data stream is corrupt
  */
-typedef int (*GNUNET_SERVER_MstReceiveCallback) (void *cls, void *mst,
-                                                 struct GNUNET_SERVER_Client *client,
-                                                 const char *buf, size_t size,
-                                                 int purge, int one_shot);
+typedef int
+(*GNUNET_SERVER_MstReceiveCallback) (void *cls, void *mst,
+                                     struct GNUNET_SERVER_Client *client,
+                                     const char *buf,
+                                     size_t size,
+                                     int purge,
+                                     int one_shot);
 
 
 /**

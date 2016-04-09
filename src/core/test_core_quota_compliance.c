@@ -152,8 +152,7 @@ terminate_peer (struct PeerContext *p)
 
 
 static void
-terminate_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task (void *cls)
 {
   err_task = NULL;
   terminate_peer (&p1);
@@ -162,11 +161,12 @@ terminate_task (void *cls,
 
 
 static void
-terminate_task_error (void *cls,
-                      const struct GNUNET_SCHEDULER_TaskContext *tc)
+terminate_task_error (void *cls)
 {
-  err_task = NULL;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  err_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Testcase failed!\n");
@@ -214,8 +214,7 @@ print_stat (void *cls,
 
 
 static void
-measurement_stop (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+measurement_stop (void *cls)
 {
   unsigned long long delta;
   unsigned long long throughput_out;

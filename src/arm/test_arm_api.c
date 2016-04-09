@@ -122,7 +122,7 @@ resolver_start_cb (void *cls,
 
 
 static void
-trigger_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+trigger_disconnect (void *cls)
 {
   GNUNET_ARM_disconnect_and_free ((struct GNUNET_ARM_Handle *) cls);
 }

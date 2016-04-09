@@ -1482,10 +1482,10 @@ send_push (const struct GNUNET_PeerIdentity *peer_id)
 
 
 static void
-do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_round (void *cls);
 
 static void
-do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+do_mal_round (void *cls);
 
 
 #ifdef ENABLE_MALICIOUS
@@ -1624,7 +1624,7 @@ handle_client_act_malicious (void *cls,
  * This is executed regylary.
  */
 static void
-do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_mal_round (void *cls)
 {
   uint32_t num_pushes;
   uint32_t i;
@@ -1756,7 +1756,7 @@ do_mal_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * This is executed regylary.
  */
 static void
-do_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_round (void *cls)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Going to execute next round.\n");
 
@@ -2032,11 +2032,9 @@ process_peerinfo_peers (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	             const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "RPS is going down\n");

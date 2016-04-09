@@ -593,11 +593,9 @@ get_transmit_delay (int round_offset)
  * Task that triggers a NSE P2P transmission.
  *
  * @param cls the `struct NSEPeerEntry *`
- * @param tc scheduler context
  */
 static void
-transmit_task_cb (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc);
+transmit_task_cb (void *cls);
 
 
 /**
@@ -673,11 +671,9 @@ transmit_ready (void *cls,
  * Task that triggers a NSE P2P transmission.
  *
  * @param cls the `struct NSEPeerEntry *`
- * @param tc scheduler context
  */
 static void
-transmit_task_cb (void *cls,
-		  const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_task_cb (void *cls)
 {
   struct NSEPeerEntry *peer_entry = cls;
 
@@ -797,16 +793,16 @@ schedule_current_round (void *cls,
  * Update our flood message to be sent (and our timestamps).
  *
  * @param cls unused
- * @param tc context for this message
  */
 static void
-update_flood_message (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+update_flood_message (void *cls)
 {
   struct GNUNET_TIME_Relative offset;
   unsigned int i;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   flood_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   offset = GNUNET_TIME_absolute_get_remaining (next_timestamp);
@@ -918,11 +914,9 @@ write_proof ()
  * Find our proof of work.
  *
  * @param cls closure (unused)
- * @param tc task context
  */
 static void
-find_proof (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+find_proof (void *cls)
 {
 #define ROUND_SIZE 10
   uint64_t counter;
@@ -1343,11 +1337,9 @@ flush_comp_cb (void *cls,
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   if (NULL != flood_task)
   {

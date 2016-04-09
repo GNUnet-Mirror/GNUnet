@@ -256,6 +256,11 @@ static int current_lifeness;
 static GNUNET_SCHEDULER_select scheduler_select;
 
 /**
+ * Task context of the current task.
+ */
+static struct GNUNET_SCHEDULER_TaskContext tc;
+
+/**
  * Closure for #scheduler_select.
  */
 static void *scheduler_select_cls;
@@ -533,7 +538,6 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
 {
   enum GNUNET_SCHEDULER_Priority p;
   struct GNUNET_SCHEDULER_Task *pos;
-  struct GNUNET_SCHEDULER_TaskContext tc;
 
   max_priority_added = GNUNET_SCHEDULER_PRIORITY_KEEP;
   do
@@ -584,7 +588,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Running task: %p\n",
          pos);
-    pos->callback (pos->callback_cls, &tc);
+    pos->callback (pos->callback_cls);
 #if EXECINFO
     unsigned int i;
 
@@ -902,17 +906,16 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_TaskCallback task,
 
 
 /**
- * Obtain the reason code for why the current task was
- * started.  Will return the same value as
- * the `struct GNUNET_SCHEDULER_TaskContext`'s reason field.
+ * Obtain the task context, giving the reason why the current task was
+ * started.
  *
- * @return reason(s) why the current task is run
+ * @return current tasks' scheduler context
  */
-enum GNUNET_SCHEDULER_Reason
-GNUNET_SCHEDULER_get_reason ()
+const struct GNUNET_SCHEDULER_TaskContext *
+GNUNET_SCHEDULER_get_task_context ()
 {
   GNUNET_assert (NULL != active_task);
-  return active_task->reason;
+  return &tc;
 }
 
 

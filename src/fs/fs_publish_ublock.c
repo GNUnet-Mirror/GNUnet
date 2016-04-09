@@ -147,11 +147,9 @@ ublock_put_cont (void *cls,
  * Run the continuation.
  *
  * @param cls the `struct GNUNET_FS_PublishUblockContext *`
- * @param tc scheduler context
  */
 static void
-run_cont (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_cont (void *cls)
 {
   struct GNUNET_FS_PublishUblockContext *uc = cls;
 

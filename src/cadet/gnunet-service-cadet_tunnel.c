@@ -1730,15 +1730,15 @@ create_kx_ctx (struct CadetTunnel *t)
  * @brief Finish the Key eXchange and destroy the old keys.
  *
  * @param cls Closure (Tunnel for which to finish the KX).
- * @param tc Task context.
  */
 static void
-finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_kx (void *cls)
 {
   struct CadetTunnel *t = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "  shutdown\n");
@@ -2098,15 +2098,15 @@ send_queued_data (struct CadetTunnel *t)
  * @brief Resend the AX KX until we complete the handshake.
  *
  * @param cls Closure (tunnel).
- * @param tc Task context.
  */
 static void
-ax_kx_resend (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ax_kx_resend (void *cls)
 {
   struct CadetTunnel *t = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   t->rekey_task = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -2328,16 +2328,16 @@ send_pong (struct CadetTunnel *t, uint32_t challenge)
  * Initiate a rekey with the remote peer.
  *
  * @param cls Closure (tunnel).
- * @param tc TaskContext.
  */
 static void
-rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+rekey_tunnel (void *cls)
 {
   struct CadetTunnel *t = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   t->rekey_task = NULL;
-
   LOG (GNUNET_ERROR_TYPE_INFO, "Re-key Tunnel %s\n", GCT_2s (t));
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
@@ -2447,16 +2447,16 @@ rekey_iterator (void *cls,
  * Create a new ephemeral key and key message, schedule next rekeying.
  *
  * @param cls Closure (unused).
- * @param tc TaskContext.
  */
 static void
-global_otr_rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+global_otr_rekey (void *cls)
 {
   struct GNUNET_TIME_Absolute time;
   long n;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   rekey_task = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
@@ -2833,7 +2833,7 @@ handle_ephemeral (struct CadetTunnel *t,
       GNUNET_break (0);
       return;
     }
-    rekey_tunnel (t, NULL);
+    rekey_tunnel (t);
     GNUNET_STATISTICS_update (stats, "# otr-downgrades", -1, GNUNET_NO);
   }
 
@@ -2865,7 +2865,7 @@ handle_ephemeral (struct CadetTunnel *t,
     }
     if (NULL != t->rekey_task)
       GNUNET_SCHEDULER_cancel (t->rekey_task);
-    t->rekey_task = GNUNET_SCHEDULER_add_now (rekey_tunnel, t);
+    t->rekey_task = GNUNET_SCHEDULER_add_now (&rekey_tunnel, t);
   }
   if (CADET_TUNNEL_KEY_SENT == t->estate)
   {
@@ -3467,15 +3467,15 @@ GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state)
  * of being created/processed.
  *
  * @param cls Closure (Tunnel to check).
- * @param tc Task context.
  */
 static void
-trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+trim_connections (void *cls)
 {
   struct CadetTunnel *t = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   t->trim_connections_task = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -3695,15 +3695,16 @@ GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid)
  * the tunnel. This way we avoid a new public key handshake.
  *
  * @param cls Closure (tunnel to destroy).
- * @param tc Task context.
  */
 static void
-delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_destroy (void *cls)
 {
   struct CadetTunnel *t = cls;
   struct CadetTConnection *iter;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "delayed destroying tunnel %p\n", t);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,

@@ -59,8 +59,7 @@ report_result (void *cls,
 
 
 static void
-failed_timeout (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+failed_timeout (void *cls)
 {
   tsk = NULL;
   fprintf (stderr,
@@ -86,7 +85,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 								     2),
 				      &failed_timeout,
 				      NULL);
-  
+
 }
 
 
@@ -127,7 +126,7 @@ main (int argc, char *const argv[])
                                  "12345", NULL);
   GNUNET_assert (NULL != gns);
   GNUNET_PROGRAM_run (3, argv_prog,
-		      "test-nat-test", "nohelp", 
+		      "test-nat-test", "nohelp",
 		      options, &run,
                       NULL);
   GNUNET_break (0 == GNUNET_OS_process_kill (gns, GNUNET_TERM_SIG));

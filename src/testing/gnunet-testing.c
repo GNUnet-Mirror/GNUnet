@@ -197,10 +197,9 @@ create_hostkeys (const unsigned int no)
  * Removes the temporary file.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup (void *cls)
 {
   if (NULL != tmpfilename)
   {
@@ -224,14 +223,15 @@ cleanup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Called whenever we can read stdin non-blocking
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-stdin_cb (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stdin_cb (void *cls)
 {
   int c;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   tid = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   GNUNET_assert (0 != (GNUNET_SCHEDULER_REASON_READ_READY & tc->reason));

@@ -630,16 +630,17 @@ find_service (const char *name)
  * create the service in order to relay the incoming connection to it
  *
  * @param cls callback data, `struct ServiceListeningInfo` describing a listen socket
- * @param tc context
  */
 static void
-accept_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+accept_connection (void *cls)
 {
   struct ServiceListeningInfo *sli = cls;
   struct ServiceList *sl = sli->sl;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   sli->accept_task = NULL;
   GNUNET_assert (GNUNET_NO == in_shutdown);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   start_process (sl, NULL, 0);
@@ -845,11 +846,9 @@ handle_start (void *cls,
  * Start a shutdown sequence.
  *
  * @param cls closure (refers to service)
- * @param tc task context
  */
 static void
-trigger_shutdown (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+trigger_shutdown (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Triggering shutdown\n");
@@ -1060,11 +1059,9 @@ list_count (struct ServiceList *running_head)
  * Task run for shutdown.
  *
  * @param cls closure, NULL if we need to self-restart
- * @param tc context
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct ServiceList *pos;
   struct ServiceList *nxt;
@@ -1129,17 +1126,18 @@ shutdown_task (void *cls,
  * Task run whenever it is time to restart a child that died.
  *
  * @param cls closure, always NULL
- * @param tc context
  */
 static void
-delayed_restart_task (void *cls,
-		      const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_restart_task (void *cls)
+
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct ServiceList *sl;
   struct GNUNET_TIME_Relative lowestRestartDelay;
   struct ServiceListeningInfo *sli;
 
   child_restart_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (GNUNET_NO == in_shutdown);
@@ -1204,12 +1202,11 @@ delayed_restart_task (void *cls,
  * process died).
  *
  * @param cls closure, NULL if we need to self-restart
- * @param tc context
  */
 static void
-maint_child_death (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+maint_child_death (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
   struct ServiceList *pos;
   struct ServiceList *next;
   struct ServiceListeningInfo *sli;
@@ -1223,6 +1220,7 @@ maint_child_death (void *cls,
 
   pr = GNUNET_DISK_pipe_handle (sigpipe, GNUNET_DISK_PIPE_END_READ);
   child_death_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY))
   {
     /* shutdown scheduled us, ignore! */

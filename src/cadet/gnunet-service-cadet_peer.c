@@ -841,14 +841,15 @@ is_searching (const struct CadetPeer *peer)
  * @brief Start a search for a peer.
  *
  * @param cls Closure (Peer to search for).
- * @param tc Task context.
  */
 static void
-delayed_search (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_search (void *cls)
 {
   struct CadetPeer *peer = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   peer->search_delayed = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   GCC_check_connections ();
@@ -1955,11 +1956,9 @@ GCP_get_short (const GNUNET_PEER_Id peer, int create)
  * Marks the operation as finished.
  *
  * @param cls Closure (our `struct CadetPeer`).
- * @param tc TaskContext.
  */
 static void
-hello_offer_done (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+hello_offer_done (void *cls)
 {
   struct CadetPeer *peer = cls;
 

@@ -80,10 +80,9 @@ static int result;
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -99,10 +98,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * abort task to run on test timed out
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   abort_task = NULL;
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
@@ -118,9 +116,9 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Continuation function.
  *
  * @param cls closure
- * @param result GNUNET_OK on success,
- *               GNUNET_NO if helper process died
- *               GNUNET_SYSERR during GNUNET_HELPER_stop
+ * @param result #GNUNET_OK on success,
+ *               #GNUNET_NO if helper process died
+ *               #GNUNET_SYSERR during GNUNET_HELPER_stop()
  */
 static void
 cont_cb (void *cls, int result)
@@ -141,7 +139,7 @@ cont_cb (void *cls, int result)
  * @param client identification of the client
  * @param message the actual message
  *
- * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
 mst_cb (void *cls, void *client, const struct GNUNET_MessageHeader *message)

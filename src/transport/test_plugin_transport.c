@@ -184,7 +184,7 @@ end ()
 
 
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   struct AddressWrapper *w;
   int c = 0;
@@ -255,7 +255,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+wait_end (void *cls)
 {
   timeout_wait = NULL;
   if (0 == addresses_reported)
@@ -325,8 +325,7 @@ address_pretty_printer_cb (void *cls, const char *address, int res)
 
 
 static void
-test_addr_string (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+test_addr_string (void *cls)
 {
   struct AddressWrapper *w = cls;
   void *s2a;

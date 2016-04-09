@@ -205,10 +205,9 @@ trigger_next_request (struct GNUNET_ARM_Handle *h, int ignore_currently_down);
  * Task scheduled to try to re-connect to arm.
  *
  * @param cls the 'struct GNUNET_ARM_Handle'
- * @param tc task context
  */
 static void
-reconnect_arm_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_arm_task (void *cls)
 {
   struct GNUNET_ARM_Handle *h = cls;
 
@@ -711,10 +710,9 @@ GNUNET_ARM_disconnect_and_free (struct GNUNET_ARM_Handle *h)
  * Message timed out. Remove it from the queue.
  *
  * @param cls the message (struct ARMControlMessage *)
- * @param tc task context
  */
 static void
-control_message_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+control_message_timeout (void *cls)
 {
   struct ARMControlMessage *cm = cls;
   struct GNUNET_ARM_Message *arm_msg;

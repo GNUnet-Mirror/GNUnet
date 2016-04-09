@@ -260,8 +260,7 @@ static struct GNUNET_STATISTICS_Handle *statistics;
  * @param tc unused
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct ClientLookupHandle *clh;
   struct MonitorActivity *ma;
@@ -349,11 +348,9 @@ shutdown_task (void *cls,
  * Method called periodically that triggers iteration over authoritative records
  *
  * @param cls closure
- * @param tc task context
  */
 static void
-publish_zone_dht_next (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+publish_zone_dht_next (void *cls)
 {
   zone_publish_task = NULL;
   GNUNET_NAMESTORE_zone_iterator_next (namestore_iter);
@@ -364,11 +361,9 @@ publish_zone_dht_next (void *cls,
  * Periodically iterate over our zone and store everything in dht
  *
  * @param cls NULL
- * @param tc task context
  */
 static void
-publish_zone_dht_start (void *cls,
-			const struct GNUNET_SCHEDULER_TaskContext *tc);
+publish_zone_dht_start (void *cls);
 
 
 /**
@@ -629,11 +624,9 @@ put_gns_record (void *cls,
  * Periodically iterate over all zones and store everything in DHT
  *
  * @param cls NULL
- * @param tc task context
  */
 static void
-publish_zone_dht_start (void *cls,
-			const struct GNUNET_SCHEDULER_TaskContext *tc)
+publish_zone_dht_start (void *cls)
 {
   zone_publish_task = NULL;
 

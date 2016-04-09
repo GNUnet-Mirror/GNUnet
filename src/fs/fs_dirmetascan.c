@@ -222,11 +222,9 @@ expand_tree (struct GNUNET_FS_ShareTreeItem *parent,
  * Task run last to shut everything down.
  *
  * @param cls the 'struct GNUNET_FS_DirScanner'
- * @param tc unused
  */
 static void
-finish_scan (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_scan (void *cls)
 {
   struct GNUNET_FS_DirScanner *ds = cls;
 

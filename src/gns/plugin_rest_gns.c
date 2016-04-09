@@ -211,11 +211,12 @@ cleanup_handle (struct LookupHandle *handle)
  * @param tc scheduler context
  */
 static void
-do_error (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_error (void *cls)
 {
   struct LookupHandle *handle = cls;
-  struct MHD_Response *resp = GNUNET_REST_create_json_response (NULL);
+  struct MHD_Response *resp;
+
+  resp = GNUNET_REST_create_json_response (NULL);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
   cleanup_handle (handle);
 }
@@ -550,7 +551,7 @@ get_gns_cont (struct RestConnectionDataHandle *conndata_handle,
        GNUNET_CONTAINER_multihashmap_contains (conndata_handle->url_param_map,
                                                &key) )
   {
-    handle->type = GNUNET_GNSRECORD_typename_to_number 
+    handle->type = GNUNET_GNSRECORD_typename_to_number
       (GNUNET_CONTAINER_multihashmap_get (conndata_handle->url_param_map,
                                           &key));
   }

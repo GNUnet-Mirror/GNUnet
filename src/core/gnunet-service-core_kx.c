@@ -659,11 +659,9 @@ send_key (struct GSC_KeyExchangeInfo *kx);
  * Task that will retry #send_key() if our previous attempt failed.
  *
  * @param cls our `struct GSC_KeyExchangeInfo`
- * @param tc scheduler context
  */
 static void
-set_key_retry_task (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_key_retry_task (void *cls)
 {
   struct GSC_KeyExchangeInfo *kx = cls;
 
@@ -1104,11 +1102,9 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
  * (and we should prevent this by sending a PING).
  *
  * @param cls the `struct GSC_KeyExchangeInfo`
- * @param tc scheduler context (not used)
  */
 static void
-send_keep_alive (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_keep_alive (void *cls)
 {
   struct GSC_KeyExchangeInfo *kx = cls;
   struct GNUNET_TIME_Relative retry;
@@ -1698,11 +1694,9 @@ sign_ephemeral_key ()
  * Task run to trigger rekeying.
  *
  * @param cls closure, NULL
- * @param tc scheduler context
  */
 static void
-do_rekey (void *cls,
-	  const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_rekey (void *cls)
 {
   struct GSC_KeyExchangeInfo *pos;
 

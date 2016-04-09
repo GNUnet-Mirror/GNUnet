@@ -585,10 +585,9 @@ send_controller_link_response (struct GNUNET_SERVER_Client *client,
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
- * @param tc the Task context from scheduler
  */
 static void
-lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+lcf_proc_task (void *cls);
 
 
 /**
@@ -634,21 +633,18 @@ registration_error:
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
- * @param tc the Task context from scheduler
  */
 static void
-lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+lcf_proc_task (void *cls);
 
 
 /**
  * Task to free resources when forwarded link controllers has been timedout
  *
  * @param cls the LCFContext
- * @param tc the task context from scheduler
  */
 static void
-lcf_forwarded_operation_timeout (void *cls,
-                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+lcf_forwarded_operation_timeout (void *cls)
 {
   struct LCFContext *lcf = cls;
 
@@ -668,10 +664,9 @@ lcf_forwarded_operation_timeout (void *cls,
  * The  Link Controller forwarding task
  *
  * @param cls the LCFContext
- * @param tc the Task context from scheduler
  */
 static void
-lcf_proc_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+lcf_proc_task (void *cls)
 {
   struct LCFContext *lcf = cls;
   struct LCFContextQueue *lcfq;
@@ -852,11 +847,9 @@ trigger_notifications (struct Neighbour *n);
  * neighbour
  *
  * @param cls the neighbour
- * @param tc scheduler task context
  */
 static void
-neighbour_connect_notify_task (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc)
+neighbour_connect_notify_task (void *cls)
 {
   struct Neighbour *n = cls;
   struct NeighbourConnectNotification *h;
@@ -1118,11 +1111,9 @@ GST_free_nccq ()
  * Task to be run upon timeout while attempting to connect to the neighbour
  *
  * @param cls the NeighbourConnectCtxt created in GST_handle_link_controllers()
- * @param tc the scheduler task context
  */
 static void
-timeout_neighbour_connect (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_neighbour_connect (void *cls)
 {
  struct NeighbourConnectCtxt *ncc = cls;
 

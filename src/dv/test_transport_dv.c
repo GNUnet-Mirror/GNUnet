@@ -36,8 +36,7 @@ static struct GNUNET_SCHEDULER_Task * shutdown_task;
 
 
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   if (NULL != topology_op)

@@ -92,7 +92,7 @@ static struct GNUNET_CORE_MessageHandler handlers[] = {
 
 
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_CORE_disconnect (p1.ch);
   p1.ch = NULL;
@@ -144,7 +144,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
 
 
 static void
-timeout_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_task (void *cls)
 {
   FPRINTF (stderr, "%s",  "Timeout.\n");
   if (p1.ch != NULL)

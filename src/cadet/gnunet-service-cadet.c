@@ -98,10 +98,9 @@ static struct GNUNET_CRYPTO_EddsaPrivateKey *my_private_key;
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
 

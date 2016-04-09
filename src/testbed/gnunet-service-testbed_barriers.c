@@ -672,10 +672,9 @@ wbarrier_status_cb (void *cls, const char *name,
  * subcontrollers to barrier init message
  *
  * @param cls barrier
- * @param tc scheduler task context
  */
 static void
-fwd_tout_barrier_init (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+fwd_tout_barrier_init (void *cls)
 {
   struct Barrier *barrier = cls;
 

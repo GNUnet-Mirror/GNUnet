@@ -572,12 +572,9 @@ GNUNET_OS_process_wait (struct GNUNET_OS_Process *proc);
  * variable) and raise those signals.
  *
  * @param cls closure (unused)
- * @param tc scheduler context (unused)
  */
 void
-GNUNET_OS_install_parent_control_handler (void *cls,
-                                          const struct
-                                          GNUNET_SCHEDULER_TaskContext *tc);
+GNUNET_OS_install_parent_control_handler (void *cls);
 
 
 /**

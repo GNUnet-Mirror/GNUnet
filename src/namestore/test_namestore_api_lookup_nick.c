@@ -79,7 +79,7 @@ cleanup ()
  * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   if (NULL != nsqe)
   {
@@ -92,17 +92,19 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   cleanup ();
   res = 0;
 }
 
-void lookup_it (void *cls,
-                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                const char *label,
-                unsigned int rd_count,
-                const struct GNUNET_GNSRECORD_Data *rd)
+
+static void
+lookup_it (void *cls,
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+           const char *label,
+           unsigned int rd_count,
+           const struct GNUNET_GNSRECORD_Data *rd)
 {
   nsqe = NULL;
   int c;

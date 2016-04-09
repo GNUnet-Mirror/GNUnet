@@ -91,8 +91,7 @@ get_preference (struct PreferenceGenerator *pg)
 
 
 static void
-set_pref_task (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_pref_task (void *cls)
 {
   struct BenchmarkPartner *p = cls;
   double pref_value;

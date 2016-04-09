@@ -112,18 +112,18 @@ stop ()
  * incoming connection.
  *
  * @param cls
- * @param tc scheduler context
  */
 static void
-do_udp_read (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_udp_read (void *cls)
 {
   //struct GNUNET_NAT_Test *tst = cls;
   unsigned char reply_buf[1024];
   ssize_t rlen;
   struct sockaddr_in answer;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   ltask4 = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ( (0 == (tc->reason & GNUNET_SCHEDULER_REASON_READ_READY)) ||
        (! GNUNET_NETWORK_fdset_isset (tc->read_ready,
                                       lsock4)) )

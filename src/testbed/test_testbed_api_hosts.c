@@ -67,10 +67,9 @@ struct GNUNET_SCHEDULER_Task * shutdown_id;
  * The shutdown task
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   GNUNET_TESTBED_host_destroy (host);
   while (0 != num_hosts)

@@ -107,7 +107,7 @@ end ()
 
 
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls)
 {
   die_task = NULL;
 
@@ -160,7 +160,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+sendtask (void *cls);
 
 
 static void
@@ -284,13 +284,14 @@ notify_ready (void *cls, size_t size, void *buf)
 
 
 static void
-sendtask (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+sendtask (void *cls)
 {
   struct GNUNET_TIME_Relative delay;
   struct GNUNET_ATS_Properties prop;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   send_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   char *receiver_s = GNUNET_strdup (GNUNET_i2s (&p1->id));

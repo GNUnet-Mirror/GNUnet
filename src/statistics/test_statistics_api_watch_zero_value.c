@@ -33,11 +33,11 @@ static struct GNUNET_STATISTICS_Handle *h;
 
 static struct GNUNET_STATISTICS_Handle *h2;
 
-static struct GNUNET_SCHEDULER_Task * shutdown_task;
+static struct GNUNET_SCHEDULER_Task *shutdown_task;
 
 
 static void
-force_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+force_shutdown (void *cls)
 {
   fprintf (stderr, "Timeout, failed to receive notifications: %d\n", ok);
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
@@ -47,7 +47,7 @@ force_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-normal_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+normal_shutdown (void *cls)
 {
   GNUNET_STATISTICS_destroy (h, GNUNET_NO);
   GNUNET_STATISTICS_destroy (h2, GNUNET_NO);

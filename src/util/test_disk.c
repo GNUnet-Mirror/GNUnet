@@ -141,11 +141,12 @@ iter_callback (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
 }
 
 static void
-iter_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+iter_task (void *cls)
 {
   GNUNET_DISK_directory_iterator_start (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                         "test", &iter_callback, cls);
 }
+
 
 static int
 testDirIter ()

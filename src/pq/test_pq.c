@@ -102,8 +102,9 @@ run_queries (PGconn *conn)
   PGresult *result;
   int ret;
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
-  char msg[] = "Hello";
+  const char msg[] = "hello";
   void *msg2;
+  struct GNUNET_HashCode hmsg;
   size_t msg2_len;
   uint16_t u16;
   uint16_t u162;
@@ -114,9 +115,9 @@ run_queries (PGconn *conn)
 
   priv = GNUNET_CRYPTO_rsa_private_key_create (1024);
   pub = GNUNET_CRYPTO_rsa_private_key_get_public (priv);
-  sig = GNUNET_CRYPTO_rsa_sign (priv,
-				msg,
-				sizeof (msg));
+  memset (&hmsg, 42, sizeof (hmsg));
+  sig = GNUNET_CRYPTO_rsa_sign_fdh (priv,
+                                    &hmsg);
   u16 = 16;
   u32 = 32;
   u64 = 64;

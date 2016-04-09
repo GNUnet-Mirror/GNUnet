@@ -626,11 +626,9 @@ GNUNET_FS_unindex_do_remove_kblocks_ (struct GNUNET_FS_UnindexContext *uc)
  * processed all blocks.  Clean up.
  *
  * @param cls our unindexing context
- * @param tc not used
  */
 static void
-unindex_extract_keywords (void *cls,
-                          const struct GNUNET_SCHEDULER_TaskContext *tc)
+unindex_extract_keywords (void *cls)
 {
   struct GNUNET_FS_UnindexContext *uc = cls;
 

@@ -1463,11 +1463,9 @@ handle_client_disconnect (void *cls,
  * Shutdown nicely
  *
  * @param cls closure, NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   struct Line *line;
   struct Channel *ch;

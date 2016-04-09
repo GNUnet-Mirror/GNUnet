@@ -590,8 +590,7 @@ GST_forwarded_operation_reply_relay (void *cls,
  * @param tc the task context from scheduler
  */
 void
-GST_forwarded_operation_timeout (void *cls,
-                                 const struct GNUNET_SCHEDULER_TaskContext *tc);
+GST_forwarded_operation_timeout (void *cls);
 
 
 /**

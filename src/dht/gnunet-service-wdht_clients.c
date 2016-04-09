@@ -874,16 +874,16 @@ transmit_request (struct ClientQueryRecord *cqr)
  * itself (unless the heap is empty).
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-transmit_next_request_task (void *cls,
-                            const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_next_request_task (void *cls)
 {
   struct ClientQueryRecord *cqr;
   struct GNUNET_TIME_Relative delay;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   retry_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   while (NULL != (cqr = GNUNET_CONTAINER_heap_remove_root (retry_heap)))

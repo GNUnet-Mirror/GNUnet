@@ -150,12 +150,12 @@ struct EgoEntry
    * DLL
    */
   struct EgoEntry *next;
-  
+
   /**
    * DLL
    */
   struct EgoEntry *prev;
-  
+
   /**
    * Ego Identifier
    */
@@ -165,7 +165,7 @@ struct EgoEntry
    * Public key string
    */
   char *keystring;
-  
+
   /**
    * The Ego
    */
@@ -189,7 +189,7 @@ struct RequestHandle
    * Selected ego
    */
   struct EgoEntry *ego_entry;
-  
+
   /**
    * Ptr to current ego private key
    */
@@ -199,7 +199,7 @@ struct RequestHandle
    * Handle to the rest connection
    */
   struct RestConnectionDataHandle *conndata_handle;
-  
+
   /**
    * The processing state
    */
@@ -248,8 +248,8 @@ struct RequestHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;    
-  
+  struct GNUNET_SCHEDULER_Task * timeout_task;
+
   /**
    * The plugin result processor
    */
@@ -289,7 +289,7 @@ cleanup_handle (struct RequestHandle *handle)
   struct EgoEntry *ego_tmp;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up\n");
-  if (NULL != handle->resp_object) 
+  if (NULL != handle->resp_object)
     GNUNET_REST_jsonapi_object_delete (handle->resp_object);
   if (NULL != handle->timeout_task)
     GNUNET_SCHEDULER_cancel (handle->timeout_task);
@@ -324,11 +324,9 @@ cleanup_handle (struct RequestHandle *handle)
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_error (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp;
@@ -347,11 +345,9 @@ do_error (void *cls,
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_cleanup_handle_delayed (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_cleanup_handle_delayed (void *cls)
 {
   struct RequestHandle *handle = cls;
   cleanup_handle(handle);
@@ -377,7 +373,7 @@ token_creat_cont (void *cls,
   char *ticket_str;
   char *token_str;
   char *result_str;
-  
+
   if (NULL == ticket)
   {
     handle->emsg = GNUNET_strdup ("Error in token issue");
@@ -536,7 +532,7 @@ issue_token_cont (struct RestConnectionDataHandle *con,
                                  &aud_key,
                                  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
 
-  //Remote nonce 
+  //Remote nonce
   nonce_str = NULL;
   GNUNET_CRYPTO_hash (GNUNET_IDENTITY_TOKEN_REQUEST_NONCE,
                       strlen (GNUNET_IDENTITY_TOKEN_REQUEST_NONCE),
@@ -600,11 +596,9 @@ issue_token_cont (struct RestConnectionDataHandle *con,
  * Build a GNUid token for identity
  *
  * @param cls the request handle
- * @param tc task context
  */
 static void
-return_token_list (void *cls,
-                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+return_token_list (void *cls)
 {
   char* result_str;
   struct RequestHandle *handle = cls;
@@ -784,7 +778,7 @@ exchange_cont (void *cls,
   char* token_str;
   char* nonce_str;
   uint64_t expected_nonce;
-  
+
   //Get nonce
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE,
                       strlen (GNUNET_REST_JSONAPI_IDENTITY_PROVIDER_EXPECTED_NONCE),
@@ -823,7 +817,7 @@ exchange_cont (void *cls,
   GNUNET_free (result);
   handle->proc (handle->proc_cls, resp, MHD_HTTP_OK);
   cleanup_handle (handle);
-  json_decref (root); 
+  json_decref (root);
 }
 
 
@@ -1010,7 +1004,7 @@ list_ego (void *cls,
   if (ID_REST_STATE_INIT == handle->state) {
     ego_entry = GNUNET_new (struct EgoEntry);
     GNUNET_IDENTITY_ego_get_public_key (ego, &pk);
-    ego_entry->keystring = 
+    ego_entry->keystring =
       GNUNET_CRYPTO_ecdsa_public_key_to_string (&pk);
     ego_entry->ego = ego;
     GNUNET_asprintf (&ego_entry->identifier, "%s", identifier);

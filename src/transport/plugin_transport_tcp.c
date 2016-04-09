@@ -957,11 +957,9 @@ tcp_plugin_query_keepalive_factor (void *cls)
  * Session was idle for too long, so disconnect it
  *
  * @param cls the `struct GNUNET_ATS_Session` of the idle session
- * @param tc scheduler context
  */
 static void
-session_timeout (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *s = cls;
   struct GNUNET_TIME_Relative left;
@@ -1457,11 +1455,9 @@ session_lookup_it (void *cls,
  * Task cleaning up a NAT connection attempt after timeout
  *
  * @param cls the `struct GNUNET_ATS_Session`
- * @param tc scheduler context (unused)
  */
 static void
-nat_connect_timeout (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+nat_connect_timeout (void *cls)
 {
   struct GNUNET_ATS_Session *session = cls;
 
@@ -1500,11 +1496,9 @@ tcp_plugin_update_session_timeout (void *cls,
  * receiving from the TCP client now.
  *
  * @param cls the `struct GNUNET_ATS_Session *`
- * @param tc task context (unused)
  */
 static void
-delayed_done (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_done (void *cls)
 {
   struct GNUNET_ATS_Session *session = cls;
 

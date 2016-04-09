@@ -3169,11 +3169,9 @@ client_conclude (void *cls,
  * Called to clean up, after a shutdown has been requested.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-shutdown_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   while (NULL != sessions_head)
     destroy_session (sessions_head);

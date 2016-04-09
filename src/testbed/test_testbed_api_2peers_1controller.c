@@ -186,10 +186,9 @@ static enum Stage result;
  * Shutdown nicely
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   if (NULL != abort_task)
     GNUNET_SCHEDULER_cancel (abort_task);
@@ -210,14 +209,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * abort task to run on test timed out
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_abort (void *cls)
 {
   LOG (GNUNET_ERROR_TYPE_WARNING, "Test timedout -- Aborting\n");
   abort_task = NULL;
-  do_shutdown (cls, tc);
+  do_shutdown (cls);
 }
 
 
@@ -237,10 +235,9 @@ op_comp_cb (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg);
  * task for delaying a connect
  *
  * @param cls NULL
- * @param tc the task context
  */
 static void
-do_delayed_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_delayed_connect (void *cls)
 {
   delayed_connect_task = NULL;
   FAIL_TEST (NULL == common_operation);

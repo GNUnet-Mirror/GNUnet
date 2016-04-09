@@ -131,11 +131,10 @@ free_iterator (void *cls,
  * Shutdown
  *
  * @param cls NULL
- * @param tc task context from scheduler
  * @return
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_task = NULL;
   GNUNET_ATS_performance_done (ats);

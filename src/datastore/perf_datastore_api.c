@@ -186,11 +186,9 @@ struct CpsRunContext
  * depending on the current state.
  *
  * @param cls the `struct CpsRunContext`
- * @param tc scheduler context (unused)
  */
 static void
-run_continuation (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc);
+run_continuation (void *cls);
 
 
 /**
@@ -344,18 +342,18 @@ delete_value (void *cls,
  * depending on the current state.
  *
  * @param cls the `struct CpsRunContext`
- * @param tc scheduler context (unused)
  */
 static void
-run_continuation (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_continuation (void *cls)
 {
   struct CpsRunContext *crc = cls;
   size_t size;
   static struct GNUNET_HashCode key;
   static char data[65536];
   char gstr[128];
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     crc->phase = RP_ERROR;
   ok = (int) crc->phase;

@@ -166,7 +166,7 @@ shutdown_testcase ()
  * Timeout, give up.
  */
 static void
-timeout_error (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_error (void *cls)
 {
   timeout_task = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -184,8 +184,7 @@ process_downloads_done (void *cls, int success)
 
 
 static void
-do_shutdown (void *cls,
-	     const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   shutdown_testcase ();
 }
@@ -265,11 +264,13 @@ process_adv_sent (void *cls, const char *subsystem, const char *name,
  * Check the server statistics regularly
  */
 static void
-check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+check_statistics (void *cls)
 {
   char *stat;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   check_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_asprintf (&stat, gettext_noop ("# advertised URI `%s' downloaded"),

@@ -99,8 +99,7 @@ disk_utilization_change_cb (void *cls, int delta)
 
 
 static void
-test (void *cls, 
-      const struct GNUNET_SCHEDULER_TaskContext *tc);
+test (void *cls);
 
 
 /**
@@ -115,8 +114,8 @@ test (void *cls,
 static void
 put_continuation (void *cls,
 		  const struct GNUNET_HashCode *key,
-                  uint32_t size, 
-		  int status, 
+                  uint32_t size,
+		  int status,
 		  const char *msg)
 {
   struct CpsRunContext *crc = cls;
@@ -376,7 +375,7 @@ unload_plugin (struct GNUNET_DATASTORE_PluginFunctions *api,
  * the transport and core.
  */
 static void
-cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls)
 {
   struct CpsRunContext *crc = cls;
 
@@ -386,10 +385,12 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+test (void *cls)
 {
   struct CpsRunContext *crc = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     GNUNET_break (0);

@@ -223,11 +223,9 @@ static struct GNUNET_HELLO_Message *my_hello;
  * runs the next requested function.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-state_machine (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc);
+state_machine (void *cls);
 
 
 /* ********************* 'get_info' ******************* */
@@ -620,11 +618,9 @@ parse_hello_uri (const char *put_uri)
  * runs the next requested function.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct PrintContext *pc;
   struct AddressRecord *ar;
@@ -809,11 +805,9 @@ run (void *cls,
  * runs the next requested function.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-state_machine (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+state_machine (void *cls)
 {
   tt = NULL;
 

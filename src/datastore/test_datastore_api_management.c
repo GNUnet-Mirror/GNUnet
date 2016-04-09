@@ -119,7 +119,7 @@ get_expiration (int i)
 
 
 static void
-run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+run_continuation (void *cls);
 
 
 static void
@@ -182,7 +182,7 @@ check_nothing (void *cls, const struct GNUNET_HashCode * key, size_t size,
 
 
 static void
-run_continuation (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_continuation (void *cls)
 {
   struct CpsRunContext *crc = cls;
 

@@ -167,11 +167,9 @@ GNUNET_FRAGMENT_print_ack (const struct GNUNET_MessageHeader *ack)
  * Transmit the next fragment to the other peer.
  *
  * @param cls the `struct GNUNET_FRAGMENT_Context`
- * @param tc scheduler context
  */
 static void
-transmit_next (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmit_next (void *cls)
 {
   struct GNUNET_FRAGMENT_Context *fc = cls;
   char msg[fc->mtu];

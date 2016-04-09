@@ -1020,11 +1020,9 @@ do_help (const char *args)
  * Task run during shutdown.
  *
  * @param cls NULL
- * @param tc unused
  */
 static void
-do_stop_task (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop_task (void *cls)
 {
 #ifdef WINDOWS
   if (NULL != stdin_hlp)
@@ -1132,11 +1130,9 @@ console_reader_chars (void *cls,
  * Task to handle commands from the terminal.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-handle_command (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_command (void *cls)
 {
   char message[MAX_MESSAGE_LENGTH + 1];
 

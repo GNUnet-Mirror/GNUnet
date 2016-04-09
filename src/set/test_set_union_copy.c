@@ -73,12 +73,13 @@ remove_element_str (struct GNUNET_SET_Handle *set, char *str)
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-timeout_fail (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_fail (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_SCHEDULER_shutdown ();

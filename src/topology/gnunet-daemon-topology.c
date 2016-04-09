@@ -506,19 +506,19 @@ find_advertisable_hello (void *cls,
  * peer and ask for it.
  *
  * @param cls for which peer to schedule the HELLO
- * @param tc task context
  */
 static void
-schedule_next_hello (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_next_hello (void *cls)
 {
   struct Peer *pl = cls;
   struct FindAdvHelloContext fah;
   size_t next_want;
   struct GNUNET_TIME_Relative delay;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   pl->hello_delay_task = NULL;
   GNUNET_assert (GNUNET_YES == pl->is_connected);
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;                     /* we're out of here */
   if (pl->hello_req != NULL)
@@ -669,11 +669,9 @@ try_add_peers (void *cls,
  * Add peers and schedule connection attempt
  *
  * @param cls unused, NULL
- * @param tc scheduler context
  */
 static void
-add_peer_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+add_peer_task (void *cls)
 {
   add_task = NULL;
 
@@ -1133,11 +1131,9 @@ hello_advertising_ready (void *cls,
  * the transport and core.
  *
  * @param cls unused, NULL
- * @param tc scheduler context
  */
 static void
-cleaning_task (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleaning_task (void *cls)
 {
   if (NULL != peerinfo_notify)
   {

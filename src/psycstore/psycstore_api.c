@@ -186,10 +186,9 @@ find_op_by_id (struct GNUNET_PSYCSTORE_Handle *h, uint64_t op_id)
  * Try again to connect to the PSYCstore service.
  *
  * @param cls handle to the PSYCstore service.
- * @param tc scheduler context
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect (void *cls);
 
 
 /**
@@ -531,10 +530,9 @@ transmit_next (struct GNUNET_PSYCSTORE_Handle *h)
  * Try again to connect to the PSYCstore service.
  *
  * @param cls Handle to the PSYCstore service.
- * @param tc Scheduler context.
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect (void *cls)
 {
   struct GNUNET_PSYCSTORE_Handle *h = cls;
 

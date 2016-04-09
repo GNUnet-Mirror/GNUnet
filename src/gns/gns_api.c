@@ -203,10 +203,9 @@ reconnect (struct GNUNET_GNS_Handle *handle)
  * Reconnect to GNS
  *
  * @param cls the handle
- * @param tc task context
  */
 static void
-reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
   struct GNUNET_GNS_Handle *handle = cls;
 

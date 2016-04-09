@@ -127,10 +127,9 @@ do_shutdown ()
  * Re-establish the connection to the service.
  *
  * @param cls handle to use to re-connect.
- * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
   do_shutdown ();
   res = 1;
@@ -138,7 +137,7 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
   do_shutdown ();
   res = 0;
@@ -152,8 +151,9 @@ zone_proc (void *cls,
 	   unsigned int rd_count,
 	   const struct GNUNET_GNSRECORD_Data *rd)
 {
-	static int returned_records;
-	static int fail = GNUNET_NO;
+  static int returned_records;
+  static int fail = GNUNET_NO;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Comparing results name %s\n",
 	      name);

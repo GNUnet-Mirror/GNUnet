@@ -95,8 +95,7 @@ static struct PutOperator operators[] = {
  * @param tc scheduler context (unused)
  */
 static void
-gather_dht_put_blocks (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc);
+gather_dht_put_blocks (void *cls);
 
 
 /**
@@ -151,10 +150,9 @@ delay_dht_put_blocks (void *cls, int success)
  * Task that is run periodically to obtain blocks for DHT PUTs.
  *
  * @param cls type of blocks to gather
- * @param tc scheduler context
  */
 static void
-delay_dht_put_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delay_dht_put_task (void *cls)
 {
   struct PutOperator *po = cls;
 
@@ -212,14 +210,15 @@ process_dht_put_content (void *cls,
  * Task that is run periodically to obtain blocks for DHT PUTs.
  *
  * @param cls type of blocks to gather
- * @param tc scheduler context (unused)
  */
 static void
-gather_dht_put_blocks (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+gather_dht_put_blocks (void *cls)
 {
   struct PutOperator *po = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   po->dht_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   po->dht_qe =

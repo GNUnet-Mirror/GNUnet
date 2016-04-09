@@ -121,10 +121,9 @@ cleanup_map ()
  * Shutdown task to cleanup our resources and exit.
  *
  * @param cls NULL
- * @param tc scheduler task context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   cleanup_map ();
   if (NULL != bh)

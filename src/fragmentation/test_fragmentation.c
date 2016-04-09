@@ -68,7 +68,7 @@ static struct GNUNET_TIME_Relative ack_delay;
 
 
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   ret = 0;
   shutdown_task = NULL;

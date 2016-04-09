@@ -60,10 +60,9 @@ const struct GNUNET_CONFIGURATION_Handle *GDS_cfg;
  * Task run during shutdown.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   GDS_NEIGHBOURS_done ();
   GDS_DATACACHE_done ();
@@ -100,7 +99,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_CLIENTS_init (server);
   if (GNUNET_OK != GDS_NEIGHBOURS_init ())
   {
-    shutdown_task (NULL, NULL);
+    shutdown_task (NULL);
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,

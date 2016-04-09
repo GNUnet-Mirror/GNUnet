@@ -40,7 +40,7 @@ static struct GNUNET_FS_UnindexContext *uc;
 
 
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls)
 {
   GNUNET_FS_stop (ctx);
   ctx = NULL;
@@ -48,7 +48,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   struct GNUNET_FS_UnindexContext *u;
 

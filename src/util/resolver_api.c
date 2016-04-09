@@ -532,11 +532,9 @@ handle_response (void *cls,
  * numeric addresses.
  *
  * @param cls `struct GNUNET_RESOLVER_RequestHandle` for the request
- * @param tc unused scheduler context
  */
 static void
-numeric_resolution (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+numeric_resolution (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   struct sockaddr_in v4;
@@ -600,11 +598,9 @@ numeric_resolution (void *cls,
  * respective loopback numeric addresses.
  *
  * @param cls `struct GNUNET_RESOLVER_RequestHandle` for the request
- * @param tc unused scheduler context
  */
 static void
-loopback_resolution (void *cls,
-                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+loopback_resolution (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   struct sockaddr_in v4;
@@ -658,8 +654,7 @@ loopback_resolution (void *cls,
  * Task executed on system shutdown.
  */
 static void
-shutdown_task (void *cls,
-	       const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   s_task = NULL;
   GNUNET_RESOLVER_disconnect ();
@@ -728,15 +723,16 @@ process_requests ()
  * Now try to reconnect to the resolver service.
  *
  * @param cls NULL
- * @param tc scheduler context
  */
 static void
-reconnect_task (void *cls,
-                const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
   r_task = NULL;
   if (NULL == req_head)
     return;                     /* no work pending */
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -802,11 +798,9 @@ reconnect ()
  * A DNS resolution timed out. Notify the application.
  *
  * @param cls the `struct GNUNET_RESOLVER_RequestHandle *`
- * @param tc scheduler context
  */
 static void
-handle_lookup_timeout (void *cls,
-                       const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_lookup_timeout (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
 
@@ -902,11 +896,9 @@ GNUNET_RESOLVER_ip_get (const char *hostname,
  * conversion and invoke the callback.
  *
  * @param cls `struct GNUNET_RESOLVER_RequestHandle` for the request
- * @param tc unused scheduler context
  */
 static void
-numeric_reverse (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+numeric_reverse (void *cls)
 {
   struct GNUNET_RESOLVER_RequestHandle *rh = cls;
   char *result;

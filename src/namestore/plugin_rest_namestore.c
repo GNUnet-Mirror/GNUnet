@@ -82,12 +82,12 @@ struct RecordEntry
    * DLL
    */
   struct RecordEntry *next;
-  
+
   /**
    * DLL
    */
   struct RecordEntry *prev;
-  
+
 };
 
 struct RequestHandle
@@ -106,12 +106,12 @@ struct RequestHandle
    * JSON response object
    */
   struct JsonApiObject *resp_object;
-  
+
   /**
    * Rest connection
    */
   struct RestConnectionDataHandle *conndata_handle;
-  
+
   /**
    * Handle to GNS service.
    */
@@ -121,12 +121,12 @@ struct RequestHandle
    * Handle to NAMESTORE
    */
   struct GNUNET_NAMESTORE_Handle *ns_handle;
-  
+
   /**
    * Handle to NAMESTORE it
    */
   struct GNUNET_NAMESTORE_ZoneIterator *list_it;
-  
+
   /**
    * Private key for the zone
    */
@@ -205,7 +205,7 @@ struct RequestHandle
   /**
    * ID of a task associated with the resolution process.
    */
-  struct GNUNET_SCHEDULER_Task * timeout_task;    
+  struct GNUNET_SCHEDULER_Task * timeout_task;
 
   /**
    * The plugin result processor
@@ -353,24 +353,24 @@ gnsrecord_to_json (const struct GNUNET_GNSRECORD_Data *rd)
  * Task run on shutdown.  Cleans up everything.
  *
  * @param cls unused
- * @param tc scheduler context
  */
 static void
-do_error (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_error (void *cls)
 {
   struct RequestHandle *handle = cls;
   struct MHD_Response *resp = GNUNET_REST_create_json_response (NULL);
+
   handle->proc (handle->proc_cls, resp, MHD_HTTP_BAD_REQUEST);
   cleanup_handle (handle);
 }
 
+
 static void
-cleanup_handle_delayed (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_handle_delayed (void *cls)
 {
   cleanup_handle (cls);
 }
+
 
 /**
  * Create a response with requested records
@@ -688,7 +688,7 @@ json_to_gnsrecord (const json_t *records_json,
     {
       (*rd)[i].expiration_time = etime_abs.abs_value_us;
     }
-    else 
+    else
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Value `%s' invalid for record type `%s'\n"),
                   value, typestring);
@@ -760,7 +760,7 @@ namestore_create_cont (struct RestConnectionDataHandle *con,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Name property is no string\n");
-    GNUNET_REST_jsonapi_object_delete (json_obj); 
+    GNUNET_REST_jsonapi_object_delete (json_obj);
     GNUNET_SCHEDULER_add_now (&do_error, handle);
     return;
   }
@@ -844,7 +844,7 @@ namestore_zkey_cont (struct RestConnectionDataHandle *con,
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY,
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_ZKEY),
                       &key);
-  if ( GNUNET_NO == 
+  if ( GNUNET_NO ==
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {
@@ -1058,7 +1058,7 @@ testservice_id_task (void *cls, int result)
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_EGO,
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_EGO),
                       &key);
-  if ( GNUNET_YES == 
+  if ( GNUNET_YES ==
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {
@@ -1070,7 +1070,7 @@ testservice_id_task (void *cls, int result)
   GNUNET_CRYPTO_hash (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE,
                       strlen (GNUNET_REST_JSONAPI_NAMESTORE_RECORD_TYPE),
                       &key);
-  if ( GNUNET_YES == 
+  if ( GNUNET_YES ==
        GNUNET_CONTAINER_multihashmap_contains (handle->conndata_handle->url_param_map,
                                                &key) )
   {

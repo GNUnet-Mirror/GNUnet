@@ -287,11 +287,13 @@ prepare_daemon (struct MHD_Daemon *daemon_handle);
  * and schedule the next run.
  */
 static void
-run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_daemon (void *cls)
 {
   struct MHD_Daemon *daemon_handle = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   http_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));
@@ -384,8 +386,7 @@ server_start ()
  * Stop HTTP server.
  */
 static void
-server_stop (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+server_stop (void *cls)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "HTTP server shutdown\n");

@@ -67,11 +67,9 @@ insert_done (void *cls, int success)
  * Signature of the main function of a task.
  *
  * @param cls closure
- * @param tc context information (why was this task triggered now)
  */
 static void
-on_shutdown (void *cls,
-          const struct GNUNET_SCHEDULER_TaskContext *tc)
+on_shutdown (void *cls)
 {
   if (NULL != consensus)
   {
@@ -121,4 +119,3 @@ main (int argc, char **argv)
                                  &run, NULL);
   return ret;
 }
-

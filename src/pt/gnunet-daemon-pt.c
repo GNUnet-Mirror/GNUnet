@@ -800,11 +800,9 @@ transmit_dns_request_to_cadet (void *cls,
  * Task run if the time to answer a DNS request via CADET is over.
  *
  * @param cls the `struct RequestContext` to abort
- * @param tc scheduler context
  */
 static void
-timeout_request (void *cls,
-		 const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_request (void *cls)
 {
   struct RequestContext *rc = cls;
   struct CadetExit *exit = rc->exit;
@@ -1023,11 +1021,9 @@ abort_all_requests (struct CadetExit *exit)
  * Function scheduled as very last function, cleans up after us
  *
  * @param cls closure, NULL
- * @param tskctx scheduler context, unused
  */
 static void
-cleanup (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tskctx)
+cleanup (void *cls)
 {
   struct CadetExit *exit;
 

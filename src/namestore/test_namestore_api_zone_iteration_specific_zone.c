@@ -66,14 +66,13 @@ static char *directory;
  * @param tc scheduler context
  */
 static void
-endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+endbadly (void *cls)
 {
-	if (NULL != zi)
-	{
-		GNUNET_NAMESTORE_zone_iteration_stop (zi);
-		zi = NULL;
-	}
-
+  if (NULL != zi)
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (zi);
+    zi = NULL;
+  }
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
@@ -110,13 +109,13 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
-end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end (void *cls)
 {
-	if (NULL != zi)
-	{
-		GNUNET_NAMESTORE_zone_iteration_stop (zi);
-		zi = NULL;
-	}
+  if (NULL != zi)
+  {
+    GNUNET_NAMESTORE_zone_iteration_stop (zi);
+    zi = NULL;
+  }
 
   if (endbadly_task != NULL)
   {

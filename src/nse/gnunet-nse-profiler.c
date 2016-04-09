@@ -265,10 +265,9 @@ close_monitor_connections ()
  * Task run on shutdown; cleans up everything.
  *
  * @param cls unused
- * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls)
 {
   shutdown_task_id = NULL;
   if (GNUNET_YES == shutting_down)
@@ -542,11 +541,9 @@ connect_nse_service ()
  * Task that starts/stops peers to move to the next round.
  *
  * @param cls NULL, unused
- * @param tc scheduler context (unused)
  */
 static void
-next_round (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc);
+next_round (void *cls);
 
 
 /**
@@ -555,12 +552,13 @@ next_round (void *cls,
  * the next round.
  *
  * @param cls unused, NULL
- * @param tc unused
  */
 static void
-finish_round (void *cls,
-	      const struct GNUNET_SCHEDULER_TaskContext *tc)
+finish_round (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   LOG (GNUNET_ERROR_TYPE_INFO, "Have %u connections\n", total_connections);
@@ -670,12 +668,13 @@ adjust_running_peers ()
  * peers; then get statistics from *all* peers.
  *
  * @param cls NULL, unused
- * @param tc unused
  */
 static void
-next_round (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+next_round (void *cls)
 {
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
+
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
   LOG_DEBUG ("Disconnecting nse service of peers\n");

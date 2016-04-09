@@ -627,19 +627,18 @@ prepare_daemon (struct MHD_Daemon *daemon_handle);
  * and schedule the next run.
  *
  * @param cls the `struct MHD_Daemon` of the HTTP server to run
- * @param tc scheduler context
  */
 static void
-run_daemon (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_daemon (void *cls)
 {
   struct MHD_Daemon *daemon_handle = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   if (daemon_handle == daemon_handle_v4)
     hostlist_task_v4 = NULL;
   else
     hostlist_task_v6 = NULL;
-
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   GNUNET_assert (MHD_YES == MHD_run (daemon_handle));

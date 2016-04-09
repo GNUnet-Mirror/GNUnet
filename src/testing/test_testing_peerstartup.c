@@ -63,10 +63,9 @@ struct TestingContext
  * Task for shutdown
  *
  * @param cls the testing context
- * @param tc the tast context
  */
 static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown (void *cls)
 {
   struct TestingContext *test_ctx = cls;
 

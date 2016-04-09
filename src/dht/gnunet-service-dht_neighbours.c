@@ -492,11 +492,9 @@ find_bucket (const struct GNUNET_HashCode *hc)
  * Clean up the "oh" field in the @a cls
  *
  * @param cls a `struct ConnectInfo`
- * @param tc unused
  */
 static void
-offer_hello_done (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+offer_hello_done (void *cls)
 {
   struct ConnectInfo *ci = cls;
 
@@ -707,17 +705,17 @@ add_known_to_bloom (void *cls,
  * and attempt to connect to them.
  *
  * @param cls closure for this task
- * @param tc the context under which the task is running
  */
 static void
-send_find_peer_message (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+send_find_peer_message (void *cls)
 {
   struct GNUNET_TIME_Relative next_send_time;
   struct BloomConstructorContext bcc;
   struct GNUNET_CONTAINER_BloomFilter *peer_bf;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   find_peer_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
   if (newly_found_peers > bucket_size)

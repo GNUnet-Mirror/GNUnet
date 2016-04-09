@@ -278,11 +278,9 @@ GNUNET_DATASTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Task used by 'transmit_drop' to disconnect the datastore.
  *
  * @param cls the datastore handle
- * @param tc scheduler context
  */
 static void
-disconnect_after_drop (void *cls,
-		       const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_after_drop (void *cls)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
 
@@ -383,10 +381,9 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h,
  * A request has timed out (before being transmitted to the service).
  *
  * @param cls the `struct GNUNET_DATASTORE_QueueEntry`
- * @param tc scheduler context
  */
 static void
-timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_queue_entry (void *cls)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = cls;
   struct GNUNET_DATASTORE_Handle *h = qe->h;
@@ -520,10 +517,9 @@ process_queue (struct GNUNET_DATASTORE_Handle *h);
  * Try reconnecting to the datastore service.
  *
  * @param cls the `struct GNUNET_DATASTORE_Handle`
- * @param tc scheduler context
  */
 static void
-try_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+try_reconnect (void *cls)
 {
   struct GNUNET_DATASTORE_Handle *h = cls;
 

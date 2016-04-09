@@ -168,11 +168,9 @@ struct CpsRunContext
  * depending on the current state.
  *
  * @param cls the `struct CpsRunContext`
- * @param tc scheduler context (unused)
  */
 static void
-run_continuation (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc);
+run_continuation (void *cls);
 
 
 /**
@@ -394,11 +392,9 @@ check_update (void *cls,
  * depending on the current state.
  *
  * @param cls the `struct CpsRunContext`
- * @param tc scheduler context (unused)
  */
 static void
-run_continuation (void *cls,
-                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_continuation (void *cls)
 {
   struct CpsRunContext *crc = cls;
 

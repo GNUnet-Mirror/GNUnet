@@ -513,10 +513,9 @@ destroy_channel (struct GNUNET_CADET_Channel *ch, int call_cleaner)
  * Notify client that the transmission has timed out
  *
  * @param cls closure
- * @param tc task context
  */
 static void
-timeout_transmission (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+timeout_transmission (void *cls)
 {
   struct GNUNET_CADET_TransmitHandle *th = cls;
   struct GNUNET_CADET_Handle *cadet = th->channel->cadet;
@@ -594,12 +593,12 @@ send_ack (struct GNUNET_CADET_Channel *ch)
 
 /**
  * Reconnect callback: tries to reconnect again after a failer previous
- * reconnecttion
+ * reconnection.
+ *
  * @param cls closure (cadet handle)
- * @param tc task context
  */
 static void
-reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+reconnect_cbk (void *cls);
 
 
 /**
@@ -696,15 +695,17 @@ do_reconnect (struct GNUNET_CADET_Handle *h)
 /**
  * Reconnect callback: tries to reconnect again after a failer previous
  * reconnecttion
+ *
  * @param cls closure (cadet handle)
- * @param tc task context
  */
 static void
-reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_cbk (void *cls)
 {
   struct GNUNET_CADET_Handle *h = cls;
+  const struct GNUNET_SCHEDULER_TaskContext *tc;
 
   h->reconnect_task = NULL;
+  tc = GNUNET_SCHEDULER_get_task_context ();
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   do_reconnect (h);
@@ -2171,4 +2172,3 @@ GNUNET_CADET_mq_create (struct GNUNET_CADET_Channel *channel)
                                       NULL); /* no handler cls */
   return mq;
 }
-

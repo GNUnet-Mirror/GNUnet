@@ -67,7 +67,7 @@ addr_callback (void *cls, int add_remove,
  * Function that terminates the test.
  */
 static void
-stop (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+stop (void *cls)
 {
   struct GNUNET_NAT_MiniHandle *mini = cls;
 
