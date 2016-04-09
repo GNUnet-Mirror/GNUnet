@@ -1,3 +1,27 @@
+/*
+  This file is part of GNUnet.
+  Copyright (C) 2016 GNUnet e.V.
+
+  GNUnet is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 3, or (at your
+  option) any later version.
+
+  GNUnet is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with GNUnet; see the file COPYING.  If not, write to the
+  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+  Boston, MA 02110-1301, USA.
+*/
+/**
+ * @file conversation/gnunet_gst.c
+ * @brief FIXME
+ * @author Hark
+ */
 #include "gnunet_gst_def.h"
 
 /**
@@ -5,7 +29,7 @@
  */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  void
+void
 dump_buffer(unsigned n, const unsigned char* buf)
 {
   const unsigned char *p, *end;
@@ -68,7 +92,7 @@ gg_load_configuration(GNUNET_gstData * d)
   } else if ( audiobackend_string = "TEST" )
   {
     d->audiobackend = TEST;
-  } else 
+  } else
   {
     d->audiobackend = AUTO;
   }
@@ -109,7 +133,7 @@ write_data (const char *ptr, size_t msg_size)
   {
     ret = write (1, &ptr[off], msg_size - off);
     if (0 >= ret)
-    { 
+    {
       if (-1 == ret)
         GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "write");
 //      quit (2);
@@ -124,10 +148,10 @@ extern GstFlowReturn
 on_appsink_new_sample (GstElement * element, GNUNET_gstData * d)
 {
   static unsigned long long toff;
- 
+
   //size of message including gnunet header
   size_t msg_size;
- 
+
   GstSample *s;
   GstBuffer *b;
   GstMapInfo map;
@@ -144,7 +168,7 @@ on_appsink_new_sample (GstElement * element, GNUNET_gstData * d)
 
   //pull sample from appsink
    s = gst_app_sink_pull_sample (GST_APP_SINK(element));
-   
+
    if (s == NULL)
      return GST_FLOW_OK;
 
@@ -157,20 +181,20 @@ on_appsink_new_sample (GstElement * element, GNUNET_gstData * d)
 
 
 
-   gst_buffer_map (b, &map, GST_MAP_READ);   
+   gst_buffer_map (b, &map, GST_MAP_READ);
 
    size_t len;
     len = map.size;
    if (len > UINT16_MAX - sizeof (struct AudioMessage))
-   { 
+   {
      // this should never happen?
      printf("GSTREAMER sample too big! \n");
      exit(20);
      len = UINT16_MAX - sizeof (struct AudioMessage);
    }
-   
+
    msg_size = sizeof (struct AudioMessage) + len;
- 
+
   // copy the data into audio_message
   memcpy (((char *) &(d->audio_message)[1]), map.data, len);
 /*
@@ -205,7 +229,7 @@ pl_graph(GstElement * pipeline)
   gst_debug_bin_to_dot_file_with_ts(GST_BIN(pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "record_helper.dot");
 
 #endif
- 
+
 
   //  load_configuration();
 }
@@ -215,7 +239,7 @@ pl_graph(GstElement * pipeline)
 extern gboolean
 gnunet_gst_bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Bus message\n");
   switch (GST_MESSAGE_TYPE (msg))
   {
@@ -229,15 +253,15 @@ gnunet_gst_bus_call (GstBus *bus, GstMessage *msg, gpointer data)
     {
       gchar  *debug;
       GError *error;
-      
+
       gst_message_parse_error (msg, &error, &debug);
       g_free (debug);
-      
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, 
-		  "Error: %s\n", 
+
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  "Error: %s\n",
 		  error->message);
       g_error_free (error);
-      
+
       exit (10);
       break;
     }
@@ -253,7 +277,7 @@ gnunet_gst_bus_call (GstBus *bus, GstMessage *msg, gpointer data)
 state_changed_cb (GstBus * bus, GstMessage * msg, GNUNET_gstData * d)
 {
   GstState old_state, new_state, pending_state;
- 
+
   gst_message_parse_state_changed (msg, &old_state, &new_state,
       &pending_state);
   switch (new_state)
@@ -349,7 +373,7 @@ feed_buffer_to_gnunet (GNUNET_gstData * d)
     return OK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "...pulled!\n");
-  
+
     const GstStructure *si;
     char *si_str;
     GstCaps *s_caps;
@@ -378,7 +402,7 @@ feed_buffer_to_gnunet (GNUNET_gstData * d)
     }
     else
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got sample with no caps\n");
-  
+
   b = gst_sample_get_buffer (s);
   if (NULL == b || !gst_buffer_map (b, &m, GST_MAP_READ))
   {
@@ -396,7 +420,7 @@ feed_buffer_to_gnunet (GNUNET_gstData * d)
   msg_size = sizeof (struct AudioMessage) + len;
   audio_message.header.size = htons ((uint16_t) msg_size);
 
-  
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Sending %u bytes of audio data\n", (unsigned int) msg_size);
   for (phase = 0; phase < 2; phase++)
@@ -436,10 +460,10 @@ feed_buffer_to_gnunet (GNUNET_gstData * d)
         return FAIL;
       }
     }
-    
+
  //   if (abort_send)
    //   break;
-      
+
   }
   gst_buffer_unmap (b, &m);
   gst_sample_unref (s);
@@ -477,7 +501,7 @@ feed_buffer_to_gst (const char *audio, size_t b_len, GNUNET_gstData * d)
   switch (flow)
   {
   case GST_FLOW_OK:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Fed %u bytes to the pipeline\n",
 		(unsigned int) b_len);
     break;
@@ -488,7 +512,7 @@ feed_buffer_to_gst (const char *audio, size_t b_len, GNUNET_gstData * d)
     break;
   case GST_FLOW_EOS:
     /* end of stream */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"EOS\n");
     break;
   default:
@@ -523,7 +547,7 @@ gst_element_factory_make_debug( gchar *factoryname, gchar *name)
 
 /*
  static gboolean
-gst_element_link_many_debug(...) 
+gst_element_link_many_debug(...)
 {
   va_list arguments;
   gst_element_link_many(argptr);
@@ -544,13 +568,13 @@ lf(char * msg)
  */
 static void
 autoaudiosink_child_added (GstChildProxy *child_proxy,
-		  GObject *object, 
+		  GObject *object,
 		  gchar *name,
 		  gpointer user_data)
 {
   if (GST_IS_AUDIO_BASE_SRC (object))
     g_object_set (object,
-		  "buffer-time", (gint64) BUFFER_TIME, 
+		  "buffer-time", (gint64) BUFFER_TIME,
 		  "latency-time", (gint64) LATENCY_TIME,
 		  NULL);
 }
@@ -569,14 +593,14 @@ GstElement *
 get_pipeline(GstElement *element)
 {
   GstPipeline *p;
-  
+
   p = gst_object_get_parent(element);
 
   return p;
 }
 
   static void
-decoder_ogg_pad_added (GstElement *element, 
+decoder_ogg_pad_added (GstElement *element,
 	       GstPad *pad,
 	       gpointer data)
 {
@@ -594,7 +618,7 @@ decoder_ogg_pad_added (GstElement *element,
 }
 
 int
-gnunet_read (GNUNET_gstData * d) 
+gnunet_read (GNUNET_gstData * d)
 {
   char readbuf[MAXLINE];
   int ret;
@@ -614,13 +638,13 @@ gnunet_read (GNUNET_gstData * d)
   if (0 == ret)
     return FAIL;
   //#ifdef DEBUG_READ_PURE_OGG
-  
+
      if (d->pure_ogg)
      {
      feed_buffer_to_gst (readbuf, ret, d);
      }
      else
-     { 
+     {
   //#endif
   GNUNET_SERVER_mst_receive (d->stdin_mst, NULL,
       readbuf, ret,
@@ -651,7 +675,7 @@ stdin_receiver (void *cls,
     feed_buffer_to_gst ((const char *) &audio[1], b_len, cls);
     break;
   default:
-    printf("No audio message: %u \n ", ntohs(msg->type));  
+    printf("No audio message: %u \n ", ntohs(msg->type));
     break;
   }
   return GNUNET_OK;
@@ -678,19 +702,19 @@ get_app(GNUNET_gstData *d, int type)
           "Audio playback starts\n");
     printf(" creating appsrc \n ");
     //d->audio_message.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
- 
+
 // d->audio_message = GNUNET_malloc (UINT16_MAX);
  //  d->audio_message = (AudioMessage*)malloc(sizeof(struct AudioMessage));
 //  d->audio_message = GNUNET_malloc(sizeof(struct AudioMessage));
 
 
  //d->audio_message.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
- 
+
 
     d->stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, d);
-  
+
     if ( d->stdin_mst == NULL)
-     printf("stdin_mst = NULL"); 
+     printf("stdin_mst = NULL");
 
     d->appsrc     = gst_element_factory_make ("appsrc",       "appsrc");
 
@@ -714,11 +738,11 @@ get_app(GNUNET_gstData *d, int type)
           "Audio source starts\n");
 
     d->appsink     = gst_element_factory_make ("appsink",       "appsink");
-   
+
     // Move this out of here!
     d->audio_message = GNUNET_malloc (UINT16_MAX);
     (d->audio_message)->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
-    g_object_set (G_OBJECT (d->appsink), "emit-signals", TRUE, "sync", TRUE, NULL); 
+    g_object_set (G_OBJECT (d->appsink), "emit-signals", TRUE, "sync", TRUE, NULL);
 
     g_signal_connect (d->appsink, "new-sample",
           G_CALLBACK (on_appsink_new_sample), &d);
@@ -759,7 +783,7 @@ get_coder(GNUNET_gstData *d , int type)
           "payload", G_TYPE_INT, 96,
           "sprop-stereo", G_TYPE_STRING, "0",
           "encoding-params", G_TYPE_STRING, "2",
-          NULL); 
+          NULL);
 */
       rtpcaps = gst_caps_new_simple ("application/x-rtp",
           "media", G_TYPE_STRING, "audio",
@@ -768,7 +792,7 @@ get_coder(GNUNET_gstData *d , int type)
           "payload", G_TYPE_INT, 96,
           "sprop-stereo", G_TYPE_STRING, "0",
           "encoding-params", G_TYPE_STRING, "2",
-          NULL); 
+          NULL);
 
 
       rtpcapsfilter  = gst_element_factory_make ("capsfilter",    "rtpcapsfilter");
@@ -782,7 +806,7 @@ get_coder(GNUNET_gstData *d , int type)
 
 
   if ( type == ENCODER )
-  { 
+  {
     bin = GST_BIN(gst_bin_new("Gnunet audioencoder"));
 
     encoder  = gst_element_factory_make ("opusenc",       "opus-encoder");
@@ -819,7 +843,7 @@ get_coder(GNUNET_gstData *d , int type)
     srcghostpad = gst_ghost_pad_new ("src", srcpad);
 
   }
-  if ( type == DECODER ) 
+  if ( type == DECODER )
   {
      bin = GST_BIN(gst_bin_new("Gnunet audiodecoder"));
 
@@ -829,7 +853,7 @@ get_coder(GNUNET_gstData *d , int type)
 
       demuxer  = gst_element_factory_make ("rtpopusdepay",      "ogg-demuxer");
       jitterbuffer = gst_element_factory_make ("rtpjitterbuffer", "rtpjitterbuffer");
-    } else { 
+    } else {
       demuxer  = gst_element_factory_make ("oggdemux",      "ogg-demuxer");
     }
     decoder  = gst_element_factory_make ("opusdec",       "opus-decoder");
@@ -844,9 +868,9 @@ get_coder(GNUNET_gstData *d , int type)
     } else {
       gst_bin_add_many( bin, demuxer, decoder, NULL);
 
-      g_signal_connect (demuxer, 
+      g_signal_connect (demuxer,
           "pad-added",
-          G_CALLBACK (decoder_ogg_pad_added), 
+          G_CALLBACK (decoder_ogg_pad_added),
           decoder);
 
       sinkpad = gst_element_get_static_pad(demuxer, "sink");
@@ -866,7 +890,7 @@ get_coder(GNUNET_gstData *d , int type)
   gst_element_add_pad (GST_ELEMENT(bin), srcghostpad);
 
 
-  return bin; 
+  return bin;
 }
   extern GstBin *
 get_audiobin(GNUNET_gstData *d , int type)
@@ -893,7 +917,7 @@ get_audiobin(GNUNET_gstData *d , int type)
     {
       sink     = gst_element_factory_make ("autoaudiosink", "audiosink");
       g_signal_connect (sink, "child-added", G_CALLBACK (autoaudiosink_child_added), NULL);
-    
+
     }
 
     if ( d->audiobackend == ALSA )
@@ -904,7 +928,7 @@ get_audiobin(GNUNET_gstData *d , int type)
     if ( d->audiobackend == JACK )
     {
       sink     = gst_element_factory_make ("jackaudiosink", "audiosink");
-      
+
       g_object_set (G_OBJECT (sink), "client-name", "gnunet", NULL);
 
       if (g_object_class_find_property
@@ -925,7 +949,7 @@ get_audiobin(GNUNET_gstData *d , int type)
     }
 
     g_object_set (sink,
-        "buffer-time", (gint64) BUFFER_TIME, 
+        "buffer-time", (gint64) BUFFER_TIME,
         "latency-time", (gint64) LATENCY_TIME,
         NULL);
 
@@ -983,7 +1007,7 @@ get_audiobin(GNUNET_gstData *d , int type)
 
     if ( d->dropsilence == TRUE )
     {
-      gst_bin_add_many (bin , queue ,removesilence , NULL); 
+      gst_bin_add_many (bin , queue ,removesilence , NULL);
 
       if ( !gst_element_link_many ( queue, removesilence, conv,  NULL) )
         lf ("queue, removesilence, conv ");
@@ -995,10 +1019,10 @@ get_audiobin(GNUNET_gstData *d , int type)
       pad = gst_element_get_static_pad(conv, "sink");
 
     }
-    
+
     ghostpad = gst_ghost_pad_new ("sink", pad);
 
-  } else { 
+  } else {
     // SOURCE
 
     bin = GST_BIN(gst_bin_new("Gnunet audiosource"));
@@ -1028,7 +1052,7 @@ get_audiobin(GNUNET_gstData *d , int type)
 
     if (d->audiobackend == AUTO ) {
             g_signal_connect (source, "child-added", G_CALLBACK (autoaudiosource_child_added), NULL);
-    
+
     } else {
       if (GST_IS_AUDIO_BASE_SRC (source))
         g_object_set (source, "buffer-time", (gint64) BUFFER_TIME, "latency-time", (gint64) LATENCY_TIME, NULL);
@@ -1039,7 +1063,7 @@ get_audiobin(GNUNET_gstData *d , int type)
         {
 
           char *portpattern = "moc";
-          
+
           g_object_set (G_OBJECT (source), "port-pattern", portpattern,
               NULL);
         }

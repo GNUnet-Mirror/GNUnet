@@ -1,3 +1,28 @@
+/*
+  This file is part of GNUnet.
+  Copyright (C) 2016 GNUnet e.V.
+
+  GNUnet is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 3, or (at your
+  option) any later version.
+
+  GNUnet is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with GNUnet; see the file COPYING.  If not, write to the
+  Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+  Boston, MA 02110-1301, USA.
+*/
+/**
+ * @file conversation/gnunet_gst.c
+ * @brief FIXME
+ * @author Hark
+ */
+
 #include "gnunet_gst_def.h"
 #include "gnunet_gst.h"
 
@@ -15,7 +40,7 @@ main (int argc, char *argv[])
   //audio_message->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
 
 
-  //GstPipeline *pipeline; 
+  //GstPipeline *pipeline;
 
   gst = (GNUNET_gstData*)malloc(sizeof(struct GNUNET_gstData));
 
@@ -30,7 +55,7 @@ main (int argc, char *argv[])
   */
   /* Initialize GStreamer */
   gst_init (&argc, &argv);
-   
+
   gst->pipeline = GST_PIPELINE(gst_pipeline_new ("gnunet-media-helper"));
 
 #ifdef IS_SPEAKER
@@ -45,22 +70,22 @@ main (int argc, char *argv[])
   if ( type == SPEAKER)
   {
 
-    gnunetsrc = GST_ELEMENT(get_app(gst, SOURCE));  
+    gnunetsrc = GST_ELEMENT(get_app(gst, SOURCE));
 
     sink = GST_ELEMENT(get_audiobin(gst, SINK));
     decoder = GST_ELEMENT(get_coder(gst, DECODER));
     gst_bin_add_many( GST_BIN(gst->pipeline), gnunetsrc, decoder, sink, NULL);
     gst_element_link_many( gnunetsrc, decoder, sink , NULL);
 
-  } 
+  }
   if ( type == MICROPHONE ) {
 
     source = GST_ELEMENT(get_audiobin(gst, SOURCE));
 
     encoder = GST_ELEMENT(get_coder(gst, ENCODER));
 
-    gnunetsink = GST_ELEMENT(get_app(gst, SINK));  
-  
+    gnunetsink = GST_ELEMENT(get_app(gst, SINK));
+
     gst_bin_add_many( GST_BIN(gst->pipeline), source, encoder, gnunetsink, NULL);
     gst_element_link_many( source, encoder, gnunetsink , NULL);
 
@@ -70,11 +95,11 @@ main (int argc, char *argv[])
   gst_bin_add_many( GST_BIN(gst->pipeline), appsource, appsink, source, encoder, decoder, sink, NULL);
   gst_element_link_many( source, encoder, decoder, sink , NULL);
 */
-  pl_graph(gst->pipeline); 
+  pl_graph(gst->pipeline);
   /* Start playing */
   gst_element_set_state (GST_ELEMENT(gst->pipeline), GST_STATE_PLAYING);
-  
-  //pl_graph(gst->pipeline); 
+
+  //pl_graph(gst->pipeline);
 
   /* Wait until error or EOS */
   //bus = gst_element_get_bus (GST_ELEMENT(gst->pipeline));
@@ -101,7 +126,7 @@ main (int argc, char *argv[])
          flow = on_appsink_new_sample (gst->appsink, gst);
     }
 */
-    } 
+    }
  if ( type == SPEAKER )
  {
    while ( 1 )
