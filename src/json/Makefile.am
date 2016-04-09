@@ -14,7 +14,7 @@ libgnunetjson_la_LDFLAGS = \
   -no-undefined
 libgnunetjson_la_SOURCES = \
   json.c \
-  json_mhd.c \ 
+  json_mhd.c \
   json_generator.c \
   json_helper.c
 libgnunetjson_la_LIBADD = \
@@ -32,5 +32,5 @@ test_json_SOURCES = \
   test_json.c
 test_json_LDADD = \
   libgnunetjson.la \
-  -lgnunetutil \
+  $(top_builddir)/src/util/libgnunetutil.la \
   -ljansson

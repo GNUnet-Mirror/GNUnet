@@ -163,15 +163,15 @@ test_rsa ()
     GNUNET_JSON_spec_end()
   };
   struct GNUNET_CRYPTO_RsaPrivateKey *priv;
-  char msg[] = "Hello";
+  struct GNUNET_HashCode msg;
   json_t *jp;
   json_t *js;
 
   priv = GNUNET_CRYPTO_rsa_private_key_create (1024);
   pub = GNUNET_CRYPTO_rsa_private_key_get_public (priv);
-  sig = GNUNET_CRYPTO_rsa_sign (priv,
-				msg,
-				sizeof (msg));
+  memset (&msg, 42, sizeof (msg));
+  sig = GNUNET_CRYPTO_rsa_sign_fdh (priv,
+                                    &msg);
   GNUNET_assert (NULL != (jp = GNUNET_JSON_from_rsa_public_key (pub)));
   GNUNET_assert (NULL != (js = GNUNET_JSON_from_rsa_signature (sig)));
   GNUNET_assert (GNUNET_OK ==
