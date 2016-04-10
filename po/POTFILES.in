@@ -214,6 +214,7 @@ src/identity-provider/plugin_rest_identity_provider.c
 src/json/json.c
 src/json/json_generator.c
 src/json/json_helper.c
+src/json/json_mhd.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
@@ -308,19 +309,6 @@ src/secretsharing/gnunet-secretsharing-profiler.c
 src/secretsharing/gnunet-service-secretsharing.c
 src/secretsharing/secretsharing_api.c
 src/secretsharing/secretsharing_common.c
-src/sensordashboard/gnunet-sensordashboard.c
-src/sensordashboard/gnunet-service-sensordashboard.c
-src/sensor/gnunet-sensor.c
-src/sensor/gnunet-sensor-profiler.c
-src/sensor/gnunet-service-sensor_analysis.c
-src/sensor/gnunet-service-sensor.c
-src/sensor/gnunet-service-sensor_monitoring.c
-src/sensor/gnunet-service-sensor_reporting.c
-src/sensor/gnunet-service-sensor_update.c
-src/sensor/plugin_sensor_model_gaussian.c
-src/sensor/sensor_api.c
-src/sensor/sensor_util_lib.c
-src/sensor/sensor_util_lib_crypto.c
 src/set/gnunet-service-set.c
 src/set/gnunet-service-set_intersection.c
 src/set/gnunet-service-set_union.c
