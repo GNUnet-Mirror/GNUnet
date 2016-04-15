@@ -250,6 +250,11 @@ struct GNUNET_OS_ProjectData
    */
   const char *homepage;
 
+  /**
+   * Configuration file name (in $XDG_CONFIG_HOME) to use.
+   */
+  const char *config_file;
+
 };
 
 

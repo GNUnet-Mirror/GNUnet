@@ -223,7 +223,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
                      "%s%s%s",
                      xdg,
                      DIR_SEPARATOR_STR,
-                     "gnunet.conf");
+                     GNUNET_OS_project_data_get ()->config_file);
   else
     cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
   lpfx = GNUNET_strdup (binaryName);
