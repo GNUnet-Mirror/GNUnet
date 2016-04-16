@@ -1429,7 +1429,7 @@ GNUNET_SERVICE_run (int argc, char *const *argv,
                      DIR_SEPARATOR_STR,
                      GNUNET_OS_project_data_get ()->config_file);
   else
-    cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
+    cfg_fn = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
   memset (&sctx, 0, sizeof (sctx));
   sctx.options = options;
   sctx.ready_confirm_fd = -1;

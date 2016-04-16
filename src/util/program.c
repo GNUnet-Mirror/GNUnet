@@ -225,7 +225,7 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
                      DIR_SEPARATOR_STR,
                      GNUNET_OS_project_data_get ()->config_file);
   else
-    cfg_fn = GNUNET_strdup (GNUNET_DEFAULT_USER_CONFIG_FILE);
+    cfg_fn = GNUNET_strdup (GNUNET_OS_project_data_get ()->user_config_file);
   lpfx = GNUNET_strdup (binaryName);
   if (NULL != (spc = strstr (lpfx, " ")))
     *spc = '\0';

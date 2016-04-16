@@ -255,6 +255,11 @@ struct GNUNET_OS_ProjectData
    */
   const char *config_file;
 
+  /**
+   * Configuration file name to use (if $XDG_CONFIG_HOME is not set).
+   */
+  const char *user_config_file;
+
 };
 
 

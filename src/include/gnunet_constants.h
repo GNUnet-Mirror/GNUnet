@@ -41,11 +41,6 @@ extern "C"
 #endif
 
 /**
- * Last resort choice for configuration file name.
- */
-#define GNUNET_DEFAULT_USER_CONFIG_FILE "~/.config/gnunet.conf"
-
-/**
  * Bandwidth (in/out) to assume initially (before either peer has
  * communicated any particular preference).  Should be rather low; set
  * so that at least one maximum-size message can be send roughly once
