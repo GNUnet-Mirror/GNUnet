@@ -117,9 +117,9 @@ eval (unsigned int len)
   start = GNUNET_TIME_absolute_get ();
   for (i=0;i<10;i++)
   {
-    sig = GNUNET_CRYPTO_rsa_sign (private_key,
-                                  bbuf,
-                                  bbuf_len);
+    sig = GNUNET_CRYPTO_rsa_sign_blinded (private_key,
+                                          bbuf,
+                                          bbuf_len);
     GNUNET_CRYPTO_rsa_signature_free (sig);
   }
   printf ("10x %u-signing took %s\n",
@@ -135,9 +135,9 @@ eval (unsigned int len)
           64 * 1024 / (1 +
 		       GNUNET_TIME_absolute_get_duration
 		       (start).rel_value_us / 1000LL), "ops/ms");
-  sig = GNUNET_CRYPTO_rsa_sign (private_key,
-                                bbuf,
-                                bbuf_len);
+  sig = GNUNET_CRYPTO_rsa_sign_blinded (private_key,
+                                        bbuf,
+                                        bbuf_len);
   start = GNUNET_TIME_absolute_get ();
   for (i=0;i<10;i++)
   {
