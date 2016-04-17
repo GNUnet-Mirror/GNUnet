@@ -453,6 +453,7 @@ GNUNET_CURL_perform (struct GNUNET_CURL_Context *ctx)
     job->jcc (job->jcc_cls,
               response_code,
               j);
+    json_decref (j);
     GNUNET_CURL_job_cancel (job);
   }
 }

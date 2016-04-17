@@ -113,7 +113,7 @@ struct GNUNET_CURL_Job;
 typedef void
 (*GNUNET_CURL_JobCompletionCallback)(void *cls,
                                      long response_code,
-                                     json_t *json);
+                                     const json_t *json);
 
 
 /**
