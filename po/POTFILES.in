@@ -74,6 +74,7 @@ src/core/gnunet-service-core_kx.c
 src/core/gnunet-service-core_neighbours.c
 src/core/gnunet-service-core_sessions.c
 src/core/gnunet-service-core_typemap.c
+src/curl/curl.c
 src/datacache/datacache.c
 src/datacache/plugin_datacache_heap.c
 src/datacache/plugin_datacache_postgres.c

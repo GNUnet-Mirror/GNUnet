@@ -45,6 +45,7 @@ gnunetinclude_HEADERS = \
   gnunet_conversation_service.h \
   gnunet_core_service.h \
   gnunet_crypto_lib.h \
+  gnunet_curl_lib.h \
   gnunet_datacache_lib.h \
   gnunet_datacache_plugin.h \
   gnunet_datastore_service.h \

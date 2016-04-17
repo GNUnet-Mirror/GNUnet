@@ -24,6 +24,13 @@ endif
 
 if HAVE_JSON
   JSON_DIR = json
+if HAVE_LIBGNURL
+  JSON_DIR += curl
+else
+if HAVE_LIBCURL
+  JSON_DIR += curl
+endif
+endif
 endif
 
 if BUILD_PULSE_HELPERS

@@ -1534,6 +1534,7 @@ src/consensus/Makefile
 src/consensus/consensus.conf
 src/conversation/Makefile
 src/conversation/conversation.conf
+src/curl/Makefile
 src/datacache/Makefile
 src/datastore/Makefile
 src/datastore/datastore.conf

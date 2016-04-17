@@ -46,6 +46,8 @@ GNUNET_JSON_parse (const json_t *root,
   unsigned int i;
   json_t *pos;
 
+  if (NULL == root)
+    return GNUNET_SYSERR;
   for (i=0;NULL != spec[i].parser;i++)
   {
     if (NULL == spec[i].field)
