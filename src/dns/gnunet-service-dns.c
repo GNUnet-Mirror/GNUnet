@@ -219,7 +219,7 @@ static struct GNUNET_HELPER_Handle *hijacker;
 /**
  * Command-line arguments we are giving to the hijacker process.
  */
-static char *helper_argv[7];
+static char *helper_argv[8];
 
 /**
  * Head of DLL of clients we consult.
@@ -284,7 +284,7 @@ cleanup_task (void *cls GNUNET_UNUSED)
     GNUNET_HELPER_stop (hijacker, GNUNET_NO);
     hijacker = NULL;
   }
-  for (i=0;i<7;i++)
+  for (i=0;i<8;i++)
     GNUNET_free_non_null (helper_argv[i]);
   for (i=0;i<=UINT16_MAX;i++)
     cleanup_rr (&requests[i]);
@@ -1040,6 +1040,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   struct in6_addr dns_exit6;
   char *dns_exit;
   char *binary;
+  int nortsetup;
 
   cfg = cfg_;
   stats = GNUNET_STATISTICS_create ("dns", cfg);
@@ -1136,7 +1137,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     return;
   }
   helper_argv[5] = ipv4mask;
-  helper_argv[6] = NULL;
+
+  nortsetup = GNUNET_CONFIGURATION_get_value_yesno (cfg, "dns",
+                                                     "SKIP_ROUTING_SETUP");
+  if (GNUNET_YES == nortsetup)
+    helper_argv[6] = GNUNET_strdup("1");
+  else
+    helper_argv[6] = GNUNET_strdup("0");
+
+  helper_argv[7] = NULL;
   hijacker = GNUNET_HELPER_start (GNUNET_NO,
 				  "gnunet-helper-dns",
 				  helper_argv,

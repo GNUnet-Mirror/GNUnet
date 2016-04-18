@@ -709,6 +709,7 @@ PROCESS_BUFFER:
  *             3: IPv6 netmask length in bits ("64")
  *             4: IPv4 address for the tunnel ("1.2.3.4")
  *             5: IPv4 netmask ("255.255.0.0")
+ *             6: skip sysctl, routing and iptables setup ("0")
  * @return 0 on success, otherwise code indicating type of error:
  *         1 wrong number of arguments
  *         2 invalid arguments (i.e. port number / prefix length wrong)
@@ -733,8 +734,9 @@ main (int argc, char *const*argv)
   char mygid[32];
   int fd_tun;
   uid_t uid;
+  int nortsetup = 0;
 
-  if (6 != argc)
+  if (7 != argc)
   {
     fprintf (stderr, "Fatal: must supply 6 arguments!\n");
     return 1;
@@ -755,40 +757,45 @@ main (int argc, char *const*argv)
     return 254;
   }
 #endif
+  if (0 == strncmp(argv[6], "1", 2))
+    nortsetup = 1;
 
-  /* verify that the binaries were care about are executable */
-  if (0 == access ("/sbin/iptables", X_OK))
-    sbin_iptables = "/sbin/iptables";
-  else if (0 == access ("/usr/sbin/iptables", X_OK))
-    sbin_iptables = "/usr/sbin/iptables";
-  else
+  if (0 == nortsetup)
   {
-    fprintf (stderr,
-	     "Fatal: executable iptables not found in approved directories: %s\n",
-	     strerror (errno));
-    return 3;
-  }
-  if (0 == access ("/sbin/ip", X_OK))
-    sbin_ip = "/sbin/ip";
-  else if (0 == access ("/usr/sbin/ip", X_OK))
-    sbin_ip = "/usr/sbin/ip";
-  else
-  {
-    fprintf (stderr,
-	     "Fatal: executable ip not found in approved directories: %s\n",
-	     strerror (errno));
-    return 4;
-  }
-  if (0 == access ("/sbin/sysctl", X_OK))
-    sbin_sysctl = "/sbin/sysctl";
-  else if (0 == access ("/usr/sbin/sysctl", X_OK))
-    sbin_sysctl = "/usr/sbin/sysctl";
-  else
-  {
-    fprintf (stderr,
-             "Fatal: executable sysctl not found in approved directories: %s\n",
-             strerror (errno));
-    return 5;
+    /* verify that the binaries we care about are executable */
+    if (0 == access ("/sbin/iptables", X_OK))
+      sbin_iptables = "/sbin/iptables";
+    else if (0 == access ("/usr/sbin/iptables", X_OK))
+      sbin_iptables = "/usr/sbin/iptables";
+    else
+    {
+      fprintf (stderr,
+	       "Fatal: executable iptables not found in approved directories: %s\n",
+	       strerror (errno));
+      return 3;
+    }
+    if (0 == access ("/sbin/ip", X_OK))
+      sbin_ip = "/sbin/ip";
+    else if (0 == access ("/usr/sbin/ip", X_OK))
+      sbin_ip = "/usr/sbin/ip";
+    else
+    {
+      fprintf (stderr,
+	       "Fatal: executable ip not found in approved directories: %s\n",
+	       strerror (errno));
+      return 4;
+    }
+    if (0 == access ("/sbin/sysctl", X_OK))
+      sbin_sysctl = "/sbin/sysctl";
+    else if (0 == access ("/usr/sbin/sysctl", X_OK))
+      sbin_sysctl = "/usr/sbin/sysctl";
+    else
+    {
+      fprintf (stderr,
+               "Fatal: executable sysctl not found in approved directories: %s\n",
+               strerror (errno));
+      return 5;
+    }
   }
 
   /* setup 'mygid' string */
@@ -858,6 +865,7 @@ main (int argc, char *const*argv)
   dev[IFNAMSIZ - 1] = '\0';
 
   /* Disable rp filtering */
+  if (0 == nortsetup)
   {
     char *const sysctl_args[] = {"sysctl", "-w",
       "net.ipv4.conf.all.rp_filter=0", NULL};
@@ -921,46 +929,49 @@ main (int argc, char *const*argv)
   /* Forward everything from our EGID (which should only be held
      by the 'gnunet-service-dns') and with destination
      to port 53 on UDP, without hijacking */
-  r = 8; /* failed to fully setup routing table */
+  if (0 == nortsetup)
   {
-    char *const mangle_args[] =
-      {
-	"iptables", "-m", "owner", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
-	"udp", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
-	"ACCEPT", NULL
-      };
-    if (0 != fork_and_exec (sbin_iptables, mangle_args))
-      goto cleanup_rest;
-  }
-  /* Mark all of the other DNS traffic using our mark DNS_MARK */
-  {
-    char *const mark_args[] =
-      {
-	"iptables", "-t", "mangle", "-I", "OUTPUT", "2", "-p",
-	"udp", "--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK,
-	NULL
-      };
-    if (0 != fork_and_exec (sbin_iptables, mark_args))
-      goto cleanup_mangle_1;
-  }
-  /* Forward all marked DNS traffic to our DNS_TABLE */
-  {
-    char *const forward_args[] =
-      {
-	"ip", "rule", "add", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
-      };
-    if (0 != fork_and_exec (sbin_ip, forward_args))
-      goto cleanup_mark_2;
-  }
-  /* Finally, add rule in our forwarding table to pass to our virtual interface */
-  {
-    char *const route_args[] =
-      {
-	"ip", "route", "add", "default", "dev", dev,
-	"table", DNS_TABLE, NULL
-      };
-    if (0 != fork_and_exec (sbin_ip, route_args))
-      goto cleanup_forward_3;
+    r = 8; /* failed to fully setup routing table */
+    {
+      char *const mangle_args[] =
+        {
+	 "iptables", "-m", "owner", "-t", "mangle", "-I", "OUTPUT", "1", "-p",
+	 "udp", "--gid-owner", mygid, "--dport", DNS_PORT, "-j",
+	 "ACCEPT", NULL
+        };
+      if (0 != fork_and_exec (sbin_iptables, mangle_args))
+        goto cleanup_rest;
+    }
+    /* Mark all of the other DNS traffic using our mark DNS_MARK */
+    {
+      char *const mark_args[] =
+        {
+	 "iptables", "-t", "mangle", "-I", "OUTPUT", "2", "-p",
+	 "udp", "--dport", DNS_PORT, "-j", "MARK", "--set-mark", DNS_MARK,
+	 NULL
+        };
+      if (0 != fork_and_exec (sbin_iptables, mark_args))
+        goto cleanup_mangle_1;
+    }
+    /* Forward all marked DNS traffic to our DNS_TABLE */
+    {
+      char *const forward_args[] =
+        {
+	 "ip", "rule", "add", "fwmark", DNS_MARK, "table", DNS_TABLE, NULL
+        };
+      if (0 != fork_and_exec (sbin_ip, forward_args))
+        goto cleanup_mark_2;
+    }
+    /* Finally, add rule in our forwarding table to pass to our virtual interface */
+    {
+      char *const route_args[] =
+        {
+	 "ip", "route", "add", "default", "dev", dev,
+	 "table", DNS_TABLE, NULL
+        };
+      if (0 != fork_and_exec (sbin_ip, route_args))
+        goto cleanup_forward_3;
+    }
   }
 
   /* drop privs *except* for the saved UID; this is not perfect, but better
@@ -1007,6 +1018,7 @@ main (int argc, char *const*argv)
   /* update routing tables again -- this is why we could not fully drop privs */
   /* now undo updating of routing tables; normal exit or clean-up-on-error case */
  cleanup_route_4:
+  if (0 == nortsetup)
   {
     char *const route_clean_args[] =
       {
@@ -1017,6 +1029,7 @@ main (int argc, char *const*argv)
       r += 1;
   }
  cleanup_forward_3:
+  if (0 == nortsetup)
   {
     char *const forward_clean_args[] =
       {
@@ -1026,6 +1039,7 @@ main (int argc, char *const*argv)
       r += 2;
   }
  cleanup_mark_2:
+  if (0 == nortsetup)
   {
     char *const mark_clean_args[] =
       {
@@ -1036,6 +1050,7 @@ main (int argc, char *const*argv)
       r += 4;
   }
  cleanup_mangle_1:
+  if (0 == nortsetup)
   {
     char *const mangle_clean_args[] =
       {
