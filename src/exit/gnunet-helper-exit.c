@@ -667,27 +667,30 @@ main (int argc, char **argv)
     fprintf (stderr, "Fatal: disabling both IPv4 and IPv6 makes no sense.\n");
     return 1;
   }
-  if (0 == access ("/sbin/iptables", X_OK))
-    sbin_iptables = "/sbin/iptables";
-  else if (0 == access ("/usr/sbin/iptables", X_OK))
-    sbin_iptables = "/usr/sbin/iptables";
-  else
+  if (0 != strcmp (argv[2], "-"))
   {
-    fprintf (stderr,
-	     "Fatal: executable iptables not found in approved directories: %s\n",
-	     strerror (errno));
-    return 1;
-  }
-  if (0 == access ("/sbin/sysctl", X_OK))
-    sbin_sysctl = "/sbin/sysctl";
-  else if (0 == access ("/usr/sbin/sysctl", X_OK))
-    sbin_sysctl = "/usr/sbin/sysctl";
-  else
-  {
-    fprintf (stderr,
-	     "Fatal: executable sysctl not found in approved directories: %s\n",
-	     strerror (errno));
-    return 1;
+    if (0 == access ("/sbin/iptables", X_OK))
+      sbin_iptables = "/sbin/iptables";
+    else if (0 == access ("/usr/sbin/iptables", X_OK))
+      sbin_iptables = "/usr/sbin/iptables";
+    else
+    {
+      fprintf (stderr,
+	       "Fatal: executable iptables not found in approved directories: %s\n",
+	       strerror (errno));
+      return 1;
+    }
+    if (0 == access ("/sbin/sysctl", X_OK))
+      sbin_sysctl = "/sbin/sysctl";
+    else if (0 == access ("/usr/sbin/sysctl", X_OK))
+      sbin_sysctl = "/usr/sbin/sysctl";
+    else
+    {
+      fprintf (stderr,
+	       "Fatal: executable sysctl not found in approved directories: %s\n",
+	       strerror (errno));
+      return 1;
+    }
   }
 
   strncpy (dev, argv[1], IFNAMSIZ);
@@ -718,6 +721,7 @@ main (int argc, char **argv)
       }
       set_address6 (dev, address, prefix_len);
     }
+    if (0 != strcmp (argv[2], "-"))
     {
       char *const sysctl_args[] =
 	{
@@ -740,29 +744,31 @@ main (int argc, char **argv)
 
       set_address4 (dev, address, mask);
     }
-    {
-      char *const sysctl_args[] =
-	{
-	  "sysctl", "-w", "net.ipv4.ip_forward=1", NULL
-	};
-      if (0 != fork_and_exec (sbin_sysctl,
-			      sysctl_args))
-      {
-	fprintf (stderr,
-		 "Failed to enable IPv4 forwarding.  Will continue anyway.\n");
-      }
-    }
     if (0 != strcmp (argv[2], "-"))
     {
-      char *const iptables_args[] =
-	{
-	  "iptables", "-t", "nat", "-A", "POSTROUTING", "-o", argv[2], "-j", "MASQUERADE", NULL
-	};
-      if (0 != fork_and_exec (sbin_iptables,
-			      iptables_args))
       {
-	fprintf (stderr,
-		 "Failed to enable IPv4 masquerading (NAT).  Will continue anyway.\n");
+        char *const sysctl_args[] =
+	  {
+	    "sysctl", "-w", "net.ipv4.ip_forward=1", NULL
+	  };
+        if (0 != fork_and_exec (sbin_sysctl,
+			        sysctl_args))
+        {
+	  fprintf (stderr,
+		   "Failed to enable IPv4 forwarding.  Will continue anyway.\n");
+        }
+      }
+      {
+        char *const iptables_args[] =
+	  {
+	    "iptables", "-t", "nat", "-A", "POSTROUTING", "-o", argv[2], "-j", "MASQUERADE", NULL
+	  };
+        if (0 != fork_and_exec (sbin_iptables,
+			        iptables_args))
+        {
+	  fprintf (stderr,
+		   "Failed to enable IPv4 masquerading (NAT).  Will continue anyway.\n");
+        }
       }
     }
   }
