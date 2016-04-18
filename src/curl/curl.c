@@ -21,7 +21,11 @@
  * @author Christian Grothoff
  */
 #include "platform.h"
+#if HAVE_CURL_CURL_H
 #include <curl/curl.h>
+#elif HAVE_GNURL_CURL_H
+#include <gnurl/curl.h>
+#endif
 #include <jansson.h>
 #include "gnunet_curl_lib.h"
 
