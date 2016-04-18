@@ -32,7 +32,7 @@
 #include <gnurl/curl.h>
 #endif
 #include <jansson.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "gnunet_util_lib.h"
 
 
 /**
