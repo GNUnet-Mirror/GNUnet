@@ -24,6 +24,7 @@
  * @author Omar Tarabai
  */
 
+#include "platform.h"
 #include "peerstore.h"
 
 /**

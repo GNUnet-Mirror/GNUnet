@@ -32,7 +32,7 @@
 #ifndef GNUNET_SENSOR_SERVICE_H
 #define GNUNET_SENSOR_SERVICE_H
 
-#include "platform.h"
+#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
 
 #ifdef __cplusplus

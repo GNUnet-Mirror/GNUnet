@@ -33,8 +33,8 @@
 #ifndef GNUNET_PEERSTORE_SERVICE_H
 #define GNUNET_PEERSTORE_SERVICE_H
 
-#include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_common.h"
 
 #ifdef __cplusplus
 extern "C"
