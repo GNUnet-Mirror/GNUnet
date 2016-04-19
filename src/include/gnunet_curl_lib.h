@@ -30,6 +30,8 @@
 #include <curl/curl.h>
 #elif HAVE_GNURL_CURL_H
 #include <gnurl/curl.h>
+#else
+#error "needs curl or gnurl"
 #endif
 #include <jansson.h>
 #include "gnunet_util_lib.h"
