@@ -58,6 +58,7 @@ static const struct GNUNET_OS_ProjectData default_pd = {
   .project_dirname = "gnunet",
   .binary_name = "gnunet-arm",
   .env_varname = "GNUNET_PREFIX",
+  .base_config_varname = "GNUNET_BASE_CONFIG",
   .bug_email = "gnunet-developers@gnu.org",
   .homepage = "http://www.gnu.org/s/gnunet/",
   .config_file = "gnunet.conf",

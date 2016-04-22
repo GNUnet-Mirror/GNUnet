@@ -43,8 +43,11 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
                            const char *filename)
 {
   char *baseconfig;
+  const char *base_config_varname;
 
-  if (NULL != (baseconfig = getenv ("GNUNET_BASE_CONFIG")))
+  base_config_varname = GNUNET_OS_project_data_get ()->base_config_varname;
+
+  if (NULL != (baseconfig = getenv (base_config_varname)))
   {
     baseconfig = GNUNET_strdup (baseconfig);
   }
