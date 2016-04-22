@@ -241,6 +241,13 @@ struct GNUNET_OS_ProjectData
   const char *env_varname_alt;
 
   /**
+   * Name of an environment variable that can be used to override
+   * the location from which default configuration files are loaded
+   * from, for example "GNUNET_BASE_CONFIG".
+   */
+  const char *base_config_varname;
+
+  /**
    * E-mail address for reporting bugs.
    */
   const char *bug_email;
