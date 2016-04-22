@@ -1459,7 +1459,7 @@ setup_service (void *cls,
   if (strcasecmp (section, "arm") == 0)
     return;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, section, "BINARY", &binary))
+      GNUNET_CONFIGURATION_get_value_string (cfg, section, "BINARY", &binary))
   {
     /* not a service section */
     return;
