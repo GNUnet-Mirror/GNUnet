@@ -87,7 +87,6 @@ libgnunetutil_la_SOURCES = \
   crypto_random.c \
   crypto_rsa.c \
   disk.c \
-  disk_iterator.c \
   disk.h \
   getopt.c \
   getopt_helpers.c \

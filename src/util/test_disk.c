@@ -130,23 +130,6 @@ testDirScan ()
   return 0;
 }
 
-static void
-iter_callback (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
-               const char *filename, const char *dirname)
-{
-  int *i = cls;
-
-  (*i)++;
-  GNUNET_DISK_directory_iterator_next (di, GNUNET_NO);
-}
-
-static void
-iter_task (void *cls)
-{
-  GNUNET_DISK_directory_iterator_start (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                        "test", &iter_callback, cls);
-}
-
 
 static int
 testDirIter ()
@@ -160,7 +143,6 @@ testDirIter ()
     return 1;
   if (GNUNET_OK != GNUNET_DISK_directory_create ("test/entry_more"))
     return 1;
-  GNUNET_SCHEDULER_run (&iter_task, &i);
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
     return 1;
   if (i < 3)
@@ -184,6 +166,7 @@ testCanonicalize ()
   return 0;
 }
 
+
 static int
 testChangeOwner ()
 {
@@ -194,6 +177,7 @@ testChangeOwner ()
 #endif
   return 0;
 }
+
 
 static int
 testDirMani ()
@@ -212,8 +196,6 @@ testDirMani ()
     return 1;
   if (GNUNET_OK != GNUNET_DISK_directory_remove ("test"))
     return 1;
-
-
   return 0;
 }
 
