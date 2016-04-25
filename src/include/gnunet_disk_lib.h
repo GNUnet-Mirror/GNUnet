@@ -669,65 +669,6 @@ GNUNET_DISK_directory_scan (const char *dir_name,
 
 
 /**
- * Opaque handle used for iterating over a directory.
- */
-struct GNUNET_DISK_DirectoryIterator;
-
-
-/**
- * Function called to iterate over a directory.
- *
- * @param cls closure
- * @param di argument to pass to #GNUNET_DISK_directory_iterator_next to
- *           get called on the next entry (or finish cleanly);
- *           NULL on error (will be the last call in that case)
- * @param filename complete filename (absolute path)
- * @param dirname directory name (absolute path)
- */
-typedef void
-(*GNUNET_DISK_DirectoryIteratorCallback) (void *cls,
-                                          struct GNUNET_DISK_DirectoryIterator *di,
-                                          const char *filename,
-                                          const char *dirname);
-
-
-/**
- * This function must be called during the DiskIteratorCallback
- * (exactly once) to schedule the task to process the next
- * filename in the directory (if there is one).
- *
- * @param iter opaque handle for the iterator
- * @param can set to #GNUNET_YES to terminate the iteration early
- * @return #GNUNET_YES if iteration will continue,
- *         #GNUNET_NO if this was the last entry (and iteration is complete),
- *         #GNUNET_SYSERR if @a can was #GNUNET_YES
- */
-int
-GNUNET_DISK_directory_iterator_next (struct GNUNET_DISK_DirectoryIterator *iter,
-                                     int can);
-
-
-/**
- * Scan a directory for files using the scheduler to run a task for
- * each entry.  The name of the directory must be expanded first (!).
- * If a scheduler does not need to be used, GNUNET_DISK_directory_scan
- * may provide a simpler API.
- *
- * @param prio priority to use
- * @param dir_name the name of the directory
- * @param callback the method to call for each file
- * @param callback_cls closure for @a callback
- * @return #GNUNET_YES if directory is not empty and @a callback
- *         will be called later, #GNUNET_NO otherwise, #GNUNET_SYSERR on error.
- */
-int
-GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
-                                      const char *dir_name,
-                                      GNUNET_DISK_DirectoryIteratorCallback
-                                      callback, void *callback_cls);
-
-
-/**
  * Create the directory structure for storing
  * a file.
  *
@@ -820,7 +761,8 @@ GNUNET_DISK_filename_canonicalize (char *fn);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GNUNET_DISK_file_change_owner (const char *filename, const char *user);
+GNUNET_DISK_file_change_owner (const char *filename,
+			       const char *user);
 
 
 /**
@@ -839,7 +781,9 @@ struct GNUNET_DISK_MapHandle;
 void *
 GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
                       struct GNUNET_DISK_MapHandle **m,
-                      enum GNUNET_DISK_MapType access, size_t len);
+                      enum GNUNET_DISK_MapType access,
+		      size_t len);
+
 
 /**
  * Unmap a file
@@ -850,8 +794,10 @@ GNUNET_DISK_file_map (const struct GNUNET_DISK_FileHandle *h,
 int
 GNUNET_DISK_file_unmap (struct GNUNET_DISK_MapHandle *h);
 
+
 /**
  * Write file changes to disk
+ *
  * @param h handle to an open file
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
