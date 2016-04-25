@@ -462,11 +462,12 @@ start_process (struct ServiceList *sl,
 	  /* replace '{}' with service name */
 	  while (NULL != (optpos = strstr (options, "{}")))
 	    {
-	      optpos[0] = '%';
-	      optpos[1] = 's';
-	      GNUNET_asprintf (&optpos, options, sl->name);
-	      GNUNET_free (options);
-	      options = optpos;
+              char *new_options;
+              /* terminate string at opening parenthesis */
+              *optpos = 0;
+              GNUNET_asprintf (&new_options, "%s%s%s", options, sl->name, optpos + 2);
+              GNUNET_free (options);
+              options = new_options;
 	    }
 	  /* replace '$PATH' with value associated with "PATH" */
 	  while (NULL != (optpos = strstr (options, "$")))
