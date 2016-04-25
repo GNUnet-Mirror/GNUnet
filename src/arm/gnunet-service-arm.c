@@ -415,13 +415,8 @@ start_process (struct ServiceList *sl,
 {
   char *loprefix;
   char *options;
-  char *optpos;
-  char *optend;
-  const char *next;
   int use_debug;
   int is_simple_service;
-  char b;
-  char *val;
   struct ServiceListeningInfo *sli;
   SOCKTYPE *lsocks;
   unsigned int ls;
@@ -456,42 +451,21 @@ start_process (struct ServiceList *sl,
       GNUNET_CONFIGURATION_get_value_string (cfg, sl->name, "OPTIONS",
 					     &options))
     {
+      char *new_options;
+      char *optpos;
       options = GNUNET_strdup (final_option);
-      if (NULL == strstr (options, "%"))
-	{
-	  /* replace '{}' with service name */
-	  while (NULL != (optpos = strstr (options, "{}")))
-	    {
-              char *new_options;
-              /* terminate string at opening parenthesis */
-              *optpos = 0;
-              GNUNET_asprintf (&new_options, "%s%s%s", options, sl->name, optpos + 2);
-              GNUNET_free (options);
-              options = new_options;
-	    }
-	  /* replace '$PATH' with value associated with "PATH" */
-	  while (NULL != (optpos = strstr (options, "$")))
-	    {
-	      optend = optpos + 1;
-	      while (isupper ((unsigned char) *optend))
-		optend++;
-	      b = *optend;
-	      if ('\0' == b)
-		next = "";
-	      else
-		next = optend + 1;
-	      *optend = '\0';
-	      if (GNUNET_OK !=
-		  GNUNET_CONFIGURATION_get_value_string (cfg, "PATHS",
-							 optpos + 1, &val))
-		val = GNUNET_strdup ("");
-	      *optpos = '\0';
-	      GNUNET_asprintf (&optpos, "%s%s%c%s", options, val, b, next);
-	      GNUNET_free (options);
-	      GNUNET_free (val);
-	      options = optpos;
-	    }
-	}
+      /* replace '{}' with service name */
+      while (NULL != (optpos = strstr (options, "{}")))
+        {
+          /* terminate string at opening parenthesis */
+          *optpos = 0;
+          GNUNET_asprintf (&new_options, "%s%s%s", options, sl->name, optpos + 2);
+          GNUNET_free (options);
+          options = new_options;
+        }
+      new_options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
+      GNUNET_free (options);
+      options = new_options;
     }
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
