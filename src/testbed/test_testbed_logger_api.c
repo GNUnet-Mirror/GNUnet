@@ -112,15 +112,11 @@ do_abort (void *cls)
  * Function called to iterate over a directory.
  *
  * @param cls closure
- * @param di argument to pass to "GNUNET_DISK_directory_iterator_next" to
- *           get called on the next entry (or finish cleanly);
- *           NULL on error (will be the last call in that case)
  * @param filename complete filename (absolute path)
- * @param dirname directory name (absolute path)
  */
 static void
-iterator_cb (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
-             const char *filename, const char *dirname)
+iterator_cb (void *cls,
+             const char *filename)
 {
   const char *fn;
   size_t len;
@@ -129,29 +125,23 @@ iterator_cb (void *cls, struct GNUNET_DISK_DirectoryIterator *di,
 
   cancel = GNUNET_NO;
   if (NULL == filename)
-    goto iteration_cont;
+    return;
   len = strlen (filename);
   if (len < 5)                  /* log file: `pid'.dat */
-    goto iteration_cont;
+    return;
   fn = filename + len;
   if (0 != strcasecmp (".dat", fn - 4))
-    goto iteration_cont;
+    return;
   if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fs,
                                           GNUNET_NO, GNUNET_YES))
-    goto iteration_cont;
+    return;
   if ((BSIZE * 2) != fs)        /* The file size should be equal to what we
                                    have written */
-    goto iteration_cont;
-
+    return;
   cancel = GNUNET_YES;
   result = GNUNET_OK;
-
- iteration_cont:
-  if ( (NULL != di) &&
-       (GNUNET_YES == GNUNET_DISK_directory_iterator_next (di, cancel)) )
-    return;
-  shutdown_now ();
 }
+
 
 /**
  * Functions of this type are called to notify a successful transmission of the
@@ -166,9 +156,12 @@ flush_comp (void *cls, size_t size)
   FAIL_TEST (&write_task == cls, return);
   FAIL_TEST ((BSIZE * 2) == size, return);
   FAIL_TEST (GNUNET_OK == GNUNET_TESTING_peer_stop (peer), return);
-  FAIL_TEST (GNUNET_YES == GNUNET_DISK_directory_iterator_start
-             (GNUNET_SCHEDULER_PRIORITY_DEFAULT, search_dir,
-              &iterator_cb, NULL), return);
+  FAIL_TEST (GNUNET_SYSERR !=
+	     GNUNET_DISK_directory_scan (search_dir,
+					 &iterator_cb,
+					 NULL),
+	     return);
+  shutdown_now ();
 }
 
 
@@ -180,26 +173,30 @@ do_write (void *cls)
 
   write_task = NULL;
   if (0 == i)
-    write_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(1), &do_write, NULL);
+    write_task = GNUNET_SCHEDULER_add_delayed (TIME_REL_SECS(1),
+					       &do_write,
+					       NULL);
   (void) memset (buf, i, BSIZE);
   GNUNET_TESTBED_LOGGER_write (h, buf, BSIZE);
   if (0 == i++)
     return;
-  GNUNET_TESTBED_LOGGER_flush (h, GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_TESTBED_LOGGER_flush (h,
+			       GNUNET_TIME_UNIT_FOREVER_REL,
                                &flush_comp, &write_task);
 }
 
 
 /**
  * Signature of the 'main' function for a (single-peer) testcase that
- * is run using 'GNUNET_TESTING_peer_run'.
+ * is run using #GNUNET_TESTING_peer_run().
  *
  * @param cls closure
  * @param cfg configuration of the peer that was started
  * @param peer identity of the peer that was created
  */
 static void
-test_main (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg,
+test_main (void *cls,
+	   const struct GNUNET_CONFIGURATION_Handle *cfg,
            struct GNUNET_TESTING_Peer *p)
 {
   FAIL_TEST (NULL != (h = GNUNET_TESTBED_LOGGER_connect (cfg)), return);
