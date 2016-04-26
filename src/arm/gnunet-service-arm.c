@@ -463,9 +463,7 @@ start_process (struct ServiceList *sl,
           GNUNET_free (options);
           options = new_options;
         }
-      new_options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
-      GNUNET_free (options);
-      options = new_options;
+      options = GNUNET_CONFIGURATION_expand_dollar (cfg, options);
     }
   use_debug = GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name, "DEBUG");
 
