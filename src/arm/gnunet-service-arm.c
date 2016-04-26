@@ -487,6 +487,7 @@ start_process (struct ServiceList *sl,
     /* A simple service will receive no GNUnet specific
        command line options. */
     binary = GNUNET_strdup (sl->binary);
+    binary = GNUNET_CONFIGURATION_expand_dollar (cfg, binary);
     GNUNET_asprintf (&quotedbinary,
                      "\"%s\"",
                      sl->binary);
